@@ -1185,7 +1185,7 @@ fn plan_vcarve_op(
     // (docs/specs/v-carve.md decision 12).
     let levels = carve_levels(op.end_depth - op.start_depth, op.passes);
     let moves = vcarve_moves(
-        &plan.area_paths(),
+        &plan.area_walks(),
         &levels,
         ctx.top_z,
         ctx.job.machine.safe_z,

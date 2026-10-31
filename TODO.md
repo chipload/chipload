@@ -87,6 +87,13 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **V-carve lifts less** (the user, 2026-10-31, testing with Edwardian Script: "the bit go
+  up and down doing seemingly nothing"; docs/specs/vcarve-fewer-lifts.md): **done
+  2026-10-31**, all decisions as recommended, in 0.30.0. Corner branches under 5 mm out
+  and back, pass pieces within 10 mm joined through the groove; the carve the same (pixel
+  for pixel in the simulation), about half the lifts. To try on the router with the
+  user's script font.
+
 - **Delete from the canvas** (the user, 2026-10-31: "text is not deletable from the
   canvas… all shapes should be deletable via canvas"): **done 2026-10-31.** Del (and
   right-click > *Delete*) removes a text, a picture or a DXF selected as a whole, as its

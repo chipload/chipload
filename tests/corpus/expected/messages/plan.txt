@@ -1,9 +1,9 @@
 $ chipload plan tests/corpus/jobs/v10/vcarve_letters.chipload
 exit 0
 --- stdout
-Estimated time: 44 s (cutting 32 s, rapids 9 s, spindle 3 s)
+Estimated time: 41 s (cutting 31 s, rapids 6 s, spindle 3 s)
 Cut outline: 66.146 × 32.500 mm (X -1.250 … 64.896, Y -1.250 … 31.250, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 41 s
+  Operation 1 (Letters): 38 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth
@@ -324,9 +324,9 @@ exit 0
 --- stdout
 warning: Operation 1 (Logo): contours #1, #3: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 warning: Operation 1 (Logo): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-Estimated time: 1 min 23 s (cutting 1 min 10 s, rapids 10 s, spindle 3 s)
+Estimated time: 1 min 12 s (cutting 1 min 2 s, rapids 7 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Logo): 1 min 20 s
+  Operation 1 (Logo): 1 min 9 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Logo): 0.033 mm/tooth
@@ -426,7 +426,7 @@ Operation 2: a ring starts at (19.000, 7.000) (default)
 Operation 4: a ring starts at (320.000, 12.000) (default)
 Part 1 simple part: one
 Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
-Estimated time: 3 min 48 s (cutting 3 min 28 s, rapids 11 s, spindle 9 s), plus 2 tool changes
+Estimated time: 3 min 48 s (cutting 3 min 28 s, rapids 10 s, spindle 9 s), plus 2 tool changes
 Cut outline: 417.000 × 196.800 mm (X 4.000 … 421.000, Y 4.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s
     Operation 1 (Holes): 1 min 0 s
@@ -461,7 +461,7 @@ Operation 2: a ring starts at (19.000, 7.000) (default)
 Operation 4: a ring starts at (340.000, 2.000) (default)
 Part 1 simple part: one
 Part 2 part B: 2 × 1 copies, pitch 82.000 × 122.000 mm, operation by operation
-Estimated time: 3 min 50 s (cutting 3 min 28 s, rapids 12 s, spindle 9 s), plus 2 tool changes
+Estimated time: 3 min 49 s (cutting 3 min 28 s, rapids 12 s, spindle 9 s), plus 2 tool changes
 Cut outline: 479.000 × 201.800 mm (X 4.000 … 483.000, Y -1.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s
     Operation 1 (Holes): 1 min 0 s
@@ -547,11 +547,11 @@ $ chipload plan tests/corpus/jobs/v27/text.chipload
 exit 0
 --- stdout
 Operation 2: a ring starts at (134.972, 62.970) (default)
-Estimated time: 1 min 3 s (cutting 46 s, rapids 10 s, spindle 6 s), plus 1 tool change
+Estimated time: 56 s (cutting 45 s, rapids 5 s, spindle 6 s), plus 1 tool change
 Cut outline: 148.732 × 52.465 mm (X 8.793 … 157.525, Y 20.000 … 72.465, the tool included): the smallest stock that holds the job.
-  Operation 1 (Words): 45 s
+  Operation 1 (Words): 39 s
   Operation 2 (Letter): 12 s
-  File 1: 48 s
+  File 1: 42 s
   File 2: 15 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
@@ -596,15 +596,15 @@ exit 0
 warning: Operation 1 (Words): contours #8: 0.174 mm of centre line is narrower than the tip (0.200 mm) and isn't carved
 warning: Operation 1 (Words): contours #1, #2: 0.087 mm of centre line is narrower than the tip (0.200 mm) and isn't carved
 warning: Operation 1 (Words): contours #3, #4, #5: 0.176 mm of centre line is narrower than the tip (0.200 mm) and isn't carved
-Operation 2: a ring starts at (120.631, 32.124) (default)
-Operation 2: a ring starts at (123.125, 45.347) (default)
-Operation 2: a ring starts at (137.974, 45.289) (default)
-Estimated time: 2 min 31 s (cutting 2 min 7 s, rapids 18 s, spindle 6 s), plus 1 tool change
+Operation 2: a ring starts at (136.563, 35.630) (default)
+Operation 2: a ring starts at (132.082, 46.063) (default)
+Operation 2: a ring starts at (137.974, 45.662) (default)
+Estimated time: 2 min 19 s (cutting 2 min 1 s, rapids 12 s, spindle 6 s), plus 1 tool change
 Cut outline: 145.290 × 61.495 mm (X 8.379 … 153.668, Y 20.000 … 81.495, the tool included): the smallest stock that holds the job.
-  Operation 1 (Words): 59 s
-  Operation 2 (Letter): 1 min 26 s
-  File 1: 1 min 2 s
-  File 2: 1 min 29 s
+  Operation 1 (Words): 50 s
+  Operation 2 (Letter): 1 min 23 s
+  File 1: 53 s
+  File 2: 1 min 26 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Words): 0.033 mm/tooth
@@ -626,7 +626,7 @@ Operation 3: a ring starts at (19.000, 7.000) (default)
 Operation 5: a ring starts at (320.000, 12.000) (default)
 Part 1 simple part: one
 Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
-Estimated time: 8 min 23 s (cutting 8 min 0 s, rapids 12 s, spindle 12 s), plus 3 tool changes
+Estimated time: 8 min 23 s (cutting 7 min 59 s, rapids 11 s, spindle 12 s), plus 3 tool changes
 Cut outline: 530.000 × 232.500 mm (X -25.000 … 505.000, Y -6.250 … 226.250, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 6 min 55 s
     Operation 1 (Face the stock): 4 min 31 s
@@ -714,12 +714,12 @@ $ chipload plan tests/corpus/jobs/v33/vcarve_floor.chipload
 exit 0
 --- stdout
 warning: Operation 1 (Sign): contours #2, #4: with the 3 mm end mill, 94 % of the floor is cleared; one of at most 1.3 mm would clear all of it
-Estimated time: 2 min 20 s (cutting 2 min 0 s, rapids 13 s, spindle 6 s), plus 1 tool change
+Estimated time: 2 min 9 s (cutting 1 min 53 s, rapids 10 s, spindle 6 s), plus 1 tool change
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Sign): 1 min 26 s
+  Operation 1 (Sign): 1 min 15 s
   Operation 1.1 (Sign, floor): 48 s
   File 1: 51 s
-  File 2: 1 min 29 s
+  File 2: 1 min 18 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Sign): 0.033 mm/tooth
@@ -762,9 +762,9 @@ exit 0
 --- stdout
 warning: Operation 1 (Sign): contours #1, #3: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 warning: Operation 1 (Sign): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-Estimated time: 1 min 46 s (cutting 1 min 29 s, rapids 14 s, spindle 3 s)
+Estimated time: 1 min 29 s (cutting 1 min 17 s, rapids 9 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Sign): 1 min 43 s
+  Operation 1 (Sign): 1 min 26 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Sign): 0.033 mm/tooth
@@ -777,12 +777,12 @@ exit 0
 warning: Operation 3 (Cut out): cuts 0.300 mm below the stock (into the spoilboard)
 warning: Operation 2 (Border): the V-groove is 1.932 mm wide at the top
 Operation 3: a ring starts at (91.843, 42.691) (default)
-Estimated time: 2 min 33 s (cutting 2 min 17 s, rapids 10 s, spindle 6 s), plus 1 tool change
+Estimated time: 2 min 28 s (cutting 2 min 15 s, rapids 6 s, spindle 6 s), plus 1 tool change
 Cut outline: 144.314 × 80.618 mm (X 77.843 … 222.157, Y 39.691 … 120.309, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 43 s
+  Operation 1 (Letters): 38 s
   Operation 2 (Border): 19 s
   Operation 3 (Cut out): 1 min 24 s
-  File 1: 1 min 6 s
+  File 1: 1 min 1 s
   File 2: 1 min 27 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):

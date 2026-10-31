@@ -59,6 +59,16 @@ impl VBit {
 /// the end mill stops reaching is found on each.
 const CLEANUP_STEP_MM: f64 = 0.5;
 
+/// A dead-end branch of the centre line (into a corner) shorter than this, mm, is cut out
+/// and back from the line it hangs off, instead of as a cut of its own with a lift to safe Z
+/// before and after (docs/specs/vcarve-fewer-lifts.md §3.1, decision 2).
+const SPUR_OUT_AND_BACK_MM: f64 = 5.0;
+
+/// Two cuts of one walk of the centre line closer than this along it, mm, are joined
+/// through the groove already cut instead of with a lift (vcarve-fewer-lifts.md §3.2,
+/// decision 3).
+const LINK_ALONG_MM: f64 = 10.0;
+
 /// One continuous cut: points and the tip depth below the carved surface at each (>= 0).
 #[derive(Debug, Clone, PartialEq)]
 pub struct CarvePath {
@@ -68,9 +78,15 @@ pub struct CarvePath {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VcarvePlan {
-    /// In cut order, area by area.
+    /// What is cut, in cut order: the centre line's pieces (where the stroke is at least as
+    /// wide as the tip) and the walls.
     pub paths: Vec<CarvePath>,
-    /// How many of `paths` each area has, in cut order: an area (a letter, the dot of an
+    /// The same as continuous walks, in cut order: each walk of the centre line whole,
+    /// with the tip depth wherever it is (negative where the stroke is narrower than the
+    /// tip, which isn't cut), and the walls. Moves are made from these, so a pass can join
+    /// two pieces of one walk without a lift (docs/specs/vcarve-fewer-lifts.md).
+    pub walks: Vec<CarvePath>,
+    /// How many of `walks` each area has, in cut order: an area (a letter, the dot of an
     /// i) gets all its passes before the next (docs/specs/v-carve.md decision 13).
     pub areas: Vec<usize>,
     /// Warnings: strokes wider than the depth allows, strokes narrower than the tip.
@@ -189,13 +205,14 @@ pub fn plan_vcarve(
         }
         regions.push((axis, walls));
     }
-    let (paths, areas) = areas_in_order(regions, bit, cap, start);
+    let (paths, walks, areas) = areas_in_order(regions, bit, cap, start);
     let deepest = paths
         .iter()
         .flat_map(|p| p.depths.iter().copied())
         .fold(0.0, f64::max);
     Ok(VcarvePlan {
         paths,
+        walks,
         areas,
         notes,
         deepest,
@@ -203,16 +220,18 @@ pub fn plan_vcarve(
     })
 }
 
-/// The areas' paths in cut order, and how many each has: the area nearest the tool first
-/// (`area_gap`; equally near, the first), its centre line walked from where the tool is,
-/// then its walls nearest first; the next area from where that one ends.
+/// The areas' cuts and walks in cut order, and how many walks each area has: the area
+/// nearest the tool first (`area_gap`; equally near, the first), its centre line walked
+/// from where the tool is, then its walls nearest first; the next area from where that one
+/// ends.
 fn areas_in_order(
     mut regions: Vec<(Graph, Vec<CarvePath>)>,
     bit: &VBit,
     cap: f64,
     start: Point,
-) -> (Vec<CarvePath>, Vec<usize>) {
+) -> (Vec<CarvePath>, Vec<CarvePath>, Vec<usize>) {
     let mut paths = Vec::new();
+    let mut walks = Vec::new();
     let mut areas = Vec::new();
     let mut at = start;
     while !regions.is_empty() {
@@ -227,19 +246,31 @@ fn areas_in_order(
         .next()
         .unwrap_or(0);
         let (graph, walls) = regions.remove(pick);
-        let before = paths.len();
+        let before = walks.len();
         for walked in graph.walk(at) {
-            paths.extend(carve_pieces(&walked, bit, cap));
+            let pieces = carve_pieces(&walked, bit, cap);
+            if pieces.is_empty() {
+                continue;
+            }
+            paths.extend(pieces);
+            walks.push(CarvePath {
+                points: walked.iter().map(|w| w.0).collect(),
+                depths: walked.iter().map(|w| bit.depth_for(w.1).min(cap)).collect(),
+            });
         }
-        if let Some(&end) = paths[before..].last().and_then(|p| p.points.last()) {
+        if let Some(&end) = paths.last().and_then(|p| p.points.last())
+            && walks.len() > before
+        {
             at = end;
         }
-        paths.extend(nearest_first(walls, &mut at));
-        if paths.len() > before {
-            areas.push(paths.len() - before);
+        let walls = nearest_first(walls, &mut at);
+        paths.extend(walls.iter().cloned());
+        walks.extend(walls);
+        if walks.len() > before {
+            areas.push(walks.len() - before);
         }
     }
-    (paths, areas)
+    (paths, walks, areas)
 }
 
 /// How far an area is from `at`: to its centre line's nearest node with an edge, or its
@@ -260,9 +291,9 @@ fn area_gap(graph: &Graph, walls: &[CarvePath], at: Point) -> f64 {
 }
 
 impl VcarvePlan {
-    /// The paths, area by area (`areas`).
-    pub fn area_paths(&self) -> Vec<&[CarvePath]> {
-        let mut rest = self.paths.as_slice();
+    /// The walks, area by area (`areas`).
+    pub fn area_walks(&self) -> Vec<&[CarvePath]> {
+        let mut rest = self.walks.as_slice();
         let mut split = Vec::new();
         for &n in &self.areas {
             let (area, after) = rest.split_at(n.min(rest.len()));
@@ -300,33 +331,32 @@ pub fn vcarve_moves(
     moves
 }
 
-/// One area's passes.
+/// One area's passes. In each, every walk is cut where it is deeper than the pass before
+/// reached (the first: where the stroke is as wide as the tip), no deeper than the pass's
+/// level, in runs joined through the groove already cut (`pass_runs`); a lift to safe Z
+/// only between runs.
 fn area_moves(
     moves: &mut Vec<Move>,
-    paths: &[CarvePath],
+    walks: &[CarvePath],
     levels: &[f64],
     surface_z: f64,
     safe_z: f64,
     feed: f64,
     plunge_feed: f64,
 ) {
-    let mut previous: Option<f64> = None;
+    let mut above = 0.0;
     for &level in levels {
-        for path in paths {
-            let pieces = match previous {
-                None => vec![path.clone()],
-                Some(above) => deeper_than(path, above),
-            };
-            for piece in pieces {
-                let Some(&first) = piece.points.first() else {
+        for walk in walks {
+            for run in pass_runs(walk, above, level, LINK_ALONG_MM) {
+                let Some(&first) = run.points.first() else {
                     continue;
                 };
-                let z_of = |d: f64| surface_z - d.min(level);
+                let z_of = |d: f64| surface_z - d;
                 moves.push(Move::rapid_xy(first));
-                let mut z = z_of(piece.depths[0]);
+                let mut z = z_of(run.depths[0]);
                 moves.push(Move::feed_z(z, plunge_feed));
                 let mut at = first;
-                for (&p, &d) in piece.points.iter().zip(&piece.depths).skip(1) {
+                for (&p, &d) in run.points.iter().zip(&run.depths).skip(1) {
                     let next = z_of(d);
                     // Steeper than 45° down: the plunge feed (decision 10).
                     let rate = if z - next > distance(at, p) {
@@ -340,8 +370,87 @@ fn area_moves(
                 moves.push(Move::rapid_z(safe_z));
             }
         }
-        previous = Some(level);
+        above = level;
     }
+}
+
+/// What one pass cuts of `walk`: where its depth is more than `above` (what the passes
+/// before reached; 0 for the first, so nothing narrower than the tip), no deeper than
+/// `level`, starting and ending at `above` where the depth crosses it. Two such pieces at
+/// most `link` apart along the walk are one run: between them the walk is no deeper than
+/// `above`, so it is cut to its full depth already, and the tool follows it at that depth,
+/// travelling through the groove without cutting; where the stroke is narrower than the
+/// tip, a little above the surface, the cone as wide as the stroke
+/// (docs/specs/vcarve-fewer-lifts.md §3.2). Out into a corner's tip and back to where the
+/// cut stopped, it turns there instead. Depths below the carved surface.
+fn pass_runs(walk: &CarvePath, above: f64, level: f64, link: f64) -> Vec<CarvePath> {
+    let cut = |d: f64| d > above + DEPTH_TOL_MM;
+    // The walk with the points where the depth crosses `above`, each marked as cut or not.
+    let mut marked: Vec<(Point, f64, bool)> = Vec::new();
+    for (i, (&p, &d)) in walk.points.iter().zip(&walk.depths).enumerate() {
+        if i > 0 {
+            let (q, e) = (walk.points[i - 1], walk.depths[i - 1]);
+            if cut(e) != cut(d) && (d - e).abs() > 0.0 {
+                let t = (above - e) / (d - e);
+                let at = (q.0 + (p.0 - q.0) * t, q.1 + (p.1 - q.1) * t);
+                marked.push((at, above, true));
+            }
+        }
+        marked.push((p, if cut(d) { d.min(level) } else { d }, cut(d)));
+    }
+    let empty = || CarvePath {
+        points: Vec::new(),
+        depths: Vec::new(),
+    };
+    let mut runs = Vec::new();
+    let mut run = empty();
+    let mut gap: Vec<(Point, f64)> = Vec::new();
+    for (p, depth, is_cut) in marked {
+        if !is_cut {
+            if !run.points.is_empty() {
+                gap.push((p, depth));
+            }
+            continue;
+        }
+        if let Some(&last) = run.points.last()
+            && !gap.is_empty()
+        {
+            let mut from = last;
+            let mut along = 0.0;
+            for &(g, _) in &gap {
+                along += distance(from, g);
+                from = g;
+            }
+            along += distance(from, p);
+            if distance(last, p) <= CHAIN_TOL_MM {
+                // Out into a corner's tip and back: it turns where the cut stopped.
+            } else if along <= link {
+                for &(g, e) in &gap {
+                    run.points.push(g);
+                    run.depths.push(e);
+                }
+            } else {
+                runs.push(std::mem::replace(&mut run, empty()));
+            }
+        }
+        gap.clear();
+        // Not the same point twice (where it turned): no move of no length.
+        let repeat = run
+            .points
+            .last()
+            .is_some_and(|&last| distance(last, p) <= CHAIN_TOL_MM)
+            && run
+                .depths
+                .last()
+                .is_some_and(|&e| (e - depth).abs() <= DEPTH_TOL_MM);
+        if !repeat {
+            run.points.push(p);
+            run.depths.push(depth);
+        }
+    }
+    runs.push(run);
+    runs.retain(|r| r.points.len() >= 2);
+    runs
 }
 
 /// Pass depths below the carved surface: `passes` passes to `depth` that each remove the
@@ -359,12 +468,6 @@ pub fn carve_levels(depth: f64, passes: u32) -> Vec<f64> {
             }
         })
         .collect()
-}
-
-/// The parts of `path` deeper than `above`, each starting and ending at `above`
-/// (interpolated) where it crosses that level.
-fn deeper_than(path: &CarvePath, above: f64) -> Vec<CarvePath> {
-    split_where(path, |d| d > above + DEPTH_TOL_MM, above)
 }
 
 /// Pieces of `path` where `keep(depth)`, cut at `level` where the depth crosses it.
@@ -505,6 +608,11 @@ fn nearest_first(mut rings: Vec<CarvePath>, at: &mut Point) -> Vec<CarvePath> {
 }
 
 /// A length with 3 decimals, for notes.
+/// An edge's length along its points, mm.
+fn edge_length(edge: &crate::medial::Edge) -> f64 {
+    edge.points.windows(2).map(|w| distance(w[0], w[1])).sum()
+}
+
 fn fixed3(mm: f64) -> Value {
     Value::Length(mm, Digits::Fixed(3))
 }
@@ -585,10 +693,83 @@ impl Graph {
         total
     }
 
+    /// The dead-end branch from `node` along unused edge `e`: its edges in order, when it
+    /// reaches an end of the axis (a corner) within `limit` mm, through nodes with no other
+    /// unused edge.
+    fn spur(
+        &self,
+        node: usize,
+        e: usize,
+        used: &[bool],
+        left: &[usize],
+        limit: f64,
+    ) -> Option<Vec<usize>> {
+        let mut chain = vec![e];
+        let mut length = edge_length(&self.edges[e]);
+        let mut at = self.edges[e].other(node);
+        loop {
+            if length > limit || chain.len() > self.edges.len() {
+                return None;
+            }
+            match left[at] {
+                1 => return Some(chain),
+                2 => {
+                    let onward = (0..self.edges.len()).find(|&f| {
+                        !used[f] && !chain.contains(&f) && self.edges[f].ends.contains(&at)
+                    })?;
+                    length += edge_length(&self.edges[onward]);
+                    at = self.edges[onward].other(at);
+                    chain.push(onward);
+                }
+                _ => return None,
+            }
+        }
+    }
+
+    /// Cut the short dead-end branches at `node` out and back (vcarve-fewer-lifts.md
+    /// §3.1): out along each to its corner and back along it to `node`, added to `path`.
+    /// Not the last edge left at `node`: the walk goes on along that one anyway.
+    fn spurs_out_and_back(
+        &self,
+        node: usize,
+        path: &mut Vec<(Point, f64)>,
+        used: &mut [bool],
+        left: &mut [usize],
+    ) {
+        loop {
+            if left[node] < 2 {
+                return;
+            }
+            let found = (0..self.edges.len())
+                .filter(|&e| !used[e] && self.edges[e].ends.contains(&node))
+                .find_map(|e| self.spur(node, e, used, left, SPUR_OUT_AND_BACK_MM));
+            let Some(chain) = found else {
+                return;
+            };
+            let mut out: Vec<(Point, f64)> = Vec::new();
+            let mut at = node;
+            for &e in &chain {
+                used[e] = true;
+                let edge = &self.edges[e];
+                left[edge.ends[0]] -= 1;
+                left[edge.ends[1]] -= 1;
+                let walked = edge.from(at);
+                let skip = usize::from(!out.is_empty());
+                out.extend(walked.into_iter().skip(skip));
+                at = edge.other(at);
+            }
+            let skip = usize::from(!path.is_empty());
+            let back: Vec<(Point, f64)> = out.iter().rev().skip(1).copied().collect();
+            path.extend(out.into_iter().skip(skip));
+            path.extend(back);
+        }
+    }
+
     /// Every alive edge once, in continuous paths found by a greedy walk: each starts at the
     /// nearest end of the axis with an edge left (a corner, at depth 0), else the nearest
     /// node with an odd number of edges left, else any; ties by (y, x). The walk goes on
-    /// where it can, so dead ends are left for later paths to start from.
+    /// where it can, so dead ends are left for later paths to start from; short dead ends
+    /// (corners) on its way are cut out and back as it passes them.
     fn walk(&self, start: Point) -> Vec<Vec<(Point, f64)>> {
         let mut used: Vec<bool> = self.edges.iter().map(|e| !e.alive).collect();
         let mut left: Vec<usize> = self.degrees();
@@ -632,6 +813,7 @@ impl Graph {
                     .find(|&e| left[self.edges[e].other(node)] > 1)
                     .or_else(|| open.first().copied())
             };
+            self.spurs_out_and_back(node, &mut path, &mut used, &mut left);
             while let Some(e) = next(node, &used, &left) {
                 used[e] = true;
                 let edge = &self.edges[e];
@@ -641,6 +823,7 @@ impl Graph {
                 let skip = usize::from(!path.is_empty());
                 path.extend(walked.into_iter().skip(skip));
                 node = edge.other(node);
+                self.spurs_out_and_back(node, &mut path, &mut used, &mut left);
             }
             if let Some(&(end, _)) = path.last() {
                 at = end;

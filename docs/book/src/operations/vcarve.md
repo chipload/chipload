@@ -41,6 +41,13 @@ The carving is done area by area: each letter (or each closed part of a drawing,
 the dot of an *i*) gets all its passes, and its walls, before the bit moves to the
 nearest next one.
 
+Within a letter the bit lifts as little as it can. The short branches the centre line
+runs into sharp corners (shorter than 5 mm) are cut out and back as the bit passes them,
+instead of each with a trip up to safe Z. In the passes after the first, where two pieces
+to cut lie at most 10 mm apart along the centre line, the bit goes from one to the next
+through the groove already cut instead of lifting. The carving is the same; there are
+fewer lifts (in a script font about half).
+
 ![A V-carve 3.5 mm deep in 4 passes: their depths under Passes](../images/vcarve-passes.png)
 
 Projects from before Chipload 0.29 had a step down instead. They open with as many passes

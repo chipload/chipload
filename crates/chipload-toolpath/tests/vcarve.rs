@@ -761,3 +761,66 @@ fn passes_remove_equal_areas() {
     assert_eq!(carve_levels(3.0, 1), [3.0]);
     assert_eq!(carve_levels(3.0, 0), [3.0]);
 }
+
+/// How many cuts a program has: lifts to safe Z after cutting.
+fn lifts(program: &chipload_toolpath::model::Program) -> usize {
+    use chipload_toolpath::model::MoveKind;
+    let mut cutting = false;
+    let mut count = 0;
+    for m in &program.moves {
+        if m.kind == MoveKind::Feed {
+            cutting = true;
+        } else if m.z.is_some_and(|z| z >= program.safe_z - 1e-9) && cutting {
+            count += 1;
+            cutting = false;
+        }
+    }
+    count
+}
+
+/// docs/specs/vcarve-fewer-lifts.md: a rectangle's four corner branches (4.2 mm each) are
+/// cut out and back from the centre line, not as cuts of their own, and every later pass
+/// is one run through the groove already cut. The carve is the same.
+#[test]
+fn corners_are_cut_out_and_back_and_passes_go_on_through_the_groove() {
+    // 90° bit, 30 × 6: the centre line 3 mm deep, its corner branches 3√2 long.
+    let shape = [common::rect(1, 0.0, 0.0, 30.0, 6.0)];
+    let one =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 3.5, 1), &shape).unwrap();
+    assert_eq!(lifts(&one.program), 1, "one cut: the corners out and back");
+    let three =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 3.5, 3), &shape).unwrap();
+    assert_eq!(lifts(&three.program), 3, "one run a pass");
+    // Every point reached at the end is as deep as one pass cuts it: the deepest Z at each
+    // XY point is the same (all four corners reached, the centre at 3 below the surface).
+    let deepest = |plan: &chipload_toolpath::plan::Plan| {
+        let mut at: std::collections::BTreeMap<(i64, i64), i64> = Default::default();
+        for (_, b) in feed_moves(&plan.program) {
+            let key = (
+                (b[0] * 1000.0).round() as i64,
+                (b[1] * 1000.0).round() as i64,
+            );
+            let z = (b[2] * 1000.0).round() as i64;
+            let e = at.entry(key).or_insert(z);
+            *e = (*e).min(z);
+        }
+        at
+    };
+    let (a, b) = (deepest(&one), deepest(&three));
+    for (key, z) in &a {
+        if let Some(w) = b.get(key) {
+            assert_eq!(z, w, "at {key:?}");
+        }
+    }
+    for corner in [(0, 0), (30_000, 0), (30_000, 6_000), (0, 6_000)] {
+        assert!(
+            a.contains_key(&corner) && b.contains_key(&corner),
+            "{corner:?}"
+        );
+    }
+    // A link never goes below what is cut: nothing below the surface outside the strokes'
+    // own depth (the bottom at 3.5 below the top).
+    for (_, b) in feed_moves(&three.program) {
+        assert!(b[2] >= -3.5 - 1e-9, "{b:?}");
+    }
+}

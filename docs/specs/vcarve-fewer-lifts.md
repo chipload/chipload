@@ -1,6 +1,34 @@
 # Spec: a V-carve lifts less (short cuts without the trip to safe Z)
 
-Status: **draft 2026-10-31**, decisions in §6 to review.
+Status: **agreed and built 2026-10-31**, all decisions as recommended (the user: "build
+it and we put it in 0.30").
+
+As built:
+- **The carve is exactly the same.** Checked by simulating old and new programs: the
+  example below in 1, 3 and 6 passes and the golden V-carves (script text, floor pass,
+  traced picture, step down) remove the same volume, to the same depth, pixel for pixel.
+- **Joins (§3.2) split at the level the previous pass reached, as before**, and between
+  two pieces the walk is no deeper than that level, so following it at its own depth is
+  inside the groove. Where the stroke is narrower than the tip, the walk's depth is
+  negative: the bit goes a little above the surface, the cone as wide as the stroke, so it
+  never reaches past the outline. Out into a corner's tip and back to the same point (a
+  corner cut out and back), it turns where the cut stops instead of going into the tip.
+- **The user's second idea was tried** (a pass's run shorter than 2 mm left for the last
+  pass, which cuts it to full depth): 57 → 54 cuts in six passes and no change in three,
+  because the short cuts left are dips that only one pass reaches anyway; it broke the
+  equal load per pass, so it was left out.
+- Measured on the example in §1:
+
+  | Passes | Cuts before → after | Under 1 mm | Time (estimate) |
+  |---|---|---|---|
+  | 1 | 41 → 17 | 14 → 0 | 59 → 50 s |
+  | 3 | 57 → 29 | 26 → 8 | 70 → 59 s |
+  | 6 | 119 → 57 | 48 → 11 | 118 → 98 s |
+
+  The short cuts left are deep spots of separate walks (branches longer than 5 mm, or
+  parts of the centre line the walk reaches separately), each cut once.
+- Golden V-carve programs: about half the retracts (the script text 117 → 53 `G0 Z`
+  lines, the traced picture 97 → 49); every program passes the checker.
 
 The user (2026-10-31, V-carve tests with the Edwardian Script font): "I think the voronoi
 creates several super short segments in all the corners, this makes the bit go up and down
