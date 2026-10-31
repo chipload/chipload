@@ -12,7 +12,7 @@ use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineProfile, linked_cutting,
     machine_link, same_name, tool_link, update_machines, update_tools,
 };
-use chipload_job::{Tool, ToolChange};
+use chipload_job::{Machine, Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
 use chipload_pipeline::{DEFAULT_MAX_OVERCUT, DEFAULT_RPM, DEFAULT_SAFE_Z, DEFAULT_TOOL_DIAMETER};
 
@@ -371,16 +371,37 @@ pub(super) fn machine_entry_form(
         let safe_z = t!(ui, "user-library-safe-z");
         safe_z_row(ui, &safe_z, &mut machine);
         work_zero_rows(ui, "library", &mut profile.work_zero, (0.0, 0.0));
-        profile.post = machine.post;
-        profile.safe_z = machine.safe_z;
-        profile.spindle = machine.spindle;
-        profile.max_feed = machine.max_feed;
-        profile.travel = machine.travel;
+        take_machine_values(profile, machine);
         ui.label(t!(ui, "user-library-max-overcut"))
             .on_hover_text(t!(ui, "user-library-max-overcut-hover"));
         ui.add(mm(&mut profile.max_overcut));
         ui.end_row();
     });
+}
+
+/// The machine values edited in a profile's form, back into the profile. Every field is
+/// named, so a new one can't be left out (the G-code units and tool changes were, seen
+/// 2026-10-31: changing them in the library did nothing).
+pub(super) fn take_machine_values(profile: &mut MachineProfile, machine: Machine) {
+    let Machine {
+        name: _,
+        library_uid: _,
+        post,
+        gcode_units,
+        safe_z,
+        spindle,
+        max_feed,
+        travel,
+        tool_change,
+        custom_post: _,
+    } = machine;
+    profile.post = post;
+    profile.gcode_units = gcode_units;
+    profile.safe_z = safe_z;
+    profile.spindle = spindle;
+    profile.max_feed = max_feed;
+    profile.travel = travel;
+    profile.tool_change = tool_change;
 }
 
 /// What the last import or export of this window did.

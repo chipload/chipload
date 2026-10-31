@@ -118,6 +118,9 @@ it's built (see `CLAUDE.md`).
      properties (words, font, height) open only from the Browser (the user, 2026-10-30).
      Fixed 2026-10-30: a click on a letter opens the text, as its Browser row does and
      the guide said; the text stays selected for *Use selection*, Ctrl+click picks letters.
+  11. A library machine couldn't be changed (the user, 2026-10-31). Fixed 2026-10-31: its
+     form never wrote back the G-code units and tool changes, so changing them did nothing
+     and *Save* stayed greyed (`take_machine_values` names every field).
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and

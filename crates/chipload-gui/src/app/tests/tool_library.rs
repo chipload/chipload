@@ -59,6 +59,23 @@ mod library {
         }
     }
 
+    /// Every machine value changed in a profile's form reaches the profile (seen
+    /// 2026-10-31: the G-code units and tool changes didn't, so Save stayed greyed).
+    #[test]
+    fn a_profile_takes_every_machine_value_from_its_form() {
+        let mut profile = shapeoko();
+        let mut machine = profile.machine();
+        machine.post = "linuxcnc".into();
+        machine.gcode_units = chipload_job::Units::Inch;
+        machine.safe_z = 20.0;
+        machine.spindle = Spindle::Ccw;
+        machine.max_feed = Some(3000.0);
+        machine.travel = None;
+        machine.tool_change = ToolChange::Program;
+        user_library::take_machine_values(&mut profile, machine.clone());
+        assert_eq!(profile.machine(), machine);
+    }
+
     /// An app with a library holding one tool and one machine, both the defaults.
     #[test]
     fn the_theme_is_kept_for_next_time() {
