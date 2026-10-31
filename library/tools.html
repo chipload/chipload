@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Tool library - Chipload 0.28.1 user guide</title>
+        <title>Tool library - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a462de50.js"></script>
+        <script src="../toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -194,24 +194,26 @@ into the project.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/library.png" alt="This computer &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"><span class="img-wrapper"><img src="../images/library.png" alt="This computer &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"></span></label></p>
 <h3 id="project-tools-and-the-library"><a class="header" href="#project-tools-and-the-library">Project tools and the library</a></h3>
 <p>Each project tool remembers the library tool it was copied from, by an id that stays when
-the library tool is renamed. Its row in the Browser shows that tool’s name (“← 6 mm 2F”),
-and its properties say how they stand:</p>
+the library tool is renamed. Its row in the Browser shows that tool’s name (“← 6 mm 2F”).
+In its properties, <strong>Library tool</strong> names it in a dropdown, with a line under it that says
+how they stand:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>It says</th><th>Meaning</th><th>You can</th></tr>
 </thead>
 <tbody>
-<tr><td>from library tool “6 mm 2F”</td><td>same values</td><td><em>Save to library</em>, <em>Show in library</em></td></tr>
-<tr><td>differs from “6 mm 2F”: rpm 18000 -&gt; 16000</td><td>one of them was changed</td><td><em>Update from library</em> (copies the library’s values into the project), or <em>Save to library</em> (the other way)</td></tr>
-<tr><td>“6 mm 2F” is not in your library</td><td>deleted there, or the project comes from another computer</td><td><em>Save to library…</em> under a name</td></tr>
+<tr><td>same as in your library</td><td>same values</td><td>nothing to do</td></tr>
+<tr><td>differs from your library: rpm 18000 -&gt; 16000</td><td>one of them was changed</td><td><em>Update from library</em> (copies the library’s values into the project), or <em>Save to library</em> (the other way)</td></tr>
+<tr><td>library tool “6 mm 2F” is not in your library</td><td>deleted there, or the project comes from another computer</td><td><em>Save to library…</em> under a name</td></tr>
 <tr><td>not from your library</td><td>made in the project</td><td><em>Save to library…</em> under a name</td></tr>
 </tbody>
 </table>
 </div>
 <ul>
-<li><strong>Use library tool…</strong> gives the project tool another library tool’s values.</li>
-<li><strong>Save as new…</strong> keeps the project tool’s values under another name.</li>
+<li><strong>Pick another tool in the dropdown</strong> to give the project tool its values.</li>
+<li><strong>⋯</strong> beside it: <em>Save as new…</em> keeps the project tool’s values under another name;
+<em>Show in library</em> opens the library tool.</li>
 <li>A new operation gets a library tool’s cutting values while the project tool still has the
 library tool’s values.</li>
 </ul>

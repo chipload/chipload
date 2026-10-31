@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Machine profiles - Chipload 0.28.1 user guide</title>
+        <title>Machine profiles - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a462de50.js"></script>
+        <script src="../toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -195,21 +195,24 @@ As with tools, a project copies the values; the profile is only where new projec
 <li><strong>Click a profile</strong> to edit it in Properties; <strong>Save</strong> writes it.</li>
 <li><strong>Right-click</strong> it for <em>Use in this project</em>, <em>Make default</em> and <em>Delete</em>.</li>
 </ul>
-<p>In Job settings &gt; Machine:</p>
+<p>In Machine:</p>
 <ul>
-<li><strong>Use profile…</strong> applies a profile to the project: all its values.</li>
+<li><strong>Profile</strong> names the project’s profile in a dropdown; pick another to give the project
+its machine values. Its safe Z, work zero and max depth below the stock stay as they are.</li>
 <li><strong>While the project’s machine is the same as its profile</strong>, the machine’s values (post,
-spindle, max feed, tool changes, travel) are shown greyed under “From machine
-<em>Shapeoko</em>”. <strong>Edit here</strong> makes them editable for this project; it stays linked.</li>
+spindle, max feed, tool changes, travel) are shown greyed under <strong>From the profile</strong>.
+<strong>Edit here</strong> makes them editable for this project; it stays linked.</li>
 <li><strong>When they differ,</strong> each value that differs has a ↶ button: hover it for the profile’s
 value, click it to take it. <em>Update from library</em> takes them all.</li>
 <li><strong>Safe Z, the work zero and the max depth below the stock</strong> belong to the job: they’re
-always editable and never count as differing. A profile only gives a project its first
-values for them.</li>
-<li>A line says how the machine stands to its profile, as for
-<a href="tools.html#project-tools-and-the-library">tools</a>, with <em>Save to library</em>, <em>Save as new…</em>
-and <em>Show in library</em>.</li>
+always editable and never count as differing. A profile only gives a new project its
+first values for them; choosing another machine later keeps them.</li>
+<li>A line under the dropdown says how the machine stands to its profile, as for
+<a href="tools.html#project-tools-and-the-library">tools</a>, with <em>Update from library</em> and <em>Save to
+library</em> when they differ. <strong>⋯</strong> beside the dropdown has <em>Save as new…</em> and <em>Show in
+library</em>.</li>
 </ul>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/machine.png" alt="The project’s machine from the profile “Shapeoko”: the same as in the library, its machine values greyed under From the profile"><span class="img-wrapper"><img src="../images/machine.png" alt="The project’s machine from the profile “Shapeoko”: the same as in the library, its machine values greyed under From the profile"></span></label></p>
 <p>A profile whose post is one of your own <a href="../posts.html#your-own-post">post-processors</a> copies
 that post into the project.</p>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
@@ -218,7 +221,7 @@ chipload machine add "Shapeoko" --post grbl --safe-z 10 --travel 838,838,95 --ma
 chipload machine set "Shapeoko" --safe-z 15        # or --rename
 chipload machine default "Shapeoko"
 chipload import part.dxf -o part.chipload --machine "Shapeoko"   # start from a profile
-chipload machine use "Shapeoko" part.chipload                   # apply to an existing project
+chipload machine use "Shapeoko" part.chipload                   # its machine values into an existing project
 chipload machine save part.chipload --name "Shapeoko 4"         # links the project to it
 chipload machine compare part.chipload                          # same, differs, not in the library, or not from a profile
 chipload machine export machines.json ; chipload machine import machines.json

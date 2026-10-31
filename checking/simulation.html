@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>3D view, simulation and playback - Chipload 0.28.1 user guide</title>
+        <title>3D view, simulation and playback - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a462de50.js"></script>
+        <script src="../toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -191,16 +191,22 @@ FRONT, RIGHT, …).</li>
 <li><strong>Shallow cuts:</strong> <em>View &gt; Z scale in 3D</em> stretches depth, for cuts too shallow to see.</li>
 </ul>
 <h2 id="simulation"><a class="header" href="#simulation">Simulation</a></h2>
-<p>The simulation cuts the stock with every move of the program and shows the result. It is
-on when the app starts; <em>View &gt; Show stock</em> (or <strong>Stock</strong> on the canvas’s navigation bar) turns it
-off and on.</p>
+<p>The simulation cuts the stock with every move of the program and shows the result, in
+<strong>Simulate</strong> mode: the <strong>Edit | Simulate</strong> switch on the canvas’s navigation bar, <em>View &gt;
+Simulate</em> or F6, and <strong>Edit</strong> or F6 to go back (<a href="../window.html#the-canvas">Edit and Simulate</a>).</p>
 <ul>
 <li><strong>Top view:</strong> a shaded picture.</li>
 <li><strong>3D:</strong> a surface you can turn.</li>
 <li><strong>Tool shapes:</strong> each tool’s real shape is used: a flat endmill, a V-bit’s cone with its
 tip, and a drill’s 118° point.</li>
-<li><strong>When:</strong> it runs in the background after each generation. Until it’s done, the canvas
-says <em>Updating the simulation…</em> and still shows the stock as the last toolpath cut it.</li>
+<li><strong>When:</strong> in the background, when you enter Simulate and after each new toolpath while
+you’re in it; in Edit nothing is simulated. Until it’s done, the canvas says <em>Updating
+the simulation…</em> and still shows the stock as the last toolpath cut it. Back in Simulate
+without changes, the last simulation shows at once. With no toolpath yet, entering
+Simulate makes one.</li>
+<li><strong>What makes a new toolpath:</strong> a change that can change the cut. Drawing a shape that no
+operation selects doesn’t, unless the board fits the drawing and grows with it, or the
+shape lies off the stock.</li>
 <li><strong>Without the toolpath:</strong> <em>View &gt; Show toolpath</em> (also <strong>Toolpath</strong> on the navigation bar
 and a checkbox on the canvas legend)
 hides the toolpath’s lines, plunges and tabs. During playback, the tool still shows where

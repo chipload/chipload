@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Text - Chipload 0.28.1 user guide</title>
+        <title>Text - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a462de50.js"></script>
+        <script src="../toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -182,6 +182,8 @@
 shapes that you <a href="../operations/vcarve.html">V-carve</a>, <a href="../operations/pocket.html">pocket</a> or cut
 out with a <a href="../operations/profile.html">profile</a>. (Design: <code>docs/specs/text.md</code>.)</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/text.png" alt="A text on the canvas, selected with its handles, and its properties on the right"><span class="img-wrapper"><img src="../images/text.png" alt="A text on the canvas, selected with its handles, and its properties on the right"></span></label></p>
+<p>For a sign, <em>Draw &gt; Frame…</em> then draws a frame round the text, with border lines:
+<a href="signs.html">Signs and frames</a>.</p>
 <h2 id="writing-a-text"><a class="header" href="#writing-a-text">Writing a text</a></h2>
 <ol>
 <li><strong>Draw &gt; Text</strong> in the ribbon (or <em>DRAW &gt; Text</em>), then click on the canvas where the text
@@ -199,7 +201,7 @@ new V-carve takes a V-bit from the project if it has one.</li>
 canvas:</p>
 <ul>
 <li><strong>Text:</strong> what it says, on one or more lines;</li>
-<li><strong>Font:</strong> one of the built-in fonts (below);</li>
+<li><strong>Font:</strong> one of the built-in fonts, or one installed on your computer (below);</li>
 <li><strong>Height:</strong> the height of a capital letter, mm; what a ruler measures on an H;</li>
 <li><strong>Anchor:</strong> what Position is: the <strong>lower-left corner</strong> of the text’s box, or its
 <strong>centre</strong>. A centred text stays centred when you change its words, font or size, which is
@@ -216,6 +218,7 @@ kerning included (in a serif font, “AV” sits closer than “A V”);</li>
 </ul>
 <p>Each change applies when you finish the edit, as one undo step: <strong>Ctrl+Z</strong> brings the
 earlier text back. An operation that selects the text follows the change.</p>
+<p><strong>Del</strong> removes the selected text with its letters (as <em>Remove</em> on its Browser row does).</p>
 <p><strong>On the canvas:</strong> with the text selected, its box shows handles (in top view):</p>
 <ul>
 <li>the square in the <strong>middle</strong> moves it;</li>
@@ -251,10 +254,24 @@ Smokum’s pointed serifs need a pocketing tool of 2 mm or more.</p>
 <p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, the others under the
 Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
 their G-code are yours.</p>
+<h3 id="your-computers-fonts"><a class="header" href="#your-computers-fonts">Your computer’s fonts</a></h3>
+<p>The <em>Font</em> list also has <strong>On this computer</strong>: every TrueType or OpenType font installed
+there, by name (“Arial Bold”), with a search field. Hover over a name to see a sample. The
+first time the list opens, Chipload looks for them (<em>Looking for fonts…</em>).</p>
+<p>A font you don’t want to install can go in a folder named <code>fonts</code> in your
+<a href="../install.html#your-settings">settings folder</a>; Chipload finds it there too.</p>
+<p>Only the font’s name goes into the project, never the font file: fonts are licensed to the
+computer they are installed on. The letters are in the project as shapes, so the project
+cuts the same on any computer (below).</p>
 <h2 id="in-the-project-file"><a class="header" href="#in-the-project-file">In the project file</a></h2>
 <p>A text is stored with what it says and how, and its letters are stored as shapes too. So the
 font is needed only to change the text; a project cuts the same whatever the computer has
 installed. Chipload 0.19 and older can’t open a project that has a text.</p>
+<p><strong>On a computer without the text’s font,</strong> the text keeps its letters and cuts as they
+are. Its properties say so, and its words, height, alignment and spacing are greyed out;
+the Browser marks it with ⚠. You can still move it, turn it and put it on another layer.
+To change its words or size, choose another font: its letters are then made again in that
+one.</p>
 <h2 id="leaving-letters-out"><a class="header" href="#leaving-letters-out">Leaving letters out</a></h2>
 <p>As with a picture: with the whole text selected, <strong>Ctrl+click</strong> a letter (or one part of it,
 such as the hole of an O) to leave it out of the operation, and again to put it back. A
@@ -266,7 +283,7 @@ chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1
-chipload text fonts
+chipload text fonts                                           # built in, then the computer's
 </code></pre>
 <p><code>\n</code> in the text starts a new line. An operation selects the text with
 <code>"select": {"text": 1}</code>, and any value can be changed with <code>chipload set</code>
@@ -280,7 +297,7 @@ chipload text fonts
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../drawings/copies.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../drawings/signs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -294,7 +311,7 @@ chipload text fonts
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../drawings/copies.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../drawings/signs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

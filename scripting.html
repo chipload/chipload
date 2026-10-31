@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Scripting - Chipload 0.28.1 user guide</title>
+        <title>Scripting - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a462de50.js"></script>
+        <script src="toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -243,6 +243,9 @@ Object keys come out sorted.</p>
 <p>A <strong>path</strong> is keys and array indexes joined by dots, as in the project file, counting from 0:
 <code>stock.thickness</code>, <code>operations.1.end_depth</code>, <code>tools.0.rpm</code>. Note that <code>--op</code> on <code>op tool</code>
 and <code>op rest</code> counts from 1, as Chipload numbers operations on screen.</p>
+<p>The stock and the work zero belong to a setup (<code>setups.0.stock.thickness</code>,
+<code>setups.0.work_zero</code>); <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active
+setup’s, so older scripts keep working.</p>
 <pre><code class="language-sh">chipload get part.chipload operations.1.end_depth          # 6.0
 chipload set part.chipload operations.1.end_depth=6.5 operations.1.name=Corners
 chipload set part.chipload 'operations.1.rest={"after_tool": 1}'

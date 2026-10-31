@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.28.1 user guide</title>
+        <title>Command line - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a462de50.js"></script>
+        <script src="../toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -259,6 +259,7 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -280,6 +281,7 @@
 <tr><td><code>--no-sheet</code></td><td>Don’t write the setup sheet (by default <code>part-sheet.html</code> next to <code>part.nc</code>)</td></tr>
 <tr><td><code>--sheet-units &lt;UNITS&gt;</code></td><td>The setup sheet’s lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
 <tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -300,6 +302,7 @@
 <tr><td><code>--cell &lt;CELL&gt;</code></td><td>Cell size, mm (default: automatic, from the stock’s size)</td></tr>
 <tr><td><code>--no-image</code></td><td>Print the numbers only.</td></tr>
 <tr><td><code>--after &lt;N&gt;</code></td><td>The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts.</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>The setup to simulate (as <code>setup list</code> numbers it); default: the active one.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
 </table>
@@ -320,6 +323,7 @@
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this sheet only: one file per tool, or one file with M6 tool changes. One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--units &lt;UNITS&gt;</code></td><td>Its lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
 <tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -388,6 +392,39 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The pocket’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The smaller tool’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-floor"><a class="header" href="#chipload-op-add-floor"><code>chipload op add-floor</code></a></h3>
+<p>Give a V-carve a floor pass (docs/specs/vcarve-wide-strokes.md §4): an end mill that clears the floor between the walls of strokes too wide to carve from their centre line, cut before the V-carve. Replaces the floor pass it had</p>
+<pre><code class="language-text">chipload op add-floor &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The V-carve’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The end mill’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-remove-floor"><a class="header" href="#chipload-op-remove-floor"><code>chipload op remove-floor</code></a></h3>
+<p>Take a V-carve’s floor pass away (docs/specs/vcarve-wide-strokes.md §4)</p>
+<pre><code class="language-text">chipload op remove-floor &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The V-carve’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1158,9 +1195,42 @@
 </table>
 </div>
 <h3 id="chipload-text-fonts"><a class="header" href="#chipload-text-fonts"><code>chipload text fonts</code></a></h3>
-<p>The built-in fonts</p>
+<p>The built-in fonts, then the computer’s (and those in the settings folder’s <code>fonts</code>)</p>
 <pre><code class="language-text">chipload text fonts
 </code></pre>
+<h2 id="chipload-frame"><a class="header" href="#chipload-frame"><code>chipload frame</code></a></h2>
+<p>Frames for signs, drawn round shapes or to a size, with border lines (docs/specs/shape-library.md)</p>
+<h3 id="chipload-frame-kinds"><a class="header" href="#chipload-frame-kinds"><code>chipload frame kinds</code></a></h3>
+<p>The built-in frames, and what their corner size means</p>
+<pre><code class="language-text">chipload frame kinds
+</code></pre>
+<h3 id="chipload-frame-add"><a class="header" href="#chipload-frame-add"><code>chipload frame add</code></a></h3>
+<p>Draw a frame round shapes (–around, –around-text) or to a size (–width and –height), with border lines inside it; prints the new shapes’ ids</p>
+<pre><code class="language-text">chipload frame add &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--kind &lt;KIND&gt;</code></td><td>Which frame (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>oval</code>, <code>arched</code>, <code>plaque</code>. Required.</td></tr>
+<tr><td><code>--around &lt;AROUND&gt;</code></td><td>Round these shapes (ids as <code>inspect</code> lists them, without the S): the frame is centred on their box, –margin from it to the innermost line. Repeatable.</td></tr>
+<tr><td><code>--around-text &lt;AROUND_TEXT&gt;</code></td><td>Round these texts’ letters (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>From the shapes’ box to the innermost line, mm (default 10)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>The outline’s width, mm, when not round shapes.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>The outline’s height, mm, when not round shapes.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Its centre, X,Y in mm (default: the stock’s centre), with –width and –height.</td></tr>
+<tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The corner size, mm (default: a tenth of the shorter side; <code>frame kinds</code> says what it is for each frame)</td></tr>
+<tr><td><code>--borders &lt;BORDERS&gt;</code></td><td>Border lines inside the outline, 0 to 3. Default: <code>0</code>.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm. Default: <code>5</code>.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The outline’s layer. Default: <code>frame</code>.</td></tr>
+<tr><td><code>--border-layer &lt;BORDER_LAYER&gt;</code></td><td>The borders’ layer. Default: <code>border</code>.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-dxf"><a class="header" href="#chipload-dxf"><code>chipload dxf</code></a></h2>
 <p>A project’s DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)</p>
 <h3 id="chipload-dxf-add"><a class="header" href="#chipload-dxf-add"><code>chipload dxf add</code></a></h3>
@@ -1673,7 +1743,7 @@
 </table>
 </div>
 <h3 id="chipload-machine-use"><a class="header" href="#chipload-machine-use"><code>chipload machine use</code></a></h3>
-<p>Copy a profile’s values into a project; lists what changed</p>
+<p>Copy a profile’s machine values into a project, keeping its safe Z, work zero and max overcut; lists what changed</p>
 <pre><code class="language-text">chipload machine use &lt;NAME&gt; &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -1834,6 +1904,108 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;ID&gt;</code></td><td>The part’s id.</td></tr>
 <tr><td><code>--with-operations</code></td><td>Remove its operations with it.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="chipload-setup"><a class="header" href="#chipload-setup"><code>chipload setup</code></a></h2>
+<p>A project’s setups: each a board clamped once, with its stock, work zero and parts, run as a program of its own (docs/specs/setups.md)</p>
+<h3 id="chipload-setup-list"><a class="header" href="#chipload-setup-list"><code>chipload setup list</code></a></h3>
+<p>The project’s setups: id, name, on or off, board, work zero and parts</p>
+<pre><code class="language-text">chipload setup list &lt;PROJECT&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-add"><a class="header" href="#chipload-setup-add"><code>chipload setup add</code></a></h3>
+<p>Add a setup at the end, a board like the active one’s, with a first part of its own; both become active</p>
+<pre><code class="language-text">chipload setup add &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name; default: “Setup N”.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s thickness; default: the active setup’s.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-set"><a class="header" href="#chipload-setup-set"><code>chipload setup set</code></a></h3>
+<p>Rename a setup, or turn it off or on (a setup that is off isn’t cut)</p>
+<pre><code class="language-text">chipload setup set &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The setup’s id (as <code>setup list</code> shows it)</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its new name.</td></tr>
+<tr><td><code>--off</code></td><td>Leave the setup and its parts out.</td></tr>
+<tr><td><code>--on</code></td><td>Cut the setup again.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-activate"><a class="header" href="#chipload-setup-activate"><code>chipload setup activate</code></a></h3>
+<p>Make a setup the active one: shown, simulated, where new parts go</p>
+<pre><code class="language-text">chipload setup activate &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The setup’s id.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-part"><a class="header" href="#chipload-setup-part"><code>chipload setup part</code></a></h3>
+<p>Move a part into a setup: it is cut from that board, with its zero</p>
+<pre><code class="language-text">chipload setup part &lt;PROJECT&gt; &lt;PART&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;PART&gt;</code></td><td>The part’s id (as <code>part list</code> shows it)</td></tr>
+<tr><td><code>--to &lt;TO&gt;</code></td><td>The setup’s id. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-remove"><a class="header" href="#chipload-setup-remove"><code>chipload setup remove</code></a></h3>
+<p>Remove a setup. Refused while it has parts, unless –with-parts</p>
+<pre><code class="language-text">chipload setup remove &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The setup’s id.</td></tr>
+<tr><td><code>--with-parts</code></td><td>Remove its parts and their operations with it.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>

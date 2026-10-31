@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.28.1 user guide</title>
+        <title>Chipload 0.30.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a462de50.js"></script>
+        <script src="toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -282,15 +282,29 @@ Open path…</em> (and <em>Import image from path…</em>, <em>Update drawing fr
 on the command line.</li>
 </ul>
 <h2 id="windows"><a class="header" href="#windows">Windows</a></h2>
-<p>Download <code>chipload-X.Y.Z-windows-x86_64.exe</code>: the app as one file with nothing to install.
-Double-click it to start. On a Windows laptop with an ARM processor (Snapdragon), take
-<code>chipload-X.Y.Z-windows-aarch64.exe</code> instead.</p>
-<p>The app isn’t code-signed, so Windows SmartScreen may warn the first time. Choose <em>More
-info &gt; Run anyway</em>.</p>
+<p>Download <code>chipload-X.Y.Z-windows-x86_64-setup.exe</code> and run it. On a Windows laptop with an
+ARM processor (Snapdragon), take <code>chipload-X.Y.Z-windows-aarch64-setup.exe</code> instead. It
+installs Chipload for you alone, without asking for administrator rights, into
+<code>%LOCALAPPDATA%\Programs\Chipload</code> (you can choose another folder), and then:</p>
 <ul>
-<li><strong>Command line:</strong> it’s in <code>chipload-cli-X.Y.Z-windows-x86_64.zip</code> (ARM:
-<code>…-windows-aarch64.zip</code>). Unzip it and run <code>chipload.exe</code> from a terminal (PowerShell or
-Command Prompt); it isn’t meant to be double-clicked.</li>
+<li><code>.chipload</code> files open in Chipload with a double-click, and show its icon;</li>
+<li>DXF and SVG files have Chipload under <em>Open with</em>; the program that opens them now
+stays as it is;</li>
+<li><em>Chipload</em> is in the Start menu.</li>
+</ul>
+<p>To update, run the newer installer: it replaces the old version in place. To remove
+Chipload, use <em>Settings &gt; Apps</em>. Your settings, tools, machines, materials and posts stay,
+for when you install it again.</p>
+<p>The installer isn’t code-signed, so Windows SmartScreen may warn the first time. Choose
+<em>More info &gt; Run anyway</em>.</p>
+<ul>
+<li><strong>Without installing:</strong> <code>chipload-X.Y.Z-windows-x86_64.exe</code> (<code>…-aarch64.exe</code>) is the app
+as one file, to run from anywhere, a USB stick too. Double-clicking a project won’t open
+it; use <em>File &gt; Open</em> in the app.</li>
+<li><strong>Command line:</strong> the installer puts <code>chipload.exe</code> beside the app, in the folder above;
+run it from a terminal (PowerShell or Command Prompt) with its full path, e.g.
+<code>&amp; "$env:LOCALAPPDATA\Programs\Chipload\chipload.exe" --version</code>. It comes only with
+the installer.</li>
 </ul>
 <h2 id="macos"><a class="header" href="#macos">macOS</a></h2>
 <p>No release has macOS files yet. Until one does, build Chipload from the source (below).
@@ -314,9 +328,20 @@ cd chipload
 cargo build --release -p chipload-gui -p chipload-cli
 # target/release/chipload-gui and target/release/chipload
 </code></pre>
+<h2 id="new-versions"><a class="header" href="#new-versions">New versions</a></h2>
+<p>The first time it starts, Chipload asks whether to check for new versions. If you say yes,
+it asks GitHub once a day, when it starts, for the latest release. That is one request:
+nothing about you, your computer or your projects is sent, though GitHub sees your network
+address as it does for any visit. When a newer version is out, the status bar says
+<em>Chipload X is available</em>; click it for <strong>What’s new…</strong> (the release’s page in your
+browser) or <strong>Skip this version</strong>. The same is under <strong>Help</strong>. Chipload never downloads or
+installs anything by itself: download the new version as you did this one.</p>
+<p><strong>Help &gt; Check for new versions now</strong> checks at once, also with the daily check off, and
+says what it found. Change your answer in <em>This computer &gt; Preferences &gt; New versions</em>.
+Behind a proxy, set <code>HTTPS_PROXY</code>.</p>
 <h2 id="your-settings"><a class="header" href="#your-settings">Your settings</a></h2>
-<p>Chipload keeps your tool library, machine profiles, own post-processors and app settings in
-one folder:</p>
+<p>Chipload keeps your tool library, machine profiles, own post-processors (in <code>posts/</code>),
+fonts for texts that you haven’t installed (in <code>fonts/</code>) and app settings in one folder:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -347,12 +372,13 @@ repaired: duplicate lines, gaps it closed, splines turned into arcs.</li>
 </ul>
 </li>
 <li>
-<p><strong>Check the job settings:</strong> click <strong>Job settings</strong> in the <a href="#the-browser">Browser</a>
-on the left. A new project starts with:</p>
+<p><strong>Check the setup and the machine:</strong> click <strong>Setup 1</strong> under <em>Setups</em> in the
+<a href="#the-browser">Browser</a> on the left for the board, and <strong>Machine</strong> for the
+machine. A new project starts with:</p>
 <ul>
 <li>stock just covering the drawing, 10 mm thick;</li>
 <li><a href="#work-zero">work zero</a> at the stock’s bottom-left corner, Z zero
-on the stock top (the <em>Work zero</em> row under Job settings; drag it in the view to move
+on the stock top (the <em>Work zero</em> row under the setup; drag it in the view to move
 it);</li>
 <li>the GRBL post, a safe height of 5 mm;</li>
 <li>a 6 mm endmill at 18 000 rpm.</li>
@@ -376,7 +402,7 @@ top.</p>
 <li><strong>Side:</strong> Chipload picks <em>outside</em> for an outline and <em>inside</em> for holes, and asks
 when a selection mixes both.</li>
 <li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
-spoilboard. More than the allowed overcut (0.5 mm by default, under Job settings) is
+spoilboard. More than the allowed overcut (0.5 mm by default, in the setup’s Stock) is
 refused.</li>
 <li><strong>Step down:</strong> how deep each pass goes.</li>
 <li><strong>Tabs:</strong> they keep the part from coming loose on the last pass. Add them under
@@ -394,8 +420,9 @@ dashed, and each operation’s number sits at its first plunge.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/toolpath.png" alt="A generated toolpath: the Browser on the left, the canvas, the job settings on the right and the report below"><span class="img-wrapper"><img src="images/toolpath.png" alt="A generated toolpath: the Browser on the left, the canvas, the job settings on the right and the report below"></span></label></p>
 </li>
 <li>
-<p><strong>Look at it:</strong> <strong>3D</strong> shows the toolpath at its real depths. <em>View &gt; Show stock</em>
-shows the stock as cut, and the slider under the canvas plays the program back.</p>
+<p><strong>Look at it:</strong> <strong>3D</strong> shows the toolpath at its real depths. <strong>Simulate</strong> (F6) shows
+the stock as cut, and the slider under the canvas plays the program back; F6 again goes
+back to editing.</p>
 </li>
 <li>
 <p><strong>Export:</strong> <em>File &gt; Export G-code…</em> (Ctrl+E).</p>
@@ -482,7 +509,7 @@ guide, keyboard shortcuts, about) and the version.</li>
 </thead>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
-<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, Add DXF</td><td>copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="#signs-and-frames">a frame for a sign</a>), Text, Image, Add DXF</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
 <tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
@@ -505,7 +532,8 @@ post-processor and the units.</p>
 every project. It is there also with no project open.
 <ul>
 <li><strong>Preferences:</strong> the <a href="#setup-sheet">setup sheet</a>, updating the toolpath by
-itself, the <a href="#mm-or-inches-on-screen">units</a> and the colour theme.</li>
+itself, the <a href="#mm-or-inches-on-screen">units</a>, the colour theme and
+checking for <a href="#new-versions">new versions</a>.</li>
 <li><strong>Tools</strong> and <strong>Machines:</strong> your <a href="#tool-library">tool library</a> and <a href="#machine-profiles">machine
 profiles</a>.</li>
 <li><strong>Post-processors:</strong> the built-in ones and <a href="#your-own-post">yours</a>; click one
@@ -514,18 +542,19 @@ for what it writes, and <em>Use in this project</em>.</li>
 </li>
 <li><strong>The project</strong>, named after its file.
 <ul>
-<li><strong>Job settings:</strong> stock, machine, post-processor and tools, shown on the right when
-clicked. A red dot means one of them has a problem.</li>
-<li><strong>Work zero:</strong> where the G-code’s X0 Y0 Z0 is, named at the right (“stock bottom
-left”); see <a href="#work-zero">Work zero</a>.</li>
+<li><strong>Machine:</strong> the post-processor, G-code units, safe Z, travel and tool changes, shown
+on the right when clicked. A red dot means one of them has a problem.</li>
 <li><strong>Tools:</strong> the project’s tools, each with the library tool it came from at the right
 (“← 6 mm 2F”, “(changed)” when the values differ). See <a href="#project-tools-and-the-library">Tool
 library</a>.</li>
 <li><strong>Drawing:</strong> what the shapes come from. Each DXF has its layers under it; then come
 each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
 polylines). See <a href="#several-drawings">Several drawings</a>.</li>
-<li><strong>Parts</strong>, each with its operations under it, in cutting order. A line marks each
-tool change. See <a href="#parts">Parts</a>.</li>
+<li><strong>Setups</strong>, each a board with its <strong>Work zero</strong> and its <strong>parts</strong> under it, each part
+with its operations, in cutting order. A line marks each tool change. A floor pass is
+cut before its V-carve and a rest pass after its pockets, so the line above them names
+their tools in the order they are cut: <em>tool change → T2 → T1</em>. See
+<a href="#setups">Setups</a> and <a href="#parts">Parts</a>.</li>
 </ul>
 </li>
 </ul>
@@ -536,7 +565,7 @@ tool change. See <a href="#parts">Parts</a>.</li>
 <ul>
 <li>A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
 to the selection.</li>
-<li>An operation, a part, a tool, <em>Tools</em>, <em>Job settings</em>, a DXF (or one of its layers)
+<li>An operation, a part, a setup, its work zero, a tool, <em>Tools</em>, <em>Machine</em>, a DXF (or one of its layers)
 or a picture shows its settings on the right, in <a href="#properties">Properties</a>.</li>
 </ul>
 </li>
@@ -551,13 +580,18 @@ pocket <em>Add rest pass ▸</em> (a <a href="#rest-machining-1">rest pass</a> s
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
 <li><strong>The Drawing folder:</strong> <em>Add DXF…</em> and <em>Import image…</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
-down</em> and <em>Delete part</em> (with its operations).</li>
-<li><strong>The Parts folder:</strong> <em>New part</em>.</li>
+down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
+<li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
+setup</em>.</li>
 <li><strong>A library tool:</strong> <em>Add to project</em>, <em>Make default</em>, <em>Delete</em>. <strong>A library machine:</strong>
 <em>Use in this project</em>, <em>Make default</em>, <em>Delete</em>. <strong>This computer &gt; Tools or Machines:</strong> <em>New</em>,
 <em>Import…</em>, <em>Export…</em>.</li>
 </ul>
 </li>
+<li><strong>Del</strong> deletes what Properties shows: an operation or a rest pass picked in the
+Browser, a text opened there, or else what is selected on the canvas (drawn shapes, or a
+text, a picture or a DXF as a whole). Parts and setups take their operations with them,
+so they are deleted only from their right-click menu. <strong>Ctrl+Z</strong> brings anything back.</li>
 <li><strong>The triangle</strong> opens and closes a folder, and so does a click on a plain folder like
 <em>Tools</em>.</li>
 </ul>
@@ -588,24 +622,48 @@ colour theme: dark, or light grey.</p>
 <li><strong>G</strong> or <em>View &gt; Show grid</em> hides it, and Chipload remembers that.</li>
 </ul>
 </li>
+<li><strong>Rulers</strong> run along the canvas’s top (X) and left (Y) edges in top view, in drawing
+coordinates (0 at the drawing origin, as the shapes’ <em>Position</em> fields), in mm or inches
+as the app shows lengths; the unit is in their corner.
+<ul>
+<li>Their ticks fall on the grid’s lines, and the stronger lines are numbered.</li>
+<li>The cursor’s place is marked on both.</li>
+<li><em>View &gt; Show rulers</em> hides them, and Chipload remembers that.</li>
+</ul>
+</li>
 <li><strong>The axes:</strong> a red line along X and a green one along Y run through the program’s zero.
 Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
 a round handle sits at their foot: click it to select the
 <a href="#work-zero">work zero</a>, then drag it.</li>
+<li><strong>Edit and Simulate:</strong> the canvas works in one of two modes.
+<ul>
+<li><strong>Edit</strong> (projects open in it) is the drawing board: the drawing and the toolpath’s
+lines; selecting, box selection, drawing, handles, tabs and start points.</li>
+<li><strong>Simulate</strong> (the switch’s <strong>Simulate</strong> half, <em>View &gt; Simulate</em> or F6) shows the
+<a href="#3d-view-simulation-and-playback">simulated stock</a> and the playback slider. The canvas is then
+a viewer: a drag pans (in 3D it orbits) and never selects; a click on an operation’s
+number opens it. Properties stay editable: change a depth and watch the cut change. A
+blue frame round the canvas says you are in Simulate.</li>
+<li><strong>The switch</strong>, first on the navigation bar: <strong>Edit | Simulate</strong>, the mode you are in
+filled.</li>
+<li>Starting a drawing or editing tool, or selecting something in the Browser, goes back to
+Edit. F6 or <strong>Edit</strong> does too.</li>
+</ul>
+</li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
 <ul>
+<li>the mode: <strong>Edit | Simulate</strong> (F6 switches);</li>
 <li>how you look: <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>;</li>
-<li>what is shown: <strong>Stock</strong> (the <a href="#3d-view-simulation-and-playback">simulation</a>), <strong>Toolpath</strong>,
-<strong>Drawing</strong>, <strong>Images</strong> and <strong>Grid</strong> (G);</li>
+<li>what is shown: <strong>Toolpath</strong>, <strong>Drawing</strong> (in Simulate; Edit always shows the drawing),
+<strong>Images</strong> and <strong>Grid</strong> (G);</li>
 <li>with two parts or more, <strong>All parts</strong>: the toolpath and simulation of every part, not
 only the <a href="#parts">active one</a>.</li>
 <li>When the canvas is too narrow for the names, the buttons show only their icons; hover
 over one to see its name.</li>
 </ul>
 </li>
-<li><strong>Drawing off</strong> hides the drawing’s contours, to see the simulated stock or the toolpath
-alone. While it’s off, clicks on the canvas don’t select anything. Selecting something
-in the Browser, or starting to draw a shape, shows the drawing again.</li>
+<li><strong>Drawing off</strong> (in Simulate) hides the drawing’s contours, to see the simulated stock or
+the toolpath alone. Back in Edit the drawing shows again.</li>
 <li><strong>The corner:</strong>
 <ul>
 <li>In 3D, the top right corner has a cube that turns with the view. Click a face (TOP,
@@ -616,22 +674,24 @@ FRONT, RIGHT, BACK, LEFT) to look straight at it.</li>
 <li><strong>The toolpath’s numbers:</strong> each operation’s first plunge has a circle and the
 operation’s number. Click it to open that operation.</li>
 <li><strong>The legend</strong> (bottom left) explains the colours.</li>
-<li><strong>The mouse:</strong> the wheel zooms. In top view, a left drag on empty canvas selects with a
-box: from left to right it takes what lies wholly inside, from right to left also what
+<li><strong>The mouse:</strong> the wheel zooms. In Edit, in top view, a left drag on empty canvas
+selects with a box: from left to right it takes what lies wholly inside, from right to left also what
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="#editing">moves it</a>. To pan, drag with the right or middle
-button, or hold Space and drag. In 3D, a left drag orbits.</li>
+button, or hold Space and drag. In 3D, a left drag orbits. In Simulate a left drag pans
+(in 3D it orbits).</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
 <h2 id="properties"><a class="header" href="#properties">Properties</a></h2>
 <p>The <strong>Properties</strong> panel on the right shows what is open, under a title:</p>
 <ul>
-<li><strong>Job settings:</strong> the stock, the material, the machine and the post.</li>
+<li><strong>Machine:</strong> the machine and its post.</li>
+<li><strong>A setup:</strong> its name, its board (stock and material) and where its work zero is.</li>
 <li><strong>Work zero:</strong> the stock’s corners and centre to click, the drawing origin, its position
 and Z zero.</li>
 <li><strong>Preferences:</strong> the settings folder, whether a <a href="#setup-sheet">setup sheet</a> is
-written with the G-code, updating the toolpath automatically, the units (mm or inch) and
-the colour theme.</li>
+written with the G-code, updating the toolpath automatically, the units (mm or inch), the
+colour theme, the language and whether to check for <a href="#new-versions">new versions</a>.</li>
 <li><strong>A post-processor:</strong> its name, files, extension, decimals, arcs and tool changes.</li>
 <li><strong>Tools:</strong> every tool, with <em>Add from library…</em> and <em>New tool</em>; <strong>a tool</strong> alone, with
 how it stands to the library tool it came from, <em>Save to library</em> and <em>Remove tool</em>.</li>
@@ -644,7 +704,7 @@ the edit, and traces the picture again. <em>Trace settings…</em> opens its
 <li><strong>A part:</strong> its name, on or off, and its <a href="#copies">copies</a>.</li>
 <li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”).</li>
 </ul>
-<p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Job settings,
+<p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
 both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
@@ -676,7 +736,7 @@ both panels</em>.</li>
 <ul>
 <li><strong>Millimetres inside.</strong> Chipload works in mm throughout: the project and the toolpath.
 A drawing in inches is converted once, on import.</li>
-<li><strong>G-code in mm or inches.</strong> <em>G-code units</em> (Job settings &gt; Machine) says what the program
+<li><strong>G-code in mm or inches.</strong> <em>G-code units</em> (Machine) says what the program
 is written in: <strong>mm</strong> (<code>G21</code>, the default) or <strong>inch</strong> (<code>G20</code>), as your controller is set.
 In inches every coordinate, arc centre and feed (in/min) is converted as the program is
 written, with 4 decimals, and the header says so. The project itself stays in mm. The checker reads the program in its own units and refuses one in
@@ -722,11 +782,11 @@ G-code’s units are a separate setting of the machine (above): you can show
 inches and send mm G-code, or the other way round.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stock-and-work-zero"><a class="header" href="#stock-and-work-zero">Stock and work zero</a></h1>
-<p>Job settings has three sections, in the order a job is set up: <strong>Stock</strong> (the board),
-<strong>Material</strong> (the feeds new operations take) and <strong>Machine</strong> (set once, so it starts closed;
-its summary line gives the profile, post, safe Z and spindle). Above them a line says where
-the zero is, e.g. “Work zero: X0 Y0 stock bottom left · Z0 stock top”; click it to set the
-zero.</p>
+<p>The board is its <a href="#setups">setup</a>’s: click the setup in the Browser for its properties.
+They have two sections, <strong>Stock</strong> (the board) and <strong>Material</strong> (the feeds new operations
+take), and above them a line that says where the zero is, e.g. “Work zero: X0 Y0 stock bottom
+left · Z0 stock top”; click it to set the zero. The machine, shared by every setup, is under
+<strong>Machine</strong>.</p>
 <h2 id="stock"><a class="header" href="#stock">Stock</a></h2>
 <div class="table-wrapper">
 <table>
@@ -757,7 +817,7 @@ A stock centred on the drawing can’t be used to align the drawing (it would fo
 choose a position at the drawing’s origin first.</p>
 <h2 id="work-zero"><a class="header" href="#work-zero">Work zero</a></h2>
 <p><strong>Work zero</strong> is the point that becomes X0 Y0 Z0 in the G-code. It has its own row in the
-<a href="#the-browser">Browser</a>, under Job settings, which says where it is (“stock bottom
+<a href="#the-browser">Browser</a>, under its setup, which says where it is (“stock bottom
 left”), and its own place in the view: the foot of the red and green axes.</p>
 <p>Only the G-code moves; the drawing, the stock and the toolpath stay where they are. So moving
 the zero never moves a cut, only the numbers in the program. The setup sheet and the
@@ -791,6 +851,63 @@ chipload zero part.chipload --at 25,-10           # a point; any length unit
 chipload zero part.chipload --z bottom            # Z0 on the spoilboard
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="setups"><a class="header" href="#setups">Setups</a></h1>
+<p>A <strong>setup</strong> is one board clamped once on the machine: its stock, its work zero, and the
+parts cut from it. Most projects have one and never need to think about it. A project needs
+more when its parts come from more than one board, or from one board clamped more than once:</p>
+<ul>
+<li>a box with sides from 12 mm plywood and a bottom from 6 mm;</li>
+<li>a big sheet whose parts lie far apart, each group with its own zero nearby.</li>
+</ul>
+<p>Each setup is a <strong>program of its own</strong>, run on its own, with its own setup sheet: the
+operator clamps the board, sets the zero and runs that program, then the next. Chipload never
+puts two boards in one program, because re-measuring in the middle of a program is where
+crashes come from.</p>
+<h2 id="what-a-setup-holds"><a class="header" href="#what-a-setup-holds">What a setup holds</a></h2>
+<ul>
+<li><strong>Its board:</strong> size, thickness, fit, Z zero, max overcut and material, as
+<a href="#stock-and-work-zero">Stock and work zero</a> describes. A board that fits the drawing fits <strong>its own
+parts</strong>: the shapes its operations cut.</li>
+<li><strong>Its work zero.</strong></li>
+<li><strong>Its parts</strong>, each with its operations and copies (<a href="#parts">Parts</a>).</li>
+</ul>
+<p>The drawing, the machine, the tools and the materials are the project’s, shared by every
+setup: you draw all parts in one drawing, a layer per part, and each setup’s board is placed
+around its own.</p>
+<h2 id="running"><a class="header" href="#running">Running</a></h2>
+<p>With one setup the files are named as always (<code>part.nc</code>, <code>part-1-T1.nc</code>, …). With more, each
+file names its setup first: <code>part-S1.nc</code>, <code>part-S2-1-T1.nc</code>, and each setup’s sheet beside
+them (<code>part-S2-sheet.html</code>). <code>run</code> writes every setup that is on; <code>--setup N</code> only one.
+<code>plan</code>, <code>sheet</code> and <code>simulate</code> work on the active setup, or the one <code>--setup N</code> names.</p>
+<h2 id="in-the-window"><a class="header" href="#in-the-window">In the window</a></h2>
+<p>The Browser shows <strong>Setups</strong>, always, each with its <strong>Work zero</strong> and its parts beneath it.
+Click a setup for its properties: its name, its board (Stock and Material) and where its zero
+is. Right-click <em>Setups</em> or a setup for <strong>Add a setup</strong>, another board: it starts like the
+active one, with a part of its own, and both become active. Right-click a setup for <strong>New
+part</strong> in it.</p>
+<p>With two or more, the setup you click is the <strong>active setup</strong>: it is shown in full colour,
+generated, simulated and exported, while the other boards and their shapes are ghosts, faint
+and out of the way. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by every
+setup, is under <strong>Machine</strong>.</p>
+<p>Right-click a setup for <strong>Export G-code of this setup…</strong>: it becomes the active setup, is
+planned if it isn’t shown already, and its program and sheet are written. <strong>Export G-code</strong>
+writes the active setup’s program, named <code>-S1</code>, <code>-S2</code> as <code>run</code> names them,
+with its own sheet. Make the next setup active and export it too. A setup whose parts still
+have operations can’t be removed: move them or delete them first.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/setups.png" alt="Two setups: the 6 mm bottom active, the 12 mm sides a ghost"><span class="img-wrapper"><img src="images/setups.png" alt="Two setups: the 6 mm bottom active, the 12 mm sides a ghost"></span></label></p>
+<h2 id="on-the-command-line-1"><a class="header" href="#on-the-command-line-1">On the command line</a></h2>
+<pre><code class="language-sh">chipload setup add box.chipload --name "6 mm bottom" --thickness 6   # with a part of its own
+chipload setup part box.chipload 2 --to 2        # part 2 is cut from setup 2's board
+chipload setup list box.chipload
+chipload setup set box.chipload 2 --name "Bottom" --off
+chipload setup activate box.chipload 1
+chipload setup remove box.chipload 2 --with-parts
+chipload set box.chipload setups.1.stock.thickness=6     # a board's values, by path
+chipload run box.chipload -o box.nc --setup 2
+</code></pre>
+<p>In paths, a setup’s board is <code>setups.N.stock…</code> and its zero <code>setups.N.work_zero</code>, counting
+from 0. The older <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active setup’s.</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="depths-and-oversize"><a class="header" href="#depths-and-oversize">Depths and oversize</a></h1>
 <h2 id="start-and-end-depth"><a class="header" href="#start-and-end-depth">Start and end depth</a></h2>
 <p>Every operation cuts from its <strong>start depth</strong> to its <strong>end depth</strong>, in mm down from the
@@ -801,7 +918,7 @@ stock top, whatever the <a href="#stock">Z zero</a> is.</p>
 last pass is exactly at the end depth. Start 2, end 6, step down 2 gives passes at 4 and
 6 mm.</li>
 <li><strong>Cutting through:</strong> an end depth below the stock bottom goes into the spoilboard. That’s
-allowed up to <em>Max depth below stock</em> (Job settings), with a warning; deeper is refused,
+allowed up to <em>Max depth below stock</em> (the setup’s Stock), with a warning; deeper is refused,
 so a typo can’t reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
 0.3 mm into the spoilboard.</li>
 <li><strong>Through:</strong> tick <strong>Through</strong> next to the end depth of a profile, pocket, follow path or
@@ -863,7 +980,7 @@ routers.</li>
 <li><strong>Conventional:</strong> the edge enters at zero chip thickness. It is gentler on machines with
 backlash.</li>
 </ul>
-<p><strong>What it means for the path.</strong> With the spindle turning clockwise (M3, Job settings &gt;
+<p><strong>What it means for the path.</strong> With the spindle turning clockwise (M3,
 Machine &gt; Spindle):</p>
 <ul>
 <li>climb goes <strong>clockwise</strong> round an outside profile and an island;</li>
@@ -903,7 +1020,7 @@ the project keeps its own copy, so it cuts the same later.</p>
 <p>Operations run in the list’s order. A run of operations next to each other with the same
 tool is a <strong>tool group</strong>, and between groups the tool changes. The Browser draws a
 line at each change.</p>
-<p><strong>Tool changes</strong> (Job settings &gt; Machine) says how a job with several tools is written:</p>
+<p><strong>Tool changes</strong> (Machine) says how a job with several tools is written:</p>
 <ul>
 <li><strong>One file per tool:</strong> <code>part-1-T1.nc</code>, <code>part-2-T3.nc</code>, … Change the tool by hand
 between files, set Z zero with the new tool, and keep X and Y zero. Every post can do
@@ -1456,13 +1573,17 @@ start without a name.</li>
 Ctrl+V over the canvas pastes at the cursor.</li>
 <li><strong>Mirror:</strong> <em>Draw &gt; Mirror left–right</em> and <em>Mirror up–down</em> flip shapes about the middle
 of their box.</li>
-<li><strong>Delete:</strong> Del. Operations that cut the shape are flagged.</li>
+<li><strong>Delete:</strong> Del (or right-click &gt; <em>Delete</em>). Operations that cut the shape are flagged.
+Del also deletes a text, a picture or a DXF selected as a whole (by a click on a letter,
+or on its Browser row), as its <em>Remove</em> does; a box round a sign takes its words with the
+frame. A shape picked out of an imported DXF or traced picture stays: it changes only
+with its file.</li>
 <li><strong>Undo:</strong> Ctrl+Z.</li>
 </ul>
 <p>Imported shapes can’t be edited: they change only with the DXF, unless you
 <a href="#exploding-a-dxf-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
 <em>Draw &gt; Join ends…</em> (same page).</p>
-<h2 id="on-the-command-line-1"><a class="header" href="#on-the-command-line-1">On the command line</a></h2>
+<h2 id="on-the-command-line-2"><a class="header" href="#on-the-command-line-2">On the command line</a></h2>
 <pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
 chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
 chipload shape set part.chipload 9 --corner-radius 3  # round the rectangle's corners
@@ -1517,7 +1638,7 @@ them select it.</li>
 <li><strong>The report</strong> says how many shapes became how many, the widest gap closed, and the ends
 still open with the distance to the nearest other end: the gap that would close them.</li>
 </ul>
-<h2 id="on-the-command-line-2"><a class="header" href="#on-the-command-line-2">On the command line</a></h2>
+<h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
 <pre><code class="language-sh">chipload dxf explode part.chipload                  # the project's only DXF
 chipload dxf explode part.chipload 2 --join 0.05mm  # DXF 2, then join ends closer than 0.05 mm
 chipload shape join part.chipload                   # every drawn shape, gap 0.01 mm
@@ -1677,7 +1798,8 @@ them (or, for centre lines, <strong>Follow</strong> cuts them). It is one undo s
 position, rotation, width or layer in Properties.</li>
 <li><strong>Trace it differently:</strong> double-click it, or right-click it &gt; <strong>Trace settings…</strong>: the
 same window opens (its button says <strong>Apply</strong>).</li>
-<li><strong>Remove it:</strong> right-click &gt; <strong>Remove</strong> removes the picture and its shapes.</li>
+<li><strong>Remove it:</strong> right-click &gt; <strong>Remove</strong> removes the picture and its shapes; so does
+<strong>Del</strong> with the picture selected.</li>
 <li><strong>See it:</strong> <strong>Images</strong> on the canvas’s navigation bar (or <em>View &gt; Show images</em>) shows the
 pictures faintly on the stock top, over the simulated stock and under the drawing, in
 top view and 3D, for comparing the traced shapes, and the cut, with the picture.</li>
@@ -1686,7 +1808,7 @@ the operation (<a href="#what-an-operation-selects">What an operation selects</a
 <li><strong>Operations:</strong> clicking traced shapes on the canvas and adding an operation selects the
 whole image, not the shapes.</li>
 </ul>
-<h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
+<h2 id="on-the-command-line-4"><a class="header" href="#on-the-command-line-4">On the command line</a></h2>
 <pre><code>chipload image add part.chipload logo.png --width 120 --at 10,10 --threshold auto
 chipload image add part.chipload signature.png --width 80 --trace centre-line
 chipload image set part.chipload 1 --threshold 140 --blur 2 --invert true --arcs false
@@ -1716,6 +1838,8 @@ projects from Chipload 0.15 open as outlines without arcs, exactly as they were 
 shapes that you <a href="#v-carve">V-carve</a>, <a href="#pocket">pocket</a> or cut
 out with a <a href="#profile">profile</a>. (Design: <code>docs/specs/text.md</code>.)</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/text.png" alt="A text on the canvas, selected with its handles, and its properties on the right"><span class="img-wrapper"><img src="images/text.png" alt="A text on the canvas, selected with its handles, and its properties on the right"></span></label></p>
+<p>For a sign, <em>Draw &gt; Frame…</em> then draws a frame round the text, with border lines:
+<a href="#signs-and-frames">Signs and frames</a>.</p>
 <h2 id="writing-a-text"><a class="header" href="#writing-a-text">Writing a text</a></h2>
 <ol>
 <li><strong>Draw &gt; Text</strong> in the ribbon (or <em>DRAW &gt; Text</em>), then click on the canvas where the text
@@ -1733,7 +1857,7 @@ new V-carve takes a V-bit from the project if it has one.</li>
 canvas:</p>
 <ul>
 <li><strong>Text:</strong> what it says, on one or more lines;</li>
-<li><strong>Font:</strong> one of the built-in fonts (below);</li>
+<li><strong>Font:</strong> one of the built-in fonts, or one installed on your computer (below);</li>
 <li><strong>Height:</strong> the height of a capital letter, mm; what a ruler measures on an H;</li>
 <li><strong>Anchor:</strong> what Position is: the <strong>lower-left corner</strong> of the text’s box, or its
 <strong>centre</strong>. A centred text stays centred when you change its words, font or size, which is
@@ -1750,6 +1874,7 @@ kerning included (in a serif font, “AV” sits closer than “A V”);</li>
 </ul>
 <p>Each change applies when you finish the edit, as one undo step: <strong>Ctrl+Z</strong> brings the
 earlier text back. An operation that selects the text follows the change.</p>
+<p><strong>Del</strong> removes the selected text with its letters (as <em>Remove</em> on its Browser row does).</p>
 <p><strong>On the canvas:</strong> with the text selected, its box shows handles (in top view):</p>
 <ul>
 <li>the square in the <strong>middle</strong> moves it;</li>
@@ -1785,10 +1910,24 @@ Smokum’s pointed serifs need a pocketing tool of 2 mm or more.</p>
 <p><strong>Licences:</strong> GNU FreeFont is under the GPL with the font exception, the others under the
 Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
 their G-code are yours.</p>
+<h3 id="your-computers-fonts"><a class="header" href="#your-computers-fonts">Your computer’s fonts</a></h3>
+<p>The <em>Font</em> list also has <strong>On this computer</strong>: every TrueType or OpenType font installed
+there, by name (“Arial Bold”), with a search field. Hover over a name to see a sample. The
+first time the list opens, Chipload looks for them (<em>Looking for fonts…</em>).</p>
+<p>A font you don’t want to install can go in a folder named <code>fonts</code> in your
+<a href="#your-settings">settings folder</a>; Chipload finds it there too.</p>
+<p>Only the font’s name goes into the project, never the font file: fonts are licensed to the
+computer they are installed on. The letters are in the project as shapes, so the project
+cuts the same on any computer (below).</p>
 <h2 id="in-the-project-file"><a class="header" href="#in-the-project-file">In the project file</a></h2>
 <p>A text is stored with what it says and how, and its letters are stored as shapes too. So the
 font is needed only to change the text; a project cuts the same whatever the computer has
 installed. Chipload 0.19 and older can’t open a project that has a text.</p>
+<p><strong>On a computer without the text’s font,</strong> the text keeps its letters and cuts as they
+are. Its properties say so, and its words, height, alignment and spacing are greyed out;
+the Browser marks it with ⚠. You can still move it, turn it and put it on another layer.
+To change its words or size, choose another font: its letters are then made again in that
+one.</p>
 <h2 id="leaving-letters-out"><a class="header" href="#leaving-letters-out">Leaving letters out</a></h2>
 <p>As with a picture: with the whole text selected, <strong>Ctrl+click</strong> a letter (or one part of it,
 such as the hole of an O) to leave it out of the operation, and again to put it back. A
@@ -1800,11 +1939,92 @@ chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1
-chipload text fonts
+chipload text fonts                                           # built in, then the computer's
 </code></pre>
 <p><code>\n</code> in the text starts a new line. An operation selects the text with
 <code>"select": {"text": 1}</code>, and any value can be changed with <code>chipload set</code>
 (<code>drawing.texts.0.text="SIGN"</code>); the letters are made again.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="signs-and-frames"><a class="header" href="#signs-and-frames">Signs and frames</a></h1>
+<p>An engraved sign is a few words with a frame round them, cut out of a board. <strong>Draw &gt;
+Frame…</strong> draws the frame for you: round the text you have written, centred on it, with
+border lines inside it, or to a size as a blank. (Design: <code>docs/specs/shape-library.md</code>.)</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"><span class="img-wrapper"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"></span></label></p>
+<h2 id="a-frame-round-a-text"><a class="header" href="#a-frame-round-a-text">A frame round a text</a></h2>
+<ol>
+<li>Write the text (<a href="#text">Text</a>) and leave it selected, or select any shapes: the frame
+goes round all of them.</li>
+<li><strong>Frame</strong>: the small button after the shape tools in the ribbon’s <em>DRAW</em> group (a
+rounded frame with a line inside), or <em>DRAW ▾ &gt; Frame…</em>. Its values open under
+<em>Selection</em>, and the frame shows on the canvas as you change them.</li>
+<li>Pick a frame from the row of pictures, set the values, and click <strong>Add</strong>. The frame is
+added as one undo step, and its shapes are selected.</li>
+</ol>
+<p>Clicking a shape while the tool is open makes it what the frame goes round (Ctrl+click
+adds one); a click on empty space, or on the previewed frame, changes nothing. <strong>Esc</strong> or
+<em>Cancel</em> ends the tool. The tool keeps your values until you close Chipload.</p>
+<p>The frames:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Frame</th><th>Its corner size is</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Rectangle</strong></td><td>(sharp corners)</td></tr>
+<tr><td><strong>Rounded</strong></td><td>the corners’ radius</td></tr>
+<tr><td><strong>Notched</strong></td><td>the radius of the quarter circles cut into each corner</td></tr>
+<tr><td><strong>Chamfered</strong></td><td>how far each corner is cut off at 45°, along each side</td></tr>
+<tr><td><strong>Oval</strong></td><td>(an ellipse touching the four sides)</td></tr>
+<tr><td><strong>Arched top</strong></td><td>how far the top arc rises above the top corners</td></tr>
+<tr><td><strong>Plaque</strong></td><td>how far the short sides bulge out</td></tr>
+</tbody>
+</table>
+</div>
+<p>The values:</p>
+<ul>
+<li><strong>Margin:</strong> from the box round what is selected to the <strong>innermost</strong> line, so the words
+sit evenly inside the border nearest them (10 mm by default). The frame is centred on that
+box and made just large enough: an oval grows in proportion, an arched top grows taller,
+a plaque grows along its long side. Its size shows under the values.</li>
+<li><strong>Corner:</strong> the corner size (above). Unticked, it is a tenth of the frame’s shorter side,
+shown greyed; tick it to set your own. One too large for the frame is refused, with the
+largest that fits.</li>
+<li><strong>Borders:</strong> 0 to 3 lines inside the outline, each <strong>Gap</strong> further in (5 mm by default).
+They follow the outline’s shape: a notched frame’s borders are notched too.</li>
+<li><strong>Layer</strong>, <strong>Border layer:</strong> the outline goes on <code>frame</code>, the borders on <code>border</code>, so that
+each can be cut by its own operation.</li>
+</ul>
+<p>A frame is ordinary drawn shapes: a rounded or plain rectangle, a circle for a round oval,
+otherwise a polyline of lines and arcs. Change it like any drawn shape, or draw it again:
+delete it, change the text, and <em>Draw &gt; Frame…</em> again with the same values.</p>
+<h2 id="a-frame-to-a-size"><a class="header" href="#a-frame-to-a-size">A frame to a size</a></h2>
+<p>With nothing selected, <em>Draw &gt; Frame…</em> asks for the outline’s <strong>Width</strong> and <strong>Height</strong>
+instead of the margin, and the frame is centred on the stock: a blank for a sign, or a
+plaque to write on afterwards.</p>
+<h2 id="cutting-the-sign"><a class="header" href="#cutting-the-sign">Cutting the sign</a></h2>
+<p>A sign is usually three operations, in this order:</p>
+<ol>
+<li>a <strong><a href="#v-carve">V-carve</a></strong> on the text’s layer, with a V-bit;</li>
+<li>a <strong><a href="#follow-path">Follow path</a></strong> on the <code>border</code> layer with the same V-bit: a
+groove along each border line, as wide as the V-bit is at that depth. (A V-carve of a
+border would carve the whole area inside it.);</li>
+<li>a <strong><a href="#profile">Profile</a></strong> outside the <code>frame</code> layer with an end mill, to
+cut the sign out, with tabs.</li>
+</ol>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/sign.png" alt="The sign simulated: the letters V-carved, a V-groove border, the rounded outline cut out with its tabs"><span class="img-wrapper"><img src="images/sign.png" alt="The sign simulated: the letters V-carved, a V-groove border, the rounded outline cut out with its tabs"></span></label></p>
+<p>The stock can sit round the drawing, sticking out equally on every side
+(<a href="#stock-and-work-zero">Stock and work zero</a>), so the board needs to be only as large as the
+sign.</p>
+<h2 id="from-the-command-line"><a class="header" href="#from-the-command-line">From the command line</a></h2>
+<pre><code>chipload text add sign.chipload "SIGN" --height 30 --at 150,80 --anchor center
+chipload frame add sign.chipload --kind rounded --around-text 1 --borders 1 --corner 8 --margin 12
+chipload frame add blank.chipload --kind oval --width 300 --height 150 --borders 2
+chipload frame kinds
+</code></pre>
+<p><code>--around</code> takes shape ids, <code>--around-text</code> text ids (<code>chipload text list</code>); without
+either, <code>--width</code> and <code>--height</code> give the outline’s size and <code>--at</code> its centre (the stock’s
+centre by default). The new shapes’ ids are printed, the outline’s first; <code>--json</code> gives
+them with the frame’s size and corner.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="copies"><a class="header" href="#copies">Copies</a></h1>
 <p>Each <a href="#parts">part</a> can be cut several times, in a grid of its own: click
@@ -1893,10 +2113,10 @@ chipload part activate part.chipload 1
 chipload run part.chipload -o lid.nc --part 2           # only part 2's G-code
 chipload part remove part.chipload 2 --with-operations  # without the flag: refused while it has operations
 </code></pre>
-<p>In the app, the <a href="#the-browser">Browser</a> lists the parts with their operations.
-Click a part to see its copies in Properties. Right-click it to activate, export, move or
-delete it,
-or right-click <em>Parts</em> for a new one. Drag an operation onto a part to move it there.</p>
+<p>In the app, the <a href="#the-browser">Browser</a> lists the parts under their
+<a href="#setups">setup</a>, with their operations. Click a part to see its copies in
+Properties. Right-click it to activate, export, move or delete it, or right-click its setup
+for a new one. Drag an operation onto a part to move it there.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"><span class="img-wrapper"><img src="images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"></span></label></p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="profile"><a class="header" href="#profile">Profile</a></h1>
@@ -2267,7 +2487,7 @@ corners come out with the small tool’s radius.</li>
 <li><strong>Nothing left:</strong> if the large tool reaches the whole pocket (a circle wider than it),
 the pass cuts nothing and says so.</li>
 </ul>
-<p><em>View &gt; Show stock</em> shows the result: the corners cut by the small tool.</p>
+<p><strong>Simulate</strong> (F6) shows the result: the corners cut by the small tool.</p>
 <h2 id="rules"><a class="header" href="#rules">Rules</a></h2>
 <ul>
 <li><strong>A smaller endmill:</strong> a pass’s tool must be an endmill smaller than the tool before it.</li>
@@ -2308,21 +2528,69 @@ a V-bit without one is refused.</p>
 </thead>
 <tbody>
 <tr><td><strong>Start depth</strong></td><td>where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut</td></tr>
-<tr><td><strong>End depth</strong></td><td>the deepest the tip may go. Strokes that need more are carved to it and come out narrower than drawn, with a warning. The bit’s own size is a limit too: it can’t go deeper than its cutting edge reaches.</td></tr>
-<tr><td><strong>Step down</strong></td><td>optional: carve in passes, each only where the last stopped short</td></tr>
+<tr><td><strong>End depth</strong></td><td>the deepest the tip may go. Strokes that need more get walls (see <em>Wide strokes</em>). The bit’s own size is a limit too: it can’t go deeper than its cutting edge reaches.</td></tr>
+<tr><td><strong>Passes</strong></td><td>how many passes to the end depth, 1 for one: each removes as much as the others, so they get shallower on the way down, and each runs only where the last stopped short. Their depths are shown under the field (see <em>Passes</em>)</td></tr>
 <tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>moves steeper than 45° use the plunge feed</td></tr>
 </tbody>
 </table>
 </div>
 <p>Regions work as in pockets: an outline minus the selected contours inside it (the inside of
 an O stays standing). Open contours are skipped.</p>
+<h2 id="passes"><a class="header" href="#passes">Passes</a></h2>
+<p>A V groove gets wider as it gets deeper: twice as deep removes four times as much. Passes
+of the same depth would get heavier and heavier, the last one the hardest on the bit and the
+machine. So you say how deep and in how many passes, and each pass removes the same amount:
+the steps get smaller on the way down. 5 mm in 6 passes goes to 2.04, 2.89, 3.54, 4.08, 4.56
+and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. The depths are counted from the end
+depth, so a stroke that is shallower than that is done in fewer passes: the deeper ones find
+nothing left to cut. More passes are lighter on the bit and take longer.</p>
+<p>The carving is done area by area: each letter (or each closed part of a drawing, such as
+the dot of an <em>i</em>) gets all its passes, and its walls, before the bit moves to the
+nearest next one.</p>
+<p>Within a letter the bit lifts as little as it can. The short branches the centre line
+runs into sharp corners (shorter than 5 mm) are cut out and back as the bit passes them,
+instead of each with a trip up to safe Z. In the passes after the first, where two pieces
+to cut lie at most 10 mm apart along the centre line, the bit goes from one to the next
+through the groove already cut instead of lifting. The carving is the same; there are
+fewer lifts (in a script font about half).</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/vcarve-passes.png" alt="A V-carve 3.5 mm deep in 4 passes: their depths under Passes"><span class="img-wrapper"><img src="images/vcarve-passes.png" alt="A V-carve 3.5 mm deep in 4 passes: their depths under Passes"></span></label></p>
+<p>Projects from before Chipload 0.29 had a step down instead. They open with as many passes
+as that step down took to reach the end depth (3.5 mm with a 1.6 mm step down: 3 passes),
+each now no heavier than the old last one.</p>
+<h2 id="wide-strokes"><a class="header" href="#wide-strokes">Wide strokes</a></h2>
+<p>Where a stroke is wider than the bit can carve within the end depth, the bit goes down to
+the end depth and follows the outline, just far enough in for its cone to touch the drawn
+edge at the surface. The walls come out as drawn, sharp, at the bit’s angle; narrow parts
+of the same shape are still carved along their centre line, and corners are carved up into
+their tips.</p>
+<p>Without more, the floor between the walls is left standing at the surface, with a
+warning: an outline carving.</p>
+<h3 id="the-floor-pass"><a class="header" href="#the-floor-pass">The floor pass</a></h3>
+<p>To clear the floor flat, give the V-carve a <strong>floor pass</strong>: an end mill that clears the
+floor at the end depth, kept clear of the sloped walls. It belongs to the V-carve, as a rest
+pass belongs to its pocket: it takes the V-carve’s shapes and depths, has its own tool,
+feeds, step down and stepover, and is cut first, so the end mill takes the bulk and the
+V-bit only cuts the walls. Where the end mill can’t reach (corners of the floor, parts
+narrower than it), the V-bit cleans up along the centre line at the end depth.</p>
+<p>In the window, right-click the V-carve in the Browser: <strong>Add floor pass ▸</strong> lists the
+project’s end mills, then your library’s. The floor pass is a leaf under the V-carve; click
+it for its settings.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/vcarve-floor.png" alt="A sign carved with walls and a floor pass, the floor pass open"><span class="img-wrapper"><img src="images/vcarve-floor.png" alt="A sign carved with walls and a floor pass, the floor pass open"></span></label></p>
+<p>If the end mill is too wide for part of the floor, the plan says how much it clears and the
+largest end mill that would clear it all, and names the end mills in your library that do
+(in the floor pass’s settings too, under its tool):</p>
+<pre><code class="language-text">warning: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
+Operation 1: end mills in your library that clear the floor: 0.8 mm flat (0.8 mm)
+</code></pre>
+<p>Specks lower than 0.2 mm, or less than 1 % of a shape’s floor, don’t count: no round end
+mill reaches into a sharp corner. The advice is information only; the job runs either way.</p>
+<pre><code class="language-sh">chipload op add-floor sign.chipload --op 1 --tool 2   # the floor pass with project tool 2
+chipload op remove-floor sign.chipload --op 1
+</code></pre>
 <h2 id="limits"><a class="header" href="#limits">Limits</a></h2>
 <ul>
 <li><strong>A flat tip:</strong> it can’t reach into the last bit of a sharp corner, and strokes narrower
 than the tip are left out, with a warning.</li>
-<li><strong>No floor clearing:</strong> the floor is the V the bit leaves; wide areas aren’t cleared flat.
-For that, pocket them first with an endmill and carve on the pocket floor with the start
-depth.</li>
 <li><strong>Text:</strong> text from the DXF must be converted to outlines (curves) in CAD first. Chipload
 doesn’t read TEXT entities or fonts.</li>
 </ul>
@@ -2343,9 +2611,10 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>tool</code></td><td>Tool: the project tool’s id</td></tr>
 <tr><td><code>start_depth</code></td><td>Start depth</td></tr>
 <tr><td><code>end_depth</code></td><td>End depth</td></tr>
-<tr><td><code>step_down</code></td><td>Step down, or null for one pass</td></tr>
+<tr><td><code>passes</code></td><td>Passes: how many, 1 to 100</td></tr>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
+<tr><td><code>floor</code></td><td>the floor pass, left out when there is none: <code>tool</code> (an end mill), <code>feed</code>, <code>plunge_feed</code>, <code>step_down</code>, <code>stepover</code> (a fraction of the end mill’s diameter), <code>entry</code> and <code>enabled</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -2558,24 +2827,26 @@ into the project.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/library.png" alt="This computer &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"><span class="img-wrapper"><img src="images/library.png" alt="This computer &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"></span></label></p>
 <h3 id="project-tools-and-the-library"><a class="header" href="#project-tools-and-the-library">Project tools and the library</a></h3>
 <p>Each project tool remembers the library tool it was copied from, by an id that stays when
-the library tool is renamed. Its row in the Browser shows that tool’s name (“← 6 mm 2F”),
-and its properties say how they stand:</p>
+the library tool is renamed. Its row in the Browser shows that tool’s name (“← 6 mm 2F”).
+In its properties, <strong>Library tool</strong> names it in a dropdown, with a line under it that says
+how they stand:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>It says</th><th>Meaning</th><th>You can</th></tr>
 </thead>
 <tbody>
-<tr><td>from library tool “6 mm 2F”</td><td>same values</td><td><em>Save to library</em>, <em>Show in library</em></td></tr>
-<tr><td>differs from “6 mm 2F”: rpm 18000 -&gt; 16000</td><td>one of them was changed</td><td><em>Update from library</em> (copies the library’s values into the project), or <em>Save to library</em> (the other way)</td></tr>
-<tr><td>“6 mm 2F” is not in your library</td><td>deleted there, or the project comes from another computer</td><td><em>Save to library…</em> under a name</td></tr>
+<tr><td>same as in your library</td><td>same values</td><td>nothing to do</td></tr>
+<tr><td>differs from your library: rpm 18000 -&gt; 16000</td><td>one of them was changed</td><td><em>Update from library</em> (copies the library’s values into the project), or <em>Save to library</em> (the other way)</td></tr>
+<tr><td>library tool “6 mm 2F” is not in your library</td><td>deleted there, or the project comes from another computer</td><td><em>Save to library…</em> under a name</td></tr>
 <tr><td>not from your library</td><td>made in the project</td><td><em>Save to library…</em> under a name</td></tr>
 </tbody>
 </table>
 </div>
 <ul>
-<li><strong>Use library tool…</strong> gives the project tool another library tool’s values.</li>
-<li><strong>Save as new…</strong> keeps the project tool’s values under another name.</li>
+<li><strong>Pick another tool in the dropdown</strong> to give the project tool its values.</li>
+<li><strong>⋯</strong> beside it: <em>Save as new…</em> keeps the project tool’s values under another name;
+<em>Show in library</em> opens the library tool.</li>
 <li>A new operation gets a library tool’s cutting values while the project tool still has the
 library tool’s values.</li>
 </ul>
@@ -2591,7 +2862,7 @@ them, a new operation copies the operation above it, or starts from the tool’s
 diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
 step down. Check the <a href="#chip-load">chip load</a> before cutting.</li>
 </ul>
-<h2 id="on-the-command-line-4"><a class="header" href="#on-the-command-line-4">On the command line</a></h2>
+<h2 id="on-the-command-line-5"><a class="header" href="#on-the-command-line-5">On the command line</a></h2>
 <pre><code class="language-sh">chipload tool list                                     # the tools, and where the file is
 chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000 \
   --feed 1500 --plunge-feed 400 --step-down 2 --stepover 0.4
@@ -2637,30 +2908,33 @@ As with tools, a project copies the values; the profile is only where new projec
 <li><strong>Click a profile</strong> to edit it in Properties; <strong>Save</strong> writes it.</li>
 <li><strong>Right-click</strong> it for <em>Use in this project</em>, <em>Make default</em> and <em>Delete</em>.</li>
 </ul>
-<p>In Job settings &gt; Machine:</p>
+<p>In Machine:</p>
 <ul>
-<li><strong>Use profile…</strong> applies a profile to the project: all its values.</li>
+<li><strong>Profile</strong> names the project’s profile in a dropdown; pick another to give the project
+its machine values. Its safe Z, work zero and max depth below the stock stay as they are.</li>
 <li><strong>While the project’s machine is the same as its profile</strong>, the machine’s values (post,
-spindle, max feed, tool changes, travel) are shown greyed under “From machine
-<em>Shapeoko</em>”. <strong>Edit here</strong> makes them editable for this project; it stays linked.</li>
+spindle, max feed, tool changes, travel) are shown greyed under <strong>From the profile</strong>.
+<strong>Edit here</strong> makes them editable for this project; it stays linked.</li>
 <li><strong>When they differ,</strong> each value that differs has a ↶ button: hover it for the profile’s
 value, click it to take it. <em>Update from library</em> takes them all.</li>
 <li><strong>Safe Z, the work zero and the max depth below the stock</strong> belong to the job: they’re
-always editable and never count as differing. A profile only gives a project its first
-values for them.</li>
-<li>A line says how the machine stands to its profile, as for
-<a href="#project-tools-and-the-library">tools</a>, with <em>Save to library</em>, <em>Save as new…</em>
-and <em>Show in library</em>.</li>
+always editable and never count as differing. A profile only gives a new project its
+first values for them; choosing another machine later keeps them.</li>
+<li>A line under the dropdown says how the machine stands to its profile, as for
+<a href="#project-tools-and-the-library">tools</a>, with <em>Update from library</em> and <em>Save to
+library</em> when they differ. <strong>⋯</strong> beside the dropdown has <em>Save as new…</em> and <em>Show in
+library</em>.</li>
 </ul>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/machine.png" alt="The project’s machine from the profile “Shapeoko”: the same as in the library, its machine values greyed under From the profile"><span class="img-wrapper"><img src="images/machine.png" alt="The project’s machine from the profile “Shapeoko”: the same as in the library, its machine values greyed under From the profile"></span></label></p>
 <p>A profile whose post is one of your own <a href="#your-own-post">post-processors</a> copies
 that post into the project.</p>
-<h2 id="on-the-command-line-5"><a class="header" href="#on-the-command-line-5">On the command line</a></h2>
+<h2 id="on-the-command-line-6"><a class="header" href="#on-the-command-line-6">On the command line</a></h2>
 <pre><code class="language-sh">chipload machine list
 chipload machine add "Shapeoko" --post grbl --safe-z 10 --travel 838,838,95 --max-feed 5000
 chipload machine set "Shapeoko" --safe-z 15        # or --rename
 chipload machine default "Shapeoko"
 chipload import part.dxf -o part.chipload --machine "Shapeoko"   # start from a profile
-chipload machine use "Shapeoko" part.chipload                   # apply to an existing project
+chipload machine use "Shapeoko" part.chipload                   # its machine values into an existing project
 chipload machine save part.chipload --name "Shapeoko 4"         # links the project to it
 chipload machine compare part.chipload                          # same, differs, not in the library, or not from a profile
 chipload machine export machines.json ; chipload machine import machines.json
@@ -2711,7 +2985,7 @@ material’s values for its tool: feed and plunge feed, step down, and stepover 
 surface keeps its own wide stepover). A material without values for the tool is listed as
 “Plywood (no values for this tool)”; choosing it changes nothing yet, and <em>Save to Plywood</em>
 fills it from the operation. <em>None</em> leaves the operation’s feeds as they are.</p>
-<p><strong>For every operation:</strong> <em>Job settings &gt; Material</em>, or <em>Use for all operations</em> on a
+<p><strong>For every operation:</strong> the setup’s <em>Material</em>, or <em>Use for all operations</em> on a
 material. As one step (one Undo takes it back) every operation takes the material and its
 values; an operation whose tool has no values there keeps its own, and the report says so.
 Operations you add later start with this material.</p>
@@ -2727,7 +3001,7 @@ tool</em> (with <em>Save to Plywood</em>). Editing a feed by hand keeps the mate
 <p>The project keeps only each material’s name (<code>material</code> on each operation, and on the
 stock for the operations added later). The values are already in the operations, so the
 project cuts the same on a computer without that material.</p>
-<h2 id="on-the-command-line-6"><a class="header" href="#on-the-command-line-6">On the command line</a></h2>
+<h2 id="on-the-command-line-7"><a class="header" href="#on-the-command-line-7">On the command line</a></h2>
 <pre><code>chipload material add Plywood
 chipload material set Plywood --tool "6 mm 2-flute" --feed 1500 --plunge-feed 500 --step-down 2.5 --stepover 0.4
 chipload material list                         # every material with its values per tool
@@ -2770,7 +3044,7 @@ the spindle. The <a href="#post-processors-1">post-processor reference</a> lists
 settings.</p>
 <h2 id="choosing-the-post"><a class="header" href="#choosing-the-post">Choosing the post</a></h2>
 <ul>
-<li><strong>App:</strong> Job settings &gt; Machine &gt; Post. The list shows the built-in posts, then yours.</li>
+<li><strong>App:</strong> Machine &gt; Post. The list shows the built-in posts, then yours.</li>
 <li><strong>Command line:</strong> <code>chipload post use part.chipload --post linuxcnc</code>.</li>
 <li><strong>Machine profile:</strong> a profile names its post, and a project made from the profile gets
 it.</li>
@@ -2904,16 +3178,22 @@ FRONT, RIGHT, …).</li>
 <li><strong>Shallow cuts:</strong> <em>View &gt; Z scale in 3D</em> stretches depth, for cuts too shallow to see.</li>
 </ul>
 <h2 id="simulation"><a class="header" href="#simulation">Simulation</a></h2>
-<p>The simulation cuts the stock with every move of the program and shows the result. It is
-on when the app starts; <em>View &gt; Show stock</em> (or <strong>Stock</strong> on the canvas’s navigation bar) turns it
-off and on.</p>
+<p>The simulation cuts the stock with every move of the program and shows the result, in
+<strong>Simulate</strong> mode: the <strong>Edit | Simulate</strong> switch on the canvas’s navigation bar, <em>View &gt;
+Simulate</em> or F6, and <strong>Edit</strong> or F6 to go back (<a href="#the-canvas">Edit and Simulate</a>).</p>
 <ul>
 <li><strong>Top view:</strong> a shaded picture.</li>
 <li><strong>3D:</strong> a surface you can turn.</li>
 <li><strong>Tool shapes:</strong> each tool’s real shape is used: a flat endmill, a V-bit’s cone with its
 tip, and a drill’s 118° point.</li>
-<li><strong>When:</strong> it runs in the background after each generation. Until it’s done, the canvas
-says <em>Updating the simulation…</em> and still shows the stock as the last toolpath cut it.</li>
+<li><strong>When:</strong> in the background, when you enter Simulate and after each new toolpath while
+you’re in it; in Edit nothing is simulated. Until it’s done, the canvas says <em>Updating
+the simulation…</em> and still shows the stock as the last toolpath cut it. Back in Simulate
+without changes, the last simulation shows at once. With no toolpath yet, entering
+Simulate makes one.</li>
+<li><strong>What makes a new toolpath:</strong> a change that can change the cut. Drawing a shape that no
+operation selects doesn’t, unless the board fits the drawing and grows with it, or the
+shape lies off the stock.</li>
 <li><strong>Without the toolpath:</strong> <em>View &gt; Show toolpath</em> (also <strong>Toolpath</strong> on the navigation bar
 and a checkbox on the canvas legend)
 hides the toolpath’s lines, plunges and tabs. During playback, the tool still shows where
@@ -2965,7 +3245,7 @@ Browser shows its time, and so does the setup sheet.</p>
 feed from start to end.</li>
 <li><strong>Real time is longer:</strong> a real machine slows down in corners and while accelerating.
 Take the estimate as a lower bound for jobs with many short moves.</li>
-<li><strong>Rapids</strong> move at the machine’s <strong>max feed</strong> (Job settings &gt; Machine). Without one, the
+<li><strong>Rapids</strong> move at the machine’s <strong>max feed</strong> (Machine). Without one, the
 estimate assumes 5 000 mm/min and says so: set the max feed for a better estimate.</li>
 </ul>
 <p><code>chipload plan part.chipload</code> prints the same, and <code>--json</code> gives it as numbers.</p>
@@ -3095,6 +3375,9 @@ Object keys come out sorted.</p>
 <p>A <strong>path</strong> is keys and array indexes joined by dots, as in the project file, counting from 0:
 <code>stock.thickness</code>, <code>operations.1.end_depth</code>, <code>tools.0.rpm</code>. Note that <code>--op</code> on <code>op tool</code>
 and <code>op rest</code> counts from 1, as Chipload numbers operations on screen.</p>
+<p>The stock and the work zero belong to a setup (<code>setups.0.stock.thickness</code>,
+<code>setups.0.work_zero</code>); <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active
+setup’s, so older scripts keep working.</p>
 <pre><code class="language-sh">chipload get part.chipload operations.1.end_depth          # 6.0
 chipload set part.chipload operations.1.end_depth=6.5 operations.1.name=Corners
 chipload set part.chipload 'operations.1.rest={"after_tool": 1}'
@@ -3208,8 +3491,9 @@ the argument <code>mcp</code>. In Claude Desktop’s <code>claude_desktop_config
   }
 }
 </code></pre>
-<p>On Windows, the command is the full path to <code>chipload.exe</code>, from
-<code>chipload-cli-X.Y.Z-windows-x86_64.zip</code>. Ask
+<p>On Windows, the command is the full path to <code>chipload.exe</code>, which the installer puts
+beside the app: <code>C:\\Users\\YOU\\AppData\\Local\\Programs\\Chipload\\chipload.exe</code> (in
+JSON each <code>\</code> is written twice). Ask
 the assistant to use full paths to your files there, as it has no project folder.</p>
 </li>
 </ul>
@@ -3339,6 +3623,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -3360,6 +3645,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--no-sheet</code></td><td>Don’t write the setup sheet (by default <code>part-sheet.html</code> next to <code>part.nc</code>)</td></tr>
 <tr><td><code>--sheet-units &lt;UNITS&gt;</code></td><td>The setup sheet’s lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
 <tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -3380,6 +3666,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--cell &lt;CELL&gt;</code></td><td>Cell size, mm (default: automatic, from the stock’s size)</td></tr>
 <tr><td><code>--no-image</code></td><td>Print the numbers only.</td></tr>
 <tr><td><code>--after &lt;N&gt;</code></td><td>The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts.</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>The setup to simulate (as <code>setup list</code> numbers it); default: the active one.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
 </table>
@@ -3400,6 +3687,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this sheet only: one file per tool, or one file with M6 tool changes. One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--units &lt;UNITS&gt;</code></td><td>Its lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
 <tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -3468,6 +3756,39 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The pocket’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The smaller tool’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-floor"><a class="header" href="#chipload-op-add-floor"><code>chipload op add-floor</code></a></h3>
+<p>Give a V-carve a floor pass (docs/specs/vcarve-wide-strokes.md §4): an end mill that clears the floor between the walls of strokes too wide to carve from their centre line, cut before the V-carve. Replaces the floor pass it had</p>
+<pre><code class="language-text">chipload op add-floor &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The V-carve’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The end mill’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-remove-floor"><a class="header" href="#chipload-op-remove-floor"><code>chipload op remove-floor</code></a></h3>
+<p>Take a V-carve’s floor pass away (docs/specs/vcarve-wide-strokes.md §4)</p>
+<pre><code class="language-text">chipload op remove-floor &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The V-carve’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -4238,9 +4559,42 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-text-fonts"><a class="header" href="#chipload-text-fonts"><code>chipload text fonts</code></a></h3>
-<p>The built-in fonts</p>
+<p>The built-in fonts, then the computer’s (and those in the settings folder’s <code>fonts</code>)</p>
 <pre><code class="language-text">chipload text fonts
 </code></pre>
+<h2 id="chipload-frame"><a class="header" href="#chipload-frame"><code>chipload frame</code></a></h2>
+<p>Frames for signs, drawn round shapes or to a size, with border lines (docs/specs/shape-library.md)</p>
+<h3 id="chipload-frame-kinds"><a class="header" href="#chipload-frame-kinds"><code>chipload frame kinds</code></a></h3>
+<p>The built-in frames, and what their corner size means</p>
+<pre><code class="language-text">chipload frame kinds
+</code></pre>
+<h3 id="chipload-frame-add"><a class="header" href="#chipload-frame-add"><code>chipload frame add</code></a></h3>
+<p>Draw a frame round shapes (–around, –around-text) or to a size (–width and –height), with border lines inside it; prints the new shapes’ ids</p>
+<pre><code class="language-text">chipload frame add &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--kind &lt;KIND&gt;</code></td><td>Which frame (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>oval</code>, <code>arched</code>, <code>plaque</code>. Required.</td></tr>
+<tr><td><code>--around &lt;AROUND&gt;</code></td><td>Round these shapes (ids as <code>inspect</code> lists them, without the S): the frame is centred on their box, –margin from it to the innermost line. Repeatable.</td></tr>
+<tr><td><code>--around-text &lt;AROUND_TEXT&gt;</code></td><td>Round these texts’ letters (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>From the shapes’ box to the innermost line, mm (default 10)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>The outline’s width, mm, when not round shapes.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>The outline’s height, mm, when not round shapes.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Its centre, X,Y in mm (default: the stock’s centre), with –width and –height.</td></tr>
+<tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The corner size, mm (default: a tenth of the shorter side; <code>frame kinds</code> says what it is for each frame)</td></tr>
+<tr><td><code>--borders &lt;BORDERS&gt;</code></td><td>Border lines inside the outline, 0 to 3. Default: <code>0</code>.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm. Default: <code>5</code>.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The outline’s layer. Default: <code>frame</code>.</td></tr>
+<tr><td><code>--border-layer &lt;BORDER_LAYER&gt;</code></td><td>The borders’ layer. Default: <code>border</code>.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-dxf"><a class="header" href="#chipload-dxf"><code>chipload dxf</code></a></h2>
 <p>A project’s DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)</p>
 <h3 id="chipload-dxf-add"><a class="header" href="#chipload-dxf-add"><code>chipload dxf add</code></a></h3>
@@ -4753,7 +5107,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-machine-use"><a class="header" href="#chipload-machine-use"><code>chipload machine use</code></a></h3>
-<p>Copy a profile’s values into a project; lists what changed</p>
+<p>Copy a profile’s machine values into a project, keeping its safe Z, work zero and max overcut; lists what changed</p>
 <pre><code class="language-text">chipload machine use &lt;NAME&gt; &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -4918,6 +5272,108 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="chipload-setup"><a class="header" href="#chipload-setup"><code>chipload setup</code></a></h2>
+<p>A project’s setups: each a board clamped once, with its stock, work zero and parts, run as a program of its own (docs/specs/setups.md)</p>
+<h3 id="chipload-setup-list"><a class="header" href="#chipload-setup-list"><code>chipload setup list</code></a></h3>
+<p>The project’s setups: id, name, on or off, board, work zero and parts</p>
+<pre><code class="language-text">chipload setup list &lt;PROJECT&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-add"><a class="header" href="#chipload-setup-add"><code>chipload setup add</code></a></h3>
+<p>Add a setup at the end, a board like the active one’s, with a first part of its own; both become active</p>
+<pre><code class="language-text">chipload setup add &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name; default: “Setup N”.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s thickness; default: the active setup’s.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-set"><a class="header" href="#chipload-setup-set"><code>chipload setup set</code></a></h3>
+<p>Rename a setup, or turn it off or on (a setup that is off isn’t cut)</p>
+<pre><code class="language-text">chipload setup set &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The setup’s id (as <code>setup list</code> shows it)</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its new name.</td></tr>
+<tr><td><code>--off</code></td><td>Leave the setup and its parts out.</td></tr>
+<tr><td><code>--on</code></td><td>Cut the setup again.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-activate"><a class="header" href="#chipload-setup-activate"><code>chipload setup activate</code></a></h3>
+<p>Make a setup the active one: shown, simulated, where new parts go</p>
+<pre><code class="language-text">chipload setup activate &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The setup’s id.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-part"><a class="header" href="#chipload-setup-part"><code>chipload setup part</code></a></h3>
+<p>Move a part into a setup: it is cut from that board, with its zero</p>
+<pre><code class="language-text">chipload setup part &lt;PROJECT&gt; &lt;PART&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;PART&gt;</code></td><td>The part’s id (as <code>part list</code> shows it)</td></tr>
+<tr><td><code>--to &lt;TO&gt;</code></td><td>The setup’s id. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-remove"><a class="header" href="#chipload-setup-remove"><code>chipload setup remove</code></a></h3>
+<p>Remove a setup. Refused while it has parts, unless –with-parts</p>
+<pre><code class="language-text">chipload setup remove &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The setup’s id.</td></tr>
+<tr><td><code>--with-parts</code></td><td>Remove its parts and their operations with it.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-zero"><a class="header" href="#chipload-zero"><code>chipload zero</code></a></h2>
 <p>Where the G-code’s X0 Y0 Z0 is (docs/specs/work-zero-marker.md §5): a corner or the centre of the stock, the drawing origin, or a point. Moving it moves no cut, only the program’s numbers. Without an option, print where it is</p>
 <pre><code class="language-text">chipload zero &lt;PROJECT&gt; [OPTIONS]
@@ -5057,7 +5513,7 @@ reaches the assistant only once you save.</li>
 <h1 id="project-file"><a class="header" href="#project-file">Project file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A project (<code>.chipload</code>) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked <em>no</em> may be left out. Lengths are in mm, angles in radians, feeds in mm/min. <code>chipload schema project</code> prints the JSON Schema this page is made from.</p>
-<p>Schema version 33. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 35. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file-1"><a class="header" href="#the-file-1">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -5066,12 +5522,13 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>active_part</code></td><td>integer or null</td><td>no</td><td>The part new operations go into (its id). Null or no such part: the first part. Only the app and the command line read it; it changes nothing that is cut.</td></tr>
+<tr><td><code>active_setup</code></td><td>integer or null</td><td>no</td><td>The setup shown, simulated and previewed, where new parts go (its id). Null or no such setup: the first. Only the app and the command line read it.</td></tr>
 <tr><td><code>drawing</code></td><td><a href="#drawing">Drawing</a></td><td>yes</td><td>The drawing: the shapes Chipload cuts, imported from a DXF or drawn in Chipload.</td></tr>
-<tr><td><code>machine</code></td><td><a href="#machine">Machine</a></td><td>yes</td><td>The machine: post-processor, safe height, limits and zero.</td></tr>
+<tr><td><code>machine</code></td><td><a href="#machine">Machine</a></td><td>yes</td><td>The machine: post-processor, safe height, limits.</td></tr>
 <tr><td><code>operations</code></td><td>list of <a href="#operation">Operation</a></td><td>yes</td><td>The operations, cut in this order: grouped by part, in the parts’ order.</td></tr>
 <tr><td><code>parts</code></td><td>list of <a href="#part">Part</a></td><td>yes</td><td>The parts: groups of operations, each cut with its copies before the next part. At least one.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>33</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
-<tr><td><code>stock</code></td><td><a href="#stock-1">Stock</a></td><td>yes</td><td>The material on the machine.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>35</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>setups</code></td><td>list of <a href="#setup">Setup</a></td><td>yes</td><td>The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34.</td></tr>
 <tr><td><code>tools</code></td><td>list of <a href="#tool">Tool</a></td><td>yes</td><td>The tools the operations cut with.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file, for reference.</td></tr>
 </tbody>
@@ -5264,6 +5721,24 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="floorpass"><a class="header" href="#floorpass">FloorPass</a></h2>
+<p>The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears the floor between the walls, in the V-carve’s shapes and depths, before it.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
+<tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="holemethod"><a class="header" href="#holemethod">HoleMethod</a></h2>
 <p>How a Holes operation cuts.</p>
 <h3 id="type-drill"><a class="header" href="#type-drill"><code>"type": "drill"</code></a></h3>
@@ -5382,7 +5857,6 @@ reaches the assistant only once you save.</li>
 <tr><td><code>spindle</code></td><td><a href="#spindle">Spindle</a></td><td>yes</td><td>The spindle’s direction: <code>cw</code> (M3) or <code>ccw</code> (M4).</td></tr>
 <tr><td><code>tool_change</code></td><td><a href="#toolchange">ToolChange</a></td><td>yes</td><td>With several tools: <code>files</code> (one file per tool) or <code>program</code> (one file with tool changes).</td></tr>
 <tr><td><code>travel</code></td><td><a href="#travel">Travel</a> or null</td><td>no</td><td>The machine’s travel, mm. When set, a program that moves farther is refused. Null: not checked.</td></tr>
-<tr><td><code>work_zero</code></td><td><a href="#workzero">WorkZero</a></td><td>no</td><td>The point of the drawing that becomes X0 Y0 in the G-code. Missing: the drawing’s origin.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5475,13 +5949,14 @@ reaches the assistant only once you save.</li>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
 <tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>The deepest the V-bit’s tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The feed, mm/min, for moves no steeper than 45°.</td></tr>
+<tr><td><code>floor</code></td><td><a href="#floorpass">FloorPass</a> or null</td><td>no</td><td>A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing.</td></tr>
 <tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>passes</code></td><td>integer</td><td>yes</td><td>How many depth passes, 1 to [<code>MAX_VCARVE_PASSES</code>]: each removes the same cross-section, the last at the end depth (docs/specs/v-carve.md decision 12).</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed for moves steeper than 45°, mm/min.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut.</td></tr>
-<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>Carve in passes no deeper than this, mm. Null: one pass.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>).</td></tr>
 </tbody>
 </table>
@@ -5567,6 +6042,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>enabled</code></td><td>boolean</td><td>yes</td><td>False: the part and all its operations stay in the project but aren’t cut.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>Its number, unique in the project: what operations name it by.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name, unique in the project, shown in the Browser, the report and the sheet.</td></tr>
+<tr><td><code>setup</code></td><td>integer</td><td>yes</td><td>The id of the setup it is cut in (<code>setups</code>). Since schema 34.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5637,6 +6113,22 @@ reaches the assistant only once you save.</li>
 <tr><td><code>layer</code></td><td>string or null</td><td>no</td><td>Every shape on this layer (upper or lower case don’t matter).</td></tr>
 <tr><td><code>shapes</code></td><td>list of integer or null</td><td>no</td><td>These shapes, by id.</td></tr>
 <tr><td><code>text</code></td><td>integer or null</td><td>no</td><td>Only the letters of this text (an id in <code>drawing.texts</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="setup"><a class="header" href="#setup">Setup</a></h2>
+<p>A setup: one board clamped once on the machine, with its stock and work zero, and the parts cut from it (docs/specs/setups.md §2).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the setup and its parts stay in the project but aren’t cut.</td></tr>
+<tr><td><code>id</code></td><td>integer</td><td>yes</td><td>Its number, unique in the project: what parts name it by.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name, shown in the Browser, the report and the setup sheet.</td></tr>
+<tr><td><code>stock</code></td><td><a href="#stock-1">Stock</a></td><td>yes</td><td>The board.</td></tr>
+<tr><td><code>work_zero</code></td><td><a href="#workzero">WorkZero</a></td><td>no</td><td>The point of the drawing that becomes X0 Y0 in its G-code. Missing: the drawing’s origin.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5765,7 +6257,7 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>align</code></td><td><a href="#textalign">TextAlign</a></td><td>yes</td><td>How the lines line up against each other.</td></tr>
 <tr><td><code>anchor</code></td><td><a href="#textanchor">TextAnchor</a></td><td>no</td><td>What <code>x</code> and <code>y</code> are: the box’s lower-left corner (before the turn), or its centre. A centred text stays centred there when its words, font or size change. Missing: the corner.</td></tr>
-<tr><td><code>font</code></td><td>string</td><td>yes</td><td>A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or FreeMono Bold (<code>chipload text fonts</code>).</td></tr>
+<tr><td><code>font</code></td><td>string</td><td>yes</td><td>The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its full name (<code>chipload text fonts</code>). Only its name is stored; its letters are the text’s shapes, kept where the font isn’t (docs/specs/system-fonts.md).</td></tr>
 <tr><td><code>height</code></td><td>number</td><td>yes</td><td>The height of a capital letter, mm.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The text’s id, which its letters name.</td></tr>
 <tr><td><code>layer</code></td><td>string</td><td>yes</td><td>The layer its letters go on.</td></tr>
@@ -6141,7 +6633,7 @@ reaches the assistant only once you save.</li>
 <tr><td><em>tool (diameter … mm) does not fit in the pocket</em></td><td>The pocket is narrower than the tool everywhere. Use a smaller tool.</td></tr>
 <tr><td><em>the tool does not fit through a narrow part</em></td><td>A warning: the pocket is cleared as separate areas, and material stays in the narrow part. A <a href="#rest-machining-1">rest pass</a> with a smaller tool can clear it.</td></tr>
 <tr><td><em>uncut material</em></td><td>The pocket’s stepover is too large for its shape. Lower the stepover.</td></tr>
-<tr><td><em>end depth … is … below the stock …, more than the allowed</em></td><td>The cut is deeper than <em>Max depth below stock</em> allows. Check the stock thickness, or raise the allowance (Job settings &gt; Machine).</td></tr>
+<tr><td><em>end depth … is … below the stock …, more than the allowed</em></td><td>The cut is deeper than <em>Max depth below stock</em> allows. Check the stock thickness, or raise the allowance (Machine).</td></tr>
 <tr><td><em>Tool N has no spindle speed</em></td><td>Set the tool’s spindle speed (rpm).</td></tr>
 <tr><td><em>a v-bit with no angle</em></td><td>Set the V-bit’s angle: click the tool in the Browser.</td></tr>
 <tr><td><em>shapes … no longer exist; choose its geometry again</em></td><td>After updating the DXF, an operation’s shapes are gone. Select new ones, then <em>Use selection</em>.</td></tr>

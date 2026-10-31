@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Stock and work zero - Chipload 0.28.1 user guide</title>
+        <title>Stock and work zero - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a462de50.js"></script>
+        <script src="../toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -178,11 +178,11 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="stock-and-work-zero"><a class="header" href="#stock-and-work-zero">Stock and work zero</a></h1>
-<p>Job settings has three sections, in the order a job is set up: <strong>Stock</strong> (the board),
-<strong>Material</strong> (the feeds new operations take) and <strong>Machine</strong> (set once, so it starts closed;
-its summary line gives the profile, post, safe Z and spindle). Above them a line says where
-the zero is, e.g. “Work zero: X0 Y0 stock bottom left · Z0 stock top”; click it to set the
-zero.</p>
+<p>The board is its <a href="setups.html">setup</a>’s: click the setup in the Browser for its properties.
+They have two sections, <strong>Stock</strong> (the board) and <strong>Material</strong> (the feeds new operations
+take), and above them a line that says where the zero is, e.g. “Work zero: X0 Y0 stock bottom
+left · Z0 stock top”; click it to set the zero. The machine, shared by every setup, is under
+<strong>Machine</strong>.</p>
 <h2 id="stock"><a class="header" href="#stock">Stock</a></h2>
 <div class="table-wrapper">
 <table>
@@ -213,7 +213,7 @@ A stock centred on the drawing can’t be used to align the drawing (it would fo
 choose a position at the drawing’s origin first.</p>
 <h2 id="work-zero"><a class="header" href="#work-zero">Work zero</a></h2>
 <p><strong>Work zero</strong> is the point that becomes X0 Y0 Z0 in the G-code. It has its own row in the
-<a href="../window.html#the-browser">Browser</a>, under Job settings, which says where it is (“stock bottom
+<a href="../window.html#the-browser">Browser</a>, under its setup, which says where it is (“stock bottom
 left”), and its own place in the view: the foot of the red and green axes.</p>
 <p>Only the G-code moves; the drawing, the stock and the toolpath stay where they are. So moving
 the zero never moves a cut, only the numbers in the program. The setup sheet and the
@@ -255,7 +255,7 @@ chipload zero part.chipload --z bottom            # Z0 on the spoilboard
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../concepts/depths.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../concepts/setups.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -269,7 +269,7 @@ chipload zero part.chipload --z bottom            # Z0 on the spoilboard
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../concepts/depths.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../concepts/setups.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

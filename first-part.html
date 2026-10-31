@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Your first part - Chipload 0.28.1 user guide</title>
+        <title>Your first part - Chipload 0.30.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2a80c40f.js";
+            window.path_to_searchindex_js = "searchindex-890fe37e.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a462de50.js"></script>
+        <script src="toc-edd296fe.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.28.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -191,12 +191,13 @@ repaired: duplicate lines, gaps it closed, splines turned into arcs.</li>
 </ul>
 </li>
 <li>
-<p><strong>Check the job settings:</strong> click <strong>Job settings</strong> in the <a href="window.html#the-browser">Browser</a>
-on the left. A new project starts with:</p>
+<p><strong>Check the setup and the machine:</strong> click <strong>Setup 1</strong> under <em>Setups</em> in the
+<a href="window.html#the-browser">Browser</a> on the left for the board, and <strong>Machine</strong> for the
+machine. A new project starts with:</p>
 <ul>
 <li>stock just covering the drawing, 10 mm thick;</li>
 <li><a href="concepts/stock.html#work-zero">work zero</a> at the stock’s bottom-left corner, Z zero
-on the stock top (the <em>Work zero</em> row under Job settings; drag it in the view to move
+on the stock top (the <em>Work zero</em> row under the setup; drag it in the view to move
 it);</li>
 <li>the GRBL post, a safe height of 5 mm;</li>
 <li>a 6 mm endmill at 18 000 rpm.</li>
@@ -220,7 +221,7 @@ top.</p>
 <li><strong>Side:</strong> Chipload picks <em>outside</em> for an outline and <em>inside</em> for holes, and asks
 when a selection mixes both.</li>
 <li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
-spoilboard. More than the allowed overcut (0.5 mm by default, under Job settings) is
+spoilboard. More than the allowed overcut (0.5 mm by default, in the setup’s Stock) is
 refused.</li>
 <li><strong>Step down:</strong> how deep each pass goes.</li>
 <li><strong>Tabs:</strong> they keep the part from coming loose on the last pass. Add them under
@@ -238,8 +239,9 @@ dashed, and each operation’s number sits at its first plunge.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/toolpath.png" alt="A generated toolpath: the Browser on the left, the canvas, the job settings on the right and the report below"><span class="img-wrapper"><img src="images/toolpath.png" alt="A generated toolpath: the Browser on the left, the canvas, the job settings on the right and the report below"></span></label></p>
 </li>
 <li>
-<p><strong>Look at it:</strong> <strong>3D</strong> shows the toolpath at its real depths. <em>View &gt; Show stock</em>
-shows the stock as cut, and the slider under the canvas plays the program back.</p>
+<p><strong>Look at it:</strong> <strong>3D</strong> shows the toolpath at its real depths. <strong>Simulate</strong> (F6) shows
+the stock as cut, and the slider under the canvas plays the program back; F6 again goes
+back to editing.</p>
 </li>
 <li>
 <p><strong>Export:</strong> <em>File &gt; Export G-code…</em> (Ctrl+E).</p>
