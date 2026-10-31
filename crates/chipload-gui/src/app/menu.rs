@@ -413,6 +413,14 @@ impl ChiploadApp {
         {
             self.set_show_grid(grid);
         }
+        let mut rulers = self.show_rulers;
+        if ui
+            .checkbox(&mut rulers, t!(ui, "menu-show-rulers"))
+            .on_hover_text(t!(ui, "menu-show-rulers-hover"))
+            .changed()
+        {
+            self.set_show_rulers(rulers);
+        }
         ui.checkbox(&mut self.legend_open, t!(ui, "menu-show-legend"));
         ui.checkbox(&mut self.browser_open, t!(ui, "menu-show-browser"));
         ui.checkbox(&mut self.properties_open, t!(ui, "menu-show-properties"));

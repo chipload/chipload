@@ -87,6 +87,10 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Rulers on the canvas** (the user, 2026-10-31: "a ruler so I can see the scale of axis
+  directly"; docs/specs/rulers.md): **done 2026-10-31**, drawing coordinates (the user's
+  choice), ticks on the grid, the cursor marked, *View > Show rulers*.
+
 - **Frames and a shape library for signs** (the user, 2026-10-31: "a library/catalog of
   frames where the user can quickly insert a frame and also save frames or shapes for
   future use"; docs/specs/shape-library.md): agreed 2026-10-31, all decisions as

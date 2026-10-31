@@ -86,7 +86,14 @@ impl ChiploadApp {
                 .clone()
                 .unwrap_or_else(|| self.scene.fit_points(self.view.top_z));
             if !points.is_empty() {
-                self.view.fit(&points, rect);
+                // Not under the rulers (top view only, as they are).
+                let free = if self.show_rulers && self.view.is_top() {
+                    let ruler = super::rulers::RULER;
+                    egui::Rect::from_min_max(rect.min + egui::vec2(ruler, ruler), rect.max)
+                } else {
+                    rect
+                };
+                self.view.fit(&points, free);
                 self.fit_pending = false;
                 self.fit_only = None;
             }
@@ -574,6 +581,7 @@ impl ChiploadApp {
         for label in &labels {
             paint_label(ui, &painter, label);
         }
+        self.paint_rulers(ui, &painter, rect);
         self.typed_entry(ui);
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);

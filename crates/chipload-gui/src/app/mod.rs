@@ -66,6 +66,7 @@ mod playback;
 mod problems;
 mod recovery;
 mod report;
+mod rulers;
 mod select_drag;
 mod setups;
 mod shortcuts;
@@ -435,6 +436,8 @@ pub struct ChiploadApp {
     pub setup_sheet: bool,
     /// View → Show grid (kept in the app settings).
     pub show_grid: bool,
+    /// Rulers along the canvas's edges in top view (docs/specs/rulers.md).
+    pub show_rulers: bool,
     /// When the project last changed, while the live preview hasn't generated it yet.
     changed_at: Option<Instant>,
     /// What the toolpath shown is made from (docs/specs/edit-and-simulate.md §5).
@@ -575,6 +578,7 @@ impl Default for ChiploadApp {
             auto_generate: true,
             setup_sheet: true,
             show_grid: true,
+            show_rulers: true,
             units: chipload_job::Units::Mm,
             language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
             updates: crate::updates::Updates::default(),

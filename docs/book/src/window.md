@@ -121,6 +121,12 @@ colour theme: dark, or light grey.
   - Its fine lines are where clicks snap while drawing. A stronger line comes every ten.
   - It follows the zoom, and the status bar gives its step ("grid 5 mm").
   - **G** or *View > Show grid* hides it, and Chipload remembers that.
+- **Rulers** run along the canvas's top (X) and left (Y) edges in top view, in drawing
+  coordinates (0 at the drawing origin, as the shapes' *Position* fields), in mm or inches
+  as the app shows lengths; the unit is in their corner.
+  - Their ticks fall on the grid's lines, and the stronger lines are numbered.
+  - The cursor's place is marked on both.
+  - *View > Show rulers* hides them, and Chipload remembers that.
 - **The axes:** a red line along X and a green one along Y run through the program's zero.
   Short thick strokes point the positive way, and in 3D a blue one points up Z. In top view
   a round handle sits at their foot: click it to select the

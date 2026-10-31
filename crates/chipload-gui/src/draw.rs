@@ -561,6 +561,63 @@ pub fn grid_major_every(step: f64, units: Units) -> i64 {
     }
 }
 
+/// A ruler's tick (docs/specs/rulers.md): where it is (mm, drawing coordinates),
+/// how long it is drawn, and its number on the longest.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Tick {
+    pub at: f64,
+    pub size: TickSize,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TickSize {
+    Minor,
+    Half,
+    Major,
+}
+
+/// The ticks of a ruler from `lo` to `hi` (mm) at `scale` (pixels per mm): one on every
+/// grid line (`grid_step`), longer half way between the stronger lines, numbered (in
+/// `units`) on the stronger lines, so the ruler and the grid agree.
+pub fn ruler_ticks(lo: f64, hi: f64, scale: f64, units: Units) -> Vec<Tick> {
+    let step = grid_step(scale, units);
+    let every = grid_major_every(step, units);
+    // A tick on either end counts, within float noise (3" in mm over its step).
+    let first = ((lo - CHAIN_TOL_MM) / step).ceil() as i64;
+    let last = ((hi + CHAIN_TOL_MM) / step).floor() as i64;
+    if last < first || last - first > 10_000 {
+        return Vec::new();
+    }
+    (first..=last)
+        .map(|k| {
+            let at = k as f64 * step;
+            let size = if k.rem_euclid(every) == 0 {
+                TickSize::Major
+            } else if every % 2 == 0 && k.rem_euclid(every) == every / 2 {
+                TickSize::Half
+            } else {
+                TickSize::Minor
+            };
+            let label = (size == TickSize::Major).then(|| ruler_number(at, units));
+            Tick { at, size, label }
+        })
+        .collect()
+}
+
+/// A ruler's number: the length in `units`, no unit, no trailing zeros ("150", "0.5",
+/// "-2.25").
+fn ruler_number(mm: f64, units: Units) -> String {
+    let value = mm / units.mm_per_unit();
+    let text = format!("{value:.3}");
+    let text = text.trim_end_matches('0').trim_end_matches('.');
+    if text == "-0" {
+        "0".to_string()
+    } else {
+        text.to_string()
+    }
+}
+
 /// `p` rounded to the grid. Steps below 1 (mm or inch) divide by a whole number of steps per
 /// unit, so 0.3 comes out as the double nearest 0.3, not 3 × 0.1.
 pub fn snap(p: Point, step: f64, units: Units) -> Point {
@@ -752,6 +809,30 @@ mod tests {
         assert_eq!(short.click((0.0, 0.0), true), Step::Continue);
         short.undo_point();
         assert_eq!(short.points, [(0.0, 0.0), (5.0, 0.0)]);
+    }
+
+    #[test]
+    fn ruler_ticks_sit_on_the_grid_and_number_its_stronger_lines() {
+        // 2 px/mm: a tick every 5 mm, longer every 25, numbered every 50.
+        let ticks = ruler_ticks(-12.0, 101.0, 2.0, Units::Mm);
+        assert_eq!(ticks.first().unwrap().at, -10.0);
+        assert_eq!(ticks.last().unwrap().at, 100.0);
+        let numbered: Vec<_> = ticks.iter().filter_map(|t| t.label.clone()).collect();
+        assert_eq!(numbered, ["0", "50", "100"]);
+        let half: Vec<f64> = ticks
+            .iter()
+            .filter(|t| t.size == TickSize::Half)
+            .map(|t| t.at)
+            .collect();
+        assert_eq!(half, [25.0, 75.0]);
+        // Zoomed in: tenths, numbered every millimetre.
+        let ticks = ruler_ticks(0.95, 2.05, 100.0, Units::Mm);
+        let numbered: Vec<_> = ticks.iter().filter_map(|t| t.label.clone()).collect();
+        assert_eq!(numbered, ["1", "2"]);
+        // Inches: numbered in inches, every inch.
+        let ticks = ruler_ticks(0.0, 3.0 * MM_PER_INCH, 4.0, Units::Inch);
+        let numbered: Vec<_> = ticks.iter().filter_map(|t| t.label.clone()).collect();
+        assert_eq!(numbered, ["0", "1", "2", "3"]);
     }
 
     #[test]

@@ -508,6 +508,7 @@ impl ChiploadApp {
         self.auto_generate = settings.auto_generate;
         self.setup_sheet = settings.setup_sheet;
         self.show_grid = settings.show_grid;
+        self.show_rulers = settings.show_rulers;
         self.units = settings.units;
         self.show_in(crate::i18n::resolve(&settings.language));
         self.language_setting = settings.language;

@@ -479,6 +479,11 @@ impl ChiploadApp {
         self.change_settings(|settings| settings.show_grid = on);
     }
 
+    pub fn set_show_rulers(&mut self, on: bool) {
+        self.show_rulers = on;
+        self.change_settings(|settings| settings.show_rulers = on);
+    }
+
     pub fn set_setup_sheet(&mut self, on: bool) {
         self.setup_sheet = on;
         self.change_settings(|settings| settings.setup_sheet = on);

@@ -336,3 +336,20 @@ fn the_legend_stays_clear_of_the_navigation_bar() {
     wide.run_steps(4);
     assert_eq!(nav_top(&wide), None, "beside the legend");
 }
+
+#[test]
+fn the_rulers_are_remembered_and_drawn_in_top_view_only() {
+    // docs/specs/rulers.md.
+    let _ = std::fs::remove_dir_all(super::temp_dir("rulers"));
+    let (mut app, dir) = super::with_settings("rulers");
+    assert!(app.show_rulers, "on at first");
+    app.set_show_rulers(false);
+    let (again, _) = super::with_settings("rulers");
+    assert!(!again.show_rulers, "remembered");
+    app.set_show_rulers(true);
+    let _ = std::fs::remove_dir_all(dir);
+    // Drawn over a project, in top view and in 3D (where they leave themselves out).
+    let mut harness = harness("en", WINDOW);
+    harness.state_mut().view_3d();
+    harness.run_steps(2);
+}

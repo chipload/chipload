@@ -565,6 +565,19 @@ fn settings_without_the_grid_show_it() {
 }
 
 #[test]
+fn settings_without_the_rulers_show_them() {
+    // docs/specs/rulers.md: an optional field, on when missing.
+    let dir = temp_dir("settings-rulers");
+    let path = dir.join("settings.json");
+    let base =
+        r#""schema_version": 3, "recent_projects": [], "theme": "system", "auto_generate": true"#;
+    std::fs::write(&path, format!("{{{base}}}")).unwrap();
+    assert!(load_settings(&path).unwrap().show_rulers);
+    std::fs::write(&path, format!("{{{base}, \"show_rulers\": false}}")).unwrap();
+    assert!(!load_settings(&path).unwrap().show_rulers);
+}
+
+#[test]
 fn version_2_settings_migrate_to_update_the_toolpath_by_itself() {
     let dir = temp_dir("settings-v2");
     let path = dir.join("settings.json");

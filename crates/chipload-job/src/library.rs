@@ -753,6 +753,10 @@ pub struct AppSettings {
     /// (written before it existed): on.
     #[serde(default = "show_grid_default")]
     pub show_grid: bool,
+    /// Draw rulers along the canvas's edges (docs/specs/rulers.md). Missing
+    /// (written before it existed): on.
+    #[serde(default = "show_grid_default")]
+    pub show_rulers: bool,
     /// The units the app shows and takes lengths and feeds in; the project stays in mm
     /// (docs/specs/inch-units.md §5). Missing (written before it existed): mm.
     #[serde(default = "display_units_default")]
@@ -803,6 +807,7 @@ impl Default for AppSettings {
             auto_generate: true,
             setup_sheet: true,
             show_grid: true,
+            show_rulers: true,
             units: Units::Mm,
             language: language_default(),
             update_check: None,
