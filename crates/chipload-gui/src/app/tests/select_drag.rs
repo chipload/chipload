@@ -169,6 +169,11 @@ mod modes {
         h.get_by_label("Simulate").click();
         h.run_steps(2);
         assert!(h.state().show_simulation);
+        // While it simulates the button reads "Simulate…": wait until it is done.
+        assert!(h.state_mut().wait_for_generation() || h.state().result.is_some());
+        let ctx = egui::Context::default();
+        h.state_mut().wait_for_simulation(&ctx);
+        h.run_steps(2);
         h.get_by_label("Simulate").click();
         h.run_steps(2);
         assert!(
