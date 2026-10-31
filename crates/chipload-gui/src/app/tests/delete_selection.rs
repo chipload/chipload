@@ -72,3 +72,31 @@ fn delete_removes_a_selected_picture_or_dxf_but_not_one_imported_shape() {
     app.delete_selected_shapes();
     assert_eq!(drawing(&app).dxfs.len(), dxfs - 1);
 }
+
+#[test]
+fn delete_takes_what_properties_shows_an_operation_or_a_rest_pass() {
+    // The user, 2026-10-31: an operation picked in the Browser goes with Del too.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v18/rest.chipload")));
+    app.edit.as_mut().unwrap().ops.truncate(1);
+    app.commit();
+    let ops = |app: &ChiploadApp| app.edit.as_ref().unwrap().ops.len();
+    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+        chipload_job::Operation::Pocket(p) => p.rest_passes.len(),
+        _ => panic!("a pocket"),
+    };
+    app.add_rest_pass(0, 2);
+    app.commit();
+    assert_eq!(app.focus, Focus::RestPass(0, 0));
+    app.delete_key();
+    assert_eq!(passes(&app), 0);
+    assert_eq!(app.focus, Focus::Op(0));
+    // A shape still selected on the canvas stays: the operation is what Properties shows.
+    let shape = drawing(&app).shapes[0].id;
+    app.selection = CanvasSelection::Shapes([shape].into());
+    app.delete_key();
+    assert_eq!(ops(&app), 0);
+    assert!(drawing(&app).shapes.iter().any(|s| s.id == shape));
+    app.undo();
+    assert_eq!(ops(&app), 1);
+}

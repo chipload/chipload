@@ -90,6 +90,10 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
     *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,
     *Import…*, *Export…*.
+- **Del** deletes what Properties shows: an operation or a rest pass picked in the
+  Browser, a text opened there, or else what is selected on the canvas (drawn shapes, or a
+  text, a picture or a DXF as a whole). Parts and setups take their operations with them,
+  so they are deleted only from their right-click menu. **Ctrl+Z** brings anything back.
 - **The triangle** opens and closes a folder, and so does a click on a plain folder like
   *Tools*.
 

@@ -51,7 +51,7 @@ shortcuts-drag-what = Mit einem Rahmen auswählen: von links nach rechts, was ga
 shortcuts-pan-drag = Ziehen mit rechts oder Mitte, Leertaste+Ziehen
 shortcuts-pan-drag-what = Verschieben
 shortcuts-delete = Delete
-shortcuts-delete-what = Die ausgewählten gezeichneten Formen löschen
+shortcuts-delete-what = Die Auswahl löschen: gezeichnete Formen, einen Text, ein Bild oder eine DXF auf der Zeichenfläche; eine Bearbeitung oder einen Restdurchgang im Browser
 shortcuts-escape = Escape
 shortcuts-escape-clear = Die Auswahl aufheben
 # A ring: a profile's closed path; its start can be dragged on the canvas.

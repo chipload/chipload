@@ -365,6 +365,21 @@ impl ChiploadApp {
         (drawn, imported)
     }
 
+    /// The Delete key: what Properties shows goes. An operation or a rest pass picked in the
+    /// Browser, or a text opened there, as its right-click Delete or Remove does (the user,
+    /// 2026-10-31); otherwise the canvas selection. Parts and setups take their operations
+    /// with them: right-click only.
+    pub fn delete_key(&mut self) {
+        match self.focus {
+            Focus::Op(_) => self.delete_operation(),
+            Focus::RestPass(i, k) => self.remove_rest_pass(i, k),
+            Focus::Text(id) => {
+                self.remove_text(id);
+            }
+            _ => self.delete_selected_shapes(),
+        }
+    }
+
     /// What Delete takes from a selection of shapes: the drawn ones, the texts whose letters
     /// are among them, and whether other imported shapes are (they stay).
     pub(super) fn deletion(&self) -> (Vec<u64>, BTreeSet<u64>, bool) {

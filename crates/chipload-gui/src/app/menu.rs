@@ -62,7 +62,7 @@ impl ChiploadApp {
             }
         }
         if self.sketch.is_none() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Delete)) {
-            self.delete_selected_shapes();
+            self.delete_key();
         }
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.cancel_zero_drag() {

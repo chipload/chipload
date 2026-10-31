@@ -51,7 +51,7 @@ shortcuts-drag-what = Select with a box: left to right what lies inside, right t
 shortcuts-pan-drag = Right or middle drag, Space+drag
 shortcuts-pan-drag-what = Pan
 shortcuts-delete = Delete
-shortcuts-delete-what = Delete the selected drawn shapes
+shortcuts-delete-what = Delete what is selected: drawn shapes, a text, a picture or a DXF on the canvas; an operation or rest pass in the Browser
 shortcuts-escape = Escape
 shortcuts-escape-clear = Clear the selection
 # A ring: a profile's closed path; its start can be dragged on the canvas.

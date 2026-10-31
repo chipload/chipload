@@ -51,7 +51,7 @@ shortcuts-drag-what = Markera med en ruta: från vänster till höger det som li
 shortcuts-pan-drag = Höger- eller mittendra, Mellanslag+dra
 shortcuts-pan-drag-what = Panorera
 shortcuts-delete = Delete
-shortcuts-delete-what = Radera de markerade ritade formerna
+shortcuts-delete-what = Radera det markerade: ritade former, en text, en bild eller en DXF på ritytan; en operation eller en restbearbetning i bläddraren
 shortcuts-escape = Escape
 shortcuts-escape-clear = Rensa markeringen
 # A ring: a profile's closed path; its start can be dragged on the canvas.

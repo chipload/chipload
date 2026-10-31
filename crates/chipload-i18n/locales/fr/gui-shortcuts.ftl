@@ -51,7 +51,7 @@ shortcuts-drag-what = Sélectionner par un cadre : de gauche à droite ce qui es
 shortcuts-pan-drag = Glisser droit ou milieu, Espace+glisser
 shortcuts-pan-drag-what = Déplacer la vue
 shortcuts-delete = Del
-shortcuts-delete-what = Supprimer les formes dessinées sélectionnées
+shortcuts-delete-what = Supprimer la sélection : formes dessinées, texte, image ou DXF sur le canevas ; une opération ou une passe de reprise dans le Navigateur
 shortcuts-escape = Esc
 shortcuts-escape-clear = Vider la sélection
 # A ring: a profile's closed path; its start can be dragged on the canvas.

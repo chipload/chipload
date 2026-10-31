@@ -93,6 +93,9 @@ it's built (see `CLAUDE.md`).
   *Remove* does; a box selection takes drawn shapes and the texts of selected letters, as
   one undo step. A single shape of an imported DXF or traced picture still stays (it would
   come back with the file).
+  The same day (the user): Del also deletes an operation or rest pass picked in the
+  Browser, and a text opened there: Del takes what Properties shows. Parts and setups stay
+  right-click only (they take their operations with them).
 
 - **Rulers on the canvas** (the user, 2026-10-31: "a ruler so I can see the scale of axis
   directly"; docs/specs/rulers.md): **done 2026-10-31**, drawing coordinates (the user's
