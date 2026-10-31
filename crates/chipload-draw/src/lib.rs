@@ -7,6 +7,7 @@
 pub mod boolean;
 pub mod construct;
 pub mod corner;
+pub mod frames;
 pub mod intersect;
 pub mod offset;
 pub mod select;

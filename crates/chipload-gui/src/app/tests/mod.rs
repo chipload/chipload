@@ -11,6 +11,7 @@ mod cycle_time;
 mod disk_changes;
 mod drawing;
 mod drawn_box;
+mod frames;
 mod generating;
 mod handles;
 mod header;

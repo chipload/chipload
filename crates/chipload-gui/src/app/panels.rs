@@ -99,6 +99,8 @@ impl ChiploadApp {
                 ui.weak(t!(ui, "panels-nothing-selected"));
                 // An array tool waits for shapes: its values and Cancel stay at hand.
                 self.array_form(ui);
+                // A frame with nothing selected is drawn to a size.
+                self.frame_form(ui);
             } else {
                 self.selection_section(ui);
             }

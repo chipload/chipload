@@ -926,6 +926,43 @@ The built-in fonts, then the computer's (and those in the settings folder's `fon
 chipload text fonts
 ```
 
+## `chipload frame`
+
+Frames for signs, drawn round shapes or to a size, with border lines (docs/specs/shape-library.md)
+
+### `chipload frame kinds`
+
+The built-in frames, and what their corner size means
+
+```text
+chipload frame kinds
+```
+
+### `chipload frame add`
+
+Draw a frame round shapes (--around, --around-text) or to a size (--width and --height), with border lines inside it; prints the new shapes' ids
+
+```text
+chipload frame add <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--kind <KIND>` | Which frame (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `oval`, `arched`, `plaque`. Required. |
+| `--around <AROUND>` | Round these shapes (ids as `inspect` lists them, without the S): the frame is centred on their box, --margin from it to the innermost line. Repeatable. |
+| `--around-text <AROUND_TEXT>` | Round these texts' letters (ids as `text list` shows them) Repeatable. |
+| `--margin <MARGIN>` | From the shapes' box to the innermost line, mm (default 10) |
+| `--width <WIDTH>` | The outline's width, mm, when not round shapes. |
+| `--height <HEIGHT>` | The outline's height, mm, when not round shapes. |
+| `--at <AT>` | Its centre, X,Y in mm (default: the stock's centre), with --width and --height. |
+| `--corner <CORNER>` | The corner size, mm (default: a tenth of the shorter side; `frame kinds` says what it is for each frame) |
+| `--borders <BORDERS>` | Border lines inside the outline, 0 to 3. Default: `0`. |
+| `--gap <GAP>` | From the outline to the first border and between borders, mm. Default: `5`. |
+| `--layer <LAYER>` | The outline's layer. Default: `frame`. |
+| `--border-layer <BORDER_LAYER>` | The borders' layer. Default: `border`. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload dxf`
 
 A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)

@@ -96,6 +96,8 @@ menu-draw-rectangle = Rectangle
 menu-draw-polyline = Polyline
 menu-draw-text = Text
 menu-draw-text-hover = Write a text, then click where it starts
+menu-draw-frame = Frame…
+menu-draw-frame-hover = A frame for a sign: round the selection, or to a size, with border lines
 
 # Help menu.
 menu-user-guide = User guide

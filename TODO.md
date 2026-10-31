@@ -89,9 +89,12 @@ it's built (see `CLAUDE.md`).
 
 - **Frames and a shape library for signs** (the user, 2026-10-31: "a library/catalog of
   frames where the user can quickly insert a frame and also save frames or shapes for
-  future use"; docs/specs/shape-library.md): spec drafted 2026-10-31, decisions 1–8 to
-  review. Frames drawn round a selection or to a size, with border lines; entries of shapes
-  and texts in the settings folder's `shapes/`.
+  future use"; docs/specs/shape-library.md): agreed 2026-10-31, all decisions as
+  recommended, "we will iterate a bit on it". **Step 1, frames, done 2026-10-31:** seven
+  frames round the selection or to a size, 0–3 border lines, *Draw > Frame…* and
+  `chipload frame add`/`kinds`, golden v35_sign_frame, guide page *Signs and frames*.
+  **Next: step 2, the shape library** (entries of shapes and texts in the settings
+  folder's `shapes/`, *Save to library…*, a Shapes tab with *Insert*).
 
 - **Texts in the computer's fonts** (the user, 2026-10-31: "allow to use fonts from the
   computer when creating texts"; docs/specs/system-fonts.md, ADR 0027): **done

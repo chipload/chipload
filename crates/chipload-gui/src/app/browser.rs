@@ -1434,6 +1434,7 @@ impl ChiploadApp {
                     ui.label(line);
                 }
                 self.array_form(ui);
+                self.frame_form(ui);
                 self.selected_shape_ui(ui);
                 self.selected_shapes_place_ui(ui);
                 self.arrange_ui(ui);

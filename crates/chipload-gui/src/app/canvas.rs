@@ -318,6 +318,8 @@ impl ChiploadApp {
                 self.scene.preview = self.array_outlines();
                 self.scene.snap_mark = (self.modify == Some(super::modify::ModifyTool::PolarArray))
                     .then_some(self.array.center);
+            } else if self.modify == Some(super::modify::ModifyTool::Frame) {
+                self.scene.preview = self.frame_outlines();
             } else if self
                 .modify
                 .is_some_and(super::modify::ModifyTool::on_shape_under_cursor)

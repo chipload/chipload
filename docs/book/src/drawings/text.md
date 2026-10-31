@@ -6,6 +6,9 @@ out with a [profile](../operations/profile.md). (Design: `docs/specs/text.md`.)
 
 ![A text on the canvas, selected with its handles, and its properties on the right](../images/text.png)
 
+For a sign, *Draw > Frame…* then draws a frame round the text, with border lines:
+[Signs and frames](signs.md).
+
 ## Writing a text
 
 1. **Draw > Text** in the ribbon (or *DRAW > Text*), then click on the canvas where the text

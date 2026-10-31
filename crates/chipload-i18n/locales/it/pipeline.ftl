@@ -539,3 +539,16 @@ pipeline-export-summary = { $count ->
    *[mm] mm
 }.
 pipeline-export-renamed = Il layer { $from } si chiama { $to } nel DXF: un nome di layer DXF non può contenere alcuni dei suoi caratteri.
+
+# Frames (docs/specs/shape-library.md §3)
+pipeline-frame-borders = una cornice ha al massimo { $most } bordi, ricevuto { $got }
+pipeline-frame-gap = la distanza tra i bordi deve essere maggiore di 0, ricevuto { $got }
+pipeline-frame-margin = il margine deve essere 0 o più, ricevuto { $got }
+pipeline-frame-nothing = non c'è niente da incorniciare: nessuna di queste forme è nel disegno
+pipeline-frame-size = larghezza e altezza di una cornice devono essere maggiori di 0
+pipeline-frame-r = la dimensione degli angoli di questa cornice è al massimo { $largest }
+pipeline-frame-no-fit = nessuna cornice di questo tipo sta attorno a queste forme
+pipeline-frame-borders-fit = { $count ->
+    [one] un bordo a { $gap } verso l'interno non sta in questa cornice
+   *[other] { $count } bordi distanti { $gap } non stanno in questa cornice
+}

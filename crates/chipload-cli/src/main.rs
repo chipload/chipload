@@ -6,6 +6,7 @@
 #![allow(clippy::print_stdout, clippy::print_stderr)]
 
 mod dxfs;
+mod frames;
 mod images;
 mod lengths;
 mod library;
@@ -303,6 +304,12 @@ enum Command {
     Text {
         #[command(subcommand)]
         action: texts::TextAction,
+    },
+    /// Frames for signs, drawn round shapes or to a size, with border lines
+    /// (docs/specs/shape-library.md).
+    Frame {
+        #[command(subcommand)]
+        action: frames::FrameAction,
     },
     /// A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md).
     Dxf {
@@ -1472,6 +1479,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Shape { action } => shape(out, action),
         Command::Image { action } => images::image(out, action),
         Command::Text { action } => texts::text(out, action),
+        Command::Frame { action } => frames::frame(out, action),
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),
         Command::Material { action } => materials::material(out, action),

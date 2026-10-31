@@ -408,6 +408,19 @@ impl ChiploadApp {
             self.selection = CanvasSelection::Shapes(BTreeSet::from([id]));
             self.focus = Focus::Job;
         }
+        // Draw > Frame… round the first text: a rounded frame with a border, its preview on
+        // the canvas and its values under Selection (docs/specs/shape-library.md §5).
+        let first_text = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.settings.drawing.texts.first().map(|t| t.id));
+        if steps.contains(&"frame")
+            && let Some(id) = first_text
+        {
+            self.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id));
+            self.start_frame();
+            self.frame.borders = 1;
+        }
         let last_part = self
             .edit
             .as_ref()

@@ -1854,6 +1854,105 @@ fn the_golden_edited_part_is_drawn_with_the_editing_commands_alone() {
 }
 
 #[test]
+fn the_golden_sign_is_framed_with_frame_add() {
+    // docs/specs/shape-library.md §9: tests/corpus/jobs/v35/sign_frame.chipload (golden
+    // v35_sign_frame) drawn again with these commands; the drawing must come out the same.
+    let dir = temp_dir("sign-frame");
+    let project = dir.join("sign.chipload");
+    let p = path(&project);
+    let stock = r#"setups.0.stock={"fit":10.0,"material":null,"max_overcut":0.5,"origin":"drawing","thickness":12.0,"x":300.0,"y":160.0,"z_zero":"top"}"#;
+    let steps: [&[&str]; 4] = [
+        &["new", "-o", p],
+        &["set", p, stock],
+        &[
+            "text", "add", p, "SIGN", "--height", "30", "--at", "150,80", "--anchor", "center",
+        ],
+        &[
+            "frame",
+            "add",
+            p,
+            "--kind",
+            "rounded",
+            "--around-text",
+            "1",
+            "--borders",
+            "1",
+            "--corner",
+            "8",
+            "--margin",
+            "12",
+            "--gap",
+            "6",
+        ],
+    ];
+    for step in steps {
+        let out = chipload(step);
+        // An empty project has problems (no operations): written all the same.
+        assert!(project.exists(), "{step:?}: {}", text(&out.stderr));
+        assert!(
+            !text(&out.stderr).contains("error"),
+            "{step:?}: {}",
+            text(&out.stderr)
+        );
+    }
+    let drawing = |path: &Path| {
+        let json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        json["drawing"].clone()
+    };
+    assert_near(
+        &drawing(&project),
+        &drawing(&corpus("jobs/v35/sign_frame.chipload")),
+        "drawing",
+    );
+
+    // To a size, centred where asked, with its numbers in --json.
+    let out = chipload(&[
+        "frame",
+        "add",
+        p,
+        "--kind",
+        "oval",
+        "--width",
+        "200",
+        "--height",
+        "100",
+        "--at",
+        "150,80",
+        "--borders",
+        "2",
+        "--json",
+    ]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["ids"], serde_json::json!([7, 8, 9]), "{json}");
+    assert_eq!(json["borders"], serde_json::json!([8, 9]));
+    assert_eq!(json["width"], 200.0);
+    // Both round shapes and a size: refused; a corner too large: refused with the largest.
+    let out = chipload(&[
+        "frame", "add", p, "--kind", "rounded", "--around", "1", "--width", "100",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out.stderr).contains("give either --around"),
+        "{}",
+        text(&out.stderr)
+    );
+    let out = chipload(&[
+        "frame", "add", p, "--kind", "notched", "--width", "100", "--height", "60", "--corner",
+        "40",
+    ]);
+    assert!(
+        text(&out.stderr).contains("at most 30 mm"),
+        "{}",
+        text(&out.stderr)
+    );
+    let out = chipload(&["frame", "kinds", "--json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["kinds"].as_array().unwrap().len(), 7);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn svgs_are_imported_inspected_and_added_from_the_command_line() {
     // docs/specs/svg-import.md §10.
     let dir = temp_dir("svg");

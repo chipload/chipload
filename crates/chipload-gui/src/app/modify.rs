@@ -39,6 +39,9 @@ pub enum ModifyTool {
     Array,
     /// Copies of the selection round a centre clicked on the canvas (§6).
     PolarArray,
+    /// A frame round the selection, or to a size, set under Selection
+    /// (docs/specs/shape-library.md §5).
+    Frame,
 }
 
 /// An align or distribute button (§7).
@@ -129,7 +132,10 @@ impl ChiploadApp {
         self.placing_text = false;
         self.typed = None;
         self.modify = Some(tool);
-        if matches!(tool, ModifyTool::Array | ModifyTool::PolarArray) {
+        if matches!(
+            tool,
+            ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::Frame
+        ) {
             // Its values and Create are under Selection: show it.
             self.focus = Focus::Selection;
         }
@@ -396,6 +402,8 @@ impl ChiploadApp {
                 }
             }
             Some(ModifyTool::PolarArray) => self.array.center = self.snap_world(at, free, false),
+            // A frame goes round what is selected: clicks pick it, empty space clears it.
+            Some(ModifyTool::Frame) => self.click(picked, toggle),
             Some(ModifyTool::Union | ModifyTool::Intersect | ModifyTool::Array) | None => {}
         }
     }
@@ -409,7 +417,7 @@ impl ChiploadApp {
 
     /// The project with the operations, as the editing operations take it (so points on a
     /// shape follow it).
-    fn job_with_operations(&self) -> Option<chipload_job::Job> {
+    pub(super) fn job_with_operations(&self) -> Option<chipload_job::Job> {
         let edit = self.edit.as_ref()?;
         let mut job = edit.settings.clone();
         job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
@@ -419,7 +427,11 @@ impl ChiploadApp {
     /// Take an editing operation's result into the project, as one undo step: the drawing,
     /// the operations' points that followed, the changed and new shapes. Refused: the
     /// reason on the status bar.
-    fn take_edit(&mut self, result: Result<Edited, PipelineError>, changed: &[u64]) -> bool {
+    pub(super) fn take_edit(
+        &mut self,
+        result: Result<Edited, PipelineError>,
+        changed: &[u64],
+    ) -> bool {
         match result {
             Ok(edited) => {
                 let Some(edit) = self.edit.as_mut() else {
@@ -900,6 +912,10 @@ impl ChiploadApp {
             }
             ModifyTool::Array => t!(self, "modify-array-status"),
             ModifyTool::PolarArray => t!(self, "modify-polar-status"),
+            ModifyTool::Frame if self.framed_shape_ids().is_empty() => {
+                t!(self, "modify-frame-size-status")
+            }
+            ModifyTool::Frame => t!(self, "modify-frame-status"),
             ModifyTool::Union | ModifyTool::Intersect => return None,
         })
     }

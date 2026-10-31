@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 54] = [
+const GOLDEN: [(&str, &str); 55] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -163,6 +163,10 @@ const GOLDEN: [(&str, &str); 54] = [
     // triangle: rings round the circle and the hexagon, then the rounded outline
     // (docs/specs/drawing-input.md §5).
     ("v30_polygon", "jobs/v30/polygon.chipload"),
+    // A sign (docs/specs/shape-library.md §9): a text framed with `frame add` (rounded, one
+    // border), the letters V-carved, the border grooved with the V-bit along it, the
+    // outline cut out. `cli.rs` draws it again from the commands.
+    ("v35_sign_frame", "jobs/v35/sign_frame.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

@@ -96,6 +96,8 @@ menu-draw-rectangle = Rektangel
 menu-draw-polyline = Polylinje
 menu-draw-text = Text
 menu-draw-text-hover = Skriv en text och klicka sedan där den börjar
+menu-draw-frame = Ram…
+menu-draw-frame-hover = En ram för en skylt: runt markeringen eller i en storlek, med kantlinjer
 
 # Help menu.
 menu-user-guide = Användarhandbok

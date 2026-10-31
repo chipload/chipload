@@ -771,6 +771,29 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v35/sign_frame.chipload
+exit 0
+--- stdout
+warning: Operation 3 (Cut out): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 2 (Border): the V-groove is 1.932 mm wide at the top
+Operation 3: a ring starts at (91.843, 42.691) (default)
+Estimated time: 2 min 33 s (cutting 2 min 17 s, rapids 10 s, spindle 6 s), plus 1 tool change
+Cut outline: 144.314 × 80.618 mm (X 77.843 … 222.157, Y 39.691 … 120.309, the tool included): the smallest stock that holds the job.
+  Operation 1 (Letters): 43 s
+  Operation 2 (Border): 19 s
+  Operation 3 (Cut out): 1 min 24 s
+  File 1: 1 min 6 s
+  File 2: 1 min 27 s
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Letters): 0.033 mm/tooth
+  Operation 2 (Border): 0.033 mm/tooth
+  Operation 3 (Cut out): 0.042 mm/tooth
+Tool group 1: tool 1, operations 1, 2
+Tool group 2: tool 2, operations 3
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

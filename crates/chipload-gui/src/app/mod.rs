@@ -50,6 +50,7 @@ mod drawing;
 mod dropping;
 mod dxf_export;
 mod forms;
+mod frames;
 mod generation;
 pub(crate) mod header;
 mod images;
@@ -395,6 +396,9 @@ pub struct ChiploadApp {
     /// File > Export drawing as DXF's choices, kept for the session.
     pub dxf_export: dxf_export::DxfExportChoice,
     array_preview: modify::ArrayPreview,
+    /// Draw > Frame…'s values, kept for the session, and its preview.
+    pub frame: frames::FrameSettings,
+    frame_preview: frames::FramePreview,
     /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
     placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
@@ -551,6 +555,8 @@ impl Default for ChiploadApp {
             align_to_stock: false,
             dxf_export: dxf_export::DxfExportChoice::default(),
             array_preview: modify::ArrayPreview::default(),
+            frame: frames::FrameSettings::default(),
+            frame_preview: frames::FramePreview::default(),
             placing_text: false,
             focus_text_field: false,
             measure: None,

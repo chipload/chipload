@@ -1,6 +1,31 @@
 # Spec: frames and a library of shapes (for signs)
 
-Status: **draft 2026-10-31**, decisions in §10 to review.
+Status: **agreed 2026-10-31**, all decisions as recommended (the user: "Go ahead with
+recommendations we will iterate a bit on it"). **Step 1, frames (§3), built the same day**;
+step 2, the library (§4), next.
+
+As built (frames):
+- *r* is called the **corner size** (`--corner` on the command line, *Corner* in the
+  window). Unset, it is a tenth of the shorter side of the frame being drawn (for a frame
+  round shapes: of the box plus margin and borders).
+- The shapes get **no names** (§3.4 said *Frame*, *Border 1*): a name stored in the
+  project would be in one language whatever the window's; the layers tell them apart.
+- The **window** has no separate dialog (§5): *Draw > Frame…* is a tool like *Array*, its
+  values under *Selection* with the frames as small pictures, a live preview on the canvas,
+  *Add* and *Cancel*. Clicks while it is open change what it goes round; with nothing
+  selected it draws to a size, centred on the stock. After *Add* the frame is selected.
+- A frame round a box grows **just enough**, found by halving (`fit_round`): equally in
+  both directions for the rectangular frames, in proportion for the oval, in height for the
+  arched top, along the long side for the plaque. The arched top's box corners rest on its
+  straight sides below the arch.
+- The **oval** is the ellipse sampled closely where it curves tightly (chords within a
+  tenth of the arc tolerance) and fitted with arcs (`fit_path`) within the rest: 34 pieces
+  for a 300 × 120 oval. A round oval is a circle shape.
+- **Borders** are the offset of `drawing_edit` (checked as every offset); an inward offset
+  that splits in two is refused as a border.
+- **Cutting a sign** (§6): the border is grooved by a **follow path** with the V-bit; a
+  V-carve of a closed border would carve the whole area inside it. The golden
+  `v35_sign_frame` and the guide's page *Signs and frames* do so.
 
 The user (2026-10-31): "One big use case is making engraved signs. I wonder if we can
 simplify this work. Perhaps a library/catalog of frames where the user can quickly insert a
@@ -178,11 +203,12 @@ Each frame is one closed outline, drawn from a width and a height:
 ## 6. Engraving the result
 
 Nothing new is needed to cut a sign:
-- a V-carve operation on the text and border lines, or a follow path on the border lines
-  with a V-bit;
+- a V-carve operation on the text;
+- a follow path on the border lines with a V-bit (a V-carve of a closed border would carve
+  the whole area inside it);
 - a profile outside on the frame outline.
 
-The guide's new page, *Making a sign*, walks through this from an empty project. It adds
+The guide's new page, *Signs and frames*, walks through this from an empty project. It adds
 no feature.
 
 ## 7. The command line

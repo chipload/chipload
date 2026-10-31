@@ -96,6 +96,8 @@ menu-draw-rectangle = Rectángulo
 menu-draw-polyline = Polilínea
 menu-draw-text = Texto
 menu-draw-text-hover = Escribe un texto y luego haz clic donde empieza
+menu-draw-frame = Marco…
+menu-draw-frame-hover = Un marco para un letrero: alrededor de la selección o a un tamaño, con bordes
 
 # Help menu.
 menu-user-guide = Guía del usuario

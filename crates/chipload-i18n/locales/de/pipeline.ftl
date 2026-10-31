@@ -537,3 +537,16 @@ pipeline-export-summary = { $count ->
    *[mm] mm
 }.
 pipeline-export-renamed = Layer { $from } heißt in der DXF { $to }: ein DXF-Layername kann einige seiner Zeichen nicht enthalten.
+
+# Frames (docs/specs/shape-library.md §3)
+pipeline-frame-borders = ein Rahmen hat höchstens { $most } Randlinien, erhalten { $got }
+pipeline-frame-gap = der Abstand zwischen den Randlinien muss größer als 0 sein, erhalten { $got }
+pipeline-frame-margin = der Abstand muss 0 oder mehr sein, erhalten { $got }
+pipeline-frame-nothing = es gibt nichts einzurahmen: keine dieser Formen ist in der Zeichnung
+pipeline-frame-size = Breite und Höhe eines Rahmens müssen größer als 0 sein
+pipeline-frame-r = die Eckgröße dieses Rahmens ist höchstens { $largest }
+pipeline-frame-no-fit = kein Rahmen dieser Art passt um diese Formen
+pipeline-frame-borders-fit = { $count ->
+    [one] eine Randlinie { $gap } innen passt nicht in diesen Rahmen
+   *[other] { $count } Randlinien im Abstand { $gap } passen nicht in diesen Rahmen
+}

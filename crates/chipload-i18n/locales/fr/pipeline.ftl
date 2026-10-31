@@ -542,3 +542,16 @@ pipeline-export-summary = { $count ->
    *[mm] mm
 }.
 pipeline-export-renamed = Le calque { $from } s'appelle { $to } dans le DXF : un nom de calque DXF ne peut pas contenir certains de ses caractères.
+
+# Frames (docs/specs/shape-library.md §3)
+pipeline-frame-borders = un cadre a au plus { $most } bordures, reçu { $got }
+pipeline-frame-gap = l'écart entre les bordures doit être supérieur à 0, reçu { $got }
+pipeline-frame-margin = la marge doit être de 0 ou plus, reçu { $got }
+pipeline-frame-nothing = il n'y a rien à encadrer : aucune de ces formes n'est dans le dessin
+pipeline-frame-size = la largeur et la hauteur d'un cadre doivent être supérieures à 0
+pipeline-frame-r = la taille des coins de ce cadre est au plus { $largest }
+pipeline-frame-no-fit = aucun cadre de ce type ne tient autour de ces formes
+pipeline-frame-borders-fit = { $count ->
+    [one] une bordure à { $gap } à l'intérieur ne tient pas dans ce cadre
+   *[other] { $count } bordures espacées de { $gap } ne tiennent pas dans ce cadre
+}

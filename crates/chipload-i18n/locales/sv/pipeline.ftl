@@ -534,3 +534,16 @@ pipeline-export-summary = { $count ->
    *[mm] mm
 }.
 pipeline-export-renamed = Lagret { $from } heter { $to } i DXF-filen: ett DXF-lagernamn kan inte innehålla vissa av dess tecken.
+
+# Frames (docs/specs/shape-library.md §3)
+pipeline-frame-borders = en ram har högst { $most } kantlinjer, fick { $got }
+pipeline-frame-gap = avståndet mellan kantlinjerna måste vara större än 0, fick { $got }
+pipeline-frame-margin = marginalen måste vara 0 eller mer, fick { $got }
+pipeline-frame-nothing = det finns inget att rama in: ingen av de formerna finns i ritningen
+pipeline-frame-size = en rams bredd och höjd måste vara större än 0
+pipeline-frame-r = hörnstorleken för den här ramen är högst { $largest }
+pipeline-frame-no-fit = ingen ram av det här slaget får plats runt de formerna
+pipeline-frame-borders-fit = { $count ->
+    [one] en kantlinje { $gap } innanför får inte plats i den här ramen
+   *[other] { $count } kantlinjer { $gap } isär får inte plats i den här ramen
+}

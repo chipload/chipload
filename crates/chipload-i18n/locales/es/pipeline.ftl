@@ -542,3 +542,16 @@ pipeline-export-summary = { $count ->
    *[mm] mm
 }.
 pipeline-export-renamed = La capa { $from } se llama { $to } en el DXF: un nombre de capa DXF no admite algunos de sus caracteres.
+
+# Frames (docs/specs/shape-library.md §3)
+pipeline-frame-borders = un marco tiene como máximo { $most } bordes, se recibió { $got }
+pipeline-frame-gap = la separación entre bordes debe ser mayor que 0, se recibió { $got }
+pipeline-frame-margin = el margen debe ser 0 o más, se recibió { $got }
+pipeline-frame-nothing = no hay nada que enmarcar: ninguna de esas formas está en el dibujo
+pipeline-frame-size = el ancho y el alto de un marco deben ser mayores que 0
+pipeline-frame-r = el tamaño de las esquinas de este marco es como máximo { $largest }
+pipeline-frame-no-fit = ningún marco de este tipo cabe alrededor de esas formas
+pipeline-frame-borders-fit = { $count ->
+    [one] un borde a { $gap } hacia dentro no cabe en este marco
+   *[other] { $count } bordes separados { $gap } no caben en este marco
+}

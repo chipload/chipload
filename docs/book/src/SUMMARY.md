@@ -30,6 +30,7 @@
 - [Exporting the drawing](drawings/export.md)
 - [Images](drawings/images.md)
 - [Text](drawings/text.md)
+- [Signs and frames](drawings/signs.md)
 - [Copies](drawings/copies.md)
 
 # Operations

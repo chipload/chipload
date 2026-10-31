@@ -96,6 +96,8 @@ menu-draw-rectangle = Rectangle
 menu-draw-polyline = Polyligne
 menu-draw-text = Texte
 menu-draw-text-hover = Écrire un texte, puis cliquer là où il commence
+menu-draw-frame = Cadre…
+menu-draw-frame-hover = Un cadre pour une enseigne : autour de la sélection ou à une taille, avec bordures
 
 # Help menu.
 menu-user-guide = Guide de l'utilisateur

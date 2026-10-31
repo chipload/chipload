@@ -72,7 +72,7 @@ pub fn polyline_of(chain: &Chain) -> Geometry {
 
 /// Notes naming the operations that select `layer` by its name, which now cut the new
 /// shapes there too (decision 1).
-fn layer_cutters(job: &Job, layer: &str, count: usize) -> Option<Message> {
+pub(crate) fn layer_cutters(job: &Job, layer: &str, count: usize) -> Option<Message> {
     let ops: Vec<String> = job
         .operations
         .iter()

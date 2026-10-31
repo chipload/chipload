@@ -97,6 +97,22 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "setup2,generate",
         (1200.0, 800.0),
     ),
+    // Signs: Draw > Frame… round a text, the frame's preview and its values
+    // (docs/specs/shape-library.md §5).
+    (
+        "frame",
+        "tests/corpus/jobs/v27/text.chipload",
+        "frame",
+        (1200.0, 800.0),
+    ),
+    // Signs: the golden sign (framed letters V-carved, the border grooved, cut out),
+    // simulated.
+    (
+        "sign",
+        "tests/corpus/jobs/v35/sign_frame.chipload",
+        "simulation,3d,notoolpath,noreport",
+        (1200.0, 800.0),
+    ),
     // The library: a settings folder of its own with two tools and a machine.
     (
         "library",

@@ -528,3 +528,16 @@ pipeline-export-summary = { $count ->
    *[mm] mm
 }.
 pipeline-export-renamed = Layer { $from } is { $to } in the DXF: a DXF layer name can't hold some of its characters.
+
+# Frames (docs/specs/shape-library.md §3)
+pipeline-frame-borders = a frame has at most { $most } borders, got { $got }
+pipeline-frame-gap = the gap between borders must be more than 0, got { $got }
+pipeline-frame-margin = the margin must be 0 or more, got { $got }
+pipeline-frame-nothing = there is nothing to frame: none of those shapes is in the drawing
+pipeline-frame-size = a frame's width and height must be more than 0
+pipeline-frame-r = the corner size of this frame is at most { $largest }
+pipeline-frame-no-fit = no frame of this kind fits round those shapes
+pipeline-frame-borders-fit = { $count ->
+    [one] a border { $gap } inside doesn't fit in this frame
+   *[other] { $count } borders { $gap } apart don't fit in this frame
+}
