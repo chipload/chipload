@@ -18,19 +18,23 @@ Your profiles are under **This computer > Machines** in the [Browser](../window.
 - **Right-click** it for *Use in this project*, *Make default* and *Delete*.
 
 In Machine:
-- **Use profile…** gives the project the profile's machine values. Its safe Z, work zero
-  and max depth below the stock stay as they are.
+- **Profile** names the project's profile in a dropdown; pick another to give the project
+  its machine values. Its safe Z, work zero and max depth below the stock stay as they are.
 - **While the project's machine is the same as its profile**, the machine's values (post,
-  spindle, max feed, tool changes, travel) are shown greyed under "From machine
-  *Shapeoko*". **Edit here** makes them editable for this project; it stays linked.
+  spindle, max feed, tool changes, travel) are shown greyed under **From the profile**.
+  **Edit here** makes them editable for this project; it stays linked.
 - **When they differ,** each value that differs has a ↶ button: hover it for the profile's
   value, click it to take it. *Update from library* takes them all.
 - **Safe Z, the work zero and the max depth below the stock** belong to the job: they're
   always editable and never count as differing. A profile only gives a new project its
   first values for them; choosing another machine later keeps them.
-- A line says how the machine stands to its profile, as for
-  [tools](tools.md#project-tools-and-the-library), with *Save to library*, *Save as new…*
-  and *Show in library*.
+- A line under the dropdown says how the machine stands to its profile, as for
+  [tools](tools.md#project-tools-and-the-library), with *Update from library* and *Save to
+  library* when they differ. **⋯** beside the dropdown has *Save as new…* and *Show in
+  library*.
+
+![The project's machine from the profile "Shapeoko": the same as in the library, its
+machine values greyed under From the profile](../images/machine.png)
 
 A profile whose post is one of your own [post-processors](../posts.md#your-own-post) copies
 that post into the project.

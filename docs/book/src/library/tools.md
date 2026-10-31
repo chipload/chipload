@@ -20,18 +20,20 @@ linked to it](../images/library.png)
 ### Project tools and the library
 
 Each project tool remembers the library tool it was copied from, by an id that stays when
-the library tool is renamed. Its row in the Browser shows that tool's name ("← 6 mm 2F"),
-and its properties say how they stand:
+the library tool is renamed. Its row in the Browser shows that tool's name ("← 6 mm 2F").
+In its properties, **Library tool** names it in a dropdown, with a line under it that says
+how they stand:
 
 | It says | Meaning | You can |
 |---|---|---|
-| from library tool "6 mm 2F" | same values | *Save to library*, *Show in library* |
-| differs from "6 mm 2F": rpm 18000 -> 16000 | one of them was changed | *Update from library* (copies the library's values into the project), or *Save to library* (the other way) |
-| "6 mm 2F" is not in your library | deleted there, or the project comes from another computer | *Save to library…* under a name |
+| same as in your library | same values | nothing to do |
+| differs from your library: rpm 18000 -> 16000 | one of them was changed | *Update from library* (copies the library's values into the project), or *Save to library* (the other way) |
+| library tool "6 mm 2F" is not in your library | deleted there, or the project comes from another computer | *Save to library…* under a name |
 | not from your library | made in the project | *Save to library…* under a name |
 
-- **Use library tool…** gives the project tool another library tool's values.
-- **Save as new…** keeps the project tool's values under another name.
+- **Pick another tool in the dropdown** to give the project tool its values.
+- **⋯** beside it: *Save as new…* keeps the project tool's values under another name;
+  *Show in library* opens the library tool.
 - A new operation gets a library tool's cutting values while the project tool still has the
   library tool's values.
 

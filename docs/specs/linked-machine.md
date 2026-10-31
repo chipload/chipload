@@ -58,3 +58,17 @@ In Job settings > Machine, with a machine linked to a profile that is in the lib
 - Applying a profile still reports every value it changed.
 - Using a profile in an open project, in the window and with `chipload machine use`, keeps
   its safe Z, work zero and max overcut.
+
+Agreed 2026-10-31 (the user: "the machine properties is a little crammed and hard to
+understand"):
+
+7. **One Profile row, one status line.** The *Library* row held four buttons that wrapped
+   (and overlapped the next row), and the profile was named three times. Now, for the
+   machine and for each project tool alike: **Profile** (a tool: **Library tool**) is a
+   dropdown naming the linked entry (or *Use profile…* when there is none); picking another
+   uses it. Under it one line: *same as in your library* (no buttons), *differs from your
+   library: …* with *Update from library* and *Save to library*, or *not from your
+   library* / *… is not in your library* with *Save to library…*. **⋯** beside the
+   dropdown holds the rarer *Save as new…* and *Show in library*. Safe Z comes next, then
+   the machine values greyed under **From the profile** with *Edit here* beside it. Chosen
+   over keeping the buttons, one group per row.

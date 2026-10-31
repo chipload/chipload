@@ -451,16 +451,16 @@ mod library {
         // The project and the library agree: no "differs" note.
         let rows =
             |app: &ChiploadApp| user_library::LibraryRows::machine(settings_of(app), app.library());
-        assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
+        assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
         // A job value doesn't count; a machine value does.
         app.edit.as_mut().unwrap().settings.machine.safe_z = 9.0;
-        assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
+        assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
         app.edit.as_mut().unwrap().settings.machine.max_feed = Some(1234.0);
         assert!(
             rows(&app)
                 .note_text()
                 .unwrap()
-                .starts_with("differs from profile \"Router\": max feed 1234 mm/min ->"),
+                .starts_with("differs from your library: max feed 1234 mm/min ->"),
             "{:?}",
             rows(&app).note_text()
         );
@@ -469,7 +469,7 @@ mod library {
         let machine = &settings_of(&app).machine;
         assert_eq!(machine.safe_z, 9.0);
         assert_ne!(machine.max_feed, Some(1234.0));
-        assert!(rows(&app).note_text().unwrap().starts_with("from profile"));
+        assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
     }
 
     #[test]
@@ -575,11 +575,17 @@ mod library {
             .unwrap()
             .clone();
         assert_eq!(tool.library_uid.as_deref(), Some(uid.as_str()));
+        // The dropdown's name and the status line under it.
         let rows = |app: &ChiploadApp| {
             let tool = settings_of(app).tools.iter().find(|t| t.id == id).unwrap();
-            user_library::LibraryRows::tool(tool, app.library()).note_text()
+            let rows = user_library::LibraryRows::tool(tool, app.library());
+            let note = rows.note_text()?;
+            Some(match rows.entry_name() {
+                Some(name) => format!("{name}: {note}"),
+                None => note,
+            })
         };
-        assert_eq!(rows(&app).unwrap(), "from library tool \"3 mm upcut\"");
+        assert_eq!(rows(&app).unwrap(), "3 mm upcut: same as in your library");
         // Renamed and changed in the library: still linked, and it says what differs.
         let mut entry = upcut();
         entry.name = "Upcut 3".into();
@@ -587,10 +593,10 @@ mod library {
         app.store_library_tool(entry).unwrap();
         assert_eq!(
             rows(&app).unwrap(),
-            "differs from library tool \"Upcut 3\": rpm 20000 -> 18000"
+            "Upcut 3: differs from your library: rpm 20000 -> 18000"
         );
         assert!(app.use_library_tool(id, "Upcut 3"));
-        assert_eq!(rows(&app).unwrap(), "from library tool \"Upcut 3\"");
+        assert_eq!(rows(&app).unwrap(), "Upcut 3: same as in your library");
         // Saved back: the linked entry takes the project's values, keeping its name.
         app.edit
             .as_mut()

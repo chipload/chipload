@@ -120,8 +120,18 @@ impl LibraryRows {
 
 #[cfg(test)]
 impl LibraryRows {
+    /// The entry the dropdown shows, while it is in the library.
+    pub(super) fn entry_name(&self) -> Option<String> {
+        self.link
+            .as_ref()
+            .and_then(|(link, _)| link.entry_name().map(str::to_string))
+    }
+
     pub(super) fn note_text(&self) -> Option<String> {
-        self.link.as_ref().map(|(link, _)| link.text(self.what()))
+        let units = chipload_i18n::Units::Mm;
+        self.link
+            .as_ref()
+            .map(|(link, _)| status_text(crate::i18n::Language::En, link, self.what(), units))
     }
 }
 
@@ -132,6 +142,10 @@ fn target_salt(target: SaveTarget) -> i64 {
     }
 }
 
+/// The library rows of the project's machine or a project tool
+/// (docs/specs/linked-machine.md §3, decision 7): the entry in a dropdown (another one is
+/// used when picked), one status line with only the buttons that apply, and the rarer
+/// choices behind ⋯.
 pub(super) fn library_rows(
     ui: &mut egui::Ui,
     request: &mut Option<LibraryRequest>,
@@ -139,97 +153,136 @@ pub(super) fn library_rows(
 ) {
     let target = rows.target;
     let what = rows.what();
-    let choose = match target {
-        SaveTarget::Machine => t!(ui, "user-library-use-profile"),
-        SaveTarget::Tool(_) => t!(ui, "user-library-use-tool"),
-    };
     let use_entry = |name: String| match target {
         SaveTarget::Machine => LibraryRequest::UseMachine(name),
         SaveTarget::Tool(id) => LibraryRequest::UseTool(id, name),
     };
+    let (label, choose) = match target {
+        SaveTarget::Machine => (
+            t!(ui, "user-library-profile"),
+            t!(ui, "user-library-use-profile"),
+        ),
+        SaveTarget::Tool(_) => (t!(ui, "user-library-tool"), t!(ui, "user-library-use-tool")),
+    };
     let linked = rows.link.as_ref().and_then(|(_, uid)| uid.clone());
-    ui.label(t!(ui, "user-library-library"));
-    ui.horizontal_wrapped(|ui| {
-        let available = rows.names.is_some();
+    let current = match rows.link.as_ref().map(|(link, _)| link) {
+        Some(Link::Same(name) | Link::Differs(name, _)) => Some(name.clone()),
+        _ => None,
+    };
+    ui.label(label);
+    ui.horizontal(|ui| {
         let names = rows.names.clone().unwrap_or_default();
-        ui.add_enabled_ui(available && !names.is_empty(), |ui| {
+        let shown = current.clone().unwrap_or(choose);
+        let combo = ui.add_enabled_ui(!names.is_empty(), |ui| {
             ComboBox::from_id_salt(("library", target_salt(target)))
-                .selected_text(choose)
+                .selected_text(shown)
                 .show_ui(ui, |ui| {
                     for name in names {
-                        if ui.selectable_label(false, &name).clicked() {
+                        let on = current.as_deref() == Some(name.as_str());
+                        if ui.selectable_label(on, &name).clicked() && !on {
                             *request = Some(use_entry(name));
                         }
                     }
                 })
         });
-        if !available {
-            ui.add_enabled(
-                false,
-                egui::Button::new(t!(ui, "user-library-save-to-library-named")),
-            )
-            .on_disabled_hover_text(t!(
+        if rows.names.is_none() {
+            combo.response.on_disabled_hover_text(t!(
                 ui,
                 "user-library-no-settings-folder-set",
                 var = chipload_pipeline::library::CONFIG_DIR_VAR
             ));
-        } else if linked.is_some() {
-            if ui
-                .button(t!(ui, "user-library-save-to-library"))
-                .on_hover_text(match target {
-                    SaveTarget::Machine => t!(ui, "user-library-save-to-linked-profile-hover"),
-                    SaveTarget::Tool(_) => t!(ui, "user-library-save-to-linked-tool-hover"),
-                })
-                .clicked()
-            {
-                *request = Some(LibraryRequest::SaveLinked(target));
-            }
-            if ui
-                .button(t!(ui, "user-library-save-as-new"))
-                .on_hover_text(t!(ui, "user-library-save-as-new-hover"))
-                .clicked()
-            {
-                *request = Some(LibraryRequest::Save(target));
-            }
-        } else if ui
-            .button(t!(ui, "user-library-save-to-library-named"))
-            .on_hover_text(t!(ui, "user-library-save-to-library-hover"))
-            .clicked()
-        {
-            *request = Some(LibraryRequest::Save(target));
+            return;
+        }
+        if linked.is_some() {
+            ui.menu_button("⋯", |ui| {
+                if ui
+                    .button(t!(ui, "user-library-save-as-new"))
+                    .on_hover_text(t!(ui, "user-library-save-as-new-hover"))
+                    .clicked()
+                {
+                    *request = Some(LibraryRequest::Save(target));
+                    ui.close();
+                }
+                if let Some(uid) = &linked
+                    && ui
+                        .button(t!(ui, "user-library-show-in-library"))
+                        .on_hover_text(t!(ui, "user-library-show-in-library-hover"))
+                        .clicked()
+                {
+                    *request = Some(LibraryRequest::Show(target.kind(), uid.clone()));
+                    ui.close();
+                }
+            })
+            .response
+            .on_hover_text(t!(ui, "user-library-more-hover"));
         }
     });
     ui.end_row();
-    let Some((link, uid)) = rows.link else {
+    let Some((link, _)) = rows.link else {
         return;
     };
     ui.label("");
-    ui.horizontal_wrapped(|ui| {
-        ui.weak(
-            link.message(what)
-                .render(ui.lang(), crate::units::display(ui.ctx()).into()),
-        );
-        if let Link::Differs(name, _) = &link
-            && ui
-                .button(t!(ui, "user-library-update-from-library"))
-                .on_hover_text(t!(ui, "user-library-update-from-library-hover"))
-                .clicked()
-        {
-            *request = Some(match target {
-                SaveTarget::Machine => LibraryRequest::UpdateMachine,
-                SaveTarget::Tool(_) => use_entry(name.clone()),
-            });
+    ui.vertical(|ui| {
+        let units = crate::units::display(ui.ctx()).into();
+        let status = status_text(ui.lang(), &link, what, units);
+        ui.add(egui::Label::new(egui::RichText::new(status).weak()).wrap());
+        if matches!(link, Link::Same(_)) {
+            return;
         }
-        if let Some(uid) = uid
-            && ui
-                .button(t!(ui, "user-library-show-in-library"))
-                .on_hover_text(t!(ui, "user-library-show-in-library-hover"))
-                .clicked()
-        {
-            *request = Some(LibraryRequest::Show(target.kind(), uid));
-        }
+        ui.horizontal_wrapped(|ui| match &link {
+            Link::Same(_) => {}
+            Link::Differs(name, _) => {
+                if ui
+                    .button(t!(ui, "user-library-update-from-library"))
+                    .on_hover_text(t!(ui, "user-library-update-from-library-hover"))
+                    .clicked()
+                {
+                    *request = Some(match target {
+                        SaveTarget::Machine => LibraryRequest::UpdateMachine,
+                        SaveTarget::Tool(_) => use_entry(name.clone()),
+                    });
+                }
+                if ui
+                    .button(t!(ui, "user-library-save-to-library"))
+                    .on_hover_text(match target {
+                        SaveTarget::Machine => t!(ui, "user-library-save-to-linked-profile-hover"),
+                        SaveTarget::Tool(_) => t!(ui, "user-library-save-to-linked-tool-hover"),
+                    })
+                    .clicked()
+                {
+                    *request = Some(LibraryRequest::SaveLinked(target));
+                }
+            }
+            Link::None | Link::Missing(_) => {
+                if ui
+                    .button(t!(ui, "user-library-save-to-library-named"))
+                    .on_hover_text(t!(ui, "user-library-save-to-library-hover"))
+                    .clicked()
+                {
+                    *request = Some(LibraryRequest::Save(target));
+                }
+            }
+        });
     });
     ui.end_row();
+}
+
+/// The status line under the dropdown: the same as the library, how it differs, or not
+/// from it (the dropdown already names the entry).
+pub(super) fn status_text(
+    lang: crate::i18n::Language,
+    link: &Link,
+    what: LinkEntry,
+    units: chipload_i18n::Units,
+) -> String {
+    match link {
+        Link::Same(_) => t!(lang, "user-library-same"),
+        Link::Differs(_, changes) => {
+            let changes: Vec<String> = changes.iter().map(|c| c.render(lang, units)).collect();
+            t!(lang, "user-library-differs", changes = changes.join(", "))
+        }
+        Link::None | Link::Missing(_) => link.message(what).render(lang, units),
+    }
 }
 
 /// The library's state in the app: entries being edited, and what import and export said.

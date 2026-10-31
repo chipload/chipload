@@ -133,6 +133,11 @@ it's built (see `CLAUDE.md`).
      (docs/specs/edit-and-simulate.md decision 10): an **Edit | Simulate** switch first in
      the navigation bar, in an accent outline with the mode's half filled, and an accent
      frame round the canvas in Simulate.
+  15. The machine's properties were crammed and hard to read (the user, 2026-10-31). Done
+     2026-10-31 (docs/specs/linked-machine.md decision 7): one **Profile** dropdown naming
+     the linked profile, one status line with only the buttons that apply, *Save as new…*
+     and *Show in library* behind ⋯, the greyed values under **From the profile**. The same
+     for project tools.
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and

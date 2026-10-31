@@ -2189,8 +2189,9 @@ fn job_label_width(ui: &egui::Ui) -> f32 {
         "forms-work-zero",
         "forms-z-zero",
         "forms-material",
-        "user-library-library",
-        "forms-from-machine",
+        "user-library-profile",
+        "user-library-tool",
+        "forms-from-profile",
         "forms-safe-z-job",
         "forms-max-overcut",
         "forms-post",
@@ -2623,22 +2624,23 @@ fn machine_section(
         look,
         |ui| {
             library_rows(ui, request, LibraryRows::machine(job, library));
+            safe_z_row(ui, &t!(ui, "forms-safe-z-job"), &mut job.machine);
+            // The profile's machine values, greyed, under a heading of their own
+            // (docs/specs/linked-machine.md decision 7).
             let linked = profile.is_some() && same && !editing;
-            if let (true, Some(p)) = (linked, &profile) {
-                ui.label(t!(ui, "forms-from-machine"));
-                ui.horizontal(|ui| {
-                    ui.strong(&p.name);
-                    if ui
-                        .button(t!(ui, "forms-edit-here"))
-                        .on_hover_text(t!(ui, "forms-edit-here-hover"))
-                        .clicked()
-                    {
-                        ui.data_mut(|d| d.insert_temp(edit_here, true));
-                    }
-                });
+            if linked {
+                ui.add_space(4.0);
+                ui.end_row();
+                ui.strong(t!(ui, "forms-from-profile"));
+                if ui
+                    .button(t!(ui, "forms-edit-here"))
+                    .on_hover_text(t!(ui, "forms-edit-here-hover"))
+                    .clicked()
+                {
+                    ui.data_mut(|d| d.insert_temp(edit_here, true));
+                }
                 ui.end_row();
             }
-            safe_z_row(ui, &t!(ui, "forms-safe-z-job"), &mut job.machine);
             if linked {
                 machine_text_rows(ui, &job.machine);
             } else if let Some(post) =

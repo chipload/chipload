@@ -1,7 +1,11 @@
 # The library rows of a project tool and the machine, and copying values into and out of the project (crates/chipload-gui/src/app/user_library.rs).
 
 # The user's library of tools and machine profiles, kept on this computer.
-user-library-library = Library
+user-library-profile = Profile
+user-library-tool = Library tool
+user-library-same = same as in your library
+user-library-differs = differs from your library: { $changes }
+user-library-more-hover = Save as a new entry, or show it in the library
 user-library-use-profile = Use profile…
 user-library-use-tool = Use library tool…
 user-library-save-to-library = Save to library

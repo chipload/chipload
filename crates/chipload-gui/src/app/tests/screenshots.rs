@@ -2,7 +2,8 @@
 //! The user guide's screenshots (docs/specs/user-guide.md §3), rendered headless with wgpu:
 //! each opens a corpus project, sets up a view (`screenshot_setup`) and saves a frame. Run by
 //! packaging/docs/screenshots.sh, which sets `CHIPLOAD_SHOTS_OUT` (the folder to write to),
-//! `CHIPLOAD_SHOTS_LIBRARY` (a settings folder with a library, for `library.png`) and
+//! `CHIPLOAD_SHOTS_LIBRARY` (a settings folder with a library, for `library.png` and
+//! `machine.png`) and
 //! `CHIPLOAD_SHOTS_LANGUAGE` (en unless set).
 use super::*;
 
@@ -103,6 +104,14 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "library",
         (1200.0, 800.0),
     ),
+    // Machine profiles: the project's machine from the library's profile, its values greyed
+    // under *From the profile* (docs/specs/linked-machine.md decision 7).
+    (
+        "machine",
+        "tests/corpus/jobs/v22/two_parts.chipload",
+        "machine",
+        (1200.0, 800.0),
+    ),
 ];
 
 #[test]
@@ -123,8 +132,10 @@ fn screenshots() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
     for &(name, project, steps, (width, height)) in SHOTS {
         let settings = match (name, &library) {
-            ("library", Some(dir)) => dir.clone(),
-            ("library", None) => panic!("set CHIPLOAD_SHOTS_LIBRARY for library.png"),
+            ("library" | "machine", Some(dir)) => dir.clone(),
+            ("library" | "machine", None) => {
+                panic!("set CHIPLOAD_SHOTS_LIBRARY for {name}.png")
+            }
             _ => empty.clone(),
         };
         let project = root.join(project);
