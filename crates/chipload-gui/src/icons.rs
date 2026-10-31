@@ -21,6 +21,8 @@ pub enum Icon {
     Layer,
     Image,
     Text,
+    /// A sign's frame: a rounded outline, a border line, words.
+    Frame,
     Circle,
     Rectangle,
     Polyline,
@@ -164,6 +166,11 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         Icon::Text => {
             pen.poly(&[(0.18, 0.86), (0.5, 0.14), (0.82, 0.86)]);
             pen.poly(&[(0.31, 0.6), (0.69, 0.6)]);
+        }
+        Icon::Frame => {
+            pen.rounded((0.5, 0.5), 0.42, 0.12);
+            pen.closed(&[(0.24, 0.24), (0.76, 0.24), (0.76, 0.76), (0.24, 0.76)]);
+            pen.poly(&[(0.37, 0.5), (0.63, 0.5)]);
         }
         Icon::Circle => pen.circle((0.5, 0.5), 0.36),
         Icon::Rectangle => pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]),

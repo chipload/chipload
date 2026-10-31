@@ -14,6 +14,10 @@ As built (frames):
   values under *Selection* with the frames as small pictures, a live preview on the canvas,
   *Add* and *Cancel*. Clicks while it is open change what it goes round; with nothing
   selected it draws to a size, centred on the stock. After *Add* the frame is selected.
+  It is a small **Frame** button after the shape tools in the ribbon's DRAW group, now four
+  to a row (the user, 2026-10-31: it was only in the DRAW ▾ menu); the large buttons'
+  narrowest width went from 46 to 44 points so that English keeps its names at the
+  default window width.
 - A frame round a box grows **just enough**, found by halving (`fit_round`): equally in
   both directions for the rectangular frames, in proportion for the oval, in height for the
   arched top, along the long side for the plaque. The arched top's box corners rest on its

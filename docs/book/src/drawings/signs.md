@@ -10,8 +10,9 @@ border lines inside it, or to a size as a blank. (Design: `docs/specs/shape-libr
 
 1. Write the text ([Text](text.md)) and leave it selected, or select any shapes: the frame
    goes round all of them.
-2. **Draw > Frame…** (in the ribbon's *DRAW* menu). Its values open under *Selection*, and
-   the frame shows on the canvas as you change them.
+2. **Frame**: the small button after the shape tools in the ribbon's *DRAW* group (a
+   rounded frame with a line inside), or *DRAW ▾ > Frame…*. Its values open under
+   *Selection*, and the frame shows on the canvas as you change them.
 3. Pick a frame from the row of pictures, set the values, and click **Add**. The frame is
    added as one undo step, and its shapes are selected.
 

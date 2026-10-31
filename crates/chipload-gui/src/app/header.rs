@@ -12,7 +12,7 @@ use crate::icons::{self, Icon};
 /// The top bar's height, points.
 pub(super) const TOP_BAR_HEIGHT: f32 = 30.0;
 /// A ribbon button's height, and its narrowest width, points.
-const RIBBON_BUTTON: (f32, f32) = (44.0, 46.0);
+const RIBBON_BUTTON: (f32, f32) = (44.0, 44.0);
 /// Where the ribbon keeps whether its large buttons show their icons alone (they don't fit
 /// with their names).
 const RIBBON_COMPACT: &str = "ribbon-compact";
@@ -399,7 +399,10 @@ impl ChiploadApp {
                 ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                    for row in tools.chunks(3) {
+                    // Four a row, the frame last (docs/specs/shape-library.md §5): a small
+                    // button, so the ribbon keeps its names at the default width.
+                    let rows = tools.chunks(4).count();
+                    for (k, row) in tools.chunks(4).enumerate() {
                         ui.horizontal(|ui| {
                             for (tool, icon, label, hint, action) in row {
                                 let active = app.sketch.as_ref().is_some_and(|s| s.tool == *tool);
@@ -409,6 +412,17 @@ impl ChiploadApp {
                                     .clicked()
                                 {
                                     app.start_drawing(*tool);
+                                }
+                            }
+                            if k + 1 == rows {
+                                let label = t!(ui, "header-frame");
+                                let framing = app.modify == Some(super::modify::ModifyTool::Frame);
+                                let hint = format!("{label}: {}", t!(ui, "header-frame-hover"));
+                                if small_ribbon_button(ui, Icon::Frame, &label, can_draw, framing)
+                                    .on_hover_text(hint)
+                                    .clicked()
+                                {
+                                    app.start_frame();
                                 }
                             }
                         });
