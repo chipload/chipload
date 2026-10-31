@@ -126,6 +126,9 @@ it's built (see `CLAUDE.md`).
      project, in the window or with `chipload machine use`, takes its machine values only
      and keeps the project's safe Z, work zero and max overcut, as *Update from library*
      does; a new project still starts from all of them.
+  13. A V-carve in passes went back and forth over the whole carving (the user, after the
+     test cut 2026-10-31). Fixed 2026-10-31 (docs/specs/v-carve.md decision 13): each area
+     gets all its passes, centre line and walls, before the nearest next one.
 
 - **Drawing in Chipload, self-sufficient** (approved 2026-10-27,
   docs/specs/drawing-roadmap.md; ADR 0017 amended, ADR 0023): phase 1, precise input and

@@ -68,8 +68,11 @@ pub struct CarvePath {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct VcarvePlan {
-    /// In cut order.
+    /// In cut order, area by area.
     pub paths: Vec<CarvePath>,
+    /// How many of `paths` each area has, in cut order: an area (a letter, the dot of an
+    /// i) gets all its passes before the next (docs/specs/v-carve.md decision 13).
+    pub areas: Vec<usize>,
     /// Warnings: strokes wider than the depth allows, strokes narrower than the tip.
     pub notes: Vec<Message>,
     /// The deepest any path goes, mm below the carved surface.
@@ -109,11 +112,12 @@ pub fn plan_vcarve(
     }
     let cap = max_depth.min(bit.deepest());
     let cap_radius = bit.radius_at(cap);
-    let mut graph = Graph::default();
-    let mut walls: Vec<CarvePath> = Vec::new();
+    // Each area's centre line and walls, cut nearest first after the loop.
+    let mut regions: Vec<(Graph, Vec<CarvePath>)> = Vec::new();
     let mut notes = Vec::new();
     let mut floors = Vec::new();
     for region in build_region(contours)? {
+        let mut walls = Vec::new();
         let ids = ids_text(&region.contour_ids);
         let outline = Outline::new(&region.area);
         let mut axis = medial_axis(&region.area, &outline, &ids, "V-carve", VCARVE_TOL_MM)?;
@@ -183,36 +187,98 @@ pub fn plan_vcarve(
                     .arg("tip", fixed3(bit.tip_diameter)),
             );
         }
-        graph.append(axis);
+        regions.push((axis, walls));
     }
-    let mut paths = Vec::new();
-    for walked in graph.walk(start) {
-        paths.extend(carve_pieces(&walked, bit, cap));
-    }
-    let mut at = paths
-        .last()
-        .and_then(|p| p.points.last().copied())
-        .unwrap_or(start);
-    for wall in nearest_first(walls, &mut at) {
-        paths.push(wall);
-    }
+    let (paths, areas) = areas_in_order(regions, bit, cap, start);
     let deepest = paths
         .iter()
         .flat_map(|p| p.depths.iter().copied())
         .fold(0.0, f64::max);
     Ok(VcarvePlan {
         paths,
+        areas,
         notes,
         deepest,
         floors,
     })
 }
 
-/// Moves for the paths: pass by pass, each no deeper than its level (depths below the
-/// carved surface, ascending; the last is the deepest). A later pass only runs where the
-/// previous one stopped short. Starts and ends retracted to `safe_z`.
+/// The areas' paths in cut order, and how many each has: the area nearest the tool first
+/// (`area_gap`; equally near, the first), its centre line walked from where the tool is,
+/// then its walls nearest first; the next area from where that one ends.
+fn areas_in_order(
+    mut regions: Vec<(Graph, Vec<CarvePath>)>,
+    bit: &VBit,
+    cap: f64,
+    start: Point,
+) -> (Vec<CarvePath>, Vec<usize>) {
+    let mut paths = Vec::new();
+    let mut areas = Vec::new();
+    let mut at = start;
+    while !regions.is_empty() {
+        let here = at;
+        let pick = nearest_ties(
+            regions
+                .iter()
+                .enumerate()
+                .map(|(i, (graph, walls))| (i, area_gap(graph, walls, here))),
+        )
+        .into_iter()
+        .next()
+        .unwrap_or(0);
+        let (graph, walls) = regions.remove(pick);
+        let before = paths.len();
+        for walked in graph.walk(at) {
+            paths.extend(carve_pieces(&walked, bit, cap));
+        }
+        if let Some(&end) = paths[before..].last().and_then(|p| p.points.last()) {
+            at = end;
+        }
+        paths.extend(nearest_first(walls, &mut at));
+        if paths.len() > before {
+            areas.push(paths.len() - before);
+        }
+    }
+    (paths, areas)
+}
+
+/// How far an area is from `at`: to its centre line's nearest node with an edge, or its
+/// walls' nearest point.
+fn area_gap(graph: &Graph, walls: &[CarvePath], at: Point) -> f64 {
+    let degrees = graph.degrees();
+    let nodes = graph
+        .nodes
+        .iter()
+        .zip(&degrees)
+        .filter(|&(_, &d)| d > 0)
+        .map(|(&p, _)| p);
+    let wall_points = walls.iter().flat_map(|w| w.points.iter().copied());
+    nodes
+        .chain(wall_points)
+        .map(|p| distance(at, p))
+        .fold(f64::INFINITY, f64::min)
+}
+
+impl VcarvePlan {
+    /// The paths, area by area (`areas`).
+    pub fn area_paths(&self) -> Vec<&[CarvePath]> {
+        let mut rest = self.paths.as_slice();
+        let mut split = Vec::new();
+        for &n in &self.areas {
+            let (area, after) = rest.split_at(n.min(rest.len()));
+            split.push(area);
+            rest = after;
+        }
+        split
+    }
+}
+
+/// Moves for the areas: each area all its passes before the next, pass by pass, each no
+/// deeper than its level (depths below the carved surface, ascending; the last is the
+/// deepest). A later pass only runs where the previous one stopped short. Starts and ends
+/// retracted to `safe_z`.
 pub fn vcarve_moves(
-    paths: &[CarvePath],
+    areas: &[&[CarvePath]],
     levels: &[f64],
     surface_z: f64,
     safe_z: f64,
@@ -220,6 +286,30 @@ pub fn vcarve_moves(
     plunge_feed: f64,
 ) -> Vec<Move> {
     let mut moves = vec![Move::rapid_z(safe_z)];
+    for paths in areas {
+        area_moves(
+            &mut moves,
+            paths,
+            levels,
+            surface_z,
+            safe_z,
+            feed,
+            plunge_feed,
+        );
+    }
+    moves
+}
+
+/// One area's passes.
+fn area_moves(
+    moves: &mut Vec<Move>,
+    paths: &[CarvePath],
+    levels: &[f64],
+    surface_z: f64,
+    safe_z: f64,
+    feed: f64,
+    plunge_feed: f64,
+) {
     let mut previous: Option<f64> = None;
     for &level in levels {
         for path in paths {
@@ -252,7 +342,6 @@ pub fn vcarve_moves(
         }
         previous = Some(level);
     }
-    moves
 }
 
 /// Pass depths below the carved surface: `passes` passes to `depth` that each remove the
@@ -494,17 +583,6 @@ impl Graph {
             }
         }
         total
-    }
-
-    /// Add another region's graph (its nodes are never shared).
-    fn append(&mut self, other: Graph) {
-        let offset = self.nodes.len();
-        self.nodes.extend(other.nodes);
-        self.edges
-            .extend(other.edges.into_iter().filter(|e| e.alive).map(|mut e| {
-                e.ends = [e.ends[0] + offset, e.ends[1] + offset];
-                e
-            }));
     }
 
     /// Every alive edge once, in continuous paths found by a greedy walk: each starts at the

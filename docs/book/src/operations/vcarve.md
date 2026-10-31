@@ -37,6 +37,10 @@ and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. The depths are counted from t
 depth, so a stroke that is shallower than that is done in fewer passes: the deeper ones find
 nothing left to cut. More passes are lighter on the bit and take longer.
 
+The carving is done area by area: each letter (or each closed part of a drawing, such as
+the dot of an *i*) gets all its passes, and its walls, before the bit moves to the
+nearest next one.
+
 ![A V-carve 3.5 mm deep in 4 passes: their depths under Passes](../images/vcarve-passes.png)
 
 Projects from before Chipload 0.29 had a step down instead. They open with as many passes

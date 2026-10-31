@@ -1153,7 +1153,7 @@ fn plan_vcarve_op(
         .filter(|f| f.enabled)
         .and_then(|f| ctx.job.tool(f.tool))
         .filter(|t| t.kind == ToolType::Endmill);
-    let plan = plan_vcarve(
+    let mut plan = plan_vcarve(
         &selection.contours,
         &bit,
         op.end_depth - op.start_depth,
@@ -1161,7 +1161,7 @@ fn plan_vcarve_op(
         floor_tool.map(|t| t.diameter / 2.0),
     )
     .map_err(|err| err.with_context(ctx.label_message.clone()))?;
-    let mut notes = plan.notes;
+    let mut notes = std::mem::take(&mut plan.notes);
     let floor_hint = plan.floors.iter().map(|f| f.largest).reduce(f64::min);
     if let Some(tool) = floor_tool {
         for left in &plan.floors {
@@ -1185,7 +1185,7 @@ fn plan_vcarve_op(
     // (docs/specs/v-carve.md decision 12).
     let levels = carve_levels(op.end_depth - op.start_depth, op.passes);
     let moves = vcarve_moves(
-        &plan.paths,
+        &plan.area_paths(),
         &levels,
         ctx.top_z,
         ctx.job.machine.safe_z,

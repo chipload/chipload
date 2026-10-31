@@ -924,9 +924,9 @@ exit 0
 $ chipload plan tests/corpus/messages/vcarve_letters_big_tool.chipload
 exit 0
 --- stdout
-Estimated time: 46 s (cutting 32 s, rapids 11 s, spindle 3 s)
+Estimated time: 44 s (cutting 32 s, rapids 9 s, spindle 3 s)
 Cut outline: 113.446 × 79.800 mm (X -24.900 … 88.546, Y -24.900 … 54.900, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 43 s
+  Operation 1 (Letters): 41 s
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth

@@ -130,7 +130,9 @@ For each region:
    Between paths the tool goes up to the safe height (decision 7). The order is
    deterministic: ties are broken by coordinates. Parts of a path narrower than the tip are
    left out. A later depth pass runs only where the earlier one stopped short, starting at
-   that depth.
+   that depth. **Area by area** (decision 13): each region (a letter, the dot of an i) is
+   finished, every pass of its centre line and walls, before the tool moves on; the next is
+   the region nearest where the tool is, and its walk starts from there.
 6. **Verification.** Before the toolpath is used, every cutting move is checked against rule 1
    of §1, at its ends and at points along it, using the region's real boundary (arcs, not
    chords). A failure is an error, and no G-code is made, as for offsets.
@@ -263,3 +265,15 @@ Agreed 2026-10-30 (the user: "add the progressive v-bit stepdown"):
     2.45, 3.0. One way, no setting: `step_down` is the first pass's depth, and every later
     pass is no heavier. Projects keep their `step_down`; their passes change (the golden
     G-code with them).
+
+Agreed 2026-10-31 (the user, after a test cut: "could it complete each area before going to
+the next, there is a lot of back and forth now"):
+
+13. **Area by area.** Passes went over every region in turn, and the walls of wide strokes
+    came after all centre lines, so with several passes the tool crossed the whole carving
+    again for each. Now each region gets all its passes, centre line and walls, before the
+    next; regions in nearest-first order (equally near: the first in the drawing). The same
+    cuts, in another order: the golden G-code changes order and where some paths start,
+    and an operation after a V-carve can start elsewhere, since the V-carve ends elsewhere.
+    Rapid travel in the golden files drops by up to a quarter. Chosen over finishing each
+    centre-line path before the next, which would re-enter a letter.

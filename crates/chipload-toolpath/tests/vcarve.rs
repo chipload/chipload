@@ -700,6 +700,42 @@ fn passes_go_down_in_steps_and_never_recut() {
     }
 }
 
+/// Each area gets all its passes before the tool moves to the next, the nearest first
+/// (v-carve.md decision 13; the user, 2026-10-31: "a lot of back and forth").
+#[test]
+fn each_area_is_finished_before_the_next() {
+    // Two rectangles, the far one first in the drawing: the near one is cut first.
+    let shape = [
+        common::rect(1, 50.0, 0.0, 60.0, 4.0),
+        common::rect(2, 20.0, 0.0, 30.0, 4.0),
+    ];
+    let plan =
+        chipload_toolpath::plan_job(&vcarve_job(vbit_tool(Some(0.0)), 3.0, 3), &shape).unwrap();
+    // The area each feed move cuts in, in cut order: once into the far one, never back.
+    let areas: Vec<bool> = feed_moves(&plan.program)
+        .iter()
+        .filter(|(a, b)| a[0] != b[0] || a[1] != b[1])
+        .map(|(_, b)| b[0] > 40.0)
+        .collect();
+    assert!(!areas[0], "the nearer area first");
+    let switches = areas.windows(2).filter(|w| w[0] != w[1]).count();
+    assert_eq!(switches, 1, "one move from the first area to the second");
+    // Both areas get the same passes: 1.94 below the top, then the bottom at 2.5 (the
+    // third pass finds nothing left; a 4 wide rectangle is 2 deep below the surface).
+    let levels = |far: bool| {
+        let mut zs: Vec<i64> = feed_moves(&plan.program)
+            .iter()
+            .filter(|(a, b)| (b[0] > 40.0) == far && a[2] == b[2] && a[0] != b[0])
+            .map(|(_, b)| (b[2] * 1000.0).round() as i64)
+            .collect();
+        zs.sort_unstable();
+        zs.dedup();
+        zs
+    };
+    assert_eq!(levels(false), levels(true));
+    assert_eq!(levels(false), [-2500, -1943]);
+}
+
 /// Depth passes remove equal cross-sections (v-carve.md decision 12): the last exactly the
 /// depth, and a V groove's area (depth²) grows by the same amount each pass.
 #[test]
