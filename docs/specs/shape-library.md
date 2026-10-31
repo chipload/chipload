@@ -12,8 +12,11 @@ As built (frames):
   project would be in one language whatever the window's; the layers tell them apart.
 - The **window** has no separate dialog (§5): *Draw > Frame…* is a tool like *Array*, its
   values under *Selection* with the frames as small pictures, a live preview on the canvas,
-  *Add* and *Cancel*. Clicks while it is open change what it goes round; with nothing
-  selected it draws to a size, centred on the stock. After *Add* the frame is selected.
+  *Add* and *Cancel*. A click on a shape while it is open changes what it goes round, its
+  values staying open; a click on empty space (where the preview is drawn) changes
+  nothing, so the frame doesn't jump (the user, 2026-10-31: "the frame itself can be
+  clicked while creating a frame"). With nothing selected it draws to a size, centred on
+  the stock. After *Add* the frame is selected.
   It is a small **Frame** button after the shape tools in the ribbon's DRAW group, now four
   to a row (the user, 2026-10-31: it was only in the DRAW ▾ menu); the large buttons'
   narrowest width went from 46 to 44 points so that English keeps its names at the

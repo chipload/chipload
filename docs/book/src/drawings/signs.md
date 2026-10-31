@@ -16,9 +16,9 @@ border lines inside it, or to a size as a blank. (Design: `docs/specs/shape-libr
 3. Pick a frame from the row of pictures, set the values, and click **Add**. The frame is
    added as one undo step, and its shapes are selected.
 
-Clicking shapes while the tool is open changes what the frame goes round; clicking empty
-space clears the selection, and the frame is then drawn to a size. **Esc** or *Cancel*
-ends the tool. The tool keeps your values until you close Chipload.
+Clicking a shape while the tool is open makes it what the frame goes round (Ctrl+click
+adds one); a click on empty space, or on the previewed frame, changes nothing. **Esc** or
+*Cancel* ends the tool. The tool keeps your values until you close Chipload.
 
 The frames:
 

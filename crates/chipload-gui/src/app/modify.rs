@@ -402,8 +402,15 @@ impl ChiploadApp {
                 }
             }
             Some(ModifyTool::PolarArray) => self.array.center = self.snap_world(at, free, false),
-            // A frame goes round what is selected: clicks pick it, empty space clears it.
-            Some(ModifyTool::Frame) => self.click(picked, toggle),
+            // A frame goes round what is selected: a click on a shape picks it (Ctrl adds),
+            // its values staying under Selection. Empty space, where the previewed frame is
+            // drawn too, changes nothing: the frame mustn't jump (the user, 2026-10-31).
+            Some(ModifyTool::Frame) => {
+                if picked.is_some() {
+                    self.click(picked, toggle);
+                    self.focus = Focus::Selection;
+                }
+            }
             Some(ModifyTool::Union | ModifyTool::Intersect | ModifyTool::Array) | None => {}
         }
     }

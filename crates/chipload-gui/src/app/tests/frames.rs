@@ -22,6 +22,24 @@ fn a_frame_round_a_selected_text_is_one_undo_step() {
     assert_eq!(app.focus, Focus::Selection);
     // The text stays selected: the frame goes round it, its form under Selection.
     assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    // A click on empty space (where the preview is drawn) keeps the selection; a click on
+    // a letter keeps the frame's values open (the user, 2026-10-31).
+    app.modify_click(None, (500.0, 500.0), false, (false, false));
+    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    let letter = app
+        .contours
+        .iter()
+        .find(|c| {
+            c.parts
+                .iter()
+                .all(|p| p.segment.from == Some(ShapeFrom::Text(id)))
+        })
+        .unwrap()
+        .id;
+    app.modify_click(Some(letter), (20.0, 30.0), false, (false, false));
+    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.focus, Focus::Selection);
+    assert_eq!(app.modify, Some(ModifyTool::Frame));
     app.frame.kind = chipload_pipeline::frames::FrameKind::Oval;
     app.frame.borders = 2;
     draw_properties(&mut app);
