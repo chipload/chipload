@@ -31,6 +31,8 @@ fn draw_status_and_help(app: &mut ChiploadApp) {
 
 #[test]
 fn the_question_is_asked_once_and_nothing_is_checked_before_an_answer() {
+    // A folder left by an earlier run with the same process id holds its answer.
+    let _ = std::fs::remove_dir_all(temp_dir("updates-question"));
     let (mut app, dir) = with_settings("updates-question");
     app.updates.fetch = far_newer;
     assert!(app.update_question_shown());
