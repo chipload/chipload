@@ -160,7 +160,9 @@ impl ChiploadApp {
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
             Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
             Focus::Image(id) => request = forms::image_form(ui, edit, id),
-            Focus::Text(id) => request = forms::text_form(ui, edit, id, grab),
+            Focus::Text(id) => {
+                request = forms::text_form(ui, edit, id, grab, &self.text_fonts);
+            }
             Focus::RestPass(i, k) => request = forms::rest_pass_form(ui, edit, i, k),
             Focus::FloorPass(i) => {
                 request = forms::floor_pass_form(ui, edit, i, floor_hint.as_ref());

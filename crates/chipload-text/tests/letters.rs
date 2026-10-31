@@ -220,3 +220,55 @@ fn each_font_carries_its_licence_in_its_name_table() {
         );
     }
 }
+
+/// A font file's bytes give the same letters as the built-in font of that file
+/// (docs/specs/system-fonts.md §8).
+#[test]
+fn a_font_files_bytes_give_the_same_letters_as_its_name() {
+    use chipload_text::{FontFile, builtin, letters_in};
+    for name in ["FreeSans", "Satisfy"] {
+        let font = builtin(name).unwrap();
+        let by_name = letters(&Layout {
+            font: name,
+            ..layout("Chipload 42")
+        })
+        .unwrap();
+        let file = FontFile {
+            name: "Some computer font",
+            data: font.data(),
+            index: 0,
+        };
+        // The layout's own font name isn't looked at.
+        let by_bytes = letters_in(&layout("Chipload 42"), file).unwrap();
+        assert_eq!(by_name, by_bytes, "{name}");
+    }
+    let broken = FontFile {
+        name: "Broken",
+        data: b"not a font",
+        index: 0,
+    };
+    assert_eq!(
+        letters_in(&layout("A"), broken),
+        Err(TextError::BadFont("Broken".into()))
+    );
+}
+
+/// Every built-in font's file has a name and letters; a file that isn't a font has none.
+#[test]
+fn faces_are_named_by_their_full_name() {
+    use chipload_text::face_name;
+    for font in FONTS {
+        let name = face_name(font.data(), 0);
+        assert!(
+            name.as_deref().is_some_and(|n| !n.is_empty()),
+            "{}",
+            font.name
+        );
+    }
+    assert_eq!(
+        face_name(chipload_text::builtin("FreeSans Bold").unwrap().data(), 0).as_deref(),
+        Some("FreeSans Bold")
+    );
+    assert_eq!(face_name(b"not a font", 0), None);
+    assert_eq!(face_name(FONTS[0].data(), 1), None, "no second face");
+}

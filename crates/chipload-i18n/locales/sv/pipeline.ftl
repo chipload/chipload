@@ -279,6 +279,12 @@ pipeline-image-unsimplified = { $count } { $count ->
 pipeline-no-text = det finns ingen text { $id }
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: kunde inte sammanfoga bokstävernas överlappande konturer: { $error }
+pipeline-text-font-missing = Typsnittet ”{ $font }” finns inte på den här datorn. { $text } behåller sina bokstäver och fräses som de är; för att ändra ord eller storlek, välj ett annat typsnitt.
+pipeline-text-no-font = Det finns inget typsnitt ”{ $font }” på den här datorn. Inbyggda: { $fonts }; `chipload text fonts` listar även datorns.
+pipeline-text-moved = Flyttade { $text }: { $count } { $count ->
+    [one] bokstav
+   *[other] bokstäver
+} som de är (typsnittet finns inte på den här datorn)
 # $text is the text's first line in quotes; $height its height; $width the box's width
 # without its unit, $tall its height with it.
 pipeline-text-wrote = Skrev { $text } i { $font }, { $height } hög ({ $width } × { $tall }): { $count } { $count ->

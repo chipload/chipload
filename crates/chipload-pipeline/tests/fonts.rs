@@ -3,6 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_job::{Job, Operation, PocketOp, Selector, Tool, ToolType, VcarveOp};
+use chipload_pipeline::fonts::BuiltinOnly;
 use chipload_pipeline::texts::{NewText, add_text, lettering};
 use chipload_pipeline::{empty_project, run_job};
 use chipload_text::{FONTS, Layout, letters};
@@ -29,7 +30,8 @@ fn written(text: &str, font: &str, line_spacing: f64) -> Job {
     new.x = 10.0;
     new.y = 10.0;
     new.line_spacing = line_spacing;
-    let (mut job, _) = add_text(&empty_project(), new).unwrap_or_else(|e| panic!("{font}: {e}"));
+    let (mut job, _) =
+        add_text(&empty_project(), new, &BuiltinOnly).unwrap_or_else(|e| panic!("{font}: {e}"));
     job.tools.push(tool(2, ToolType::Vbit, 12.7));
     job.tools.push(tool(3, ToolType::Endmill, 0.6));
     job
@@ -138,7 +140,7 @@ fn a_script_word_is_pocketed_as_one_shape() {
 fn letters_that_overlap_nothing_are_kept_exactly() {
     // FreeSans "HELLO": no letter overlaps another, so the outlines are the font's own.
     let text = &written("HELLO", "FreeSans", 1.4).drawing.texts[0].clone();
-    let merged = lettering(text).unwrap();
+    let merged = lettering(text, &BuiltinOnly).unwrap();
     let raw = letters(&Layout {
         text: "HELLO",
         font: "FreeSans",

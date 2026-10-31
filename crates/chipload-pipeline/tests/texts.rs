@@ -4,6 +4,7 @@
 
 use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_job::{Job, Operation, PathSegment, Selector, TextAnchor, Tool, ToolType, VcarveOp};
+use chipload_pipeline::fonts::BuiltinOnly;
 use chipload_pipeline::images::turned_box;
 use chipload_pipeline::texts::{
     NewText, add_text, remake_changed, remove_text, text_size, with_anchor,
@@ -40,7 +41,7 @@ fn hello(job: &Job) -> (Job, chipload_pipeline::texts::TextReport) {
     let mut new = NewText::new("HELLO", 20.0);
     new.x = 30.0;
     new.y = 40.0;
-    add_text(job, new).unwrap()
+    add_text(job, new, &BuiltinOnly).unwrap()
 }
 
 #[test]
@@ -78,9 +79,9 @@ fn a_turned_text_turns_about_its_centre() {
     let (job, _) = hello(&empty_project());
     let mut turned = job.clone();
     turned.drawing.texts[0].rotation = 90.0;
-    let (turned, reports) = remake_changed(&job, &turned).unwrap();
+    let (turned, reports) = remake_changed(&job, &turned, &BuiltinOnly).unwrap();
     assert_eq!(reports.len(), 1);
-    let (w, h) = text_size(&turned.drawing.texts[0]).unwrap();
+    let (w, h) = text_size(&turned, &turned.drawing.texts[0], &BuiltinOnly).unwrap();
     let (lo, hi) = extent(&turned, 1);
     let (want_lo, want_hi) = turned_box(30.0, 40.0, w, h, 90.0);
     for (a, b) in [
@@ -108,7 +109,7 @@ fn a_left_out_letter_is_found_again_after_the_text_grows() {
     }));
     let mut bigger = job.clone();
     bigger.drawing.texts[0].height = 30.0;
-    let (bigger, reports) = remake_changed(&job, &bigger).unwrap();
+    let (bigger, reports) = remake_changed(&job, &bigger, &BuiltinOnly).unwrap();
     assert!(
         reports[0].lines.iter().any(|l| l.contains("found again")),
         "{:?}",
@@ -189,7 +190,7 @@ fn a_centred_text_stays_centred_when_it_turns_and_changes() {
     let mut new = NewText::new("HELLO", 20.0);
     (new.x, new.y) = (80.0, 50.0);
     new.anchor = TextAnchor::Center;
-    let (job, _) = add_text(&empty_project(), new).unwrap();
+    let (job, _) = add_text(&empty_project(), new, &BuiltinOnly).unwrap();
     let close = |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).abs() < 1e-6 && (a.1 - b.1).abs() < 1e-6;
     assert!(
         close(middle(&job, 1), (80.0, 50.0)),
@@ -199,7 +200,7 @@ fn a_centred_text_stays_centred_when_it_turns_and_changes() {
     // Turned: every point of the letters is turned about the centre, which stays.
     let mut turned = job.clone();
     turned.drawing.texts[0].rotation = 33.0;
-    let (turned, _) = remake_changed(&job, &turned).unwrap();
+    let (turned, _) = remake_changed(&job, &turned, &BuiltinOnly).unwrap();
     let starts = |job: &Job| -> Vec<(f64, f64)> {
         job.drawing
             .shapes
@@ -227,7 +228,7 @@ fn a_centred_text_stays_centred_when_it_turns_and_changes() {
     // Other words: still centred there.
     let mut longer = job.clone();
     longer.drawing.texts[0].text = "HELLO WORLD".into();
-    let (longer, _) = remake_changed(&job, &longer).unwrap();
+    let (longer, _) = remake_changed(&job, &longer, &BuiltinOnly).unwrap();
     assert!(
         close(middle(&longer, 1), (80.0, 50.0)),
         "{:?}",
@@ -239,12 +240,12 @@ fn a_centred_text_stays_centred_when_it_turns_and_changes() {
 fn changing_the_anchor_leaves_the_letters_where_they_are() {
     let (job, _) = hello(&empty_project());
     let text = &job.drawing.texts[0];
-    let size = text_size(text).unwrap();
+    let size = text_size(&job, text, &BuiltinOnly).unwrap();
     let centred = with_anchor(text, TextAnchor::Center, size);
     assert_eq!(centred.anchor, TextAnchor::Center);
     let mut after = job.clone();
     after.drawing.texts[0] = centred;
-    let (after, _) = remake_changed(&job, &after).unwrap();
+    let (after, _) = remake_changed(&job, &after, &BuiltinOnly).unwrap();
     assert_eq!(extent(&after, 1), extent(&job, 1));
     let back = with_anchor(&after.drawing.texts[0], TextAnchor::Corner, size);
     assert!((back.x - 30.0).abs() < 1e-9 && (back.y - 40.0).abs() < 1e-9);

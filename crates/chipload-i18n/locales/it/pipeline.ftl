@@ -284,6 +284,12 @@ pipeline-image-unsimplified = { $count ->
 pipeline-no-text = non esiste il testo { $id }
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: impossibile unire i contorni sovrapposti delle lettere: { $error }
+pipeline-text-font-missing = Il font «{ $font }» non è su questo computer. { $text } mantiene le sue lettere e viene fresato così; per cambiarne le parole o la dimensione, scegli un altro font.
+pipeline-text-no-font = Su questo computer non c'è nessun font «{ $font }». Integrati: { $fonts }; `chipload text fonts` elenca anche quelli del computer.
+pipeline-text-moved = Spostato { $text }: { $count } { $count ->
+    [one] lettera
+   *[other] lettere
+} così come sono (il suo font non è su questo computer)
 # $text is the text's first line in quotes; $height its height; $width the box's width
 # without its unit, $tall its height with it.
 pipeline-text-wrote = Scritto { $text } in { $font }, alto { $height } ({ $width } × { $tall }): { $count ->

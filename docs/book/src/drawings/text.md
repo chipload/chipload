@@ -24,7 +24,7 @@ out with a [profile](../operations/profile.md). (Design: `docs/specs/text.md`.)
 Click the text in the Browser (under *Drawing*, with an **A**) or one of its letters on the
 canvas:
 - **Text:** what it says, on one or more lines;
-- **Font:** one of the built-in fonts (below);
+- **Font:** one of the built-in fonts, or one installed on your computer (below);
 - **Height:** the height of a capital letter, mm; what a ruler measures on an H;
 - **Anchor:** what Position is: the **lower-left corner** of the text's box, or its
   **centre**. A centred text stays centred when you change its words, font or size, which is
@@ -83,11 +83,30 @@ Smokum's pointed serifs need a pocketing tool of 2 mm or more.
 Apache License 2.0. Neither puts any condition on what you make: the letters you cut and
 their G-code are yours.
 
+### Your computer's fonts
+
+The *Font* list also has **On this computer**: every TrueType or OpenType font installed
+there, by name ("Arial Bold"), with a search field. Hover over a name to see a sample. The
+first time the list opens, Chipload looks for them (*Looking for fonts…*).
+
+A font you don't want to install can go in a folder named `fonts` in your
+[settings folder](../install.md#your-settings); Chipload finds it there too.
+
+Only the font's name goes into the project, never the font file: fonts are licensed to the
+computer they are installed on. The letters are in the project as shapes, so the project
+cuts the same on any computer (below).
+
 ## In the project file
 
 A text is stored with what it says and how, and its letters are stored as shapes too. So the
 font is needed only to change the text; a project cuts the same whatever the computer has
 installed. Chipload 0.19 and older can't open a project that has a text.
+
+**On a computer without the text's font,** the text keeps its letters and cuts as they
+are. Its properties say so, and its words, height, alignment and spacing are greyed out;
+the Browser marks it with ⚠. You can still move it, turn it and put it on another layer.
+To change its words or size, choose another font: its letters are then made again in that
+one.
 
 ## Leaving letters out
 
@@ -104,7 +123,7 @@ chipload text set sign.chipload 1 --anchor center --at 85,55  # centred on X85 Y
 chipload place sign.chipload --text 1 --at 10,10 --height 25  # its corner, turn and height
 chipload text list sign.chipload
 chipload text remove sign.chipload 1
-chipload text fonts
+chipload text fonts                                           # built in, then the computer's
 ```
 
 `\n` in the text starts a new line. An operation selects the text with

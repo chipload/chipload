@@ -26,6 +26,12 @@ base64 = "0.22.1"
 serde_json = "1"
 sha2 = "0.10"
 
+# The computer's fonts for texts (docs/specs/system-fonts.md decision 7); MIT. Without its
+# memory-mapping feature (`unsafe`, and a file changed underneath could crash the app). Not
+# in the browser build, which has the built-in fonts only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+fontdb = { version = "0.24.0", default-features = false, features = ["std", "fs", "fontconfig"] }
+
 [lints]
 workspace = true
 

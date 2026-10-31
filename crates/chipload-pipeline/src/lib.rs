@@ -9,6 +9,7 @@ pub mod drawing_edit;
 pub mod dxfs;
 pub mod estimate;
 pub mod explode;
+pub mod fonts;
 pub mod images;
 pub mod library;
 pub mod materials;

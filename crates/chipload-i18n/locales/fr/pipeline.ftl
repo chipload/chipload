@@ -287,6 +287,12 @@ pipeline-image-unsimplified = { $count ->
 pipeline-no-text = il n'y a pas de texte { $id }
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text } : impossible de fusionner les contours des lettres qui se chevauchent : { $error }
+pipeline-text-font-missing = La police « { $font } » n'est pas sur cet ordinateur. { $text } garde ses lettres et est usiné tel quel ; pour changer ses mots ou sa taille, choisissez une autre police.
+pipeline-text-no-font = Il n'y a pas de police « { $font } » sur cet ordinateur. Intégrées : { $fonts } ; `chipload text fonts` liste aussi celles de l'ordinateur.
+pipeline-text-moved = { $text } déplacé : { $count } { $count ->
+    [one] lettre
+   *[other] lettres
+} telles quelles (sa police n'est pas sur cet ordinateur)
 # $text is the text's first line in quotes; $height its height; $width the box's width
 # without its unit, $tall its height with it.
 pipeline-text-wrote = { $text } écrit en { $font }, { $height } de haut ({ $width } × { $tall }) : { $count } { $count ->

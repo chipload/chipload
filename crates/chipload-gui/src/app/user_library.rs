@@ -494,6 +494,7 @@ impl ChiploadApp {
     /// Where the library is kept (None in tests and without a home folder), and read it.
     pub fn set_settings_dir(&mut self, dir: Option<PathBuf>) {
         self.settings_dir = dir;
+        self.text_fonts = super::text_fonts::TextFonts::new(self.settings_dir.as_deref());
         self.reload_library();
         let settings = self
             .settings_dir

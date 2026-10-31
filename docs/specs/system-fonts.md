@@ -1,7 +1,16 @@
 # Spec: texts in the computer's fonts
 
-Status: **draft 2026-10-31, to review** (decisions in §9). Builds on docs/specs/text.md and
-more-fonts.md.
+Status: **agreed 2026-10-31**, all decisions as recommended (the user: "I agree,
+continue"); built the same day (ADR 0027). Builds on docs/specs/text.md and more-fonts.md.
+
+As built:
+- A new text in a font that is nowhere gets its own error ("There is no font … on this
+  computer", with the built-in names); "keeps its letters" is only said of a text that has
+  some. Changing a text's font to one that is missing too is refused the same way.
+- The name is the face's full name (name ID 4), else family and style; faces whose name
+  starts with "." (macOS's hidden system faces) are left out.
+- The window marks the Browser row with ⚠; the form shows the note above the fields, and
+  *Looking for fonts…* while the search runs in the background.
 
 User request (2026-10-31): "I think we should allow to use fonts from the computer when
 creating texts, not only the integrated ones. Since the text is converted to shapes it will

@@ -477,8 +477,9 @@ pub struct Text {
     pub id: u64,
     /// What it says; a line break ("\n") starts a new line.
     pub text: String,
-    /// A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or
-    /// FreeMono Bold (`chipload text fonts`).
+    /// The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its
+    /// full name (`chipload text fonts`). Only its name is stored; its letters are the
+    /// text's shapes, kept where the font isn't (docs/specs/system-fonts.md).
     pub font: String,
     /// The height of a capital letter, mm.
     pub height: f64,

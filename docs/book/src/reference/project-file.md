@@ -604,7 +604,7 @@ A text written into shapes: what it says, its font and size, and where it goes. 
 |---|---|---|---|
 | `align` | [TextAlign](#textalign) | yes | How the lines line up against each other. |
 | `anchor` | [TextAnchor](#textanchor) | no | What `x` and `y` are: the box's lower-left corner (before the turn), or its centre. A centred text stays centred there when its words, font or size change. Missing: the corner. |
-| `font` | string | yes | A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or FreeMono Bold (`chipload text fonts`). |
+| `font` | string | yes | The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its full name (`chipload text fonts`). Only its name is stored; its letters are the text's shapes, kept where the font isn't (docs/specs/system-fonts.md). |
 | `height` | number | yes | The height of a capital letter, mm. |
 | `id` | integer | yes | The text's id, which its letters name. |
 | `layer` | string | yes | The layer its letters go on. |

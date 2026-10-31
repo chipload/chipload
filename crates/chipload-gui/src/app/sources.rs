@@ -137,16 +137,18 @@ impl ChiploadApp {
             );
         }
         for text in &drawing.texts {
-            push(
-                format!("text:{}", text.id),
-                t!(
-                    self,
-                    "sources-text-title",
-                    text = chipload_pipeline::texts::text_label(text),
-                    id = text.id
-                ),
-                GroupKind::Text(text.id),
+            let mut title = t!(
+                self,
+                "sources-text-title",
+                text = chipload_pipeline::texts::text_label(text),
+                id = text.id
             );
+            // Its font isn't on this computer: its properties say what that means
+            // (docs/specs/system-fonts.md §5).
+            if self.text_fonts.has(&text.font) == Some(false) {
+                title.push_str(" ⚠");
+            }
+            push(format!("text:{}", text.id), title, GroupKind::Text(text.id));
         }
         for (key, title) in [
             ("drawn:rectangle", t!(self, "sources-rectangles")),

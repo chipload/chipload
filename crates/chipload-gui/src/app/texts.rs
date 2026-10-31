@@ -43,7 +43,7 @@ impl ChiploadApp {
         let edit = self.edit.as_ref()?;
         let mut new = NewText::new(NEW_TEXT, NEW_TEXT_HEIGHT_MM);
         (new.x, new.y) = at;
-        match add_text(&edit.settings, new) {
+        match add_text(&edit.settings, new, &*self.font_source()) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.settings = job;
@@ -78,7 +78,7 @@ impl ChiploadApp {
             return false;
         };
         *slot = Text { id, ..text.clone() };
-        match remake(&job, id) {
+        match remake(&edit.settings, &job, id, &*self.font_source()) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.settings = job;

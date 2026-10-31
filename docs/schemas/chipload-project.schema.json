@@ -2262,7 +2262,7 @@
           "description": "What `x` and `y` are: the box's lower-left corner (before the turn), or its centre.\nA centred text stays centred there when its words, font or size change. Missing:\nthe corner."
         },
         "font": {
-          "description": "A built-in font: FreeSans, FreeSans Bold, FreeSerif, FreeSerif Bold, FreeMono or\nFreeMono Bold (`chipload text fonts`).",
+          "description": "The font: a built-in one (FreeSans, FreeSerif, …) or one on the computer, by its\nfull name (`chipload text fonts`). Only its name is stored; its letters are the\ntext's shapes, kept where the font isn't (docs/specs/system-fonts.md).",
           "type": "string"
         },
         "height": {

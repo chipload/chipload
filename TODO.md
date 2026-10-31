@@ -88,9 +88,12 @@ it's built (see `CLAUDE.md`).
 ## Next
 
 - **Texts in the computer's fonts** (the user, 2026-10-31: "allow to use fonts from the
-  computer when creating texts"; docs/specs/system-fonts.md): spec drafted 2026-10-31,
-  decisions 1–7 to review. A text keeps its letters as shapes, so the project cuts
-  anywhere; without its font, only remaking the letters is locked, with a note.
+  computer when creating texts"; docs/specs/system-fonts.md, ADR 0027): **done
+  2026-10-31**, all decisions as recommended. Installed fonts and the settings folder's
+  `fonts/` (fontdb, not in the browser build), by full name; only the name is stored. A
+  text without its font keeps its letters and cuts; its words, size, alignment and
+  spacing are locked with a note, moving, turning and another font work. To try on
+  Windows with its fonts (only checked on Linux).
 
 - **Shakedown findings** (the user on the router, 2026-10-28; the checklist is kept
   private, outside the repository):

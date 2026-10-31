@@ -92,9 +92,11 @@ impl ChiploadApp {
             ShapeFrom::Text(id) => {
                 let text = drawing.texts.iter().find(|t| t.id == id)?.clone();
                 let key = SizeKey::Text(Box::new(text.clone()));
-                let size = self
-                    .box_size
-                    .get(key, || chipload_pipeline::texts::text_size(&text).ok())?;
+                let fonts = self.font_source();
+                let job = self.edit.as_ref().map(|e| &e.settings)?;
+                let size = self.box_size.get(key, || {
+                    chipload_pipeline::texts::text_size(job, &text, &*fonts).ok()
+                })?;
                 Some((BoxOf::Source(from), text_box(&text, size)))
             }
             ShapeFrom::Dxf(_) => None,

@@ -4,8 +4,8 @@
 //! What the text says, its font and its size go in; closed outlines of lines and arcs in mm
 //! come out, with the box round all of them at (0, 0). The fonts are built in (GNU
 //! FreeFont and ten Apache-2.0 fonts, cut down to Latin: fonts/LICENSE*.txt), so every build
-//! makes the same letters.
-//! No file I/O.
+//! makes the same letters; a font file's bytes can be given too, for the computer's fonts
+//! (docs/specs/system-fonts.md §4). No file I/O.
 
 use chipload_core::Point;
 use chipload_core::fit::fit_path;
@@ -152,6 +152,51 @@ pub fn font_names() -> impl Iterator<Item = &'static str> {
     FONTS.iter().map(|f| f.name)
 }
 
+/// The built-in font named `name`.
+pub fn builtin(name: &str) -> Option<&'static BuiltinFont> {
+    FONTS.iter().find(|f| f.name == name)
+}
+
+/// A font file's bytes and the face in it (a collection holds several), with the name a
+/// project gives it.
+#[derive(Debug, Clone, Copy)]
+pub struct FontFile<'a> {
+    pub name: &'a str,
+    pub data: &'a [u8],
+    pub index: u32,
+}
+
+/// The name a project gives face `index` of a font file, if letters can be made in it: its
+/// full name ("Arial Bold"; else its family and style), when it has outlines and a capital
+/// height (docs/specs/system-fonts.md §2).
+pub fn face_name(data: &[u8], index: u32) -> Option<String> {
+    let face = Face::parse(data, index).ok()?;
+    capital_height(&face)?;
+    let h = face.glyph_index('H')?;
+    face.glyph_bounding_box(h)?;
+    let english = |id: u16| {
+        face.names()
+            .into_iter()
+            .filter(|n| n.name_id == id && n.is_unicode())
+            .find(|n| n.language() == ttf_parser::Language::English_UnitedStates)
+            .or_else(|| {
+                face.names()
+                    .into_iter()
+                    .find(|n| n.name_id == id && n.is_unicode())
+            })
+            .and_then(|n| n.to_string())
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+    };
+    english(ttf_parser::name_id::FULL_NAME).or_else(|| {
+        let family = english(ttf_parser::name_id::FAMILY)?;
+        Some(match english(ttf_parser::name_id::SUBFAMILY) {
+            Some(style) if style != "Regular" => format!("{family} {style}"),
+            _ => family,
+        })
+    })
+}
+
 /// How the lines of a text line up against each other.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Align {
@@ -247,18 +292,29 @@ impl std::fmt::Display for TextError {
 impl std::error::Error for TextError {}
 
 /// The text's letters as closed outlines (spec §4).
+/// In a built-in font, named by `layout.font`.
 pub fn letters(layout: &Layout) -> Result<Lettering, TextError> {
+    let font = builtin(layout.font).ok_or_else(|| {
+        TextError::UnknownFont(
+            layout.font.to_string(),
+            font_names().collect::<Vec<_>>().join(", "),
+        )
+    })?;
+    letters_in(
+        layout,
+        FontFile {
+            name: font.name,
+            data: font.data,
+            index: 0,
+        },
+    )
+}
+
+/// The text's letters in a font file's face (`layout.font` is not looked at).
+pub fn letters_in(layout: &Layout, font: FontFile) -> Result<Lettering, TextError> {
     check(layout)?;
-    let font = FONTS
-        .iter()
-        .find(|f| f.name == layout.font)
-        .ok_or_else(|| {
-            TextError::UnknownFont(
-                layout.font.to_string(),
-                font_names().collect::<Vec<_>>().join(", "),
-            )
-        })?;
-    let face = Face::parse(font.data, 0).map_err(|_| TextError::BadFont(font.name.to_string()))?;
+    let face = Face::parse(font.data, font.index)
+        .map_err(|_| TextError::BadFont(font.name.to_string()))?;
     let cap = capital_height(&face).ok_or_else(|| TextError::BadFont(font.name.to_string()))?;
     let scale = layout.height / cap;
     let lines = laid_out(&face, layout, scale);

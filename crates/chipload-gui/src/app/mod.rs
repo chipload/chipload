@@ -73,6 +73,7 @@ mod sources;
 mod tab_markers;
 #[cfg(test)]
 mod tests;
+mod text_fonts;
 mod texts;
 mod update_notice;
 mod user_library;
@@ -465,6 +466,8 @@ pub struct ChiploadApp {
     /// The update notice: the user's answer, the daily check, a newer release
     /// (docs/specs/update-notice.md).
     pub updates: crate::updates::Updates,
+    /// The computer's fonts for texts (docs/specs/system-fonts.md §6).
+    pub text_fonts: text_fonts::TextFonts,
     /// The language the app is shown in: `language_setting` resolved
     /// (docs/specs/translations.md decision 5).
     pub language: crate::i18n::Language,
@@ -569,6 +572,7 @@ impl Default for ChiploadApp {
             units: chipload_job::Units::Mm,
             language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
             updates: crate::updates::Updates::default(),
+            text_fonts: text_fonts::TextFonts::default(),
             language: crate::i18n::Language::En,
             changed_at: None,
             shown_inputs: None,
@@ -2419,6 +2423,7 @@ impl eframe::App for ChiploadApp {
             ctx.request_repaint_after(generation::POLL);
         }
         self.poll_updates(&ctx);
+        self.poll_text_fonts(&ctx);
         if !busy
             && self.drag.handle.is_none()
             && let Some(wait) = self.live_preview(Instant::now())

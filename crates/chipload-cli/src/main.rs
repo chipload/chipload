@@ -2748,7 +2748,8 @@ fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitC
     let (traced, reports) =
         chipload_pipeline::images::retrace_changed(&job, &changed).map_err(|e| out.fail(e))?;
     let (written, text_reports) =
-        chipload_pipeline::texts::remake_changed(&job, &traced).map_err(|e| out.fail(e))?;
+        chipload_pipeline::texts::remake_changed(&job, &traced, &texts::computer_fonts())
+            .map_err(|e| out.fail(e))?;
     for line in reports
         .iter()
         .flat_map(|r| &r.lines)
@@ -3145,10 +3146,12 @@ fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) 
         Ok(traced) => traced,
         Err(err) => return out.fail(err),
     };
-    let (changed, text_reports) = match chipload_pipeline::texts::remake_changed(&job, &changed) {
-        Ok(written) => written,
-        Err(err) => return out.fail(err),
-    };
+    let fonts = texts::computer_fonts();
+    let (changed, text_reports) =
+        match chipload_pipeline::texts::remake_changed(&job, &changed, &fonts) {
+            Ok(written) => written,
+            Err(err) => return out.fail(err),
+        };
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&changed, target) {
         return out.fail(err);

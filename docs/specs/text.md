@@ -55,8 +55,8 @@ shapes are.
 - **A project names its font** (`"FreeSans"`, `"FreeSerif Bold"`, …). A project from a
   newer Chipload with a font this one doesn't have keeps its shapes, and cuts. Changing
   its text asks for another font.
-- **Later, not now:** the computer's installed fonts. The font file would go into the
-  project, as pictures do.
+- **The computer's installed fonts** came 2026-10-31 (docs/specs/system-fonts.md): only
+  their name goes into the project, not the file.
 
 ## 3. The text object (file format)
 

@@ -920,7 +920,7 @@ chipload text remove <PROJECT> <ID> [OPTIONS]
 
 ### `chipload text fonts`
 
-The built-in fonts
+The built-in fonts, then the computer's (and those in the settings folder's `fonts`)
 
 ```text
 chipload text fonts

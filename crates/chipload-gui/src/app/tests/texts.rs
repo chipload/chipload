@@ -168,3 +168,57 @@ fn a_corner_drag_makes_a_text_taller() {
     // The lower-left corner stays (the text's anchor is its corner).
     assert!((text.x - 20.0).abs() < 0.01 && (text.y - 30.0).abs() < 0.01);
 }
+
+/// A text whose font isn't on this computer (docs/specs/system-fonts.md §5): its letters
+/// stay; new words are refused with the note; a move and another font are taken.
+#[test]
+fn a_text_without_its_font_keeps_its_letters_and_moves() {
+    let (mut app, id) = with_text();
+    // As if written elsewhere in a font this computer doesn't have.
+    app.edit.as_mut().unwrap().settings.drawing.texts[0].font = "No Such Font 42".into();
+    app.commit();
+    app.wait_for_fonts();
+    assert_eq!(app.text_fonts.has("No Such Font 42"), Some(false));
+    assert_eq!(app.text_fonts.has("FreeSans"), Some(true));
+    let letters = |app: &ChiploadApp| {
+        app.edit
+            .as_ref()
+            .unwrap()
+            .settings
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| s.text() == Some(id))
+            .map(|s| s.id)
+            .collect::<Vec<_>>()
+    };
+    let before = letters(&app);
+    assert!(!before.is_empty());
+    // The form and the Browser draw: the note, the locked fields, the row's mark.
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+
+    let mut words = texts(&app)[0].clone();
+    words.text = "CHIPLOAD".into();
+    assert!(!app.set_text(id, &words));
+    assert!(
+        app.report
+            .iter()
+            .any(|l| l.contains("is not on this computer")),
+        "{:?}",
+        app.report
+    );
+    assert_eq!(texts(&app)[0].text, "Text");
+
+    let mut moved = texts(&app)[0].clone();
+    moved.x += 25.0;
+    moved.rotation = 90.0;
+    assert!(app.set_text(id, &moved));
+    assert_eq!(letters(&app), before, "the same letters, moved");
+
+    let mut other = texts(&app)[0].clone();
+    other.font = "FreeSerif".into();
+    other.text = "CHIPLOAD".into();
+    assert!(app.set_text(id, &other));
+    assert_eq!(texts(&app)[0].font, "FreeSerif");
+}

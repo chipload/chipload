@@ -6,6 +6,8 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::{Job, TextAlign, TextAnchor, save_job};
+use chipload_pipeline::fonts::{ComputerFonts, available};
+use chipload_pipeline::library::{fonts_path, settings_dir};
 use chipload_pipeline::texts::{
     NewText, TextReport, add_text, font_names, remake, remove_text, text_label, text_size,
     with_anchor,
@@ -15,6 +17,12 @@ use serde_json::{Value, json};
 
 use crate::load;
 use crate::out::Out;
+
+/// The computer's fonts and the settings folder's `fonts` folder
+/// (docs/specs/system-fonts.md §2).
+pub fn computer_fonts() -> ComputerFonts {
+    ComputerFonts::new(settings_dir().map(|dir| fonts_path(&dir)))
+}
 
 #[derive(Subcommand)]
 pub enum TextAction {
@@ -67,7 +75,7 @@ pub enum TextAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// The built-in fonts.
+    /// The built-in fonts, then the computer's (and those in the settings folder's `fonts`).
     Fonts,
 }
 
@@ -177,7 +185,9 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             settings,
             output,
         } => {
+            let fonts = computer_fonts();
             let change = |job: &mut Job| -> Result<(), String> {
+                let before = job.clone();
                 let t = job
                     .drawing
                     .texts
@@ -192,7 +202,7 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
                 }
                 // A new anchor keeps the text where it is, unless --at says where.
                 if let Some(anchor) = settings.anchor {
-                    let size = text_size(t).map_err(|e| e.to_string())?;
+                    let size = text_size(&before, t, &fonts).map_err(|e| e.to_string())?;
                     *t = with_anchor(t, anchor.into(), size);
                 }
                 if let Some((x, y)) = settings.at {
@@ -239,12 +249,23 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             }
         }
         TextAction::Fonts => {
-            // By style, as the app lists them (docs/specs/more-fonts.md §5).
+            // By style, as the app lists them (docs/specs/more-fonts.md §5), then the
+            // computer's (system-fonts.md §7).
             let fonts: Vec<&str> = font_names().collect();
+            out.line("Built in:");
             for font in chipload_text::FONTS {
-                out.line(format!("{} ({})", font.name, font.style.name()));
+                out.line(format!("  {} ({})", font.name, font.style.name()));
+            }
+            let computer = computer_fonts().names();
+            out.line("On this computer:");
+            if computer.is_empty() {
+                out.line("  none found");
+            }
+            for name in &computer {
+                out.line(format!("  {name}"));
             }
             out.set("fonts", json!(fonts));
+            out.set("computer_fonts", json!(computer));
             out.set(
                 "styles",
                 json!(
@@ -295,7 +316,7 @@ fn add(
     if let Some(layer) = &settings.layer {
         new.layer = layer;
     }
-    match add_text(&job, new) {
+    match add_text(&job, new, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
             write(out, &job, output.unwrap_or(project))
@@ -347,10 +368,11 @@ fn set(
         Ok(job) => job,
         Err(code) => return code,
     };
+    let before = job.clone();
     if let Err(err) = change(&mut job) {
         return out.fail(err);
     }
-    match remake(&job, id) {
+    match remake(&before, &job, id, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
             write(out, &job, output.unwrap_or(project))
@@ -367,6 +389,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
     if job.drawing.texts.is_empty() {
         out.line("No texts.");
     }
+    let fonts = computer_fonts();
     let mut rows = Vec::new();
     for text in &job.drawing.texts {
         let shapes = job
@@ -375,11 +398,17 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .iter()
             .filter(|s| s.text() == Some(text.id))
             .count();
+        let font_here = available(&text.font, &fonts);
         out.line(format!(
-            "{}: {} in {}, {} mm high, on layer {}, {} at ({}, {}){}; {shapes} {}",
+            "{}: {} in {}{}, {} mm high, on layer {}, {} at ({}, {}){}; {shapes} {}",
             text.id,
             text_label(text),
             text.font,
+            if font_here {
+                ""
+            } else {
+                " (not on this computer: its letters are kept)"
+            },
             text.height,
             text.layer,
             match text.anchor {
@@ -412,6 +441,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "line_spacing": text.line_spacing,
             "layer": text.layer,
             "shapes": shapes,
+            "font_available": font_here,
         }));
     }
     out.set("texts", Value::Array(rows));

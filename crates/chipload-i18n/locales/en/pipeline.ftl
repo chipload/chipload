@@ -272,6 +272,12 @@ pipeline-image-unsimplified = { $count } { $count ->
 pipeline-no-text = there is no text { $id }
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: couldn't join the letters' overlapping outlines: { $error }
+pipeline-text-font-missing = Font "{ $font }" is not on this computer. { $text } keeps its letters and cuts as they are; to change its words or size, choose another font.
+pipeline-text-no-font = There is no font "{ $font }" on this computer. Built in: { $fonts }; `chipload text fonts` lists the computer's too.
+pipeline-text-moved = Moved { $text }: its { $count } { $count ->
+    [one] letter
+   *[other] letters
+} as they are (its font is not on this computer)
 # $text is the text's first line in quotes; $height its height; $width the box's width
 # without its unit, $tall its height with it.
 pipeline-text-wrote = Wrote { $text } in { $font }, { $height } high ({ $width } × { $tall }): { $count } { $count ->

@@ -131,11 +131,101 @@ fn an_unknown_font_is_refused_with_the_fonts_there_are() {
             "--height",
             "10",
             "--font",
-            "Arial",
+            "No Such Font 42",
         ])
         .output()
         .unwrap();
     assert!(!out.status.success());
     let err = String::from_utf8_lossy(&out.stderr);
-    assert!(err.contains("Arial") && err.contains("FreeSerif"), "{err}");
+    assert!(
+        err.contains("There is no font \"No Such Font 42\" on this computer")
+            && err.contains("FreeSerif"),
+        "{err}"
+    );
+}
+
+/// A font from the settings folder's `fonts`, then the project where it isn't
+/// (docs/specs/system-fonts.md §7, §8): listed, its text marked, words refused with the
+/// note, a move accepted.
+#[test]
+fn a_font_in_the_settings_folder_writes_texts_kept_without_it() {
+    let dir = temp_dir("folder-font");
+    let fonts = dir.join("settings").join("fonts");
+    std::fs::create_dir_all(&fonts).unwrap();
+    // FreeSans renamed "TestSans" in its name table: a font that isn't built in.
+    let free_sans = chipload_text::builtin("FreeSans").unwrap().data();
+    let mut data = free_sans.to_vec();
+    for (from, to) in [
+        (b"FreeSans".to_vec(), b"TestSans".to_vec()),
+        (
+            "FreeSans".bytes().flat_map(|b| [0, b]).collect(),
+            "TestSans".bytes().flat_map(|b| [0, b]).collect::<Vec<u8>>(),
+        ),
+    ] {
+        let mut i = 0;
+        while i + from.len() <= data.len() {
+            if data[i..i + from.len()] == from[..] {
+                data[i..i + from.len()].copy_from_slice(&to);
+            }
+            i += 1;
+        }
+    }
+    std::fs::write(fonts.join("TestSans.ttf"), data).unwrap();
+    ok(&dir, &["new", "-o", "p.chipload"]);
+    let listed = ok(&dir, &["text", "fonts"]);
+    assert!(
+        listed["computer_fonts"]
+            .as_array()
+            .unwrap()
+            .contains(&Value::from("TestSans")),
+        "{listed}"
+    );
+    ok(
+        &dir,
+        &[
+            "text",
+            "add",
+            "p.chipload",
+            "HI",
+            "--height",
+            "10",
+            "--font",
+            "TestSans",
+        ],
+    );
+    let texts = ok(&dir, &["text", "list", "p.chipload"]);
+    assert_eq!(texts["texts"][0]["font_available"], true);
+
+    // Another computer: the font is gone.
+    std::fs::remove_dir_all(&fonts).unwrap();
+    let texts = ok(&dir, &["text", "list", "p.chipload"]);
+    assert_eq!(texts["texts"][0]["font_available"], false);
+    let out = Command::new(env!("CARGO_BIN_EXE_chipload"))
+        .env("CHIPLOAD_CONFIG_DIR", dir.join("settings"))
+        .current_dir(&dir)
+        .args(["text", "set", "p.chipload", "1", "--text", "HELLO"])
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.contains("Font \"TestSans\" is not on this computer")
+            && err.contains("choose another font"),
+        "{err}"
+    );
+    let moved = ok(&dir, &["text", "set", "p.chipload", "1", "--at", "50,20"]);
+    assert_eq!(moved["text"]["shapes"].as_array().unwrap().len(), 2);
+    ok(
+        &dir,
+        &[
+            "text",
+            "set",
+            "p.chipload",
+            "1",
+            "--font",
+            "FreeSans",
+            "--text",
+            "HELLO",
+        ],
+    );
 }

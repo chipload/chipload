@@ -282,6 +282,12 @@ pipeline-image-unsimplified = { $count } { $count ->
 pipeline-no-text = es gibt keinen Text { $id }
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: die überlappenden Umrisse der Buchstaben konnten nicht vereinigt werden: { $error }
+pipeline-text-font-missing = Die Schrift „{ $font }“ ist auf diesem Computer nicht vorhanden. { $text } behält seine Buchstaben und wird so gefräst; um Wörter oder Größe zu ändern, wählen Sie eine andere Schrift.
+pipeline-text-no-font = Auf diesem Computer gibt es keine Schrift „{ $font }“. Eingebaut: { $fonts }; `chipload text fonts` listet auch die des Computers.
+pipeline-text-moved = { $text } verschoben: { $count } { $count ->
+    [one] Buchstabe
+   *[other] Buchstaben
+} unverändert (die Schrift ist auf diesem Computer nicht vorhanden)
 # $text is the text's first line in quotes; $height its height; $width the box's width
 # without its unit, $tall its height with it.
 pipeline-text-wrote = { $text } in { $font } geschrieben, { $height } hoch ({ $width } × { $tall }): { $count } { $count ->

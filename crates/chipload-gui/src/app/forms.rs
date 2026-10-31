@@ -1917,6 +1917,7 @@ pub(super) fn text_form(
     edit: &EditJob,
     id: u64,
     grab: bool,
+    fonts: &super::text_fonts::TextFonts,
 ) -> Option<JobRequest> {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
@@ -1943,12 +1944,35 @@ pub(super) fn text_form(
         .filter(|(t, _)| *t == stored)
     {
         Some((_, size)) => size,
+        // Not worked out while the computer's fonts are still looked for.
+        None if fonts.has(&stored.font).is_none() => None,
         None => {
-            let size = chipload_pipeline::texts::text_size(&stored).ok();
+            let size =
+                chipload_pipeline::texts::text_size(&edit.settings, &stored, &*fonts.finder).ok();
             ui.data_mut(|d| d.insert_temp(size_key, (stored.clone(), size)));
             size
         }
     };
+    // Without its font, only what moves the stored letters can change
+    // (docs/specs/system-fonts.md §5).
+    let here = fonts.has(&stored.font);
+    let letters_editable = here == Some(true);
+    match here {
+        Some(true) => {}
+        Some(false) => {
+            let note = t!(ui, "forms-text-font-missing", font = stored.font.as_str());
+            ui.add(egui::Label::new(RichText::new(note).color(ui.visuals().warn_fg_color)).wrap());
+        }
+        None => {
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.weak(t!(ui, "forms-fonts-looking"));
+            });
+        }
+    }
+    if here == Some(true) && chipload_text::builtin(&stored.font).is_none() {
+        super::text_fonts::load_sample(ui.ctx(), &fonts.finder, &stored.font);
+    }
     let mut finished = false;
     Grid::new(("text-form", id))
         .num_columns(2)
@@ -1956,7 +1980,8 @@ pub(super) fn text_form(
         .show(ui, |ui| {
             ui.label(t!(ui, "forms-text"))
                 .on_hover_text(t!(ui, "forms-text-hover"));
-            let response = ui.add(
+            let response = ui.add_enabled(
+                letters_editable,
                 TextEdit::multiline(&mut draft.text)
                     .desired_rows(2)
                     .desired_width(field_width(ui, 220.0)),
@@ -1969,15 +1994,21 @@ pub(super) fn text_form(
             ui.label(t!(ui, "forms-font"))
                 .on_hover_text(t!(ui, "forms-font-hover"));
             let before = draft.font.clone();
+            let mut shown = RichText::new(draft.font.as_str());
+            let family = super::text_fonts::sample_family(&draft.font);
+            if ui.ctx().fonts(|f| f.families()).contains(&family) {
+                shown = shown.family(family);
+            }
             egui::ComboBox::from_id_salt(("text-font", id))
-                .selected_text(draft.font.as_str())
+                .selected_text(shown)
                 .height(480.0)
-                .show_ui(ui, |ui| font_list(ui, &mut draft.font));
+                .show_ui(ui, |ui| font_list(ui, &mut draft.font, fonts));
             finished |= draft.font != before;
             ui.end_row();
             ui.label(t!(ui, "forms-height"))
                 .on_hover_text(t!(ui, "forms-text-height-hover"));
-            let response = ui.add(
+            let response = ui.add_enabled(
+                letters_editable,
                 crate::units::length(&mut draft.height)
                     .range(0.1..=chipload_job::TEXT_MAX_HEIGHT_MM)
                     .speed(0.1),
@@ -2092,19 +2123,22 @@ pub(super) fn text_form(
                 TextAlign::Center => t!(ui, "forms-align-centre"),
                 TextAlign::Right => t!(ui, "forms-align-right"),
             };
-            egui::ComboBox::from_id_salt(("text-align", id))
-                .selected_text(align_name(ui, draft.align))
-                .show_ui(ui, |ui| {
-                    for align in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
-                        ui.selectable_value(&mut draft.align, align, align_name(ui, align));
-                    }
-                });
+            ui.add_enabled_ui(letters_editable, |ui| {
+                egui::ComboBox::from_id_salt(("text-align", id))
+                    .selected_text(align_name(ui, draft.align))
+                    .show_ui(ui, |ui| {
+                        for align in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+                            ui.selectable_value(&mut draft.align, align, align_name(ui, align));
+                        }
+                    });
+            });
             finished |= draft.align != before;
             ui.end_row();
             ui.label(t!(ui, "forms-letter-spacing"))
                 .on_hover_text(t!(ui, "forms-letter-spacing-hover"));
             let most = chipload_job::TEXT_MAX_SPACING_HEIGHTS * draft.height;
-            let response = ui.add(
+            let response = ui.add_enabled(
+                letters_editable,
                 crate::units::length(&mut draft.spacing)
                     .range(-most..=most)
                     .speed(0.05),
@@ -2113,7 +2147,8 @@ pub(super) fn text_form(
             ui.end_row();
             ui.label(t!(ui, "forms-line-spacing"))
                 .on_hover_text(t!(ui, "forms-line-spacing-hover"));
-            let response = ui.add(
+            let response = ui.add_enabled(
+                letters_editable,
                 crate::units::number(ui, &mut draft.line_spacing)
                     .range(0.1..=chipload_job::TEXT_MAX_LINE_SPACING)
                     .speed(0.01)
@@ -3939,9 +3974,14 @@ pub(super) fn floor_pass_form(
 
 /// The built-in fonts by style, each name in its own face where the app loaded it
 /// (docs/specs/more-fonts.md §5).
-fn font_list(ui: &mut egui::Ui, chosen: &mut String) {
+/// The font list (docs/specs/system-fonts.md §6): the built-in fonts by style, each in its
+/// own face, then the computer's by name with a search field; the one under the mouse
+/// shows a sample.
+fn font_list(ui: &mut egui::Ui, chosen: &mut String, fonts: &super::text_fonts::TextFonts) {
     use chipload_text::{FONTS, Style};
     let loaded = ui.ctx().fonts(|f| f.families());
+    ui.data_mut(|d| d.insert_temp(egui::Id::new(super::text_fonts::FONTS_WANTED), true));
+    ui.label(RichText::new(t!(ui, "forms-font-builtin")).strong());
     for (style, heading) in [
         (Style::Plain, t!(ui, "forms-font-plain")),
         (Style::Script, t!(ui, "forms-font-script")),
@@ -3955,6 +3995,43 @@ fn font_list(ui: &mut egui::Ui, chosen: &mut String) {
                 text = text.family(family);
             }
             ui.selectable_value(chosen, font.name.to_string(), text);
+        }
+    }
+    ui.separator();
+    ui.label(RichText::new(t!(ui, "forms-font-computer")).strong());
+    let Some(names) = &fonts.names else {
+        ui.horizontal(|ui| {
+            ui.spinner();
+            ui.weak(t!(ui, "forms-fonts-looking"));
+        });
+        return;
+    };
+    if names.is_empty() {
+        ui.weak(t!(ui, "forms-font-computer-none"));
+        return;
+    }
+    let search_id = egui::Id::new("font-search");
+    let mut search: String = ui.data(|d| d.get_temp(search_id)).unwrap_or_default();
+    ui.add(
+        TextEdit::singleline(&mut search)
+            .hint_text(t!(ui, "forms-font-search"))
+            .desired_width(200.0),
+    );
+    ui.data_mut(|d| d.insert_temp(search_id, search.clone()));
+    let wanted = search.to_lowercase();
+    for name in names
+        .iter()
+        .filter(|n| wanted.is_empty() || n.to_lowercase().contains(&wanted))
+    {
+        let response = ui.selectable_value(chosen, name.clone(), name.as_str());
+        if response.hovered() {
+            super::text_fonts::load_sample(ui.ctx(), &fonts.finder, name);
+            let family = super::text_fonts::sample_family(name);
+            if loaded.contains(&family) {
+                response.on_hover_ui(|ui| {
+                    ui.label(RichText::new("AaBbCc 123").family(family).size(28.0));
+                });
+            }
         }
     }
 }

@@ -52,6 +52,11 @@ pub fn materials_path(dir: &Path) -> PathBuf {
     dir.join(MATERIALS_FILE)
 }
 
+/// The folder of fonts for texts beside the installed ones (docs/specs/system-fonts.md §2).
+pub fn fonts_path(dir: &Path) -> PathBuf {
+    dir.join("fonts")
+}
+
 /// A library tool that was removed: its values go from every material in settings folder
 /// `dir` (docs/specs/materials.md §4). Returns the names of those that had some; the file
 /// is only written when one had.
