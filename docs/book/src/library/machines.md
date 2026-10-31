@@ -18,15 +18,16 @@ Your profiles are under **This computer > Machines** in the [Browser](../window.
 - **Right-click** it for *Use in this project*, *Make default* and *Delete*.
 
 In Machine:
-- **Use profile…** applies a profile to the project: all its values.
+- **Use profile…** gives the project the profile's machine values. Its safe Z, work zero
+  and max depth below the stock stay as they are.
 - **While the project's machine is the same as its profile**, the machine's values (post,
   spindle, max feed, tool changes, travel) are shown greyed under "From machine
   *Shapeoko*". **Edit here** makes them editable for this project; it stays linked.
 - **When they differ,** each value that differs has a ↶ button: hover it for the profile's
   value, click it to take it. *Update from library* takes them all.
 - **Safe Z, the work zero and the max depth below the stock** belong to the job: they're
-  always editable and never count as differing. A profile only gives a project its first
-  values for them.
+  always editable and never count as differing. A profile only gives a new project its
+  first values for them; choosing another machine later keeps them.
 - A line says how the machine stands to its profile, as for
   [tools](tools.md#project-tools-and-the-library), with *Save to library*, *Save as new…*
   and *Show in library*.
@@ -42,7 +43,7 @@ chipload machine add "Shapeoko" --post grbl --safe-z 10 --travel 838,838,95 --ma
 chipload machine set "Shapeoko" --safe-z 15        # or --rename
 chipload machine default "Shapeoko"
 chipload import part.dxf -o part.chipload --machine "Shapeoko"   # start from a profile
-chipload machine use "Shapeoko" part.chipload                   # apply to an existing project
+chipload machine use "Shapeoko" part.chipload                   # its machine values into an existing project
 chipload machine save part.chipload --name "Shapeoko 4"         # links the project to it
 chipload machine compare part.chipload                          # same, differs, not in the library, or not from a profile
 chipload machine export machines.json ; chipload machine import machines.json

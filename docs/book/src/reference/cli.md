@@ -1401,7 +1401,7 @@ chipload machine default <NAME>
 
 ### `chipload machine use`
 
-Copy a profile's values into a project; lists what changed
+Copy a profile's machine values into a project, keeping its safe Z, work zero and max overcut; lists what changed
 
 ```text
 chipload machine use <NAME> <PROJECT> [OPTIONS]

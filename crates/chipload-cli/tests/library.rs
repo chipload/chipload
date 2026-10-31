@@ -311,12 +311,20 @@ fn library_tools_and_machines_go_into_projects_and_back() {
     assert!(out.contains("(already in the project)"), "{out}");
 
     add_shapeoko(&dir);
+    let before = json(&project);
     let out = ok(&dir, &["machine", "use", "Shapeoko", path(&project)]);
-    assert!(out.contains("  safe Z 5 mm -> 10 mm"), "{out}");
+    assert!(out.contains("Machine \"Shapeoko\":"), "{out}");
+    // The project keeps its job values: safe Z, work zero and max overcut (the user,
+    // 2026-10-31: "work zero was reset if I changed machine").
     assert!(
-        out.contains("  work zero drawing origin -> stock bottom left corner"),
+        !out.contains("safe Z") && !out.contains("work zero"),
         "{out}"
     );
+    let after = json(&project);
+    assert_eq!(after["machine"]["safe_z"], before["machine"]["safe_z"]);
+    assert_eq!(after["machine"]["name"], "Shapeoko");
+    assert_eq!(after["setups"], before["setups"]);
+    assert_eq!(after["setups"][0]["work_zero"]["at"], "drawing_origin");
     let out = ok(&dir, &["machine", "use", "Shapeoko", path(&project)]);
     assert!(out.contains("no values changed"), "{out}");
 
@@ -358,7 +366,8 @@ fn library_tools_and_machines_go_into_projects_and_back() {
     assert_eq!(tools["tools"][1]["name"], "Tool one");
     let machines = json(&dir.join("machines.json"));
     assert_eq!(machines["machines"][1]["name"], "Copy");
-    assert_eq!(machines["machines"][1]["safe_z"], 10.0);
+    // The project's own safe Z, kept when the profile was used.
+    assert_eq!(machines["machines"][1]["safe_z"], 5.0);
 
     // The project still runs: the copies are complete project values.
     let gcode = dir.join("out.nc");

@@ -267,10 +267,15 @@ mod library {
 
         assert!(app.use_machine_profile("shapeoko"));
         let job = settings_of(&app);
-        assert_eq!(job.machine.safe_z, 12.0);
         assert_eq!(job.machine.name.as_deref(), Some("Shapeoko"));
+        assert_eq!(job.machine.max_feed, Some(5000.0));
+        // The project keeps its job values (the user, 2026-10-31: "work zero was reset if
+        // I changed machine").
+        assert_eq!(job.machine.safe_z, before.machine.safe_z);
+        assert_eq!(job.work_zero(), before.work_zero());
+        assert_eq!(job.stock().max_overcut, before.stock().max_overcut);
         assert!(
-            app.report.iter().any(|l| l == "  safe Z 5 mm -> 12 mm"),
+            !app.report.iter().any(|l| l.contains("safe Z")),
             "{:?}",
             app.report
         );

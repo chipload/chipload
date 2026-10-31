@@ -177,7 +177,8 @@ pub enum MachineAction {
     Remove { name: String },
     /// The machine new projects start with.
     Default { name: String },
-    /// Copy a profile's values into a project; lists what changed.
+    /// Copy a profile's machine values into a project, keeping its safe Z, work zero and
+    /// max overcut; lists what changed.
     Use {
         name: String,
         /// The project (.chipload).
@@ -961,7 +962,8 @@ fn use_machine(
         Ok(job) => job,
         Err(code) => return code,
     };
-    let mut changes = profile.apply(&mut job);
+    // The machine values only: the project keeps its safe Z, work zero and max overcut.
+    let mut changes = profile.update_machine_values(&mut job);
     changes.extend(copy_profile_post(&mut job, Some(posts)));
     let target = output.unwrap_or(project);
     if let Err(err) = save_job(&job, target) {

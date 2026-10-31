@@ -500,7 +500,8 @@ impl MachineProfile {
 
     /// Copy only this profile's machine values (and its name and uid) into a project,
     /// keeping its safe Z, work zero and max overcut; returns what changed
-    /// (docs/specs/linked-machine.md §3).
+    /// (docs/specs/linked-machine.md §3). Both *Use profile* and *Update from library* in an
+    /// open project (§2: the user, 2026-10-31, "work zero was reset if I changed machine").
     pub fn update_machine_values(&self, job: &mut Job) -> Vec<Message> {
         let changes = self.machine_changes(&job.machine);
         let keep = job.machine.safe_z;
@@ -509,8 +510,9 @@ impl MachineProfile {
         changes
     }
 
-    /// Copy this profile's values (and name) into a project, its work zero and max overcut
-    /// into the active setup; returns what changed.
+    /// Copy all this profile's values (and name) into a new project, its work zero and max
+    /// overcut into the active setup; returns what changed. An open project takes only the
+    /// machine values (`update_machine_values`).
     pub fn apply(&self, job: &mut Job) -> Vec<Message> {
         let changes = self.changes(job);
         job.machine = self.machine();

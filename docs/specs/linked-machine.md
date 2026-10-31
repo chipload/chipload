@@ -17,8 +17,10 @@ common change, the work zero, need an unlink.
 | **Machine values** | post, spindle direction, max feed, tool changes, travel | read-only text, with *Edit here* |
 | **Job values** | safe Z, work zero, max depth below stock | always editable |
 
-- A profile keeps both. Applying it sets all of them, as now; the job values are only where
-  the project starts.
+- A profile keeps both. A new project takes all of them; the job values are only where the
+  project starts. **Using a profile in an open project** (*Use profile…*, *Use in this
+  project*, `chipload machine use`) takes the machine values only, as *Update from library*
+  does: changing machine kept resetting the work zero (the user, 2026-10-31; decision 6).
 - **The link** (docs/specs/library-in-browser.md §3) compares the machine values only. A
   project whose work zero or safe Z was changed is still *Same*. `chipload machine compare`
   says the same.
@@ -46,9 +48,13 @@ In Job settings > Machine, with a machine linked to a profile that is in the lib
    can change any value; the link then shows *Differs*. *Approved.*
 5. **Edit here** is not saved: reopening the project shows a *Same* machine read-only
    again.
+6. **An open project keeps its job values when another profile is used.** *Agreed
+   2026-10-31* (the user chose it over keeping only the work zero).
 
 ## 5. Tests
 
 - A profile and a project that differ only in safe Z, work zero or max depth are *Same*;
   in spindle, they *Differ* with that one change.
 - Applying a profile still reports every value it changed.
+- Using a profile in an open project, in the window and with `chipload machine use`, keeps
+  its safe Z, work zero and max overcut.

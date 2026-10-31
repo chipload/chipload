@@ -650,7 +650,8 @@ impl ChiploadApp {
         true
     }
 
-    /// Copy a machine profile's values into the project (one undo step).
+    /// Copy a machine profile's machine values into the project, keeping its safe Z, work
+    /// zero and max overcut (docs/specs/linked-machine.md §2; one undo step).
     pub fn use_machine_profile(&mut self, name: &str) -> bool {
         self.reload_library();
         let Some(profile) = self.library.machines.find(name).cloned() else {
@@ -664,7 +665,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut changes = profile.apply(&mut edit.settings);
+        let mut changes = profile.update_machine_values(&mut edit.settings);
         changes.extend(chipload_pipeline::library::copy_profile_post(
             &mut edit.settings,
             self.library.posts.as_deref(),
