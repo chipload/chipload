@@ -653,22 +653,6 @@ pub(super) fn op_form(
                     "passes",
                 );
                 ui.end_row();
-                // Corners where the outline bends less than this get no branch: the bit
-                // doesn't rise into every kink (docs/specs/vcarve-smooth.md §3).
-                ui.label(t!(ui, "forms-ignore-kinks"))
-                    .on_hover_text(t!(ui, "forms-ignore-kinks-hover"));
-                flag(
-                    ui.add(
-                        egui::DragValue::new(&mut v.ignore_kinks_deg)
-                            .range(0.0..=chipload_job::MAX_IGNORE_KINKS_DEG)
-                            .speed(1.0)
-                            .max_decimals(1)
-                            .suffix("°"),
-                    ),
-                    ui,
-                    "ignore_kinks_deg",
-                );
-                ui.end_row();
                 if v.passes > 1 {
                     let depths: Vec<String> = chipload_pipeline::vcarve_pass_depths(v)
                         .iter()
@@ -688,6 +672,22 @@ pub(super) fn op_form(
                     );
                     ui.end_row();
                 }
+                // Corners where the outline bends less than this get no branch: the bit
+                // doesn't rise into every kink (docs/specs/vcarve-smooth.md §3).
+                ui.label(t!(ui, "forms-ignore-kinks"))
+                    .on_hover_text(t!(ui, "forms-ignore-kinks-hover"));
+                flag(
+                    ui.add(
+                        egui::DragValue::new(&mut v.ignore_kinks_deg)
+                            .range(0.0..=chipload_job::MAX_IGNORE_KINKS_DEG)
+                            .speed(1.0)
+                            .max_decimals(1)
+                            .suffix("°"),
+                    ),
+                    ui,
+                    "ignore_kinks_deg",
+                );
+                ui.end_row();
             });
             feeds_section(ui, &mut v.feed, &mut v.plunge_feed, op_tool);
         }
