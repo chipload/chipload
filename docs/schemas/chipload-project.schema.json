@@ -1243,6 +1243,12 @@
               ],
               "description": "A floor pass: an end mill that clears the floor between the walls of strokes too\nwide to carve from their centre line. Missing: none. Left out when missing."
             },
+            "ignore_kinks_deg": {
+              "default": 0.0,
+              "description": "Corners where the outline turns by less than this, degrees (0 to 90), get no branch\nof the centre line: the bit doesn't rise into every kink. Missing: 0, every corner\ncarved, as before the setting existed.",
+              "format": "double",
+              "type": "number"
+            },
             "material": {
               "anyOf": [
                 {

@@ -1159,6 +1159,7 @@ fn plan_vcarve_op(
         op.end_depth - op.start_depth,
         start,
         floor_tool.map(|t| t.diameter / 2.0),
+        op.ignore_kinks_deg.to_radians(),
     )
     .map_err(|err| err.with_context(ctx.label_message.clone()))?;
     let mut notes = std::mem::take(&mut plan.notes);

@@ -25,6 +25,11 @@ pub const CURRENT_VERSION: i64 = 35;
 /// The most depth passes a V-carve takes (docs/specs/v-carve.md decision 12).
 pub const MAX_VCARVE_PASSES: u32 = 100;
 
+/// A V-carve's *Ignore kinks* (docs/specs/vcarve-smooth.md §3): the largest, and what a new
+/// V-carve starts with, degrees.
+pub const MAX_IGNORE_KINKS_DEG: f64 = 90.0;
+pub const DEFAULT_IGNORE_KINKS_DEG: f64 = 20.0;
+
 /// The oldest schema version that still loads (decision 2026-10-10: versions from before
 /// projects, 1-3, were never released and are no longer read).
 pub const OLDEST_VERSION: i64 = 4;
@@ -3127,6 +3132,12 @@ pub struct VcarveOp {
     /// How many depth passes, 1 to [`MAX_VCARVE_PASSES`]: each removes the same
     /// cross-section, the last at the end depth (docs/specs/v-carve.md decision 12).
     pub passes: u32,
+    /// Corners where the outline turns by less than this, degrees (0 to 90), get no branch
+    /// of the centre line: the bit doesn't rise into every kink. Missing: 0, every corner
+    /// carved, as before the setting existed.
+    // Spec: docs/specs/vcarve-smooth.md §3 (optional, no schema bump).
+    #[serde(default)]
+    pub ignore_kinks_deg: f64,
     /// The feed, mm/min, for moves no steeper than 45°.
     pub feed: f64,
     /// The feed for moves steeper than 45°, mm/min.
@@ -4132,6 +4143,17 @@ impl Job {
                             Message::new("job-vcarve-passes")
                                 .arg("most", MAX_VCARVE_PASSES)
                                 .arg("got", v.passes),
+                        ));
+                    }
+                    if !(0.0..=MAX_IGNORE_KINKS_DEG).contains(&v.ignore_kinks_deg) {
+                        counts.push(Problem::at(
+                            at("ignore_kinks_deg"),
+                            Message::new("job-vcarve-ignore-kinks")
+                                .arg(
+                                    "most",
+                                    Value::Number(MAX_IGNORE_KINKS_DEG, Digits::Shortest),
+                                )
+                                .arg("got", Value::Number(v.ignore_kinks_deg, Digits::Shortest)),
                         ));
                     }
                     positive(at("feed"), v.feed);

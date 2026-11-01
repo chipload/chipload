@@ -25,7 +25,7 @@ fn bit(degrees: f64, tip: f64) -> VBit {
 
 fn carve(contours: &[Contour], bit: &VBit, max_depth: f64) -> VcarvePlan {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_vcarve(&refs, bit, max_depth, (0.0, 0.0), None).unwrap()
+    plan_vcarve(&refs, bit, max_depth, (0.0, 0.0), None, 0.0).unwrap()
 }
 
 // -- an independent geometry, for the checks
@@ -368,7 +368,7 @@ fn a_stroke_wider_than_the_cap_gets_walls_and_its_floor_is_reported() {
 /// The share of the floor cleared with an end mill of `radius` (1 when nothing is left).
 fn cleared(shape: &[Contour], bit: &VBit, cap: f64, radius: f64) -> f64 {
     let refs: Vec<&Contour> = shape.iter().collect();
-    let plan = plan_vcarve(&refs, bit, cap, (0.0, 0.0), Some(radius)).unwrap();
+    let plan = plan_vcarve(&refs, bit, cap, (0.0, 0.0), Some(radius), 0.0).unwrap();
     plan.floors.iter().map(|f| f.cleared).fold(1.0, f64::min)
 }
 
@@ -379,7 +379,7 @@ fn a_floor_pass_that_fits_leaves_nothing_and_one_too_wide_gets_a_hint() {
     let bit = bit(90.0, 0.0);
     let refs: Vec<&Contour> = shape.iter().collect();
     // A 3 mm end mill fits: the V-bit cleans the corners, nothing is left.
-    let fits = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(1.5)).unwrap();
+    let fits = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(1.5), 0.0).unwrap();
     assert!(fits.floors.is_empty(), "{:?}", fits.floors);
     assert!(
         fits.notes.is_empty(),
@@ -388,7 +388,7 @@ fn a_floor_pass_that_fits_leaves_nothing_and_one_too_wide_gets_a_hint() {
     );
     assert_no_gouge(&shape, &fits, &bit);
     // A 12 mm one doesn't fit: the hint is about the floor's width.
-    let wide = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(6.0)).unwrap();
+    let wide = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(6.0), 0.0).unwrap();
     assert_eq!(wide.floors.len(), 1, "{:?}", wide.floors);
     let floor = &wide.floors[0];
     assert_eq!(floor.contours, "#7");
@@ -823,4 +823,45 @@ fn corners_are_cut_out_and_back_and_passes_go_on_through_the_groove() {
     for (_, b) in feed_moves(&three.program) {
         assert!(b[2] >= -3.5 - 1e-9, "{b:?}");
     }
+}
+
+/// docs/specs/vcarve-smooth.md §3: a kink turning less than *Ignore kinks* gets no branch;
+/// a real corner keeps its branch at any setting up to 90°.
+#[test]
+fn kinks_under_the_angle_get_no_branch() {
+    // 30 × 6, the top edge bent 15° outwards in its middle: a kink at (15, 6 + 15·tan 7.5°).
+    let rise = 15.0 * 7.5_f64.to_radians().tan();
+    let kink = (15.0, 6.0 + rise);
+    let shape = [common::polygon_id(
+        1,
+        &[(0.0, 0.0), (30.0, 0.0), (30.0, 6.0), kink, (0.0, 6.0)],
+    )];
+    let refs: Vec<&Contour> = shape.iter().collect();
+    let bit = bit(60.0, 0.0);
+    let reaches = |plan: &VcarvePlan, at: Point, within: f64| {
+        plan.paths
+            .iter()
+            .flat_map(|p| p.points.iter())
+            .any(|p| ((p.0 - at.0).powi(2) + (p.1 - at.1).powi(2)).sqrt() < within)
+    };
+    let every = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 0.0).unwrap();
+    assert!(reaches(&every, kink, 0.2), "at 0° the kink has its branch");
+    let kinks = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 20f64.to_radians()).unwrap();
+    assert!(!reaches(&kinks, kink, 1.0), "at 20° it has none");
+    assert_no_gouge(&shape, &kinks, &bit);
+    // The bottom corners turn 90°: kept at 90. (The top ones turn 82.5°, the top edge
+    // sloping: they go at 90.)
+    let most = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 90f64.to_radians()).unwrap();
+    for corner in [(0.0, 0.0), (30.0, 0.0)] {
+        assert!(reaches(&most, corner, 0.2), "{corner:?}");
+    }
+    assert!(!reaches(&most, (30.0, 6.0), 0.2));
+    // What the kink's branch leaves: at most r(1/cos(θ/2) − 1), r the cut's radius there.
+    let r = 3.0;
+    let left = r * (1.0 / 7.5_f64.to_radians().cos() - 1.0);
+    assert!(
+        worst_miss(&shape, &kinks, &bit, 0.1) <= left + TOL,
+        "{} > {left}",
+        worst_miss(&shape, &kinks, &bit, 0.1)
+    );
 }

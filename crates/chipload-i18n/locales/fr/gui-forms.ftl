@@ -91,6 +91,8 @@ forms-vcarve-end-depth-hover = La profondeur maximale de la pointe, depuis le de
 forms-vcarve-passes-hover = Combien de passes jusqu'à la profondeur finale. Chacune enlève autant que les autres, elles deviennent donc moins profondes en descendant
 forms-vcarve-pass-depths = à { $depths }
 forms-passes = Passes
+forms-ignore-kinks = Ignorer les cassures
+forms-ignore-kinks-hover = Les coins où le contour tourne de moins que cet angle n'ont pas de branche de la ligne médiane : la fraise en V ne remonte pas dans chaque cassure d'une courbe. À 20°, une cassure garde au plus quelques centièmes de millimètre ; 0° grave chaque coin
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Outil

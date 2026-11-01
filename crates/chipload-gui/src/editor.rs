@@ -516,6 +516,7 @@ impl EditJob {
                     start_depth: 0.0,
                     end_depth: DEFAULT_DEPTH,
                     passes: 1,
+                    ignore_kinks_deg: chipload_job::DEFAULT_IGNORE_KINKS_DEG,
                     feed,
                     plunge_feed,
                     floor: None,

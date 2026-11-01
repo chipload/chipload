@@ -91,6 +91,8 @@ forms-vcarve-end-depth-hover = Die größte Tiefe der Spitze, ab Rohteiloberkant
 forms-vcarve-passes-hover = Wie viele Durchgänge bis zur Endtiefe. Jeder trägt gleich viel ab, deshalb werden sie nach unten flacher
 forms-vcarve-pass-depths = bis { $depths }
 forms-passes = Durchgänge
+forms-ignore-kinks = Knicke ignorieren
+forms-ignore-kinks-hover = Ecken, an denen der Umriss weniger als diesen Winkel abknickt, bekommen keinen Ast der Mittellinie, so fährt der V-Fräser nicht in jeden Knick einer Kurve hoch. Bei 20° bleibt in einem Knick höchstens wenige hundertstel Millimeter stehen; 0° graviert jede Ecke
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Werkzeug

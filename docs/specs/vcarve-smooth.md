@@ -1,6 +1,35 @@
 # Spec: a smoother V-carve (depth wobble and kinks)
 
-Status: **draft 2026-11-01**, decisions in §5 to review.
+Status: **agreed and built 2026-11-01**, all decisions as recommended (the user: "build
+as recommended").
+
+As built:
+- **The smoothing step is half the tolerance**, 0.005 mm of the cut's radius (0.009 mm of
+  depth for a 60° bit), not the whole: the other half is already how far the centre line's
+  radius may stray between its points (`set_cut`), and the V-carve's checks (no gouge,
+  every part reached) keep passing.
+- **Smoothing** (`smooth_radii`) finds the turning points that a swing of the step or more
+  separates (a zigzag with that threshold); between two, the radius only rises or only
+  falls, the least exact radius between the point and the turning point it heads for. So
+  it is never wider than exact and less than the step narrower, and no reversal between
+  turning points is smaller than the step. Only a walk's first or last move can turn back
+  by less: when its start, a bump and a dip lie within a step, no profile within a step of
+  the exact one avoids that. A property test covers it.
+- **Kinks** (`Graph::prune_kinks`): the turn is read from how fast the cut's radius grows
+  along the branch from its corner (sin(α/2) per mm). Only ends on the outline count (a
+  stroke's round end isn't a corner). Exactly the angle keeps its branch.
+- **Measured** on the example of §1, reversals of Z within cuts (counted by the swing
+  between them):
+
+  | | Reversals | Swing under 0.01 mm | Under 0.1 mm | Time (estimate) |
+  |---|---|---|---|---|
+  | 0.30.0 | 326 | 182 | 223 | 49.9 s |
+  | Smoothing, kinks 0° (old projects) | 172 | 2 | 50 | 49.9 s |
+  | Kinks 20° (new V-carves) | 138 | 2 | 44 | 42.9 s |
+  | Kinks 60° | 136 | 2 | 44 | 42.9 s |
+
+  The reversals left are the strokes' real changes of width and the corners cut out and
+  back. (§1's "262 smaller than 0.01 mm" counted against the next point, not the swing.)
 
 The user (2026-11-01, after V-carve tests with Edwardian Script): "we must improve the
 v-carve. Could we add options to the operation so the user can try different parameters,

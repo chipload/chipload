@@ -69,6 +69,12 @@ const SPUR_OUT_AND_BACK_MM: f64 = 5.0;
 /// decision 3).
 const LINK_ALONG_MM: f64 = 10.0;
 
+/// The cut's radius along a walk wobbles where the outline's curves reach the Voronoi
+/// diagram as chords; wobbles smaller than this, mm, are smoothed away, never wider than
+/// the exact cut (docs/specs/vcarve-smooth.md §2). Half the V-carve tolerance: the other
+/// half is how far the centre line's radius may stray between its points (`set_cut`).
+const SMOOTH_STEP_MM: f64 = VCARVE_TOL_MM / 2.0;
+
 /// One continuous cut: points and the tip depth below the carved surface at each (>= 0).
 #[derive(Debug, Clone, PartialEq)]
 pub struct CarvePath {
@@ -112,13 +118,15 @@ pub struct FloorLeft {
 /// Paths for the regions the selected closed contours make (as pockets do: outer minus the
 /// contours inside it). `max_depth` is the cap below the carved surface; `start` is where the
 /// tool is, for the cut order. `floor`: the radius of the floor pass's end mill, if there is
-/// one (docs/specs/vcarve-wide-strokes.md §4).
+/// one (docs/specs/vcarve-wide-strokes.md §4). `ignore_kinks`: corners where the outline
+/// turns by less than this (radians) get no branch (docs/specs/vcarve-smooth.md §3).
 pub fn plan_vcarve(
     contours: &[&Contour],
     bit: &VBit,
     max_depth: f64,
     start: Point,
     floor: Option<f64>,
+    ignore_kinks: f64,
 ) -> Result<VcarvePlan, ToolpathError> {
     if !(bit.angle > 0.0 && bit.angle < std::f64::consts::PI) {
         return Err(geometry(Message::new("toolpath-error-vbit-angle").arg(
@@ -138,6 +146,7 @@ pub fn plan_vcarve(
         let outline = Outline::new(&region.area);
         let mut axis = medial_axis(&region.area, &outline, &ids, "V-carve", VCARVE_TOL_MM)?;
         axis.prune(&outline, VCARVE_TOL_MM);
+        axis.prune_kinks(&outline, ignore_kinks, VCARVE_TOL_MM);
         let widest = axis.widest(&outline);
         if widest > cap_radius + VCARVE_TOL_MM {
             // Too wide to reach both sides: the centre line where the stroke is narrow
@@ -247,7 +256,8 @@ fn areas_in_order(
         .unwrap_or(0);
         let (graph, walls) = regions.remove(pick);
         let before = walks.len();
-        for walked in graph.walk(at) {
+        for mut walked in graph.walk(at) {
+            smooth_radii(&mut walked, SMOOTH_STEP_MM);
             let pieces = carve_pieces(&walked, bit, cap);
             if pieces.is_empty() {
                 continue;
@@ -506,6 +516,97 @@ fn split_where(path: &CarvePath, keep: impl Fn(f64) -> bool, level: f64) -> Vec<
     pieces.push(current);
     pieces.retain(|piece| piece.points.len() >= 2);
     pieces
+}
+
+/// Smooth a walk's cut radii (vcarve-smooth.md §2): the radius goes up and down only by
+/// at least `step` between turning points, never above the exact radius, at most `step`
+/// below it. The turning points are the highs and lows that `step` or more separates from
+/// the next (a zigzag with that threshold); between two, the radius is made to only rise or
+/// only fall by taking, at each point, the least exact radius between it and the turning
+/// point it heads for.
+fn smooth_radii(walk: &mut [(Point, f64)], step: f64) {
+    let n = walk.len();
+    if n < 3 {
+        return;
+    }
+    let r: Vec<f64> = walk.iter().map(|w| w.1).collect();
+    // The turning points, with the ends. Before the first swing of `step`, the lowest and
+    // highest points so far: the one the swing leaves from is the first turning point.
+    let mut turns = vec![0];
+    let (mut low, mut high) = (0, 0);
+    let mut candidate = 0;
+    let mut rising: Option<bool> = None;
+    for i in 1..n {
+        match rising {
+            None => {
+                if r[i] < r[low] {
+                    low = i;
+                }
+                if r[i] > r[high] {
+                    high = i;
+                }
+                if r[i] - r[low] >= step {
+                    if low != 0 {
+                        turns.push(low);
+                    }
+                    rising = Some(true);
+                    candidate = i;
+                } else if r[high] - r[i] >= step {
+                    if high != 0 {
+                        turns.push(high);
+                    }
+                    rising = Some(false);
+                    candidate = i;
+                }
+            }
+            Some(true) => {
+                if r[i] >= r[candidate] {
+                    candidate = i;
+                } else if r[candidate] - r[i] >= step {
+                    turns.push(candidate);
+                    candidate = i;
+                    rising = Some(false);
+                }
+            }
+            Some(false) => {
+                if r[i] <= r[candidate] {
+                    candidate = i;
+                } else if r[i] - r[candidate] >= step {
+                    turns.push(candidate);
+                    candidate = i;
+                    rising = Some(true);
+                }
+            }
+        }
+    }
+    if turns.last() != Some(&(n - 1)) {
+        turns.push(n - 1);
+    }
+    // The start less than a step from the first turning point: that one goes, so the walk
+    // rarely begins with a reversal smaller than the step. Between turning points there is
+    // none; only a walk's first or last move may turn back by less (when the start, a bump
+    // and a dip all lie within a step, no profile within a step of the exact one avoids it).
+    if turns.len() > 2 && (r[turns[1]] - r[0]).abs() < step {
+        turns.remove(1);
+    }
+    for pair in turns.windows(2) {
+        let (a, b) = (pair[0], pair[1]);
+        if r[b] >= r[a] {
+            // Rising to b: each point no more than any after it, up to b.
+            let mut least = r[b];
+            for i in (a..=b).rev() {
+                least = least.min(r[i]);
+                walk[i].1 = least;
+            }
+        } else {
+            // Falling to b: each point no more than any before it, from a.
+            let mut least = r[a];
+            for i in a..=b {
+                least = least.min(r[i]);
+                walk[i].1 = least;
+            }
+        }
+    }
 }
 
 /// A walked path (points and cut radius) as cuts: the tip depth for each radius, without the
@@ -831,5 +932,71 @@ impl Graph {
             paths.push(path);
         }
         paths
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Reversals (a high or low) between two others that the radius reaches, or leaves, by
+    /// a swing smaller than `step` (a walk's first and last move are free).
+    fn small_reversals(r: &[f64], step: f64) -> usize {
+        let mut flat: Vec<f64> = Vec::new();
+        for &x in r {
+            if flat.last() != Some(&x) {
+                flat.push(x);
+            }
+        }
+        let r = flat;
+        let mut turns = vec![0];
+        for i in 1..r.len().saturating_sub(1) {
+            let peak = r[i] > r[i - 1] && r[i] > r[i + 1];
+            let dip = r[i] < r[i - 1] && r[i] < r[i + 1];
+            if peak || dip {
+                turns.push(i);
+            }
+        }
+        turns.push(r.len() - 1);
+        (2..turns.len().saturating_sub(2))
+            .filter(|&k| {
+                let before = (r[turns[k]] - r[turns[k - 1]]).abs();
+                let after = (r[turns[k + 1]] - r[turns[k]]).abs();
+                before < step || after < step
+            })
+            .count()
+    }
+
+    proptest! {
+        /// A wobbling radius: no reversal smaller than the step is left between others,
+        /// nothing gets wider, and nothing narrower by the step or more.
+        #[test]
+        fn smoothing_leaves_no_small_wobble(
+            base in prop::collection::vec(0.0f64..3.0, 2..12),
+            noise in prop::collection::vec(-0.004f64..0.004, 200),
+        ) {
+            let step = 0.005;
+            let n = noise.len();
+            let mut walk: Vec<(Point, f64)> = (0..n)
+                .map(|i| {
+                    let t = i as f64 / (n - 1) as f64 * (base.len() - 1) as f64;
+                    let k = (t.floor() as usize).min(base.len() - 2);
+                    let f = t - k as f64;
+                    let r = base[k] + (base[k + 1] - base[k]) * f + noise[i];
+                    ((i as f64, 0.0), r.max(0.0))
+                })
+                .collect();
+            let exact: Vec<f64> = walk.iter().map(|w| w.1).collect();
+            smooth_radii(&mut walk, step);
+            let smooth: Vec<f64> = walk.iter().map(|w| w.1).collect();
+            for (s, e) in smooth.iter().zip(&exact) {
+                prop_assert!(*s <= *e + 1e-12, "{s} wider than {e}");
+                prop_assert!(e - s < step, "{s} too far below {e}");
+            }
+            prop_assert_eq!(small_reversals(&smooth, step), 0);
+        }
     }
 }

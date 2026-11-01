@@ -91,6 +91,8 @@ forms-vcarve-end-depth-hover = The deepest the tip goes, from the stock top (end
 forms-vcarve-passes-hover = How many passes to the end depth. Each removes as much as the others, so they get shallower on the way down
 forms-vcarve-pass-depths = to { $depths }
 forms-passes = Passes
+forms-ignore-kinks = Ignore kinks
+forms-ignore-kinks-hover = Corners where the outline bends less than this get no branch of the centre line, so the bit doesn't rise into every kink of a curve. At 20° a kink keeps at most a few hundredths of a millimetre; 0° carves every corner
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Tool

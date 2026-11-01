@@ -91,6 +91,8 @@ forms-vcarve-end-depth-hover = La profondità massima della punta, dalla superfi
 forms-vcarve-passes-hover = Quante passate fino alla profondità finale. Ognuna toglie quanto le altre, quindi diventano meno profonde scendendo
 forms-vcarve-pass-depths = a { $depths }
 forms-passes = Passate
+forms-ignore-kinks = Ignora le pieghe
+forms-ignore-kinks-hover = Gli angoli dove il contorno gira meno di questo angolo non hanno un ramo della linea mediana, così la fresa a V non risale in ogni piega di una curva. A 20° una piega lascia al massimo pochi centesimi di millimetro; 0° incide ogni angolo
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Utensile

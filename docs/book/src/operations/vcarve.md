@@ -22,6 +22,7 @@ a V-bit without one is refused.
 | **Start depth** | where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut |
 | **End depth** | the deepest the tip may go. Strokes that need more get walls (see *Wide strokes*). The bit's own size is a limit too: it can't go deeper than its cutting edge reaches. |
 | **Passes** | how many passes to the end depth, 1 for one: each removes as much as the others, so they get shallower on the way down, and each runs only where the last stopped short. Their depths are shown under the field (see *Passes*) |
+| **Ignore kinks** | corners where the outline bends less than this angle (20° for a new V-carve) get no branch of the centre line, so the bit doesn't rise into every kink of a curve (see *Smooth carving*); 0° carves every corner. In the project file: `ignore_kinks_deg` |
 | **Feed**, **Plunge feed** | moves steeper than 45° use the plunge feed |
 
 Regions work as in pockets: an outline minus the selected contours inside it (the inside of
@@ -47,6 +48,26 @@ instead of each with a trip up to safe Z. In the passes after the first, where t
 to cut lie at most 10 mm apart along the centre line, the bit goes from one to the next
 through the groove already cut instead of lifting. The carving is the same; there are
 fewer lifts (in a script font about half).
+
+## Smooth carving
+
+A curve in a drawing or a font is made of short pieces, and each joint is a small kink.
+The centre line runs a branch out to every corner, so the bit would rise into each kink and
+come down again, and the depth would wobble by hundredths of a millimetre along the
+stroke. Both make the Z axis stop and start, the slowest axis on most routers.
+
+- **The depth is smoothed** along each cut: wobbles smaller than the V-carve's tolerance
+  (0.005 mm at the edge of the cut; 0.009 mm in depth for a 60° bit) are taken out, never
+  deeper than the exact cut, so nothing is carved wider than drawn.
+- **Ignore kinks** (20° for a new V-carve) leaves out the branches into corners where the
+  outline bends less than that angle. A kink bending θ in a stroke whose centre is r from
+  its edges keeps a sliver of at most r · (1/cos(θ/2) − 1): at 20°, 0.05 mm in a stroke
+  6 mm wide; at 60°, 0.46 mm. A real corner, such as the 90° corner of a block letter,
+  keeps its branch at any setting up to 90°. Try a few values and look at the toolpath
+  and the simulation: the change shows at once.
+
+Projects from before Chipload 0.31 open with *Ignore kinks* at 0°, so they carve every
+corner as before; their depth is smoothed.
 
 ![A V-carve 3.5 mm deep in 4 passes: their depths under Passes](../images/vcarve-passes.png)
 

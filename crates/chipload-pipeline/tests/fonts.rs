@@ -55,6 +55,7 @@ fn vcarve() -> Operation {
         start_depth: 0.0,
         end_depth: 2.0,
         passes: 1,
+        ignore_kinks_deg: 0.0,
         feed: 1200.0,
         plunge_feed: 400.0,
         floor: None,

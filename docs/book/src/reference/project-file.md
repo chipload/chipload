@@ -363,6 +363,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `end_depth` | number | yes | The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning. |
 | `feed` | number | yes | The feed, mm/min, for moves no steeper than 45°. |
 | `floor` | [FloorPass](#floorpass) or null | no | A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing. |
+| `ignore_kinks_deg` | number | no | Corners where the outline turns by less than this, degrees (0 to 90), get no branch of the centre line: the bit doesn't rise into every kink. Missing: 0, every corner carved, as before the setting existed. |
 | `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
