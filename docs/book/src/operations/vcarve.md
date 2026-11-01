@@ -65,6 +65,9 @@ stroke. Both make the Z axis stop and start, the slowest axis on most routers.
   6 mm wide; at 60°, 0.46 mm. A real corner, such as the 90° corner of a block letter,
   keeps its branch at any setting up to 90°. Try a few values and look at the toolpath
   and the simulation: the change shows at once.
+- **A traced picture** has its pixel steps in every curve: kinks of 20° to 45°. A round
+  shape has no real corners, so **45°** suits it: on a traced ring it took the bit's
+  turns up and down from 48 to none, the cuts from 24 to 12 and the time by a quarter.
 
 Projects from before Chipload 0.31 open with *Ignore kinks* at 0°, so they carve every
 corner as before; their depth is smoothed.

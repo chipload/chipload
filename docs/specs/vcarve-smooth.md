@@ -30,6 +30,19 @@ As built:
 
   The reversals left are the strokes' real changes of width and the corners cut out and
   back. (§1's "262 smaller than 0.01 mm" counted against the next point, not the swing.)
+- **A traced picture** (the user, the same day: a pixelated ring "gets traced as a seemingly
+  round path but the V-carve contains a multitude of up/down branches"): its kinks are the
+  pixel steps, 20° to 45°. The golden ring (v19 image_vcarve, 3 passes):
+
+  | Ignore kinks | Reversals | Cuts | Time |
+  |---|---|---|---|
+  | 0° (and 0.30.0) | 48 | 24 | 71.9 s |
+  | 20° | 30 | 24 | 69.3 s |
+  | 30° | 0 | 24 | 65.0 s |
+  | 45° to 90° | 0 | 12 | 53.2 s |
+
+  The guide advises 45° for traced pictures. A default by what the V-carve cuts (a picture
+  45°, otherwise 20°) is open, to decide after the user's tests.
 
 The user (2026-11-01, after V-carve tests with Edwardian Script): "we must improve the
 v-carve. Could we add options to the operation so the user can try different parameters,
