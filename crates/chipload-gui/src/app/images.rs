@@ -58,6 +58,9 @@ pub struct ImageDialog {
     pending: Option<mpsc::Receiver<Result<Preview, String>>>,
     asked: Option<Image>,
     zoom: PreviewZoom,
+    /// The traced lines drawn over the picture (unticked: the picture alone, to judge the
+    /// threshold by its detail).
+    show_lines: bool,
 }
 
 /// What part of the picture the preview shows: `zoom` 1 is all of it, centred on `centre`
@@ -119,6 +122,7 @@ impl ImageDialog {
             pending: None,
             asked: None,
             zoom: PreviewZoom::default(),
+            show_lines: true,
         }
     }
 
@@ -168,23 +172,29 @@ impl ImageDialog {
     }
 }
 
-/// How the black parts are shown: near black, so the picture reads as it will be traced.
-const FIELD_GREY: u8 = 40;
+/// The picture as it will be carved in wood (the user, 2026-11-01): the surface light
+/// oak, the black parts, which are carved, dark brown.
+const WOOD: [u8; 3] = [226, 200, 158];
+const CARVED: [u8; 3] = [92, 58, 32];
+/// The traced lines over it: a blue that stands out from both browns, thin, so it doesn't
+/// hide the detail the threshold is set by.
+const TRACED: Color32 = Color32::from_rgb(30, 130, 255);
 
-/// The black-and-white picture as a texture, scaled down to `MAX_TEXTURE_PX`.
+/// The black-and-white picture as a texture in wood colours, scaled down to
+/// `MAX_TEXTURE_PX`.
 fn texture_of(p: &Preview) -> ColorImage {
     let bw = &p.black_white;
     let (w, h) = (bw.width as usize, bw.height as usize);
     let step = w.max(h).div_ceil(MAX_TEXTURE_PX).max(1);
     let (tw, th) = (w.div_ceil(step), h.div_ceil(step));
-    let mut gray = Vec::with_capacity(tw * th);
+    let mut rgb = Vec::with_capacity(tw * th * 3);
     for row in 0..th {
         for column in 0..tw {
             let black = bw.black[(row * step).min(h - 1) * w + (column * step).min(w - 1)];
-            gray.push(if black { FIELD_GREY } else { 255 });
+            rgb.extend_from_slice(if black { &CARVED } else { &WOOD });
         }
     }
-    ColorImage::from_gray([tw, th], &gray)
+    ColorImage::from_rgb([tw, th], &rgb)
 }
 
 /// The picture in grey, scaled down to `MAX_TEXTURE_PX`.
@@ -601,9 +611,10 @@ fn picture_size(dialog: &ImageDialog) -> (u32, u32) {
     (dialog.picture.width, dialog.picture.height)
 }
 
-/// The black-and-white picture. Outlines are not drawn: they follow the black parts and
-/// would hide the detail the threshold is set by. Centre lines are, as they are the result.
-/// Scrolling zooms at the pointer, dragging pans, a double click shows all of it.
+/// The picture as it will be carved, with the traced lines over it, outlines or centre
+/// lines: thin, and hidden with the checkbox under it to judge the detail alone (the user,
+/// 2026-11-01, after they were left out on 2026-10-14 for hiding it). Scrolling zooms at
+/// the pointer, dragging pans, a double click shows all of it.
 fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
     let (w, h) = picture_size(dialog);
     let aspect = f64::from(h) / f64::from(w);
@@ -619,7 +630,7 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
             painter.image(texture.id(), rect, uv, Color32::WHITE);
         }
         if let Some(Ok(preview)) = &dialog.preview
-            && dialog.shown.as_ref().map(|image| image.trace) == Some(ImageTrace::CentreLine)
+            && dialog.show_lines
         {
             // Lines are in mm from the picture's lower-left corner.
             let width = preview.trace.width;
@@ -632,7 +643,7 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
                     rect.top() + (v - uv.top()) / uv.height() * rect.height(),
                 )
             };
-            let stroke = Stroke::new(1.0, Color32::from_rgb(230, 110, 20));
+            let stroke = Stroke::new(1.0, TRACED);
             for path in &preview.trace.paths {
                 let mut points: Vec<Pos2> = path.points.iter().map(|&p| to_screen(p)).collect();
                 if path.closed
@@ -643,6 +654,8 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
                 painter.add(egui::Shape::line(points, stroke));
             }
         }
+        ui.checkbox(&mut dialog.show_lines, t!(ui, "images-show-lines"))
+            .on_hover_text(t!(ui, "images-show-lines-hover"));
         let note = if dialog.zoom.zoom > 1.0 {
             let zoom = format!("{:.0}%", dialog.zoom.zoom * 100.0);
             t!(ui, "images-zoom-note", zoom = zoom)

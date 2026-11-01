@@ -24,6 +24,8 @@ images-import = Importera
 # Under the preview. $zoom: such as "400%".
 images-zoom-note = Zoom { $zoom } · dra för att panorera · dubbelklicka för att anpassa
 images-scroll-to-zoom = Scrolla för att zooma in
+images-show-lines = Visa de spårade linjerna
+images-show-lines-hover = Konturerna eller mittlinjerna som bilden spåras till, i blått; avmarkera för att se bara bilden
 
 # The settings.
 images-threshold = Tröskel

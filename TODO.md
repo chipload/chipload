@@ -87,6 +87,11 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Image window** (the user, 2026-11-01: the traced paths had disappeared; the picture
+  should look like V-carved wood): **done 2026-11-01.** Light oak and dark brown instead of
+  white and near black; the traced lines, outlines too (left out on 2026-10-14 for hiding
+  the detail), thin and blue, with *Show the traced lines* to hide them.
+
 - **V-carve lifts less** (the user, 2026-10-31, testing with Edwardian Script: "the bit go
   up and down doing seemingly nothing"; docs/specs/vcarve-fewer-lifts.md): **done
   2026-10-31**, all decisions as recommended, in 0.30.0. Corner branches under 5 mm out
