@@ -865,3 +865,31 @@ fn kinks_under_the_angle_get_no_branch() {
         worst_miss(&shape, &kinks, &bit, 0.1)
     );
 }
+
+/// The user, 2026-11-01: a traced logo at 20° lost one leg of its "H". A stroke whose end is
+/// rounded with kinks (a traced end) has its centre line end in a kink: that branch is the
+/// whole stroke, which must stay; only what a kink's sliver allows may go.
+#[test]
+fn a_stroke_ending_in_kinks_keeps_its_centre_line() {
+    // 4 × 30, square at the bottom, the top a half circle of 12 chords (15° kinks).
+    let mut points = vec![(0.0, 0.0), (4.0, 0.0), (4.0, 30.0)];
+    for k in 1..12 {
+        let a = std::f64::consts::PI * f64::from(k) / 12.0;
+        points.push((2.0 + 2.0 * a.cos(), 30.0 + 2.0 * a.sin()));
+    }
+    points.push((0.0, 30.0));
+    let shape = [common::polygon_id(1, &points)];
+    let refs: Vec<&Contour> = shape.iter().collect();
+    let bit = bit(60.0, 0.0);
+    let plan = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 20f64.to_radians()).unwrap();
+    // Near a cut's line (a straight cut has points at its ends only).
+    let reaches = |at: Point| {
+        samples(&plan.paths, &bit, 0.1)
+            .iter()
+            .any(|(p, _)| ((p.0 - at.0).powi(2) + (p.1 - at.1).powi(2)).sqrt() < 0.2)
+    };
+    for y in [5.0, 15.0, 25.0] {
+        assert!(reaches((2.0, y)), "the centre line at y = {y}");
+    }
+    assert!(worst_miss(&shape, &plan, &bit, 0.2) < 0.2);
+}

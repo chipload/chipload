@@ -18,6 +18,16 @@ As built:
 - **Kinks** (`Graph::prune_kinks`): the turn is read from how fast the cut's radius grows
   along the branch from its corner (sin(α/2) per mm). Only ends on the outline count (a
   stroke's round end isn't a corner). Exactly the angle keeps its branch.
+- **And only a branch the rest covers** (`within_sliver`, the user the same day: a traced
+  logo at 20° lost a leg of its "H"): the branch runs from its corner to the next fork,
+  and where a stroke's whole centre line ends in a kink (a traced, kinked round end), the
+  branch was the whole stroke. Now every point of the branch, its corner too, must lie
+  within the cut of the axis that stays, but for the sliver r · (1/cos(θ/2) − 1) of the
+  setting's angle at that cut's radius, plus the tolerance. Checked against the axis as it
+  is at that moment, so two branches never count on each other. On the script example
+  this also keeps the tapered ends of strokes (0.24 to 0.34 mm would have stayed uncut),
+  which the first version took for kinks: 20° there now removes nothing, the smoothing
+  does the work.
 - **Measured** on the example of §1, reversals of Z within cuts (counted by the swing
   between them):
 
@@ -25,8 +35,11 @@ As built:
   |---|---|---|---|---|
   | 0.30.0 | 326 | 182 | 223 | 49.9 s |
   | Smoothing, kinks 0° (old projects) | 172 | 2 | 50 | 49.9 s |
-  | Kinks 20° (new V-carves) | 138 | 2 | 44 | 42.9 s |
-  | Kinks 60° | 136 | 2 | 44 | 42.9 s |
+  | Kinks 20° (new V-carves) | 172 | 2 | 50 | 49.9 s |
+  | Kinks 60° | 159 | 2 | 52 | 48.0 s |
+
+  (The first version gave 138 at 20°, by also cutting off the strokes' tapered ends; see
+  the coverage rule below.)
 
   The reversals left are the strokes' real changes of width and the corners cut out and
   back. (§1's "262 smaller than 0.01 mm" counted against the next point, not the swing.)
@@ -38,11 +51,12 @@ As built:
   |---|---|---|---|
   | 0° (and 0.30.0) | 48 | 24 | 71.9 s |
   | 20° | 30 | 24 | 69.3 s |
-  | 30° | 0 | 24 | 65.0 s |
-  | 45° to 90° | 0 | 12 | 53.2 s |
+  | 30° to 60° | 0 | 24 | 65.0 s |
+  | 90° | 0 | 12 | 53.2 s |
 
-  The guide advises 45° for traced pictures. A default by what the V-carve cuts (a picture
-  45°, otherwise 20°) is open, to decide after the user's tests.
+  (With the first version, before the coverage rule, 45° already gave 12 cuts.) The guide
+  advises 30° for traced pictures. A default by what the V-carve cuts is open, to decide
+  after the user's tests.
 
 The user (2026-11-01, after V-carve tests with Edwardian Script): "we must improve the
 v-carve. Could we add options to the operation so the user can try different parameters,

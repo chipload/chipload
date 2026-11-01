@@ -65,9 +65,13 @@ stroke. Both make the Z axis stop and start, the slowest axis on most routers.
   6 mm wide; at 60°, 0.46 mm. A real corner, such as the 90° corner of a block letter,
   keeps its branch at any setting up to 90°. Try a few values and look at the toolpath
   and the simulation: the change shows at once.
-- **A traced picture** has its pixel steps in every curve: kinks of 20° to 45°. A round
-  shape has no real corners, so **45°** suits it: on a traced ring it took the bit's
-  turns up and down from 48 to none, the cuts from 24 to 12 and the time by a quarter.
+- **A traced picture** has its pixel steps in every curve: kinks of 20° to 30°. On a
+  traced ring, **30°** took the bit's turns up and down from 48 to none and the time by a
+  tenth.
+- **Only kinks go.** A branch is left out only when the rest of the carving covers what
+  it would cut, but for the sliver above. The centre line of a whole stroke that happens
+  to end in a kink (the rounded, traced end of a leg of an *H*, the tapered end of a
+  script stroke) stays at any angle.
 
 Projects from before Chipload 0.31 open with *Ignore kinks* at 0°, so they carve every
 corner as before; their depth is smoothed.
