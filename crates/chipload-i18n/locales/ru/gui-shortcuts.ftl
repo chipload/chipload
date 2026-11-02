@@ -1,4 +1,6 @@
 shortcuts-window = Сочетания клавиш
+shortcuts-group = Сгруппировать выделение
+shortcuts-ungroup = Разгруппировать
 shortcuts-group-file = Файл
 shortcuts-group-edit = Правка
 shortcuts-group-generate = Расчёт

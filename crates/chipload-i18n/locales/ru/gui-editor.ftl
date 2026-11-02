@@ -9,6 +9,7 @@ editor-summary-whole-stock = вся заготовка
 editor-summary-dxf = чертёж { $id }
 editor-summary-image = изображение { $id }
 editor-summary-text = текст { $id }
+editor-summary-group = группа { $id }
 editor-summary-layer = слой { $layer }
 editor-summary-layer-of = слой { $layer }, источник: { $source }
 editor-summary-all-of = всё из источника: { $source }

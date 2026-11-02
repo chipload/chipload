@@ -1,11 +1,4 @@
 report-heading = Отчёт
-report-hide-hover = Скрыть отчёт
-report-show-hover = Показать отчёт
-report-more-warnings = Ещё { $count ->
-    [one] { $count } предупреждение
-    [few] { $count } предупреждения
-   *[other] { $count } предупреждений
-}
 report-drawing-title = Чертёж: { $contours ->
     [one] { $contours } контур
     [few] { $contours } контура
