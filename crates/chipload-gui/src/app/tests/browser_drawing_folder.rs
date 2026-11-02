@@ -70,3 +70,25 @@ fn hidden_groups_are_not_drawn_nor_clickable_but_still_cut() {
     app.undo();
     assert_eq!(app.drawing_groups().len(), 3);
 }
+
+/// Each kind of drawn shape lists its shapes in a folder per layer, one layer too (the user,
+/// 2026-11-02: "always show the layer folder, that would be most logical").
+#[test]
+fn drawn_shapes_on_one_layer_still_show_its_folder() {
+    use egui_kittest::kittest::Queryable;
+    let mut harness = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(1400.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
+            app
+        });
+    harness.run_steps(4);
+    // A rectangle, a circle and a polyline, all on layer "drawn": a folder under each kind.
+    let folders = harness.get_all_by_label("drawn").count();
+    assert_eq!(folders, 3);
+    assert!(
+        harness.query_by_label("S2").is_some(),
+        "the shape under its folder"
+    );
+}

@@ -204,7 +204,7 @@ holes on, a guide at 45°) and are **never cut**.
   type a value to move them there) and *Turn*: ⟲ 90, ⟳ 90, or type an angle and press
   Enter. A polyline keeps no angle of its own; turning moves its points.
 - **In the Browser:** under *Drawing*, the *Circles*, *Rectangles*, *Polylines* and
-  *Polygons* groups list their shapes, in a folder per layer when there are several. Click a row to select the
+  *Polygons* groups list their shapes in a folder per layer. Click a row to select the
   shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
   with more than 20 shapes starts closed.
 - **Names:** give a drawn shape a *Name* in its form (or *Rename…* in the Browser); the

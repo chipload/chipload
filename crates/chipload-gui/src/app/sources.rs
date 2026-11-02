@@ -759,7 +759,7 @@ impl ChiploadApp {
 }
 
 impl ChiploadApp {
-    /// A drawn group's shapes: a row each, under a folder per layer when it has several
+    /// A drawn group's shapes: a row each, under a folder per layer, one layer too
     /// (docs/specs/drawn-shapes-box.md §4).
     fn drawn_member_rows(
         &self,
@@ -769,12 +769,6 @@ impl ChiploadApp {
         hidden: bool,
         action: &mut Option<PanelAction>,
     ) {
-        if let [(_, shapes)] = &group.members[..] {
-            for (id, name) in shapes {
-                self.shape_row(ui, 3, *id, name.as_deref(), icon, hidden, action);
-            }
-            return;
-        }
         for (layer, shapes) in &group.members {
             let key = Drawing::layer_key(&group.key, layer);
             let layer_hidden = self.is_hidden_key(&key);
