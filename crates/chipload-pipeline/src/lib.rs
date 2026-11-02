@@ -449,13 +449,17 @@ pub fn add_floor_pass(
 }
 
 /// The depths a V-carve's passes go to, mm down from the stock top, the last its end depth:
-/// equal loads (docs/specs/v-carve.md decision 12). For the window to show under its
-/// *Passes*.
+/// equal loads (docs/specs/v-carve.md decision 12) or an ordinary step down
+/// (vcarve-step-down.md). For the window to show under its *Passes* or *Step down*.
 pub fn vcarve_pass_depths(vcarve: &chipload_job::VcarveOp) -> Vec<f64> {
-    chipload_toolpath::vcarve::carve_levels(vcarve.end_depth - vcarve.start_depth, vcarve.passes)
-        .into_iter()
-        .map(|level| vcarve.start_depth + level)
-        .collect()
+    chipload_toolpath::vcarve::carve_levels(
+        vcarve.end_depth - vcarve.start_depth,
+        vcarve.passes,
+        vcarve.step_down,
+    )
+    .into_iter()
+    .map(|level| vcarve.start_depth + level)
+    .collect()
 }
 
 /// The library's end mills no wider than `largest` (a floor hint, mm), the nearest to it

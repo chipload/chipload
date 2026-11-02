@@ -1,6 +1,16 @@
 # Spec: an ordinary step down for V-carves
 
-Status: **draft 2026-11-02**, decisions 1-4 to review.
+Status: **agreed and built 2026-11-02**, all decisions as recommended (the user: "Go
+ahead").
+
+As built:
+- `carve_levels(depth, passes, step_down)` gives both; the count for a step down is
+  ⌈(depth − 0.001 mm) / step⌉, the same in the validation, so a speck over a whole number
+  of steps adds no pass.
+- In the form, choosing *Step down* starts it at the first pass's depth under equal load,
+  rounded to 0.1 mm, so the first pass stays about as deep. Switching back keeps `passes`.
+- Golden `v35_vcarve_step_down`: v34_vcarve_step_down with a 1 mm step down, 3.5 mm in four
+  passes of 0.875 mm. Every other golden program is unchanged.
 
 The user (2026-11-02): "Now we have progressive step down on v-carve there should be an
 option to use ordinary step down as well."

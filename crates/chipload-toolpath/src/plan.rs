@@ -1183,8 +1183,8 @@ fn plan_vcarve_op(
         }
     }
     // From the end depth the user set, so the passes are what they asked for
-    // (docs/specs/v-carve.md decision 12).
-    let levels = carve_levels(op.end_depth - op.start_depth, op.passes);
+    // (docs/specs/v-carve.md decision 12, vcarve-step-down.md).
+    let levels = carve_levels(op.end_depth - op.start_depth, op.passes, op.step_down);
     let moves = vcarve_moves(
         &plan.area_walks(),
         &levels,

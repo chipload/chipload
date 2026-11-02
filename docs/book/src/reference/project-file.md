@@ -371,6 +371,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut. |
+| `step_down` | number or null | no | An ordinary step down instead, mm: equal passes, none deeper than it, the last at the end depth, as in a pocket. Missing: passes of equal load (`passes`), which is kept meanwhile. Left out when missing. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "path"`

@@ -39,6 +39,7 @@ mod tool_library;
 mod trim_select;
 mod units;
 mod update_notice;
+mod vcarve_form;
 mod view_bar;
 mod work_zero;
 mod workflows;

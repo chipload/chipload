@@ -91,6 +91,10 @@ forms-vcarve-end-depth-hover = Det djupaste spetsen går, från ämnets ovansida
 forms-vcarve-passes-hover = Hur många skär till slutdjupet. Varje skär tar bort lika mycket som de andra, så de blir grundare på vägen ner
 forms-vcarve-pass-depths = till { $depths }
 forms-passes = Djupsteg
+forms-depth-passes = Djupindelning
+forms-depth-passes-hover = Hur djupet delas i steg: lika last (varje skär tar bort lika mycket som de andra, så de blir grundare på vägen ner) eller ett vanligt skärdjup (lika steg, som i en ficka; varje skär tar bort mer än det förra)
+forms-depth-passes-equal-load = Lika last
+forms-vcarve-step-down-hover = Hur djupt varje skär går som mest. Stegen är lika, det sista på slutdjupet
 forms-ignore-kinks = Ignorera knyckar
 forms-ignore-kinks-hover = Hörn där konturen viker av mindre än så får ingen gren av mittlinjen, så att V-fräsen inte går upp i varje knyck i en kurva. Vid 20° blir högst några hundradels millimeter kvar i en knyck; 0° graverar varje hörn
 

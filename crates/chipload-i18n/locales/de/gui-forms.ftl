@@ -91,6 +91,10 @@ forms-vcarve-end-depth-hover = Die größte Tiefe der Spitze, ab Rohteiloberkant
 forms-vcarve-passes-hover = Wie viele Durchgänge bis zur Endtiefe. Jeder trägt gleich viel ab, deshalb werden sie nach unten flacher
 forms-vcarve-pass-depths = bis { $depths }
 forms-passes = Durchgänge
+forms-depth-passes = Tiefendurchgänge
+forms-depth-passes-hover = Wie die Tiefe auf Durchgänge verteilt wird: gleiche Last (jeder Durchgang trägt gleich viel ab, deshalb werden sie nach unten flacher) oder eine gewöhnliche Zustellung (gleiche Schritte wie bei einer Tasche; jeder Durchgang trägt mehr ab als der vorige)
+forms-depth-passes-equal-load = Gleiche Last
+forms-vcarve-step-down-hover = Wie tief jeder Durchgang höchstens geht. Die Durchgänge sind gleich, der letzte auf der Endtiefe
 forms-ignore-kinks = Knicke ignorieren
 forms-ignore-kinks-hover = Ecken, an denen der Umriss weniger als diesen Winkel abknickt, bekommen keinen Ast der Mittellinie, so fährt der V-Fräser nicht in jeden Knick einer Kurve hoch. Bei 20° bleibt in einem Knick höchstens wenige hundertstel Millimeter stehen; 0° graviert jede Ecke
 

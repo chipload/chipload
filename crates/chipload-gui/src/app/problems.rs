@@ -68,6 +68,8 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
             "through",
             "clearance",
             "step_down",
+            "passes",
+            "ignore_kinks_deg",
         ],
         // A profile's ramp angle sits with its depths (docs/specs/profile-form.md).
         "op-profile-cut" => &[

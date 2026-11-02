@@ -1292,6 +1292,14 @@
               "format": "double",
               "type": "number"
             },
+            "step_down": {
+              "description": "An ordinary step down instead, mm: equal passes, none deeper than it, the last at\nthe end depth, as in a pocket. Missing: passes of equal load (`passes`), which is\nkept meanwhile. Left out when missing.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
               "format": "int64",

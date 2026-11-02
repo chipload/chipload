@@ -742,12 +742,12 @@ fn each_area_is_finished_before_the_next() {
 fn passes_remove_equal_areas() {
     use chipload_toolpath::vcarve::carve_levels;
     // The user's example: 5 mm in 6 passes.
-    let levels = carve_levels(5.0, 6);
+    let levels = carve_levels(5.0, 6, None);
     assert_eq!(levels.len(), 6);
     let rounded: Vec<f64> = levels.iter().map(|l| (l * 100.0).round() / 100.0).collect();
     assert_eq!(rounded, [2.04, 2.89, 3.54, 4.08, 4.56, 5.0]);
     for (depth, passes) in [(3.0, 3), (3.5, 4), (6.0, 100), (0.5, 2)] {
-        let levels = carve_levels(depth, passes);
+        let levels = carve_levels(depth, passes, None);
         assert_eq!(levels.len(), passes as usize);
         assert_eq!(*levels.last().unwrap(), depth);
         let area = levels[0] * levels[0];
@@ -758,8 +758,34 @@ fn passes_remove_equal_areas() {
         }
     }
     // One pass, and 0 taken as one.
-    assert_eq!(carve_levels(3.0, 1), [3.0]);
-    assert_eq!(carve_levels(3.0, 0), [3.0]);
+    assert_eq!(carve_levels(3.0, 1, None), [3.0]);
+    assert_eq!(carve_levels(3.0, 0, None), [3.0]);
+}
+
+/// An ordinary step down (vcarve-step-down.md): equal steps none deeper than it, the last
+/// exactly the depth, as a pocket's; the count of passes doesn't matter then.
+#[test]
+fn a_step_down_gives_equal_steps() {
+    use chipload_toolpath::vcarve::carve_levels;
+    let rounded = |levels: Vec<f64>| -> Vec<f64> {
+        levels.iter().map(|l| (l * 100.0).round() / 100.0).collect()
+    };
+    assert_eq!(rounded(carve_levels(5.0, 6, Some(2.0))), [1.67, 3.33, 5.0]);
+    assert_eq!(rounded(carve_levels(5.0, 1, Some(2.5))), [2.5, 5.0]);
+    // A step of the whole depth or more: one pass.
+    assert_eq!(carve_levels(3.0, 4, Some(3.0)), [3.0]);
+    assert_eq!(carve_levels(3.0, 4, Some(10.0)), [3.0]);
+    // Just over a whole number of steps: no extra pass for the last speck.
+    assert_eq!(carve_levels(4.0005, 1, Some(2.0)).len(), 2);
+    for (depth, step) in [(3.0, 0.7), (6.0, 0.06), (0.5, 0.2)] {
+        let levels = carve_levels(depth, 1, Some(step));
+        assert_eq!(*levels.last().unwrap(), depth);
+        let mut before = 0.0;
+        for level in &levels {
+            assert!(level - before <= step + 1e-9, "{levels:?}");
+            before = *level;
+        }
+    }
 }
 
 /// How many cuts a program has: lifts to safe Z after cutting.

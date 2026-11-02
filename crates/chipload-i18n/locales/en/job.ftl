@@ -41,6 +41,7 @@ job-tool-type-article = { $type ->
 job-must-be-positive = must be greater than 0, got { $got }
 job-must-be-positive-number = must be a positive number, got { $got }
 job-vcarve-passes = must be a whole number from 1 to { $most }, got { $got }
+job-vcarve-step-down = must be at least { $least }, so no more than { $most } passes, got { $got }
 job-vcarve-ignore-kinks = must be from 0 to { $most } degrees, got { $got }
 job-must-be-more-than-0 = must be more than 0, got { $got }
 job-must-be-0-or-more = must be 0 or more, got { $got }

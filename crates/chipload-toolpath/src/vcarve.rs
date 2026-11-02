@@ -463,18 +463,35 @@ fn pass_runs(walk: &CarvePath, above: f64, level: f64, link: f64) -> Vec<CarvePa
     runs
 }
 
-/// Pass depths below the carved surface: `passes` passes to `depth` that each remove the
-/// same cross-section (docs/specs/v-carve.md decision 12). A V groove's cross-section grows
-/// as its depth squared, so pass k of n goes to `depth` × √(k / n), the last exactly
-/// `depth`. Where a stroke is shallower than a pass, that pass finds nothing left to cut.
-pub fn carve_levels(depth: f64, passes: u32) -> Vec<f64> {
-    let count = passes.max(1);
+/// Pass depths below the carved surface, the last exactly `depth`.
+///
+/// Without a step down, `passes` passes that each remove the same cross-section
+/// (docs/specs/v-carve.md decision 12): a V groove's cross-section grows as its depth
+/// squared, so pass k of n goes to `depth` × √(k / n). With a step down, equal steps none
+/// deeper than it, as in a pocket (docs/specs/vcarve-step-down.md). Where a stroke is
+/// shallower than a pass, that pass finds nothing left to cut.
+pub fn carve_levels(depth: f64, passes: u32, step_down: Option<f64>) -> Vec<f64> {
+    match step_down {
+        Some(step) if step > 0.0 => {
+            // A validated job keeps this to at most MAX_VCARVE_PASSES.
+            let count = ((depth - DEPTH_TOL_MM) / step).ceil().max(1.0) as u32;
+            even_levels(depth, count, |k, n| f64::from(k) / f64::from(n))
+        }
+        _ => even_levels(depth, passes.max(1), |k, n| {
+            (f64::from(k) / f64::from(n)).sqrt()
+        }),
+    }
+}
+
+/// `count` levels down to `depth`, level k at `depth` × `share(k, count)`, the last exactly
+/// `depth`.
+fn even_levels(depth: f64, count: u32, share: impl Fn(u32, u32) -> f64) -> Vec<f64> {
     (1..=count)
         .map(|k| {
             if k == count {
                 depth
             } else {
-                depth * (f64::from(k) / f64::from(count)).sqrt()
+                depth * share(k, count)
             }
         })
         .collect()

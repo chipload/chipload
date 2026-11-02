@@ -91,6 +91,10 @@ forms-vcarve-end-depth-hover = La profondeur maximale de la pointe, depuis le de
 forms-vcarve-passes-hover = Combien de passes jusqu'à la profondeur finale. Chacune enlève autant que les autres, elles deviennent donc moins profondes en descendant
 forms-vcarve-pass-depths = à { $depths }
 forms-passes = Passes
+forms-depth-passes = Passes en profondeur
+forms-depth-passes-hover = Comment la profondeur est répartie en passes : charge égale (chaque passe enlève autant que les autres, elles deviennent donc moins profondes en descendant) ou une profondeur de passe ordinaire (pas égaux, comme pour une poche ; chaque passe enlève plus que la précédente)
+forms-depth-passes-equal-load = Charge égale
+forms-vcarve-step-down-hover = La profondeur maximale de chaque passe. Les passes sont égales, la dernière à la profondeur finale
 forms-ignore-kinks = Ignorer les cassures
 forms-ignore-kinks-hover = Les coins où le contour tourne de moins que cet angle n'ont pas de branche de la ligne médiane : la fraise en V ne remonte pas dans chaque cassure d'une courbe. À 20°, une cassure garde au plus quelques centièmes de millimètre ; 0° grave chaque coin
 

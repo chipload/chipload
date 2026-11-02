@@ -3132,6 +3132,12 @@ pub struct VcarveOp {
     /// How many depth passes, 1 to [`MAX_VCARVE_PASSES`]: each removes the same
     /// cross-section, the last at the end depth (docs/specs/v-carve.md decision 12).
     pub passes: u32,
+    /// An ordinary step down instead, mm: equal passes, none deeper than it, the last at
+    /// the end depth, as in a pocket. Missing: passes of equal load (`passes`), which is
+    /// kept meanwhile. Left out when missing.
+    // Spec: docs/specs/vcarve-step-down.md §4 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub step_down: Option<f64>,
     /// Corners where the outline turns by less than this, degrees (0 to 90), get no branch
     /// of the centre line: the bit doesn't rise into every kink. Missing: 0, every corner
     /// carved, as before the setting existed.
@@ -4144,6 +4150,22 @@ impl Job {
                                 .arg("most", MAX_VCARVE_PASSES)
                                 .arg("got", v.passes),
                         ));
+                    }
+                    if let Some(step) = v.step_down {
+                        positive(at("step_down"), step);
+                        let range = v.end_depth - v.start_depth;
+                        let least = range / f64::from(MAX_VCARVE_PASSES);
+                        // As many passes as the toolpath takes (`carve_levels`).
+                        let count = ((range - DEPTH_TOL_MM) / step).ceil();
+                        if step > 0.0 && count > f64::from(MAX_VCARVE_PASSES) {
+                            counts.push(Problem::at(
+                                at("step_down"),
+                                Message::new("job-vcarve-step-down")
+                                    .arg("most", MAX_VCARVE_PASSES)
+                                    .arg("least", Value::Length(least, Digits::Shortest))
+                                    .arg("got", Value::Length(step, Digits::Shortest)),
+                            ));
+                        }
                     }
                     if !(0.0..=MAX_IGNORE_KINKS_DEG).contains(&v.ignore_kinks_deg) {
                         counts.push(Problem::at(

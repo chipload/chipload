@@ -1207,6 +1207,38 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
     assert!(parse_job(data, "p").is_err(), "a V-carve has no side");
 }
 
+/// An ordinary step down (docs/specs/vcarve-step-down.md §4): optional, more than 0, and
+/// no more than 100 passes over the 3 mm.
+#[test]
+fn a_vcarve_step_down_is_checked() {
+    let with = |step: serde_json::Value| {
+        let mut data = vcarve_job();
+        data["operations"][0]["step_down"] = step;
+        parse_job(data, "p")
+    };
+    for ok in [
+        json!(null),
+        json!(0.03),
+        json!(1.0),
+        json!(3.0),
+        json!(10.0),
+    ] {
+        assert!(with(ok.clone()).is_ok(), "{ok}");
+    }
+    for bad in [json!(0.0), json!(-1.0), json!(0.0299)] {
+        let err = with(bad.clone()).unwrap_err().to_string();
+        assert!(err.contains("step_down"), "{bad}: {err}");
+    }
+    let err = with(json!(0.02)).unwrap_err().to_string();
+    assert!(err.contains("100 passes"), "{err}");
+    // Saved only when there is one.
+    let job = with(json!(1.5)).unwrap();
+    let saved = serde_json::to_value(&job).unwrap();
+    assert_eq!(saved["operations"][0]["step_down"], json!(1.5));
+    let saved = serde_json::to_value(with(json!(null)).unwrap()).unwrap();
+    assert!(saved["operations"][0].get("step_down").is_none());
+}
+
 // -- scaling the imported drawing (docs/specs/drawing-scale.md)
 
 #[test]
