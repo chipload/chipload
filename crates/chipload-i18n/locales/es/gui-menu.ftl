@@ -136,7 +136,7 @@ menu-snapped-to = — ajustado a { $target }
 menu-generating = Calculando…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Arrastrando a ({ $x }, { $y }){ $snapped } (Alt: sin ajuste; en un segmento, Ctrl inserta un punto y Shift lo curva)
-menu-status-hint = Clic en un contorno para seleccionarlo · Ctrl+clic añade o quita · clic derecho selecciona su capa · Esc borra la selección
+menu-status-hint = Un clic selecciona un dibujo, imagen, texto o grupo entero · doble clic un contorno · Ctrl+clic añade o deja fuera · Esc borra la selección
 menu-status-simulate-hint = Simular: arrastrar desplaza (3D: gira) · clic en el número de una operación la abre · F6 vuelve a Editar
 menu-join-ends = Unir extremos…
 menu-join-ends-hover = Unir en una las polilíneas dibujadas abiertas cuyos extremos casi se tocan: las seleccionadas, o todas si no hay ninguna seleccionada
