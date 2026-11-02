@@ -171,11 +171,11 @@ chipload shape move part.chipload --group 1 --dx 10 --dy 0   # also turn, scale:
    into the shapes' ids, so what it cuts doesn't change; deleting the group leaves it with
    nothing to cut, flagged, as deleting its shapes does. In the file: an optional `group`
    in an operation's `select`. Alternative: the operation keeps the shapes' ids only.
-10. **Selecting a group works as selecting a picture or a DXF** (the user, 2026-11-02):
-   click for all of it, Ctrl+click to leave shapes out and back in, the operation
-   following the group with `exclude`. *Recommended:* one way to pick everywhere. Leaving
-   out is a selection, not a change to the group: *Remove from group* does that.
 9. **Adding to and taking out of a group** (§2): *Group* with one group selected adds to
    it, with several merges them; *Remove from group* on shapes picked inside it; dragging
    rows in the Browser. *Recommended:* no new tool to learn. Alternative: ungroup and
    group again.
+10. **Selecting a group works as selecting a picture or a DXF** (the user, 2026-11-02):
+   click for all of it, Ctrl+click to leave shapes out and back in, the operation
+   following the group with `exclude`. *Recommended:* one way to pick everywhere. Leaving
+   out is a selection, not a change to the group: *Remove from group* does that.
