@@ -87,6 +87,10 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **V-carve step down** (the user, 2026-11-02: "there should be an option to use ordinary
+  step down as well"; docs/specs/vcarve-step-down.md): spec drafted, decisions 1-4 to
+  review.
+
 - **Smoother V-carve** (the user, 2026-11-01: "a lot of small up and down movement just
   because the path is not entirely smooth … prune voronoi branches if the angle is more
   than say 60°"; docs/specs/vcarve-smooth.md): **done 2026-11-01**, all decisions as
