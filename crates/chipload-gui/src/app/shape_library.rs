@@ -704,7 +704,7 @@ impl ChiploadApp {
                 .clicked()
             {
                 let ids = self.framed_shape_ids();
-                let margin = self.frame.margin;
+                let margin = self.canvas_tools.frame.margin;
                 self.insert_entry(&full, None, InsertSize::Around { ids, margin });
                 ui.close();
             }

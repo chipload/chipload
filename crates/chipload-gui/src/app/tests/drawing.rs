@@ -398,9 +398,12 @@ fn typed_values_draw_exact_shapes() {
     let at = egui::pos2(0.0, 0.0);
     // The first point must be absolute.
     app.start_typing("@", at);
-    app.typed.as_mut().unwrap().text = "@5,5".into();
+    app.canvas_tools.typed.as_mut().unwrap().text = "@5,5".into();
     app.apply_typed((0.0, 0.0));
-    assert!(app.typed.as_ref().unwrap().refused, "no last point yet");
+    assert!(
+        app.canvas_tools.typed.as_ref().unwrap().refused,
+        "no last point yet"
+    );
     assert!(app.sketch().unwrap().points.is_empty());
     // x,y, then a length towards the cursor, then length<angle, then back to the start.
     for (text, cursor) in [
@@ -443,10 +446,10 @@ fn typed_values_draw_exact_shapes() {
 fn enter_draws_with_the_last_tool_and_shift_holds_the_angle() {
     let mut app = drawn_part();
     app.view.scale = 10.0;
-    assert_eq!(app.last_tool, None);
+    assert_eq!(app.canvas_tools.last_tool, None);
     app.start_drawing(Tool::Rectangle);
     app.cancel_drawing();
-    assert_eq!(app.last_tool, Some(Tool::Rectangle));
+    assert_eq!(app.canvas_tools.last_tool, Some(Tool::Rectangle));
     app.start_drawing(Tool::Polyline);
     app.draw_click((300.0, 300.0), false);
     // Shift: 15° steps from the last click, the length on the grid (1 mm at 10 px/mm).
@@ -469,7 +472,7 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
     // docs/specs/drawing-input.md §5.
     let mut app = drawn_part();
     app.click(None, false);
-    app.polygon_sides = 8;
+    app.canvas_tools.polygon_sides = 8;
     app.start_drawing(Tool::Polygon);
     assert_eq!(app.sketch().unwrap().sides, 8);
     app.draw_click((200.0, 50.0), false);
@@ -498,19 +501,19 @@ fn a_length_label_takes_a_typed_length() {
     let mut app = drawn_part();
     app.selection = CanvasSelection::Shapes([3].into());
     app.start_typing_dimension(Dimension::Segment(0), 30.0, egui::pos2(0.0, 0.0));
-    assert_eq!(app.typed.as_ref().unwrap().text, "30");
-    app.typed.as_mut().unwrap().text = "40".into();
+    assert_eq!(app.canvas_tools.typed.as_ref().unwrap().text, "30");
+    app.canvas_tools.typed.as_mut().unwrap().text = "40".into();
     app.apply_typed((0.0, 0.0));
-    assert!(app.typed.is_none());
+    assert!(app.canvas_tools.typed.is_none());
     let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
         panic!()
     };
     assert_eq!(points[..2], [[110.0, 65.0], [150.0, 65.0]]);
     // A length that can't be: the entry stays, refused.
     app.start_typing_dimension(Dimension::Segment(0), 40.0, egui::pos2(0.0, 0.0));
-    app.typed.as_mut().unwrap().text = "0".into();
+    app.canvas_tools.typed.as_mut().unwrap().text = "0".into();
     app.apply_typed((0.0, 0.0));
-    assert!(app.typed.as_ref().unwrap().refused);
+    assert!(app.canvas_tools.typed.as_ref().unwrap().refused);
 }
 
 #[test]
@@ -543,7 +546,7 @@ fn the_offset_tool_offsets_the_selection_to_the_cursor() {
     // Typed: 2 mm, inside (the cursor is inside the circle).
     app.start_typing("2", egui::pos2(0.0, 0.0));
     app.apply_typed((75.0, 80.0));
-    assert!(app.typed.is_none());
+    assert!(app.canvas_tools.typed.is_none());
     assert!(matches!(
         app.shape(5).unwrap().geometry,
         Geometry::Circle { radius, .. } if radius == 13.0
@@ -559,7 +562,7 @@ fn the_corner_tools_round_or_cut_the_clicked_corner() {
     let mut app = drawn_part();
     app.view.scale = 10.0;
     app.start_modify(ModifyTool::Fillet);
-    app.fillet_radius = 2.0;
+    app.canvas_tools.fillet_radius = 2.0;
     // A click on the triangle selects it; then a click by its first corner rounds it.
     app.modify_click(
         Some(contour_of(&app, 3)),
@@ -580,7 +583,7 @@ fn the_corner_tools_round_or_cut_the_clicked_corner() {
     app.commit();
     // Chamfer, Shift: the two corners left are cut.
     app.start_modify(ModifyTool::Chamfer);
-    app.chamfer_distance = 1.0;
+    app.canvas_tools.chamfer_distance = 1.0;
     app.modify_click(None, (0.0, 0.0), false, (false, true));
     let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
         panic!()
@@ -689,8 +692,8 @@ fn the_array_tools_preview_their_copies_and_create_them() {
     let count = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.shapes.len();
     // A grid: three columns, the preview shows the two copies.
     app.start_modify(ModifyTool::Array);
-    app.array.columns = 3;
-    app.array.dx = 30.0;
+    app.canvas_tools.array.columns = 3;
+    app.canvas_tools.array.dx = 30.0;
     assert_eq!(app.array_outlines().len(), 2);
     assert!(app.create_array());
     assert_eq!(count(&app), 5);
@@ -700,8 +703,8 @@ fn the_array_tools_preview_their_copies_and_create_them() {
     app.selection = CanvasSelection::Shapes([2].into());
     app.start_modify(ModifyTool::PolarArray);
     app.modify_click(None, (100.0, 80.0), false, (false, false));
-    assert_eq!(app.array.center, (100.0, 80.0));
-    app.array.count = 4;
+    assert_eq!(app.canvas_tools.array.center, (100.0, 80.0));
+    app.canvas_tools.array.count = 4;
     assert_eq!(app.array_outlines().len(), 3);
     assert!(app.create_array());
     assert_eq!(count(&app), 8);
@@ -725,7 +728,7 @@ fn the_selection_aligns_and_distributes_its_shapes() {
     assert!(!app.arrange_selected(Arrange::Distribute(true)));
     app.selection = CanvasSelection::Shapes([2].into());
     assert!(!app.arrange_selected(Arrange::Align(AlignTo::Left)));
-    app.align_to_stock = true;
+    app.canvas_tools.align_to_stock = true;
     assert!(app.arrange_selected(Arrange::Align(AlignTo::Left)));
 }
 
@@ -791,7 +794,7 @@ fn k_draws_construction_geometry_and_toggles_the_selection() {
     let mut app = drawn_part();
     app.start_drawing(Tool::Circle);
     app.toggle_construction();
-    assert!(app.construction_mode);
+    assert!(app.canvas_tools.construction_mode);
     let id = app
         .add_drawn(Geometry::Circle {
             center: [10.0, 10.0],

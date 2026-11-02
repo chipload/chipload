@@ -29,7 +29,7 @@ impl ChiploadApp {
 
     /// Placing a text: the next canvas click places it.
     pub fn placing_text(&self) -> bool {
-        self.active == ActiveTool::PlaceText
+        self.canvas_tools.active == ActiveTool::PlaceText
     }
 
     /// A new text with its lower-left corner at `at`, selected and open in Properties with

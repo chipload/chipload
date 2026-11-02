@@ -349,7 +349,7 @@ impl ChiploadApp {
                 self.draw_click(p, false);
             }
             self.start_typing("40<120", egui::pos2(560.0, 300.0));
-            if let Some(typed) = self.typed.as_mut() {
+            if let Some(typed) = self.canvas_tools.typed.as_mut() {
                 typed.focus = false;
             }
         }
@@ -419,7 +419,7 @@ impl ChiploadApp {
         {
             self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Text(id));
             self.start_frame();
-            self.frame.borders = 1;
+            self.canvas_tools.frame.borders = 1;
         }
         // The shape library's tab with a few entries: the sign itself, and frames in a
         // group (docs/specs/shape-library.md §5.1).

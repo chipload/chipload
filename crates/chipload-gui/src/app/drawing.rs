@@ -47,9 +47,9 @@ impl ChiploadApp {
                 self.view_top(); // drawing works in top view only
             }
             let mut sketch = Sketch::new(tool);
-            sketch.sides = self.polygon_sides;
+            sketch.sides = self.canvas_tools.polygon_sides;
             self.set_tool(ActiveTool::Draw(sketch));
-            self.last_tool = Some(tool);
+            self.canvas_tools.last_tool = Some(tool);
         }
     }
 
@@ -69,7 +69,7 @@ impl ChiploadApp {
         } else {
             return;
         };
-        self.typed = Some(Typed {
+        self.canvas_tools.typed = Some(Typed {
             text: first.to_string(),
             at,
             refused: false,
@@ -87,7 +87,7 @@ impl ChiploadApp {
         at: egui::Pos2,
     ) {
         let text = chipload_pipeline::units::length_number(value, self.units);
-        self.typed = Some(Typed {
+        self.canvas_tools.typed = Some(Typed {
             text,
             at,
             refused: false,
@@ -99,7 +99,7 @@ impl ChiploadApp {
     /// The point the typed value gives, with the cursor at `cursor` (for a plain
     /// distance's direction).
     pub(super) fn typed_target(&self, cursor: Point) -> Result<Point, EntryError> {
-        let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch()) else {
+        let (Some(typed), Some(sketch)) = (&self.canvas_tools.typed, &self.sketch()) else {
             return Err(EntryError::Unreadable);
         };
         if typed.target != TypedTarget::Point {
@@ -112,7 +112,7 @@ impl ChiploadApp {
     /// Enter in the entry: the typed point is clicked. A value that can't be used leaves
     /// the entry open, in red, with the reason on the status bar.
     pub fn apply_typed(&mut self, cursor: Point) {
-        match self.typed.as_ref().map(|t| t.target) {
+        match self.canvas_tools.typed.as_ref().map(|t| t.target) {
             Some(TypedTarget::Dimension(dimension)) => {
                 self.apply_typed_dimension(dimension);
                 return;
@@ -125,7 +125,7 @@ impl ChiploadApp {
         }
         match self.typed_target(cursor) {
             Ok(p) => {
-                self.typed = None;
+                self.canvas_tools.typed = None;
                 // A typed point on a polyline's first point closes it, as a click there does.
                 let on_first = self
                     .sketch()
@@ -134,7 +134,7 @@ impl ChiploadApp {
                 self.draw_click(p, on_first);
             }
             Err(why) => {
-                if let Some(typed) = self.typed.as_mut() {
+                if let Some(typed) = self.canvas_tools.typed.as_mut() {
                     typed.refused = true;
                     typed.focus = true;
                 }
@@ -181,6 +181,7 @@ impl ChiploadApp {
     /// can't be used leaves the entry open, in red, with the reason.
     fn apply_typed_dimension(&mut self, dimension: chipload_job::edit::Dimension) {
         let text = self
+            .canvas_tools
             .typed
             .as_ref()
             .map(|t| t.text.clone())
@@ -197,9 +198,9 @@ impl ChiploadApp {
             _ => Err(EntryError::Unreadable.text(self)),
         };
         match result {
-            Ok(()) => self.typed = None,
+            Ok(()) => self.canvas_tools.typed = None,
             Err(why) => {
-                if let Some(typed) = self.typed.as_mut() {
+                if let Some(typed) = self.canvas_tools.typed.as_mut() {
                     typed.refused = true;
                     typed.focus = true;
                 }
@@ -214,7 +215,7 @@ impl ChiploadApp {
         let edit = self.edit.as_mut()?;
         match add_shape(&edit.job, &layer, geometry) {
             Ok((mut job, id)) => {
-                if self.construction_mode
+                if self.canvas_tools.construction_mode
                     && let Some(shape) = job.drawing.shapes.iter_mut().find(|s| s.id == id)
                 {
                     shape.construction = true;

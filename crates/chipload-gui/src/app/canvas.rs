@@ -291,7 +291,9 @@ impl ChiploadApp {
             // canvas: then a plain distance has no direction).
             let anchor = self.sketch().and_then(Sketch::anchor);
             let at = match at.or(anchor) {
-                Some(c) if self.typed.is_some() => Some(self.typed_target(c).unwrap_or(c)),
+                Some(c) if self.canvas_tools.typed.is_some() => {
+                    Some(self.typed_target(c).unwrap_or(c))
+                }
                 _ => at,
             };
             if response.double_clicked() {
@@ -338,7 +340,7 @@ impl ChiploadApp {
                 self.scene.preview = self.array_outlines();
                 self.scene.snap_mark = (self.modify()
                     == Some(super::modify::ModifyTool::PolarArray))
-                .then_some(self.array.center);
+                .then_some(self.canvas_tools.array.center);
             } else if self.modify() == Some(super::modify::ModifyTool::Frame) {
                 self.scene.preview = self.frame_outlines();
             } else if self
@@ -870,6 +872,7 @@ impl ChiploadApp {
             || !self.show_drawing()
             || self.modify().is_some()
             || self
+                .canvas_tools
                 .typed
                 .as_ref()
                 .is_some_and(|t| matches!(t.target, super::drawing::TypedTarget::Dimension(_)))
@@ -968,7 +971,7 @@ impl ChiploadApp {
     /// The entry of a value being typed while drawing: Enter applies it, Esc or a click
     /// elsewhere closes it.
     fn typed_entry(&mut self, ui: &egui::Ui) {
-        let Some(mut typed) = self.typed.clone() else {
+        let Some(mut typed) = self.canvas_tools.typed.clone() else {
             return;
         };
         let id = egui::Id::new("draw-typed-entry");
@@ -1007,7 +1010,7 @@ impl ChiploadApp {
         }
         let entered = shown.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
         let closed = shown.lost_focus() && !entered;
-        self.typed = (!closed).then_some(typed);
+        self.canvas_tools.typed = (!closed).then_some(typed);
         if entered {
             let cursor = self.drag.snapped.map(|(p, _)| p).or(self.cursor);
             if let Some(cursor) = cursor {

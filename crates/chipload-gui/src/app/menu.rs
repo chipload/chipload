@@ -25,7 +25,7 @@ impl ChiploadApp {
         // (drawing-input.md §2, drawing-editing.md §2).
         let typing_tool =
             self.sketch().is_some() || self.modify() == Some(super::modify::ModifyTool::Offset);
-        if typing_tool && self.typed.is_none() {
+        if typing_tool && self.canvas_tools.typed.is_none() {
             let first = ctx.input(|i| {
                 i.events.iter().find_map(|e| match e {
                     egui::Event::Text(t)
@@ -46,7 +46,7 @@ impl ChiploadApp {
         if self.sketch().is_none()
             && self.measure().is_none()
             && !self.placing_text()
-            && let Some(tool) = self.last_tool
+            && let Some(tool) = self.canvas_tools.last_tool
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter))
         {
             self.start_drawing(tool);
@@ -832,13 +832,13 @@ impl ChiploadApp {
         ui.label(t!(ui, "menu-polygon-sides"));
         if ui
             .add(
-                egui::DragValue::new(&mut self.polygon_sides)
+                egui::DragValue::new(&mut self.canvas_tools.polygon_sides)
                     .range(chipload_job::POLYGON_SIDES)
                     .speed(0.1),
             )
             .changed()
         {
-            let sides = self.polygon_sides;
+            let sides = self.canvas_tools.polygon_sides;
             if let Some(sketch) = self.sketch_mut() {
                 sketch.sides = sides;
             }
@@ -852,7 +852,7 @@ impl ChiploadApp {
             return;
         }
         let label = with_keys(&t!(ui, "menu-construction"), Action::Construction);
-        ui.checkbox(&mut self.construction_mode, label)
+        ui.checkbox(&mut self.canvas_tools.construction_mode, label)
             .on_hover_text(t!(ui, "menu-construction-hover"));
         ui.separator();
     }

@@ -40,8 +40,8 @@ fn a_frame_round_a_selected_text_is_one_undo_step() {
     assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     assert_eq!(app.focus, Focus::Selection);
     assert_eq!(app.modify(), Some(ModifyTool::Frame));
-    app.frame.kind = chipload_pipeline::frames::FrameKind::Oval;
-    app.frame.borders = 2;
+    app.canvas_tools.frame.kind = chipload_pipeline::frames::FrameKind::Oval;
+    app.canvas_tools.frame.borders = 2;
     draw_properties(&mut app);
     assert!(!app.frame_outlines().is_empty(), "the preview");
     assert!(app.create_frame());
@@ -60,11 +60,11 @@ fn with_nothing_selected_a_frame_is_drawn_to_a_size() {
     app.new_project();
     app.start_frame();
     assert_eq!(app.selection, CanvasSelection::Nothing);
-    app.frame.kind = chipload_pipeline::frames::FrameKind::Rounded;
-    (app.frame.width, app.frame.height) = (200.0, 120.0);
-    app.frame.corner_set = true;
-    app.frame.corner = 12.0;
-    app.frame.borders = 0;
+    app.canvas_tools.frame.kind = chipload_pipeline::frames::FrameKind::Rounded;
+    (app.canvas_tools.frame.width, app.canvas_tools.frame.height) = (200.0, 120.0);
+    app.canvas_tools.frame.corner_set = true;
+    app.canvas_tools.frame.corner = 12.0;
+    app.canvas_tools.frame.borders = 0;
     draw_properties(&mut app);
     assert!(app.create_frame());
     let [shape] = shapes(&app) else {
@@ -90,9 +90,9 @@ fn with_nothing_selected_a_frame_is_drawn_to_a_size() {
     // A corner too large: no Add, the reason in the form, nothing added.
     app.selection = CanvasSelection::Nothing;
     app.start_frame();
-    app.frame.corner = 90.0;
+    app.canvas_tools.frame.corner = 90.0;
     draw_properties(&mut app);
-    assert!(matches!(app.frame_preview.place, Some(Err(_))));
+    assert!(matches!(app.canvas_tools.frame_preview.place, Some(Err(_))));
     assert!(!app.create_frame());
     assert_eq!(shapes(&app).len(), 1);
 }
