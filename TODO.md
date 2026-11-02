@@ -96,11 +96,12 @@ it's built (see `CLAUDE.md`).
      one bug of it). Now `EditJob { job, unsided }`; the marks move with their
      operations (`reorder`), pipeline results are taken whole (`adopt`).
      `Job::board_extents_with` went.
-  2. **One way to say where a shape comes from**, next, with a spec first: an origin on
-     the shape (drawn, DXF, picture, text) instead of three optional fields in
-     `Geometry::Path`; a selector of a source, a layer, shapes and those left out instead
-     of seven optional fields; one "whole thing but these" selection in the window
-     instead of `Except` and `Group`. A schema bump.
+  2. **One way to say where a shape comes from**: spec docs/specs/source-model.md,
+     **draft 2026-11-02, for review** (decisions 1-7). An `Origin` enum in
+     `Geometry::Path` instead of five optional fields; a selector of a `Source` and what's
+     left out instead of seven optional fields; one `Whole` selection in the window
+     instead of `Source`, `Except` and `Group`. Rust types only: the file, the scripting
+     paths and the G-code stay the same, no schema bump.
   3. Later: the window's modes (drawing, modify, measure, placing text, …) as one enum
      instead of separate fields cleared by hand; splitting `models.rs`, the CLI's
      `main.rs` and `forms.rs`.
