@@ -5,7 +5,7 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 
-use super::super::shape_library::RightTab;
+use super::super::layout::RightTab;
 use super::*;
 
 /// A settings folder of its own for each test.
@@ -84,7 +84,7 @@ fn the_selection_is_saved_then_dragged_onto_the_canvas() {
     let mut harness = sign(dir.clone());
     harness.get_by_label("SHAPES").click();
     harness.run_steps(2);
-    assert_eq!(harness.state().right_tab, RightTab::Shapes);
+    assert_eq!(harness.state().panels.right_tab, RightTab::Shapes);
     harness.get_by_label("Save selection…").click();
     harness.run_steps(3);
     // The text's words are the name suggested.
@@ -162,7 +162,7 @@ fn selected_shapes_carried_onto_the_tab_are_saved_not_moved() {
     harness.run_steps(3);
     let app = harness.state();
     assert_eq!(app.edit.as_ref().unwrap().job.drawing, before, "not moved");
-    assert_eq!(app.right_tab, RightTab::Shapes);
+    assert_eq!(app.panels.right_tab, RightTab::Shapes);
     assert!(matches!(
         app.shape_library.asking,
         Some(super::super::shape_library::Asking::Save { .. })
@@ -177,10 +177,10 @@ fn a_browser_item_brings_properties_back_and_the_canvas_selection_does_not() {
     harness.run_steps(2);
     harness.state_mut().selection = CanvasSelection::Shapes([5].into());
     harness.run_steps(2);
-    assert_eq!(harness.state().right_tab, RightTab::Shapes);
+    assert_eq!(harness.state().panels.right_tab, RightTab::Shapes);
     harness.state_mut().focus = Focus::Op(0);
     harness.run_steps(2);
-    assert_eq!(harness.state().right_tab, RightTab::Properties);
+    assert_eq!(harness.state().panels.right_tab, RightTab::Properties);
 }
 
 #[test]

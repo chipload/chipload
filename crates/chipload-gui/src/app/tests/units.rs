@@ -145,7 +145,7 @@ fn with_inches_the_report_shows_its_notes_and_checks_in_inches() {
         "{:?}",
         app.report
     );
-    app.report_open = true;
+    app.panels.report_open = true;
     let painted = |units: Units, app: &mut ChiploadApp| {
         let ctx = egui::Context::default();
         let mut text = String::new();

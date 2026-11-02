@@ -430,11 +430,14 @@ impl ChiploadApp {
             self.set_show_rulers(rulers);
         }
         ui.checkbox(&mut self.legend_open, t!(ui, "menu-show-legend"));
-        ui.checkbox(&mut self.browser_open, t!(ui, "menu-show-browser"));
-        ui.checkbox(&mut self.properties_open, t!(ui, "menu-show-properties"));
+        ui.checkbox(&mut self.panels.browser_open, t!(ui, "menu-show-browser"));
+        ui.checkbox(
+            &mut self.panels.properties_open,
+            t!(ui, "menu-show-properties"),
+        );
         if ui
             .button(with_keys(
-                &if self.browser_open || self.properties_open {
+                &if self.panels.browser_open || self.panels.properties_open {
                     t!(ui, "menu-fold-panels")
                 } else {
                     t!(ui, "menu-open-panels")

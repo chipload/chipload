@@ -4,6 +4,7 @@
 //! selected shapes dragged onto it to save. The rules (names, groups, saving, inserting)
 //! are the pipeline's (`chipload_pipeline::shape_library`); this lists and shows them.
 
+use super::layout::RightTab;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -19,14 +20,6 @@ use egui::{Align2, Color32, Pos2, Rect, Sense, Stroke, vec2};
 
 use super::modify::ModifyTool;
 use super::*;
-
-/// What the right panel shows (decision 9: tabs).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum RightTab {
-    #[default]
-    Properties,
-    Shapes,
-}
 
 /// An entry being dragged out of the tab, by its full name (`Group/Name`).
 #[derive(Debug, Clone, PartialEq)]
@@ -173,17 +166,17 @@ impl ChiploadApp {
             ];
             for (tab, name) in names {
                 let text = RichText::new(name.to_uppercase()).small();
-                let tab_response = ui.selectable_label(self.right_tab == tab, text);
+                let tab_response = ui.selectable_label(self.panels.right_tab == tab, text);
                 if tab_response.clicked() {
-                    self.right_tab = tab;
+                    self.panels.right_tab = tab;
                 }
-                if tab == RightTab::Shapes && self.right_tab != RightTab::Shapes {
+                if tab == RightTab::Shapes && self.panels.right_tab != RightTab::Shapes {
                     self.shape_library.drop_rect = Some(tab_response.rect);
                     // An entry dragged over the tab's name opens it.
                     if tab_response.contains_pointer()
                         && egui::DragAndDrop::has_payload_of_type::<DraggedEntry>(ui.ctx())
                     {
-                        self.right_tab = RightTab::Shapes;
+                        self.panels.right_tab = RightTab::Shapes;
                     }
                 }
             }
@@ -203,7 +196,7 @@ impl ChiploadApp {
             || (self.modify() != modify && self.modify().is_some())
             || (self.placing_text() && !placing);
         if asked {
-            self.right_tab = RightTab::Properties;
+            self.panels.right_tab = RightTab::Properties;
         }
     }
 
@@ -459,7 +452,7 @@ impl ChiploadApp {
         match entry_from(&edit.job, &ids, &[]) {
             Ok(entry) => {
                 let name = suggested_name(&entry);
-                self.right_tab = RightTab::Shapes;
+                self.panels.right_tab = RightTab::Shapes;
                 self.shape_library.asking = Some(Asking::Save {
                     group,
                     name,
@@ -493,7 +486,7 @@ impl ChiploadApp {
 
     /// Whether `pos` (screen) is where selected shapes can be dropped to save them.
     pub(super) fn over_library(&self, pos: Pos2) -> bool {
-        self.properties_open
+        self.panels.properties_open
             && self.settings_dir.is_some()
             && self
                 .shape_library

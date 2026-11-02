@@ -55,6 +55,7 @@ mod generation;
 mod groups;
 pub(crate) mod header;
 mod images;
+mod layout;
 mod library_transfer;
 mod library_view;
 mod materials;
@@ -92,23 +93,6 @@ const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
 /// Extension of project files (docs/specs/project-file.md, D1).
 pub const PROJECT_EXTENSION: &str = "chipload";
-
-/// A folded side panel's width, and the least widths of the open ones: the Properties
-/// forms fit in theirs (narrower labels and fields, rows that wrap).
-const FOLDED_WIDTH: f32 = 26.0;
-const BROWSER_MIN_WIDTH: f32 = 180.0;
-pub(crate) const PROPERTIES_MIN_WIDTH: f32 = 250.0;
-
-/// A folded side panel: one button that opens it again. True when clicked.
-fn folded_strip(ui: &mut egui::Ui, arrow: &str, hover: &str) -> bool {
-    ui.add_space(4.0);
-    ui.vertical_centered(|ui| {
-        ui.add(egui::Button::new(arrow).frame(false))
-            .on_hover_text(hover)
-            .clicked()
-    })
-    .inner
-}
 
 /// What a pocket's *Add rest pass ▸* (docs/specs/rest-passes.md §6) or a V-carve's *Add
 /// floor pass ▸* (docs/specs/vcarve-wide-strokes.md §7) offers.
@@ -381,13 +365,8 @@ pub struct ChiploadApp {
     /// Simulate mode (docs/specs/edit-and-simulate.md §2): the shaded simulation and
     /// playback, the canvas a viewer. Off: Edit, the canvas a drawing board.
     pub show_simulation: bool,
-    /// The Browser and the Properties panel open, or folded to a strip for a larger canvas
-    /// (View, the P key, or dragging a panel's edge past its least width).
-    pub browser_open: bool,
-    pub properties_open: bool,
-    /// What the right panel shows: Properties or the shape library
-    /// (docs/specs/shape-library.md §5.1).
-    pub right_tab: shape_library::RightTab,
+    /// The panels round the canvas: which are open, which tab the right one shows.
+    pub panels: layout::Panels,
     shape_library: shape_library::ShapeLibraryView,
     /// The material-removal simulation of the last result (docs/specs/simulation.md).
     pub sim: Sim,
@@ -440,8 +419,6 @@ pub struct ChiploadApp {
     box_size: box_drag::BoxSize,
 
     pub report: Report,
-    /// The report panel is open (it opens by itself on warnings and errors).
-    pub report_open: bool,
     /// The current drawing's facts, for the report's Drawing section.
     pub drawing_facts: Option<DrawingFacts>,
     /// The canvas legend is unfolded.
@@ -560,9 +537,7 @@ impl Default for ChiploadApp {
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
             show_simulation: false,
-            browser_open: true,
-            properties_open: true,
-            right_tab: shape_library::RightTab::default(),
+            panels: layout::Panels::default(),
             shape_library: shape_library::ShapeLibraryView::default(),
             sim: Sim::default(),
             playback: None,
@@ -591,7 +566,6 @@ impl Default for ChiploadApp {
             drag: Drag::default(),
             box_size: box_drag::BoxSize::default(),
             report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),
-            report_open: false,
             drawing_facts: None,
             legend_open: true,
             toolpath_stale: false,
@@ -1424,9 +1398,9 @@ impl ChiploadApp {
 
     /// Fold both side panels for the largest canvas, or open both again (View, P).
     pub fn toggle_panels(&mut self) {
-        let open = !(self.browser_open || self.properties_open);
-        self.browser_open = open;
-        self.properties_open = open;
+        let open = !(self.panels.browser_open || self.panels.properties_open);
+        self.panels.browser_open = open;
+        self.panels.properties_open = open;
     }
 
     /// Add a rest pass to pocket `i`, cut with `tool` (docs/specs/rest-passes.md §6), and
@@ -2427,73 +2401,7 @@ impl eframe::App for ChiploadApp {
         Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
         self.report_panel(ui);
-        // Each side panel folds to a strip (its edge dragged past the least width, a
-        // double-click on the edge, the strip's button, View or P) for a larger canvas.
-        let mut open = self.browser_open;
-        let unfold = Panel::show_switched(
-            ui,
-            &mut open,
-            Panel::left("operations-folded")
-                .resizable(true)
-                .exact_size(FOLDED_WIDTH),
-            Panel::left("operations")
-                .resizable(true)
-                .default_size(340.0)
-                .min_size(BROWSER_MIN_WIDTH),
-            |ui, open| {
-                if open {
-                    self.sidebar(ui);
-                    false
-                } else {
-                    let hover = t!(ui, "app-show-browser-hover");
-                    folded_strip(ui, "▸", &hover)
-                }
-            },
-        )
-        .inner;
-        self.browser_open = open || unfold;
-        let mut open = self.properties_open;
-        let unfold = Panel::show_switched(
-            ui,
-            &mut open,
-            Panel::right("side-folded")
-                .resizable(true)
-                .exact_size(FOLDED_WIDTH),
-            Panel::right("side")
-                .resizable(true)
-                .default_size(440.0)
-                .min_size(PROPERTIES_MIN_WIDTH),
-            |ui, open| {
-                if !open {
-                    let hover = t!(ui, "app-show-properties-hover");
-                    return folded_strip(ui, "◂", &hover);
-                }
-                self.right_tabs(ui);
-                // The forms are laid out in the panel's width; a row that still doesn't fit
-                // scrolls sideways instead of widening the panel.
-                let width = ui.available_width();
-                if self.right_tab == shape_library::RightTab::Shapes {
-                    ScrollArea::vertical()
-                        .id_salt("shape-library-scroll")
-                        .auto_shrink([false, false])
-                        .show(ui, |ui| {
-                            ui.set_max_width(width);
-                            self.shapes_tab(ui);
-                        });
-                } else {
-                    ScrollArea::both()
-                        .id_salt("properties-scroll")
-                        .auto_shrink([false, true])
-                        .show(ui, |ui| {
-                            ui.set_max_width(width);
-                            self.properties_panel(ui);
-                        });
-                }
-                false
-            },
-        )
-        .inner;
-        self.properties_open = open || unfold;
+        self.side_panels(ui);
         CentralPanel::no_frame().show(ui, |ui| {
             // Asked once whether to check for new versions (docs/specs/update-notice.md §2).
             if self.update_question_shown() {

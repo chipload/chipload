@@ -278,12 +278,12 @@ fn a_lead_set_on_an_operation_is_generated_and_saved() {
 fn a_report_with_warnings_opens_and_links_to_its_operations() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
-    assert!(!app.report_open, "nothing to warn about yet");
+    assert!(!app.panels.report_open, "nothing to warn about yet");
     let facts = app.drawing_facts.clone().unwrap();
     assert_eq!((facts.contours, facts.issues), (3, 0));
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert_eq!(app.report.lines[0].tone, Tone::Good);
-    assert!(app.report_open, "warnings open the report");
+    assert!(app.panels.report_open, "warnings open the report");
     // "Operation 2 (Outline): cuts 0.300 mm below the stock bottom ..."
     let warning = app
         .report

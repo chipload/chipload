@@ -73,7 +73,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
     ];
     pages.extend((0..edit.job.operations.len()).map(Focus::Op));
     // The panel's least width, less its frame's margins.
-    let width = PROPERTIES_MIN_WIDTH - 16.0;
+    let width = crate::app::layout::PROPERTIES_MIN_WIDTH - 16.0;
     let mut wide = Vec::new();
     for page in pages {
         app.focus = page;
@@ -88,13 +88,13 @@ fn every_properties_page_fits_the_narrowest_panel() {
 #[test]
 fn p_folds_both_side_panels_and_opens_them_again() {
     let mut app = lower_part();
-    assert!(app.browser_open && app.properties_open);
+    assert!(app.panels.browser_open && app.panels.properties_open);
     app.toggle_panels();
-    assert!(!app.browser_open && !app.properties_open);
+    assert!(!app.panels.browser_open && !app.panels.properties_open);
     app.toggle_panels();
-    assert!(app.browser_open && app.properties_open);
+    assert!(app.panels.browser_open && app.panels.properties_open);
     // One folded: P folds the other too.
-    app.properties_open = false;
+    app.panels.properties_open = false;
     app.toggle_panels();
-    assert!(!app.browser_open && !app.properties_open);
+    assert!(!app.panels.browser_open && !app.panels.properties_open);
 }
