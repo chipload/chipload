@@ -185,6 +185,11 @@ it's built (see `CLAUDE.md`).
      lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
      `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
 
+- **A DXF or SVG selected whole on the canvas, moved by dragging** (the user, 2026-11-02:
+  "imported dxfs and svgs should be able to be dragged similar to text and images. One
+  click selects the whole dxf or svg and it can be dragged around and into the shape
+  library"): docs/specs/dxf-whole-on-canvas.md, **draft**, decisions 1-4 to review.
+
 - **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
   long time each operation will take, similar to how prusa slicer gives a report how much
   time different operations take. Except time id like, g1 travelled length, g0 length,
