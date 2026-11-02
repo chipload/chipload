@@ -134,6 +134,14 @@ it's built (see `CLAUDE.md`).
   6. **Dockable panels** next: a spec and ADR first (egui_dock 0.21 or egui_tiles 0.17,
      licences, the layout saved per user, how it meets the folding side panels); the dock
      shows `panel_contents`.
+  7. **Review the operations not yet reviewed: follow path, holes and V-carve** (open
+     since the reviews of profile and pocket). These drive the machine, so a review there
+     finds more real bugs than any restructuring: boundaries (zero depth, depth equal to
+     the stock, tool larger than the feature), the checker's view of each, and proptest
+     invariants where one exists. Suggested before the next release.
+  8. Later, when next worked on: the remaining large files, toolpath `plan.rs` (2,550
+     lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
+     `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
 
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
