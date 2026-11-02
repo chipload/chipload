@@ -37,6 +37,12 @@ or by id, as now.
 - **Copy and paste:** copying a whole group pastes a new group (decision 6).
 - **Library:** saving a group saves its shapes; inserting an entry of more than one shape
   makes a group named after the entry (decision 5).
+- **Cut it:** with a group selected, *V-carve*, *Pocket*, *Profile* or any operation in the
+  ribbon takes its shapes, as for any selection (the user, 2026-11-02: "when I insert it
+  again I would like to be able to select it and choose V-carve"). A traced picture saved
+  to the library and inserted is drawn polylines that V-carve as the trace did: checked on
+  the golden ring (v19 image_vcarve), saved, inserted into an empty copy and carved, its
+  program passing the checker.
 - **The same on the command line** (§6).
 
 ## 3. What can be in a group
