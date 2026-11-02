@@ -9,12 +9,13 @@ fn tabs_and_onion_skin_are_one_choice_and_switching_keeps_what_stays() {
         .edit
         .as_ref()
         .unwrap()
-        .ops
+        .job
+        .operations
         .iter()
-        .position(|e| matches!(e.op, Operation::Profile(_)))
+        .position(|e| matches!(e, Operation::Profile(_)))
         .unwrap();
     let profile = |app: &mut ChiploadApp| -> chipload_job::ProfileOp {
-        match &app.edit.as_ref().unwrap().ops[i].op {
+        match &app.edit.as_ref().unwrap().job.operations[i] {
             Operation::Profile(p) => p.clone(),
             _ => unreachable!(),
         }
@@ -40,7 +41,7 @@ fn tabs_and_onion_skin_are_one_choice_and_switching_keeps_what_stays() {
     for holding in Holding::ALL {
         let mut p = profile(&mut app);
         holding.apply(&mut p, None);
-        app.edit.as_mut().unwrap().ops[i].op = Operation::Profile(p);
+        app.edit.as_mut().unwrap().job.operations[i] = Operation::Profile(p);
         app.commit();
         draw_properties(&mut app);
     }
@@ -71,7 +72,7 @@ fn clicking_a_traced_contour_selects_the_whole_picture() {
         CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1))
     );
     let index = app.add_operation(OpKind::Vcarve).unwrap();
-    let op = &app.edit.as_ref().unwrap().ops[index].op;
+    let op = &app.edit.as_ref().unwrap().job.operations[index];
     assert_eq!(op.select().image, Some(1));
     assert!(op.select().shapes.as_ref().is_none_or(|s| s.is_empty()));
     assert!(
@@ -92,7 +93,7 @@ fn use_selection_with_a_picture_selects_the_picture() {
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .drawing
         .shapes
         .iter()
@@ -111,7 +112,9 @@ fn use_selection_with_a_picture_selects_the_picture() {
         }
         app.focus = Focus::Op(index);
         app.use_selection();
-        let select = app.edit.as_ref().unwrap().ops[index].op.select().clone();
+        let select = app.edit.as_ref().unwrap().job.operations[index]
+            .select()
+            .clone();
         assert_eq!(select.image, Some(1), "{pick}: {select:?}");
         assert!(
             select.shapes.as_ref().is_none_or(|s| s.is_empty()),

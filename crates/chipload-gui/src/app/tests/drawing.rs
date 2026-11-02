@@ -76,7 +76,7 @@ fn escape_cancels_and_a_new_shape_takes_the_selections_layer() {
     app.draw_click((10.0, 10.0), false);
     app.cancel_drawing();
     assert!(app.sketch.is_none());
-    assert_eq!(app.edit.as_ref().unwrap().settings.drawing.shapes.len(), 3);
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing.shapes.len(), 3);
     // The circle S2 is on layer "drawn" and selected: the new shape goes there too.
     app.click(Some(contour_of(&app, 2)), false);
     app.start_drawing(Tool::Circle);
@@ -161,7 +161,7 @@ fn a_selected_shape_that_is_deleted_drops_out_of_the_selection() {
     app.click(Some(contour_of(&app, 3)), true);
     // Delete S3 behind the selection's back (as Update from DXF could).
     let edit = app.edit.as_mut().unwrap();
-    edit.settings.drawing.shapes.retain(|s| s.id != 3);
+    edit.job.drawing.shapes.retain(|s| s.id != 3);
     app.commit();
     app.refresh_drawing();
     assert_eq!(
@@ -198,7 +198,7 @@ fn plunges_are_counted_per_operation() {
     select(&mut app, &[2]);
     app.add_operation(OpKind::Profile).unwrap();
     // Three depth passes, like the reported project.
-    if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.ops[0].op) {
+    if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.job.operations[0]) {
         p.end_depth = 3.0;
         p.step_down = 1.0;
     }
@@ -246,7 +246,7 @@ fn disabled_operations_are_not_cut() {
     let mut app = lower_part();
     assert!(app.generate_and_wait());
     let all = app.result.as_ref().unwrap().program.moves.len();
-    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
         p.enabled = false;
     }
     app.commit();
@@ -257,21 +257,21 @@ fn disabled_operations_are_not_cut() {
 #[test]
 fn undo_and_redo_restore_earlier_projects() {
     let mut app = lower_part();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 1);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 1);
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 0);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 0);
     app.redo();
     app.redo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
     // A field edit is one step.
-    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.end_depth = 5.0;
     }
     app.commit();
     app.undo();
-    let Operation::Profile(p) = &app.edit.as_ref().unwrap().ops[1].op else {
+    let Operation::Profile(p) = &app.edit.as_ref().unwrap().job.operations[1] else {
         panic!("expected the profile");
     };
     assert_eq!(p.end_depth, 1.0);
@@ -374,7 +374,7 @@ fn unitless_drawing_asks_for_units() {
     ));
     assert!(app.import_dxf(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
     assert!(!app.contours.is_empty());
-    let source = app.edit.as_ref().unwrap().settings.drawing.dxfs[0].clone();
+    let source = app.edit.as_ref().unwrap().job.drawing.dxfs[0].clone();
     assert_eq!(source.units_from, chipload_job::UnitsFrom::User);
 }
 
@@ -630,7 +630,7 @@ fn trim_extend_and_break_work_on_the_shape_clicked() {
     app.commit();
     // Break: A splits in two at the point clicked; the first part keeps its id.
     app.start_modify(ModifyTool::Break);
-    let before = app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    let before = app.edit.as_ref().unwrap().job.drawing.shapes.len();
     app.modify_click(
         Some(contour_of(&app, a)),
         (210.0, 150.3),
@@ -639,7 +639,7 @@ fn trim_extend_and_break_work_on_the_shape_clicked() {
     );
     assert_eq!(points(&app, a), [[200.0, 150.0], [210.0, 150.0]]);
     assert_eq!(
-        app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+        app.edit.as_ref().unwrap().job.drawing.shapes.len(),
         before + 1
     );
 }
@@ -689,7 +689,7 @@ fn the_array_tools_preview_their_copies_and_create_them() {
     use super::modify::ModifyTool;
     let mut app = drawn_part();
     app.selection = CanvasSelection::Shapes([2].into());
-    let count = |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    let count = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.shapes.len();
     // A grid: three columns, the preview shows the two copies.
     app.start_modify(ModifyTool::Array);
     app.array.columns = 3;
@@ -745,7 +745,7 @@ fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
         Some(Prompt::PxPerInch(_, UnitsFor::Add, typed)) if typed == "96"
     ));
     assert!(app.add_file_from(&corpus("svg/pixels.svg"), None, Some(96.0)));
-    let files = &app.edit.as_ref().unwrap().settings.drawing.dxfs;
+    let files = &app.edit.as_ref().unwrap().job.drawing.dxfs;
     assert_eq!(files.len(), 2);
     assert_eq!(files[1].px_per_inch, Some(96.0));
     // Colours as layers: the red plate, the blue hole.
@@ -753,7 +753,7 @@ fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .drawing
         .shapes
         .iter()
@@ -861,7 +861,7 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
     app.redo();
     assert!(fresh(&app));
     // Now an operation cuts it: generated again.
-    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.select.shapes = Some(vec![1, id]);
     }
     app.commit();
@@ -876,7 +876,7 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
     assert!(app.changed_at.is_some(), "outside the stock");
     // A board that fits its drawing grows with a new shape, and a zero on its corner moves.
     let mut app = drawn_part();
-    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
+    let stock = app.edit.as_mut().unwrap().job.stock_mut();
     stock.origin = chipload_job::StockOrigin::Drawing;
     stock.fit = Some(10.0);
     app.commit();

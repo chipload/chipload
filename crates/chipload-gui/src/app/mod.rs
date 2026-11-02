@@ -744,7 +744,7 @@ impl ChiploadApp {
     fn after_history_step(&mut self) {
         self.shape_draft = None;
         self.sketch = None;
-        let len = self.edit.as_ref().map_or(0, |e| e.ops.len());
+        let len = self.edit.as_ref().map_or(0, |e| e.job.operations.len());
         if let Focus::Op(i) = self.focus
             && i >= len
         {
@@ -785,7 +785,7 @@ impl ChiploadApp {
     /// Recompute contours and the drawing's facts if the project's drawing changed (open,
     /// import, update, undo).
     fn refresh_drawing(&mut self) {
-        let Some(job) = self.edit.as_ref().map(|e| e.settings.clone()) else {
+        let Some(job) = self.edit.as_ref().map(|e| e.job.clone()) else {
             self.drawing_facts = None;
             return;
         };
@@ -1010,12 +1010,10 @@ impl ChiploadApp {
         };
         match updated {
             Ok((updated, report)) => {
-                let mut next = EditJob::from_job(&updated);
-                // Keep "side not chosen" marks; the update doesn't touch operations.
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(updated);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.error_ops = report.lost.iter().copied().collect();
@@ -1073,11 +1071,10 @@ impl ChiploadApp {
         };
         match chipload_pipeline::dxfs::add_drawing_file(&job, dxf, units, px, None) {
             Ok((added, report)) => {
-                let mut next = EditJob::from_job(&added);
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(added);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(report.messages));
@@ -1122,7 +1119,7 @@ impl ChiploadApp {
         // The project's material: the new operation names it, and its values for the tool
         // come first (docs/specs/materials.md §2).
         let material = self.material_cutting(tool);
-        let material_ref = self.edit.as_ref()?.settings.stock().material.clone();
+        let material_ref = self.edit.as_ref()?.job.stock().material.clone();
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(
@@ -1132,10 +1129,10 @@ impl ChiploadApp {
             cutting.as_ref(),
             &self.language,
         );
-        if let Some(entry) = edit.ops.get_mut(index) {
-            entry.op.set_material(material_ref);
+        if let Some(entry) = edit.job.operations.get_mut(index) {
+            entry.set_material(material_ref);
             if let Some(values) = material {
-                entry.op.apply_cutting(&values);
+                entry.apply_cutting(&values);
             }
         }
         self.focus = Focus::Op(index);
@@ -1174,12 +1171,10 @@ impl ChiploadApp {
         };
         match placed {
             Ok((placed, report)) => {
-                let mut next = EditJob::from_job(&placed);
-                // Keep "side not chosen" marks; placing only moves start points.
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: placing only moves start points.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(placed);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(report.messages));
@@ -1202,7 +1197,7 @@ impl ChiploadApp {
         };
         // The part alone: the grid being set may not be valid yet (a pitch of 0).
         let mut part = edit.clone();
-        for p in &mut part.settings.parts {
+        for p in &mut part.job.parts {
             p.copies = None;
         }
         let job = match part.to_job() {
@@ -1216,14 +1211,14 @@ impl ChiploadApp {
             }
         };
         let current = edit
-            .settings
+            .job
             .part(id)
             .and_then(|p| p.copies)
             .map_or((0.0, 0.0), |c| (c.dx, c.dy));
         match chipload_pipeline::copies::pitch_for_gap(&job, id, gap, current) {
             Ok((dx, dy)) => {
                 let copies = self.edit.as_mut().and_then(|e| {
-                    e.settings
+                    e.job
                         .parts
                         .iter_mut()
                         .find(|p| p.id == id)
@@ -1267,8 +1262,8 @@ impl ChiploadApp {
     /// Move the operation at `from` to position `to` in the cut order.
     pub fn move_operation(&mut self, from: usize, to: usize) {
         if let Some(edit) = self.edit.as_mut()
-            && from < edit.ops.len()
-            && to < edit.ops.len()
+            && from < edit.job.operations.len()
+            && to < edit.job.operations.len()
         {
             edit.move_op(from, to);
             self.focus = Focus::Op(to);
@@ -1289,11 +1284,11 @@ impl ChiploadApp {
     /// Make part `id` the one new operations go into.
     pub fn activate_part(&mut self, id: u64) {
         if let Some(edit) = self.edit.as_mut()
-            && let Some(setup) = edit.settings.part(id).map(|p| p.setup)
+            && let Some(setup) = edit.job.part(id).map(|p| p.setup)
         {
-            edit.settings.active_part = Some(id);
+            edit.job.active_part = Some(id);
             // Its setup is the one shown (docs/specs/setups.md §7).
-            edit.settings.active_setup = Some(setup);
+            edit.job.active_setup = Some(setup);
             self.commit();
         }
     }
@@ -1304,7 +1299,7 @@ impl ChiploadApp {
             return;
         };
         let name = edit
-            .settings
+            .job
             .part(id)
             .map(|p| p.name.clone())
             .unwrap_or_default();
@@ -1341,7 +1336,7 @@ impl ChiploadApp {
         if let Some(part) = self
             .edit
             .as_mut()
-            .and_then(|e| e.settings.parts.iter_mut().find(|p| p.id == id))
+            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == id))
         {
             part.enabled = !part.enabled;
             self.commit();
@@ -1371,8 +1366,8 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let tools = edit.settings.tools.clone();
-        let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+        let tools = edit.job.tools.clone();
+        let Some(Operation::Pocket(pocket)) = edit.job.operations.get_mut(i) else {
             return false;
         };
         match chipload_pipeline::rest_pass_of(pocket, &tools, tool, cutting.as_ref()) {
@@ -1397,7 +1392,7 @@ impl ChiploadApp {
     /// project first unless it is there already: one undo step (docs/specs/rest-passes.md
     /// §6). If the pass can't be added, the project's tools stay as they were.
     pub fn add_rest_pass_from_library(&mut self, i: usize, name: &str) -> bool {
-        let Some(before) = self.edit.as_ref().map(|e| e.settings.tools.clone()) else {
+        let Some(before) = self.edit.as_ref().map(|e| e.job.tools.clone()) else {
             return false;
         };
         let Some(tool) = self.insert_library_tool(name) else {
@@ -1407,7 +1402,7 @@ impl ChiploadApp {
             return true;
         }
         if let Some(edit) = self.edit.as_mut() {
-            edit.settings.tools = before;
+            edit.job.tools = before;
         }
         false
     }
@@ -1417,13 +1412,13 @@ impl ChiploadApp {
     /// (docs/specs/rest-passes.md §6). None for any other operation.
     pub fn rest_menu(&self, i: usize, units: Units) -> Option<RestMenu> {
         let edit = self.edit.as_ref()?;
-        let Operation::Pocket(pocket) = &edit.ops.get(i)?.op else {
+        let Operation::Pocket(pocket) = &edit.job.operations.get(i)? else {
             return None;
         };
         if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
             return Some(RestMenu::Unavailable(t!(self, "app-rest-with-corners")));
         }
-        let tools = &edit.settings.tools;
+        let tools = &edit.job.tools;
         let last = pocket.rest_passes.last().map_or(pocket.tool, |r| r.tool);
         let Some(diameter) = tools.iter().find(|t| t.id == last).map(|t| t.diameter) else {
             return Some(RestMenu::Unavailable(t!(
@@ -1464,7 +1459,7 @@ impl ChiploadApp {
 
     /// Pocket `i`'s rest passes, to change.
     pub(super) fn rest_passes_mut(&mut self, i: usize) -> Option<&mut Vec<chipload_job::RestPass>> {
-        match self.edit.as_mut()?.ops.get_mut(i).map(|e| &mut e.op) {
+        match self.edit.as_mut()?.job.operations.get_mut(i) {
             Some(Operation::Pocket(p)) => Some(&mut p.rest_passes),
             _ => None,
         }
@@ -1496,8 +1491,8 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let tools = edit.settings.tools.clone();
-        let Some(Operation::Vcarve(vcarve)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+        let tools = edit.job.tools.clone();
+        let Some(Operation::Vcarve(vcarve)) = edit.job.operations.get_mut(i) else {
             return false;
         };
         match chipload_pipeline::floor_pass_of(vcarve, &tools, tool, cutting.as_ref()) {
@@ -1521,7 +1516,7 @@ impl ChiploadApp {
     /// [`App::add_floor_pass`] with the library tool `name`, copied into the project first
     /// unless it is there already. If the pass can't be added, the tools stay as they were.
     pub fn add_floor_pass_from_library(&mut self, i: usize, name: &str) -> bool {
-        let Some(before) = self.edit.as_ref().map(|e| e.settings.tools.clone()) else {
+        let Some(before) = self.edit.as_ref().map(|e| e.job.tools.clone()) else {
             return false;
         };
         let Some(tool) = self.insert_library_tool(name) else {
@@ -1531,7 +1526,7 @@ impl ChiploadApp {
             return true;
         }
         if let Some(edit) = self.edit.as_mut() {
-            edit.settings.tools = before;
+            edit.job.tools = before;
         }
         false
     }
@@ -1540,10 +1535,10 @@ impl ChiploadApp {
     /// the library's not yet in it; or why there is none. None for any other operation.
     pub fn floor_menu(&self, i: usize) -> Option<RestMenu> {
         let edit = self.edit.as_ref()?;
-        let Operation::Vcarve(_) = &edit.ops.get(i)?.op else {
+        let Operation::Vcarve(_) = &edit.job.operations.get(i)? else {
             return None;
         };
-        let tools = &edit.settings.tools;
+        let tools = &edit.job.tools;
         let project: Vec<(i64, f64)> = tools
             .iter()
             .filter(|t| t.kind == ToolType::Endmill)
@@ -1570,7 +1565,7 @@ impl ChiploadApp {
 
     /// V-carve `i`'s floor pass, to change.
     pub(super) fn floor_pass_mut(&mut self, i: usize) -> Option<&mut chipload_job::FloorPass> {
-        match self.edit.as_mut()?.ops.get_mut(i).map(|e| &mut e.op) {
+        match self.edit.as_mut()?.job.operations.get_mut(i) {
             Some(Operation::Vcarve(v)) => v.floor.as_mut(),
             _ => None,
         }
@@ -1578,10 +1573,8 @@ impl ChiploadApp {
 
     /// Remove V-carve `i`'s floor pass; the V-carve opens.
     pub fn remove_floor_pass(&mut self, i: usize) {
-        if let Some(Some(Operation::Vcarve(v))) = self
-            .edit
-            .as_mut()
-            .map(|e| e.ops.get_mut(i).map(|e| &mut e.op))
+        if let Some(Some(Operation::Vcarve(v))) =
+            self.edit.as_mut().map(|e| e.job.operations.get_mut(i))
             && v.floor.take().is_some()
         {
             self.focus = Focus::Op(i);
@@ -1621,8 +1614,7 @@ impl ChiploadApp {
     /// The project as edited, its operations included, for the pipeline's job-level rules.
     pub(super) fn edited_job(&self) -> Option<chipload_job::Job> {
         let edit = self.edit.as_ref()?;
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         Some(job)
     }
 
@@ -1641,10 +1633,13 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let Operation::Pocket(rest) = edit.ops.remove(i).op else {
+        if !matches!(edit.job.operations.get(i), Some(Operation::Pocket(_))) {
+            return;
+        }
+        let Some(Operation::Pocket(rest)) = edit.remove(i) else {
             return;
         };
-        if let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(parent).map(|e| &mut e.op) {
+        if let Some(Operation::Pocket(pocket)) = edit.job.operations.get_mut(parent) {
             pocket.rest_passes.push(chipload_job::RestPass {
                 tool: rest.tool,
                 feed: rest.feed,
@@ -1664,7 +1659,7 @@ impl ChiploadApp {
     pub fn delete_operation(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut()) {
             edit.remove(i);
-            let len = edit.ops.len();
+            let len = edit.job.operations.len();
             self.focus = if len == 0 {
                 Focus::Job
             } else {
@@ -1700,7 +1695,7 @@ impl ChiploadApp {
         let Some(name) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.part(id))
+            .and_then(|e| e.job.part(id))
             .map(|p| p.name.clone())
         else {
             return false;
@@ -1724,20 +1719,10 @@ impl ChiploadApp {
     /// if the toolpath shown is all of it, else once it is planned. Returns whether it was
     /// written now.
     pub fn export_setup(&mut self, id: u64, path: &Path) -> bool {
-        if self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.setup(id))
-            .is_none()
-        {
+        if self.edit.as_ref().and_then(|e| e.job.setup(id)).is_none() {
             return false;
         }
-        if self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.active_setup_id())
-            != Some(id)
-        {
+        if self.edit.as_ref().and_then(|e| e.job.active_setup_id()) != Some(id) {
             self.activate_setup(id);
         }
         let shown = self
@@ -2080,7 +2065,7 @@ impl ChiploadApp {
                 let name = self
                     .edit
                     .as_ref()
-                    .and_then(|e| e.settings.drawing.groups.iter().find(|g| g.id == *id))
+                    .and_then(|e| e.job.drawing.groups.iter().find(|g| g.id == *id))
                     .map_or_else(String::new, |g| g.name.clone());
                 if left_out.is_empty() {
                     t!(self, "groups-selection", name = name)
@@ -2136,9 +2121,10 @@ impl ChiploadApp {
         else {
             return BTreeSet::new();
         };
-        edit.ops
+        edit.job
+            .operations
             .get(i)
-            .map(|entry| self.op_contours(&entry.op))
+            .map(|entry| self.op_contours(entry))
             .unwrap_or_default()
     }
 
@@ -2148,7 +2134,7 @@ impl ChiploadApp {
             return BTreeSet::new();
         }
         let select = match &self.edit {
-            Some(edit) => op.select().resolved(&edit.settings.drawing),
+            Some(edit) => op.select().resolved(&edit.job.drawing),
             None => op.select().clone(),
         };
         let selected = match op {
@@ -2185,12 +2171,13 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return BTreeSet::new();
         };
-        edit.ops
+        edit.job
+            .operations
             .iter()
-            .filter(|e| e.op.enabled() && matches!(e.op, Operation::Path(_)))
+            .filter(|e| e.enabled() && matches!(e, Operation::Path(_)))
             .filter_map(|e| {
-                let select = e.op.select().resolved(&edit.settings.drawing);
-                select_paths(&self.contours, &select, &e.op.label_message(0)).ok()
+                let select = e.select().resolved(&edit.job.drawing);
+                select_paths(&self.contours, &select, &e.label_message(0)).ok()
             })
             .flat_map(|s| {
                 s.contours
@@ -2299,7 +2286,7 @@ impl ChiploadApp {
         let first = self
             .edit
             .as_ref()
-            .is_some_and(|e| e.settings.drawing.dxfs.is_empty());
+            .is_some_and(|e| e.job.drawing.dxfs.is_empty());
         if first {
             (
                 t!(self, "app-import-dxf-into-project"),
@@ -2315,9 +2302,7 @@ impl ChiploadApp {
 
     /// How many DXFs the open project has.
     pub(super) fn dxf_count(&self) -> usize {
-        self.edit
-            .as_ref()
-            .map_or(0, |e| e.settings.drawing.dxfs.len())
+        self.edit.as_ref().map_or(0, |e| e.job.drawing.dxfs.len())
     }
 
     fn default_project_path(&self) -> PathBuf {
@@ -2326,7 +2311,7 @@ impl ChiploadApp {
         }
         self.edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.dxfs.first())
+            .and_then(|e| e.job.drawing.dxfs.first())
             .map(|s| Path::new(&s.file).with_extension(PROJECT_EXTENSION))
             .unwrap_or_else(|| PathBuf::from(format!("project.{PROJECT_EXTENSION}")))
     }

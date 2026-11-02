@@ -591,8 +591,8 @@ impl ChiploadApp {
     /// active one first.
     fn work_zero_row(&mut self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
         let edit = self.edit.as_ref()?;
-        let job = edit.settings.for_setup(id);
-        let active = edit.settings.active_setup_id() == Some(id);
+        let job = edit.job.for_setup(id);
+        let active = edit.job.active_setup_id() == Some(id);
         let place = super::forms::work_zero_name(ui, &job.work_zero());
         let summary = super::forms::zero_summary(ui, &job);
         let problems = if active {
@@ -623,7 +623,7 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return;
         };
-        let tools = edit.settings.tools.clone();
+        let tools = edit.job.tools.clone();
         let marked: Vec<bool> = (0..tools.len())
             .map(|k| {
                 let prefix = format!("tools.{k}.");
@@ -712,10 +712,10 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        let parts = edit.settings.parts.clone();
-        let active = edit.settings.active_part_id();
-        let count = edit.ops.len();
-        let op_parts: Vec<u64> = edit.ops.iter().map(|e| e.op.part()).collect();
+        let parts = edit.job.parts.clone();
+        let active = edit.job.active_part_id();
+        let count = edit.job.operations.len();
+        let op_parts: Vec<u64> = edit.job.operations.iter().map(|e| e.part()).collect();
         let tool_before = self
             .edited_job()
             .map(|job| tool_changes(&job))
@@ -723,8 +723,8 @@ impl ChiploadApp {
         let mut action: Option<OpAction> = None;
         // Setups, each with its zero and its parts as leaves (docs/specs/setups.md §7): the
         // active one in full colour, the others as ghosts.
-        let setups = edit.settings.setups.clone();
-        let active_setup = edit.settings.active_setup_id();
+        let setups = edit.job.setups.clone();
+        let active_setup = edit.job.active_setup_id();
         let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
             .icon(Icon::Rectangle)
             .trailing(setups.len().to_string());
@@ -851,9 +851,9 @@ impl ChiploadApp {
         match action {
             Some(OpAction::Focus(i)) => self.focus = Focus::Op(i),
             Some(OpAction::Toggle(i)) => {
-                if let Some(entry) = self.edit.as_mut().and_then(|e| e.ops.get_mut(i)) {
-                    let enabled = entry.op.enabled();
-                    entry.op.set_enabled(!enabled);
+                if let Some(entry) = self.edit.as_mut().and_then(|e| e.job.operations.get_mut(i)) {
+                    let enabled = entry.enabled();
+                    entry.set_enabled(!enabled);
                 }
             }
             Some(OpAction::Move(from, to)) => self.move_operation(from, to),
@@ -923,12 +923,12 @@ impl ChiploadApp {
         // Parts of another setup are ghosts too (docs/specs/setups.md §7).
         let (setups, in_active_setup) = self.edit.as_ref().map_or((Vec::new(), true), |e| {
             let setups: Vec<(u64, String)> = e
-                .settings
+                .job
                 .setups
                 .iter()
                 .map(|s| (s.id, s.name.clone()))
                 .collect();
-            (setups, e.settings.active_setup_id() == Some(part.setup))
+            (setups, e.job.active_setup_id() == Some(part.setup))
         });
         let mut trailing = Vec::new();
         if is_active && parts.len() > 1 {
@@ -1077,12 +1077,11 @@ impl ChiploadApp {
         changes: &[i64],
     ) -> Option<OpAction> {
         let edit = self.edit.as_ref()?;
-        let entry = edit.ops.get(i)?;
-        let op = &entry.op;
+        let entry = edit.job.operations.get(i)?;
+        let op = &entry;
         // An operation is cut when it and its part are on (docs/specs/parts.md §3).
-        let cut = |op: &Operation| {
-            op.enabled() && edit.settings.part(op.part()).is_some_and(|p| p.enabled)
-        };
+        let cut =
+            |op: &Operation| op.enabled() && edit.job.part(op.part()).is_some_and(|p| p.enabled);
         // A line marks each tool change (docs/specs/tool-per-operation.md §8).
         let is_cut = cut(op);
         if is_cut && !changes.is_empty() {
@@ -1341,10 +1340,10 @@ impl ChiploadApp {
     /// An operation row's hover text: its kind, tool, geometry, depths and time, then its
     /// first problem (already in the display units) and the hidden contours it cuts.
     fn operation_hover(&self, i: usize, problem: Option<&str>, hidden: usize) -> String {
-        let Some(entry) = self.edit.as_ref().and_then(|e| e.ops.get(i)) else {
+        let Some(entry) = self.edit.as_ref().and_then(|e| e.job.operations.get(i)) else {
             return String::new();
         };
-        let op = &entry.op;
+        let op = &entry;
         let kind = match op {
             Operation::Profile(_) => t!(self, "browser-profile"),
             Operation::Pocket(_) => t!(self, "browser-pocket"),

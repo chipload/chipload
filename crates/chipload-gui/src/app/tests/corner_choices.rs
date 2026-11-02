@@ -15,7 +15,7 @@ fn slot_pocket() -> ChiploadApp {
 }
 
 fn set_dogbones(app: &mut ChiploadApp) {
-    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
         p.corners = Some(Corners::Dogbone {
             max_angle: DEFAULT_CORNER_ANGLE_RAD,
         });
@@ -65,7 +65,9 @@ fn a_round_pockets_corners_show_and_can_each_get_a_bone() {
     // Each choice is one undo step.
     app.undo();
     assert_eq!(
-        app.edit.as_ref().unwrap().ops[0].op.corner_choices().len(),
+        app.edit.as_ref().unwrap().job.operations[0]
+            .corner_choices()
+            .len(),
         1
     );
 }
@@ -134,7 +136,7 @@ fn moving_a_drawn_shape_takes_its_corner_choices_and_start_points() {
     // docs/specs/dogbone-per-corner.md §4, decision 6
     let mut app = drawn_part();
     {
-        let op = &mut app.edit.as_mut().unwrap().ops[0].op;
+        let op = &mut app.edit.as_mut().unwrap().job.operations[0];
         op.starts_mut().unwrap().push([125.0, 66.0]);
         op.corner_choices_mut()
             .unwrap()
@@ -147,7 +149,7 @@ fn moving_a_drawn_shape_takes_its_corner_choices_and_start_points() {
     app.commit();
     // The triangle (S3) moves by (10, -5); the circle (S2) stays.
     assert!(app.transform_shapes(&[3], (0.0, 0.0), (10.0, -5.0), 1.0, 0.0));
-    let op = &app.edit.as_ref().unwrap().ops[0].op;
+    let op = &app.edit.as_ref().unwrap().job.operations[0];
     assert_eq!(op.starts(), &[[135.0, 61.0]]);
     assert_eq!(op.corner_choices()[0].at, [135.0, 90.0]);
 }

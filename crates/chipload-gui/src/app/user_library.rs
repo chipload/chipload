@@ -618,20 +618,14 @@ impl ChiploadApp {
     /// A project tool's cutting values from the library: only when the tool came from the
     /// library and still has its values.
     pub(super) fn tool_cutting(&self, id: i64) -> Option<Cutting> {
-        let tool = self
-            .edit
-            .as_ref()?
-            .settings
-            .tools
-            .iter()
-            .find(|t| t.id == id)?;
+        let tool = self.edit.as_ref()?.job.tools.iter().find(|t| t.id == id)?;
         linked_cutting(&self.library()?.tools, tool)
     }
 
     /// The project material's values for project tool `id` (docs/specs/materials.md §2).
     pub(super) fn material_cutting(&self, id: i64) -> Option<Cutting> {
         chipload_pipeline::materials::material_values(
-            &self.edit.as_ref()?.settings,
+            &self.edit.as_ref()?.job,
             &self.library()?.materials,
             id,
         )
@@ -653,9 +647,9 @@ impl ChiploadApp {
             }
             LibraryRequest::Save(target) => {
                 let current = self.edit.as_ref().and_then(|e| match target {
-                    SaveTarget::Machine => e.settings.machine.name.clone(),
+                    SaveTarget::Machine => e.job.machine.name.clone(),
                     SaveTarget::Tool(id) => e
-                        .settings
+                        .job
                         .tools
                         .iter()
                         .find(|t| t.id == id)
@@ -693,7 +687,7 @@ impl ChiploadApp {
             return false;
         };
         if let Err(err) =
-            chipload_pipeline::posts::choose_post(&mut edit.settings, name, posts.as_deref())
+            chipload_pipeline::posts::choose_post(&mut edit.job, name, posts.as_deref())
         {
             let title = t!(self, "user-library-post-named", name = name);
             self.error_report(Report::failed(title, err.message()));
@@ -720,9 +714,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut changes = profile.update_machine_values(&mut edit.settings);
+        let mut changes = profile.update_machine_values(&mut edit.job);
         changes.extend(chipload_pipeline::library::copy_profile_post(
-            &mut edit.settings,
+            &mut edit.job,
             self.library.posts.as_deref(),
         ));
         self.commit();
@@ -741,7 +735,7 @@ impl ChiploadApp {
     pub fn update_machine_from_library(&mut self) -> bool {
         self.reload_library();
         let profile = self.edit.as_ref().and_then(|e| {
-            let uid = e.settings.machine.library_uid.as_deref()?;
+            let uid = e.job.machine.library_uid.as_deref()?;
             self.library.machines.find_uid(uid).cloned()
         });
         let Some(profile) = profile else {
@@ -750,9 +744,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut changes = profile.update_machine_values(&mut edit.settings);
+        let mut changes = profile.update_machine_values(&mut edit.job);
         changes.extend(chipload_pipeline::library::copy_profile_post(
-            &mut edit.settings,
+            &mut edit.job,
             self.library.posts.as_deref(),
         ));
         self.commit();
@@ -776,7 +770,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let Some(tool) = edit.settings.tools.iter_mut().find(|t| t.id == id) else {
+        let Some(tool) = edit.job.tools.iter_mut().find(|t| t.id == id) else {
             self.error(vec![t!(self, "user-library-no-project-tool", id = id)]);
             return false;
         };
@@ -802,14 +796,18 @@ impl ChiploadApp {
         let Some(id) = self.insert_library_tool(name) else {
             return false;
         };
-        let Some(entry) = self.edit.as_mut().and_then(|e| e.ops.get_mut(op)) else {
+        let Some(entry) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.job.operations.get_mut(op))
+        else {
             return false;
         };
-        entry.op.set_tool(id);
+        entry.set_tool(id);
         if let Some(edit) = &mut self.edit
-            && let Some(entry) = edit.ops.get_mut(op)
+            && let Some(entry) = edit.job.operations.get_mut(op)
         {
-            crate::editor::fit_hole_method(&mut entry.op, &edit.settings.tools);
+            crate::editor::fit_hole_method(entry, &edit.job.tools);
         }
         self.commit();
         true
@@ -822,7 +820,7 @@ impl ChiploadApp {
             return None;
         };
         let edit = self.edit.as_mut()?;
-        let used = chipload_job::library::use_tool(&mut edit.settings, &entry);
+        let used = chipload_job::library::use_tool(&mut edit.job, &entry);
         let text = format!(
             "\"{}\": {}",
             entry.name,
@@ -869,9 +867,9 @@ impl ChiploadApp {
     /// entry's name and uid.
     pub fn save_to_linked(&mut self, target: SaveTarget) -> bool {
         let uid = self.edit.as_ref().and_then(|e| match target {
-            SaveTarget::Machine => e.settings.machine.library_uid.clone(),
+            SaveTarget::Machine => e.job.machine.library_uid.clone(),
             SaveTarget::Tool(id) => e
-                .settings
+                .job
                 .tools
                 .iter()
                 .find(|t| t.id == id)
@@ -887,7 +885,7 @@ impl ChiploadApp {
         let (Some(dir), Some(edit)) = (self.settings_dir.clone(), self.edit.as_ref()) else {
             return false;
         };
-        let settings = edit.settings.clone();
+        let settings = edit.job.clone();
         let lang = self.lang();
         // The entry's name and uid after saving.
         let result: Result<(String, String), LibraryError> = match target {
@@ -955,11 +953,11 @@ impl ChiploadApp {
         if let Some(edit) = self.edit.as_mut() {
             match target {
                 SaveTarget::Machine => {
-                    edit.settings.machine.name = Some(name.clone());
-                    edit.settings.machine.library_uid = Some(uid);
+                    edit.job.machine.name = Some(name.clone());
+                    edit.job.machine.library_uid = Some(uid);
                 }
                 SaveTarget::Tool(id) => {
-                    if let Some(tool) = edit.settings.tools.iter_mut().find(|t| t.id == id) {
+                    if let Some(tool) = edit.job.tools.iter_mut().find(|t| t.id == id) {
                         tool.name = Some(name.clone());
                         tool.library_uid = Some(uid);
                     }
@@ -1115,7 +1113,7 @@ impl ChiploadApp {
                 let base = t!(self, "user-library-new-tool");
                 let name = unique_name(&base, |n| self.library.tools.find(n).is_some());
                 let uid = self.library.tools.new_uid(&name);
-                let entry = match self.edit.as_ref().and_then(|e| e.settings.tools.first()) {
+                let entry = match self.edit.as_ref().and_then(|e| e.job.tools.first()) {
                     Some(tool) => LibraryTool::from_tool(&name, &uid, tool, None),
                     None => LibraryTool {
                         name,
@@ -1138,7 +1136,7 @@ impl ChiploadApp {
                 let name = unique_name(&base, |n| self.library.machines.find(n).is_some());
                 let uid = self.library.machines.new_uid(&name);
                 let profile = match self.edit.as_ref() {
-                    Some(edit) => MachineProfile::from_job(&name, &uid, &edit.settings),
+                    Some(edit) => MachineProfile::from_job(&name, &uid, &edit.job),
                     None => MachineProfile {
                         name,
                         uid: uid.clone(),

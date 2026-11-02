@@ -456,7 +456,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        match entry_from(&edit.settings, &ids, &[]) {
+        match entry_from(&edit.job, &ids, &[]) {
             Ok(entry) => {
                 let name = suggested_name(&entry);
                 self.right_tab = RightTab::Shapes;
@@ -788,9 +788,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match insert(&edit.settings, &entry.entry, name, at, &size, None) {
+        match insert(&edit.job, &entry.entry, name, at, &size, None) {
             Ok(done) => {
-                edit.settings.drawing = done.job.drawing;
+                edit.adopt(done.job);
                 self.drawing_changed(&done.shapes);
                 // More than one thing comes in as a group, selected whole
                 // (docs/specs/shape-groups.md, decision 5).
@@ -834,7 +834,7 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return;
         };
-        let Ok(entry) = entry_from(&edit.settings, &self.framed_shape_ids(), &[]) else {
+        let Ok(entry) = entry_from(&edit.job, &self.framed_shape_ids(), &[]) else {
             return;
         };
         let Some(bounds) = entry_box(&entry) else {

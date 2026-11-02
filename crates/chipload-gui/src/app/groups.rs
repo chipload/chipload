@@ -18,7 +18,7 @@ use super::*;
 impl ChiploadApp {
     /// The group contour `id` is wholly in, if any.
     pub(super) fn group_of_contour(&self, id: usize) -> Option<u64> {
-        let drawing = &self.edit.as_ref()?.settings.drawing;
+        let drawing = &self.edit.as_ref()?.job.drawing;
         let contour = self.contours.iter().find(|c| c.id == id)?;
         let mut groups = shapes_of(contour).into_iter().map(|s| drawing.group_of(s));
         let first = groups.next()??;
@@ -34,7 +34,7 @@ impl ChiploadApp {
         let shapes = self
             .edit
             .as_ref()
-            .map(|e| e.settings.drawing.group_shapes(id))
+            .map(|e| e.job.drawing.group_shapes(id))
             .unwrap_or_default();
         CanvasSelection::Group {
             id,
@@ -54,7 +54,7 @@ impl ChiploadApp {
     /// What the selection is made of, as group members: drawn shapes and texts.
     fn selected_members(&self) -> Option<Members> {
         let edit = self.edit.as_ref()?;
-        Members::of(&edit.settings, &self.framed_shape_ids(), &[]).ok()
+        Members::of(&edit.job, &self.framed_shape_ids(), &[]).ok()
     }
 
     /// Whether *Group* can be used: two or more things selected, all drawn shapes or
@@ -69,12 +69,12 @@ impl ChiploadApp {
         let groups: BTreeSet<Option<u64>> = members
             .shapes
             .iter()
-            .map(|s| edit.settings.drawing.group_of(*s))
+            .map(|s| edit.job.drawing.group_of(*s))
             .chain(
                 members
                     .texts
                     .iter()
-                    .map(|t| edit.settings.drawing.group_of_text(*t)),
+                    .map(|t| edit.job.drawing.group_of_text(*t)),
             )
             .collect();
         // Already all in one group: nothing to do.
@@ -82,9 +82,9 @@ impl ChiploadApp {
         members.shapes.len() + members.texts.len() > 1 && !all_in_one
     }
 
-    /// The project as it is now, with its operations.
+    /// The project as it is now.
     fn current_job(&self) -> Option<Job> {
-        self.edit.as_ref().map(|e| e.job())
+        self.edit.as_ref().map(|e| e.job.clone())
     }
 
     /// A changed project taken in: drawing and operations, as one undo step.
@@ -92,10 +92,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        edit.settings.drawing = job.drawing;
-        for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
-            entry.op = op;
-        }
+        edit.adopt(job);
         self.shape_draft = None;
         self.refresh_drawing();
     }
@@ -245,7 +242,7 @@ impl ChiploadApp {
 
     /// The box round group `id`.
     pub(super) fn group_box(&self, id: u64) -> Option<((f64, f64), (f64, f64))> {
-        group_box(&self.edit.as_ref()?.settings, id)
+        group_box(&self.edit.as_ref()?.job, id)
     }
 
     /// Group `id`'s outlines moved, turned and scaled as a drag has them, for its preview.
@@ -260,7 +257,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return Vec::new();
         };
-        let drawing = &edit.settings.drawing;
+        let drawing = &edit.job.drawing;
         let ids = drawing.group_shapes(id);
         let (from, to) = ([from.0, from.1], [to.0, to.1]);
         drawing
@@ -317,7 +314,7 @@ impl ChiploadApp {
             .edit
             .as_ref()
             .map(|e| {
-                e.settings
+                e.job
                     .drawing
                     .groups
                     .iter()
@@ -341,10 +338,10 @@ impl ChiploadApp {
                 self.edit.as_ref().is_some_and(|e| {
                     m.shapes
                         .iter()
-                        .any(|s| e.settings.drawing.group_of(*s).is_some())
+                        .any(|s| e.job.drawing.group_of(*s).is_some())
                         || m.texts
                             .iter()
-                            .any(|t| e.settings.drawing.group_of_text(*t).is_some())
+                            .any(|t| e.job.drawing.group_of_text(*t).is_some())
                 })
             });
         if ui
@@ -377,7 +374,7 @@ impl ChiploadApp {
         let Some(group) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.groups.iter().find(|g| g.id == id))
+            .and_then(|e| e.job.drawing.groups.iter().find(|g| g.id == id))
             .cloned()
         else {
             return;

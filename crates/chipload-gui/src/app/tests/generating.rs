@@ -8,7 +8,7 @@ fn a_result_for_a_project_that_changed_meanwhile_is_dropped() {
     assert!(app.generating());
     // Changed but not yet recorded (a value being dragged): the run isn't cancelled, but
     // its result is for the project as it was.
-    match &mut app.edit.as_mut().unwrap().ops[0].op {
+    match &mut app.edit.as_mut().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.feed = 777.0,
         _ => panic!("operation 1 is a pocket"),
     }
@@ -51,7 +51,7 @@ fn the_live_preview_generates_once_the_project_is_quiet() {
 fn the_live_preview_waits_while_the_project_has_problems() {
     // docs/specs/live-problems.md decision 4: the Problems strip says why.
     let mut app = lower_part();
-    match &mut app.edit.as_mut().unwrap().ops[0].op {
+    match &mut app.edit.as_mut().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.feed = 0.0,
         _ => panic!("operation 1 is a pocket"),
     }

@@ -14,7 +14,7 @@ fn app_with_library(name: &str) -> ChiploadApp {
     }
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v31/svg_badge.chipload")));
-    let tool = app.edit.as_ref().unwrap().settings.tools[0].clone();
+    let tool = app.edit.as_ref().unwrap().job.tools[0].clone();
     let entry = LibraryTool::from_tool(TOOL, &uid_for_name(TOOL), &tool, None);
     let library = ToolLibrary {
         tools: vec![entry.clone()],
@@ -22,7 +22,7 @@ fn app_with_library(name: &str) -> ChiploadApp {
     };
     save_tools(&library, &dir.join("tools.json")).unwrap();
     app.set_settings_dir(Some(dir));
-    let t = &mut app.edit.as_mut().unwrap().settings.tools[0];
+    let t = &mut app.edit.as_mut().unwrap().job.tools[0];
     t.name = Some(TOOL.into());
     t.library_uid = Some(entry.uid);
     app.commit();
@@ -53,16 +53,18 @@ fn add_plywood(app: &mut ChiploadApp) -> String {
 fn choosing_a_material_fills_the_operations_in_one_undo_step() {
     let mut app = app_with_library("choose");
     let uid = add_plywood(&mut app);
-    let before = app.edit.as_ref().unwrap().settings.stock().thickness;
+    let before = app.edit.as_ref().unwrap().job.stock().thickness;
     assert!(app.use_material(Some(&uid)));
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock().thickness, before, "the stock stays");
-    assert_eq!(
-        edit.settings.stock().material.as_ref().unwrap().name,
-        "Plywood"
+    assert_eq!(edit.job.stock().thickness, before, "the stock stays");
+    assert_eq!(edit.job.stock().material.as_ref().unwrap().name, "Plywood");
+    assert!(
+        edit.job
+            .operations
+            .iter()
+            .all(|e| e.has_cutting(&plywood()))
     );
-    assert!(edit.ops.iter().all(|e| e.op.has_cutting(&plywood())));
-    assert!(edit.ops.iter().all(|e| e.op.material().is_some()));
+    assert!(edit.job.operations.iter().all(|e| e.material().is_some()));
     assert!(
         app.report.lines.len() >= 3,
         "chosen, operations: {:?}",
@@ -70,8 +72,8 @@ fn choosing_a_material_fills_the_operations_in_one_undo_step() {
     );
     app.undo();
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock().material, None);
-    assert!(edit.ops.iter().all(|e| e.op.material().is_none()));
+    assert_eq!(edit.job.stock().material, None);
+    assert!(edit.job.operations.iter().all(|e| e.material().is_none()));
 }
 
 #[test]
@@ -87,7 +89,7 @@ fn a_new_project_starts_with_the_default_material() {
     app.new_project();
     let edit = app.edit.as_ref().unwrap();
     assert_eq!(
-        edit.settings.stock().material.as_ref().unwrap().name,
+        edit.job.stock().material.as_ref().unwrap().name,
         "Birch ply"
     );
 }
@@ -100,7 +102,7 @@ fn a_new_operation_takes_the_materials_values() {
     let outline = app.contours.first().unwrap().id;
     select(&mut app, &[outline]);
     let i = app.add_operation(OpKind::Profile).unwrap();
-    let op = &app.edit.as_ref().unwrap().ops[i].op;
+    let op = &app.edit.as_ref().unwrap().job.operations[i];
     assert!(op.has_cutting(&plywood()));
     assert_eq!(op.material().unwrap().name, "Plywood");
 }
@@ -118,7 +120,8 @@ fn an_operation_chooses_its_own_material_in_its_form() {
             app
         });
     harness.run_steps(4);
-    let op = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().ops[1].op.clone();
+    let op =
+        |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().job.operations[1].clone();
     assert_eq!(op(&harness).material(), None);
     // The material's list, showing None.
     harness
@@ -133,8 +136,12 @@ fn an_operation_chooses_its_own_material_in_its_form() {
     assert_eq!(chosen.material().unwrap().name, "Plywood");
     assert!(chosen.has_cutting(&plywood()));
     let edit = harness.state().edit.as_ref().unwrap();
-    assert_eq!(edit.settings.stock().material, None, "the project's stays");
-    assert_eq!(edit.ops[0].op.material(), None, "the other operation's too");
+    assert_eq!(edit.job.stock().material, None, "the project's stays");
+    assert_eq!(
+        edit.job.operations[0].material(),
+        None,
+        "the other operation's too"
+    );
     assert!(harness.query_by_label("From Plywood").is_some());
 }
 
@@ -153,17 +160,17 @@ fn a_new_tool_takes_the_operations_materials_values() {
     app.library_state.material_drafts.insert(uid.clone(), draft);
     assert!(app.save_material_draft(&uid));
     let edit = app.edit.as_mut().unwrap();
-    let mut tool = edit.settings.tools[0].clone();
+    let mut tool = edit.job.tools[0].clone();
     tool.id = 2;
     tool.library_uid = Some("b000000000000002".into());
-    edit.settings.tools.push(tool);
-    edit.ops[1].op.set_tool(2);
+    edit.job.tools.push(tool);
+    edit.job.operations[1].set_tool(2);
     app.follow_op_material(1);
-    assert!(app.edit.as_ref().unwrap().ops[1].op.has_cutting(&second));
+    assert!(app.edit.as_ref().unwrap().job.operations[1].has_cutting(&second));
     // Back to tool 1: Plywood's values for it.
-    app.edit.as_mut().unwrap().ops[1].op.set_tool(1);
+    app.edit.as_mut().unwrap().job.operations[1].set_tool(1);
     app.follow_op_material(1);
-    assert!(app.edit.as_ref().unwrap().ops[1].op.has_cutting(&plywood()));
+    assert!(app.edit.as_ref().unwrap().job.operations[1].has_cutting(&plywood()));
 }
 
 #[test]
@@ -172,7 +179,7 @@ fn an_operations_tuned_values_are_saved_to_the_material() {
     let uid = add_plywood(&mut app);
     assert!(app.use_material(Some(&uid)));
     // Tuned on the machine: a slower feed for the outline.
-    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.feed = 1300.0;
     }
     app.commit();
@@ -244,7 +251,7 @@ fn material_pictures() {
                 app.set_language(language);
                 let uid = add_plywood(&mut app);
                 assert!(app.use_material(Some(&uid)));
-                if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+                if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
                     p.feed = 1300.0;
                     if view == "through" {
                         p.through = Some(0.3);
@@ -252,7 +259,7 @@ fn material_pictures() {
                 }
                 app.commit();
                 if view == "job-fit" {
-                    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
+                    let stock = app.edit.as_mut().unwrap().job.stock_mut();
                     stock.fit = Some(10.0);
                     stock.origin = chipload_job::StockOrigin::Drawing;
                     app.commit();

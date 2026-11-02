@@ -18,7 +18,7 @@ fn harness() -> Harness<'static, ChiploadApp> {
 }
 
 fn zero(h: &Harness<'_, ChiploadApp>) -> WorkZero {
-    h.state().edit.as_ref().unwrap().settings.work_zero()
+    h.state().edit.as_ref().unwrap().job.work_zero()
 }
 
 /// A drawing point on the screen.
@@ -50,9 +50,9 @@ fn the_work_zero_is_selected_in_the_browser_and_dragged_onto_a_stock_corner() {
     let mut h = harness();
     let start = zero(&h);
     let corner = |h: &Harness<'_, ChiploadApp>, c: StockCorner| {
-        h.state().edit.as_ref().unwrap().settings.stock_corner_xy(c)
+        h.state().edit.as_ref().unwrap().job.stock_corner_xy(c)
     };
-    let here = h.state().edit.as_ref().unwrap().settings.work_zero_xy();
+    let here = h.state().edit.as_ref().unwrap().job.work_zero_xy();
     let target = corner(&h, StockCorner::TopRight);
     // Not selected: a drag from the handle doesn't move it.
     let (from, to) = (screen(&h, here), screen(&h, target));
@@ -92,7 +92,7 @@ fn the_work_zero_dropped_away_from_corners_is_a_point_and_alt_leaves_it_free() {
     app.focus = Focus::Job;
     assert!(!app.start_zero_drag(), "only once selected");
     app.focus = Focus::WorkZero;
-    let ((x0, y0), _) = app.edit.as_ref().unwrap().settings.stock_bounds();
+    let ((x0, y0), _) = app.edit.as_ref().unwrap().job.stock_bounds();
     // Free: exactly where the pointer is.
     let at = (x0 + 12.345, y0 + 7.89);
     assert!(app.start_zero_drag());
@@ -117,7 +117,7 @@ fn the_work_zero_dropped_away_from_corners_is_a_point_and_alt_leaves_it_free() {
 }
 
 fn zero_of(app: &ChiploadApp) -> WorkZero {
-    app.edit.as_ref().unwrap().settings.work_zero()
+    app.edit.as_ref().unwrap().job.work_zero()
 }
 
 #[test]
@@ -174,7 +174,7 @@ fn work_zero_pictures() {
                 } else {
                     StockCorner::BottomLeft
                 };
-                *app.edit.as_mut().unwrap().settings.work_zero_mut() = WorkZero::Stock { corner };
+                *app.edit.as_mut().unwrap().job.work_zero_mut() = WorkZero::Stock { corner };
                 app.commit();
                 app.focus = if name.starts_with("zero-job") {
                     Focus::Job

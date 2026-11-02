@@ -6,7 +6,7 @@ use chipload_core::chain::ShapeFrom;
 use super::*;
 
 fn drawing(app: &ChiploadApp) -> &chipload_job::Drawing {
-    &app.edit.as_ref().unwrap().settings.drawing
+    &app.edit.as_ref().unwrap().job.drawing
 }
 
 #[test]
@@ -78,10 +78,10 @@ fn delete_takes_what_properties_shows_an_operation_or_a_rest_pass() {
     // The user, 2026-10-31: an operation picked in the Browser goes with Del too.
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v18/rest.chipload")));
-    app.edit.as_mut().unwrap().ops.truncate(1);
+    app.edit.as_mut().unwrap().job.operations.truncate(1);
     app.commit();
-    let ops = |app: &ChiploadApp| app.edit.as_ref().unwrap().ops.len();
-    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+    let ops = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.operations.len();
+    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
         chipload_job::Operation::Pocket(p) => p.rest_passes.len(),
         _ => panic!("a pocket"),
     };

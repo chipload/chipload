@@ -155,7 +155,7 @@ mod library {
     }
 
     fn settings_of(app: &ChiploadApp) -> &Job {
-        &app.edit.as_ref().unwrap().settings
+        &app.edit.as_ref().unwrap().job
     }
 
     #[test]
@@ -250,7 +250,7 @@ mod library {
         // A new operation takes the tool's cutting values (nothing above to copy).
         select(&mut app, &[4]);
         let i = app.add_operation(OpKind::Pocket).unwrap();
-        let Operation::Pocket(p) = &app.edit.as_ref().unwrap().ops[i].op else {
+        let Operation::Pocket(p) = &app.edit.as_ref().unwrap().job.operations[i] else {
             panic!()
         };
         assert_eq!((p.feed, p.step_down, p.stepover), (800.0, 0.75, 0.35));
@@ -332,7 +332,7 @@ mod library {
             })
         );
         let before = settings_of(&app).clone();
-        let pocket = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+        let pocket = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
             Operation::Pocket(p) => p.clone(),
             other => panic!("{other:?}"),
         };
@@ -359,7 +359,7 @@ mod library {
             })
         );
         // Dogbones: greyed out, with why.
-        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
             p.corners = Some(chipload_job::Corners::Dogbone { max_angle: 1.745 });
         }
         match app.rest_menu(0, mm) {
@@ -383,28 +383,14 @@ mod library {
         let mut app = lower_part();
         app.set_settings_dir(Some(dir.clone()));
         let before = settings_of(&app).clone();
-        let ops_before: Vec<Operation> = app
-            .edit
-            .as_ref()
-            .unwrap()
-            .ops
-            .iter()
-            .map(|e| e.op.clone())
-            .collect();
+        let ops_before: Vec<Operation> = app.edit.as_ref().unwrap().job.operations.clone();
         // The pocket (operation 1) is cut with the 3 mm tool: copied in as tool 2, one
         // undo step, feeds kept.
         assert!(app.tool_from_library(0, "3 mm upcut"));
         let job = settings_of(&app);
         assert_eq!(job.tools.len(), 2);
         assert_eq!(job.tools[1], upcut().tool(2));
-        let ops: Vec<Operation> = app
-            .edit
-            .as_ref()
-            .unwrap()
-            .ops
-            .iter()
-            .map(|e| e.op.clone())
-            .collect();
+        let ops: Vec<Operation> = app.edit.as_ref().unwrap().job.operations.clone();
         assert_eq!((ops[0].tool(), ops[1].tool()), (2, 1));
         let mut same = ops[0].clone();
         same.set_tool(ops_before[0].tool());
@@ -423,7 +409,7 @@ mod library {
         // A new operation gets the tool of the last one.
         select(&mut app, &[2]);
         let new = app.add_operation(OpKind::Profile).unwrap();
-        assert_eq!(app.edit.as_ref().unwrap().ops[new].op.tool(), 2);
+        assert_eq!(app.edit.as_ref().unwrap().job.operations[new].tool(), 2);
         app.undo();
         app.undo();
         app.undo();
@@ -453,9 +439,9 @@ mod library {
             |app: &ChiploadApp| user_library::LibraryRows::machine(settings_of(app), app.library());
         assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
         // A job value doesn't count; a machine value does.
-        app.edit.as_mut().unwrap().settings.machine.safe_z = 9.0;
+        app.edit.as_mut().unwrap().job.machine.safe_z = 9.0;
         assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
-        app.edit.as_mut().unwrap().settings.machine.max_feed = Some(1234.0);
+        app.edit.as_mut().unwrap().job.machine.max_feed = Some(1234.0);
         assert!(
             rows(&app)
                 .note_text()
@@ -601,7 +587,7 @@ mod library {
         app.edit
             .as_mut()
             .unwrap()
-            .settings
+            .job
             .tools
             .iter_mut()
             .find(|t| t.id == id)

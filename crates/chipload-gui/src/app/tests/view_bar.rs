@@ -37,7 +37,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         app.edit
             .as_mut()
             .unwrap()
-            .settings
+            .job
             .tools
             .push(chipload_job::Tool {
                 id: 2,
@@ -54,7 +54,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         app.commit();
         // The picture is selected after importing: V-carve from the ribbon.
         let index = app.add_operation(OpKind::Vcarve).unwrap();
-        let op = &app.edit.as_ref().unwrap().ops[index].op;
+        let op = &app.edit.as_ref().unwrap().job.operations[index];
         assert_eq!(op.select().image, Some(1), "{file}");
         assert_eq!(op.tool(), 2, "{file}: the V-bit");
         assert!(
@@ -73,7 +73,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         assert!(app.result.is_some());
         // A profile after it goes back to the endmill.
         let profile = app.add_operation(OpKind::Profile).unwrap();
-        assert_eq!(app.edit.as_ref().unwrap().ops[profile].op.tool(), 1);
+        assert_eq!(app.edit.as_ref().unwrap().job.operations[profile].tool(), 1);
     }
 }
 
@@ -82,13 +82,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
 #[test]
 fn the_preview_is_of_the_active_part_and_export_is_of_all() {
     let mut app = two_parts();
-    let active = app
-        .edit
-        .as_ref()
-        .unwrap()
-        .settings
-        .active_part_id()
-        .unwrap();
+    let active = app.edit.as_ref().unwrap().job.active_part_id().unwrap();
     let ops_of = |app: &ChiploadApp| -> std::collections::BTreeSet<usize> {
         app.result
             .as_ref()

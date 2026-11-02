@@ -52,7 +52,7 @@ impl ChiploadApp {
             },
             construction: choice.construction,
         };
-        let (out, notes) = match export_drawing(&edit.settings, &options) {
+        let (out, notes) = match export_drawing(&edit.job, &options) {
             Ok(done) => done,
             Err(err) => {
                 self.error(vec![

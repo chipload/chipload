@@ -9,7 +9,7 @@ fn problem_paths(app: &ChiploadApp) -> Vec<String> {
 fn a_bad_value_is_flagged_at_its_field_once_the_edit_is_finished() {
     let mut app = lower_part();
     assert!(app.problems.is_empty(), "{:?}", app.problems);
-    match &mut app.edit.as_mut().unwrap().ops[0].op {
+    match &mut app.edit.as_mut().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.feed = 0.0,
         _ => panic!("operation 1 is a pocket"),
     }
@@ -42,7 +42,7 @@ fn a_bad_value_is_flagged_at_its_field_once_the_edit_is_finished() {
 #[test]
 fn a_job_setting_problem_marks_the_job_and_undo_brings_it_back() {
     let mut app = lower_part();
-    app.edit.as_mut().unwrap().settings.machine.safe_z = -2.0;
+    app.edit.as_mut().unwrap().job.machine.safe_z = -2.0;
     app.commit();
     assert_eq!(problem_paths(&app), ["machine.safe_z"]);
     assert_eq!(app.job_problems().count(), 1);
@@ -67,8 +67,7 @@ fn a_job_setting_problem_marks_the_job_and_undo_brings_it_back() {
 #[test]
 fn an_operation_without_shapes_is_a_problem_of_the_operation() {
     let mut app = lower_part();
-    app.edit.as_mut().unwrap().ops[1]
-        .op
+    app.edit.as_mut().unwrap().job.operations[1]
         .select_mut()
         .unwrap()
         .shapes = Some(Vec::new());

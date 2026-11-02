@@ -43,10 +43,10 @@ impl ChiploadApp {
         let edit = self.edit.as_ref()?;
         let mut new = NewText::new(NEW_TEXT, NEW_TEXT_HEIGHT_MM);
         (new.x, new.y) = at;
-        match add_text(&edit.settings, new, &*self.font_source()) {
+        match add_text(&edit.job, new, &*self.font_source()) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.drawing_changed(&[]);
                 self.selection = CanvasSelection::Source(ShapeFrom::Text(report.id));
@@ -73,15 +73,15 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return false;
         };
-        let mut job = edit.settings.clone();
+        let mut job = edit.job.clone();
         let Some(slot) = job.drawing.texts.iter_mut().find(|t| t.id == id) else {
             return false;
         };
         *slot = Text { id, ..text.clone() };
-        match remake(&edit.settings, &job, id, &*self.font_source()) {
+        match remake(&edit.job, &job, id, &*self.font_source()) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.drawing_changed(&[]);
                 self.selection = CanvasSelection::Source(ShapeFrom::Text(id));
@@ -104,9 +104,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match remove_text(&edit.settings, id) {
+        match remove_text(&edit.job, id) {
             Ok(job) => {
-                edit.settings = job;
+                edit.job = job;
                 self.drawing_changed(&[]);
                 self.selection = CanvasSelection::Nothing;
                 if self.focus == Focus::Text(id) {

@@ -87,7 +87,7 @@ fn turning_and_sizing_the_box_turns_and_scales_about_its_centre() {
 #[test]
 fn imported_shapes_get_no_box() {
     let mut app = two_parts();
-    let first = app.edit.as_ref().unwrap().settings.drawing.shapes[0].id;
+    let first = app.edit.as_ref().unwrap().job.drawing.shapes[0].id;
     app.selection = CanvasSelection::Shapes(BTreeSet::from([first]));
     assert!(app.box_handle_points().is_empty());
 }

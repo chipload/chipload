@@ -122,9 +122,9 @@ impl ChiploadApp {
             return Vec::new();
         };
         let frame = self.new_frame();
-        let key = format!("{frame:?}{:?}", edit.settings.drawing);
+        let key = format!("{frame:?}{:?}", edit.job.drawing);
         if self.frame_preview.key != key {
-            let job = &edit.settings;
+            let job = &edit.job;
             let lang = self.language;
             let units = self.units.into();
             let place = place_frame(job, &frame)

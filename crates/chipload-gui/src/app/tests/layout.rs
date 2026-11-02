@@ -192,7 +192,7 @@ fn the_stock_size_switches_between_outline_and_margin_and_a_fixed_size() {
     // The board is the setup's (docs/specs/setups.md §7).
     harness.state_mut().focus = Focus::Setup(1);
     harness.run_steps(3);
-    let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().settings.clone();
+    let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().job.clone();
     let old = settings(&harness);
     assert_eq!(old.stock().fit, None, "the sample's stock is fixed");
     assert_ne!(old.stock().origin, chipload_job::StockOrigin::Drawing);
@@ -235,7 +235,7 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .drawing
         .shapes
         .len();
@@ -250,7 +250,7 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
             .edit
             .as_ref()
             .unwrap()
-            .settings
+            .job
             .drawing
             .shapes
             .len()
@@ -283,7 +283,7 @@ fn a_project_started_empty_can_add_a_drawing_file() {
             .state_mut()
             .add_file_from(&corpus("dxf/simple_part.dxf"), None, None)
     );
-    let settings = &harness.state().edit.as_ref().unwrap().settings;
+    let settings = &harness.state().edit.as_ref().unwrap().job;
     assert_eq!(settings.drawing.dxfs.len(), 1);
     assert!(!settings.drawing.shapes.is_empty());
 }

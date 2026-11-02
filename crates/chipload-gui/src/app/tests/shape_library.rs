@@ -31,7 +31,7 @@ fn sign(settings: PathBuf) -> Harness<'static, ChiploadApp> {
                 .edit
                 .as_ref()
                 .unwrap()
-                .settings
+                .job
                 .drawing
                 .shapes
                 .iter()
@@ -72,7 +72,7 @@ fn shape_count(harness: &Harness<'_, ChiploadApp>) -> usize {
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .drawing
         .shapes
         .len()
@@ -122,7 +122,7 @@ fn the_selection_is_saved_then_dragged_onto_the_canvas() {
     assert_eq!(added, 6, "the four letters, the frame and its border");
     let app = harness.state();
     let at = app.view.to_world(canvas);
-    let new: Vec<u64> = app.edit.as_ref().unwrap().settings.drawing.shapes[before..]
+    let new: Vec<u64> = app.edit.as_ref().unwrap().job.drawing.shapes[before..]
         .iter()
         .map(|s| s.id)
         .collect();
@@ -135,24 +135,17 @@ fn the_selection_is_saved_then_dragged_onto_the_canvas() {
         other => panic!("{other:?}"),
     }
     let ((x0, y0), (x1, y1)) =
-        chipload_pipeline::shapes::drawn_box(&app.edit.as_ref().unwrap().settings, &new).unwrap();
+        chipload_pipeline::shapes::drawn_box(&app.edit.as_ref().unwrap().job, &new).unwrap();
     // Snapped to the grid near the pointer.
     assert!(((x0 + x1) / 2.0 - at.0).abs() < 5.0 && ((y0 + y1) / 2.0 - at.1).abs() < 5.0);
-    assert_eq!(app.edit.as_ref().unwrap().settings.drawing.texts.len(), 2);
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing.texts.len(), 2);
 }
 
 #[test]
 fn selected_shapes_carried_onto_the_tab_are_saved_not_moved() {
     let dir = settings("carry");
     let mut harness = sign(dir.clone());
-    let before = harness
-        .state()
-        .edit
-        .as_ref()
-        .unwrap()
-        .settings
-        .drawing
-        .clone();
+    let before = harness.state().edit.as_ref().unwrap().job.drawing.clone();
     // The frame's left side (S5: 132.3 wide round (150, 80)), dragged onto the tab's name.
     let grab = harness
         .state()
@@ -169,11 +162,7 @@ fn selected_shapes_carried_onto_the_tab_are_saved_not_moved() {
     harness.drop_at(tab);
     harness.run_steps(3);
     let app = harness.state();
-    assert_eq!(
-        app.edit.as_ref().unwrap().settings.drawing,
-        before,
-        "not moved"
-    );
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing, before, "not moved");
     assert_eq!(app.right_tab, RightTab::Shapes);
     assert!(matches!(
         app.shape_library.asking,

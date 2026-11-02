@@ -17,7 +17,7 @@ fn open_choice(harness: &mut Harness<'_, ChiploadApp>, chosen: &str) {
 }
 
 fn vcarve(harness: &Harness<'_, ChiploadApp>) -> chipload_job::VcarveOp {
-    match &harness.state().edit.as_ref().unwrap().ops[0].op {
+    match &harness.state().edit.as_ref().unwrap().job.operations[0] {
         Operation::Vcarve(v) => v.clone(),
         _ => unreachable!(),
     }

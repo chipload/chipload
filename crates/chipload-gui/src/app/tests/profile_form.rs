@@ -8,18 +8,19 @@ fn a_profiles_ramp_angle_draws_in_its_cut_settings() {
         .edit
         .as_ref()
         .unwrap()
-        .ops
+        .job
+        .operations
         .iter()
-        .position(|e| matches!(e.op, Operation::Profile(_)))
+        .position(|e| matches!(e, Operation::Profile(_)))
         .unwrap();
     app.focus = Focus::Op(i);
     for angle in [chipload_job::DEFAULT_RAMP_ANGLE_RAD, 0.2] {
-        if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[i].op {
+        if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[i] {
             p.ramp_angle = angle;
         }
         app.commit();
         draw_properties(&mut app);
-        let Operation::Profile(p) = &app.edit.as_ref().unwrap().ops[i].op else {
+        let Operation::Profile(p) = &app.edit.as_ref().unwrap().job.operations[i] else {
             unreachable!()
         };
         assert_eq!(p.ramp_angle, angle);
@@ -42,9 +43,10 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
                 .edit
                 .as_ref()
                 .unwrap()
-                .ops
+                .job
+                .operations
                 .iter()
-                .position(|e| matches!(e.op, Operation::Profile(_)))
+                .position(|e| matches!(e, Operation::Profile(_)))
                 .unwrap();
             app.focus = Focus::Op(i);
             app
@@ -53,13 +55,14 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
     let profile = |h: &Harness<'_, ChiploadApp>| {
         let edit = h.state().edit.as_ref().unwrap();
         let i = edit
-            .ops
+            .job
+            .operations
             .iter()
-            .position(|e| matches!(e.op, Operation::Profile(_)))
+            .position(|e| matches!(e, Operation::Profile(_)))
             .unwrap();
         (
             edit.to_job().unwrap().operations[i].clone(),
-            edit.settings.stock().clone(),
+            edit.job.stock().clone(),
         )
     };
     assert_eq!(profile(&harness).0.through(), None);
@@ -75,7 +78,7 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
         .edit
         .as_mut()
         .unwrap()
-        .settings
+        .job
         .stock_mut()
         .thickness = 12.0;
     harness.state_mut().commit();

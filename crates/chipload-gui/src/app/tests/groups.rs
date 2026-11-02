@@ -21,7 +21,7 @@ fn contour_of(app: &ChiploadApp, id: u64) -> usize {
 }
 
 fn drawing(app: &ChiploadApp) -> &chipload_job::Drawing {
-    &app.edit.as_ref().unwrap().settings.drawing
+    &app.edit.as_ref().unwrap().job.drawing
 }
 
 /// Frame, border and text grouped with Ctrl+G.

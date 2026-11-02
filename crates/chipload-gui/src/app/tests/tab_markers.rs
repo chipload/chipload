@@ -21,7 +21,7 @@ fn markers(app: &ChiploadApp) -> Vec<crate::view::TabMarker> {
 }
 
 fn points(app: &ChiploadApp) -> Vec<[f64; 2]> {
-    match &app.edit.as_ref().unwrap().ops[1].op {
+    match &app.edit.as_ref().unwrap().job.operations[1] {
         Operation::Profile(p) => p.tabs.as_ref().unwrap().at.clone(),
         _ => panic!("operation 2 is the profile"),
     }
@@ -201,7 +201,11 @@ fn a_start_dropped_on_a_tab_goes_back() {
     assert!(app.wait_for_generation(), "{:?}", app.report);
     let before = markers(&app);
     assert!(before.iter().all(|m| m.tab.by_hand));
-    let starts = |app: &ChiploadApp| app.edit.as_ref().unwrap().ops[1].op.starts().to_vec();
+    let starts = |app: &ChiploadApp| {
+        app.edit.as_ref().unwrap().job.operations[1]
+            .starts()
+            .to_vec()
+    };
     let was = starts(&app);
     let marker = app
         .scene

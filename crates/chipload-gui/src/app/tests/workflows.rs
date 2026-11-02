@@ -31,7 +31,7 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
     assert_eq!(other.recent, app.recent);
 
     // Unsaved changes: opening a recent project asks first.
-    app.edit.as_mut().unwrap().settings.stock_mut().thickness = 12.0;
+    app.edit.as_mut().unwrap().job.stock_mut().thickness = 12.0;
     let second_path = app.recent[1].clone();
     assert!(!app.open_recent(&second_path));
     assert!(matches!(
@@ -61,7 +61,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     let mut app = ChiploadApp::default();
     assert_eq!(app.update_labels().0, "Update drawing from DXF or SVG…");
     app.ask_new();
-    let job = app.edit.as_ref().unwrap().settings.clone();
+    let job = app.edit.as_ref().unwrap().job.clone();
     assert!(job.drawing.shapes.is_empty() && job.drawing.dxfs.is_empty());
     assert_eq!((job.stock().x, job.stock().y), (300.0, 200.0));
     assert!(app.job_path.is_none() && app.contours.is_empty());
@@ -114,7 +114,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     let one = app.scene.toolpath.clone().unwrap();
     assert!(one.ghost_feeds.is_empty());
 
-    app.edit.as_mut().unwrap().settings.parts[0].copies = Some(chipload_job::Copies {
+    app.edit.as_mut().unwrap().job.parts[0].copies = Some(chipload_job::Copies {
         columns: 2,
         rows: 2,
         dx: 0.0,
@@ -122,11 +122,11 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
         order: chipload_job::CopyOrder::ByOperation,
     });
     app.set_copies_gap(1, 5.0);
-    let copies = app.edit.as_ref().unwrap().settings.parts[0].copies.unwrap();
+    let copies = app.edit.as_ref().unwrap().job.parts[0].copies.unwrap();
     assert!(copies.dx > 5.0 && copies.dy > 5.0, "{copies:?}");
     // Generating again: the copies are cut, the gap leaves them apart.
-    app.edit.as_mut().unwrap().settings.stock_mut().x = 1000.0;
-    app.edit.as_mut().unwrap().settings.stock_mut().y = 1000.0;
+    app.edit.as_mut().unwrap().job.stock_mut().x = 1000.0;
+    app.edit.as_mut().unwrap().job.stock_mut().y = 1000.0;
     app.commit();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let result = app.result.as_ref().unwrap();
@@ -143,7 +143,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     );
 
     // An overlapping pitch is refused with the size it needs.
-    app.edit.as_mut().unwrap().settings.parts[0]
+    app.edit.as_mut().unwrap().job.parts[0]
         .copies
         .as_mut()
         .unwrap()
@@ -181,7 +181,9 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
     assert!(d < 1e-9);
     app.drop_start();
     assert!(app.wait_for_generation(), "{:?}", app.report);
-    let starts = app.edit.as_ref().unwrap().ops[1].op.starts().to_vec();
+    let starts = app.edit.as_ref().unwrap().job.operations[1]
+        .starts()
+        .to_vec();
     assert_eq!(starts, vec![[on_ring.0, on_ring.1]]);
     assert!(app.result.is_some(), "generated again: {:?}", app.report);
     // The profile now starts there; the markers show it.
@@ -210,9 +212,16 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
         .unwrap();
     app.reset_start(marker);
     assert!(app.wait_for_generation(), "{:?}", app.report);
-    assert!(app.edit.as_ref().unwrap().ops[1].op.starts().is_empty());
+    assert!(
+        app.edit.as_ref().unwrap().job.operations[1]
+            .starts()
+            .is_empty()
+    );
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops[1].op.starts().len(), 1);
+    assert_eq!(
+        app.edit.as_ref().unwrap().job.operations[1].starts().len(),
+        1
+    );
 }
 
 #[test]
@@ -240,7 +249,7 @@ fn a_lead_set_on_an_operation_is_generated_and_saved() {
     let mut app = lower_part();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let before = app.result.as_ref().unwrap().program.moves.len();
-    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
         p.lead = Some(Lead { radius: 3.0 });
     }
     assert!(app.generate_and_wait(), "{:?}", app.report);
@@ -300,7 +309,7 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
         generated > drawing_only,
         "the legend explains the toolpath too"
     );
-    match &mut app.edit.as_mut().unwrap().ops[0].op {
+    match &mut app.edit.as_mut().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.feed = 900.0,
         _ => panic!("operation 1 is a pocket"),
     }
@@ -333,7 +342,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     let mut app = ChiploadApp::default();
     app.ask_new();
     // A fixed board with its corner at the origin: the drawing is placed onto it.
-    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
+    let stock = app.edit.as_mut().unwrap().job.stock_mut();
     stock.origin = chipload_job::StockOrigin::BottomLeft;
     stock.fit = None;
     app.start_drawing(Tool::Circle);
@@ -343,8 +352,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert!(app.update_from(&corpus("dxf/simple_part.dxf"), None));
     let circle = |app: &ChiploadApp| app.shape(1).unwrap().geometry.clone();
     let before = circle(&app);
-    let placement =
-        |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.dxfs[0].placement;
+    let placement = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.dxfs[0].placement;
     assert_eq!(placement(&app), chipload_job::Placement::default());
     // simple_part's outline (the outer contour) is 50 .. 250 × 50 .. 170.
     let outline = |app: &ChiploadApp| {
@@ -398,10 +406,8 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     assert!(near(contour_min(&app, outline(&app)), (100.0, 80.0)));
     assert_eq!(circle(&app), before, "the drawn circle stays");
     let size = |app: &ChiploadApp| {
-        chipload_pipeline::placement::imported_size(
-            &app.edit.as_ref().unwrap().settings.drawing.shapes,
-        )
-        .unwrap()
+        chipload_pipeline::placement::imported_size(&app.edit.as_ref().unwrap().job.drawing.shapes)
+            .unwrap()
     };
     assert!(near(size(&app), (100.0, 60.0)));
     app.undo();
@@ -429,7 +435,7 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     select(&mut app, &[1, 2, 3, 4]);
     let i = app.add_operation(OpKind::Vcarve).unwrap();
     let edit = app.edit.as_ref().unwrap();
-    let Operation::Vcarve(v) = &edit.ops[i].op else {
+    let Operation::Vcarve(v) = &edit.job.operations[i] else {
         panic!("a V-carve");
     };
     assert_eq!(v.name, "V-carve 1");
@@ -445,8 +451,8 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     // Duplicating keeps the kind and marks the name.
     let edit = app.edit.as_mut().unwrap();
     let copy = edit.duplicate(i, &crate::i18n::Language::En).unwrap();
-    assert_eq!(edit.ops[copy].op.name(), "V-carve 1 (copy)");
-    assert!(matches!(edit.ops[copy].op, Operation::Vcarve(_)));
+    assert_eq!(edit.job.operations[copy].name(), "V-carve 1 (copy)");
+    assert!(matches!(edit.job.operations[copy], Operation::Vcarve(_)));
 }
 
 #[test]
@@ -470,7 +476,7 @@ fn a_follow_path_is_added_for_open_and_closed_shapes_and_generated() {
     select(&mut app, &ids);
     let i = app.add_operation(OpKind::Path).unwrap();
     let edit = app.edit.as_ref().unwrap();
-    let Operation::Path(p) = &edit.ops[i].op else {
+    let Operation::Path(p) = &edit.job.operations[i] else {
         panic!("a follow path");
     };
     assert_eq!(p.name, "Follow path 1");
@@ -509,17 +515,17 @@ fn holes_take_the_tools_method_and_generate() {
     select(&mut app, &circles[..2]);
     let i = app.add_operation(OpKind::Holes).unwrap();
     let edit = app.edit.as_mut().unwrap();
-    edit.ops[i].op.set_tool(2);
-    crate::editor::fit_hole_method(&mut edit.ops[i].op, &edit.settings.tools);
-    let Operation::Holes(h) = &edit.ops[i].op else {
+    edit.job.operations[i].set_tool(2);
+    crate::editor::fit_hole_method(&mut edit.job.operations[i], &edit.job.tools);
+    let Operation::Holes(h) = &edit.job.operations[i] else {
         panic!("holes");
     };
     assert_eq!(h.name, "Holes 1");
     assert_eq!(h.method, HoleMethod::Drill { peck: None });
     // Back to the endmill: a bore with its defaults.
-    edit.ops[i].op.set_tool(1);
-    crate::editor::fit_hole_method(&mut edit.ops[i].op, &edit.settings.tools);
-    let Operation::Holes(h) = &edit.ops[i].op else {
+    edit.job.operations[i].set_tool(1);
+    crate::editor::fit_hole_method(&mut edit.job.operations[i], &edit.job.tools);
+    let Operation::Holes(h) = &edit.job.operations[i] else {
         panic!("holes");
     };
     assert!(matches!(h.method, HoleMethod::Bore { step_down, .. } if step_down == 3.0));
@@ -537,12 +543,12 @@ fn a_surface_needs_no_selection_and_goes_first_in_its_part() {
     // docs/specs/surfacing.md §8: the two-parts project, nothing selected.
     let mut app = two_parts();
     app.selection = Default::default();
-    let first_part = app.edit.as_ref().unwrap().settings.parts[0].id;
-    app.edit.as_mut().unwrap().settings.active_part = Some(first_part);
+    let first_part = app.edit.as_ref().unwrap().job.parts[0].id;
+    app.edit.as_mut().unwrap().job.active_part = Some(first_part);
     let i = app.add_operation(OpKind::Surface).unwrap();
     assert_eq!(i, 0, "first in part 1");
     let edit = app.edit.as_ref().unwrap();
-    let Operation::Surface(f) = &edit.ops[i].op else {
+    let Operation::Surface(f) = &edit.job.operations[i] else {
         panic!("a surface");
     };
     assert_eq!(f.name, "Surface 1");
@@ -550,10 +556,14 @@ fn a_surface_needs_no_selection_and_goes_first_in_its_part() {
     // The project's only endmill; 0.5 mm off in one pass.
     assert_eq!((f.tool, f.end_depth, f.step_down), (1, 0.5, 1.0));
     assert_eq!(
-        crate::editor::geometry_summary(&edit.ops[i].op, &app.contours, &crate::i18n::Language::En),
+        crate::editor::geometry_summary(
+            &edit.job.operations[i],
+            &app.contours,
+            &crate::i18n::Language::En
+        ),
         "the whole stock"
     );
-    assert!(app.op_contours(&edit.ops[i].op).is_empty());
+    assert!(app.op_contours(&edit.job.operations[i]).is_empty());
     // Its form and Browser row draw without a selection.
     draw_properties(&mut app);
     draw_sidebar(&mut app);
@@ -568,14 +578,14 @@ fn dogbones_are_set_on_a_profile_and_generated() {
     let edit = app.edit.as_mut().unwrap();
     edit.remove(2);
     edit.remove(0);
-    let Operation::Profile(p) = &mut edit.ops[0].op else {
+    let Operation::Profile(p) = &mut edit.job.operations[0] else {
         panic!("the slot");
     };
     p.corners = None;
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let round = app.result.as_ref().unwrap().program.moves.len();
     let edit = app.edit.as_mut().unwrap();
-    let Operation::Profile(p) = &mut edit.ops[0].op else {
+    let Operation::Profile(p) = &mut edit.job.operations[0] else {
         panic!("the slot");
     };
     p.corners = Some(chipload_job::Corners::Dogbone {
@@ -776,7 +786,7 @@ fn a_rest_pocket_generates_and_a_smaller_rest_tool_is_flagged_on_its_field() {
     assert!(app.open(&corpus("jobs/v18/rest.chipload")));
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let edit = app.edit.as_mut().unwrap();
-    let Operation::Pocket(p) = &mut edit.ops[0].op else {
+    let Operation::Pocket(p) = &mut edit.job.operations[0] else {
         panic!("a pocket");
     };
     p.rest = Some(chipload_job::Rest { after_tool: 2 });
@@ -796,13 +806,17 @@ fn a_rest_pass_is_added_under_its_pocket_opened_turned_off_and_undone() {
     // docs/specs/rest-passes.md §6.
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v18/rest.chipload")));
-    app.edit.as_mut().unwrap().ops.truncate(1);
+    app.edit.as_mut().unwrap().job.operations.truncate(1);
     app.commit();
     app.add_rest_pass(0, 2);
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.ops.len(), 1, "under the pocket, not a new operation");
+    assert_eq!(
+        edit.job.operations.len(),
+        1,
+        "under the pocket, not a new operation"
+    );
     assert_eq!(app.focus, Focus::RestPass(0, 0));
-    let Operation::Pocket(p) = &edit.ops[0].op else {
+    let Operation::Pocket(p) = &edit.job.operations[0] else {
         panic!("a pocket");
     };
     assert_eq!(p.rest_passes.len(), 1);
@@ -815,7 +829,7 @@ fn a_rest_pass_is_added_under_its_pocket_opened_turned_off_and_undone() {
     assert!(result.op_spans.iter().any(|s| s.pass == Some(0)));
     // Not for a larger tool: an error, nothing added.
     app.add_rest_pass(0, 1);
-    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.rest_passes.clone(),
         _ => panic!(),
     };
@@ -838,13 +852,13 @@ fn a_floor_pass_is_added_under_its_vcarve_with_a_hint_turned_off_and_undone() {
     // No end mill in the project; the library is empty in tests.
     assert!(matches!(app.floor_menu(0), Some(RestMenu::Unavailable(_))));
     let edit = app.edit.as_mut().unwrap();
-    let mut mill = edit.settings.tools[0].clone();
+    let mut mill = edit.job.tools[0].clone();
     mill.id = 2;
     mill.kind = chipload_job::ToolType::Endmill;
     mill.diameter = 6.0;
     mill.angle = None;
     mill.tip_diameter = None;
-    edit.settings.tools.push(mill);
+    edit.job.tools.push(mill);
     app.commit();
     assert!(
         matches!(app.floor_menu(0), Some(RestMenu::Tools { project, .. }) if project == [(2, 6.0)])
@@ -853,7 +867,7 @@ fn a_floor_pass_is_added_under_its_vcarve_with_a_hint_turned_off_and_undone() {
     assert!(!app.add_floor_pass(0, 1));
     assert!(app.add_floor_pass(0, 2));
     assert_eq!(app.focus, Focus::FloorPass(0));
-    let floor = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+    let floor = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
         Operation::Vcarve(v) => v.floor,
         _ => panic!("a V-carve"),
     };
@@ -889,12 +903,12 @@ fn a_rest_pocket_that_copies_its_pocket_becomes_its_rest_pass() {
     assert_eq!(app.rest_pocket_parent(1), Some(0));
     app.make_rest_pass(1);
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.ops.len(), 1);
+    assert_eq!(edit.job.operations.len(), 1);
     assert_eq!(app.focus, Focus::RestPass(0, 0));
     draw_sidebar(&mut app);
     assert!(app.generate_and_wait(), "{:?}", app.report);
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
 }
 
 #[test]
@@ -946,7 +960,7 @@ fn the_sidebar_shows_operations_and_shapes_apart() {
     // Every shape is in exactly one group of the Browser's Drawing folder.
     let groups = app.drawing_groups();
     let total: usize = groups.iter().map(|g| g.shapes).sum();
-    let shapes = app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    let shapes = app.edit.as_ref().unwrap().job.drawing.shapes.len();
     assert_eq!(total, shapes, "{groups:?}");
     let mut app = drawn_part();
     app.click(Some(contour_of(&app, 2)), false);

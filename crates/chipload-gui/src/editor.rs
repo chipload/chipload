@@ -235,92 +235,102 @@ pub fn fit_hole_method(op: &mut Operation, tools: &[chipload_job::Tool]) {
     }
 }
 
-/// One operation as edited. `side_chosen` is false while a profile's side still has to be
-/// picked (the stored side is then only a placeholder and is never written).
-#[derive(Debug, Clone, PartialEq)]
-pub struct EditOp {
-    pub op: Operation,
-    pub side_chosen: bool,
-}
-
-/// The job as edited: settings plus operations in cut order.
+/// The project as edited: the whole job, and which profiles still wait for their side to be
+/// picked (the stored side of those is only a placeholder and is never written).
 #[derive(Debug, Clone, PartialEq)]
 pub struct EditJob {
-    /// Everything but the operations (`settings.operations` is unused).
-    pub settings: Job,
-    pub ops: Vec<EditOp>,
+    pub job: Job,
+    /// Indices into `job.operations` whose side isn't chosen yet. Kept right by the methods
+    /// here that add, remove or reorder operations.
+    unsided: BTreeSet<usize>,
 }
 
-/// A (min, max) box in drawing coordinates, mm.
-type Bounds = ((f64, f64), (f64, f64));
-
 impl EditJob {
-    /// The extents of the drawing the active setup's board is placed on: `settings` has no
-    /// operations, the edited ones choose its shapes (docs/specs/setups.md §3).
-    pub fn board(&self) -> Option<Bounds> {
-        self.settings
-            .board_extents_with(self.ops.iter().map(|e| &e.op))
-    }
-
-    /// The active setup's stock, (min, max) corners in drawing coordinates.
-    pub fn stock_bounds(&self) -> Bounds {
-        self.settings.stock_bounds_around(self.board())
-    }
-
-    /// The active setup's stock size, mm.
-    pub fn stock_size(&self) -> (f64, f64) {
-        self.settings.stock_size_around(self.board())
-    }
-
     /// Where work zero `zero` would be, in drawing coordinates.
     pub fn work_zero_point(&self, zero: WorkZero) -> (f64, f64) {
-        Job::work_zero_on(zero, self.stock_bounds())
+        Job::work_zero_on(zero, self.job.stock_bounds())
     }
 
     /// Where the active setup's work zero is, in drawing coordinates.
     pub fn work_zero_xy(&self) -> (f64, f64) {
-        self.work_zero_point(self.settings.work_zero())
+        self.work_zero_point(self.job.work_zero())
     }
 
     /// The work zero a point dropped at `at` means ([`Job::work_zero_at`]).
     pub fn work_zero_at(&self, at: (f64, f64), reach: f64) -> WorkZero {
-        Job::work_zero_at_on(self.stock_bounds(), at, reach)
+        Job::work_zero_at_on(self.job.stock_bounds(), at, reach)
     }
 
     pub fn from_job(job: &Job) -> Self {
-        let mut settings = job.clone();
-        let ops = std::mem::take(&mut settings.operations)
+        EditJob {
+            job: job.clone(),
+            unsided: BTreeSet::new(),
+        }
+    }
+
+    /// Take `job`, changed by the pipeline, as the project. The marks of profiles whose side
+    /// isn't chosen yet stay when the operations are as many as before: the pipeline's
+    /// edits don't add, remove or reorder operations.
+    pub fn adopt(&mut self, job: Job) {
+        if job.operations.len() != self.job.operations.len() {
+            self.unsided.clear();
+        }
+        self.job = job;
+    }
+
+    /// Whether operation `index`'s side is chosen (true for anything but a new profile).
+    pub fn side_chosen(&self, index: usize) -> bool {
+        !self.unsided.contains(&index)
+    }
+
+    /// Mark operation `index`'s side as chosen.
+    pub fn choose_side(&mut self, index: usize) {
+        self.unsided.remove(&index);
+    }
+
+    /// Change the list of operations with each one's side mark carried along, so adding,
+    /// removing and reordering keep the marks on their operations.
+    fn reorder<T>(&mut self, change: impl FnOnce(&mut Vec<(Operation, bool)>) -> T) -> T {
+        let mut marked: Vec<(Operation, bool)> = std::mem::take(&mut self.job.operations)
             .into_iter()
-            .map(|op| EditOp {
-                op,
-                side_chosen: true,
-            })
+            .enumerate()
+            .map(|(i, op)| (op, self.unsided.contains(&i)))
             .collect();
-        EditJob { settings, ops }
+        let out = change(&mut marked);
+        self.unsided = marked
+            .iter()
+            .enumerate()
+            .filter(|(_, (_, unsided))| *unsided)
+            .map(|(i, _)| i)
+            .collect();
+        self.job.operations = marked.into_iter().map(|(op, _)| op).collect();
+        out
     }
 
     /// Where an operation added to part `id` goes: after the part's last operation, or,
     /// for a part without operations, after the operations of the parts before it
     /// (as `Job::insert_index`).
     pub fn insert_index(&self, id: u64) -> usize {
-        let order: Vec<u64> = self.settings.parts.iter().map(|p| p.id).collect();
+        let order: Vec<u64> = self.job.parts.iter().map(|p| p.id).collect();
         let rank = |part: u64| order.iter().position(|p| *p == part).unwrap_or(usize::MAX);
         let mine = rank(id);
-        self.ops
+        self.job
+            .operations
             .iter()
-            .rposition(|e| rank(e.op.part()) <= mine)
+            .rposition(|e| rank(e.part()) <= mine)
             .map_or(0, |i| i + 1)
     }
 
     /// The tool a new operation gets: the last operation's, else the project's first
     /// (docs/specs/tool-per-operation.md §8).
     pub fn next_tool_id(&self) -> i64 {
-        let known = |id: &i64| self.settings.tools.iter().any(|t| t.id == *id);
-        self.ops
+        let known = |id: &i64| self.job.tools.iter().any(|t| t.id == *id);
+        self.job
+            .operations
             .last()
-            .map(|e| e.op.tool())
+            .map(|e| e.tool())
             .filter(known)
-            .or(self.settings.tools.first().map(|t| t.id))
+            .or(self.job.tools.first().map(|t| t.id))
             .unwrap_or(1)
     }
 
@@ -331,12 +341,12 @@ impl EditJob {
     pub fn tool_for(&self, kind: OpKind) -> i64 {
         // A surface takes the widest endmill (docs/specs/surfacing.md §4).
         if kind == OpKind::Surface
-            && let Some(widest) = chipload_pipeline::surface::surface_tool(&self.settings)
+            && let Some(widest) = chipload_pipeline::surface::surface_tool(&self.job)
         {
             return widest;
         }
         let suits = |id: i64| {
-            self.settings
+            self.job
                 .tools
                 .iter()
                 .find(|t| t.id == id)
@@ -346,7 +356,7 @@ impl EditJob {
         if suits(next) {
             return next;
         }
-        self.settings
+        self.job
             .tools
             .iter()
             .map(|t| t.id)
@@ -362,18 +372,24 @@ impl EditJob {
         cutting: Option<&Cutting>,
         diameter: f64,
     ) -> (f64, f64, f64, f64) {
-        let above = self.ops[..index].iter().next_back().map(|e| match &e.op {
-            Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
-            Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
-            Operation::Vcarve(v) => (DEFAULT_STEP_DOWN, v.feed, v.plunge_feed, None),
-            Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
-            Operation::Holes(h) => (DEFAULT_STEP_DOWN, h.feed, h.plunge_feed, None),
-            Operation::Surface(f) => (f.step_down, f.feed, f.plunge_feed, None),
-        });
-        let stepover_above = self.ops[..index].iter().rev().find_map(|e| match &e.op {
-            Operation::Pocket(p) => Some(p.stepover),
-            _ => None,
-        });
+        let above = self.job.operations[..index]
+            .iter()
+            .next_back()
+            .map(|e| match &e {
+                Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
+                Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
+                Operation::Vcarve(v) => (DEFAULT_STEP_DOWN, v.feed, v.plunge_feed, None),
+                Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
+                Operation::Holes(h) => (DEFAULT_STEP_DOWN, h.feed, h.plunge_feed, None),
+                Operation::Surface(f) => (f.step_down, f.feed, f.plunge_feed, None),
+            });
+        let stepover_above = self.job.operations[..index]
+            .iter()
+            .rev()
+            .find_map(|e| match &e {
+                Operation::Pocket(p) => Some(p.stepover),
+                _ => None,
+            });
         match above {
             Some((step_down, feed, plunge, _)) => (
                 step_down,
@@ -418,27 +434,29 @@ impl EditJob {
         lang: &impl Lang,
     ) -> usize {
         // Into the active part, after its operations (docs/specs/parts.md §8).
-        let part = self.settings.active_part_id().unwrap_or(1);
+        let part = self.job.active_part_id().unwrap_or(1);
         // A surface goes first in its part: it faces the stock before anything is cut
         // (docs/specs/surfacing.md §6).
         let index = match kind {
             OpKind::Surface => self
-                .ops
+                .job
+                .operations
                 .iter()
-                .position(|e| e.op.part() == part)
+                .position(|e| e.part() == part)
                 .unwrap_or_else(|| self.insert_index(part)),
             _ => self.insert_index(part),
         };
         let tool = self.tool_for(kind);
-        let chosen = self.settings.tool(tool);
+        let chosen = self.job.tool(tool);
         let diameter = chosen.map_or(0.0, |t| t.diameter);
         let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting, diameter);
         let number = self
-            .ops
+            .job
+            .operations
             .iter()
             .filter(|e| {
                 matches!(
-                    (&e.op, kind),
+                    (&e, kind),
                     (Operation::Profile(_), OpKind::Profile)
                         | (Operation::Pocket(_), OpKind::Pocket)
                         | (Operation::Vcarve(_), OpKind::Vcarve)
@@ -612,7 +630,7 @@ impl EditJob {
                 )
             }
         };
-        self.ops.insert(index, EditOp { op, side_chosen });
+        self.reorder(|ops| ops.insert(index, (op, !side_chosen)));
         index
     }
 
@@ -623,19 +641,18 @@ impl EditJob {
         selection: &CanvasSelection,
         contours: &[Contour],
     ) {
-        let open = matches!(self.ops.get(index).map(|e| &e.op), Some(Operation::Path(_)));
+        let open = matches!(self.job.operations.get(index), Some(Operation::Path(_)));
         let select = selection.selector(contours, open);
-        let Some(edit) = self.ops.get_mut(index) else {
+        let unsided = !self.side_chosen(index);
+        let Some(op) = self.job.operations.get_mut(index) else {
             return;
         };
-        match &mut edit.op {
+        match op {
             Operation::Profile(p) => {
                 p.select = select;
-                if !edit.side_chosen
-                    && let Some(side) = default_side(&selection.ids(contours), contours)
-                {
+                if unsided && let Some(side) = default_side(&selection.ids(contours), contours) {
                     p.side = side;
-                    edit.side_chosen = true;
+                    self.unsided.remove(&index);
                 }
             }
             Operation::Pocket(p) => p.select = select,
@@ -652,96 +669,105 @@ impl EditJob {
     /// moving past the first or last operation of a part moves it into the next part and
     /// the list stays grouped by part (docs/specs/parts.md §8).
     pub fn move_op(&mut self, from: usize, to: usize) {
-        if from < self.ops.len() && to < self.ops.len() && from != to {
-            let part = self.ops[to].op.part();
-            let mut op = self.ops.remove(from);
-            op.op.set_part(part);
-            self.ops.insert(to, op);
+        let len = self.job.operations.len();
+        if from < len && to < len && from != to {
+            let part = self.job.operations[to].part();
+            self.reorder(|ops| {
+                let mut moved = ops.remove(from);
+                moved.0.set_part(part);
+                ops.insert(to, moved);
+            });
         }
     }
 
     /// Move operation `from` to the end of part `id`'s operations. Returns its new index.
     pub fn move_op_to_part(&mut self, from: usize, id: u64) -> Option<usize> {
-        if from >= self.ops.len() || self.settings.part(id).is_none() {
+        if from >= self.job.operations.len() || self.job.part(id).is_none() {
             return None;
         }
-        let mut op = self.ops.remove(from);
-        op.op.set_part(id);
+        let mut moved = self.reorder(|ops| ops.remove(from));
+        moved.0.set_part(id);
         let at = self.insert_index(id);
-        self.ops.insert(at, op);
+        self.reorder(|ops| ops.insert(at, moved));
         Some(at)
     }
 
     /// A new, empty part at the end, which becomes the active part. Returns its id.
     pub fn add_part(&mut self) -> u64 {
-        let id = self.settings.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
-        let name = chipload_pipeline::parts::free_name(&self.settings, None).unwrap_or_default();
-        self.settings.parts.push(chipload_job::Part {
+        let id = self.job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
+        let name = chipload_pipeline::parts::free_name(&self.job, None).unwrap_or_default();
+        self.job.parts.push(chipload_job::Part {
             id,
             name,
             enabled: true,
             copies: None,
-            setup: self.settings.active_setup_id().unwrap_or(1),
+            setup: self.job.active_setup_id().unwrap_or(1),
         });
-        self.settings.active_part = Some(id);
+        self.job.active_part = Some(id);
         id
     }
 
     /// Remove part `id` and its operations; the last part stays. Returns how many
     /// operations went with it.
     pub fn delete_part(&mut self, id: u64) -> Option<usize> {
-        if self.settings.parts.len() < 2 {
+        if self.job.parts.len() < 2 {
             return None;
         }
-        let at = self.settings.parts.iter().position(|p| p.id == id)?;
-        self.settings.parts.remove(at);
-        let before = self.ops.len();
-        self.ops.retain(|e| e.op.part() != id);
-        if self.settings.active_part == Some(id) {
-            self.settings.active_part = self.settings.parts.first().map(|p| p.id);
+        let at = self.job.parts.iter().position(|p| p.id == id)?;
+        self.job.parts.remove(at);
+        let before = self.job.operations.len();
+        self.reorder(|ops| ops.retain(|(op, _)| op.part() != id));
+        if self.job.active_part == Some(id) {
+            self.job.active_part = self.job.parts.first().map(|p| p.id);
         }
-        Some(before - self.ops.len())
+        Some(before - self.job.operations.len())
     }
 
     /// Move part `id` one place earlier (`up`) or later, with its operations.
     pub fn move_part(&mut self, id: u64, up: bool) {
-        let Some(at) = self.settings.parts.iter().position(|p| p.id == id) else {
+        let Some(at) = self.job.parts.iter().position(|p| p.id == id) else {
             return;
         };
         let to = if up { at.checked_sub(1) } else { Some(at + 1) };
-        let Some(to) = to.filter(|t| *t < self.settings.parts.len()) else {
+        let Some(to) = to.filter(|t| *t < self.job.parts.len()) else {
             return;
         };
-        self.settings.parts.swap(at, to);
-        let order: Vec<u64> = self.settings.parts.iter().map(|p| p.id).collect();
-        self.ops.sort_by_key(|e| {
-            order
-                .iter()
-                .position(|p| *p == e.op.part())
-                .unwrap_or(usize::MAX)
+        self.job.parts.swap(at, to);
+        let order: Vec<u64> = self.job.parts.iter().map(|p| p.id).collect();
+        self.reorder(|ops| {
+            ops.sort_by_key(|(op, _)| {
+                order
+                    .iter()
+                    .position(|p| *p == op.part())
+                    .unwrap_or(usize::MAX)
+            });
         });
     }
 
     /// Copy operation `index` to just after it, its name marked as a copy in `lang`'s
     /// language.
     pub fn duplicate(&mut self, index: usize, lang: &impl Lang) -> Option<usize> {
-        let mut copy = self.ops.get(index)?.clone();
-        let name = copy.op.name_mut();
+        let mut copy = self.job.operations.get(index)?.clone();
+        let name = copy.name_mut();
         *name = t!(lang, "editor-name-copy", name = name.as_str());
-        self.ops.insert(index + 1, copy);
+        let unsided = !self.side_chosen(index);
+        self.reorder(|ops| ops.insert(index + 1, (copy, unsided)));
         Some(index + 1)
     }
 
-    pub fn remove(&mut self, index: usize) {
-        if index < self.ops.len() {
-            self.ops.remove(index);
+    /// Remove operation `index`; returns it.
+    pub fn remove(&mut self, index: usize) -> Option<Operation> {
+        if index < self.job.operations.len() {
+            Some(self.reorder(|ops| ops.remove(index)).0)
+        } else {
+            None
         }
     }
 
     /// What an operation still lacks before it can be cut or saved, each at its field.
     pub fn missing(&self) -> Vec<Problem> {
         let mut out = Vec::new();
-        for (i, edit) in self.ops.iter().enumerate() {
+        for (i, op) in self.job.operations.iter().enumerate() {
             let mut lack = |field: &str, what: Message| {
                 let label = Message::new("job-operation-label").arg("number", i + 1);
                 let text = Message::new("job-operation-problem")
@@ -749,12 +775,12 @@ impl EditJob {
                     .arg("problem", what.clone());
                 out.push(Problem::new(format!("operations.{i}.{field}"), what, text));
             };
-            if !edit.side_chosen {
+            if !self.side_chosen(i) {
                 lack("side", Message::new("editor-choose-side"));
             }
             // A whole DXF or picture is geometry too (user report 2026-10-14: a V-carve of
             // a traced picture was refused as "no geometry").
-            if edit.op.selects_shapes() && edit.op.select().is_empty() {
+            if op.selects_shapes() && op.select().is_empty() {
                 lack("select", Message::new("editor-no-geometry"));
             }
         }
@@ -763,9 +789,8 @@ impl EditJob {
 
     /// The project as it stands, complete or not, its cuts through the stock following the
     /// thickness as set now.
-    pub(crate) fn job(&self) -> Job {
-        let mut job = self.settings.clone();
-        job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
+    pub(crate) fn as_cut(&self) -> Job {
+        let mut job = self.job.clone();
         job.follow_thickness();
         job
     }
@@ -778,7 +803,7 @@ impl EditJob {
         // The project's own rule for an empty selection says the same less helpfully.
         let lacking: Vec<String> = problems.iter().map(|p| p.path.clone()).collect();
         problems.extend(
-            chipload_pipeline::job_problems(&self.job())
+            chipload_pipeline::job_problems(&self.as_cut())
                 .into_iter()
                 .filter(|p| !lacking.contains(&p.path)),
         );
@@ -788,7 +813,7 @@ impl EditJob {
     /// The job to run or save, or every reason it isn't complete and valid.
     pub fn to_job(&self) -> Result<Job, Vec<Problem>> {
         let mut problems = self.missing();
-        let job = self.job();
+        let job = self.as_cut();
         if problems.is_empty() {
             problems.extend(job.validate());
         }
@@ -883,6 +908,43 @@ mod tests {
     }
 
     #[test]
+    fn a_side_not_chosen_stays_with_its_operation() {
+        let contours = messy_2();
+        let mut job = new_job();
+        assert!(job.job.operations.is_empty());
+        let unsided = |job: &EditJob| -> Vec<usize> {
+            (0..job.job.operations.len())
+                .filter(|&k| !job.side_chosen(k))
+                .collect()
+        };
+        // Outer and hole together: no side to guess.
+        job.add(OpKind::Profile, &ids(&[1, 2]), &contours);
+        job.add(OpKind::Pocket, &ids(&[2]), &contours);
+        assert_eq!(unsided(&job), [0]);
+        // [pocket, profile*]
+        job.move_op(0, 1);
+        assert_eq!(unsided(&job), [1]);
+        // [pocket, profile*, copy*]
+        assert_eq!(job.duplicate(1, &crate::i18n::Language::En), Some(2));
+        assert_eq!(unsided(&job), [1, 2]);
+        // [profile*, copy*]
+        assert!(matches!(job.remove(0), Some(Operation::Pocket(_))));
+        assert_eq!(unsided(&job), [0, 1]);
+        // A new part moved ahead takes its operation, mark and all: [copy*, profile*].
+        let part = job.add_part();
+        assert_eq!(job.move_op_to_part(1, part), Some(1));
+        job.move_part(part, true);
+        assert_eq!(job.job.operations[0].part(), part);
+        assert_eq!(unsided(&job), [0, 1]);
+        // [profile*]
+        assert_eq!(job.delete_part(part), Some(1));
+        assert_eq!(unsided(&job), [0]);
+        // Picking geometry that has a side chooses it.
+        job.set_geometry(0, &ids(&[2]), &contours);
+        assert!(unsided(&job).is_empty());
+    }
+
+    #[test]
     fn side_defaults_follow_the_selection() {
         let contours = messy_2();
         // #2 is an outer, #1 a hole (layer 0).
@@ -892,7 +954,7 @@ mod tests {
         assert_eq!(default_side(&BTreeSet::new(), &contours), None);
         let mut job = new_job();
         let i = job.add(OpKind::Profile, &ids(&[1, 2]), &contours);
-        assert!(!job.ops[i].side_chosen);
+        assert!(!job.side_chosen(i));
         let err = job.to_job().unwrap_err();
         assert!(err[0].text.contains("choose the profile side"), "{err:?}");
     }
@@ -907,17 +969,20 @@ mod tests {
             &CanvasSelection::Layer("upper".into(), None),
             &contours,
         );
-        let Operation::Pocket(pocket) = &job.ops[a].op else {
+        let Operation::Pocket(pocket) = &job.job.operations[a] else {
             panic!()
         };
         assert_eq!(pocket.select.shapes.as_ref().unwrap().len(), 2);
-        assert_eq!(geometry_summary(&job.ops[a].op, &contours, &En), "#4, #6");
-        let Operation::Profile(profile) = &job.ops[b].op else {
+        assert_eq!(
+            geometry_summary(&job.job.operations[a], &contours, &En),
+            "#4, #6"
+        );
+        let Operation::Profile(profile) = &job.job.operations[b] else {
             panic!()
         };
         assert_eq!(profile.select.layer.as_deref(), Some("upper"));
         assert_eq!(
-            geometry_summary(&job.ops[b].op, &contours, &En),
+            geometry_summary(&job.job.operations[b], &contours, &En),
             "layer upper"
         );
     }
@@ -927,7 +992,7 @@ mod tests {
         let contours = messy_2();
         let mut job = new_job();
         let first = job.add(OpKind::Profile, &ids(&[2]), &contours);
-        let Operation::Profile(p) = &mut job.ops[first].op else {
+        let Operation::Profile(p) = &mut job.job.operations[first] else {
             panic!()
         };
         // The 6 mm tool: 250 mm/min per mm, a third of it to plunge.
@@ -948,7 +1013,7 @@ mod tests {
         p.feed = 1200.0;
         p.step_down = 3.0;
         let second = job.add(OpKind::Pocket, &ids(&[4]), &contours);
-        let Operation::Pocket(q) = &job.ops[second].op else {
+        let Operation::Pocket(q) = &job.job.operations[second] else {
             panic!()
         };
         assert_eq!(
@@ -969,7 +1034,7 @@ mod tests {
             stepover: 0.3,
         };
         let first = job.add_with(OpKind::Pocket, &ids(&[4]), &contours, Some(&cutting), &En);
-        let Operation::Pocket(p) = &mut job.ops[first].op else {
+        let Operation::Pocket(p) = &mut job.job.operations[first] else {
             panic!()
         };
         assert_eq!(
@@ -980,7 +1045,7 @@ mod tests {
         assert_eq!(p.end_depth, DEFAULT_DEPTH);
         p.feed = 900.0;
         let second = job.add_with(OpKind::Profile, &ids(&[2]), &contours, Some(&cutting), &En);
-        let Operation::Profile(q) = &job.ops[second].op else {
+        let Operation::Profile(q) = &job.job.operations[second] else {
             panic!()
         };
         assert_eq!(q.feed, 900.0, "copied from the operation above");
@@ -990,10 +1055,13 @@ mod tests {
     fn new_pockets_go_down_round_a_helix_when_the_tool_cant_plunge() {
         let contours = messy_2();
         let mut job = new_job();
-        job.settings.tools[0].center_cutting = Some(false);
+        job.job.tools[0].center_cutting = Some(false);
         let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
-        let diameter = job.settings.tools[0].diameter;
-        assert_eq!(job.ops[i].op.entry(), Entry::default_helix(diameter));
+        let diameter = job.job.tools[0].diameter;
+        assert_eq!(
+            job.job.operations[i].entry(),
+            Entry::default_helix(diameter)
+        );
     }
 
     #[test]
@@ -1001,9 +1069,9 @@ mod tests {
         let contours = messy_2();
         let mut job = new_job();
         let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
-        assert_eq!(job.ops[i].op.entry(), Entry::Plunge {});
+        assert_eq!(job.job.operations[i].entry(), Entry::Plunge {});
         let j = job.add(OpKind::Profile, &ids(&[2]), &contours);
-        let Operation::Profile(p) = &job.ops[j].op else {
+        let Operation::Profile(p) = &job.job.operations[j] else {
             panic!()
         };
         assert_eq!(p.ramp_angle, DEFAULT_RAMP_ANGLE_RAD);
@@ -1027,7 +1095,11 @@ mod tests {
         job.add(OpKind::Profile, &ids(&[2]), &contours);
         job.add(OpKind::Pocket, &ids(&[6]), &contours);
         let names = |j: &EditJob| -> Vec<String> {
-            j.ops.iter().map(|e| e.op.name().to_string()).collect()
+            j.job
+                .operations
+                .iter()
+                .map(|e| e.name().to_string())
+                .collect()
         };
         job.move_op(2, 0);
         assert_eq!(names(&job), ["Pocket 2", "Pocket 1", "Profile 1"]);

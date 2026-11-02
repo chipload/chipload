@@ -19,7 +19,7 @@ fn a_part_exports_alone_and_the_project_is_unchanged() {
     let dir = temp_dir("part-export");
     // Part 2 ("part B") is switched off: exported all the same (decision 1).
     let edit = app.edit.as_mut().unwrap();
-    edit.settings.parts[1].enabled = false;
+    edit.job.parts[1].enabled = false;
     app.commit();
     assert_eq!(
         app.default_part_export_path(2, "part B")
@@ -43,7 +43,7 @@ fn a_part_exports_alone_and_the_project_is_unchanged() {
     assert!(app.export_part(2, &path));
     assert_eq!(std::fs::read_to_string(&path).unwrap(), expected[0]);
     // Only the switch made above changed the project.
-    app.edit.as_mut().unwrap().settings.parts[1].enabled = true;
+    app.edit.as_mut().unwrap().job.parts[1].enabled = true;
     app.commit();
     assert_eq!(app.edit, project);
     assert_eq!(app.dirty(), dirty);

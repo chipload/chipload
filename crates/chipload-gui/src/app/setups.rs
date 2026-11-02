@@ -19,10 +19,10 @@ impl ChiploadApp {
         match change(&job) {
             Ok(changed) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings.setups = changed.setups;
-                    edit.settings.active_setup = changed.active_setup;
-                    edit.settings.parts = changed.parts;
-                    edit.settings.active_part = changed.active_part;
+                    edit.job.setups = changed.setups;
+                    edit.job.active_setup = changed.active_setup;
+                    edit.job.parts = changed.parts;
+                    edit.job.active_part = changed.active_part;
                 }
                 self.commit();
                 true
@@ -60,7 +60,7 @@ impl ChiploadApp {
         let enabled = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.setup(id))
+            .and_then(|e| e.job.setup(id))
             .map(|s| !s.enabled);
         self.change_setups(|job| chipload_pipeline::setups::set_setup(job, id, None, enabled));
     }
@@ -74,11 +74,10 @@ impl ChiploadApp {
     /// or deleted first, so nothing is lost by accident. The last setup stays.
     pub fn remove_setup(&mut self, id: u64) {
         let has_operations = self.edit.as_ref().is_some_and(|e| {
-            e.ops.iter().any(|entry| {
-                e.settings
-                    .part(entry.op.part())
-                    .is_some_and(|p| p.setup == id)
-            })
+            e.job
+                .operations
+                .iter()
+                .any(|entry| e.job.part(entry.part()).is_some_and(|p| p.setup == id))
         });
         if has_operations {
             self.error(vec![t!(self, "app-setup-has-operations")]);

@@ -24,7 +24,7 @@ fn a_browser_click_selects_and_ctrl_click_adds() {
     );
     assert_eq!(app.selection.ids(&app.contours).len(), 3); // 6 shapes, 3 holes
     // The Browser draws with every folder open, with a selection and with an operation off.
-    app.edit.as_mut().unwrap().ops[1].op.set_enabled(false);
+    app.edit.as_mut().unwrap().job.operations[1].set_enabled(false);
     app.focus = Focus::Op(2);
     draw_sidebar(&mut app);
 }

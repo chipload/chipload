@@ -7,7 +7,7 @@ use super::*;
 use crate::app::modify::ModifyTool;
 
 fn shapes(app: &ChiploadApp) -> &[chipload_job::Shape] {
-    &app.edit.as_ref().unwrap().settings.drawing.shapes
+    &app.edit.as_ref().unwrap().job.drawing.shapes
 }
 
 #[test]

@@ -30,10 +30,10 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return t!(self, "header-export-hover");
         };
-        let cut = edit.settings.parts.iter().filter(|p| p.enabled).count();
+        let cut = edit.job.parts.iter().filter(|p| p.enabled).count();
         let shown = self
             .result_part
-            .and_then(|id| edit.settings.part(id))
+            .and_then(|id| edit.job.part(id))
             .map(|p| p.name.as_str());
         match (cut, shown) {
             (n, Some(name)) if n > 1 => {

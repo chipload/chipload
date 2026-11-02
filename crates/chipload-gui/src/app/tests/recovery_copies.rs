@@ -67,7 +67,7 @@ fn work_left_by_a_crashed_window_is_offered_and_reopened_unsaved() {
     assert!(app.leftovers.is_empty());
     assert!(app.dirty(), "recovered work is unsaved");
     assert_eq!(app.job_path.as_deref(), Some(project.as_path()));
-    match &app.edit.as_ref().unwrap().ops[0].op {
+    match &app.edit.as_ref().unwrap().job.operations[0] {
         Operation::Pocket(p) => assert_eq!(p.feed, 650.0),
         _ => panic!("operation 1 is a pocket"),
     }

@@ -271,14 +271,14 @@ impl ChiploadApp {
             .unwrap_or_default();
         // Half the stock's width to start with, shown and editable: never a guess from the
         // picture's DPI (spec §3.5).
-        let width = (edit.stock_size().0 / 2.0).round().max(1.0);
+        let width = (edit.job.stock_size().0 / 2.0).round().max(1.0);
         let defaults = NewImage::new(&file, &bytes, width);
         let draft = Image {
             id: 0,
             file: file.clone(),
             sha256: String::new(),
             data: String::new(),
-            layer: new_layer(&edit.settings, &file),
+            layer: new_layer(&edit.job, &file),
             x: 0.0,
             y: 0.0,
             width,
@@ -304,7 +304,7 @@ impl ChiploadApp {
         let Some(image) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.images.iter().find(|i| i.id == id))
+            .and_then(|e| e.job.drawing.images.iter().find(|i| i.id == id))
             .cloned()
         else {
             return false;
@@ -342,10 +342,10 @@ impl ChiploadApp {
                 new.smoothing = draft.smoothing;
                 new.trace = draft.trace;
                 new.arcs = draft.arcs;
-                add_image(&edit.settings, new)
+                add_image(&edit.job, new)
             }
             ImageTarget::Existing(id) => {
-                let mut job = edit.settings.clone();
+                let mut job = edit.job.clone();
                 // The window changes the conversion settings only: the size, place and
                 // layer are the project's, set in the picture's properties
                 // (docs/specs/properties-for-tools-and-dxfs.md §3b).
@@ -367,7 +367,7 @@ impl ChiploadApp {
         match result {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.image_dialog = None;
                 self.drawing_changed(&[]);
@@ -402,7 +402,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return false;
         };
-        let mut job = edit.settings.clone();
+        let mut job = edit.job.clone();
         let Some(image) = job.drawing.images.iter_mut().find(|i| i.id == id) else {
             return false;
         };
@@ -413,7 +413,7 @@ impl ChiploadApp {
         match retrace(&job, id) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.drawing_changed(&[]);
                 self.selection = super::CanvasSelection::Source(
@@ -449,9 +449,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match chipload_pipeline::images::remove_image(&edit.settings, id) {
+        match chipload_pipeline::images::remove_image(&edit.job, id) {
             Ok(job) => {
-                edit.settings = job;
+                edit.job = job;
                 self.drawing_changed(&[]);
                 self.selection = super::CanvasSelection::Nothing;
                 self.commit();
@@ -476,7 +476,7 @@ impl ChiploadApp {
         // Every shape from one picture, or every shape from one text.
         let mut sources = std::collections::BTreeSet::new();
         for id in ids {
-            let shape = edit.settings.drawing.shapes.iter().find(|s| s.id == *id)?;
+            let shape = edit.job.drawing.shapes.iter().find(|s| s.id == *id)?;
             let source = match (shape.image(), shape.text()) {
                 (Some(image), _) => chipload_core::chain::ShapeFrom::Image(image),
                 (None, Some(text)) => chipload_core::chain::ShapeFrom::Text(text),
@@ -508,7 +508,7 @@ impl ChiploadApp {
         let images: Vec<Image> = self
             .edit
             .as_ref()
-            .map(|e| e.settings.drawing.images.clone())
+            .map(|e| e.job.drawing.images.clone())
             .unwrap_or_default();
         let keys: Vec<PictureKey> = images
             .iter()

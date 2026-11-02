@@ -33,7 +33,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
     app.edit
         .as_mut()
         .unwrap()
-        .settings
+        .job
         .tools
         .push(chipload_job::Tool {
             id: 2,
@@ -61,7 +61,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
     app.generate_and_wait();
     select(&mut app, &[4, 6]);
     let edit = app.edit.as_ref().unwrap();
-    let part = edit.settings.parts[0].id;
+    let part = edit.job.parts[0].id;
     let mut pages = vec![
         Focus::Job,
         Focus::Part(part),
@@ -71,7 +71,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
         Focus::Dxf(1),
         Focus::Text(text),
     ];
-    pages.extend((0..edit.ops.len()).map(Focus::Op));
+    pages.extend((0..edit.job.operations.len()).map(Focus::Op));
     // The panel's least width, less its frame's margins.
     let width = PROPERTIES_MIN_WIDTH - 16.0;
     let mut wide = Vec::new();

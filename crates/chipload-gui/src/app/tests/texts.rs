@@ -11,7 +11,7 @@ fn with_text() -> (ChiploadApp, u64) {
     app.edit
         .as_mut()
         .unwrap()
-        .settings
+        .job
         .tools
         .push(chipload_job::Tool {
             id: 2,
@@ -33,7 +33,7 @@ fn with_text() -> (ChiploadApp, u64) {
 }
 
 fn texts(app: &ChiploadApp) -> &[chipload_job::Text] {
-    &app.edit.as_ref().unwrap().settings.drawing.texts
+    &app.edit.as_ref().unwrap().job.drawing.texts
 }
 
 #[test]
@@ -109,7 +109,7 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
     assert_eq!(app.focus, Focus::Selection);
     app.click(Some(letter), false);
     let index = app.add_operation(OpKind::Vcarve).unwrap();
-    let op = &app.edit.as_ref().unwrap().ops[index].op;
+    let op = &app.edit.as_ref().unwrap().job.operations[index];
     assert_eq!(op.select().text, Some(id));
     // Its form names the text, not "no geometry" (user report 2026-10-17).
     assert_eq!(
@@ -175,7 +175,7 @@ fn a_corner_drag_makes_a_text_taller() {
 fn a_text_without_its_font_keeps_its_letters_and_moves() {
     let (mut app, id) = with_text();
     // As if written elsewhere in a font this computer doesn't have.
-    app.edit.as_mut().unwrap().settings.drawing.texts[0].font = "No Such Font 42".into();
+    app.edit.as_mut().unwrap().job.drawing.texts[0].font = "No Such Font 42".into();
     app.commit();
     app.wait_for_fonts();
     assert_eq!(app.text_fonts.has("No Such Font 42"), Some(false));
@@ -184,7 +184,7 @@ fn a_text_without_its_font_keeps_its_letters_and_moves() {
         app.edit
             .as_ref()
             .unwrap()
-            .settings
+            .job
             .drawing
             .shapes
             .iter()

@@ -156,7 +156,7 @@ impl ChiploadApp {
     /// The offset the cursor at `at` asks for: its distance from the nearest selected
     /// shape, on the grid unless `free` (Alt), and the side it is on.
     pub fn offset_for_cursor(&self, at: Point, free: bool) -> Option<(f64, OffsetSide)> {
-        let job = &self.edit.as_ref()?.settings;
+        let job = &self.edit.as_ref()?.job;
         let (d, side) = offset_at(job, &self.selected_drawn(), at)?;
         let d = if free {
             d
@@ -183,7 +183,7 @@ impl ChiploadApp {
                 .as_ref()
                 .and_then(|e| {
                     offset_shapes(
-                        &e.settings,
+                        &e.job,
                         &ids,
                         d,
                         Some(side),
@@ -218,8 +218,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         let result = offset_shapes(
             &job,
             &ids,
@@ -230,7 +229,7 @@ impl ChiploadApp {
         );
         match result {
             Ok(edited) => {
-                edit.settings.drawing = edited.job.drawing;
+                edit.adopt(edited.job);
                 self.drawing_changed(&edited.new_ids);
                 self.selection = CanvasSelection::Shapes(edited.new_ids.iter().copied().collect());
                 let units = self.units.into();
@@ -323,7 +322,7 @@ impl ChiploadApp {
         let Some((id, corner)) = target else {
             return Vec::new();
         };
-        cut_shape_corners(&edit.settings, id, corner, cut)
+        cut_shape_corners(&edit.job, id, corner, cut)
             .ok()
             .and_then(|job| job.drawing.shapes.into_iter().find(|s| s.id == id))
             .map(|s| crate::draw::outline(&s.geometry))
@@ -338,14 +337,10 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         match cut_shape_corners(&job, id, corner, cut) {
             Ok(job) => {
-                edit.settings.drawing = job.drawing;
-                for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
-                    entry.op = op;
-                }
+                edit.adopt(job);
                 self.shape_draft = None;
                 self.drawing_changed(&[id]);
                 true
@@ -419,15 +414,14 @@ impl ChiploadApp {
     pub fn drawn_under(&self, picked: Option<usize>, at: Point) -> Option<u64> {
         let contour = self.contours.iter().find(|c| Some(c.id) == picked)?;
         let ids: Vec<u64> = shapes_of(contour).into_iter().collect();
-        nearest_drawn(&self.edit.as_ref()?.settings, &ids, at)
+        nearest_drawn(&self.edit.as_ref()?.job, &ids, at)
     }
 
     /// The project with the operations, as the editing operations take it (so points on a
     /// shape follow it).
     pub(super) fn job_with_operations(&self) -> Option<chipload_job::Job> {
         let edit = self.edit.as_ref()?;
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         Some(job)
     }
 
@@ -444,15 +438,12 @@ impl ChiploadApp {
                 let Some(edit) = self.edit.as_mut() else {
                     return false;
                 };
-                edit.settings.drawing = edited.job.drawing;
-                for (entry, op) in edit.ops.iter_mut().zip(edited.job.operations) {
-                    entry.op = op;
-                }
+                edit.adopt(edited.job);
                 let mut ids = changed.to_vec();
                 ids.extend(&edited.new_ids);
                 // Pieces joined after a trim: the joined shape, the others gone.
                 if let Some(kept) = edited.joined {
-                    ids.retain(|id| edit.settings.drawing.shapes.iter().any(|s| s.id == *id));
+                    ids.retain(|id| edit.job.drawing.shapes.iter().any(|s| s.id == *id));
                     if !ids.contains(&kept) {
                         ids.push(kept);
                     }
@@ -512,7 +503,7 @@ impl ChiploadApp {
         ) else {
             return (Vec::new(), None);
         };
-        let job = &job.settings;
+        let job = &job.job;
         match tool {
             ModifyTool::Trim => (
                 trim_preview(job, id, at)
@@ -633,7 +624,7 @@ impl ChiploadApp {
             let lines = self
                 .edit
                 .as_ref()
-                .and_then(|edit| self.array_result(&edit.settings))
+                .and_then(|edit| self.array_result(&edit.job))
                 .and_then(Result::ok)
                 .map(|edited| {
                     edited

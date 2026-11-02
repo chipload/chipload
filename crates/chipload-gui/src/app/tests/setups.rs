@@ -68,15 +68,15 @@ fn a_setup_exports_from_its_right_click_whichever_is_shown() {
 }
 
 /// The forms and the zero's handle place a board that fits its parts around its own
-/// setup's shapes, as the program does, though the edited settings hold no operations
-/// (found 2026-10-30: the size line showed the whole drawing's).
+/// setup's shapes, as the program does (found 2026-10-30, when the window kept the
+/// operations apart from the project: the size line showed the whole drawing's).
 #[test]
 fn a_fitting_board_and_its_zero_are_placed_around_their_own_parts() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
     app.activate_setup(2);
     let edit = app.edit.as_mut().unwrap();
-    for setup in &mut edit.settings.setups {
+    for setup in &mut edit.job.setups {
         setup.stock.origin = chipload_job::StockOrigin::Drawing;
         setup.stock.fit = Some(10.0);
         setup.work_zero = chipload_job::WorkZero::Stock {
@@ -85,14 +85,12 @@ fn a_fitting_board_and_its_zero_are_placed_around_their_own_parts() {
     }
     let job = app.edited_job().unwrap();
     let edit = app.edit.as_ref().unwrap();
-    assert_eq!(edit.board(), job.board_extents());
+    assert_eq!(edit.job.board_extents(), job.board_extents());
     assert_ne!(
-        edit.board(),
+        edit.job.board_extents(),
         job.drawing.extents(),
         "its own parts, not all"
     );
-    assert_eq!(edit.stock_bounds(), job.stock_bounds());
-    assert_eq!(edit.stock_size(), job.stock_size());
     assert_eq!(edit.work_zero_xy(), job.work_zero_xy());
     app.focus = Focus::Setup(2);
     draw_properties(&mut app);

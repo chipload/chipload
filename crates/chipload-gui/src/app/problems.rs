@@ -271,7 +271,7 @@ impl ChiploadApp {
 
     /// The problems the form for `focus` shows, by field.
     pub(super) fn form_problem_map(&self, focus: Focus) -> BTreeMap<String, String> {
-        let settings = self.edit.as_ref().map(|e| &e.settings);
+        let settings = self.edit.as_ref().map(|e| &e.job);
         let index_of = |list: Option<usize>, what: &str| list.map(|k| format!("{what}.{k}."));
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
             Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) => {
@@ -355,12 +355,12 @@ impl ChiploadApp {
         let parts: Vec<u64> = self
             .edit
             .as_ref()
-            .map(|e| e.settings.parts.iter().map(|p| p.id).collect())
+            .map(|e| e.job.parts.iter().map(|p| p.id).collect())
             .unwrap_or_default();
         let tools: Vec<i64> = self
             .edit
             .as_ref()
-            .map(|e| e.settings.tools.iter().map(|t| t.id).collect())
+            .map(|e| e.job.tools.iter().map(|t| t.id).collect())
             .unwrap_or_default();
         let units = self.units;
         let mut go = None;

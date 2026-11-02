@@ -81,7 +81,7 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        let drawing = &edit.settings.drawing;
+        let drawing = &edit.job.drawing;
         let mut counts: BTreeMap<String, (usize, BTreeMap<String, usize>)> = BTreeMap::new();
         // A grouped drawn shape is listed under its group, not again under its kind.
         let grouped =
@@ -197,7 +197,7 @@ impl ChiploadApp {
     pub(super) fn is_hidden_key(&self, key: &str) -> bool {
         self.edit
             .as_ref()
-            .is_some_and(|e| e.settings.drawing.hidden.iter().any(|h| h == key))
+            .is_some_and(|e| e.job.drawing.hidden.iter().any(|h| h == key))
     }
 
     /// Hide or show a group or layer, as one undo step.
@@ -205,7 +205,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let hidden = &mut edit.settings.drawing.hidden;
+        let hidden = &mut edit.job.drawing.hidden;
         if let Some(at) = hidden.iter().position(|h| h == key) {
             hidden.remove(at);
         } else {
@@ -239,11 +239,10 @@ impl ChiploadApp {
         };
         match chipload_pipeline::dxfs::remove_dxf(&job, id) {
             Ok((removed, lines)) => {
-                let mut next = EditJob::from_job(&removed);
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(removed);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(lines));
@@ -321,16 +320,15 @@ impl ChiploadApp {
     /// Take the changed project as one undo step and show its report, or the error under
     /// `failed` (a text id).
     fn after_shapes_change(&mut self, done: Option<ShapesChange>, failed: String) -> bool {
-        let Some(edit) = &self.edit else {
+        if self.edit.is_none() {
             return false;
-        };
+        }
         match done {
             Some(Ok((job, report))) => {
-                let mut next = EditJob::from_job(&job);
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(job);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.drawing_changed(&report.shapes);
                 self.set_report(Report::of_messages(report.messages));
@@ -371,7 +369,7 @@ impl ChiploadApp {
             return CanvasSelection::Nothing;
         };
         let shapes: BTreeSet<u64> = edit
-            .settings
+            .job
             .drawing
             .shapes
             .iter()

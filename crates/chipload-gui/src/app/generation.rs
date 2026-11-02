@@ -79,13 +79,13 @@ impl ChiploadApp {
     /// setup's parts are previewed then, docs/specs/setups.md §7). None: all of the setup's.
     pub(super) fn preview_part(&self) -> Option<u64> {
         let edit = self.edit.as_ref()?;
-        let settings = &edit.settings;
+        let settings = &edit.job;
         let setup = settings.active_setup_id();
         let in_setup = |p: &chipload_job::Part| p.enabled && Some(p.setup) == setup;
         let cut = settings.parts.iter().filter(|p| in_setup(p)).count();
         let active = settings.active_part_id()?;
         let on = settings.part(active).is_some_and(in_setup);
-        let has_operations = edit.ops.iter().any(|e| e.op.part() == active);
+        let has_operations = edit.job.operations.iter().any(|e| e.part() == active);
         (!self.all_parts && cut > 1 && on && has_operations).then_some(active)
     }
 

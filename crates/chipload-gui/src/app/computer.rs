@@ -63,7 +63,7 @@ impl ChiploadApp {
         if !open {
             return focus;
         }
-        let current = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
+        let current = self.edit.as_ref().map(|e| e.job.machine.post.clone());
         for (k, (name, builtin, problem)) in posts.iter().enumerate() {
             let k = u32::try_from(k).unwrap_or(u32::MAX);
             let mut trailing = vec![if *builtin {
@@ -246,7 +246,7 @@ impl ChiploadApp {
             }
         }
         ui.add_space(4.0);
-        let current = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
+        let current = self.edit.as_ref().map(|e| e.job.machine.post.clone());
         let mine = current.as_deref() == Some(name.as_str());
         let mut chosen = false;
         ui.horizontal(|ui| {

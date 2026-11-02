@@ -100,7 +100,7 @@ fn a_trimmed_slot_can_be_deselected() {
     // The half slot and the line between its ends are one closed polyline now.
     let edit = h.state().edit.as_ref().unwrap();
     let drawn: Vec<&chipload_job::Shape> = edit
-        .settings
+        .job
         .drawing
         .shapes
         .iter()

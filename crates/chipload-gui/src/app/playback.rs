@@ -375,7 +375,7 @@ impl ChiploadApp {
         let dxfs: Vec<u64> = self
             .edit
             .as_ref()
-            .map(|e| e.settings.drawing.dxfs.iter().map(|d| d.id).collect())
+            .map(|e| e.job.drawing.dxfs.iter().map(|d| d.id).collect())
             .unwrap_or_default();
         if steps.contains(&"drawing")
             && let (Some(&first), Some(&last)) = (dxfs.first(), dxfs.last())
@@ -395,7 +395,7 @@ impl ChiploadApp {
             });
         }
         let first_drawn = self.edit.as_ref().and_then(|e| {
-            e.settings
+            e.job
                 .drawing
                 .shapes
                 .iter()
@@ -413,7 +413,7 @@ impl ChiploadApp {
         let first_text = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.texts.first().map(|t| t.id));
+            .and_then(|e| e.job.drawing.texts.first().map(|t| t.id));
         if steps.contains(&"frame")
             && let Some(id) = first_text
         {
@@ -429,7 +429,7 @@ impl ChiploadApp {
         let last_part = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.parts.last().map(|p| p.id));
+            .and_then(|e| e.job.parts.last().map(|p| p.id));
         if steps.contains(&"part")
             && let Some(id) = last_part
         {
@@ -509,7 +509,7 @@ impl ChiploadApp {
         let first_image = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.images.first().map(|i| i.id));
+            .and_then(|e| e.job.drawing.images.first().map(|i| i.id));
         if steps.contains(&"image")
             && let Some(id) = first_image
             && self.edit_image(id)
@@ -716,7 +716,7 @@ impl ChiploadApp {
             return;
         };
         let dir = shapes_dir(&dir);
-        let job = edit.settings.clone();
+        let job = edit.job.clone();
         let all: Vec<u64> = job.drawing.shapes.iter().map(|s| s.id).collect();
         if let Ok(entry) = entry_from(&job, &all, &[]) {
             let _ = save(&dir, "Welcome sign", &entry, true);

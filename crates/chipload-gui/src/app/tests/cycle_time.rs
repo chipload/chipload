@@ -65,10 +65,10 @@ mod keyboard_shortcuts {
         press(&mut app, egui::Key::F1);
         assert!(app.dialogs.shortcuts_open);
         let mut app = lower_part();
-        let before = app.edit.as_ref().unwrap().ops.len();
+        let before = app.edit.as_ref().unwrap().job.operations.len();
         press_with(&mut app, egui::Modifiers::COMMAND, egui::Key::Z);
         assert_eq!(
-            app.edit.as_ref().unwrap().ops.len(),
+            app.edit.as_ref().unwrap().job.operations.len(),
             before - 1,
             "Ctrl+Z undid"
         );
@@ -78,7 +78,7 @@ mod keyboard_shortcuts {
             egui::Key::Z,
         );
         assert_eq!(
-            app.edit.as_ref().unwrap().ops.len(),
+            app.edit.as_ref().unwrap().job.operations.len(),
             before,
             "Ctrl+Shift+Z redid, not undid"
         );
@@ -107,7 +107,7 @@ fn dropped_files_open_or_import_after_asking() {
     ]));
     assert!(fresh.edit.is_none());
     assert!(fresh.drop_files(&[corpus("jobs/v11/two_tools.chipload")]));
-    assert_eq!(fresh.edit.as_ref().unwrap().ops.len(), 2);
+    assert_eq!(fresh.edit.as_ref().unwrap().job.operations.len(), 2);
 }
 
 #[test]
@@ -115,7 +115,7 @@ fn dropped_dxfs_and_pictures_are_added_one_at_a_time() {
     // docs/specs/drawing-sources.md §3: two DXFs make a project of two.
     let mut app = ChiploadApp::default();
     assert!(app.drop_files(&[corpus("dxf/simple_part.dxf"), corpus("dxf/simple_part.dxf")]));
-    let dxfs = |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.dxfs.len();
+    let dxfs = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.dxfs.len();
     assert_eq!(dxfs(&app), 2);
     // A DXF without units asks, and is added once answered.
     assert!(app.drop_files(&[corpus("dxf/messy.dxf")]));
@@ -201,7 +201,7 @@ mod copy_paste_mirror {
     #[test]
     fn copy_and_paste_at_the_cursor_is_one_undo_step() {
         let mut app = drawn_part();
-        let shapes = app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+        let shapes = app.edit.as_ref().unwrap().job.drawing.shapes.len();
         app.click(Some(contour_of(&app, 2)), false);
         // Ctrl+C reaches egui as a Copy event; the text goes to the system clipboard.
         let text = events(&mut app, vec![egui::Event::Copy], egui::Modifiers::COMMAND);
@@ -215,7 +215,7 @@ mod copy_paste_mirror {
             egui::Modifiers::COMMAND,
         );
         app.commit();
-        let drawing = &app.edit.as_ref().unwrap().settings.drawing;
+        let drawing = &app.edit.as_ref().unwrap().job.drawing;
         assert_eq!(drawing.shapes.len(), shapes + 1);
         let new = drawing.shapes.last().unwrap();
         let chipload_job::Geometry::Circle { center, .. } = new.geometry else {
@@ -231,25 +231,19 @@ mod copy_paste_mirror {
             "the pasted shapes are selected"
         );
         app.undo();
-        assert_eq!(
-            app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
-            shapes
-        );
+        assert_eq!(app.edit.as_ref().unwrap().job.drawing.shapes.len(), shapes);
         // Other text on the clipboard pastes nothing.
         events(
             &mut app,
             vec![egui::Event::Paste("hello".into())],
             egui::Modifiers::COMMAND,
         );
-        assert_eq!(
-            app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
-            shapes
-        );
+        assert_eq!(app.edit.as_ref().unwrap().job.drawing.shapes.len(), shapes);
         // The Edit menu pastes the last copy 10 mm up and right (no cursor on the canvas).
         app.cursor = None;
         assert!(app.paste(None));
         assert_eq!(
-            app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+            app.edit.as_ref().unwrap().job.drawing.shapes.len(),
             shapes + 1
         );
     }
@@ -272,20 +266,16 @@ mod copy_paste_mirror {
         assert!(app.mirror_selected(Mirror::LeftRight));
         app.commit();
         let after = app.edit.as_ref().unwrap();
-        assert_ne!(after.settings.drawing, before.settings.drawing);
-        let ids =
-            |e: &EditJob| -> Vec<u64> { e.settings.drawing.shapes.iter().map(|s| s.id).collect() };
+        assert_ne!(after.job.drawing, before.job.drawing);
+        let ids = |e: &EditJob| -> Vec<u64> { e.job.drawing.shapes.iter().map(|s| s.id).collect() };
         assert_eq!(ids(after), ids(&before));
         assert_eq!(
             app.shape(2),
-            before.settings.drawing.shapes.iter().find(|s| s.id == 2)
+            before.job.drawing.shapes.iter().find(|s| s.id == 2)
         );
         assert!(app.generate_and_wait(), "{:?}", app.report);
         app.undo();
-        assert_eq!(
-            app.edit.as_ref().unwrap().settings.drawing,
-            before.settings.drawing
-        );
+        assert_eq!(app.edit.as_ref().unwrap().job.drawing, before.job.drawing);
     }
 
     #[test]

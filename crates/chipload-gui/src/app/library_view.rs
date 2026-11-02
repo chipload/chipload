@@ -397,7 +397,7 @@ impl ChiploadApp {
         });
         if let Some(edit) = &self.edit {
             let users: Vec<String> = edit
-                .settings
+                .job
                 .tools
                 .iter()
                 .filter(|t| t.library_uid.as_deref() == Some(uid))
@@ -460,7 +460,7 @@ impl ChiploadApp {
             entry_buttons(ui, LibraryKind::Machines, &stored.name, is_default, act);
         });
         if let Some(edit) = &self.edit
-            && edit.settings.machine.library_uid.as_deref() == Some(uid)
+            && edit.job.machine.library_uid.as_deref() == Some(uid)
         {
             ui.weak(t!(ui, "library-view-project-machine"));
         }

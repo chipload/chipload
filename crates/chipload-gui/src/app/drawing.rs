@@ -218,14 +218,14 @@ impl ChiploadApp {
     pub fn add_drawn(&mut self, geometry: Geometry) -> Option<u64> {
         let layer = self.default_layer();
         let edit = self.edit.as_mut()?;
-        match add_shape(&edit.settings, &layer, geometry) {
+        match add_shape(&edit.job, &layer, geometry) {
             Ok((mut job, id)) => {
                 if self.construction_mode
                     && let Some(shape) = job.drawing.shapes.iter_mut().find(|s| s.id == id)
                 {
                     shape.construction = true;
                 }
-                edit.settings = job;
+                edit.job = job;
                 self.drawing_changed(&[id]);
                 let kind = match self.shape(id).map(|s| &s.geometry) {
                     Some(g) if chipload_job::edit::is_slot(g) => t!(self, "drawing-kind-slot"),
@@ -272,7 +272,7 @@ impl ChiploadApp {
     pub fn shape(&self, id: u64) -> Option<&chipload_job::Shape> {
         self.edit
             .as_ref()?
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -309,17 +309,9 @@ impl ChiploadApp {
             .as_mut()
             .ok_or_else(|| t!(lang, "drawing-no-project"))?;
         // With the operations, so their points on the shape follow it.
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
-        let job =
-            set_shape(&job, id, layer, geometry).map_err(|e| e.message().render(lang, units))?;
-        for (entry, op) in edit.ops.iter_mut().zip(&job.operations) {
-            entry.op = op.clone();
-        }
-        edit.settings = Job {
-            operations: std::mem::take(&mut edit.settings.operations),
-            ..job
-        };
+        let job = set_shape(&edit.job, id, layer, geometry)
+            .map_err(|e| e.message().render(lang, units))?;
+        edit.adopt(job);
         self.drawing_changed(&[id]);
         Ok(())
     }
@@ -332,9 +324,9 @@ impl ChiploadApp {
             .edit
             .as_mut()
             .ok_or_else(|| t!(lang, "drawing-no-project"))?;
-        let job = chipload_pipeline::shapes::name_shape(&edit.settings, id, name)
+        let job = chipload_pipeline::shapes::name_shape(&edit.job, id, name)
             .map_err(|e| e.message().render(lang, units))?;
-        edit.settings.drawing = job.drawing;
+        edit.adopt(job);
         Ok(())
     }
 
@@ -350,7 +342,7 @@ impl ChiploadApp {
         let mut drawn = Vec::new();
         let mut imported = false;
         for shape in edit
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -397,7 +389,7 @@ impl ChiploadApp {
         let mut texts = BTreeSet::new();
         let mut imported = false;
         for shape in edit
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -419,7 +411,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let mut job = edit.settings.clone();
+        let mut job = edit.job.clone();
         for &id in ids {
             match chipload_pipeline::texts::remove_text(&job, id) {
                 Ok(out) => job = out,
@@ -429,7 +421,7 @@ impl ChiploadApp {
                 }
             }
         }
-        edit.settings = job;
+        edit.job = job;
         self.drawing_changed(&[]);
         self.selection = CanvasSelection::Nothing;
         if matches!(self.focus, Focus::Text(id) if ids.contains(&id)) {
@@ -486,8 +478,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let mut job: Job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let mut job: Job = edit.job.clone();
         let mut flagged = Vec::new();
         for &id in &ids {
             match delete_shape(&job, id) {
@@ -510,13 +501,14 @@ impl ChiploadApp {
                 }
             }
         }
-        edit.settings.drawing = job.drawing;
+        edit.adopt(job);
         self.error_ops = edit
-            .ops
+            .job
+            .operations
             .iter()
             .enumerate()
             .filter(|(_, e)| {
-                e.op.select()
+                e.select()
                     .shapes
                     .as_ref()
                     .is_some_and(|used| used.iter().any(|u| ids.contains(u)))

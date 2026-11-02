@@ -34,11 +34,10 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        if edit.settings.parts.iter().all(|p| p.count() < 2) {
+        if edit.job.parts.iter().all(|p| p.count() < 2) {
             return Vec::new();
         }
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         chipload_pipeline::sheet::contour_copies(&job, &self.contours)
             .into_iter()
             .flat_map(|(c, shifts)| {
@@ -70,7 +69,7 @@ impl ChiploadApp {
         self.scene.copies = self.copy_shifts();
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
         if let Some(edit) = &self.edit {
-            let stock = &edit.settings.stock();
+            let stock = &edit.job.stock();
             let top = stock.top_z();
             self.view.top_z = top;
             self.scene.stock_z = Some((top, top - stock.thickness));
@@ -1169,11 +1168,15 @@ impl ChiploadApp {
         let Some(m) = self.scene.start_markers.get(marker).cloned() else {
             return;
         };
-        let Some(op) = self.edit.as_mut().and_then(|e| e.ops.get_mut(m.operation)) else {
+        let Some(op) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.job.operations.get_mut(m.operation))
+        else {
             return;
         };
         let point = [m.at.0, m.at.1];
-        let Some(starts) = op.op.starts_mut() else {
+        let Some(starts) = op.starts_mut() else {
             return;
         };
         match m.stored.filter(|&k| k < starts.len()) {
@@ -1192,11 +1195,13 @@ impl ChiploadApp {
         };
         let (Some(k), Some(op)) = (
             m.stored,
-            self.edit.as_mut().and_then(|e| e.ops.get_mut(m.operation)),
+            self.edit
+                .as_mut()
+                .and_then(|e| e.job.operations.get_mut(m.operation)),
         ) else {
             return;
         };
-        let Some(starts) = op.op.starts_mut() else {
+        let Some(starts) = op.starts_mut() else {
             return;
         };
         if k < starts.len() {
@@ -1248,8 +1253,8 @@ impl ChiploadApp {
         let name = self
             .edit
             .as_ref()
-            .and_then(|e| e.ops.get(index))
-            .map(|e| e.op.name().to_string())
+            .and_then(|e| e.job.operations.get(index))
+            .map(|e| e.name().to_string())
             .unwrap_or_default();
         chipload_job::operation_label_message(index, &name).render(self.language, self.units.into())
     }

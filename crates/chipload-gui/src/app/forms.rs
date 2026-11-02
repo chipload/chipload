@@ -403,7 +403,8 @@ pub(super) struct ToolChoice<'a> {
 pub(super) fn op_form(
     ui: &mut egui::Ui,
     index: usize,
-    entry: &mut crate::editor::EditOp,
+    op: &mut Operation,
+    side_chosen: &mut bool,
     contours: &[Contour],
     choice: ToolChoice<'_>,
     stock: StockDepths,
@@ -415,18 +416,13 @@ pub(super) fn op_form(
     let tool_diameter = choice
         .tools
         .iter()
-        .find(|t| t.id == entry.op.tool())
+        .find(|t| t.id == op.tool())
         .map_or(0.0, |t| t.diameter);
     // For the chip load next to the feed.
-    let op_tool: Option<Tool> = choice
-        .tools
-        .iter()
-        .find(|t| t.id == entry.op.tool())
-        .cloned();
+    let op_tool: Option<Tool> = choice.tools.iter().find(|t| t.id == op.tool()).cloned();
     let op_tool = op_tool.as_ref();
-    let summary = geometry_summary(&entry.op, contours, ui);
-    let side_chosen = &mut entry.side_chosen;
-    let kind = match &entry.op {
+    let summary = geometry_summary(&*op, contours, ui);
+    let kind = match &*op {
         Operation::Profile(_) => t!(ui, "forms-kind-profile"),
         Operation::Pocket(_) => t!(ui, "forms-kind-pocket"),
         Operation::Vcarve(_) => t!(ui, "forms-kind-vcarve"),
@@ -434,11 +430,11 @@ pub(super) fn op_form(
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
     };
-    let surface = !entry.op.selects_shapes();
-    let color = super::browser::kind_color(&entry.op, ui.visuals().dark_mode);
+    let surface = !op.selects_shapes();
+    let color = super::browser::kind_color(&*op, ui.visuals().dark_mode);
     super::browser::title_line(
         ui,
-        super::browser::op_icon(&entry.op),
+        super::browser::op_icon(&*op),
         Some(color),
         &format!(
             "{kind} · {}",
@@ -450,7 +446,7 @@ pub(super) fn op_form(
         // Past the sections' indent, so the values line up with theirs.
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
-            let name = entry.op.name_mut();
+            let name = op.name_mut();
             ui.label(t!(ui, "forms-name"));
             ui.add(TextEdit::singleline(name).desired_width(field_width(ui, 200.0)));
             ui.end_row();
@@ -460,7 +456,7 @@ pub(super) fn op_form(
                 ui.label(t!(ui, "forms-whole-stock"))
                     .on_hover_text(t!(ui, "forms-whole-stock-hover"));
                 ui.end_row();
-                tool_row(ui, index, &mut entry.op, &choice, &mut request);
+                tool_row(ui, index, &mut *op, &choice, &mut request);
                 return;
             }
             let geometry = wrapped_cell(ui, |ui| {
@@ -484,8 +480,8 @@ pub(super) fn op_form(
             });
             flag(geometry.response, ui, "select");
             ui.end_row();
-            tool_row(ui, index, &mut entry.op, &choice, &mut request);
-            if let Operation::Profile(p) = &mut entry.op {
+            tool_row(ui, index, &mut *op, &choice, &mut request);
+            if let Operation::Profile(p) = &mut *op {
                 ui.label(t!(ui, "forms-side"));
                 let side_name = |ui: &egui::Ui, side: Side| match side {
                     Side::Inside => t!(ui, "forms-side-inside"),
@@ -515,7 +511,7 @@ pub(super) fn op_form(
                 ui.end_row();
             }
         });
-    match &mut entry.op {
+    match &mut *op {
         Operation::Profile(p) => {
             let cut = t!(
                 ui,
@@ -1661,7 +1657,7 @@ pub(super) struct ImagePlace {
 pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    let drawing = &edit.settings.drawing;
+    let drawing = &edit.job.drawing;
     let source = drawing.dxfs.iter().find(|d| d.id == id)?;
     let bbox = chipload_pipeline::placement::dxf_box(&drawing.shapes, id);
     let size = bbox.map(|((x0, y0), (x1, y1))| (x1 - x0, y1 - y0));
@@ -1728,7 +1724,7 @@ pub(super) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<Job
 pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    let image = edit.settings.drawing.images.iter().find(|i| i.id == id)?;
+    let image = edit.job.drawing.images.iter().find(|i| i.id == id)?;
     let mut request = None;
     super::browser::title_line(ui, crate::icons::Icon::Image, None, &image.file);
     // The fields edit a copy kept between frames; it is sent once the edit is finished.
@@ -1910,7 +1906,7 @@ pub(super) fn text_form(
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
     use chipload_job::{Text, TextAlign, TextAnchor};
-    let text = edit.settings.drawing.texts.iter().find(|t| t.id == id)?;
+    let text = edit.job.drawing.texts.iter().find(|t| t.id == id)?;
     let mut request = None;
     super::browser::title_line(
         ui,
@@ -1935,8 +1931,7 @@ pub(super) fn text_form(
         // Not worked out while the computer's fonts are still looked for.
         None if fonts.has(&stored.font).is_none() => None,
         None => {
-            let size =
-                chipload_pipeline::texts::text_size(&edit.settings, &stored, &*fonts.finder).ok();
+            let size = chipload_pipeline::texts::text_size(&edit.job, &stored, &*fonts.finder).ok();
             ui.data_mut(|d| d.insert_temp(size_key, (stored.clone(), size)));
             size
         }
@@ -2191,7 +2186,7 @@ pub(super) fn job_form(
     let title = t!(ui, "forms-job-settings");
     super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
     let labels = job_label_width(ui);
-    let job = &mut edit.settings;
+    let job = &mut edit.job;
     machine_section(
         ui,
         job,
@@ -2243,7 +2238,7 @@ fn job_label_width(ui: &egui::Ui) -> f32 {
 /// The stock: its thickness first, then its size, fitting the drawing or fixed
 /// (docs/specs/stock-around-drawing.md).
 /// `board`: the extents of the drawing the board is placed on, its setup's own shapes
-/// ([`chipload_job::Job::board_extents_with`]).
+/// ([`chipload_job::Job::board_extents`]).
 fn stock_section(
     ui: &mut egui::Ui,
     job: &mut chipload_job::Job,
@@ -2414,8 +2409,8 @@ pub(super) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
     let title = t!(ui, "browser-work-zero");
     super::browser::title_line(ui, crate::icons::Icon::WorkZero, None, &title);
     let (x, y) = edit.work_zero_xy();
-    let ((x0, y0), (x1, y1)) = edit.stock_bounds();
-    let job = &mut edit.settings;
+    let ((x0, y0), (x1, y1)) = edit.job.stock_bounds();
+    let job = &mut edit.job;
     let chosen = job.work_zero();
     let mut zero = chosen;
     Grid::new("work-zero-form")
@@ -2693,10 +2688,11 @@ pub(super) fn tool_label(lang: &impl crate::i18n::Lang, tool: &Tool, units: Unit
 
 /// The operations (1-based numbers) that cut with tool `id`.
 fn tool_users(edit: &EditJob, id: i64) -> Vec<String> {
-    edit.ops
+    edit.job
+        .operations
         .iter()
         .enumerate()
-        .filter(|(_, e)| e.op.tool() == id)
+        .filter(|(_, e)| e.tool() == id)
         .map(|(i, _)| (i + 1).to_string())
         .collect()
 }
@@ -2736,7 +2732,7 @@ pub(super) fn tools_form(
             ))
             .clicked()
         {
-            let job = &mut edit.settings;
+            let job = &mut edit.job;
             let id = job.tools.iter().map(|t| t.id).max().unwrap_or(0).max(0) + 1;
             job.tools.push(Tool {
                 id,
@@ -2754,21 +2750,17 @@ pub(super) fn tools_form(
     });
     ui.add_space(4.0);
     let mut remove = None;
-    for index in 0..edit.settings.tools.len() {
-        let id = edit.settings.tools[index].id;
+    for index in 0..edit.job.tools.len() {
+        let id = edit.job.tools[index].id;
         let users = tool_users(edit, id);
         let summary = match users.len() {
             0 => t!(ui, "forms-tool-not-used"),
             _ => t!(ui, "forms-tool-used-by", operations = users.join(", ")),
         };
-        let title = tool_label(
-            ui,
-            &edit.settings.tools[index],
-            crate::units::display(ui.ctx()),
-        );
+        let title = tool_label(ui, &edit.job.tools[index], crate::units::display(ui.ctx()));
         let at = format!("tools.{index}");
         let marked = problems::has_problem_under(ui, &at);
-        let tool = &mut edit.settings.tools[index];
+        let tool = &mut edit.job.tools[index];
         section_marked(
             ui,
             &format!("job-tool-{id}"),
@@ -2783,7 +2775,7 @@ pub(super) fn tools_form(
         );
     }
     if let Some(index) = remove {
-        edit.settings.tools.remove(index);
+        edit.job.tools.remove(index);
     }
     request.map(JobRequest::Library)
 }
@@ -2795,10 +2787,10 @@ pub(super) fn tool_form(
     library: Option<&Library>,
     id: i64,
 ) -> Option<JobRequest> {
-    let index = edit.settings.tools.iter().position(|t| t.id == id)?;
+    let index = edit.job.tools.iter().position(|t| t.id == id)?;
     let users = tool_users(edit, id);
     let mut request = None;
-    let icon = match edit.settings.tools[index].kind {
+    let icon = match edit.job.tools[index].kind {
         ToolType::Endmill => crate::icons::Icon::Endmill,
         ToolType::Drill => crate::icons::Icon::Drill,
         ToolType::Vbit => crate::icons::Icon::Vbit,
@@ -2807,18 +2799,14 @@ pub(super) fn tool_form(
         ui,
         icon,
         None,
-        &tool_label(
-            ui,
-            &edit.settings.tools[index],
-            crate::units::display(ui.ctx()),
-        ),
+        &tool_label(ui, &edit.job.tools[index], crate::units::display(ui.ctx())),
     );
     ui.weak(match users.len() {
         0 => t!(ui, "forms-tool-not-used-long"),
         _ => t!(ui, "forms-tool-cuts", operations = users.join(", ")),
     });
     let at = format!("tools.{index}");
-    let tool = &mut edit.settings.tools[index];
+    let tool = &mut edit.job.tools[index];
     let mut removed = false;
     Grid::new(("tool-form", id))
         .num_columns(2)
@@ -2827,7 +2815,7 @@ pub(super) fn tool_form(
             removed = tool_body(ui, tool, &at, &users, library, &mut request);
         });
     if removed {
-        edit.settings.tools.remove(index);
+        edit.job.tools.remove(index);
         return Some(JobRequest::ToolRemoved);
     }
     request.map(JobRequest::Library)
@@ -3052,11 +3040,11 @@ pub(super) fn setup_form(
     library: Option<&Library>,
 ) -> Option<JobRequest> {
     let mut request = None;
-    let index = edit.settings.setups.iter().position(|s| s.id == id)?;
-    let active = edit.settings.active_setup_id() == Some(id);
-    let several = edit.settings.setups.len() > 1;
+    let index = edit.job.setups.iter().position(|s| s.id == id)?;
+    let active = edit.job.active_setup_id() == Some(id);
+    let several = edit.job.setups.len() > 1;
     let parts: Vec<String> = edit
-        .settings
+        .job
         .parts
         .iter()
         .filter(|p| p.setup == id)
@@ -3065,7 +3053,7 @@ pub(super) fn setup_form(
     let labels = job_label_width(ui);
     let open = SectionLook { open: true, labels };
     {
-        let setup = &mut edit.settings.setups[index];
+        let setup = &mut edit.job.setups[index];
         super::browser::title_line(
             ui,
             crate::icons::Icon::Rectangle,
@@ -3105,9 +3093,9 @@ pub(super) fn setup_form(
         }
         return request;
     }
-    // The settings hold no operations: the board's shapes come from the edited ones.
-    let board = edit.board();
-    let job = &mut edit.settings;
+    // Taken before the stock is borrowed for its fields.
+    let board = edit.job.board_extents();
+    let job = &mut edit.job;
     // The zero has its own properties; here where it is, a click away
     // (docs/specs/work-zero-marker.md §4).
     let zero = ui
@@ -3137,14 +3125,14 @@ pub(super) fn setup_form(
 
 pub(super) fn part_form(ui: &mut egui::Ui, edit: &mut EditJob, id: u64) -> Option<JobRequest> {
     let mut request = None;
-    let active = edit.settings.active_part_id() == Some(id);
-    let numbers: Vec<String> = (0..edit.ops.len())
-        .filter(|i| edit.ops[*i].op.part() == id)
+    let active = edit.job.active_part_id() == Some(id);
+    let numbers: Vec<String> = (0..edit.job.operations.len())
+        .filter(|i| edit.job.operations[*i].part() == id)
         .map(|i| (i + 1).to_string())
         .collect();
-    let index = edit.settings.parts.iter().position(|p| p.id == id)?;
-    let several = edit.settings.parts.len() > 1;
-    let part = &mut edit.settings.parts[index];
+    let index = edit.job.parts.iter().position(|p| p.id == id)?;
+    let several = edit.job.parts.len() > 1;
+    let part = &mut edit.job.parts[index];
     super::browser::title_line(
         ui,
         crate::icons::Icon::Part,
@@ -3719,8 +3707,8 @@ pub(super) fn rest_pass_form(
 ) -> Option<JobRequest> {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    let tools = edit.settings.tools.clone();
-    let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+    let tools = edit.job.tools.clone();
+    let Some(Operation::Pocket(pocket)) = edit.job.operations.get_mut(i) else {
         return None;
     };
     let before = match k {
@@ -3842,8 +3830,8 @@ pub(super) fn floor_pass_form(
 ) -> Option<JobRequest> {
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
-    let tools = edit.settings.tools.clone();
-    let Some(Operation::Vcarve(vcarve)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+    let tools = edit.job.tools.clone();
+    let Some(Operation::Vcarve(vcarve)) = edit.job.operations.get_mut(i) else {
         return None;
     };
     let vcarve_name = match vcarve.name.as_str() {

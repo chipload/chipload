@@ -139,7 +139,7 @@ fn draw_sidebar(app: &mut ChiploadApp) {
 
 /// Change operation 1's feed and record it as an edit.
 fn edit_feed(app: &mut ChiploadApp, feed: f64) {
-    match &mut app.edit.as_mut().unwrap().ops[0].op {
+    match &mut app.edit.as_mut().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.feed = feed,
         _ => panic!("operation 1 is a pocket"),
     }
@@ -173,9 +173,10 @@ fn op_parts(app: &ChiploadApp) -> Vec<u64> {
     app.edit
         .as_ref()
         .unwrap()
-        .ops
+        .job
+        .operations
         .iter()
-        .map(|e| e.op.part())
+        .map(|e| e.part())
         .collect()
 }
 

@@ -24,12 +24,12 @@ fn changed_elsewhere(path: &Path, x: f64) {
 
 /// The stock's X size in the app.
 fn stock_x(app: &ChiploadApp) -> f64 {
-    app.edit.as_ref().unwrap().settings.stock().x
+    app.edit.as_ref().unwrap().job.stock().x
 }
 
 /// The user sets the stock's X size in the app.
 fn set_here(app: &mut ChiploadApp, x: f64) {
-    app.edit.as_mut().unwrap().settings.stock_mut().x = x;
+    app.edit.as_mut().unwrap().job.stock_mut().x = x;
     app.commit();
 }
 

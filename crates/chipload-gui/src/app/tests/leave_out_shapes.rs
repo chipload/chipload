@@ -22,7 +22,9 @@ fn ctrl_click_leaves_a_contour_out_of_the_selected_dxf_and_puts_it_back() {
     );
     // The operation selects the DXF but those shapes.
     let index = app.add_operation(OpKind::Profile).unwrap();
-    let select = app.edit.as_ref().unwrap().ops[index].op.select().clone();
+    let select = app.edit.as_ref().unwrap().job.operations[index]
+        .select()
+        .clone();
     assert_eq!(select.dxf, Some(1));
     assert_eq!(
         select.exclude,

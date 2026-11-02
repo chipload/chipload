@@ -87,6 +87,24 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Cleanup after the review of 2026-11-02** (the user: "where does the complexity lie?
+  Any part that feels like a hack?"; asked for 2 then 1):
+  1. **The window holds the project whole: done 2026-11-02.** `EditJob` was a `Job` with
+     its operations unused plus a list of operations beside it, only to carry "side not
+     chosen yet". Pipeline calls got the project without operations and their changes to
+     operations were thrown away (none made any yet; the fitting board of 2026-10-30 was
+     one bug of it). Now `EditJob { job, unsided }`; the marks move with their
+     operations (`reorder`), pipeline results are taken whole (`adopt`).
+     `Job::board_extents_with` went.
+  2. **One way to say where a shape comes from**, next, with a spec first: an origin on
+     the shape (drawn, DXF, picture, text) instead of three optional fields in
+     `Geometry::Path`; a selector of a source, a layer, shapes and those left out instead
+     of seven optional fields; one "whole thing but these" selection in the window
+     instead of `Except` and `Group`. A schema bump.
+  3. Later: the window's modes (drawing, modify, measure, placing text, …) as one enum
+     instead of separate fields cleared by hand; splitting `models.rs`, the CLI's
+     `main.rs` and `forms.rs`.
+
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
   **done 2026-11-02**, decisions 1-10 as recommended: `drawing.groups` (optional, no

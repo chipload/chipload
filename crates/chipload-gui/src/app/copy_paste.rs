@@ -19,7 +19,7 @@ impl ChiploadApp {
         let (ids, imported) = match group {
             Some(id) => {
                 let drawn = self.edit.as_ref().map(|e| {
-                    e.settings
+                    e.job
                         .drawing
                         .groups
                         .iter()
@@ -41,7 +41,7 @@ impl ChiploadApp {
             return None;
         }
         let edit = self.edit.as_ref()?;
-        match shapes_to_copy(&edit.settings, &ids) {
+        match shapes_to_copy(&edit.job, &ids) {
             Ok(shapes) => {
                 let text = clipboard_text(&shapes);
                 let n = shapes.len();
@@ -80,9 +80,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match paste_shapes(&edit.settings, &shapes, at) {
+        match paste_shapes(&edit.job, &shapes, at) {
             Ok((job, ids)) => {
-                edit.settings.drawing = job.drawing;
+                edit.adopt(job);
                 self.drawing_changed(&ids);
                 if as_group {
                     self.group_selected();
@@ -117,9 +117,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match mirror_shapes(&edit.settings, &ids, mirror) {
+        match mirror_shapes(&edit.job, &ids, mirror) {
             Ok(job) => {
-                edit.settings.drawing = job.drawing;
+                edit.adopt(job);
                 self.shape_draft = None;
                 self.drawing_changed(&ids);
                 let text = if imported {

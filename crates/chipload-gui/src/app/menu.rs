@@ -215,7 +215,7 @@ impl ChiploadApp {
         let has_shapes = self
             .edit
             .as_ref()
-            .is_some_and(|e| !e.settings.drawing.shapes.is_empty());
+            .is_some_and(|e| !e.job.drawing.shapes.is_empty());
         if ui
             .add_enabled(has_shapes, egui::Button::new(t!(ui, "menu-export-dxf")))
             .on_hover_text(t!(ui, "menu-export-dxf-hover"))
@@ -323,7 +323,7 @@ impl ChiploadApp {
         let any_drawn = self
             .edit
             .as_ref()
-            .is_some_and(|e| e.settings.drawing.shapes.iter().any(|s| s.is_drawn()));
+            .is_some_and(|e| e.job.drawing.shapes.iter().any(|s| s.is_drawn()));
         if ui
             .add_enabled(any_drawn, egui::Button::new(t!(ui, "menu-join-ends")))
             .on_hover_text(t!(ui, "menu-join-ends-hover"))
@@ -707,7 +707,7 @@ impl ChiploadApp {
                 .edit
                 .as_ref()
                 .map(|e| {
-                    e.settings
+                    e.job
                         .parts
                         .iter()
                         .filter(|p| p.enabled)
@@ -717,11 +717,11 @@ impl ChiploadApp {
                 .filter(|&n| n > 1);
             // The units, the post and the cycle time once generated, at the far right
             // (docs/specs/browser-and-layout.md §6).
-            let post = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
+            let post = self.edit.as_ref().map(|e| e.job.machine.post.clone());
             // What the toolpath is of: one part of several, or all of them
             // (docs/specs/active-part-preview.md §4).
             let scope = self.edit.as_ref().and_then(|e| {
-                let parts = &e.settings.parts;
+                let parts = &e.job.parts;
                 (parts.len() > 1).then(|| match self.result_part {
                     Some(id) => {
                         let k = parts.iter().position(|p| p.id == id).map_or(0, |k| k + 1);
@@ -744,15 +744,12 @@ impl ChiploadApp {
             // With two parts or more, the one new operations go into (docs/specs/parts.md §8),
             // unless the cycle time already names it.
             let active = self.edit.as_ref().and_then(|e| {
-                let parts = &e.settings.parts;
-                let id = e.settings.active_part_id()?;
+                let parts = &e.job.parts;
+                let id = e.job.active_part_id()?;
                 (parts.len() > 1 && !(self.result.is_some() && self.result_part == Some(id)))
                     .then(|| parts.iter().find(|p| p.id == id).map(|p| p.name.clone()))?
             });
-            let several = self
-                .edit
-                .as_ref()
-                .is_some_and(|e| e.settings.parts.len() > 1);
+            let several = self.edit.as_ref().is_some_and(|e| e.job.parts.len() > 1);
             let zero = self
                 .edit
                 .as_ref()

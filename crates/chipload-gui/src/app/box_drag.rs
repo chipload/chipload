@@ -90,7 +90,7 @@ impl ChiploadApp {
         let CanvasSelection::Source(from) = self.selection else {
             return None;
         };
-        let drawing = &self.edit.as_ref()?.settings.drawing;
+        let drawing = &self.edit.as_ref()?.job.drawing;
         match from {
             ShapeFrom::Image(id) => {
                 let image = drawing.images.iter().find(|i| i.id == id)?.clone();
@@ -107,7 +107,7 @@ impl ChiploadApp {
                 let text = drawing.texts.iter().find(|t| t.id == id)?.clone();
                 let key = SizeKey::Text(Box::new(text.clone()));
                 let fonts = self.font_source();
-                let job = self.edit.as_ref().map(|e| &e.settings)?;
+                let job = self.edit.as_ref().map(|e| &e.job)?;
                 let size = self.box_size.get(key, || {
                     chipload_pipeline::texts::text_size(job, &text, &*fonts).ok()
                 })?;
@@ -134,7 +134,7 @@ impl ChiploadApp {
         {
             return None;
         }
-        let job = &self.edit.as_ref()?.settings;
+        let job = &self.edit.as_ref()?.job;
         let ((x0, y0), (x1, y1)) = chipload_pipeline::shapes::drawn_box(job, &ids)?;
         let pad = SHAPES_BOX_PAD_PX / self.view.scale;
         Some((
@@ -200,7 +200,7 @@ impl ChiploadApp {
         {
             let (from, to, scale, degrees) = box_transform(start, now, *pad);
             for shape in edit
-                .settings
+                .job
                 .drawing
                 .shapes
                 .iter()
@@ -279,7 +279,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        let drawing = &edit.settings.drawing;
+        let drawing = &edit.job.drawing;
         let BoxOf::Source(from) = drag.of else {
             return;
         };
@@ -323,14 +323,10 @@ impl ChiploadApp {
             return false;
         };
         // With the operations, so their start points and corner choices follow.
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         match chipload_pipeline::shapes::transform_shapes(&job, ids, from, to, scale, degrees) {
             Ok(job) => {
-                edit.settings.drawing = job.drawing;
-                for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
-                    entry.op = op;
-                }
+                edit.adopt(job);
                 self.shape_draft = None;
                 self.drawing_changed(ids);
                 true

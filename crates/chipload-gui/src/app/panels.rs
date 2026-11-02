@@ -64,7 +64,7 @@ impl ChiploadApp {
         let Some(bounds) = self
             .edit
             .as_ref()
-            .and_then(|e| chipload_pipeline::shapes::drawn_box(&e.settings, &ids))
+            .and_then(|e| chipload_pipeline::shapes::drawn_box(&e.job, &ids))
         else {
             return;
         };
@@ -125,7 +125,7 @@ impl ChiploadApp {
         let mut request = None;
         // The library's materials, each with its values for the open operation's tool.
         let materials = match (focus, library) {
-            (Focus::Op(i), Some(library)) => edit.ops.get(i).map(|e| {
+            (Focus::Op(i), Some(library)) => edit.job.operations.get(i).map(|e| {
                 library
                     .materials
                     .materials
@@ -133,11 +133,7 @@ impl ChiploadApp {
                     .map(|m| {
                         (
                             chipload_pipeline::materials::material_ref(m),
-                            chipload_pipeline::materials::tool_values(
-                                &edit.settings,
-                                m,
-                                e.op.tool(),
-                            ),
+                            chipload_pipeline::materials::tool_values(&edit.job, m, e.tool()),
                         )
                     })
                     .collect()
@@ -146,9 +142,10 @@ impl ChiploadApp {
         };
         let cutting = match focus {
             Focus::Op(i) => edit
-                .ops
+                .job
+                .operations
                 .get(i)
-                .and_then(|e| self_tool_cutting(library, &edit.settings.tools, e.op.tool())),
+                .and_then(|e| self_tool_cutting(library, &edit.job.tools, e.tool())),
             _ => None,
         };
         ui.scope(|ui| match focus {
@@ -183,18 +180,22 @@ impl ChiploadApp {
                 let choice = ToolChoice {
                     selected,
                     selection_text: &selection_text,
-                    tools: &edit.settings.tools,
+                    tools: &edit.job.tools,
                     library: library
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
                     cutting,
                     materials,
                 };
                 let stock = StockDepths {
-                    thickness: edit.settings.stock().thickness,
-                    max_overcut: edit.settings.stock().max_overcut,
+                    thickness: edit.job.stock().thickness,
+                    max_overcut: edit.job.stock().max_overcut,
                 };
-                if let Some(entry) = edit.ops.get_mut(i) {
-                    op_request = op_form(ui, i, entry, contours, choice, stock);
+                let mut side_chosen = edit.side_chosen(i);
+                if let Some(op) = edit.job.operations.get_mut(i) {
+                    op_request = op_form(ui, i, op, &mut side_chosen, contours, choice, stock);
+                }
+                if side_chosen {
+                    edit.choose_side(i);
                 }
             }
         });

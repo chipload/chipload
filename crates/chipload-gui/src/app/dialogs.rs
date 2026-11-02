@@ -118,7 +118,7 @@ impl ChiploadApp {
         let Some(name) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.part(id))
+            .and_then(|e| e.job.part(id))
             .map(|p| p.name.clone())
         else {
             return;
@@ -132,12 +132,7 @@ impl ChiploadApp {
     /// A setup's right-click menu: *Export G-code of this setup…* (docs/specs/setups.md
     /// §7).
     pub(super) fn ask_export_setup(&mut self, id: u64) {
-        if self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.setup(id))
-            .is_none()
-        {
+        if self.edit.as_ref().and_then(|e| e.job.setup(id)).is_none() {
             return;
         }
         let suggested = self.default_export_path();
@@ -357,7 +352,7 @@ impl ChiploadApp {
         let name = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.dxfs.iter().find(|d| d.id == dxf))
+            .and_then(|e| e.job.drawing.dxfs.iter().find(|d| d.id == dxf))
             .map(|d| d.name.clone())
             .unwrap_or_default();
         let mut answer: Option<bool> = None;

@@ -1986,21 +1986,13 @@ impl Job {
     /// The drawing a board is placed on (docs/specs/setups.md §3): with one setup the whole
     /// drawing, as always; with several, the shapes the active setup's operations select.
     pub fn board_extents(&self) -> Option<((f64, f64), (f64, f64))> {
-        self.board_extents_with(&self.operations)
-    }
-
-    /// [`Job::board_extents`] with these operations: the window edits them apart from the
-    /// rest of the project.
-    pub fn board_extents_with<'a>(
-        &self,
-        operations: impl IntoIterator<Item = &'a Operation>,
-    ) -> Option<((f64, f64), (f64, f64))> {
         if self.setups.len() < 2 {
             return self.drawing.extents();
         }
         let setup = self.active_setup_id();
-        let selectors: Vec<Selector> = operations
-            .into_iter()
+        let selectors: Vec<Selector> = self
+            .operations
+            .iter()
             .filter(|op| op.selects_shapes() && self.part_of(op).map(|p| p.setup) == setup)
             .map(|op| op.select().resolved(&self.drawing))
             .collect();
@@ -2014,7 +2006,7 @@ impl Job {
         self.stock_bounds_around(self.board_extents())
     }
 
-    /// [`Job::stock_bounds`] around these board extents ([`Job::board_extents_with`]).
+    /// [`Job::stock_bounds`] around these board extents ([`Job::board_extents`]).
     pub fn stock_bounds_around(
         &self,
         board: Option<((f64, f64), (f64, f64))>,
@@ -2032,7 +2024,7 @@ impl Job {
         self.stock_size_around(self.board_extents())
     }
 
-    /// [`Job::stock_size`] around these board extents ([`Job::board_extents_with`]).
+    /// [`Job::stock_size`] around these board extents ([`Job::board_extents`]).
     pub fn stock_size_around(&self, board: Option<((f64, f64), (f64, f64))>) -> (f64, f64) {
         match (self.stock().origin, self.stock().fit, board) {
             (StockOrigin::Drawing, Some(margin), Some(((x0, y0), (x1, y1)))) => {

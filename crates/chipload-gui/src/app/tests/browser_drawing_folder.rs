@@ -19,14 +19,18 @@ fn the_drawing_panel_groups_dxfs_images_and_drawn_shapes() {
         Some(chipload_core::chain::ShapeFrom::Dxf(2)),
     );
     let index = app.add_operation(OpKind::Profile).unwrap();
-    let select = app.edit.as_ref().unwrap().ops[index].op.select().clone();
+    let select = app.edit.as_ref().unwrap().job.operations[index]
+        .select()
+        .clone();
     assert_eq!(
         (select.layer.as_deref(), select.dxf),
         (Some("HOLES"), Some(2))
     );
-    let both = app.op_contours(&app.edit.as_ref().unwrap().ops[0].op).len();
+    let both = app
+        .op_contours(&app.edit.as_ref().unwrap().job.operations[0])
+        .len();
     let one = app
-        .op_contours(&app.edit.as_ref().unwrap().ops[index].op)
+        .op_contours(&app.edit.as_ref().unwrap().job.operations[index])
         .len();
     assert!(one * 2 == both, "{one} of {both}");
     // A whole group is selected by its shapes.
@@ -50,7 +54,7 @@ fn hidden_groups_are_not_drawn_nor_clickable_but_still_cut() {
             .all(|c| !app.hidden_contours.contains(&c.id))
     );
     // Operation 1 cuts the holes of both DXFs: it still does, and says so.
-    let op = app.edit.as_ref().unwrap().ops[0].op.clone();
+    let op = app.edit.as_ref().unwrap().job.operations[0].clone();
     assert!(app.hidden_cut(&op) > 0);
     assert!(app.generate_and_wait(), "{:?}", app.report);
     // A layer alone, then shown again; undo brings back what was hidden.

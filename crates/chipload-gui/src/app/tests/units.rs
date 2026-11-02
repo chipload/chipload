@@ -59,14 +59,14 @@ fn with_inches_every_form_shows_inches() {
     ] {
         let mut app = ChiploadApp::default();
         assert!(app.open(&corpus(project)), "{project}");
-        let settings = &app.edit.as_ref().unwrap().settings;
+        let settings = &app.edit.as_ref().unwrap().job;
         let mut focuses = vec![Focus::Job, Focus::Tools];
         focuses.extend(settings.tools.iter().map(|t| Focus::Tool(t.id)));
         focuses.extend(settings.drawing.dxfs.iter().map(|d| Focus::Dxf(d.id)));
         focuses.extend(settings.drawing.images.iter().map(|i| Focus::Image(i.id)));
         focuses.extend(settings.drawing.texts.iter().map(|t| Focus::Text(t.id)));
         focuses.extend(settings.parts.iter().map(|p| Focus::Part(p.id)));
-        focuses.extend((0..app.edit.as_ref().unwrap().ops.len()).map(Focus::Op));
+        focuses.extend((0..app.edit.as_ref().unwrap().job.operations.len()).map(Focus::Op));
         for focus in focuses {
             app.focus = focus;
             let mm = properties_in(&mut app, Units::Mm);
@@ -118,7 +118,7 @@ fn a_new_project_in_inches_starts_from_tidy_inch_values() {
         ..Default::default()
     };
     app.new_project();
-    let job = &app.edit.as_ref().unwrap().settings;
+    let job = &app.edit.as_ref().unwrap().job;
     let inches = |mm: f64| mm / 25.4;
     assert!((inches(job.stock().x) - 24.0).abs() < 1e-12);
     assert!((inches(job.stock().y) - 12.0).abs() < 1e-12);
@@ -130,7 +130,7 @@ fn a_new_project_in_inches_starts_from_tidy_inch_values() {
     // In mm, nothing changes.
     let mut app = ChiploadApp::default();
     app.new_project();
-    assert_eq!(app.edit.as_ref().unwrap().settings.stock().thickness, 10.0);
+    assert_eq!(app.edit.as_ref().unwrap().job.stock().thickness, 10.0);
 }
 
 #[test]

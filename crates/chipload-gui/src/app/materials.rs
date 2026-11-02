@@ -57,11 +57,10 @@ impl ChiploadApp {
             }
         };
         let (job, messages) = use_material(&job, material.as_ref());
-        let mut next = EditJob::from_job(&job);
-        for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-            entry.side_chosen = old.side_chosen;
+        // The "side not chosen" marks stay: operations aren't added or removed.
+        if let Some(edit) = self.edit.as_mut() {
+            edit.adopt(job);
         }
-        self.edit = Some(next);
         self.commit();
         self.set_report(Report::of_messages(messages));
         true
@@ -153,7 +152,7 @@ impl ChiploadApp {
             let chosen = self
                 .edit
                 .as_ref()
-                .and_then(|e| e.settings.stock().material.as_ref())
+                .and_then(|e| e.job.stock().material.as_ref())
                 .map(|m| m.library_uid.clone());
             for material in &materials {
                 let mut note = t!(ui, "materials-tool-count", count = material.tools.len());
@@ -458,15 +457,15 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let values = edit.ops.get(i).and_then(|e| {
+        let values = edit.job.operations.get(i).and_then(|e| {
             let material = self
                 .library
                 .materials
-                .find_uid(&e.op.material()?.library_uid)?;
-            chipload_pipeline::materials::tool_values(&edit.settings, material, e.op.tool())
+                .find_uid(&e.material()?.library_uid)?;
+            chipload_pipeline::materials::tool_values(&edit.job, material, e.tool())
         });
-        if let (Some(values), Some(entry)) = (values, edit.ops.get_mut(i)) {
-            entry.op.apply_cutting(&values);
+        if let (Some(values), Some(entry)) = (values, edit.job.operations.get_mut(i)) {
+            entry.apply_cutting(&values);
         }
     }
 
