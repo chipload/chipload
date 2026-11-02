@@ -1,9 +1,6 @@
 # The main window: opening, importing, saving and exporting, parts, rest passes, the
 # selection (crates/chipload-gui/src/app/mod.rs).
 
-# The buttons of a folded side panel; P is the key that folds and unfolds both panels.
-app-show-browser-hover = Mostrar el Navegador (P: ambos paneles)
-app-show-properties-hover = Mostrar Propiedades (P: ambos paneles)
 # The heading of the right-hand panel.
 app-properties = Propiedades
 

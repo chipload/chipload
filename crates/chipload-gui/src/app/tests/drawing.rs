@@ -8,7 +8,7 @@ fn each_kind_is_drawn_by_clicks_and_selected() {
     app.start_drawing(Tool::Circle);
     app.draw_click((200.0, 50.0), false);
     app.draw_click((203.0, 54.0), false);
-    assert!(app.sketch.is_none());
+    assert!(app.sketch().is_none());
     assert_eq!(app.selected_shape(), Some(4));
     assert_eq!(
         app.shape(4).unwrap().geometry,
@@ -75,8 +75,8 @@ fn escape_cancels_and_a_new_shape_takes_the_selections_layer() {
     app.start_drawing(Tool::Circle);
     app.draw_click((10.0, 10.0), false);
     app.cancel_drawing();
-    assert!(app.sketch.is_none());
-    assert_eq!(app.edit.as_ref().unwrap().settings.drawing.shapes.len(), 3);
+    assert!(app.sketch().is_none());
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing.shapes.len(), 3);
     // The circle S2 is on layer "drawn" and selected: the new shape goes there too.
     app.click(Some(contour_of(&app, 2)), false);
     app.start_drawing(Tool::Circle);
@@ -151,7 +151,7 @@ fn the_selection_stays_on_its_shape_when_contours_are_renumbered() {
     app.undo();
     assert_eq!(contour_of(&app, 3), 3);
     assert_eq!(app.selected_shape(), Some(3));
-    assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([3]));
+    assert_eq!(app.selected_ids(), BTreeSet::from([3]));
 }
 
 #[test]
@@ -161,19 +161,16 @@ fn a_selected_shape_that_is_deleted_drops_out_of_the_selection() {
     app.click(Some(contour_of(&app, 3)), true);
     // Delete S3 behind the selection's back (as Update from DXF could).
     let edit = app.edit.as_mut().unwrap();
-    edit.settings.drawing.shapes.retain(|s| s.id != 3);
+    edit.job.drawing.shapes.retain(|s| s.id != 3);
     app.commit();
     app.refresh_drawing();
-    assert_eq!(
-        app.selection.ids(&app.contours),
-        BTreeSet::from([contour_of(&app, 2)])
-    );
+    assert_eq!(app.selected_ids(), BTreeSet::from([contour_of(&app, 2)]));
 }
 
 #[test]
 fn imported_shapes_are_not_editable() {
     let mut app = lower_part();
-    app.click(Some(4), false);
+    app.pick_alone(4);
     let id = app.selected_shape().unwrap();
     assert!(!app.shape(id).unwrap().is_drawn());
     let err = app
@@ -198,7 +195,7 @@ fn plunges_are_counted_per_operation() {
     select(&mut app, &[2]);
     app.add_operation(OpKind::Profile).unwrap();
     // Three depth passes, like the reported project.
-    if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.ops[0].op) {
+    if let Some(Operation::Pocket(p)) = app.edit.as_mut().map(|e| &mut e.job.operations[0]) {
         p.end_depth = 3.0;
         p.step_down = 1.0;
     }
@@ -233,7 +230,10 @@ fn reordering_changes_the_cut_order() {
     assert!(app.generate_and_wait());
     let pocket_first = first_cut(&app);
     app.move_operation(1, 0);
-    assert!(app.result.is_none(), "editing clears the toolpath until F5");
+    assert!(
+        app.toolpath.result.is_none(),
+        "editing clears the toolpath until F5"
+    );
     assert!(app.generate_and_wait());
     let profile_first = first_cut(&app);
     assert_ne!(pocket_first, profile_first);
@@ -245,33 +245,33 @@ fn reordering_changes_the_cut_order() {
 fn disabled_operations_are_not_cut() {
     let mut app = lower_part();
     assert!(app.generate_and_wait());
-    let all = app.result.as_ref().unwrap().program.moves.len();
-    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+    let all = app.toolpath.result.as_ref().unwrap().program.moves.len();
+    if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
         p.enabled = false;
     }
     app.commit();
     assert!(app.generate_and_wait());
-    assert!(app.result.as_ref().unwrap().program.moves.len() < all);
+    assert!(app.toolpath.result.as_ref().unwrap().program.moves.len() < all);
 }
 
 #[test]
 fn undo_and_redo_restore_earlier_projects() {
     let mut app = lower_part();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 1);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 1);
     app.undo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 0);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 0);
     app.redo();
     app.redo();
-    assert_eq!(app.edit.as_ref().unwrap().ops.len(), 2);
+    assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
     // A field edit is one step.
-    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.end_depth = 5.0;
     }
     app.commit();
     app.undo();
-    let Operation::Profile(p) = &app.edit.as_ref().unwrap().ops[1].op else {
+    let Operation::Profile(p) = &app.edit.as_ref().unwrap().job.operations[1] else {
         panic!("expected the profile");
     };
     assert_eq!(p.end_depth, 1.0);
@@ -374,7 +374,7 @@ fn unitless_drawing_asks_for_units() {
     ));
     assert!(app.import_dxf(&corpus("dxf/messy.dxf"), Some(Units::Mm)));
     assert!(!app.contours.is_empty());
-    let source = app.edit.as_ref().unwrap().settings.drawing.dxfs[0].clone();
+    let source = app.edit.as_ref().unwrap().job.drawing.dxfs[0].clone();
     assert_eq!(source.units_from, chipload_job::UnitsFrom::User);
 }
 
@@ -383,11 +383,25 @@ fn clicks_select_and_toggle() {
     let mut app = ChiploadApp::default();
     app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
     assert_eq!(app.selector_json(), None);
+    // A click selects the whole DXF; Ctrl+click leaves a contour out (dxf-whole-on-canvas.md).
     app.click(Some(4), false);
+    assert!(matches!(
+        app.selection,
+        CanvasSelection::Whole {
+            of: Source::Dxf(_),
+            ..
+        }
+    ));
+    let all = app.selected_ids().len();
     app.click(Some(6), true);
-    assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([4, 6]));
+    assert_eq!(app.selected_ids().len(), all - 1);
+    assert!(!app.selected_ids().contains(&6));
+    // A double-click picks one contour; Ctrl+click adds and takes away others.
+    app.pick_alone(4);
     app.click(Some(6), true);
-    assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([4]));
+    assert_eq!(app.selected_ids(), BTreeSet::from([4, 6]));
+    app.click(Some(6), true);
+    assert_eq!(app.selected_ids(), BTreeSet::from([4]));
     app.click(None, false);
     assert_eq!(app.selection, CanvasSelection::Nothing);
 }
@@ -401,10 +415,13 @@ fn typed_values_draw_exact_shapes() {
     let at = egui::pos2(0.0, 0.0);
     // The first point must be absolute.
     app.start_typing("@", at);
-    app.typed.as_mut().unwrap().text = "@5,5".into();
+    app.canvas_tools.typed.as_mut().unwrap().text = "@5,5".into();
     app.apply_typed((0.0, 0.0));
-    assert!(app.typed.as_ref().unwrap().refused, "no last point yet");
-    assert!(app.sketch.as_ref().unwrap().points.is_empty());
+    assert!(
+        app.canvas_tools.typed.as_ref().unwrap().refused,
+        "no last point yet"
+    );
+    assert!(app.sketch().unwrap().points.is_empty());
     // x,y, then a length towards the cursor, then length<angle, then back to the start.
     for (text, cursor) in [
         ("200,100", (0.0, 0.0)),
@@ -415,7 +432,7 @@ fn typed_values_draw_exact_shapes() {
         app.start_typing(text, at);
         app.apply_typed(cursor);
     }
-    assert!(app.sketch.is_none(), "typing the first point closes it");
+    assert!(app.sketch().is_none(), "typing the first point closes it");
     let id = app.selected_shape().unwrap();
     assert_eq!(
         app.shape(id).unwrap().geometry,
@@ -446,10 +463,10 @@ fn typed_values_draw_exact_shapes() {
 fn enter_draws_with_the_last_tool_and_shift_holds_the_angle() {
     let mut app = drawn_part();
     app.view.scale = 10.0;
-    assert_eq!(app.last_tool, None);
+    assert_eq!(app.canvas_tools.last_tool, None);
     app.start_drawing(Tool::Rectangle);
     app.cancel_drawing();
-    assert_eq!(app.last_tool, Some(Tool::Rectangle));
+    assert_eq!(app.canvas_tools.last_tool, Some(Tool::Rectangle));
     app.start_drawing(Tool::Polyline);
     app.draw_click((300.0, 300.0), false);
     // Shift: 15° steps from the last click, the length on the grid (1 mm at 10 px/mm).
@@ -472,9 +489,9 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
     // docs/specs/drawing-input.md §5.
     let mut app = drawn_part();
     app.click(None, false);
-    app.polygon_sides = 8;
+    app.canvas_tools.polygon_sides = 8;
     app.start_drawing(Tool::Polygon);
-    assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
+    assert_eq!(app.sketch().unwrap().sides, 8);
     app.draw_click((200.0, 50.0), false);
     app.draw_click((200.0, 60.0), false);
     let id = app.selected_shape().unwrap();
@@ -491,7 +508,7 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
     assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
     // The next polygon starts with eight sides too.
     app.start_drawing(Tool::Polygon);
-    assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
+    assert_eq!(app.sketch().unwrap().sides, 8);
 }
 
 #[test]
@@ -501,19 +518,19 @@ fn a_length_label_takes_a_typed_length() {
     let mut app = drawn_part();
     app.selection = CanvasSelection::Shapes([3].into());
     app.start_typing_dimension(Dimension::Segment(0), 30.0, egui::pos2(0.0, 0.0));
-    assert_eq!(app.typed.as_ref().unwrap().text, "30");
-    app.typed.as_mut().unwrap().text = "40".into();
+    assert_eq!(app.canvas_tools.typed.as_ref().unwrap().text, "30");
+    app.canvas_tools.typed.as_mut().unwrap().text = "40".into();
     app.apply_typed((0.0, 0.0));
-    assert!(app.typed.is_none());
+    assert!(app.canvas_tools.typed.is_none());
     let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
         panic!()
     };
     assert_eq!(points[..2], [[110.0, 65.0], [150.0, 65.0]]);
     // A length that can't be: the entry stays, refused.
     app.start_typing_dimension(Dimension::Segment(0), 40.0, egui::pos2(0.0, 0.0));
-    app.typed.as_mut().unwrap().text = "0".into();
+    app.canvas_tools.typed.as_mut().unwrap().text = "0".into();
     app.apply_typed((0.0, 0.0));
-    assert!(app.typed.as_ref().unwrap().refused);
+    assert!(app.canvas_tools.typed.as_ref().unwrap().refused);
 }
 
 #[test]
@@ -546,13 +563,13 @@ fn the_offset_tool_offsets_the_selection_to_the_cursor() {
     // Typed: 2 mm, inside (the cursor is inside the circle).
     app.start_typing("2", egui::pos2(0.0, 0.0));
     app.apply_typed((75.0, 80.0));
-    assert!(app.typed.is_none());
+    assert!(app.canvas_tools.typed.is_none());
     assert!(matches!(
         app.shape(5).unwrap().geometry,
         Geometry::Circle { radius, .. } if radius == 13.0
     ));
     app.cancel_modify();
-    assert!(app.modify.is_none());
+    assert!(app.modify().is_none());
 }
 
 #[test]
@@ -562,7 +579,7 @@ fn the_corner_tools_round_or_cut_the_clicked_corner() {
     let mut app = drawn_part();
     app.view.scale = 10.0;
     app.start_modify(ModifyTool::Fillet);
-    app.fillet_radius = 2.0;
+    app.canvas_tools.fillet_radius = 2.0;
     // A click on the triangle selects it; then a click by its first corner rounds it.
     app.modify_click(
         Some(contour_of(&app, 3)),
@@ -583,7 +600,7 @@ fn the_corner_tools_round_or_cut_the_clicked_corner() {
     app.commit();
     // Chamfer, Shift: the two corners left are cut.
     app.start_modify(ModifyTool::Chamfer);
-    app.chamfer_distance = 1.0;
+    app.canvas_tools.chamfer_distance = 1.0;
     app.modify_click(None, (0.0, 0.0), false, (false, true));
     let Geometry::Polyline { points, .. } = &app.shape(3).unwrap().geometry else {
         panic!()
@@ -630,7 +647,7 @@ fn trim_extend_and_break_work_on_the_shape_clicked() {
     app.commit();
     // Break: A splits in two at the point clicked; the first part keeps its id.
     app.start_modify(ModifyTool::Break);
-    let before = app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    let before = app.edit.as_ref().unwrap().job.drawing.shapes.len();
     app.modify_click(
         Some(contour_of(&app, a)),
         (210.0, 150.3),
@@ -639,7 +656,7 @@ fn trim_extend_and_break_work_on_the_shape_clicked() {
     );
     assert_eq!(points(&app, a), [[200.0, 150.0], [210.0, 150.0]]);
     assert_eq!(
-        app.edit.as_ref().unwrap().settings.drawing.shapes.len(),
+        app.edit.as_ref().unwrap().job.drawing.shapes.len(),
         before + 1
     );
 }
@@ -669,7 +686,7 @@ fn union_and_intersect_act_on_the_selection_and_subtract_on_the_shape_clicked() 
     app.start_modify(ModifyTool::Union);
     assert_eq!(kind(&app, 2), Some("polyline"));
     assert!(app.shape(bump).is_none());
-    assert_eq!(app.modify, None);
+    assert_eq!(app.modify(), None);
     app.commit();
     // Subtract: the selected circle cut out of the rectangle clicked; the tool ends.
     let notch = circle(&mut app, 160.0, 10.0);
@@ -680,7 +697,7 @@ fn union_and_intersect_act_on_the_selection_and_subtract_on_the_shape_clicked() 
     app.modify_click(picked, (40.0, 60.0), false, (false, false));
     assert_eq!(kind(&app, 1), Some("polyline"));
     assert!(app.shape(notch).is_none());
-    assert_eq!(app.modify, None);
+    assert_eq!(app.modify(), None);
 }
 
 #[test]
@@ -689,22 +706,22 @@ fn the_array_tools_preview_their_copies_and_create_them() {
     use super::modify::ModifyTool;
     let mut app = drawn_part();
     app.selection = CanvasSelection::Shapes([2].into());
-    let count = |app: &ChiploadApp| app.edit.as_ref().unwrap().settings.drawing.shapes.len();
+    let count = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.shapes.len();
     // A grid: three columns, the preview shows the two copies.
     app.start_modify(ModifyTool::Array);
-    app.array.columns = 3;
-    app.array.dx = 30.0;
+    app.canvas_tools.array.columns = 3;
+    app.canvas_tools.array.dx = 30.0;
     assert_eq!(app.array_outlines().len(), 2);
     assert!(app.create_array());
     assert_eq!(count(&app), 5);
-    assert_eq!(app.modify, None);
+    assert_eq!(app.modify(), None);
     app.commit();
     // Polar: a click sets the centre (snapped to the grid), four round it.
     app.selection = CanvasSelection::Shapes([2].into());
     app.start_modify(ModifyTool::PolarArray);
     app.modify_click(None, (100.0, 80.0), false, (false, false));
-    assert_eq!(app.array.center, (100.0, 80.0));
-    app.array.count = 4;
+    assert_eq!(app.canvas_tools.array.center, (100.0, 80.0));
+    app.canvas_tools.array.count = 4;
     assert_eq!(app.array_outlines().len(), 3);
     assert!(app.create_array());
     assert_eq!(count(&app), 8);
@@ -728,7 +745,7 @@ fn the_selection_aligns_and_distributes_its_shapes() {
     assert!(!app.arrange_selected(Arrange::Distribute(true)));
     app.selection = CanvasSelection::Shapes([2].into());
     assert!(!app.arrange_selected(Arrange::Align(AlignTo::Left)));
-    app.align_to_stock = true;
+    app.canvas_tools.align_to_stock = true;
     assert!(app.arrange_selected(Arrange::Align(AlignTo::Left)));
 }
 
@@ -745,7 +762,7 @@ fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
         Some(Prompt::PxPerInch(_, UnitsFor::Add, typed)) if typed == "96"
     ));
     assert!(app.add_file_from(&corpus("svg/pixels.svg"), None, Some(96.0)));
-    let files = &app.edit.as_ref().unwrap().settings.drawing.dxfs;
+    let files = &app.edit.as_ref().unwrap().job.drawing.dxfs;
     assert_eq!(files.len(), 2);
     assert_eq!(files[1].px_per_inch, Some(96.0));
     // Colours as layers: the red plate, the blue hole.
@@ -753,7 +770,7 @@ fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .drawing
         .shapes
         .iter()
@@ -794,7 +811,7 @@ fn k_draws_construction_geometry_and_toggles_the_selection() {
     let mut app = drawn_part();
     app.start_drawing(Tool::Circle);
     app.toggle_construction();
-    assert!(app.construction_mode);
+    assert!(app.canvas_tools.construction_mode);
     let id = app
         .add_drawn(Geometry::Circle {
             center: [10.0, 10.0],
@@ -804,7 +821,7 @@ fn k_draws_construction_geometry_and_toggles_the_selection() {
     assert!(app.shape(id).unwrap().construction);
     app.commit();
     // No tool, a shape selected: K makes it construction, and again ordinary.
-    app.sketch = None;
+    app.end_tool();
     app.selection = CanvasSelection::Shapes([3].into());
     app.toggle_construction();
     assert!(app.shape(3).unwrap().construction);
@@ -844,7 +861,9 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
     let mut app = drawn_part();
     assert!(app.generate_and_wait());
     let fresh = |app: &ChiploadApp| {
-        app.result.is_some() && app.changed_at.is_none() && app.generation.is_none()
+        app.toolpath.result.is_some()
+            && app.toolpath.changed_at.is_none()
+            && app.toolpath.running.is_none()
     };
     assert!(fresh(&app));
     // A circle on the stock that no operation cuts (they select shapes 1, 2 and 3).
@@ -861,11 +880,11 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
     app.redo();
     assert!(fresh(&app));
     // Now an operation cuts it: generated again.
-    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().ops[1].op {
+    if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.select.shapes = Some(vec![1, id]);
     }
     app.commit();
-    assert!(app.result.is_none() && app.changed_at.is_some());
+    assert!(app.toolpath.result.is_none() && app.toolpath.changed_at.is_some());
     assert!(app.generate_and_wait());
     // A shape off the stock: the "outside the stock" note changes, so a new run.
     app.add_drawn(Geometry::Circle {
@@ -873,10 +892,10 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
         radius: 5.0,
     });
     app.commit();
-    assert!(app.changed_at.is_some(), "outside the stock");
+    assert!(app.toolpath.changed_at.is_some(), "outside the stock");
     // A board that fits its drawing grows with a new shape, and a zero on its corner moves.
     let mut app = drawn_part();
-    let stock = app.edit.as_mut().unwrap().settings.stock_mut();
+    let stock = app.edit.as_mut().unwrap().job.stock_mut();
     stock.origin = chipload_job::StockOrigin::Drawing;
     stock.fit = Some(10.0);
     app.commit();
@@ -886,5 +905,5 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
         radius: 30.0,
     });
     app.commit();
-    assert!(app.changed_at.is_some(), "the board grew");
+    assert!(app.toolpath.changed_at.is_some(), "the board grew");
 }

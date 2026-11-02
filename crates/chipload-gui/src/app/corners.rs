@@ -46,10 +46,10 @@ impl ChiploadApp {
     /// The focused profile's or pocket's corners on the canvas, in top view.
     pub(super) fn update_corner_markers(&mut self) {
         let focused = match (self.focus, &self.edit) {
-            (Focus::Op(i), Some(edit)) => edit.ops.get(i).map(|e| (i, e.op.clone())),
+            (Focus::Op(i), Some(edit)) => edit.job.operations.get(i).map(|e| (i, e.clone())),
             _ => None,
         };
-        let shown = !self.three_d && self.sketch.is_none() && self.show_drawing();
+        let shown = !self.display.three_d && self.sketch().is_none() && self.show_drawing();
         let Some((index, op)) = focused.filter(|_| shown) else {
             self.scene.corner_markers.clear();
             self.corners.menu = None;
@@ -57,7 +57,11 @@ impl ChiploadApp {
         };
         if self.corners.key.as_ref() != Some(&(index, op.clone())) {
             let label = op.label_message(index);
-            self.corners.rows = corners_in(&op, &self.contours, &label).unwrap_or_default();
+            let rows = self
+                .edit
+                .as_ref()
+                .and_then(|e| corners_in(&op, &e.job.drawing, &self.contours, &label).ok());
+            self.corners.rows = rows.unwrap_or_default();
             self.corners.key = Some((index, op.clone()));
             self.corners.menu = None;
         }
@@ -93,7 +97,7 @@ impl ChiploadApp {
     /// The radius of the tool `op` cuts with, if it is in the project.
     fn tool_radius(&self, op: &Operation) -> Option<f64> {
         let edit = self.edit.as_ref()?;
-        let tool = edit.settings.tools.iter().find(|t| t.id == op.tool())?;
+        let tool = edit.job.tools.iter().find(|t| t.id == op.tool())?;
         Some(tool.diameter / 2.0)
     }
 
@@ -149,7 +153,7 @@ impl ChiploadApp {
                 ),
             )
             .arg("gets", gets_text(self, row.gets))
-            .render(self.language, self.units.into())
+            .render(self.prefs.language, self.prefs.units.into())
     }
 
     /// The open corner menu: the five choices, the current one ticked; hovering one draws
@@ -235,10 +239,14 @@ impl ChiploadApp {
 
     /// Store a corner's choice on operation `index`, as one undo step, and generate again.
     pub(super) fn choose_corner(&mut self, index: usize, at: [f64; 2], choice: Choice) {
-        let Some(entry) = self.edit.as_mut().and_then(|e| e.ops.get_mut(index)) else {
+        let Some(entry) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.job.operations.get_mut(index))
+        else {
             return;
         };
-        set_choice(&mut entry.op, at, choice);
+        set_choice(entry, at, choice);
         self.commit();
         self.generate();
     }

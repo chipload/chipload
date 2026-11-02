@@ -376,6 +376,142 @@ chipload op rest <PROJECT> [OPTIONS]
 
 Draw in a project: add, change or delete circles, rectangles and polylines
 
+### `chipload shape save`
+
+Save shapes and texts to the shape library under a name
+
+```text
+chipload shape save <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S); a letter saves its whole text. |
+| `--texts <TEXTS>` | Texts to save, with their letters (ids as `text list` shows them) Repeatable. |
+| `--name <NAME>` | The entry's name, with its group: "Signs/House number". Required. |
+| `--replace` | Replace an entry of that name (it is kept as .bak) |
+
+### `chipload shape insert`
+
+Insert an entry of the shape library into a project; prints the new ids
+
+```text
+chipload shape insert <PROJECT> <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<NAME>` | The entry's name, with its group: "Signs/House number". |
+| `--at <AT>` | Where the middle of its box goes, X,Y in mm (default: the stock's middle) |
+| `--around <AROUND>` | Scaled to fit round these shapes, --margin from their box (ids without the S) Repeatable. |
+| `--margin <MARGIN>` | With --around: from the shapes' box to the entry's, mm. Default: `10`. |
+| `--width <WIDTH>` | Scaled to this width, mm; the height follows. |
+| `--height <HEIGHT>` | Scaled to this height, mm; the width follows. |
+| `--scale <SCALE>` | Scaled by this. |
+| `--layer <LAYER>` | Every shape and text on this layer (default: the layers they were saved on) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape library`
+
+The shape library: list (the default), rename, move, remove, groups
+
+### `chipload shape library list`
+
+The entries and groups (the default)
+
+```text
+chipload shape library list
+```
+
+### `chipload shape library path`
+
+Where the library's folder is
+
+```text
+chipload shape library path
+```
+
+### `chipload shape library rename`
+
+Rename an entry; a name with another group moves it there
+
+```text
+chipload shape library rename <FROM> <TO>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FROM>` |  |
+| `<TO>` |  |
+
+### `chipload shape library move`
+
+Move an entry into a group ("" for none)
+
+```text
+chipload shape library move <NAME> <GROUP>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `<GROUP>` |  |
+
+### `chipload shape library remove`
+
+Delete an entry: its file goes to the folder's .deleted
+
+```text
+chipload shape library remove <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload shape library group`
+
+Groups of entries: folders in the library's folder
+
+### `chipload shape library group add`
+
+Make an empty group
+
+```text
+chipload shape library group add <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload shape library group rename`
+
+Rename a group, with its entries
+
+```text
+chipload shape library group rename <FROM> <TO>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FROM>` |  |
+| `<TO>` |  |
+
+### `chipload shape library group remove`
+
+Delete an empty group
+
+```text
+chipload shape library group remove <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
 ### `chipload shape add`
 
 Add a drawn shape; prints its id
@@ -748,6 +884,133 @@ chipload shape join <PROJECT> <IDS>... [OPTIONS]
 | `--gap <GAP>` | Join ends closer than this, 0.001 to 1 mm. Default: `0.01`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload group`
+
+Groups of drawn shapes and texts: add, list, set, remove (ungroup), delete, move, turn, scale
+
+### `chipload group add`
+
+Group shapes and texts; prints the group's id. With shapes of one group among them, the rest join it; of several, those groups become one
+
+```text
+chipload group add <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S); a letter stands for its whole text. |
+| `--texts <TEXTS>` | Texts (ids as `text list` shows them) Repeatable. |
+| `--name <NAME>` | Its name (default: "Group N") |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload group list`
+
+The project's groups and what is in them
+
+```text
+chipload group list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload group set`
+
+Rename a group, or add to it and take out of it
+
+```text
+chipload group set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The group's id. |
+| `--name <NAME>` |  |
+| `--add <ADD>` | Shapes to add (any in another group move over) Repeatable. |
+| `--add-texts <ADD_TEXTS>` | Texts to add. Repeatable. |
+| `--remove <REMOVE>` | Shapes to take out; they stay where they are, free. Repeatable. |
+| `--remove-texts <REMOVE_TEXTS>` | Texts to take out. Repeatable. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload group remove`
+
+Ungroup: the shapes and texts stay, free. Operations made from the group get its shapes by id
+
+```text
+chipload group remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group delete`
+
+Delete a group with its shapes and texts
+
+```text
+chipload group delete <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group move`
+
+Move a group, its texts too
+
+```text
+chipload group move <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `--dx <DX>` | How far right, mm. Required. |
+| `--dy <DY>` | How far up, mm. Required. |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group turn`
+
+Turn a group counter-clockwise about the middle of its box, or a point
+
+```text
+chipload group turn <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `--angle-deg <ANGLE_DEG>` | The angle, degrees, counter-clockwise; negative turns clockwise. Required. |
+| `--about <ABOUT>` | Turn about this point "X,Y" instead. |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group scale`
+
+Scale a group about the middle of its box, or a point; its texts' height scales
+
+```text
+chipload group scale <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `--factor <FACTOR>` | The factor: 2 doubles, 0.5 halves. Required. |
+| `--about <ABOUT>` | Scale about this point "X,Y" instead. |
+| `-o, --output <OUTPUT>` |  |
+
 ## `chipload image`
 
 Pictures traced into shapes for V-carving: add, change, list, preview, remove
@@ -841,6 +1104,20 @@ chipload image remove <PROJECT> <ID> [OPTIONS]
 | `<ID>` | The image's id. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload image explode`
+
+Turn every shape traced from a picture into drawn shapes you can edit; the picture goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes
+
+```text
+chipload image explode <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The picture's id (as `image list` shows it); not needed when the project has one. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload text`
 
 Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)
@@ -916,6 +1193,20 @@ chipload text remove <PROJECT> <ID> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The text's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload text explode`
+
+Turn a text's letters into drawn shapes you can edit; the text goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes
+
+```text
+chipload text explode <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The text's id (as `text list` shows it); not needed when the project has one. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload text fonts`

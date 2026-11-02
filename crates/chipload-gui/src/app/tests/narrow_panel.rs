@@ -33,7 +33,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
     app.edit
         .as_mut()
         .unwrap()
-        .settings
+        .job
         .tools
         .push(chipload_job::Tool {
             id: 2,
@@ -61,7 +61,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
     app.generate_and_wait();
     select(&mut app, &[4, 6]);
     let edit = app.edit.as_ref().unwrap();
-    let part = edit.settings.parts[0].id;
+    let part = edit.job.parts[0].id;
     let mut pages = vec![
         Focus::Job,
         Focus::Part(part),
@@ -71,9 +71,9 @@ fn every_properties_page_fits_the_narrowest_panel() {
         Focus::Dxf(1),
         Focus::Text(text),
     ];
-    pages.extend((0..edit.ops.len()).map(Focus::Op));
+    pages.extend((0..edit.job.operations.len()).map(Focus::Op));
     // The panel's least width, less its frame's margins.
-    let width = PROPERTIES_MIN_WIDTH - 16.0;
+    let width = crate::app::layout::PROPERTIES_MIN_WIDTH - 16.0;
     let mut wide = Vec::new();
     for page in pages {
         app.focus = page;
@@ -86,15 +86,18 @@ fn every_properties_page_fits_the_narrowest_panel() {
 }
 
 #[test]
-fn p_folds_both_side_panels_and_opens_them_again() {
+fn p_hides_every_panel_and_brings_them_back_as_they_were() {
+    use crate::app::layout::Pane;
     let mut app = lower_part();
-    assert!(app.browser_open && app.properties_open);
-    app.toggle_panels();
-    assert!(!app.browser_open && !app.properties_open);
-    app.toggle_panels();
-    assert!(app.browser_open && app.properties_open);
-    // One folded: P folds the other too.
-    app.properties_open = false;
-    app.toggle_panels();
-    assert!(!app.browser_open && !app.properties_open);
+    let open = |app: &ChiploadApp| Pane::PANELS.map(|p| app.panels.is_open(p));
+    assert_eq!(open(&app), [true; 4]);
+    app.panels.close(Pane::Shapes);
+    app.panels.toggle_hidden();
+    assert_eq!(open(&app), [false; 4]);
+    app.panels.toggle_hidden();
+    assert_eq!(open(&app), [true, true, false, true], "as they were");
+    // A panel asked for while hidden brings the others back too.
+    app.panels.toggle_hidden();
+    app.panels.show(Pane::Properties);
+    assert_eq!(open(&app), [true, true, false, true]);
 }

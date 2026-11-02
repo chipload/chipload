@@ -2,7 +2,31 @@
 
 Status: **agreed 2026-10-31**, all decisions as recommended (the user: "Go ahead with
 recommendations we will iterate a bit on it"). **Step 1, frames (§3), built the same day**;
-step 2, the library (§4), next.
+**step 2, the library (§4, §5.1, §5.2), built 2026-11-02**, decisions 9-14 as recommended
+(the user: "Go ahead").
+
+As built (the library):
+- **The entry file holds no `name`** (§4.2 listed one): its name is the file's, so a renamed
+  file can't disagree with itself.
+- **Deleting** moves the file to `shapes/.deleted/` (a group's name put before it), not to
+  `.bak` beside it: a group's folder can then be removed once its entries are gone. Saving
+  over an entry keeps the old one as `.bak` beside it, as §4.3 says.
+- **Imported shapes** (a DXF's, a picture's) are saved as drawn polylines and circles
+  (`path_to_drawn`, as Explode); letters stay paths, with their text.
+- **Inserting** copies a text's letters, moved and scaled with it, rather than making them
+  again: the same letters, and a font this computer lacks costs nothing.
+- **Folders** are looked into 6 levels deep, at most 5000 files listed; names starting
+  with a dot, and files other than entries, DXFs and SVGs, are left out. Names are checked
+  for every system (no `/ \ : * ? " < > |`, no leading dot or space, no trailing dot or
+  space, not CON, NUL, COM1 and the like), at most 100 characters.
+- **In the window:** the save's name field has the group as a list beside it, at the top
+  of the tab, rather than a field on a new cell. A drag of the selection onto the tab
+  starts from a **drawn** shape of the selection (a drag on letters or a DXF's shapes opens
+  a selection box, as before); *Save selection…* and the canvas's right-click *Save to
+  shape library…* save anything selected. The folder is read again every 2 s while the tab
+  is shown, so files copied in by hand appear. *Show in folder* runs the system's file
+  manager (explorer, open, xdg-open). Insert round the selection uses the frame tool's
+  margin.
 
 As built (frames):
 - *r* is called the **corner size** (`--corner` on the command line, *Corner* in the
@@ -202,10 +226,82 @@ Each frame is one closed outline, drawn from a width and a height:
   - A live preview on the canvas.
   - *Add* and *Cancel*.
 - **Right-click on a selection > *Save to library…*:** the name and *Save*.
-- **Library > Shapes:** a grid of pictures with names, a search field, and per entry
-  *Insert*, *Rename*, *Delete* and *Show folder*. Insert has *Fit to selection* when
-  something is selected.
+- **The library:** in the right panel, see §5.1 (it replaces a Shapes tab in the Library).
 - Every text is a translation id in the six languages.
+
+### 5.1 The library in the right panel (revised 2026-11-02)
+
+The user (2026-11-02): "I want the library to be a tab in the right panel where I can drag
+and drop shapes from the library to the canvas to use them and also the other way around
+when I want to store a new one. So both properties and library should be in the right
+panel. I think as tabs or stacked."
+
+**Two tabs** at the top of the right panel: **Properties** and **Shapes** (decision 9).
+Properties is what the panel shows now; Shapes is the library. One is shown at a time, the
+whole height of the panel.
+
+- **Which tab** (decision 10): the user's click on a tab chooses it, and it stays. The panel
+  goes back to Properties by itself only when the user asks for something that is shown
+  there: a Browser row clicked (an operation, a tool, the machine…), a tool with its values
+  in Properties started (*Frame…*, *Array…*, a text being placed), a shape double-clicked.
+  Selecting shapes on the canvas does **not** switch, so shapes can be picked and dragged
+  into the library with the Shapes tab open.
+- **The Shapes tab:**
+  - a search field, and a grid of entries. **Every entry has a preview and a name** (the
+    user, 2026-11-02): a small picture of its shapes, drawn when listed and never stored,
+    and its name under it. A DXF or SVG in the folder gets its preview from its import.
+    As many columns as fit the panel's width;
+  - below the grid, **Save selection…** (greyed with nothing selected) and **Folder**
+    (opens `shapes/` in the file manager);
+  - an entry that can't be read is shown greyed with its error on hover (§4.2).
+- **From the library to the canvas** (drag): an entry dragged over the canvas shows its
+  outline under the pointer, its box's centre at the pointer, snapped as a drawn point is
+  (the grid and points of shapes). Dropped, it is inserted there (§4.4): new ids, selected,
+  one undo step. Dropped anywhere else, nothing happens. Esc while dragging cancels.
+- **Double-click** on an entry inserts it at the centre of the view, as dropping it there.
+- **Right-click on an entry:** *Insert at the centre*, *Insert round the selection* (scaled
+  to fit round what is selected, with the margin of the last frame; greyed with nothing
+  selected), *Rename…*, *Delete* (asks first; the file goes to `.bak`, never gone at once),
+  *Show in folder*.
+- **From the canvas to the library** (drag, decision 11): dragging selected shapes moves
+  them, as now. When the pointer leaves the canvas over the Shapes tab, the move is taken
+  back (the shapes return to where they were) and the outline of the selection follows the
+  pointer; the grid shows where a new entry will appear. Dropped there, a name field opens
+  on the new entry, with a suggestion: a text's words, else the layer's name. Enter saves,
+  Esc cancels. A name that exists asks before overwriting (§4.3). Dropped back on the
+  canvas, it is a move as before.
+  With the Properties tab shown, the tab header **Shapes** takes a drop too: the tab opens
+  and the name field with it.
+- **Save selection…** does the same as the drag: a name field on a new entry (decision 11:
+  a button too, for a selection that is hard to drag, and for the keyboard).
+- **What is saved** is the selection as the right-click *Save to library…* saves it (§4.3):
+  selected texts whole, with their letters.
+- **Narrow windows:** the tabs take no width; in a narrow right panel the grid has fewer
+  columns, down to one.
+- **Without a project**, the Shapes tab still lists, renames and deletes; inserting is
+  greyed.
+- **The browser build** (§8): the tab lists what this session saved, kept in memory.
+
+### 5.2 Groups (the user, 2026-11-02: "organize shapes in groups or folders")
+
+- **A group is a folder** inside `shapes/` (decision 14). Copying a folder of entries to
+  another computer copies the group.
+- **In the tab:** each group is a header that folds, with its entries' grid under it;
+  entries outside any group come first. A search shows the matches of every group, under
+  their group's header.
+- **New group** beside *Save selection…*: a name field, then an empty group.
+- **Moving an entry:** drag it onto a group's header (or the top, out of any group).
+  Right-click on an entry: *Move to ▸* the groups. A name that exists in the group asks
+  first, as saving does.
+- **A group's right-click:** *Rename…*, *Delete* (only when empty; an entry's file is
+  never deleted with its folder), *Show in folder*.
+- **Saving into a group:** a selection dropped on a group's grid is saved there; *Save
+  selection…* saves into the group last opened.
+- **One level** (decision 14): groups don't hold groups. Deeper folders in `shapes/` are
+  listed as groups named by their path (`Signs/Doors`), so nothing put there is hidden.
+- **On the command line:** an entry is named with its group, `"Signs/House number"`;
+  `shape library` lists them by group; `shape library move NAME GROUP`, `group add`,
+  `group rename`, `group remove`.
 
 ## 6. Engraving the result
 
@@ -295,5 +391,48 @@ fonts).
    user's existing drawings become a library just by copying them in, and it reuses the
    importer. Alternative: only `.chipload-shapes` files.
 8. **Window: *Draw > Frame…* with a live preview, *Save to library…* on the right-click
-   menu, and a Shapes tab in the Library.** *Recommended.* Alternative: a dockable shapes
-   panel beside the canvas, always visible. It takes room most projects don't need.
+   menu, and a Shapes tab in the Library.** *Agreed 2026-10-31; the Shapes tab replaced by
+   §5.1 on 2026-11-02 (the user asked for it in the right panel).*
+
+Revised 2026-11-02 (§5.1), to review:
+
+9. **Tabs, not stacked.** *Recommended:* a V-carve's or a profile's form is often taller
+   than half the panel, and the library is a grid that wants height too; stacked, both
+   would scroll. Tabs give each the whole panel, and switching is one click. Alternative:
+   stacked, Properties above and Shapes below, with a divider to drag (both seen at once,
+   each with half the room).
+   The user asked (2026-11-02) for **dockable panels**, arranged by the user, dragged onto another for a
+   tab or below it to stack, "no hack". egui itself has no docking. Two maintained crates
+   do it on egui 0.36: **egui_dock** 0.21 (MIT; tabs, splits, floating windows) and
+   **egui_tiles** 0.17 (MIT or Apache-2.0, by egui's authors, made for the Rerun viewer;
+   tabs and splits). Either is a dependency used through its API, not a hack, but it
+   changes the whole window, not this tab: the Browser, the canvas, Properties and the
+   Report become panes; the narrow-window rules, the kittest tests and the guide's
+   pictures change; the arrangement is saved in the app settings (versioned). So it gets
+   a spec and an ADR of its own, choosing between the two (§5.2), and the library comes
+   first as a fixed tab, built so that it becomes a pane later without change.
+10. **The tab switches to Properties only when asked for** (a Browser row, a tool with
+   values, a double-click), never on a canvas selection. *Recommended:* picking shapes to
+   save with Shapes open must not lose the tab. Alternative: every selection change shows
+   Properties (the library then has to be opened again before each save).
+11. **Saving by drag and by a button, Save selection…** *Recommended:* the drag is what
+   the user asked for; the button saves what is hard to drag (a selection under other
+   shapes, a text) and works from the keyboard. Both open the same name field.
+   Alternative: drag only.
+12. **Shapes only in the tab; tools and machines stay where they are** (the Browser's
+   *This computer*). *Recommended:* the tool library is a list of values to edit, shown in
+   Properties already; dragging a tool onto an operation works in the Browser. Alternative:
+   tools and machines in the tab too, a full library panel.
+13. **A drop places the entry's centre at the pointer, at its own size, snapped.**
+   *Recommended:* where it lands is what the user sees while dragging; fitting round a
+   selection is a right-click choice, as the frame's. Alternative: a drop on a selected
+   shape fits round the selection by itself (quick for frames, but surprising when it
+   lands on something by accident).
+14. **Groups are folders in `shapes/`, one level deep in the tab.** *Recommended:* nothing
+   to store but files and folders, so sharing and backing up stay copying; one level keeps
+   the tab one list of headers. Alternatives: tags in each entry (an entry in several
+   groups, but a format change and nothing to see in the folder), or folders at any depth
+   shown as a tree.
+
+Noted for later: **12** (tools and machines in the panel too, a full library panel) and
+**dockable panels** (decision 9) are in TODO.md.

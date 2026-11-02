@@ -35,20 +35,22 @@ pub fn corners_of(job: &Job, index: usize) -> Result<Vec<CornerRow>, PipelineErr
     let op = with_corners(job, index)?;
     let drawing = load_drawing(job)?;
     let label = job.label_message(chipload_job::OpRef::op(index));
-    corners_in(op, &drawing.contours, &label).map_err(|err| PipelineError::Toolpath(err.at(index)))
+    corners_in(op, &job.drawing, &drawing.contours, &label)
+        .map_err(|err| PipelineError::Toolpath(err.at(index)))
 }
 
 /// [`corners_of`] an operation on contours already read (the app's); `label` names it in
 /// a selection error.
 pub fn corners_in(
     op: &Operation,
+    drawing: &chipload_job::Drawing,
     contours: &[Contour],
     label: &Message,
 ) -> Result<Vec<CornerRow>, ToolpathError> {
     if !matches!(op, Operation::Profile(_) | Operation::Pocket(_)) {
         return Ok(Vec::new());
     }
-    let selection = select_contours(contours, op.select(), label)?;
+    let selection = select_contours(contours, &op.select().resolved(drawing), label)?;
     let choices = op.corner_choices();
     Ok(operation_corners(op, &selection.contours)
         .iter()

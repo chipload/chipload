@@ -41,6 +41,9 @@ pub(super) enum Action {
     Offset,
     Trim,
     Construction,
+    /// Group the selection; ungroup (docs/specs/shape-groups.md §5).
+    Group,
+    Ungroup,
 }
 
 /// The shortcut window's groups, in the order it shows them.
@@ -103,6 +106,8 @@ pub(super) const BINDINGS: &[Binding] = &[
     bind(Action::CopySelector, CTRL_SHIFT, Key::C, Group::Edit),
     bind(Action::SaveAs, CTRL_SHIFT, Key::S, Group::File),
     bind(Action::Redo, CTRL_SHIFT, Key::Z, Group::Edit),
+    bind(Action::Ungroup, CTRL_SHIFT, Key::G, Group::Drawing),
+    bind(Action::Group, CTRL, Key::G, Group::Drawing),
     bind(Action::Copy, CTRL, Key::C, Group::Edit),
     bind(Action::Paste, CTRL, Key::V, Group::Edit),
     bind(Action::New, CTRL, Key::N, Group::File),
@@ -157,6 +162,8 @@ pub(super) const BINDINGS: &[Binding] = &[
 pub(super) fn what(action: Action, src: &impl crate::i18n::Lang) -> String {
     match action {
         Action::CopySelector => t!(src, "shortcuts-copy-selector"),
+        Action::Group => t!(src, "shortcuts-group"),
+        Action::Ungroup => t!(src, "shortcuts-ungroup"),
         Action::SaveAs => t!(src, "shortcuts-save-as"),
         Action::Redo => t!(src, "shortcuts-redo"),
         Action::Copy => t!(src, "shortcuts-copy"),
@@ -382,10 +389,10 @@ impl ChiploadApp {
             }
             Action::Fit => self.fit_pending = true,
             Action::TopView => self.view_top(),
-            Action::Grid => self.set_show_grid(!self.show_grid),
-            Action::Simulate => self.set_show_simulation(!self.show_simulation),
+            Action::Grid => self.set_show_grid(!self.prefs.show_grid),
+            Action::Simulate => self.set_show_simulation(!self.display.simulate),
             Action::Measure => self.toggle_measure(),
-            Action::Panels => self.toggle_panels(),
+            Action::Panels => self.panels.toggle_hidden(),
             Action::DrawPolyline => self.start_drawing(Tool::Polyline),
             Action::DrawCircle => self.start_drawing(Tool::Circle),
             Action::DrawRectangle => self.start_drawing(Tool::Rectangle),
@@ -396,6 +403,12 @@ impl ChiploadApp {
             Action::Trim => self.start_modify(super::modify::ModifyTool::Trim),
             Action::Construction => self.toggle_construction(),
             Action::Shortcuts => self.dialogs.shortcuts_open = true,
+            Action::Group => {
+                self.group_selected();
+            }
+            Action::Ungroup => {
+                self.ungroup_selected();
+            }
         }
     }
 

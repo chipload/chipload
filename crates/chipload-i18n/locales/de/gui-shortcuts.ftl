@@ -33,7 +33,7 @@ shortcuts-top-view = Draufsicht
 shortcuts-grid = Das Raster zeigen oder ausblenden
 shortcuts-simulate = Simulieren oder bearbeiten
 shortcuts-measure = Messen: zwei Klicks ergeben Abstand und Winkel
-shortcuts-panels = Die Seitenbereiche ein- oder ausklappen, für eine größere Zeichenfläche
+shortcuts-panels = Alle Bereiche ausblenden für die größte Zeichenfläche, oder wieder einblenden
 shortcuts-this-list = Diese Liste
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the
@@ -92,3 +92,5 @@ shortcuts-draw-polygon = Vieleck zeichnen
 shortcuts-offset = Die ausgewählten Formen versetzen
 shortcuts-trim = Gezeichnete Formen stutzen
 shortcuts-construction = Hilfsgeometrie: für die nächsten gezeichneten Formen oder die Auswahl
+shortcuts-group = Auswahl gruppieren
+shortcuts-ungroup = Gruppierung aufheben

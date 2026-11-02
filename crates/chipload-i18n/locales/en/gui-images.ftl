@@ -24,6 +24,8 @@ images-import = Import
 # Under the preview. $zoom: such as "400%".
 images-zoom-note = Zoom { $zoom } · drag to pan · double-click to fit
 images-scroll-to-zoom = Scroll to zoom in
+images-show-lines = Show the traced lines
+images-show-lines-hover = The outlines or centre lines the picture is traced into, in blue; untick to see the picture alone
 
 # The settings.
 images-threshold = Threshold

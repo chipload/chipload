@@ -88,7 +88,7 @@ impl ChiploadApp {
         }
         let wanted = ctx.data(|d| d.get_temp::<bool>(egui::Id::new(FONTS_WANTED))) == Some(true)
             || self.edit.as_ref().is_some_and(|e| {
-                e.settings
+                e.job
                     .drawing
                     .texts
                     .iter()

@@ -124,14 +124,10 @@ impl ChiploadApp {
             }
             _ => {}
         }
-        if self.three_d {
+        if self.display.three_d {
             self.view_top();
         }
-        self.sketch = None;
-        self.measure = None;
-        self.placing_text = false;
-        self.typed = None;
-        self.modify = Some(tool);
+        self.set_tool(ActiveTool::Modify(tool));
         if matches!(
             tool,
             ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::Frame
@@ -142,9 +138,9 @@ impl ChiploadApp {
     }
 
     pub fn cancel_modify(&mut self) {
-        self.modify = None;
-        self.typed = None;
-        self.offset_preview = OffsetPreview::default();
+        if self.modify().is_some() {
+            self.end_tool();
+        }
     }
 
     /// The drawn shapes selected (none when imported ones are among them).
@@ -156,13 +152,13 @@ impl ChiploadApp {
     /// The offset the cursor at `at` asks for: its distance from the nearest selected
     /// shape, on the grid unless `free` (Alt), and the side it is on.
     pub fn offset_for_cursor(&self, at: Point, free: bool) -> Option<(f64, OffsetSide)> {
-        let job = &self.edit.as_ref()?.settings;
+        let job = &self.edit.as_ref()?.job;
         let (d, side) = offset_at(job, &self.selected_drawn(), at)?;
         let d = if free {
             d
         } else {
-            let step = grid_step(self.view.scale, self.units);
-            crate::draw::snap((d, 0.0), step, self.units).0
+            let step = grid_step(self.view.scale, self.prefs.units);
+            crate::draw::snap((d, 0.0), step, self.prefs.units).0
         };
         (d > 0.0).then_some((d, side))
     }
@@ -174,21 +170,21 @@ impl ChiploadApp {
             ids.clone(),
             d.to_bits(),
             side,
-            self.offset_corners,
-            self.offset_count,
+            self.canvas_tools.offset_corners,
+            self.canvas_tools.offset_count,
         );
-        if self.offset_preview.key.as_ref() != Some(&key) {
+        if self.canvas_tools.offset_preview.key.as_ref() != Some(&key) {
             let lines = self
                 .edit
                 .as_ref()
                 .and_then(|e| {
                     offset_shapes(
-                        &e.settings,
+                        &e.job,
                         &ids,
                         d,
                         Some(side),
-                        self.offset_corners,
-                        self.offset_count,
+                        self.canvas_tools.offset_corners,
+                        self.canvas_tools.offset_count,
                     )
                     .ok()
                 })
@@ -203,12 +199,12 @@ impl ChiploadApp {
                         .collect()
                 })
                 .unwrap_or_default();
-            self.offset_preview = OffsetPreview {
+            self.canvas_tools.offset_preview = OffsetPreview {
                 key: Some(key),
                 lines,
             };
         }
-        self.offset_preview.lines.clone()
+        self.canvas_tools.offset_preview.lines.clone()
     }
 
     /// Offset the selected shapes by `d` to `side`, as one undo step; the new shapes are
@@ -218,37 +214,38 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         let result = offset_shapes(
             &job,
             &ids,
             d,
             Some(side),
-            self.offset_corners,
-            self.offset_count,
+            self.canvas_tools.offset_corners,
+            self.canvas_tools.offset_count,
         );
         match result {
             Ok(edited) => {
-                edit.settings.drawing = edited.job.drawing;
+                edit.adopt(edited.job);
                 self.drawing_changed(&edited.new_ids);
                 self.selection = CanvasSelection::Shapes(edited.new_ids.iter().copied().collect());
-                let units = self.units.into();
+                let units = self.prefs.units.into();
                 let mut text = t!(
                     self,
                     "modify-offset-done",
                     count = edited.new_ids.len(),
-                    distance = chipload_pipeline::units::length_text(d, self.units)
+                    distance = chipload_pipeline::units::length_text(d, self.prefs.units)
                 );
                 for note in &edited.notes {
                     text.push(' ');
-                    text.push_str(&note.render(self.language, units));
+                    text.push_str(&note.render(self.prefs.language, units));
                 }
                 self.set_status(text, STATUS_SECONDS);
                 true
             }
             Err(err) => {
-                let text = err.message().render(self.language, self.units.into());
+                let text = err
+                    .message()
+                    .render(self.prefs.language, self.prefs.units.into());
                 self.set_status(text, STATUS_SECONDS);
                 false
             }
@@ -258,11 +255,12 @@ impl ChiploadApp {
     /// Enter on a typed offset distance: to the side the cursor at `cursor` is on.
     pub(super) fn apply_typed_offset(&mut self, cursor: Point) {
         let text = self
+            .canvas_tools
             .typed
             .as_ref()
             .map(|t| t.text.clone())
             .unwrap_or_default();
-        let value = chipload_pipeline::units::parse_length(&text, self.units);
+        let value = chipload_pipeline::units::parse_length(&text, self.prefs.units);
         let side = self.offset_for_cursor(cursor, true).map(|(_, side)| side);
         let applied = match (value, side) {
             (Some(d), Some(side)) => self.apply_offset(d, side),
@@ -275,8 +273,8 @@ impl ChiploadApp {
             }
         };
         if applied {
-            self.typed = None;
-        } else if let Some(typed) = self.typed.as_mut() {
+            self.canvas_tools.typed = None;
+        } else if let Some(typed) = self.canvas_tools.typed.as_mut() {
             typed.refused = true;
             typed.focus = true;
         }
@@ -299,9 +297,9 @@ impl ChiploadApp {
 
     /// The cut the fillet or chamfer tool makes.
     fn corner_cut(&self) -> Option<Cut> {
-        match self.modify? {
-            ModifyTool::Fillet => Some(Cut::Fillet(self.fillet_radius)),
-            ModifyTool::Chamfer => Some(Cut::Chamfer(self.chamfer_distance)),
+        match self.modify()? {
+            ModifyTool::Fillet => Some(Cut::Fillet(self.canvas_tools.fillet_radius)),
+            ModifyTool::Chamfer => Some(Cut::Chamfer(self.canvas_tools.chamfer_distance)),
             _ => None,
         }
     }
@@ -323,7 +321,7 @@ impl ChiploadApp {
         let Some((id, corner)) = target else {
             return Vec::new();
         };
-        cut_shape_corners(&edit.settings, id, corner, cut)
+        cut_shape_corners(&edit.job, id, corner, cut)
             .ok()
             .and_then(|job| job.drawing.shapes.into_iter().find(|s| s.id == id))
             .map(|s| crate::draw::outline(&s.geometry))
@@ -338,20 +336,18 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         match cut_shape_corners(&job, id, corner, cut) {
             Ok(job) => {
-                edit.settings.drawing = job.drawing;
-                for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
-                    entry.op = op;
-                }
+                edit.adopt(job);
                 self.shape_draft = None;
                 self.drawing_changed(&[id]);
                 true
             }
             Err(err) => {
-                let text = err.message().render(self.language, self.units.into());
+                let text = err
+                    .message()
+                    .render(self.prefs.language, self.prefs.units.into());
                 self.set_status(text, STATUS_SECONDS);
                 false
             }
@@ -369,7 +365,7 @@ impl ChiploadApp {
         keys: (bool, bool),
     ) {
         let (free, all) = keys;
-        match self.modify {
+        match self.modify() {
             Some(ModifyTool::Offset) => self.offset_click(picked, at, toggle, free),
             Some(ModifyTool::Fillet | ModifyTool::Chamfer) => {
                 if self.picks_unselected_drawn(picked) {
@@ -401,7 +397,9 @@ impl ChiploadApp {
                     self.cancel_modify();
                 }
             }
-            Some(ModifyTool::PolarArray) => self.array.center = self.snap_world(at, free, false),
+            Some(ModifyTool::PolarArray) => {
+                self.canvas_tools.array.center = self.snap_world(at, free, false)
+            }
             // A frame goes round what is selected: a click on a shape picks it (Ctrl adds),
             // its values staying under Selection. Empty space, where the previewed frame is
             // drawn too, changes nothing: the frame mustn't jump (the user, 2026-10-31).
@@ -419,15 +417,14 @@ impl ChiploadApp {
     pub fn drawn_under(&self, picked: Option<usize>, at: Point) -> Option<u64> {
         let contour = self.contours.iter().find(|c| Some(c.id) == picked)?;
         let ids: Vec<u64> = shapes_of(contour).into_iter().collect();
-        nearest_drawn(&self.edit.as_ref()?.settings, &ids, at)
+        nearest_drawn(&self.edit.as_ref()?.job, &ids, at)
     }
 
     /// The project with the operations, as the editing operations take it (so points on a
     /// shape follow it).
     pub(super) fn job_with_operations(&self) -> Option<chipload_job::Job> {
         let edit = self.edit.as_ref()?;
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         Some(job)
     }
 
@@ -444,26 +441,23 @@ impl ChiploadApp {
                 let Some(edit) = self.edit.as_mut() else {
                     return false;
                 };
-                edit.settings.drawing = edited.job.drawing;
-                for (entry, op) in edit.ops.iter_mut().zip(edited.job.operations) {
-                    entry.op = op;
-                }
+                edit.adopt(edited.job);
                 let mut ids = changed.to_vec();
                 ids.extend(&edited.new_ids);
                 // Pieces joined after a trim: the joined shape, the others gone.
                 if let Some(kept) = edited.joined {
-                    ids.retain(|id| edit.settings.drawing.shapes.iter().any(|s| s.id == *id));
+                    ids.retain(|id| edit.job.drawing.shapes.iter().any(|s| s.id == *id));
                     if !ids.contains(&kept) {
                         ids.push(kept);
                     }
                 }
                 self.shape_draft = None;
                 self.drawing_changed(&ids);
-                let units = self.units.into();
+                let units = self.prefs.units.into();
                 let notes: Vec<String> = edited
                     .notes
                     .iter()
-                    .map(|n| n.render(self.language, units))
+                    .map(|n| n.render(self.prefs.language, units))
                     .collect();
                 if !notes.is_empty() {
                     self.set_status(notes.join(" "), STATUS_SECONDS);
@@ -471,7 +465,9 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                let text = err.message().render(self.language, self.units.into());
+                let text = err
+                    .message()
+                    .render(self.prefs.language, self.prefs.units.into());
                 self.set_status(text, STATUS_SECONDS);
                 false
             }
@@ -506,13 +502,13 @@ impl ChiploadApp {
         at: Point,
     ) -> (Vec<Vec<Point>>, Option<Point>) {
         let (Some(tool), Some(id), Some(job)) = (
-            self.modify,
+            self.modify(),
             self.drawn_under(picked, at),
             self.edit.as_ref(),
         ) else {
             return (Vec::new(), None);
         };
-        let job = &job.settings;
+        let job = &job.job;
         match tool {
             ModifyTool::Trim => (
                 trim_preview(job, id, at)
@@ -607,8 +603,8 @@ impl ChiploadApp {
         if ids.is_empty() {
             return None;
         }
-        let a = &self.array;
-        Some(match self.modify? {
+        let a = &self.canvas_tools.array;
+        Some(match self.modify()? {
             ModifyTool::Array => array_grid(job, &ids, a.columns, a.rows, (a.dx, a.dy)),
             ModifyTool::PolarArray => array_polar(
                 job,
@@ -628,12 +624,12 @@ impl ChiploadApp {
     pub(super) fn array_outlines(&mut self) -> Vec<Vec<Point>> {
         let ids = self.selected_drawn();
         let shapes: Vec<_> = ids.iter().map(|&id| self.shape(id)).collect();
-        let key = format!("{:?}{:?}{shapes:?}", self.modify, self.array);
-        if self.array_preview.key != key {
+        let key = format!("{:?}{:?}{shapes:?}", self.modify(), self.canvas_tools.array);
+        if self.canvas_tools.array_preview.key != key {
             let lines = self
                 .edit
                 .as_ref()
-                .and_then(|edit| self.array_result(&edit.settings))
+                .and_then(|edit| self.array_result(&edit.job))
                 .and_then(Result::ok)
                 .map(|edited| {
                     edited
@@ -646,9 +642,9 @@ impl ChiploadApp {
                         .collect()
                 })
                 .unwrap_or_default();
-            self.array_preview = ArrayPreview { key, lines };
+            self.canvas_tools.array_preview = ArrayPreview { key, lines };
         }
-        self.array_preview.lines.clone()
+        self.canvas_tools.array_preview.lines.clone()
     }
 
     /// Add the array's copies, as one undo step; the originals and the copies are
@@ -671,12 +667,12 @@ impl ChiploadApp {
 
     /// Under Selection while an array tool is active: its values and Create.
     pub(super) fn array_form(&mut self, ui: &mut egui::Ui) {
-        let polar = match self.modify {
+        let polar = match self.modify() {
             Some(ModifyTool::Array) => false,
             Some(ModifyTool::PolarArray) => true,
             _ => return,
         };
-        let a = &mut self.array;
+        let a = &mut self.canvas_tools.array;
         egui::Grid::new("array-form").num_columns(2).show(ui, |ui| {
             if polar {
                 ui.label(t!(ui, "array-count"));
@@ -731,7 +727,7 @@ impl ChiploadApp {
             return false;
         };
         let result = match arrange {
-            Arrange::Align(to) => align_shapes(&job, &ids, to, self.align_to_stock),
+            Arrange::Align(to) => align_shapes(&job, &ids, to, self.canvas_tools.align_to_stock),
             Arrange::Distribute(horizontal) => distribute_shapes(&job, &ids, horizontal),
         }
         .map(|job| Edited {
@@ -758,7 +754,7 @@ impl ChiploadApp {
                 ui.label(t!(ui, "arrange-align"));
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 2.0;
-                    let enabled = count >= 2 || self.align_to_stock;
+                    let enabled = count >= 2 || self.canvas_tools.align_to_stock;
                     for (icon, to, hover) in [
                         (Icon::AlignLeft, AlignTo::Left, t!(ui, "arrange-left")),
                         (Icon::AlignCentre, AlignTo::Centre, t!(ui, "arrange-centre")),
@@ -776,8 +772,11 @@ impl ChiploadApp {
                 });
                 ui.end_row();
                 ui.label("");
-                ui.checkbox(&mut self.align_to_stock, t!(ui, "arrange-stock"))
-                    .on_hover_text(t!(ui, "arrange-stock-hover"));
+                ui.checkbox(
+                    &mut self.canvas_tools.align_to_stock,
+                    t!(ui, "arrange-stock"),
+                )
+                .on_hover_text(t!(ui, "arrange-stock-hover"));
                 ui.end_row();
                 ui.label(t!(ui, "arrange-distribute"));
                 ui.horizontal(|ui| {
@@ -804,9 +803,9 @@ impl ChiploadApp {
     /// selected drawn shapes become construction geometry, or ordinary shapes again
     /// (docs/specs/dxf-export.md §B2).
     pub fn toggle_construction(&mut self) {
-        if self.sketch.is_some() || self.selected_drawn().is_empty() {
-            self.construction_mode = !self.construction_mode;
-            let text = if self.construction_mode {
+        if self.sketch().is_some() || self.selected_drawn().is_empty() {
+            self.canvas_tools.construction_mode = !self.canvas_tools.construction_mode;
+            let text = if self.canvas_tools.construction_mode {
                 t!(self, "modify-construction-on")
             } else {
                 t!(self, "modify-construction-off")
@@ -860,7 +859,7 @@ impl ChiploadApp {
 
     /// Whether contour `picked` is a drawn shape outside the selection.
     fn picks_unselected_drawn(&self, picked: Option<usize>) -> bool {
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         picked.is_some_and(|p| !ids.contains(&p))
             && picked
                 .and_then(|id| self.contours.iter().find(|c| c.id == id))
@@ -888,7 +887,7 @@ impl ChiploadApp {
 
     /// The status bar while an editing tool is active.
     pub(super) fn modify_status(&self, at: Option<Point>, free: bool) -> Option<String> {
-        let tool = self.modify?;
+        let tool = self.modify()?;
         Some(match tool {
             ModifyTool::Offset if self.selected_drawn().is_empty() => {
                 t!(self, "modify-offset-pick")
@@ -897,7 +896,7 @@ impl ChiploadApp {
                 Some((d, side)) => t!(
                     self,
                     "modify-offset-status",
-                    distance = chipload_pipeline::units::length_text(d, self.units),
+                    distance = chipload_pipeline::units::length_text(d, self.prefs.units),
                     side = side_word(self, side)
                 ),
                 None => t!(self, "modify-offset-pick"),
@@ -929,16 +928,22 @@ impl ChiploadApp {
 
     /// While the offset tool is active: its corners and how many, on the status bar.
     pub(super) fn offset_fields(&mut self, ui: &mut egui::Ui) {
-        match self.modify {
+        match self.modify() {
             Some(ModifyTool::Fillet) => {
                 ui.label(t!(ui, "modify-fillet-radius"));
-                ui.add(crate::units::length(&mut self.fillet_radius).range(0.001..=f64::MAX));
+                ui.add(
+                    crate::units::length(&mut self.canvas_tools.fillet_radius)
+                        .range(0.001..=f64::MAX),
+                );
                 ui.separator();
                 return;
             }
             Some(ModifyTool::Chamfer) => {
                 ui.label(t!(ui, "modify-chamfer-distance"));
-                ui.add(crate::units::length(&mut self.chamfer_distance).range(0.001..=f64::MAX));
+                ui.add(
+                    crate::units::length(&mut self.canvas_tools.chamfer_distance)
+                        .range(0.001..=f64::MAX),
+                );
                 ui.separator();
                 return;
             }
@@ -946,18 +951,18 @@ impl ChiploadApp {
             _ => return,
         }
         egui::ComboBox::from_id_salt("offset-corners")
-            .selected_text(match self.offset_corners {
+            .selected_text(match self.canvas_tools.offset_corners {
                 Corners::Round => t!(ui, "modify-corners-round"),
                 Corners::Sharp => t!(ui, "modify-corners-sharp"),
             })
             .show_ui(ui, |ui| {
                 ui.selectable_value(
-                    &mut self.offset_corners,
+                    &mut self.canvas_tools.offset_corners,
                     Corners::Round,
                     t!(ui, "modify-corners-round"),
                 );
                 ui.selectable_value(
-                    &mut self.offset_corners,
+                    &mut self.canvas_tools.offset_corners,
                     Corners::Sharp,
                     t!(ui, "modify-corners-sharp"),
                 );
@@ -965,7 +970,7 @@ impl ChiploadApp {
             .response
             .on_hover_text(t!(ui, "modify-corners-hover"));
         ui.label(t!(ui, "modify-offset-count"));
-        ui.add(egui::DragValue::new(&mut self.offset_count).range(1..=100));
+        ui.add(egui::DragValue::new(&mut self.canvas_tools.offset_count).range(1..=100));
         ui.separator();
     }
 }

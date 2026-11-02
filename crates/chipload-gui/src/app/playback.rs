@@ -299,7 +299,7 @@ impl ChiploadApp {
     /// A new program: playback starts at the end, or keeps its time if the program is
     /// long enough (docs/specs/playback.md §7).
     pub(super) fn reset_playback(&mut self) {
-        let (Some(result), Some(job)) = (&self.result, &self.result_job) else {
+        let (Some(result), Some(job)) = (&self.toolpath.result, &self.toolpath.job) else {
             self.playback = None;
             self.scene.progress = None;
             return;
@@ -325,9 +325,9 @@ impl ChiploadApp {
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
         // The legend would cover part of the canvas.
-        self.legend_open = false;
+        self.display.legend_open = false;
         // Only the shots that ask for it show the simulation (it is on at start).
-        self.show_simulation = steps.contains(&"simulation");
+        self.display.simulate = steps.contains(&"simulation");
         // The second setup active, its form open (docs/specs/setups.md §7).
         if steps.contains(&"setup2") {
             self.activate_setup(2);
@@ -349,12 +349,12 @@ impl ChiploadApp {
                 self.draw_click(p, false);
             }
             self.start_typing("40<120", egui::pos2(560.0, 300.0));
-            if let Some(typed) = self.typed.as_mut() {
+            if let Some(typed) = self.canvas_tools.typed.as_mut() {
                 typed.focus = false;
             }
         }
         if steps.contains(&"notoolpath") {
-            self.show_toolpath = false;
+            self.display.toolpath = false;
         }
         // The first pocket's first rest pass open (docs/specs/rest-passes.md).
         if steps.contains(&"pass") {
@@ -370,12 +370,12 @@ impl ChiploadApp {
         }
         // The pictures under traced shapes left out, so the cut shows (the README's picture).
         if steps.contains(&"noimages") {
-            self.show_images = false;
+            self.display.images = false;
         }
         let dxfs: Vec<u64> = self
             .edit
             .as_ref()
-            .map(|e| e.settings.drawing.dxfs.iter().map(|d| d.id).collect())
+            .map(|e| e.job.drawing.dxfs.iter().map(|d| d.id).collect())
             .unwrap_or_default();
         if steps.contains(&"drawing")
             && let (Some(&first), Some(&last)) = (dxfs.first(), dxfs.last())
@@ -389,13 +389,13 @@ impl ChiploadApp {
             && let Some(&first) = dxfs.first()
         {
             self.dialogs.prompt = Some(super::Prompt::Explode {
-                dxf: first,
+                of: Source::Dxf(first),
                 join: true,
                 gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
             });
         }
         let first_drawn = self.edit.as_ref().and_then(|e| {
-            e.settings
+            e.job
                 .drawing
                 .shapes
                 .iter()
@@ -413,18 +413,23 @@ impl ChiploadApp {
         let first_text = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.texts.first().map(|t| t.id));
+            .and_then(|e| e.job.drawing.texts.first().map(|t| t.id));
         if steps.contains(&"frame")
             && let Some(id) = first_text
         {
-            self.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id));
+            self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Text(id));
             self.start_frame();
-            self.frame.borders = 1;
+            self.canvas_tools.frame.borders = 1;
+        }
+        // The shape library's tab with a few entries: the sign itself, and frames in a
+        // group (docs/specs/shape-library.md §5.1).
+        if steps.contains(&"shapes") {
+            self.screenshot_shape_library();
         }
         let last_part = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.parts.last().map(|p| p.id));
+            .and_then(|e| e.job.parts.last().map(|p| p.id));
         if steps.contains(&"part")
             && let Some(id) = last_part
         {
@@ -433,7 +438,7 @@ impl ChiploadApp {
         // The first library tool, with the project's tool linked to it
         // (docs/specs/library-in-browser.md).
         if steps.contains(&"library")
-            && let Some(uid) = self.library.tools.tools.first().map(|t| t.uid.clone())
+            && let Some(uid) = self.user.library.tools.tools.first().map(|t| t.uid.clone())
         {
             self.add_library_tool_uid(&uid);
             self.show_library(user_library::LibraryKind::Tools, Some(&uid));
@@ -445,6 +450,7 @@ impl ChiploadApp {
         // (docs/specs/linked-machine.md).
         if steps.contains(&"machine")
             && let Some(name) = self
+                .user
                 .library
                 .machines
                 .machines
@@ -457,7 +463,7 @@ impl ChiploadApp {
         // The README's picture: the canvas without the report under it, and an operation's
         // form in Properties (`op2`: the second operation) or a text's (`text1`).
         if steps.contains(&"noreport") {
-            self.report_open = false;
+            self.panels.fold(super::layout::Pane::Report);
         }
         if let Some(n) = steps
             .iter()
@@ -493,7 +499,7 @@ impl ChiploadApp {
             self.focus = Focus::Text(id);
             // With "select" too: the text is selected, its handles showing.
             if steps.contains(&"select") {
-                self.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id));
+                self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Text(id));
             }
         }
         if steps.contains(&"half")
@@ -504,7 +510,7 @@ impl ChiploadApp {
         let first_image = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.images.first().map(|i| i.id));
+            .and_then(|e| e.job.drawing.images.first().map(|i| i.id));
         if steps.contains(&"image")
             && let Some(id) = first_image
             && self.edit_image(id)
@@ -584,7 +590,7 @@ impl ChiploadApp {
 
     /// The bar under the canvas: play, speed, the slider with its marks, and where it is.
     pub(super) fn playback_bar(&mut self, ui: &mut egui::Ui) {
-        let job = self.result_job.clone();
+        let job = self.toolpath.job.clone();
         let Some(playback) = &mut self.playback else {
             return;
         };
@@ -698,5 +704,49 @@ impl ChiploadApp {
             RichText::new(playback.readout(job.as_ref(), crate::units::display(ui.ctx()), ui))
                 .small(),
         );
+    }
+}
+
+#[cfg(test)]
+impl ChiploadApp {
+    /// Fill the settings folder's shape library for the guide's picture and show it.
+    fn screenshot_shape_library(&mut self) {
+        use chipload_pipeline::frames::{FrameKind, FrameSize, NewFrame, add_frame};
+        use chipload_pipeline::shape_library::{entry_from, save, shapes_dir};
+        let (Some(dir), Some(edit)) = (self.user.settings_dir.clone(), self.edit.as_ref()) else {
+            return;
+        };
+        let dir = shapes_dir(&dir);
+        let job = edit.job.clone();
+        let all: Vec<u64> = job.drawing.shapes.iter().map(|s| s.id).collect();
+        if let Ok(entry) = entry_from(&job, &all, &[]) {
+            let _ = save(&dir, "Welcome sign", &entry, true);
+        }
+        let blank = chipload_pipeline::empty_project();
+        for (kind, name, borders) in [
+            (FrameKind::Oval, "Oval", 1),
+            (FrameKind::Arched, "Arched top", 2),
+            (FrameKind::Plaque, "Plaque", 1),
+            (FrameKind::Notched, "Notched", 1),
+            (FrameKind::Chamfered, "Chamfered", 0),
+        ] {
+            let mut frame = NewFrame::new(
+                kind,
+                FrameSize::Fixed {
+                    width: 200.0,
+                    height: 100.0,
+                    center: None,
+                },
+            );
+            frame.borders = borders;
+            if let Ok(done) = add_frame(&blank, &frame)
+                && let Ok(entry) = entry_from(&done.job, &done.new_ids, &[])
+            {
+                let _ = save(&dir, &format!("Frames/{name}"), &entry, true);
+            }
+        }
+        self.selection = CanvasSelection::Shapes(all.into_iter().collect());
+        self.focus = Focus::Selection;
+        self.panels.show(super::layout::Pane::Shapes);
     }
 }

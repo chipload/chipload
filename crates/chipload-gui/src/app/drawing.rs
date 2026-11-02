@@ -3,7 +3,6 @@
 
 use super::*;
 use crate::draw::{EntryError, parse_entry};
-use chipload_core::chain::ShapeFrom;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
@@ -44,36 +43,33 @@ impl ChiploadApp {
     pub fn start_drawing(&mut self, tool: Tool) {
         if self.can_draw() {
             self.enter_edit_mode();
-            if self.three_d {
+            if self.display.three_d {
                 self.view_top(); // drawing works in top view only
             }
-            self.measure = None;
-            self.placing_text = false;
-            self.modify = None;
             let mut sketch = Sketch::new(tool);
-            sketch.sides = self.polygon_sides;
-            self.sketch = Some(sketch);
-            self.typed = None;
-            self.last_tool = Some(tool);
+            sketch.sides = self.canvas_tools.polygon_sides;
+            self.set_tool(ActiveTool::Draw(sketch));
+            self.canvas_tools.last_tool = Some(tool);
         }
     }
 
     pub fn cancel_drawing(&mut self) {
-        self.sketch = None;
-        self.typed = None;
+        if self.sketch().is_some() {
+            self.end_tool();
+        }
     }
 
     /// Start typing a value while drawing, with its first character; the entry shows at
     /// `at` on screen.
     pub fn start_typing(&mut self, first: &str, at: egui::Pos2) {
-        let target = if self.sketch.is_some() {
+        let target = if self.sketch().is_some() {
             TypedTarget::Point
-        } else if self.modify == Some(super::modify::ModifyTool::Offset) {
+        } else if self.modify() == Some(super::modify::ModifyTool::Offset) {
             TypedTarget::Offset
         } else {
             return;
         };
-        self.typed = Some(Typed {
+        self.canvas_tools.typed = Some(Typed {
             text: first.to_string(),
             at,
             refused: false,
@@ -90,8 +86,8 @@ impl ChiploadApp {
         value: f64,
         at: egui::Pos2,
     ) {
-        let text = chipload_pipeline::units::length_number(value, self.units);
-        self.typed = Some(Typed {
+        let text = chipload_pipeline::units::length_number(value, self.prefs.units);
+        self.canvas_tools.typed = Some(Typed {
             text,
             at,
             refused: false,
@@ -103,20 +99,20 @@ impl ChiploadApp {
     /// The point the typed value gives, with the cursor at `cursor` (for a plain
     /// distance's direction).
     pub(super) fn typed_target(&self, cursor: Point) -> Result<Point, EntryError> {
-        let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch) else {
+        let (Some(typed), Some(sketch)) = (&self.canvas_tools.typed, &self.sketch()) else {
             return Err(EntryError::Unreadable);
         };
         if typed.target != TypedTarget::Point {
             return Err(EntryError::Unreadable);
         }
-        let entry = parse_entry(&typed.text, self.units)?;
+        let entry = parse_entry(&typed.text, self.prefs.units)?;
         sketch.typed(entry, cursor)
     }
 
     /// Enter in the entry: the typed point is clicked. A value that can't be used leaves
     /// the entry open, in red, with the reason on the status bar.
     pub fn apply_typed(&mut self, cursor: Point) {
-        match self.typed.as_ref().map(|t| t.target) {
+        match self.canvas_tools.typed.as_ref().map(|t| t.target) {
             Some(TypedTarget::Dimension(dimension)) => {
                 self.apply_typed_dimension(dimension);
                 return;
@@ -129,17 +125,16 @@ impl ChiploadApp {
         }
         match self.typed_target(cursor) {
             Ok(p) => {
-                self.typed = None;
+                self.canvas_tools.typed = None;
                 // A typed point on a polyline's first point closes it, as a click there does.
                 let on_first = self
-                    .sketch
-                    .as_ref()
+                    .sketch()
                     .and_then(|s| s.points.first())
                     .is_some_and(|&first| distance(first, p) < CHAIN_TOL_MM);
                 self.draw_click(p, on_first);
             }
             Err(why) => {
-                if let Some(typed) = self.typed.as_mut() {
+                if let Some(typed) = self.canvas_tools.typed.as_mut() {
                     typed.refused = true;
                     typed.focus = true;
                 }
@@ -151,7 +146,7 @@ impl ChiploadApp {
     /// A click while drawing, at `p` (already on the grid). `on_first`: the click hit the
     /// polyline's first point on screen.
     pub fn draw_click(&mut self, p: Point, on_first: bool) {
-        let Some(sketch) = self.sketch.as_mut() else {
+        let Some(sketch) = self.sketch_mut() else {
             return;
         };
         let step = sketch.click(p, on_first);
@@ -160,7 +155,7 @@ impl ChiploadApp {
 
     /// Enter or double-click: finish a polyline open.
     pub fn finish_drawing(&mut self) {
-        let Some(sketch) = self.sketch.as_mut() else {
+        let Some(sketch) = self.sketch_mut() else {
             return;
         };
         let step = sketch.finish();
@@ -176,8 +171,7 @@ impl ChiploadApp {
                 }
             }
             Step::Done(geometry) => {
-                self.sketch = None;
-                self.typed = None;
+                self.end_tool();
                 self.add_drawn(geometry);
             }
         }
@@ -187,13 +181,14 @@ impl ChiploadApp {
     /// can't be used leaves the entry open, in red, with the reason.
     fn apply_typed_dimension(&mut self, dimension: chipload_job::edit::Dimension) {
         let text = self
+            .canvas_tools
             .typed
             .as_ref()
             .map(|t| t.text.clone())
             .unwrap_or_default();
         let shape = self.selected_shape().and_then(|id| self.shape(id)).cloned();
         let result = match (
-            chipload_pipeline::units::parse_length(&text, self.units),
+            chipload_pipeline::units::parse_length(&text, self.prefs.units),
             shape,
         ) {
             (Some(value), Some(shape)) => {
@@ -203,9 +198,9 @@ impl ChiploadApp {
             _ => Err(EntryError::Unreadable.text(self)),
         };
         match result {
-            Ok(()) => self.typed = None,
+            Ok(()) => self.canvas_tools.typed = None,
             Err(why) => {
-                if let Some(typed) = self.typed.as_mut() {
+                if let Some(typed) = self.canvas_tools.typed.as_mut() {
                     typed.refused = true;
                     typed.focus = true;
                 }
@@ -218,14 +213,14 @@ impl ChiploadApp {
     pub fn add_drawn(&mut self, geometry: Geometry) -> Option<u64> {
         let layer = self.default_layer();
         let edit = self.edit.as_mut()?;
-        match add_shape(&edit.settings, &layer, geometry) {
+        match add_shape(&edit.job, &layer, geometry) {
             Ok((mut job, id)) => {
-                if self.construction_mode
+                if self.canvas_tools.construction_mode
                     && let Some(shape) = job.drawing.shapes.iter_mut().find(|s| s.id == id)
                 {
                     shape.construction = true;
                 }
-                edit.settings = job;
+                edit.job = job;
                 self.drawing_changed(&[id]);
                 let kind = match self.shape(id).map(|s| &s.geometry) {
                     Some(g) if chipload_job::edit::is_slot(g) => t!(self, "drawing-kind-slot"),
@@ -256,7 +251,7 @@ impl ChiploadApp {
         if let CanvasSelection::Layer(layer, _) = &self.selection {
             return layer.clone();
         }
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         let layers: BTreeSet<String> = self
             .contours
             .iter()
@@ -272,7 +267,7 @@ impl ChiploadApp {
     pub fn shape(&self, id: u64) -> Option<&chipload_job::Shape> {
         self.edit
             .as_ref()?
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -284,7 +279,7 @@ impl ChiploadApp {
         if !matches!(self.selection, CanvasSelection::Shapes(_)) {
             return None;
         }
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         let mut contours = self.contours.iter().filter(|c| ids.contains(&c.id));
         let (Some(only), None) = (contours.next(), contours.next()) else {
             return None;
@@ -300,7 +295,7 @@ impl ChiploadApp {
     /// and the reason is returned (shown under the form).
     pub fn set_selected_shape(&mut self, layer: &str, geometry: Geometry) -> Result<(), String> {
         let lang = crate::i18n::Lang::lang(self);
-        let units = self.units.into();
+        let units = self.prefs.units.into();
         let id = self
             .selected_shape()
             .ok_or_else(|| t!(lang, "drawing-no-shape-selected"))?;
@@ -309,17 +304,9 @@ impl ChiploadApp {
             .as_mut()
             .ok_or_else(|| t!(lang, "drawing-no-project"))?;
         // With the operations, so their points on the shape follow it.
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
-        let job =
-            set_shape(&job, id, layer, geometry).map_err(|e| e.message().render(lang, units))?;
-        for (entry, op) in edit.ops.iter_mut().zip(&job.operations) {
-            entry.op = op.clone();
-        }
-        edit.settings = Job {
-            operations: std::mem::take(&mut edit.settings.operations),
-            ..job
-        };
+        let job = set_shape(&edit.job, id, layer, geometry)
+            .map_err(|e| e.message().render(lang, units))?;
+        edit.adopt(job);
         self.drawing_changed(&[id]);
         Ok(())
     }
@@ -327,14 +314,14 @@ impl ChiploadApp {
     /// Name drawn shape `id` (trimmed; empty: no name). On failure the reason is returned.
     pub fn name_shape(&mut self, id: u64, name: &str) -> Result<(), String> {
         let lang = crate::i18n::Lang::lang(self);
-        let units = self.units.into();
+        let units = self.prefs.units.into();
         let edit = self
             .edit
             .as_mut()
             .ok_or_else(|| t!(lang, "drawing-no-project"))?;
-        let job = chipload_pipeline::shapes::name_shape(&edit.settings, id, name)
+        let job = chipload_pipeline::shapes::name_shape(&edit.job, id, name)
             .map_err(|e| e.message().render(lang, units))?;
-        edit.settings.drawing = job.drawing;
+        edit.adopt(job);
         Ok(())
     }
 
@@ -350,7 +337,7 @@ impl ChiploadApp {
         let mut drawn = Vec::new();
         let mut imported = false;
         for shape in edit
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -376,6 +363,10 @@ impl ChiploadApp {
             Focus::Text(id) => {
                 self.remove_text(id);
             }
+            // A whole group goes with its shapes and texts (docs/specs/shape-groups.md §2).
+            _ if self.selected_group().is_some() => {
+                self.delete_selected_group();
+            }
             _ => self.delete_selected_shapes(),
         }
     }
@@ -393,7 +384,7 @@ impl ChiploadApp {
         let mut texts = BTreeSet::new();
         let mut imported = false;
         for shape in edit
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -415,7 +406,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let mut job = edit.settings.clone();
+        let mut job = edit.job.clone();
         for &id in ids {
             match chipload_pipeline::texts::remove_text(&job, id) {
                 Ok(out) => job = out,
@@ -425,7 +416,7 @@ impl ChiploadApp {
                 }
             }
         }
-        edit.settings = job;
+        edit.job = job;
         self.drawing_changed(&[]);
         self.selection = CanvasSelection::Nothing;
         if matches!(self.focus, Focus::Text(id) if ids.contains(&id)) {
@@ -453,20 +444,25 @@ impl ChiploadApp {
     /// undo step. Operations that used a deleted shape are flagged. Other imported shapes
     /// stay: they change only with their file.
     pub fn delete_selected_shapes(&mut self) {
-        match self.selection {
-            CanvasSelection::Source(ShapeFrom::Text(id)) => {
+        // Selected whole, nothing left out (a group is deleted by `delete_key`).
+        let whole = match &self.selection {
+            CanvasSelection::Whole { of, left_out } if left_out.is_empty() => Some(*of),
+            _ => None,
+        };
+        match whole {
+            Some(Source::Text(id)) => {
                 self.remove_text(id);
                 return;
             }
-            CanvasSelection::Source(ShapeFrom::Image(id)) => {
+            Some(Source::Image(id)) => {
                 self.remove_image(id);
                 return;
             }
-            CanvasSelection::Source(ShapeFrom::Dxf(id)) => {
+            Some(Source::Dxf(id)) => {
                 self.remove_dxf(id);
                 return;
             }
-            _ => {}
+            Some(Source::Group(_)) | None => {}
         }
         let (ids, texts, imported) = self.deletion();
         if ids.is_empty() && texts.is_empty() {
@@ -482,8 +478,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let mut job: Job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let mut job: Job = edit.job.clone();
         let mut flagged = Vec::new();
         for &id in &ids {
             match delete_shape(&job, id) {
@@ -506,13 +501,14 @@ impl ChiploadApp {
                 }
             }
         }
-        edit.settings.drawing = job.drawing;
+        edit.adopt(job);
         self.error_ops = edit
-            .ops
+            .job
+            .operations
             .iter()
             .enumerate()
             .filter(|(_, e)| {
-                e.op.select()
+                e.select()
                     .shapes
                     .as_ref()
                     .is_some_and(|used| used.iter().any(|u| ids.contains(u)))

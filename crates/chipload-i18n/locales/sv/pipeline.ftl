@@ -277,6 +277,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] former behölls som spårade: utjämningen fick dem att korsa varandra.
 }
 pipeline-no-text = det finns ingen text { $id }
+pipeline-no-group = det finns ingen grupp { $id }
+pipeline-group-imported = form { $shape } hör till en DXF eller en bild, som håller ihop sina former: bara ritade former och texter kan grupperas
+pipeline-group-no-name = en grupp behöver ett namn
+pipeline-ungroup-cut-texts = operation { $op } skär gruppen ”{ $name }”, som har texter: välj först om operationens former, eller ta ut texterna ur gruppen
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: kunde inte sammanfoga bokstävernas överlappande konturer: { $error }
 pipeline-text-font-missing = Typsnittet ”{ $font }” finns inte på den här datorn. { $text } behåller sina bokstäver och fräses som de är; för att ändra ord eller storlek, välj ett annat typsnitt.
@@ -341,6 +345,15 @@ pipeline-shape-twice = formen { $id } är angiven två gånger
 pipeline-no-shape = det finns ingen form { $id }
 pipeline-shape-imported-copy = formen { $id } importerades från DXF:en; bara ritade former kan kopieras eller speglas
 pipeline-shapes-no-extent = formerna har ingen utsträckning
+pipeline-shapes-no-item = formbiblioteket har ingen ”{ $name }”
+pipeline-shapes-file-empty = ”{ $name }” har inga former
+pipeline-shapes-nothing-to-save = markera former eller texter att spara
+pipeline-shapes-exists = formbiblioteket har redan ”{ $name }”
+pipeline-shapes-flat = formerna har ingen bredd eller höjd att skala till
+pipeline-shapes-group-exists = formbiblioteket har redan en grupp ”{ $name }”
+pipeline-shapes-no-group = formbiblioteket har ingen grupp ”{ $name }”
+pipeline-shapes-group-not-empty = gruppen ”{ $name }” är inte tom: flytta eller ta bort det som finns i den först
+pipeline-shapes-file-error = { $path }: { $error }
 pipeline-shape-imported-transform = form { $id } är inte en ritad form: bara ritade former kan flyttas, vridas eller skalas (bryt upp dess DXF först)
 pipeline-construction-imported = formen { $id } är ingen ritad form: bara ritade former kan vara hjälpgeometri (bryt upp dess DXF först)
 pipeline-construction-used = { $label } anger hjälpgeometri, som aldrig fräses: den kan inte köras förrän den bearbetar andra former.
@@ -462,6 +475,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } markerar nu formerna { $shapes }.
 pipeline-explode-no-dxf = projektet har ingen DXF att bryta upp
 pipeline-explode-which-dxf = projektet har { $count } DXF:er ({ $dxfs }): ange vilken som ska brytas upp
+pipeline-image-exploded = Bröt upp bild { $id } "{ $name }" i { $count } ritade { $count ->
+    [one] form
+   *[other] former
+}. Bilden finns inte längre i projektet: den kan inte spåras om.
+pipeline-text-exploded = Bröt upp text { $id } { $name } i { $count } ritade { $count ->
+    [one] form
+   *[other] former
+}. Dess ord kan inte redigeras längre.
+pipeline-explode-no-image = projektet har ingen bild att bryta upp
+pipeline-explode-which-image = projektet har { $count } bilder ({ $images }): ange vilken som ska brytas upp
+pipeline-explode-no-text = projektet har ingen text att bryta upp
+pipeline-explode-which-text = projektet har { $count } texter ({ $texts }): ange vilken som ska brytas upp
 pipeline-join-gap-range = Glappet måste vara { $least } till { $most }, fick { $got }.
 pipeline-join-imported = Form S{ $id } kommer från en DXF: bryt upp DXF:en först.
 pipeline-join-none = Inga ändar fogades ihop (glapp { $gap }).

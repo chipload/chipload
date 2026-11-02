@@ -14,7 +14,23 @@ impl ChiploadApp {
     /// Keep the selected drawn shapes for pasting. Returns the text for the system
     /// clipboard (egui only reports Ctrl+V when that holds text).
     pub fn copy_selected_shapes(&mut self) -> Option<String> {
-        let (ids, imported) = self.deletable_shapes();
+        // A whole group copies its drawn shapes, and pastes as a group.
+        let group = self.selected_group();
+        let (ids, imported) = match group {
+            Some(id) => {
+                let drawn = self.edit.as_ref().map(|e| {
+                    e.job
+                        .drawing
+                        .groups
+                        .iter()
+                        .find(|g| g.id == id)
+                        .map(|g| g.shapes.clone())
+                        .unwrap_or_default()
+                });
+                (drawn.unwrap_or_default(), false)
+            }
+            None => self.deletable_shapes(),
+        };
         if ids.is_empty() {
             let why = if imported {
                 t!(self, "copy-paste-imported-no-copy")
@@ -25,11 +41,12 @@ impl ChiploadApp {
             return None;
         }
         let edit = self.edit.as_ref()?;
-        match shapes_to_copy(&edit.settings, &ids) {
+        match shapes_to_copy(&edit.job, &ids) {
             Ok(shapes) => {
                 let text = clipboard_text(&shapes);
                 let n = shapes.len();
-                self.shape_clipboard = shapes;
+                self.clipboard.group = group.is_some() && n > 1;
+                self.clipboard.shapes = shapes;
                 let status = t!(self, "copy-paste-copied", count = n);
                 self.set_status(status, STATUS_SECONDS);
                 Some(text)
@@ -52,20 +69,24 @@ impl ChiploadApp {
                     return false;
                 }
             },
-            None => self.shape_clipboard.clone(),
+            None => self.clipboard.shapes.clone(),
         };
+        let as_group = text.is_none() && self.clipboard.group;
         if shapes.is_empty() {
             self.set_status(t!(self, "copy-paste-copy-first"), STATUS_SECONDS);
             return false;
         }
-        let at = self.cursor.filter(|_| !self.three_d);
+        let at = self.cursor.filter(|_| !self.display.three_d);
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match paste_shapes(&edit.settings, &shapes, at) {
+        match paste_shapes(&edit.job, &shapes, at) {
             Ok((job, ids)) => {
-                edit.settings.drawing = job.drawing;
+                edit.adopt(job);
                 self.drawing_changed(&ids);
+                if as_group {
+                    self.group_selected();
+                }
                 let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
                 let text = t!(self, "copy-paste-pasted", shapes = names.join(", "));
                 self.set_status(text, STATUS_SECONDS);
@@ -96,9 +117,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match mirror_shapes(&edit.settings, &ids, mirror) {
+        match mirror_shapes(&edit.job, &ids, mirror) {
             Ok(job) => {
-                edit.settings.drawing = job.drawing;
+                edit.adopt(job);
                 self.shape_draft = None;
                 self.drawing_changed(&ids);
                 let text = if imported {
@@ -138,4 +159,14 @@ impl ChiploadApp {
             }
         }
     }
+}
+
+/// The drawn shapes copied last.
+#[derive(Default)]
+pub struct Clipboard {
+    /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
+    pub(super) shapes: Vec<(String, Geometry)>,
+    /// The shapes copied were a whole group: they paste as a new group
+    /// (docs/specs/shape-groups.md, decision 6).
+    pub(super) group: bool,
 }

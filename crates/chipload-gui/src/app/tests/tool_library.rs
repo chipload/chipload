@@ -84,14 +84,14 @@ mod library {
         let mut app = ChiploadApp::default();
         app.set_settings_dir(Some(dir.clone()));
         assert_eq!(
-            app.theme,
+            app.prefs.theme,
             Theme::System,
             "no settings yet: follow the system"
         );
         app.set_theme(Theme::Light);
         let mut again = ChiploadApp::default();
         again.set_settings_dir(Some(dir));
-        assert_eq!(again.theme, Theme::Light);
+        assert_eq!(again.prefs.theme, Theme::Light);
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod library {
         let _ = std::fs::remove_file(dir.join("settings.json"));
         let mut app = lower_part();
         app.set_settings_dir(Some(dir.clone()));
-        assert!(app.setup_sheet, "on by default");
+        assert!(app.prefs.setup_sheet, "on by default");
         assert!(app.generate_and_wait(), "{:?}", app.report);
         let out = temp_dir("sheet-export");
         let project = out.join("lower.chipload");
@@ -125,7 +125,7 @@ mod library {
         assert!(!out.join("again-sheet.html").exists());
         let mut again = ChiploadApp::default();
         again.set_settings_dir(Some(dir));
-        assert!(!again.setup_sheet);
+        assert!(!again.prefs.setup_sheet);
         std::fs::remove_dir_all(&out).unwrap();
     }
 
@@ -155,7 +155,7 @@ mod library {
     }
 
     fn settings_of(app: &ChiploadApp) -> &Job {
-        &app.edit.as_ref().unwrap().settings
+        &app.edit.as_ref().unwrap().job
     }
 
     #[test]
@@ -165,24 +165,24 @@ mod library {
         let (mut old, dir) = app_with_library("export");
         let file = dir.join("backup.json");
         assert!(old.export_library(LibraryKind::Tools, &file));
-        assert!(old.library_state.message.is_some());
+        assert!(old.user.library_state.message.is_some());
 
         let mut new = ChiploadApp::default();
         new.set_settings_dir(Some(settings("import-preview")));
         assert!(new.preview_library_import(LibraryKind::Tools, &file));
-        let pending = new.library_state.import.as_ref().unwrap();
+        let pending = new.user.library_state.import.as_ref().unwrap();
         assert!(!pending_differs(pending));
         // Cancel changes nothing; Import adds the tool and its default.
         assert!(!new.finish_library_import(ImportChoice::Cancel));
-        assert!(new.library.tools.tools.is_empty());
+        assert!(new.user.library.tools.tools.is_empty());
         assert!(new.preview_library_import(LibraryKind::Tools, &file));
         assert!(new.finish_library_import(ImportChoice::Keep));
-        assert_eq!(new.library.tools.tools, [upcut()]);
+        assert_eq!(new.user.library.tools.tools, [upcut()]);
         assert_eq!(
-            new.library.tools.default_tool.as_deref(),
+            new.user.library.tools.default_tool.as_deref(),
             Some("3 mm upcut")
         );
-        let (kind, text) = new.library_state.message.clone().unwrap();
+        let (kind, text) = new.user.library_state.message.clone().unwrap();
         assert_eq!(kind, LibraryKind::Tools);
         assert!(text.contains("Added: 3 mm upcut"), "{text}");
 
@@ -199,18 +199,20 @@ mod library {
         )
         .unwrap();
         assert!(new.preview_library_import(LibraryKind::Tools, &other));
-        assert!(pending_differs(new.library_state.import.as_ref().unwrap()));
+        assert!(pending_differs(
+            new.user.library_state.import.as_ref().unwrap()
+        ));
         assert!(new.finish_library_import(ImportChoice::Keep));
-        assert_eq!(new.library.tools.tools, [upcut()]);
+        assert_eq!(new.user.library.tools.tools, [upcut()]);
         assert!(new.preview_library_import(LibraryKind::Tools, &other));
         assert!(new.finish_library_import(ImportChoice::Replace));
-        assert_eq!(new.library.tools.tools, [wider]);
+        assert_eq!(new.user.library.tools.tools, [wider]);
 
         // The wrong kind of file is refused with a hint.
         assert!(!new.preview_library_import(LibraryKind::Machines, &file));
-        let error = new.library_state.error.clone().unwrap();
+        let error = new.user.library_state.error.clone().unwrap();
         assert!(error.contains("import it as tools"), "{error}");
-        assert!(new.library_state.import.is_none());
+        assert!(new.user.library_state.import.is_none());
     }
 
     fn pending_differs(pending: &super::library_transfer::PendingImport) -> bool {
@@ -250,7 +252,7 @@ mod library {
         // A new operation takes the tool's cutting values (nothing above to copy).
         select(&mut app, &[4]);
         let i = app.add_operation(OpKind::Pocket).unwrap();
-        let Operation::Pocket(p) = &app.edit.as_ref().unwrap().ops[i].op else {
+        let Operation::Pocket(p) = &app.edit.as_ref().unwrap().job.operations[i] else {
             panic!()
         };
         assert_eq!((p.feed, p.step_down, p.stepover), (800.0, 0.75, 0.35));
@@ -332,7 +334,7 @@ mod library {
             })
         );
         let before = settings_of(&app).clone();
-        let pocket = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().ops[0].op {
+        let pocket = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
             Operation::Pocket(p) => p.clone(),
             other => panic!("{other:?}"),
         };
@@ -359,7 +361,7 @@ mod library {
             })
         );
         // Dogbones: greyed out, with why.
-        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().ops[0].op {
+        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
             p.corners = Some(chipload_job::Corners::Dogbone { max_angle: 1.745 });
         }
         match app.rest_menu(0, mm) {
@@ -383,34 +385,20 @@ mod library {
         let mut app = lower_part();
         app.set_settings_dir(Some(dir.clone()));
         let before = settings_of(&app).clone();
-        let ops_before: Vec<Operation> = app
-            .edit
-            .as_ref()
-            .unwrap()
-            .ops
-            .iter()
-            .map(|e| e.op.clone())
-            .collect();
+        let ops_before: Vec<Operation> = app.edit.as_ref().unwrap().job.operations.clone();
         // The pocket (operation 1) is cut with the 3 mm tool: copied in as tool 2, one
         // undo step, feeds kept.
         assert!(app.tool_from_library(0, "3 mm upcut"));
         let job = settings_of(&app);
         assert_eq!(job.tools.len(), 2);
         assert_eq!(job.tools[1], upcut().tool(2));
-        let ops: Vec<Operation> = app
-            .edit
-            .as_ref()
-            .unwrap()
-            .ops
-            .iter()
-            .map(|e| e.op.clone())
-            .collect();
+        let ops: Vec<Operation> = app.edit.as_ref().unwrap().job.operations.clone();
         assert_eq!((ops[0].tool(), ops[1].tool()), (2, 1));
         let mut same = ops[0].clone();
         same.set_tool(ops_before[0].tool());
         assert_eq!(same, ops_before[0], "only the tool changed");
         assert!(app.generate_and_wait(), "{:?}", app.report);
-        let files = &app.result.as_ref().unwrap().files;
+        let files = &app.toolpath.result.as_ref().unwrap().files;
         assert_eq!(files.len(), 2);
         // Exported as one file per tool, named after the chosen file.
         let out = temp_dir("op-tool-export").join("part.nc");
@@ -423,7 +411,7 @@ mod library {
         // A new operation gets the tool of the last one.
         select(&mut app, &[2]);
         let new = app.add_operation(OpKind::Profile).unwrap();
-        assert_eq!(app.edit.as_ref().unwrap().ops[new].op.tool(), 2);
+        assert_eq!(app.edit.as_ref().unwrap().job.operations[new].tool(), 2);
         app.undo();
         app.undo();
         app.undo();
@@ -453,9 +441,9 @@ mod library {
             |app: &ChiploadApp| user_library::LibraryRows::machine(settings_of(app), app.library());
         assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
         // A job value doesn't count; a machine value does.
-        app.edit.as_mut().unwrap().settings.machine.safe_z = 9.0;
+        app.edit.as_mut().unwrap().job.machine.safe_z = 9.0;
         assert_eq!(rows(&app).note_text().unwrap(), "same as in your library");
-        app.edit.as_mut().unwrap().settings.machine.max_feed = Some(1234.0);
+        app.edit.as_mut().unwrap().job.machine.max_feed = Some(1234.0);
         assert!(
             rows(&app)
                 .note_text()
@@ -482,7 +470,7 @@ mod library {
         app.store_library_tool(renamed).unwrap();
         let tools = load_tools(&dir.join("tools.json")).unwrap();
         assert_eq!(tools.default_tool.as_deref(), Some("3 mm"));
-        assert_eq!(app.library.tools.tools[0].name, "3 mm");
+        assert_eq!(app.user.library.tools.tools[0].name, "3 mm");
 
         let err = app
             .store_library_tool(LibraryTool {
@@ -524,7 +512,7 @@ mod library {
         app.set_setup_sheet(false);
         let mut again = ChiploadApp::default();
         again.set_settings_dir(Some(dir));
-        assert!(!again.setup_sheet);
+        assert!(!again.prefs.setup_sheet);
         again.focus = Focus::Post(0);
         assert!(again.focus.is_library());
     }
@@ -538,7 +526,10 @@ mod library {
         assert_eq!(app.focus, Focus::LibraryTool(library_view::uid_key(&uid)));
         let mut draft = upcut();
         draft.diameter = 3.175;
-        app.library_state.tool_drafts.insert(uid.clone(), draft);
+        app.user
+            .library_state
+            .tool_drafts
+            .insert(uid.clone(), draft);
         // Not written until saved.
         assert_eq!(
             load_tools(&dir.join("tools.json")).unwrap().tools[0].diameter,
@@ -549,14 +540,17 @@ mod library {
             load_tools(&dir.join("tools.json")).unwrap().tools[0].diameter,
             3.175
         );
-        assert!(app.library_state.tool_drafts.is_empty());
+        assert!(app.user.library_state.tool_drafts.is_empty());
         // A new entry is saved at once under a free name, and shown.
         let new = app.new_library_entry(LibraryKind::Tools).unwrap();
-        assert_eq!(app.library.tools.find_uid(&new).unwrap().name, "New tool");
+        assert_eq!(
+            app.user.library.tools.find_uid(&new).unwrap().name,
+            "New tool"
+        );
         assert_eq!(app.focus, Focus::LibraryTool(library_view::uid_key(&new)));
         let new = app.new_library_entry(LibraryKind::Machines).unwrap();
         assert_eq!(
-            app.library.machines.find_uid(&new).unwrap().name,
+            app.user.library.machines.find_uid(&new).unwrap().name,
             "New machine"
         );
     }
@@ -601,15 +595,21 @@ mod library {
         app.edit
             .as_mut()
             .unwrap()
-            .settings
+            .job
             .tools
             .iter_mut()
             .find(|t| t.id == id)
             .unwrap()
             .rpm = Some(16000.0);
         assert!(app.save_to_linked(SaveTarget::Tool(id)));
-        assert_eq!(app.library.tools.find_uid(&uid).unwrap().rpm, Some(16000.0));
-        assert_eq!(app.library.tools.find_uid(&uid).unwrap().name, "Upcut 3");
+        assert_eq!(
+            app.user.library.tools.find_uid(&uid).unwrap().rpm,
+            Some(16000.0)
+        );
+        assert_eq!(
+            app.user.library.tools.find_uid(&uid).unwrap().name,
+            "Upcut 3"
+        );
         // Gone from the library.
         app.remove_from_library(LibraryKind::Tools, "Upcut 3")
             .unwrap();

@@ -12,10 +12,10 @@ const SIMULATE_FRAME: f32 = 3.0;
 impl ChiploadApp {
     /// Switch to the 3D view, starting from a three-quarter view (docs/specs/3d-view.md).
     pub fn view_3d(&mut self) {
-        if !self.three_d {
-            self.three_d = true;
-            self.sketch = None; // drawing and measuring work in top view only
-            self.measure = None;
+        if !self.display.three_d {
+            self.display.three_d = true;
+            // Every canvas tool works in top view only.
+            self.end_tool();
             let pivot = self.orbit_pivot();
             self.view
                 .orient(-30f64.to_radians(), 55f64.to_radians(), pivot);
@@ -24,7 +24,7 @@ impl ChiploadApp {
 
     /// Back to looking straight down, as the 2D view always did.
     pub fn view_top(&mut self) {
-        self.three_d = false;
+        self.display.three_d = false;
         let pivot = self.orbit_pivot();
         self.view.orient(0.0, 0.0, pivot);
     }
@@ -34,11 +34,10 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        if edit.settings.parts.iter().all(|p| p.count() < 2) {
+        if edit.job.parts.iter().all(|p| p.count() < 2) {
             return Vec::new();
         }
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         chipload_pipeline::sheet::contour_copies(&job, &self.contours)
             .into_iter()
             .flat_map(|(c, shifts)| {
@@ -59,10 +58,10 @@ impl ChiploadApp {
 
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
         self.keep_drawing_in_view();
-        self.scene.hide_toolpath = !self.show_toolpath;
+        self.scene.hide_toolpath = !self.display.toolpath;
         self.scene.hide_drawing = !self.show_drawing();
-        self.scene.grid = self.show_grid;
-        self.scene.inch_grid = self.units == chipload_job::Units::Inch;
+        self.scene.grid = self.prefs.show_grid;
+        self.scene.inch_grid = self.prefs.units == chipload_job::Units::Inch;
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self.shown_zero_xy();
         // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
@@ -70,7 +69,7 @@ impl ChiploadApp {
         self.scene.copies = self.copy_shifts();
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
         if let Some(edit) = &self.edit {
-            let stock = &edit.settings.stock();
+            let stock = &edit.job.stock();
             let top = stock.top_z();
             self.view.top_z = top;
             self.scene.stock_z = Some((top, top - stock.thickness));
@@ -87,7 +86,7 @@ impl ChiploadApp {
                 .unwrap_or_else(|| self.scene.fit_points(self.view.top_z));
             if !points.is_empty() {
                 // Not under the rulers (top view only, as they are).
-                let free = if self.show_rulers && self.view.is_top() {
+                let free = if self.prefs.show_rulers && self.view.is_top() {
                     let ruler = super::rulers::RULER;
                     egui::Rect::from_min_max(rect.min + egui::vec2(ruler, ruler), rect.max)
                 } else {
@@ -108,7 +107,7 @@ impl ChiploadApp {
         });
         self.update_corner_markers();
         // Simulate is a viewer: no handles to drag (docs/specs/edit-and-simulate.md §2).
-        let editing = !self.show_simulation;
+        let editing = !self.display.simulate;
         let shape_handles = if editing && self.show_drawing() {
             self.shape_handles()
         } else {
@@ -172,11 +171,23 @@ impl ChiploadApp {
                     && self.drag_selects()
                 {
                     let picked = self.scene.pick(&self.view, origin);
-                    self.start_select_drag(picked, self.view.to_world(origin), shift, alt);
+                    let at = self.view.to_world(origin);
+                    if !self.start_whole_drag(picked, at) {
+                        self.start_select_drag(picked, at, shift, alt);
+                    }
                 }
             }
         }
         if response.drag_stopped() {
+            // Selected shapes carried onto the shape library: saved there, not moved.
+            let box_carried = self.drag.boxed.as_ref().is_some_and(|b| b.carried);
+            if box_carried || self.drag.moving.as_ref().is_some_and(|m| m.carried) {
+                self.drag.moving = None;
+                self.drag.boxed = None;
+                if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
+                    self.drop_selection_on_library(pos);
+                }
+            }
             self.end_zero_drag();
             self.end_handle_drag();
             self.end_box_drag();
@@ -226,14 +237,33 @@ impl ChiploadApp {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                let to = self.snap_world(self.view.to_world(pos), alt, true);
-                self.drag_box_to(to, alt);
+                // A picture or text grabbed by its lines can be carried onto the shape
+                // library, as drawn shapes are.
+                let carried = self.over_library(pos);
+                self.carry_box(carried);
+                if self.drag.boxed.as_ref().is_some_and(|b| b.carried) {
+                    self.paint_carried(ui.ctx(), pos);
+                } else {
+                    let to = self.snap_world(self.view.to_world(pos), alt, true);
+                    self.drag_box_to(to, alt);
+                }
             }
         } else if self.drag.moving.is_some() {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                self.drag_move_to(self.view.to_world(pos), alt, shift);
+                let carried = self.over_library(pos);
+                if let Some(moving) = self.drag.moving.as_mut() {
+                    moving.carried = carried;
+                    if carried {
+                        moving.to = moving.grab;
+                    }
+                }
+                if carried {
+                    self.paint_carried(ui.ctx(), pos);
+                } else {
+                    self.drag_move_to(self.view.to_world(pos), alt, shift);
+                }
             }
         } else if self.drag.select_box.is_some() {
             if response.dragged()
@@ -245,7 +275,7 @@ impl ChiploadApp {
             // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view a drag
             // that doesn't select or move pans: right, middle, Space + left, or any drag
             // while a tool is active.
-            let pan = !self.three_d
+            let pan = !self.display.three_d
                 || response.dragged_by(egui::PointerButton::Secondary)
                 || response.dragged_by(egui::PointerButton::Middle)
                 || shift
@@ -267,14 +297,16 @@ impl ChiploadApp {
             self.cursor = None;
         }
         let mut readout = zero_label;
-        if self.sketch.is_some() {
+        if self.sketch().is_some() {
             self.scene.measure = None;
             let at = self.cursor.map(|c| self.drawing_point(c, alt, shift));
             // A value being typed shows where it would land (also with the pointer off the
             // canvas: then a plain distance has no direction).
-            let anchor = self.sketch.as_ref().and_then(Sketch::anchor);
+            let anchor = self.sketch().and_then(Sketch::anchor);
             let at = match at.or(anchor) {
-                Some(c) if self.typed.is_some() => Some(self.typed_target(c).unwrap_or(c)),
+                Some(c) if self.canvas_tools.typed.is_some() => {
+                    Some(self.typed_target(c).unwrap_or(c))
+                }
                 _ => at,
             };
             if response.double_clicked() {
@@ -282,53 +314,52 @@ impl ChiploadApp {
             } else if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                let first = self.sketch.as_ref().and_then(|s| s.points.first().copied());
+                let first = self.sketch().and_then(|s| s.points.first().copied());
                 let on_first = first.is_some_and(|f| {
                     self.view.to_screen(f).distance(pos) <= crate::view::PICK_TOLERANCE_PX
                 });
                 let p = self.drawing_point(self.view.to_world(pos), alt, shift);
                 self.draw_click(p, on_first);
             }
-            self.scene.preview = match (&self.sketch, at) {
+            self.scene.preview = match (&self.sketch(), at) {
                 (Some(sketch), Some(at)) => sketch.preview(at),
                 _ => Vec::new(),
             };
-            readout = match (&self.sketch, at) {
-                (Some(sketch), Some(at)) => sketch.readout(at, self.units).map(|text| (at, text)),
+            readout = match (&self.sketch(), at) {
+                (Some(sketch), Some(at)) => {
+                    sketch.readout(at, self.prefs.units).map(|text| (at, text))
+                }
                 _ => None,
             };
-            self.scene.sketch_points = self
-                .sketch
-                .as_ref()
-                .map(|s| s.points.clone())
-                .unwrap_or_default();
-        } else if self.modify.is_some() {
+            self.scene.sketch_points = self.sketch().map(|s| s.points.clone()).unwrap_or_default();
+        } else if self.modify().is_some() {
             // An editing tool (docs/specs/drawing-editing.md): the preview at the cursor;
             // a click selects a shape, or applies the tool.
             self.scene.measure = None;
             self.scene.sketch_points.clear();
             let free = alt;
-            if self.modify == Some(super::modify::ModifyTool::Offset) {
+            if self.modify() == Some(super::modify::ModifyTool::Offset) {
                 let target = self.cursor.and_then(|c| self.offset_for_cursor(c, free));
                 self.scene.preview = match target {
                     Some((d, side)) => self.offset_outlines(d, side),
                     None => Vec::new(),
                 };
                 if let (Some((d, _)), Some(at)) = (target, self.cursor) {
-                    readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
+                    readout = Some((at, format!("d {}", crate::draw::fixed(d, self.prefs.units))));
                 }
             } else if matches!(
-                self.modify,
+                self.modify(),
                 Some(super::modify::ModifyTool::Array | super::modify::ModifyTool::PolarArray)
             ) {
                 // An array: its copies, and a polar array's centre marked.
                 self.scene.preview = self.array_outlines();
-                self.scene.snap_mark = (self.modify == Some(super::modify::ModifyTool::PolarArray))
-                    .then_some(self.array.center);
-            } else if self.modify == Some(super::modify::ModifyTool::Frame) {
+                self.scene.snap_mark = (self.modify()
+                    == Some(super::modify::ModifyTool::PolarArray))
+                .then_some(self.canvas_tools.array.center);
+            } else if self.modify() == Some(super::modify::ModifyTool::Frame) {
                 self.scene.preview = self.frame_outlines();
             } else if self
-                .modify
+                .modify()
                 .is_some_and(super::modify::ModifyTool::on_shape_under_cursor)
             {
                 // Trim, extend, break: on the shape under the cursor.
@@ -367,7 +398,7 @@ impl ChiploadApp {
                 let at = self.snap_world(self.view.to_world(pos), alt, false);
                 self.place_text_at(at);
             }
-        } else if self.measure.is_some() {
+        } else if self.measure().is_some() {
             self.scene.preview.clear();
             self.scene.sketch_points.clear();
             let at = self.cursor.map(|c| self.snap_world(c, alt, false));
@@ -427,13 +458,43 @@ impl ChiploadApp {
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
                 let picked = self.scene.pick(&self.view, pos);
-                self.click(picked, toggle);
+                // A double-click on a grouped shape, or a DXF's contour, picks it alone, to
+                // work on it (docs/specs/shape-groups.md, decision 3; dxf-whole-on-canvas.md
+                // decision 1).
+                let inside = response
+                    .double_clicked()
+                    .then_some(picked)
+                    .flatten()
+                    .filter(|id| self.group_of_contour(*id).is_some() || self.dxf_contour(*id));
+                if let Some(contour) = inside {
+                    self.pick_alone(contour);
+                } else {
+                    self.click(picked, toggle);
+                }
             }
         }
         let outline = self.box_outline();
         self.scene.preview.extend(outline);
         let moved = self.move_outlines();
         self.scene.preview.extend(moved);
+        // An entry of the shape library dragged over the canvas: where it would land; let
+        // go, it is inserted there (docs/specs/shape-library.md §5.1).
+        self.shape_library.view_middle = Some(self.view.to_world(rect.center()));
+        if editing
+            && self.view.is_top()
+            && let Some(pos) = ui
+                .input(|i| i.pointer.hover_pos())
+                .filter(|p| rect.contains(*p))
+            && let Some(at) = self.entry_drag_preview(ui.ctx(), pos)
+            && let Some(dropped) =
+                response.dnd_release_payload::<super::shape_library::DraggedEntry>()
+        {
+            self.insert_entry(
+                &dropped.0,
+                Some(at),
+                chipload_pipeline::shape_library::InsertSize::AsSaved,
+            );
+        }
         // Right-clicking a corner marker opens its menu, not the canvas's.
         let corner_clicked = (editing && response.secondary_clicked())
             .then(|| response.interact_pointer_pos())
@@ -525,6 +586,11 @@ impl ChiploadApp {
                         ui.label(t!(ui, "canvas-right-click-hint"));
                     }
                 }
+                // What can be done with the selection: groups, the shape library.
+                if context_start.is_none() && !self.framed_shape_ids().is_empty() {
+                    ui.separator();
+                    self.selection_menu(ui);
+                }
             });
         }
         let operation = match self.focus {
@@ -568,7 +634,7 @@ impl ChiploadApp {
             response.on_hover_text_at_pointer(text);
         }
         let highlight = Highlight {
-            selected: self.selection.ids(&self.contours),
+            selected: self.selected_ids(),
             operation_contours: self.focused_contours(),
             operation,
             followed: self.followed_contours(),
@@ -586,7 +652,7 @@ impl ChiploadApp {
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
         // Simulate frames the canvas in the accent colour (edit-and-simulate.md decision 10).
-        if self.show_simulation {
+        if self.display.simulate {
             let stroke = egui::Stroke::new(SIMULATE_FRAME, ui.visuals().selection.bg_fill);
             painter.rect_stroke(rect, 0.0, stroke, egui::StrokeKind::Inside);
         }
@@ -605,7 +671,7 @@ impl ChiploadApp {
             .corner_radius(6.0)
             .inner_margin(egui::Margin::symmetric(10, 6));
         let inner = rect.shrink(10.0);
-        if self.toolpath_stale {
+        if self.toolpath.stale {
             let top = egui::UiBuilder::new()
                 .max_rect(inner)
                 .layout(egui::Layout::top_down(egui::Align::Min));
@@ -613,8 +679,8 @@ impl ChiploadApp {
                 frame.show(ui, |ui| {
                     ui.horizontal(|ui| {
                         // Live preview: the new toolpath is on its way (or about to be).
-                        let coming =
-                            self.generating() || (self.auto_generate && self.changed_at.is_some());
+                        let coming = self.generating()
+                            || (self.prefs.auto_generate && self.toolpath.changed_at.is_some());
                         if coming {
                             ui.spinner();
                             ui.label(t!(ui, "canvas-updating-toolpath"));
@@ -634,7 +700,7 @@ impl ChiploadApp {
                     });
                 });
             });
-        } else if self.simulating() && self.show_simulation {
+        } else if self.simulating() && self.display.simulate {
             // The toolpath is current, but the simulated stock still shows the last one
             // until its worker is done (user report 2026-10-17: it looked finished).
             let top = egui::UiBuilder::new()
@@ -652,7 +718,11 @@ impl ChiploadApp {
         let items = crate::view::legend(&self.scene, ui);
         // Anchored at the bottom: placed by its height last frame (estimated on the first).
         let size_id = egui::Id::new("legend-height");
-        let rows = if self.legend_open { items.len() } else { 0 };
+        let rows = if self.display.legend_open {
+            items.len()
+        } else {
+            0
+        };
         let estimate = 30.0 + 15.0 * rows as f32;
         let height = ui.data(|d| d.get_temp::<f32>(size_id)).unwrap_or(estimate);
         // Standing on the navigation bar when there's no room for the bar beside it.
@@ -687,7 +757,11 @@ impl ChiploadApp {
     /// The legend's title (it folds) and its entries.
     fn legend_ui(&mut self, ui: &mut egui::Ui, items: Vec<(crate::view::Swatch, String)>) {
         ui.spacing_mut().item_spacing.y = 1.0;
-        let arrow = if self.legend_open { "▾" } else { "▸" };
+        let arrow = if self.display.legend_open {
+            "▾"
+        } else {
+            "▸"
+        };
         if ui
             .selectable_label(
                 false,
@@ -696,14 +770,14 @@ impl ChiploadApp {
             .on_hover_text(t!(ui, "canvas-legend-hover"))
             .clicked()
         {
-            self.legend_open = !self.legend_open;
+            self.display.legend_open = !self.display.legend_open;
         }
-        if !self.legend_open {
+        if !self.display.legend_open {
             return;
         }
         if self.scene.toolpath.is_some() {
             let label = t!(ui, "canvas-show-toolpath");
-            ui.checkbox(&mut self.show_toolpath, RichText::new(label).small())
+            ui.checkbox(&mut self.display.toolpath, RichText::new(label).small())
                 .on_hover_text(t!(ui, "canvas-show-toolpath-hover"));
         }
         for (swatch, text) in items {
@@ -720,7 +794,7 @@ impl ChiploadApp {
 
     /// Handles of the selected shape: one drawn shape, in top view, not while drawing.
     pub(super) fn shape_handles(&self) -> Vec<(Handle, Point)> {
-        if self.three_d || self.sketch.is_some() || !self.can_draw() {
+        if self.display.three_d || self.sketch().is_some() || !self.can_draw() {
             return Vec::new();
         }
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
@@ -747,7 +821,7 @@ impl ChiploadApp {
     /// for the marker and the status bar. `dragging`: skip the selected shape's own points.
     pub(super) fn snap_world(&mut self, at: Point, free: bool, dragging: bool) -> Point {
         // A dragged box doesn't snap to its own letters or traced shapes.
-        let own_box = (dragging && self.dragging_box()).then(|| self.selection.ids(&self.contours));
+        let own_box = (dragging && self.dragging_box()).then(|| self.selected_ids());
         let moving: Option<BTreeSet<u64>> = self
             .drag
             .moving
@@ -775,7 +849,7 @@ impl ChiploadApp {
                 .map(|ids| ids.into_iter().collect())
                 .unwrap_or_default(),
         };
-        let step = grid_step(self.view.scale, self.units);
+        let step = grid_step(self.view.scale, self.prefs.units);
         let cursor = Cursor {
             at,
             from: self.last_point(),
@@ -786,7 +860,7 @@ impl ChiploadApp {
             &self.drag.snapper,
             self.view.scale,
             step,
-            self.units,
+            self.prefs.units,
             free,
         );
         self.drag.snapped = Some((p, hit));
@@ -797,11 +871,11 @@ impl ChiploadApp {
     /// Where a drawing click or the cursor lands: snapped (else the grid), or with Shift
     /// held to 15° steps from the last click (docs/specs/drawing-input.md §2).
     pub(super) fn drawing_point(&mut self, raw: Point, alt: bool, shift: bool) -> Point {
-        let anchor = self.sketch.as_ref().and_then(Sketch::anchor);
+        let anchor = self.sketch().and_then(Sketch::anchor);
         match anchor.filter(|_| shift) {
             Some(anchor) => {
-                let step = (!alt).then(|| grid_step(self.view.scale, self.units));
-                let p = crate::draw::angle_step(anchor, raw, step, self.units);
+                let step = (!alt).then(|| grid_step(self.view.scale, self.prefs.units));
+                let p = crate::draw::angle_step(anchor, raw, step, self.prefs.units);
                 self.drag.snapped = Some((p, None));
                 self.scene.snap_mark = None;
                 p
@@ -813,12 +887,13 @@ impl ChiploadApp {
     /// The lengths of the selected drawn shape, laid out where they show: in top view, with
     /// nothing being drawn or measured. None while its length is being typed.
     fn dimension_labels(&self, ui: &egui::Ui, painter: &egui::Painter) -> Vec<DimensionLabel> {
-        if self.three_d
-            || self.sketch.is_some()
-            || self.measure.is_some()
+        if self.display.three_d
+            || self.sketch().is_some()
+            || self.measure().is_some()
             || !self.show_drawing()
-            || self.modify.is_some()
+            || self.modify().is_some()
             || self
+                .canvas_tools
                 .typed
                 .as_ref()
                 .is_some_and(|t| matches!(t.target, super::drawing::TypedTarget::Dimension(_)))
@@ -835,7 +910,7 @@ impl ChiploadApp {
         chipload_job::edit::dimensions(&shape.geometry)
             .into_iter()
             .filter_map(|shown| {
-                let number = crate::draw::fixed(shown.value, self.units);
+                let number = crate::draw::fixed(shown.value, self.prefs.units);
                 let text = if radius {
                     format!("R {number}")
                 } else {
@@ -917,7 +992,7 @@ impl ChiploadApp {
     /// The entry of a value being typed while drawing: Enter applies it, Esc or a click
     /// elsewhere closes it.
     fn typed_entry(&mut self, ui: &egui::Ui) {
-        let Some(mut typed) = self.typed.clone() else {
+        let Some(mut typed) = self.canvas_tools.typed.clone() else {
             return;
         };
         let id = egui::Id::new("draw-typed-entry");
@@ -956,7 +1031,7 @@ impl ChiploadApp {
         }
         let entered = shown.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
         let closed = shown.lost_focus() && !entered;
-        self.typed = (!closed).then_some(typed);
+        self.canvas_tools.typed = (!closed).then_some(typed);
         if entered {
             let cursor = self.drag.snapped.map(|(p, _)| p).or(self.cursor);
             if let Some(cursor) = cursor {
@@ -968,10 +1043,10 @@ impl ChiploadApp {
     /// The last point of the tool being used, for perpendicular and tangent snaps: a
     /// polyline's last click, or a measurement's first point.
     pub(super) fn last_point(&self) -> Option<Point> {
-        if let Some(sketch) = &self.sketch {
+        if let Some(sketch) = &self.sketch() {
             return sketch.last_point();
         }
-        self.measure
+        self.measure()
             .and_then(|m| m.start.filter(|_| m.end.is_none()))
     }
 
@@ -1083,7 +1158,7 @@ impl ChiploadApp {
         let Focus::Op(operation) = self.focus else {
             return None;
         };
-        if self.three_d || self.sketch.is_some() || self.scene.hide_toolpath {
+        if self.display.three_d || self.sketch().is_some() || self.scene.hide_toolpath {
             return None;
         }
         self.scene
@@ -1114,11 +1189,15 @@ impl ChiploadApp {
         let Some(m) = self.scene.start_markers.get(marker).cloned() else {
             return;
         };
-        let Some(op) = self.edit.as_mut().and_then(|e| e.ops.get_mut(m.operation)) else {
+        let Some(op) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.job.operations.get_mut(m.operation))
+        else {
             return;
         };
         let point = [m.at.0, m.at.1];
-        let Some(starts) = op.op.starts_mut() else {
+        let Some(starts) = op.starts_mut() else {
             return;
         };
         match m.stored.filter(|&k| k < starts.len()) {
@@ -1126,7 +1205,7 @@ impl ChiploadApp {
             None => starts.push(point),
         }
         self.commit();
-        self.undo_if_refused.clone_from(&self.edit);
+        self.toolpath.undo_if_refused.clone_from(&self.edit);
         self.generate();
     }
 
@@ -1137,11 +1216,13 @@ impl ChiploadApp {
         };
         let (Some(k), Some(op)) = (
             m.stored,
-            self.edit.as_mut().and_then(|e| e.ops.get_mut(m.operation)),
+            self.edit
+                .as_mut()
+                .and_then(|e| e.job.operations.get_mut(m.operation)),
         ) else {
             return;
         };
-        let Some(starts) = op.op.starts_mut() else {
+        let Some(starts) = op.starts_mut() else {
             return;
         };
         if k < starts.len() {
@@ -1193,10 +1274,11 @@ impl ChiploadApp {
         let name = self
             .edit
             .as_ref()
-            .and_then(|e| e.ops.get(index))
-            .map(|e| e.op.name().to_string())
+            .and_then(|e| e.job.operations.get(index))
+            .map(|e| e.name().to_string())
             .unwrap_or_default();
-        chipload_job::operation_label_message(index, &name).render(self.language, self.units.into())
+        chipload_job::operation_label_message(index, &name)
+            .render(self.prefs.language, self.prefs.units.into())
     }
 }
 

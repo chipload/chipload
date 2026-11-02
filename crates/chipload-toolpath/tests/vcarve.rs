@@ -25,7 +25,7 @@ fn bit(degrees: f64, tip: f64) -> VBit {
 
 fn carve(contours: &[Contour], bit: &VBit, max_depth: f64) -> VcarvePlan {
     let refs: Vec<&Contour> = contours.iter().collect();
-    plan_vcarve(&refs, bit, max_depth, (0.0, 0.0), None).unwrap()
+    plan_vcarve(&refs, bit, max_depth, (0.0, 0.0), None, 0.0).unwrap()
 }
 
 // -- an independent geometry, for the checks
@@ -368,7 +368,7 @@ fn a_stroke_wider_than_the_cap_gets_walls_and_its_floor_is_reported() {
 /// The share of the floor cleared with an end mill of `radius` (1 when nothing is left).
 fn cleared(shape: &[Contour], bit: &VBit, cap: f64, radius: f64) -> f64 {
     let refs: Vec<&Contour> = shape.iter().collect();
-    let plan = plan_vcarve(&refs, bit, cap, (0.0, 0.0), Some(radius)).unwrap();
+    let plan = plan_vcarve(&refs, bit, cap, (0.0, 0.0), Some(radius), 0.0).unwrap();
     plan.floors.iter().map(|f| f.cleared).fold(1.0, f64::min)
 }
 
@@ -379,7 +379,7 @@ fn a_floor_pass_that_fits_leaves_nothing_and_one_too_wide_gets_a_hint() {
     let bit = bit(90.0, 0.0);
     let refs: Vec<&Contour> = shape.iter().collect();
     // A 3 mm end mill fits: the V-bit cleans the corners, nothing is left.
-    let fits = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(1.5)).unwrap();
+    let fits = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(1.5), 0.0).unwrap();
     assert!(fits.floors.is_empty(), "{:?}", fits.floors);
     assert!(
         fits.notes.is_empty(),
@@ -388,7 +388,7 @@ fn a_floor_pass_that_fits_leaves_nothing_and_one_too_wide_gets_a_hint() {
     );
     assert_no_gouge(&shape, &fits, &bit);
     // A 12 mm one doesn't fit: the hint is about the floor's width.
-    let wide = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(6.0)).unwrap();
+    let wide = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(6.0), 0.0).unwrap();
     assert_eq!(wide.floors.len(), 1, "{:?}", wide.floors);
     let floor = &wide.floors[0];
     assert_eq!(floor.contours, "#7");
@@ -742,12 +742,12 @@ fn each_area_is_finished_before_the_next() {
 fn passes_remove_equal_areas() {
     use chipload_toolpath::vcarve::carve_levels;
     // The user's example: 5 mm in 6 passes.
-    let levels = carve_levels(5.0, 6);
+    let levels = carve_levels(5.0, 6, None);
     assert_eq!(levels.len(), 6);
     let rounded: Vec<f64> = levels.iter().map(|l| (l * 100.0).round() / 100.0).collect();
     assert_eq!(rounded, [2.04, 2.89, 3.54, 4.08, 4.56, 5.0]);
     for (depth, passes) in [(3.0, 3), (3.5, 4), (6.0, 100), (0.5, 2)] {
-        let levels = carve_levels(depth, passes);
+        let levels = carve_levels(depth, passes, None);
         assert_eq!(levels.len(), passes as usize);
         assert_eq!(*levels.last().unwrap(), depth);
         let area = levels[0] * levels[0];
@@ -758,8 +758,34 @@ fn passes_remove_equal_areas() {
         }
     }
     // One pass, and 0 taken as one.
-    assert_eq!(carve_levels(3.0, 1), [3.0]);
-    assert_eq!(carve_levels(3.0, 0), [3.0]);
+    assert_eq!(carve_levels(3.0, 1, None), [3.0]);
+    assert_eq!(carve_levels(3.0, 0, None), [3.0]);
+}
+
+/// An ordinary step down (vcarve-step-down.md): equal steps none deeper than it, the last
+/// exactly the depth, as a pocket's; the count of passes doesn't matter then.
+#[test]
+fn a_step_down_gives_equal_steps() {
+    use chipload_toolpath::vcarve::carve_levels;
+    let rounded = |levels: Vec<f64>| -> Vec<f64> {
+        levels.iter().map(|l| (l * 100.0).round() / 100.0).collect()
+    };
+    assert_eq!(rounded(carve_levels(5.0, 6, Some(2.0))), [1.67, 3.33, 5.0]);
+    assert_eq!(rounded(carve_levels(5.0, 1, Some(2.5))), [2.5, 5.0]);
+    // A step of the whole depth or more: one pass.
+    assert_eq!(carve_levels(3.0, 4, Some(3.0)), [3.0]);
+    assert_eq!(carve_levels(3.0, 4, Some(10.0)), [3.0]);
+    // Just over a whole number of steps: no extra pass for the last speck.
+    assert_eq!(carve_levels(4.0005, 1, Some(2.0)).len(), 2);
+    for (depth, step) in [(3.0, 0.7), (6.0, 0.06), (0.5, 0.2)] {
+        let levels = carve_levels(depth, 1, Some(step));
+        assert_eq!(*levels.last().unwrap(), depth);
+        let mut before = 0.0;
+        for level in &levels {
+            assert!(level - before <= step + 1e-9, "{levels:?}");
+            before = *level;
+        }
+    }
 }
 
 /// How many cuts a program has: lifts to safe Z after cutting.
@@ -823,4 +849,73 @@ fn corners_are_cut_out_and_back_and_passes_go_on_through_the_groove() {
     for (_, b) in feed_moves(&three.program) {
         assert!(b[2] >= -3.5 - 1e-9, "{b:?}");
     }
+}
+
+/// docs/specs/vcarve-smooth.md §3: a kink turning less than *Ignore kinks* gets no branch;
+/// a real corner keeps its branch at any setting up to 90°.
+#[test]
+fn kinks_under_the_angle_get_no_branch() {
+    // 30 × 6, the top edge bent 15° outwards in its middle: a kink at (15, 6 + 15·tan 7.5°).
+    let rise = 15.0 * 7.5_f64.to_radians().tan();
+    let kink = (15.0, 6.0 + rise);
+    let shape = [common::polygon_id(
+        1,
+        &[(0.0, 0.0), (30.0, 0.0), (30.0, 6.0), kink, (0.0, 6.0)],
+    )];
+    let refs: Vec<&Contour> = shape.iter().collect();
+    let bit = bit(60.0, 0.0);
+    let reaches = |plan: &VcarvePlan, at: Point, within: f64| {
+        plan.paths
+            .iter()
+            .flat_map(|p| p.points.iter())
+            .any(|p| ((p.0 - at.0).powi(2) + (p.1 - at.1).powi(2)).sqrt() < within)
+    };
+    let every = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 0.0).unwrap();
+    assert!(reaches(&every, kink, 0.2), "at 0° the kink has its branch");
+    let kinks = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 20f64.to_radians()).unwrap();
+    assert!(!reaches(&kinks, kink, 1.0), "at 20° it has none");
+    assert_no_gouge(&shape, &kinks, &bit);
+    // The bottom corners turn 90°: kept at 90. (The top ones turn 82.5°, the top edge
+    // sloping: they go at 90.)
+    let most = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 90f64.to_radians()).unwrap();
+    for corner in [(0.0, 0.0), (30.0, 0.0)] {
+        assert!(reaches(&most, corner, 0.2), "{corner:?}");
+    }
+    assert!(!reaches(&most, (30.0, 6.0), 0.2));
+    // What the kink's branch leaves: at most r(1/cos(θ/2) − 1), r the cut's radius there.
+    let r = 3.0;
+    let left = r * (1.0 / 7.5_f64.to_radians().cos() - 1.0);
+    assert!(
+        worst_miss(&shape, &kinks, &bit, 0.1) <= left + TOL,
+        "{} > {left}",
+        worst_miss(&shape, &kinks, &bit, 0.1)
+    );
+}
+
+/// The user, 2026-11-01: a traced logo at 20° lost one leg of its "H". A stroke whose end is
+/// rounded with kinks (a traced end) has its centre line end in a kink: that branch is the
+/// whole stroke, which must stay; only what a kink's sliver allows may go.
+#[test]
+fn a_stroke_ending_in_kinks_keeps_its_centre_line() {
+    // 4 × 30, square at the bottom, the top a half circle of 12 chords (15° kinks).
+    let mut points = vec![(0.0, 0.0), (4.0, 0.0), (4.0, 30.0)];
+    for k in 1..12 {
+        let a = std::f64::consts::PI * f64::from(k) / 12.0;
+        points.push((2.0 + 2.0 * a.cos(), 30.0 + 2.0 * a.sin()));
+    }
+    points.push((0.0, 30.0));
+    let shape = [common::polygon_id(1, &points)];
+    let refs: Vec<&Contour> = shape.iter().collect();
+    let bit = bit(60.0, 0.0);
+    let plan = plan_vcarve(&refs, &bit, 10.0, (0.0, 0.0), None, 20f64.to_radians()).unwrap();
+    // Near a cut's line (a straight cut has points at its ends only).
+    let reaches = |at: Point| {
+        samples(&plan.paths, &bit, 0.1)
+            .iter()
+            .any(|(p, _)| ((p.0 - at.0).powi(2) + (p.1 - at.1).powi(2)).sqrt() < 0.2)
+    };
+    for y in [5.0, 15.0, 25.0] {
+        assert!(reaches((2.0, y)), "the centre line at y = {y}");
+    }
+    assert!(worst_miss(&shape, &plan, &bit, 0.2) < 0.2);
 }

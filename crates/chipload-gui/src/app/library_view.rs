@@ -70,7 +70,7 @@ fn folder_menu(ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
 impl ChiploadApp {
     /// The "This computer" root of the Browser (docs/specs/this-computer.md §2).
     pub(super) fn library_tree(&mut self, ui: &mut egui::Ui) {
-        if let Some(kind) = self.library_state.reveal.take() {
+        if let Some(kind) = self.user.library_state.reveal.take() {
             let sub = match kind {
                 LibraryKind::Tools => TOOLS,
                 LibraryKind::Machines => MACHINES,
@@ -82,7 +82,7 @@ impl ChiploadApp {
         }
         let root = Row::new(Id::new(ROOT), 0, t!(ui, "library-view-this-computer"))
             .icon(Icon::Library)
-            .alert(!self.library.problems.is_empty() || self.post_problems() > 0);
+            .alert(!self.user.library.problems.is_empty() || self.post_problems() > 0);
         let (open, out) = folder(ui, root, false);
         out.response
             .on_hover_text(t!(ui, "library-view-this-computer-hover"));
@@ -105,7 +105,7 @@ impl ChiploadApp {
         {
             act = Some(Act::Focus(Focus::Preferences));
         }
-        if self.settings_dir.is_none() {
+        if self.user.settings_dir.is_none() {
             Row::new(
                 Id::new(ROOT).with("none"),
                 1,
@@ -177,20 +177,20 @@ impl ChiploadApp {
     }
 
     fn library_tool_rows(&mut self, ui: &mut egui::Ui, act: &mut Option<Act>) {
-        let tools = self.library.tools.tools.clone();
+        let tools = self.user.library.tools.tools.clone();
         if !self.library_folder(ui, LibraryKind::Tools, tools.len(), act) {
             return;
         }
-        let default = self.library.tools.default_tool.clone();
+        let default = self.user.library.tools.default_tool.clone();
         let has_job = self.edit.is_some();
         for tool in &tools {
             let is_default = default.as_deref().is_some_and(|d| same_name(d, &tool.name));
-            let draft = self.library_state.tool_drafts.contains_key(&tool.uid);
+            let draft = self.user.library_state.tool_drafts.contains_key(&tool.uid);
             let row = Row::new(Id::new(("browser-library-tool", &tool.uid)), 2, &tool.name)
                 .icon(tool_icon(tool.kind))
                 .trailing(leaf_note(
                     ui,
-                    &tool_summary(self, tool, self.units),
+                    &tool_summary(self, tool, self.prefs.units),
                     is_default,
                     draft,
                 ))
@@ -232,17 +232,21 @@ impl ChiploadApp {
     }
 
     fn library_machine_rows(&mut self, ui: &mut egui::Ui, act: &mut Option<Act>) {
-        let machines = self.library.machines.machines.clone();
+        let machines = self.user.library.machines.machines.clone();
         if !self.library_folder(ui, LibraryKind::Machines, machines.len(), act) {
             return;
         }
-        let default = self.library.machines.default_machine.clone();
+        let default = self.user.library.machines.default_machine.clone();
         let has_job = self.edit.is_some();
         for machine in &machines {
             let is_default = default
                 .as_deref()
                 .is_some_and(|d| same_name(d, &machine.name));
-            let draft = self.library_state.machine_drafts.contains_key(&machine.uid);
+            let draft = self
+                .user
+                .library_state
+                .machine_drafts
+                .contains_key(&machine.uid);
             let row = Row::new(
                 Id::new(("browser-library-machine", &machine.uid)),
                 2,
@@ -251,7 +255,7 @@ impl ChiploadApp {
             .icon(Icon::Machine)
             .trailing(leaf_note(
                 ui,
-                &machine_summary(machine, self.units),
+                &machine_summary(machine, self.prefs.units),
                 is_default,
                 draft,
             ))
@@ -304,7 +308,7 @@ impl ChiploadApp {
             Focus::Post(k) => self.post_form(ui, k as usize),
             _ => {}
         }
-        if let Some(error) = &self.library_state.error {
+        if let Some(error) = &self.user.library_state.error {
             ui.colored_label(ui.visuals().error_fg_color, error);
         }
         if let Some(act) = act {
@@ -313,13 +317,13 @@ impl ChiploadApp {
     }
 
     fn library_folder_form(&mut self, ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
-        let dir = self.settings_dir.clone();
+        let dir = self.user.settings_dir.clone();
         let (title, icon, path, count, about) = match kind {
             LibraryKind::Tools => (
                 t!(ui, "library-view-tool-library"),
                 Icon::Tools,
                 dir.as_deref().map(chipload_pipeline::library::tools_path),
-                self.library.tools.tools.len(),
+                self.user.library.tools.tools.len(),
                 t!(ui, "library-view-tool-library-about"),
             ),
             LibraryKind::Machines => (
@@ -327,12 +331,12 @@ impl ChiploadApp {
                 Icon::Machine,
                 dir.as_deref()
                     .map(chipload_pipeline::library::machines_path),
-                self.library.machines.machines.len(),
+                self.user.library.machines.machines.len(),
                 t!(ui, "library-view-machines-about"),
             ),
         };
         title_line(ui, icon, None, &title);
-        library_header(ui, path.as_deref(), &self.library.problems);
+        library_header(ui, path.as_deref(), &self.user.library.problems);
         ui.label(match kind {
             LibraryKind::Tools => t!(ui, "library-view-tool-count", count = count),
             LibraryKind::Machines => t!(ui, "library-view-machine-count", count = count),
@@ -342,21 +346,22 @@ impl ChiploadApp {
         ui.add_enabled_ui(path.is_some(), |ui| {
             ui.horizontal_wrapped(|ui| folder_menu(ui, kind, act));
         });
-        let choice = import_preview(ui, self.library_state.import.as_ref(), kind);
-        library_message(ui, self.library_state.message.as_ref(), kind);
+        let choice = import_preview(ui, self.user.library_state.import.as_ref(), kind);
+        library_message(ui, self.user.library_state.message.as_ref(), kind);
         if let Some(choice) = choice {
             self.finish_library_import(choice);
         }
     }
 
     fn library_tool_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<Act>) {
-        let Some(stored) = self.library.tools.find_uid(uid).cloned() else {
+        let Some(stored) = self.user.library.tools.find_uid(uid).cloned() else {
             let title = t!(ui, "library-view-library-tool");
             title_line(ui, Icon::Tools, None, &title);
             ui.weak(t!(ui, "library-view-tool-gone"));
             return;
         };
         let mut draft = self
+            .user
             .library_state
             .tool_drafts
             .get(uid)
@@ -368,14 +373,16 @@ impl ChiploadApp {
         tool_entry_form(ui, &mut draft);
         let changed = draft != stored;
         if changed {
-            self.library_state
+            self.user
+                .library_state
                 .tool_drafts
                 .insert(uid.to_string(), draft);
         } else {
-            self.library_state.tool_drafts.remove(uid);
+            self.user.library_state.tool_drafts.remove(uid);
         }
         save_buttons(ui, LibraryKind::Tools, uid, changed, act);
         let is_default = self
+            .user
             .library
             .tools
             .default_tool
@@ -397,7 +404,7 @@ impl ChiploadApp {
         });
         if let Some(edit) = &self.edit {
             let users: Vec<String> = edit
-                .settings
+                .job
                 .tools
                 .iter()
                 .filter(|t| t.library_uid.as_deref() == Some(uid))
@@ -414,13 +421,14 @@ impl ChiploadApp {
     }
 
     fn library_machine_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<Act>) {
-        let Some(stored) = self.library.machines.find_uid(uid).cloned() else {
+        let Some(stored) = self.user.library.machines.find_uid(uid).cloned() else {
             let title = t!(ui, "library-view-machine-profile");
             title_line(ui, Icon::Machine, None, &title);
             ui.weak(t!(ui, "library-view-profile-gone"));
             return;
         };
         let mut draft = self
+            .user
             .library_state
             .machine_drafts
             .get(uid)
@@ -429,17 +437,19 @@ impl ChiploadApp {
         title_line(ui, Icon::Machine, None, &stored.name);
         ui.weak(t!(ui, "library-view-entry-about"));
         ui.add_space(4.0);
-        machine_entry_form(ui, &mut draft, &self.library);
+        machine_entry_form(ui, &mut draft, &self.user.library);
         let changed = draft != stored;
         if changed {
-            self.library_state
+            self.user
+                .library_state
                 .machine_drafts
                 .insert(uid.to_string(), draft);
         } else {
-            self.library_state.machine_drafts.remove(uid);
+            self.user.library_state.machine_drafts.remove(uid);
         }
         save_buttons(ui, LibraryKind::Machines, uid, changed, act);
         let is_default = self
+            .user
             .library
             .machines
             .default_machine
@@ -460,14 +470,14 @@ impl ChiploadApp {
             entry_buttons(ui, LibraryKind::Machines, &stored.name, is_default, act);
         });
         if let Some(edit) = &self.edit
-            && edit.settings.machine.library_uid.as_deref() == Some(uid)
+            && edit.job.machine.library_uid.as_deref() == Some(uid)
         {
             ui.weak(t!(ui, "library-view-project-machine"));
         }
     }
 
     fn library_act(&mut self, act: Act) {
-        self.library_state.error = None;
+        self.user.library_state.error = None;
         match act {
             Act::Focus(focus) => {
                 self.reload_library();
@@ -477,13 +487,19 @@ impl ChiploadApp {
                 self.add_library_tool_uid(&uid);
             }
             Act::UseMachine(uid) => {
-                if let Some(name) = self.library.machines.find_uid(&uid).map(|m| m.name.clone()) {
+                if let Some(name) = self
+                    .user
+                    .library
+                    .machines
+                    .find_uid(&uid)
+                    .map(|m| m.name.clone())
+                {
                     self.use_machine_profile(&name);
                 }
             }
             Act::Default(kind, name) => {
                 if let Err(err) = self.set_library_default(kind, &name) {
-                    self.library_state.error = Some(err);
+                    self.user.library_state.error = Some(err);
                 }
             }
             Act::Delete(kind, name) => match self.remove_from_library(kind, &name) {
@@ -495,7 +511,7 @@ impl ChiploadApp {
                     let status = t!(self, "library-view-deleted", name = name);
                     self.set_status(status, STATUS_SECONDS);
                 }
-                Err(err) => self.library_state.error = Some(err),
+                Err(err) => self.user.library_state.error = Some(err),
             },
             Act::New(kind) => {
                 self.new_library_entry(kind);
@@ -518,10 +534,10 @@ impl ChiploadApp {
                 self.save_library_draft(kind, &uid);
             }
             Act::Revert(LibraryKind::Tools, uid) => {
-                self.library_state.tool_drafts.remove(&uid);
+                self.user.library_state.tool_drafts.remove(&uid);
             }
             Act::Revert(LibraryKind::Machines, uid) => {
-                self.library_state.machine_drafts.remove(&uid);
+                self.user.library_state.machine_drafts.remove(&uid);
             }
         }
     }
@@ -530,14 +546,15 @@ impl ChiploadApp {
     pub fn save_library_draft(&mut self, kind: LibraryKind, uid: &str) -> bool {
         let result = match kind {
             LibraryKind::Tools => {
-                let Some(mut entry) = self.library_state.tool_drafts.get(uid).cloned() else {
+                let Some(mut entry) = self.user.library_state.tool_drafts.get(uid).cloned() else {
                     return false;
                 };
                 entry.name = entry.name.trim().to_string();
                 self.store_library_tool(entry)
             }
             LibraryKind::Machines => {
-                let Some(mut profile) = self.library_state.machine_drafts.get(uid).cloned() else {
+                let Some(mut profile) = self.user.library_state.machine_drafts.get(uid).cloned()
+                else {
                     return false;
                 };
                 profile.name = profile.name.trim().to_string();
@@ -548,10 +565,10 @@ impl ChiploadApp {
             Ok(()) => {
                 match kind {
                     LibraryKind::Tools => {
-                        self.library_state.tool_drafts.remove(uid);
+                        self.user.library_state.tool_drafts.remove(uid);
                     }
                     LibraryKind::Machines => {
-                        self.library_state.machine_drafts.remove(uid);
+                        self.user.library_state.machine_drafts.remove(uid);
                     }
                 }
                 let status = t!(self, "library-view-saved");
@@ -559,7 +576,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(err);
+                self.user.library_state.error = Some(err);
                 false
             }
         }
@@ -569,7 +586,7 @@ impl ChiploadApp {
     /// project's Tools); returns its id there.
     pub fn add_library_tool_uid(&mut self, uid: &str) -> Option<i64> {
         self.reload_library();
-        let name = self.library.tools.find_uid(uid)?.name.clone();
+        let name = self.user.library.tools.find_uid(uid)?.name.clone();
         let id = self.add_library_tool(&name)?;
         self.focus = Focus::Tool(id);
         Some(id)

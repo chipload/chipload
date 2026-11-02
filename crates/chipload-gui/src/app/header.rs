@@ -30,10 +30,11 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return t!(self, "header-export-hover");
         };
-        let cut = edit.settings.parts.iter().filter(|p| p.enabled).count();
+        let cut = edit.job.parts.iter().filter(|p| p.enabled).count();
         let shown = self
-            .result_part
-            .and_then(|id| edit.settings.part(id))
+            .toolpath
+            .part
+            .and_then(|id| edit.job.part(id))
             .map(|p| p.name.as_str());
         match (cut, shown) {
             (n, Some(name)) if n > 1 => {
@@ -71,11 +72,11 @@ impl ChiploadApp {
                 self.ask_save(false);
             }
             let hover = hover_keys(&t!(ui, "header-undo"), Action::Undo);
-            if quick_button(ui, Icon::Undo, &hover, !self.undo.is_empty()).clicked() {
+            if quick_button(ui, Icon::Undo, &hover, !self.history.undo.is_empty()).clicked() {
                 self.undo();
             }
             let hover = hover_keys(&t!(ui, "header-redo"), Action::Redo);
-            if quick_button(ui, Icon::Redo, &hover, !self.redo.is_empty()).clicked() {
+            if quick_button(ui, Icon::Redo, &hover, !self.history.redo.is_empty()).clicked() {
                 self.redo();
             }
             let left_end = ui.min_rect().right();
@@ -93,7 +94,7 @@ impl ChiploadApp {
                 egui::Popup::menu(&help).show(|ui| self.help_menu(ui));
                 // The colour theme: a click goes on to the next (docs/specs/
                 // view-and-settings.md §3).
-                let (icon, hover, next) = match self.theme {
+                let (icon, hover, next) = match self.prefs.theme {
                     Theme::System => (
                         Icon::ThemeSystem,
                         t!(ui, "header-theme-system-hover"),
@@ -126,7 +127,8 @@ impl ChiploadApp {
             return;
         }
         let name = self
-            .job_path
+            .file
+            .path
             .as_deref()
             .map_or_else(|| t!(ui, "header-new-project"), file_name);
         let dirty = self.dirty();
@@ -169,7 +171,7 @@ impl ChiploadApp {
             let dot = egui::pos2(rect.right() - 14.0, rect.center().y);
             painter.circle_filled(dot, 3.5, visuals.text_color());
         }
-        let hover = match (&self.job_path, dirty) {
+        let hover = match (&self.file.path, dirty) {
             (Some(path), true) => t!(
                 ui,
                 "header-tab-unsaved-hover",
@@ -236,7 +238,7 @@ impl ChiploadApp {
         let compact_id = egui::Id::new(RIBBON_COMPACT);
         let full_id = egui::Id::new("ribbon-full-width");
         let compact = ui.data(|d| d.get_temp::<bool>(compact_id)).unwrap_or(false);
-        let language = self.language;
+        let language = self.prefs.language;
         ui.horizontal(|ui| {
             let groups = vec2(
                 (ui.available_width() - actions.width(ui)).max(0.0),
@@ -284,7 +286,7 @@ impl ChiploadApp {
 
     /// What Generate and Export show this frame.
     fn ribbon_actions(&self, ui: &egui::Ui) -> RibbonActions {
-        let has_result = self.result.is_some();
+        let has_result = self.toolpath.result.is_some();
         let export_hover = if has_result {
             self.export_hover()
         } else if self.generating() {
@@ -405,7 +407,7 @@ impl ChiploadApp {
                     for (k, row) in tools.chunks(4).enumerate() {
                         ui.horizontal(|ui| {
                             for (tool, icon, label, hint, action) in row {
-                                let active = app.sketch.as_ref().is_some_and(|s| s.tool == *tool);
+                                let active = app.sketch().is_some_and(|s| s.tool == *tool);
                                 let hint = format!("{label}: {hint}");
                                 if small_ribbon_button(ui, *icon, label, can_draw, active)
                                     .on_hover_text(hover_keys(&hint, *action))
@@ -416,7 +418,8 @@ impl ChiploadApp {
                             }
                             if k + 1 == rows {
                                 let label = t!(ui, "header-frame");
-                                let framing = app.modify == Some(super::modify::ModifyTool::Frame);
+                                let framing =
+                                    app.modify() == Some(super::modify::ModifyTool::Frame);
                                 let hint = format!("{label}: {}", t!(ui, "header-frame-hover"));
                                 if small_ribbon_button(ui, Icon::Frame, &label, can_draw, framing)
                                     .on_hover_text(hint)
@@ -567,7 +570,7 @@ impl ChiploadApp {
                     for row in tools.chunks(tools.len().div_ceil(2)) {
                         ui.horizontal(|ui| {
                             for (tool, icon, label, hint, action) in row {
-                                let active = app.modify == Some(*tool);
+                                let active = app.modify() == Some(*tool);
                                 let hint = format!("{label}: {hint}");
                                 let hint = match action {
                                     Some(action) => hover_keys(&hint, *action),
@@ -598,7 +601,7 @@ impl ChiploadApp {
             ui,
             &caption,
             |app, ui| {
-                let selected = !app.selection.ids(&app.contours).is_empty();
+                let selected = !app.selected_ids().is_empty();
                 for (label, kind, hover) in super::browser::new_operations(ui) {
                     let icon = match kind {
                         OpKind::Profile => Icon::Profile,
@@ -630,7 +633,7 @@ impl ChiploadApp {
                 }
             },
             |app, ui| {
-                let selected = !app.selection.ids(&app.contours).is_empty();
+                let selected = !app.selected_ids().is_empty();
                 for (_, kind, hover) in super::browser::new_operations(ui) {
                     if ui
                         .add_enabled(
@@ -685,7 +688,7 @@ impl ChiploadApp {
             &caption,
             |app, ui| {
                 let label = t!(ui, "header-measure");
-                if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure.is_some())
+                if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure().is_some())
                     .on_hover_text(hover_keys(&t!(ui, "header-measure-hover"), Action::Measure))
                     .clicked()
                 {

@@ -58,8 +58,10 @@ Nothing new is stored: a polyline is its points (decision 2).
 ## 4. Step 3: drawn shapes in the Browser, with names
 
 - **Rows:** under *Polylines*, *Circles* and *Rectangles*, one folder per layer, and under it
-  a row per shape: its name, or its id ("S12") without one. A group with one layer shows the
-  shapes directly. Folders start closed when a group has more than 20 shapes.
+  a row per shape: its name, or its id ("S12") without one. A group with one layer shows its
+  folder too (the user, 2026-11-02: "always show the layer folder, that would be most
+  logical"; it showed the shapes directly before). Folders start closed when a group has
+  more than 20 shapes.
 - **A click** selects the shape (Ctrl+click adds or removes), as clicking it on the canvas;
   the selected shapes' rows are highlighted.
 - **Right-click:** *Select*, *Rename…* (focuses the name field in Properties), *Copy*,

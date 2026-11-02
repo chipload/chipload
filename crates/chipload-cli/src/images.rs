@@ -5,15 +5,16 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{ImageThreshold, ImageTrace, Job, save_job};
+use chipload_job::{ImageThreshold, ImageTrace, Job};
+use chipload_pipeline::explode::{explode_image, which_image};
 use chipload_pipeline::images::{
     ImageReport, NewImage, add_image, black_white_png, remove_image, retrace,
 };
 use clap::{Args, Subcommand};
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum ImageAction {
@@ -84,6 +85,17 @@ pub enum ImageAction {
         project: PathBuf,
         /// The image's id.
         id: u64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Turn every shape traced from a picture into drawn shapes you can edit; the picture goes from the project
+    /// (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes.
+    Explode {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The picture's id (as `image list` shows it); not needed when the project has one.
+        id: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -202,6 +214,27 @@ pub fn image(out: &mut Out, action: ImageAction) -> ExitCode {
             id,
             output,
         } => preview(out, &project, id, &output),
+        ImageAction::Explode {
+            project,
+            id,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let done = which_image(&job, id).and_then(|id| explode_image(&job, id));
+            let (job, report) = match done {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            for line in &report.lines {
+                out.line(line.clone());
+            }
+            out.set("shapes", json!(report.shapes));
+            out.set("removed", json!(report.removed));
+            write_project(out, &job, output.as_deref().unwrap_or(&project))
+        }
         ImageAction::Remove {
             project,
             id,
@@ -214,7 +247,7 @@ pub fn image(out: &mut Out, action: ImageAction) -> ExitCode {
             match remove_image(&job, id) {
                 Ok(job) => {
                     out.line(format!("Removed image {id} and its shapes."));
-                    write(out, &job, output.as_deref().unwrap_or(&project))
+                    write_project(out, &job, output.as_deref().unwrap_or(&project))
                 }
                 Err(err) => out.fail(err),
             }
@@ -287,7 +320,7 @@ fn add(
     match add_image(&job, new) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -345,7 +378,7 @@ fn set(
     match retrace(&job, id) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -469,12 +502,4 @@ pub fn report_json(report: &ImageReport) -> Value {
         "stroke_widths": report.widths.map(|(narrow, wide)| [narrow, wide]),
         "black_at_border": report.black_at_border,
     })
-}
-
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
-    }
-    out.wrote(target, "");
-    ExitCode::SUCCESS
 }

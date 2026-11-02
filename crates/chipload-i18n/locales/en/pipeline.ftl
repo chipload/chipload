@@ -270,6 +270,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] shapes
 } kept as traced: smoothing made them cross.
 pipeline-no-text = there is no text { $id }
+pipeline-no-group = there is no group { $id }
+pipeline-group-imported = shape { $shape } belongs to a DXF or a picture, which keeps its shapes together: only drawn shapes and texts can be grouped
+pipeline-group-no-name = a group needs a name
+pipeline-ungroup-cut-texts = operation { $op } cuts the group “{ $name }”, which has texts: choose that operation's shapes again, or take the texts out of the group first
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: couldn't join the letters' overlapping outlines: { $error }
 pipeline-text-font-missing = Font "{ $font }" is not on this computer. { $text } keeps its letters and cuts as they are; to change its words or size, choose another font.
@@ -334,6 +338,15 @@ pipeline-shape-twice = shape { $id } is given twice
 pipeline-no-shape = there is no shape { $id }
 pipeline-shape-imported-copy = shape { $id } was imported from the DXF; only drawn shapes can be copied or mirrored
 pipeline-shapes-no-extent = the shapes have no extent
+pipeline-shapes-no-item = the shape library has no “{ $name }”
+pipeline-shapes-file-empty = “{ $name }” has no shapes
+pipeline-shapes-nothing-to-save = select shapes or texts to save
+pipeline-shapes-exists = the shape library already has “{ $name }”
+pipeline-shapes-flat = the shapes have no width or height to scale to
+pipeline-shapes-group-exists = the shape library already has a group “{ $name }”
+pipeline-shapes-no-group = the shape library has no group “{ $name }”
+pipeline-shapes-group-not-empty = the group “{ $name }” isn't empty: move or delete what is in it first
+pipeline-shapes-file-error = { $path }: { $error }
 pipeline-shape-imported-transform = shape { $id } isn't a drawn shape: only drawn shapes can be moved, turned or scaled (explode its DXF first)
 pipeline-construction-imported = shape { $id } isn't a drawn shape: only drawn shapes can be construction geometry (explode its DXF first)
 pipeline-construction-used = { $label } names construction geometry, which is never cut: it can't run until it cuts other shapes.
@@ -455,6 +468,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } now selects shapes { $shapes }.
 pipeline-explode-no-dxf = the project has no DXF to explode
 pipeline-explode-which-dxf = the project has { $count } DXFs ({ $dxfs }): say which to explode
+pipeline-image-exploded = Exploded picture { $id } "{ $name }" into { $count } drawn { $count ->
+    [one] shape
+   *[other] shapes
+}. The picture is gone from the project: it can't be traced again.
+pipeline-text-exploded = Exploded text { $id } { $name } into { $count } drawn { $count ->
+    [one] shape
+   *[other] shapes
+}. Its words can't be edited again.
+pipeline-explode-no-image = the project has no picture to explode
+pipeline-explode-which-image = the project has { $count } pictures ({ $images }): say which to explode
+pipeline-explode-no-text = the project has no text to explode
+pipeline-explode-which-text = the project has { $count } texts ({ $texts }): say which to explode
 pipeline-join-gap-range = The gap must be { $least } to { $most }, got { $got }.
 pipeline-join-imported = Shape S{ $id } comes from a DXF: explode the DXF first.
 pipeline-join-none = No ends were joined (gap { $gap }).

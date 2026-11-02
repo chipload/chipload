@@ -88,7 +88,8 @@ impl ChiploadApp {
             return false;
         }
         let current = self
-            .job_path
+            .file
+            .path
             .clone()
             .filter(|p| p.extension().is_some_and(|e| e == PROJECT_EXTENSION));
         if !save_as && let Some(path) = current {
@@ -103,7 +104,7 @@ impl ChiploadApp {
     }
 
     pub(super) fn ask_export(&mut self) {
-        if self.result.is_none() {
+        if self.toolpath.result.is_none() {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return;
         }
@@ -118,7 +119,7 @@ impl ChiploadApp {
         let Some(name) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.part(id))
+            .and_then(|e| e.job.part(id))
             .map(|p| p.name.clone())
         else {
             return;
@@ -132,12 +133,7 @@ impl ChiploadApp {
     /// A setup's right-click menu: *Export G-code of this setup…* (docs/specs/setups.md
     /// §7).
     pub(super) fn ask_export_setup(&mut self, id: u64) {
-        if self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.setup(id))
-            .is_none()
-        {
+        if self.edit.as_ref().and_then(|e| e.job.setup(id)).is_none() {
             return;
         }
         let suggested = self.default_export_path();
@@ -336,7 +332,7 @@ impl ChiploadApp {
                     }
                     Some(Unsaved::Discard) => {
                         self.dialogs.prompt = None;
-                        self.saved.clone_from(&self.edit); // nothing left to protect
+                        self.file.saved.clone_from(&self.edit); // nothing left to protect
                         self.run_pending(action, ctx);
                     }
                     Some(Unsaved::Cancel) => self.dialogs.prompt = None,
@@ -346,31 +342,58 @@ impl ChiploadApp {
             Prompt::ChangedOnDisk => self.changed_on_disk_prompt(ctx),
             Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
             Prompt::LibraryName(kind, text) => self.library_name_prompt(ctx, kind, text),
-            Prompt::Explode { dxf, join, gap } => self.explode_prompt(ctx, dxf, join, gap),
+            Prompt::Explode { of, join, gap } => self.explode_prompt(ctx, of, join, gap),
             Prompt::Join { ids, gap } => self.join_prompt(ctx, ids, gap),
         }
     }
 
-    /// Explode a DXF into drawn shapes (docs/specs/explode-and-join.md §5): what it does,
-    /// and whether to join close ends too.
-    fn explode_prompt(&mut self, ctx: &egui::Context, dxf: u64, mut join: bool, mut gap: f64) {
+    /// Explode a DXF, picture or text into drawn shapes (docs/specs/explode-and-join.md §5,
+    /// explode-pictures-and-texts.md §6): what it does, and for a DXF whether to join close
+    /// ends too.
+    fn explode_prompt(&mut self, ctx: &egui::Context, of: Source, mut join: bool, mut gap: f64) {
         let name = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.dxfs.iter().find(|d| d.id == dxf))
-            .map(|d| d.name.clone())
+            .and_then(|e| {
+                let drawing = &e.job.drawing;
+                match of {
+                    Source::Dxf(id) => drawing
+                        .dxfs
+                        .iter()
+                        .find(|d| d.id == id)
+                        .map(|d| d.name.clone()),
+                    Source::Image(id) => drawing
+                        .images
+                        .iter()
+                        .find(|i| i.id == id)
+                        .map(|i| i.file.clone()),
+                    Source::Text(id) => drawing
+                        .texts
+                        .iter()
+                        .find(|t| t.id == id)
+                        .map(chipload_pipeline::texts::text_label),
+                    Source::Group(_) => None,
+                }
+            })
             .unwrap_or_default();
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("explode-dxf")).show(ctx, |ui| {
             ui.set_width(380.0);
             ui.heading(t!(ui, "dialogs-explode-title", name = name.as_str()));
             ui.add_space(4.0);
-            ui.label(t!(ui, "dialogs-explode-body"));
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut join, t!(ui, "dialogs-explode-join"));
-                ui.add_enabled(join, gap_field(&mut gap));
+            ui.label(match of {
+                Source::Image(_) => t!(ui, "dialogs-explode-image-body"),
+                Source::Text(_) => t!(ui, "dialogs-explode-text-body"),
+                Source::Dxf(_) | Source::Group(_) => t!(ui, "dialogs-explode-body"),
             });
+            ui.add_space(8.0);
+            // Traced outlines and letters are closed already (spec decision 4).
+            if let Source::Dxf(_) = of {
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut join, t!(ui, "dialogs-explode-join"));
+                    ui.add_enabled(join, gap_field(&mut gap));
+                });
+            }
             ui.add_space(8.0);
             ui.horizontal(|ui| {
                 if accent_button(ui, &t!(ui, "dialogs-explode")).clicked() {
@@ -387,10 +410,10 @@ impl ChiploadApp {
         match answer {
             Some(true) => {
                 self.dialogs.prompt = None;
-                self.explode_dxf(dxf, join.then_some(gap));
+                self.explode(of, join.then_some(gap));
             }
             Some(false) => self.dialogs.prompt = None,
-            None => self.dialogs.prompt = Some(Prompt::Explode { dxf, join, gap }),
+            None => self.dialogs.prompt = Some(Prompt::Explode { of, join, gap }),
         }
     }
 
@@ -437,7 +460,7 @@ impl ChiploadApp {
     /// The project's file changed while there are unsaved changes
     /// (docs/specs/reload-changed-file.md §4): in the middle, as for unsaved changes.
     fn changed_on_disk_prompt(&mut self, ctx: &egui::Context) {
-        let name = self.job_path.as_deref().map(file_name).unwrap_or_default();
+        let name = self.file.path.as_deref().map(file_name).unwrap_or_default();
         let mut load: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("changed-on-disk")).show(ctx, |ui| {
             ui.set_width(380.0);
@@ -568,7 +591,8 @@ impl ChiploadApp {
         let mut parts = vec!["Chipload".to_string()];
         if self.edit.is_some() {
             let name = self
-                .job_path
+                .file
+                .path
                 .as_deref()
                 .map_or_else(|| t!(self, "dialogs-title-new-project"), file_name);
             parts.push(if self.dirty() {

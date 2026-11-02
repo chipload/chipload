@@ -1,0 +1,35 @@
+# The shape library's tab in the right panel (docs/specs/shape-library.md §5.1).
+
+shape-library-tab = Formes
+shape-library-no-folder = Il n'y a pas de dossier de réglages, donc pas de bibliothèque de formes.
+shape-library-search = Rechercher
+shape-library-folder = Dossier
+shape-library-save-selection = Enregistrer la sélection…
+shape-library-save-selection-hover = Garder les formes et textes sélectionnés dans la bibliothèque, pour tout projet. Ou les glisser ici
+shape-library-new-group = Nouveau groupe
+shape-library-new-group-name = Nom du nouveau groupe :
+shape-library-add-group = Ajouter
+shape-library-save-as = Enregistrer la sélection sous :
+shape-library-no-group = (aucun groupe)
+shape-library-save = Enregistrer
+shape-library-replace = Remplacer
+shape-library-exists = « { $name } » est déjà dans la bibliothèque.
+shape-library-cancel = Annuler
+shape-library-rename = Un nouveau nom pour « { $name } » :
+shape-library-rename-button = Renommer
+shape-library-rename-menu = Renommer…
+shape-library-delete-question = Supprimer « { $name } » ? Son fichier va dans .deleted du dossier de la bibliothèque.
+shape-library-delete-group-question = Supprimer le groupe vide « { $name } » ?
+shape-library-delete = Supprimer
+shape-library-delete-menu = Supprimer…
+shape-library-group-not-empty = Seul un groupe vide peut être supprimé
+shape-library-show-in-folder = Afficher dans le dossier
+shape-library-move-to = Déplacer vers
+shape-library-insert-middle = Insérer au milieu de la vue
+shape-library-insert-around = Insérer autour de la sélection
+shape-library-insert-around-hover = Mis à l'échelle pour entourer la sélection, avec la marge du cadre
+shape-library-empty = Rien ici pour l'instant. Sélectionnez des formes et glissez-les ici, ou cliquez sur Enregistrer la sélection…
+shape-library-failed = La bibliothèque de formes n'a pas pu le faire
+shape-library-saved = « { $name } » enregistré dans la bibliothèque de formes
+shape-library-inserted = « { $name } » inséré
+shape-library-save-menu = Enregistrer dans la bibliothèque de formes…

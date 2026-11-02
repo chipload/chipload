@@ -8,6 +8,7 @@
 pub mod cut_list;
 pub mod edit;
 pub mod explode;
+pub mod layout;
 pub mod library;
 pub mod materials;
 pub mod migrations;
@@ -17,6 +18,7 @@ pub mod paths;
 pub mod problem;
 #[cfg(feature = "schema")]
 pub mod schema;
+pub mod shape_library;
 
 use std::path::Path;
 

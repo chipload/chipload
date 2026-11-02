@@ -15,7 +15,7 @@ pub(super) const RULER: f32 = 18.0;
 impl ChiploadApp {
     /// The rulers over the canvas `rect`, when they are on and the view is from the top.
     pub(super) fn paint_rulers(&self, ui: &egui::Ui, painter: &Painter, rect: Rect) {
-        if !self.show_rulers || !self.view.is_top() || self.edit.is_none() {
+        if !self.prefs.show_rulers || !self.view.is_top() || self.edit.is_none() {
             return;
         }
         let visuals = ui.visuals();
@@ -49,7 +49,7 @@ impl ChiploadApp {
             view.to_world(top.right_top()).0,
         );
         let along_x = painter.with_clip_rect(top.with_min_x(top.left() + RULER));
-        for tick in ruler_ticks(x0, x1, view.scale, self.units) {
+        for tick in ruler_ticks(x0, x1, view.scale, self.prefs.units) {
             let x = view.to_screen((tick.at, 0.0)).x;
             let h = length(tick.size);
             along_x.line_segment(
@@ -72,7 +72,7 @@ impl ChiploadApp {
             view.to_world(left.left_top()).1,
         );
         let along_y = painter.with_clip_rect(left.with_min_y(left.top() + RULER));
-        for tick in ruler_ticks(y0, y1, view.scale, self.units) {
+        for tick in ruler_ticks(y0, y1, view.scale, self.prefs.units) {
             let y = view.to_screen((0.0, tick.at)).y;
             let w = length(tick.size);
             along_y.line_segment(
@@ -106,7 +106,7 @@ impl ChiploadApp {
         // The corner: the unit.
         let corner = Rect::from_min_size(rect.min, vec2(RULER, RULER));
         painter.rect_filled(corner, 0.0, fill);
-        let unit = chipload_pipeline::units::length_unit(self.units);
+        let unit = chipload_pipeline::units::length_unit(self.prefs.units);
         painter.text(
             corner.center(),
             Align2::CENTER_CENTER,

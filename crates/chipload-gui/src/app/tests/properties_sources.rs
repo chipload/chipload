@@ -21,7 +21,7 @@ fn tools_dxfs_and_pictures_have_properties_of_their_own() {
     app.select_group("dxf:2");
     assert_eq!(
         app.selection,
-        CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(2))
+        CanvasSelection::whole(chipload_core::chain::ShapeFrom::Dxf(2))
     );
 }
 
@@ -49,14 +49,14 @@ fn a_pictures_new_size_and_place_trace_it_as_the_pipeline_does() {
     assert_eq!(job.drawing.shapes, expected.drawing.shapes);
     // One undo step.
     app.undo();
-    let back = app.edit.as_ref().unwrap().settings.drawing.images[0].width;
+    let back = app.edit.as_ref().unwrap().job.drawing.images[0].width;
     assert!(back != 40.0, "{back}");
 }
 
 #[test]
 fn a_tools_problem_belongs_to_the_tool_not_the_job_settings() {
     let mut app = two_parts();
-    app.edit.as_mut().unwrap().settings.tools[1].rpm = None;
+    app.edit.as_mut().unwrap().job.tools[1].rpm = None;
     app.commit();
     let fields = app.form_problem_map(Focus::Tool(2));
     assert!(
@@ -73,7 +73,7 @@ fn properties_shows_one_thing_at_a_time() {
     // The user, 2026-10-28: the selection or the Browser's item, never both.
     use chipload_core::chain::ShapeFrom;
     let mut app = two_parts();
-    app.selection = CanvasSelection::Source(ShapeFrom::Dxf(2));
+    app.selection = CanvasSelection::whole(ShapeFrom::Dxf(2));
     // An open operation stays alone; the selection waits for its Use selection.
     app.focus = Focus::Op(0);
     draw_properties(&mut app);

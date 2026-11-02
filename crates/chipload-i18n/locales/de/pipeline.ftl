@@ -280,6 +280,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] Formen
 } wie nachgezeichnet behalten: das Glätten ließ sie sich kreuzen.
 pipeline-no-text = es gibt keinen Text { $id }
+pipeline-no-group = es gibt keine Gruppe { $id }
+pipeline-group-imported = Form { $shape } gehört zu einer DXF oder einem Bild, das seine Formen zusammenhält: nur gezeichnete Formen und Texte lassen sich gruppieren
+pipeline-group-no-name = eine Gruppe braucht einen Namen
+pipeline-ungroup-cut-texts = Operation { $op } schneidet die Gruppe „{ $name }“, die Texte enthält: erst die Formen dieser Operation neu wählen oder die Texte aus der Gruppe nehmen
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: die überlappenden Umrisse der Buchstaben konnten nicht vereinigt werden: { $error }
 pipeline-text-font-missing = Die Schrift „{ $font }“ ist auf diesem Computer nicht vorhanden. { $text } behält seine Buchstaben und wird so gefräst; um Wörter oder Größe zu ändern, wählen Sie eine andere Schrift.
@@ -344,6 +348,15 @@ pipeline-shape-twice = Form { $id } ist zweimal angegeben
 pipeline-no-shape = es gibt keine Form { $id }
 pipeline-shape-imported-copy = Form { $id } wurde aus der DXF importiert; nur gezeichnete Formen können kopiert oder gespiegelt werden
 pipeline-shapes-no-extent = die Formen haben keine Ausdehnung
+pipeline-shapes-no-item = „{ $name }“ gibt es in der Formenbibliothek nicht
+pipeline-shapes-file-empty = „{ $name }“ enthält keine Formen
+pipeline-shapes-nothing-to-save = Formen oder Texte zum Speichern auswählen
+pipeline-shapes-exists = „{ $name }“ gibt es in der Formenbibliothek schon
+pipeline-shapes-flat = die Formen haben keine Breite oder Höhe zum Skalieren
+pipeline-shapes-group-exists = die Gruppe „{ $name }“ gibt es in der Formenbibliothek schon
+pipeline-shapes-no-group = die Gruppe „{ $name }“ gibt es in der Formenbibliothek nicht
+pipeline-shapes-group-not-empty = die Gruppe „{ $name }“ ist nicht leer: erst verschieben oder löschen, was darin ist
+pipeline-shapes-file-error = { $path }: { $error }
 pipeline-shape-imported-transform = Form { $id } ist keine gezeichnete Form: nur gezeichnete Formen lassen sich verschieben, drehen oder skalieren (lösen Sie zuerst ihre DXF auf)
 pipeline-construction-imported = Form { $id } ist keine gezeichnete Form: nur gezeichnete Formen können Hilfsgeometrie sein (lösen Sie zuerst ihre DXF auf)
 pipeline-construction-used = { $label } nennt Hilfsgeometrie, die nie gefräst wird: sie kann erst laufen, wenn sie andere Formen bearbeitet.
@@ -465,6 +478,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } wählt jetzt die Formen { $shapes }.
 pipeline-explode-no-dxf = das Projekt hat keine DXF zum Auflösen
 pipeline-explode-which-dxf = das Projekt hat { $count } DXFs ({ $dxfs }): Geben Sie an, welche aufgelöst werden soll
+pipeline-image-exploded = Bild { $id } „{ $name }“ in { $count } gezeichnete { $count ->
+    [one] Form
+   *[other] Formen
+} aufgelöst. Das Bild ist nicht mehr im Projekt: Es kann nicht erneut nachgezeichnet werden.
+pipeline-text-exploded = Text { $id } { $name } in { $count } gezeichnete { $count ->
+    [one] Form
+   *[other] Formen
+} aufgelöst. Seine Wörter können nicht mehr bearbeitet werden.
+pipeline-explode-no-image = das Projekt hat kein Bild zum Auflösen
+pipeline-explode-which-image = das Projekt hat { $count } Bilder ({ $images }): Geben Sie an, welches aufgelöst werden soll
+pipeline-explode-no-text = das Projekt hat keinen Text zum Auflösen
+pipeline-explode-which-text = das Projekt hat { $count } Texte ({ $texts }): Geben Sie an, welcher aufgelöst werden soll
 pipeline-join-gap-range = Der Abstand muss { $least } bis { $most } sein, war { $got }.
 pipeline-join-imported = Form S{ $id } stammt aus einer DXF: Lösen Sie zuerst die DXF auf.
 pipeline-join-none = Keine Enden verbunden (Abstand { $gap }).

@@ -142,7 +142,7 @@ fn clicking_an_operations_number_on_the_toolpath_opens_it() {
     harness.state_mut().focus = Focus::Job;
     // Folded: in this narrow canvas the open legend stands on the navigation bar, over
     // the number.
-    harness.state_mut().legend_open = false;
+    harness.state_mut().display.legend_open = false;
     harness.run_steps(3);
     let labels = harness
         .state()
@@ -192,7 +192,7 @@ fn the_stock_size_switches_between_outline_and_margin_and_a_fixed_size() {
     // The board is the setup's (docs/specs/setups.md §7).
     harness.state_mut().focus = Focus::Setup(1);
     harness.run_steps(3);
-    let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().settings.clone();
+    let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().job.clone();
     let old = settings(&harness);
     assert_eq!(old.stock().fit, None, "the sample's stock is fixed");
     assert_ne!(old.stock().origin, chipload_job::StockOrigin::Drawing);
@@ -228,14 +228,14 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     harness.get_by_label("Cancel").click();
     harness.run_steps(3);
-    assert_eq!(harness.state().modify, None);
+    assert_eq!(harness.state().modify(), None);
 
     let shapes = harness
         .state()
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .drawing
         .shapes
         .len();
@@ -243,14 +243,14 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     harness.get_by_label("Create").click();
     harness.run_steps(3);
-    assert_eq!(harness.state().modify, None);
+    assert_eq!(harness.state().modify(), None);
     assert!(
         harness
             .state()
             .edit
             .as_ref()
             .unwrap()
-            .settings
+            .job
             .drawing
             .shapes
             .len()
@@ -261,10 +261,10 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     harness.get_by_label("Array").click();
     harness.run_steps(3);
-    assert_eq!(harness.state().modify, None, "its ribbon button ends it");
+    assert_eq!(harness.state().modify(), None, "its ribbon button ends it");
 }
 
-/// A project started empty takes a DXF or SVG as well (the user, 2026-10-28): *Add DXF* is
+/// A project started empty takes a DXF or SVG as well (the user, 2026-10-28): *DXF/SVG* is
 /// on, and adds the file beside the drawn shapes.
 #[test]
 fn a_project_started_empty_can_add_a_drawing_file() {
@@ -274,7 +274,7 @@ fn a_project_started_empty_can_add_a_drawing_file() {
     harness.run_steps(3);
     assert!(
         !harness
-            .get_by_label("Add DXF")
+            .get_by_label("DXF/SVG")
             .accesskit_node()
             .is_disabled()
     );
@@ -283,7 +283,7 @@ fn a_project_started_empty_can_add_a_drawing_file() {
             .state_mut()
             .add_file_from(&corpus("dxf/simple_part.dxf"), None, None)
     );
-    let settings = &harness.state().edit.as_ref().unwrap().settings;
+    let settings = &harness.state().edit.as_ref().unwrap().job;
     assert_eq!(settings.drawing.dxfs.len(), 1);
     assert!(!settings.drawing.shapes.is_empty());
 }
@@ -342,10 +342,10 @@ fn the_rulers_are_remembered_and_drawn_in_top_view_only() {
     // docs/specs/rulers.md.
     let _ = std::fs::remove_dir_all(super::temp_dir("rulers"));
     let (mut app, dir) = super::with_settings("rulers");
-    assert!(app.show_rulers, "on at first");
+    assert!(app.prefs.show_rulers, "on at first");
     app.set_show_rulers(false);
     let (again, _) = super::with_settings("rulers");
-    assert!(!again.show_rulers, "remembered");
+    assert!(!again.prefs.show_rulers, "remembered");
     app.set_show_rulers(true);
     let _ = std::fs::remove_dir_all(dir);
     // Drawn over a project, in top view and in 3D (where they leave themselves out).

@@ -43,10 +43,10 @@ impl ChiploadApp {
     /// for coming back; entering it computes one when there is none, and makes a toolpath
     /// first when there is none either.
     pub fn set_show_simulation(&mut self, on: bool) {
-        if on == self.show_simulation {
+        if on == self.display.simulate {
             return;
         }
-        self.show_simulation = on;
+        self.display.simulate = on;
         if let Some(playback) = &mut self.playback {
             playback.shown = None; // redrawn from the history when shown again
         }
@@ -59,9 +59,9 @@ impl ChiploadApp {
         }
         if self.sim.simulation.is_some() {
             self.scene.sim.clone_from(&self.sim.full_layer);
-        } else if self.result.is_some() {
+        } else if self.toolpath.result.is_some() {
             self.start_simulation();
-        } else if self.generation.is_none() && self.edit.is_some() {
+        } else if self.toolpath.running.is_none() && self.edit.is_some() {
             self.start_generation(false);
         }
     }
@@ -80,10 +80,10 @@ impl ChiploadApp {
     /// Simulate the last generation's program on a worker thread, if switched on.
     pub(super) fn start_simulation(&mut self) {
         self.stop_simulation();
-        if !self.show_simulation {
+        if !self.display.simulate {
             return;
         }
-        let (Some(result), Some(job)) = (&self.result, &self.result_job) else {
+        let (Some(result), Some(job)) = (&self.toolpath.result, &self.toolpath.job) else {
             return;
         };
         let (job, program, groups) = (job.clone(), result.program.clone(), result.groups.clone());
@@ -165,7 +165,7 @@ impl ChiploadApp {
     }
 
     fn finish_simulation(&mut self, ctx: &egui::Context, serial: u64, outcome: Outcome) {
-        if serial != self.sim.serial || !self.show_simulation {
+        if serial != self.sim.serial || !self.display.simulate {
             return; // made for an older toolpath, or switched off meanwhile
         }
         let (sim, history) = match outcome {

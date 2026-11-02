@@ -20,11 +20,11 @@ Under it, the **ribbon** groups the buttons:
 | Group | Buttons | Its caption's menu also has |
 |---|---|---|
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
-| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame ([a frame for a sign](drawings/signs.md)), Text, Image, Add DXF | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
+| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame ([a frame for a sign](drawings/signs.md)), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock) | Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
-| VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme |
+| VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme |
 
 **Generate** (F5) and **Export** sit at the right end. When the buttons with their names
 don't fit, in a longer language or a narrow window, the large buttons show their icons
@@ -82,7 +82,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
     pocket *Add rest pass ▸* (a [rest pass](operations/rest.md) shows under it), and
     *Delete*.
   - **A rest pass:** *Remove*.
-  - **The Drawing folder:** *Add DXF…* and *Import image…*.
+  - **The Drawing folder:** *Add DXF or SVG…* and *Import image…*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down*, *Move to setup ▸* and *Delete part* (with its operations).
   - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
@@ -213,15 +213,33 @@ With nothing picked, Properties says how to pick something.
 
 ![Properties: a drawn polyline selected, with its points, above the project's settings](images/properties.png)
 
-## Making room for the canvas
+## Arranging the panels
 
-- **Narrower panels:** drag the edge between a panel and the canvas. The Properties panel
-  goes down to about 250 pixels: its labels and fields get narrower, a button or a note
-  beside a field moves under it, and a long section summary ends in "…".
-- **Folding a panel:** drag its edge past its narrowest, or double-click the edge. It
-  folds to a thin strip at the window's side; the arrow on the strip opens it again.
-- **Both at once:** **P** folds the Browser and Properties together for the largest
-  canvas, and opens them again. Also in *View*: *Show Browser*, *Show Properties*, *Fold
-  both panels*.
-- The **Report** at the bottom folds with its triangle.
+The **Browser**, **Properties**, **Shapes** (the [shape library](drawings/shape-library.md))
+and the **Report** are panels round the canvas, each with a tab. At the start, the Browser
+is on the left, Properties and Shapes are two tabs on the right, and the Report is folded
+along the bottom. Arrange them as suits you:
+
+- **Tabs together:** drag a panel's tab onto another panel's tabs. Its tab joins theirs,
+  and a click on a tab brings it to the front.
+- **Side by side or stacked:** drag a tab onto a panel's edge: left, right, above or below.
+  It splits that panel, for example Shapes under Properties to see both at once. Dropped on
+  the canvas's edge, it becomes a panel along that side of the window. Dropped on the
+  canvas's middle, it goes beside the canvas: the canvas is always a canvas of its own.
+- **Sizes:** drag the line between two panels. The Properties panel works down to about 250
+  pixels: its labels and fields get narrower, a button or a note beside a field moves under
+  it, and a long section summary ends in "…". Narrower than that, it scrolls sideways.
+- **Folding:** the triangle at the left of a panel's tabs folds it to its tab bar, and
+  opens it again. The Report starts folded; a warning or an error opens it, and folded,
+  its tab shows how many warnings it holds.
+- **Closing:** the × on a tab closes the panel. *View > Panels* lists them all with a tick
+  for those open: tick one to open it again where it goes at the start.
+- **The largest canvas:** **P** hides every panel, and brings them back as they were. Also
+  *View > Hide the panels*.
+- **Back to the start:** *View > Panels > Reset layout*.
+
+The arrangement is kept for the next start, the same for every project, in `layout.json`
+in your [settings folder](install.md#your-settings). Should that file not be readable (one
+from a newer Chipload, say), the panels start as they do at first, the status bar says so,
+and the file is left as it is until you arrange the panels again.
 

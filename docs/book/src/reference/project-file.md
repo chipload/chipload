@@ -44,6 +44,20 @@ What a chosen corner gets.
 
 One of: `"none"`, `"dogbone"`, `"tbone"`.
 
+## ClearingPass
+
+A clearing pass with its own end mill, inside an operation's shapes and depths: a pocket's rest pass (docs/specs/rest-passes.md §2: an endmill smaller than the tool before it, clearing only what that tool leaves) or a V-carve's floor pass (docs/specs/vcarve-wide-strokes.md §4: an end mill clearing the floor between the walls, before the V-carve).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
+| `entry` | [Entry](#entry) | yes | How the tool goes down: `plunge`, `ramp` or `helix`. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `step_down` | number | yes | The deepest each pass goes, mm. |
+| `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill. |
+
 ## Copies
 
 A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.
@@ -114,6 +128,7 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxfs` | list of [DrawingSource](#drawingsource) | no | The DXFs the imported shapes came from, each as at its last import or update, with its own placement. |
+| `groups` | list of [ShapeGroup](#shapegroup) | no | Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions. |
 | `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
 | `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
@@ -178,20 +193,6 @@ A finishing pass on a profile.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `stock` | number | yes | Left on the wall by the roughing passes, mm: more than 0, less than the tool radius. |
-
-## FloorPass
-
-The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears the floor between the walls, in the V-carve's shapes and depths, before it.
-
-| Field | Type | Required | Meaning |
-|---|---|---|---|
-| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
-| `entry` | [Entry](#entry) | yes | How the tool goes down: `plunge`, `ramp` or `helix`. |
-| `feed` | number | yes | The cutting feed, mm/min. |
-| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
-| `step_down` | number | yes | The deepest each pass goes, mm. |
-| `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
-| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill. |
 
 ## HoleMethod
 
@@ -344,7 +345,7 @@ A library material, as a project names it.
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
 | `rest` | [Rest](#rest) or null | no | Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket. |
-| `rest_passes` | list of [RestPass](#restpass) | no | Rest passes: smaller endmills that clear what this pocket's tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty. |
+| `rest_passes` | list of [ClearingPass](#clearingpass) | no | Rest passes: smaller endmills that clear what this pocket's tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `starts` | list of 2 × number | no | Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload. |
@@ -362,7 +363,8 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | The deepest the V-bit's tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning. |
 | `feed` | number | yes | The feed, mm/min, for moves no steeper than 45°. |
-| `floor` | [FloorPass](#floorpass) or null | no | A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing. |
+| `floor` | [ClearingPass](#clearingpass) or null | no | A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing. |
+| `ignore_kinks_deg` | number | no | Corners where the outline turns by less than this, degrees (0 to 90), get no branch of the centre line: the bit doesn't rise into every kink. Missing: 0, every corner carved, as before the setting existed. |
 | `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
@@ -370,6 +372,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut. |
+| `step_down` | number or null | no | An ordinary step down instead, mm: equal passes, none deeper than it, the last at the end depth, as in a pocket. Missing: passes of equal load (`passes`), which is kept meanwhile. Left out when missing. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
 
 ### `"type": "path"`
@@ -466,26 +469,13 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 |---|---|---|---|
 | `after_tool` | integer | yes | The id of the larger project tool whose leftovers this pocket clears. |
 
-## RestPass
-
-One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes, depths, clearance and direction, and clears only what the tool before it leaves.
-
-| Field | Type | Required | Meaning |
-|---|---|---|---|
-| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
-| `entry` | [Entry](#entry) | yes | How the tool goes down: `plunge`, `ramp` or `helix`. |
-| `feed` | number | yes | The cutting feed, mm/min. |
-| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
-| `step_down` | number | yes | The deepest each pass goes, mm. |
-| `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
-| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an endmill smaller than the tool before it. |
-
 ## Selector
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxf` | integer or null | no | Only shapes from this DXF (an id in `drawing.dxfs`). |
-| `exclude` | list of integer or null | no | Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text` only. A contour with any of them isn't cut. A traced image's, or a text's, are found again when it is made again. |
+| `exclude` | list of integer or null | no | Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`, `text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found again when it is made again. |
+| `group` | integer or null | no | The shapes and texts' letters of this group (an id in `drawing.groups`), as they are at each run. |
 | `image` | integer or null | no | Only shapes traced from this image (an id in `drawing.images`). |
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
 | `shapes` | list of integer or null | no | These shapes, by id. |
@@ -530,6 +520,18 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `sides` | integer or null | no | polygon: how many sides (and corners) it has, 3 to 1000. |
 | `text` | integer or null | no | path: the text it is a letter of (its id in `drawing.texts`). |
 | `width` | number or null | no | rectangle: its size along its own Y axis, mm. |
+
+## ShapeGroup
+
+Drawn shapes and texts kept together: one click selects them all, and they move, turn, scale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one group; groups don't hold groups.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `id` | integer | yes | The group's id, which operations' selectors name. |
+| `name` | string | yes | Its name in the Browser. |
+| `rotation` | number | no | How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was given, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a new group. |
+| `shapes` | list of integer | no | Its drawn shapes, by id. |
+| `texts` | list of integer | no | Its texts, by id, with their letters. |
 
 ## ShapeKind
 

@@ -37,7 +37,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         app.edit
             .as_mut()
             .unwrap()
-            .settings
+            .job
             .tools
             .push(chipload_job::Tool {
                 id: 2,
@@ -54,15 +54,15 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         app.commit();
         // The picture is selected after importing: V-carve from the ribbon.
         let index = app.add_operation(OpKind::Vcarve).unwrap();
-        let op = &app.edit.as_ref().unwrap().ops[index].op;
-        assert_eq!(op.select().image, Some(1), "{file}");
+        let op = &app.edit.as_ref().unwrap().job.operations[index];
+        assert_eq!(op.select().image(), Some(1), "{file}");
         assert_eq!(op.tool(), 2, "{file}: the V-bit");
         assert!(
             app.problems.is_empty(),
             "{file} {trace:?}: {:?}",
             app.problems
                 .iter()
-                .map(|p| problems::plain(&app, app.units, p))
+                .map(|p| problems::plain(&app, app.prefs.units, p))
                 .collect::<Vec<_>>()
         );
         assert!(
@@ -70,10 +70,10 @@ fn a_traced_picture_is_v_carved_end_to_end() {
             "{file} {trace:?}: {:?}",
             app.report
         );
-        assert!(app.result.is_some());
+        assert!(app.toolpath.result.is_some());
         // A profile after it goes back to the endmill.
         let profile = app.add_operation(OpKind::Profile).unwrap();
-        assert_eq!(app.edit.as_ref().unwrap().ops[profile].op.tool(), 1);
+        assert_eq!(app.edit.as_ref().unwrap().job.operations[profile].tool(), 1);
     }
 }
 
@@ -82,15 +82,10 @@ fn a_traced_picture_is_v_carved_end_to_end() {
 #[test]
 fn the_preview_is_of_the_active_part_and_export_is_of_all() {
     let mut app = two_parts();
-    let active = app
-        .edit
-        .as_ref()
-        .unwrap()
-        .settings
-        .active_part_id()
-        .unwrap();
+    let active = app.edit.as_ref().unwrap().job.active_part_id().unwrap();
     let ops_of = |app: &ChiploadApp| -> std::collections::BTreeSet<usize> {
-        app.result
+        app.toolpath
+            .result
             .as_ref()
             .unwrap()
             .op_spans
@@ -106,17 +101,17 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
         .map(|(i, _)| i)
         .collect();
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    assert_eq!(app.result_part, Some(active));
+    assert_eq!(app.toolpath.part, Some(active));
     assert_eq!(ops_of(&app), mine, "only the active part's operations");
     // All parts: every operation.
     app.set_all_parts(true);
     assert!(app.wait_for_generation());
-    assert_eq!(app.result_part, None);
+    assert_eq!(app.toolpath.part, None);
     assert_eq!(ops_of(&app).len(), op_parts(&app).len());
     // Back to the part, then export: every part is planned again and written.
     app.set_all_parts(false);
     assert!(app.wait_for_generation());
-    assert_eq!(app.result_part, Some(active));
+    assert_eq!(app.toolpath.part, Some(active));
     let dir = temp_dir("part-preview-export");
     let path = dir.join("two.nc");
     assert!(
@@ -125,7 +120,7 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
     );
     assert!(app.generating());
     assert!(app.wait_for_generation());
-    assert_eq!(app.result_part, None);
+    assert_eq!(app.toolpath.part, None);
     let whole = chipload_pipeline::run_job(&app.edit.as_ref().unwrap().to_job().unwrap()).unwrap();
     let written: Vec<String> = whole
         .files
@@ -189,10 +184,10 @@ fn pictures_show_over_the_stock_and_in_3d() {
     assert!(app.apply_image());
     app.sync_pictures(&ctx);
     assert_eq!(app.scene.pictures.len(), 1);
-    app.show_images = false;
+    app.display.images = false;
     app.sync_pictures(&ctx);
     assert!(app.scene.pictures.is_empty());
-    app.show_images = true;
+    app.display.images = true;
     app.sync_pictures(&ctx);
     // Painted in 3D: the picture's mesh is on the canvas.
     app.view_3d();
@@ -206,7 +201,7 @@ fn pictures_show_over_the_stock_and_in_3d() {
         output.shapes.iter().filter(textured).count()
     };
     assert_eq!(meshes(&mut app), 1);
-    app.show_images = false;
+    app.display.images = false;
     app.sync_pictures(&ctx);
     assert_eq!(meshes(&mut app), 0);
 }

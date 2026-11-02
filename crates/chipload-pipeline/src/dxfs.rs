@@ -90,7 +90,11 @@ fn pin_layers(job: &mut Job, added: u64) -> Vec<Message> {
         let Some(layer) = select.layer.clone() else {
             continue;
         };
-        if select.dxf.is_some() || select.image.is_some() || select.text.is_some() {
+        if select
+            .source
+            .and_then(chipload_job::Source::shape_from)
+            .is_some()
+        {
             continue;
         }
         let on = |s: &&Shape| s.layer.to_lowercase() == layer.to_lowercase();
@@ -105,7 +109,7 @@ fn pin_layers(job: &mut Job, added: u64) -> Vec<Message> {
             .map(|s| if s.image().is_some() { None } else { s.dxf() })
             .collect();
         if let [Some(dxf)] = before.into_iter().collect::<Vec<_>>()[..] {
-            select.dxf = Some(dxf);
+            select.source = Some(chipload_job::Source::Dxf(dxf));
             let name = job
                 .drawing
                 .dxfs
@@ -173,7 +177,7 @@ pub fn remove_dxf(job: &Job, id: u64) -> Result<(Job, Vec<Message>), PipelineErr
                     .arg("label", op.label_message(i))
                     .arg("shapes", ids_text(&lost)),
             );
-        } else if select.dxf == Some(id) {
+        } else if select.dxf() == Some(id) {
             lines.push(Message::new("pipeline-dxf-gone").arg("label", op.label_message(i)));
         }
     }
@@ -190,7 +194,11 @@ pub fn layer_clash_notes(job: &Job) -> Vec<Note> {
         let Some(layer) = &select.layer else {
             continue;
         };
-        if select.dxf.is_some() || select.image.is_some() || select.text.is_some() || !op.enabled()
+        if select
+            .source
+            .and_then(chipload_job::Source::shape_from)
+            .is_some()
+            || !op.enabled()
         {
             continue;
         }
@@ -256,8 +264,12 @@ fn unique_name(job: &Job, name: &str) -> String {
 }
 
 pub(crate) fn set_dxf(shape: &mut Shape, id: u64) {
-    if let Geometry::Path { dxf, .. } = &mut shape.geometry {
-        *dxf = Some(id);
+    if let Geometry::Path {
+        origin: Some(chipload_job::Origin::Dxf { id: of, .. }),
+        ..
+    } = &mut shape.geometry
+    {
+        *of = id;
     }
 }
 
@@ -416,9 +428,11 @@ pub fn update_drawing_file(
                 );
             }
         } else if let Some(layer) = &select.layer
-            && select.dxf.is_none_or(|d| d == id)
-            && select.image.is_none()
-            && select.text.is_none()
+            && match select.source {
+                Some(chipload_job::Source::Dxf(d)) => d == id,
+                Some(chipload_job::Source::Image(_) | chipload_job::Source::Text(_)) => false,
+                Some(chipload_job::Source::Group(_)) | None => true,
+            }
         {
             report.messages.push(
                 Message::new("pipeline-dxf-layer-updated")

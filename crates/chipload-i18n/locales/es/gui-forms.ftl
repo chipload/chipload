@@ -91,6 +91,12 @@ forms-vcarve-end-depth-hover = Lo más hondo que llega la punta, desde la cara s
 forms-vcarve-passes-hover = Cuántas pasadas hasta la profundidad final. Cada una quita lo mismo que las demás, por eso se hacen menos profundas al bajar
 forms-vcarve-pass-depths = a { $depths }
 forms-passes = Pasadas
+forms-depth-passes = Pasadas en profundidad
+forms-depth-passes-hover = Cómo se reparte la profundidad en pasadas: carga igual (cada pasada quita lo mismo que las demás, por eso se hacen menos profundas al bajar) o una profundidad de pasada normal (pasos iguales, como en un vaciado; cada pasada quita más que la anterior)
+forms-depth-passes-equal-load = Carga igual
+forms-vcarve-step-down-hover = Lo más que baja cada pasada. Las pasadas son iguales, la última en la profundidad final
+forms-ignore-kinks = Ignorar quiebros
+forms-ignore-kinks-hover = Las esquinas donde el contorno gira menos que este ángulo no tienen rama de la línea central, así la fresa en V no sube a cada quiebro de una curva. A 20° un quiebro deja como mucho unas centésimas de milímetro; 0° talla cada esquina
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Herramienta

@@ -262,6 +262,34 @@ fn every_corpus_job_survives_save_and_load() {
     }
 }
 
+/// Shapes and selectors are read into tighter types than the file has, and written back
+/// flat (docs/specs/source-model.md §3): a saved project reads back to the same text.
+#[test]
+fn every_corpus_job_is_written_back_as_it_was_read() {
+    for path in all_corpus_jobs() {
+        let job = load_job(&path).unwrap();
+        let text = chipload_job::dump_job(&job).unwrap();
+        let again = parse_job(serde_json::from_str(&text).unwrap(), "saved").unwrap();
+        assert_eq!(
+            chipload_job::dump_job(&again).unwrap(),
+            text,
+            "{}",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn a_selector_names_at_most_one_source() {
+    let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+    data["operations"][0]["select"] = json!({"dxf": 1, "image": 2});
+    let err = parse_job(data, "p").unwrap_err().to_string();
+    assert!(
+        err.contains("names one DXF, image or text, not more"),
+        "{err}"
+    );
+}
+
 #[test]
 fn old_version_is_saved_as_current() {
     let job = load_job(&corpus().join("v4/example_job.chipload")).unwrap();
@@ -351,7 +379,7 @@ fn square_shape(id: u64) -> Value {
 
 #[test]
 fn shapes_round_trip_exactly() {
-    let arc = json!({"id": 1, "layer": "L", "dxf_handle": "5C", "dxf_type": "CIRCLE",
+    let arc = json!({"id": 1, "layer": "L",
         "kind": "path", "closed": true, "segments": [
         {"arc": {"center": [0.1, -1e-300], "radius": 1.0 / 3.0, "start_angle": 0.0,
                  "sweep": std::f64::consts::TAU}}]});
@@ -359,6 +387,38 @@ fn shapes_round_trip_exactly() {
     let text = chipload_job::dump_job(&job).unwrap();
     let again = parse_job(migrate(serde_json::from_str(&text).unwrap()).unwrap(), "p").unwrap();
     assert_eq!(again.drawing, job.drawing);
+}
+
+/// A path comes from one DXF (with its entity's handle and type), one picture, one text,
+/// or nothing (docs/specs/source-model.md §2.1, decision 3).
+#[test]
+fn a_path_has_one_origin() {
+    let refused = |extra: Value, what: &str| {
+        let mut shape = square_shape(1);
+        for (key, value) in extra.as_object().unwrap() {
+            shape[key] = value.clone();
+        }
+        let err = parse_job(project(json!([shape]), 2, json!({"shapes": [1]})), "p")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains(what), "{extra}: {err}");
+    };
+    let one = "one DXF, image or text, not more";
+    refused(json!({"image": 1, "text": 2}), one);
+    refused(
+        json!({"dxf": 1, "image": 2, "dxf_handle": "A", "dxf_type": "LINE"}),
+        one,
+    );
+    refused(json!({"dxf": 1}), "needs `dxf_handle` and `dxf_type`");
+    refused(
+        json!({"dxf": 1, "dxf_handle": "A"}),
+        "needs `dxf_handle` and `dxf_type`",
+    );
+    refused(json!({"dxf_handle": "A"}), "belong to a path from a DXF");
+    refused(
+        json!({"image": 3, "dxf_type": "LINE"}),
+        "belong to a path from a DXF",
+    );
 }
 
 #[test]
@@ -1207,6 +1267,38 @@ fn vbit_angle_tip_and_vcarve_values_are_checked() {
     assert!(parse_job(data, "p").is_err(), "a V-carve has no side");
 }
 
+/// An ordinary step down (docs/specs/vcarve-step-down.md §4): optional, more than 0, and
+/// no more than 100 passes over the 3 mm.
+#[test]
+fn a_vcarve_step_down_is_checked() {
+    let with = |step: serde_json::Value| {
+        let mut data = vcarve_job();
+        data["operations"][0]["step_down"] = step;
+        parse_job(data, "p")
+    };
+    for ok in [
+        json!(null),
+        json!(0.03),
+        json!(1.0),
+        json!(3.0),
+        json!(10.0),
+    ] {
+        assert!(with(ok.clone()).is_ok(), "{ok}");
+    }
+    for bad in [json!(0.0), json!(-1.0), json!(0.0299)] {
+        let err = with(bad.clone()).unwrap_err().to_string();
+        assert!(err.contains("step_down"), "{bad}: {err}");
+    }
+    let err = with(json!(0.02)).unwrap_err().to_string();
+    assert!(err.contains("100 passes"), "{err}");
+    // Saved only when there is one.
+    let job = with(json!(1.5)).unwrap();
+    let saved = serde_json::to_value(&job).unwrap();
+    assert_eq!(saved["operations"][0]["step_down"], json!(1.5));
+    let saved = serde_json::to_value(with(json!(null)).unwrap()).unwrap();
+    assert!(saved["operations"][0].get("step_down").is_none());
+}
+
 // -- scaling the imported drawing (docs/specs/drawing-scale.md)
 
 #[test]
@@ -2034,7 +2126,7 @@ fn selectors_and_shapes_name_dxfs_that_exist() {
     let mut data = migrate(raw("v20/scaled_part.chipload")).unwrap();
     data["operations"][0]["select"]["dxf"] = json!(1);
     let job = parse_job(data.clone(), "p").unwrap();
-    assert_eq!(job.operations[0].select().dxf, Some(1));
+    assert_eq!(job.operations[0].select().dxf(), Some(1));
     let mut bad = data.clone();
     bad["operations"][0]["select"]["dxf"] = json!(7);
     bad["drawing"]["shapes"][0]["dxf"] = json!(9);

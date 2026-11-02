@@ -41,6 +41,8 @@ job-tool-type-article = { $type ->
 job-must-be-positive = must be greater than 0, got { $got }
 job-must-be-positive-number = must be a positive number, got { $got }
 job-vcarve-passes = must be a whole number from 1 to { $most }, got { $got }
+job-vcarve-step-down = must be at least { $least }, so no more than { $most } passes, got { $got }
+job-vcarve-ignore-kinks = must be from 0 to { $most } degrees, got { $got }
 job-must-be-more-than-0 = must be more than 0, got { $got }
 job-must-be-0-or-more = must be 0 or more, got { $got }
 job-through-stale = cuts through the stock, so it ends at { $depth }
@@ -96,6 +98,11 @@ job-shape-id-range = must be between 1 and next_shape_id - 1 ({ $most }), got { 
 job-no-image = no image { $id } in drawing.images
 job-no-dxf = no DXF { $id } in drawing.dxfs
 job-no-text = no text { $id } in drawing.texts
+job-no-group = no group { $id } in drawing.groups
+job-group-empty = a group holds at least one shape or text
+job-group-not-drawn = shape { $shape } isn't drawn: only drawn shapes and texts can be grouped
+job-group-shape-twice = shape { $shape } is in two groups
+job-group-text-twice = text { $text } is in two groups
 job-shape-one-source = a shape comes from one image, DXF or text, not more
 job-path-no-segments = a shape needs at least one segment
 job-segment-not-finite = coordinates must be finite and radii positive
@@ -150,6 +157,7 @@ job-exclude-no-source = shapes can only be left out of a whole DXF, image or tex
 job-exclude-missing = shape { $shape } is not in { $source ->
     [dxf] DXF
     [image] image
+    [group] group
    *[text] text
 } { $id } any more: pick the shapes to leave out again
 job-selector-one-source = a selector names one DXF, image or text, not more
@@ -266,6 +274,8 @@ job-library-work-zero-point = point X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
 job-library-cutting = feed { $feed }, plunge { $plunge }, step down { $step_down }, stepover { $stepover }
 job-library-other-values = other values
+job-shapes-no-entry = there is no such entry in the shape library
+job-shapes-bad-name = “{ $name }” can't be a name: 1 to { $most } characters, none of / \ : * ? " < > |, not starting with a dot or a space
 # A library tool put into a project: $id is its number there.
 job-library-tool-there = tool { $id } (already in the project)
 job-library-tool-added = tool { $id } (added)

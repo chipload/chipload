@@ -10,9 +10,9 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    Copies, CopyOrder, Entry, FloorPass, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef,
-    Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp, Tabs,
-    Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note,
+    OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp,
+    Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -283,15 +283,21 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
         let label_message = job.label_message(at);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(contours, op.select(), &label_message)
-            }
+            Operation::Path(_) | Operation::Holes(_) => select_paths(
+                contours,
+                &op.select().resolved(&job.drawing),
+                &label_message,
+            ),
             // The whole stock, no shapes (docs/specs/surfacing.md §2).
             Operation::Surface(_) => Ok(Selection {
                 contours: Vec::new(),
                 notes: Vec::new(),
             }),
-            _ => select_contours(contours, op.select(), &label_message),
+            _ => select_contours(
+                contours,
+                &op.select().resolved(&job.drawing),
+                &label_message,
+            ),
         }
         .map_err(|err| err.at(at.operation))?;
         // Every corner choice must still match a corner (docs/specs/dogbone-per-corner.md
@@ -1159,6 +1165,7 @@ fn plan_vcarve_op(
         op.end_depth - op.start_depth,
         start,
         floor_tool.map(|t| t.diameter / 2.0),
+        op.ignore_kinks_deg.to_radians(),
     )
     .map_err(|err| err.with_context(ctx.label_message.clone()))?;
     let mut notes = std::mem::take(&mut plan.notes);
@@ -1182,8 +1189,8 @@ fn plan_vcarve_op(
         }
     }
     // From the end depth the user set, so the passes are what they asked for
-    // (docs/specs/v-carve.md decision 12).
-    let levels = carve_levels(op.end_depth - op.start_depth, op.passes);
+    // (docs/specs/v-carve.md decision 12, vcarve-step-down.md).
+    let levels = carve_levels(op.end_depth - op.start_depth, op.passes, op.step_down);
     let moves = vcarve_moves(
         &plan.area_walks(),
         &levels,
@@ -2337,7 +2344,7 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
 
 /// A V-carve's floor pass (docs/specs/vcarve-wide-strokes.md §4): it cuts with a project
 /// end mill with a spindle speed; its plunge notes are as for any pocket.
-fn floor_pass_checks(job: &Job, index: usize, floor: &FloorPass) -> (Vec<Problem>, Vec<Note>) {
+fn floor_pass_checks(job: &Job, index: usize, floor: &ClearingPass) -> (Vec<Problem>, Vec<Note>) {
     let (mut problems, mut notes) = (Vec::new(), Vec::new());
     let label_message = job.label_message(OpRef::pass(index, 0));
     let at = |field: &str| format!("operations.{index}.floor.{field}");

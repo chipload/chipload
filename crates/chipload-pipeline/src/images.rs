@@ -203,13 +203,9 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
             layer: image.layer.clone(),
             name: None,
             geometry: Geometry::Path {
-                dxf_handle: None,
-                dxf_type: None,
                 closed: path.closed,
                 segments: placed(&path.pieces, image, trace.height),
-                image: Some(id),
-                dxf: None,
-                text: None,
+                origin: Some(chipload_job::Origin::Image(id)),
             },
         });
     }
@@ -317,17 +313,10 @@ pub(crate) fn find_left_out_again(job: &mut Job, from: ShapeFrom, old: &[Shape])
         let Some(select) = op.select_mut() else {
             continue;
         };
-        let selects = match from {
-            ShapeFrom::Dxf(id) => select.dxf == Some(id),
-            ShapeFrom::Image(id) => select.image == Some(id),
-            ShapeFrom::Text(id) => select.text == Some(id),
-        };
-        if !selects {
+        if select.source != Some(from.into()) || select.exclude.is_empty() {
             continue;
         }
-        let Some(exclude) = select.exclude.as_mut().filter(|e| !e.is_empty()) else {
-            continue;
-        };
+        let exclude = &mut select.exclude;
         let mut taken: Vec<u64> = Vec::new();
         let mut lost = 0;
         for left_out in exclude.iter_mut() {
@@ -440,7 +429,7 @@ pub fn picture_bytes(image: &Image) -> Result<Vec<u8>, PipelineError> {
     })
 }
 
-fn find(job: &Job, id: u64) -> Result<&Image, PipelineError> {
+pub(crate) fn find(job: &Job, id: u64) -> Result<&Image, PipelineError> {
     job.drawing
         .images
         .iter()

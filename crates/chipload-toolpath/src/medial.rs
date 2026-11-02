@@ -9,7 +9,7 @@
 use boostvoronoi::prelude::{Builder, Diagram, SourceCategory, VertexIndex};
 use chipload_core::Point;
 use chipload_core::primitives::{Primitive, distance};
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, VORONOI_GRID_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, CHAIN_TOL_MM, VORONOI_GRID_MM};
 
 use chipload_i18n::{Digits, Message, Value};
 
@@ -176,6 +176,86 @@ impl Graph {
                 }
             }
         }
+    }
+
+    /// Remove the branches into corners where the outline turns by less than `max_turn`
+    /// (radians): kinks, which would otherwise each have the bit rise into them and back
+    /// (docs/specs/vcarve-smooth.md §3). A branch ends at its corner on the outline (within
+    /// `tol`); near it the cut's radius grows by sin(α/2) per mm along the branch, α the
+    /// corner's inside angle, so the turn there is π − α. Ends that aren't corners (the
+    /// round end of a stroke) and branches with nothing to hang from stay. And only a
+    /// branch whose cut the rest of the axis covers but for the sliver a kink of
+    /// `max_turn` leaves (`within_sliver`): a stroke whose traced, kinked end its whole
+    /// centre line runs into is not a kink (the user, 2026-11-01: a leg of an "H" went).
+    pub(crate) fn prune_kinks(&mut self, outline: &Outline, max_turn: f64, tol: f64) {
+        if max_turn <= 0.0 {
+            return;
+        }
+        let mut degree = self.degrees();
+        let leaves: Vec<usize> = (0..self.nodes.len()).filter(|&n| degree[n] == 1).collect();
+        for leaf in leaves {
+            if degree[leaf] != 1 {
+                continue;
+            }
+            let corner = self.nodes[leaf];
+            if outline.distance(corner) > tol {
+                continue;
+            }
+            let Some((chain, _)) = self.chain_from(leaf, &degree) else {
+                continue;
+            };
+            let Some(&first) = chain.first() else {
+                continue;
+            };
+            let walked = &self.edges[first].points;
+            let next = if self.edges[first].ends[0] == leaf {
+                walked.get(1)
+            } else {
+                walked.len().checked_sub(2).and_then(|k| walked.get(k))
+            };
+            let Some(&next) = next else {
+                continue;
+            };
+            let along = distance(corner, next);
+            if along <= tol {
+                continue;
+            }
+            let grows = (outline.distance(next) - outline.distance(corner)) / along;
+            let inside = 2.0 * grows.clamp(0.0, 1.0).asin();
+            // Exactly the angle (a 90° corner at 90°) keeps its branch.
+            let kink = std::f64::consts::PI - inside + ANGLE_TOL_RAD < max_turn;
+            if kink && self.within_sliver(&chain, outline, max_turn, tol) {
+                for &e in &chain {
+                    self.edges[e].alive = false;
+                    let [a, b] = self.edges[e].ends;
+                    degree[a] -= 1;
+                    degree[b] -= 1;
+                }
+            }
+        }
+    }
+
+    /// Whether the cut along `chain` adds no more than a kink of `max_turn` leaves: every
+    /// point of it, its corner on the outline too, lies inside the cut of the axis that
+    /// stays but for what such a kink leaves at that cut's radius, r · (1 / cos(max_turn /
+    /// 2) − 1), and `tol`. At the corner that is what would stay uncut; along a stroke whose
+    /// centre line runs into a kink at its end it is the stroke's length. Checked against the
+    /// axis as it is now, so a branch taken out never covers another.
+    fn within_sliver(&self, chain: &[usize], outline: &Outline, max_turn: f64, tol: f64) -> bool {
+        let grow = 1.0 / (max_turn / 2.0).cos() - 1.0;
+        let staying: Vec<(Point, f64)> = (0..self.edges.len())
+            .filter(|e| self.edges[*e].alive && !chain.contains(e))
+            .flat_map(|e| self.edges[e].points.iter().copied())
+            .map(|q| (q, outline.distance(q)))
+            .collect();
+        chain
+            .iter()
+            .flat_map(|&e| self.edges[e].points.iter().copied())
+            .all(|p| {
+                staying
+                    .iter()
+                    .any(|&(q, rq)| distance(p, q) - rq <= rq * grow + tol)
+            })
     }
 
     /// The edges from a leaf to the first node with three or more edges, and that node. None

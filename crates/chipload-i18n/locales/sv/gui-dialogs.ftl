@@ -77,6 +77,8 @@ dialogs-title-new-project = nytt projekt
 # $name is the DXF's name in the Browser.
 dialogs-explode-title = Bryt upp { $name } i former
 dialogs-explode-body = Dess former blir ritade former som du kan ändra, flytta och radera. Operationerna fräser samma former som förut. Projektet känner inte längre till DXF-filen: det går inte att uppdatera den från DXF:en.
+dialogs-explode-image-body = Dess former blir ritade former som du kan ändra, flytta och radera. Operationerna fräser samma former som förut. Själva bilden försvinner ur projektet: den kan inte spåras om.
+dialogs-explode-text-body = Dess bokstäver blir ritade former som du kan ändra, flytta och radera. Operationerna fräser samma former som förut. Orden kan inte redigeras längre.
 dialogs-explode-join = Foga ihop ändar närmare än
 dialogs-explode = Bryt upp
 dialogs-join-title = Foga ihop ändar

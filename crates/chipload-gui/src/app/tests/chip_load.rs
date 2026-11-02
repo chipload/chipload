@@ -30,9 +30,10 @@ fn the_feed_shows_the_chip_load_once_the_tool_has_flutes() {
     // The default tool has no flutes yet.
     let text = properties_text(&mut app);
     assert!(text.contains("Chip load\nflutes not set"), "{text}");
-    app.edit.as_mut().unwrap().settings.tools[0].flutes = Some(2);
-    let feed = chipload_pipeline::chip_load::cutting_feed(&app.edit.as_ref().unwrap().ops[1].op);
-    let rpm = app.edit.as_ref().unwrap().settings.tools[0].rpm.unwrap();
+    app.edit.as_mut().unwrap().job.tools[0].flutes = Some(2);
+    let feed =
+        chipload_pipeline::chip_load::cutting_feed(&app.edit.as_ref().unwrap().job.operations[1]);
+    let rpm = app.edit.as_ref().unwrap().job.tools[0].rpm.unwrap();
     let text = properties_text(&mut app);
     let expected = format!("{:.3} mm/tooth", feed / (rpm * 2.0));
     assert!(text.contains(&expected), "{expected} in {text}");
@@ -43,7 +44,7 @@ fn the_feed_shows_the_chip_load_once_the_tool_has_flutes() {
 #[test]
 fn a_project_tool_shows_its_flutes() {
     let mut app = lower_part();
-    let id = app.edit.as_ref().unwrap().settings.tools[0].id;
+    let id = app.edit.as_ref().unwrap().job.tools[0].id;
     app.focus = Focus::Tool(id);
     assert!(properties_text(&mut app).contains("Flutes"));
 }
@@ -75,7 +76,7 @@ fn feeds_pictures() {
                 crate::style::apply(&cc.egui_ctx);
                 let mut app = lower_part();
                 app.set_language(language);
-                app.edit.as_mut().unwrap().settings.tools[0].flutes = flutes;
+                app.edit.as_mut().unwrap().job.tools[0].flutes = flutes;
                 app.commit();
                 app.focus = Focus::Op(1);
                 app

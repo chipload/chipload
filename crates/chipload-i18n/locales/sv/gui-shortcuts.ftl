@@ -33,7 +33,7 @@ shortcuts-top-view = Vy uppifrån
 shortcuts-grid = Visa eller dölj rutnätet
 shortcuts-simulate = Simulera eller redigera
 shortcuts-measure = Mät: två klick ger avstånd och vinkel
-shortcuts-panels = Fäll ihop eller öppna sidopanelerna, för större rityta
+shortcuts-panels = Dölj alla paneler för största ritytan, eller ta tillbaka dem
 shortcuts-this-list = Den här listan
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the
@@ -92,3 +92,5 @@ shortcuts-draw-polygon = Rita en polygon
 shortcuts-offset = Förskjut de markerade formerna
 shortcuts-trim = Trimma ritade former
 shortcuts-construction = Hjälpgeometri: för nästa ritade former, eller markeringen
+shortcuts-group = Gruppera markeringen
+shortcuts-ungroup = Dela upp grupp

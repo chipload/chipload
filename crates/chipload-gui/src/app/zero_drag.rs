@@ -26,7 +26,7 @@ impl ChiploadApp {
         let edit = self.edit.as_ref()?;
         Some(match self.drag.zero {
             Some(drag) if !drag.cancelled => drag.now,
-            _ => edit.settings.work_zero(),
+            _ => edit.job.work_zero(),
         })
     }
 
@@ -41,11 +41,11 @@ impl ChiploadApp {
     /// Where the zero's handle is: in top view, while nothing is drawn, edited, measured or
     /// placed.
     pub(super) fn zero_handle(&self) -> Option<Point> {
-        if self.three_d
-            || self.show_simulation
-            || self.sketch.is_some()
-            || self.modify.is_some()
-            || self.measure.is_some()
+        if self.display.three_d
+            || self.display.simulate
+            || self.sketch().is_some()
+            || self.modify().is_some()
+            || self.measure().is_some()
             || self.placing_text()
         {
             return None;
@@ -66,7 +66,7 @@ impl ChiploadApp {
         if self.focus != Focus::WorkZero {
             return false;
         }
-        let Some(zero) = self.edit.as_ref().map(|e| e.settings.work_zero()) else {
+        let Some(zero) = self.edit.as_ref().map(|e| e.job.work_zero()) else {
             return false;
         };
         self.drag.zero = Some(ZeroDrag {
@@ -111,8 +111,8 @@ impl ChiploadApp {
         Some(match now {
             WorkZero::Point { x, y } => format!(
                 "X {}  Y {}",
-                crate::draw::fixed(x, self.units),
-                crate::draw::fixed(y, self.units)
+                crate::draw::fixed(x, self.prefs.units),
+                crate::draw::fixed(y, self.prefs.units)
             ),
             zero => super::forms::work_zero_name(self, &zero),
         })
@@ -128,7 +128,7 @@ impl ChiploadApp {
             return;
         }
         if let Some(edit) = self.edit.as_mut() {
-            *edit.settings.work_zero_mut() = drag.now;
+            *edit.job.work_zero_mut() = drag.now;
             self.commit();
         }
     }

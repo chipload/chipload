@@ -21,7 +21,10 @@ a V-bit without one is refused.
 |---|---|
 | **Start depth** | where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut |
 | **End depth** | the deepest the tip may go. Strokes that need more get walls (see *Wide strokes*). The bit's own size is a limit too: it can't go deeper than its cutting edge reaches. |
-| **Passes** | how many passes to the end depth, 1 for one: each removes as much as the others, so they get shallower on the way down, and each runs only where the last stopped short. Their depths are shown under the field (see *Passes*) |
+| **Depth passes** | how the depth is split into passes: **Equal load** or **Step down** (see *Passes*) |
+| **Passes** | with *Equal load*: how many passes to the end depth, 1 for one. Each removes as much as the others, so they get shallower on the way down. Their depths are shown under the field |
+| **Step down** | with *Step down*: the deepest each pass goes. The passes are equal, the last at the end depth, as in a pocket. Their depths are shown under the field |
+| **Ignore kinks** | corners where the outline bends less than this angle (20° for a new V-carve) get no branch of the centre line, so the bit doesn't rise into every kink of a curve (see *Smooth carving*); 0° carves every corner. In the project file: `ignore_kinks_deg` |
 | **Feed**, **Plunge feed** | moves steeper than 45° use the plunge feed |
 
 Regions work as in pockets: an outline minus the selected contours inside it (the inside of
@@ -30,12 +33,20 @@ an O stays standing). Open contours are skipped.
 ## Passes
 
 A V groove gets wider as it gets deeper: twice as deep removes four times as much. Passes
-of the same depth would get heavier and heavier, the last one the hardest on the bit and the
-machine. So you say how deep and in how many passes, and each pass removes the same amount:
-the steps get smaller on the way down. 5 mm in 6 passes goes to 2.04, 2.89, 3.54, 4.08, 4.56
-and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. The depths are counted from the end
-depth, so a stroke that is shallower than that is done in fewer passes: the deeper ones find
-nothing left to cut. More passes are lighter on the bit and take longer.
+of the same depth get heavier and heavier, the last one the hardest on the bit and the
+machine. *Depth passes* chooses how the depth is split:
+
+- **Equal load** (a new V-carve's choice): you say in how many passes, and each pass removes
+  the same amount, so the steps get smaller on the way down. 5 mm in 6 passes goes to 2.04,
+  2.89, 3.54, 4.08, 4.56 and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. More passes are
+  lighter on the bit and take longer.
+- **Step down**: you say how deep each pass may go, as for a pocket, and the passes are
+  equal steps. 5 mm with a 2 mm step down goes to 1.67, 3.33 and 5 mm. Each pass removes
+  more than the one before (with three, 1 : 3 : 5), so pick a step the last pass can take.
+
+Either way, the depths are counted from the end depth, so a stroke that is shallower than
+that is done in fewer passes: the deeper ones find nothing left to cut. Switching from one
+to the other keeps the count of passes, for when you switch back.
 
 The carving is done area by area: each letter (or each closed part of a drawing, such as
 the dot of an *i*) gets all its passes, and its walls, before the bit moves to the
@@ -47,6 +58,33 @@ instead of each with a trip up to safe Z. In the passes after the first, where t
 to cut lie at most 10 mm apart along the centre line, the bit goes from one to the next
 through the groove already cut instead of lifting. The carving is the same; there are
 fewer lifts (in a script font about half).
+
+## Smooth carving
+
+A curve in a drawing or a font is made of short pieces, and each joint is a small kink.
+The centre line runs a branch out to every corner, so the bit would rise into each kink and
+come down again, and the depth would wobble by hundredths of a millimetre along the
+stroke. Both make the Z axis stop and start, the slowest axis on most routers.
+
+- **The depth is smoothed** along each cut: wobbles smaller than the V-carve's tolerance
+  (0.005 mm at the edge of the cut; 0.009 mm in depth for a 60° bit) are taken out, never
+  deeper than the exact cut, so nothing is carved wider than drawn.
+- **Ignore kinks** (20° for a new V-carve) leaves out the branches into corners where the
+  outline bends less than that angle. A kink bending θ in a stroke whose centre is r from
+  its edges keeps a sliver of at most r · (1/cos(θ/2) − 1): at 20°, 0.05 mm in a stroke
+  6 mm wide; at 60°, 0.46 mm. A real corner, such as the 90° corner of a block letter,
+  keeps its branch at any setting up to 90°. Try a few values and look at the toolpath
+  and the simulation: the change shows at once.
+- **A traced picture** has its pixel steps in every curve: kinks of 20° to 30°. On a
+  traced ring, **30°** took the bit's turns up and down from 48 to none and the time by a
+  tenth.
+- **Only kinks go.** A branch is left out only when the rest of the carving covers what
+  it would cut, but for the sliver above. The centre line of a whole stroke that happens
+  to end in a kink (the rounded, traced end of a leg of an *H*, the tapered end of a
+  script stroke) stays at any angle.
+
+Projects from before Chipload 0.31 open with *Ignore kinks* at 0°, so they carve every
+corner as before; their depth is smoothed.
 
 ![A V-carve 3.5 mm deep in 4 passes: their depths under Passes](../images/vcarve-passes.png)
 
@@ -120,7 +158,8 @@ in mm, feeds in mm/min, angles in radians.
 | `tool` | Tool: the project tool's id |
 | `start_depth` | Start depth |
 | `end_depth` | End depth |
-| `passes` | Passes: how many, 1 to 100 |
+| `passes` | Passes: how many, 1 to 100, for equal load |
+| `step_down` | Step down, mm: left out for equal load. At most 100 passes: at least a hundredth of the depth |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
 | `floor` | the floor pass, left out when there is none: `tool` (an end mill), `feed`, `plunge_feed`, `step_down`, `stepover` (a fraction of the end mill's diameter), `entry` and `enabled` |

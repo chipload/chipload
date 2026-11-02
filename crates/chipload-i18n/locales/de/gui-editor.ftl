@@ -20,6 +20,7 @@ editor-summary-whole-stock = das ganze Rohteil
 editor-summary-dxf = Zeichnung { $id }
 editor-summary-image = Bild { $id }
 editor-summary-text = Text { $id }
+editor-summary-group = Gruppe { $id }
 # A drawing layer (user's name); the source is one of the three texts above.
 editor-summary-layer = Layer { $layer }
 editor-summary-layer-of = Layer { $layer } von { $source }

@@ -77,6 +77,8 @@ dialogs-title-new-project = proyecto nuevo
 # $name is the DXF's name in the Browser.
 dialogs-explode-title = Descomponer { $name } en formas
 dialogs-explode-body = Sus formas pasan a ser formas dibujadas que puedes editar, mover y borrar. Las operaciones siguen cortando las mismas formas. El proyecto ya no conoce el archivo DXF: no se podrá actualizar desde el DXF.
+dialogs-explode-image-body = Sus formas pasan a ser formas dibujadas que puedes editar, mover y borrar. Las operaciones siguen cortando las mismas formas. La imagen en sí sale del proyecto: no se podrá volver a vectorizar.
+dialogs-explode-text-body = Sus letras pasan a ser formas dibujadas que puedes editar, mover y borrar. Las operaciones siguen cortando las mismas formas. Las palabras ya no se podrán editar.
 dialogs-explode-join = Unir extremos a menos de
 dialogs-explode = Descomponer
 dialogs-join-title = Unir extremos

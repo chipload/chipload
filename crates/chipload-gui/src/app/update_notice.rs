@@ -22,7 +22,7 @@ impl ChiploadApp {
     /// The question shows until answered, when there are settings to keep the answer in
     /// and it wasn't closed this run.
     pub(super) fn update_question_shown(&self) -> bool {
-        self.settings_dir.is_some() && self.updates.check.is_none() && !self.updates.bar_closed
+        self.user.settings_dir.is_some() && self.updates.check.is_none() && !self.updates.bar_closed
     }
 
     /// The user's answer, kept in the settings. Yes: the daily check runs at once.
@@ -59,7 +59,7 @@ impl ChiploadApp {
         if !self.updates.started {
             self.updates.started = true;
             let now = updates::now_s();
-            if self.settings_dir.is_some()
+            if self.user.settings_dir.is_some()
                 && updates::due(self.updates.check, self.updates.checked_at, now)
             {
                 self.updates.checked_at = Some(now);

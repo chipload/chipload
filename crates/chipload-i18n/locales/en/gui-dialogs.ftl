@@ -77,6 +77,8 @@ dialogs-title-new-project = new project
 # $name is the DXF's name in the Browser.
 dialogs-explode-title = Explode { $name } into shapes
 dialogs-explode-body = Its shapes become drawn shapes you can edit, move and delete. Operations keep cutting the same shapes. The project no longer knows the DXF file: updating it from the DXF won't be possible.
+dialogs-explode-image-body = Its shapes become drawn shapes you can edit, move and delete. Operations keep cutting the same shapes. The picture itself goes from the project: it can't be traced again.
+dialogs-explode-text-body = Its letters become drawn shapes you can edit, move and delete. Operations keep cutting the same shapes. The words can't be edited again.
 dialogs-explode-join = Join ends closer than
 dialogs-explode = Explode
 dialogs-join-title = Join ends

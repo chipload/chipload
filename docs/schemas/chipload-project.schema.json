@@ -54,6 +54,55 @@
       ],
       "type": "string"
     },
+    "ClearingPass": {
+      "additionalProperties": false,
+      "description": "A clearing pass with its own end mill, inside an operation's shapes and depths: a\npocket's rest pass (docs/specs/rest-passes.md §2: an endmill smaller than the tool before\nit, clearing only what that tool leaves) or a V-carve's floor pass\n(docs/specs/vcarve-wide-strokes.md §4: an end mill clearing the floor between the walls,\nbefore the V-carve).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "False: kept, but not cut. Missing: true.",
+          "type": "boolean"
+        },
+        "entry": {
+          "$ref": "#/$defs/Entry",
+          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
+        },
+        "feed": {
+          "description": "The cutting feed, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "plunge_feed": {
+          "description": "The feed going down into the material, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "step_down": {
+          "description": "The deepest each pass goes, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "stepover": {
+          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
+          "format": "double",
+          "type": "number"
+        },
+        "tool": {
+          "description": "The id of the project tool it cuts with (`tools`): an end mill.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tool",
+        "feed",
+        "plunge_feed",
+        "step_down",
+        "stepover",
+        "entry"
+      ],
+      "type": "object"
+    },
     "Copies": {
       "additionalProperties": false,
       "description": "A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)\nmm.",
@@ -226,6 +275,13 @@
           "description": "The DXFs the imported shapes came from, each as at its last import or update, with\nits own placement.",
           "items": {
             "$ref": "#/$defs/DrawingSource"
+          },
+          "type": "array"
+        },
+        "groups": {
+          "description": "Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the\nfile when there are none, so projects without groups open in older versions.",
+          "items": {
+            "$ref": "#/$defs/ShapeGroup"
           },
           "type": "array"
         },
@@ -455,55 +511,6 @@
       },
       "required": [
         "stock"
-      ],
-      "type": "object"
-    },
-    "FloorPass": {
-      "additionalProperties": false,
-      "description": "The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears\nthe floor between the walls, in the V-carve's shapes and depths, before it.",
-      "properties": {
-        "enabled": {
-          "default": true,
-          "description": "False: kept, but not cut. Missing: true.",
-          "type": "boolean"
-        },
-        "entry": {
-          "$ref": "#/$defs/Entry",
-          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
-        },
-        "feed": {
-          "description": "The cutting feed, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "plunge_feed": {
-          "description": "The feed going down into the material, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "step_down": {
-          "description": "The deepest each pass goes, mm.",
-          "format": "double",
-          "type": "number"
-        },
-        "stepover": {
-          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
-          "format": "double",
-          "type": "number"
-        },
-        "tool": {
-          "description": "The id of the project tool it cuts with (`tools`): an end mill.",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "tool",
-        "feed",
-        "plunge_feed",
-        "step_down",
-        "stepover",
-        "entry"
       ],
       "type": "object"
     },
@@ -1141,7 +1148,7 @@
             "rest_passes": {
               "description": "Rest passes: smaller endmills that clear what this pocket's tool (or the pass before)\nleaves, in its shapes and depths. Missing or empty: none. Left out when empty.",
               "items": {
-                "$ref": "#/$defs/RestPass"
+                "$ref": "#/$defs/ClearingPass"
               },
               "type": "array"
             },
@@ -1235,13 +1242,19 @@
             "floor": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/FloorPass"
+                  "$ref": "#/$defs/ClearingPass"
                 },
                 {
                   "type": "null"
                 }
               ],
               "description": "A floor pass: an end mill that clears the floor between the walls of strokes too\nwide to carve from their centre line. Missing: none. Left out when missing."
+            },
+            "ignore_kinks_deg": {
+              "default": 0.0,
+              "description": "Corners where the outline turns by less than this, degrees (0 to 90), get no branch\nof the centre line: the bit doesn't rise into every kink. Missing: 0, every corner\ncarved, as before the setting existed.",
+              "format": "double",
+              "type": "number"
             },
             "material": {
               "anyOf": [
@@ -1285,6 +1298,14 @@
               "description": "The surface carved, mm down from the stock top: 0 for the top, more to carve on a\nfloor an earlier pocket cut.",
               "format": "double",
               "type": "number"
+            },
+            "step_down": {
+              "description": "An ordinary step down instead, mm: equal passes, none deeper than it, the last at\nthe end depth, as in a pocket. Missing: passes of equal load (`passes`), which is\nkept meanwhile. Left out when missing.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "tool": {
               "description": "The id of the project tool it cuts with (`tools`).",
@@ -1706,55 +1727,6 @@
       ],
       "type": "object"
     },
-    "RestPass": {
-      "additionalProperties": false,
-      "description": "One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes,\ndepths, clearance and direction, and clears only what the tool before it leaves.",
-      "properties": {
-        "enabled": {
-          "default": true,
-          "description": "False: kept, but not cut. Missing: true.",
-          "type": "boolean"
-        },
-        "entry": {
-          "$ref": "#/$defs/Entry",
-          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
-        },
-        "feed": {
-          "description": "The cutting feed, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "plunge_feed": {
-          "description": "The feed going down into the material, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "step_down": {
-          "description": "The deepest each pass goes, mm.",
-          "format": "double",
-          "type": "number"
-        },
-        "stepover": {
-          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
-          "format": "double",
-          "type": "number"
-        },
-        "tool": {
-          "description": "The id of the project tool it cuts with (`tools`): an endmill smaller than the tool\nbefore it.",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "tool",
-        "feed",
-        "plunge_feed",
-        "step_down",
-        "stepover",
-        "entry"
-      ],
-      "type": "object"
-    },
     "Selector": {
       "additionalProperties": false,
       "properties": {
@@ -1768,7 +1740,7 @@
           ]
         },
         "exclude": {
-          "description": "Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text`\nonly. A contour with any of them isn't cut. A traced image's, or a text's, are found\nagain when it is made again.",
+          "description": "Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`,\n`text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found\nagain when it is made again.",
           "items": {
             "format": "uint64",
             "minimum": 0,
@@ -1776,6 +1748,15 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "group": {
+          "description": "The shapes and texts' letters of this group (an id in `drawing.groups`), as they\nare at each run.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -2040,6 +2021,53 @@
         "id",
         "layer",
         "kind"
+      ],
+      "type": "object"
+    },
+    "ShapeGroup": {
+      "additionalProperties": false,
+      "description": "Drawn shapes and texts kept together: one click selects them all, and they move, turn,\nscale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one\ngroup; groups don't hold groups.",
+      "properties": {
+        "id": {
+          "description": "The group's id, which operations' selectors name.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "description": "Its name in the Browser.",
+          "type": "string"
+        },
+        "rotation": {
+          "default": 0.0,
+          "description": "How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was\ngiven, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a\nnew group.",
+          "format": "double",
+          "type": "number"
+        },
+        "shapes": {
+          "default": [],
+          "description": "Its drawn shapes, by id.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "texts": {
+          "default": [],
+          "description": "Its texts, by id, with their letters.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
       ],
       "type": "object"
     },

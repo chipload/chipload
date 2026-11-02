@@ -1469,6 +1469,44 @@ fn explode_a_dxf_and_join_its_lines() {
     assert!(after.status.success(), "{}", text(&after.stderr));
 }
 
+/// `image explode` and `text explode` (docs/specs/explode-pictures-and-texts.md §5).
+#[test]
+fn explode_a_picture_and_a_text() {
+    let dir = temp_dir("explode-sources");
+    let pictured = dir.join("logo.chipload");
+    std::fs::copy(corpus("jobs/v21/two_dxfs.chipload"), &pictured).unwrap();
+    let p = path(&pictured);
+    let out = chipload(&["image", "explode", p, "--json"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["shapes"].as_array().unwrap().len(), 4, "{json}");
+    let again = chipload(&["image", "explode", p]);
+    assert_eq!(again.status.code(), Some(1));
+    assert!(text(&again.stderr).contains("no picture to explode"));
+
+    let lettered = dir.join("text.chipload");
+    std::fs::copy(corpus("jobs/v27/text.chipload"), &lettered).unwrap();
+    let t = path(&lettered);
+    let which = chipload(&["text", "explode", t]);
+    assert_eq!(which.status.code(), Some(1));
+    assert!(
+        text(&which.stderr).contains("2 texts"),
+        "{}",
+        text(&which.stderr)
+    );
+    let out = chipload(&["text", "explode", t, "2"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stdout).contains("Exploded text 2 \"A\" into 2 drawn shapes."),
+        "{}",
+        text(&out.stdout)
+    );
+    let left = text(&chipload(&["text", "list", t]).stdout);
+    assert!(!left.contains("\"A\""), "{left}");
+    let run = chipload(&["run", t, "-o", path(&dir.join("text.nc")), "--no-sheet"]);
+    assert!(run.status.success(), "{}", text(&run.stderr));
+}
+
 /// Corner choices (docs/specs/dogbone-per-corner.md): `op corners` lists them, `op corner`
 /// sets them, and they and the start points move with the drawn shape they are on.
 #[test]

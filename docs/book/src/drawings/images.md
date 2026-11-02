@@ -26,7 +26,7 @@ it in the Browser (it is selected right after importing) for its properties:
   DPI, which is often missing or wrong.
 
 **On the canvas:** with the picture selected, its box shows handles (in top view):
-- the square in the **middle** moves it;
+- the square in the **middle** moves it, and so does dragging one of its lines;
 - the square beyond its right side **turns** it about its centre, in steps of 15°;
 - a **corner** square makes it larger or smaller, keeping its proportions; the opposite
   corner stays where it is. Its width is rounded to 0.1 mm.
@@ -103,10 +103,12 @@ pass at the depth you choose, as wide as the bit, whatever the pen did. Select t
 **File > Import image…** picks a picture and opens its window. A project is made first if
 none is open. Without a file dialog (see [Install](../install.md)), *File > Import image from
 path…* takes the picture's path instead.
-- **Left:** the picture as black and white, updated as you change the settings: the dark
-  parts are what is traced. With *centre lines*, the lines are drawn over it in orange.
-  **Scroll** over it to zoom in at the pointer, up to 32 times, **drag** to move about, and
-  **double-click** to see all of it again.
+- **Left:** the picture as it will be carved, updated as you change the settings: light
+  oak where the wood stays, dark brown for the black parts, which are traced and carved.
+  The traced lines (outlines or centre lines) are drawn over it in thin blue; untick
+  **Show the traced lines** to see the picture alone, to judge the threshold by its
+  detail. **Scroll** over it to zoom in at the pointer, up to 32 times, **drag** to move
+  about, and **double-click** to see all of it again.
 - **Right:** the conversion settings, and what was traced (with the threshold *auto*
   picked). The size, place and layer are not here: they are the picture's properties.
 - **Import:** puts the shapes into the project and selects the image, so **V-carve** carves
@@ -121,6 +123,8 @@ path…* takes the picture's path instead.
   same window opens (its button says **Apply**).
 - **Remove it:** right-click > **Remove** removes the picture and its shapes; so does
   **Del** with the picture selected.
+- **Edit its shapes by hand:** right-click > **Explode into shapes…** makes them drawn
+  shapes and takes the picture out of the project ([Exploding](explode.md)).
 - **See it:** **Images** on the canvas's navigation bar (or *View > Show images*) shows the
   pictures faintly on the stock top, over the simulated stock and under the drawing, in
   top view and 3D, for comparing the traced shapes, and the cut, with the picture.

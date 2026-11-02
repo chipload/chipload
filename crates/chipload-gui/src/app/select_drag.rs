@@ -15,17 +15,22 @@ pub(super) struct MoveDrag {
     pub ids: Vec<u64>,
     pub grab: Point,
     pub to: Point,
+    /// Over the shape library's tab: not moved, saved there when dropped
+    /// (docs/specs/shape-library.md §5.1).
+    pub carried: bool,
+    /// The group being moved, its texts too (docs/specs/shape-groups.md §2).
+    pub group: Option<u64>,
 }
 
 impl ChiploadApp {
     /// Whether a left drag selects or moves rather than pans: Edit mode, top view, a
     /// project with its drawing shown, no tool active.
     pub(super) fn drag_selects(&self) -> bool {
-        !self.show_simulation
-            && !self.three_d
-            && self.sketch.is_none()
-            && self.measure.is_none()
-            && self.modify.is_none()
+        !self.display.simulate
+            && !self.display.three_d
+            && self.sketch().is_none()
+            && self.measure().is_none()
+            && self.modify().is_none()
             && !self.placing_text()
             && self.can_draw()
             && self.show_drawing()
@@ -35,6 +40,20 @@ impl ChiploadApp {
     /// shapes there move, else a selection box opens. `add`: Shift was held (an unselected
     /// shape is added to the selection before it moves). `free`: Alt, no snapping.
     pub fn start_select_drag(&mut self, picked: Option<usize>, at: Point, add: bool, free: bool) {
+        // A shape of the selected group moves the whole group.
+        if let Some(id) = self.selected_group()
+            && picked.and_then(|c| self.group_of_contour(c)) == Some(id)
+        {
+            let grab = self.snap_world(at, free, false);
+            self.drag.moving = Some(MoveDrag {
+                ids: Vec::new(),
+                grab,
+                to: grab,
+                carried: false,
+                group: Some(id),
+            });
+            return;
+        }
         match self.shapes_to_move(picked, add) {
             Some(ids) => {
                 let grab = self.snap_world(at, free, false);
@@ -42,6 +61,8 @@ impl ChiploadApp {
                     ids,
                     grab,
                     to: grab,
+                    carried: false,
+                    group: None,
                 });
             }
             None => self.drag.select_box = Some((at, at)),
@@ -62,7 +83,7 @@ impl ChiploadApp {
         if !drawn {
             return None;
         }
-        if !self.selection.ids(&self.contours).contains(&id) {
+        if !self.selected_ids().contains(&id) {
             self.click(picked, add);
         }
         let (ids, imported) = self.deletable_shapes();
@@ -80,8 +101,8 @@ impl ChiploadApp {
             return;
         };
         let to = if shift {
-            let step = (!free).then(|| grid_step(self.view.scale, self.units));
-            let p = crate::draw::angle_step(grab, cursor, step, self.units);
+            let step = (!free).then(|| grid_step(self.view.scale, self.prefs.units));
+            let p = crate::draw::angle_step(grab, cursor, step, self.prefs.units);
             self.drag.snapped = Some((p, None));
             self.scene.snap_mark = None;
             p
@@ -99,8 +120,16 @@ impl ChiploadApp {
             return;
         };
         self.scene.snap_mark = None;
-        if moving.to != moving.grab {
-            self.transform_shapes(&moving.ids, moving.grab, moving.to, 1.0, 0.0);
+        if moving.to == moving.grab {
+            return;
+        }
+        match moving.group {
+            Some(id) => {
+                self.transform_group(id, moving.grab, moving.to, 1.0, 0.0);
+            }
+            None => {
+                self.transform_shapes(&moving.ids, moving.grab, moving.to, 1.0, 0.0);
+            }
         }
     }
 
@@ -112,8 +141,12 @@ impl ChiploadApp {
         if moving.to == moving.grab {
             return Vec::new();
         }
+        if let Some(id) = moving.group {
+            let ids = edit.job.drawing.group_shapes(id);
+            return self.moved_outlines(&ids, moving.grab, moving.to, 1.0, 0.0);
+        }
         let (from, to) = ([moving.grab.0, moving.grab.1], [moving.to.0, moving.to.1]);
-        edit.settings
+        edit.job
             .drawing
             .shapes
             .iter()
@@ -174,12 +207,12 @@ impl ChiploadApp {
             && !toggle
             && let [only] = sources.iter().copied().collect::<Vec<_>>()[..]
         {
-            self.selection = CanvasSelection::Source(only);
+            self.selection = CanvasSelection::whole(only);
             return;
         }
         let hit = shapes_in(&plain, &self.contours);
         let mut shapes = if add || toggle {
-            shapes_in(&self.selection.ids(&self.contours), &self.contours)
+            shapes_in(&self.selected_ids(), &self.contours)
         } else {
             BTreeSet::new()
         };

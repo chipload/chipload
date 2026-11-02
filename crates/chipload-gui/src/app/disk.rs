@@ -43,21 +43,21 @@ pub(super) struct DiskWatch {
 impl ChiploadApp {
     /// The file as it is now is the version the app has (after open and save).
     pub(super) fn remember_disk(&mut self) {
-        self.disk = DiskWatch {
-            known: self.job_path.as_deref().and_then(stamp),
+        self.file.watch = DiskWatch {
+            known: self.file.path.as_deref().and_then(stamp),
             ..DiskWatch::default()
         };
     }
 
     /// Look at the file if it is time; returns how long until the next look.
     pub(super) fn watch_disk(&mut self, now: Instant) -> Option<Duration> {
-        let path = self.job_path.clone()?;
-        if let Some(next) = self.disk.next
+        let path = self.file.path.clone()?;
+        if let Some(next) = self.file.watch.next
             && now < next
         {
             return Some(next - now);
         }
-        self.disk.next = Some(now + WATCH_INTERVAL);
+        self.file.watch.next = Some(now + WATCH_INTERVAL);
         // A prompt on screen waits; the file is looked at again after it.
         if self.dialogs.prompt.is_some() {
             return Some(WATCH_INTERVAL);
@@ -65,13 +65,13 @@ impl ChiploadApp {
         let Some(current) = stamp(&path) else {
             return Some(WATCH_INTERVAL); // gone or unreadable: left alone
         };
-        if Some(current) == self.disk.known {
-            self.disk.pending = None;
-        } else if self.disk.pending != Some(current) {
-            self.disk.pending = Some(current); // still being written, perhaps
+        if Some(current) == self.file.watch.known {
+            self.file.watch.pending = None;
+        } else if self.file.watch.pending != Some(current) {
+            self.file.watch.pending = Some(current); // still being written, perhaps
         } else {
-            self.disk.pending = None;
-            self.disk.known = Some(current);
+            self.file.watch.pending = None;
+            self.file.watch.known = Some(current);
             self.file_changed(&path);
         }
         Some(WATCH_INTERVAL)
@@ -80,7 +80,7 @@ impl ChiploadApp {
     /// Look at the file now, whenever the last look was (tests).
     #[cfg(test)]
     pub(super) fn look_at_disk_now(&mut self) {
-        self.disk.next = None;
+        self.file.watch.next = None;
         self.watch_disk(Instant::now());
     }
 
@@ -99,15 +99,15 @@ impl ChiploadApp {
             }
         };
         let theirs = EditJob::from_job(&job);
-        if self.saved.as_ref() == Some(&theirs) {
+        if self.file.saved.as_ref() == Some(&theirs) {
             return; // the same project, written again
         }
         if self.edit.as_ref() == Some(&theirs) {
-            self.saved = Some(theirs); // what the user has, saved by someone else
+            self.file.saved = Some(theirs); // what the user has, saved by someone else
             return;
         }
         if self.dirty() {
-            self.disk.offer = Some(theirs);
+            self.file.watch.offer = Some(theirs);
             self.dialogs.prompt = Some(Prompt::ChangedOnDisk);
         } else {
             self.reload(theirs);
@@ -117,7 +117,7 @@ impl ChiploadApp {
     /// The prompt's *Load it*: the file's version, the unsaved changes one Ctrl+Z away.
     pub fn load_from_disk(&mut self) {
         self.dialogs.prompt = None;
-        if let Some(theirs) = self.disk.offer.take() {
+        if let Some(theirs) = self.file.watch.offer.take() {
             self.reload(theirs);
         }
     }
@@ -125,17 +125,17 @@ impl ChiploadApp {
     /// The prompt's *Keep mine*: nothing changes; this version isn't asked about again.
     pub fn keep_mine(&mut self) {
         self.dialogs.prompt = None;
-        self.disk.offer = None;
+        self.file.watch.offer = None;
     }
 
     /// The file's project in place of the one shown, as one undo step (§3).
     fn reload(&mut self, theirs: EditJob) {
         self.commit();
         self.edit = Some(theirs.clone());
-        self.saved = Some(theirs);
+        self.file.saved = Some(theirs);
         self.commit();
         self.after_history_step();
-        let name = self.job_path.as_deref().map(file_name).unwrap_or_default();
+        let name = self.file.path.as_deref().map(file_name).unwrap_or_default();
         self.set_report(Report::info([t!(
             self,
             "disk-reloaded-report",
@@ -144,4 +144,15 @@ impl ChiploadApp {
         let text = t!(self, "disk-reloaded", file = name);
         self.set_status(text, STATUS_SECONDS);
     }
+}
+
+/// The open project's file.
+#[derive(Default)]
+pub struct ProjectFile {
+    /// Where it was opened from or last saved to.
+    pub path: Option<PathBuf>,
+    /// The project as last opened or saved; differs from `edit` when there are unsaved changes.
+    pub(super) saved: Option<EditJob>,
+    /// The project's file, watched for changes by other programs.
+    pub(super) watch: disk::DiskWatch,
 }

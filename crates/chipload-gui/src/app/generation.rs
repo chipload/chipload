@@ -64,7 +64,7 @@ impl ChiploadApp {
 
     /// A run is in progress.
     pub fn generating(&self) -> bool {
-        self.generation.is_some()
+        self.toolpath.running.is_some()
     }
 
     /// Plan the project on a worker thread. Returns whether a run started; an incomplete
@@ -79,14 +79,14 @@ impl ChiploadApp {
     /// setup's parts are previewed then, docs/specs/setups.md §7). None: all of the setup's.
     pub(super) fn preview_part(&self) -> Option<u64> {
         let edit = self.edit.as_ref()?;
-        let settings = &edit.settings;
+        let settings = &edit.job;
         let setup = settings.active_setup_id();
         let in_setup = |p: &chipload_job::Part| p.enabled && Some(p.setup) == setup;
         let cut = settings.parts.iter().filter(|p| in_setup(p)).count();
         let active = settings.active_part_id()?;
         let on = settings.part(active).is_some_and(in_setup);
-        let has_operations = edit.ops.iter().any(|e| e.op.part() == active);
-        (!self.all_parts && cut > 1 && on && has_operations).then_some(active)
+        let has_operations = edit.job.operations.iter().any(|e| e.part() == active);
+        (!self.display.all_parts && cut > 1 && on && has_operations).then_some(active)
     }
 
     /// As `start_generation`; `whole` plans every part whatever the preview shows (for an
@@ -101,7 +101,7 @@ impl ChiploadApp {
     pub(super) fn start_generation_scoped(&mut self, loud: bool, scope: Option<u64>) -> bool {
         self.commit();
         self.stop_generation();
-        self.changed_at = None;
+        self.toolpath.changed_at = None;
         let Some(edit) = &self.edit else {
             self.fail(vec![t!(self, "generation-no-project")], loud);
             return false;
@@ -130,7 +130,7 @@ impl ChiploadApp {
         let (sender, receiver) = channel();
         let cancel = Arc::new(Cancel::new());
         let flag = Arc::clone(&cancel);
-        let runner = self.runner;
+        let runner = self.toolpath.runner;
         let planned = job.clone();
         let spawned = std::thread::Builder::new()
             .name("generate".into())
@@ -146,7 +146,7 @@ impl ChiploadApp {
             self.fail(vec![text], loud);
             return false;
         }
-        self.generation = Some(Generation {
+        self.toolpath.running = Some(Generation {
             cancel,
             receiver,
             job,
@@ -160,18 +160,18 @@ impl ChiploadApp {
 
     /// Stop the run in progress, if any, without a word (a newer one replaces it).
     pub(super) fn stop_generation(&mut self) {
-        if let Some(generation) = self.generation.take() {
+        if let Some(generation) = self.toolpath.running.take() {
             generation.cancel.cancel();
         }
     }
 
     /// The Cancel button: stop the run and say so.
     pub fn cancel_generation(&mut self) {
-        if self.generation.is_some() {
+        if self.toolpath.running.is_some() {
             self.stop_generation();
-            self.export_when_done = false;
-            self.export_path_when_done = None;
-            self.export_part_when_done = None;
+            self.toolpath.export_when_done = false;
+            self.toolpath.export_path_when_done = None;
+            self.toolpath.export_part_when_done = None;
             self.set_status(t!(self, "generation-cancelled"), STATUS_SECONDS);
         }
     }
@@ -179,19 +179,19 @@ impl ChiploadApp {
     /// Apply the worker's result if it has arrived. Returns Some(success) when the run is
     /// over.
     pub(super) fn poll_generation(&mut self) -> Option<bool> {
-        let outcome = match self.generation.as_ref()?.receiver.try_recv() {
+        let outcome = match self.toolpath.running.as_ref()?.receiver.try_recv() {
             Ok(outcome) => outcome,
             Err(TryRecvError::Empty) => return None,
             Err(TryRecvError::Disconnected) => Err(t!(self, "generation-worker-stopped")),
         };
-        let generation = self.generation.take()?;
+        let generation = self.toolpath.running.take()?;
         Some(self.finish_generation(generation, outcome))
     }
 
     /// Wait for the run in progress and apply its result (tests, screenshots).
     #[cfg(test)]
     pub fn wait_for_generation(&mut self) -> bool {
-        let Some(generation) = self.generation.take() else {
+        let Some(generation) = self.toolpath.running.take() else {
             return false;
         };
         let outcome = generation
@@ -215,7 +215,7 @@ impl ChiploadApp {
         {
             return false;
         }
-        let refusable = self.undo_if_refused.take().as_ref() == Some(&generation.project);
+        let refusable = self.toolpath.undo_if_refused.take().as_ref() == Some(&generation.project);
         let Generation {
             job,
             loud,
@@ -225,9 +225,9 @@ impl ChiploadApp {
         } = generation;
         let done = match outcome {
             Ok(Ok(result)) => {
-                self.result_part = scope;
+                self.toolpath.part = scope;
                 self.show_result(&job, result);
-                self.shown_inputs = inputs;
+                self.toolpath.shown_inputs = inputs;
                 true
             }
             Ok(Err(PipelineError::Toolpath(ToolpathError::Cancelled))) => false,
@@ -275,16 +275,16 @@ impl ChiploadApp {
                 false
             }
         };
-        self.toolpath_stale = false;
-        if std::mem::take(&mut self.export_when_done) && done {
+        self.toolpath.stale = false;
+        if std::mem::take(&mut self.toolpath.export_when_done) && done {
             self.ask_export();
         }
-        if let Some(path) = self.export_path_when_done.take()
+        if let Some(path) = self.toolpath.export_path_when_done.take()
             && done
         {
             self.export_gcode(&path);
         }
-        if let Some((id, path)) = self.export_part_when_done.take()
+        if let Some((id, path)) = self.toolpath.export_part_when_done.take()
             && done
         {
             self.export_part(id, &path);
@@ -339,13 +339,13 @@ impl ChiploadApp {
         }
         let zero = Self::work_zero_message(job);
         report.push_message(Tone::Info, zero, None);
-        if let Some(part) = self.result_part.and_then(|id| job.part(id)) {
+        if let Some(part) = self.toolpath.part.and_then(|id| job.part(id)) {
             let text = t!(self, "generation-one-part-shown", part = part.name.as_str());
             report.push(Tone::Info, text);
         }
         self.set_report(report);
-        self.result_job = Some(job.clone());
-        self.result = Some(result);
+        self.toolpath.job = Some(job.clone());
+        self.toolpath.result = Some(result);
         // A new program: the old simulation goes, a new one starts if switched on.
         self.sim.serial += 1;
         self.drop_simulation();
@@ -411,13 +411,13 @@ impl ChiploadApp {
     /// The live preview: once the project has been unchanged for the quiet time, generate.
     /// Returns how long to wait before looking again, if a run is due later.
     pub(super) fn live_preview(&mut self, now: Instant) -> Option<Duration> {
-        let since = now.saturating_duration_since(self.changed_at?);
-        if !self.auto_generate || self.edit.is_none() {
+        let since = now.saturating_duration_since(self.toolpath.changed_at?);
+        if !self.prefs.auto_generate || self.edit.is_none() {
             return None;
         }
         if !self.problems.is_empty() {
             // Nothing to make until they are fixed; the Problems strip says so.
-            self.changed_at = None;
+            self.toolpath.changed_at = None;
             return None;
         }
         if since < QUIET_TIME {
@@ -430,8 +430,8 @@ impl ChiploadApp {
     /// "All parts" on the canvas bar: the preview shows every part, or only the active one;
     /// planned again at once.
     pub fn set_all_parts(&mut self, on: bool) {
-        self.all_parts = on;
-        if self.edit.is_some() && (self.result.is_some() || self.auto_generate) {
+        self.display.all_parts = on;
+        if self.edit.is_some() && (self.toolpath.result.is_some() || self.prefs.auto_generate) {
             self.start_generation(false);
         }
     }
@@ -441,12 +441,16 @@ impl ChiploadApp {
     pub(super) fn export_when_ready(&mut self) {
         // An export is always of every part that is cut: a preview of one part is planned
         // again whole first (docs/specs/active-part-preview.md §2).
-        let whole = self.result.is_some() && self.result_part.is_none();
-        let running_whole = self.generation.as_ref().is_some_and(|g| g.scope.is_none());
+        let whole = self.toolpath.result.is_some() && self.toolpath.part.is_none();
+        let running_whole = self
+            .toolpath
+            .running
+            .as_ref()
+            .is_some_and(|g| g.scope.is_none());
         if whole {
             self.ask_export();
         } else if running_whole || self.start_generation_of(true, true) {
-            self.export_when_done = true;
+            self.toolpath.export_when_done = true;
             self.set_status(t!(self, "generation-export-when-done"), STATUS_SECONDS);
         }
     }
@@ -467,7 +471,7 @@ impl ChiploadApp {
     /// nothing is edited unseen.
     pub(super) fn keep_drawing_in_view(&mut self) {
         if let Some(at) = &self.drawing_hidden
-            && (self.sketch.is_some()
+            && (self.sketch().is_some()
                 || (self.selection != *at && self.selection != CanvasSelection::Nothing))
         {
             self.drawing_hidden = None;
@@ -475,23 +479,23 @@ impl ChiploadApp {
     }
 
     pub fn set_show_grid(&mut self, on: bool) {
-        self.show_grid = on;
+        self.prefs.show_grid = on;
         self.change_settings(|settings| settings.show_grid = on);
     }
 
     pub fn set_show_rulers(&mut self, on: bool) {
-        self.show_rulers = on;
+        self.prefs.show_rulers = on;
         self.change_settings(|settings| settings.show_rulers = on);
     }
 
     pub fn set_setup_sheet(&mut self, on: bool) {
-        self.setup_sheet = on;
+        self.prefs.setup_sheet = on;
         self.change_settings(|settings| settings.setup_sheet = on);
     }
 
     /// View > Update toolpath automatically, kept in the app settings.
     pub fn set_auto_generate(&mut self, on: bool) {
-        self.auto_generate = on;
+        self.prefs.auto_generate = on;
         self.change_settings(|settings| settings.auto_generate = on);
     }
 
@@ -505,11 +509,60 @@ impl ChiploadApp {
     /// Whether the edit just made leaves the toolpath shown, or the run under way, as it
     /// is: it can't change what they are made from (a shape no operation selects).
     pub(super) fn edit_keeps_cut(&self) -> bool {
-        let made_from = match &self.generation {
+        let made_from = match &self.toolpath.running {
             Some(generation) => generation.inputs.as_ref(),
-            None if self.result.is_some() => self.shown_inputs.as_ref(),
+            None if self.toolpath.result.is_some() => self.toolpath.shown_inputs.as_ref(),
             None => None,
         };
         made_from.is_some_and(|inputs| self.cut_inputs_now().as_ref() == Some(inputs))
+    }
+}
+
+/// The toolpath shown and its runs (docs/specs/background-generation.md).
+pub struct Toolpath {
+    // The last generation.
+    pub result: Option<RunResult>,
+    /// The job `result` was made from (for the setup sheet).
+    pub(super) job: Option<Job>,
+    /// The project changed since the last generation, which is shown faded.
+    pub stale: bool,
+    /// The run in progress (docs/specs/background-generation.md).
+    pub(super) running: Option<Generation>,
+    /// What plans a project (a stand-in in tests).
+    pub(super) runner: Runner,
+    /// When the project last changed, while the live preview hasn't generated it yet.
+    pub(super) changed_at: Option<Instant>,
+    /// What the toolpath shown is made from (docs/specs/edit-and-simulate.md §5).
+    pub(super) shown_inputs: Option<chipload_pipeline::CutInputs>,
+    /// Export G-code once the run in progress has finished (Ctrl+E while generating).
+    pub(super) export_when_done: bool,
+    /// Where to export once the run in progress, of every part, is done.
+    pub(super) export_path_when_done: Option<PathBuf>,
+    /// Export part `id` to this path once it is planned (docs/specs/part-export.md §4).
+    pub(super) export_part_when_done: Option<(u64, PathBuf)>,
+    /// The project as a tab or start was just dropped on the canvas: if its run fails, the
+    /// drop is taken back, so the markers stay to be dragged elsewhere (the user,
+    /// 2026-10-29).
+    pub(super) undo_if_refused: Option<EditJob>,
+    /// The part the last result is a preview of; None: the whole project.
+    pub(super) part: Option<u64>,
+}
+
+impl Default for Toolpath {
+    fn default() -> Self {
+        Toolpath {
+            result: None,
+            job: None,
+            part: None,
+            stale: false,
+            running: None,
+            runner: RUNNER,
+            changed_at: None,
+            shown_inputs: None,
+            export_when_done: false,
+            export_path_when_done: None,
+            export_part_when_done: None,
+            undo_if_refused: None,
+        }
     }
 }

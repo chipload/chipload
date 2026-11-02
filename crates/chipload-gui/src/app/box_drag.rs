@@ -17,13 +17,13 @@ use super::*;
 const TURN_HANDLE_PX: f64 = 24.0;
 /// How far the box round drawn shapes stands off them, in screen pixels, so its corners
 /// never sit on a polyline's own point handles.
-const SHAPES_BOX_PAD_PX: f64 = 10.0;
+pub(super) const SHAPES_BOX_PAD_PX: f64 = 10.0;
 
 /// What a box belongs to.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum BoxOf {
-    /// A picture or a text.
-    Source(ShapeFrom),
+    /// A picture, a text, or a group with its texts (docs/specs/shape-groups.md §2).
+    Whole(Source),
     /// Drawn shapes, by id.
     Shapes(Vec<u64>),
 }
@@ -55,15 +55,20 @@ pub(super) struct BoxDrag {
     free: bool,
     /// How far the box stands off the shapes in it, mm (0 for a picture or text).
     pad: f64,
+    /// A picture or text dragged by its own lines rather than the Move handle: the box's
+    /// centre from the point grabbed, mm.
+    offset: Point,
+    /// Carried onto the shape library: saved there, not moved.
+    pub carried: bool,
 }
 
 impl ChiploadApp {
     /// The selected picture or text, or drawn shapes, and its box: in top view, while the
     /// project can be drawn on and nothing is being drawn, measured or placed.
     pub(super) fn selected_box(&mut self) -> Option<(BoxOf, PlacedBox)> {
-        if self.three_d
-            || self.sketch.is_some()
-            || self.measure.is_some()
+        if self.display.three_d
+            || self.sketch().is_some()
+            || self.measure().is_some()
             || self.placing_text()
             || !self.can_draw()
             || !self.show_drawing()
@@ -73,10 +78,24 @@ impl ChiploadApp {
         if let CanvasSelection::Shapes(_) = self.selection {
             return self.shapes_box();
         }
-        let CanvasSelection::Source(from) = self.selection else {
+        if let Some(id) = self.selected_group() {
+            // Turned as the group was (docs/specs/dxf-whole-on-canvas.md §6).
+            let drawing = &self.edit.as_ref()?.job.drawing;
+            let rotation = drawing.groups.iter().find(|g| g.id == id)?.rotation;
+            let ids: BTreeSet<u64> = drawing.group_shapes(id).into_iter().collect();
+            let pad = SHAPES_BOX_PAD_PX / self.view.scale;
+            let placed = self.turned_box_of(
+                |_, shape| shape.is_some_and(|s| ids.contains(&s)),
+                rotation,
+                pad,
+            )?;
+            return Some((BoxOf::Whole(Source::Group(id)), placed));
+        }
+        let CanvasSelection::Whole { of, left_out } = &self.selection else {
             return None;
         };
-        let drawing = &self.edit.as_ref()?.settings.drawing;
+        let from = of.shape_from().filter(|_| left_out.is_empty())?;
+        let drawing = &self.edit.as_ref()?.job.drawing;
         match from {
             ShapeFrom::Image(id) => {
                 let image = drawing.images.iter().find(|i| i.id == id)?.clone();
@@ -87,20 +106,57 @@ impl ChiploadApp {
                         .ok()?;
                     Some((f64::from(picture.width), f64::from(picture.height)))
                 })?;
-                (w > 0.0).then(|| (BoxOf::Source(from), image_box(&image, h / w)))
+                (w > 0.0).then(|| (BoxOf::Whole(from.into()), image_box(&image, h / w)))
             }
             ShapeFrom::Text(id) => {
                 let text = drawing.texts.iter().find(|t| t.id == id)?.clone();
                 let key = SizeKey::Text(Box::new(text.clone()));
                 let fonts = self.font_source();
-                let job = self.edit.as_ref().map(|e| &e.settings)?;
+                let job = self.edit.as_ref().map(|e| &e.job)?;
                 let size = self.box_size.get(key, || {
                     chipload_pipeline::texts::text_size(job, &text, &*fonts).ok()
                 })?;
-                Some((BoxOf::Source(from), text_box(&text, size)))
+                Some((BoxOf::Whole(from.into()), text_box(&text, size)))
             }
-            ShapeFrom::Dxf(_) => None,
+            ShapeFrom::Dxf(id) => {
+                // Turned as its placement turns it.
+                let rotation = drawing.dxfs.iter().find(|d| d.id == id)?.placement.rotation;
+                let pad = SHAPES_BOX_PAD_PX / self.view.scale;
+                let placed =
+                    self.turned_box_of(|f, _| f == Some(ShapeFrom::Dxf(id)), rotation, pad)?;
+                Some((BoxOf::Whole(from.into()), placed))
+            }
         }
+    }
+
+    /// DXF `id`'s shapes.
+    fn dxf_shapes(&self, id: u64) -> Vec<u64> {
+        let Some(edit) = self.edit.as_ref() else {
+            return Vec::new();
+        };
+        let shapes = edit.job.drawing.shapes.iter();
+        shapes
+            .filter(|s| s.dxf() == Some(id))
+            .map(|s| s.id)
+            .collect()
+    }
+
+    /// The box round the contours' segments that `take` takes (by where they come from and
+    /// their shape), in axes turned `degrees`, standing `pad` mm off.
+    fn turned_box_of(
+        &self,
+        take: impl Fn(Option<ShapeFrom>, Option<u64>) -> bool,
+        degrees: f64,
+        pad: f64,
+    ) -> Option<PlacedBox> {
+        let prims: Vec<_> = self
+            .contours
+            .iter()
+            .flat_map(|c| &c.parts)
+            .filter(|p| take(p.segment.from, p.segment.shape))
+            .map(|p| p.segment.prim)
+            .collect();
+        chipload_pipeline::box_handles::turned_box(&prims, degrees, pad)
     }
 
     /// The box round the selected drawn shapes, standing off them: all drawn, and not a
@@ -120,7 +176,7 @@ impl ChiploadApp {
         {
             return None;
         }
-        let job = &self.edit.as_ref()?.settings;
+        let job = &self.edit.as_ref()?.job;
         let ((x0, y0), (x1, y1)) = chipload_pipeline::shapes::drawn_box(job, &ids)?;
         let pad = SHAPES_BOX_PAD_PX / self.view.scale;
         Some((
@@ -160,6 +216,33 @@ impl ChiploadApp {
             .find(|(h, _)| *h == BoxHandle::Turn)
             .map_or(edge, |(_, p)| p);
         let mut lines = vec![vec![c[0], c[1], c[2], c[3], c[0]], vec![edge, turn]];
+        // A group follows the box while it is dragged, its letters too.
+        if let Some(BoxDrag {
+            of: BoxOf::Whole(Source::Group(id)),
+            start,
+            now,
+            pad,
+            ..
+        }) = &self.drag.boxed
+            && now != start
+        {
+            let (from, to, scale, degrees) = box_transform(start, now, *pad);
+            let ids = self.edit.as_ref().map(|e| e.job.drawing.group_shapes(*id));
+            lines.extend(self.moved_outlines(&ids.unwrap_or_default(), from, to, scale, degrees));
+        }
+        // So does a DXF (docs/specs/dxf-whole-on-canvas.md §2).
+        if let Some(BoxDrag {
+            of: BoxOf::Whole(Source::Dxf(id)),
+            start,
+            now,
+            pad,
+            ..
+        }) = &self.drag.boxed
+            && now != start
+        {
+            let (from, to, scale, degrees) = box_transform(start, now, *pad);
+            lines.extend(self.moved_outlines(&self.dxf_shapes(*id), from, to, scale, degrees));
+        }
         // Drawn shapes follow the box while it is dragged.
         if let Some(BoxDrag {
             of: BoxOf::Shapes(ids),
@@ -173,7 +256,7 @@ impl ChiploadApp {
         {
             let (from, to, scale, degrees) = box_transform(start, now, *pad);
             for shape in edit
-                .settings
+                .job
                 .drawing
                 .shapes
                 .iter()
@@ -194,10 +277,41 @@ impl ChiploadApp {
     }
 
     pub fn start_box_drag(&mut self, handle: BoxHandle) {
+        self.start_box_drag_at(handle, (0.0, 0.0));
+    }
+
+    /// A drag starting at `at` (drawing coordinates) on the contour `picked`, a line of the
+    /// selected picture or text: it moves the picture or text whole, as its Move handle
+    /// does, grabbed where it was (or carries it onto the shape library). False when that
+    /// isn't what is picked.
+    pub fn start_whole_drag(&mut self, picked: Option<usize>, at: Point) -> bool {
+        let Some(picked) = picked else {
+            return false;
+        };
+        if !matches!(self.selection, CanvasSelection::Whole { .. })
+            || !self.selected_ids().contains(&picked)
+        {
+            return false;
+        }
+        let Some((BoxOf::Whole(Source::Image(_) | Source::Text(_) | Source::Dxf(_)), placed)) =
+            self.selected_box()
+        else {
+            return false;
+        };
+        // Grabbed where it snaps, as drawn shapes are: that point lands where the cursor snaps.
+        let at = self.snap_world(at, false, false);
+        let (cx, cy) = placed.center();
+        self.start_box_drag_at(BoxHandle::Move, (cx - at.0, cy - at.1));
+        self.dragging_box()
+    }
+
+    fn start_box_drag_at(&mut self, handle: BoxHandle, offset: Point) {
         if let Some((of, start)) = self.selected_box() {
             let pad = match of {
-                BoxOf::Shapes(_) => SHAPES_BOX_PAD_PX / self.view.scale,
-                BoxOf::Source(_) => 0.0,
+                BoxOf::Shapes(_) | BoxOf::Whole(Source::Group(_) | Source::Dxf(_)) => {
+                    SHAPES_BOX_PAD_PX / self.view.scale
+                }
+                BoxOf::Whole(_) => 0.0,
             };
             self.drag.boxed = Some(BoxDrag {
                 of,
@@ -206,6 +320,8 @@ impl ChiploadApp {
                 now: start,
                 free: false,
                 pad,
+                offset,
+                carried: false,
             });
         }
     }
@@ -217,8 +333,11 @@ impl ChiploadApp {
             return;
         };
         drag.free = free;
+        let to = (to.0 + drag.offset.0, to.1 + drag.offset.1);
         let dragged = match drag.handle {
-            BoxHandle::Size(k) if drag.pad > 0.0 => size_shapes_box(&drag.start, drag.pad, k, to),
+            BoxHandle::Size(k) if drag.pad > 0.0 => {
+                turned_size_shapes_box(&drag.start, drag.pad, k, to)
+            }
             handle => drag_box(&drag.start, handle, to, free),
         };
         match dragged {
@@ -244,15 +363,25 @@ impl ChiploadApp {
             self.transform_shapes(ids, from, to, scale, degrees);
             return;
         }
+        if let BoxOf::Whole(Source::Group(id)) = drag.of {
+            let (from, to, scale, degrees) = box_transform(&drag.start, &drag.now, drag.pad);
+            self.transform_group(id, from, to, scale, degrees);
+            return;
+        }
+        if let BoxOf::Whole(Source::Dxf(id)) = drag.of {
+            let (from, to, scale, degrees) = box_transform(&drag.start, &drag.now, drag.pad);
+            self.drag_dxf(id, from, to, scale, degrees);
+            return;
+        }
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        let drawing = &edit.settings.drawing;
-        let BoxOf::Source(from) = drag.of else {
+        let drawing = &edit.job.drawing;
+        let BoxOf::Whole(of) = drag.of else {
             return;
         };
-        match from {
-            ShapeFrom::Image(id) => {
+        match of {
+            Source::Image(id) => {
                 let Some(image) = drawing.images.iter().find(|i| i.id == id) else {
                     return;
                 };
@@ -266,14 +395,14 @@ impl ChiploadApp {
                 };
                 self.set_image_place(id, &place);
             }
-            ShapeFrom::Text(id) => {
+            Source::Text(id) => {
                 let Some(text) = drawing.texts.iter().find(|t| t.id == id).cloned() else {
                     return;
                 };
                 let moved = text_in_box(&text, drag.start.size, &drag.now, drag.free);
                 self.set_text(id, &moved);
             }
-            ShapeFrom::Dxf(_) => {}
+            Source::Dxf(_) | Source::Group(_) => {}
         }
     }
 
@@ -291,14 +420,10 @@ impl ChiploadApp {
             return false;
         };
         // With the operations, so their start points and corner choices follow.
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         match chipload_pipeline::shapes::transform_shapes(&job, ids, from, to, scale, degrees) {
             Ok(job) => {
-                edit.settings.drawing = job.drawing;
-                for (entry, op) in edit.ops.iter_mut().zip(job.operations) {
-                    entry.op = op;
-                }
+                edit.adopt(job);
                 self.shape_draft = None;
                 self.drawing_changed(ids);
                 true
@@ -316,6 +441,19 @@ impl ChiploadApp {
     /// A box handle is being dragged.
     pub(super) fn dragging_box(&self) -> bool {
         self.drag.boxed.is_some()
+    }
+
+    /// The dragged picture or text carried onto the shape library, or back off it: while
+    /// carried it stays where it was.
+    pub(super) fn carry_box(&mut self, carried: bool) {
+        if let Some(drag) = self.drag.boxed.as_mut()
+            && drag.handle == BoxHandle::Move
+        {
+            drag.carried = carried;
+            if carried {
+                drag.now = drag.start;
+            }
+        }
     }
 }
 
@@ -356,6 +494,35 @@ fn box_transform(start: &PlacedBox, now: &PlacedBox, pad: f64) -> (Point, Point,
         scale,
         now.rotation - start.rotation,
     )
+}
+
+/// [`size_shapes_box`] for a box turned as a group's or a DXF's is: the handle's point taken
+/// into the box's own axes, the box sized there, and turned back about the same centre.
+fn turned_size_shapes_box(
+    start: &PlacedBox,
+    pad: f64,
+    k: usize,
+    to: Point,
+) -> Result<PlacedBox, Message> {
+    if start.rotation == 0.0 {
+        return size_shapes_box(start, pad, k, to);
+    }
+    let c = start.center();
+    let turn = |p: Point, degrees: f64| {
+        let q = chipload_job::rotated([p.0 - c.0, p.1 - c.1], degrees);
+        (q[0] + c.0, q[1] + c.1)
+    };
+    let upright = PlacedBox {
+        rotation: 0.0,
+        ..*start
+    };
+    let sized = size_shapes_box(&upright, pad, k, turn(to, -start.rotation))?;
+    let centre = turn(sized.center(), start.rotation);
+    Ok(PlacedBox {
+        corner: (centre.0 - sized.size.0 / 2.0, centre.1 - sized.size.1 / 2.0),
+        size: sized.size,
+        rotation: start.rotation,
+    })
 }
 
 /// The box round drawn shapes after corner `k` of `start` is dragged to `to`: the shapes'

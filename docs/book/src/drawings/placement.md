@@ -15,6 +15,17 @@ Each row has a reset button: the position back to where the DXF has it, rotation
 A change applies when you finish the edit (Enter, Tab or releasing a drag), as one undo
 step.
 
+**On the canvas:** click the drawing, and its box shows handles (in top view), as a
+picture's does:
+- the square in the **middle** moves it, and so does dragging one of its lines;
+- the square beyond its side **turns** it about the box's centre, in steps of 15° (Alt:
+  1°); the box stays turned with it;
+- a **corner** square scales it, the opposite corner staying where it is.
+
+Each drag is one undo step, and start points and tabs move with it. Dropped on the
+*Shapes* tab, it is saved to the [shape library](shape-library.md) instead of moved.
+A double-click picks one contour alone, for an operation that cuts only that.
+
 On the command line, `chipload place` (for a picture, `--image ID` with `--at`, `--rotate`
 and `--width`):
 

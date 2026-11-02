@@ -64,7 +64,7 @@ impl ChiploadApp {
         let Some(bounds) = self
             .edit
             .as_ref()
-            .and_then(|e| chipload_pipeline::shapes::drawn_box(&e.settings, &ids))
+            .and_then(|e| chipload_pipeline::shapes::drawn_box(&e.job, &ids))
         else {
             return;
         };
@@ -95,7 +95,7 @@ impl ChiploadApp {
         // One thing at a time (the user, 2026-10-28): what is picked on the canvas, or the
         // Browser's item.
         if self.focus == Focus::Selection {
-            if self.selection.ids(&self.contours).is_empty() {
+            if self.selected_ids().is_empty() {
                 ui.weak(t!(ui, "panels-nothing-selected"));
                 // An array tool waits for shapes: its values and Cancel stay at hand.
                 self.array_form(ui);
@@ -107,7 +107,7 @@ impl ChiploadApp {
             return;
         }
         problems::set_form_problems(ui, self.form_problem_map(self.focus));
-        let selected = self.selection.ids(&self.contours).len();
+        let selected = self.selected_ids().len();
         let selection_text = self.selection_lines().join("\n");
         let floor_hint = match self.focus {
             Focus::FloorPass(i) => self.floor_hint(i),
@@ -120,12 +120,12 @@ impl ChiploadApp {
         // A text just placed: its text field takes the keyboard, once.
         let grab = std::mem::take(&mut self.focus_text_field);
         let contours = &self.contours;
-        let library = self.settings_dir.as_ref().map(|_| &self.library);
+        let library = self.user.settings_dir.as_ref().map(|_| &self.user.library);
         let mut op_request = OpFormRequest::default();
         let mut request = None;
         // The library's materials, each with its values for the open operation's tool.
         let materials = match (focus, library) {
-            (Focus::Op(i), Some(library)) => edit.ops.get(i).map(|e| {
+            (Focus::Op(i), Some(library)) => edit.job.operations.get(i).map(|e| {
                 library
                     .materials
                     .materials
@@ -133,11 +133,7 @@ impl ChiploadApp {
                     .map(|m| {
                         (
                             chipload_pipeline::materials::material_ref(m),
-                            chipload_pipeline::materials::tool_values(
-                                &edit.settings,
-                                m,
-                                e.op.tool(),
-                            ),
+                            chipload_pipeline::materials::tool_values(&edit.job, m, e.tool()),
                         )
                     })
                     .collect()
@@ -146,9 +142,10 @@ impl ChiploadApp {
         };
         let cutting = match focus {
             Focus::Op(i) => edit
-                .ops
+                .job
+                .operations
                 .get(i)
-                .and_then(|e| self_tool_cutting(library, &edit.settings.tools, e.op.tool())),
+                .and_then(|e| self_tool_cutting(library, &edit.job.tools, e.tool())),
             _ => None,
         };
         ui.scope(|ui| match focus {
@@ -183,18 +180,22 @@ impl ChiploadApp {
                 let choice = ToolChoice {
                     selected,
                     selection_text: &selection_text,
-                    tools: &edit.settings.tools,
+                    tools: &edit.job.tools,
                     library: library
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
                     cutting,
                     materials,
                 };
                 let stock = StockDepths {
-                    thickness: edit.settings.stock().thickness,
-                    max_overcut: edit.settings.stock().max_overcut,
+                    thickness: edit.job.stock().thickness,
+                    max_overcut: edit.job.stock().max_overcut,
                 };
-                if let Some(entry) = edit.ops.get_mut(i) {
-                    op_request = op_form(ui, i, entry, contours, choice, stock);
+                let mut side_chosen = edit.side_chosen(i);
+                if let Some(op) = edit.job.operations.get_mut(i) {
+                    op_request = op_form(ui, i, op, &mut side_chosen, contours, choice, stock);
+                }
+                if side_chosen {
+                    edit.choose_side(i);
                 }
             }
         });
@@ -241,7 +242,7 @@ impl ChiploadApp {
                     self.update_dxf_from(Some(dxf), &path, None);
                 }
             }
-            Some(JobRequest::ExplodeDxf(dxf)) => self.ask_explode(dxf),
+            Some(JobRequest::ExplodeDxf(dxf)) => self.ask_explode(Source::Dxf(dxf)),
             Some(JobRequest::RemoveDxf(dxf)) if self.remove_dxf(dxf) => {
                 self.focus = Focus::Job;
             }
@@ -319,8 +320,13 @@ impl ChiploadApp {
                     {
                         self.ask_open();
                     }
-                    let recent: Vec<String> =
-                        self.recent.iter().take(START_RECENT).cloned().collect();
+                    let recent: Vec<String> = self
+                        .prefs
+                        .recent
+                        .iter()
+                        .take(START_RECENT)
+                        .cloned()
+                        .collect();
                     if !recent.is_empty() {
                         ui.add_space(16.0);
                         ui.label(RichText::new(t!(ui, "panels-recent")).strong());

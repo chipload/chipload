@@ -58,6 +58,9 @@ pub struct ImageDialog {
     pending: Option<mpsc::Receiver<Result<Preview, String>>>,
     asked: Option<Image>,
     zoom: PreviewZoom,
+    /// The traced lines drawn over the picture (unticked: the picture alone, to judge the
+    /// threshold by its detail).
+    show_lines: bool,
 }
 
 /// What part of the picture the preview shows: `zoom` 1 is all of it, centred on `centre`
@@ -119,6 +122,7 @@ impl ImageDialog {
             pending: None,
             asked: None,
             zoom: PreviewZoom::default(),
+            show_lines: true,
         }
     }
 
@@ -168,23 +172,29 @@ impl ImageDialog {
     }
 }
 
-/// How the black parts are shown: near black, so the picture reads as it will be traced.
-const FIELD_GREY: u8 = 40;
+/// The picture as it will be carved in wood (the user, 2026-11-01): the surface light
+/// oak, the black parts, which are carved, dark brown.
+const WOOD: [u8; 3] = [226, 200, 158];
+const CARVED: [u8; 3] = [92, 58, 32];
+/// The traced lines over it: a blue that stands out from both browns, thin, so it doesn't
+/// hide the detail the threshold is set by.
+const TRACED: Color32 = Color32::from_rgb(30, 130, 255);
 
-/// The black-and-white picture as a texture, scaled down to `MAX_TEXTURE_PX`.
+/// The black-and-white picture as a texture in wood colours, scaled down to
+/// `MAX_TEXTURE_PX`.
 fn texture_of(p: &Preview) -> ColorImage {
     let bw = &p.black_white;
     let (w, h) = (bw.width as usize, bw.height as usize);
     let step = w.max(h).div_ceil(MAX_TEXTURE_PX).max(1);
     let (tw, th) = (w.div_ceil(step), h.div_ceil(step));
-    let mut gray = Vec::with_capacity(tw * th);
+    let mut rgb = Vec::with_capacity(tw * th * 3);
     for row in 0..th {
         for column in 0..tw {
             let black = bw.black[(row * step).min(h - 1) * w + (column * step).min(w - 1)];
-            gray.push(if black { FIELD_GREY } else { 255 });
+            rgb.extend_from_slice(if black { &CARVED } else { &WOOD });
         }
     }
-    ColorImage::from_gray([tw, th], &gray)
+    ColorImage::from_rgb([tw, th], &rgb)
 }
 
 /// The picture in grey, scaled down to `MAX_TEXTURE_PX`.
@@ -261,14 +271,14 @@ impl ChiploadApp {
             .unwrap_or_default();
         // Half the stock's width to start with, shown and editable: never a guess from the
         // picture's DPI (spec §3.5).
-        let width = (edit.stock_size().0 / 2.0).round().max(1.0);
+        let width = (edit.job.stock_size().0 / 2.0).round().max(1.0);
         let defaults = NewImage::new(&file, &bytes, width);
         let draft = Image {
             id: 0,
             file: file.clone(),
             sha256: String::new(),
             data: String::new(),
-            layer: new_layer(&edit.settings, &file),
+            layer: new_layer(&edit.job, &file),
             x: 0.0,
             y: 0.0,
             width,
@@ -294,7 +304,7 @@ impl ChiploadApp {
         let Some(image) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.images.iter().find(|i| i.id == id))
+            .and_then(|e| e.job.drawing.images.iter().find(|i| i.id == id))
             .cloned()
         else {
             return false;
@@ -332,10 +342,10 @@ impl ChiploadApp {
                 new.smoothing = draft.smoothing;
                 new.trace = draft.trace;
                 new.arcs = draft.arcs;
-                add_image(&edit.settings, new)
+                add_image(&edit.job, new)
             }
             ImageTarget::Existing(id) => {
-                let mut job = edit.settings.clone();
+                let mut job = edit.job.clone();
                 // The window changes the conversion settings only: the size, place and
                 // layer are the project's, set in the picture's properties
                 // (docs/specs/properties-for-tools-and-dxfs.md §3b).
@@ -357,13 +367,12 @@ impl ChiploadApp {
         match result {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.image_dialog = None;
                 self.drawing_changed(&[]);
-                self.selection = super::CanvasSelection::Source(
-                    chipload_core::chain::ShapeFrom::Image(report.id),
-                );
+                self.selection =
+                    super::CanvasSelection::whole(chipload_job::Source::Image(report.id));
                 // Its size and place are in its properties, right after importing.
                 self.focus = super::Focus::Image(report.id);
                 self.commit();
@@ -392,7 +401,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return false;
         };
-        let mut job = edit.settings.clone();
+        let mut job = edit.job.clone();
         let Some(image) = job.drawing.images.iter_mut().find(|i| i.id == id) else {
             return false;
         };
@@ -403,12 +412,11 @@ impl ChiploadApp {
         match retrace(&job, id) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.drawing_changed(&[]);
-                self.selection = super::CanvasSelection::Source(
-                    chipload_core::chain::ShapeFrom::Image(report.id),
-                );
+                self.selection =
+                    super::CanvasSelection::whole(chipload_job::Source::Image(report.id));
                 self.commit();
                 self.set_report(Report::of_messages(report.messages));
                 true
@@ -439,9 +447,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match chipload_pipeline::images::remove_image(&edit.settings, id) {
+        match chipload_pipeline::images::remove_image(&edit.job, id) {
             Ok(job) => {
-                edit.settings = job;
+                edit.job = job;
                 self.drawing_changed(&[]);
                 self.selection = super::CanvasSelection::Nothing;
                 self.commit();
@@ -466,7 +474,7 @@ impl ChiploadApp {
         // Every shape from one picture, or every shape from one text.
         let mut sources = std::collections::BTreeSet::new();
         for id in ids {
-            let shape = edit.settings.drawing.shapes.iter().find(|s| s.id == *id)?;
+            let shape = edit.job.drawing.shapes.iter().find(|s| s.id == *id)?;
             let source = match (shape.image(), shape.text()) {
                 (Some(image), _) => chipload_core::chain::ShapeFrom::Image(image),
                 (None, Some(text)) => chipload_core::chain::ShapeFrom::Text(text),
@@ -478,7 +486,7 @@ impl ChiploadApp {
             1 => sources.into_iter().next()?,
             _ => return None,
         };
-        let selected = self.selection.ids(&self.contours);
+        let selected = self.selected_ids();
         let left_out: std::collections::BTreeSet<u64> = self
             .contours
             .iter()
@@ -486,10 +494,9 @@ impl ChiploadApp {
             .filter(|c| !selected.contains(&c.id))
             .flat_map(super::shapes_of)
             .collect();
-        Some(if left_out.is_empty() {
-            super::CanvasSelection::Source(from)
-        } else {
-            super::CanvasSelection::Except(from, left_out)
+        Some(super::CanvasSelection::Whole {
+            of: from.into(),
+            left_out,
         })
     }
 
@@ -498,7 +505,7 @@ impl ChiploadApp {
         let images: Vec<Image> = self
             .edit
             .as_ref()
-            .map(|e| e.settings.drawing.images.clone())
+            .map(|e| e.job.drawing.images.clone())
             .unwrap_or_default();
         let keys: Vec<PictureKey> = images
             .iter()
@@ -531,7 +538,7 @@ impl ChiploadApp {
             }
             self.picture_textures = PictureTextures { keys, layers };
         }
-        self.scene.pictures = if self.show_images {
+        self.scene.pictures = if self.display.images {
             self.picture_textures
                 .layers
                 .iter()
@@ -601,9 +608,10 @@ fn picture_size(dialog: &ImageDialog) -> (u32, u32) {
     (dialog.picture.width, dialog.picture.height)
 }
 
-/// The black-and-white picture. Outlines are not drawn: they follow the black parts and
-/// would hide the detail the threshold is set by. Centre lines are, as they are the result.
-/// Scrolling zooms at the pointer, dragging pans, a double click shows all of it.
+/// The picture as it will be carved, with the traced lines over it, outlines or centre
+/// lines: thin, and hidden with the checkbox under it to judge the detail alone (the user,
+/// 2026-11-01, after they were left out on 2026-10-14 for hiding it). Scrolling zooms at
+/// the pointer, dragging pans, a double click shows all of it.
 fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
     let (w, h) = picture_size(dialog);
     let aspect = f64::from(h) / f64::from(w);
@@ -619,7 +627,7 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
             painter.image(texture.id(), rect, uv, Color32::WHITE);
         }
         if let Some(Ok(preview)) = &dialog.preview
-            && dialog.shown.as_ref().map(|image| image.trace) == Some(ImageTrace::CentreLine)
+            && dialog.show_lines
         {
             // Lines are in mm from the picture's lower-left corner.
             let width = preview.trace.width;
@@ -632,7 +640,7 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
                     rect.top() + (v - uv.top()) / uv.height() * rect.height(),
                 )
             };
-            let stroke = Stroke::new(1.0, Color32::from_rgb(230, 110, 20));
+            let stroke = Stroke::new(1.0, TRACED);
             for path in &preview.trace.paths {
                 let mut points: Vec<Pos2> = path.points.iter().map(|&p| to_screen(p)).collect();
                 if path.closed
@@ -643,6 +651,8 @@ fn picture_view(ui: &mut egui::Ui, dialog: &mut ImageDialog) {
                 painter.add(egui::Shape::line(points, stroke));
             }
         }
+        ui.checkbox(&mut dialog.show_lines, t!(ui, "images-show-lines"))
+            .on_hover_text(t!(ui, "images-show-lines-hover"));
         let note = if dialog.zoom.zoom > 1.0 {
             let zoom = format!("{:.0}%", dialog.zoom.zoom * 100.0);
             t!(ui, "images-zoom-note", zoom = zoom)

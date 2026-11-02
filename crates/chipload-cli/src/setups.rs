@@ -6,15 +6,14 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, save_job};
 use chipload_pipeline::setups::{
     activate_setup, add_setup, move_part_to_setup, remove_setup, set_setup,
 };
 use clap::Subcommand;
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum SetupAction {
@@ -152,7 +151,7 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
         }
     };
     match changed {
-        Ok(job) => write(out, &job, output.as_deref().unwrap_or(&project)),
+        Ok(job) => write_project(out, &job, output.as_deref().unwrap_or(&project)),
         Err(err) => out.fail(err),
     }
 }
@@ -206,13 +205,5 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
         }));
     }
     out.set("setups", Value::Array(rows));
-    ExitCode::SUCCESS
-}
-
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
-    }
-    out.wrote(target, "");
     ExitCode::SUCCESS
 }

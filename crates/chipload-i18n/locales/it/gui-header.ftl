@@ -55,7 +55,7 @@ header-frame = Cornice
 header-frame-hover = Disegna una cornice per un'insegna: attorno al testo o alle forme selezionati, o di una misura, con bordi
 header-image = Immagine
 header-image-hover = Vettorizza un'immagine in forme, per un'incisione a V o un segui percorso
-header-add-dxf = Aggiungi DXF
+header-add-dxf = DXF/SVG
 header-add-dxf-hover = Un DXF o SVG in questo progetto, accanto a ciò che c'è: posizionato e aggiornato per conto suo
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importa prima un DXF o SVG (FILE > Importa)

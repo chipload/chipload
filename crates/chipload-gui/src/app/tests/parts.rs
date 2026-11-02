@@ -4,10 +4,7 @@ use super::*;
 #[test]
 fn new_operations_go_into_the_active_part_whatever_is_open() {
     let mut app = two_parts();
-    assert_eq!(
-        app.edit.as_ref().unwrap().settings.active_part_id(),
-        Some(2)
-    );
+    assert_eq!(app.edit.as_ref().unwrap().job.active_part_id(), Some(2));
     // An operation of part 1 is open; the new one still goes into part 2, at its end.
     app.focus = Focus::Op(0);
     app.select_row(app.group_selection("dxf:2"), false);
@@ -20,7 +17,7 @@ fn new_operations_go_into_the_active_part_whatever_is_open() {
     assert_eq!(index, 3);
     assert_eq!(op_parts(&app), [1, 1, 1, 1, 2, 2]);
     // It is kept with the project.
-    assert_eq!(app.edit.as_ref().unwrap().settings.active_part, Some(1));
+    assert_eq!(app.edit.as_ref().unwrap().job.active_part, Some(1));
 }
 
 #[test]
@@ -49,7 +46,7 @@ fn a_part_is_added_turned_off_and_deleted_with_its_operations_and_undo_brings_it
         .edit
         .as_ref()
         .unwrap()
-        .settings
+        .job
         .parts
         .iter()
         .map(|p| p.name.clone())
@@ -66,7 +63,7 @@ fn a_part_is_added_turned_off_and_deleted_with_its_operations_and_undo_brings_it
     app.delete_part(3);
     app.delete_part(2);
     app.delete_part(1);
-    assert_eq!(app.edit.as_ref().unwrap().settings.parts.len(), 1);
+    assert_eq!(app.edit.as_ref().unwrap().job.parts.len(), 1);
 }
 
 #[test]
@@ -76,7 +73,7 @@ fn a_parts_properties_edit_its_copies_and_the_browser_draws_the_parts() {
     draw_properties(&mut app);
     draw_sidebar(&mut app);
     // A problem in part 1's copies marks part 1's form.
-    app.edit.as_mut().unwrap().settings.parts[0].copies = Some(chipload_job::Copies {
+    app.edit.as_mut().unwrap().job.parts[0].copies = Some(chipload_job::Copies {
         columns: 0,
         rows: 1,
         dx: 10.0,

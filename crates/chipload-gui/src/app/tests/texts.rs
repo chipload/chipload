@@ -11,7 +11,7 @@ fn with_text() -> (ChiploadApp, u64) {
     app.edit
         .as_mut()
         .unwrap()
-        .settings
+        .job
         .tools
         .push(chipload_job::Tool {
             id: 2,
@@ -33,7 +33,7 @@ fn with_text() -> (ChiploadApp, u64) {
 }
 
 fn texts(app: &ChiploadApp) -> &[chipload_job::Text] {
-    &app.edit.as_ref().unwrap().settings.drawing.texts
+    &app.edit.as_ref().unwrap().job.drawing.texts
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn draw_text_places_a_text_opened_and_selected_as_one_undo_step() {
     assert_eq!(texts(&app).len(), 1);
     assert_eq!((texts(&app)[0].x, texts(&app)[0].y), (20.0, 30.0));
     assert_eq!(app.focus, Focus::Text(id));
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     assert!(app.focus_text_field, "the text field takes the keyboard");
     // Its letters are contours on the canvas.
     let letters = app
@@ -100,7 +100,7 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
         .unwrap()
         .id;
     app.click(Some(letter), false);
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     // Its properties open, as from its Browser row (the user, 2026-10-30).
     assert_eq!(app.focus, Focus::Text(id));
     draw_properties(&mut app);
@@ -109,8 +109,8 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
     assert_eq!(app.focus, Focus::Selection);
     app.click(Some(letter), false);
     let index = app.add_operation(OpKind::Vcarve).unwrap();
-    let op = &app.edit.as_ref().unwrap().ops[index].op;
-    assert_eq!(op.select().text, Some(id));
+    let op = &app.edit.as_ref().unwrap().job.operations[index];
+    assert_eq!(op.select().text(), Some(id));
     // Its form names the text, not "no geometry" (user report 2026-10-17).
     assert_eq!(
         crate::editor::geometry_summary(op, &app.contours, &crate::i18n::Language::En),
@@ -143,7 +143,7 @@ fn dragging_a_texts_move_handle_moves_its_letters_as_one_undo_step() {
     let after = &texts(&app)[0];
     assert!((after.x - (before.x + 15.0)).abs() < 1e-9);
     assert!((after.y - (before.y - 5.0)).abs() < 1e-9);
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     app.undo();
     assert_eq!(texts(&app)[0], before);
 }
@@ -175,7 +175,7 @@ fn a_corner_drag_makes_a_text_taller() {
 fn a_text_without_its_font_keeps_its_letters_and_moves() {
     let (mut app, id) = with_text();
     // As if written elsewhere in a font this computer doesn't have.
-    app.edit.as_mut().unwrap().settings.drawing.texts[0].font = "No Such Font 42".into();
+    app.edit.as_mut().unwrap().job.drawing.texts[0].font = "No Such Font 42".into();
     app.commit();
     app.wait_for_fonts();
     assert_eq!(app.text_fonts.has("No Such Font 42"), Some(false));
@@ -184,7 +184,7 @@ fn a_text_without_its_font_keeps_its_letters_and_moves() {
         app.edit
             .as_ref()
             .unwrap()
-            .settings
+            .job
             .drawing
             .shapes
             .iter()

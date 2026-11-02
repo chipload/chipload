@@ -5,16 +5,16 @@ use super::*;
 fn the_3d_view_can_be_entered_and_left_and_drawing_returns_to_top_view() {
     let mut app = drawn_part();
     app.view_3d();
-    assert!(app.three_d && !app.view.is_top());
+    assert!(app.display.three_d && !app.view.is_top());
     app.view_top();
-    assert!(!app.three_d && app.view.is_top());
+    assert!(!app.display.three_d && app.view.is_top());
     app.view_3d();
     app.start_drawing(Tool::Circle);
     assert!(
-        !app.three_d && app.view.is_top(),
+        !app.display.three_d && app.view.is_top(),
         "drawing works in top view only"
     );
-    assert!(app.sketch.is_some());
+    assert!(app.sketch().is_some());
 }
 
 #[test]

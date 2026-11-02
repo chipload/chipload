@@ -1031,3 +1031,30 @@ fn any_angle_and_back_gives_the_drawing_back() {
         "{x0} {y0}"
     );
 }
+
+/// A DXF's box dragged on the canvas (docs/specs/dxf-whole-on-canvas.md §2): turned and
+/// scaled about the box's centre, which lands where it was dragged; start points follow.
+#[test]
+fn a_dragged_dxf_turns_and_scales_about_its_box_and_lands_where_dragged() {
+    let (job, _, _) = drawn_then_imported("drag");
+    // The 50 mm square (S2) at 500, 400; a start point on its bottom side.
+    let job = with_ops(
+        &job,
+        json!([profile(
+            json!({"layer": null, "shapes": [2]}),
+            json!([[525.0, 400.0]])
+        )]),
+    );
+    let id = job.drawing.dxfs[0].id;
+    let (placed, _) =
+        chipload_pipeline::placement::drag_dxf(&job, id, (525.0, 425.0), (100.0, 50.0), 2.0, 90.0)
+            .unwrap();
+    // Twice the size, centred where dragged; a square turned 90° is still a square.
+    assert_box(&placed, 2, (50.0, 0.0), (150.0, 100.0));
+    let p = placement(&placed);
+    assert!(near(p.rotation, 90.0) && near(p.scale, 2.0), "{p:?}");
+    // The start point turned with it: from below the centre to its right.
+    assert_eq!(placed.operations[0].starts(), [[150.0, 50.0]]);
+    // The drawn circle stays.
+    assert_box(&placed, 1, (80.0, 80.0), (120.0, 120.0));
+}

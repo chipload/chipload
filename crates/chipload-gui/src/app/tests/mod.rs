@@ -3,6 +3,7 @@ use super::*;
 use chipload_job::{HoleMethod, Lead};
 use chipload_toolpath::model::MoveKind;
 
+mod active_tool;
 mod browser;
 mod browser_drawing_folder;
 mod chip_load;
@@ -10,10 +11,14 @@ mod corner_choices;
 mod cycle_time;
 mod delete_selection;
 mod disk_changes;
+mod dock;
 mod drawing;
 mod drawn_box;
+mod dxf_whole;
+mod explode;
 mod frames;
 mod generating;
+mod groups;
 mod handles;
 mod header;
 mod holding;
@@ -32,6 +37,7 @@ mod recovery_copies;
 mod screenshots;
 mod select_drag;
 mod setups;
+mod shape_library;
 mod tab_markers;
 mod texts;
 mod three_d_view;
@@ -39,6 +45,7 @@ mod tool_library;
 mod trim_select;
 mod units;
 mod update_notice;
+mod vcarve_form;
 mod view_bar;
 mod work_zero;
 mod workflows;
@@ -71,7 +78,7 @@ fn lower_part() -> ChiploadApp {
 }
 
 fn first_cut(app: &ChiploadApp) -> (f64, f64) {
-    let moves = &app.result.as_ref().unwrap().program.moves;
+    let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     let m = moves
         .iter()
         .find(|m| m.kind == MoveKind::Rapid && m.x.is_some())
@@ -136,7 +143,7 @@ fn draw_sidebar(app: &mut ChiploadApp) {
 
 /// Change operation 1's feed and record it as an edit.
 fn edit_feed(app: &mut ChiploadApp, feed: f64) {
-    match &mut app.edit.as_mut().unwrap().ops[0].op {
+    match &mut app.edit.as_mut().unwrap().job.operations[0] {
         Operation::Pocket(p) => p.feed = feed,
         _ => panic!("operation 1 is a pocket"),
     }
@@ -170,9 +177,10 @@ fn op_parts(app: &ChiploadApp) -> Vec<u64> {
     app.edit
         .as_ref()
         .unwrap()
-        .ops
+        .job
+        .operations
         .iter()
-        .map(|e| e.op.part())
+        .map(|e| e.part())
         .collect()
 }
 
@@ -208,7 +216,7 @@ fn the_simulation_shows_what_the_tools_leave() {
     // material left, and the report has no "can't reach" lines any more. Projects open in
     // Edit (docs/specs/edit-and-simulate.md): nothing is simulated until Simulate.
     let mut app = lower_part();
-    assert!(!app.show_simulation);
+    assert!(!app.display.simulate);
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.simulating());
     app.set_show_simulation(true);

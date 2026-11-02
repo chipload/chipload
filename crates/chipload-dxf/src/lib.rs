@@ -331,13 +331,13 @@ pub fn shapes_from_drawing_scaled(
             layer,
             name: None,
             geometry: Geometry::Path {
-                dxf_handle: Some(handle),
-                dxf_type: Some(dxf_type),
                 closed: PathSegment::closes(&segments),
                 segments,
-                image: None,
-                dxf: Some(1),
-                text: None,
+                origin: Some(chipload_job::Origin::Dxf {
+                    id: 1,
+                    handle,
+                    entity: dxf_type,
+                }),
             },
         })
         .collect();

@@ -79,7 +79,7 @@ impl ChiploadApp {
 
     /// The shapes of the selected contours, any kind: what a frame goes round.
     pub(super) fn framed_shape_ids(&self) -> Vec<u64> {
-        let picked = self.selection.ids(&self.contours);
+        let picked = self.selected_ids();
         let ids: std::collections::BTreeSet<u64> = self
             .contours
             .iter()
@@ -91,7 +91,7 @@ impl ChiploadApp {
 
     /// The frame the tool's values make now: round the selection, or to a size.
     fn new_frame(&self) -> NewFrame {
-        let f = &self.frame;
+        let f = &self.canvas_tools.frame;
         let ids = self.framed_shape_ids();
         let size = if ids.is_empty() {
             FrameSize::Fixed {
@@ -122,11 +122,11 @@ impl ChiploadApp {
             return Vec::new();
         };
         let frame = self.new_frame();
-        let key = format!("{frame:?}{:?}", edit.settings.drawing);
-        if self.frame_preview.key != key {
-            let job = &edit.settings;
-            let lang = self.language;
-            let units = self.units.into();
+        let key = format!("{frame:?}{:?}", edit.job.drawing);
+        if self.canvas_tools.frame_preview.key != key {
+            let job = &edit.job;
+            let lang = self.prefs.language;
+            let units = self.prefs.units.into();
             let place = place_frame(job, &frame)
                 .map(|p| (p.width, p.height, p.r))
                 .map_err(|e| e.message().render(lang, units));
@@ -142,13 +142,13 @@ impl ChiploadApp {
                         .collect()
                 })
                 .unwrap_or_default();
-            self.frame_preview = FramePreview {
+            self.canvas_tools.frame_preview = FramePreview {
                 key,
                 lines,
                 place: Some(place),
             };
         }
-        self.frame_preview.lines.clone()
+        self.canvas_tools.frame_preview.lines.clone()
     }
 
     /// Add the frame, as one undo step; its shapes are selected and the tool ends.
@@ -166,13 +166,13 @@ impl ChiploadApp {
 
     /// Under Selection while the frame tool is active: the frames, their values, Add.
     pub(super) fn frame_form(&mut self, ui: &mut egui::Ui) {
-        if self.modify != Some(ModifyTool::Frame) {
+        if self.modify() != Some(ModifyTool::Frame) {
             return;
         }
         let around = !self.framed_shape_ids().is_empty();
         // The preview's numbers, for the size shown and the reason a frame can't be.
         self.frame_outlines();
-        let place = self.frame_preview.place.clone();
+        let place = self.canvas_tools.frame_preview.place.clone();
         ui.separator();
         ui.strong(t!(ui, "frame-title"));
         ui.label(if around {
@@ -181,8 +181,8 @@ impl ChiploadApp {
             t!(ui, "frame-to-size")
         });
         self.frame_kinds(ui);
-        let units = self.units;
-        let f = &mut self.frame;
+        let units = self.prefs.units;
+        let f = &mut self.canvas_tools.frame;
         egui::Grid::new("frame-form").num_columns(2).show(ui, |ui| {
             if around {
                 ui.label(t!(ui, "frame-margin"));
@@ -270,7 +270,7 @@ impl ChiploadApp {
         ui.horizontal_wrapped(|ui| {
             for kind in FrameKind::ALL {
                 let size = egui::vec2(44.0, 30.0);
-                let selected = self.frame.kind == kind;
+                let selected = self.canvas_tools.frame.kind == kind;
                 let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
                 let visuals = ui.style().interact_selectable(&response, selected);
                 let painter = ui.painter();
@@ -293,7 +293,7 @@ impl ChiploadApp {
                 }
                 let response = response.on_hover_text(kind_name(ui, kind));
                 if response.clicked() {
-                    self.frame.kind = kind;
+                    self.canvas_tools.frame.kind = kind;
                 }
             }
         });

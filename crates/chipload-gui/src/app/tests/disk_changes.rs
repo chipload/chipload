@@ -24,12 +24,12 @@ fn changed_elsewhere(path: &Path, x: f64) {
 
 /// The stock's X size in the app.
 fn stock_x(app: &ChiploadApp) -> f64 {
-    app.edit.as_ref().unwrap().settings.stock().x
+    app.edit.as_ref().unwrap().job.stock().x
 }
 
 /// The user sets the stock's X size in the app.
 fn set_here(app: &mut ChiploadApp, x: f64) {
-    app.edit.as_mut().unwrap().settings.stock_mut().x = x;
+    app.edit.as_mut().unwrap().job.stock_mut().x = x;
     app.commit();
 }
 
@@ -61,9 +61,9 @@ fn a_file_changed_on_disk_is_reloaded_as_one_undo_step() {
         app.report
     );
     // Not reloaded again on the next looks.
-    let undo_steps = app.undo.len();
+    let undo_steps = app.history.undo.len();
     look(&mut app, 3);
-    assert_eq!(app.undo.len(), undo_steps);
+    assert_eq!(app.history.undo.len(), undo_steps);
     app.undo();
     assert_eq!(stock_x(&app), before);
 }
@@ -74,9 +74,9 @@ fn the_apps_own_save_is_not_a_change() {
     look(&mut app, 1);
     set_here(&mut app, 163.125);
     assert!(app.save_project(&path));
-    let undo_steps = app.undo.len();
+    let undo_steps = app.history.undo.len();
     look(&mut app, 3);
-    assert_eq!(app.undo.len(), undo_steps);
+    assert_eq!(app.history.undo.len(), undo_steps);
     assert!(app.dialogs.prompt.is_none() && !app.dirty());
 }
 

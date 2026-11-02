@@ -109,7 +109,7 @@ fn selectors_of_the_dxf_become_its_shapes() {
     let one = load_job(&corpus("jobs/v20/scaled_part.chipload")).unwrap();
     let (two, _) = add_dxf(&one, &corpus("dxf/simple_part.dxf"), None).unwrap();
     // Both operations are limited to DXF 1 now: layer HOLES and CUT_OUTSIDE of it.
-    assert!(two.operations.iter().all(|op| op.select().dxf == Some(1)));
+    assert!(two.operations.iter().all(|op| op.select().dxf() == Some(1)));
     let (out, report) = explode_dxf(&two, 1, None).unwrap();
     for op in &out.operations {
         let select = op.select();
@@ -188,7 +188,7 @@ fn joining_closes_a_square_drawn_in_four_lines_and_operations_follow() {
     job.drawing.next_shape_id += 4;
     job.operations[0].select_mut().unwrap().shapes = Some(vec![ids[2], ids[3]]);
     job.operations[0].select_mut().unwrap().layer = None;
-    job.operations[0].select_mut().unwrap().dxf = None;
+    job.operations[0].select_mut().unwrap().source = None;
 
     let (unchanged, report) = join_shapes(&job, &[], 0.005).unwrap();
     assert_eq!(
@@ -314,4 +314,180 @@ fn a_slot_whose_end_is_a_hair_over_a_half_circle_explodes_whole() {
         report.lines
     );
     assert_eq!(closed(&out), before);
+}
+
+mod pictures_and_texts {
+    //! Exploding a traced picture or a text (docs/specs/explode-pictures-and-texts.md §7).
+    use super::*;
+    use chipload_job::Source;
+    use chipload_pipeline::explode::{explode_image, explode_text, which_image, which_text};
+    use chipload_pipeline::groups::{Members, group};
+
+    /// Every picture and text of `job` exploded, one after the other.
+    fn explode_all(job: &Job) -> (Job, bool) {
+        let mut out = job.clone();
+        let mut restarted = false;
+        for id in job.drawing.images.iter().map(|i| i.id) {
+            let (next, report) = explode_image(&out, id).unwrap();
+            restarted |= report.lines.iter().any(|l| l.contains("right-hand point"));
+            out = next;
+        }
+        for id in job.drawing.texts.iter().map(|t| t.id) {
+            let (next, report) = explode_text(&out, id).unwrap();
+            restarted |= report.lines.iter().any(|l| l.contains("right-hand point"));
+            out = next;
+        }
+        (out, restarted)
+    }
+
+    /// The same programs, line for line, but for numbers a last-digit rounding apart: a
+    /// letter's or a traced outline's arcs come back from the exploded polylines' bulges a
+    /// few billionths of a mm off, which can tip a V-carve's depth to the next 0.001 mm.
+    fn same_but_rounding(before: &[String], after: &[String]) -> bool {
+        let words =
+            |line: &str| -> Vec<String> { line.split_whitespace().map(str::to_string).collect() };
+        let close = |a: &str, b: &str| {
+            a == b
+                || (a.get(..1) == b.get(..1)
+                    && match (a[1..].parse::<f64>(), b[1..].parse::<f64>()) {
+                        (Ok(x), Ok(y)) => (x - y).abs() <= 0.0011,
+                        _ => false,
+                    })
+        };
+        before.len() == after.len()
+            && before.iter().zip(after).all(|(b, a)| {
+                b.lines().count() == a.lines().count()
+                    && b.lines().zip(a.lines()).all(|(lb, la)| {
+                        let (wb, wa) = (words(lb), words(la));
+                        wb.len() == wa.len() && wb.iter().zip(&wa).all(|(x, y)| close(x, y))
+                    })
+            })
+    }
+
+    #[test]
+    fn exploding_keeps_the_gcode() {
+        let (mut pictures, mut texts) = (0, 0);
+        let mut differ = Vec::new();
+        for rel in projects() {
+            let job = load_job(&corpus(&rel)).unwrap();
+            if job.drawing.images.is_empty() && job.drawing.texts.is_empty() {
+                continue;
+            }
+            let Ok(before) = run_job(&job).map(|r| r.files) else {
+                continue;
+            };
+            let (after, restarted) = explode_all(&job);
+            assert!(after.drawing.images.is_empty() && after.drawing.texts.is_empty());
+            assert!(
+                after
+                    .drawing
+                    .shapes
+                    .iter()
+                    .all(|s| s.image().is_none() && s.text().is_none()),
+                "{rel}"
+            );
+            let before: Vec<String> = before.into_iter().map(|f| f.gcode).collect();
+            let after = gcode(&after);
+            if !restarted && !same_but_rounding(&before, &after) {
+                let first = before
+                    .iter()
+                    .zip(&after)
+                    .flat_map(|(b, a)| b.lines().zip(a.lines()).enumerate())
+                    .find(|(_, (b, a))| b != a);
+                differ.push(format!("{rel}: {first:?}"));
+            }
+            pictures += usize::from(!job.drawing.images.is_empty());
+            texts += usize::from(!job.drawing.texts.is_empty());
+        }
+        assert!(
+            pictures >= 5 && texts >= 3,
+            "{pictures} pictures, {texts} texts"
+        );
+        assert!(differ.is_empty(), "G-code changed for {differ:?}");
+    }
+
+    #[test]
+    fn a_pictures_selectors_become_its_shapes_and_the_picture_goes() {
+        let mut job = load_job(&corpus("jobs/v21/two_dxfs.chipload")).unwrap();
+        job.drawing.hidden = vec!["image:1/layer:other".into(), "dxf:1".into()];
+        let traced: Vec<u64> = job
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| s.image() == Some(1))
+            .map(|s| s.id)
+            .collect();
+        let (out, report) = explode_image(&job, 1).unwrap();
+        assert!(out.drawing.images.is_empty());
+        assert_eq!(out.drawing.hidden, vec!["dxf:1".to_string()]);
+        // Outlines become closed polylines with the same ids.
+        for id in &traced {
+            let shape = out.drawing.shapes.iter().find(|s| s.id == *id).unwrap();
+            assert!(
+                matches!(
+                    shape.geometry,
+                    Geometry::Polyline { closed: true, .. } | Geometry::Circle { .. }
+                ),
+                "S{id}"
+            );
+        }
+        let rewritten: Vec<&Selector> = out
+            .operations
+            .iter()
+            .map(|op| op.select())
+            .filter(|s| s.source.is_none() && s.shapes.is_some())
+            .collect();
+        assert!(!rewritten.is_empty());
+        assert!(
+            out.operations
+                .iter()
+                .all(|op| op.select().source != Some(Source::Image(1)))
+        );
+        assert!(
+            report.lines[0].contains("can't be traced again"),
+            "{:?}",
+            report.lines
+        );
+    }
+
+    #[test]
+    fn a_text_in_a_group_gives_the_group_its_letters() {
+        let job = load_job(&corpus("jobs/v35/sign_frame.chipload")).unwrap();
+        let members = Members {
+            shapes: vec![5],
+            texts: vec![1],
+        };
+        let (mut job, id) = group(&job, &members, Some("sign")).unwrap();
+        // The V-carve cuts the group: the frame's outline and the letters.
+        job.operations[0].select_mut().unwrap().source = Some(Source::Group(id));
+        job.operations[0].select_mut().unwrap().layer = None;
+        let before = gcode(&job);
+        let letters: Vec<u64> = job
+            .drawing
+            .shapes
+            .iter()
+            .filter(|s| s.text() == Some(1))
+            .map(|s| s.id)
+            .collect();
+        let (out, _) = explode_text(&job, 1).unwrap();
+        assert!(out.drawing.texts.is_empty());
+        let grouped = &out.drawing.groups[0];
+        assert!(grouped.texts.is_empty());
+        for letter in &letters {
+            assert!(grouped.shapes.contains(letter), "S{letter}");
+        }
+        assert_eq!(gcode(&out), before);
+    }
+
+    #[test]
+    fn which_picture_or_text_when_none_is_named() {
+        let job = load_job(&corpus("jobs/v35/sign_frame.chipload")).unwrap();
+        assert_eq!(which_text(&job, None).unwrap(), 1);
+        let none = which_image(&job, None).unwrap_err().message().english();
+        assert!(none.contains("no picture"), "{none}");
+        let two = load_job(&corpus("jobs/v27/text.chipload")).unwrap();
+        let several = which_text(&two, None).unwrap_err().message().english();
+        assert!(several.contains("2 texts"), "{several}");
+        assert!(explode_text(&two, 9).is_err());
+    }
 }

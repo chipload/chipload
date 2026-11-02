@@ -282,6 +282,10 @@ pipeline-image-unsimplified = { $count ->
    *[other] { $count } forme lasciate come sono state vettorizzate: la levigatura le faceva incrociare.
 }
 pipeline-no-text = non esiste il testo { $id }
+pipeline-no-group = non c'è il gruppo { $id }
+pipeline-group-imported = la forma { $shape } appartiene a un DXF o a un'immagine, che tiene insieme le sue forme: si raggruppano solo forme disegnate e testi
+pipeline-group-no-name = un gruppo ha bisogno di un nome
+pipeline-ungroup-cut-texts = l'operazione { $op } taglia il gruppo «{ $name }», che ha dei testi: prima scegli di nuovo le sue forme, o togli i testi dal gruppo
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: impossibile unire i contorni sovrapposti delle lettere: { $error }
 pipeline-text-font-missing = Il font «{ $font }» non è su questo computer. { $text } mantiene le sue lettere e viene fresato così; per cambiarne le parole o la dimensione, scegli un altro font.
@@ -346,6 +350,15 @@ pipeline-shape-twice = la forma { $id } è indicata due volte
 pipeline-no-shape = non esiste la forma { $id }
 pipeline-shape-imported-copy = la forma { $id } è stata importata dal DXF; solo le forme disegnate si possono copiare o specchiare
 pipeline-shapes-no-extent = le forme non hanno estensione
+pipeline-shapes-no-item = la libreria di forme non ha «{ $name }»
+pipeline-shapes-file-empty = «{ $name }» non contiene forme
+pipeline-shapes-nothing-to-save = seleziona forme o testi da salvare
+pipeline-shapes-exists = la libreria di forme ha già «{ $name }»
+pipeline-shapes-flat = le forme non hanno larghezza o altezza per la scala
+pipeline-shapes-group-exists = la libreria di forme ha già un gruppo «{ $name }»
+pipeline-shapes-no-group = la libreria di forme non ha un gruppo «{ $name }»
+pipeline-shapes-group-not-empty = il gruppo «{ $name }» non è vuoto: prima sposta o elimina ciò che contiene
+pipeline-shapes-file-error = { $path }: { $error }
 pipeline-shape-imported-transform = la forma { $id } non è una forma disegnata: solo le forme disegnate si possono spostare, ruotare o scalare (esplodi prima il suo DXF)
 pipeline-construction-imported = la forma { $id } non è una forma disegnata: solo le forme disegnate possono essere geometria di costruzione (esplodi prima il suo DXF)
 pipeline-construction-used = { $label } indica geometria di costruzione, che non viene mai lavorata: non può essere eseguita finché non lavora altre forme.
@@ -467,6 +480,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } ora seleziona le forme { $shapes }.
 pipeline-explode-no-dxf = il progetto non ha un DXF da esplodere
 pipeline-explode-which-dxf = il progetto ha { $count } DXF ({ $dxfs }): indica quale esplodere
+pipeline-image-exploded = Immagine { $id } "{ $name }" esplosa in { $count } { $count ->
+    [one] forma disegnata
+   *[other] forme disegnate
+}. L'immagine non è più nel progetto: non può essere vettorizzata di nuovo.
+pipeline-text-exploded = Testo { $id } { $name } esploso in { $count } { $count ->
+    [one] forma disegnata
+   *[other] forme disegnate
+}. Le sue parole non possono più essere modificate.
+pipeline-explode-no-image = il progetto non ha un'immagine da esplodere
+pipeline-explode-which-image = il progetto ha { $count } immagini ({ $images }): indica quale esplodere
+pipeline-explode-no-text = il progetto non ha un testo da esplodere
+pipeline-explode-which-text = il progetto ha { $count } testi ({ $texts }): indica quale esplodere
 pipeline-join-gap-range = La distanza deve essere da { $least } a { $most }, trovato { $got }.
 pipeline-join-imported = La forma S{ $id } viene da un DXF: esplodi prima il DXF.
 pipeline-join-none = Nessun estremo unito (distanza { $gap }).

@@ -77,6 +77,8 @@ dialogs-title-new-project = neues Projekt
 # $name is the DXF's name in the Browser.
 dialogs-explode-title = { $name } in Formen auflösen
 dialogs-explode-body = Ihre Formen werden zu gezeichneten Formen, die Sie bearbeiten, verschieben und löschen können. Die Bearbeitungen fräsen weiter dieselben Formen. Das Projekt kennt die DXF-Datei nicht mehr: Aktualisieren aus der DXF ist dann nicht möglich.
+dialogs-explode-image-body = Seine Formen werden zu gezeichneten Formen, die Sie bearbeiten, verschieben und löschen können. Die Bearbeitungen fräsen weiter dieselben Formen. Das Bild selbst verschwindet aus dem Projekt: Es kann nicht erneut nachgezeichnet werden.
+dialogs-explode-text-body = Seine Buchstaben werden zu gezeichneten Formen, die Sie bearbeiten, verschieben und löschen können. Die Bearbeitungen fräsen weiter dieselben Formen. Die Wörter können nicht mehr bearbeitet werden.
 dialogs-explode-join = Enden verbinden, die näher liegen als
 dialogs-explode = Auflösen
 dialogs-join-title = Enden verbinden

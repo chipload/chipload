@@ -24,6 +24,8 @@ images-import = Importar
 # Under the preview. $zoom: such as "400%".
 images-zoom-note = Zoom { $zoom } · arrastra para desplazar · doble clic para ajustar
 images-scroll-to-zoom = Usa la rueda para ampliar
+images-show-lines = Mostrar las líneas vectorizadas
+images-show-lines-hover = Los contornos o líneas centrales en que se vectoriza la imagen, en azul; desmarca para ver solo la imagen
 
 # The settings.
 images-threshold = Umbral

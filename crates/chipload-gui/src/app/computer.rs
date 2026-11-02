@@ -20,7 +20,7 @@ impl ChiploadApp {
             .into_iter()
             .map(|name| (name.to_string(), true, None))
             .collect();
-        list.extend(self.library.user_posts.iter().map(|(name, read)| {
+        list.extend(self.user.library.user_posts.iter().map(|(name, read)| {
             let problem = read.as_ref().err().map(|why| self.say(why));
             (name.clone(), false, problem)
         }));
@@ -29,7 +29,8 @@ impl ChiploadApp {
 
     /// How many of your posts can't be used.
     pub(super) fn post_problems(&self) -> usize {
-        self.library
+        self.user
+            .library
             .user_posts
             .iter()
             .filter(|(_, read)| read.is_err())
@@ -63,7 +64,7 @@ impl ChiploadApp {
         if !open {
             return focus;
         }
-        let current = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
+        let current = self.edit.as_ref().map(|e| e.job.machine.post.clone());
         for (k, (name, builtin, problem)) in posts.iter().enumerate() {
             let k = u32::try_from(k).unwrap_or(u32::MAX);
             let mut trailing = vec![if *builtin {
@@ -94,17 +95,17 @@ impl ChiploadApp {
         title_line(ui, Icon::Settings, None, &title);
         ui.weak(t!(ui, "computer-preferences-about"));
         ui.add_space(4.0);
-        let mut sheet = self.setup_sheet;
-        let mut auto = self.auto_generate;
-        let mut theme = self.theme;
-        let mut units = self.units;
-        let mut language = self.language_setting.clone();
+        let mut sheet = self.prefs.setup_sheet;
+        let mut auto = self.prefs.auto_generate;
+        let mut theme = self.prefs.theme;
+        let mut units = self.prefs.units;
+        let mut language = self.prefs.language_setting.clone();
         Grid::new("preferences")
             .num_columns(2)
             .spacing([12.0, 6.0])
             .show(ui, |ui| {
                 ui.label(t!(ui, "computer-settings-folder"));
-                match &self.settings_dir {
+                match &self.user.settings_dir {
                     Some(dir) => ui.label(dir.display().to_string()),
                     None => ui.colored_label(
                         ui.visuals().warn_fg_color,
@@ -153,19 +154,19 @@ impl ChiploadApp {
                 ui.end_row();
                 self.update_setting_row(ui);
             });
-        if sheet != self.setup_sheet {
+        if sheet != self.prefs.setup_sheet {
             self.set_setup_sheet(sheet);
         }
-        if auto != self.auto_generate {
+        if auto != self.prefs.auto_generate {
             self.set_auto_generate(auto);
         }
-        if theme != self.theme {
+        if theme != self.prefs.theme {
             self.set_theme(theme);
         }
-        if units != self.units {
+        if units != self.prefs.units {
             self.set_units(units);
         }
-        if language != self.language_setting {
+        if language != self.prefs.language_setting {
             self.set_language(&language);
         }
     }
@@ -174,14 +175,14 @@ impl ChiploadApp {
     pub(super) fn posts_form(&mut self, ui: &mut egui::Ui) {
         let title = t!(ui, "computer-posts");
         title_line(ui, Icon::Export, None, &title);
-        let yours = self.library.user_posts.len();
+        let yours = self.user.library.user_posts.len();
         ui.label(t!(
             ui,
             "computer-posts-count",
             builtin = builtin_posts().len(),
             yours = yours
         ));
-        match &self.library.posts {
+        match &self.user.library.posts {
             Some(dir) => {
                 ui.label(t!(
                     ui,
@@ -217,17 +218,19 @@ impl ChiploadApp {
         title_line(ui, Icon::Export, None, &name);
         // Read once per post shown (a user post is two files), and again after a reload.
         let cached = self
+            .user
             .library_state
             .post_facts
             .as_ref()
             .is_some_and(|(n, _)| *n == name);
         if !cached {
-            let facts = post_fact_messages(&name, self.library.posts.as_deref())
+            let facts = post_fact_messages(&name, self.user.library.posts.as_deref())
                 .map(|lines| lines.iter().map(|line| self.say(line)).collect())
                 .map_err(|e| self.say(&e.message()));
-            self.library_state.post_facts = Some((name.clone(), facts));
+            self.user.library_state.post_facts = Some((name.clone(), facts));
         }
         let facts = self
+            .user
             .library_state
             .post_facts
             .as_ref()
@@ -246,7 +249,7 @@ impl ChiploadApp {
             }
         }
         ui.add_space(4.0);
-        let current = self.edit.as_ref().map(|e| e.settings.machine.post.clone());
+        let current = self.edit.as_ref().map(|e| e.job.machine.post.clone());
         let mine = current.as_deref() == Some(name.as_str());
         let mut chosen = false;
         ui.horizontal(|ui| {

@@ -191,7 +191,7 @@ impl ChiploadApp {
             self.fit_pending = true;
         }
         let top = t!(ui, "navigation-top");
-        if nav_button(ui, compact, Icon::Top, &top, true, !self.three_d)
+        if nav_button(ui, compact, Icon::Top, &top, true, !self.display.three_d)
             .on_hover_text(hover_keys(&t!(ui, "navigation-top-hover"), Action::TopView))
             .clicked()
         {
@@ -207,9 +207,16 @@ impl ChiploadApp {
             )
         };
         let label = t!(ui, "navigation-3d");
-        if nav_button(ui, compact, Icon::ThreeD, &label, true, self.three_d)
-            .on_hover_text(three_d)
-            .clicked()
+        if nav_button(
+            ui,
+            compact,
+            Icon::ThreeD,
+            &label,
+            true,
+            self.display.three_d,
+        )
+        .on_hover_text(three_d)
+        .clicked()
         {
             self.view_3d();
         }
@@ -228,7 +235,7 @@ impl ChiploadApp {
                 ui.spacing_mut().item_spacing.x = 2.0;
                 let edit = t!(ui, "navigation-edit");
                 let hover = hover_keys(&t!(ui, "navigation-edit-hover"), Action::Simulate);
-                if nav_button(ui, compact, Icon::Edit, &edit, true, !self.show_simulation)
+                if nav_button(ui, compact, Icon::Edit, &edit, true, !self.display.simulate)
                     .on_hover_text(hover)
                     .clicked()
                 {
@@ -260,7 +267,7 @@ impl ChiploadApp {
             Icon::Simulation,
             &label,
             can,
-            self.show_simulation,
+            self.display.simulate,
         )
         .on_hover_text(hover)
         .clicked()
@@ -272,51 +279,58 @@ impl ChiploadApp {
     /// What is shown: the toolpath, the drawing (in Simulate: Edit always shows it), the
     /// pictures and the grid.
     fn show_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
-        let toolpath = self.show_toolpath;
+        let toolpath = self.display.toolpath;
         let label = t!(ui, "navigation-toolpath");
         if nav_button(ui, compact, Icon::Toolpath, &label, true, toolpath)
             .on_hover_text(t!(ui, "navigation-toolpath-hover"))
             .clicked()
         {
-            self.show_toolpath = !toolpath;
+            self.display.toolpath = !toolpath;
         }
         let drawing = self.show_drawing();
         let label = t!(ui, "navigation-drawing");
-        if self.show_simulation
+        if self.display.simulate
             && nav_button(ui, compact, Icon::Drawing, &label, true, drawing)
                 .on_hover_text(t!(ui, "navigation-drawing-hover"))
                 .clicked()
         {
             self.set_show_drawing(!drawing);
         }
-        let images = self.show_images;
+        let images = self.display.images;
         let label = t!(ui, "navigation-images");
         if nav_button(ui, compact, Icon::Image, &label, true, images)
             .on_hover_text(t!(ui, "navigation-images-hover"))
             .clicked()
         {
-            self.show_images = !images;
+            self.display.images = !images;
         }
         let label = t!(ui, "navigation-grid");
-        if nav_button(ui, compact, Icon::Grid, &label, true, self.show_grid)
+        if nav_button(ui, compact, Icon::Grid, &label, true, self.prefs.show_grid)
             .on_hover_text(hover_keys(&t!(ui, "navigation-grid-hover"), Action::Grid))
             .clicked()
         {
-            self.set_show_grid(!self.show_grid);
+            self.set_show_grid(!self.prefs.show_grid);
         }
         // With several parts, the toolpath and simulation are of the active part unless
         // this is on (docs/specs/active-part-preview.md §3).
         let parts = self
             .edit
             .as_ref()
-            .map_or(0, |e| e.settings.parts.iter().filter(|p| p.enabled).count());
+            .map_or(0, |e| e.job.parts.iter().filter(|p| p.enabled).count());
         let label = t!(ui, "navigation-all-parts");
         if parts > 1
-            && nav_button(ui, compact, Icon::Parts, &label, true, self.all_parts)
-                .on_hover_text(t!(ui, "navigation-all-parts-hover"))
-                .clicked()
+            && nav_button(
+                ui,
+                compact,
+                Icon::Parts,
+                &label,
+                true,
+                self.display.all_parts,
+            )
+            .on_hover_text(t!(ui, "navigation-all-parts-hover"))
+            .clicked()
         {
-            self.set_all_parts(!self.all_parts);
+            self.set_all_parts(!self.display.all_parts);
         }
     }
 

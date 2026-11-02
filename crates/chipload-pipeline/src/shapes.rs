@@ -175,6 +175,7 @@ pub fn delete_shape(job: &Job, id: u64) -> Result<(Job, Vec<String>), PipelineEr
     let mut out = job.clone();
     drawn_mut(&mut out, id)?;
     out.drawing.shapes.retain(|s| s.id != id);
+    out.drawing.tidy_groups();
     let flagged = out
         .operations
         .iter()
@@ -669,13 +670,9 @@ mod tests {
     #[test]
     fn paths_cannot_be_drawn() {
         let path = Geometry::Path {
-            dxf_handle: None,
-            dxf_type: None,
             closed: false,
             segments: Vec::new(),
-            image: None,
-            dxf: None,
-            text: None,
+            origin: None,
         };
         assert!(add_shape(&project(), "0", path).is_err());
     }

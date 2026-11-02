@@ -285,6 +285,10 @@ pipeline-image-unsimplified = { $count ->
    *[other] { $count } formes gardées telles que vectorisées : le lissage les faisait se croiser.
 }
 pipeline-no-text = il n'y a pas de texte { $id }
+pipeline-no-group = il n'y a pas de groupe { $id }
+pipeline-group-imported = la forme { $shape } appartient à un DXF ou une image, qui garde ses formes ensemble : seuls les formes dessinées et les textes se groupent
+pipeline-group-no-name = un groupe a besoin d'un nom
+pipeline-ungroup-cut-texts = l'opération { $op } usine le groupe « { $name } », qui a des textes : choisissez d'abord à nouveau ses formes, ou sortez les textes du groupe
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text } : impossible de fusionner les contours des lettres qui se chevauchent : { $error }
 pipeline-text-font-missing = La police « { $font } » n'est pas sur cet ordinateur. { $text } garde ses lettres et est usiné tel quel ; pour changer ses mots ou sa taille, choisissez une autre police.
@@ -349,6 +353,15 @@ pipeline-shape-twice = la forme { $id } est indiquée deux fois
 pipeline-no-shape = il n'y a pas de forme { $id }
 pipeline-shape-imported-copy = la forme { $id } a été importée du DXF ; seules les formes dessinées peuvent être copiées ou mises en miroir
 pipeline-shapes-no-extent = les formes n'ont aucune étendue
+pipeline-shapes-no-item = la bibliothèque de formes n'a pas « { $name } »
+pipeline-shapes-file-empty = « { $name } » ne contient aucune forme
+pipeline-shapes-nothing-to-save = sélectionnez des formes ou des textes à enregistrer
+pipeline-shapes-exists = la bibliothèque de formes a déjà « { $name } »
+pipeline-shapes-flat = les formes n'ont ni largeur ni hauteur pour la mise à l'échelle
+pipeline-shapes-group-exists = la bibliothèque de formes a déjà un groupe « { $name } »
+pipeline-shapes-no-group = la bibliothèque de formes n'a pas de groupe « { $name } »
+pipeline-shapes-group-not-empty = le groupe « { $name } » n'est pas vide : déplacez ou supprimez d'abord son contenu
+pipeline-shapes-file-error = { $path } : { $error }
 pipeline-shape-imported-transform = la forme { $id } n'est pas une forme dessinée : seules les formes dessinées peuvent être déplacées, tournées ou mises à l'échelle (décomposez d'abord son DXF)
 pipeline-construction-imported = la forme { $id } n'est pas une forme dessinée : seules les formes dessinées peuvent être de la géométrie de construction (décomposez d'abord son DXF)
 pipeline-construction-used = { $label } désigne de la géométrie de construction, qui n'est jamais usinée : elle ne peut pas s'exécuter tant qu'elle n'usine pas d'autres formes.
@@ -470,6 +483,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } sélectionne maintenant les formes { $shapes }.
 pipeline-explode-no-dxf = le projet n'a aucun DXF à décomposer
 pipeline-explode-which-dxf = le projet a { $count } DXF ({ $dxfs }) : indiquez lequel décomposer
+pipeline-image-exploded = Image { $id } « { $name } » décomposée en { $count } { $count ->
+    [one] forme dessinée
+   *[other] formes dessinées
+}. L'image n'est plus dans le projet : elle ne peut plus être vectorisée.
+pipeline-text-exploded = Texte { $id } { $name } décomposé en { $count } { $count ->
+    [one] forme dessinée
+   *[other] formes dessinées
+}. Ses mots ne peuvent plus être modifiés.
+pipeline-explode-no-image = le projet n'a aucune image à décomposer
+pipeline-explode-which-image = le projet a { $count } images ({ $images }) : indiquez laquelle décomposer
+pipeline-explode-no-text = le projet n'a aucun texte à décomposer
+pipeline-explode-which-text = le projet a { $count } textes ({ $texts }) : indiquez lequel décomposer
 pipeline-join-gap-range = L'écart doit être de { $least } à { $most }, reçu { $got }.
 pipeline-join-imported = La forme S{ $id } vient d'un DXF : décomposez d'abord le DXF.
 pipeline-join-none = Aucune extrémité jointe (écart { $gap }).

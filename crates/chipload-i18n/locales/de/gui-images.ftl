@@ -24,6 +24,8 @@ images-import = Importieren
 # Under the preview. $zoom: such as "400%".
 images-zoom-note = Zoom { $zoom } · ziehen zum Verschieben · Doppelklick zum Einpassen
 images-scroll-to-zoom = Scrollen zum Vergrößern
+images-show-lines = Nachgezeichnete Linien zeigen
+images-show-lines-hover = Die Umrisse oder Mittellinien, in die das Bild nachgezeichnet wird, in Blau; abwählen, um nur das Bild zu sehen
 
 # The settings.
 images-threshold = Schwellwert

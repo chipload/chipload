@@ -285,6 +285,10 @@ pipeline-image-unsimplified = { $count ->
    *[other] { $count } formas se conservan tal como se vectorizaron: el suavizado las hacía cruzarse.
 }
 pipeline-no-text = no hay texto { $id }
+pipeline-no-group = no hay grupo { $id }
+pipeline-group-imported = la forma { $shape } pertenece a un DXF o una imagen, que mantiene sus formas juntas: solo se agrupan formas dibujadas y textos
+pipeline-group-no-name = un grupo necesita un nombre
+pipeline-ungroup-cut-texts = la operación { $op } corta el grupo «{ $name }», que tiene textos: elige antes de nuevo sus formas, o saca los textos del grupo
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: no se pudieron unir los contornos superpuestos de las letras: { $error }
 pipeline-text-font-missing = La fuente «{ $font }» no está en este ordenador. { $text } conserva sus letras y se corta tal cual; para cambiar sus palabras o su tamaño, elige otra fuente.
@@ -349,6 +353,15 @@ pipeline-shape-twice = la forma { $id } se indicó dos veces
 pipeline-no-shape = no hay forma { $id }
 pipeline-shape-imported-copy = la forma { $id } se importó del DXF; solo las formas dibujadas se pueden copiar o reflejar
 pipeline-shapes-no-extent = las formas no tienen extensión
+pipeline-shapes-no-item = la biblioteca de formas no tiene «{ $name }»
+pipeline-shapes-file-empty = «{ $name }» no tiene formas
+pipeline-shapes-nothing-to-save = selecciona formas o textos para guardar
+pipeline-shapes-exists = la biblioteca de formas ya tiene «{ $name }»
+pipeline-shapes-flat = las formas no tienen ancho ni alto para escalar
+pipeline-shapes-group-exists = la biblioteca de formas ya tiene un grupo «{ $name }»
+pipeline-shapes-no-group = la biblioteca de formas no tiene un grupo «{ $name }»
+pipeline-shapes-group-not-empty = el grupo «{ $name }» no está vacío: mueve o borra primero lo que contiene
+pipeline-shapes-file-error = { $path }: { $error }
 pipeline-shape-imported-transform = la forma { $id } no es una forma dibujada: solo las formas dibujadas se pueden mover, girar o escalar (descompón primero su DXF)
 pipeline-construction-imported = la forma { $id } no es una forma dibujada: solo las formas dibujadas pueden ser geometría auxiliar (descompón primero su DXF)
 pipeline-construction-used = { $label } nombra geometría auxiliar, que nunca se corta: no puede ejecutarse hasta que corte otras formas.
@@ -470,6 +483,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } ahora selecciona las formas { $shapes }.
 pipeline-explode-no-dxf = el proyecto no tiene ningún DXF que descomponer
 pipeline-explode-which-dxf = el proyecto tiene { $count } DXF ({ $dxfs }): indica cuál descomponer
+pipeline-image-exploded = Imagen { $id } "{ $name }" descompuesta en { $count } { $count ->
+    [one] forma dibujada
+   *[other] formas dibujadas
+}. La imagen ya no está en el proyecto: no se puede volver a vectorizar.
+pipeline-text-exploded = Texto { $id } { $name } descompuesto en { $count } { $count ->
+    [one] forma dibujada
+   *[other] formas dibujadas
+}. Sus palabras ya no se pueden editar.
+pipeline-explode-no-image = el proyecto no tiene ninguna imagen que descomponer
+pipeline-explode-which-image = el proyecto tiene { $count } imágenes ({ $images }): indica cuál descomponer
+pipeline-explode-no-text = el proyecto no tiene ningún texto que descomponer
+pipeline-explode-which-text = el proyecto tiene { $count } textos ({ $texts }): indica cuál descomponer
 pipeline-join-gap-range = La separación debe estar entre { $least } y { $most }, es { $got }.
 pipeline-join-imported = La forma S{ $id } viene de un DXF: descompón primero el DXF.
 pipeline-join-none = No se unió ningún extremo (separación { $gap }).

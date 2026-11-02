@@ -211,8 +211,6 @@ pub fn remake(
             layer: text.layer.clone(),
             name: None,
             geometry: Geometry::Path {
-                dxf_handle: None,
-                dxf_type: None,
                 closed: true,
                 segments: placed_box(
                     outline,
@@ -220,9 +218,7 @@ pub fn remake(
                     (lettering.width, lettering.height),
                     text.rotation,
                 ),
-                image: None,
-                dxf: None,
-                text: Some(id),
+                origin: Some(chipload_job::Origin::Text(id)),
             },
         });
     }
@@ -285,6 +281,7 @@ pub fn remove_text(job: &Job, id: u64) -> Result<Job, PipelineError> {
     let mut out = job.clone();
     out.drawing.texts.retain(|t| t.id != id);
     out.drawing.shapes.retain(|s| s.text() != Some(id));
+    out.drawing.tidy_groups();
     Ok(out)
 }
 
@@ -334,7 +331,9 @@ fn stored_box(job: &Job, text: &Text) -> Option<((f64, f64), [f64; 2])> {
     Some((size, middle))
 }
 
-fn stored_size(job: &Job, text: &Text) -> Option<(f64, f64)> {
+/// The size of a text's box from its stored letters, turned back by its turn (no font
+/// needed). None without letters.
+pub fn stored_size(job: &Job, text: &Text) -> Option<(f64, f64)> {
     stored_box(job, text).map(|(size, _)| size)
 }
 
@@ -382,7 +381,7 @@ fn moved_letters(job: &Job, old: &Text, new: &Text) -> (Job, TextReport) {
     (out, report)
 }
 
-fn find(job: &Job, id: u64) -> Result<(usize, &Text), PipelineError> {
+pub(crate) fn find(job: &Job, id: u64) -> Result<(usize, &Text), PipelineError> {
     job.drawing
         .texts
         .iter()

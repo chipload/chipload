@@ -8,12 +8,9 @@ use chipload_i18n::Message;
 use chipload_pipeline::report::{contour_messages, import_report_messages};
 use eframe::egui::{self, Color32, RichText, ScrollArea, Sense};
 
-use super::{ChiploadApp, Focus, Panel};
+use super::{ChiploadApp, Focus};
 use crate::i18n::{Lang, t};
 use chipload_job::Problem;
-
-/// Height the open report starts with.
-const REPORT_HEIGHT: f32 = 190.0;
 
 /// How a line reads: its colour and mark.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -239,61 +236,18 @@ impl ChiploadApp {
     /// Show a new report; one with warnings or errors opens the panel.
     pub(super) fn set_report(&mut self, report: Report) {
         if report.problems() > 0 {
-            self.report_open = true;
+            self.panels.show(super::layout::Pane::Report);
         }
         self.report = report;
     }
 
-    /// The report panel along the bottom: one line when closed.
-    pub(super) fn report_panel(&mut self, ui: &mut egui::Ui) {
-        if self.report_open {
-            Panel::bottom("report")
-                .resizable(true)
-                .default_size(REPORT_HEIGHT)
-                .min_size(80.0)
-                .show(ui, |ui| {
-                    self.report_header(ui);
-                    ui.separator();
-                    self.report_body(ui);
-                });
-        } else {
-            Panel::bottom("report-bar").show(ui, |ui| self.report_header(ui));
-        }
-    }
-
-    /// The toggle, the headline, and the number of problems further down.
-    fn report_header(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            let arrow = if self.report_open { "▾" } else { "▸" };
-            if ui
-                .selectable_label(
-                    false,
-                    RichText::new(format!("{arrow} {}", t!(ui, "report-heading"))).strong(),
-                )
-                .on_hover_text(if self.report_open {
-                    t!(ui, "report-hide-hover")
-                } else {
-                    t!(ui, "report-show-hover")
-                })
-                .clicked()
-            {
-                self.report_open = !self.report_open;
-            }
+    /// The Report's pane: the headline, then the rest and the drawing's facts.
+    pub(super) fn report_pane(&mut self, ui: &mut egui::Ui) {
+        if let Some(first) = self.report.lines.first().cloned() {
+            self.report_line(ui, &first, true);
             ui.separator();
-            if let Some(first) = self.report.lines.first().cloned() {
-                self.report_line(ui, &first, true);
-            }
-            let rest = self.report.problems()
-                - self.report.lines.first().map_or(0, |l| {
-                    usize::from(matches!(l.tone, Tone::Warning | Tone::Error))
-                });
-            if rest > 0 && !self.report_open {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let text = t!(ui, "report-more-warnings", count = rest);
-                    ui.label(RichText::new(text).color(Tone::Warning.color(ui.visuals())));
-                });
-            }
-        });
+        }
+        self.report_body(ui);
     }
 
     fn report_body(&mut self, ui: &mut egui::Ui) {

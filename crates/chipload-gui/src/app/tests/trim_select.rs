@@ -49,7 +49,7 @@ fn a_trimmed_circle_can_be_deselected() {
     h.run_steps(1);
     h.drop_at(empty);
     h.run_steps(3);
-    assert!(h.state().modify.is_some(), "still trimming");
+    assert!(h.state().modify().is_some(), "still trimming");
     assert_eq!(h.state().selection, CanvasSelection::Nothing);
 }
 
@@ -100,7 +100,7 @@ fn a_trimmed_slot_can_be_deselected() {
     // The half slot and the line between its ends are one closed polyline now.
     let edit = h.state().edit.as_ref().unwrap();
     let drawn: Vec<&chipload_job::Shape> = edit
-        .settings
+        .job
         .drawing
         .shapes
         .iter()
@@ -117,8 +117,8 @@ fn a_trimmed_slot_can_be_deselected() {
     );
     // A click in open space clears the selection, the next ends the tool.
     click(&mut h, (300.0, 160.0));
-    assert!(h.state().modify.is_some(), "still trimming");
+    assert!(h.state().modify().is_some(), "still trimming");
     assert_eq!(h.state().selection, CanvasSelection::Nothing);
     click(&mut h, (300.0, 160.0));
-    assert!(h.state().modify.is_none(), "the tool ended");
+    assert!(h.state().modify().is_none(), "the tool ended");
 }

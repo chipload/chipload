@@ -38,10 +38,7 @@ fn written(text: &str, font: &str, line_spacing: f64) -> Job {
 }
 
 fn text_select() -> Selector {
-    Selector {
-        text: Some(1),
-        ..Selector::default()
-    }
+    Selector::of(chipload_job::Source::Text(1))
 }
 
 fn vcarve() -> Operation {
@@ -55,6 +52,8 @@ fn vcarve() -> Operation {
         start_depth: 0.0,
         end_depth: 2.0,
         passes: 1,
+        step_down: None,
+        ignore_kinks_deg: 0.0,
         feed: 1200.0,
         plunge_feed: 400.0,
         floor: None,

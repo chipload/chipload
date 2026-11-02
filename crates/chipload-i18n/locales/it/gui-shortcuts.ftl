@@ -33,7 +33,7 @@ shortcuts-top-view = Vista dall'alto
 shortcuts-grid = Mostra o nascondi la griglia
 shortcuts-simulate = Simula o modifica
 shortcuts-measure = Misura: due clic danno distanza e angolo
-shortcuts-panels = Chiudi o apri i pannelli laterali, per un'area di disegno più grande
+shortcuts-panels = Nascondi tutti i pannelli per l'area di disegno più grande, o rimettili
 shortcuts-this-list = Questo elenco
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the
@@ -92,3 +92,5 @@ shortcuts-draw-polygon = Disegna un poligono
 shortcuts-offset = Offset delle forme selezionate
 shortcuts-trim = Taglia forme disegnate
 shortcuts-construction = Geometria di costruzione: per le prossime forme disegnate, o la selezione
+shortcuts-group = Raggruppa la selezione
+shortcuts-ungroup = Separa

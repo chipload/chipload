@@ -312,17 +312,6 @@ pub(super) fn folder(ui: &mut egui::Ui, row: Row, default: bool) -> (bool, RowRe
     (open, out)
 }
 
-/// A small capital caption over a panel: "BROWSER", "PROPERTIES".
-pub(super) fn caption(ui: &mut egui::Ui, text: &str) {
-    ui.add_space(2.0);
-    ui.label(
-        RichText::new(text.to_uppercase())
-            .small()
-            .color(ui.visuals().weak_text_color()),
-    );
-    ui.add_space(2.0);
-}
-
 /// The Properties panel's title: an icon and what the panel shows.
 pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, text: &str) {
     ui.horizontal(|ui| {
@@ -534,8 +523,6 @@ pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, 
 impl ChiploadApp {
     /// Left: the Browser.
     pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
-        let browser = t!(ui, "browser-caption");
-        caption(ui, &browser);
         ScrollArea::vertical()
             .id_salt("browser-scroll")
             .auto_shrink([false, false])
@@ -554,7 +541,8 @@ impl ChiploadApp {
 
     fn browser_tree(&mut self, ui: &mut egui::Ui) {
         let name = self
-            .job_path
+            .file
+            .path
             .as_deref()
             .map_or_else(|| t!(ui, "browser-new-project"), file_name);
         let root = Row::new(Id::new("browser-project"), 0, name).icon(Icon::Project);
@@ -591,8 +579,8 @@ impl ChiploadApp {
     /// active one first.
     fn work_zero_row(&mut self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
         let edit = self.edit.as_ref()?;
-        let job = edit.settings.for_setup(id);
-        let active = edit.settings.active_setup_id() == Some(id);
+        let job = edit.job.for_setup(id);
+        let active = edit.job.active_setup_id() == Some(id);
         let place = super::forms::work_zero_name(ui, &job.work_zero());
         let summary = super::forms::zero_summary(ui, &job);
         let problems = if active {
@@ -623,7 +611,7 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return;
         };
-        let tools = edit.settings.tools.clone();
+        let tools = edit.job.tools.clone();
         let marked: Vec<bool> = (0..tools.len())
             .map(|k| {
                 let prefix = format!("tools.{k}.");
@@ -674,7 +662,7 @@ impl ChiploadApp {
                 let response = match &link {
                     Some(link) => row.response.on_hover_text(
                         link.message(chipload_job::library::LinkEntry::Tool)
-                            .render(ui.lang(), self.units.into()),
+                            .render(ui.lang(), self.prefs.units.into()),
                     ),
                     None => row.response,
                 };
@@ -712,10 +700,10 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        let parts = edit.settings.parts.clone();
-        let active = edit.settings.active_part_id();
-        let count = edit.ops.len();
-        let op_parts: Vec<u64> = edit.ops.iter().map(|e| e.op.part()).collect();
+        let parts = edit.job.parts.clone();
+        let active = edit.job.active_part_id();
+        let count = edit.job.operations.len();
+        let op_parts: Vec<u64> = edit.job.operations.iter().map(|e| e.part()).collect();
         let tool_before = self
             .edited_job()
             .map(|job| tool_changes(&job))
@@ -723,8 +711,8 @@ impl ChiploadApp {
         let mut action: Option<OpAction> = None;
         // Setups, each with its zero and its parts as leaves (docs/specs/setups.md §7): the
         // active one in full colour, the others as ghosts.
-        let setups = edit.settings.setups.clone();
-        let active_setup = edit.settings.active_setup_id();
+        let setups = edit.job.setups.clone();
+        let active_setup = edit.job.active_setup_id();
         let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
             .icon(Icon::Rectangle)
             .trailing(setups.len().to_string());
@@ -851,9 +839,9 @@ impl ChiploadApp {
         match action {
             Some(OpAction::Focus(i)) => self.focus = Focus::Op(i),
             Some(OpAction::Toggle(i)) => {
-                if let Some(entry) = self.edit.as_mut().and_then(|e| e.ops.get_mut(i)) {
-                    let enabled = entry.op.enabled();
-                    entry.op.set_enabled(!enabled);
+                if let Some(entry) = self.edit.as_mut().and_then(|e| e.job.operations.get_mut(i)) {
+                    let enabled = entry.enabled();
+                    entry.set_enabled(!enabled);
                 }
             }
             Some(OpAction::Move(from, to)) => self.move_operation(from, to),
@@ -923,12 +911,12 @@ impl ChiploadApp {
         // Parts of another setup are ghosts too (docs/specs/setups.md §7).
         let (setups, in_active_setup) = self.edit.as_ref().map_or((Vec::new(), true), |e| {
             let setups: Vec<(u64, String)> = e
-                .settings
+                .job
                 .setups
                 .iter()
                 .map(|s| (s.id, s.name.clone()))
                 .collect();
-            (setups, e.settings.active_setup_id() == Some(part.setup))
+            (setups, e.job.active_setup_id() == Some(part.setup))
         });
         let mut trailing = Vec::new();
         if is_active && parts.len() > 1 {
@@ -971,7 +959,7 @@ impl ChiploadApp {
                 egui::StrokeKind::Inside,
             );
         }
-        let selected = !self.selection.ids(&self.contours).is_empty();
+        let selected = !self.selected_ids().is_empty();
         let hover = if is_active {
             t!(ui, "browser-part-active-hover")
         } else {
@@ -1077,12 +1065,11 @@ impl ChiploadApp {
         changes: &[i64],
     ) -> Option<OpAction> {
         let edit = self.edit.as_ref()?;
-        let entry = edit.ops.get(i)?;
-        let op = &entry.op;
+        let entry = edit.job.operations.get(i)?;
+        let op = &entry;
         // An operation is cut when it and its part are on (docs/specs/parts.md §3).
-        let cut = |op: &Operation| {
-            op.enabled() && edit.settings.part(op.part()).is_some_and(|p| p.enabled)
-        };
+        let cut =
+            |op: &Operation| op.enabled() && edit.job.part(op.part()).is_some_and(|p| p.enabled);
         // A line marks each tool change (docs/specs/tool-per-operation.md §8).
         let is_cut = cut(op);
         if is_cut && !changes.is_empty() {
@@ -1092,7 +1079,7 @@ impl ChiploadApp {
             .problems
             .iter()
             .find(|p| p.operation() == Some(i))
-            .map(|p| problems::plain(ui, self.units, p));
+            .map(|p| problems::plain(ui, self.prefs.units, p));
         let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
@@ -1126,7 +1113,7 @@ impl ChiploadApp {
             Operation::Pocket(p) if p.rest.is_some() => self.rest_pocket_parent(i),
             _ => None,
         };
-        let passes: Vec<chipload_job::RestPass> = match op {
+        let passes: Vec<chipload_job::ClearingPass> = match op {
             Operation::Pocket(p) => p.rest_passes.clone(),
             _ => Vec::new(),
         };
@@ -1243,7 +1230,7 @@ impl ChiploadApp {
         &self,
         ui: &mut egui::Ui,
         i: usize,
-        pass: &chipload_job::FloorPass,
+        pass: &chipload_job::ClearingPass,
         vcarve_cut: bool,
         color: Color32,
     ) -> Option<OpAction> {
@@ -1253,12 +1240,13 @@ impl ChiploadApp {
             .iter()
             .any(|p| p.operation() == Some(i) && p.field().starts_with("floor"));
         let time = self
+            .toolpath
             .result
             .as_ref()
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
             .map_or(String::new(), |(_, s)| {
                 let time = chipload_pipeline::estimate::duration_message(*s);
-                format!("{} · ", time.render(ui.lang(), self.units.into()))
+                format!("{} · ", time.render(ui.lang(), self.prefs.units.into()))
             });
         let row = Row::new(
             Id::new(("browser-floor", i)),
@@ -1294,7 +1282,7 @@ impl ChiploadApp {
         ui: &mut egui::Ui,
         i: usize,
         k: usize,
-        pass: &chipload_job::RestPass,
+        pass: &chipload_job::ClearingPass,
         pocket_cut: bool,
         color: Color32,
     ) -> Option<OpAction> {
@@ -1303,12 +1291,13 @@ impl ChiploadApp {
             p.operation() == Some(i) && p.field().starts_with(&format!("rest_passes.{k}"))
         });
         let time = self
+            .toolpath
             .result
             .as_ref()
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
             .map_or(String::new(), |(_, s)| {
                 let time = chipload_pipeline::estimate::duration_message(*s);
-                format!("{} · ", time.render(ui.lang(), self.units.into()))
+                format!("{} · ", time.render(ui.lang(), self.prefs.units.into()))
             });
         let row = Row::new(
             Id::new(("browser-pass", i, k)),
@@ -1341,10 +1330,10 @@ impl ChiploadApp {
     /// An operation row's hover text: its kind, tool, geometry, depths and time, then its
     /// first problem (already in the display units) and the hidden contours it cuts.
     fn operation_hover(&self, i: usize, problem: Option<&str>, hidden: usize) -> String {
-        let Some(entry) = self.edit.as_ref().and_then(|e| e.ops.get(i)) else {
+        let Some(entry) = self.edit.as_ref().and_then(|e| e.job.operations.get(i)) else {
             return String::new();
         };
-        let op = &entry.op;
+        let op = &entry;
         let kind = match op {
             Operation::Profile(_) => t!(self, "browser-profile"),
             Operation::Pocket(_) => t!(self, "browser-pocket"),
@@ -1368,6 +1357,7 @@ impl ChiploadApp {
             _ => String::new(),
         };
         let time = self
+            .toolpath
             .result
             .as_ref()
             .and_then(|r| {
@@ -1378,14 +1368,14 @@ impl ChiploadApp {
             })
             .map_or(String::new(), |(_, s)| {
                 let time = chipload_pipeline::estimate::duration_message(*s);
-                format!(" · {}", time.render(self.lang(), self.units.into()))
+                format!(" · {}", time.render(self.lang(), self.prefs.units.into()))
             });
         // The depths as Rust writes them in mm, 4 decimals in inches.
         let depth = |mm: f64| {
             chipload_i18n::message::length_number(
                 mm,
                 chipload_i18n::Digits::Shortest,
-                self.units.into(),
+                self.prefs.units.into(),
             )
         };
         let first = format!(
@@ -1393,7 +1383,7 @@ impl ChiploadApp {
             op.tool(),
             depth(start),
             depth(end),
-            chipload_pipeline::units::length_unit(self.units)
+            chipload_pipeline::units::length_unit(self.prefs.units)
         );
         let mut lines = vec![first];
         if !op.enabled() {
@@ -1412,15 +1402,18 @@ impl ChiploadApp {
     /// Properties: the selection, the selected shape's editor or facts, and Copy as
     /// selector (docs/specs/browser-and-layout.md §4), above the open form when shown.
     pub(super) fn selection_section(&mut self, ui: &mut egui::Ui) {
-        if self.selection.ids(&self.contours).is_empty() {
+        if self.selected_ids().is_empty() {
             return;
         }
         let icon = match &self.selection {
             CanvasSelection::Layer(..) => Icon::Layer,
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(_)) => Icon::Dxf,
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(_))
-            | CanvasSelection::Except(chipload_core::chain::ShapeFrom::Image(_), _) => Icon::Image,
-            CanvasSelection::Except(chipload_core::chain::ShapeFrom::Dxf(_), _) => Icon::Dxf,
+            CanvasSelection::Whole {
+                of: Source::Dxf(_), ..
+            } => Icon::Dxf,
+            CanvasSelection::Whole {
+                of: Source::Image(_),
+                ..
+            } => Icon::Image,
             _ => Icon::Polyline,
         };
         let id = ui.make_persistent_id("properties-selection");
@@ -1433,6 +1426,7 @@ impl ChiploadApp {
                 for line in self.selection_lines() {
                     ui.label(line);
                 }
+                self.group_section(ui);
                 self.array_form(ui);
                 self.frame_form(ui);
                 self.selected_shape_ui(ui);

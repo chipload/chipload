@@ -1,0 +1,35 @@
+# The shape library's tab in the right panel (docs/specs/shape-library.md §5.1).
+
+shape-library-tab = Forme
+shape-library-no-folder = Non c'è una cartella delle impostazioni, quindi niente libreria di forme.
+shape-library-search = Cerca
+shape-library-folder = Cartella
+shape-library-save-selection = Salva selezione…
+shape-library-save-selection-hover = Tieni le forme e i testi selezionati nella libreria, per qualsiasi progetto. Oppure trascinali qui
+shape-library-new-group = Nuovo gruppo
+shape-library-new-group-name = Nome del nuovo gruppo:
+shape-library-add-group = Aggiungi
+shape-library-save-as = Salva la selezione come:
+shape-library-no-group = (nessun gruppo)
+shape-library-save = Salva
+shape-library-replace = Sostituisci
+shape-library-exists = «{ $name }» è già nella libreria.
+shape-library-cancel = Annulla
+shape-library-rename = Un nuovo nome per «{ $name }»:
+shape-library-rename-button = Rinomina
+shape-library-rename-menu = Rinomina…
+shape-library-delete-question = Eliminare «{ $name }»? Il suo file va in .deleted nella cartella della libreria.
+shape-library-delete-group-question = Eliminare il gruppo vuoto «{ $name }»?
+shape-library-delete = Elimina
+shape-library-delete-menu = Elimina…
+shape-library-group-not-empty = Si può eliminare solo un gruppo vuoto
+shape-library-show-in-folder = Mostra nella cartella
+shape-library-move-to = Sposta in
+shape-library-insert-middle = Inserisci al centro della vista
+shape-library-insert-around = Inserisci attorno alla selezione
+shape-library-insert-around-hover = In scala per stare attorno alla selezione, con il margine della cornice
+shape-library-empty = Ancora niente. Seleziona delle forme e trascinale qui, o fai clic su Salva selezione…
+shape-library-failed = La libreria di forme non è riuscita a farlo
+shape-library-saved = «{ $name }» salvato nella libreria di forme
+shape-library-inserted = «{ $name }» inserito
+shape-library-save-menu = Salva nella libreria di forme…

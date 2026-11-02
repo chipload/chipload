@@ -41,6 +41,8 @@ job-tool-type-article = { $type ->
 job-must-be-positive = muss größer als 0 sein, ist { $got }
 job-must-be-positive-number = muss eine positive Zahl sein, ist { $got }
 job-vcarve-passes = muss eine ganze Zahl von 1 bis { $most } sein, ist { $got }
+job-vcarve-step-down = muss mindestens { $least } sein, also höchstens { $most } Durchgänge, ist { $got }
+job-vcarve-ignore-kinks = muss zwischen 0 und { $most } Grad liegen, ist { $got }
 job-must-be-more-than-0 = muss mehr als 0 sein, ist { $got }
 job-must-be-0-or-more = muss 0 oder mehr sein, ist { $got }
 job-through-stale = schneidet durch das Material, endet also bei { $depth }
@@ -96,6 +98,11 @@ job-shape-id-range = muss zwischen 1 und next_shape_id - 1 ({ $most }) liegen, i
 job-no-image = kein Bild { $id } in drawing.images
 job-no-dxf = keine DXF { $id } in drawing.dxfs
 job-no-text = kein Text { $id } in drawing.texts
+job-no-group = keine Gruppe { $id } in drawing.groups
+job-group-empty = eine Gruppe enthält mindestens eine Form oder einen Text
+job-group-not-drawn = Form { $shape } ist nicht gezeichnet: nur gezeichnete Formen und Texte lassen sich gruppieren
+job-group-shape-twice = Form { $shape } ist in zwei Gruppen
+job-group-text-twice = Text { $text } ist in zwei Gruppen
 job-shape-one-source = eine Form stammt aus einem Bild, einer DXF oder einem Text, nicht aus mehreren
 job-path-no-segments = eine Form braucht mindestens ein Segment
 job-segment-not-finite = Koordinaten müssen endlich und Radien positiv sein
@@ -150,6 +157,7 @@ job-exclude-no-source = Formen können nur aus einer ganzen DXF, einem ganzen Bi
 job-exclude-missing = Form { $shape } ist nicht mehr in { $source ->
     [dxf] DXF
     [image] Bild
+    [group] Gruppe
    *[text] Text
 } { $id }: wählen Sie die auszulassenden Formen neu
 job-selector-one-source = eine Auswahl nennt eine DXF, ein Bild oder einen Text, nicht mehrere
@@ -266,6 +274,8 @@ job-library-work-zero-point = Punkt X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
 job-library-cutting = Vorschub { $feed }, Eintauchen { $plunge }, Zustellung { $step_down }, seitl. Zustellung { $stepover }
 job-library-other-values = andere Werte
+job-shapes-no-entry = diesen Eintrag gibt es in der Formenbibliothek nicht
+job-shapes-bad-name = „{ $name }“ kann kein Name sein: 1 bis { $most } Zeichen, keines von / \ : * ? " < > |, nicht mit einem Punkt oder Leerzeichen am Anfang
 # A library tool put into a project: $id is its number there.
 job-library-tool-there = Werkzeug { $id } (schon im Projekt)
 job-library-tool-added = Werkzeug { $id } (hinzugefügt)

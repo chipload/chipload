@@ -3,7 +3,6 @@
 //! properties make its letters again, as one undo step.
 
 use chipload_core::Point;
-use chipload_core::chain::ShapeFrom;
 use chipload_job::Text;
 use chipload_pipeline::texts::{NewText, add_text, remake, remove_text};
 
@@ -20,36 +19,36 @@ impl ChiploadApp {
         if !self.can_draw() {
             return;
         }
-        if self.three_d {
+        if self.display.three_d {
             self.view_top(); // placed by a click in top view, as drawing is
         }
         self.enter_edit_mode();
-        self.sketch = None;
-        self.measure = None;
-        self.placing_text = true;
+        self.set_tool(ActiveTool::PlaceText);
         self.set_status(t!(self, "texts-place-hint"), STATUS_SECONDS);
     }
 
     /// Placing a text: the next canvas click places it.
     pub fn placing_text(&self) -> bool {
-        self.placing_text
+        self.canvas_tools.active == ActiveTool::PlaceText
     }
 
     /// A new text with its lower-left corner at `at`, selected and open in Properties with
     /// its text field ready to type into, as one undo step. Returns its id.
     pub fn place_text_at(&mut self, at: Point) -> Option<u64> {
-        self.placing_text = false;
+        if self.placing_text() {
+            self.end_tool();
+        }
         self.commit();
         let edit = self.edit.as_ref()?;
         let mut new = NewText::new(NEW_TEXT, NEW_TEXT_HEIGHT_MM);
         (new.x, new.y) = at;
-        match add_text(&edit.settings, new, &*self.font_source()) {
+        match add_text(&edit.job, new, &*self.font_source()) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.drawing_changed(&[]);
-                self.selection = CanvasSelection::Source(ShapeFrom::Text(report.id));
+                self.selection = CanvasSelection::whole(Source::Text(report.id));
                 self.focus = Focus::Text(report.id);
                 self.focus_text_field = true;
                 self.commit();
@@ -73,18 +72,18 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return false;
         };
-        let mut job = edit.settings.clone();
+        let mut job = edit.job.clone();
         let Some(slot) = job.drawing.texts.iter_mut().find(|t| t.id == id) else {
             return false;
         };
         *slot = Text { id, ..text.clone() };
-        match remake(&edit.settings, &job, id, &*self.font_source()) {
+        match remake(&edit.job, &job, id, &*self.font_source()) {
             Ok((job, report)) => {
                 if let Some(edit) = self.edit.as_mut() {
-                    edit.settings = job;
+                    edit.job = job;
                 }
                 self.drawing_changed(&[]);
-                self.selection = CanvasSelection::Source(ShapeFrom::Text(id));
+                self.selection = CanvasSelection::whole(Source::Text(id));
                 self.commit();
                 self.set_report(Report::of_messages(report.messages));
                 true
@@ -104,9 +103,9 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match remove_text(&edit.settings, id) {
+        match remove_text(&edit.job, id) {
             Ok(job) => {
-                edit.settings = job;
+                edit.job = job;
                 self.drawing_changed(&[]);
                 self.selection = CanvasSelection::Nothing;
                 if self.focus == Focus::Text(id) {

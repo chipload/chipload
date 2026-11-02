@@ -19,19 +19,23 @@ fn the_drawing_panel_groups_dxfs_images_and_drawn_shapes() {
         Some(chipload_core::chain::ShapeFrom::Dxf(2)),
     );
     let index = app.add_operation(OpKind::Profile).unwrap();
-    let select = app.edit.as_ref().unwrap().ops[index].op.select().clone();
+    let select = app.edit.as_ref().unwrap().job.operations[index]
+        .select()
+        .clone();
     assert_eq!(
-        (select.layer.as_deref(), select.dxf),
+        (select.layer.as_deref(), select.dxf()),
         (Some("HOLES"), Some(2))
     );
-    let both = app.op_contours(&app.edit.as_ref().unwrap().ops[0].op).len();
+    let both = app
+        .op_contours(&app.edit.as_ref().unwrap().job.operations[0])
+        .len();
     let one = app
-        .op_contours(&app.edit.as_ref().unwrap().ops[index].op)
+        .op_contours(&app.edit.as_ref().unwrap().job.operations[index])
         .len();
     assert!(one * 2 == both, "{one} of {both}");
     // A whole group is selected by its shapes.
     app.select_group("image:1");
-    assert_eq!(app.selection.ids(&app.contours).len(), 4);
+    assert_eq!(app.selected_ids().len(), 4);
 }
 
 #[test]
@@ -50,7 +54,7 @@ fn hidden_groups_are_not_drawn_nor_clickable_but_still_cut() {
             .all(|c| !app.hidden_contours.contains(&c.id))
     );
     // Operation 1 cuts the holes of both DXFs: it still does, and says so.
-    let op = app.edit.as_ref().unwrap().ops[0].op.clone();
+    let op = app.edit.as_ref().unwrap().job.operations[0].clone();
     assert!(app.hidden_cut(&op) > 0);
     assert!(app.generate_and_wait(), "{:?}", app.report);
     // A layer alone, then shown again; undo brings back what was hidden.
@@ -65,4 +69,26 @@ fn hidden_groups_are_not_drawn_nor_clickable_but_still_cut() {
     assert_eq!(app.drawing_groups().len(), 2);
     app.undo();
     assert_eq!(app.drawing_groups().len(), 3);
+}
+
+/// Each kind of drawn shape lists its shapes in a folder per layer, one layer too (the user,
+/// 2026-11-02: "always show the layer folder, that would be most logical").
+#[test]
+fn drawn_shapes_on_one_layer_still_show_its_folder() {
+    use egui_kittest::kittest::Queryable;
+    let mut harness = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(1400.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
+            app
+        });
+    harness.run_steps(4);
+    // A rectangle, a circle and a polyline, all on layer "drawn": a folder under each kind.
+    let folders = harness.get_all_by_label("drawn").count();
+    assert_eq!(folders, 3);
+    assert!(
+        harness.query_by_label("S2").is_some(),
+        "the shape under its folder"
+    );
 }

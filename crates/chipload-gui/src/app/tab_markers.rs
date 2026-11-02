@@ -26,11 +26,11 @@ impl ChiploadApp {
         let Focus::Op(i) = self.focus else {
             return None;
         };
-        if self.three_d || self.sketch.is_some() || self.scene.hide_toolpath {
+        if self.display.three_d || self.sketch().is_some() || self.scene.hide_toolpath {
             return None;
         }
         let edit = self.edit.as_ref()?;
-        match &edit.ops.get(i)?.op {
+        match &edit.job.operations.get(i)? {
             Operation::Profile(p) if p.tabs.is_some() => Some(i),
             _ => None,
         }
@@ -160,14 +160,14 @@ impl ChiploadApp {
         let Some(points) = self
             .edit
             .as_mut()
-            .and_then(|e| e.ops.get_mut(operation))
-            .and_then(|entry| entry.op.tab_points_mut())
+            .and_then(|e| e.job.operations.get_mut(operation))
+            .and_then(|entry| entry.tab_points_mut())
         else {
             return;
         };
         change(points);
         self.commit();
-        self.undo_if_refused.clone_from(&self.edit);
+        self.toolpath.undo_if_refused.clone_from(&self.edit);
         self.generate();
     }
 }

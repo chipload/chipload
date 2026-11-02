@@ -41,6 +41,8 @@ job-tool-type-article = { $type ->
 job-must-be-positive = måste vara större än 0, fick { $got }
 job-must-be-positive-number = måste vara ett positivt tal, fick { $got }
 job-vcarve-passes = måste vara ett heltal från 1 till { $most }, fick { $got }
+job-vcarve-step-down = måste vara minst { $least }, alltså högst { $most } pass, fick { $got }
+job-vcarve-ignore-kinks = måste vara från 0 till { $most } grader, fick { $got }
 job-must-be-more-than-0 = måste vara mer än 0, fick { $got }
 job-must-be-0-or-more = måste vara 0 eller mer, fick { $got }
 job-through-stale = skär igenom materialet och slutar därför på { $depth }
@@ -96,6 +98,11 @@ job-shape-id-range = måste vara mellan 1 och next_shape_id - 1 ({ $most }), fic
 job-no-image = ingen bild { $id } i drawing.images
 job-no-dxf = ingen DXF { $id } i drawing.dxfs
 job-no-text = ingen text { $id } i drawing.texts
+job-no-group = ingen grupp { $id } i drawing.groups
+job-group-empty = en grupp har minst en form eller text
+job-group-not-drawn = form { $shape } är inte ritad: bara ritade former och texter kan grupperas
+job-group-shape-twice = form { $shape } finns i två grupper
+job-group-text-twice = text { $text } finns i två grupper
 job-shape-one-source = en form kommer från en bild, DXF eller text, inte fler
 job-path-no-segments = en form behöver minst ett segment
 job-segment-not-finite = koordinater måste vara ändliga och radier positiva
@@ -150,6 +157,7 @@ job-exclude-no-source = former kan bara uteslutas ur en hel DXF, bild eller text
 job-exclude-missing = form { $shape } finns inte längre i { $source ->
     [dxf] DXF
     [image] bild
+    [group] grupp
    *[text] text
 } { $id }: välj formerna som ska uteslutas igen
 job-selector-one-source = ett urval anger en DXF, bild eller text, inte fler
@@ -266,6 +274,8 @@ job-library-work-zero-point = punkten X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
 job-library-cutting = matning { $feed }, nedmatning { $plunge }, skärdjup { $step_down }, sidosteg { $stepover }
 job-library-other-values = andra värden
+job-shapes-no-entry = den posten finns inte i formbiblioteket
+job-shapes-bad-name = ”{ $name }” kan inte vara ett namn: 1 till { $most } tecken, inget av / \ : * ? " < > |, inte med punkt eller mellanslag först
 # A library tool put into a project: $id is its number there.
 job-library-tool-there = verktyg { $id } (finns redan i projektet)
 job-library-tool-added = verktyg { $id } (tillagt)

@@ -15,7 +15,7 @@ use chipload_dxf::{ImportError, shapes_from_file};
 use chipload_job::edit::{Handle, SegmentDrag, handles, try_drag};
 use chipload_job::library::Theme;
 use chipload_job::{
-    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockCorner,
+    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Source, Spindle, StockCorner,
     StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
@@ -41,19 +41,25 @@ use chipload_i18n::Message;
 mod box_drag;
 mod browser;
 mod canvas;
+mod canvas_tools;
+use canvas_tools::ActiveTool;
 mod computer;
 mod copy_paste;
 mod corners;
 mod dialogs;
 mod disk;
+mod display;
 mod drawing;
 mod dropping;
 mod dxf_export;
 mod forms;
 mod frames;
 mod generation;
+mod groups;
 pub(crate) mod header;
+mod history;
 mod images;
+mod layout;
 mod library_transfer;
 mod library_view;
 mod materials;
@@ -63,12 +69,14 @@ mod modify;
 mod navigation;
 mod panels;
 mod playback;
+mod prefs;
 mod problems;
 mod recovery;
 mod report;
 mod rulers;
 mod select_drag;
 mod setups;
+mod shape_library;
 mod shortcuts;
 mod simulation;
 mod sources;
@@ -83,30 +91,12 @@ mod zero_drag;
 
 use forms::{job_form, op_form};
 use report::{DrawingFacts, Report, Tone};
-use user_library::LibraryState;
 pub use user_library::{LibraryKind, SaveTarget};
 
 const STATUS_SECONDS: u64 = 5;
 const ERROR_STATUS_SECONDS: u64 = 10;
 /// Extension of project files (docs/specs/project-file.md, D1).
 pub const PROJECT_EXTENSION: &str = "chipload";
-
-/// A folded side panel's width, and the least widths of the open ones: the Properties
-/// forms fit in theirs (narrower labels and fields, rows that wrap).
-const FOLDED_WIDTH: f32 = 26.0;
-const BROWSER_MIN_WIDTH: f32 = 180.0;
-pub(crate) const PROPERTIES_MIN_WIDTH: f32 = 250.0;
-
-/// A folded side panel: one button that opens it again. True when clicked.
-fn folded_strip(ui: &mut egui::Ui, arrow: &str, hover: &str) -> bool {
-    ui.add_space(4.0);
-    ui.vertical_centered(|ui| {
-        ui.add(egui::Button::new(arrow).frame(false))
-            .on_hover_text(hover)
-            .clicked()
-    })
-    .inner
-}
 
 /// What a pocket's *Add rest pass ▸* (docs/specs/rest-passes.md §6) or a V-carve's *Add
 /// floor pass ▸* (docs/specs/vcarve-wide-strokes.md §7) offers.
@@ -238,10 +228,11 @@ enum Prompt {
     /// The project's file changed on disk while there are unsaved changes
     /// (docs/specs/reload-changed-file.md §4); the file's version is in `disk`.
     ChangedOnDisk,
-    /// Explode DXF `dxf` into drawn shapes, then join ends closer than `gap` mm if `join`
-    /// (docs/specs/explode-and-join.md §5).
+    /// Explode a DXF, picture or text into drawn shapes, then (a DXF) join ends closer than
+    /// `gap` mm if `join` (docs/specs/explode-and-join.md §5,
+    /// explode-pictures-and-texts.md §6).
     Explode {
-        dxf: u64,
+        of: Source,
         join: bool,
         gap: f64,
     },
@@ -323,26 +314,19 @@ struct Dialogs {
 pub struct ChiploadApp {
     /// The project being edited.
     pub edit: Option<EditJob>,
-    /// Where it was opened from or last saved to.
-    pub job_path: Option<PathBuf>,
-    /// The project as last opened or saved; differs from `edit` when there are unsaved changes.
-    saved: Option<EditJob>,
-    /// The project's file, watched for changes by other programs.
-    disk: disk::DiskWatch,
-    /// The project as last recorded for undo.
-    committed: Option<EditJob>,
-    undo: Vec<Option<EditJob>>,
-    redo: Vec<Option<EditJob>>,
+    /// The project's file: where it is, what was last saved there, and changes other
+    /// programs make to it.
+    pub file: disk::ProjectFile,
+    /// Undo and redo.
+    pub history: history::History,
     pub focus: Focus,
 
     /// The project's contours (from its embedded drawing), and the drawing they came from.
     pub contours: Vec<Contour>,
     loaded_drawing: Option<Drawing>,
 
-    // The last generation.
-    pub result: Option<RunResult>,
-    /// The job `result` was made from (for the setup sheet).
-    result_job: Option<Job>,
+    /// The toolpath: the last result, whether it is out of date, the run in progress and what waits for it.
+    pub toolpath: generation::Toolpath,
     /// Operations (indices) the last generation, validation or update complained about.
     pub error_ops: BTreeSet<usize>,
     /// What is wrong with the project as last edited (docs/specs/live-problems.md).
@@ -358,56 +342,24 @@ pub struct ChiploadApp {
     /// The focused operation's corners and an open corner menu (docs/specs/dogbone-per-corner.md).
     corners: corners::CornerMarkers,
     context_pick: Option<usize>,
-    /// Simulate mode (docs/specs/edit-and-simulate.md §2): the shaded simulation and
-    /// playback, the canvas a viewer. Off: Edit, the canvas a drawing board.
-    pub show_simulation: bool,
-    /// The Browser and the Properties panel open, or folded to a strip for a larger canvas
-    /// (View, the P key, or dragging a panel's edge past its least width).
-    pub browser_open: bool,
-    pub properties_open: bool,
+    /// The panels round the canvas: which are open, which tab the right one shows.
+    pub panels: layout::Panels,
+    shape_library: shape_library::ShapeLibraryView,
     /// The material-removal simulation of the last result (docs/specs/simulation.md).
     pub sim: Sim,
     /// The playback slider's state, once a toolpath has been generated.
     pub playback: Option<playback::Playback>,
-    /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
-    pub three_d: bool,
-    /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
-    pub sketch: Option<Sketch>,
-    /// A value being typed while drawing (docs/specs/drawing-input.md §2).
-    pub typed: Option<drawing::Typed>,
-    /// The last drawing tool used: Enter with no tool active starts it again.
-    pub last_tool: Option<Tool>,
-    /// The number of sides new polygons get, as last chosen.
-    pub polygon_sides: u32,
-    /// The drawing tools draw construction geometry (key K; docs/specs/dxf-export.md §B2).
-    pub construction_mode: bool,
-    /// The editing tool being used, if any (docs/specs/drawing-editing.md).
-    pub modify: Option<modify::ModifyTool>,
-    /// The offset tool's corners and count, kept for the session.
-    pub offset_corners: chipload_pipeline::drawing_edit::Corners,
-    pub offset_count: u32,
-    /// The fillet tool's radius and the chamfer tool's distance, mm, kept for the session.
-    pub fillet_radius: f64,
-    pub chamfer_distance: f64,
-    offset_preview: modify::OffsetPreview,
-    /// The array tools' values, kept for the session, and their preview.
-    pub array: modify::ArraySettings,
-    /// Align lines the selection up with the stock instead of its own box.
-    pub align_to_stock: bool,
+    /// What the canvas shows: 3D or top view, Simulate or Edit, pictures, toolpath, parts, legend.
+    pub display: display::Display,
+    /// The canvas tools: the one in use, a value being typed, previews, and the values the
+    /// tools keep for the session.
+    pub canvas_tools: canvas_tools::CanvasTools,
     /// File > Export drawing as DXF's choices, kept for the session.
     pub dxf_export: dxf_export::DxfExportChoice,
-    array_preview: modify::ArrayPreview,
-    /// Draw > Frame…'s values, kept for the session, and its preview.
-    pub frame: frames::FrameSettings,
-    frame_preview: frames::FramePreview,
-    /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
-    placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
     pub(super) focus_text_field: bool,
-    /// View → Measure, while on (docs/specs/small-items.md §3).
-    pub measure: Option<measure::Measure>,
-    /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
-    shape_clipboard: Vec<(String, Geometry)>,
+    /// The drawn shapes copied last, for Ctrl+V.
+    pub clipboard: copy_paste::Clipboard,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
     /// The shape's name field takes the keyboard next frame (Browser: Rename…).
@@ -418,95 +370,34 @@ pub struct ChiploadApp {
     box_size: box_drag::BoxSize,
 
     pub report: Report,
-    /// The report panel is open (it opens by itself on warnings and errors).
-    pub report_open: bool,
     /// The current drawing's facts, for the report's Drawing section.
     pub drawing_facts: Option<DrawingFacts>,
-    /// The canvas legend is unfolded.
-    pub legend_open: bool,
-    /// The project changed since the last generation, which is shown faded.
-    pub toolpath_stale: bool,
-    /// The run in progress (docs/specs/background-generation.md).
-    generation: Option<generation::Generation>,
-    /// What plans a project (a stand-in in tests).
-    runner: generation::Runner,
-    /// View > Update toolpath automatically, kept in the app settings.
-    pub auto_generate: bool,
-    /// Settings > Write a setup sheet with the G-code (docs/specs/setup-sheet.md §4).
-    pub setup_sheet: bool,
-    /// View → Show grid (kept in the app settings).
-    pub show_grid: bool,
-    /// Rulers along the canvas's edges in top view (docs/specs/rulers.md).
-    pub show_rulers: bool,
-    /// When the project last changed, while the live preview hasn't generated it yet.
-    changed_at: Option<Instant>,
-    /// What the toolpath shown is made from (docs/specs/edit-and-simulate.md §5).
-    shown_inputs: Option<chipload_pipeline::CutInputs>,
-    /// Export G-code once the run in progress has finished (Ctrl+E while generating).
-    export_when_done: bool,
-    /// Where to export once the run in progress, of every part, is done.
-    pub(super) export_path_when_done: Option<PathBuf>,
-    /// Export part `id` to this path once it is planned (docs/specs/part-export.md §4).
-    pub(super) export_part_when_done: Option<(u64, PathBuf)>,
-    /// The project as a tab or start was just dropped on the canvas: if its run fails, the
-    /// drop is taken back, so the markers stay to be dragged elsewhere (the user,
-    /// 2026-10-29).
-    pub(super) undo_if_refused: Option<EditJob>,
-    /// Preview every part, not only the active one (canvas bar; this session only).
-    pub all_parts: bool,
-    /// The part the last result is a preview of; None: the whole project.
-    pub(super) result_part: Option<u64>,
-    /// This window's recovery copy (docs/specs/autosave-and-backup.md); None without a
-    /// settings folder.
-    recovery: Option<chipload_pipeline::recovery::Session>,
-    /// When the project last changed, while its recovery copy isn't written yet.
-    recovery_due: Option<Instant>,
-    /// Recovery copies left by windows that closed without saving, offered at start.
-    pub leftovers: Vec<chipload_pipeline::recovery::Leftover>,
-    /// Settings > Colour theme, kept in the app settings.
-    pub theme: Theme,
-    /// Settings > Units: what lengths and feeds are shown and typed in
-    /// (docs/specs/inch-units.md §5), kept in the app settings.
-    pub units: chipload_job::Units,
-    /// Settings > Language as kept in the app settings: `"system"` or a language code.
-    pub language_setting: String,
+    /// The preferences kept in the app settings, and the language and theme they resolve to.
+    pub prefs: prefs::Prefs,
+    /// Recovery copies: this window's, when it is next written, and those other windows left.
+    pub recovery: recovery::Recovery,
     /// The update notice: the user's answer, the daily check, a newer release
     /// (docs/specs/update-notice.md).
     pub updates: crate::updates::Updates,
     /// The computer's fonts for texts (docs/specs/system-fonts.md §6).
     pub text_fonts: text_fonts::TextFonts,
-    /// The language the app is shown in: `language_setting` resolved
-    /// (docs/specs/translations.md decision 5).
-    pub language: crate::i18n::Language,
-    /// The theme last handed to egui.
-    applied_theme: Option<Theme>,
     status: Option<(String, Instant)>,
     cursor: Option<Point>,
     dialogs: Dialogs,
     title: String,
     allow_close: bool,
 
-    /// The user's settings folder (docs/specs/tool-library-and-machines.md); None in tests
-    /// and when there is no home folder.
-    settings_dir: Option<PathBuf>,
-    /// The tool library and machine profiles as last read.
-    library: chipload_pipeline::library::Library,
-    library_state: LibraryState,
-    /// File > Open recent (docs/specs/open-recent.md), most recent first.
-    pub recent: Vec<String>,
+    /// The user's settings folder and the tool library and machine profiles read from it.
+    pub user: user_library::UserFiles,
     /// The image window, while open (docs/specs/image-trace.md §6).
     pub image_dialog: Option<images::ImageDialog>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
     pub(super) hidden_contours: BTreeSet<usize>,
-    /// View > Show images: the pictures, faintly over the stock and under the drawing.
-    pub show_images: bool,
     /// View > Show drawing off: the selection when it was switched off. Selecting something
     /// else or drawing a shape shows the drawing again (docs/specs/view-and-settings.md §2).
     pub(super) drawing_hidden: Option<CanvasSelection>,
-    /// View → Show toolpath (docs/specs/drawing-sources.md §5).
-    pub show_toolpath: bool,
     /// The pictures' textures, for the images they were made from.
     picture_textures: images::PictureTextures,
 }
@@ -515,17 +406,12 @@ impl Default for ChiploadApp {
     fn default() -> Self {
         ChiploadApp {
             edit: None,
-            job_path: None,
-            saved: None,
-            disk: disk::DiskWatch::default(),
-            committed: None,
-            undo: Vec::new(),
-            redo: Vec::new(),
+            file: disk::ProjectFile::default(),
+            history: history::History::default(),
             focus: Focus::Job,
             contours: Vec::new(),
             loaded_drawing: None,
-            result: None,
-            result_job: None,
+            toolpath: generation::Toolpath::default(),
             error_ops: BTreeSet::new(),
             problems: Vec::new(),
             scene: Scene::default(),
@@ -537,81 +423,35 @@ impl Default for ChiploadApp {
             context_pick: None,
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
-            show_simulation: false,
-            browser_open: true,
-            properties_open: true,
+            panels: layout::Panels::default(),
+            shape_library: shape_library::ShapeLibraryView::default(),
             sim: Sim::default(),
             playback: None,
-            three_d: false,
-            sketch: None,
-            typed: None,
-            last_tool: None,
-            polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
-            construction_mode: false,
-            modify: None,
-            offset_corners: chipload_pipeline::drawing_edit::Corners::Round,
-            offset_count: 1,
-            fillet_radius: 3.0,
-            chamfer_distance: 1.0,
-            offset_preview: modify::OffsetPreview::default(),
-            array: modify::ArraySettings::default(),
-            align_to_stock: false,
+            display: display::Display::default(),
+            canvas_tools: canvas_tools::CanvasTools::default(),
             dxf_export: dxf_export::DxfExportChoice::default(),
-            array_preview: modify::ArrayPreview::default(),
-            frame: frames::FrameSettings::default(),
-            frame_preview: frames::FramePreview::default(),
-            placing_text: false,
             focus_text_field: false,
-            measure: None,
-            shape_clipboard: Vec::new(),
+            clipboard: copy_paste::Clipboard::default(),
             shape_draft: None,
             grab_shape_name: false,
             drag: Drag::default(),
             box_size: box_drag::BoxSize::default(),
             report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),
-            report_open: false,
             drawing_facts: None,
-            legend_open: true,
-            toolpath_stale: false,
-            generation: None,
-            runner: generation::RUNNER,
-            auto_generate: true,
-            setup_sheet: true,
-            show_grid: true,
-            show_rulers: true,
-            units: chipload_job::Units::Mm,
-            language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
+            prefs: prefs::Prefs::default(),
             updates: crate::updates::Updates::default(),
             text_fonts: text_fonts::TextFonts::default(),
-            language: crate::i18n::Language::En,
-            changed_at: None,
-            shown_inputs: None,
-            export_when_done: false,
-            all_parts: false,
-            export_path_when_done: None,
-            export_part_when_done: None,
-            undo_if_refused: None,
-            result_part: None,
-            recovery: None,
-            recovery_due: None,
-            leftovers: Vec::new(),
-            theme: Theme::System,
-            applied_theme: None,
+            recovery: recovery::Recovery::default(),
             status: None,
             cursor: None,
             dialogs: Dialogs::default(),
             title: String::new(),
             allow_close: false,
-            settings_dir: None,
-            library: chipload_pipeline::library::Library::default(),
-            library_state: LibraryState::default(),
-            recent: Vec::new(),
+            user: user_library::UserFiles::default(),
             image_dialog: None,
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),
-            show_images: true,
             drawing_hidden: None,
-            show_toolpath: true,
             picture_textures: images::PictureTextures::default(),
         }
     }
@@ -653,14 +493,11 @@ fn selector_text(selector: &Selector) -> String {
     if let Some(shapes) = selector.shapes.as_ref().filter(|s| !s.is_empty()) {
         fields.push(format!("\"shapes\": {}", list(shapes)));
     }
-    if let Some(dxf) = selector.dxf {
-        fields.push(format!("\"dxf\": {dxf}"));
+    if let Some(source) = selector.source {
+        fields.push(format!("\"{}\": {}", source.key(), source.id()));
     }
-    if let Some(image) = selector.image {
-        fields.push(format!("\"image\": {image}"));
-    }
-    if let Some(exclude) = selector.exclude.as_ref().filter(|s| !s.is_empty()) {
-        fields.push(format!("\"exclude\": {}", list(exclude)));
+    if !selector.exclude.is_empty() {
+        fields.push(format!("\"exclude\": {}", list(&selector.exclude)));
     }
     format!("{{{}}}", fields.join(", "))
 }
@@ -680,86 +517,20 @@ impl ChiploadApp {
 
     /// The project has changes that aren't saved.
     pub fn dirty(&self) -> bool {
-        self.edit.is_some() && self.edit != self.saved
-    }
-
-    /// Record the current project as one undo step if it changed since the last one. Called
-    /// once the user has finished an edit (no drag or text entry in progress).
-    pub fn commit(&mut self) {
-        if self.edit != self.committed {
-            self.undo.push(self.committed.take());
-            self.redo.clear();
-            self.committed.clone_from(&self.edit);
-            // A shape no operation selects changes nothing that is cut: the toolpath
-            // stands, and nothing is generated again (docs/specs/edit-and-simulate.md §5).
-            if self.edit_keeps_cut() {
-                self.refresh_problems();
-                self.recovery_due = Some(Instant::now());
-            } else {
-                self.toolpath_out_of_date();
-            }
-        }
-    }
-
-    pub fn undo(&mut self) {
-        self.commit();
-        if let Some(previous) = self.undo.pop() {
-            self.redo.push(self.edit.take());
-            self.edit = previous;
-            self.committed.clone_from(&self.edit);
-            self.after_history_step();
-        }
-    }
-
-    /// Take back the last edit for good (no redo): a drop the planner refused.
-    pub(super) fn take_back_edit(&mut self) {
-        if let Some(previous) = self.undo.pop() {
-            self.edit = previous;
-            self.committed.clone_from(&self.edit);
-            self.after_history_step();
-        }
-    }
-
-    pub fn redo(&mut self) {
-        if let Some(next) = self.redo.pop() {
-            self.undo.push(self.edit.take());
-            self.edit = next;
-            self.committed.clone_from(&self.edit);
-            self.after_history_step();
-        }
-    }
-
-    fn after_history_step(&mut self) {
-        self.shape_draft = None;
-        self.sketch = None;
-        let len = self.edit.as_ref().map_or(0, |e| e.ops.len());
-        if let Focus::Op(i) = self.focus
-            && i >= len
-        {
-            self.focus = if len == 0 {
-                Focus::Job
-            } else {
-                Focus::Op(len - 1)
-            };
-        }
-        if self.edit_keeps_cut() {
-            self.refresh_problems();
-        } else {
-            self.toolpath_out_of_date();
-        }
+        self.edit.is_some() && self.edit != self.file.saved
     }
 
     /// Start editing `job` as a fresh document (no undo history).
     fn start_editing(&mut self, job: EditJob, saved: bool, path: Option<PathBuf>) {
         // The previous project was saved or its changes deliberately dropped.
         self.clear_recovery();
-        self.saved = saved.then(|| job.clone());
-        self.committed = Some(job.clone());
+        self.file.saved = saved.then(|| job.clone());
+        self.history.committed = Some(job.clone());
         self.edit = Some(job);
-        self.job_path = path;
+        self.file.path = path;
         self.remember_disk();
-        self.undo.clear();
-        self.redo.clear();
+        self.history.undo.clear();
+        self.history.redo.clear();
         self.focus = Focus::Job;
         self.error_ops.clear();
         self.selection = CanvasSelection::Nothing;
@@ -773,7 +544,7 @@ impl ChiploadApp {
     /// Recompute contours and the drawing's facts if the project's drawing changed (open,
     /// import, update, undo).
     fn refresh_drawing(&mut self) {
-        let Some(job) = self.edit.as_ref().map(|e| e.settings.clone()) else {
+        let Some(job) = self.edit.as_ref().map(|e| e.job.clone()) else {
             self.drawing_facts = None;
             return;
         };
@@ -865,7 +636,7 @@ impl ChiploadApp {
     /// A new project's starting values: tidy inch ones when lengths are shown in inches
     /// (docs/specs/inch-units.md §5.2).
     fn in_display_units(&self, job: chipload_job::Job) -> chipload_job::Job {
-        match self.units {
+        match self.prefs.units {
             Units::Mm => job,
             Units::Inch => chipload_pipeline::with_inch_defaults(job),
         }
@@ -876,7 +647,7 @@ impl ChiploadApp {
         self.dialogs.prompt = None;
         self.reload_library();
         let mut job = self.in_display_units(empty_project());
-        let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
+        let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
         let mut lines = vec![t!(self, "app-new-project")];
@@ -885,7 +656,7 @@ impl ChiploadApp {
                 .iter()
                 .map(|n| t!(self, "app-started-with", what = self.say(n))),
         );
-        lines.extend(self.library.problems.iter().map(|p| self.say(p)));
+        lines.extend(self.user.library.problems.iter().map(|p| self.say(p)));
         lines.push(t!(self, "app-new-project-next"));
         self.set_report(Report::info(lines));
     }
@@ -936,7 +707,7 @@ impl ChiploadApp {
         // The library gives starting values (the default machine and tool).
         self.reload_library();
         let mut job = self.in_display_units(new_project(imported));
-        let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
+        let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
         let mut lines = vec![t!(
@@ -950,7 +721,7 @@ impl ChiploadApp {
                 .iter()
                 .map(|n| t!(self, "app-started-with", what = self.say(n))),
         );
-        lines.extend(self.library.problems.iter().map(|p| self.say(p)));
+        lines.extend(self.user.library.problems.iter().map(|p| self.say(p)));
         lines.push(t!(self, "app-import-next"));
         self.set_report(Report::info(lines));
         true
@@ -998,12 +769,10 @@ impl ChiploadApp {
         };
         match updated {
             Ok((updated, report)) => {
-                let mut next = EditJob::from_job(&updated);
-                // Keep "side not chosen" marks; the update doesn't touch operations.
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(updated);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.error_ops = report.lost.iter().copied().collect();
@@ -1061,11 +830,10 @@ impl ChiploadApp {
         };
         match chipload_pipeline::dxfs::add_drawing_file(&job, dxf, units, px, None) {
             Ok((added, report)) => {
-                let mut next = EditJob::from_job(&added);
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(added);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(report.messages));
@@ -1103,6 +871,12 @@ impl ChiploadApp {
             .unwrap_or_else(|| self.selection.clone())
     }
 
+    /// The contour ids the canvas selection covers.
+    pub fn selected_ids(&self) -> BTreeSet<usize> {
+        self.selection
+            .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
+    }
+
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.tool_for(kind);
@@ -1110,7 +884,7 @@ impl ChiploadApp {
         // The project's material: the new operation names it, and its values for the tool
         // come first (docs/specs/materials.md §2).
         let material = self.material_cutting(tool);
-        let material_ref = self.edit.as_ref()?.settings.stock().material.clone();
+        let material_ref = self.edit.as_ref()?.job.stock().material.clone();
         let selection = self.op_selection();
         let edit = self.edit.as_mut()?;
         let index = edit.add_with(
@@ -1118,12 +892,12 @@ impl ChiploadApp {
             &selection,
             &self.contours,
             cutting.as_ref(),
-            &self.language,
+            &self.prefs.language,
         );
-        if let Some(entry) = edit.ops.get_mut(index) {
-            entry.op.set_material(material_ref);
+        if let Some(entry) = edit.job.operations.get_mut(index) {
+            entry.set_material(material_ref);
             if let Some(values) = material {
-                entry.op.apply_cutting(&values);
+                entry.apply_cutting(&values);
             }
         }
         self.focus = Focus::Op(index);
@@ -1162,15 +936,50 @@ impl ChiploadApp {
         };
         match placed {
             Ok((placed, report)) => {
-                let mut next = EditJob::from_job(&placed);
-                // Keep "side not chosen" marks; placing only moves start points.
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: placing only moves start points.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(placed);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(report.messages));
+                true
+            }
+            Err(err) => {
+                self.error_report(Report::failed(
+                    t!(self, "app-could-not-move-drawing"),
+                    err.message(),
+                ));
+                false
+            }
+        }
+    }
+
+    /// DXF `id`'s box dragged on the canvas: scaled and turned about its centre `from`,
+    /// which goes to `to` (docs/specs/dxf-whole-on-canvas.md §2), as one undo step. It stays
+    /// selected; the report is left as it was, a drag says what it did by where the DXF is.
+    pub fn drag_dxf(&mut self, id: u64, from: Point, to: Point, scale: f64, degrees: f64) -> bool {
+        self.commit();
+        let Some(edit) = &self.edit else {
+            return false;
+        };
+        let job = match edit.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error_report(Report::of_problems(
+                    &t!(self, "app-project-incomplete"),
+                    &problems,
+                ));
+                return false;
+            }
+        };
+        match chipload_pipeline::placement::drag_dxf(&job, id, from, to, scale, degrees) {
+            Ok((placed, _)) => {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(placed);
+                }
+                self.commit();
+                self.refresh_drawing();
                 true
             }
             Err(err) => {
@@ -1190,7 +999,7 @@ impl ChiploadApp {
         };
         // The part alone: the grid being set may not be valid yet (a pitch of 0).
         let mut part = edit.clone();
-        for p in &mut part.settings.parts {
+        for p in &mut part.job.parts {
             p.copies = None;
         }
         let job = match part.to_job() {
@@ -1204,14 +1013,14 @@ impl ChiploadApp {
             }
         };
         let current = edit
-            .settings
+            .job
             .part(id)
             .and_then(|p| p.copies)
             .map_or((0.0, 0.0), |c| (c.dx, c.dy));
         match chipload_pipeline::copies::pitch_for_gap(&job, id, gap, current) {
             Ok((dx, dy)) => {
                 let copies = self.edit.as_mut().and_then(|e| {
-                    e.settings
+                    e.job
                         .parts
                         .iter_mut()
                         .find(|p| p.id == id)
@@ -1223,8 +1032,8 @@ impl ChiploadApp {
                 }
                 self.commit();
                 let (units, unit) = (
-                    self.units,
-                    chipload_pipeline::units::length_unit(self.units),
+                    self.prefs.units,
+                    chipload_pipeline::units::length_unit(self.prefs.units),
                 );
                 let text = t!(
                     self,
@@ -1255,8 +1064,8 @@ impl ChiploadApp {
     /// Move the operation at `from` to position `to` in the cut order.
     pub fn move_operation(&mut self, from: usize, to: usize) {
         if let Some(edit) = self.edit.as_mut()
-            && from < edit.ops.len()
-            && to < edit.ops.len()
+            && from < edit.job.operations.len()
+            && to < edit.job.operations.len()
         {
             edit.move_op(from, to);
             self.focus = Focus::Op(to);
@@ -1277,11 +1086,11 @@ impl ChiploadApp {
     /// Make part `id` the one new operations go into.
     pub fn activate_part(&mut self, id: u64) {
         if let Some(edit) = self.edit.as_mut()
-            && let Some(setup) = edit.settings.part(id).map(|p| p.setup)
+            && let Some(setup) = edit.job.part(id).map(|p| p.setup)
         {
-            edit.settings.active_part = Some(id);
+            edit.job.active_part = Some(id);
             // Its setup is the one shown (docs/specs/setups.md §7).
-            edit.settings.active_setup = Some(setup);
+            edit.job.active_setup = Some(setup);
             self.commit();
         }
     }
@@ -1292,7 +1101,7 @@ impl ChiploadApp {
             return;
         };
         let name = edit
-            .settings
+            .job
             .part(id)
             .map(|p| p.name.clone())
             .unwrap_or_default();
@@ -1329,7 +1138,7 @@ impl ChiploadApp {
         if let Some(part) = self
             .edit
             .as_mut()
-            .and_then(|e| e.settings.parts.iter_mut().find(|p| p.id == id))
+            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == id))
         {
             part.enabled = !part.enabled;
             self.commit();
@@ -1338,18 +1147,11 @@ impl ChiploadApp {
 
     pub fn duplicate_operation(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut())
-            && let Some(copy) = edit.duplicate(i, &self.language)
+            && let Some(copy) = edit.duplicate(i, &self.prefs.language)
         {
             self.focus = Focus::Op(copy);
             self.commit();
         }
-    }
-
-    /// Fold both side panels for the largest canvas, or open both again (View, P).
-    pub fn toggle_panels(&mut self) {
-        let open = !(self.browser_open || self.properties_open);
-        self.browser_open = open;
-        self.properties_open = open;
     }
 
     /// Add a rest pass to pocket `i`, cut with `tool` (docs/specs/rest-passes.md §6), and
@@ -1359,8 +1161,8 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let tools = edit.settings.tools.clone();
-        let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+        let tools = edit.job.tools.clone();
+        let Some(Operation::Pocket(pocket)) = edit.job.operations.get_mut(i) else {
             return false;
         };
         match chipload_pipeline::rest_pass_of(pocket, &tools, tool, cutting.as_ref()) {
@@ -1385,7 +1187,7 @@ impl ChiploadApp {
     /// project first unless it is there already: one undo step (docs/specs/rest-passes.md
     /// §6). If the pass can't be added, the project's tools stay as they were.
     pub fn add_rest_pass_from_library(&mut self, i: usize, name: &str) -> bool {
-        let Some(before) = self.edit.as_ref().map(|e| e.settings.tools.clone()) else {
+        let Some(before) = self.edit.as_ref().map(|e| e.job.tools.clone()) else {
             return false;
         };
         let Some(tool) = self.insert_library_tool(name) else {
@@ -1395,7 +1197,7 @@ impl ChiploadApp {
             return true;
         }
         if let Some(edit) = self.edit.as_mut() {
-            edit.settings.tools = before;
+            edit.job.tools = before;
         }
         false
     }
@@ -1405,13 +1207,13 @@ impl ChiploadApp {
     /// (docs/specs/rest-passes.md §6). None for any other operation.
     pub fn rest_menu(&self, i: usize, units: Units) -> Option<RestMenu> {
         let edit = self.edit.as_ref()?;
-        let Operation::Pocket(pocket) = &edit.ops.get(i)?.op else {
+        let Operation::Pocket(pocket) = &edit.job.operations.get(i)? else {
             return None;
         };
         if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
             return Some(RestMenu::Unavailable(t!(self, "app-rest-with-corners")));
         }
-        let tools = &edit.settings.tools;
+        let tools = &edit.job.tools;
         let last = pocket.rest_passes.last().map_or(pocket.tool, |r| r.tool);
         let Some(diameter) = tools.iter().find(|t| t.id == last).map(|t| t.diameter) else {
             return Some(RestMenu::Unavailable(t!(
@@ -1451,8 +1253,11 @@ impl ChiploadApp {
     }
 
     /// Pocket `i`'s rest passes, to change.
-    pub(super) fn rest_passes_mut(&mut self, i: usize) -> Option<&mut Vec<chipload_job::RestPass>> {
-        match self.edit.as_mut()?.ops.get_mut(i).map(|e| &mut e.op) {
+    pub(super) fn rest_passes_mut(
+        &mut self,
+        i: usize,
+    ) -> Option<&mut Vec<chipload_job::ClearingPass>> {
+        match self.edit.as_mut()?.job.operations.get_mut(i) {
             Some(Operation::Pocket(p)) => Some(&mut p.rest_passes),
             _ => None,
         }
@@ -1484,8 +1289,8 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let tools = edit.settings.tools.clone();
-        let Some(Operation::Vcarve(vcarve)) = edit.ops.get_mut(i).map(|e| &mut e.op) else {
+        let tools = edit.job.tools.clone();
+        let Some(Operation::Vcarve(vcarve)) = edit.job.operations.get_mut(i) else {
             return false;
         };
         match chipload_pipeline::floor_pass_of(vcarve, &tools, tool, cutting.as_ref()) {
@@ -1509,7 +1314,7 @@ impl ChiploadApp {
     /// [`App::add_floor_pass`] with the library tool `name`, copied into the project first
     /// unless it is there already. If the pass can't be added, the tools stay as they were.
     pub fn add_floor_pass_from_library(&mut self, i: usize, name: &str) -> bool {
-        let Some(before) = self.edit.as_ref().map(|e| e.settings.tools.clone()) else {
+        let Some(before) = self.edit.as_ref().map(|e| e.job.tools.clone()) else {
             return false;
         };
         let Some(tool) = self.insert_library_tool(name) else {
@@ -1519,7 +1324,7 @@ impl ChiploadApp {
             return true;
         }
         if let Some(edit) = self.edit.as_mut() {
-            edit.settings.tools = before;
+            edit.job.tools = before;
         }
         false
     }
@@ -1528,10 +1333,10 @@ impl ChiploadApp {
     /// the library's not yet in it; or why there is none. None for any other operation.
     pub fn floor_menu(&self, i: usize) -> Option<RestMenu> {
         let edit = self.edit.as_ref()?;
-        let Operation::Vcarve(_) = &edit.ops.get(i)?.op else {
+        let Operation::Vcarve(_) = &edit.job.operations.get(i)? else {
             return None;
         };
-        let tools = &edit.settings.tools;
+        let tools = &edit.job.tools;
         let project: Vec<(i64, f64)> = tools
             .iter()
             .filter(|t| t.kind == ToolType::Endmill)
@@ -1557,8 +1362,8 @@ impl ChiploadApp {
     }
 
     /// V-carve `i`'s floor pass, to change.
-    pub(super) fn floor_pass_mut(&mut self, i: usize) -> Option<&mut chipload_job::FloorPass> {
-        match self.edit.as_mut()?.ops.get_mut(i).map(|e| &mut e.op) {
+    pub(super) fn floor_pass_mut(&mut self, i: usize) -> Option<&mut chipload_job::ClearingPass> {
+        match self.edit.as_mut()?.job.operations.get_mut(i) {
             Some(Operation::Vcarve(v)) => v.floor.as_mut(),
             _ => None,
         }
@@ -1566,10 +1371,8 @@ impl ChiploadApp {
 
     /// Remove V-carve `i`'s floor pass; the V-carve opens.
     pub fn remove_floor_pass(&mut self, i: usize) {
-        if let Some(Some(Operation::Vcarve(v))) = self
-            .edit
-            .as_mut()
-            .map(|e| e.ops.get_mut(i).map(|e| &mut e.op))
+        if let Some(Some(Operation::Vcarve(v))) =
+            self.edit.as_mut().map(|e| e.job.operations.get_mut(i))
             && v.floor.take().is_some()
         {
             self.focus = Focus::Op(i);
@@ -1590,6 +1393,7 @@ impl ChiploadApp {
     /// (docs/specs/vcarve-wide-strokes.md §4.1). None when it clears it all.
     pub(super) fn floor_hint(&self, i: usize) -> Option<(f64, Vec<(String, f64)>)> {
         let (_, largest) = self
+            .toolpath
             .result
             .as_ref()?
             .floor_hints
@@ -1609,8 +1413,7 @@ impl ChiploadApp {
     /// The project as edited, its operations included, for the pipeline's job-level rules.
     pub(super) fn edited_job(&self) -> Option<chipload_job::Job> {
         let edit = self.edit.as_ref()?;
-        let mut job = edit.settings.clone();
-        job.operations = edit.ops.iter().map(|e| e.op.clone()).collect();
+        let job = edit.job.clone();
         Some(job)
     }
 
@@ -1629,11 +1432,14 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let Operation::Pocket(rest) = edit.ops.remove(i).op else {
+        if !matches!(edit.job.operations.get(i), Some(Operation::Pocket(_))) {
+            return;
+        }
+        let Some(Operation::Pocket(rest)) = edit.remove(i) else {
             return;
         };
-        if let Some(Operation::Pocket(pocket)) = edit.ops.get_mut(parent).map(|e| &mut e.op) {
-            pocket.rest_passes.push(chipload_job::RestPass {
+        if let Some(Operation::Pocket(pocket)) = edit.job.operations.get_mut(parent) {
+            pocket.rest_passes.push(chipload_job::ClearingPass {
                 tool: rest.tool,
                 feed: rest.feed,
                 plunge_feed: rest.plunge_feed,
@@ -1652,7 +1458,7 @@ impl ChiploadApp {
     pub fn delete_operation(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut()) {
             edit.remove(i);
-            let len = edit.ops.len();
+            let len = edit.job.operations.len();
             self.focus = if len == 0 {
                 Focus::Job
             } else {
@@ -1665,15 +1471,15 @@ impl ChiploadApp {
     /// Write the checked G-code of the last generation, and its setup sheet when the
     /// setting asks for one (docs/specs/setup-sheet.md §4).
     pub fn export_gcode(&mut self, path: &Path) -> bool {
-        if self.result.is_none() {
+        if self.toolpath.result.is_none() {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         }
         // Never a preview of one part: every part is planned first, then written there
         // (docs/specs/active-part-preview.md §2).
-        if self.result_part.is_some() {
+        if self.toolpath.part.is_some() {
             if self.start_generation_of(true, true) {
-                self.export_path_when_done = Some(path.to_path_buf());
+                self.toolpath.export_path_when_done = Some(path.to_path_buf());
                 self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
             }
             return false;
@@ -1688,19 +1494,21 @@ impl ChiploadApp {
         let Some(name) = self
             .edit
             .as_ref()
-            .and_then(|e| e.settings.part(id))
+            .and_then(|e| e.job.part(id))
             .map(|p| p.name.clone())
         else {
             return false;
         };
-        let current = self.result.is_some() && !self.toolpath_stale && self.generation.is_none();
-        if current && self.result_part == Some(id) {
+        let current = self.toolpath.result.is_some()
+            && !self.toolpath.stale
+            && self.toolpath.running.is_none();
+        if current && self.toolpath.part == Some(id) {
             return self.write_export(path, vec![name]);
         }
         if self.start_generation_scoped(true, Some(id)) {
-            self.export_path_when_done = None;
-            self.export_when_done = false;
-            self.export_part_when_done = Some((id, path.to_path_buf()));
+            self.toolpath.export_path_when_done = None;
+            self.toolpath.export_when_done = false;
+            self.toolpath.export_part_when_done = Some((id, path.to_path_buf()));
             let status = t!(self, "app-planning-part-then-export", name = name);
             self.set_status(status, STATUS_SECONDS);
         }
@@ -1712,38 +1520,29 @@ impl ChiploadApp {
     /// if the toolpath shown is all of it, else once it is planned. Returns whether it was
     /// written now.
     pub fn export_setup(&mut self, id: u64, path: &Path) -> bool {
-        if self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.setup(id))
-            .is_none()
-        {
+        if self.edit.as_ref().and_then(|e| e.job.setup(id)).is_none() {
             return false;
         }
-        if self
-            .edit
-            .as_ref()
-            .and_then(|e| e.settings.active_setup_id())
-            != Some(id)
-        {
+        if self.edit.as_ref().and_then(|e| e.job.active_setup_id()) != Some(id) {
             self.activate_setup(id);
         }
         let shown = self
-            .result_job
+            .toolpath
+            .job
             .as_ref()
             .is_some_and(|job| job.active_setup_id() == Some(id));
-        let current = self.result.is_some()
-            && !self.toolpath_stale
-            && self.generation.is_none()
-            && self.result_part.is_none()
+        let current = self.toolpath.result.is_some()
+            && !self.toolpath.stale
+            && self.toolpath.running.is_none()
+            && self.toolpath.part.is_none()
             && shown;
         if current {
             return self.write_export(path, Vec::new());
         }
         if self.start_generation_of(true, true) {
-            self.export_when_done = false;
-            self.export_part_when_done = None;
-            self.export_path_when_done = Some(path.to_path_buf());
+            self.toolpath.export_when_done = false;
+            self.toolpath.export_part_when_done = None;
+            self.toolpath.export_path_when_done = Some(path.to_path_buf());
             self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
         }
         false
@@ -1752,14 +1551,15 @@ impl ChiploadApp {
     /// Write the last generation's G-code files, and its setup sheet when the setting asks
     /// for one; `parts` names the parts when only those were planned.
     fn write_export(&mut self, path: &Path, parts: Vec<String>) -> bool {
-        let Some(result) = &self.result else {
+        let Some(result) = &self.toolpath.result else {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         };
         // With several setups the result is the active one's: its files say so
         // (`-S2-1-T1`), as `run` names them (docs/specs/setups.md §4).
         let setup = self
-            .result_job
+            .toolpath
+            .job
             .as_ref()
             .filter(|job| job.setups.len() > 1)
             .and_then(|job| job.active_setup_id());
@@ -1791,17 +1591,18 @@ impl ChiploadApp {
                 return false;
             }
         };
-        let sheet = match (&self.result_job, self.setup_sheet) {
+        let sheet = match (&self.toolpath.job, self.prefs.setup_sheet) {
             (Some(job), true) => {
                 // In the app's language and display units (docs/specs/translations.md
                 // step 3).
                 let info = SheetInfo {
                     project: self
-                        .job_path
+                        .file
+                        .path
                         .as_deref()
                         .map_or_else(|| t!(self, "export-untitled-project"), file_name),
                     written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
-                    units: self.units,
+                    units: self.prefs.units,
                     language: self.lang(),
                     parts,
                 };
@@ -1827,7 +1628,7 @@ impl ChiploadApp {
         };
         let shown = path.display().to_string();
         let setup_note = setup.and_then(|id| {
-            let job = self.result_job.as_ref()?;
+            let job = self.toolpath.job.as_ref()?;
             let name = job.setup(id)?.name.clone();
             Some(t!(self, "app-exported-setup", name = name))
         });
@@ -1913,9 +1714,9 @@ impl ChiploadApp {
         }
         let saved = EditJob::from_job(&job);
         self.edit = Some(saved.clone());
-        self.committed = Some(saved.clone());
-        self.saved = Some(saved);
-        self.job_path = Some(path.to_path_buf());
+        self.history.committed = Some(saved.clone());
+        self.file.saved = Some(saved);
+        self.file.path = Some(path.to_path_buf());
         self.remember_disk();
         self.clear_recovery();
         let text = t!(self, "app-saved", path = path.display().to_string());
@@ -1933,21 +1734,27 @@ impl ChiploadApp {
         if picked.is_some() {
             self.focus = Focus::Selection;
         }
+        // A grouped shape selects its whole group (docs/specs/shape-groups.md §2, decision 10).
+        if let Some(group) = picked.and_then(|id| self.group_of_contour(id))
+            && !toggle
+        {
+            self.selection = CanvasSelection::whole(Source::Group(group));
+            return;
+        }
         // A traced contour selects its whole picture, a letter its whole text: their shapes
         // get new ids each time the picture is traced again or the text written again, so
         // operations select the picture or text, not its shapes (docs/specs/image-trace.md
-        // §4, decision 6; user report 2026-10-13; text.md §5).
+        // §4, decision 6; user report 2026-10-13; text.md §5). A DXF's contour selects the
+        // whole DXF too, to be moved by its box; a double-click picks the contour alone
+        // (dxf-whole-on-canvas.md §2).
         let traced = picked
             .and_then(|id| self.contours.iter().find(|c| c.id == id))
             .and_then(|c| match c.parts.first().and_then(|p| p.segment.from) {
-                Some(
-                    from @ (chipload_core::chain::ShapeFrom::Image(_)
-                    | chipload_core::chain::ShapeFrom::Text(_)),
-                ) if c.parts.iter().all(|p| p.segment.from == Some(from)) => Some(from),
+                Some(from) if c.parts.iter().all(|p| p.segment.from == Some(from)) => Some(from),
                 _ => None,
             });
         if let (Some(from), false) = (traced, toggle) {
-            self.selection = CanvasSelection::Source(from);
+            self.selection = CanvasSelection::whole(from);
             // A letter opens its text, as the text's Browser row does: its words, font and
             // height to change (the user, 2026-10-30). The text stays selected for an
             // operation's Use selection.
@@ -1956,39 +1763,29 @@ impl ChiploadApp {
             }
             return;
         }
-        // Ctrl+click on a contour of the selected DXF or image leaves it out, or puts it
-        // back (docs/specs/leave-out-shapes.md §5).
-        let whole = match &self.selection {
-            CanvasSelection::Source(from) => Some((*from, BTreeSet::new())),
-            CanvasSelection::Except(from, left_out) => Some((*from, left_out.clone())),
-            _ => None,
-        };
-        if let (Some((from, mut left_out)), true) = (whole, toggle)
+        // Ctrl+click on a contour of the selected DXF, picture, text or group leaves it out,
+        // or puts it back (docs/specs/leave-out-shapes.md §5, shape-groups.md decision 10).
+        if toggle
+            && let CanvasSelection::Whole { of, left_out } = &self.selection
             && let Some(contour) = picked.and_then(|id| self.contours.iter().find(|c| c.id == id))
-            && contour.parts.iter().all(|p| p.segment.from == Some(from))
+            && CanvasSelection::whole(*of)
+                .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
+                .contains(&contour.id)
         {
+            let mut left_out = left_out.clone();
             let hit = shapes_of(contour);
             if hit.is_subset(&left_out) {
                 left_out.retain(|s| !hit.contains(s));
             } else {
                 left_out.extend(hit);
             }
-            self.selection = if left_out.is_empty() {
-                CanvasSelection::Source(from)
-            } else {
-                CanvasSelection::Except(from, left_out)
-            };
+            self.selection = CanvasSelection::Whole { of: *of, left_out };
             return;
         }
         let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
-            (
-                CanvasSelection::Layer(..)
-                | CanvasSelection::Source(_)
-                | CanvasSelection::Except(..),
-                true,
-            ) => {
-                let ids = self.selection.ids(&self.contours);
+            (CanvasSelection::Layer(..) | CanvasSelection::Whole { .. }, true) => {
+                let ids = self.selected_ids();
                 match CanvasSelection::of_contours(&ids, &self.contours) {
                     CanvasSelection::Shapes(shapes) => shapes,
                     _ => BTreeSet::new(),
@@ -2024,21 +1821,33 @@ impl ChiploadApp {
     }
 
     pub fn selection_lines(&self) -> Vec<String> {
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         if ids.is_empty() {
             return vec![t!(self, "app-nothing-selected")];
         }
         let what = match &self.selection {
             CanvasSelection::Layer(layer, _) => t!(self, "app-selection-layer", layer = layer),
-            CanvasSelection::Source(from) => self.source_text(*from),
-            CanvasSelection::Except(from, _) => {
-                let all = CanvasSelection::Source(*from).ids(&self.contours).len();
-                t!(
-                    self,
-                    "app-selection-left-out",
-                    source = self.source_text(*from),
-                    count = all - ids.len()
-                )
+            CanvasSelection::Whole { of, left_out } => {
+                let count = CanvasSelection::whole(*of)
+                    .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
+                    .len()
+                    - ids.len();
+                match (of.shape_from(), left_out.is_empty()) {
+                    (Some(from), true) => self.source_text(from),
+                    (Some(from), false) => t!(
+                        self,
+                        "app-selection-left-out",
+                        source = self.source_text(from),
+                        count = count
+                    ),
+                    (None, true) => t!(self, "groups-selection", name = self.group_name(of.id())),
+                    (None, false) => t!(
+                        self,
+                        "groups-selection-left-out",
+                        name = self.group_name(of.id()),
+                        count = count
+                    ),
+                }
             }
             _ => t!(self, "app-selection-contours"),
         };
@@ -2081,9 +1890,10 @@ impl ChiploadApp {
         else {
             return BTreeSet::new();
         };
-        edit.ops
+        edit.job
+            .operations
             .get(i)
-            .map(|entry| self.op_contours(&entry.op))
+            .map(|entry| self.op_contours(entry))
             .unwrap_or_default()
     }
 
@@ -2092,11 +1902,15 @@ impl ChiploadApp {
         if !op.selects_shapes() {
             return BTreeSet::new();
         }
+        let select = match &self.edit {
+            Some(edit) => op.select().resolved(&edit.job.drawing),
+            None => op.select().clone(),
+        };
         let selected = match op {
             Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(&self.contours, op.select(), &op.label_message(0))
+                select_paths(&self.contours, &select, &op.label_message(0))
             }
-            _ => select_contours(&self.contours, op.select(), &op.label_message(0)),
+            _ => select_contours(&self.contours, &select, &op.label_message(0)),
         };
         // Holes cut circles only: other shapes stay unhighlighted (docs/specs/holes.md §7).
         let holes = matches!(op, Operation::Holes(_));
@@ -2126,11 +1940,13 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return BTreeSet::new();
         };
-        edit.ops
+        edit.job
+            .operations
             .iter()
-            .filter(|e| e.op.enabled() && matches!(e.op, Operation::Path(_)))
+            .filter(|e| e.enabled() && matches!(e, Operation::Path(_)))
             .filter_map(|e| {
-                select_paths(&self.contours, e.op.select(), &e.op.label_message(0)).ok()
+                let select = e.select().resolved(&edit.job.drawing);
+                select_paths(&self.contours, &select, &e.label_message(0)).ok()
             })
             .flat_map(|s| {
                 s.contours
@@ -2145,11 +1961,11 @@ impl ChiploadApp {
     /// Inputs changed: the old toolpath and G-code no longer apply.
     fn invalidate(&mut self) {
         self.stop_generation();
-        self.shown_inputs = None;
-        self.changed_at = None;
-        self.export_when_done = false;
-        self.toolpath_stale = false;
-        self.result = None;
+        self.toolpath.shown_inputs = None;
+        self.toolpath.changed_at = None;
+        self.toolpath.export_when_done = false;
+        self.toolpath.stale = false;
+        self.toolpath.result = None;
         self.clear_toolpath();
         self.drag.start = None;
         self.drag.context_start = None;
@@ -2160,11 +1976,11 @@ impl ChiploadApp {
     fn toolpath_out_of_date(&mut self) {
         self.refresh_problems();
         self.stop_generation();
-        self.shown_inputs = None;
-        self.changed_at = Some(Instant::now());
-        self.recovery_due = self.changed_at;
-        if self.result.is_some() || self.scene.toolpath.is_some() {
-            self.result = None;
+        self.toolpath.shown_inputs = None;
+        self.toolpath.changed_at = Some(Instant::now());
+        self.recovery.due = self.toolpath.changed_at;
+        if self.toolpath.result.is_some() || self.scene.toolpath.is_some() {
+            self.toolpath.result = None;
             if let Some(path) = &mut self.scene.toolpath {
                 path.stale = true;
             }
@@ -2177,7 +1993,7 @@ impl ChiploadApp {
             self.drag.tab = None;
             self.drag.context_tab = None;
             self.drag.context_ring = None;
-            self.toolpath_stale = true;
+            self.toolpath.stale = true;
         }
         self.refresh_drawing();
         self.update_ghosts();
@@ -2239,7 +2055,7 @@ impl ChiploadApp {
         let first = self
             .edit
             .as_ref()
-            .is_some_and(|e| e.settings.drawing.dxfs.is_empty());
+            .is_some_and(|e| e.job.drawing.dxfs.is_empty());
         if first {
             (
                 t!(self, "app-import-dxf-into-project"),
@@ -2255,24 +2071,22 @@ impl ChiploadApp {
 
     /// How many DXFs the open project has.
     pub(super) fn dxf_count(&self) -> usize {
-        self.edit
-            .as_ref()
-            .map_or(0, |e| e.settings.drawing.dxfs.len())
+        self.edit.as_ref().map_or(0, |e| e.job.drawing.dxfs.len())
     }
 
     fn default_project_path(&self) -> PathBuf {
-        if let Some(path) = &self.job_path {
+        if let Some(path) = &self.file.path {
             return path.with_extension(PROJECT_EXTENSION);
         }
         self.edit
             .as_ref()
-            .and_then(|e| e.settings.drawing.dxfs.first())
+            .and_then(|e| e.job.drawing.dxfs.first())
             .map(|s| Path::new(&s.file).with_extension(PROJECT_EXTENSION))
             .unwrap_or_else(|| PathBuf::from(format!("project.{PROJECT_EXTENSION}")))
     }
 
     fn default_export_path(&self) -> PathBuf {
-        let ext = self.result.as_ref().map_or("nc".to_string(), |r| {
+        let ext = self.toolpath.result.as_ref().map_or("nc".to_string(), |r| {
             r.post.file_extension.trim_start_matches('.').to_string()
         });
         self.default_project_path().with_extension(ext)
@@ -2321,11 +2135,15 @@ impl eframe::App for ChiploadApp {
                 self.clear_recovery(); // nothing unsaved: no copy to leave behind
             }
         }
-        crate::units::set_display(&ctx, self.units);
-        crate::i18n::set_language(&ctx, self.language);
-        if self.applied_theme != Some(self.theme) {
-            ctx.set_theme(theme_preference(self.theme));
-            self.applied_theme = Some(self.theme);
+        crate::units::set_display(&ctx, self.prefs.units);
+        crate::i18n::set_language(&ctx, self.prefs.language);
+        if self.prefs.applied_theme != Some(self.prefs.theme) {
+            ctx.set_theme(theme_preference(self.prefs.theme));
+            self.prefs.applied_theme = Some(self.prefs.theme);
+        }
+        // Esc lets go of an entry dragged out of the shape library.
+        if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+            egui::DragAndDrop::clear_payload(&ctx);
         }
         self.shortcuts(&ctx);
         Panel::top("top-bar")
@@ -2338,80 +2156,8 @@ impl eframe::App for ChiploadApp {
             .show(ui, |ui| self.top_bar(ui));
         Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
-        self.report_panel(ui);
-        // Each side panel folds to a strip (its edge dragged past the least width, a
-        // double-click on the edge, the strip's button, View or P) for a larger canvas.
-        let mut open = self.browser_open;
-        let unfold = Panel::show_switched(
-            ui,
-            &mut open,
-            Panel::left("operations-folded")
-                .resizable(true)
-                .exact_size(FOLDED_WIDTH),
-            Panel::left("operations")
-                .resizable(true)
-                .default_size(340.0)
-                .min_size(BROWSER_MIN_WIDTH),
-            |ui, open| {
-                if open {
-                    self.sidebar(ui);
-                    false
-                } else {
-                    let hover = t!(ui, "app-show-browser-hover");
-                    folded_strip(ui, "▸", &hover)
-                }
-            },
-        )
-        .inner;
-        self.browser_open = open || unfold;
-        let mut open = self.properties_open;
-        let unfold = Panel::show_switched(
-            ui,
-            &mut open,
-            Panel::right("side-folded")
-                .resizable(true)
-                .exact_size(FOLDED_WIDTH),
-            Panel::right("side")
-                .resizable(true)
-                .default_size(440.0)
-                .min_size(PROPERTIES_MIN_WIDTH),
-            |ui, open| {
-                if !open {
-                    let hover = t!(ui, "app-show-properties-hover");
-                    return folded_strip(ui, "◂", &hover);
-                }
-                let caption = t!(ui, "app-properties");
-                browser::caption(ui, &caption);
-                // The forms are laid out in the panel's width; a row that still doesn't fit
-                // scrolls sideways instead of widening the panel.
-                let width = ui.available_width();
-                ScrollArea::both()
-                    .id_salt("properties-scroll")
-                    .auto_shrink([false, true])
-                    .show(ui, |ui| {
-                        ui.set_max_width(width);
-                        self.properties_panel(ui);
-                    });
-                false
-            },
-        )
-        .inner;
-        self.properties_open = open || unfold;
-        CentralPanel::no_frame().show(ui, |ui| {
-            // Asked once whether to check for new versions (docs/specs/update-notice.md §2).
-            if self.update_question_shown() {
-                Panel::top("update-question").show(ui, |ui| self.update_bar(ui));
-            }
-            if self.edit.is_some() && self.playback.is_some() && self.show_simulation {
-                Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
-                self.sync_playback(&ctx);
-            }
-            if self.edit.is_some() {
-                self.canvas(ui);
-            } else {
-                self.start_screen(ui);
-            }
-        });
+        CentralPanel::no_frame().show(ui, |ui| self.dock_area(ui));
+        self.follow_properties();
         self.prompts(&ctx);
         self.about(&ctx);
         self.shortcuts_window(&ctx);
@@ -2425,7 +2171,7 @@ impl eframe::App for ChiploadApp {
         if !busy {
             self.commit();
         }
-        if self.generation.is_some() {
+        if self.toolpath.running.is_some() {
             self.poll_generation();
             ctx.request_repaint_after(generation::POLL);
         }
@@ -2452,7 +2198,7 @@ impl eframe::App for ChiploadApp {
 
 impl crate::i18n::Lang for ChiploadApp {
     fn lang(&self) -> crate::i18n::Language {
-        self.language
+        self.prefs.language
     }
 }
 
@@ -2461,7 +2207,7 @@ impl ChiploadApp {
     /// and display units (docs/specs/translations.md §7).
     pub(crate) fn say(&self, message: &chipload_i18n::Message) -> String {
         use crate::i18n::Lang;
-        message.render(self.lang(), self.units.into())
+        message.render(self.lang(), self.prefs.units.into())
     }
 }
 
@@ -2490,7 +2236,9 @@ fn ghost_contours(
     let picks = |mine: bool, shape: &chipload_job::Shape| {
         job.operations.iter().any(|op| {
             let here = job.part_of(op).map(|p| p.setup) == active;
-            here == mine && op.selects_shapes() && op.select().may_pick(shape)
+            here == mine
+                && op.selects_shapes()
+                && op.select().resolved(&job.drawing).may_pick(shape)
         })
     };
     let shape = |id: u64| job.drawing.shapes.iter().find(|s| s.id == id);

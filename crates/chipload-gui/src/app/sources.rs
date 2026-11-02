@@ -39,6 +39,8 @@ pub(super) enum GroupKind {
     Image(u64),
     Text(u64),
     Drawn,
+    /// A group of drawn shapes and texts, by id (docs/specs/shape-groups.md §5).
+    Shapes(u64),
 }
 
 /// A project changed by exploding or joining, with its report, or why not.
@@ -56,7 +58,7 @@ enum PanelAction {
     Update(u64),
     UpdatePath(u64),
     RemoveDxf(u64),
-    ExplodeDxf(u64),
+    Explode(Source),
     EditImage(u64),
     RemoveImage(u64),
     RemoveText(u64),
@@ -68,6 +70,9 @@ enum PanelAction {
     AddDxf,
     AddImage,
     AddText,
+    /// A group's row: ungroup it, or delete it with its shapes and texts.
+    Ungroup(u64),
+    DeleteGroup(u64),
 }
 
 impl ChiploadApp {
@@ -76,9 +81,12 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        let drawing = &edit.settings.drawing;
+        let drawing = &edit.job.drawing;
         let mut counts: BTreeMap<String, (usize, BTreeMap<String, usize>)> = BTreeMap::new();
-        for shape in &drawing.shapes {
+        // A grouped drawn shape is listed under its group, not again under its kind.
+        let grouped =
+            |shape: &chipload_job::Shape| shape.is_drawn() && drawing.group_of(shape.id).is_some();
+        for shape in drawing.shapes.iter().filter(|s| !grouped(s)) {
             let entry = counts.entry(Drawing::group_key(shape)).or_default();
             entry.0 += 1;
             *entry.1.entry(shape.layer.clone()).or_default() += 1;
@@ -99,7 +107,7 @@ impl ChiploadApp {
                 for shape in drawing
                     .shapes
                     .iter()
-                    .filter(|s| Drawing::group_key(s) == key)
+                    .filter(|s| Drawing::group_key(s) == key && !grouped(s))
                 {
                     by_layer
                         .entry(shape.layer.clone())
@@ -159,6 +167,29 @@ impl ChiploadApp {
         ] {
             push(key.into(), title, GroupKind::Drawn);
         }
+        // The groups of drawn shapes and texts, after the shapes by kind.
+        let mut shape_groups = Vec::new();
+        for g in &drawing.groups {
+            let shapes: Vec<Member> = drawing
+                .shapes
+                .iter()
+                .filter(|s| g.shapes.contains(&s.id))
+                .map(|s| (s.id, s.name.clone()))
+                .collect();
+            shape_groups.push(Group {
+                key: format!("group:{}", g.id),
+                title: g.name.clone(),
+                kind: GroupKind::Shapes(g.id),
+                shapes: shapes.len() + g.texts.len(),
+                layers: Vec::new(),
+                members: if shapes.is_empty() {
+                    Vec::new()
+                } else {
+                    vec![(String::new(), shapes)]
+                },
+            });
+        }
+        groups.extend(shape_groups);
         groups
     }
 
@@ -166,7 +197,7 @@ impl ChiploadApp {
     pub(super) fn is_hidden_key(&self, key: &str) -> bool {
         self.edit
             .as_ref()
-            .is_some_and(|e| e.settings.drawing.hidden.iter().any(|h| h == key))
+            .is_some_and(|e| e.job.drawing.hidden.iter().any(|h| h == key))
     }
 
     /// Hide or show a group or layer, as one undo step.
@@ -174,7 +205,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
-        let hidden = &mut edit.settings.drawing.hidden;
+        let hidden = &mut edit.job.drawing.hidden;
         if let Some(at) = hidden.iter().position(|h| h == key) {
             hidden.remove(at);
         } else {
@@ -208,11 +239,10 @@ impl ChiploadApp {
         };
         match chipload_pipeline::dxfs::remove_dxf(&job, id) {
             Ok((removed, lines)) => {
-                let mut next = EditJob::from_job(&removed);
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(removed);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.refresh_drawing();
                 self.set_report(Report::of_messages(lines));
@@ -228,10 +258,11 @@ impl ChiploadApp {
         }
     }
 
-    /// Ask how to explode DXF `id` (docs/specs/explode-and-join.md §5).
-    pub(super) fn ask_explode(&mut self, dxf: u64) {
+    /// Ask how to explode a DXF, picture or text (docs/specs/explode-and-join.md §5,
+    /// explode-pictures-and-texts.md §6).
+    pub(super) fn ask_explode(&mut self, of: Source) {
         self.dialogs.prompt = Some(Prompt::Explode {
-            dxf,
+            of,
             join: false,
             gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
         });
@@ -254,6 +285,27 @@ impl ChiploadApp {
         let failed = t!(self, "sources-explode-failed");
         let exploded = self.after_shapes_change(done, failed);
         if exploded && self.focus == Focus::Dxf(id) {
+            self.focus = Focus::Job;
+        }
+        exploded
+    }
+
+    /// Explode `of` into drawn shapes (a DXF then joined with gap `join` if given), as one
+    /// undo step. The new shapes are selected.
+    pub fn explode(&mut self, of: Source, join: Option<f64>) -> bool {
+        let done = match of {
+            Source::Dxf(id) => return self.explode_dxf(id, join),
+            Source::Image(id) => {
+                self.changed_job(|job| chipload_pipeline::explode::explode_image(job, id))
+            }
+            Source::Text(id) => {
+                self.changed_job(|job| chipload_pipeline::explode::explode_text(job, id))
+            }
+            Source::Group(_) => return false,
+        };
+        let failed = t!(self, "sources-explode-failed");
+        let exploded = self.after_shapes_change(done, failed);
+        if exploded && matches!(self.focus, Focus::Image(_) | Focus::Text(_)) {
             self.focus = Focus::Job;
         }
         exploded
@@ -290,16 +342,15 @@ impl ChiploadApp {
     /// Take the changed project as one undo step and show its report, or the error under
     /// `failed` (a text id).
     fn after_shapes_change(&mut self, done: Option<ShapesChange>, failed: String) -> bool {
-        let Some(edit) = &self.edit else {
+        if self.edit.is_none() {
             return false;
-        };
+        }
         match done {
             Some(Ok((job, report))) => {
-                let mut next = EditJob::from_job(&job);
-                for (entry, old) in next.ops.iter_mut().zip(&edit.ops) {
-                    entry.side_chosen = old.side_chosen;
+                // The "side not chosen" marks stay: operations aren't added or removed.
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(job);
                 }
-                self.edit = Some(next);
                 self.commit();
                 self.drawing_changed(&report.shapes);
                 self.set_report(Report::of_messages(report.messages));
@@ -331,13 +382,16 @@ impl ChiploadApp {
                     .map(ShapeFrom::Text)
             });
         if let Some(source) = source {
-            return CanvasSelection::Source(source);
+            return CanvasSelection::whole(source);
+        }
+        if let Some(id) = key.strip_prefix("group:").and_then(|id| id.parse().ok()) {
+            return CanvasSelection::whole(Source::Group(id));
         }
         let Some(edit) = &self.edit else {
             return CanvasSelection::Nothing;
         };
         let shapes: BTreeSet<u64> = edit
-            .settings
+            .job
             .drawing
             .shapes
             .iter()
@@ -354,8 +408,8 @@ impl ChiploadApp {
             self.selection = selection;
             return;
         }
-        let mut ids = self.selection.ids(&self.contours);
-        ids.extend(selection.ids(&self.contours));
+        let mut ids = self.selected_ids();
+        ids.extend(selection.ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing)));
         self.selection = CanvasSelection::of_contours(&ids, &self.contours);
     }
 
@@ -442,7 +496,7 @@ impl ChiploadApp {
             Some(PanelAction::RemoveDxf(dxf)) => {
                 self.remove_dxf(dxf);
             }
-            Some(PanelAction::ExplodeDxf(dxf)) => self.ask_explode(dxf),
+            Some(PanelAction::Explode(of)) => self.ask_explode(of),
             Some(PanelAction::EditImage(image)) => {
                 self.focus = Focus::Image(image);
                 self.edit_image(image);
@@ -476,6 +530,14 @@ impl ChiploadApp {
             Some(PanelAction::AddDxf) => self.ask_add_dxf(),
             Some(PanelAction::AddImage) => self.import_image_dialog(),
             Some(PanelAction::AddText) => self.start_text(),
+            Some(PanelAction::Ungroup(id)) => {
+                self.selection = CanvasSelection::whole(Source::Group(id));
+                self.ungroup_selected();
+            }
+            Some(PanelAction::DeleteGroup(id)) => {
+                self.selection = CanvasSelection::whole(Source::Group(id));
+                self.delete_selected_group();
+            }
             None => {}
         }
     }
@@ -492,21 +554,27 @@ impl ChiploadApp {
             (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
             (GroupKind::Drawn, "drawn:polygon") => Icon::Polygon,
             (GroupKind::Drawn, _) => Icon::Paths,
+            (GroupKind::Shapes(_), _) => Icon::Frame,
         };
         let id = egui::Id::new(("browser-group", &group.key));
         let open_id = id.with("folder-open");
         let has_layers = !group.layers.is_empty() || !group.members.is_empty();
         let open_first = group.members.is_empty() || group.shapes <= OPEN_GROUP_MOST;
         let open = has_layers && super::browser::folder_open(ui, open_id, open_first);
-        let mut row = Row::new(id, 2, &group.title)
-            .eye(!hidden)
+        let shape_group = matches!(group.kind, GroupKind::Shapes(_));
+        let mut row = Row::new(id, 2, &group.title);
+        // A group has no eye of its own: its shapes show and hide by their layers.
+        if !shape_group {
+            row = row.eye(!hidden);
+        }
+        let mut row = row
             .icon(icon)
             .trailing(group.shapes.to_string())
             .dim(hidden)
             .selected(match (&self.selection, self.group_selection(&group.key)) {
                 // Some of it left out: still its row (docs/specs/leave-out-shapes.md §5).
-                (CanvasSelection::Except(from, _), CanvasSelection::Source(source)) => {
-                    *from == source
+                (CanvasSelection::Whole { of, .. }, CanvasSelection::Whole { of: whole, .. }) => {
+                    *of == whole
                 }
                 (selection, whole) => *selection == whole,
             });
@@ -523,7 +591,7 @@ impl ChiploadApp {
             match group.kind {
                 GroupKind::Dxf(dxf) => *action = Some(PanelAction::Place(dxf)),
                 GroupKind::Image(image) => *action = Some(PanelAction::EditImage(image)),
-                GroupKind::Text(_) | GroupKind::Drawn => {}
+                GroupKind::Text(_) | GroupKind::Drawn | GroupKind::Shapes(_) => {}
             }
         } else if out.response.clicked() {
             *action = Some(PanelAction::SelectGroup(group.key.clone()));
@@ -533,10 +601,24 @@ impl ChiploadApp {
             GroupKind::Image(_) => t!(ui, "sources-image-hover"),
             GroupKind::Text(_) => t!(ui, "sources-text-hover"),
             GroupKind::Drawn => t!(ui, "sources-drawn-hover"),
+            GroupKind::Shapes(_) => t!(ui, "groups-row-hover"),
         };
         out.response.on_hover_text(hover).context_menu(|ui| {
             if ui.button(t!(ui, "sources-select")).clicked() {
                 *action = Some(PanelAction::SelectGroup(group.key.clone()));
+            }
+            if let GroupKind::Shapes(id) = group.kind {
+                if ui.button(t!(ui, "groups-ungroup")).clicked() {
+                    *action = Some(PanelAction::Ungroup(id));
+                }
+                if ui
+                    .button(t!(ui, "groups-delete"))
+                    .on_hover_text(t!(ui, "groups-delete-hover"))
+                    .clicked()
+                {
+                    *action = Some(PanelAction::DeleteGroup(id));
+                }
+                return;
             }
             if ui
                 .button(if hidden {
@@ -569,7 +651,7 @@ impl ChiploadApp {
                         .on_hover_text(t!(ui, "sources-explode-hover"))
                         .clicked()
                     {
-                        *action = Some(PanelAction::ExplodeDxf(dxf));
+                        *action = Some(PanelAction::Explode(Source::Dxf(dxf)));
                     }
                     ui.separator();
                     if ui
@@ -589,6 +671,13 @@ impl ChiploadApp {
                     {
                         *action = Some(PanelAction::EditImage(image));
                     }
+                    if ui
+                        .button(t!(ui, "sources-explode"))
+                        .on_hover_text(t!(ui, "sources-explode-image-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Explode(Source::Image(image)));
+                    }
                     ui.separator();
                     if ui
                         .button(t!(ui, "common-remove"))
@@ -601,6 +690,14 @@ impl ChiploadApp {
                 GroupKind::Text(text) => {
                     ui.separator();
                     if ui
+                        .button(t!(ui, "sources-explode"))
+                        .on_hover_text(t!(ui, "sources-explode-text-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Explode(Source::Text(text)));
+                    }
+                    ui.separator();
+                    if ui
                         .button(t!(ui, "common-remove"))
                         .on_hover_text(t!(ui, "sources-remove-text-hover"))
                         .clicked()
@@ -608,7 +705,7 @@ impl ChiploadApp {
                         *action = Some(PanelAction::RemoveText(text));
                     }
                 }
-                GroupKind::Drawn => {}
+                GroupKind::Drawn | GroupKind::Shapes(_) => {}
             }
         });
         if !open {
@@ -622,7 +719,7 @@ impl ChiploadApp {
             GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
             GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
             GroupKind::Text(text) => Some(ShapeFrom::Text(text)),
-            GroupKind::Drawn => None,
+            GroupKind::Drawn | GroupKind::Shapes(_) => None,
         };
         for (layer, count) in &group.layers {
             let key = Drawing::layer_key(&group.key, layer);
@@ -662,7 +759,7 @@ impl ChiploadApp {
 }
 
 impl ChiploadApp {
-    /// A drawn group's shapes: a row each, under a folder per layer when it has several
+    /// A drawn group's shapes: a row each, under a folder per layer, one layer too
     /// (docs/specs/drawn-shapes-box.md §4).
     fn drawn_member_rows(
         &self,
@@ -672,12 +769,6 @@ impl ChiploadApp {
         hidden: bool,
         action: &mut Option<PanelAction>,
     ) {
-        if let [(_, shapes)] = &group.members[..] {
-            for (id, name) in shapes {
-                self.shape_row(ui, 3, *id, name.as_deref(), icon, hidden, action);
-            }
-            return;
-        }
         for (layer, shapes) in &group.members {
             let key = Drawing::layer_key(&group.key, layer);
             let layer_hidden = self.is_hidden_key(&key);

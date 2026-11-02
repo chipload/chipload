@@ -5,7 +5,8 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, TextAlign, TextAnchor, save_job};
+use chipload_job::{Job, TextAlign, TextAnchor};
+use chipload_pipeline::explode::{explode_text, which_text};
 use chipload_pipeline::fonts::{ComputerFonts, available};
 use chipload_pipeline::library::{fonts_path, settings_dir};
 use chipload_pipeline::texts::{
@@ -15,8 +16,8 @@ use chipload_pipeline::texts::{
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 /// The computer's fonts and the settings folder's `fonts` folder
 /// (docs/specs/system-fonts.md §2).
@@ -71,6 +72,17 @@ pub enum TextAction {
         project: PathBuf,
         /// The text's id.
         id: u64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Turn a text's letters into drawn shapes you can edit; the text goes from the project
+    /// (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes.
+    Explode {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The text's id (as `text list` shows it); not needed when the project has one.
+        id: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -231,6 +243,27 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             set(out, &project, id, change, output.as_deref())
         }
         TextAction::List { project } => list(out, &project),
+        TextAction::Explode {
+            project,
+            id,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let done = which_text(&job, id).and_then(|id| explode_text(&job, id));
+            let (job, report) = match done {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            for line in &report.lines {
+                out.line(line.clone());
+            }
+            out.set("shapes", json!(report.shapes));
+            out.set("removed", json!(report.removed));
+            write_project(out, &job, output.as_deref().unwrap_or(&project))
+        }
         TextAction::Remove {
             project,
             id,
@@ -243,7 +276,7 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             match remove_text(&job, id) {
                 Ok(job) => {
                     out.line(format!("Removed text {id} and its letters."));
-                    write(out, &job, output.as_deref().unwrap_or(&project))
+                    write_project(out, &job, output.as_deref().unwrap_or(&project))
                 }
                 Err(err) => out.fail(err),
             }
@@ -319,7 +352,7 @@ fn add(
     match add_text(&job, new, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -375,7 +408,7 @@ fn set(
     match remake(&before, &job, id, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -409,14 +442,14 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             } else {
                 " (not on this computer: its letters are kept)"
             },
-            text.height,
+            mm(text.height),
             text.layer,
             match text.anchor {
                 TextAnchor::Corner => "corner",
                 TextAnchor::Center => "centre",
             },
-            text.x,
-            text.y,
+            mm(text.x),
+            mm(text.y),
             if text.rotation == 0.0 {
                 String::new()
             } else {
@@ -465,10 +498,13 @@ pub fn reported(out: &mut Out, report: &TextReport) {
     );
 }
 
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
+/// A length for the listing, mm to a thousandth, without trailing zeros; never "-0".
+fn mm(value: f64) -> String {
+    let text = format!("{value:.3}");
+    let text = text.trim_end_matches('0').trim_end_matches('.');
+    if text == "-0" {
+        "0".to_string()
+    } else {
+        text.to_string()
     }
-    out.wrote(target, "");
-    ExitCode::SUCCESS
 }

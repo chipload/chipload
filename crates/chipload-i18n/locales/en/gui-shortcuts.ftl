@@ -33,7 +33,7 @@ shortcuts-top-view = Top view
 shortcuts-grid = Show or hide the grid
 shortcuts-simulate = Simulate or edit
 shortcuts-measure = Measure: two clicks give the distance and angle
-shortcuts-panels = Fold or open the side panels, for a larger canvas
+shortcuts-panels = Hide every panel for the largest canvas, or bring them back
 shortcuts-this-list = This list
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the
@@ -92,3 +92,5 @@ shortcuts-draw-polygon = Draw a polygon
 shortcuts-offset = Offset the selected shapes
 shortcuts-trim = Trim drawn shapes
 shortcuts-construction = Construction geometry: for the next shapes drawn, or the selection
+shortcuts-group = Group the selection
+shortcuts-ungroup = Ungroup

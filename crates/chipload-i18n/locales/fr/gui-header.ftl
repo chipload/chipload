@@ -55,7 +55,7 @@ header-frame = Cadre
 header-frame-hover = Dessiner un cadre pour une enseigne : autour du texte ou des formes sélectionnés, ou à une taille, avec bordures
 header-image = Image
 header-image-hover = Vectoriser une image en formes, pour une gravure en V ou un suivi de tracé
-header-add-dxf = Ajouter DXF
+header-add-dxf = DXF/SVG
 header-add-dxf-hover = Un DXF ou SVG dans ce projet, à côté de l'existant : placé et mis à jour séparément
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importez d'abord un DXF ou SVG (FICHIER > Importer)

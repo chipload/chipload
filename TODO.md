@@ -87,6 +87,166 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Cleanup after the review of 2026-11-02** (the user: "where does the complexity lie?
+  Any part that feels like a hack?"; asked for 2 then 1):
+  1. **The window holds the project whole: done 2026-11-02.** `EditJob` was a `Job` with
+     its operations unused plus a list of operations beside it, only to carry "side not
+     chosen yet". Pipeline calls got the project without operations and their changes to
+     operations were thrown away (none made any yet; the fitting board of 2026-10-30 was
+     one bug of it). Now `EditJob { job, unsided }`; the marks move with their
+     operations (`reorder`), pipeline results are taken whole (`adopt`).
+     `Job::board_extents_with` went.
+  2. **One way to say where a shape comes from: done 2026-11-02** (spec
+     docs/specs/source-model.md, decisions 1-7 as recommended). `Origin` in
+     `Geometry::Path`, `Selector { source, exclude }`, the window's
+     `CanvasSelection::Whole` and `BoxOf::Whole`. Rust types only: the file, the scripting
+     paths, the JSON Schema and the G-code are the same (all 56 corpus projects saved byte
+     for byte as before).
+  3. **The window's canvas tools as one enum: done 2026-11-02.** `ActiveTool` (Select,
+     Draw, Modify, PlaceText, Measure) replaces four fields each cleared by hand
+     (`sketch`, `modify`, `placing_text`, `measure`); `set_tool` ends the one in use and
+     drops a typed value and the offset preview. Fixed on the way: Measure left an editing
+     tool on (it took the clicks), Text left an editing tool on, the 3D view left Modify
+     and Text on. Undo still ends drawing only.
+  4. **Splitting the large files and sharing what they repeat** (the user, 2026-11-02:
+     "a sound codebase to help reduce potential bugs and also make it easy to maintain and
+     extend"). Order: `forms.rs`, the CLI's `main.rs`, `models.rs`.
+     - **`forms.rs`: done 2026-11-02.** RestPass and FloorPass were one type twice: now
+       `ClearingPass` (the file is unchanged; the JSON Schema lists one type). The pass forms
+       share their rows, and the picture and text forms share their position and turn cells.
+       Then split into `forms/` (widgets, operation, passes, project, machine, sources),
+       none over 1,400 lines.
+     - **The CLI's `main.rs`: done 2026-11-02.** Split by command group like `groups.rs`
+       and `texts.rs` already were: `shapes`, `ops`, `placing` (place, zero, copies),
+       `running` (run, plan, sheet, simulate, render, check); `main.rs` keeps the command
+       list, dispatch, loading, import/update, get/set and inspect (1,370 lines). Saving a
+       project and saying so is one `write_project` instead of five private copies.
+     - **`models.rs`: done 2026-11-02.** A pure split into `models/`: project, machine,
+       drawing, shapes, sources (pictures, texts), selector, operations, validate; paths
+       unchanged (`chipload_job::X`, `chipload_job::models::X`). None over 1,200 lines.
+  5. **The window module** (the user, 2026-11-02: before dockable panels, kept separate):
+     **done 2026-11-02**, seven commits, no change in behaviour. The app's 92 fields are
+     44: `panels` (layout.rs: what is open, `panel_contents(PanelKind)` apart from where a
+     panel sits, `side_panels` as today's layout), `canvas_tools`, `file` and `history`,
+     `toolpath` (the run state), `recovery`, `clipboard`, `prefs`, `user` (settings folder,
+     library), `display`. The rest is the window's core (project, focus, selection,
+     contours, scene, view) and small items.
+  6. **Dockable panels**: spec docs/specs/dockable-panels.md, agreed 2026-11-02
+     (decisions 1-7 as recommended), ADR 0028. **Step 1 done 2026-11-02:** egui_dock 0.21.1,
+     the dock with today's layout, the canvas fixed, View > Panels and Reset layout, P hides
+     every panel, the Report a panel (its warnings on its tab). **Step 2 done:**
+     `layout.json` (format `chipload_job::layout`, v1 sample in tests/corpus/layout/v1). **Step 3 done:** the guide's
+     screenshots renewed (`packaging/docs/screenshots.sh`). Dockable panels done.
+  7. **Review the operations not yet reviewed: follow path, holes and V-carve** (open
+     since the reviews of profile and pocket). These drive the machine, so a review there
+     finds more real bugs than any restructuring: boundaries (zero depth, depth equal to
+     the stock, tool larger than the feature), the checker's view of each, and proptest
+     invariants where one exists. Suggested before the next release.
+     - **Holes: reviewed 2026-11-02**, nothing that risks the machine or the tool. Pecks,
+       approach, bore direction and size limits, start depth and copies are sound.
+       Findings, not yet fixed (the user: "Add these to the todo"):
+       1. **A drilled through hole doesn't go through at full diameter.** A drill's end
+          depth is its point (holes.md decision 3), so *Through* (0.5 mm) puts only the
+          point below the stock. An 8 mm drill in 12 mm stock reaches full diameter at about
+          10.1 mm, leaving a pinhole underneath, with no warning. Going deeper by hand is
+          refused by the max overcut (0.5 mm). Suggested: with a drill and Through, add the
+          point's length (about 0.3 × D for a 118° point) and apply the overcut limit to the
+          full diameter. Changes the G-code of existing drilled through holes: a spec and
+          a decision first.
+       2. **"No selected circle can be cut" drops the reason.** When every hole is too
+          small to bore (7.18 mm with a 6 mm endmill), the size note is lost with the error,
+          and the note never says the smallest size that fits (7.2 mm). Suggested: the
+          reasons and the minimum size in the error.
+       3. **Deep holes without pecks get no note.** A 3 mm drill 12 mm deep (4 × D) drills
+          in one go. Ticking Pecks starts at the general step-down, whatever the drill.
+          Suggested: a note beyond 3 × D without pecks, and a starting peck of 1 × D.
+       4. **A new Holes operation takes the last tool**, usually an endmill (a bore), even
+          when a drill matches the selected circles. Suggested: prefer a matching drill.
+       5. **The drill half of the holes property test is missing** (holes.md §8: every
+          drill move at a hole's centre); only the bores' exists.
+     - **Follow path: reviewed 2026-11-02.** Depth passes (back and forth, ramps with a
+       level pass), helical arcs both ways, the nearer end, depth and tool refusals, the
+       checker and the property test are sound. Findings, not yet fixed (the user: "add to
+       the todo"):
+       1. **A V-bit cuts past its cone with only a warning.** A 12.7 mm 60° V-bit (cone
+          about 10.8 mm deep) at end depth 12, or with Through (12.5), is written and
+          passes the checker; the note says "straight walls above the cone". V-carve caps
+          at the cone because the shank would rub (`VBit::deepest`). Suggested: refuse it,
+          as a depth past the max overcut is. Stops projects that run today: a decision
+          first.
+       2. **The groove width is shown as a warning** ("warning:" in the CLI, *Watch out* on
+          the setup sheet), though it is information. Suggested: a plain note.
+       3. **A ramp on a path shorter than the tool** (0.5 mm with a 3 mm end mill not
+          centre-cutting) goes back and forth within the tool's own width, close to a
+          plunge; small rings in profiles do the same. Not sure it is a real risk: look at
+          a least ramp length (for example the tool's diameter) for tools not
+          centre-cutting.
+  8. Later, when next worked on: the remaining large files, toolpath `plan.rs` (2,550
+     lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
+     `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
+
+- **A DXF or SVG selected whole on the canvas, moved by dragging** (the user, 2026-11-02:
+  "imported dxfs and svgs should be able to be dragged similar to text and images. One
+  click selects the whole dxf or svg and it can be dragged around and into the shape
+  library"): docs/specs/dxf-whole-on-canvas.md, **done 2026-11-02**, decisions 1-4 as
+  recommended. A click picks the whole DXF, a double-click one contour; its box moves, turns
+  and scales it. A group's and a DXF's box stays turned (groups keep a `rotation`).
+
+- **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
+  long time each operation will take, similar to how prusa slicer gives a report how much
+  time different operations take. Except time id like, g1 travelled length, g0 length,
+  etc."). Per operation (and per tool, file and the whole job): its time, the cutting
+  length (G1/G2/G3 in XY), the plunge and ramp length (feed moves in Z), the rapid length
+  (G0) and its time, and how many retracts. Today `plan` and the window give the time per
+  operation only (`chipload_pipeline::estimate`). Needs a spec first: where it shows (the
+  Report, the setup sheet, `plan --json`), what each column counts (arcs by their length,
+  ramps as cutting or plunging), and whether it is a table or a chart.
+
+- **Explode a picture or a text into drawn shapes** (the user, 2026-11-02: "i cant explode
+  and image or text to shapes only an dxf, is that by design?"):
+  docs/specs/explode-pictures-and-texts.md, **done 2026-11-02**, decisions 1-5 as
+  recommended. The DXF's explode generalised: the picture or text goes, ids, layers and G-code stay; `image
+  explode` / `text explode`; *Explode into shapes…* in the Browser and the canvas's menu.
+
+- **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
+  the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
+  **done 2026-11-02**, decisions 1-10 as recommended: `drawing.groups` (optional, no
+  bump), selected as a picture is (click whole, Ctrl+click leaves out, double-click one
+  shape), operations follow a group (`select.group`), Ctrl+G/Ctrl+Shift+G, `chipload
+  group …`, library inserts of several shapes come in as a group.
+
+- **Shape library in the right panel** (the user, 2026-11-02: "a tab in the right panel
+  where I can drag and drop shapes from the library to the canvas … and also the other way
+  around"; "Each item shall have a preview and a name"): docs/specs/shape-library.md §5.1,
+  **done 2026-11-02**, decisions 9-14 as recommended: entries (`.chipload-shapes`, v1),
+  groups as folders, `shape save/insert/library`, the Shapes tab with drag and drop both
+  ways. To try: the guide's other pictures show the old PROPERTIES caption until the
+  next release's screenshots.
+- **Later: dockable panels** (the user, 2026-11-02: drag a panel onto another
+  for a tab, below it to stack; "no hack"): egui has no docking; egui_dock 0.21 (MIT) or
+  egui_tiles 0.17 (MIT/Apache-2.0) on egui 0.36. Its own spec and ADR: every panel becomes
+  a pane, the layout saved in the app settings. And a full library panel, tools and
+  machines beside shapes (shape-library.md decision 12).
+
+- **V-carve step down** (the user, 2026-11-02: "there should be an option to use ordinary
+  step down as well"; docs/specs/vcarve-step-down.md): **done 2026-11-02**, all decisions
+  as recommended. *Depth passes*: Equal load (passes) or Step down (mm, as a pocket);
+  optional `step_down`, no schema bump.
+
+- **Smoother V-carve** (the user, 2026-11-01: "a lot of small up and down movement just
+  because the path is not entirely smooth … prune voronoi branches if the angle is more
+  than say 60°"; docs/specs/vcarve-smooth.md): **done 2026-11-01**, all decisions as
+  recommended. The depth smoothed within half the tolerance (always); *Ignore kinks*, 20°
+  for new V-carves, 0° in older projects. Z reversals 326 → 172 on the script example.
+  Only a branch the rest covers goes (a traced logo at 20° had lost a leg of its "H").
+  Tried by the user on the traced logo (2026-11-02): "now it works, 20 or 30 deg is a good
+  value"; the default stays 20°.
+
+- **Image window** (the user, 2026-11-01: the traced paths had disappeared; the picture
+  should look like V-carved wood): **done 2026-11-01.** Light oak and dark brown instead of
+  white and near black; the traced lines, outlines too (left out on 2026-10-14 for hiding
+  the detail), thin and blue, with *Show the traced lines* to hide them.
+
 - **V-carve lifts less** (the user, 2026-10-31, testing with Edwardian Script: "the bit go
   up and down doing seemingly nothing"; docs/specs/vcarve-fewer-lifts.md): **done
   2026-10-31**, all decisions as recommended, in 0.30.0. Corner branches under 5 mm out

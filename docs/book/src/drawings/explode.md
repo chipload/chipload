@@ -1,14 +1,16 @@
-# Exploding a DXF, joining ends
+# Exploding a DXF, picture or text, joining ends
 
 A DXF's shapes are read-only: they change only when the DXF is
-[updated](update.md). To rework them in Chipload, **explode** the DXF: its shapes become
-drawn shapes, with handles, values you can type, copy, mirror and delete, like the ones you
+[updated](update.md). A traced picture's shapes and a text's letters are read-only too:
+they change only when the picture is traced again or the text is edited. To rework them in
+Chipload, **explode** the DXF, picture or text: its shapes become drawn shapes, with
+handles, values you can type, copy, mirror and delete, like the ones you
 [draw](shapes.md).
 
-## Explode
+## Explode a DXF
 
 Right-click the DXF in the Browser, *Explode into shapes…*, or *Explode…* in its
-properties.
+properties. With the whole DXF selected on the canvas, right-click there for the same.
 
 - **The project forgets the DXF file.** It leaves the Browser, and *Update from DXF* is
   no longer possible for these shapes. Ctrl+Z undoes it until the project is saved;
@@ -22,6 +24,23 @@ properties.
   every drawn circle does, so the cut may start elsewhere on them. The report names them.
 
 Tick *Join ends closer than* to join the exploded lines straight away (below).
+
+## Explode a picture or a text
+
+Right-click the picture or text in the Browser, *Explode into shapes…*; or select it on the
+canvas and right-click there.
+
+- **A picture goes from the project** with its trace settings: it is no longer shown under
+  its shapes and can't be traced again. The project file gets smaller by the picture.
+- **A text's words can't be edited again;** its letters stay where they are, each outline
+  and each hole (the inside of an O) a shape of its own. A text in a
+  [group](groups.md) is replaced there by its letters.
+- **Operations keep cutting the same shapes,** as for a DXF: an operation that cut the whole
+  picture or text now selects its shapes by number. The G-code stays the same, apart from
+  a V-carve's depth now and then by 0.001 mm (arcs come back a hair different).
+- **No join:** traced outlines and letters are closed already. *Join ends* (below) is
+  there if a centre-line trace needs it.
+- Ctrl+Z undoes it until the project is saved.
 
 ## Join ends
 
@@ -45,6 +64,8 @@ closer than the gap into one, and closes a chain that comes back to its start.
 ```sh
 chipload dxf explode part.chipload                  # the project's only DXF
 chipload dxf explode part.chipload 2 --join 0.05mm  # DXF 2, then join ends closer than 0.05 mm
+chipload image explode part.chipload                # the project's only picture (or give its id)
+chipload text explode part.chipload 2               # text 2
 chipload shape join part.chipload                   # every drawn shape, gap 0.01 mm
 chipload shape join part.chipload 12 13 14 --gap 0.1
 ```
