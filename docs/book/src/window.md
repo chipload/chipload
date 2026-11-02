@@ -20,7 +20,7 @@ Under it, the **ribbon** groups the buttons:
 | Group | Buttons | Its caption's menu also has |
 |---|---|---|
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
-| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame ([a frame for a sign](drawings/signs.md)), Text, Image, Add DXF | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
+| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame ([a frame for a sign](drawings/signs.md)), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock) | Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
@@ -82,7 +82,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
     pocket *Add rest pass ▸* (a [rest pass](operations/rest.md) shows under it), and
     *Delete*.
   - **A rest pass:** *Remove*.
-  - **The Drawing folder:** *Add DXF…* and *Import image…*.
+  - **The Drawing folder:** *Add DXF or SVG…* and *Import image…*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down*, *Move to setup ▸* and *Delete part* (with its operations).
   - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a

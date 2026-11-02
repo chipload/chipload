@@ -55,7 +55,7 @@ header-frame = Ram
 header-frame-hover = Rita en ram för en skylt: runt den markerade texten eller formerna, eller i en storlek, med kantlinjer
 header-image = Bild
 header-image-hover = Spåra en bild till former, för V-gravyr eller Följ bana
-header-add-dxf = Lägg till DXF
+header-add-dxf = DXF/SVG
 header-add-dxf-hover = En DXF eller SVG i det här projektet, bredvid det som finns: placeras och uppdateras för sig
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importera en DXF eller SVG först (ARKIV > Importera)

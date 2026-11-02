@@ -55,7 +55,7 @@ header-frame = Rahmen
 header-frame-hover = Einen Rahmen für ein Schild zeichnen: um den ausgewählten Text oder die Formen oder in einer Größe, mit Randlinien
 header-image = Bild
 header-image-hover = Ein Bild in Formen nachzeichnen, für V-Gravur oder Pfad folgen
-header-add-dxf = DXF hinzu
+header-add-dxf = DXF/SVG
 header-add-dxf-hover = Eine DXF oder SVG in dieses Projekt, neben das Vorhandene: eigenständig platziert und aktualisiert
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Zuerst eine DXF oder SVG importieren (DATEI > Import)

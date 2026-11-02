@@ -264,7 +264,7 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     assert_eq!(harness.state().modify(), None, "its ribbon button ends it");
 }
 
-/// A project started empty takes a DXF or SVG as well (the user, 2026-10-28): *Add DXF* is
+/// A project started empty takes a DXF or SVG as well (the user, 2026-10-28): *DXF/SVG* is
 /// on, and adds the file beside the drawn shapes.
 #[test]
 fn a_project_started_empty_can_add_a_drawing_file() {
@@ -274,7 +274,7 @@ fn a_project_started_empty_can_add_a_drawing_file() {
     harness.run_steps(3);
     assert!(
         !harness
-            .get_by_label("Add DXF")
+            .get_by_label("DXF/SVG")
             .accesskit_node()
             .is_disabled()
     );
