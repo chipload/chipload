@@ -185,6 +185,12 @@ it's built (see `CLAUDE.md`).
      lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
      `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
 
+- **Explode a picture or a text into drawn shapes** (the user, 2026-11-02: "i cant explode
+  and image or text to shapes only an dxf, is that by design?"):
+  docs/specs/explode-pictures-and-texts.md, **draft**, decisions 1-5 to review. The DXF's
+  explode generalised: the picture or text goes, ids, layers and G-code stay; `image
+  explode` / `text explode`; *Explode into shapes…* in the Browser and the canvas's menu.
+
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
   **done 2026-11-02**, decisions 1-10 as recommended: `drawing.groups` (optional, no
