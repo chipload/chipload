@@ -142,6 +142,28 @@ it's built (see `CLAUDE.md`).
      finds more real bugs than any restructuring: boundaries (zero depth, depth equal to
      the stock, tool larger than the feature), the checker's view of each, and proptest
      invariants where one exists. Suggested before the next release.
+     - **Holes: reviewed 2026-11-02**, nothing that risks the machine or the tool. Pecks,
+       approach, bore direction and size limits, start depth and copies are sound.
+       Findings, not yet fixed (the user: "Add these to the todo"):
+       1. **A drilled through hole doesn't go through at full diameter.** A drill's end
+          depth is its point (holes.md decision 3), so *Through* (0.5 mm) puts only the
+          point below the stock. An 8 mm drill in 12 mm stock reaches full diameter at about
+          10.1 mm, leaving a pinhole underneath, with no warning. Going deeper by hand is
+          refused by the max overcut (0.5 mm). Suggested: with a drill and Through, add the
+          point's length (about 0.3 × D for a 118° point) and apply the overcut limit to the
+          full diameter. Changes the G-code of existing drilled through holes: a spec and
+          a decision first.
+       2. **"No selected circle can be cut" drops the reason.** When every hole is too
+          small to bore (7.18 mm with a 6 mm endmill), the size note is lost with the error,
+          and the note never says the smallest size that fits (7.2 mm). Suggested: the
+          reasons and the minimum size in the error.
+       3. **Deep holes without pecks get no note.** A 3 mm drill 12 mm deep (4 × D) drills
+          in one go. Ticking Pecks starts at the general step-down, whatever the drill.
+          Suggested: a note beyond 3 × D without pecks, and a starting peck of 1 × D.
+       4. **A new Holes operation takes the last tool**, usually an endmill (a bore), even
+          when a drill matches the selected circles. Suggested: prefer a matching drill.
+       5. **The drill half of the holes property test is missing** (holes.md §8: every
+          drill move at a hole's centre); only the bores' exists.
   8. Later, when next worked on: the remaining large files, toolpath `plan.rs` (2,550
      lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
      `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
