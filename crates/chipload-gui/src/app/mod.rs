@@ -1528,7 +1528,10 @@ impl ChiploadApp {
     }
 
     /// Pocket `i`'s rest passes, to change.
-    pub(super) fn rest_passes_mut(&mut self, i: usize) -> Option<&mut Vec<chipload_job::RestPass>> {
+    pub(super) fn rest_passes_mut(
+        &mut self,
+        i: usize,
+    ) -> Option<&mut Vec<chipload_job::ClearingPass>> {
         match self.edit.as_mut()?.job.operations.get_mut(i) {
             Some(Operation::Pocket(p)) => Some(&mut p.rest_passes),
             _ => None,
@@ -1634,7 +1637,7 @@ impl ChiploadApp {
     }
 
     /// V-carve `i`'s floor pass, to change.
-    pub(super) fn floor_pass_mut(&mut self, i: usize) -> Option<&mut chipload_job::FloorPass> {
+    pub(super) fn floor_pass_mut(&mut self, i: usize) -> Option<&mut chipload_job::ClearingPass> {
         match self.edit.as_mut()?.job.operations.get_mut(i) {
             Some(Operation::Vcarve(v)) => v.floor.as_mut(),
             _ => None,
@@ -1710,7 +1713,7 @@ impl ChiploadApp {
             return;
         };
         if let Some(Operation::Pocket(pocket)) = edit.job.operations.get_mut(parent) {
-            pocket.rest_passes.push(chipload_job::RestPass {
+            pocket.rest_passes.push(chipload_job::ClearingPass {
                 tool: rest.tool,
                 feed: rest.feed,
                 plunge_feed: rest.plunge_feed,

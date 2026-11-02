@@ -287,7 +287,7 @@ pub fn rest_pass_of(
     tools: &[Tool],
     tool: i64,
     cutting: Option<&Cutting>,
-) -> Result<chipload_job::RestPass, Message> {
+) -> Result<chipload_job::ClearingPass, Message> {
     if chipload_job::has_bones(pocket.corners, &pocket.corner_choices) {
         return Err(Message::new("pipeline-rest-dogbones"));
     }
@@ -330,7 +330,7 @@ pub fn rest_pass_of(
             pocket.stepover,
         ),
     };
-    Ok(chipload_job::RestPass {
+    Ok(chipload_job::ClearingPass {
         tool,
         feed,
         plunge_feed,
@@ -385,7 +385,7 @@ pub fn floor_pass_of(
     tools: &[Tool],
     tool: i64,
     cutting: Option<&Cutting>,
-) -> Result<chipload_job::FloorPass, Message> {
+) -> Result<chipload_job::ClearingPass, Message> {
     let mill =
         find_tool(tools, tool).ok_or_else(|| Message::new("pipeline-no-tool").arg("tool", tool))?;
     if mill.kind != ToolType::Endmill {
@@ -406,7 +406,7 @@ pub fn floor_pass_of(
             FLOOR_STEPOVER,
         ),
     };
-    Ok(chipload_job::FloorPass {
+    Ok(chipload_job::ClearingPass {
         tool,
         feed,
         plunge_feed,
@@ -512,7 +512,7 @@ pub fn make_rest_pass(job: &mut Job, index: usize) -> Option<chipload_job::OpRef
     let Operation::Pocket(pocket) = job.operations.get_mut(parent)? else {
         return None;
     };
-    pocket.rest_passes.push(chipload_job::RestPass {
+    pocket.rest_passes.push(chipload_job::ClearingPass {
         tool: rest.tool,
         feed: rest.feed,
         plunge_feed: rest.plunge_feed,

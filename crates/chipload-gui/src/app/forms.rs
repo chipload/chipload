@@ -7,6 +7,7 @@ use super::*;
 use crate::editor::DEFAULT_STEP_DOWN;
 use crate::i18n::{Lang, Language};
 use chipload_job::library::{Cutting, MachineProfile};
+use chipload_job::{ClearingPass, ImageTrace, MaterialRef, Placement, Units};
 use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool, rest_refusal,
@@ -14,7 +15,6 @@ use chipload_job::{
 use chipload_job::{
     Finish, HoleMethod, HolesOp, ProfileOp, Rest, STRAIGHT_FLANK_RAD, Skin, ToolChange,
 };
-use chipload_job::{ImageTrace, MaterialRef, Placement, Units};
 use chipload_pipeline::library::Library;
 use chipload_pipeline::placement::Move as PlaceMove;
 
@@ -1789,62 +1789,15 @@ pub(super) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<J
                 "units-text-picture-position-hover",
                 unit = crate::units::unit(ui.ctx())
             ));
-            ui.horizontal(|ui| {
-                let (mut cx, mut cy) = (x0, y0);
-                for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
-                    let response = ui.add(mm_field(value).prefix(axis));
-                    finished |= response.drag_stopped() || response.lost_focus();
-                }
-                // Moving the box's corner moves the picture's own corner as much.
-                draft.x += cx - x0;
-                draft.y += cy - y0;
-                let hover = t!(ui, "forms-picture-reset-position");
-                if reset_button(ui, (x0, y0) != (0.0, 0.0), &hover) {
-                    draft.x -= x0;
-                    draft.y -= y0;
-                    finished = true;
-                }
-            });
+            // Moving the box's corner moves the picture's own corner as much.
+            let hover = t!(ui, "forms-picture-reset-position");
+            finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
             ui.end_row();
             ui.label(t!(ui, "forms-rotation"))
                 .on_hover_text(t!(ui, "forms-picture-rotation-hover"));
-            ui.horizontal(|ui| {
-                // Turning keeps the picture's centre where it is: x, y stay.
-                let response = ui.add(
-                    crate::units::number(ui, &mut draft.rotation)
-                        .speed(1.0)
-                        .suffix("°")
-                        .max_decimals(3),
-                );
-                finished |= response.drag_stopped() || response.lost_focus();
-                let mut turn = |by: f64| {
-                    draft.rotation += by;
-                    finished = true;
-                };
-                if ui
-                    .small_button("⟲ 90")
-                    .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
-                    .clicked()
-                {
-                    turn(90.0);
-                }
-                if ui
-                    .small_button("⟳ 90")
-                    .on_hover_text(t!(ui, "forms-turn-cw-hover"))
-                    .clicked()
-                {
-                    turn(-90.0);
-                }
-                let hover = t!(ui, "forms-picture-reset-rotation");
-                if reset_button(ui, draft.rotation != 0.0, &hover) {
-                    draft.rotation = 0.0;
-                    finished = true;
-                }
-                draft.rotation = draft.rotation.rem_euclid(360.0);
-                if draft.rotation >= 360.0 {
-                    draft.rotation = 0.0;
-                }
-            });
+            // Turning keeps the picture's centre where it is: x, y stay.
+            let hover = t!(ui, "forms-picture-reset-rotation");
+            finished |= rotation_cells(ui, &mut draft.rotation, &hover);
             ui.end_row();
             ui.label(t!(ui, "forms-width"))
                 .on_hover_text(t!(ui, "forms-picture-width-hover"));
@@ -2042,61 +1995,14 @@ pub(super) fn text_form(
                         unit = crate::units::unit(ui.ctx())
                     ),
                 });
-            ui.horizontal(|ui| {
-                let (mut cx, mut cy) = (x0, y0);
-                for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
-                    let response = ui.add(mm_field(value).prefix(axis));
-                    finished |= response.drag_stopped() || response.lost_focus();
-                }
-                // Moving what is shown moves the text's own position as much.
-                draft.x += cx - x0;
-                draft.y += cy - y0;
-                let hover = t!(ui, "forms-text-reset-position");
-                if reset_button(ui, (x0, y0) != (0.0, 0.0), &hover) {
-                    draft.x -= x0;
-                    draft.y -= y0;
-                    finished = true;
-                }
-            });
+            // Moving what is shown moves the text's own position as much.
+            let hover = t!(ui, "forms-text-reset-position");
+            finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
             ui.end_row();
             ui.label(t!(ui, "forms-rotation"))
                 .on_hover_text(t!(ui, "forms-text-rotation-hover"));
-            ui.horizontal(|ui| {
-                let response = ui.add(
-                    crate::units::number(ui, &mut draft.rotation)
-                        .speed(1.0)
-                        .suffix("°")
-                        .max_decimals(3),
-                );
-                finished |= response.drag_stopped() || response.lost_focus();
-                let mut turn = |by: f64| {
-                    draft.rotation += by;
-                    finished = true;
-                };
-                if ui
-                    .small_button("⟲ 90")
-                    .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
-                    .clicked()
-                {
-                    turn(90.0);
-                }
-                if ui
-                    .small_button("⟳ 90")
-                    .on_hover_text(t!(ui, "forms-turn-cw-hover"))
-                    .clicked()
-                {
-                    turn(-90.0);
-                }
-                let hover = t!(ui, "forms-text-reset-rotation");
-                if reset_button(ui, draft.rotation != 0.0, &hover) {
-                    draft.rotation = 0.0;
-                    finished = true;
-                }
-                draft.rotation = draft.rotation.rem_euclid(360.0);
-                if draft.rotation >= 360.0 {
-                    draft.rotation = 0.0;
-                }
-            });
+            let hover = t!(ui, "forms-text-reset-rotation");
+            finished |= rotation_cells(ui, &mut draft.rotation, &hover);
             ui.end_row();
             ui.label(t!(ui, "forms-align"))
                 .on_hover_text(t!(ui, "forms-align-hover"));
@@ -2892,6 +2798,139 @@ fn feed_in(units: Units, mm_per_min: f64) -> String {
 }
 
 /// A small reset button after a row; true when clicked.
+/// X and Y of what is shown at `shown` (a box's corner, or a text's centre) and a reset
+/// button that moves it to 0, 0; the drafted position `at` moves as much as the shown point.
+/// Returns whether an edit finished.
+fn position_cells(
+    ui: &mut egui::Ui,
+    shown: (f64, f64),
+    at: (&mut f64, &mut f64),
+    reset_hover: &str,
+) -> bool {
+    let (x0, y0) = shown;
+    let (x, y) = at;
+    let mut finished = false;
+    ui.horizontal(|ui| {
+        let (mut cx, mut cy) = (x0, y0);
+        for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
+            let response = ui.add(mm_field(value).prefix(axis));
+            finished |= response.drag_stopped() || response.lost_focus();
+        }
+        *x += cx - x0;
+        *y += cy - y0;
+        if reset_button(ui, (x0, y0) != (0.0, 0.0), reset_hover) {
+            *x -= x0;
+            *y -= y0;
+            finished = true;
+        }
+    });
+    finished
+}
+
+/// A drafted rotation, degrees counter-clockwise: the number, quarter turns either way and a
+/// reset button; kept in [0, 360). Returns whether an edit finished.
+fn rotation_cells(ui: &mut egui::Ui, rotation: &mut f64, reset_hover: &str) -> bool {
+    let mut finished = false;
+    ui.horizontal(|ui| {
+        let response = ui.add(
+            crate::units::number(ui, rotation)
+                .speed(1.0)
+                .suffix("°")
+                .max_decimals(3),
+        );
+        finished |= response.drag_stopped() || response.lost_focus();
+        if let Some(by) = quarter_turn_buttons(ui) {
+            *rotation += by;
+            finished = true;
+        }
+        if reset_button(ui, *rotation != 0.0, reset_hover) {
+            *rotation = 0.0;
+            finished = true;
+        }
+        *rotation = rotation.rem_euclid(360.0);
+        if *rotation >= 360.0 {
+            *rotation = 0.0;
+        }
+    });
+    finished
+}
+
+/// ⟲ 90 and ⟳ 90: the quarter turn clicked, degrees counter-clockwise.
+fn quarter_turn_buttons(ui: &mut egui::Ui) -> Option<f64> {
+    let ccw = ui
+        .small_button("⟲ 90")
+        .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
+        .clicked();
+    let cw = ui
+        .small_button("⟳ 90")
+        .on_hover_text(t!(ui, "forms-turn-cw-hover"))
+        .clicked();
+    match (ccw, cw) {
+        (true, _) => Some(90.0),
+        (_, true) => Some(-90.0),
+        _ => None,
+    }
+}
+
+/// A clearing pass's own rows, for a rest pass and a floor pass alike: on or off, its end
+/// mill (one that `fits`), then `after_tool`'s rows, its step down, stepover, feeds and
+/// entry. `salt` keeps its widgets apart from another pass's.
+fn clearing_pass_rows(
+    ui: &mut egui::Ui,
+    salt: impl std::hash::Hash + std::fmt::Debug + Copy,
+    entry_salt: usize,
+    pass: &mut ClearingPass,
+    tools: &[Tool],
+    fits: impl Fn(&Tool) -> bool,
+    after_tool: impl FnOnce(&mut egui::Ui),
+) {
+    let units = crate::units::display(ui.ctx());
+    ui.label(t!(ui, "forms-cut-it"));
+    ui.checkbox(&mut pass.enabled, "")
+        .on_hover_text(t!(ui, "forms-cut-it-hover"));
+    ui.end_row();
+    ui.label(t!(ui, "forms-tool"));
+    let lang = ui.lang();
+    let label = |id: i64| {
+        tools
+            .iter()
+            .find(|t| t.id == id)
+            .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
+                tool_label(ui, t, units)
+            })
+    };
+    let combo = ComboBox::from_id_salt((salt, "tool"))
+        .selected_text(label(pass.tool))
+        .show_ui(ui, |ui| {
+            for t in tools.iter().filter(|t| fits(t)) {
+                ui.selectable_value(&mut pass.tool, t.id, tool_label(ui, t, units));
+            }
+        });
+    flag(combo.response, ui, "tool");
+    ui.end_row();
+    after_tool(ui);
+    ui.label(t!(ui, "forms-step-down"));
+    flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
+    ui.end_row();
+    ui.label(t!(ui, "forms-stepover"));
+    let stepover = ui.add(
+        crate::units::number(ui, &mut pass.stepover)
+            .speed(0.01)
+            .range(0.01..=1.0)
+            .suffix(" × D"),
+    );
+    flag(stepover, ui, "stepover");
+    ui.end_row();
+    ui.label(t!(ui, "forms-feed"));
+    flag(ui.add(feed(&mut pass.feed)), ui, "feed");
+    ui.end_row();
+    ui.label(t!(ui, "forms-plunge-feed"));
+    flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
+    ui.end_row();
+    let diameter = tools.iter().find(|t| t.id == pass.tool).map(|t| t.diameter);
+    entry_rows(ui, entry_salt, &mut pass.entry, diameter);
+}
+
 fn reset_button(ui: &mut egui::Ui, enabled: bool, hover: &str) -> bool {
     let label = t!(ui, "forms-reset");
     super::header::icon_button(ui, crate::icons::Icon::Undo, &label, enabled, false, 18.0)
@@ -2976,19 +3015,8 @@ pub(super) fn placement_rows(
         }) {
             place(PlaceMove::Rotate(degrees - current));
         }
-        if ui
-            .small_button("⟲ 90")
-            .on_hover_text(t!(ui, "forms-turn-ccw-hover"))
-            .clicked()
-        {
-            place(PlaceMove::Rotate(90.0));
-        }
-        if ui
-            .small_button("⟳ 90")
-            .on_hover_text(t!(ui, "forms-turn-cw-hover"))
-            .clicked()
-        {
-            place(PlaceMove::Rotate(-90.0));
+        if let Some(by) = quarter_turn_buttons(ui) {
+            place(PlaceMove::Rotate(by));
         }
         let hover = t!(ui, "forms-dxf-reset-rotation");
         if reset_button(ui, current != 0.0, &hover) {
@@ -3762,52 +3790,12 @@ pub(super) fn rest_pass_form(
                 .on_hover_text(t!(ui, "forms-after-tool-hover"));
             ui.weak(format!("T{before}"));
             ui.end_row();
-            ui.label(t!(ui, "forms-cut-it"));
-            ui.checkbox(&mut pass.enabled, "")
-                .on_hover_text(t!(ui, "forms-cut-it-hover"));
-            ui.end_row();
-            ui.label(t!(ui, "forms-tool"));
-            let lang = ui.lang();
-            let label = |id: i64| {
-                tools
-                    .iter()
-                    .find(|t| t.id == id)
-                    .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
-                        tool_label(ui, t, units)
-                    })
+            // Smaller than the tool before it (docs/specs/rest-passes.md §2).
+            let fits = |t: &Tool| {
+                t.kind == ToolType::Endmill && before_diameter.is_some_and(|d| t.diameter < d)
             };
-            let combo = ComboBox::from_id_salt(("rest-pass-tool", i, k))
-                .selected_text(label(pass.tool))
-                .show_ui(ui, |ui| {
-                    for t in tools.iter().filter(|t| {
-                        t.kind == ToolType::Endmill
-                            && before_diameter.is_some_and(|d| t.diameter < d)
-                    }) {
-                        ui.selectable_value(&mut pass.tool, t.id, tool_label(ui, t, units));
-                    }
-                });
-            flag(combo.response, ui, "tool");
-            ui.end_row();
-            ui.label(t!(ui, "forms-step-down"));
-            flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
-            ui.end_row();
-            ui.label(t!(ui, "forms-stepover"));
-            let stepover = ui.add(
-                crate::units::number(ui, &mut pass.stepover)
-                    .speed(0.01)
-                    .range(0.01..=1.0)
-                    .suffix(" × D"),
-            );
-            flag(stepover, ui, "stepover");
-            ui.end_row();
-            ui.label(t!(ui, "forms-feed"));
-            flag(ui.add(feed(&mut pass.feed)), ui, "feed");
-            ui.end_row();
-            ui.label(t!(ui, "forms-plunge-feed"));
-            flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
-            ui.end_row();
-            let diameter = tools.iter().find(|t| t.id == pass.tool).map(|t| t.diameter);
-            entry_rows(ui, 1000 + i * 100 + k, &mut pass.entry, diameter);
+            let salt = ("rest-pass", i, k);
+            clearing_pass_rows(ui, salt, 1000 + i * 100 + k, pass, &tools, fits, |_| {});
         });
     ui.add_space(6.0);
     ui.weak(t!(ui, "forms-rest-pass-note"));
@@ -3880,64 +3868,34 @@ pub(super) fn floor_pass_form(
             ui.label(t!(ui, "forms-from-vcarve"));
             ui.weak(&facts);
             ui.end_row();
-            ui.label(t!(ui, "forms-cut-it"));
-            ui.checkbox(&mut pass.enabled, "")
-                .on_hover_text(t!(ui, "forms-cut-it-hover"));
-            ui.end_row();
-            ui.label(t!(ui, "forms-tool"));
-            let lang = ui.lang();
-            let label = |id: i64| {
-                tools
-                    .iter()
-                    .find(|t| t.id == id)
-                    .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
-                        tool_label(ui, t, units)
-                    })
+            let fits = |t: &Tool| t.kind == ToolType::Endmill;
+            // When the end mill leaves part of the floor: the largest that clears it all.
+            let hint_rows = |ui: &mut egui::Ui| {
+                if let Some((largest, library)) = hint {
+                    ui.label("");
+                    ui.vertical(|ui| {
+                        let size = |d: f64| chipload_pipeline::units::length_text(d, units);
+                        ui.weak(t!(ui, "forms-floor-hint", largest = size(*largest)));
+                        if !library.is_empty() {
+                            let names: Vec<String> = library
+                                .iter()
+                                .map(|(name, d)| format!("{name} ({})", size(*d)))
+                                .collect();
+                            ui.weak(t!(ui, "forms-floor-hint-library", tools = names.join(", ")));
+                        }
+                    });
+                    ui.end_row();
+                }
             };
-            let combo = ComboBox::from_id_salt(("floor-pass-tool", i))
-                .selected_text(label(pass.tool))
-                .show_ui(ui, |ui| {
-                    for t in tools.iter().filter(|t| t.kind == ToolType::Endmill) {
-                        ui.selectable_value(&mut pass.tool, t.id, tool_label(ui, t, units));
-                    }
-                });
-            flag(combo.response, ui, "tool");
-            ui.end_row();
-            if let Some((largest, library)) = hint {
-                ui.label("");
-                ui.vertical(|ui| {
-                    let size = |d: f64| chipload_pipeline::units::length_text(d, units);
-                    ui.weak(t!(ui, "forms-floor-hint", largest = size(*largest)));
-                    if !library.is_empty() {
-                        let names: Vec<String> = library
-                            .iter()
-                            .map(|(name, d)| format!("{name} ({})", size(*d)))
-                            .collect();
-                        ui.weak(t!(ui, "forms-floor-hint-library", tools = names.join(", ")));
-                    }
-                });
-                ui.end_row();
-            }
-            ui.label(t!(ui, "forms-step-down"));
-            flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
-            ui.end_row();
-            ui.label(t!(ui, "forms-stepover"));
-            let stepover = ui.add(
-                crate::units::number(ui, &mut pass.stepover)
-                    .speed(0.01)
-                    .range(0.01..=1.0)
-                    .suffix(" × D"),
+            clearing_pass_rows(
+                ui,
+                ("floor-pass", i, 0),
+                2000 + i,
+                pass,
+                &tools,
+                fits,
+                hint_rows,
             );
-            flag(stepover, ui, "stepover");
-            ui.end_row();
-            ui.label(t!(ui, "forms-feed"));
-            flag(ui.add(feed(&mut pass.feed)), ui, "feed");
-            ui.end_row();
-            ui.label(t!(ui, "forms-plunge-feed"));
-            flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
-            ui.end_row();
-            let diameter = tools.iter().find(|t| t.id == pass.tool).map(|t| t.diameter);
-            entry_rows(ui, 2000 + i, &mut pass.entry, diameter);
         });
     ui.add_space(6.0);
     ui.weak(t!(ui, "forms-floor-pass-note"));

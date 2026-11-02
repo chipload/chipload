@@ -10,9 +10,9 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    Copies, CopyOrder, Entry, FloorPass, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note, OpRef,
-    Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp, Tabs,
-    Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note,
+    OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp,
+    Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -2344,7 +2344,7 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
 
 /// A V-carve's floor pass (docs/specs/vcarve-wide-strokes.md §4): it cuts with a project
 /// end mill with a spindle speed; its plunge notes are as for any pocket.
-fn floor_pass_checks(job: &Job, index: usize, floor: &FloorPass) -> (Vec<Problem>, Vec<Note>) {
+fn floor_pass_checks(job: &Job, index: usize, floor: &ClearingPass) -> (Vec<Problem>, Vec<Note>) {
     let (mut problems, mut notes) = (Vec::new(), Vec::new());
     let label_message = job.label_message(OpRef::pass(index, 0));
     let at = |field: &str| format!("operations.{index}.floor.{field}");

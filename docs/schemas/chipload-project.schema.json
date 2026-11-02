@@ -54,6 +54,55 @@
       ],
       "type": "string"
     },
+    "ClearingPass": {
+      "additionalProperties": false,
+      "description": "A clearing pass with its own end mill, inside an operation's shapes and depths: a\npocket's rest pass (docs/specs/rest-passes.md §2: an endmill smaller than the tool before\nit, clearing only what that tool leaves) or a V-carve's floor pass\n(docs/specs/vcarve-wide-strokes.md §4: an end mill clearing the floor between the walls,\nbefore the V-carve).",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "description": "False: kept, but not cut. Missing: true.",
+          "type": "boolean"
+        },
+        "entry": {
+          "$ref": "#/$defs/Entry",
+          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
+        },
+        "feed": {
+          "description": "The cutting feed, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "plunge_feed": {
+          "description": "The feed going down into the material, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "step_down": {
+          "description": "The deepest each pass goes, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "stepover": {
+          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
+          "format": "double",
+          "type": "number"
+        },
+        "tool": {
+          "description": "The id of the project tool it cuts with (`tools`): an end mill.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tool",
+        "feed",
+        "plunge_feed",
+        "step_down",
+        "stepover",
+        "entry"
+      ],
+      "type": "object"
+    },
     "Copies": {
       "additionalProperties": false,
       "description": "A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)\nmm.",
@@ -462,55 +511,6 @@
       },
       "required": [
         "stock"
-      ],
-      "type": "object"
-    },
-    "FloorPass": {
-      "additionalProperties": false,
-      "description": "The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears\nthe floor between the walls, in the V-carve's shapes and depths, before it.",
-      "properties": {
-        "enabled": {
-          "default": true,
-          "description": "False: kept, but not cut. Missing: true.",
-          "type": "boolean"
-        },
-        "entry": {
-          "$ref": "#/$defs/Entry",
-          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
-        },
-        "feed": {
-          "description": "The cutting feed, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "plunge_feed": {
-          "description": "The feed going down into the material, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "step_down": {
-          "description": "The deepest each pass goes, mm.",
-          "format": "double",
-          "type": "number"
-        },
-        "stepover": {
-          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
-          "format": "double",
-          "type": "number"
-        },
-        "tool": {
-          "description": "The id of the project tool it cuts with (`tools`): an end mill.",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "tool",
-        "feed",
-        "plunge_feed",
-        "step_down",
-        "stepover",
-        "entry"
       ],
       "type": "object"
     },
@@ -1148,7 +1148,7 @@
             "rest_passes": {
               "description": "Rest passes: smaller endmills that clear what this pocket's tool (or the pass before)\nleaves, in its shapes and depths. Missing or empty: none. Left out when empty.",
               "items": {
-                "$ref": "#/$defs/RestPass"
+                "$ref": "#/$defs/ClearingPass"
               },
               "type": "array"
             },
@@ -1242,7 +1242,7 @@
             "floor": {
               "anyOf": [
                 {
-                  "$ref": "#/$defs/FloorPass"
+                  "$ref": "#/$defs/ClearingPass"
                 },
                 {
                   "type": "null"
@@ -1724,55 +1724,6 @@
       },
       "required": [
         "after_tool"
-      ],
-      "type": "object"
-    },
-    "RestPass": {
-      "additionalProperties": false,
-      "description": "One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes,\ndepths, clearance and direction, and clears only what the tool before it leaves.",
-      "properties": {
-        "enabled": {
-          "default": true,
-          "description": "False: kept, but not cut. Missing: true.",
-          "type": "boolean"
-        },
-        "entry": {
-          "$ref": "#/$defs/Entry",
-          "description": "How the tool goes down: `plunge`, `ramp` or `helix`."
-        },
-        "feed": {
-          "description": "The cutting feed, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "plunge_feed": {
-          "description": "The feed going down into the material, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "step_down": {
-          "description": "The deepest each pass goes, mm.",
-          "format": "double",
-          "type": "number"
-        },
-        "stepover": {
-          "description": "The distance between the clearing rings, as a fraction of the tool diameter.",
-          "format": "double",
-          "type": "number"
-        },
-        "tool": {
-          "description": "The id of the project tool it cuts with (`tools`): an endmill smaller than the tool\nbefore it.",
-          "format": "int64",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "tool",
-        "feed",
-        "plunge_feed",
-        "step_down",
-        "stepover",
-        "entry"
       ],
       "type": "object"
     },

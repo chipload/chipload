@@ -1125,7 +1125,7 @@ impl ChiploadApp {
             Operation::Pocket(p) if p.rest.is_some() => self.rest_pocket_parent(i),
             _ => None,
         };
-        let passes: Vec<chipload_job::RestPass> = match op {
+        let passes: Vec<chipload_job::ClearingPass> = match op {
             Operation::Pocket(p) => p.rest_passes.clone(),
             _ => Vec::new(),
         };
@@ -1242,7 +1242,7 @@ impl ChiploadApp {
         &self,
         ui: &mut egui::Ui,
         i: usize,
-        pass: &chipload_job::FloorPass,
+        pass: &chipload_job::ClearingPass,
         vcarve_cut: bool,
         color: Color32,
     ) -> Option<OpAction> {
@@ -1293,7 +1293,7 @@ impl ChiploadApp {
         ui: &mut egui::Ui,
         i: usize,
         k: usize,
-        pass: &chipload_job::RestPass,
+        pass: &chipload_job::ClearingPass,
         pocket_cut: bool,
         color: Color32,
     ) -> Option<OpAction> {

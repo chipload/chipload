@@ -3309,17 +3309,19 @@ pub struct PocketOp {
     /// leaves, in its shapes and depths. Missing or empty: none. Left out when empty.
     // Spec: docs/specs/rest-passes.md.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub rest_passes: Vec<RestPass>,
+    pub rest_passes: Vec<ClearingPass>,
 }
 
-/// One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's shapes,
-/// depths, clearance and direction, and clears only what the tool before it leaves.
+/// A clearing pass with its own end mill, inside an operation's shapes and depths: a
+/// pocket's rest pass (docs/specs/rest-passes.md §2: an endmill smaller than the tool before
+/// it, clearing only what that tool leaves) or a V-carve's floor pass
+/// (docs/specs/vcarve-wide-strokes.md §4: an end mill clearing the floor between the walls,
+/// before the V-carve).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
-pub struct RestPass {
-    /// The id of the project tool it cuts with (`tools`): an endmill smaller than the tool
-    /// before it.
+pub struct ClearingPass {
+    /// The id of the project tool it cuts with (`tools`): an end mill.
     pub tool: i64,
     /// The cutting feed, mm/min.
     pub feed: f64,
@@ -3400,7 +3402,7 @@ pub struct VcarveOp {
     /// wide to carve from their centre line. Missing: none. Left out when missing.
     // Spec: docs/specs/vcarve-wide-strokes.md §4 (optional, no schema bump).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub floor: Option<FloorPass>,
+    pub floor: Option<ClearingPass>,
 }
 
 impl VcarveOp {
@@ -3415,29 +3417,6 @@ impl VcarveOp {
         let depth = (self.end_depth - self.start_depth).min(deepest);
         Some(depth * slope)
     }
-}
-
-/// The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears
-/// the floor between the walls, in the V-carve's shapes and depths, before it.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(deny_unknown_fields)]
-pub struct FloorPass {
-    /// The id of the project tool it cuts with (`tools`): an end mill.
-    pub tool: i64,
-    /// The cutting feed, mm/min.
-    pub feed: f64,
-    /// The feed going down into the material, mm/min.
-    pub plunge_feed: f64,
-    /// The deepest each pass goes, mm.
-    pub step_down: f64,
-    /// The distance between the clearing rings, as a fraction of the tool diameter.
-    pub stepover: f64,
-    /// How the tool goes down: `plunge`, `ramp` or `helix`.
-    pub entry: Entry,
-    /// False: kept, but not cut. Missing: true.
-    #[serde(default = "enabled_default")]
-    pub enabled: bool,
 }
 
 /// Follow path: the tool centre on the selected shapes, open or closed, in depth passes.
