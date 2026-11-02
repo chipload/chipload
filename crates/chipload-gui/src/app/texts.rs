@@ -23,21 +23,21 @@ impl ChiploadApp {
             self.view_top(); // placed by a click in top view, as drawing is
         }
         self.enter_edit_mode();
-        self.sketch = None;
-        self.measure = None;
-        self.placing_text = true;
+        self.set_tool(ActiveTool::PlaceText);
         self.set_status(t!(self, "texts-place-hint"), STATUS_SECONDS);
     }
 
     /// Placing a text: the next canvas click places it.
     pub fn placing_text(&self) -> bool {
-        self.placing_text
+        self.active == ActiveTool::PlaceText
     }
 
     /// A new text with its lower-left corner at `at`, selected and open in Properties with
     /// its text field ready to type into, as one undo step. Returns its id.
     pub fn place_text_at(&mut self, at: Point) -> Option<u64> {
-        self.placing_text = false;
+        if self.placing_text() {
+            self.end_tool();
+        }
         self.commit();
         let edit = self.edit.as_ref()?;
         let mut new = NewText::new(NEW_TEXT, NEW_TEXT_HEIGHT_MM);

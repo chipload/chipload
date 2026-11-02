@@ -62,8 +62,8 @@ impl ChiploadApp {
     /// project can be drawn on and nothing is being drawn, measured or placed.
     pub(super) fn selected_box(&mut self) -> Option<(BoxOf, PlacedBox)> {
         if self.three_d
-            || self.sketch.is_some()
-            || self.measure.is_some()
+            || self.sketch().is_some()
+            || self.measure().is_some()
             || self.placing_text()
             || !self.can_draw()
             || !self.show_drawing()

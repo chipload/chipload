@@ -41,20 +41,19 @@ pub fn measure_text(a: Point, b: Point, units: chipload_job::Units) -> String {
 impl ChiploadApp {
     /// View → Measure (M): on, or off again.
     pub fn toggle_measure(&mut self) {
-        if self.measure.is_some() {
-            self.measure = None;
+        if self.measure().is_some() {
+            self.end_tool();
             return;
         }
         if self.three_d {
             self.view_top(); // measuring works in top view only
         }
-        self.sketch = None;
-        self.measure = Some(Measure::default());
+        self.set_tool(ActiveTool::Measure(Measure::default()));
     }
 
     /// A click on the canvas while measuring, at `p` (already snapped).
     pub fn measure_click(&mut self, p: Point) {
-        if let Some(measure) = self.measure.as_mut() {
+        if let Some(measure) = self.measure_mut() {
             measure.click(p);
         }
     }
@@ -62,7 +61,7 @@ impl ChiploadApp {
     /// What the canvas shows: the measured line (to the cursor while the second point is
     /// still to come) and its text.
     pub(super) fn measure_scene(&self, cursor: Option<Point>) -> Option<(Point, Point, String)> {
-        let measure = self.measure?;
+        let measure = self.measure()?;
         let start = measure.start?;
         let end = measure.end.or(cursor)?;
         Some((start, end, measure_text(start, end, self.units)))
@@ -70,7 +69,7 @@ impl ChiploadApp {
 
     /// The status bar while measuring.
     pub(super) fn measure_status(&self, snapped: &str) -> Option<String> {
-        let measure = self.measure?;
+        let measure = self.measure()?;
         Some(match (measure.start, measure.end) {
             (None, _) => t!(self, "measure-first-point", snapped = snapped),
             (Some(_), None) => t!(self, "measure-second-point", snapped = snapped),

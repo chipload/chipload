@@ -3,6 +3,7 @@ use super::*;
 use chipload_job::{HoleMethod, Lead};
 use chipload_toolpath::model::MoveKind;
 
+mod active_tool;
 mod browser;
 mod browser_drawing_folder;
 mod chip_load;

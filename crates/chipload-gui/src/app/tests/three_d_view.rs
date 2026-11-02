@@ -14,7 +14,7 @@ fn the_3d_view_can_be_entered_and_left_and_drawing_returns_to_top_view() {
         !app.three_d && app.view.is_top(),
         "drawing works in top view only"
     );
-    assert!(app.sketch.is_some());
+    assert!(app.sketch().is_some());
 }
 
 #[test]

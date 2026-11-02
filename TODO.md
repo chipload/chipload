@@ -102,9 +102,13 @@ it's built (see `CLAUDE.md`).
      `CanvasSelection::Whole` and `BoxOf::Whole`. Rust types only: the file, the scripting
      paths, the JSON Schema and the G-code are the same (all 56 corpus projects saved byte
      for byte as before).
-  3. Later: the window's modes (drawing, modify, measure, placing text, …) as one enum
-     instead of separate fields cleared by hand; splitting `models.rs`, the CLI's
-     `main.rs` and `forms.rs`.
+  3. **The window's canvas tools as one enum: done 2026-11-02.** `ActiveTool` (Select,
+     Draw, Modify, PlaceText, Measure) replaces four fields each cleared by hand
+     (`sketch`, `modify`, `placing_text`, `measure`); `set_tool` ends the one in use and
+     drops a typed value and the offset preview. Fixed on the way: Measure left an editing
+     tool on (it took the clicks), Text left an editing tool on, the 3D view left Modify
+     and Text on. Undo still ends drawing only.
+  4. Later: splitting `models.rs`, the CLI's `main.rs` and `forms.rs`.
 
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):

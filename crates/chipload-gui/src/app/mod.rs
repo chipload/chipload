@@ -284,6 +284,24 @@ pub struct Sim {
     serial: u64,
 }
 
+/// The canvas tool in use (the review of 2026-11-02, point 3): one at a time, so starting
+/// one ends any other, and Esc or the 3D view ends it. Each also drops a value being typed
+/// and the offset preview.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(super) enum ActiveTool {
+    /// No tool: clicks select.
+    #[default]
+    Select,
+    /// A shape being drawn with the mouse (docs/specs/drawing-tools.md).
+    Draw(Sketch),
+    /// An editing tool (docs/specs/drawing-editing.md).
+    Modify(modify::ModifyTool),
+    /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
+    PlaceText,
+    /// View → Measure (docs/specs/small-items.md §3).
+    Measure(measure::Measure),
+}
+
 /// What the pointer is dragging on the canvas, and where it snaps.
 #[derive(Default)]
 struct Drag {
@@ -377,8 +395,9 @@ pub struct ChiploadApp {
     pub playback: Option<playback::Playback>,
     /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
     pub three_d: bool,
-    /// The shape being drawn with the mouse, if any (docs/specs/drawing-tools.md).
-    pub sketch: Option<Sketch>,
+    /// The canvas tool in use: drawing, an editing tool, placing a text or measuring, at
+    /// most one at a time.
+    active: ActiveTool,
     /// A value being typed while drawing (docs/specs/drawing-input.md §2).
     pub typed: Option<drawing::Typed>,
     /// The last drawing tool used: Enter with no tool active starts it again.
@@ -387,8 +406,6 @@ pub struct ChiploadApp {
     pub polygon_sides: u32,
     /// The drawing tools draw construction geometry (key K; docs/specs/dxf-export.md §B2).
     pub construction_mode: bool,
-    /// The editing tool being used, if any (docs/specs/drawing-editing.md).
-    pub modify: Option<modify::ModifyTool>,
     /// The offset tool's corners and count, kept for the session.
     pub offset_corners: chipload_pipeline::drawing_edit::Corners,
     pub offset_count: u32,
@@ -406,12 +423,8 @@ pub struct ChiploadApp {
     /// Draw > Frame…'s values, kept for the session, and its preview.
     pub frame: frames::FrameSettings,
     frame_preview: frames::FramePreview,
-    /// Draw > Text: the next canvas click places a text (docs/specs/text.md §5).
-    placing_text: bool,
     /// A text was just placed: its text field takes the keyboard once.
     pub(super) focus_text_field: bool,
-    /// View → Measure, while on (docs/specs/small-items.md §3).
-    pub measure: Option<measure::Measure>,
     /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
     shape_clipboard: Vec<(String, Geometry)>,
     /// The shapes copied were a whole group: they paste as a new group
@@ -554,12 +567,11 @@ impl Default for ChiploadApp {
             sim: Sim::default(),
             playback: None,
             three_d: false,
-            sketch: None,
+            active: ActiveTool::Select,
             typed: None,
             last_tool: None,
             polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
             construction_mode: false,
-            modify: None,
             offset_corners: chipload_pipeline::drawing_edit::Corners::Round,
             offset_count: 1,
             fillet_radius: 3.0,
@@ -571,9 +583,7 @@ impl Default for ChiploadApp {
             array_preview: modify::ArrayPreview::default(),
             frame: frames::FrameSettings::default(),
             frame_preview: frames::FramePreview::default(),
-            placing_text: false,
             focus_text_field: false,
-            measure: None,
             shape_clipboard: Vec::new(),
             clipboard_group: false,
             shape_draft: None,
@@ -685,6 +695,62 @@ fn is_drawing_file(path: &Path) -> bool {
 }
 
 impl ChiploadApp {
+    /// Use `tool` on the canvas, ending any other. A value being typed and the offset
+    /// preview belong to the tool they were made with, so they go.
+    pub(super) fn set_tool(&mut self, tool: ActiveTool) {
+        self.typed = None;
+        self.offset_preview = modify::OffsetPreview::default();
+        self.active = tool;
+    }
+
+    /// End the canvas tool in use, if any: clicks select again.
+    pub(super) fn end_tool(&mut self) {
+        self.set_tool(ActiveTool::Select);
+    }
+
+    /// Whether a canvas tool is in use.
+    pub fn tool_active(&self) -> bool {
+        self.active != ActiveTool::Select
+    }
+
+    /// The shape being drawn, while drawing.
+    pub fn sketch(&self) -> Option<&Sketch> {
+        match &self.active {
+            ActiveTool::Draw(sketch) => Some(sketch),
+            _ => None,
+        }
+    }
+
+    pub(super) fn sketch_mut(&mut self) -> Option<&mut Sketch> {
+        match &mut self.active {
+            ActiveTool::Draw(sketch) => Some(sketch),
+            _ => None,
+        }
+    }
+
+    /// The editing tool in use.
+    pub fn modify(&self) -> Option<modify::ModifyTool> {
+        match self.active {
+            ActiveTool::Modify(tool) => Some(tool),
+            _ => None,
+        }
+    }
+
+    /// The measurement being made, while measuring.
+    pub fn measure(&self) -> Option<&measure::Measure> {
+        match &self.active {
+            ActiveTool::Measure(measure) => Some(measure),
+            _ => None,
+        }
+    }
+
+    pub(super) fn measure_mut(&mut self) -> Option<&mut measure::Measure> {
+        match &mut self.active {
+            ActiveTool::Measure(measure) => Some(measure),
+            _ => None,
+        }
+    }
+
     // -- state
 
     /// The project has changes that aren't saved.
@@ -740,7 +806,8 @@ impl ChiploadApp {
 
     fn after_history_step(&mut self) {
         self.shape_draft = None;
-        self.sketch = None;
+        // Undo or redo ends drawing; another tool stays for the next click.
+        self.cancel_drawing();
         let len = self.edit.as_ref().map_or(0, |e| e.job.operations.len());
         if let Focus::Op(i) = self.focus
             && i >= len

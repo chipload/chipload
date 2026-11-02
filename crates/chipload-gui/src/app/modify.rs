@@ -127,11 +127,7 @@ impl ChiploadApp {
         if self.three_d {
             self.view_top();
         }
-        self.sketch = None;
-        self.measure = None;
-        self.placing_text = false;
-        self.typed = None;
-        self.modify = Some(tool);
+        self.set_tool(ActiveTool::Modify(tool));
         if matches!(
             tool,
             ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::Frame
@@ -142,9 +138,9 @@ impl ChiploadApp {
     }
 
     pub fn cancel_modify(&mut self) {
-        self.modify = None;
-        self.typed = None;
-        self.offset_preview = OffsetPreview::default();
+        if self.modify().is_some() {
+            self.end_tool();
+        }
     }
 
     /// The drawn shapes selected (none when imported ones are among them).
@@ -298,7 +294,7 @@ impl ChiploadApp {
 
     /// The cut the fillet or chamfer tool makes.
     fn corner_cut(&self) -> Option<Cut> {
-        match self.modify? {
+        match self.modify()? {
             ModifyTool::Fillet => Some(Cut::Fillet(self.fillet_radius)),
             ModifyTool::Chamfer => Some(Cut::Chamfer(self.chamfer_distance)),
             _ => None,
@@ -364,7 +360,7 @@ impl ChiploadApp {
         keys: (bool, bool),
     ) {
         let (free, all) = keys;
-        match self.modify {
+        match self.modify() {
             Some(ModifyTool::Offset) => self.offset_click(picked, at, toggle, free),
             Some(ModifyTool::Fillet | ModifyTool::Chamfer) => {
                 if self.picks_unselected_drawn(picked) {
@@ -497,7 +493,7 @@ impl ChiploadApp {
         at: Point,
     ) -> (Vec<Vec<Point>>, Option<Point>) {
         let (Some(tool), Some(id), Some(job)) = (
-            self.modify,
+            self.modify(),
             self.drawn_under(picked, at),
             self.edit.as_ref(),
         ) else {
@@ -599,7 +595,7 @@ impl ChiploadApp {
             return None;
         }
         let a = &self.array;
-        Some(match self.modify? {
+        Some(match self.modify()? {
             ModifyTool::Array => array_grid(job, &ids, a.columns, a.rows, (a.dx, a.dy)),
             ModifyTool::PolarArray => array_polar(
                 job,
@@ -619,7 +615,7 @@ impl ChiploadApp {
     pub(super) fn array_outlines(&mut self) -> Vec<Vec<Point>> {
         let ids = self.selected_drawn();
         let shapes: Vec<_> = ids.iter().map(|&id| self.shape(id)).collect();
-        let key = format!("{:?}{:?}{shapes:?}", self.modify, self.array);
+        let key = format!("{:?}{:?}{shapes:?}", self.modify(), self.array);
         if self.array_preview.key != key {
             let lines = self
                 .edit
@@ -662,7 +658,7 @@ impl ChiploadApp {
 
     /// Under Selection while an array tool is active: its values and Create.
     pub(super) fn array_form(&mut self, ui: &mut egui::Ui) {
-        let polar = match self.modify {
+        let polar = match self.modify() {
             Some(ModifyTool::Array) => false,
             Some(ModifyTool::PolarArray) => true,
             _ => return,
@@ -795,7 +791,7 @@ impl ChiploadApp {
     /// selected drawn shapes become construction geometry, or ordinary shapes again
     /// (docs/specs/dxf-export.md §B2).
     pub fn toggle_construction(&mut self) {
-        if self.sketch.is_some() || self.selected_drawn().is_empty() {
+        if self.sketch().is_some() || self.selected_drawn().is_empty() {
             self.construction_mode = !self.construction_mode;
             let text = if self.construction_mode {
                 t!(self, "modify-construction-on")
@@ -879,7 +875,7 @@ impl ChiploadApp {
 
     /// The status bar while an editing tool is active.
     pub(super) fn modify_status(&self, at: Option<Point>, free: bool) -> Option<String> {
-        let tool = self.modify?;
+        let tool = self.modify()?;
         Some(match tool {
             ModifyTool::Offset if self.selected_drawn().is_empty() => {
                 t!(self, "modify-offset-pick")
@@ -920,7 +916,7 @@ impl ChiploadApp {
 
     /// While the offset tool is active: its corners and how many, on the status bar.
     pub(super) fn offset_fields(&mut self, ui: &mut egui::Ui) {
-        match self.modify {
+        match self.modify() {
             Some(ModifyTool::Fillet) => {
                 ui.label(t!(ui, "modify-fillet-radius"));
                 ui.add(crate::units::length(&mut self.fillet_radius).range(0.001..=f64::MAX));

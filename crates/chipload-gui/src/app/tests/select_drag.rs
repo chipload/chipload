@@ -194,7 +194,7 @@ mod modes {
         app.set_show_simulation(true);
         app.start_drawing(Tool::Circle);
         assert!(!app.show_simulation);
-        app.sketch = None;
+        app.end_tool();
         app.set_show_simulation(true);
         app.set_show_drawing(false);
         app.select_row(CanvasSelection::Layer("drawn".into(), None), false);

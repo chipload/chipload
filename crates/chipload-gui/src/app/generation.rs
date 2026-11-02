@@ -467,7 +467,7 @@ impl ChiploadApp {
     /// nothing is edited unseen.
     pub(super) fn keep_drawing_in_view(&mut self) {
         if let Some(at) = &self.drawing_hidden
-            && (self.sketch.is_some()
+            && (self.sketch().is_some()
                 || (self.selection != *at && self.selection != CanvasSelection::Nothing))
         {
             self.drawing_hidden = None;

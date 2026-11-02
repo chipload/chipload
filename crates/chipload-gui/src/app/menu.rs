@@ -24,7 +24,7 @@ impl ChiploadApp {
         // Typing a value while drawing, or offsetting, opens the entry at the cursor
         // (drawing-input.md §2, drawing-editing.md §2).
         let typing_tool =
-            self.sketch.is_some() || self.modify == Some(super::modify::ModifyTool::Offset);
+            self.sketch().is_some() || self.modify() == Some(super::modify::ModifyTool::Offset);
         if typing_tool && self.typed.is_none() {
             let first = ctx.input(|i| {
                 i.events.iter().find_map(|e| match e {
@@ -43,38 +43,33 @@ impl ChiploadApp {
                 self.start_typing(&first, pointer + egui::vec2(16.0, 16.0));
             }
         }
-        if self.sketch.is_none()
-            && self.measure.is_none()
-            && !self.placing_text
+        if self.sketch().is_none()
+            && self.measure().is_none()
+            && !self.placing_text()
             && let Some(tool) = self.last_tool
             && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter))
         {
             self.start_drawing(tool);
         }
-        if self.sketch.is_some() {
+        if self.sketch().is_some() {
             if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Enter)) {
                 self.finish_drawing();
             }
             if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Backspace))
-                && let Some(sketch) = self.sketch.as_mut()
+                && let Some(sketch) = self.sketch_mut()
             {
                 sketch.undo_point();
             }
         }
-        if self.sketch.is_none() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Delete)) {
+        if self.sketch().is_none() && ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Delete))
+        {
             self.delete_key();
         }
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.cancel_zero_drag() {
                 // The zero stays where it was (docs/specs/work-zero-marker.md §3).
-            } else if self.measure.is_some() {
-                self.measure = None;
-            } else if self.modify.is_some() {
-                self.cancel_modify();
-            } else if self.placing_text {
-                self.placing_text = false;
-            } else if self.sketch.is_some() {
-                self.cancel_drawing();
+            } else if self.tool_active() {
+                self.end_tool();
             } else {
                 self.selection = CanvasSelection::Nothing;
             }
@@ -400,7 +395,7 @@ impl ChiploadApp {
         if ui
             .add(
                 egui::Button::new(with_keys(&t!(ui, "menu-measure"), Action::Measure))
-                    .selected(self.measure.is_some()),
+                    .selected(self.measure().is_some()),
             )
             .on_hover_text(t!(ui, "menu-measure-hover"))
             .clicked()
@@ -828,9 +823,9 @@ impl ChiploadApp {
     /// While drawing a polygon: its number of sides, kept for the next one
     /// (docs/specs/drawing-input.md §5).
     fn polygon_sides_field(&mut self, ui: &mut egui::Ui) {
-        let Some(sketch) = self.sketch.as_mut().filter(|s| s.tool == Tool::Polygon) else {
+        if self.sketch().is_none_or(|s| s.tool != Tool::Polygon) {
             return;
-        };
+        }
         ui.label(t!(ui, "menu-polygon-sides"));
         if ui
             .add(
@@ -840,14 +835,17 @@ impl ChiploadApp {
             )
             .changed()
         {
-            sketch.sides = self.polygon_sides;
+            let sides = self.polygon_sides;
+            if let Some(sketch) = self.sketch_mut() {
+                sketch.sides = sides;
+            }
         }
         ui.separator();
     }
 
     /// While a drawing tool is active: whether it draws construction geometry (key K).
     fn construction_field(&mut self, ui: &mut egui::Ui) {
-        if self.sketch.is_none() {
+        if self.sketch().is_none() {
             return;
         }
         let label = with_keys(&t!(ui, "menu-construction"), Action::Construction);
@@ -880,7 +878,7 @@ impl ChiploadApp {
             ui.label(text);
         } else if let Some(text) = self.modify_status(self.cursor, ui.input(|i| i.modifiers.alt)) {
             ui.label(text);
-        } else if let (Some(sketch), Some((at, name))) = (&self.sketch, &snapped) {
+        } else if let (Some(sketch), Some((at, name))) = (&self.sketch(), &snapped) {
             let step = grid_step(self.view.scale, self.units);
             ui.label(format!(
                 "{}{name}",

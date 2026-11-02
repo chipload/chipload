@@ -166,7 +166,7 @@ impl ChiploadApp {
 
     /// Under Selection while the frame tool is active: the frames, their values, Add.
     pub(super) fn frame_form(&mut self, ui: &mut egui::Ui) {
-        if self.modify != Some(ModifyTool::Frame) {
+        if self.modify() != Some(ModifyTool::Frame) {
             return;
         }
         let around = !self.framed_shape_ids().is_empty();

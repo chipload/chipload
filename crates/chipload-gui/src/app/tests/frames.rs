@@ -18,7 +18,7 @@ fn a_frame_round_a_selected_text_is_one_undo_step() {
     let id = app.place_text_at((20.0, 30.0)).unwrap();
     let letters = shapes(&app).len();
     app.start_frame();
-    assert_eq!(app.modify, Some(ModifyTool::Frame));
+    assert_eq!(app.modify(), Some(ModifyTool::Frame));
     assert_eq!(app.focus, Focus::Selection);
     // The text stays selected: the frame goes round it, its form under Selection.
     assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
@@ -39,13 +39,13 @@ fn a_frame_round_a_selected_text_is_one_undo_step() {
     app.modify_click(Some(letter), (20.0, 30.0), false, (false, false));
     assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     assert_eq!(app.focus, Focus::Selection);
-    assert_eq!(app.modify, Some(ModifyTool::Frame));
+    assert_eq!(app.modify(), Some(ModifyTool::Frame));
     app.frame.kind = chipload_pipeline::frames::FrameKind::Oval;
     app.frame.borders = 2;
     draw_properties(&mut app);
     assert!(!app.frame_outlines().is_empty(), "the preview");
     assert!(app.create_frame());
-    assert_eq!(app.modify, None, "the tool ends");
+    assert_eq!(app.modify(), None, "the tool ends");
     let added: Vec<_> = shapes(&app)[letters..].to_vec();
     assert_eq!(added.len(), 3);
     assert_eq!(added[0].layer, "frame");

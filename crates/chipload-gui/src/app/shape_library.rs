@@ -195,13 +195,13 @@ impl ChiploadApp {
     /// item picked in the Browser, a tool with values, a text being placed. Picking shapes
     /// on the canvas doesn't switch. Compared with what it was last frame.
     pub(super) fn follow_properties(&mut self) {
-        let now = (self.focus, self.modify, self.placing_text);
+        let now = (self.focus, self.modify(), self.placing_text());
         let Some((focus, modify, placing)) = self.shape_library.seen.replace(now) else {
             return;
         };
         let asked = (self.focus != focus && self.focus != Focus::Selection)
-            || (self.modify != modify && self.modify.is_some())
-            || (self.placing_text && !placing);
+            || (self.modify() != modify && self.modify().is_some())
+            || (self.placing_text() && !placing);
         if asked {
             self.right_tab = RightTab::Properties;
         }

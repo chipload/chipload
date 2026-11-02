@@ -228,7 +228,7 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     harness.get_by_label("Cancel").click();
     harness.run_steps(3);
-    assert_eq!(harness.state().modify, None);
+    assert_eq!(harness.state().modify(), None);
 
     let shapes = harness
         .state()
@@ -243,7 +243,7 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     harness.get_by_label("Create").click();
     harness.run_steps(3);
-    assert_eq!(harness.state().modify, None);
+    assert_eq!(harness.state().modify(), None);
     assert!(
         harness
             .state()
@@ -261,7 +261,7 @@ fn an_array_tool_shows_create_and_cancel_and_ends() {
     harness.run_steps(3);
     harness.get_by_label("Array").click();
     harness.run_steps(3);
-    assert_eq!(harness.state().modify, None, "its ribbon button ends it");
+    assert_eq!(harness.state().modify(), None, "its ribbon button ends it");
 }
 
 /// A project started empty takes a DXF or SVG as well (the user, 2026-10-28): *Add DXF* is

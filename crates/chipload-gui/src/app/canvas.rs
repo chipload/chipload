@@ -14,8 +14,8 @@ impl ChiploadApp {
     pub fn view_3d(&mut self) {
         if !self.three_d {
             self.three_d = true;
-            self.sketch = None; // drawing and measuring work in top view only
-            self.measure = None;
+            // Every canvas tool works in top view only.
+            self.end_tool();
             let pivot = self.orbit_pivot();
             self.view
                 .orient(-30f64.to_radians(), 55f64.to_radians(), pivot);
@@ -284,12 +284,12 @@ impl ChiploadApp {
             self.cursor = None;
         }
         let mut readout = zero_label;
-        if self.sketch.is_some() {
+        if self.sketch().is_some() {
             self.scene.measure = None;
             let at = self.cursor.map(|c| self.drawing_point(c, alt, shift));
             // A value being typed shows where it would land (also with the pointer off the
             // canvas: then a plain distance has no direction).
-            let anchor = self.sketch.as_ref().and_then(Sketch::anchor);
+            let anchor = self.sketch().and_then(Sketch::anchor);
             let at = match at.or(anchor) {
                 Some(c) if self.typed.is_some() => Some(self.typed_target(c).unwrap_or(c)),
                 _ => at,
@@ -299,33 +299,29 @@ impl ChiploadApp {
             } else if response.clicked()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                let first = self.sketch.as_ref().and_then(|s| s.points.first().copied());
+                let first = self.sketch().and_then(|s| s.points.first().copied());
                 let on_first = first.is_some_and(|f| {
                     self.view.to_screen(f).distance(pos) <= crate::view::PICK_TOLERANCE_PX
                 });
                 let p = self.drawing_point(self.view.to_world(pos), alt, shift);
                 self.draw_click(p, on_first);
             }
-            self.scene.preview = match (&self.sketch, at) {
+            self.scene.preview = match (&self.sketch(), at) {
                 (Some(sketch), Some(at)) => sketch.preview(at),
                 _ => Vec::new(),
             };
-            readout = match (&self.sketch, at) {
+            readout = match (&self.sketch(), at) {
                 (Some(sketch), Some(at)) => sketch.readout(at, self.units).map(|text| (at, text)),
                 _ => None,
             };
-            self.scene.sketch_points = self
-                .sketch
-                .as_ref()
-                .map(|s| s.points.clone())
-                .unwrap_or_default();
-        } else if self.modify.is_some() {
+            self.scene.sketch_points = self.sketch().map(|s| s.points.clone()).unwrap_or_default();
+        } else if self.modify().is_some() {
             // An editing tool (docs/specs/drawing-editing.md): the preview at the cursor;
             // a click selects a shape, or applies the tool.
             self.scene.measure = None;
             self.scene.sketch_points.clear();
             let free = alt;
-            if self.modify == Some(super::modify::ModifyTool::Offset) {
+            if self.modify() == Some(super::modify::ModifyTool::Offset) {
                 let target = self.cursor.and_then(|c| self.offset_for_cursor(c, free));
                 self.scene.preview = match target {
                     Some((d, side)) => self.offset_outlines(d, side),
@@ -335,17 +331,18 @@ impl ChiploadApp {
                     readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
                 }
             } else if matches!(
-                self.modify,
+                self.modify(),
                 Some(super::modify::ModifyTool::Array | super::modify::ModifyTool::PolarArray)
             ) {
                 // An array: its copies, and a polar array's centre marked.
                 self.scene.preview = self.array_outlines();
-                self.scene.snap_mark = (self.modify == Some(super::modify::ModifyTool::PolarArray))
-                    .then_some(self.array.center);
-            } else if self.modify == Some(super::modify::ModifyTool::Frame) {
+                self.scene.snap_mark = (self.modify()
+                    == Some(super::modify::ModifyTool::PolarArray))
+                .then_some(self.array.center);
+            } else if self.modify() == Some(super::modify::ModifyTool::Frame) {
                 self.scene.preview = self.frame_outlines();
             } else if self
-                .modify
+                .modify()
                 .is_some_and(super::modify::ModifyTool::on_shape_under_cursor)
             {
                 // Trim, extend, break: on the shape under the cursor.
@@ -384,7 +381,7 @@ impl ChiploadApp {
                 let at = self.snap_world(self.view.to_world(pos), alt, false);
                 self.place_text_at(at);
             }
-        } else if self.measure.is_some() {
+        } else if self.measure().is_some() {
             self.scene.preview.clear();
             self.scene.sketch_points.clear();
             let at = self.cursor.map(|c| self.snap_world(c, alt, false));
@@ -774,7 +771,7 @@ impl ChiploadApp {
 
     /// Handles of the selected shape: one drawn shape, in top view, not while drawing.
     pub(super) fn shape_handles(&self) -> Vec<(Handle, Point)> {
-        if self.three_d || self.sketch.is_some() || !self.can_draw() {
+        if self.three_d || self.sketch().is_some() || !self.can_draw() {
             return Vec::new();
         }
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
@@ -851,7 +848,7 @@ impl ChiploadApp {
     /// Where a drawing click or the cursor lands: snapped (else the grid), or with Shift
     /// held to 15° steps from the last click (docs/specs/drawing-input.md §2).
     pub(super) fn drawing_point(&mut self, raw: Point, alt: bool, shift: bool) -> Point {
-        let anchor = self.sketch.as_ref().and_then(Sketch::anchor);
+        let anchor = self.sketch().and_then(Sketch::anchor);
         match anchor.filter(|_| shift) {
             Some(anchor) => {
                 let step = (!alt).then(|| grid_step(self.view.scale, self.units));
@@ -868,10 +865,10 @@ impl ChiploadApp {
     /// nothing being drawn or measured. None while its length is being typed.
     fn dimension_labels(&self, ui: &egui::Ui, painter: &egui::Painter) -> Vec<DimensionLabel> {
         if self.three_d
-            || self.sketch.is_some()
-            || self.measure.is_some()
+            || self.sketch().is_some()
+            || self.measure().is_some()
             || !self.show_drawing()
-            || self.modify.is_some()
+            || self.modify().is_some()
             || self
                 .typed
                 .as_ref()
@@ -1022,10 +1019,10 @@ impl ChiploadApp {
     /// The last point of the tool being used, for perpendicular and tangent snaps: a
     /// polyline's last click, or a measurement's first point.
     pub(super) fn last_point(&self) -> Option<Point> {
-        if let Some(sketch) = &self.sketch {
+        if let Some(sketch) = &self.sketch() {
             return sketch.last_point();
         }
-        self.measure
+        self.measure()
             .and_then(|m| m.start.filter(|_| m.end.is_none()))
     }
 
@@ -1137,7 +1134,7 @@ impl ChiploadApp {
         let Focus::Op(operation) = self.focus else {
             return None;
         };
-        if self.three_d || self.sketch.is_some() || self.scene.hide_toolpath {
+        if self.three_d || self.sketch().is_some() || self.scene.hide_toolpath {
             return None;
         }
         self.scene

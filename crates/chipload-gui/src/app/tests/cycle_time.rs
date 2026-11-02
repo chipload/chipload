@@ -141,7 +141,7 @@ fn measuring_changes_nothing_in_the_project() {
     let mut app = drawn_part();
     let before = app.edit.clone();
     press(&mut app, egui::Key::M);
-    assert!(app.measure.is_some());
+    assert!(app.measure().is_some());
     app.measure_click((10.0, 10.0));
     app.measure_click((40.0, 50.0));
     assert_eq!(
@@ -153,10 +153,10 @@ fn measuring_changes_nothing_in_the_project() {
     assert!(app.undo.is_empty(), "no undo step");
     // Esc ends it; so does starting to draw.
     press(&mut app, egui::Key::Escape);
-    assert!(app.measure.is_none());
+    assert!(app.measure().is_none());
     app.toggle_measure();
     app.start_drawing(Tool::Circle);
-    assert!(app.measure.is_none() && app.sketch.is_some());
+    assert!(app.measure().is_none() && app.sketch().is_some());
     // From 3D it goes to the top view.
     app.cancel_drawing();
     app.view_3d();

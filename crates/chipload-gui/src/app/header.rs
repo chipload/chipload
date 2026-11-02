@@ -405,7 +405,7 @@ impl ChiploadApp {
                     for (k, row) in tools.chunks(4).enumerate() {
                         ui.horizontal(|ui| {
                             for (tool, icon, label, hint, action) in row {
-                                let active = app.sketch.as_ref().is_some_and(|s| s.tool == *tool);
+                                let active = app.sketch().is_some_and(|s| s.tool == *tool);
                                 let hint = format!("{label}: {hint}");
                                 if small_ribbon_button(ui, *icon, label, can_draw, active)
                                     .on_hover_text(hover_keys(&hint, *action))
@@ -416,7 +416,8 @@ impl ChiploadApp {
                             }
                             if k + 1 == rows {
                                 let label = t!(ui, "header-frame");
-                                let framing = app.modify == Some(super::modify::ModifyTool::Frame);
+                                let framing =
+                                    app.modify() == Some(super::modify::ModifyTool::Frame);
                                 let hint = format!("{label}: {}", t!(ui, "header-frame-hover"));
                                 if small_ribbon_button(ui, Icon::Frame, &label, can_draw, framing)
                                     .on_hover_text(hint)
@@ -567,7 +568,7 @@ impl ChiploadApp {
                     for row in tools.chunks(tools.len().div_ceil(2)) {
                         ui.horizontal(|ui| {
                             for (tool, icon, label, hint, action) in row {
-                                let active = app.modify == Some(*tool);
+                                let active = app.modify() == Some(*tool);
                                 let hint = format!("{label}: {hint}");
                                 let hint = match action {
                                     Some(action) => hover_keys(&hint, *action),
@@ -685,7 +686,7 @@ impl ChiploadApp {
             &caption,
             |app, ui| {
                 let label = t!(ui, "header-measure");
-                if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure.is_some())
+                if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure().is_some())
                     .on_hover_text(hover_keys(&t!(ui, "header-measure-hover"), Action::Measure))
                     .clicked()
                 {

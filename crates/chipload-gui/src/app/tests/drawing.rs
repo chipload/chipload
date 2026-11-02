@@ -8,7 +8,7 @@ fn each_kind_is_drawn_by_clicks_and_selected() {
     app.start_drawing(Tool::Circle);
     app.draw_click((200.0, 50.0), false);
     app.draw_click((203.0, 54.0), false);
-    assert!(app.sketch.is_none());
+    assert!(app.sketch().is_none());
     assert_eq!(app.selected_shape(), Some(4));
     assert_eq!(
         app.shape(4).unwrap().geometry,
@@ -75,7 +75,7 @@ fn escape_cancels_and_a_new_shape_takes_the_selections_layer() {
     app.start_drawing(Tool::Circle);
     app.draw_click((10.0, 10.0), false);
     app.cancel_drawing();
-    assert!(app.sketch.is_none());
+    assert!(app.sketch().is_none());
     assert_eq!(app.edit.as_ref().unwrap().job.drawing.shapes.len(), 3);
     // The circle S2 is on layer "drawn" and selected: the new shape goes there too.
     app.click(Some(contour_of(&app, 2)), false);
@@ -401,7 +401,7 @@ fn typed_values_draw_exact_shapes() {
     app.typed.as_mut().unwrap().text = "@5,5".into();
     app.apply_typed((0.0, 0.0));
     assert!(app.typed.as_ref().unwrap().refused, "no last point yet");
-    assert!(app.sketch.as_ref().unwrap().points.is_empty());
+    assert!(app.sketch().unwrap().points.is_empty());
     // x,y, then a length towards the cursor, then length<angle, then back to the start.
     for (text, cursor) in [
         ("200,100", (0.0, 0.0)),
@@ -412,7 +412,7 @@ fn typed_values_draw_exact_shapes() {
         app.start_typing(text, at);
         app.apply_typed(cursor);
     }
-    assert!(app.sketch.is_none(), "typing the first point closes it");
+    assert!(app.sketch().is_none(), "typing the first point closes it");
     let id = app.selected_shape().unwrap();
     assert_eq!(
         app.shape(id).unwrap().geometry,
@@ -471,7 +471,7 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
     app.click(None, false);
     app.polygon_sides = 8;
     app.start_drawing(Tool::Polygon);
-    assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
+    assert_eq!(app.sketch().unwrap().sides, 8);
     app.draw_click((200.0, 50.0), false);
     app.draw_click((200.0, 60.0), false);
     let id = app.selected_shape().unwrap();
@@ -488,7 +488,7 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
     assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
     // The next polygon starts with eight sides too.
     app.start_drawing(Tool::Polygon);
-    assert_eq!(app.sketch.as_ref().unwrap().sides, 8);
+    assert_eq!(app.sketch().unwrap().sides, 8);
 }
 
 #[test]
@@ -549,7 +549,7 @@ fn the_offset_tool_offsets_the_selection_to_the_cursor() {
         Geometry::Circle { radius, .. } if radius == 13.0
     ));
     app.cancel_modify();
-    assert!(app.modify.is_none());
+    assert!(app.modify().is_none());
 }
 
 #[test]
@@ -666,7 +666,7 @@ fn union_and_intersect_act_on_the_selection_and_subtract_on_the_shape_clicked() 
     app.start_modify(ModifyTool::Union);
     assert_eq!(kind(&app, 2), Some("polyline"));
     assert!(app.shape(bump).is_none());
-    assert_eq!(app.modify, None);
+    assert_eq!(app.modify(), None);
     app.commit();
     // Subtract: the selected circle cut out of the rectangle clicked; the tool ends.
     let notch = circle(&mut app, 160.0, 10.0);
@@ -677,7 +677,7 @@ fn union_and_intersect_act_on_the_selection_and_subtract_on_the_shape_clicked() 
     app.modify_click(picked, (40.0, 60.0), false, (false, false));
     assert_eq!(kind(&app, 1), Some("polyline"));
     assert!(app.shape(notch).is_none());
-    assert_eq!(app.modify, None);
+    assert_eq!(app.modify(), None);
 }
 
 #[test]
@@ -694,7 +694,7 @@ fn the_array_tools_preview_their_copies_and_create_them() {
     assert_eq!(app.array_outlines().len(), 2);
     assert!(app.create_array());
     assert_eq!(count(&app), 5);
-    assert_eq!(app.modify, None);
+    assert_eq!(app.modify(), None);
     app.commit();
     // Polar: a click sets the centre (snapped to the grid), four round it.
     app.selection = CanvasSelection::Shapes([2].into());
@@ -801,7 +801,7 @@ fn k_draws_construction_geometry_and_toggles_the_selection() {
     assert!(app.shape(id).unwrap().construction);
     app.commit();
     // No tool, a shape selected: K makes it construction, and again ordinary.
-    app.sketch = None;
+    app.end_tool();
     app.selection = CanvasSelection::Shapes([3].into());
     app.toggle_construction();
     assert!(app.shape(3).unwrap().construction);

@@ -26,7 +26,7 @@ impl ChiploadApp {
         let Focus::Op(i) = self.focus else {
             return None;
         };
-        if self.three_d || self.sketch.is_some() || self.scene.hide_toolpath {
+        if self.three_d || self.sketch().is_some() || self.scene.hide_toolpath {
             return None;
         }
         let edit = self.edit.as_ref()?;

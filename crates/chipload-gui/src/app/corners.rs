@@ -49,7 +49,7 @@ impl ChiploadApp {
             (Focus::Op(i), Some(edit)) => edit.job.operations.get(i).map(|e| (i, e.clone())),
             _ => None,
         };
-        let shown = !self.three_d && self.sketch.is_none() && self.show_drawing();
+        let shown = !self.three_d && self.sketch().is_none() && self.show_drawing();
         let Some((index, op)) = focused.filter(|_| shown) else {
             self.scene.corner_markers.clear();
             self.corners.menu = None;

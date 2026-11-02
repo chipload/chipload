@@ -46,28 +46,25 @@ impl ChiploadApp {
             if self.three_d {
                 self.view_top(); // drawing works in top view only
             }
-            self.measure = None;
-            self.placing_text = false;
-            self.modify = None;
             let mut sketch = Sketch::new(tool);
             sketch.sides = self.polygon_sides;
-            self.sketch = Some(sketch);
-            self.typed = None;
+            self.set_tool(ActiveTool::Draw(sketch));
             self.last_tool = Some(tool);
         }
     }
 
     pub fn cancel_drawing(&mut self) {
-        self.sketch = None;
-        self.typed = None;
+        if self.sketch().is_some() {
+            self.end_tool();
+        }
     }
 
     /// Start typing a value while drawing, with its first character; the entry shows at
     /// `at` on screen.
     pub fn start_typing(&mut self, first: &str, at: egui::Pos2) {
-        let target = if self.sketch.is_some() {
+        let target = if self.sketch().is_some() {
             TypedTarget::Point
-        } else if self.modify == Some(super::modify::ModifyTool::Offset) {
+        } else if self.modify() == Some(super::modify::ModifyTool::Offset) {
             TypedTarget::Offset
         } else {
             return;
@@ -102,7 +99,7 @@ impl ChiploadApp {
     /// The point the typed value gives, with the cursor at `cursor` (for a plain
     /// distance's direction).
     pub(super) fn typed_target(&self, cursor: Point) -> Result<Point, EntryError> {
-        let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch) else {
+        let (Some(typed), Some(sketch)) = (&self.typed, &self.sketch()) else {
             return Err(EntryError::Unreadable);
         };
         if typed.target != TypedTarget::Point {
@@ -131,8 +128,7 @@ impl ChiploadApp {
                 self.typed = None;
                 // A typed point on a polyline's first point closes it, as a click there does.
                 let on_first = self
-                    .sketch
-                    .as_ref()
+                    .sketch()
                     .and_then(|s| s.points.first())
                     .is_some_and(|&first| distance(first, p) < CHAIN_TOL_MM);
                 self.draw_click(p, on_first);
@@ -150,7 +146,7 @@ impl ChiploadApp {
     /// A click while drawing, at `p` (already on the grid). `on_first`: the click hit the
     /// polyline's first point on screen.
     pub fn draw_click(&mut self, p: Point, on_first: bool) {
-        let Some(sketch) = self.sketch.as_mut() else {
+        let Some(sketch) = self.sketch_mut() else {
             return;
         };
         let step = sketch.click(p, on_first);
@@ -159,7 +155,7 @@ impl ChiploadApp {
 
     /// Enter or double-click: finish a polyline open.
     pub fn finish_drawing(&mut self) {
-        let Some(sketch) = self.sketch.as_mut() else {
+        let Some(sketch) = self.sketch_mut() else {
             return;
         };
         let step = sketch.finish();
@@ -175,8 +171,7 @@ impl ChiploadApp {
                 }
             }
             Step::Done(geometry) => {
-                self.sketch = None;
-                self.typed = None;
+                self.end_tool();
                 self.add_drawn(geometry);
             }
         }
