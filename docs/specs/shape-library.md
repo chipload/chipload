@@ -378,7 +378,7 @@ Revised 2026-11-02 (§5.1), to review:
    would scroll. Tabs give each the whole panel, and switching is one click. Alternative:
    stacked, Properties above and Shapes below, with a divider to drag (both seen at once,
    each with half the room).
-   The user asked (2026-11-02) for panels the user arranges, dragged onto another for a
+   The user asked (2026-11-02) for **dockable panels**, arranged by the user, dragged onto another for a
    tab or below it to stack, "no hack". egui itself has no docking. Two maintained crates
    do it on egui 0.36: **egui_dock** 0.21 (MIT; tabs, splits, floating windows) and
    **egui_tiles** 0.17 (MIT or Apache-2.0, by egui's authors, made for the Rerun viewer;
@@ -412,4 +412,4 @@ Revised 2026-11-02 (§5.1), to review:
    shown as a tree.
 
 Noted for later: **12** (tools and machines in the panel too, a full library panel) and
-**panels the user arranges** (decision 9) are in TODO.md.
+**dockable panels** (decision 9) are in TODO.md.
