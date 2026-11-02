@@ -121,7 +121,9 @@ it's built (see `CLAUDE.md`).
        `running` (run, plan, sheet, simulate, render, check); `main.rs` keeps the command
        list, dispatch, loading, import/update, get/set and inspect (1,370 lines). Saving a
        project and saying so is one `write_project` instead of five private copies.
-     - Next: `models.rs` (a pure split).
+     - **`models.rs`: done 2026-11-02.** A pure split into `models/`: project, machine,
+       drawing, shapes, sources (pictures, texts), selector, operations, validate; paths
+       unchanged (`chipload_job::X`, `chipload_job::models::X`). None over 1,200 lines.
 
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
