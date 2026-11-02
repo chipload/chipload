@@ -6,14 +6,13 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, save_job};
 use chipload_pipeline::copies::grid_text;
 use chipload_pipeline::parts::{activate_part, add_part, remove_part, set_part};
 use clap::Subcommand;
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum PartAction {
@@ -127,7 +126,7 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
         }),
     };
     match changed {
-        Ok(job) => write(out, &job, output.as_deref().unwrap_or(&project)),
+        Ok(job) => write_project(out, &job, output.as_deref().unwrap_or(&project)),
         Err(err) => out.fail(err),
     }
 }
@@ -172,13 +171,5 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
         }));
     }
     out.set("parts", Value::Array(rows));
-    ExitCode::SUCCESS
-}
-
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
-    }
-    out.wrote(target, "");
     ExitCode::SUCCESS
 }

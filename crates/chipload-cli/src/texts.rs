@@ -5,7 +5,7 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, TextAlign, TextAnchor, save_job};
+use chipload_job::{Job, TextAlign, TextAnchor};
 use chipload_pipeline::fonts::{ComputerFonts, available};
 use chipload_pipeline::library::{fonts_path, settings_dir};
 use chipload_pipeline::texts::{
@@ -15,8 +15,8 @@ use chipload_pipeline::texts::{
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 /// The computer's fonts and the settings folder's `fonts` folder
 /// (docs/specs/system-fonts.md §2).
@@ -243,7 +243,7 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             match remove_text(&job, id) {
                 Ok(job) => {
                     out.line(format!("Removed text {id} and its letters."));
-                    write(out, &job, output.as_deref().unwrap_or(&project))
+                    write_project(out, &job, output.as_deref().unwrap_or(&project))
                 }
                 Err(err) => out.fail(err),
             }
@@ -319,7 +319,7 @@ fn add(
     match add_text(&job, new, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -375,7 +375,7 @@ fn set(
     match remake(&before, &job, id, &computer_fonts()) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -463,14 +463,6 @@ pub fn reported(out: &mut Out, report: &TextReport) {
             "missing": report.missing.iter().collect::<String>(),
         }),
     );
-}
-
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
-    }
-    out.wrote(target, "");
-    ExitCode::SUCCESS
 }
 
 /// A length for the listing, mm to a thousandth, without trailing zeros; never "-0".

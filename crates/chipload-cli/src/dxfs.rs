@@ -5,15 +5,15 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{Job, Units, save_job};
+use chipload_job::Units;
 use chipload_pipeline::dxfs::{ExportOptions, add_drawing_file, export_drawing, remove_dxf};
 use chipload_pipeline::explode::{explode_dxf, which_dxf};
 use chipload_pipeline::placement::{dxf_size, placement_text};
 use clap::Subcommand;
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum DxfAction {
@@ -126,7 +126,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             let id = job.drawing.dxfs.last().map_or(0, |d| d.id);
             out.set("dxf", json!(id));
             out.set("added", json!(report.added));
-            write(out, &job, output.as_deref().unwrap_or(&project))
+            write_project(out, &job, output.as_deref().unwrap_or(&project))
         }
         DxfAction::List { project } => list(out, &project),
         DxfAction::Export {
@@ -186,7 +186,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             }
             out.set("shapes", json!(report.shapes));
             out.set("removed", json!(report.removed));
-            write(out, &job, output.as_deref().unwrap_or(&project))
+            write_project(out, &job, output.as_deref().unwrap_or(&project))
         }
         DxfAction::Remove {
             project,
@@ -202,7 +202,7 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
                     for line in lines {
                         out.line(line.english());
                     }
-                    write(out, &job, output.as_deref().unwrap_or(&project))
+                    write_project(out, &job, output.as_deref().unwrap_or(&project))
                 }
                 Err(err) => out.fail(err),
             }
@@ -250,13 +250,5 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
         }));
     }
     out.set("dxfs", Value::Array(rows));
-    ExitCode::SUCCESS
-}
-
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
-    }
-    out.wrote(target, "");
     ExitCode::SUCCESS
 }

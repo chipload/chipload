@@ -116,8 +116,12 @@ it's built (see `CLAUDE.md`).
        share their rows, and the picture and text forms share their position and turn cells.
        Then split into `forms/` (widgets, operation, passes, project, machine, sources),
        none over 1,400 lines.
-     - Next: the CLI's `main.rs` (split by command group, share the loading code), then
-       `models.rs` (a pure split).
+     - **The CLI's `main.rs`: done 2026-11-02.** Split by command group like `groups.rs`
+       and `texts.rs` already were: `shapes`, `ops`, `placing` (place, zero, copies),
+       `running` (run, plan, sheet, simulate, render, check); `main.rs` keeps the command
+       list, dispatch, loading, import/update, get/set and inspect (1,370 lines). Saving a
+       project and saying so is one `write_project` instead of five private copies.
+     - Next: `models.rs` (a pure split).
 
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):

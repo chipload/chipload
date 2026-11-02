@@ -5,15 +5,15 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::{ImageThreshold, ImageTrace, Job, save_job};
+use chipload_job::{ImageThreshold, ImageTrace, Job};
 use chipload_pipeline::images::{
     ImageReport, NewImage, add_image, black_white_png, remove_image, retrace,
 };
 use clap::{Args, Subcommand};
 use serde_json::{Value, json};
 
-use crate::load;
 use crate::out::Out;
+use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum ImageAction {
@@ -214,7 +214,7 @@ pub fn image(out: &mut Out, action: ImageAction) -> ExitCode {
             match remove_image(&job, id) {
                 Ok(job) => {
                     out.line(format!("Removed image {id} and its shapes."));
-                    write(out, &job, output.as_deref().unwrap_or(&project))
+                    write_project(out, &job, output.as_deref().unwrap_or(&project))
                 }
                 Err(err) => out.fail(err),
             }
@@ -287,7 +287,7 @@ fn add(
     match add_image(&job, new) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -345,7 +345,7 @@ fn set(
     match retrace(&job, id) {
         Ok((job, report)) => {
             reported(out, &report);
-            write(out, &job, output.unwrap_or(project))
+            write_project(out, &job, output.unwrap_or(project))
         }
         Err(err) => out.fail(err),
     }
@@ -469,12 +469,4 @@ pub fn report_json(report: &ImageReport) -> Value {
         "stroke_widths": report.widths.map(|(narrow, wide)| [narrow, wide]),
         "black_at_border": report.black_at_border,
     })
-}
-
-fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
-        return out.fail(err);
-    }
-    out.wrote(target, "");
-    ExitCode::SUCCESS
 }
