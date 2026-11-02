@@ -192,6 +192,18 @@ it's built (see `CLAUDE.md`).
   recommended. A click picks the whole DXF, a double-click one contour; its box moves, turns
   and scales it. A group's and a DXF's box stays turned (groups keep a `rotation`).
 
+- **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+  should also have a parameter for length of adjoining segments. If the adjoining profile
+  segments are very short we could probably ignore the kink"). Today a corner is ignored
+  only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
+  a corner whose adjoining outline segments are both shorter than a length is ignored at
+  any angle, as a traced picture's stair-steps and a font's tiny facets are. Needs a spec
+  first: whether one short side is enough or both must be, how it combines with the angle
+  (either, or both), a default (perhaps tied to the V-carve tolerance or the trace's
+  smoothing), and that a real small corner (a serif's point) still gets its branch; the
+  coverage rule from 6e3ed35 (a branch goes only if the rest covers it) still applies.
+  Optional field, no schema bump.
+
 - **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
   long time each operation will take, similar to how prusa slicer gives a report how much
   time different operations take. Except time id like, g1 travelled length, g0 length,
