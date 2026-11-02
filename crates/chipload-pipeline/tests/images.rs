@@ -303,7 +303,7 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
     );
     // Selecting the image itself is refused the same way.
     *job.operations[0].select_mut().unwrap() = Selector {
-        image: Some(1),
+        source: Some(chipload_job::Source::Image(1)),
         ..Selector::default()
     };
     assert!(
@@ -319,7 +319,7 @@ fn only_a_follow_path_may_cut_open_centre_lines() {
     new.trace = ImageTrace::CentreLine;
     let (mut job, _) = add_image(&project, new).unwrap();
     *job.operations[0].select_mut().unwrap() = Selector {
-        image: Some(1),
+        source: Some(chipload_job::Source::Image(1)),
         ..Selector::default()
     };
     assert!(job.validate().is_empty(), "{:?}", job.validate());
@@ -397,7 +397,7 @@ fn left_out_shapes_are_found_again_when_the_picture_is_traced_again() {
         .unwrap()
         .id;
     assert_ne!(new_ring, ring);
-    assert_eq!(moved.operations[0].select().exclude, Some(vec![new_ring]));
+    assert_eq!(moved.operations[0].select().exclude, vec![new_ring]);
     assert!(
         report
             .lines

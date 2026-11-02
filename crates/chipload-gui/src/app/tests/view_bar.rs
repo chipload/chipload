@@ -55,7 +55,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
         // The picture is selected after importing: V-carve from the ribbon.
         let index = app.add_operation(OpKind::Vcarve).unwrap();
         let op = &app.edit.as_ref().unwrap().job.operations[index];
-        assert_eq!(op.select().image, Some(1), "{file}");
+        assert_eq!(op.select().image(), Some(1), "{file}");
         assert_eq!(op.tool(), 2, "{file}: the V-bit");
         assert!(
             app.problems.is_empty(),

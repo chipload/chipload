@@ -109,7 +109,7 @@ fn selectors_of_the_dxf_become_its_shapes() {
     let one = load_job(&corpus("jobs/v20/scaled_part.chipload")).unwrap();
     let (two, _) = add_dxf(&one, &corpus("dxf/simple_part.dxf"), None).unwrap();
     // Both operations are limited to DXF 1 now: layer HOLES and CUT_OUTSIDE of it.
-    assert!(two.operations.iter().all(|op| op.select().dxf == Some(1)));
+    assert!(two.operations.iter().all(|op| op.select().dxf() == Some(1)));
     let (out, report) = explode_dxf(&two, 1, None).unwrap();
     for op in &out.operations {
         let select = op.select();
@@ -188,7 +188,7 @@ fn joining_closes_a_square_drawn_in_four_lines_and_operations_follow() {
     job.drawing.next_shape_id += 4;
     job.operations[0].select_mut().unwrap().shapes = Some(vec![ids[2], ids[3]]);
     job.operations[0].select_mut().unwrap().layer = None;
-    job.operations[0].select_mut().unwrap().dxf = None;
+    job.operations[0].select_mut().unwrap().source = None;
 
     let (unchanged, report) = join_shapes(&job, &[], 0.005).unwrap();
     assert_eq!(

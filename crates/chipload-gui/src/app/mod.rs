@@ -665,14 +665,11 @@ fn selector_text(selector: &Selector) -> String {
     if let Some(shapes) = selector.shapes.as_ref().filter(|s| !s.is_empty()) {
         fields.push(format!("\"shapes\": {}", list(shapes)));
     }
-    if let Some(dxf) = selector.dxf {
-        fields.push(format!("\"dxf\": {dxf}"));
+    if let Some(source) = selector.source {
+        fields.push(format!("\"{}\": {}", source.key(), source.id()));
     }
-    if let Some(image) = selector.image {
-        fields.push(format!("\"image\": {image}"));
-    }
-    if let Some(exclude) = selector.exclude.as_ref().filter(|s| !s.is_empty()) {
-        fields.push(format!("\"exclude\": {}", list(exclude)));
+    if !selector.exclude.is_empty() {
+        fields.push(format!("\"exclude\": {}", list(&selector.exclude)));
     }
     format!("{{{}}}", fields.join(", "))
 }

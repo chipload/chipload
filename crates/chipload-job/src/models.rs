@@ -10,6 +10,7 @@
 
 use std::collections::BTreeMap;
 
+use chipload_core::chain::ShapeFrom;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::{
     ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM, REST_TOL_MM,
@@ -754,6 +755,16 @@ impl Shape {
                 ..
             }
         )
+    }
+
+    /// Where an imported, traced or lettered path comes from; None for a drawn shape.
+    pub fn source(&self) -> Option<ShapeFrom> {
+        match (self.dxf(), self.image(), self.text()) {
+            (Some(id), _, _) => Some(ShapeFrom::Dxf(id)),
+            (_, Some(id), _) => Some(ShapeFrom::Image(id)),
+            (_, _, Some(id)) => Some(ShapeFrom::Text(id)),
+            _ => None,
+        }
     }
 
     /// The text this shape is a letter of.
@@ -2208,10 +2219,87 @@ pub struct Tool {
     pub tip_diameter: Option<f64>,
 }
 
+/// A whole drawing source an operation can select: a DXF (or SVG), a traced picture, a
+/// text or a group of drawn shapes and texts.
+// Spec: docs/specs/source-model.md §2.2.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Source {
+    /// An id in `drawing.dxfs`.
+    Dxf(u64),
+    /// An id in `drawing.images`.
+    Image(u64),
+    /// An id in `drawing.texts`.
+    Text(u64),
+    /// An id in `drawing.groups`.
+    Group(u64),
+}
+
+impl Source {
+    pub fn id(self) -> u64 {
+        match self {
+            Source::Dxf(id) | Source::Image(id) | Source::Text(id) | Source::Group(id) => id,
+        }
+    }
+
+    /// Its key in a selector, as in the file: "dxf", "image", "text" or "group".
+    pub fn key(self) -> &'static str {
+        match self {
+            Source::Dxf(_) => "dxf",
+            Source::Image(_) => "image",
+            Source::Text(_) => "text",
+            Source::Group(_) => "group",
+        }
+    }
+
+    /// What segments carry: where they were drawn from. A group isn't that; it is resolved
+    /// to its shapes before cutting.
+    pub fn shape_from(self) -> Option<ShapeFrom> {
+        match self {
+            Source::Dxf(id) => Some(ShapeFrom::Dxf(id)),
+            Source::Image(id) => Some(ShapeFrom::Image(id)),
+            Source::Text(id) => Some(ShapeFrom::Text(id)),
+            Source::Group(_) => None,
+        }
+    }
+}
+
+impl From<ShapeFrom> for Source {
+    fn from(from: ShapeFrom) -> Self {
+        match from {
+            ShapeFrom::Dxf(id) => Source::Dxf(id),
+            ShapeFrom::Image(id) => Source::Image(id),
+            ShapeFrom::Text(id) => Source::Text(id),
+        }
+    }
+}
+
+// What an operation cuts: a layer, shapes by id, a whole source, or a layer or shapes of
+// one source; with a source, shapes of it left out. Written flat in the file
+// (`{"dxf": 2, "layer": "HOLES"}`), through `RawSelector`; a plain comment, so the JSON
+// Schema stays as it was.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(try_from = "RawSelector", into = "RawSelector")]
+pub struct Selector {
+    /// Every shape on this layer (upper or lower case don't matter).
+    pub layer: Option<String>,
+    /// These shapes, by id.
+    pub shapes: Option<Vec<u64>>,
+    /// Only shapes of this DXF, image, text or group; all of it with no layer or shapes.
+    // Spec: docs/specs/drawing-sources.md §2, source-model.md §2.2.
+    pub source: Option<Source>,
+    /// Shapes of the source left out (ids); empty with no source. A contour with any of
+    /// them isn't cut. A traced image's, or a text's, are found again when it is made again.
+    // Spec: docs/specs/leave-out-shapes.md.
+    pub exclude: Vec<u64>,
+}
+
+// A selector as it appears in the file: a key per kind of source, at most one of them
+// (a plain comment: the JSON Schema has no description here).
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
-pub struct Selector {
+pub struct RawSelector {
     /// Every shape on this layer (upper or lower case don't matter).
     #[serde(default)]
     pub layer: Option<String>,
@@ -2219,53 +2307,145 @@ pub struct Selector {
     #[serde(default)]
     pub shapes: Option<Vec<u64>>,
     /// Only shapes from this DXF (an id in `drawing.dxfs`).
-    // Spec: docs/specs/drawing-sources.md §2.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dxf: Option<u64>,
     /// Only shapes traced from this image (an id in `drawing.images`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub image: Option<u64>,
     /// Only the letters of this text (an id in `drawing.texts`).
-    // Spec: docs/specs/text.md §3.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<u64>,
     /// The shapes and texts' letters of this group (an id in `drawing.groups`), as they
     /// are at each run.
-    // Spec: docs/specs/shape-groups.md §4, decision 8.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<u64>,
     /// Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`,
     /// `text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found
     /// again when it is made again.
-    // Spec: docs/specs/leave-out-shapes.md.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exclude: Option<Vec<u64>>,
 }
 
+impl TryFrom<RawSelector> for Selector {
+    type Error = String;
+
+    fn try_from(raw: RawSelector) -> Result<Self, String> {
+        let sources: Vec<Source> = [
+            raw.dxf.map(Source::Dxf),
+            raw.image.map(Source::Image),
+            raw.text.map(Source::Text),
+            raw.group.map(Source::Group),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        // Refused where the selector is read, in the words `validate` used before
+        // (docs/specs/source-model.md §2.2); a parse error is English, as for shapes.
+        if sources.len() > 1 {
+            return Err(Message::new("job-selector-one-source").english());
+        }
+        let source = sources.first().copied();
+        let exclude = raw.exclude.unwrap_or_default();
+        if source.is_none() && !exclude.is_empty() {
+            return Err(Message::new("job-exclude-no-source").english());
+        }
+        Ok(Selector {
+            layer: raw.layer,
+            shapes: raw.shapes,
+            source,
+            exclude,
+        })
+    }
+}
+
+impl From<Selector> for RawSelector {
+    fn from(selector: Selector) -> Self {
+        let of = |want: fn(u64) -> Source| {
+            selector
+                .source
+                .filter(|s| *s == want(s.id()))
+                .map(Source::id)
+        };
+        RawSelector {
+            dxf: of(Source::Dxf),
+            image: of(Source::Image),
+            text: of(Source::Text),
+            group: of(Source::Group),
+            exclude: (!selector.exclude.is_empty()).then_some(selector.exclude),
+            layer: selector.layer,
+            shapes: selector.shapes,
+        }
+    }
+}
+
 impl Selector {
-    /// Whether it picks nothing at all: no DXF, image, layer or shapes. A selector that
-    /// names only a DXF or an image picks all of it (docs/specs/drawing-sources.md §2,
+    /// All of `source`.
+    pub fn of(source: Source) -> Selector {
+        Selector {
+            source: Some(source),
+            ..Selector::default()
+        }
+    }
+
+    /// Every shape on `layer`.
+    pub fn on_layer(layer: &str) -> Selector {
+        Selector {
+            layer: Some(layer.to_string()),
+            ..Selector::default()
+        }
+    }
+
+    /// The DXF it names.
+    pub fn dxf(&self) -> Option<u64> {
+        match self.source {
+            Some(Source::Dxf(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// The image it names.
+    pub fn image(&self) -> Option<u64> {
+        match self.source {
+            Some(Source::Image(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// The text it names.
+    pub fn text(&self) -> Option<u64> {
+        match self.source {
+            Some(Source::Text(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// The group it names.
+    pub fn group(&self) -> Option<u64> {
+        match self.source {
+            Some(Source::Group(id)) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// Whether it picks nothing at all: no source, layer or shapes. A selector that names
+    /// only a source picks all of it (docs/specs/drawing-sources.md §2,
     /// leave-out-shapes.md §2).
     pub fn is_empty(&self) -> bool {
         self.layer.is_none()
-            && self.dxf.is_none()
-            && self.image.is_none()
-            && self.text.is_none()
-            && self.group.is_none()
+            && self.source.is_none()
             && self.shapes.as_ref().is_none_or(Vec::is_empty)
     }
 
-    /// The selector with its group, if it names one, turned into the group's shapes as
-    /// they are in `drawing` (its texts' letters included), for picking contours. The
-    /// shapes left out stay left out.
+    /// The selector with a group resolved to the shapes it holds now (its texts' letters
+    /// included); others as they are.
     pub fn resolved(&self, drawing: &Drawing) -> Selector {
-        match self.group {
-            None => self.clone(),
-            Some(id) => Selector {
+        match self.source {
+            Some(Source::Group(id)) => Selector {
                 shapes: Some(drawing.group_shapes(id)),
-                group: None,
+                source: None,
                 ..self.clone()
             },
+            _ => self.clone(),
         }
     }
 
@@ -2273,10 +2453,8 @@ impl Selector {
     /// image or text when it names one. For where a setup's board goes
     /// (docs/specs/setups.md §3), not for cutting: planning selects contours exactly.
     pub fn may_pick(&self, shape: &Shape) -> bool {
-        let from = |want: Option<u64>, has: Option<u64>| want.is_none_or(|w| has == Some(w));
-        if !(from(self.dxf, shape.dxf())
-            && from(self.image, shape.image())
-            && from(self.text, shape.text()))
+        if let Some(from) = self.source.and_then(Source::shape_from)
+            && shape.source() != Some(from)
         {
             return false;
         }
@@ -2288,9 +2466,7 @@ impl Selector {
             .shapes
             .as_ref()
             .is_some_and(|ids| ids.contains(&shape.id));
-        let whole_source = self.layer.is_none()
-            && self.shapes.is_none()
-            && (self.dxf.is_some() || self.image.is_some() || self.text.is_some());
+        let whole_source = self.layer.is_none() && self.shapes.is_none() && self.source.is_some();
         on_layer || named || whole_source
     }
 }
@@ -2383,11 +2559,8 @@ pub enum Operation {
 static NO_SELECTOR: Selector = Selector {
     layer: None,
     shapes: None,
-    dxf: None,
-    image: None,
-    text: None,
-    group: None,
-    exclude: None,
+    source: None,
+    exclude: Vec::new(),
 };
 
 fn enabled_default() -> bool {
@@ -4428,86 +4601,52 @@ impl Job {
                     Message::new("job-selector-empty"),
                 ));
             }
-            if let Some(dxf) = selector.dxf
-                && !self.drawing.dxfs.iter().any(|d| d.id == dxf)
-            {
-                problems.push(Problem::at(
-                    format!("operations.{i}.select.dxf"),
-                    Message::new("job-no-dxf").arg("id", dxf),
-                ));
-            }
-            if let Some(image) = selector.image
-                && !self.drawing.images.iter().any(|d| d.id == image)
-            {
-                problems.push(Problem::at(
-                    format!("operations.{i}.select.image"),
-                    Message::new("job-no-image").arg("id", image),
-                ));
-            }
-            if let Some(text) = selector.text
-                && !self.drawing.texts.iter().any(|t| t.id == text)
-            {
-                problems.push(Problem::at(
-                    format!("operations.{i}.select.text"),
-                    Message::new("job-no-text").arg("id", text),
-                ));
-            }
-            if let Some(group) = selector.group
-                && !self.drawing.groups.iter().any(|g| g.id == group)
-            {
-                problems.push(Problem::at(
-                    format!("operations.{i}.select.group"),
-                    Message::new("job-no-group").arg("id", group),
-                ));
-            }
-            // Shapes left out of a whole DXF, image, text or group
-            // (docs/specs/leave-out-shapes.md §2, text.md §3, shape-groups.md §4).
-            if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
-                let source = match (selector.dxf, selector.image, selector.text, selector.group) {
-                    (Some(dxf), _, _, _) => Some(("dxf", dxf, 0)),
-                    (None, Some(image), _, _) => Some(("image", image, 1)),
-                    (None, None, Some(text), _) => Some(("text", text, 2)),
-                    (None, None, None, Some(group)) => Some(("group", group, 3)),
-                    (None, None, None, None) => None,
-                };
-                let grouped = selector.group.map(|g| self.drawing.group_shapes(g));
-                match source {
-                    None => problems.push(Problem::at(
-                        format!("operations.{i}.select.exclude"),
-                        Message::new("job-exclude-no-source"),
-                    )),
-                    Some((what, id, kind)) => {
-                        let of_source = |shape: &Shape| match kind {
-                            0 => shape.dxf() == Some(id),
-                            1 => shape.image() == Some(id),
-                            2 => shape.text() == Some(id),
-                            _ => grouped.as_ref().is_some_and(|g| g.contains(&shape.id)),
-                        };
-                        if let Some(missing) = exclude.iter().find(|e| {
-                            !self
-                                .drawing
-                                .shapes
-                                .iter()
-                                .any(|s| s.id == **e && of_source(s))
-                        }) {
-                            problems.push(Problem::at(
-                                format!("operations.{i}.select.exclude"),
-                                Message::new("job-exclude-missing")
-                                    .arg("shape", *missing)
-                                    .arg("source", what)
-                                    .arg("id", id),
-                            ));
-                        }
+            if let Some(source) = selector.source {
+                let (exists, missing) = match source {
+                    Source::Dxf(id) => (self.drawing.dxfs.iter().any(|d| d.id == id), "job-no-dxf"),
+                    Source::Image(id) => (
+                        self.drawing.images.iter().any(|d| d.id == id),
+                        "job-no-image",
+                    ),
+                    Source::Text(id) => {
+                        (self.drawing.texts.iter().any(|t| t.id == id), "job-no-text")
                     }
+                    Source::Group(id) => (
+                        self.drawing.groups.iter().any(|g| g.id == id),
+                        "job-no-group",
+                    ),
+                };
+                if !exists {
+                    problems.push(Problem::at(
+                        format!("operations.{i}.select.{}", source.key()),
+                        Message::new(missing).arg("id", source.id()),
+                    ));
+                }
+                // Shapes left out of it (docs/specs/leave-out-shapes.md §2, text.md §3,
+                // shape-groups.md §4).
+                let grouped = selector.group().map(|g| self.drawing.group_shapes(g));
+                let of_source = |shape: &Shape| match source {
+                    Source::Group(_) => grouped.as_ref().is_some_and(|g| g.contains(&shape.id)),
+                    _ => shape.source() == source.shape_from(),
+                };
+                if let Some(missing) = selector.exclude.iter().find(|e| {
+                    !self
+                        .drawing
+                        .shapes
+                        .iter()
+                        .any(|s| s.id == **e && of_source(s))
+                }) {
+                    problems.push(Problem::at(
+                        format!("operations.{i}.select.exclude"),
+                        Message::new("job-exclude-missing")
+                            .arg("shape", *missing)
+                            .arg("source", source.key())
+                            .arg("id", source.id()),
+                    ));
                 }
             }
-            if [selector.dxf, selector.image, selector.text, selector.group]
-                .iter()
-                .flatten()
-                .count()
-                > 1
-                || (selector.group.is_some() && selector.shapes.is_some())
-            {
+            // A group is resolved to shapes: naming shapes besides it is ambiguous.
+            if selector.group().is_some() && selector.shapes.is_some() {
                 problems.push(Problem::at(
                     format!("operations.{i}.select"),
                     Message::new("job-selector-one-source"),
@@ -4550,8 +4689,8 @@ impl Job {
             // no closed line at all (user report 2026-10-13).
             let centre_lines = self.drawing.images.iter().find(|image| {
                 image.trace == ImageTrace::CentreLine
-                    && (selector.image == Some(image.id)
-                        || selector.dxf.is_none()
+                    && (selector.image() == Some(image.id)
+                        || selector.dxf().is_none()
                             && selector.layer.as_ref().is_some_and(|layer| {
                                 image.layer.to_lowercase() == layer.to_lowercase()
                             }))

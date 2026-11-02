@@ -221,7 +221,7 @@ fn selected_by_dxf(job: &Job, id: u64) -> Result<BTreeMap<usize, Vec<u64>>, Pipe
         .operations
         .iter()
         .enumerate()
-        .filter(|(_, op)| op.select().dxf == Some(id))
+        .filter(|(_, op)| op.select().dxf() == Some(id))
         .map(|(i, _)| i)
         .collect();
     if limited.is_empty() {
@@ -230,7 +230,7 @@ fn selected_by_dxf(job: &Job, id: u64) -> Result<BTreeMap<usize, Vec<u64>>, Pipe
     let contours = load_drawing(job)?.contours;
     for i in limited {
         let select = job.operations[i].select();
-        let excluded: BTreeSet<u64> = select.exclude.iter().flatten().copied().collect();
+        let excluded: BTreeSet<u64> = select.exclude.iter().copied().collect();
         // Every shape that shares a contour with a left-out one is left out with it.
         let mut left_out = excluded.clone();
         for contour in &contours {

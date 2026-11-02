@@ -60,7 +60,7 @@ fn ctrl_click_leaves_a_shape_out_of_the_selection_not_the_group() {
     };
     assert_eq!(left_out, &BTreeSet::from([6]));
     let select = app.selection.selector(&app.contours, false);
-    assert_eq!((select.group, select.exclude), (Some(1), Some(vec![6])));
+    assert_eq!((select.group(), select.exclude), (Some(1), vec![6]));
     assert_eq!(drawing(&app).groups[0].shapes, [5, 6], "still in the group");
     // And back in.
     app.click(Some(contour_of(&app, 6)), true);
@@ -106,7 +106,7 @@ fn an_operation_made_from_a_group_names_it() {
     let mut app = grouped();
     app.click(Some(contour_of(&app, 5)), false);
     let select = app.selection.selector(&app.contours, false);
-    assert_eq!(select.group, Some(1));
+    assert_eq!(select.group(), Some(1));
     assert_eq!(select.shapes, None);
 }
 

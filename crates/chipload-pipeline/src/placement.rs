@@ -687,9 +687,8 @@ pub(crate) fn nearest_is(
 /// As planning matches segments (chipload_toolpath::select): layer names ignore case, and an
 /// empty id list selects by layer only.
 fn selects(select: &Selector, shape: &Shape) -> bool {
-    if select.dxf.is_some_and(|d| shape.dxf() != Some(d))
-        || select.image.is_some_and(|i| shape.image() != Some(i))
-        || select.text.is_some_and(|t| shape.text() != Some(t))
+    if let Some(from) = select.source.and_then(chipload_job::Source::shape_from)
+        && shape.source() != Some(from)
     {
         return false;
     }
@@ -698,11 +697,7 @@ fn selects(select: &Selector, shape: &Shape) -> bool {
     {
         return false;
     }
-    if select
-        .exclude
-        .as_ref()
-        .is_some_and(|left_out| left_out.contains(&shape.id))
-    {
+    if select.exclude.contains(&shape.id) {
         return false;
     }
     match &select.shapes {

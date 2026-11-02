@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Match job selectors against imported contours. See docs/specs/v0-profile-pipeline.md §3.
 
-use chipload_core::chain::{Contour, Segment, ShapeFrom};
+use chipload_core::chain::{Contour, Segment};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::Selector;
+use chipload_job::{Selector, Source};
 
 use crate::ToolpathError;
 
@@ -85,11 +85,10 @@ fn select<'a>(
     // Shapes left out of a whole DXF, image or text: their contours, whole, aren't selected
     // (docs/specs/leave-out-shapes.md §3).
     let left_out = |contour: &Contour| {
-        selector.exclude.as_ref().is_some_and(|ids| {
-            contour
-                .parts
-                .iter()
-                .any(|p| p.segment.shape.is_some_and(|s| ids.contains(&s)))
+        contour.parts.iter().any(|p| {
+            p.segment
+                .shape
+                .is_some_and(|s| selector.exclude.contains(&s))
         })
     };
     for contour in contours {
@@ -156,18 +155,9 @@ fn select<'a>(
 }
 
 fn matches(segment: &Segment, selector: &Selector) -> bool {
-    if let Some(dxf) = selector.dxf
-        && segment.from != Some(ShapeFrom::Dxf(dxf))
-    {
-        return false;
-    }
-    if let Some(image) = selector.image
-        && segment.from != Some(ShapeFrom::Image(image))
-    {
-        return false;
-    }
-    if let Some(text) = selector.text
-        && segment.from != Some(ShapeFrom::Text(text))
+    // A group is resolved to its shapes before selecting (`Selector::resolved`).
+    if let Some(from) = selector.source.and_then(Source::shape_from)
+        && segment.from != Some(from)
     {
         return false;
     }
@@ -210,18 +200,19 @@ fn describe(selector: &Selector) -> Value {
             .arg("first", first)
             .arg("second", second)
     });
-    let mut source = match (selector.dxf, selector.image, selector.text) {
-        (Some(dxf), _, _) => Message::new("toolpath-error-selector-dxf").arg("id", dxf),
-        (None, Some(image), _) => Message::new("toolpath-error-selector-image").arg("id", image),
-        (None, None, Some(id)) => Message::new("toolpath-error-selector-text").arg("id", id),
-        (None, None, None) => {
+    // A group is resolved to its shapes before selecting: it never gets here.
+    let mut source = match selector.source {
+        Some(Source::Dxf(id)) => Message::new("toolpath-error-selector-dxf").arg("id", id),
+        Some(Source::Image(id)) => Message::new("toolpath-error-selector-image").arg("id", id),
+        Some(Source::Text(id)) => Message::new("toolpath-error-selector-text").arg("id", id),
+        Some(Source::Group(_)) | None => {
             return text.map_or_else(|| Value::Text(String::new()), Value::from);
         }
     };
-    if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
+    if !selector.exclude.is_empty() {
         source = Message::new("toolpath-error-selector-but")
             .arg("source", source)
-            .arg("shapes", shape_list(exclude));
+            .arg("shapes", shape_list(&selector.exclude));
     }
     match text {
         None => source.into(),

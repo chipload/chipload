@@ -76,7 +76,7 @@ fn group_adds_to_one_group_and_merges_several() {
     // An operation made from group 2.
     let mut job = job;
     *job.operations[1].select_mut().unwrap() = Selector {
-        group: Some(b),
+        source: Some(chipload_job::Source::Group(b)),
         ..Selector::default()
     };
     // One group in the selection: the text joins it.
@@ -88,7 +88,7 @@ fn group_adds_to_one_group_and_merges_several() {
     assert_eq!(id, a);
     assert_eq!(job.drawing.groups.len(), 1);
     assert_eq!(job.drawing.groups[0].shapes, [5, 6]);
-    assert_eq!(job.operations[1].select().group, Some(a));
+    assert_eq!(job.operations[1].select().group(), Some(a));
 }
 
 #[test]
@@ -155,11 +155,11 @@ fn an_operation_made_from_a_group_follows_it() {
     }
     // Profile the group instead of the frame layer.
     *job.operations[2].select_mut().unwrap() = Selector {
-        group: Some(id),
+        source: Some(chipload_job::Source::Group(id)),
         ..Selector::default()
     };
     let mut layer = job.clone();
-    layer.operations[2].select_mut().unwrap().group = None;
+    layer.operations[2].select_mut().unwrap().source = None;
     layer.operations[2].select_mut().unwrap().layer = Some("frame".into());
     assert_eq!(
         gcode(&job),
@@ -184,13 +184,13 @@ fn an_operation_made_from_a_group_follows_it() {
     assert_eq!(gcode(&taken), gcode(&with_hole));
     // Left out with exclude: as without it.
     let mut left_out = added.clone();
-    left_out.operations[2].select_mut().unwrap().exclude = Some(vec![hole]);
+    left_out.operations[2].select_mut().unwrap().exclude = vec![hole];
     assert_eq!(gcode(&left_out), gcode(&with_hole));
     // Ungrouped: the operation names the shapes, and cuts the same.
     let free_again = ungroup(&added, id).unwrap();
     let select = free_again.operations[2].select();
     assert_eq!(
-        (select.group, select.shapes.clone()),
+        (select.group(), select.shapes.clone()),
         (None, Some(vec![5, hole]))
     );
     assert_eq!(gcode(&free_again), gcode(&added));
@@ -201,13 +201,13 @@ fn ungrouping_a_cut_group_with_texts_is_refused() {
     let job = sign();
     let (mut job, id) = group(&job, &members(&job, &[5], &[1]), None).unwrap();
     *job.operations[2].select_mut().unwrap() = Selector {
-        group: Some(id),
+        source: Some(chipload_job::Source::Group(id)),
         ..Selector::default()
     };
     let err = ungroup(&job, id).unwrap_err().to_string();
     assert!(err.contains("has texts"), "{err}");
     // Not cut: ungrouped freely.
-    job.operations[2].select_mut().unwrap().group = None;
+    job.operations[2].select_mut().unwrap().source = None;
     job.operations[2].select_mut().unwrap().layer = Some("frame".into());
     assert!(ungroup(&job, id).unwrap().drawing.groups.is_empty());
 }

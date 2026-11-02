@@ -28,7 +28,7 @@ fn an_imported_image_is_traced_selected_as_a_whole_and_v_carved() {
     );
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().job.operations[index];
-    assert_eq!(op.select().image, Some(1), "the image itself");
+    assert_eq!(op.select().image(), Some(1), "the image itself");
     // One undo step takes the image away again (and one more the operation).
     app.undo();
     app.undo();
@@ -48,7 +48,7 @@ fn clicked_traced_shapes_become_their_image_in_a_new_operation() {
         .select()
         .clone();
     assert_eq!(
-        (select.image, select.layer.as_deref(), select.shapes),
+        (select.image(), select.layer.as_deref(), select.shapes),
         (Some(1), None, None)
     );
 }

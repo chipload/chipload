@@ -25,11 +25,8 @@ fn ctrl_click_leaves_a_contour_out_of_the_selected_dxf_and_puts_it_back() {
     let select = app.edit.as_ref().unwrap().job.operations[index]
         .select()
         .clone();
-    assert_eq!(select.dxf, Some(1));
-    assert_eq!(
-        select.exclude,
-        Some(left_out.iter().copied().collect::<Vec<_>>())
-    );
+    assert_eq!(select.dxf(), Some(1));
+    assert_eq!(select.exclude, left_out.iter().copied().collect::<Vec<_>>());
     // Ctrl+click again: back to the whole DXF.
     app.select_group("dxf:1");
     app.click(Some(one), true);

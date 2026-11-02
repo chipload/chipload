@@ -73,7 +73,7 @@ fn clicking_a_traced_contour_selects_the_whole_picture() {
     );
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().job.operations[index];
-    assert_eq!(op.select().image, Some(1));
+    assert_eq!(op.select().image(), Some(1));
     assert!(op.select().shapes.as_ref().is_none_or(|s| s.is_empty()));
     assert!(
         !app.problems
@@ -115,7 +115,7 @@ fn use_selection_with_a_picture_selects_the_picture() {
         let select = app.edit.as_ref().unwrap().job.operations[index]
             .select()
             .clone();
-        assert_eq!(select.image, Some(1), "{pick}: {select:?}");
+        assert_eq!(select.image(), Some(1), "{pick}: {select:?}");
         assert!(
             select.shapes.as_ref().is_none_or(|s| s.is_empty()),
             "{pick}"

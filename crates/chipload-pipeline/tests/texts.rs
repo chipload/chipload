@@ -103,8 +103,8 @@ fn a_left_out_letter_is_found_again_after_the_text_grows() {
     // Leave the E out (the second letter from the left).
     let e = report.shapes[1];
     job.operations.push(vcarve(Selector {
-        text: Some(1),
-        exclude: Some(vec![e]),
+        source: Some(chipload_job::Source::Text(1)),
+        exclude: vec![e],
         ..Selector::default()
     }));
     let mut bigger = job.clone();
@@ -115,7 +115,7 @@ fn a_left_out_letter_is_found_again_after_the_text_grows() {
         "{:?}",
         reports[0].lines
     );
-    let left_out = bigger.operations[0].select().exclude.clone().unwrap();
+    let left_out = bigger.operations[0].select().exclude.clone();
     assert_eq!(left_out.len(), 1);
     assert_ne!(left_out[0], e, "the new E");
     assert_eq!(
@@ -155,7 +155,7 @@ fn a_v_carved_text_passes_the_checker() {
         tip_diameter: Some(0.2),
     });
     job.operations.push(vcarve(Selector {
-        text: Some(1),
+        source: Some(chipload_job::Source::Text(1)),
         ..Selector::default()
     }));
     let result = run_job(&job).unwrap();

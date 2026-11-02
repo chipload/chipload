@@ -110,7 +110,7 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
     app.click(Some(letter), false);
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().job.operations[index];
-    assert_eq!(op.select().text, Some(id));
+    assert_eq!(op.select().text(), Some(id));
     // Its form names the text, not "no geometry" (user report 2026-10-17).
     assert_eq!(
         crate::editor::geometry_summary(op, &app.contours, &crate::i18n::Language::En),

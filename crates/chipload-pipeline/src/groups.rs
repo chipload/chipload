@@ -115,9 +115,9 @@ pub fn group(
         .retain(|g| g.id == id || !found.contains(&g.id));
     for op in &mut out.operations {
         if let Some(select) = op.select_mut()
-            && select.group.is_some_and(|g| found.contains(&g))
+            && select.group().is_some_and(|g| found.contains(&g))
         {
-            select.group = Some(id);
+            select.source = Some(chipload_job::Source::Group(id));
         }
     }
     let Some(target) = out.drawing.groups.iter_mut().find(|g| g.id == id) else {
@@ -226,7 +226,7 @@ pub fn ungroup(job: &Job, id: u64) -> Result<Job, PipelineError> {
         let Some(select) = op.select_mut() else {
             continue;
         };
-        if select.group != Some(id) {
+        if select.group() != Some(id) {
             continue;
         }
         if !group.texts.is_empty() {
@@ -236,8 +236,8 @@ pub fn ungroup(job: &Job, id: u64) -> Result<Job, PipelineError> {
                     .arg("name", group.name.clone()),
             ));
         }
-        let left_out: Vec<u64> = select.exclude.take().unwrap_or_default();
-        select.group = None;
+        let left_out: Vec<u64> = std::mem::take(&mut select.exclude);
+        select.source = None;
         select.shapes = Some(
             group
                 .shapes

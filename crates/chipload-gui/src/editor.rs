@@ -10,8 +10,8 @@ use chipload_i18n::Message;
 use chipload_job::library::Cutting;
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, Problem, ProfileOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, ToolType, VcarveOp,
-    WorkZero, find_tool,
+    PocketOp, Problem, ProfileOp, SURFACE_STEPOVER, Selector, Side, Source, SurfaceOp, ToolType,
+    VcarveOp, WorkZero, find_tool,
 };
 
 use crate::i18n::{Lang, t};
@@ -117,47 +117,20 @@ impl CanvasSelection {
     /// profiles and pockets would skip them anyway).
     pub fn selector(&self, contours: &[Contour], open: bool) -> Selector {
         match self {
-            CanvasSelection::Source(from) => Selector {
-                dxf: match from {
-                    ShapeFrom::Dxf(id) => Some(*id),
-                    _ => None,
-                },
-                image: match from {
-                    ShapeFrom::Image(id) => Some(*id),
-                    _ => None,
-                },
-                text: match from {
-                    ShapeFrom::Text(id) => Some(*id),
-                    _ => None,
-                },
-                ..Selector::default()
-            },
+            CanvasSelection::Source(from) => Selector::of((*from).into()),
             CanvasSelection::Except(from, left_out) => Selector {
-                exclude: Some(left_out.iter().copied().collect()),
-                ..CanvasSelection::Source(*from).selector(contours, open)
+                exclude: left_out.iter().copied().collect(),
+                ..Selector::of((*from).into())
             },
             // An operation made from a group follows it (docs/specs/shape-groups.md,
             // decision 8).
             CanvasSelection::Group { id, left_out, .. } => Selector {
-                group: Some(*id),
-                exclude: (!left_out.is_empty()).then(|| left_out.iter().copied().collect()),
-                ..Selector::default()
+                exclude: left_out.iter().copied().collect(),
+                ..Selector::of(Source::Group(*id))
             },
             CanvasSelection::Layer(layer, from) => Selector {
-                layer: Some(layer.clone()),
-                dxf: match from {
-                    Some(ShapeFrom::Dxf(id)) => Some(*id),
-                    _ => None,
-                },
-                image: match from {
-                    Some(ShapeFrom::Image(id)) => Some(*id),
-                    _ => None,
-                },
-                text: match from {
-                    Some(ShapeFrom::Text(id)) => Some(*id),
-                    _ => None,
-                },
-                ..Selector::default()
+                source: from.map(Source::from),
+                ..Selector::on_layer(layer)
             },
             _ => {
                 let ids = self.ids(contours);
@@ -833,14 +806,12 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour], lang: &impl Lang) 
     let select = op.select();
     // A text is a source like a DXF or picture: its letters are written again when it
     // changes, so operations select the text, not its shapes (docs/specs/text.md §5).
-    let source = match (select.dxf, select.image, select.text) {
-        (Some(dxf), _, _) => Some(t!(lang, "editor-summary-dxf", id = dxf)),
-        (_, Some(image), _) => Some(t!(lang, "editor-summary-image", id = image)),
-        (_, _, Some(text)) => Some(t!(lang, "editor-summary-text", id = text)),
-        _ => select
-            .group
-            .map(|id| t!(lang, "editor-summary-group", id = id)),
-    };
+    let source = select.source.map(|source| match source {
+        Source::Dxf(id) => t!(lang, "editor-summary-dxf", id = id),
+        Source::Image(id) => t!(lang, "editor-summary-image", id = id),
+        Source::Text(id) => t!(lang, "editor-summary-text", id = id),
+        Source::Group(id) => t!(lang, "editor-summary-group", id = id),
+    });
     if let Some(layer) = &select.layer {
         return match source {
             Some(source) => t!(
@@ -855,8 +826,7 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour], lang: &impl Lang) 
     if let Some(source) = source
         && select.shapes.as_ref().is_none_or(Vec::is_empty)
     {
-        let left_out = select.exclude.as_ref().map_or(0, Vec::len);
-        return match left_out {
+        return match select.exclude.len() {
             0 => t!(lang, "editor-summary-all-of", source = source),
             n => t!(lang, "editor-summary-left-out", source = source, count = n),
         };

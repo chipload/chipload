@@ -83,9 +83,10 @@ pub(crate) fn layer_cutters(job: &Job, layer: &str, count: usize) -> Option<Mess
                 .layer
                 .as_deref()
                 .is_some_and(|l| l.to_lowercase() == layer.to_lowercase())
-                && select.dxf.is_none()
-                && select.image.is_none()
-                && select.text.is_none()
+                && select
+                    .source
+                    .and_then(chipload_job::Source::shape_from)
+                    .is_none()
         })
         .map(|(i, _)| (i + 1).to_string())
         .collect();

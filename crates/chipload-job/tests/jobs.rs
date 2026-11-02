@@ -262,6 +262,34 @@ fn every_corpus_job_survives_save_and_load() {
     }
 }
 
+/// Shapes and selectors are read into tighter types than the file has, and written back
+/// flat (docs/specs/source-model.md §3): a saved project reads back to the same text.
+#[test]
+fn every_corpus_job_is_written_back_as_it_was_read() {
+    for path in all_corpus_jobs() {
+        let job = load_job(&path).unwrap();
+        let text = chipload_job::dump_job(&job).unwrap();
+        let again = parse_job(serde_json::from_str(&text).unwrap(), "saved").unwrap();
+        assert_eq!(
+            chipload_job::dump_job(&again).unwrap(),
+            text,
+            "{}",
+            path.display()
+        );
+    }
+}
+
+#[test]
+fn a_selector_names_at_most_one_source() {
+    let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
+    data["operations"][0]["select"] = json!({"dxf": 1, "image": 2});
+    let err = parse_job(data, "p").unwrap_err().to_string();
+    assert!(
+        err.contains("names one DXF, image or text, not more"),
+        "{err}"
+    );
+}
+
 #[test]
 fn old_version_is_saved_as_current() {
     let job = load_job(&corpus().join("v4/example_job.chipload")).unwrap();
@@ -2066,7 +2094,7 @@ fn selectors_and_shapes_name_dxfs_that_exist() {
     let mut data = migrate(raw("v20/scaled_part.chipload")).unwrap();
     data["operations"][0]["select"]["dxf"] = json!(1);
     let job = parse_job(data.clone(), "p").unwrap();
-    assert_eq!(job.operations[0].select().dxf, Some(1));
+    assert_eq!(job.operations[0].select().dxf(), Some(1));
     let mut bad = data.clone();
     bad["operations"][0]["select"]["dxf"] = json!(7);
     bad["drawing"]["shapes"][0]["dxf"] = json!(9);

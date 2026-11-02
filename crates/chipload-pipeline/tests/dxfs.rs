@@ -34,7 +34,7 @@ fn adding_a_dxf_never_changes_what_an_operation_cuts() {
         "{:?}",
         report.lines
     );
-    assert!(two.operations.iter().all(|op| op.select().dxf == Some(1)));
+    assert!(two.operations.iter().all(|op| op.select().dxf() == Some(1)));
     assert!(!report.lines.iter().any(|l| l.contains("is in")));
     let (two, _) = place_dxf(&two, 2, Move::By(400.0, 0.0)).unwrap();
     assert_eq!(
@@ -79,7 +79,7 @@ fn a_layer_alone_in_two_dxfs_is_noted_and_a_dxf_selector_limits_it() {
     let (mut two, _) = place_dxf(&two, 2, Move::By(400.0, 0.0)).unwrap();
     // As a hand-written file could have them: by layer alone.
     for op in &mut two.operations {
-        op.select_mut().unwrap().dxf = None;
+        op.select_mut().unwrap().source = None;
     }
     let result = run_job(&two).unwrap();
     let clashes: Vec<&Note> = result
@@ -90,7 +90,7 @@ fn a_layer_alone_in_two_dxfs_is_noted_and_a_dxf_selector_limits_it() {
     assert_eq!(clashes.len(), 2, "{:?}", result.notes);
     // Limited to DXF 1, the operations cut exactly what they cut before.
     for op in &mut two.operations {
-        op.select_mut().unwrap().dxf = Some(1);
+        op.select_mut().unwrap().source = Some(chipload_job::Source::Dxf(1));
     }
     let limited = run_job(&two).unwrap();
     assert!(
@@ -102,7 +102,7 @@ fn a_layer_alone_in_two_dxfs_is_noted_and_a_dxf_selector_limits_it() {
     assert_eq!(limited.files[0].gcode, before.files[0].gcode);
     // Limited to DXF 2, they cut the other part.
     for op in &mut two.operations {
-        op.select_mut().unwrap().dxf = Some(2);
+        op.select_mut().unwrap().source = Some(chipload_job::Source::Dxf(2));
     }
     let other = run_job(&two).unwrap();
     assert_ne!(other.files[0].gcode, before.files[0].gcode);
@@ -139,7 +139,7 @@ fn removing_a_dxf_removes_its_shapes_and_names_the_operations_that_used_it() {
     let lost = shapes_of(&two, 2)[0].id;
     two.operations[0].select_mut().unwrap().shapes = Some(vec![lost]);
     two.operations[0].select_mut().unwrap().layer = None;
-    two.operations[1].select_mut().unwrap().dxf = Some(2);
+    two.operations[1].select_mut().unwrap().source = Some(chipload_job::Source::Dxf(2));
     two.drawing.hidden = vec!["dxf:2".into(), "dxf:2/layer:HOLES".into(), "dxf:1".into()];
     let (removed, lines) = remove_dxf(&two, 2).unwrap();
     let lines: Vec<String> = lines.iter().map(|l| l.english()).collect();
@@ -171,7 +171,7 @@ fn a_selector_may_name_a_whole_dxf() {
     let (mut two, _) = place_dxf(&two, 2, Move::By(400.0, 0.0)).unwrap();
     let select = two.operations[1].select_mut().unwrap();
     *select = chipload_job::Selector {
-        dxf: Some(2),
+        source: Some(chipload_job::Source::Dxf(2)),
         ..Default::default()
     };
     assert!(two.validate().is_empty(), "{:?}", two.validate());

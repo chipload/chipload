@@ -23,7 +23,7 @@ fn the_drawing_panel_groups_dxfs_images_and_drawn_shapes() {
         .select()
         .clone();
     assert_eq!(
-        (select.layer.as_deref(), select.dxf),
+        (select.layer.as_deref(), select.dxf()),
         (Some("HOLES"), Some(2))
     );
     let both = app
