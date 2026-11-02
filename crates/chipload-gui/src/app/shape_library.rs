@@ -104,7 +104,7 @@ const PICTURE: f32 = 76.0;
 
 impl ChiploadApp {
     fn shapes_folder(&self) -> Option<PathBuf> {
-        self.settings_dir.as_deref().map(shapes_dir)
+        self.user.settings_dir.as_deref().map(shapes_dir)
     }
 
     /// Read the folder again when it is time.
@@ -495,7 +495,7 @@ impl ChiploadApp {
     /// Whether `pos` (screen) is where selected shapes can be dropped to save them.
     pub(super) fn over_library(&self, pos: Pos2) -> bool {
         self.panels.properties_open
-            && self.settings_dir.is_some()
+            && self.user.settings_dir.is_some()
             && self
                 .shape_library
                 .drop_rect

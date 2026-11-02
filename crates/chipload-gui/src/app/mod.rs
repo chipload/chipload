@@ -48,6 +48,7 @@ mod copy_paste;
 mod corners;
 mod dialogs;
 mod disk;
+mod display;
 mod drawing;
 mod dropping;
 mod dxf_export;
@@ -90,7 +91,6 @@ mod zero_drag;
 
 use forms::{job_form, op_form};
 use report::{DrawingFacts, Report, Tone};
-use user_library::LibraryState;
 pub use user_library::{LibraryKind, SaveTarget};
 
 const STATUS_SECONDS: u64 = 5;
@@ -341,9 +341,6 @@ pub struct ChiploadApp {
     /// The focused operation's corners and an open corner menu (docs/specs/dogbone-per-corner.md).
     corners: corners::CornerMarkers,
     context_pick: Option<usize>,
-    /// Simulate mode (docs/specs/edit-and-simulate.md §2): the shaded simulation and
-    /// playback, the canvas a viewer. Off: Edit, the canvas a drawing board.
-    pub show_simulation: bool,
     /// The panels round the canvas: which are open, which tab the right one shows.
     pub panels: layout::Panels,
     shape_library: shape_library::ShapeLibraryView,
@@ -351,8 +348,8 @@ pub struct ChiploadApp {
     pub sim: Sim,
     /// The playback slider's state, once a toolpath has been generated.
     pub playback: Option<playback::Playback>,
-    /// The canvas is in 3D: left-drag orbits (docs/specs/3d-view.md).
-    pub three_d: bool,
+    /// What the canvas shows: 3D or top view, Simulate or Edit, pictures, toolpath, parts, legend.
+    pub display: display::Display,
     /// The canvas tools: the one in use, a value being typed, previews, and the values the
     /// tools keep for the session.
     pub canvas_tools: canvas_tools::CanvasTools,
@@ -374,12 +371,8 @@ pub struct ChiploadApp {
     pub report: Report,
     /// The current drawing's facts, for the report's Drawing section.
     pub drawing_facts: Option<DrawingFacts>,
-    /// The canvas legend is unfolded.
-    pub legend_open: bool,
     /// The preferences kept in the app settings, and the language and theme they resolve to.
     pub prefs: prefs::Prefs,
-    /// Preview every part, not only the active one (canvas bar; this session only).
-    pub all_parts: bool,
     /// Recovery copies: this window's, when it is next written, and those other windows left.
     pub recovery: recovery::Recovery,
     /// The update notice: the user's answer, the daily check, a newer release
@@ -393,25 +386,17 @@ pub struct ChiploadApp {
     title: String,
     allow_close: bool,
 
-    /// The user's settings folder (docs/specs/tool-library-and-machines.md); None in tests
-    /// and when there is no home folder.
-    settings_dir: Option<PathBuf>,
-    /// The tool library and machine profiles as last read.
-    library: chipload_pipeline::library::Library,
-    library_state: LibraryState,
+    /// The user's settings folder and the tool library and machine profiles read from it.
+    pub user: user_library::UserFiles,
     /// The image window, while open (docs/specs/image-trace.md §6).
     pub image_dialog: Option<images::ImageDialog>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
     pub(super) hidden_contours: BTreeSet<usize>,
-    /// View > Show images: the pictures, faintly over the stock and under the drawing.
-    pub show_images: bool,
     /// View > Show drawing off: the selection when it was switched off. Selecting something
     /// else or drawing a shape shows the drawing again (docs/specs/view-and-settings.md §2).
     pub(super) drawing_hidden: Option<CanvasSelection>,
-    /// View → Show toolpath (docs/specs/drawing-sources.md §5).
-    pub show_toolpath: bool,
     /// The pictures' textures, for the images they were made from.
     picture_textures: images::PictureTextures,
 }
@@ -437,12 +422,11 @@ impl Default for ChiploadApp {
             context_pick: None,
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).
-            show_simulation: false,
             panels: layout::Panels::default(),
             shape_library: shape_library::ShapeLibraryView::default(),
             sim: Sim::default(),
             playback: None,
-            three_d: false,
+            display: display::Display::default(),
             canvas_tools: canvas_tools::CanvasTools::default(),
             dxf_export: dxf_export::DxfExportChoice::default(),
             focus_text_field: false,
@@ -453,26 +437,20 @@ impl Default for ChiploadApp {
             box_size: box_drag::BoxSize::default(),
             report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),
             drawing_facts: None,
-            legend_open: true,
             prefs: prefs::Prefs::default(),
             updates: crate::updates::Updates::default(),
             text_fonts: text_fonts::TextFonts::default(),
-            all_parts: false,
             recovery: recovery::Recovery::default(),
             status: None,
             cursor: None,
             dialogs: Dialogs::default(),
             title: String::new(),
             allow_close: false,
-            settings_dir: None,
-            library: chipload_pipeline::library::Library::default(),
-            library_state: LibraryState::default(),
+            user: user_library::UserFiles::default(),
             image_dialog: None,
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),
-            show_images: true,
             drawing_hidden: None,
-            show_toolpath: true,
             picture_textures: images::PictureTextures::default(),
         }
     }
@@ -668,7 +646,7 @@ impl ChiploadApp {
         self.dialogs.prompt = None;
         self.reload_library();
         let mut job = self.in_display_units(empty_project());
-        let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
+        let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
         let mut lines = vec![t!(self, "app-new-project")];
@@ -677,7 +655,7 @@ impl ChiploadApp {
                 .iter()
                 .map(|n| t!(self, "app-started-with", what = self.say(n))),
         );
-        lines.extend(self.library.problems.iter().map(|p| self.say(p)));
+        lines.extend(self.user.library.problems.iter().map(|p| self.say(p)));
         lines.push(t!(self, "app-new-project-next"));
         self.set_report(Report::info(lines));
     }
@@ -728,7 +706,7 @@ impl ChiploadApp {
         // The library gives starting values (the default machine and tool).
         self.reload_library();
         let mut job = self.in_display_units(new_project(imported));
-        let notes = chipload_pipeline::library::apply_library(&mut job, &self.library, None)
+        let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
         let mut lines = vec![t!(
@@ -742,7 +720,7 @@ impl ChiploadApp {
                 .iter()
                 .map(|n| t!(self, "app-started-with", what = self.say(n))),
         );
-        lines.extend(self.library.problems.iter().map(|p| self.say(p)));
+        lines.extend(self.user.library.problems.iter().map(|p| self.say(p)));
         lines.push(t!(self, "app-import-next"));
         self.set_report(Report::info(lines));
         true
@@ -2155,7 +2133,7 @@ impl eframe::App for ChiploadApp {
             if self.update_question_shown() {
                 Panel::top("update-question").show(ui, |ui| self.update_bar(ui));
             }
-            if self.edit.is_some() && self.playback.is_some() && self.show_simulation {
+            if self.edit.is_some() && self.playback.is_some() && self.display.simulate {
                 Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
                 self.sync_playback(&ctx);
             }

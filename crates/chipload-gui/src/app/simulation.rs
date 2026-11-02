@@ -43,10 +43,10 @@ impl ChiploadApp {
     /// for coming back; entering it computes one when there is none, and makes a toolpath
     /// first when there is none either.
     pub fn set_show_simulation(&mut self, on: bool) {
-        if on == self.show_simulation {
+        if on == self.display.simulate {
             return;
         }
-        self.show_simulation = on;
+        self.display.simulate = on;
         if let Some(playback) = &mut self.playback {
             playback.shown = None; // redrawn from the history when shown again
         }
@@ -80,7 +80,7 @@ impl ChiploadApp {
     /// Simulate the last generation's program on a worker thread, if switched on.
     pub(super) fn start_simulation(&mut self) {
         self.stop_simulation();
-        if !self.show_simulation {
+        if !self.display.simulate {
             return;
         }
         let (Some(result), Some(job)) = (&self.toolpath.result, &self.toolpath.job) else {
@@ -165,7 +165,7 @@ impl ChiploadApp {
     }
 
     fn finish_simulation(&mut self, ctx: &egui::Context, serial: u64, outcome: Outcome) {
-        if serial != self.sim.serial || !self.show_simulation {
+        if serial != self.sim.serial || !self.display.simulate {
             return; // made for an older toolpath, or switched off meanwhile
         }
         let (sim, history) = match outcome {

@@ -165,24 +165,24 @@ mod library {
         let (mut old, dir) = app_with_library("export");
         let file = dir.join("backup.json");
         assert!(old.export_library(LibraryKind::Tools, &file));
-        assert!(old.library_state.message.is_some());
+        assert!(old.user.library_state.message.is_some());
 
         let mut new = ChiploadApp::default();
         new.set_settings_dir(Some(settings("import-preview")));
         assert!(new.preview_library_import(LibraryKind::Tools, &file));
-        let pending = new.library_state.import.as_ref().unwrap();
+        let pending = new.user.library_state.import.as_ref().unwrap();
         assert!(!pending_differs(pending));
         // Cancel changes nothing; Import adds the tool and its default.
         assert!(!new.finish_library_import(ImportChoice::Cancel));
-        assert!(new.library.tools.tools.is_empty());
+        assert!(new.user.library.tools.tools.is_empty());
         assert!(new.preview_library_import(LibraryKind::Tools, &file));
         assert!(new.finish_library_import(ImportChoice::Keep));
-        assert_eq!(new.library.tools.tools, [upcut()]);
+        assert_eq!(new.user.library.tools.tools, [upcut()]);
         assert_eq!(
-            new.library.tools.default_tool.as_deref(),
+            new.user.library.tools.default_tool.as_deref(),
             Some("3 mm upcut")
         );
-        let (kind, text) = new.library_state.message.clone().unwrap();
+        let (kind, text) = new.user.library_state.message.clone().unwrap();
         assert_eq!(kind, LibraryKind::Tools);
         assert!(text.contains("Added: 3 mm upcut"), "{text}");
 
@@ -199,18 +199,20 @@ mod library {
         )
         .unwrap();
         assert!(new.preview_library_import(LibraryKind::Tools, &other));
-        assert!(pending_differs(new.library_state.import.as_ref().unwrap()));
+        assert!(pending_differs(
+            new.user.library_state.import.as_ref().unwrap()
+        ));
         assert!(new.finish_library_import(ImportChoice::Keep));
-        assert_eq!(new.library.tools.tools, [upcut()]);
+        assert_eq!(new.user.library.tools.tools, [upcut()]);
         assert!(new.preview_library_import(LibraryKind::Tools, &other));
         assert!(new.finish_library_import(ImportChoice::Replace));
-        assert_eq!(new.library.tools.tools, [wider]);
+        assert_eq!(new.user.library.tools.tools, [wider]);
 
         // The wrong kind of file is refused with a hint.
         assert!(!new.preview_library_import(LibraryKind::Machines, &file));
-        let error = new.library_state.error.clone().unwrap();
+        let error = new.user.library_state.error.clone().unwrap();
         assert!(error.contains("import it as tools"), "{error}");
-        assert!(new.library_state.import.is_none());
+        assert!(new.user.library_state.import.is_none());
     }
 
     fn pending_differs(pending: &super::library_transfer::PendingImport) -> bool {
@@ -468,7 +470,7 @@ mod library {
         app.store_library_tool(renamed).unwrap();
         let tools = load_tools(&dir.join("tools.json")).unwrap();
         assert_eq!(tools.default_tool.as_deref(), Some("3 mm"));
-        assert_eq!(app.library.tools.tools[0].name, "3 mm");
+        assert_eq!(app.user.library.tools.tools[0].name, "3 mm");
 
         let err = app
             .store_library_tool(LibraryTool {
@@ -524,7 +526,10 @@ mod library {
         assert_eq!(app.focus, Focus::LibraryTool(library_view::uid_key(&uid)));
         let mut draft = upcut();
         draft.diameter = 3.175;
-        app.library_state.tool_drafts.insert(uid.clone(), draft);
+        app.user
+            .library_state
+            .tool_drafts
+            .insert(uid.clone(), draft);
         // Not written until saved.
         assert_eq!(
             load_tools(&dir.join("tools.json")).unwrap().tools[0].diameter,
@@ -535,14 +540,17 @@ mod library {
             load_tools(&dir.join("tools.json")).unwrap().tools[0].diameter,
             3.175
         );
-        assert!(app.library_state.tool_drafts.is_empty());
+        assert!(app.user.library_state.tool_drafts.is_empty());
         // A new entry is saved at once under a free name, and shown.
         let new = app.new_library_entry(LibraryKind::Tools).unwrap();
-        assert_eq!(app.library.tools.find_uid(&new).unwrap().name, "New tool");
+        assert_eq!(
+            app.user.library.tools.find_uid(&new).unwrap().name,
+            "New tool"
+        );
         assert_eq!(app.focus, Focus::LibraryTool(library_view::uid_key(&new)));
         let new = app.new_library_entry(LibraryKind::Machines).unwrap();
         assert_eq!(
-            app.library.machines.find_uid(&new).unwrap().name,
+            app.user.library.machines.find_uid(&new).unwrap().name,
             "New machine"
         );
     }
@@ -594,8 +602,14 @@ mod library {
             .unwrap()
             .rpm = Some(16000.0);
         assert!(app.save_to_linked(SaveTarget::Tool(id)));
-        assert_eq!(app.library.tools.find_uid(&uid).unwrap().rpm, Some(16000.0));
-        assert_eq!(app.library.tools.find_uid(&uid).unwrap().name, "Upcut 3");
+        assert_eq!(
+            app.user.library.tools.find_uid(&uid).unwrap().rpm,
+            Some(16000.0)
+        );
+        assert_eq!(
+            app.user.library.tools.find_uid(&uid).unwrap().name,
+            "Upcut 3"
+        );
         // Gone from the library.
         app.remove_from_library(LibraryKind::Tools, "Upcut 3")
             .unwrap();

@@ -45,7 +45,7 @@ impl ChiploadApp {
             self.end_tool();
             return;
         }
-        if self.three_d {
+        if self.display.three_d {
             self.view_top(); // measuring works in top view only
         }
         self.set_tool(ActiveTool::Measure(Measure::default()));

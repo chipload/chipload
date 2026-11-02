@@ -76,7 +76,7 @@ impl ChiploadApp {
             self.set_status(t!(self, "copy-paste-copy-first"), STATUS_SECONDS);
             return false;
         }
-        let at = self.cursor.filter(|_| !self.three_d);
+        let at = self.cursor.filter(|_| !self.display.three_d);
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };

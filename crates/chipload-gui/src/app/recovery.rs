@@ -49,7 +49,7 @@ impl ChiploadApp {
     pub(super) fn start_recovery(&mut self) {
         self.recovery.session = None;
         self.recovery.leftovers.clear();
-        let Some(dir) = self.settings_dir.as_deref().map(recovery_dir) else {
+        let Some(dir) = self.user.settings_dir.as_deref().map(recovery_dir) else {
             return;
         };
         self.recovery.leftovers = leftovers(&dir);

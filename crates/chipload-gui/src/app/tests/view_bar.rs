@@ -184,10 +184,10 @@ fn pictures_show_over_the_stock_and_in_3d() {
     assert!(app.apply_image());
     app.sync_pictures(&ctx);
     assert_eq!(app.scene.pictures.len(), 1);
-    app.show_images = false;
+    app.display.images = false;
     app.sync_pictures(&ctx);
     assert!(app.scene.pictures.is_empty());
-    app.show_images = true;
+    app.display.images = true;
     app.sync_pictures(&ctx);
     // Painted in 3D: the picture's mesh is on the canvas.
     app.view_3d();
@@ -201,7 +201,7 @@ fn pictures_show_over_the_stock_and_in_3d() {
         output.shapes.iter().filter(textured).count()
     };
     assert_eq!(meshes(&mut app), 1);
-    app.show_images = false;
+    app.display.images = false;
     app.sync_pictures(&ctx);
     assert_eq!(meshes(&mut app), 0);
 }

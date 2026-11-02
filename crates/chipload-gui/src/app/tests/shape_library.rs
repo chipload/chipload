@@ -26,7 +26,7 @@ fn sign(settings: PathBuf) -> Harness<'static, ChiploadApp> {
         .build_eframe(move |_| {
             let mut app = ChiploadApp::default();
             assert!(app.open(&corpus("jobs/v35/sign_frame.chipload")));
-            app.settings_dir = Some(settings);
+            app.user.settings_dir = Some(settings);
             let all = app
                 .edit
                 .as_ref()

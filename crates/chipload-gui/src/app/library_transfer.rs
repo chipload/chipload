@@ -123,12 +123,12 @@ impl ChiploadApp {
 
     /// Write every entry of the library to `file`; the result shows in the window.
     pub fn export_library(&mut self, kind: LibraryKind, file: &Path) -> bool {
-        self.library_state.error = None;
+        self.user.library_state.error = None;
         self.reload_library();
         let written = match kind {
-            LibraryKind::Tools => export(&self.library.tools, &[])
+            LibraryKind::Tools => export(&self.user.library.tools, &[])
                 .and_then(|out| write_export(&out, file).map(|()| out.tools.len())),
-            LibraryKind::Machines => export(&self.library.machines, &[])
+            LibraryKind::Machines => export(&self.user.library.machines, &[])
                 .and_then(|out| write_export(&out, file).map(|()| out.machines.len())),
         };
         match written {
@@ -152,11 +152,11 @@ impl ChiploadApp {
                         )
                     }
                 };
-                self.library_state.message = Some((kind, text));
+                self.user.library_state.message = Some((kind, text));
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(self.say(&err.message()));
+                self.user.library_state.error = Some(self.say(&err.message()));
                 false
             }
         }
@@ -164,24 +164,24 @@ impl ChiploadApp {
 
     /// Read `file` and keep it waiting with what importing it would do.
     pub fn preview_library_import(&mut self, kind: LibraryKind, file: &Path) -> bool {
-        self.library_state.error = None;
-        self.library_state.message = None;
-        self.library_state.import = None;
+        self.user.library_state.error = None;
+        self.user.library_state.message = None;
+        self.user.library_state.import = None;
         self.reload_library();
         let read = match kind {
             LibraryKind::Tools => read_import::<ToolLibrary>(file).map(|from| {
-                let (plan, lines) = plan_for(&self.library.tools, &from);
+                let (plan, lines) = plan_for(&self.user.library.tools, &from);
                 (ImportFile::Tools(from), plan, lines)
             }),
             LibraryKind::Machines => read_import::<MachineLibrary>(file).map(|from| {
-                let (plan, mut lines) = plan_for(&self.library.machines, &from);
-                lines.extend(unknown_posts(&from, self.library.posts.as_deref()));
+                let (plan, mut lines) = plan_for(&self.user.library.machines, &from);
+                lines.extend(unknown_posts(&from, self.user.library.posts.as_deref()));
                 (ImportFile::Machines(from), plan, lines)
             }),
         };
         match read {
             Ok((entries, plan, lines)) => {
-                self.library_state.import = Some(PendingImport {
+                self.user.library_state.import = Some(PendingImport {
                     kind,
                     file: file.to_path_buf(),
                     entries,
@@ -191,7 +191,7 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(self.say(&err.message()));
+                self.user.library_state.error = Some(self.say(&err.message()));
                 false
             }
         }
@@ -199,7 +199,7 @@ impl ChiploadApp {
 
     /// Import the waiting file (`Keep` or `Replace`), or drop it (`Cancel`).
     pub(super) fn finish_library_import(&mut self, choice: ImportChoice) -> bool {
-        let Some(pending) = self.library_state.import.take() else {
+        let Some(pending) = self.user.library_state.import.take() else {
             return false;
         };
         let replace = match choice {
@@ -207,8 +207,8 @@ impl ChiploadApp {
             ImportChoice::Keep => false,
             ImportChoice::Replace => true,
         };
-        let Some(dir) = self.settings_dir.clone() else {
-            self.library_state.error = Some(t!(self, "library-transfer-no-settings-folder"));
+        let Some(dir) = self.user.settings_dir.clone() else {
+            self.user.library_state.error = Some(t!(self, "library-transfer-no-settings-folder"));
             return false;
         };
         let done = match &pending.entries {
@@ -229,11 +229,11 @@ impl ChiploadApp {
                     .iter()
                     .map(|line| self.say(line))
                     .collect();
-                self.library_state.message = Some((pending.kind, lines.join("\n")));
+                self.user.library_state.message = Some((pending.kind, lines.join("\n")));
                 true
             }
             Err(err) => {
-                self.library_state.error = Some(self.say(&err.message()));
+                self.user.library_state.error = Some(self.say(&err.message()));
                 false
             }
         }

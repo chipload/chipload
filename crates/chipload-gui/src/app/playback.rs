@@ -325,9 +325,9 @@ impl ChiploadApp {
     pub fn screenshot_setup(&mut self, ctx: &egui::Context, steps: &str) {
         let steps: Vec<&str> = steps.split(',').map(str::trim).collect();
         // The legend would cover part of the canvas.
-        self.legend_open = false;
+        self.display.legend_open = false;
         // Only the shots that ask for it show the simulation (it is on at start).
-        self.show_simulation = steps.contains(&"simulation");
+        self.display.simulate = steps.contains(&"simulation");
         // The second setup active, its form open (docs/specs/setups.md §7).
         if steps.contains(&"setup2") {
             self.activate_setup(2);
@@ -354,7 +354,7 @@ impl ChiploadApp {
             }
         }
         if steps.contains(&"notoolpath") {
-            self.show_toolpath = false;
+            self.display.toolpath = false;
         }
         // The first pocket's first rest pass open (docs/specs/rest-passes.md).
         if steps.contains(&"pass") {
@@ -370,7 +370,7 @@ impl ChiploadApp {
         }
         // The pictures under traced shapes left out, so the cut shows (the README's picture).
         if steps.contains(&"noimages") {
-            self.show_images = false;
+            self.display.images = false;
         }
         let dxfs: Vec<u64> = self
             .edit
@@ -438,7 +438,7 @@ impl ChiploadApp {
         // The first library tool, with the project's tool linked to it
         // (docs/specs/library-in-browser.md).
         if steps.contains(&"library")
-            && let Some(uid) = self.library.tools.tools.first().map(|t| t.uid.clone())
+            && let Some(uid) = self.user.library.tools.tools.first().map(|t| t.uid.clone())
         {
             self.add_library_tool_uid(&uid);
             self.show_library(user_library::LibraryKind::Tools, Some(&uid));
@@ -450,6 +450,7 @@ impl ChiploadApp {
         // (docs/specs/linked-machine.md).
         if steps.contains(&"machine")
             && let Some(name) = self
+                .user
                 .library
                 .machines
                 .machines
@@ -712,7 +713,7 @@ impl ChiploadApp {
     fn screenshot_shape_library(&mut self) {
         use chipload_pipeline::frames::{FrameKind, FrameSize, NewFrame, add_frame};
         use chipload_pipeline::shape_library::{entry_from, save, shapes_dir};
-        let (Some(dir), Some(edit)) = (self.settings_dir.clone(), self.edit.as_ref()) else {
+        let (Some(dir), Some(edit)) = (self.user.settings_dir.clone(), self.edit.as_ref()) else {
             return;
         };
         let dir = shapes_dir(&dir);

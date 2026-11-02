@@ -120,7 +120,7 @@ impl ChiploadApp {
         // A text just placed: its text field takes the keyboard, once.
         let grab = std::mem::take(&mut self.focus_text_field);
         let contours = &self.contours;
-        let library = self.settings_dir.as_ref().map(|_| &self.library);
+        let library = self.user.settings_dir.as_ref().map(|_| &self.user.library);
         let mut op_request = OpFormRequest::default();
         let mut request = None;
         // The library's materials, each with its values for the open operation's tool.

@@ -12,8 +12,8 @@ const SIMULATE_FRAME: f32 = 3.0;
 impl ChiploadApp {
     /// Switch to the 3D view, starting from a three-quarter view (docs/specs/3d-view.md).
     pub fn view_3d(&mut self) {
-        if !self.three_d {
-            self.three_d = true;
+        if !self.display.three_d {
+            self.display.three_d = true;
             // Every canvas tool works in top view only.
             self.end_tool();
             let pivot = self.orbit_pivot();
@@ -24,7 +24,7 @@ impl ChiploadApp {
 
     /// Back to looking straight down, as the 2D view always did.
     pub fn view_top(&mut self) {
-        self.three_d = false;
+        self.display.three_d = false;
         let pivot = self.orbit_pivot();
         self.view.orient(0.0, 0.0, pivot);
     }
@@ -58,7 +58,7 @@ impl ChiploadApp {
 
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
         self.keep_drawing_in_view();
-        self.scene.hide_toolpath = !self.show_toolpath;
+        self.scene.hide_toolpath = !self.display.toolpath;
         self.scene.hide_drawing = !self.show_drawing();
         self.scene.grid = self.prefs.show_grid;
         self.scene.inch_grid = self.prefs.units == chipload_job::Units::Inch;
@@ -107,7 +107,7 @@ impl ChiploadApp {
         });
         self.update_corner_markers();
         // Simulate is a viewer: no handles to drag (docs/specs/edit-and-simulate.md §2).
-        let editing = !self.show_simulation;
+        let editing = !self.display.simulate;
         let shape_handles = if editing && self.show_drawing() {
             self.shape_handles()
         } else {
@@ -262,7 +262,7 @@ impl ChiploadApp {
             // In 3D, left-drag orbits; right-drag or Shift+drag pans. In top view a drag
             // that doesn't select or move pans: right, middle, Space + left, or any drag
             // while a tool is active.
-            let pan = !self.three_d
+            let pan = !self.display.three_d
                 || response.dragged_by(egui::PointerButton::Secondary)
                 || response.dragged_by(egui::PointerButton::Middle)
                 || shift
@@ -641,7 +641,7 @@ impl ChiploadApp {
         self.corner_menu(ui);
         self.canvas_overlays(ui, rect);
         // Simulate frames the canvas in the accent colour (edit-and-simulate.md decision 10).
-        if self.show_simulation {
+        if self.display.simulate {
             let stroke = egui::Stroke::new(SIMULATE_FRAME, ui.visuals().selection.bg_fill);
             painter.rect_stroke(rect, 0.0, stroke, egui::StrokeKind::Inside);
         }
@@ -689,7 +689,7 @@ impl ChiploadApp {
                     });
                 });
             });
-        } else if self.simulating() && self.show_simulation {
+        } else if self.simulating() && self.display.simulate {
             // The toolpath is current, but the simulated stock still shows the last one
             // until its worker is done (user report 2026-10-17: it looked finished).
             let top = egui::UiBuilder::new()
@@ -707,7 +707,11 @@ impl ChiploadApp {
         let items = crate::view::legend(&self.scene, ui);
         // Anchored at the bottom: placed by its height last frame (estimated on the first).
         let size_id = egui::Id::new("legend-height");
-        let rows = if self.legend_open { items.len() } else { 0 };
+        let rows = if self.display.legend_open {
+            items.len()
+        } else {
+            0
+        };
         let estimate = 30.0 + 15.0 * rows as f32;
         let height = ui.data(|d| d.get_temp::<f32>(size_id)).unwrap_or(estimate);
         // Standing on the navigation bar when there's no room for the bar beside it.
@@ -742,7 +746,11 @@ impl ChiploadApp {
     /// The legend's title (it folds) and its entries.
     fn legend_ui(&mut self, ui: &mut egui::Ui, items: Vec<(crate::view::Swatch, String)>) {
         ui.spacing_mut().item_spacing.y = 1.0;
-        let arrow = if self.legend_open { "▾" } else { "▸" };
+        let arrow = if self.display.legend_open {
+            "▾"
+        } else {
+            "▸"
+        };
         if ui
             .selectable_label(
                 false,
@@ -751,14 +759,14 @@ impl ChiploadApp {
             .on_hover_text(t!(ui, "canvas-legend-hover"))
             .clicked()
         {
-            self.legend_open = !self.legend_open;
+            self.display.legend_open = !self.display.legend_open;
         }
-        if !self.legend_open {
+        if !self.display.legend_open {
             return;
         }
         if self.scene.toolpath.is_some() {
             let label = t!(ui, "canvas-show-toolpath");
-            ui.checkbox(&mut self.show_toolpath, RichText::new(label).small())
+            ui.checkbox(&mut self.display.toolpath, RichText::new(label).small())
                 .on_hover_text(t!(ui, "canvas-show-toolpath-hover"));
         }
         for (swatch, text) in items {
@@ -775,7 +783,7 @@ impl ChiploadApp {
 
     /// Handles of the selected shape: one drawn shape, in top view, not while drawing.
     pub(super) fn shape_handles(&self) -> Vec<(Handle, Point)> {
-        if self.three_d || self.sketch().is_some() || !self.can_draw() {
+        if self.display.three_d || self.sketch().is_some() || !self.can_draw() {
             return Vec::new();
         }
         let Some(shape) = self.selected_shape().and_then(|id| self.shape(id)) else {
@@ -868,7 +876,7 @@ impl ChiploadApp {
     /// The lengths of the selected drawn shape, laid out where they show: in top view, with
     /// nothing being drawn or measured. None while its length is being typed.
     fn dimension_labels(&self, ui: &egui::Ui, painter: &egui::Painter) -> Vec<DimensionLabel> {
-        if self.three_d
+        if self.display.three_d
             || self.sketch().is_some()
             || self.measure().is_some()
             || !self.show_drawing()
@@ -1139,7 +1147,7 @@ impl ChiploadApp {
         let Focus::Op(operation) = self.focus else {
             return None;
         };
-        if self.three_d || self.sketch().is_some() || self.scene.hide_toolpath {
+        if self.display.three_d || self.sketch().is_some() || self.scene.hide_toolpath {
             return None;
         }
         self.scene

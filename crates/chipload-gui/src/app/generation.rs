@@ -86,7 +86,7 @@ impl ChiploadApp {
         let active = settings.active_part_id()?;
         let on = settings.part(active).is_some_and(in_setup);
         let has_operations = edit.job.operations.iter().any(|e| e.part() == active);
-        (!self.all_parts && cut > 1 && on && has_operations).then_some(active)
+        (!self.display.all_parts && cut > 1 && on && has_operations).then_some(active)
     }
 
     /// As `start_generation`; `whole` plans every part whatever the preview shows (for an
@@ -430,7 +430,7 @@ impl ChiploadApp {
     /// "All parts" on the canvas bar: the preview shows every part, or only the active one;
     /// planned again at once.
     pub fn set_all_parts(&mut self, on: bool) {
-        self.all_parts = on;
+        self.display.all_parts = on;
         if self.edit.is_some() && (self.toolpath.result.is_some() || self.prefs.auto_generate) {
             self.start_generation(false);
         }

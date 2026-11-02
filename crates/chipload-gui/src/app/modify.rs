@@ -124,7 +124,7 @@ impl ChiploadApp {
             }
             _ => {}
         }
-        if self.three_d {
+        if self.display.three_d {
             self.view_top();
         }
         self.set_tool(ActiveTool::Modify(tool));

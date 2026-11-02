@@ -37,7 +37,7 @@ impl ChiploadApp {
         self.commit();
         self.reload_library();
         let material = match uid {
-            Some(uid) => match self.library.materials.find_uid(uid) {
+            Some(uid) => match self.user.library.materials.find_uid(uid) {
                 Some(m) => Some(m.clone()),
                 None => return false,
             },
@@ -71,7 +71,7 @@ impl ChiploadApp {
     pub fn save_op_to_material(&mut self, i: usize) -> bool {
         self.commit();
         self.reload_library();
-        let Some(dir) = self.settings_dir.clone() else {
+        let Some(dir) = self.user.settings_dir.clone() else {
             return false;
         };
         let Some(edit) = &self.edit else {
@@ -96,7 +96,7 @@ impl ChiploadApp {
         else {
             return false;
         };
-        let tools = self.library.tools.clone();
+        let tools = self.user.library.tools.clone();
         let saved = update_library(&materials_path(&dir), |library: &mut MaterialLibrary| {
             let material = library
                 .materials
@@ -125,7 +125,7 @@ impl ChiploadApp {
 
     /// The Materials folder of the library in the Browser, and its materials.
     pub(super) fn library_material_rows(&mut self, ui: &mut egui::Ui) {
-        let materials = self.library.materials.materials.clone();
+        let materials = self.user.library.materials.materials.clone();
         let mut act = None;
         let id = Id::new(FOLDER);
         let open_id = id.with("folder-open");
@@ -156,13 +156,16 @@ impl ChiploadApp {
                 .map(|m| m.library_uid.clone());
             for material in &materials {
                 let mut note = t!(ui, "materials-tool-count", count = material.tools.len());
-                if self.library.materials.default_entry().map(|m| &m.uid) == Some(&material.uid) {
+                if self.user.library.materials.default_entry().map(|m| &m.uid)
+                    == Some(&material.uid)
+                {
                     note = format!("{note} · {}", t!(ui, "library-view-note-default"));
                 }
                 if chosen.as_deref() == Some(material.uid.as_str()) {
                     note = format!("{note} · {}", t!(ui, "materials-note-in-project"));
                 }
                 if self
+                    .user
                     .library_state
                     .material_drafts
                     .contains_key(&material.uid)
@@ -219,12 +222,12 @@ impl ChiploadApp {
 
     fn materials_folder_form(&self, ui: &mut egui::Ui, act: &mut Option<MaterialAct>) {
         title_line(ui, Icon::Material, None, &t!(ui, "materials-folder"));
-        let path = self.settings_dir.as_deref().map(materials_path);
-        library_header(ui, path.as_deref(), &self.library.problems);
+        let path = self.user.settings_dir.as_deref().map(materials_path);
+        library_header(ui, path.as_deref(), &self.user.library.problems);
         ui.label(t!(
             ui,
             "materials-count",
-            count = self.library.materials.materials.len()
+            count = self.user.library.materials.materials.len()
         ));
         ui.weak(t!(ui, "materials-about"));
         ui.add_space(4.0);
@@ -237,12 +240,13 @@ impl ChiploadApp {
     }
 
     fn material_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<MaterialAct>) {
-        let Some(stored) = self.library.materials.find_uid(uid).cloned() else {
+        let Some(stored) = self.user.library.materials.find_uid(uid).cloned() else {
             title_line(ui, Icon::Material, None, &t!(ui, "materials-folder"));
             ui.weak(t!(ui, "materials-gone"));
             return;
         };
         let mut draft = self
+            .user
             .library_state
             .material_drafts
             .get(uid)
@@ -251,7 +255,7 @@ impl ChiploadApp {
         title_line(ui, Icon::Material, None, &stored.name);
         ui.weak(t!(ui, "materials-entry-about"));
         ui.add_space(4.0);
-        let tools = self.library.tools.clone();
+        let tools = self.user.library.tools.clone();
         egui::Grid::new("material-form")
             .num_columns(2)
             .show(ui, |ui| {
@@ -332,11 +336,12 @@ impl ChiploadApp {
         ui.add_space(4.0);
         let changed = draft != stored;
         if changed {
-            self.library_state
+            self.user
+                .library_state
                 .material_drafts
                 .insert(uid.to_string(), draft);
         } else {
-            self.library_state.material_drafts.remove(uid);
+            self.user.library_state.material_drafts.remove(uid);
         }
         ui.horizontal_wrapped(|ui| {
             if ui
@@ -370,6 +375,7 @@ impl ChiploadApp {
                 *act = Some(MaterialAct::UseInProject(uid.to_string()));
             }
             let is_default = self
+                .user
                 .library
                 .materials
                 .default_entry()
@@ -393,13 +399,13 @@ impl ChiploadApp {
                 *act = Some(MaterialAct::Delete(uid.to_string()));
             }
         });
-        if let Some(error) = &self.library_state.error {
+        if let Some(error) = &self.user.library_state.error {
             ui.colored_label(ui.visuals().error_fg_color, error);
         }
     }
 
     fn material_act(&mut self, act: MaterialAct) {
-        self.library_state.error = None;
+        self.user.library_state.error = None;
         match act {
             MaterialAct::Focus(focus) => {
                 self.reload_library();
@@ -414,10 +420,11 @@ impl ChiploadApp {
                 self.save_material_draft(&uid);
             }
             MaterialAct::Revert(uid) => {
-                self.library_state.material_drafts.remove(&uid);
+                self.user.library_state.material_drafts.remove(&uid);
             }
             MaterialAct::Delete(uid) => {
                 let name = self
+                    .user
                     .library
                     .materials
                     .find_uid(&uid)
@@ -427,7 +434,7 @@ impl ChiploadApp {
                     .change_materials(|library| library.remove(&name).map(|_| ()))
                     .is_ok()
                 {
-                    self.library_state.material_drafts.remove(&uid);
+                    self.user.library_state.material_drafts.remove(&uid);
                     self.focus = Focus::LibraryMaterials;
                     let status = t!(self, "library-view-deleted", name = name);
                     self.set_status(status, STATUS_SECONDS);
@@ -446,7 +453,7 @@ impl ChiploadApp {
     pub fn new_material(&mut self) -> Option<String> {
         self.reload_library();
         let base = t!(self, "materials-new-name");
-        let name = unique_name(&base, |n| self.library.materials.find(n).is_some());
+        let name = unique_name(&base, |n| self.user.library.materials.find(n).is_some());
         self.change_materials(|library| library.add(&name).map(|m| m.uid.clone()))
             .ok()
     }
@@ -459,6 +466,7 @@ impl ChiploadApp {
         };
         let values = edit.job.operations.get(i).and_then(|e| {
             let material = self
+                .user
                 .library
                 .materials
                 .find_uid(&e.material()?.library_uid)?;
@@ -472,7 +480,13 @@ impl ChiploadApp {
     /// Make material `uid` the one new projects start with
     /// (docs/specs/job-settings-layout.md §3).
     pub fn make_default_material(&mut self, uid: &str) -> bool {
-        let Some(name) = self.library.materials.find_uid(uid).map(|m| m.name.clone()) else {
+        let Some(name) = self
+            .user
+            .library
+            .materials
+            .find_uid(uid)
+            .map(|m| m.name.clone())
+        else {
             return false;
         };
         self.change_materials(|library| {
@@ -484,7 +498,7 @@ impl ChiploadApp {
 
     /// Write the draft of material `uid` into the library file.
     pub fn save_material_draft(&mut self, uid: &str) -> bool {
-        let Some(mut draft) = self.library_state.material_drafts.get(uid).cloned() else {
+        let Some(mut draft) = self.user.library_state.material_drafts.get(uid).cloned() else {
             return false;
         };
         draft.name = draft.name.trim().to_string();
@@ -510,7 +524,7 @@ impl ChiploadApp {
             Ok(())
         });
         if saved.is_ok() {
-            self.library_state.material_drafts.remove(uid);
+            self.user.library_state.material_drafts.remove(uid);
             let status = t!(self, "library-view-saved");
             self.set_status(status, STATUS_SECONDS);
         }
@@ -522,13 +536,13 @@ impl ChiploadApp {
         &mut self,
         change: impl FnOnce(&mut MaterialLibrary) -> Result<T, LibraryError>,
     ) -> Result<T, ()> {
-        let Some(dir) = self.settings_dir.clone() else {
+        let Some(dir) = self.user.settings_dir.clone() else {
             return Err(());
         };
         let result = update_library(&materials_path(&dir), change);
         self.reload_library();
         result.map_err(|e| {
-            self.library_state.error = Some(self.say(&e.message()));
+            self.user.library_state.error = Some(self.say(&e.message()));
         })
     }
 }

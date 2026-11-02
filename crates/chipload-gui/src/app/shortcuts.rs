@@ -390,7 +390,7 @@ impl ChiploadApp {
             Action::Fit => self.fit_pending = true,
             Action::TopView => self.view_top(),
             Action::Grid => self.set_show_grid(!self.prefs.show_grid),
-            Action::Simulate => self.set_show_simulation(!self.show_simulation),
+            Action::Simulate => self.set_show_simulation(!self.display.simulate),
             Action::Measure => self.toggle_measure(),
             Action::Panels => self.toggle_panels(),
             Action::DrawPolyline => self.start_drawing(Tool::Polyline),

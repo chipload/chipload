@@ -20,7 +20,7 @@ impl ChiploadApp {
             .into_iter()
             .map(|name| (name.to_string(), true, None))
             .collect();
-        list.extend(self.library.user_posts.iter().map(|(name, read)| {
+        list.extend(self.user.library.user_posts.iter().map(|(name, read)| {
             let problem = read.as_ref().err().map(|why| self.say(why));
             (name.clone(), false, problem)
         }));
@@ -29,7 +29,8 @@ impl ChiploadApp {
 
     /// How many of your posts can't be used.
     pub(super) fn post_problems(&self) -> usize {
-        self.library
+        self.user
+            .library
             .user_posts
             .iter()
             .filter(|(_, read)| read.is_err())
@@ -104,7 +105,7 @@ impl ChiploadApp {
             .spacing([12.0, 6.0])
             .show(ui, |ui| {
                 ui.label(t!(ui, "computer-settings-folder"));
-                match &self.settings_dir {
+                match &self.user.settings_dir {
                     Some(dir) => ui.label(dir.display().to_string()),
                     None => ui.colored_label(
                         ui.visuals().warn_fg_color,
@@ -174,14 +175,14 @@ impl ChiploadApp {
     pub(super) fn posts_form(&mut self, ui: &mut egui::Ui) {
         let title = t!(ui, "computer-posts");
         title_line(ui, Icon::Export, None, &title);
-        let yours = self.library.user_posts.len();
+        let yours = self.user.library.user_posts.len();
         ui.label(t!(
             ui,
             "computer-posts-count",
             builtin = builtin_posts().len(),
             yours = yours
         ));
-        match &self.library.posts {
+        match &self.user.library.posts {
             Some(dir) => {
                 ui.label(t!(
                     ui,
@@ -217,17 +218,19 @@ impl ChiploadApp {
         title_line(ui, Icon::Export, None, &name);
         // Read once per post shown (a user post is two files), and again after a reload.
         let cached = self
+            .user
             .library_state
             .post_facts
             .as_ref()
             .is_some_and(|(n, _)| *n == name);
         if !cached {
-            let facts = post_fact_messages(&name, self.library.posts.as_deref())
+            let facts = post_fact_messages(&name, self.user.library.posts.as_deref())
                 .map(|lines| lines.iter().map(|line| self.say(line)).collect())
                 .map_err(|e| self.say(&e.message()));
-            self.library_state.post_facts = Some((name.clone(), facts));
+            self.user.library_state.post_facts = Some((name.clone(), facts));
         }
         let facts = self
+            .user
             .library_state
             .post_facts
             .as_ref()

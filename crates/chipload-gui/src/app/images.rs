@@ -538,7 +538,7 @@ impl ChiploadApp {
             }
             self.picture_textures = PictureTextures { keys, layers };
         }
-        self.scene.pictures = if self.show_images {
+        self.scene.pictures = if self.display.images {
             self.picture_textures
                 .layers
                 .iter()

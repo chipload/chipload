@@ -429,7 +429,7 @@ impl ChiploadApp {
         {
             self.set_show_rulers(rulers);
         }
-        ui.checkbox(&mut self.legend_open, t!(ui, "menu-show-legend"));
+        ui.checkbox(&mut self.display.legend_open, t!(ui, "menu-show-legend"));
         ui.checkbox(&mut self.panels.browser_open, t!(ui, "menu-show-browser"));
         ui.checkbox(
             &mut self.panels.properties_open,
@@ -457,13 +457,13 @@ impl ChiploadApp {
         {
             self.set_auto_generate(auto);
         }
-        ui.checkbox(&mut self.show_toolpath, t!(ui, "menu-show-toolpath"))
+        ui.checkbox(&mut self.display.toolpath, t!(ui, "menu-show-toolpath"))
             .on_hover_text(t!(ui, "menu-show-toolpath-hover"));
         // Edit always shows the drawing (docs/specs/edit-and-simulate.md §2).
         let mut drawing = self.show_drawing();
         if ui
             .add_enabled(
-                self.show_simulation,
+                self.display.simulate,
                 egui::Checkbox::new(&mut drawing, t!(ui, "menu-show-drawing")),
             )
             .on_hover_text(t!(ui, "menu-show-drawing-hover"))
@@ -471,9 +471,9 @@ impl ChiploadApp {
         {
             self.set_show_drawing(drawing);
         }
-        ui.checkbox(&mut self.show_images, t!(ui, "menu-show-images"))
+        ui.checkbox(&mut self.display.images, t!(ui, "menu-show-images"))
             .on_hover_text(t!(ui, "menu-show-images-hover"));
-        let mut sim = self.show_simulation;
+        let mut sim = self.display.simulate;
         if ui
             .checkbox(
                 &mut sim,
@@ -909,7 +909,7 @@ impl ChiploadApp {
             }
         } else if self.polyline_selected() {
             ui.label(RichText::new(crate::shape_form::polyline_help(ui)).weak());
-        } else if self.edit.is_some() && self.show_simulation {
+        } else if self.edit.is_some() && self.display.simulate {
             ui.label(RichText::new(t!(ui, "menu-status-simulate-hint")).weak());
         } else if self.edit.is_some() {
             ui.label(RichText::new(t!(ui, "menu-status-hint")).weak());

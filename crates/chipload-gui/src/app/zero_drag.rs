@@ -41,8 +41,8 @@ impl ChiploadApp {
     /// Where the zero's handle is: in top view, while nothing is drawn, edited, measured or
     /// placed.
     pub(super) fn zero_handle(&self) -> Option<Point> {
-        if self.three_d
-            || self.show_simulation
+        if self.display.three_d
+            || self.display.simulate
             || self.sketch().is_some()
             || self.modify().is_some()
             || self.measure().is_some()

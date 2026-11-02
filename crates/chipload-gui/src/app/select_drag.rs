@@ -26,8 +26,8 @@ impl ChiploadApp {
     /// Whether a left drag selects or moves rather than pans: Edit mode, top view, a
     /// project with its drawing shown, no tool active.
     pub(super) fn drag_selects(&self) -> bool {
-        !self.show_simulation
-            && !self.three_d
+        !self.display.simulate
+            && !self.display.three_d
             && self.sketch().is_none()
             && self.measure().is_none()
             && self.modify().is_none()

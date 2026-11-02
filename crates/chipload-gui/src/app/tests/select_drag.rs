@@ -135,11 +135,11 @@ mod modes {
     #[test]
     fn simulate_is_a_viewer_and_edit_selects_with_a_box_again() {
         let mut h = harness();
-        assert!(!h.state().show_simulation, "projects open in Edit");
+        assert!(!h.state().display.simulate, "projects open in Edit");
         // F6: Simulate, which makes the toolpath and its simulation.
         h.key_press(egui::Key::F6);
         h.run_steps(2);
-        assert!(h.state().show_simulation);
+        assert!(h.state().display.simulate);
         assert!(h.state_mut().wait_for_generation() || h.state().toolpath.result.is_some());
         let ctx = egui::Context::default();
         h.state_mut().wait_for_simulation(&ctx);
@@ -153,7 +153,7 @@ mod modes {
         // F6 again: Edit, where the same drag selects with a box (the user's report).
         h.key_press(egui::Key::F6);
         h.run_steps(2);
-        assert!(!h.state().show_simulation);
+        assert!(!h.state().display.simulate);
         h.state_mut().fit_pending = true;
         h.run_steps(3);
         drag(&mut h, (40.0, 40.0), (160.0, 120.0));
@@ -168,7 +168,7 @@ mod modes {
         let mut h = harness();
         h.get_by_label("Simulate").click();
         h.run_steps(2);
-        assert!(h.state().show_simulation);
+        assert!(h.state().display.simulate);
         // While it simulates the button reads "Simulate…": wait until it is done.
         assert!(h.state_mut().wait_for_generation() || h.state().toolpath.result.is_some());
         let ctx = egui::Context::default();
@@ -177,15 +177,15 @@ mod modes {
         h.get_by_label("Simulate").click();
         h.run_steps(2);
         assert!(
-            h.state().show_simulation,
+            h.state().display.simulate,
             "Simulate's own half keeps Simulate"
         );
         h.get_by_label("Edit").click();
         h.run_steps(2);
-        assert!(!h.state().show_simulation);
+        assert!(!h.state().display.simulate);
         h.get_by_label("Edit").click();
         h.run_steps(2);
-        assert!(!h.state().show_simulation, "Edit's own half keeps Edit");
+        assert!(!h.state().display.simulate, "Edit's own half keeps Edit");
     }
 
     #[test]
@@ -193,12 +193,12 @@ mod modes {
         let mut app = drawn_part();
         app.set_show_simulation(true);
         app.start_drawing(Tool::Circle);
-        assert!(!app.show_simulation);
+        assert!(!app.display.simulate);
         app.end_tool();
         app.set_show_simulation(true);
         app.set_show_drawing(false);
         app.select_row(CanvasSelection::Layer("drawn".into(), None), false);
-        assert!(!app.show_simulation);
+        assert!(!app.display.simulate);
         assert!(app.show_drawing(), "Edit always shows the drawing");
     }
 }

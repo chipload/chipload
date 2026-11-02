@@ -493,10 +493,11 @@ pub(super) fn machine_summary(m: &MachineProfile, units: chipload_job::Units) ->
 impl ChiploadApp {
     /// Where the library is kept (None in tests and without a home folder), and read it.
     pub fn set_settings_dir(&mut self, dir: Option<PathBuf>) {
-        self.settings_dir = dir;
-        self.text_fonts = super::text_fonts::TextFonts::new(self.settings_dir.as_deref());
+        self.user.settings_dir = dir;
+        self.text_fonts = super::text_fonts::TextFonts::new(self.user.settings_dir.as_deref());
         self.reload_library();
         let settings = self
+            .user
             .settings_dir
             .as_deref()
             .map(chipload_pipeline::library::settings_path)
@@ -565,7 +566,7 @@ impl ChiploadApp {
     }
 
     pub(super) fn change_settings(&mut self, change: impl FnOnce(&mut AppSettings)) {
-        let Some(dir) = self.settings_dir.clone() else {
+        let Some(dir) = self.user.settings_dir.clone() else {
             return;
         };
         let path = chipload_pipeline::library::settings_path(&dir);
@@ -602,8 +603,9 @@ impl ChiploadApp {
 
     /// Read the library again (it may have been changed by the CLI or another window).
     pub(super) fn reload_library(&mut self) {
-        self.library_state.post_facts = None;
-        self.library = self
+        self.user.library_state.post_facts = None;
+        self.user.library = self
+            .user
             .settings_dir
             .as_deref()
             .map(Library::load)
@@ -612,7 +614,7 @@ impl ChiploadApp {
 
     /// The library, if there is a settings folder.
     pub(super) fn library(&self) -> Option<&Library> {
-        self.settings_dir.as_ref().map(|_| &self.library)
+        self.user.settings_dir.as_ref().map(|_| &self.user.library)
     }
 
     /// A project tool's cutting values from the library: only when the tool came from the
@@ -669,7 +671,7 @@ impl ChiploadApp {
     /// in Properties (docs/specs/library-in-browser.md §6).
     pub fn show_library(&mut self, kind: LibraryKind, uid: Option<&str>) {
         self.reload_library();
-        self.library_state.reveal = Some(kind);
+        self.user.library_state.reveal = Some(kind);
         self.focus = match (kind, uid) {
             (LibraryKind::Tools, None) => Focus::LibraryTools,
             (LibraryKind::Machines, None) => Focus::LibraryMachines,
@@ -682,7 +684,7 @@ impl ChiploadApp {
     /// in (docs/specs/user-posts.md §6). One undo step.
     pub fn choose_project_post(&mut self, name: &str) -> bool {
         self.reload_library();
-        let posts = self.library.posts.clone();
+        let posts = self.user.library.posts.clone();
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
@@ -703,7 +705,7 @@ impl ChiploadApp {
     /// zero and max overcut (docs/specs/linked-machine.md §2; one undo step).
     pub fn use_machine_profile(&mut self, name: &str) -> bool {
         self.reload_library();
-        let Some(profile) = self.library.machines.find(name).cloned() else {
+        let Some(profile) = self.user.library.machines.find(name).cloned() else {
             self.error(vec![t!(
                 self,
                 "user-library-no-machine-profile",
@@ -717,7 +719,7 @@ impl ChiploadApp {
         let mut changes = profile.update_machine_values(&mut edit.job);
         changes.extend(chipload_pipeline::library::copy_profile_post(
             &mut edit.job,
-            self.library.posts.as_deref(),
+            self.user.library.posts.as_deref(),
         ));
         self.commit();
         let what = t!(
@@ -736,7 +738,7 @@ impl ChiploadApp {
         self.reload_library();
         let profile = self.edit.as_ref().and_then(|e| {
             let uid = e.job.machine.library_uid.as_deref()?;
-            self.library.machines.find_uid(uid).cloned()
+            self.user.library.machines.find_uid(uid).cloned()
         });
         let Some(profile) = profile else {
             return false;
@@ -747,7 +749,7 @@ impl ChiploadApp {
         let mut changes = profile.update_machine_values(&mut edit.job);
         changes.extend(chipload_pipeline::library::copy_profile_post(
             &mut edit.job,
-            self.library.posts.as_deref(),
+            self.user.library.posts.as_deref(),
         ));
         self.commit();
         let what = t!(
@@ -763,7 +765,7 @@ impl ChiploadApp {
     /// that use it still do (one undo step).
     pub fn use_library_tool(&mut self, id: i64, name: &str) -> bool {
         self.reload_library();
-        let Some(entry) = self.library.tools.find(name).cloned() else {
+        let Some(entry) = self.user.library.tools.find(name).cloned() else {
             self.error(vec![t!(self, "user-library-no-library-tool", name = name)]);
             return false;
         };
@@ -815,7 +817,7 @@ impl ChiploadApp {
 
     pub(super) fn insert_library_tool(&mut self, name: &str) -> Option<i64> {
         self.reload_library();
-        let Some(entry) = self.library.tools.find(name).cloned() else {
+        let Some(entry) = self.user.library.tools.find(name).cloned() else {
             self.error(vec![t!(self, "user-library-no-library-tool", name = name)]);
             return None;
         };
@@ -882,7 +884,7 @@ impl ChiploadApp {
     }
 
     fn save_values(&mut self, target: SaveTarget, pick: Pick) -> bool {
-        let (Some(dir), Some(edit)) = (self.settings_dir.clone(), self.edit.as_ref()) else {
+        let (Some(dir), Some(edit)) = (self.user.settings_dir.clone(), self.edit.as_ref()) else {
             return false;
         };
         let settings = edit.job.clone();
@@ -979,14 +981,19 @@ impl ChiploadApp {
         let (title, taken) = match target.kind() {
             LibraryKind::Machines => (
                 t!(ctx, "user-library-save-machine-title"),
-                self.library
+                self.user
+                    .library
                     .machines
                     .find(text.trim())
                     .map(|m| m.name.clone()),
             ),
             LibraryKind::Tools => (
                 t!(ctx, "user-library-save-tool-title"),
-                self.library.tools.find(text.trim()).map(|t| t.name.clone()),
+                self.user
+                    .library
+                    .tools
+                    .find(text.trim())
+                    .map(|t| t.name.clone()),
             ),
         };
         let mut done = false;
@@ -1031,6 +1038,7 @@ impl ChiploadApp {
     /// added. A name another tool has is refused.
     pub fn store_library_tool(&mut self, entry: LibraryTool) -> Result<(), String> {
         let dir = self
+            .user
             .settings_dir
             .clone()
             .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
@@ -1069,6 +1077,7 @@ impl ChiploadApp {
     /// Store a machine profile edited in Properties, as `store_library_tool`.
     pub fn store_machine_profile(&mut self, profile: MachineProfile) -> Result<(), String> {
         let dir = self
+            .user
             .settings_dir
             .clone()
             .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
@@ -1111,8 +1120,8 @@ impl ChiploadApp {
         let result = match kind {
             LibraryKind::Tools => {
                 let base = t!(self, "user-library-new-tool");
-                let name = unique_name(&base, |n| self.library.tools.find(n).is_some());
-                let uid = self.library.tools.new_uid(&name);
+                let name = unique_name(&base, |n| self.user.library.tools.find(n).is_some());
+                let uid = self.user.library.tools.new_uid(&name);
                 let entry = match self.edit.as_ref().and_then(|e| e.job.tools.first()) {
                     Some(tool) => LibraryTool::from_tool(&name, &uid, tool, None),
                     None => LibraryTool {
@@ -1133,8 +1142,8 @@ impl ChiploadApp {
             }
             LibraryKind::Machines => {
                 let base = t!(self, "user-library-new-machine");
-                let name = unique_name(&base, |n| self.library.machines.find(n).is_some());
-                let uid = self.library.machines.new_uid(&name);
+                let name = unique_name(&base, |n| self.user.library.machines.find(n).is_some());
+                let uid = self.user.library.machines.new_uid(&name);
                 let profile = match self.edit.as_ref() {
                     Some(edit) => MachineProfile::from_job(&name, &uid, &edit.job),
                     None => MachineProfile {
@@ -1163,7 +1172,7 @@ impl ChiploadApp {
                 Some(uid)
             }
             Err(err) => {
-                self.library_state.error = Some(err);
+                self.user.library_state.error = Some(err);
                 None
             }
         }
@@ -1175,6 +1184,7 @@ impl ChiploadApp {
         name: &str,
     ) -> Result<(), String> {
         let dir = self
+            .user
             .settings_dir
             .clone()
             .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
@@ -1196,6 +1206,7 @@ impl ChiploadApp {
     /// The tool or machine new projects start with.
     pub fn set_library_default(&mut self, kind: LibraryKind, name: &str) -> Result<(), String> {
         let dir = self
+            .user
             .settings_dir
             .clone()
             .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
@@ -1212,4 +1223,15 @@ impl ChiploadApp {
         self.reload_library();
         result.map_err(|e| self.say(&e.message()))
     }
+}
+
+/// The user's settings folder and what the window read from it.
+#[derive(Default)]
+pub struct UserFiles {
+    /// The user's settings folder (docs/specs/tool-library-and-machines.md); None in tests
+    /// and when there is no home folder.
+    pub(super) settings_dir: Option<PathBuf>,
+    /// The tool library and machine profiles as last read.
+    pub(super) library: chipload_pipeline::library::Library,
+    pub(super) library_state: LibraryState,
 }

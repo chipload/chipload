@@ -213,7 +213,7 @@ fn the_simulation_shows_what_the_tools_leave() {
     // material left, and the report has no "can't reach" lines any more. Projects open in
     // Edit (docs/specs/edit-and-simulate.md): nothing is simulated until Simulate.
     let mut app = lower_part();
-    assert!(!app.show_simulation);
+    assert!(!app.display.simulate);
     assert!(app.generate_and_wait(), "{:?}", app.report);
     assert!(!app.simulating());
     app.set_show_simulation(true);

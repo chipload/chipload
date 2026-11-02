@@ -19,7 +19,7 @@ impl ChiploadApp {
         if !self.can_draw() {
             return;
         }
-        if self.three_d {
+        if self.display.three_d {
             self.view_top(); // placed by a click in top view, as drawing is
         }
         self.enter_edit_mode();

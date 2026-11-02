@@ -149,8 +149,8 @@ fn a_hidden_toolpath_leaves_the_legend_and_the_plunges() {
     let plunge = app.scene.toolpath.as_ref().unwrap().starts[0].at;
     let at = app.view.to_screen(plunge);
     assert!(!app.scene.plunges_at(&app.view, at).is_empty());
-    app.show_toolpath = false;
-    app.scene.hide_toolpath = !app.show_toolpath;
+    app.display.toolpath = false;
+    app.scene.hide_toolpath = !app.display.toolpath;
     assert_eq!(
         crate::view::legend(&app.scene, &crate::i18n::Language::En).len(),
         drawing_only

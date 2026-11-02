@@ -161,7 +161,7 @@ fn measuring_changes_nothing_in_the_project() {
     app.cancel_drawing();
     app.view_3d();
     app.toggle_measure();
-    assert!(!app.three_d);
+    assert!(!app.display.three_d);
 }
 
 mod copy_paste_mirror {

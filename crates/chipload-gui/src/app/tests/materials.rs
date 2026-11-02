@@ -41,10 +41,13 @@ fn plywood() -> Cutting {
 /// A material "Plywood" with values for the library tool; its uid.
 fn add_plywood(app: &mut ChiploadApp) -> String {
     let uid = app.new_material().expect("a new material");
-    let mut draft = app.library.materials.find_uid(&uid).unwrap().clone();
+    let mut draft = app.user.library.materials.find_uid(&uid).unwrap().clone();
     draft.name = "Plywood".into();
     draft.set_values(&uid_for_name(TOOL), plywood());
-    app.library_state.material_drafts.insert(uid.clone(), draft);
+    app.user
+        .library_state
+        .material_drafts
+        .insert(uid.clone(), draft);
     assert!(app.save_material_draft(&uid));
     uid
 }
@@ -82,9 +85,12 @@ fn a_new_project_starts_with_the_default_material() {
     let uid = add_plywood(&mut app);
     assert!(app.make_default_material(&uid));
     // Renamed in its form: still the default.
-    let mut draft = app.library.materials.find_uid(&uid).unwrap().clone();
+    let mut draft = app.user.library.materials.find_uid(&uid).unwrap().clone();
     draft.name = "Birch ply".into();
-    app.library_state.material_drafts.insert(uid.clone(), draft);
+    app.user
+        .library_state
+        .material_drafts
+        .insert(uid.clone(), draft);
     assert!(app.save_material_draft(&uid));
     app.new_project();
     let edit = app.edit.as_ref().unwrap();
@@ -155,9 +161,12 @@ fn a_new_tool_takes_the_operations_materials_values() {
         feed: 900.0,
         ..plywood()
     };
-    let mut draft = app.library.materials.find_uid(&uid).unwrap().clone();
+    let mut draft = app.user.library.materials.find_uid(&uid).unwrap().clone();
     draft.set_values("b000000000000002", second);
-    app.library_state.material_drafts.insert(uid.clone(), draft);
+    app.user
+        .library_state
+        .material_drafts
+        .insert(uid.clone(), draft);
     assert!(app.save_material_draft(&uid));
     let edit = app.edit.as_mut().unwrap();
     let mut tool = edit.job.tools[0].clone();
@@ -184,7 +193,8 @@ fn an_operations_tuned_values_are_saved_to_the_material() {
     }
     app.commit();
     let values = |app: &ChiploadApp| {
-        app.library
+        app.user
+            .library
             .materials
             .find_uid(&uid)
             .unwrap()
@@ -205,7 +215,8 @@ fn removing_a_library_tool_removes_its_values_from_the_materials() {
     app.remove_from_library(super::super::user_library::LibraryKind::Tools, TOOL)
         .unwrap();
     assert!(
-        app.library
+        app.user
+            .library
             .materials
             .find_uid(&uid)
             .unwrap()

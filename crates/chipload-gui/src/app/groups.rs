@@ -348,7 +348,7 @@ impl ChiploadApp {
         ui.separator();
         if ui
             .add_enabled(
-                self.settings_dir.is_some(),
+                self.user.settings_dir.is_some(),
                 egui::Button::new(t!(ui, "shape-library-save-menu")),
             )
             .clicked()
