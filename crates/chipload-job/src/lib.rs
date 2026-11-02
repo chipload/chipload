@@ -8,6 +8,7 @@
 pub mod cut_list;
 pub mod edit;
 pub mod explode;
+pub mod layout;
 pub mod library;
 pub mod materials;
 pub mod migrations;

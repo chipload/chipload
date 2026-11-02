@@ -513,6 +513,7 @@ impl ChiploadApp {
         self.prefs.units = settings.units;
         self.show_in(crate::i18n::resolve(&settings.language));
         self.prefs.language_setting = settings.language;
+        self.load_layout();
         self.start_recovery();
     }
 

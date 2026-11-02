@@ -3,7 +3,12 @@
 //! the Browser, Properties, the shape library (Shapes) and the Report, arranged by the user
 //! with egui_dock. The canvas stays in place: no tab bar, never closed, moved or tabbed.
 
-use egui_dock::{DockArea, DockState, NodeIndex, SurfaceIndex, TabIndex, TabPath, TabViewer, Tree};
+use chipload_job::layout::{
+    LAYOUT_FILE, LayoutNode, Panel as LayoutPanel, WindowLayout, load_layout, save_layout,
+};
+use egui_dock::{
+    DockArea, DockState, Node, NodeIndex, Split, SurfaceIndex, TabIndex, TabPath, TabViewer, Tree,
+};
 
 use super::*;
 
@@ -46,6 +51,30 @@ impl Pane {
     }
 }
 
+impl From<LayoutPanel> for Pane {
+    fn from(panel: LayoutPanel) -> Self {
+        match panel {
+            LayoutPanel::Browser => Pane::Browser,
+            LayoutPanel::Properties => Pane::Properties,
+            LayoutPanel::Shapes => Pane::Shapes,
+            LayoutPanel::Report => Pane::Report,
+        }
+    }
+}
+
+impl Pane {
+    /// The panel as the layout file names it; None for the canvas.
+    fn panel(self) -> Option<LayoutPanel> {
+        match self {
+            Pane::Canvas => None,
+            Pane::Browser => Some(LayoutPanel::Browser),
+            Pane::Properties => Some(LayoutPanel::Properties),
+            Pane::Shapes => Some(LayoutPanel::Shapes),
+            Pane::Report => Some(LayoutPanel::Report),
+        }
+    }
+}
+
 /// A change to the layout asked for while the dock is being drawn, made once it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Change {
@@ -63,39 +92,147 @@ pub struct Panels {
     drawing: bool,
     pending: Vec<Change>,
     open: BTreeSet<Pane>,
+    /// The layout as last read from or written to `layout.json`; written again only when
+    /// it differs.
+    pub(super) saved: Option<WindowLayout>,
 }
 
 impl Default for Panels {
     fn default() -> Self {
+        Panels::from_layout(&WindowLayout::default())
+    }
+}
+
+/// The tabs a part of the layout starts with: its first group's, or the canvas.
+fn first_tabs(node: &LayoutNode) -> Vec<Pane> {
+    match node {
+        LayoutNode::Canvas => vec![Pane::Canvas],
+        LayoutNode::Tabs { panels, .. } => panels.iter().map(|p| Pane::from(*p)).collect(),
+        LayoutNode::SideBySide { left, .. } => first_tabs(left),
+        LayoutNode::Stacked { top, .. } => first_tabs(top),
+    }
+}
+
+/// Build `node` at `at`, a leaf already holding `first_tabs(node)`: a split keeps that leaf
+/// as its left or upper side and gets its other side new. Folded groups are noted in
+/// `folded`, to fold once the whole tree is built.
+fn build(tree: &mut Tree<Pane>, at: NodeIndex, node: &LayoutNode, folded: &mut Vec<NodeIndex>) {
+    let share = |s: f64| (s as f32).clamp(0.05, 0.95);
+    match node {
+        LayoutNode::Canvas => {}
+        LayoutNode::Tabs {
+            panels,
+            front,
+            folded: fold,
+        } => {
+            if let Some(leaf) = tree[at].get_leaf_mut() {
+                leaf.active = TabIndex((*front).min(panels.len().saturating_sub(1)));
+            }
+            if *fold {
+                folded.push(at);
+            }
+        }
+        LayoutNode::SideBySide {
+            share: s,
+            left,
+            right,
+        } => {
+            let second = Node::leaf_with(first_tabs(right));
+            let [l, r] = tree.split(at, Split::Right, share(*s), second);
+            build(tree, l, left, folded);
+            build(tree, r, right, folded);
+        }
+        LayoutNode::Stacked {
+            share: s,
+            top,
+            bottom,
+        } => {
+            let second = Node::leaf_with(first_tabs(bottom));
+            let [t, b] = tree.split(at, Split::Below, share(*s), second);
+            build(tree, t, top, folded);
+            build(tree, b, bottom, folded);
+        }
+    }
+}
+
+/// The part of the dock at `at` as a layout; None for an empty part.
+fn describe(tree: &Tree<Pane>, at: NodeIndex) -> Option<LayoutNode> {
+    // Shares are kept to 1/1000: what a drag sets, without the last bits of a float.
+    let share = |f: f32| (f64::from(f) * 1000.0).round() / 1000.0;
+    let both = |left: Option<LayoutNode>, right: Option<LayoutNode>| match (left, right) {
+        (Some(l), Some(r)) => Some((l, r)),
+        _ => None,
+    };
+    match &tree[at] {
+        Node::Empty => None,
+        Node::Leaf(leaf) => {
+            if leaf.tabs.contains(&Pane::Canvas) {
+                return Some(LayoutNode::Canvas);
+            }
+            let panels: Vec<LayoutPanel> = leaf.tabs.iter().filter_map(|t| t.panel()).collect();
+            (!panels.is_empty()).then_some(LayoutNode::Tabs {
+                front: leaf.active.0.min(panels.len() - 1),
+                panels,
+                folded: leaf.collapsed,
+            })
+        }
+        Node::Horizontal(split) => {
+            let (left, right) = (describe(tree, at.left()), describe(tree, at.right()));
+            match both(left.clone(), right.clone()) {
+                Some((l, r)) => Some(LayoutNode::SideBySide {
+                    share: share(split.fraction),
+                    left: Box::new(l),
+                    right: Box::new(r),
+                }),
+                None => left.or(right),
+            }
+        }
+        Node::Vertical(split) => {
+            let (top, bottom) = (describe(tree, at.left()), describe(tree, at.right()));
+            match both(top.clone(), bottom.clone()) {
+                Some((t, b)) => Some(LayoutNode::Stacked {
+                    share: share(split.fraction),
+                    top: Box::new(t),
+                    bottom: Box::new(b),
+                }),
+                None => top.or(bottom),
+            }
+        }
+    }
+}
+
+impl Panels {
+    /// The panels as `layout` arranges them.
+    pub fn from_layout(layout: &WindowLayout) -> Panels {
+        let mut dock = DockState::new(first_tabs(&layout.root));
+        let mut folded = Vec::new();
+        let tree = dock.main_surface_mut();
+        build(tree, NodeIndex::root(), &layout.root, &mut folded);
+        for node in folded {
+            set_folded(tree, node, true);
+        }
         let mut panels = Panels {
-            dock: default_dock(),
+            dock,
             hidden: None,
             drawing: false,
             pending: Vec::new(),
             open: BTreeSet::new(),
+            saved: None,
         };
         panels.settle();
         panels
     }
-}
 
-/// Today's layout: the Browser on the left, Properties and Shapes as tabs on the right,
-/// the Report folded along the bottom.
-fn default_dock() -> DockState<Pane> {
-    let mut dock = DockState::new(vec![Pane::Canvas]);
-    let tree = dock.main_surface_mut();
-    let [top, report] = tree.split_below(NodeIndex::root(), ABOVE_REPORT, vec![Pane::Report]);
-    let [canvas, _] = tree.split_left(top, BROWSER_SHARE, vec![Pane::Browser]);
-    tree.split_right(
-        canvas,
-        CANVAS_BESIDE_RIGHT,
-        vec![Pane::Properties, Pane::Shapes],
-    );
-    set_folded(tree, report, true);
-    dock
-}
+    /// The layout to keep: the panels as arranged, or as they come back after P.
+    pub fn layout(&self) -> WindowLayout {
+        let dock = self.hidden.as_ref().unwrap_or(&self.dock);
+        let root = describe(dock.main_surface(), NodeIndex::root()).unwrap_or(LayoutNode::Canvas);
+        WindowLayout {
+            root,
+            ..WindowLayout::default()
+        }
+    }
 
-impl Panels {
     /// Whether `pane` is open (in front or behind another tab, folded or not).
     pub fn is_open(&self, pane: Pane) -> bool {
         self.open.contains(&pane)
@@ -188,7 +325,9 @@ impl Panels {
 
     /// View ▸ Reset layout.
     pub fn reset(&mut self) {
+        let saved = self.saved.take();
         *self = Panels::default();
+        self.saved = saved;
     }
 
     /// A panel dropped into the canvas's middle, as a drag there leaves it in egui_dock:
@@ -433,6 +572,51 @@ impl ChiploadApp {
         }
     }
 
+    /// The layout kept in the settings folder, or the default one. A layout that can't be
+    /// read (a newer version's, or a broken file) gives the default, says so, and stays on
+    /// disk until the user changes the layout (docs/specs/dockable-panels.md §5).
+    pub(super) fn load_layout(&mut self) {
+        let Some(dir) = self.user.settings_dir.as_deref() else {
+            return;
+        };
+        let path = dir.join(LAYOUT_FILE);
+        let layout = match load_layout(&path) {
+            Ok(layout) => layout,
+            Err(err) => {
+                let reason = err.message().render(self.lang(), self.prefs.units.into());
+                let text = t!(self, "layout-not-read", reason = reason);
+                self.set_status(text, ERROR_STATUS_SECONDS);
+                WindowLayout::default()
+            }
+        };
+        self.panels = Panels::from_layout(&layout);
+        self.panels.saved = Some(self.panels.layout());
+    }
+
+    /// Keep the layout when it changed, once no drag is going on.
+    fn save_layout_if_changed(&mut self, ctx: &egui::Context) {
+        let Some(dir) = self.user.settings_dir.clone() else {
+            return;
+        };
+        if ctx.input(|i| i.pointer.any_down()) {
+            return;
+        }
+        let layout = self.panels.layout();
+        if self.panels.saved.as_ref() == Some(&layout) {
+            return;
+        }
+        match save_layout(&layout, &dir.join(LAYOUT_FILE)) {
+            Ok(()) => self.panels.saved = Some(layout),
+            Err(err) => {
+                let reason = err.message().render(self.lang(), self.prefs.units.into());
+                let text = t!(self, "layout-not-saved", reason = reason);
+                self.set_status(text, ERROR_STATUS_SECONDS);
+                // Not tried again until the layout changes once more.
+                self.panels.saved = Some(layout);
+            }
+        }
+    }
+
     /// The dock: the canvas and the panels round it, as the user arranged them.
     pub(super) fn dock_area(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
@@ -472,5 +656,6 @@ impl ChiploadApp {
             }
         }
         self.panels.settle();
+        self.save_layout_if_changed(&ctx);
     }
 }

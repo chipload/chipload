@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "written_by": "chipload 0.30.0",
+  "root": {
+    "stacked": {
+      "share": 0.82,
+      "top": {
+        "side_by_side": {
+          "share": 0.25,
+          "left": {
+            "tabs": {
+              "panels": ["browser"],
+              "front": 0,
+              "folded": false
+            }
+          },
+          "right": {
+            "side_by_side": {
+              "share": 0.6,
+              "left": "canvas",
+              "right": {
+                "stacked": {
+                  "share": 0.55,
+                  "top": {
+                    "tabs": {
+                      "panels": ["properties"],
+                      "front": 0,
+                      "folded": false
+                    }
+                  },
+                  "bottom": {
+                    "tabs": {
+                      "panels": ["shapes"],
+                      "front": 0,
+                      "folded": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "bottom": {
+        "tabs": {
+          "panels": ["report"],
+          "front": 0,
+          "folded": true
+        }
+      }
+    }
+  }
+}

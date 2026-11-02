@@ -238,5 +238,8 @@ along the bottom. Arrange them as suits you:
   *View > Hide the panels*.
 - **Back to the start:** *View > Panels > Reset layout*.
 
-The arrangement isn't kept between starts yet; that comes next.
+The arrangement is kept for the next start, the same for every project, in `layout.json`
+in your [settings folder](install.md#your-settings). Should that file not be readable (one
+from a newer Chipload, say), the panels start as they do at first, the status bar says so,
+and the file is left as it is until you arrange the panels again.
 

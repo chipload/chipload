@@ -1,7 +1,7 @@
 # Spec: dockable panels
 
 Status: **agreed 2026-11-02**, decisions 1-7 as recommended (the user: "Sounds good, go
-ahead"). Step 1 built 2026-11-02; ADR 0028.
+ahead"). Steps 1 and 2 built 2026-11-02; ADR 0028.
 
 As built (step 1):
 - **The Report's summary is on its own tab, not in the status bar** (decision 3). The status
@@ -18,7 +18,20 @@ As built (step 1):
   themselves, and the window tests find a panel by its title that way.
 - **Shares, not pixels.** The default layout gives today's widths at 1200 × 800, and the
   panels grow with the window.
-- **Not saved yet:** step 2 (`layout.json`).
+
+As built (step 2):
+- **`chipload_job::layout`** holds the format (`WindowLayout`, `LayoutNode`, `Panel`), read
+  and written through `LibraryFile` like the tool library.
+  - The default layout is the format's `Default`, and the window builds its dock from it,
+    so the default is defined once.
+  - A missing file gives the default.
+- **The window writes the layout** when it differs from the one last read or written, once
+  no mouse button is down.
+  - While P hides the panels, the layout written is the one P brings back.
+  - Shares are kept to 1/1000.
+  - A write that fails says so in the status bar, and isn't tried again until the layout
+    changes.
+- **The frozen sample** is `tests/corpus/layout/v1/layout.json`.
 
 
 The user (2026-11-02), about the shape library tab: "In some UI this is user configurable

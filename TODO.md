@@ -134,8 +134,9 @@ it's built (see `CLAUDE.md`).
   6. **Dockable panels**: spec docs/specs/dockable-panels.md, agreed 2026-11-02
      (decisions 1-7 as recommended), ADR 0028. **Step 1 done 2026-11-02:** egui_dock 0.21.1,
      the dock with today's layout, the canvas fixed, View > Panels and Reset layout, P hides
-     every panel, the Report a panel (its warnings on its tab). Next: step 2,
-     `layout.json`; step 3, the guide's screenshots renewed.
+     every panel, the Report a panel (its warnings on its tab). **Step 2 done:**
+     `layout.json` (format `chipload_job::layout`, v1 sample in tests/corpus/layout/v1). Next:
+     step 3, the guide's screenshots renewed.
   7. **Review the operations not yet reviewed: follow path, holes and V-carve** (open
      since the reviews of profile and pocket). These drive the machine, so a review there
      finds more real bugs than any restructuring: boundaries (zero depth, depth equal to
