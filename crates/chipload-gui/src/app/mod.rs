@@ -2099,11 +2099,15 @@ impl ChiploadApp {
         if !op.selects_shapes() {
             return BTreeSet::new();
         }
+        let select = match &self.edit {
+            Some(edit) => op.select().resolved(&edit.settings.drawing),
+            None => op.select().clone(),
+        };
         let selected = match op {
             Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(&self.contours, op.select(), &op.label_message(0))
+                select_paths(&self.contours, &select, &op.label_message(0))
             }
-            _ => select_contours(&self.contours, op.select(), &op.label_message(0)),
+            _ => select_contours(&self.contours, &select, &op.label_message(0)),
         };
         // Holes cut circles only: other shapes stay unhighlighted (docs/specs/holes.md §7).
         let holes = matches!(op, Operation::Holes(_));
@@ -2137,7 +2141,8 @@ impl ChiploadApp {
             .iter()
             .filter(|e| e.op.enabled() && matches!(e.op, Operation::Path(_)))
             .filter_map(|e| {
-                select_paths(&self.contours, e.op.select(), &e.op.label_message(0)).ok()
+                let select = e.op.select().resolved(&edit.settings.drawing);
+                select_paths(&self.contours, &select, &e.op.label_message(0)).ok()
             })
             .flat_map(|s| {
                 s.contours
@@ -2511,7 +2516,9 @@ fn ghost_contours(
     let picks = |mine: bool, shape: &chipload_job::Shape| {
         job.operations.iter().any(|op| {
             let here = job.part_of(op).map(|p| p.setup) == active;
-            here == mine && op.selects_shapes() && op.select().may_pick(shape)
+            here == mine
+                && op.selects_shapes()
+                && op.select().resolved(&job.drawing).may_pick(shape)
         })
     };
     let shape = |id: u64| job.drawing.shapes.iter().find(|s| s.id == id);

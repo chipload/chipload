@@ -184,7 +184,14 @@ fn insert_shapes(out: &mut Out, args: InsertShapes) -> ExitCode {
         Ok(entry) => entry,
         Err(err) => return out.fail(err),
     };
-    let done = match insert(&job, &entry, args.at, &size, args.layer.as_deref()) {
+    let done = match insert(
+        &job,
+        &entry,
+        &args.name,
+        args.at,
+        &size,
+        args.layer.as_deref(),
+    ) {
         Ok(done) => done,
         Err(err) => return out.fail(err),
     };

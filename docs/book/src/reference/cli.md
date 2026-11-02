@@ -884,6 +884,133 @@ chipload shape join <PROJECT> <IDS>... [OPTIONS]
 | `--gap <GAP>` | Join ends closer than this, 0.001 to 1 mm. Default: `0.01`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload group`
+
+Groups of drawn shapes and texts: add, list, set, remove (ungroup), delete, move, turn, scale
+
+### `chipload group add`
+
+Group shapes and texts; prints the group's id. With shapes of one group among them, the rest join it; of several, those groups become one
+
+```text
+chipload group add <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S); a letter stands for its whole text. |
+| `--texts <TEXTS>` | Texts (ids as `text list` shows them) Repeatable. |
+| `--name <NAME>` | Its name (default: "Group N") |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload group list`
+
+The project's groups and what is in them
+
+```text
+chipload group list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload group set`
+
+Rename a group, or add to it and take out of it
+
+```text
+chipload group set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The group's id. |
+| `--name <NAME>` |  |
+| `--add <ADD>` | Shapes to add (any in another group move over) Repeatable. |
+| `--add-texts <ADD_TEXTS>` | Texts to add. Repeatable. |
+| `--remove <REMOVE>` | Shapes to take out; they stay where they are, free. Repeatable. |
+| `--remove-texts <REMOVE_TEXTS>` | Texts to take out. Repeatable. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload group remove`
+
+Ungroup: the shapes and texts stay, free. Operations made from the group get its shapes by id
+
+```text
+chipload group remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group delete`
+
+Delete a group with its shapes and texts
+
+```text
+chipload group delete <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group move`
+
+Move a group, its texts too
+
+```text
+chipload group move <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `--dx <DX>` | How far right, mm. Required. |
+| `--dy <DY>` | How far up, mm. Required. |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group turn`
+
+Turn a group counter-clockwise about the middle of its box, or a point
+
+```text
+chipload group turn <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `--angle-deg <ANGLE_DEG>` | The angle, degrees, counter-clockwise; negative turns clockwise. Required. |
+| `--about <ABOUT>` | Turn about this point "X,Y" instead. |
+| `-o, --output <OUTPUT>` |  |
+
+### `chipload group scale`
+
+Scale a group about the middle of its box, or a point; its texts' height scales
+
+```text
+chipload group scale <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` |  |
+| `--factor <FACTOR>` | The factor: 2 doubles, 0.5 halves. Required. |
+| `--about <ABOUT>` | Scale about this point "X,Y" instead. |
+| `-o, --output <OUTPUT>` |  |
+
 ## `chipload image`
 
 Pictures traced into shapes for V-carving: add, change, list, preview, remove

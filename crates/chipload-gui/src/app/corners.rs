@@ -57,7 +57,11 @@ impl ChiploadApp {
         };
         if self.corners.key.as_ref() != Some(&(index, op.clone())) {
             let label = op.label_message(index);
-            self.corners.rows = corners_in(&op, &self.contours, &label).unwrap_or_default();
+            let rows = self
+                .edit
+                .as_ref()
+                .and_then(|e| corners_in(&op, &e.settings.drawing, &self.contours, &label).ok());
+            self.corners.rows = rows.unwrap_or_default();
             self.corners.key = Some((index, op.clone()));
             self.corners.menu = None;
         }

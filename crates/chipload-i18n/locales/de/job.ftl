@@ -98,6 +98,11 @@ job-shape-id-range = muss zwischen 1 und next_shape_id - 1 ({ $most }) liegen, i
 job-no-image = kein Bild { $id } in drawing.images
 job-no-dxf = keine DXF { $id } in drawing.dxfs
 job-no-text = kein Text { $id } in drawing.texts
+job-no-group = keine Gruppe { $id } in drawing.groups
+job-group-empty = eine Gruppe enthält mindestens eine Form oder einen Text
+job-group-not-drawn = Form { $shape } ist nicht gezeichnet: nur gezeichnete Formen und Texte lassen sich gruppieren
+job-group-shape-twice = Form { $shape } ist in zwei Gruppen
+job-group-text-twice = Text { $text } ist in zwei Gruppen
 job-shape-one-source = eine Form stammt aus einem Bild, einer DXF oder einem Text, nicht aus mehreren
 job-path-no-segments = eine Form braucht mindestens ein Segment
 job-segment-not-finite = Koordinaten müssen endlich und Radien positiv sein
@@ -152,6 +157,7 @@ job-exclude-no-source = Formen können nur aus einer ganzen DXF, einem ganzen Bi
 job-exclude-missing = Form { $shape } ist nicht mehr in { $source ->
     [dxf] DXF
     [image] Bild
+    [group] Gruppe
    *[text] Text
 } { $id }: wählen Sie die auszulassenden Formen neu
 job-selector-one-source = eine Auswahl nennt eine DXF, ein Bild oder einen Text, nicht mehrere

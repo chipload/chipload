@@ -7,6 +7,7 @@
 
 mod dxfs;
 mod frames;
+mod groups;
 mod images;
 mod lengths;
 mod library;
@@ -294,6 +295,12 @@ enum Command {
     Shape {
         #[command(subcommand)]
         action: ShapeAction,
+    },
+    /// Groups of drawn shapes and texts: add, list, set, remove (ungroup), delete, move,
+    /// turn, scale.
+    Group {
+        #[command(subcommand)]
+        action: groups::GroupAction,
     },
     /// Pictures traced into shapes for V-carving: add, change, list, preview, remove.
     Image {
@@ -1484,6 +1491,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Image { action } => images::image(out, action),
         Command::Text { action } => texts::text(out, action),
         Command::Frame { action } => frames::frame(out, action),
+        Command::Group { action } => groups::group_command(out, action),
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),
         Command::Material { action } => materials::material(out, action),

@@ -285,6 +285,10 @@ pipeline-image-unsimplified = { $count ->
    *[other] { $count } formes gardées telles que vectorisées : le lissage les faisait se croiser.
 }
 pipeline-no-text = il n'y a pas de texte { $id }
+pipeline-no-group = il n'y a pas de groupe { $id }
+pipeline-group-imported = la forme { $shape } appartient à un DXF ou une image, qui garde ses formes ensemble : seuls les formes dessinées et les textes se groupent
+pipeline-group-no-name = un groupe a besoin d'un nom
+pipeline-ungroup-cut-texts = l'opération { $op } usine le groupe « { $name } », qui a des textes : choisissez d'abord à nouveau ses formes, ou sortez les textes du groupe
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text } : impossible de fusionner les contours des lettres qui se chevauchent : { $error }
 pipeline-text-font-missing = La police « { $font } » n'est pas sur cet ordinateur. { $text } garde ses lettres et est usiné tel quel ; pour changer ses mots ou sa taille, choisissez une autre police.

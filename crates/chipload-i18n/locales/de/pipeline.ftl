@@ -280,6 +280,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] Formen
 } wie nachgezeichnet behalten: das Glätten ließ sie sich kreuzen.
 pipeline-no-text = es gibt keinen Text { $id }
+pipeline-no-group = es gibt keine Gruppe { $id }
+pipeline-group-imported = Form { $shape } gehört zu einer DXF oder einem Bild, das seine Formen zusammenhält: nur gezeichnete Formen und Texte lassen sich gruppieren
+pipeline-group-no-name = eine Gruppe braucht einen Namen
+pipeline-ungroup-cut-texts = Operation { $op } schneidet die Gruppe „{ $name }“, die Texte enthält: erst die Formen dieser Operation neu wählen oder die Texte aus der Gruppe nehmen
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: die überlappenden Umrisse der Buchstaben konnten nicht vereinigt werden: { $error }
 pipeline-text-font-missing = Die Schrift „{ $font }“ ist auf diesem Computer nicht vorhanden. { $text } behält seine Buchstaben und wird so gefräst; um Wörter oder Größe zu ändern, wählen Sie eine andere Schrift.

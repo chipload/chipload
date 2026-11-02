@@ -32,6 +32,7 @@
 - [Text](drawings/text.md)
 - [Signs and frames](drawings/signs.md)
 - [The shape library](drawings/shape-library.md)
+- [Groups](drawings/groups.md)
 - [Copies](drawings/copies.md)
 
 # Operations

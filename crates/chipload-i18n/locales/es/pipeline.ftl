@@ -285,6 +285,10 @@ pipeline-image-unsimplified = { $count ->
    *[other] { $count } formas se conservan tal como se vectorizaron: el suavizado las hacía cruzarse.
 }
 pipeline-no-text = no hay texto { $id }
+pipeline-no-group = no hay grupo { $id }
+pipeline-group-imported = la forma { $shape } pertenece a un DXF o una imagen, que mantiene sus formas juntas: solo se agrupan formas dibujadas y textos
+pipeline-group-no-name = un grupo necesita un nombre
+pipeline-ungroup-cut-texts = la operación { $op } corta el grupo «{ $name }», que tiene textos: elige antes de nuevo sus formas, o saca los textos del grupo
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: no se pudieron unir los contornos superpuestos de las letras: { $error }
 pipeline-text-font-missing = La fuente «{ $font }» no está en este ordenador. { $text } conserva sus letras y se corta tal cual; para cambiar sus palabras o su tamaño, elige otra fuente.

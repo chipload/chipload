@@ -94,6 +94,7 @@ fn a_selection_is_saved_and_inserted_with_new_ids_where_asked() {
     let done = insert(
         &job,
         &entry,
+        "Plate",
         Some((200.0, 100.0)),
         &InsertSize::AsSaved,
         None,
@@ -128,7 +129,15 @@ fn a_selection_is_saved_and_inserted_with_new_ids_where_asked() {
             .iter()
             .any(|s| s.layer == "holes" && s.id >= first_new)
     );
-    let one = insert(&job, &entry, None, &InsertSize::AsSaved, Some("sign")).unwrap();
+    let one = insert(
+        &job,
+        &entry,
+        "Plate",
+        None,
+        &InsertSize::AsSaved,
+        Some("sign"),
+    )
+    .unwrap();
     assert!(one.shapes.iter().all(|id| {
         one.job
             .drawing
@@ -157,6 +166,7 @@ fn an_entry_is_scaled_to_a_size_or_round_the_selection() {
     let wide = insert(
         &job,
         &entry,
+        "Plate",
         Some((0.0, 0.0)),
         &InsertSize::Width(160.0),
         None,
@@ -172,7 +182,7 @@ fn an_entry_is_scaled_to_a_size_or_round_the_selection() {
         ids: vec![1],
         margin: 5.0,
     };
-    let fitted = insert(&job, &entry, None, &around, None).unwrap();
+    let fitted = insert(&job, &entry, "Plate", None, &around, None).unwrap();
     let ((x0, y0), (x1, y1)) = drawn_box(&fitted.job, &fitted.shapes).unwrap();
     assert!((y1 - y0 - 20.0).abs() < 1e-9 && (x1 - x0 - 40.0).abs() < 1e-9);
     assert!(((x0 + x1) / 2.0 - 50.0).abs() < 1e-9 && ((y0 + y1) / 2.0 - 40.0).abs() < 1e-9);
@@ -189,6 +199,7 @@ fn a_text_in_a_font_this_computer_lacks_keeps_its_letters() {
     let done = insert(
         &empty_project(),
         &entry,
+        "Plate",
         None,
         &InsertSize::Scale(2.0),
         None,
@@ -257,7 +268,15 @@ fn a_dxf_in_the_folder_is_listed_and_read_as_drawn_shapes() {
     let entry = read(&item).unwrap();
     assert!(!entry.shapes.is_empty());
     assert!(entry.shapes.iter().all(|s| s.is_drawn()));
-    let done = insert(&empty_project(), &entry, None, &InsertSize::AsSaved, None).unwrap();
+    let done = insert(
+        &empty_project(),
+        &entry,
+        "Plate",
+        None,
+        &InsertSize::AsSaved,
+        None,
+    )
+    .unwrap();
     assert_eq!(done.shapes.len(), entry.shapes.len());
     assert!(!preview(&entry).is_empty());
 }
@@ -267,7 +286,15 @@ fn the_first_version_still_loads_and_a_newer_one_is_refused() {
     let entry = load_shape_entry(&corpus("shapes/v1/plate.chipload-shapes")).unwrap();
     assert_eq!(entry.schema_version, SHAPES_VERSION);
     assert_eq!(entry.texts.len(), 1);
-    let done = insert(&empty_project(), &entry, None, &InsertSize::AsSaved, None).unwrap();
+    let done = insert(
+        &empty_project(),
+        &entry,
+        "Plate",
+        None,
+        &InsertSize::AsSaved,
+        None,
+    )
+    .unwrap();
     assert_eq!(done.shapes.len(), entry.shapes.len());
 
     let dir = folder("newer");

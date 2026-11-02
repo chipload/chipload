@@ -469,6 +469,22 @@ fn trim_refusal(id: u64, why: TrimError) -> PipelineError {
     refused(Message::new(key).arg("id", id))
 }
 
+/// New shapes `ids` that took the place of shape `of` join its group, if it is in one
+/// (docs/specs/shape-groups.md §4: a trimmed polyline's pieces stay in its group).
+fn join_group_of(job: &mut Job, of: u64, ids: &[u64]) {
+    let Some(id) = job.drawing.group_of(of) else {
+        return;
+    };
+    if let Some(group) = job.drawing.groups.iter_mut().find(|g| g.id == id) {
+        let new: Vec<u64> = ids
+            .iter()
+            .copied()
+            .filter(|s| !group.shapes.contains(s))
+            .collect();
+        group.shapes.extend(new);
+    }
+}
+
 /// Shape `id` replaced by `pieces`: the first keeps its id (operations follow it), the
 /// others are new shapes on its layer.
 fn replace_by_pieces(job: &Job, shape: &Shape, pieces: &[Chain]) -> Result<Edited, PipelineError> {
@@ -480,7 +496,7 @@ fn replace_by_pieces(job: &Job, shape: &Shape, pieces: &[Chain]) -> Result<Edite
     let out = reshape(job, shape.id, polyline_of(first))?;
     let mut new_ids = Vec::new();
     let mut notes = Vec::new();
-    let out = if rest.is_empty() {
+    let mut out = if rest.is_empty() {
         out
     } else {
         add_all(
@@ -491,6 +507,7 @@ fn replace_by_pieces(job: &Job, shape: &Shape, pieces: &[Chain]) -> Result<Edite
             &mut notes,
         )?
     };
+    join_group_of(&mut out, shape.id, &new_ids);
     Ok(Edited {
         job: out,
         new_ids,
@@ -749,6 +766,7 @@ pub fn combine_shapes(job: &Job, op: Combine, ids: &[u64]) -> Result<Edited, Pip
     if !rest.is_empty() {
         out = add_all(out, &shapes[0], rest, &mut new_ids, &mut notes)?;
     }
+    join_group_of(&mut out, first, &new_ids);
     for &id in ids.iter().filter(|id| !survivors.contains(id)) {
         let (next, _) = delete_shape(&out, id)?;
         out = next;

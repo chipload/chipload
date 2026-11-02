@@ -283,15 +283,21 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
         let label_message = job.label_message(at);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Holes(_) => {
-                select_paths(contours, op.select(), &label_message)
-            }
+            Operation::Path(_) | Operation::Holes(_) => select_paths(
+                contours,
+                &op.select().resolved(&job.drawing),
+                &label_message,
+            ),
             // The whole stock, no shapes (docs/specs/surfacing.md §2).
             Operation::Surface(_) => Ok(Selection {
                 contours: Vec::new(),
                 notes: Vec::new(),
             }),
-            _ => select_contours(contours, op.select(), &label_message),
+            _ => select_contours(
+                contours,
+                &op.select().resolved(&job.drawing),
+                &label_message,
+            ),
         }
         .map_err(|err| err.at(at.operation))?;
         // Every corner choice must still match a corner (docs/specs/dogbone-per-corner.md

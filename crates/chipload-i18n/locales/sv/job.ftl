@@ -98,6 +98,11 @@ job-shape-id-range = måste vara mellan 1 och next_shape_id - 1 ({ $most }), fic
 job-no-image = ingen bild { $id } i drawing.images
 job-no-dxf = ingen DXF { $id } i drawing.dxfs
 job-no-text = ingen text { $id } i drawing.texts
+job-no-group = ingen grupp { $id } i drawing.groups
+job-group-empty = en grupp har minst en form eller text
+job-group-not-drawn = form { $shape } är inte ritad: bara ritade former och texter kan grupperas
+job-group-shape-twice = form { $shape } finns i två grupper
+job-group-text-twice = text { $text } finns i två grupper
 job-shape-one-source = en form kommer från en bild, DXF eller text, inte fler
 job-path-no-segments = en form behöver minst ett segment
 job-segment-not-finite = koordinater måste vara ändliga och radier positiva
@@ -152,6 +157,7 @@ job-exclude-no-source = former kan bara uteslutas ur en hel DXF, bild eller text
 job-exclude-missing = form { $shape } finns inte längre i { $source ->
     [dxf] DXF
     [image] bild
+    [group] grupp
    *[text] text
 } { $id }: välj formerna som ska uteslutas igen
 job-selector-one-source = ett urval anger en DXF, bild eller text, inte fler

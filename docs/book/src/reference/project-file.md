@@ -114,6 +114,7 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxfs` | list of [DrawingSource](#drawingsource) | no | The DXFs the imported shapes came from, each as at its last import or update, with its own placement. |
+| `groups` | list of [ShapeGroup](#shapegroup) | no | Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions. |
 | `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
 | `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
@@ -487,7 +488,8 @@ One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket's
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxf` | integer or null | no | Only shapes from this DXF (an id in `drawing.dxfs`). |
-| `exclude` | list of integer or null | no | Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text` only. A contour with any of them isn't cut. A traced image's, or a text's, are found again when it is made again. |
+| `exclude` | list of integer or null | no | Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`, `text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found again when it is made again. |
+| `group` | integer or null | no | The shapes and texts' letters of this group (an id in `drawing.groups`), as they are at each run. |
 | `image` | integer or null | no | Only shapes traced from this image (an id in `drawing.images`). |
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
 | `shapes` | list of integer or null | no | These shapes, by id. |
@@ -532,6 +534,17 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `sides` | integer or null | no | polygon: how many sides (and corners) it has, 3 to 1000. |
 | `text` | integer or null | no | path: the text it is a letter of (its id in `drawing.texts`). |
 | `width` | number or null | no | rectangle: its size along its own Y axis, mm. |
+
+## ShapeGroup
+
+Drawn shapes and texts kept together: one click selects them all, and they move, turn, scale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one group; groups don't hold groups.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `id` | integer | yes | The group's id, which operations' selectors name. |
+| `name` | string | yes | Its name in the Browser. |
+| `shapes` | list of integer | no | Its drawn shapes, by id. |
+| `texts` | list of integer | no | Its texts, by id, with their letters. |
 
 ## ShapeKind
 

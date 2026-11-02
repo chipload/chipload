@@ -98,6 +98,11 @@ job-shape-id-range = must be between 1 and next_shape_id - 1 ({ $most }), got { 
 job-no-image = no image { $id } in drawing.images
 job-no-dxf = no DXF { $id } in drawing.dxfs
 job-no-text = no text { $id } in drawing.texts
+job-no-group = no group { $id } in drawing.groups
+job-group-empty = a group holds at least one shape or text
+job-group-not-drawn = shape { $shape } isn't drawn: only drawn shapes and texts can be grouped
+job-group-shape-twice = shape { $shape } is in two groups
+job-group-text-twice = text { $text } is in two groups
 job-shape-one-source = a shape comes from one image, DXF or text, not more
 job-path-no-segments = a shape needs at least one segment
 job-segment-not-finite = coordinates must be finite and radii positive
@@ -152,6 +157,7 @@ job-exclude-no-source = shapes can only be left out of a whole DXF, image or tex
 job-exclude-missing = shape { $shape } is not in { $source ->
     [dxf] DXF
     [image] image
+    [group] group
    *[text] text
 } { $id } any more: pick the shapes to leave out again
 job-selector-one-source = a selector names one DXF, image or text, not more

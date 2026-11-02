@@ -98,6 +98,11 @@ job-shape-id-range = deve essere tra 1 e next_shape_id - 1 ({ $most }), trovato 
 job-no-image = nessuna immagine { $id } in drawing.images
 job-no-dxf = nessun DXF { $id } in drawing.dxfs
 job-no-text = nessun testo { $id } in drawing.texts
+job-no-group = nessun gruppo { $id } in drawing.groups
+job-group-empty = un gruppo contiene almeno una forma o un testo
+job-group-not-drawn = la forma { $shape } non è disegnata: si raggruppano solo forme disegnate e testi
+job-group-shape-twice = la forma { $shape } è in due gruppi
+job-group-text-twice = il testo { $text } è in due gruppi
 job-shape-one-source = una forma viene da una sola immagine, un solo DXF o un solo testo, non di più
 job-path-no-segments = una forma richiede almeno un segmento
 job-segment-not-finite = le coordinate devono essere finite e i raggi positivi
@@ -152,6 +157,7 @@ job-exclude-no-source = si possono escludere forme solo da un intero DXF, immagi
 job-exclude-missing = la forma { $shape } non è più { $source ->
     [dxf] nel DXF
     [image] nell'immagine
+    [group] gruppo
    *[text] nel testo
 } { $id }: scegli di nuovo le forme da escludere
 job-selector-one-source = un selettore indica un solo DXF, immagine o testo, non di più

@@ -285,6 +285,7 @@ pub fn remove_text(job: &Job, id: u64) -> Result<Job, PipelineError> {
     let mut out = job.clone();
     out.drawing.texts.retain(|t| t.id != id);
     out.drawing.shapes.retain(|s| s.text() != Some(id));
+    out.drawing.tidy_groups();
     Ok(out)
 }
 
@@ -334,7 +335,9 @@ fn stored_box(job: &Job, text: &Text) -> Option<((f64, f64), [f64; 2])> {
     Some((size, middle))
 }
 
-fn stored_size(job: &Job, text: &Text) -> Option<(f64, f64)> {
+/// The size of a text's box from its stored letters, turned back by its turn (no font
+/// needed). None without letters.
+pub fn stored_size(job: &Job, text: &Text) -> Option<(f64, f64)> {
     stored_box(job, text).map(|(size, _)| size)
 }
 

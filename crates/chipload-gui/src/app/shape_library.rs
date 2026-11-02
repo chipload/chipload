@@ -788,7 +788,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        match insert(&edit.settings, &entry.entry, at, &size, None) {
+        match insert(&edit.settings, &entry.entry, name, at, &size, None) {
             Ok(done) => {
                 edit.settings.drawing = done.job.drawing;
                 self.drawing_changed(&done.shapes);

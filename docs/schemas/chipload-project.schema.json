@@ -229,6 +229,13 @@
           },
           "type": "array"
         },
+        "groups": {
+          "description": "Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the\nfile when there are none, so projects without groups open in older versions.",
+          "items": {
+            "$ref": "#/$defs/ShapeGroup"
+          },
+          "type": "array"
+        },
         "hidden": {
           "default": [],
           "description": "Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,\n`dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`,\n`drawn:polyline`.",
@@ -1782,7 +1789,7 @@
           ]
         },
         "exclude": {
-          "description": "Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text`\nonly. A contour with any of them isn't cut. A traced image's, or a text's, are found\nagain when it is made again.",
+          "description": "Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`,\n`text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found\nagain when it is made again.",
           "items": {
             "format": "uint64",
             "minimum": 0,
@@ -1790,6 +1797,15 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "group": {
+          "description": "The shapes and texts' letters of this group (an id in `drawing.groups`), as they\nare at each run.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         },
@@ -2054,6 +2070,47 @@
         "id",
         "layer",
         "kind"
+      ],
+      "type": "object"
+    },
+    "ShapeGroup": {
+      "additionalProperties": false,
+      "description": "Drawn shapes and texts kept together: one click selects them all, and they move, turn,\nscale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one\ngroup; groups don't hold groups.",
+      "properties": {
+        "id": {
+          "description": "The group's id, which operations' selectors name.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "description": "Its name in the Browser.",
+          "type": "string"
+        },
+        "shapes": {
+          "default": [],
+          "description": "Its drawn shapes, by id.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "texts": {
+          "default": [],
+          "description": "Its texts, by id, with their letters.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name"
       ],
       "type": "object"
     },

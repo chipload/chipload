@@ -277,6 +277,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] former behölls som spårade: utjämningen fick dem att korsa varandra.
 }
 pipeline-no-text = det finns ingen text { $id }
+pipeline-no-group = det finns ingen grupp { $id }
+pipeline-group-imported = form { $shape } hör till en DXF eller en bild, som håller ihop sina former: bara ritade former och texter kan grupperas
+pipeline-group-no-name = en grupp behöver ett namn
+pipeline-ungroup-cut-texts = operation { $op } skär gruppen ”{ $name }”, som har texter: välj först om operationens former, eller ta ut texterna ur gruppen
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: kunde inte sammanfoga bokstävernas överlappande konturer: { $error }
 pipeline-text-font-missing = Typsnittet ”{ $font }” finns inte på den här datorn. { $text } behåller sina bokstäver och fräses som de är; för att ändra ord eller storlek, välj ett annat typsnitt.

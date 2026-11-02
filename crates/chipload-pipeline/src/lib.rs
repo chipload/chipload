@@ -11,6 +11,7 @@ pub mod estimate;
 pub mod explode;
 pub mod fonts;
 pub mod frames;
+pub mod groups;
 pub mod images;
 pub mod library;
 pub mod materials;
@@ -859,6 +860,7 @@ pub fn empty_project() -> Job {
             dxfs: Vec::new(),
             images: Vec::new(),
             texts: Vec::new(),
+            groups: Vec::new(),
             hidden: Vec::new(),
         },
         setups: vec![chipload_job::Setup {
@@ -971,6 +973,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         dxfs: vec![imported.source],
         images: Vec::new(),
         texts: Vec::new(),
+        groups: Vec::new(),
         hidden: Vec::new(),
     };
     job.stock_mut().x = x.max(1.0);

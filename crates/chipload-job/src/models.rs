@@ -287,12 +287,36 @@ pub struct Drawing {
     // Spec: docs/specs/text.md §3.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub texts: Vec<Text>,
+    /// Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the
+    /// file when there are none, so projects without groups open in older versions.
+    // Spec: docs/specs/shape-groups.md §4.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub groups: Vec<ShapeGroup>,
     /// Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,
     /// `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`,
     /// `drawn:polyline`.
     // Spec: docs/specs/drawing-sources.md §4.
     #[serde(default)]
     pub hidden: Vec<String>,
+}
+
+/// Drawn shapes and texts kept together: one click selects them all, and they move, turn,
+/// scale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one
+/// group; groups don't hold groups.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ShapeGroup {
+    /// The group's id, which operations' selectors name.
+    pub id: u64,
+    /// Its name in the Browser.
+    pub name: String,
+    /// Its drawn shapes, by id.
+    #[serde(default)]
+    pub shapes: Vec<u64>,
+    /// Its texts, by id, with their letters.
+    #[serde(default)]
+    pub texts: Vec<u64>,
 }
 
 /// A picture traced into shapes: the picture itself, where it goes, and how it becomes black
@@ -1975,10 +1999,10 @@ impl Job {
             return self.drawing.extents();
         }
         let setup = self.active_setup_id();
-        let selectors: Vec<&Selector> = operations
+        let selectors: Vec<Selector> = operations
             .into_iter()
             .filter(|op| op.selects_shapes() && self.part_of(op).map(|p| p.setup) == setup)
-            .map(Operation::select)
+            .map(|op| op.select().resolved(&self.drawing))
             .collect();
         self.drawing
             .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
@@ -2213,8 +2237,13 @@ pub struct Selector {
     // Spec: docs/specs/text.md §3.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub text: Option<u64>,
-    /// Shapes of that DXF, image or text left out (ids); with `dxf`, `image` or `text`
-    /// only. A contour with any of them isn't cut. A traced image's, or a text's, are found
+    /// The shapes and texts' letters of this group (an id in `drawing.groups`), as they
+    /// are at each run.
+    // Spec: docs/specs/shape-groups.md §4, decision 8.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<u64>,
+    /// Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`,
+    /// `text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found
     /// again when it is made again.
     // Spec: docs/specs/leave-out-shapes.md.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -2230,7 +2259,22 @@ impl Selector {
             && self.dxf.is_none()
             && self.image.is_none()
             && self.text.is_none()
+            && self.group.is_none()
             && self.shapes.as_ref().is_none_or(Vec::is_empty)
+    }
+
+    /// The selector with its group, if it names one, turned into the group's shapes as
+    /// they are in `drawing` (its texts' letters included), for picking contours. The
+    /// shapes left out stay left out.
+    pub fn resolved(&self, drawing: &Drawing) -> Selector {
+        match self.group {
+            None => self.clone(),
+            Some(id) => Selector {
+                shapes: Some(drawing.group_shapes(id)),
+                group: None,
+                ..self.clone()
+            },
+        }
     }
 
     /// Whether it could pick `shape`: on its layer or among its shapes, and from its DXF,
@@ -2350,6 +2394,7 @@ static NO_SELECTOR: Selector = Selector {
     dxf: None,
     image: None,
     text: None,
+    group: None,
     exclude: None,
 };
 
@@ -3472,6 +3517,107 @@ pub const MAX_RAMP_ANGLE_RAD: f64 = std::f64::consts::PI / 6.0;
 pub const DEFAULT_RAMP_ANGLE_RAD: f64 = 3.0 * std::f64::consts::PI / 180.0;
 
 impl Drawing {
+    /// Group `id`'s shapes: its drawn shapes and its texts' letters, by id, as they are
+    /// now. Ids no longer in the drawing are left out. Empty for no such group.
+    pub fn group_shapes(&self, id: u64) -> Vec<u64> {
+        let Some(group) = self.groups.iter().find(|g| g.id == id) else {
+            return Vec::new();
+        };
+        self.shapes
+            .iter()
+            .filter(|s| {
+                group.shapes.contains(&s.id) || s.text().is_some_and(|t| group.texts.contains(&t))
+            })
+            .map(|s| s.id)
+            .collect()
+    }
+
+    /// The group shape `id` is in: as a drawn shape, or as a letter of a grouped text.
+    pub fn group_of(&self, id: u64) -> Option<u64> {
+        let text = self
+            .shapes
+            .iter()
+            .find(|s| s.id == id)
+            .and_then(Shape::text);
+        self.groups
+            .iter()
+            .find(|g| g.shapes.contains(&id) || text.is_some_and(|t| g.texts.contains(&t)))
+            .map(|g| g.id)
+    }
+
+    /// The group text `id` is in.
+    pub fn group_of_text(&self, id: u64) -> Option<u64> {
+        self.groups
+            .iter()
+            .find(|g| g.texts.contains(&id))
+            .map(|g| g.id)
+    }
+
+    /// Take shapes and texts that are gone out of their groups, and groups left with
+    /// nothing out of the drawing (docs/specs/shape-groups.md §4). Every edit that
+    /// removes shapes or texts calls it.
+    pub fn tidy_groups(&mut self) {
+        let shapes: std::collections::BTreeSet<u64> = self.shapes.iter().map(|s| s.id).collect();
+        let texts: std::collections::BTreeSet<u64> = self.texts.iter().map(|t| t.id).collect();
+        for group in &mut self.groups {
+            group.shapes.retain(|id| shapes.contains(id));
+            group.texts.retain(|id| texts.contains(id));
+        }
+        self.groups
+            .retain(|g| !(g.shapes.is_empty() && g.texts.is_empty()));
+    }
+
+    /// What is wrong with the groups (docs/specs/shape-groups.md §4): ids twice, no name,
+    /// nothing in a group, a member that isn't drawn, one in two groups. Members that are
+    /// gone are not a problem: [`Drawing::tidy_groups`] takes them out.
+    fn group_problems(&self) -> Vec<Problem> {
+        let mut problems = Vec::new();
+        let mut ids = std::collections::BTreeSet::new();
+        let mut members = std::collections::BTreeSet::new();
+        let mut texts = std::collections::BTreeSet::new();
+        for (i, group) in self.groups.iter().enumerate() {
+            let at = format!("drawing.groups.{i}");
+            if !ids.insert(group.id) {
+                problems.push(Problem::at(
+                    format!("{at}.id"),
+                    Message::new("job-id-twice").arg("id", group.id),
+                ));
+            }
+            if group.name.trim().is_empty() {
+                problems.push(Problem::at(
+                    format!("{at}.name"),
+                    Message::new("job-must-not-be-empty"),
+                ));
+            }
+            if group.shapes.is_empty() && group.texts.is_empty() {
+                problems.push(Problem::at(at.clone(), Message::new("job-group-empty")));
+            }
+            for id in &group.shapes {
+                if self.shapes.iter().any(|s| s.id == *id && !s.is_drawn()) {
+                    problems.push(Problem::at(
+                        format!("{at}.shapes"),
+                        Message::new("job-group-not-drawn").arg("shape", *id),
+                    ));
+                }
+                if !members.insert(*id) {
+                    problems.push(Problem::at(
+                        format!("{at}.shapes"),
+                        Message::new("job-group-shape-twice").arg("shape", *id),
+                    ));
+                }
+            }
+            for id in &group.texts {
+                if !texts.insert(*id) {
+                    problems.push(Problem::at(
+                        format!("{at}.texts"),
+                        Message::new("job-group-text-twice").arg("text", *id),
+                    ));
+                }
+            }
+        }
+        problems
+    }
+
     /// The box round the shapes that are cut (construction geometry left out), arcs
     /// included, mm: ((x0, y0), (x1, y1)). None for an empty drawing.
     pub fn extents(&self) -> Option<((f64, f64), (f64, f64))> {
@@ -3638,6 +3784,7 @@ impl Drawing {
                 ));
             }
         }
+        problems.extend(self.group_problems());
         problems
     }
 }
@@ -4313,15 +4460,25 @@ impl Job {
                     Message::new("job-no-text").arg("id", text),
                 ));
             }
-            // Shapes left out of a whole DXF, image or text (docs/specs/leave-out-shapes.md
-            // §2, text.md §3).
+            if let Some(group) = selector.group
+                && !self.drawing.groups.iter().any(|g| g.id == group)
+            {
+                problems.push(Problem::at(
+                    format!("operations.{i}.select.group"),
+                    Message::new("job-no-group").arg("id", group),
+                ));
+            }
+            // Shapes left out of a whole DXF, image, text or group
+            // (docs/specs/leave-out-shapes.md §2, text.md §3, shape-groups.md §4).
             if let Some(exclude) = selector.exclude.as_ref().filter(|e| !e.is_empty()) {
-                let source = match (selector.dxf, selector.image, selector.text) {
-                    (Some(dxf), _, _) => Some(("dxf", dxf, 0)),
-                    (None, Some(image), _) => Some(("image", image, 1)),
-                    (None, None, Some(text)) => Some(("text", text, 2)),
-                    (None, None, None) => None,
+                let source = match (selector.dxf, selector.image, selector.text, selector.group) {
+                    (Some(dxf), _, _, _) => Some(("dxf", dxf, 0)),
+                    (None, Some(image), _, _) => Some(("image", image, 1)),
+                    (None, None, Some(text), _) => Some(("text", text, 2)),
+                    (None, None, None, Some(group)) => Some(("group", group, 3)),
+                    (None, None, None, None) => None,
                 };
+                let grouped = selector.group.map(|g| self.drawing.group_shapes(g));
                 match source {
                     None => problems.push(Problem::at(
                         format!("operations.{i}.select.exclude"),
@@ -4331,7 +4488,8 @@ impl Job {
                         let of_source = |shape: &Shape| match kind {
                             0 => shape.dxf() == Some(id),
                             1 => shape.image() == Some(id),
-                            _ => shape.text() == Some(id),
+                            2 => shape.text() == Some(id),
+                            _ => grouped.as_ref().is_some_and(|g| g.contains(&shape.id)),
                         };
                         if let Some(missing) = exclude.iter().find(|e| {
                             !self
@@ -4351,11 +4509,12 @@ impl Job {
                     }
                 }
             }
-            if [selector.dxf, selector.image, selector.text]
+            if [selector.dxf, selector.image, selector.text, selector.group]
                 .iter()
                 .flatten()
                 .count()
                 > 1
+                || (selector.group.is_some() && selector.shapes.is_some())
             {
                 problems.push(Problem::at(
                     format!("operations.{i}.select"),

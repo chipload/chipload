@@ -326,15 +326,21 @@ pub struct Inserted {
     pub job: Job,
     pub shapes: Vec<u64>,
     pub texts: Vec<u64>,
+    /// The group they make, when there is more than one thing (docs/specs/shape-groups.md,
+    /// decision 5).
+    pub group: Option<u64>,
 }
 
 /// Insert `entry` (§4.4): the middle of its box at `at` (for `Around`, the middle of the
 /// shapes it goes round; else the stock's middle when None), scaled as `size` says, every
 /// shape on `layer` if given. Shapes and texts get new ids; texts stay texts, their letters
-/// moved with them, so a text in a font this computer lacks keeps its letters.
+/// moved with them, so a text in a font this computer lacks keeps its letters. More than
+/// one shape or text make a group named `name` (the entry's), so they stay together
+/// (docs/specs/shape-groups.md, decision 5).
 pub fn insert(
     job: &Job,
     entry: &ShapeEntry,
+    name: &str,
     at: Option<(f64, f64)>,
     size: &InsertSize,
     layer: Option<&str>,
@@ -427,10 +433,32 @@ pub fn insert(
         shapes.push(id);
     }
     crate::refuse_problems(&out.drawing.validate())?;
+    let drawn: Vec<u64> = shapes
+        .iter()
+        .copied()
+        .filter(|id| {
+            out.drawing
+                .shapes
+                .iter()
+                .any(|s| s.id == *id && s.text().is_none())
+        })
+        .collect();
+    let mut group = None;
+    if drawn.len() + texts.len() > 1 {
+        let members = crate::groups::Members {
+            shapes: drawn,
+            texts: texts.clone(),
+        };
+        let title = name.rsplit('/').next().unwrap_or(name);
+        let (grouped, id) = crate::groups::group(&out, &members, Some(title))?;
+        out = grouped;
+        group = Some(id);
+    }
     Ok(Inserted {
         job: out,
         shapes,
         texts,
+        group,
     })
 }
 

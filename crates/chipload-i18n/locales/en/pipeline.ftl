@@ -270,6 +270,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] shapes
 } kept as traced: smoothing made them cross.
 pipeline-no-text = there is no text { $id }
+pipeline-no-group = there is no group { $id }
+pipeline-group-imported = shape { $shape } belongs to a DXF or a picture, which keeps its shapes together: only drawn shapes and texts can be grouped
+pipeline-group-no-name = a group needs a name
+pipeline-ungroup-cut-texts = operation { $op } cuts the group “{ $name }”, which has texts: choose that operation's shapes again, or take the texts out of the group first
 # $text is the text's first line in quotes; $error why (a toolpath-error text).
 pipeline-text-join-failed = { $text }: couldn't join the letters' overlapping outlines: { $error }
 pipeline-text-font-missing = Font "{ $font }" is not on this computer. { $text } keeps its letters and cuts as they are; to change its words or size, choose another font.
