@@ -1,7 +1,7 @@
 # Spec: dockable panels
 
 Status: **agreed 2026-11-02**, decisions 1-7 as recommended (the user: "Sounds good, go
-ahead"). Steps 1 and 2 built 2026-11-02; ADR 0028.
+ahead"). Built 2026-11-02 (steps 1-3); ADR 0028.
 
 As built (step 1):
 - **The Report's summary is on its own tab, not in the status bar** (decision 3). The status
