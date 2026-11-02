@@ -2,8 +2,31 @@
 
 Status: **agreed 2026-10-31**, all decisions as recommended (the user: "Go ahead with
 recommendations we will iterate a bit on it"). **Step 1, frames (§3), built the same day**;
-step 2, the library (§4), next. **§5.1, the library as a tab in the right panel with drag
-and drop, revised 2026-11-02, decisions 9-13 to review.**
+**step 2, the library (§4, §5.1, §5.2), built 2026-11-02**, decisions 9-14 as recommended
+(the user: "Go ahead").
+
+As built (the library):
+- **The entry file holds no `name`** (§4.2 listed one): its name is the file's, so a renamed
+  file can't disagree with itself.
+- **Deleting** moves the file to `shapes/.deleted/` (a group's name put before it), not to
+  `.bak` beside it: a group's folder can then be removed once its entries are gone. Saving
+  over an entry keeps the old one as `.bak` beside it, as §4.3 says.
+- **Imported shapes** (a DXF's, a picture's) are saved as drawn polylines and circles
+  (`path_to_drawn`, as Explode); letters stay paths, with their text.
+- **Inserting** copies a text's letters, moved and scaled with it, rather than making them
+  again: the same letters, and a font this computer lacks costs nothing.
+- **Folders** are looked into 6 levels deep, at most 5000 files listed; names starting
+  with a dot, and files other than entries, DXFs and SVGs, are left out. Names are checked
+  for every system (no `/ \ : * ? " < > |`, no leading dot or space, no trailing dot or
+  space, not CON, NUL, COM1 and the like), at most 100 characters.
+- **In the window:** the save's name field has the group as a list beside it, at the top
+  of the tab, rather than a field on a new cell. A drag of the selection onto the tab
+  starts from a **drawn** shape of the selection (a drag on letters or a DXF's shapes opens
+  a selection box, as before); *Save selection…* and the canvas's right-click *Save to
+  shape library…* save anything selected. The folder is read again every 2 s while the tab
+  is shown, so files copied in by hand appear. *Show in folder* runs the system's file
+  manager (explorer, open, xdg-open). Insert round the selection uses the frame tool's
+  margin.
 
 As built (frames):
 - *r* is called the **corner size** (`--corner` on the command line, *Corner* in the

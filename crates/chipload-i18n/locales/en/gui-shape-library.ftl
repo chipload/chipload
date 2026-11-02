@@ -1,0 +1,35 @@
+# The shape library's tab in the right panel (docs/specs/shape-library.md §5.1).
+
+shape-library-tab = Shapes
+shape-library-no-folder = There is no settings folder, so there is no shape library.
+shape-library-search = Search
+shape-library-folder = Folder
+shape-library-save-selection = Save selection…
+shape-library-save-selection-hover = Keep the selected shapes and texts in the library, for any project. Or drag them here
+shape-library-new-group = New group
+shape-library-new-group-name = The new group's name:
+shape-library-add-group = Add
+shape-library-save-as = Save the selection as:
+shape-library-no-group = (no group)
+shape-library-save = Save
+shape-library-replace = Replace
+shape-library-exists = “{ $name }” is already in the library.
+shape-library-cancel = Cancel
+shape-library-rename = A new name for “{ $name }”:
+shape-library-rename-button = Rename
+shape-library-rename-menu = Rename…
+shape-library-delete-question = Delete “{ $name }”? Its file goes to the library folder's .deleted.
+shape-library-delete-group-question = Delete the empty group “{ $name }”?
+shape-library-delete = Delete
+shape-library-delete-menu = Delete…
+shape-library-group-not-empty = Only an empty group can be deleted
+shape-library-show-in-folder = Show in folder
+shape-library-move-to = Move to
+shape-library-insert-middle = Insert in the middle of the view
+shape-library-insert-around = Insert round the selection
+shape-library-insert-around-hover = Scaled to fit round what is selected, with the frame's margin
+shape-library-empty = Nothing here yet. Select shapes and drag them here, or click Save selection…
+shape-library-failed = The shape library couldn't do that
+shape-library-saved = Saved “{ $name }” to the shape library
+shape-library-inserted = Inserted “{ $name }”
+shape-library-save-menu = Save to shape library…

@@ -90,7 +90,10 @@ it's built (see `CLAUDE.md`).
 - **Shape library in the right panel** (the user, 2026-11-02: "a tab in the right panel
   where I can drag and drop shapes from the library to the canvas … and also the other way
   around"; "Each item shall have a preview and a name"): docs/specs/shape-library.md §5.1,
-  decisions 9-14 to review; groups as folders (§5.2); then step 2 built.
+  **done 2026-11-02**, decisions 9-14 as recommended: entries (`.chipload-shapes`, v1),
+  groups as folders, `shape save/insert/library`, the Shapes tab with drag and drop both
+  ways. To try: the guide's other pictures show the old PROPERTIES caption until the
+  next release's screenshots.
 - **Later: dockable panels** (the user, 2026-11-02: drag a panel onto another
   for a tab, below it to stack; "no hack"): egui has no docking; egui_dock 0.21 (MIT) or
   egui_tiles 0.17 (MIT/Apache-2.0) on egui 0.36. Its own spec and ADR: every panel becomes

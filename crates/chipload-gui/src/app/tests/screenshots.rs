@@ -113,6 +113,14 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "simulation,3d,notoolpath,noreport",
         (1200.0, 800.0),
     ),
+    // The shape library's tab beside the canvas, the sign selected (docs/specs/
+    // shape-library.md §5.1).
+    (
+        "shape-library",
+        "tests/corpus/jobs/v35/sign_frame.chipload",
+        "shapes,noreport",
+        (1200.0, 800.0),
+    ),
     // The library: a settings folder of its own with two tools and a machine.
     (
         "library",
@@ -152,6 +160,8 @@ fn screenshots() {
             ("library" | "machine", None) => {
                 panic!("set CHIPLOAD_SHOTS_LIBRARY for {name}.png")
             }
+            // Its own folder, so the entries it saves are in no other picture.
+            ("shape-library", _) => temp_dir("shots-shapes"),
             _ => empty.clone(),
         };
         let project = root.join(project);

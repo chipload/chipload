@@ -69,6 +69,7 @@ mod report;
 mod rulers;
 mod select_drag;
 mod setups;
+mod shape_library;
 mod shortcuts;
 mod simulation;
 mod sources;
@@ -365,6 +366,10 @@ pub struct ChiploadApp {
     /// (View, the P key, or dragging a panel's edge past its least width).
     pub browser_open: bool,
     pub properties_open: bool,
+    /// What the right panel shows: Properties or the shape library
+    /// (docs/specs/shape-library.md §5.1).
+    pub right_tab: shape_library::RightTab,
+    shape_library: shape_library::ShapeLibraryView,
     /// The material-removal simulation of the last result (docs/specs/simulation.md).
     pub sim: Sim,
     /// The playback slider's state, once a toolpath has been generated.
@@ -540,6 +545,8 @@ impl Default for ChiploadApp {
             show_simulation: false,
             browser_open: true,
             properties_open: true,
+            right_tab: shape_library::RightTab::default(),
+            shape_library: shape_library::ShapeLibraryView::default(),
             sim: Sim::default(),
             playback: None,
             three_d: false,
@@ -2327,6 +2334,10 @@ impl eframe::App for ChiploadApp {
             ctx.set_theme(theme_preference(self.theme));
             self.applied_theme = Some(self.theme);
         }
+        // Esc lets go of an entry dragged out of the shape library.
+        if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+            egui::DragAndDrop::clear_payload(&ctx);
+        }
         self.shortcuts(&ctx);
         Panel::top("top-bar")
             .exact_size(header::TOP_BAR_HEIGHT)
@@ -2380,18 +2391,27 @@ impl eframe::App for ChiploadApp {
                     let hover = t!(ui, "app-show-properties-hover");
                     return folded_strip(ui, "◂", &hover);
                 }
-                let caption = t!(ui, "app-properties");
-                browser::caption(ui, &caption);
+                self.right_tabs(ui);
                 // The forms are laid out in the panel's width; a row that still doesn't fit
                 // scrolls sideways instead of widening the panel.
                 let width = ui.available_width();
-                ScrollArea::both()
-                    .id_salt("properties-scroll")
-                    .auto_shrink([false, true])
-                    .show(ui, |ui| {
-                        ui.set_max_width(width);
-                        self.properties_panel(ui);
-                    });
+                if self.right_tab == shape_library::RightTab::Shapes {
+                    ScrollArea::vertical()
+                        .id_salt("shape-library-scroll")
+                        .auto_shrink([false, false])
+                        .show(ui, |ui| {
+                            ui.set_max_width(width);
+                            self.shapes_tab(ui);
+                        });
+                } else {
+                    ScrollArea::both()
+                        .id_salt("properties-scroll")
+                        .auto_shrink([false, true])
+                        .show(ui, |ui| {
+                            ui.set_max_width(width);
+                            self.properties_panel(ui);
+                        });
+                }
                 false
             },
         )
@@ -2412,6 +2432,7 @@ impl eframe::App for ChiploadApp {
                 self.start_screen(ui);
             }
         });
+        self.follow_properties();
         self.prompts(&ctx);
         self.about(&ctx);
         self.shortcuts_window(&ctx);

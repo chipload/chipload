@@ -177,6 +177,13 @@ impl ChiploadApp {
             }
         }
         if response.drag_stopped() {
+            // Selected shapes carried onto the shape library: saved there, not moved.
+            if self.drag.moving.as_ref().is_some_and(|m| m.carried) {
+                self.drag.moving = None;
+                if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
+                    self.drop_selection_on_library(pos);
+                }
+            }
             self.end_zero_drag();
             self.end_handle_drag();
             self.end_box_drag();
@@ -233,7 +240,18 @@ impl ChiploadApp {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                self.drag_move_to(self.view.to_world(pos), alt, shift);
+                let carried = self.over_library(pos);
+                if let Some(moving) = self.drag.moving.as_mut() {
+                    moving.carried = carried;
+                    if carried {
+                        moving.to = moving.grab;
+                    }
+                }
+                if carried {
+                    self.paint_carried(ui.ctx(), pos);
+                } else {
+                    self.drag_move_to(self.view.to_world(pos), alt, shift);
+                }
             }
         } else if self.drag.select_box.is_some() {
             if response.dragged()
@@ -434,6 +452,24 @@ impl ChiploadApp {
         self.scene.preview.extend(outline);
         let moved = self.move_outlines();
         self.scene.preview.extend(moved);
+        // An entry of the shape library dragged over the canvas: where it would land; let
+        // go, it is inserted there (docs/specs/shape-library.md §5.1).
+        self.shape_library.view_middle = Some(self.view.to_world(rect.center()));
+        if editing
+            && self.view.is_top()
+            && let Some(pos) = ui
+                .input(|i| i.pointer.hover_pos())
+                .filter(|p| rect.contains(*p))
+            && let Some(at) = self.entry_drag_preview(ui.ctx(), pos)
+            && let Some(dropped) =
+                response.dnd_release_payload::<super::shape_library::DraggedEntry>()
+        {
+            self.insert_entry(
+                &dropped.0,
+                Some(at),
+                chipload_pipeline::shape_library::InsertSize::AsSaved,
+            );
+        }
         // Right-clicking a corner marker opens its menu, not the canvas's.
         let corner_clicked = (editing && response.secondary_clicked())
             .then(|| response.interact_pointer_pos())

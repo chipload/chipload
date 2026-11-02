@@ -15,6 +15,9 @@ pub(super) struct MoveDrag {
     pub ids: Vec<u64>,
     pub grab: Point,
     pub to: Point,
+    /// Over the shape library's tab: not moved, saved there when dropped
+    /// (docs/specs/shape-library.md §5.1).
+    pub carried: bool,
 }
 
 impl ChiploadApp {
@@ -42,6 +45,7 @@ impl ChiploadApp {
                     ids,
                     grab,
                     to: grab,
+                    carried: false,
                 });
             }
             None => self.drag.select_box = Some((at, at)),

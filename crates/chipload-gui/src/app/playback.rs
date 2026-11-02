@@ -421,6 +421,11 @@ impl ChiploadApp {
             self.start_frame();
             self.frame.borders = 1;
         }
+        // The shape library's tab with a few entries: the sign itself, and frames in a
+        // group (docs/specs/shape-library.md §5.1).
+        if steps.contains(&"shapes") {
+            self.screenshot_shape_library();
+        }
         let last_part = self
             .edit
             .as_ref()
@@ -698,5 +703,49 @@ impl ChiploadApp {
             RichText::new(playback.readout(job.as_ref(), crate::units::display(ui.ctx()), ui))
                 .small(),
         );
+    }
+}
+
+#[cfg(test)]
+impl ChiploadApp {
+    /// Fill the settings folder's shape library for the guide's picture and show it.
+    fn screenshot_shape_library(&mut self) {
+        use chipload_pipeline::frames::{FrameKind, FrameSize, NewFrame, add_frame};
+        use chipload_pipeline::shape_library::{entry_from, save, shapes_dir};
+        let (Some(dir), Some(edit)) = (self.settings_dir.clone(), self.edit.as_ref()) else {
+            return;
+        };
+        let dir = shapes_dir(&dir);
+        let job = edit.settings.clone();
+        let all: Vec<u64> = job.drawing.shapes.iter().map(|s| s.id).collect();
+        if let Ok(entry) = entry_from(&job, &all, &[]) {
+            let _ = save(&dir, "Welcome sign", &entry, true);
+        }
+        let blank = chipload_pipeline::empty_project();
+        for (kind, name, borders) in [
+            (FrameKind::Oval, "Oval", 1),
+            (FrameKind::Arched, "Arched top", 2),
+            (FrameKind::Plaque, "Plaque", 1),
+            (FrameKind::Notched, "Notched", 1),
+            (FrameKind::Chamfered, "Chamfered", 0),
+        ] {
+            let mut frame = NewFrame::new(
+                kind,
+                FrameSize::Fixed {
+                    width: 200.0,
+                    height: 100.0,
+                    center: None,
+                },
+            );
+            frame.borders = borders;
+            if let Ok(done) = add_frame(&blank, &frame)
+                && let Ok(entry) = entry_from(&done.job, &done.new_ids, &[])
+            {
+                let _ = save(&dir, &format!("Frames/{name}"), &entry, true);
+            }
+        }
+        self.selection = CanvasSelection::Shapes(all.into_iter().collect());
+        self.focus = Focus::Selection;
+        self.right_tab = super::shape_library::RightTab::Shapes;
     }
 }

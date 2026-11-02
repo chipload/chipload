@@ -2,7 +2,8 @@
 
 An engraved sign is a few words with a frame round them, cut out of a board. **Draw >
 Frame…** draws the frame for you: round the text you have written, centred on it, with
-border lines inside it, or to a size as a blank. (Design: `docs/specs/shape-library.md`.)
+border lines inside it, or to a size as a blank. A sign you will make again can be kept in the
+[shape library](shape-library.md). (Design: `docs/specs/shape-library.md`.)
 
 ![A text selected, Draw > Frame… open under Selection, a rounded frame with one border previewed round the text](../images/frame.png)
 

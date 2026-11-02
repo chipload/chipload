@@ -300,6 +300,18 @@ impl ChiploadApp {
         {
             self.paste(None);
         }
+        // The selection kept for any project (docs/specs/shape-library.md §5).
+        if ui
+            .add_enabled(
+                !self.framed_shape_ids().is_empty() && self.settings_dir.is_some(),
+                egui::Button::new(t!(ui, "shape-library-save-menu")),
+            )
+            .clicked()
+        {
+            let group = self.shape_library_group();
+            self.ask_library_save(group);
+            ui.close();
+        }
         if ui
             .add_enabled(drawn, egui::Button::new(t!(ui, "menu-mirror-left-right")))
             .on_hover_text(t!(ui, "menu-mirror-hover"))

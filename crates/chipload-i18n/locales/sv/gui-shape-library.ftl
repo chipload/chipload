@@ -1,0 +1,35 @@
+# The shape library's tab in the right panel (docs/specs/shape-library.md §5.1).
+
+shape-library-tab = Former
+shape-library-no-folder = Det finns ingen inställningsmapp, alltså inget formbibliotek.
+shape-library-search = Sök
+shape-library-folder = Mapp
+shape-library-save-selection = Spara markering…
+shape-library-save-selection-hover = Behåll de markerade formerna och texterna i biblioteket, för alla projekt. Eller dra hit dem
+shape-library-new-group = Ny grupp
+shape-library-new-group-name = Den nya gruppens namn:
+shape-library-add-group = Lägg till
+shape-library-save-as = Spara markeringen som:
+shape-library-no-group = (ingen grupp)
+shape-library-save = Spara
+shape-library-replace = Ersätt
+shape-library-exists = ”{ $name }” finns redan i biblioteket.
+shape-library-cancel = Avbryt
+shape-library-rename = Ett nytt namn för ”{ $name }”:
+shape-library-rename-button = Byt namn
+shape-library-rename-menu = Byt namn…
+shape-library-delete-question = Ta bort ”{ $name }”? Filen hamnar i .deleted i biblioteksmappen.
+shape-library-delete-group-question = Ta bort den tomma gruppen ”{ $name }”?
+shape-library-delete = Ta bort
+shape-library-delete-menu = Ta bort…
+shape-library-group-not-empty = Bara en tom grupp kan tas bort
+shape-library-show-in-folder = Visa i mappen
+shape-library-move-to = Flytta till
+shape-library-insert-middle = Infoga mitt i vyn
+shape-library-insert-around = Infoga runt markeringen
+shape-library-insert-around-hover = Skalad så att den går runt det markerade, med ramens marginal
+shape-library-empty = Inget här än. Markera former och dra hit dem, eller klicka på Spara markering…
+shape-library-failed = Formbiblioteket kunde inte göra det
+shape-library-saved = ”{ $name }” sparad i formbiblioteket
+shape-library-inserted = ”{ $name }” infogad
+shape-library-save-menu = Spara i formbiblioteket…

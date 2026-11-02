@@ -5,6 +5,33 @@ with its border, can be kept in your **shape library** and put into any project.
 holds drawn shapes and texts; a text stays a text, so a saved sign can get new words.
 (Design: `docs/specs/shape-library.md`.)
 
+![The Shapes tab beside the canvas: a saved sign, and frames in a group](../images/shape-library.png)
+
+## In the window
+
+The right panel has two tabs, **Properties** and **Shapes**. *Shapes* is the library: a
+search field, then the entries as small pictures with their names, the ones in no group
+first and each group under a header that folds.
+
+- **Insert:** drag an entry onto the canvas. Its outline follows the pointer, snapped as a
+  drawn point is, and where you let go the middle of its box lands. Or double-click it: it
+  goes in the middle of the view. Either way the new shapes are selected, as one undo step.
+  **Esc** while dragging lets go of it.
+- **Save:** select shapes and texts, then drag a drawn shape of the selection onto the
+  *Shapes* tab (onto its name when *Properties* is shown, or onto a group to save there),
+  or click **Save selection…**, or right-click on the canvas: *Save to shape library…*. A
+  name field opens, with the text's words or the layer's name in it; **Enter** saves. A
+  name that is taken asks before it is replaced.
+- **Right-click an entry:** *Insert in the middle of the view*, *Insert round the
+  selection* (scaled to fit round what is selected, with the frame tool's margin),
+  *Rename…*, *Move to* a group, *Delete…*, *Show in folder*.
+- **Groups:** *New group*; drag an entry onto a group to move it there (or to the top for
+  none). Right-click a group's header to rename it, delete it (only when empty) or show
+  its folder.
+- The tab stays open while you select shapes on the canvas. Clicking something in the
+  Browser, or starting a tool with values (*Frame…*, *Array…*, a text), shows *Properties*
+  again.
+
 ## Where it is kept
 
 The library is a folder, `shapes` in your settings folder (`chipload shape library path`
