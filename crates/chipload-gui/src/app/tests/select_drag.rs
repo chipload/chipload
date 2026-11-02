@@ -140,7 +140,7 @@ mod modes {
         h.key_press(egui::Key::F6);
         h.run_steps(2);
         assert!(h.state().show_simulation);
-        assert!(h.state_mut().wait_for_generation() || h.state().result.is_some());
+        assert!(h.state_mut().wait_for_generation() || h.state().toolpath.result.is_some());
         let ctx = egui::Context::default();
         h.state_mut().wait_for_simulation(&ctx);
         assert!(h.state().sim.simulation.is_some());
@@ -170,7 +170,7 @@ mod modes {
         h.run_steps(2);
         assert!(h.state().show_simulation);
         // While it simulates the button reads "Simulate…": wait until it is done.
-        assert!(h.state_mut().wait_for_generation() || h.state().result.is_some());
+        assert!(h.state_mut().wait_for_generation() || h.state().toolpath.result.is_some());
         let ctx = egui::Context::default();
         h.state_mut().wait_for_simulation(&ctx);
         h.run_steps(2);

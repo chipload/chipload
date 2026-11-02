@@ -32,7 +32,8 @@ impl ChiploadApp {
         };
         let cut = edit.job.parts.iter().filter(|p| p.enabled).count();
         let shown = self
-            .result_part
+            .toolpath
+            .part
             .and_then(|id| edit.job.part(id))
             .map(|p| p.name.as_str());
         match (cut, shown) {
@@ -285,7 +286,7 @@ impl ChiploadApp {
 
     /// What Generate and Export show this frame.
     fn ribbon_actions(&self, ui: &egui::Ui) -> RibbonActions {
-        let has_result = self.result.is_some();
+        let has_result = self.toolpath.result.is_some();
         let export_hover = if has_result {
             self.export_hover()
         } else if self.generating() {

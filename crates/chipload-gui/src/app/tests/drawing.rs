@@ -230,7 +230,10 @@ fn reordering_changes_the_cut_order() {
     assert!(app.generate_and_wait());
     let pocket_first = first_cut(&app);
     app.move_operation(1, 0);
-    assert!(app.result.is_none(), "editing clears the toolpath until F5");
+    assert!(
+        app.toolpath.result.is_none(),
+        "editing clears the toolpath until F5"
+    );
     assert!(app.generate_and_wait());
     let profile_first = first_cut(&app);
     assert_ne!(pocket_first, profile_first);
@@ -242,13 +245,13 @@ fn reordering_changes_the_cut_order() {
 fn disabled_operations_are_not_cut() {
     let mut app = lower_part();
     assert!(app.generate_and_wait());
-    let all = app.result.as_ref().unwrap().program.moves.len();
+    let all = app.toolpath.result.as_ref().unwrap().program.moves.len();
     if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
         p.enabled = false;
     }
     app.commit();
     assert!(app.generate_and_wait());
-    assert!(app.result.as_ref().unwrap().program.moves.len() < all);
+    assert!(app.toolpath.result.as_ref().unwrap().program.moves.len() < all);
 }
 
 #[test]
@@ -844,7 +847,9 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
     let mut app = drawn_part();
     assert!(app.generate_and_wait());
     let fresh = |app: &ChiploadApp| {
-        app.result.is_some() && app.changed_at.is_none() && app.generation.is_none()
+        app.toolpath.result.is_some()
+            && app.toolpath.changed_at.is_none()
+            && app.toolpath.running.is_none()
     };
     assert!(fresh(&app));
     // A circle on the stock that no operation cuts (they select shapes 1, 2 and 3).
@@ -865,7 +870,7 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
         p.select.shapes = Some(vec![1, id]);
     }
     app.commit();
-    assert!(app.result.is_none() && app.changed_at.is_some());
+    assert!(app.toolpath.result.is_none() && app.toolpath.changed_at.is_some());
     assert!(app.generate_and_wait());
     // A shape off the stock: the "outside the stock" note changes, so a new run.
     app.add_drawn(Geometry::Circle {
@@ -873,7 +878,7 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
         radius: 5.0,
     });
     app.commit();
-    assert!(app.changed_at.is_some(), "outside the stock");
+    assert!(app.toolpath.changed_at.is_some(), "outside the stock");
     // A board that fits its drawing grows with a new shape, and a zero on its corner moves.
     let mut app = drawn_part();
     let stock = app.edit.as_mut().unwrap().job.stock_mut();
@@ -886,5 +891,5 @@ fn a_shape_no_operation_selects_keeps_the_toolpath() {
         radius: 30.0,
     });
     app.commit();
-    assert!(app.changed_at.is_some(), "the board grew");
+    assert!(app.toolpath.changed_at.is_some(), "the board grew");
 }

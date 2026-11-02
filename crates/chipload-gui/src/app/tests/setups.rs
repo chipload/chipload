@@ -25,6 +25,7 @@ fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     // Generated: only setup 2's operation, and exported with its name.
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let ops: Vec<usize> = app
+        .toolpath
         .result
         .as_ref()
         .unwrap()

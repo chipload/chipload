@@ -129,7 +129,7 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     app.edit.as_mut().unwrap().job.stock_mut().y = 1000.0;
     app.commit();
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let result = app.result.as_ref().unwrap();
+    let result = app.toolpath.result.as_ref().unwrap();
     let copy_numbers: BTreeSet<u32> = result.op_spans.iter().map(|s| s.copy).collect();
     assert_eq!(copy_numbers, BTreeSet::from([1, 2, 3, 4]));
     // Copy 1 as before, the other three faded, and plunges marked on copy 1 only.
@@ -185,7 +185,11 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
         .starts()
         .to_vec();
     assert_eq!(starts, vec![[on_ring.0, on_ring.1]]);
-    assert!(app.result.is_some(), "generated again: {:?}", app.report);
+    assert!(
+        app.toolpath.result.is_some(),
+        "generated again: {:?}",
+        app.report
+    );
     // The profile now starts there; the markers show it.
     let moved = app
         .scene
@@ -248,12 +252,12 @@ fn a_lead_set_on_an_operation_is_generated_and_saved() {
     // docs/specs/helix-and-leads.md part B
     let mut app = lower_part();
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let before = app.result.as_ref().unwrap().program.moves.len();
+    let before = app.toolpath.result.as_ref().unwrap().program.moves.len();
     if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
         p.lead = Some(Lead { radius: 3.0 });
     }
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let after = app.result.as_ref().unwrap().program.moves.len();
+    let after = app.toolpath.result.as_ref().unwrap().program.moves.len();
     assert!(
         after > before,
         "the lead arcs add moves: {before} -> {after}"
@@ -303,7 +307,7 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
     let drawing_only = crate::view::legend(&app.scene, &crate::i18n::Language::En).len();
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    assert!(!app.toolpath_stale);
+    assert!(!app.toolpath.stale);
     let generated = crate::view::legend(&app.scene, &crate::i18n::Language::En).len();
     assert!(
         generated > drawing_only,
@@ -314,17 +318,17 @@ fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
         _ => panic!("operation 1 is a pocket"),
     }
     app.commit();
-    assert!(app.toolpath_stale, "the old toolpath is noticed");
+    assert!(app.toolpath.stale, "the old toolpath is noticed");
     // It stays, faded, until a new one replaces it; it can't be exported.
     assert!(app.scene.toolpath.as_ref().unwrap().stale);
-    assert!(app.result.is_none());
+    assert!(app.toolpath.result.is_none());
     assert!(app.scene.start_markers.is_empty());
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    assert!(!app.toolpath_stale);
+    assert!(!app.toolpath.stale);
     // A project opened afresh has nothing out of date.
     app.commit();
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));
-    assert!(!app.toolpath_stale);
+    assert!(!app.toolpath.stale);
 }
 
 /// Lowest X and Y of a contour.
@@ -441,7 +445,7 @@ fn a_vcarve_is_added_for_the_selection_and_generated() {
     assert_eq!(v.name, "V-carve 1");
     assert_eq!((v.start_depth, v.passes), (0.0, 1));
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let moves = &app.result.as_ref().unwrap().program.moves;
+    let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     assert!(
         moves
             .iter()
@@ -485,7 +489,7 @@ fn a_follow_path_is_added_for_open_and_closed_shapes_and_generated() {
     assert_eq!(p.select.shapes.as_ref().map(Vec::len), Some(3));
     assert!(app.generate_and_wait(), "{:?}", app.report);
     // Every shape is cut: the open paths' ends are reached.
-    let moves = &app.result.as_ref().unwrap().program.moves;
+    let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     for end in [(50.0, 40.0), (150.0, 60.0), (60.0, 110.0), (140.0, 110.0)] {
         assert!(
             moves
@@ -530,7 +534,7 @@ fn holes_take_the_tools_method_and_generate() {
     };
     assert!(matches!(h.method, HoleMethod::Bore { step_down, .. } if step_down == 3.0));
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let moves = &app.result.as_ref().unwrap().program.moves;
+    let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     assert!(
         moves
             .iter()
@@ -583,7 +587,7 @@ fn dogbones_are_set_on_a_profile_and_generated() {
     };
     p.corners = None;
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let round = app.result.as_ref().unwrap().program.moves.len();
+    let round = app.toolpath.result.as_ref().unwrap().program.moves.len();
     let edit = app.edit.as_mut().unwrap();
     let Operation::Profile(p) = &mut edit.job.operations[0] else {
         panic!("the slot");
@@ -594,7 +598,7 @@ fn dogbones_are_set_on_a_profile_and_generated() {
     assert!(app.generate_and_wait(), "{:?}", app.report);
     // The legs add moves on every lap, and the tool turns straight back at each of the
     // four tips (the toolpath tests count the moves per lap).
-    let moves = &app.result.as_ref().unwrap().program.moves;
+    let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     assert!(
         moves.len() > round + 4 * 2 * 2,
         "{round} -> {}",
@@ -825,7 +829,7 @@ fn a_rest_pass_is_added_under_its_pocket_opened_turned_off_and_undone() {
     draw_properties(&mut app);
     draw_sidebar(&mut app);
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let result = app.result.as_ref().unwrap();
+    let result = app.toolpath.result.as_ref().unwrap();
     assert!(result.op_spans.iter().any(|s| s.pass == Some(0)));
     // Not for a larger tool: an error, nothing added.
     app.add_rest_pass(0, 1);
@@ -874,7 +878,7 @@ fn a_floor_pass_is_added_under_its_vcarve_with_a_hint_turned_off_and_undone() {
     assert_eq!(floor(&app).map(|f| f.tool), Some(2));
     // Generated: cut first, and a 6 mm end mill is too wide here, so its form gets a hint.
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    let result = app.result.as_ref().unwrap();
+    let result = app.toolpath.result.as_ref().unwrap();
     assert!(
         result
             .op_spans

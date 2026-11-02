@@ -70,7 +70,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
             "{file} {trace:?}: {:?}",
             app.report
         );
-        assert!(app.result.is_some());
+        assert!(app.toolpath.result.is_some());
         // A profile after it goes back to the endmill.
         let profile = app.add_operation(OpKind::Profile).unwrap();
         assert_eq!(app.edit.as_ref().unwrap().job.operations[profile].tool(), 1);
@@ -84,7 +84,8 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
     let mut app = two_parts();
     let active = app.edit.as_ref().unwrap().job.active_part_id().unwrap();
     let ops_of = |app: &ChiploadApp| -> std::collections::BTreeSet<usize> {
-        app.result
+        app.toolpath
+            .result
             .as_ref()
             .unwrap()
             .op_spans
@@ -100,17 +101,17 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
         .map(|(i, _)| i)
         .collect();
     assert!(app.generate_and_wait(), "{:?}", app.report);
-    assert_eq!(app.result_part, Some(active));
+    assert_eq!(app.toolpath.part, Some(active));
     assert_eq!(ops_of(&app), mine, "only the active part's operations");
     // All parts: every operation.
     app.set_all_parts(true);
     assert!(app.wait_for_generation());
-    assert_eq!(app.result_part, None);
+    assert_eq!(app.toolpath.part, None);
     assert_eq!(ops_of(&app).len(), op_parts(&app).len());
     // Back to the part, then export: every part is planned again and written.
     app.set_all_parts(false);
     assert!(app.wait_for_generation());
-    assert_eq!(app.result_part, Some(active));
+    assert_eq!(app.toolpath.part, Some(active));
     let dir = temp_dir("part-preview-export");
     let path = dir.join("two.nc");
     assert!(
@@ -119,7 +120,7 @@ fn the_preview_is_of_the_active_part_and_export_is_of_all() {
     );
     assert!(app.generating());
     assert!(app.wait_for_generation());
-    assert_eq!(app.result_part, None);
+    assert_eq!(app.toolpath.part, None);
     let whole = chipload_pipeline::run_job(&app.edit.as_ref().unwrap().to_job().unwrap()).unwrap();
     let written: Vec<String> = whole
         .files

@@ -105,7 +105,7 @@ fn the_users_pocket_generates_with_its_steps_chosen() {
         app.choose_corner(0, at, Some((Bone::None, None)));
     }
     assert!(app.wait_for_generation(), "{:?}", app.report);
-    assert!(app.result.is_some(), "{:?}", app.report);
+    assert!(app.toolpath.result.is_some(), "{:?}", app.report);
     assert!(
         !app.report
             .iter()

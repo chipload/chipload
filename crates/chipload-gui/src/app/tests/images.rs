@@ -157,7 +157,7 @@ fn a_hidden_toolpath_leaves_the_legend_and_the_plunges() {
     );
     assert!(app.scene.plunges_at(&app.view, at).is_empty());
     // The toolpath itself stays: showing it again needs no new generation.
-    assert!(app.scene.toolpath.is_some() && app.result.is_some());
+    assert!(app.scene.toolpath.is_some() && app.toolpath.result.is_some());
 }
 
 #[test]

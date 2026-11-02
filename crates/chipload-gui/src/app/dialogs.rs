@@ -104,7 +104,7 @@ impl ChiploadApp {
     }
 
     pub(super) fn ask_export(&mut self) {
-        if self.result.is_none() {
+        if self.toolpath.result.is_none() {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return;
         }

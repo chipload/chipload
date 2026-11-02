@@ -299,7 +299,7 @@ impl ChiploadApp {
     /// A new program: playback starts at the end, or keeps its time if the program is
     /// long enough (docs/specs/playback.md §7).
     pub(super) fn reset_playback(&mut self) {
-        let (Some(result), Some(job)) = (&self.result, &self.result_job) else {
+        let (Some(result), Some(job)) = (&self.toolpath.result, &self.toolpath.job) else {
             self.playback = None;
             self.scene.progress = None;
             return;
@@ -589,7 +589,7 @@ impl ChiploadApp {
 
     /// The bar under the canvas: play, speed, the slider with its marks, and where it is.
     pub(super) fn playback_bar(&mut self, ui: &mut egui::Ui) {
-        let job = self.result_job.clone();
+        let job = self.toolpath.job.clone();
         let Some(playback) = &mut self.playback else {
             return;
         };

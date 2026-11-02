@@ -323,10 +323,8 @@ pub struct ChiploadApp {
     pub contours: Vec<Contour>,
     loaded_drawing: Option<Drawing>,
 
-    // The last generation.
-    pub result: Option<RunResult>,
-    /// The job `result` was made from (for the setup sheet).
-    result_job: Option<Job>,
+    /// The toolpath: the last result, whether it is out of date, the run in progress and what waits for it.
+    pub toolpath: generation::Toolpath,
     /// Operations (indices) the last generation, validation or update complained about.
     pub error_ops: BTreeSet<usize>,
     /// What is wrong with the project as last edited (docs/specs/live-problems.md).
@@ -380,12 +378,6 @@ pub struct ChiploadApp {
     pub drawing_facts: Option<DrawingFacts>,
     /// The canvas legend is unfolded.
     pub legend_open: bool,
-    /// The project changed since the last generation, which is shown faded.
-    pub toolpath_stale: bool,
-    /// The run in progress (docs/specs/background-generation.md).
-    generation: Option<generation::Generation>,
-    /// What plans a project (a stand-in in tests).
-    runner: generation::Runner,
     /// View > Update toolpath automatically, kept in the app settings.
     pub auto_generate: bool,
     /// Settings > Write a setup sheet with the G-code (docs/specs/setup-sheet.md §4).
@@ -394,24 +386,8 @@ pub struct ChiploadApp {
     pub show_grid: bool,
     /// Rulers along the canvas's edges in top view (docs/specs/rulers.md).
     pub show_rulers: bool,
-    /// When the project last changed, while the live preview hasn't generated it yet.
-    changed_at: Option<Instant>,
-    /// What the toolpath shown is made from (docs/specs/edit-and-simulate.md §5).
-    shown_inputs: Option<chipload_pipeline::CutInputs>,
-    /// Export G-code once the run in progress has finished (Ctrl+E while generating).
-    export_when_done: bool,
-    /// Where to export once the run in progress, of every part, is done.
-    pub(super) export_path_when_done: Option<PathBuf>,
-    /// Export part `id` to this path once it is planned (docs/specs/part-export.md §4).
-    pub(super) export_part_when_done: Option<(u64, PathBuf)>,
-    /// The project as a tab or start was just dropped on the canvas: if its run fails, the
-    /// drop is taken back, so the markers stay to be dragged elsewhere (the user,
-    /// 2026-10-29).
-    pub(super) undo_if_refused: Option<EditJob>,
     /// Preview every part, not only the active one (canvas bar; this session only).
     pub all_parts: bool,
-    /// The part the last result is a preview of; None: the whole project.
-    pub(super) result_part: Option<u64>,
     /// This window's recovery copy (docs/specs/autosave-and-backup.md); None without a
     /// settings folder.
     recovery: Option<chipload_pipeline::recovery::Session>,
@@ -476,8 +452,7 @@ impl Default for ChiploadApp {
             focus: Focus::Job,
             contours: Vec::new(),
             loaded_drawing: None,
-            result: None,
-            result_job: None,
+            toolpath: generation::Toolpath::default(),
             error_ops: BTreeSet::new(),
             problems: Vec::new(),
             scene: Scene::default(),
@@ -507,9 +482,6 @@ impl Default for ChiploadApp {
             report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),
             drawing_facts: None,
             legend_open: true,
-            toolpath_stale: false,
-            generation: None,
-            runner: generation::RUNNER,
             auto_generate: true,
             setup_sheet: true,
             show_grid: true,
@@ -519,14 +491,7 @@ impl Default for ChiploadApp {
             updates: crate::updates::Updates::default(),
             text_fonts: text_fonts::TextFonts::default(),
             language: crate::i18n::Language::En,
-            changed_at: None,
-            shown_inputs: None,
-            export_when_done: false,
             all_parts: false,
-            export_path_when_done: None,
-            export_part_when_done: None,
-            undo_if_refused: None,
-            result_part: None,
             recovery: None,
             recovery_due: None,
             leftovers: Vec::new(),
@@ -1458,6 +1423,7 @@ impl ChiploadApp {
     /// (docs/specs/vcarve-wide-strokes.md §4.1). None when it clears it all.
     pub(super) fn floor_hint(&self, i: usize) -> Option<(f64, Vec<(String, f64)>)> {
         let (_, largest) = self
+            .toolpath
             .result
             .as_ref()?
             .floor_hints
@@ -1535,15 +1501,15 @@ impl ChiploadApp {
     /// Write the checked G-code of the last generation, and its setup sheet when the
     /// setting asks for one (docs/specs/setup-sheet.md §4).
     pub fn export_gcode(&mut self, path: &Path) -> bool {
-        if self.result.is_none() {
+        if self.toolpath.result.is_none() {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         }
         // Never a preview of one part: every part is planned first, then written there
         // (docs/specs/active-part-preview.md §2).
-        if self.result_part.is_some() {
+        if self.toolpath.part.is_some() {
             if self.start_generation_of(true, true) {
-                self.export_path_when_done = Some(path.to_path_buf());
+                self.toolpath.export_path_when_done = Some(path.to_path_buf());
                 self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
             }
             return false;
@@ -1563,14 +1529,16 @@ impl ChiploadApp {
         else {
             return false;
         };
-        let current = self.result.is_some() && !self.toolpath_stale && self.generation.is_none();
-        if current && self.result_part == Some(id) {
+        let current = self.toolpath.result.is_some()
+            && !self.toolpath.stale
+            && self.toolpath.running.is_none();
+        if current && self.toolpath.part == Some(id) {
             return self.write_export(path, vec![name]);
         }
         if self.start_generation_scoped(true, Some(id)) {
-            self.export_path_when_done = None;
-            self.export_when_done = false;
-            self.export_part_when_done = Some((id, path.to_path_buf()));
+            self.toolpath.export_path_when_done = None;
+            self.toolpath.export_when_done = false;
+            self.toolpath.export_part_when_done = Some((id, path.to_path_buf()));
             let status = t!(self, "app-planning-part-then-export", name = name);
             self.set_status(status, STATUS_SECONDS);
         }
@@ -1589,21 +1557,22 @@ impl ChiploadApp {
             self.activate_setup(id);
         }
         let shown = self
-            .result_job
+            .toolpath
+            .job
             .as_ref()
             .is_some_and(|job| job.active_setup_id() == Some(id));
-        let current = self.result.is_some()
-            && !self.toolpath_stale
-            && self.generation.is_none()
-            && self.result_part.is_none()
+        let current = self.toolpath.result.is_some()
+            && !self.toolpath.stale
+            && self.toolpath.running.is_none()
+            && self.toolpath.part.is_none()
             && shown;
         if current {
             return self.write_export(path, Vec::new());
         }
         if self.start_generation_of(true, true) {
-            self.export_when_done = false;
-            self.export_part_when_done = None;
-            self.export_path_when_done = Some(path.to_path_buf());
+            self.toolpath.export_when_done = false;
+            self.toolpath.export_part_when_done = None;
+            self.toolpath.export_path_when_done = Some(path.to_path_buf());
             self.set_status(t!(self, "app-planning-then-export"), STATUS_SECONDS);
         }
         false
@@ -1612,14 +1581,15 @@ impl ChiploadApp {
     /// Write the last generation's G-code files, and its setup sheet when the setting asks
     /// for one; `parts` names the parts when only those were planned.
     fn write_export(&mut self, path: &Path, parts: Vec<String>) -> bool {
-        let Some(result) = &self.result else {
+        let Some(result) = &self.toolpath.result else {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return false;
         };
         // With several setups the result is the active one's: its files say so
         // (`-S2-1-T1`), as `run` names them (docs/specs/setups.md §4).
         let setup = self
-            .result_job
+            .toolpath
+            .job
             .as_ref()
             .filter(|job| job.setups.len() > 1)
             .and_then(|job| job.active_setup_id());
@@ -1651,7 +1621,7 @@ impl ChiploadApp {
                 return false;
             }
         };
-        let sheet = match (&self.result_job, self.setup_sheet) {
+        let sheet = match (&self.toolpath.job, self.setup_sheet) {
             (Some(job), true) => {
                 // In the app's language and display units (docs/specs/translations.md
                 // step 3).
@@ -1688,7 +1658,7 @@ impl ChiploadApp {
         };
         let shown = path.display().to_string();
         let setup_note = setup.and_then(|id| {
-            let job = self.result_job.as_ref()?;
+            let job = self.toolpath.job.as_ref()?;
             let name = job.setup(id)?.name.clone();
             Some(t!(self, "app-exported-setup", name = name))
         });
@@ -2022,11 +1992,11 @@ impl ChiploadApp {
     /// Inputs changed: the old toolpath and G-code no longer apply.
     fn invalidate(&mut self) {
         self.stop_generation();
-        self.shown_inputs = None;
-        self.changed_at = None;
-        self.export_when_done = false;
-        self.toolpath_stale = false;
-        self.result = None;
+        self.toolpath.shown_inputs = None;
+        self.toolpath.changed_at = None;
+        self.toolpath.export_when_done = false;
+        self.toolpath.stale = false;
+        self.toolpath.result = None;
         self.clear_toolpath();
         self.drag.start = None;
         self.drag.context_start = None;
@@ -2037,11 +2007,11 @@ impl ChiploadApp {
     fn toolpath_out_of_date(&mut self) {
         self.refresh_problems();
         self.stop_generation();
-        self.shown_inputs = None;
-        self.changed_at = Some(Instant::now());
-        self.recovery_due = self.changed_at;
-        if self.result.is_some() || self.scene.toolpath.is_some() {
-            self.result = None;
+        self.toolpath.shown_inputs = None;
+        self.toolpath.changed_at = Some(Instant::now());
+        self.recovery_due = self.toolpath.changed_at;
+        if self.toolpath.result.is_some() || self.scene.toolpath.is_some() {
+            self.toolpath.result = None;
             if let Some(path) = &mut self.scene.toolpath {
                 path.stale = true;
             }
@@ -2054,7 +2024,7 @@ impl ChiploadApp {
             self.drag.tab = None;
             self.drag.context_tab = None;
             self.drag.context_ring = None;
-            self.toolpath_stale = true;
+            self.toolpath.stale = true;
         }
         self.refresh_drawing();
         self.update_ghosts();
@@ -2147,7 +2117,7 @@ impl ChiploadApp {
     }
 
     fn default_export_path(&self) -> PathBuf {
-        let ext = self.result.as_ref().map_or("nc".to_string(), |r| {
+        let ext = self.toolpath.result.as_ref().map_or("nc".to_string(), |r| {
             r.post.file_extension.trim_start_matches('.').to_string()
         });
         self.default_project_path().with_extension(ext)
@@ -2248,7 +2218,7 @@ impl eframe::App for ChiploadApp {
         if !busy {
             self.commit();
         }
-        if self.generation.is_some() {
+        if self.toolpath.running.is_some() {
             self.poll_generation();
             ctx.request_repaint_after(generation::POLL);
         }

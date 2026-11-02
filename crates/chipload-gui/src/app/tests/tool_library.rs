@@ -396,7 +396,7 @@ mod library {
         same.set_tool(ops_before[0].tool());
         assert_eq!(same, ops_before[0], "only the tool changed");
         assert!(app.generate_and_wait(), "{:?}", app.report);
-        let files = &app.result.as_ref().unwrap().files;
+        let files = &app.toolpath.result.as_ref().unwrap().files;
         assert_eq!(files.len(), 2);
         // Exported as one file per tool, named after the chosen file.
         let out = temp_dir("op-tool-export").join("part.nc");

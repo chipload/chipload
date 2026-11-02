@@ -658,7 +658,7 @@ impl ChiploadApp {
             .corner_radius(6.0)
             .inner_margin(egui::Margin::symmetric(10, 6));
         let inner = rect.shrink(10.0);
-        if self.toolpath_stale {
+        if self.toolpath.stale {
             let top = egui::UiBuilder::new()
                 .max_rect(inner)
                 .layout(egui::Layout::top_down(egui::Align::Min));
@@ -666,8 +666,8 @@ impl ChiploadApp {
                 frame.show(ui, |ui| {
                     ui.horizontal(|ui| {
                         // Live preview: the new toolpath is on its way (or about to be).
-                        let coming =
-                            self.generating() || (self.auto_generate && self.changed_at.is_some());
+                        let coming = self.generating()
+                            || (self.auto_generate && self.toolpath.changed_at.is_some());
                         if coming {
                             ui.spinner();
                             ui.label(t!(ui, "canvas-updating-toolpath"));
@@ -1184,7 +1184,7 @@ impl ChiploadApp {
             None => starts.push(point),
         }
         self.commit();
-        self.undo_if_refused.clone_from(&self.edit);
+        self.toolpath.undo_if_refused.clone_from(&self.edit);
         self.generate();
     }
 

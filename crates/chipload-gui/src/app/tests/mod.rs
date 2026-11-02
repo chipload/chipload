@@ -75,7 +75,7 @@ fn lower_part() -> ChiploadApp {
 }
 
 fn first_cut(app: &ChiploadApp) -> (f64, f64) {
-    let moves = &app.result.as_ref().unwrap().program.moves;
+    let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     let m = moves
         .iter()
         .find(|m| m.kind == MoveKind::Rapid && m.x.is_some())

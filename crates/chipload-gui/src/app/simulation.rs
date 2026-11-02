@@ -59,9 +59,9 @@ impl ChiploadApp {
         }
         if self.sim.simulation.is_some() {
             self.scene.sim.clone_from(&self.sim.full_layer);
-        } else if self.result.is_some() {
+        } else if self.toolpath.result.is_some() {
             self.start_simulation();
-        } else if self.generation.is_none() && self.edit.is_some() {
+        } else if self.toolpath.running.is_none() && self.edit.is_some() {
             self.start_generation(false);
         }
     }
@@ -83,7 +83,7 @@ impl ChiploadApp {
         if !self.show_simulation {
             return;
         }
-        let (Some(result), Some(job)) = (&self.result, &self.result_job) else {
+        let (Some(result), Some(job)) = (&self.toolpath.result, &self.toolpath.job) else {
             return;
         };
         let (job, program, groups) = (job.clone(), result.program.clone(), result.groups.clone());

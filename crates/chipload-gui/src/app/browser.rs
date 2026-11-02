@@ -1253,6 +1253,7 @@ impl ChiploadApp {
             .iter()
             .any(|p| p.operation() == Some(i) && p.field().starts_with("floor"));
         let time = self
+            .toolpath
             .result
             .as_ref()
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
@@ -1303,6 +1304,7 @@ impl ChiploadApp {
             p.operation() == Some(i) && p.field().starts_with(&format!("rest_passes.{k}"))
         });
         let time = self
+            .toolpath
             .result
             .as_ref()
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
@@ -1368,6 +1370,7 @@ impl ChiploadApp {
             _ => String::new(),
         };
         let time = self
+            .toolpath
             .result
             .as_ref()
             .and_then(|r| {

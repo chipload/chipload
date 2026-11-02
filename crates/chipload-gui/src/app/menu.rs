@@ -79,7 +79,7 @@ impl ChiploadApp {
     /// The File menu's items (a ribbon caption's or the top bar's drop-down).
     pub(super) fn file_menu(&mut self, ui: &mut egui::Ui) {
         let has_job = self.edit.is_some();
-        let has_result = self.result.is_some();
+        let has_result = self.toolpath.result.is_some();
 
         if ui
             .button(with_keys(&t!(ui, "menu-new-project"), Action::New))
@@ -724,7 +724,7 @@ impl ChiploadApp {
             // (docs/specs/active-part-preview.md §4).
             let scope = self.edit.as_ref().and_then(|e| {
                 let parts = &e.job.parts;
-                (parts.len() > 1).then(|| match self.result_part {
+                (parts.len() > 1).then(|| match self.toolpath.part {
                     Some(id) => {
                         let k = parts.iter().position(|p| p.id == id).map_or(0, |k| k + 1);
                         t!(ui, "menu-status-part-of", part = k, count = parts.len())
@@ -732,7 +732,7 @@ impl ChiploadApp {
                     None => t!(ui, "menu-status-all-parts"),
                 })
             });
-            let time = self.result.as_ref().map(|r| {
+            let time = self.toolpath.result.as_ref().map(|r| {
                 let time = chipload_pipeline::estimate::duration_message(r.estimate.total)
                     .render(ui.lang(), self.units.into());
                 let cycle = t!(ui, "menu-status-cycle", time = time);
@@ -748,8 +748,9 @@ impl ChiploadApp {
             let active = self.edit.as_ref().and_then(|e| {
                 let parts = &e.job.parts;
                 let id = e.job.active_part_id()?;
-                (parts.len() > 1 && !(self.result.is_some() && self.result_part == Some(id)))
-                    .then(|| parts.iter().find(|p| p.id == id).map(|p| p.name.clone()))?
+                (parts.len() > 1
+                    && !(self.toolpath.result.is_some() && self.toolpath.part == Some(id)))
+                .then(|| parts.iter().find(|p| p.id == id).map(|p| p.name.clone()))?
             });
             let several = self.edit.as_ref().is_some_and(|e| e.job.parts.len() > 1);
             let zero = self

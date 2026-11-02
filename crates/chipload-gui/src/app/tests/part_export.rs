@@ -32,7 +32,7 @@ fn a_part_exports_alone_and_the_project_is_unchanged() {
     assert!(!app.export_part(2, &path), "planned first");
     assert!(app.generating());
     assert!(app.wait_for_generation(), "{:?}", app.report);
-    assert_eq!(app.result_part, Some(2));
+    assert_eq!(app.toolpath.part, Some(2));
     let expected = only(&app, 2);
     assert_eq!(expected.len(), 1);
     assert_eq!(std::fs::read_to_string(&path).unwrap(), expected[0]);
