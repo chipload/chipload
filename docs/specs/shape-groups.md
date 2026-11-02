@@ -1,6 +1,6 @@
 # Spec: groups of drawn shapes
 
-Status: **draft 2026-11-02**, decisions 1-9 to review (8 changed, 9 added the same day).
+Status: **draft 2026-11-02**, decisions 1-10 to review (8 changed, 9 and 10 added the same day).
 
 The user (2026-11-02), about a traced picture saved to the shape library and inserted
 again: "If I save a traced image will the shapes be grouped when inserting or are they free
@@ -22,12 +22,19 @@ or by id, as now.
 
 - **Group:** select shapes and texts, then *Group* (right-click on the canvas, or Ctrl+G).
   The group gets a name, *Group 1*, *Group 2*…, which can be changed.
-- **Select a group:** a click on any of its shapes selects the whole group, as a click on
-  a letter selects its text. In the Browser, a group is a row under *Drawing*, with its
-  shapes under it.
-- **One shape inside:** a **double-click** on a shape of a group selects that shape alone,
-  to change its values or drag its points (decision 3). Esc, or a click outside, goes
-  back to selecting whole groups.
+- **Select a group, as a picture or a DXF is selected** (the user, 2026-11-02: "the
+  selection in a group does not follow the workflow when selecting shapes in an image or
+  a DXF"; docs/specs/leave-out-shapes.md, decision 10):
+  - a click on any of its shapes selects the whole group, as a click on a traced contour
+    selects its whole picture; its Browser row does the same, as a DXF's row does;
+  - **Ctrl+click** on a shape of the selected group **leaves it out** of the selection,
+    and Ctrl+click again puts it back, as for a picture or a DXF. The selection reads
+    "Group 1, 2 shapes left out". Leaving out changes only what is selected, not the
+    group;
+  - Ctrl+click on a shape outside the group goes on as today (shapes by id).
+- **One shape inside:** its row under the group in the Browser, or a **double-click** on
+  it on the canvas, selects that shape alone, to change its values or drag its points
+  (decision 3). A click elsewhere goes back to selecting whole groups.
 - **Move, turn, scale:** a selected group has box handles, as a picture and a text have
   (docs/specs/box-handles.md). Dragging any of its drawn shapes moves the whole group.
   Texts in the group turn and scale with it (their height scales).
@@ -37,8 +44,8 @@ or by id, as now.
   one; with two or more groups, they and the rest become one group, named after the first.
   Or right-click a free shape: *Add to group ▸* the project's groups. In the Browser, drag
   a shape's row onto a group's row.
-- **Take out of a group:** double-click a shape of the group (it alone is selected; Ctrl+
-  double-click adds more), then right-click > *Remove from group*. It stays where it is,
+- **Take out of a group:** select the shape alone (its Browser row, or a double-click),
+  then right-click > *Remove from group*. It stays where it is,
   free. In the Browser, drag its row out of the group onto *Drawing*. A group left with no
   members goes.
 - **Ungroup:** right-click > *Ungroup* (or Ctrl+Shift+G). The shapes stay where they are,
@@ -76,14 +83,17 @@ or by id, as now.
 - **Deleting a member** takes it out of its group; a group left empty goes too. Explode and
   other edits that replace shapes keep the group when the new shapes take the old one's
   place (a trimmed polyline's pieces stay in its group).
-- An operation's `select` may name a group, `{"group": 1}` (optional, decision 8): it cuts
-  the group's shapes and its texts' letters as they are at each run.
+- An operation's `select` may name a group, `{"group": 1}`, with the same optional
+  `exclude` as a DXF or a picture: `{"group": 1, "exclude": [7]}` (decisions 8, 10). It
+  cuts the group's shapes and its texts' letters as they are at each run, but the ones
+  left out. A left-out shape that leaves the group is a problem to fix, as for a DXF.
 
 ## 5. The window
 
 - **Canvas:** clicking a grouped shape selects the group: all its shapes highlighted, its
-  box with handles. Ctrl+click adds or removes the whole group. A selection box catches a
-  group when it catches all of it (the same rule as for texts).
+  box with handles. Ctrl+click on its shapes leaves them out and back in, as for a picture
+  (§2). A selection box catches a group when it catches all of it (the same rule as for
+  texts).
 - **Double-click** a grouped shape: that shape alone is selected, with its own handles and
   values in Properties; a thin outline shows the rest of its group.
 - **Properties** for a group: its name, how many shapes and texts, the box's size and
@@ -130,6 +140,8 @@ chipload shape move part.chipload --group 1 --dx 10 --dy 0   # also turn, scale:
   Del, undo of each; Ctrl+G with a group and free shapes adds them; Remove from group.
 - An operation made from a group cuts a shape added to the group later, not one taken out;
   after Ungroup it cuts the same shapes as before.
+- Ctrl+click leaves a shape of the selected group out and back in; the operation gets
+  `{"group": 1, "exclude": [...]}` and doesn't cut it; the group keeps it.
 
 ## 9. Decisions
 
@@ -159,6 +171,10 @@ chipload shape move part.chipload --group 1 --dx 10 --dy 0   # also turn, scale:
    into the shapes' ids, so what it cuts doesn't change; deleting the group leaves it with
    nothing to cut, flagged, as deleting its shapes does. In the file: an optional `group`
    in an operation's `select`. Alternative: the operation keeps the shapes' ids only.
+10. **Selecting a group works as selecting a picture or a DXF** (the user, 2026-11-02):
+   click for all of it, Ctrl+click to leave shapes out and back in, the operation
+   following the group with `exclude`. *Recommended:* one way to pick everywhere. Leaving
+   out is a selection, not a change to the group: *Remove from group* does that.
 9. **Adding to and taking out of a group** (§2): *Group* with one group selected adds to
    it, with several merges them; *Remove from group* on shapes picked inside it; dragging
    rows in the Browser. *Recommended:* no new tool to learn. Alternative: ungroup and
