@@ -192,6 +192,12 @@ it's built (see `CLAUDE.md`).
   recommended. A click picks the whole DXF, a double-click one contour; its box moves, turns
   and scales it. A group's and a DXF's box stays turned (groups keep a `rotation`).
 
+- **Russian translation, PR #11** (mushketer888, 2026-11-01). Asked on 2026-11-02 for a DCO
+  sign-off and a rebase onto 0.31 (97 texts missing, `header-add-dxf` and
+  `menu-status-hint` changed). When it is merged, we fix the guide ourselves: the PR's
+  `docs/book/src/languages.md` lists Swedish as *review wanted*, but the user reviews Swedish;
+  only Russian joins German, French, Spanish and Italian there.
+
 - **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
   should also have a parameter for length of adjoining segments. If the adjoining profile
   segments are very short we could probably ignore the kink"). Today a corner is ignored
