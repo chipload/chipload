@@ -227,3 +227,51 @@ fn an_entry_dragged_onto_a_group_moves_into_it() {
     assert!(shapes.join("Frames/Plate.chipload-shapes").is_file());
     assert!(!shapes.join("Plate.chipload-shapes").exists());
 }
+
+/// Selected shapes carried from the canvas to `to`, in steps as a hand would.
+fn carry(harness: &mut Harness<'_, ChiploadApp>, to: egui::Pos2) {
+    // The frame's left side (S5: 132.3 wide round (150, 80)).
+    let grab = harness
+        .state()
+        .view
+        .to_screen((150.0 - 132.314 / 2.0, 80.0));
+    harness.drag_at(grab);
+    harness.run_steps(2);
+    for step in 1..=4 {
+        let t = step as f32 / 4.0;
+        harness.hover_at(grab + (to - grab) * t);
+        harness.run_steps(2);
+    }
+    harness.drop_at(to);
+    harness.run_steps(3);
+}
+
+#[test]
+fn shapes_carried_onto_the_tab_in_front_or_its_list_are_saved() {
+    for onto_tab in [true, false] {
+        let mut harness = sign(settings(&format!("carry-front-{onto_tab}")));
+        click_tab(&mut harness, "Shapes");
+        assert!(harness.state().panels.is_shown(Pane::Shapes));
+        let before = harness.state().edit.as_ref().unwrap().job.drawing.clone();
+        let rect = harness.get_by_label("Shapes").rect();
+        let to = if onto_tab {
+            egui::pos2(rect.min.x + 6.0, rect.center().y)
+        } else {
+            egui::pos2(rect.min.x + 60.0, rect.max.y + 200.0)
+        };
+        carry(&mut harness, to);
+        let app = harness.state();
+        assert_eq!(
+            app.edit.as_ref().unwrap().job.drawing,
+            before,
+            "not moved (onto the tab: {onto_tab})"
+        );
+        assert!(
+            matches!(
+                app.shape_library.asking,
+                Some(super::super::shape_library::Asking::Save { .. })
+            ),
+            "onto the tab: {onto_tab}"
+        );
+    }
+}

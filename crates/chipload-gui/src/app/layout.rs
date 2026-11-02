@@ -88,10 +88,13 @@ pub struct Panels {
     dock: DockState<Pane>,
     /// While P hides the panels: the layout to bring back.
     hidden: Option<DockState<Pane>>,
-    /// The dock is out being drawn: changes wait in `pending`, and `open` answers for it.
+    /// The dock is out being drawn: changes wait in `pending`, and `open` and `shown`
+    /// answer for it.
     drawing: bool,
     pending: Vec<Change>,
     open: BTreeSet<Pane>,
+    /// While the dock is drawn: the panels shown when its drawing began.
+    shown: BTreeSet<Pane>,
     /// The layout as last read from or written to `layout.json`; written again only when
     /// it differs.
     pub(super) saved: Option<WindowLayout>,
@@ -217,6 +220,7 @@ impl Panels {
             drawing: false,
             pending: Vec::new(),
             open: BTreeSet::new(),
+            shown: BTreeSet::new(),
             saved: None,
         };
         panels.settle();
@@ -240,6 +244,9 @@ impl Panels {
 
     /// Whether `pane` is the tab in front of its panel and the panel isn't folded.
     pub fn is_shown(&self, pane: Pane) -> bool {
+        if self.drawing {
+            return self.shown.contains(&pane);
+        }
         let Some((node, tab)) = self.dock.find_main_surface_tab(&pane) else {
             return false;
         };
@@ -478,11 +485,12 @@ impl TabViewer for Viewer<'_> {
         response.widget_info(|| {
             egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, shown, &title)
         });
-        // The Shapes tab is where selected shapes can be dropped to save them while
-        // another tab is in front; an entry dragged over it brings it to the front.
-        if *tab == Pane::Shapes && !self.app.panels.is_shown(Pane::Shapes) {
-            self.app.shape_library.drop_rect = Some(response.rect);
-            if response.contains_pointer()
+        // The Shapes tab is where selected shapes can be dropped to save them, in front or
+        // not; an entry dragged over it brings it to the front.
+        if *tab == Pane::Shapes {
+            self.app.shape_library.next_drop_rects.push(response.rect);
+            if !shown
+                && response.contains_pointer()
                 && egui::DragAndDrop::has_payload_of_type::<shape_library::DraggedEntry>(&self.ctx)
             {
                 self.app.panels.show(Pane::Shapes);
@@ -620,8 +628,15 @@ impl ChiploadApp {
     /// The dock: the canvas and the panels round it, as the user arranged them.
     pub(super) fn dock_area(&mut self, ui: &mut egui::Ui) {
         let ctx = ui.ctx().clone();
-        let mut dock = std::mem::replace(&mut self.panels.dock, DockState::new(vec![Pane::Canvas]));
-        self.panels.drawing = true;
+        let panels = &mut self.panels;
+        panels.shown = panels
+            .open
+            .iter()
+            .copied()
+            .filter(|p| panels.is_shown(*p))
+            .collect();
+        let mut dock = std::mem::replace(&mut panels.dock, DockState::new(vec![Pane::Canvas]));
+        panels.drawing = true;
         let mut style = egui_dock::Style::from_egui(ui.style());
         // The canvas's leaf has no tab bar, and nothing to show or drag it by.
         style.buttons.show_tab_bar_size = 0.0;
@@ -648,6 +663,7 @@ impl ChiploadApp {
             );
         self.panels.dock = dock;
         self.panels.drawing = false;
+        self.shape_library.drop_rects = std::mem::take(&mut self.shape_library.next_drop_rects);
         for change in std::mem::take(&mut self.panels.pending) {
             match change {
                 Change::Show(pane) => self.panels.show(pane),

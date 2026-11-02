@@ -84,9 +84,11 @@ pub struct ShapeLibraryView {
     folded: BTreeSet<String>,
     /// Where each group's entries are, last frame: a drop there saves into it.
     group_rects: Vec<(Option<String>, Rect)>,
-    /// Where selected shapes may be dropped to save them, last frame: the tab's body, or
-    /// its header when Properties is shown.
-    pub(super) drop_rect: Option<Rect>,
+    /// Where selected shapes may be dropped to save them, last frame: the Shapes tab, and
+    /// its body when it is in front.
+    pub(super) drop_rects: Vec<Rect>,
+    /// The same, gathered while the dock is drawn this frame.
+    pub(super) next_drop_rects: Vec<Rect>,
     /// The group saved into last.
     last_group: Option<String>,
     /// The middle of the canvas, in drawing mm, last frame: a double-click inserts there.
@@ -187,7 +189,8 @@ impl ChiploadApp {
             return;
         };
         self.relist(false);
-        self.shape_library.drop_rect = Some(ui.available_rect_before_wrap());
+        let body = ui.available_rect_before_wrap();
+        self.shape_library.next_drop_rects.push(body);
         ui.horizontal(|ui| {
             ui.add(
                 egui::TextEdit::singleline(&mut self.shape_library.search)
@@ -470,8 +473,9 @@ impl ChiploadApp {
             && self.user.settings_dir.is_some()
             && self
                 .shape_library
-                .drop_rect
-                .is_some_and(|r| r.contains(pos))
+                .drop_rects
+                .iter()
+                .any(|r| r.contains(pos))
     }
 
     /// The groups, each a header that folds with its entries under it; the entries with no
