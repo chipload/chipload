@@ -1,6 +1,6 @@
 # Spec: groups of drawn shapes
 
-Status: **draft 2026-11-02**, decisions 1-8 to review.
+Status: **draft 2026-11-02**, decisions 1-9 to review (8 changed, 9 added the same day).
 
 The user (2026-11-02), about a traced picture saved to the shape library and inserted
 again: "If I save a traced image will the shapes be grouped when inserting or are they free
@@ -31,6 +31,16 @@ or by id, as now.
 - **Move, turn, scale:** a selected group has box handles, as a picture and a text have
   (docs/specs/box-handles.md). Dragging any of its drawn shapes moves the whole group.
   Texts in the group turn and scale with it (their height scales).
+- **Add to a group** (the user, 2026-11-02: "how do I add or subtract to a group?"):
+  select the group and the shapes or texts to add (Ctrl+click), then *Group* (Ctrl+G).
+  With one group in the selection, *Group* adds the rest to it rather than making a new
+  one; with two or more groups, they and the rest become one group, named after the first.
+  Or right-click a free shape: *Add to group ▸* the project's groups. In the Browser, drag
+  a shape's row onto a group's row.
+- **Take out of a group:** double-click a shape of the group (it alone is selected; Ctrl+
+  double-click adds more), then right-click > *Remove from group*. It stays where it is,
+  free. In the Browser, drag its row out of the group onto *Drawing*. A group left with no
+  members goes.
 - **Ungroup:** right-click > *Ungroup* (or Ctrl+Shift+G). The shapes stay where they are,
   free again.
 - **Delete:** Del on a selected group deletes its shapes and texts, as one undo step.
@@ -66,8 +76,8 @@ or by id, as now.
 - **Deleting a member** takes it out of its group; a group left empty goes too. Explode and
   other edits that replace shapes keep the group when the new shapes take the old one's
   place (a trimmed polyline's pieces stay in its group).
-- Operations keep selecting by layer or by shape id: a group is never something an
-  operation cuts by (decision 8).
+- An operation's `select` may name a group, `{"group": 1}` (optional, decision 8): it cuts
+  the group's shapes and its texts' letters as they are at each run.
 
 ## 5. The window
 
@@ -89,7 +99,7 @@ or by id, as now.
 ```
 chipload group add part.chipload 4 5 6 --texts 2 --name "Plate"   # prints the group's id
 chipload group list part.chipload
-chipload group set part.chipload 1 --name "Door plate"
+chipload group set part.chipload 1 --name "Door plate" --add 9,10 --remove 5 --add-texts 3
 chipload group remove part.chipload 1        # ungroup: the shapes stay
 chipload group delete part.chipload 1        # the shapes and texts too
 chipload shape move part.chipload --group 1 --dx 10 --dy 0   # also turn, scale: the group's shapes and texts
@@ -117,7 +127,9 @@ chipload shape move part.chipload --group 1 --dx 10 --dy 0   # also turn, scale:
 - An old project (no groups) loads and saves unchanged; a project with groups gives the same
   G-code as without (groups don't change cutting).
 - Window: a click selects the group, a double-click one shape, Ctrl+G and Ctrl+Shift+G,
-  Del, undo of each.
+  Del, undo of each; Ctrl+G with a group and free shapes adds them; Remove from group.
+- An operation made from a group cuts a shape added to the group later, not one taken out;
+  after Ungroup it cuts the same shapes as before.
 
 ## 9. Decisions
 
@@ -140,7 +152,14 @@ chipload shape move part.chipload --group 1 --dx 10 --dy 0   # also turn, scale:
    is cut, and a file without groups stays as it is. (An older Chipload refuses a file
    that has groups, as for any unknown field, rather than misreading it.) Alternative: a
    `group` field on each shape, which needs a bump and can't hold texts.
-8. **Operations don't select by group.** *Recommended for now:* layers and ids already
-   cover it, and a group's shapes are often cut differently (a frame profiled, its border
-   grooved). Alternative: "Use selection" with a group selected stores the group, so
-   shapes added to it later are cut too.
+8. **An operation made from a whole group follows the group** (changed 2026-11-02 after
+   the user's question: decision 8 seemed to counteract cutting a group). *Recommended:* as
+   an operation made from a DXF or a picture follows it, shapes added to the group later
+   are cut too, and shapes taken out aren't. Ungrouping turns the operation's selection
+   into the shapes' ids, so what it cuts doesn't change; deleting the group leaves it with
+   nothing to cut, flagged, as deleting its shapes does. In the file: an optional `group`
+   in an operation's `select`. Alternative: the operation keeps the shapes' ids only.
+9. **Adding to and taking out of a group** (§2): *Group* with one group selected adds to
+   it, with several merges them; *Remove from group* on shapes picked inside it; dragging
+   rows in the Browser. *Recommended:* no new tool to learn. Alternative: ungroup and
+   group again.
