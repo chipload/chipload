@@ -87,6 +87,11 @@ it's built (see `CLAUDE.md`).
 
 ## Next
 
+- **Shape library in the right panel** (the user, 2026-11-02: "a tab in the right panel
+  where I can drag and drop shapes from the library to the canvas … and also the other way
+  around"; "Each item shall have a preview and a name"): docs/specs/shape-library.md §5.1,
+  decisions 9-13 to review; then step 2 built.
+
 - **V-carve step down** (the user, 2026-11-02: "there should be an option to use ordinary
   step down as well"; docs/specs/vcarve-step-down.md): **done 2026-11-02**, all decisions
   as recommended. *Depth passes*: Equal load (passes) or Step down (mm, as a pocket);

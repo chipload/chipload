@@ -2,7 +2,8 @@
 
 Status: **agreed 2026-10-31**, all decisions as recommended (the user: "Go ahead with
 recommendations we will iterate a bit on it"). **Step 1, frames (§3), built the same day**;
-step 2, the library (§4), next.
+step 2, the library (§4), next. **§5.1, the library as a tab in the right panel with drag
+and drop, revised 2026-11-02, decisions 9-13 to review.**
 
 As built (frames):
 - *r* is called the **corner size** (`--corner` on the command line, *Corner* in the
@@ -202,10 +203,61 @@ Each frame is one closed outline, drawn from a width and a height:
   - A live preview on the canvas.
   - *Add* and *Cancel*.
 - **Right-click on a selection > *Save to library…*:** the name and *Save*.
-- **Library > Shapes:** a grid of pictures with names, a search field, and per entry
-  *Insert*, *Rename*, *Delete* and *Show folder*. Insert has *Fit to selection* when
-  something is selected.
+- **The library:** in the right panel, see §5.1 (it replaces a Shapes tab in the Library).
 - Every text is a translation id in the six languages.
+
+### 5.1 The library in the right panel (revised 2026-11-02)
+
+The user (2026-11-02): "I want the library to be a tab in the right panel where I can drag
+and drop shapes from the library to the canvas to use them and also the other way around
+when I want to store a new one. So both properties and library should be in the right
+panel. I think as tabs or stacked."
+
+**Two tabs** at the top of the right panel: **Properties** and **Shapes** (decision 9).
+Properties is what the panel shows now; Shapes is the library. One is shown at a time, the
+whole height of the panel.
+
+- **Which tab** (decision 10): the user's click on a tab chooses it, and it stays. The panel
+  goes back to Properties by itself only when the user asks for something that is shown
+  there: a Browser row clicked (an operation, a tool, the machine…), a tool with its values
+  in Properties started (*Frame…*, *Array…*, a text being placed), a shape double-clicked.
+  Selecting shapes on the canvas does **not** switch, so shapes can be picked and dragged
+  into the library with the Shapes tab open.
+- **The Shapes tab:**
+  - a search field, and a grid of entries. **Every entry has a preview and a name** (the
+    user, 2026-11-02): a small picture of its shapes, drawn when listed and never stored,
+    and its name under it. A DXF or SVG in the folder gets its preview from its import.
+    As many columns as fit the panel's width;
+  - below the grid, **Save selection…** (greyed with nothing selected) and **Folder**
+    (opens `shapes/` in the file manager);
+  - an entry that can't be read is shown greyed with its error on hover (§4.2).
+- **From the library to the canvas** (drag): an entry dragged over the canvas shows its
+  outline under the pointer, its box's centre at the pointer, snapped as a drawn point is
+  (the grid and points of shapes). Dropped, it is inserted there (§4.4): new ids, selected,
+  one undo step. Dropped anywhere else, nothing happens. Esc while dragging cancels.
+- **Double-click** on an entry inserts it at the centre of the view, as dropping it there.
+- **Right-click on an entry:** *Insert at the centre*, *Insert round the selection* (scaled
+  to fit round what is selected, with the margin of the last frame; greyed with nothing
+  selected), *Rename…*, *Delete* (asks first; the file goes to `.bak`, never gone at once),
+  *Show in folder*.
+- **From the canvas to the library** (drag, decision 11): dragging selected shapes moves
+  them, as now. When the pointer leaves the canvas over the Shapes tab, the move is taken
+  back (the shapes return to where they were) and the outline of the selection follows the
+  pointer; the grid shows where a new entry will appear. Dropped there, a name field opens
+  on the new entry, with a suggestion: a text's words, else the layer's name. Enter saves,
+  Esc cancels. A name that exists asks before overwriting (§4.3). Dropped back on the
+  canvas, it is a move as before.
+  With the Properties tab shown, the tab header **Shapes** takes a drop too: the tab opens
+  and the name field with it.
+- **Save selection…** does the same as the drag: a name field on a new entry (decision 11:
+  a button too, for a selection that is hard to drag, and for the keyboard).
+- **What is saved** is the selection as the right-click *Save to library…* saves it (§4.3):
+  selected texts whole, with their letters.
+- **Narrow windows:** the tabs take no width; in a narrow right panel the grid has fewer
+  columns, down to one.
+- **Without a project**, the Shapes tab still lists, renames and deletes; inserting is
+  greyed.
+- **The browser build** (§8): the tab lists what this session saved, kept in memory.
 
 ## 6. Engraving the result
 
@@ -295,5 +347,30 @@ fonts).
    user's existing drawings become a library just by copying them in, and it reuses the
    importer. Alternative: only `.chipload-shapes` files.
 8. **Window: *Draw > Frame…* with a live preview, *Save to library…* on the right-click
-   menu, and a Shapes tab in the Library.** *Recommended.* Alternative: a dockable shapes
-   panel beside the canvas, always visible. It takes room most projects don't need.
+   menu, and a Shapes tab in the Library.** *Agreed 2026-10-31; the Shapes tab replaced by
+   §5.1 on 2026-11-02 (the user asked for it in the right panel).*
+
+Revised 2026-11-02 (§5.1), to review:
+
+9. **Tabs, not stacked.** *Recommended:* a V-carve's or a profile's form is often taller
+   than half the panel, and the library is a grid that wants height too; stacked, both
+   would scroll. Tabs give each the whole panel, and switching is one click. Alternative:
+   stacked, Properties above and Shapes below, with a divider to drag (both seen at once,
+   each with half the room).
+10. **The tab switches to Properties only when asked for** (a Browser row, a tool with
+   values, a double-click), never on a canvas selection. *Recommended:* picking shapes to
+   save with Shapes open must not lose the tab. Alternative: every selection change shows
+   Properties (the library then has to be opened again before each save).
+11. **Saving by drag and by a button, Save selection…** *Recommended:* the drag is what
+   the user asked for; the button saves what is hard to drag (a selection under other
+   shapes, a text) and works from the keyboard. Both open the same name field.
+   Alternative: drag only.
+12. **Shapes only in the tab; tools and machines stay where they are** (the Browser's
+   *This computer*). *Recommended:* the tool library is a list of values to edit, shown in
+   Properties already; dragging a tool onto an operation works in the Browser. Alternative:
+   tools and machines in the tab too, a full library panel.
+13. **A drop places the entry's centre at the pointer, at its own size, snapped.**
+   *Recommended:* where it lands is what the user sees while dragging; fitting round a
+   selection is a right-click choice, as the frame's. Alternative: a drop on a selected
+   shape fits round the selection by itself (quick for frames, but surprising when it
+   lands on something by accident).
