@@ -10,7 +10,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::library::{LibraryError, LibraryFile, load_library, refused, save_library};
-use crate::{Geometry, Shape, Text, shape_problems};
+use crate::{Geometry, Origin, Shape, Text, shape_problems};
 use chipload_i18n::Message;
 
 /// The library's folder inside the settings folder.
@@ -54,12 +54,10 @@ impl ShapeEntry {
             for problem in shape_problems(&shape.geometry) {
                 problems.push(format!("shapes.{i}.{}", problem.text));
             }
-            if let Geometry::Path {
-                image, dxf, text, ..
-            } = &shape.geometry
-            {
+            if let Geometry::Path { origin, .. } = &shape.geometry {
                 // Only letters stay paths; other imported shapes are saved as drawn ones.
-                if image.is_some() || dxf.is_some() || text.is_none_or(|t| !texts.contains(&t)) {
+                let letter = matches!(origin, Some(Origin::Text(t)) if texts.contains(t));
+                if !letter {
                     problems.push(format!(
                         "shapes.{i}: a path must be a letter of one of the entry's texts"
                     ));

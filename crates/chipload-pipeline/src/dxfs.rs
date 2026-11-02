@@ -264,8 +264,12 @@ fn unique_name(job: &Job, name: &str) -> String {
 }
 
 pub(crate) fn set_dxf(shape: &mut Shape, id: u64) {
-    if let Geometry::Path { dxf, .. } = &mut shape.geometry {
-        *dxf = Some(id);
+    if let Geometry::Path {
+        origin: Some(chipload_job::Origin::Dxf { id: of, .. }),
+        ..
+    } = &mut shape.geometry
+    {
+        *of = id;
     }
 }
 

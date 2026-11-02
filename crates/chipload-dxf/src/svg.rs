@@ -62,13 +62,13 @@ pub fn shapes_from_svg_bytes(
                 layer: shape.layer,
                 name: None,
                 geometry: Geometry::Path {
-                    dxf_handle: Some(shape.key),
-                    dxf_type: Some(PATH.to_string()),
                     closed: PathSegment::closes(&segments),
                     segments,
-                    image: None,
-                    dxf: Some(1),
-                    text: None,
+                    origin: Some(chipload_job::Origin::Dxf {
+                        id: 1,
+                        handle: shape.key,
+                        entity: PATH.to_string(),
+                    }),
                 },
             }
         })

@@ -211,8 +211,6 @@ pub fn remake(
             layer: text.layer.clone(),
             name: None,
             geometry: Geometry::Path {
-                dxf_handle: None,
-                dxf_type: None,
                 closed: true,
                 segments: placed_box(
                     outline,
@@ -220,9 +218,7 @@ pub fn remake(
                     (lettering.width, lettering.height),
                     text.rotation,
                 ),
-                image: None,
-                dxf: None,
-                text: Some(id),
+                origin: Some(chipload_job::Origin::Text(id)),
             },
         });
     }

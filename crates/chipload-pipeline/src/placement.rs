@@ -597,30 +597,18 @@ pub(crate) fn same_shape(a: &Shape, b: &Shape) -> bool {
     match (&a.geometry, &b.geometry) {
         (
             Geometry::Path {
-                dxf_handle: ha,
-                dxf_type: ta,
                 closed: ca,
                 segments: sa,
-                image: ia,
-                dxf: da,
-                text: xa,
+                origin: oa,
             },
             Geometry::Path {
-                dxf_handle: hb,
-                dxf_type: tb,
                 closed: cb,
                 segments: sb,
-                image: ib,
-                dxf: db,
-                text: xb,
+                origin: ob,
             },
         ) => {
             a.layer == b.layer
-                && ha == hb
-                && ta == tb
-                && ia == ib
-                && da == db
-                && xa == xb
+                && oa == ob
                 && ca == cb
                 && sa.len() == sb.len()
                 && sa.iter().zip(sb).all(|(x, y)| same_segment(x, y))

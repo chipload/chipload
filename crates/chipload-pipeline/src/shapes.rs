@@ -670,13 +670,9 @@ mod tests {
     #[test]
     fn paths_cannot_be_drawn() {
         let path = Geometry::Path {
-            dxf_handle: None,
-            dxf_type: None,
             closed: false,
             segments: Vec::new(),
-            image: None,
-            dxf: None,
-            text: None,
+            origin: None,
         };
         assert!(add_shape(&project(), "0", path).is_err());
     }

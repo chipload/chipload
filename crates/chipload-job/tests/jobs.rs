@@ -379,7 +379,7 @@ fn square_shape(id: u64) -> Value {
 
 #[test]
 fn shapes_round_trip_exactly() {
-    let arc = json!({"id": 1, "layer": "L", "dxf_handle": "5C", "dxf_type": "CIRCLE",
+    let arc = json!({"id": 1, "layer": "L",
         "kind": "path", "closed": true, "segments": [
         {"arc": {"center": [0.1, -1e-300], "radius": 1.0 / 3.0, "start_angle": 0.0,
                  "sweep": std::f64::consts::TAU}}]});
@@ -387,6 +387,38 @@ fn shapes_round_trip_exactly() {
     let text = chipload_job::dump_job(&job).unwrap();
     let again = parse_job(migrate(serde_json::from_str(&text).unwrap()).unwrap(), "p").unwrap();
     assert_eq!(again.drawing, job.drawing);
+}
+
+/// A path comes from one DXF (with its entity's handle and type), one picture, one text,
+/// or nothing (docs/specs/source-model.md §2.1, decision 3).
+#[test]
+fn a_path_has_one_origin() {
+    let refused = |extra: Value, what: &str| {
+        let mut shape = square_shape(1);
+        for (key, value) in extra.as_object().unwrap() {
+            shape[key] = value.clone();
+        }
+        let err = parse_job(project(json!([shape]), 2, json!({"shapes": [1]})), "p")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains(what), "{extra}: {err}");
+    };
+    let one = "one DXF, image or text, not more";
+    refused(json!({"image": 1, "text": 2}), one);
+    refused(
+        json!({"dxf": 1, "image": 2, "dxf_handle": "A", "dxf_type": "LINE"}),
+        one,
+    );
+    refused(json!({"dxf": 1}), "needs `dxf_handle` and `dxf_type`");
+    refused(
+        json!({"dxf": 1, "dxf_handle": "A"}),
+        "needs `dxf_handle` and `dxf_type`",
+    );
+    refused(json!({"dxf_handle": "A"}), "belong to a path from a DXF");
+    refused(
+        json!({"image": 3, "dxf_type": "LINE"}),
+        "belong to a path from a DXF",
+    );
 }
 
 #[test]

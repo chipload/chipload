@@ -274,8 +274,8 @@ pub fn entry_from(job: &Job, shapes: &[u64], texts: &[u64]) -> Result<ShapeEntry
         {
             let mut letter = letter.clone();
             letter.id = entry.shapes.len() as u64 + 1;
-            if let Geometry::Path { text, .. } = &mut letter.geometry {
-                *text = Some(id);
+            if let Geometry::Path { origin, .. } = &mut letter.geometry {
+                *origin = Some(chipload_job::Origin::Text(id));
             }
             entry.shapes.push(letter);
         }
@@ -402,21 +402,17 @@ pub fn insert(
     for shape in &entry.shapes {
         let geometry = match &shape.geometry {
             Geometry::Path {
-                closed,
-                segments,
-                text,
-                ..
+                closed, segments, ..
             } => Geometry::Path {
-                dxf_handle: None,
-                dxf_type: None,
                 closed: *closed,
                 segments: segments
                     .iter()
                     .map(|s| scaled_segment(s, from, to, scale))
                     .collect(),
-                image: None,
-                dxf: None,
-                text: text.and_then(|t| text_ids.get(&t).copied()),
+                origin: shape
+                    .text()
+                    .and_then(|t| text_ids.get(&t).copied())
+                    .map(chipload_job::Origin::Text),
             },
             other => transformed(other, from, to, scale, 0.0)
                 .ok_or_else(|| refused(Message::new("pipeline-shapes-no-extent")))?,

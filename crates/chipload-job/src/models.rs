@@ -662,24 +662,46 @@ pub struct Shape {
     pub construction: bool,
 }
 
+/// Where a path comes from (docs/specs/source-model.md §2.1). Written flat in the file:
+/// `dxf`, `dxf_handle`, `dxf_type`, `image`, `text`.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Origin {
+    /// Read from a DXF or SVG: its id in `drawing.dxfs`, the handle of the entity it came
+    /// from (the INSERT's for block content), which keeps its id when the DXF is updated,
+    /// and that entity's type, e.g. "LWPOLYLINE".
+    Dxf {
+        id: u64,
+        handle: String,
+        entity: String,
+    },
+    /// Traced from the picture with this id (docs/specs/image-trace.md §4).
+    Image(u64),
+    /// A letter of the text with this id (docs/specs/text.md §3).
+    Text(u64),
+}
+
+impl Origin {
+    /// What its segments carry.
+    pub fn source(&self) -> ShapeFrom {
+        match self {
+            Origin::Dxf { id, .. } => ShapeFrom::Dxf(*id),
+            Origin::Image(id) => ShapeFrom::Image(*id),
+            Origin::Text(id) => ShapeFrom::Text(*id),
+        }
+    }
+}
+
 /// What a shape is. Drawn kinds store their defining values; their segments are derived.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Geometry {
-    /// Imported: lines and arcs exactly as read from the DXF.
+    /// Lines and arcs: imported from a DXF exactly as read, traced from a picture, a
+    /// text's letter, or (no origin) inserted from the shape library.
     Path {
-        /// Handle of the DXF entity it was imported from (the INSERT's for block content).
-        dxf_handle: Option<String>,
-        /// DXF type of that entity, e.g. "LWPOLYLINE".
-        dxf_type: Option<String>,
         /// The last segment ends where the first starts.
         closed: bool,
         segments: Vec<PathSegment>,
-        /// The image it was traced from (docs/specs/image-trace.md §4).
-        image: Option<u64>,
-        /// The DXF it was imported from (an id in `drawing.dxfs`).
-        dxf: Option<u64>,
-        /// The text whose letter it is (docs/specs/text.md §3).
-        text: Option<u64>,
+        /// Where it comes from; None: nothing remakes it.
+        origin: Option<Origin>,
     },
     Circle {
         center: [f64; 2],
@@ -737,63 +759,55 @@ impl Shape {
         }
     }
 
-    pub fn dxf_handle(&self) -> Option<&str> {
+    /// Where a path comes from; None for a drawn shape or an inserted path.
+    pub fn origin(&self) -> Option<&Origin> {
         match &self.geometry {
-            Geometry::Path { dxf_handle, .. } => dxf_handle.as_deref(),
+            Geometry::Path { origin, .. } => origin.as_ref(),
             _ => None,
         }
     }
 
-    /// Imported from a DXF: a path not traced from an image nor a text's letter. Its DXF's
-    /// placement moves it.
-    pub fn from_dxf(&self) -> bool {
-        matches!(
-            self.geometry,
-            Geometry::Path {
-                image: None,
-                text: None,
-                ..
-            }
-        )
-    }
-
-    /// Where an imported, traced or lettered path comes from; None for a drawn shape.
+    /// What its segments carry: the DXF, picture or text it comes from.
     pub fn source(&self) -> Option<ShapeFrom> {
-        match (self.dxf(), self.image(), self.text()) {
-            (Some(id), _, _) => Some(ShapeFrom::Dxf(id)),
-            (_, Some(id), _) => Some(ShapeFrom::Image(id)),
-            (_, _, Some(id)) => Some(ShapeFrom::Text(id)),
-            _ => None,
-        }
+        self.origin().map(Origin::source)
     }
 
     /// The text this shape is a letter of.
     pub fn text(&self) -> Option<u64> {
-        match &self.geometry {
-            Geometry::Path { text, .. } => *text,
+        match self.origin() {
+            Some(Origin::Text(id)) => Some(*id),
             _ => None,
         }
     }
 
     /// The DXF this shape was imported from.
     pub fn dxf(&self) -> Option<u64> {
-        match &self.geometry {
-            Geometry::Path { dxf, .. } => *dxf,
+        match self.origin() {
+            Some(Origin::Dxf { id, .. }) => Some(*id),
             _ => None,
         }
     }
 
     /// The image this shape was traced from.
     pub fn image(&self) -> Option<u64> {
-        match &self.geometry {
-            Geometry::Path { image, .. } => *image,
+        match self.origin() {
+            Some(Origin::Image(id)) => Some(*id),
             _ => None,
         }
     }
 
+    /// The handle of the DXF entity it was imported from.
+    pub fn dxf_handle(&self) -> Option<&str> {
+        match self.origin() {
+            Some(Origin::Dxf { handle, .. }) => Some(handle),
+            _ => None,
+        }
+    }
+
+    /// The type of the DXF entity it was imported from.
     pub fn dxf_type(&self) -> Option<&str> {
-        match &self.geometry {
-            Geometry::Path { dxf_type, .. } => dxf_type.as_deref(),
+        match self.origin() {
+            Some(Origin::Dxf { entity, .. }) => Some(entity),
             _ => None,
         }
     }
@@ -1107,19 +1121,23 @@ impl From<Shape> for RawShape {
         raw.construction = shape.construction;
         match shape.geometry {
             Geometry::Path {
-                dxf_handle,
-                dxf_type,
                 closed,
                 segments,
-                image,
-                dxf,
-                text,
+                origin,
             } => {
-                raw.dxf_handle = Some(dxf_handle);
-                raw.dxf_type = Some(dxf_type);
-                raw.image = image;
-                raw.dxf = dxf;
-                raw.text = text;
+                // A path always writes its handle and type, null when it has none.
+                raw.dxf_handle = Some(None);
+                raw.dxf_type = Some(None);
+                match origin {
+                    Some(Origin::Dxf { id, handle, entity }) => {
+                        raw.dxf = Some(id);
+                        raw.dxf_handle = Some(Some(handle));
+                        raw.dxf_type = Some(Some(entity));
+                    }
+                    Some(Origin::Image(id)) => raw.image = Some(id),
+                    Some(Origin::Text(id)) => raw.text = Some(id),
+                    None => {}
+                }
                 raw.closed = Some(closed);
                 raw.segments = Some(segments);
             }
@@ -1202,15 +1220,14 @@ impl TryFrom<RawShape> for Shape {
         }
         let missing = |field: &str| format!("shape {}: a {name} needs `{field}`", raw.id);
         let geometry = match kind {
-            ShapeKind::Path => Geometry::Path {
-                dxf_handle: raw.dxf_handle.flatten(),
-                dxf_type: raw.dxf_type.flatten(),
-                closed: raw.closed.ok_or_else(|| missing("closed"))?,
-                segments: raw.segments.ok_or_else(|| missing("segments"))?,
-                image: raw.image,
-                dxf: raw.dxf,
-                text: raw.text,
-            },
+            ShapeKind::Path => {
+                let origin = raw.origin()?;
+                Geometry::Path {
+                    closed: raw.closed.ok_or_else(|| missing("closed"))?,
+                    segments: raw.segments.ok_or_else(|| missing("segments"))?,
+                    origin,
+                }
+            }
             ShapeKind::Circle => Geometry::Circle {
                 center: raw.center.ok_or_else(|| missing("center"))?,
                 radius: raw.radius.ok_or_else(|| missing("radius"))?,
@@ -1252,6 +1269,27 @@ impl TryFrom<RawShape> for Shape {
 }
 
 impl RawShape {
+    /// A path's origin from its flat fields: one DXF with its handle and type, one picture,
+    /// one text, or none. Anything else is refused (docs/specs/source-model.md §2.1).
+    fn origin(&self) -> Result<Option<Origin>, String> {
+        let handle = self.dxf_handle.clone().flatten();
+        let entity = self.dxf_type.clone().flatten();
+        let refused = |what: &str| Err(format!("shape {}: {what}", self.id));
+        match (self.dxf, self.image, self.text) {
+            (Some(id), None, None) => match (handle, entity) {
+                (Some(handle), Some(entity)) => Ok(Some(Origin::Dxf { id, handle, entity })),
+                _ => refused("a path from a DXF needs `dxf_handle` and `dxf_type`"),
+            },
+            (None, _, _) if handle.is_some() || entity.is_some() => {
+                refused("`dxf_handle` and `dxf_type` belong to a path from a DXF (`dxf`)")
+            }
+            (None, Some(id), None) => Ok(Some(Origin::Image(id))),
+            (None, None, Some(id)) => Ok(Some(Origin::Text(id))),
+            (None, None, None) => Ok(None),
+            _ => refused("a path comes from one DXF, image or text, not more"),
+        }
+    }
+
     fn from_kind_name(kind: ShapeKind) -> &'static str {
         match kind {
             ShapeKind::Path => "path",

@@ -203,13 +203,9 @@ pub fn retrace(job: &Job, id: u64) -> Result<(Job, ImageReport), PipelineError> 
             layer: image.layer.clone(),
             name: None,
             geometry: Geometry::Path {
-                dxf_handle: None,
-                dxf_type: None,
                 closed: path.closed,
                 segments: placed(&path.pieces, image, trace.height),
-                image: Some(id),
-                dxf: None,
-                text: None,
+                origin: Some(chipload_job::Origin::Image(id)),
             },
         });
     }
