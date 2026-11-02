@@ -90,7 +90,12 @@ it's built (see `CLAUDE.md`).
 - **Shape library in the right panel** (the user, 2026-11-02: "a tab in the right panel
   where I can drag and drop shapes from the library to the canvas … and also the other way
   around"; "Each item shall have a preview and a name"): docs/specs/shape-library.md §5.1,
-  decisions 9-13 to review; then step 2 built.
+  decisions 9-14 to review; groups as folders (§5.2); then step 2 built.
+- **Later: panels the user arranges** (the user, 2026-11-02: drag a panel onto another
+  for a tab, below it to stack; "no hack"): egui has no docking; egui_dock 0.21 (MIT) or
+  egui_tiles 0.17 (MIT/Apache-2.0) on egui 0.36. Its own spec and ADR: every panel becomes
+  a pane, the layout saved in the app settings. And a full library panel, tools and
+  machines beside shapes (shape-library.md decision 12).
 
 - **V-carve step down** (the user, 2026-11-02: "there should be an option to use ordinary
   step down as well"; docs/specs/vcarve-step-down.md): **done 2026-11-02**, all decisions

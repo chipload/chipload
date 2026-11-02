@@ -259,6 +259,27 @@ whole height of the panel.
   greyed.
 - **The browser build** (§8): the tab lists what this session saved, kept in memory.
 
+### 5.2 Groups (the user, 2026-11-02: "organize shapes in groups or folders")
+
+- **A group is a folder** inside `shapes/` (decision 14). Copying a folder of entries to
+  another computer copies the group.
+- **In the tab:** each group is a header that folds, with its entries' grid under it;
+  entries outside any group come first. A search shows the matches of every group, under
+  their group's header.
+- **New group** beside *Save selection…*: a name field, then an empty group.
+- **Moving an entry:** drag it onto a group's header (or the top, out of any group).
+  Right-click on an entry: *Move to ▸* the groups. A name that exists in the group asks
+  first, as saving does.
+- **A group's right-click:** *Rename…*, *Delete* (only when empty; an entry's file is
+  never deleted with its folder), *Show in folder*.
+- **Saving into a group:** a selection dropped on a group's grid is saved there; *Save
+  selection…* saves into the group last opened.
+- **One level** (decision 14): groups don't hold groups. Deeper folders in `shapes/` are
+  listed as groups named by their path (`Signs/Doors`), so nothing put there is hidden.
+- **On the command line:** an entry is named with its group, `"Signs/House number"`;
+  `shape library` lists them by group; `shape library move NAME GROUP`, `group add`,
+  `group rename`, `group remove`.
+
 ## 6. Engraving the result
 
 Nothing new is needed to cut a sign:
@@ -357,6 +378,16 @@ Revised 2026-11-02 (§5.1), to review:
    would scroll. Tabs give each the whole panel, and switching is one click. Alternative:
    stacked, Properties above and Shapes below, with a divider to drag (both seen at once,
    each with half the room).
+   The user asked (2026-11-02) for panels the user arranges, dragged onto another for a
+   tab or below it to stack, "no hack". egui itself has no docking. Two maintained crates
+   do it on egui 0.36: **egui_dock** 0.21 (MIT; tabs, splits, floating windows) and
+   **egui_tiles** 0.17 (MIT or Apache-2.0, by egui's authors, made for the Rerun viewer;
+   tabs and splits). Either is a dependency used through its API, not a hack, but it
+   changes the whole window, not this tab: the Browser, the canvas, Properties and the
+   Report become panes; the narrow-window rules, the kittest tests and the guide's
+   pictures change; the arrangement is saved in the app settings (versioned). So it gets
+   a spec and an ADR of its own, choosing between the two (§5.2), and the library comes
+   first as a fixed tab, built so that it becomes a pane later without change.
 10. **The tab switches to Properties only when asked for** (a Browser row, a tool with
    values, a double-click), never on a canvas selection. *Recommended:* picking shapes to
    save with Shapes open must not lose the tab. Alternative: every selection change shows
@@ -374,3 +405,11 @@ Revised 2026-11-02 (§5.1), to review:
    selection is a right-click choice, as the frame's. Alternative: a drop on a selected
    shape fits round the selection by itself (quick for frames, but surprising when it
    lands on something by accident).
+14. **Groups are folders in `shapes/`, one level deep in the tab.** *Recommended:* nothing
+   to store but files and folders, so sharing and backing up stay copying; one level keeps
+   the tab one list of headers. Alternatives: tags in each entry (an entry in several
+   groups, but a format change and nothing to see in the folder), or folders at any depth
+   shown as a tree.
+
+Noted for later: **12** (tools and machines in the panel too, a full library panel) and
+**panels the user arranges** (decision 9) are in TODO.md.
