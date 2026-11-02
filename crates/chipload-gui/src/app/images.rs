@@ -371,9 +371,8 @@ impl ChiploadApp {
                 }
                 self.image_dialog = None;
                 self.drawing_changed(&[]);
-                self.selection = super::CanvasSelection::Source(
-                    chipload_core::chain::ShapeFrom::Image(report.id),
-                );
+                self.selection =
+                    super::CanvasSelection::whole(chipload_job::Source::Image(report.id));
                 // Its size and place are in its properties, right after importing.
                 self.focus = super::Focus::Image(report.id);
                 self.commit();
@@ -416,9 +415,8 @@ impl ChiploadApp {
                     edit.job = job;
                 }
                 self.drawing_changed(&[]);
-                self.selection = super::CanvasSelection::Source(
-                    chipload_core::chain::ShapeFrom::Image(report.id),
-                );
+                self.selection =
+                    super::CanvasSelection::whole(chipload_job::Source::Image(report.id));
                 self.commit();
                 self.set_report(Report::of_messages(report.messages));
                 true
@@ -488,7 +486,7 @@ impl ChiploadApp {
             1 => sources.into_iter().next()?,
             _ => return None,
         };
-        let selected = self.selection.ids(&self.contours);
+        let selected = self.selected_ids();
         let left_out: std::collections::BTreeSet<u64> = self
             .contours
             .iter()
@@ -496,10 +494,9 @@ impl ChiploadApp {
             .filter(|c| !selected.contains(&c.id))
             .flat_map(super::shapes_of)
             .collect();
-        Some(if left_out.is_empty() {
-            super::CanvasSelection::Source(from)
-        } else {
-            super::CanvasSelection::Except(from, left_out)
+        Some(super::CanvasSelection::Whole {
+            of: from.into(),
+            left_out,
         })
     }
 

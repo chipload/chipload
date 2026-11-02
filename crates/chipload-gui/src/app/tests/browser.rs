@@ -8,13 +8,13 @@ fn a_browser_click_selects_and_ctrl_click_adds() {
     assert!(app.open(&corpus("jobs/v21/two_dxfs.chipload")));
     // A click on a DXF's row selects the DXF as a whole, and its row shows selected.
     let dxf = app.group_selection("dxf:1");
-    assert_eq!(dxf, CanvasSelection::Source(ShapeFrom::Dxf(1)));
+    assert_eq!(dxf, CanvasSelection::whole(ShapeFrom::Dxf(1)));
     app.select_row(dxf.clone(), false);
     assert_eq!(app.selection, dxf);
-    let first = app.selection.ids(&app.contours);
+    let first = app.selected_ids();
     // Ctrl+click on the picture's row adds its contours.
     app.select_row(app.group_selection("image:1"), true);
-    let both = app.selection.ids(&app.contours);
+    let both = app.selected_ids();
     assert_eq!(both.len(), first.len() + 4);
     assert!(first.is_subset(&both));
     // A plain click replaces it again.
@@ -22,7 +22,7 @@ fn a_browser_click_selects_and_ctrl_click_adds() {
         CanvasSelection::Layer("HOLES".into(), Some(ShapeFrom::Dxf(2))),
         false,
     );
-    assert_eq!(app.selection.ids(&app.contours).len(), 3); // 6 shapes, 3 holes
+    assert_eq!(app.selected_ids().len(), 3); // 6 shapes, 3 holes
     // The Browser draws with every folder open, with a selection and with an operation off.
     app.edit.as_mut().unwrap().job.operations[1].set_enabled(false);
     app.focus = Focus::Op(2);

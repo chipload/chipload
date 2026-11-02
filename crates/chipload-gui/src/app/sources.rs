@@ -360,10 +360,10 @@ impl ChiploadApp {
                     .map(ShapeFrom::Text)
             });
         if let Some(source) = source {
-            return CanvasSelection::Source(source);
+            return CanvasSelection::whole(source);
         }
         if let Some(id) = key.strip_prefix("group:").and_then(|id| id.parse().ok()) {
-            return self.shape_group_selection(id, BTreeSet::new());
+            return CanvasSelection::whole(Source::Group(id));
         }
         let Some(edit) = &self.edit else {
             return CanvasSelection::Nothing;
@@ -386,8 +386,8 @@ impl ChiploadApp {
             self.selection = selection;
             return;
         }
-        let mut ids = self.selection.ids(&self.contours);
-        ids.extend(selection.ids(&self.contours));
+        let mut ids = self.selected_ids();
+        ids.extend(selection.ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing)));
         self.selection = CanvasSelection::of_contours(&ids, &self.contours);
     }
 
@@ -509,11 +509,11 @@ impl ChiploadApp {
             Some(PanelAction::AddImage) => self.import_image_dialog(),
             Some(PanelAction::AddText) => self.start_text(),
             Some(PanelAction::Ungroup(id)) => {
-                self.selection = self.shape_group_selection(id, BTreeSet::new());
+                self.selection = CanvasSelection::whole(Source::Group(id));
                 self.ungroup_selected();
             }
             Some(PanelAction::DeleteGroup(id)) => {
-                self.selection = self.shape_group_selection(id, BTreeSet::new());
+                self.selection = CanvasSelection::whole(Source::Group(id));
                 self.delete_selected_group();
             }
             None => {}
@@ -551,11 +551,8 @@ impl ChiploadApp {
             .dim(hidden)
             .selected(match (&self.selection, self.group_selection(&group.key)) {
                 // Some of it left out: still its row (docs/specs/leave-out-shapes.md §5).
-                (CanvasSelection::Except(from, _), CanvasSelection::Source(source)) => {
-                    *from == source
-                }
-                (CanvasSelection::Group { id, .. }, CanvasSelection::Group { id: whole, .. }) => {
-                    *id == whole
+                (CanvasSelection::Whole { of, .. }, CanvasSelection::Whole { of: whole, .. }) => {
+                    *of == whole
                 }
                 (selection, whole) => *selection == whole,
             });

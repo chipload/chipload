@@ -795,7 +795,7 @@ impl ChiploadApp {
                 // More than one thing comes in as a group, selected whole
                 // (docs/specs/shape-groups.md, decision 5).
                 if let Some(id) = done.group {
-                    self.selection = self.shape_group_selection(id, BTreeSet::new());
+                    self.selection = CanvasSelection::whole(Source::Group(id));
                 }
                 let text = t!(self, "shape-library-inserted", name = name.to_string());
                 self.set_status(text, STATUS_SECONDS);

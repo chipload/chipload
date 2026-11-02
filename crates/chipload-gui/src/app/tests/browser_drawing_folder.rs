@@ -35,7 +35,7 @@ fn the_drawing_panel_groups_dxfs_images_and_drawn_shapes() {
     assert!(one * 2 == both, "{one} of {both}");
     // A whole group is selected by its shapes.
     app.select_group("image:1");
-    assert_eq!(app.selection.ids(&app.contours).len(), 4);
+    assert_eq!(app.selected_ids().len(), 4);
 }
 
 #[test]

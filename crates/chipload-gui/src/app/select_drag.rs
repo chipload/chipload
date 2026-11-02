@@ -83,7 +83,7 @@ impl ChiploadApp {
         if !drawn {
             return None;
         }
-        if !self.selection.ids(&self.contours).contains(&id) {
+        if !self.selected_ids().contains(&id) {
             self.click(picked, add);
         }
         let (ids, imported) = self.deletable_shapes();
@@ -206,12 +206,12 @@ impl ChiploadApp {
             && !toggle
             && let [only] = sources.iter().copied().collect::<Vec<_>>()[..]
         {
-            self.selection = CanvasSelection::Source(only);
+            self.selection = CanvasSelection::whole(only);
             return;
         }
         let hit = shapes_in(&plain, &self.contours);
         let mut shapes = if add || toggle {
-            shapes_in(&self.selection.ids(&self.contours), &self.contours)
+            shapes_in(&self.selected_ids(), &self.contours)
         } else {
             BTreeSet::new()
         };

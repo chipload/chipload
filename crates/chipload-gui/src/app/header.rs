@@ -598,7 +598,7 @@ impl ChiploadApp {
             ui,
             &caption,
             |app, ui| {
-                let selected = !app.selection.ids(&app.contours).is_empty();
+                let selected = !app.selected_ids().is_empty();
                 for (label, kind, hover) in super::browser::new_operations(ui) {
                     let icon = match kind {
                         OpKind::Profile => Icon::Profile,
@@ -630,7 +630,7 @@ impl ChiploadApp {
                 }
             },
             |app, ui| {
-                let selected = !app.selection.ids(&app.contours).is_empty();
+                let selected = !app.selected_ids().is_empty();
                 for (_, kind, hover) in super::browser::new_operations(ui) {
                     if ui
                         .add_enabled(

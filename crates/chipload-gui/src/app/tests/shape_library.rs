@@ -128,12 +128,11 @@ fn the_selection_is_saved_then_dragged_onto_the_canvas() {
         .collect();
     // More than one thing: it comes in as a group, selected whole
     // (docs/specs/shape-groups.md, decision 5).
-    match &app.selection {
-        CanvasSelection::Group { shapes, .. } => {
-            assert_eq!(shapes, &new.iter().copied().collect::<BTreeSet<u64>>());
-        }
-        other => panic!("{other:?}"),
-    }
+    let group = app
+        .selected_group()
+        .unwrap_or_else(|| panic!("{:?}", app.selection));
+    let members = app.edit.as_ref().unwrap().job.drawing.group_shapes(group);
+    assert_eq!(members, new);
     let ((x0, y0), (x1, y1)) =
         chipload_pipeline::shapes::drawn_box(&app.edit.as_ref().unwrap().job, &new).unwrap();
     // Snapped to the grid near the pointer.

@@ -417,7 +417,7 @@ impl ChiploadApp {
         if steps.contains(&"frame")
             && let Some(id) = first_text
         {
-            self.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id));
+            self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Text(id));
             self.start_frame();
             self.frame.borders = 1;
         }
@@ -498,7 +498,7 @@ impl ChiploadApp {
             self.focus = Focus::Text(id);
             // With "select" too: the text is selected, its handles showing.
             if steps.contains(&"select") {
-                self.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(id));
+                self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Text(id));
             }
         }
         if steps.contains(&"half")

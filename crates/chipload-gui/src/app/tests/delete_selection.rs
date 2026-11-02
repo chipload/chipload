@@ -16,7 +16,7 @@ fn delete_removes_a_selected_text_and_a_box_round_a_sign() {
     app.start_text();
     let id = app.place_text_at((20.0, 30.0)).unwrap();
     // The text selected, as a click on a letter selects it.
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     app.delete_selected_shapes();
     assert!(drawing(&app).texts.is_empty());
     assert!(drawing(&app).shapes.is_empty());
@@ -47,7 +47,7 @@ fn delete_removes_a_selected_picture_or_dxf_but_not_one_imported_shape() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v19/image_vcarve.chipload")));
     let image = drawing(&app).images[0].id;
-    app.selection = CanvasSelection::Source(ShapeFrom::Image(image));
+    app.selection = CanvasSelection::whole(ShapeFrom::Image(image));
     app.delete_selected_shapes();
     assert!(drawing(&app).images.is_empty());
     app.undo();
@@ -68,7 +68,7 @@ fn delete_removes_a_selected_picture_or_dxf_but_not_one_imported_shape() {
     app.delete_selected_shapes();
     assert!(drawing(&app).shapes.iter().any(|s| s.id == one));
     // The DXF as a whole: removed.
-    app.selection = CanvasSelection::Source(ShapeFrom::Dxf(first));
+    app.selection = CanvasSelection::whole(ShapeFrom::Dxf(first));
     app.delete_selected_shapes();
     assert_eq!(drawing(&app).dxfs.len(), dxfs - 1);
 }

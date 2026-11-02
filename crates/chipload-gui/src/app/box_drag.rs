@@ -22,12 +22,10 @@ const SHAPES_BOX_PAD_PX: f64 = 10.0;
 /// What a box belongs to.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) enum BoxOf {
-    /// A picture or a text.
-    Source(ShapeFrom),
+    /// A picture, a text, or a group with its texts (docs/specs/shape-groups.md §2).
+    Whole(Source),
     /// Drawn shapes, by id.
     Shapes(Vec<u64>),
-    /// A group, its texts too (docs/specs/shape-groups.md §2).
-    Group(u64),
 }
 
 /// What a box's size was worked out from, so it is worked out again only when that changes.
@@ -79,7 +77,7 @@ impl ChiploadApp {
             let ((x0, y0), (x1, y1)) = self.group_box(id)?;
             let pad = SHAPES_BOX_PAD_PX / self.view.scale;
             return Some((
-                BoxOf::Group(id),
+                BoxOf::Whole(Source::Group(id)),
                 PlacedBox {
                     corner: (x0 - pad, y0 - pad),
                     size: (x1 - x0 + 2.0 * pad, y1 - y0 + 2.0 * pad),
@@ -87,9 +85,10 @@ impl ChiploadApp {
                 },
             ));
         }
-        let CanvasSelection::Source(from) = self.selection else {
+        let CanvasSelection::Whole { of, left_out } = &self.selection else {
             return None;
         };
+        let from = of.shape_from().filter(|_| left_out.is_empty())?;
         let drawing = &self.edit.as_ref()?.job.drawing;
         match from {
             ShapeFrom::Image(id) => {
@@ -101,7 +100,7 @@ impl ChiploadApp {
                         .ok()?;
                     Some((f64::from(picture.width), f64::from(picture.height)))
                 })?;
-                (w > 0.0).then(|| (BoxOf::Source(from), image_box(&image, h / w)))
+                (w > 0.0).then(|| (BoxOf::Whole(from.into()), image_box(&image, h / w)))
             }
             ShapeFrom::Text(id) => {
                 let text = drawing.texts.iter().find(|t| t.id == id)?.clone();
@@ -111,7 +110,7 @@ impl ChiploadApp {
                 let size = self.box_size.get(key, || {
                     chipload_pipeline::texts::text_size(job, &text, &*fonts).ok()
                 })?;
-                Some((BoxOf::Source(from), text_box(&text, size)))
+                Some((BoxOf::Whole(from.into()), text_box(&text, size)))
             }
             ShapeFrom::Dxf(_) => None,
         }
@@ -176,7 +175,7 @@ impl ChiploadApp {
         let mut lines = vec![vec![c[0], c[1], c[2], c[3], c[0]], vec![edge, turn]];
         // A group follows the box while it is dragged, its letters too.
         if let Some(BoxDrag {
-            of: BoxOf::Group(id),
+            of: BoxOf::Whole(Source::Group(id)),
             start,
             now,
             pad,
@@ -223,8 +222,10 @@ impl ChiploadApp {
     pub fn start_box_drag(&mut self, handle: BoxHandle) {
         if let Some((of, start)) = self.selected_box() {
             let pad = match of {
-                BoxOf::Shapes(_) | BoxOf::Group(_) => SHAPES_BOX_PAD_PX / self.view.scale,
-                BoxOf::Source(_) => 0.0,
+                BoxOf::Shapes(_) | BoxOf::Whole(Source::Group(_)) => {
+                    SHAPES_BOX_PAD_PX / self.view.scale
+                }
+                BoxOf::Whole(_) => 0.0,
             };
             self.drag.boxed = Some(BoxDrag {
                 of,
@@ -271,7 +272,7 @@ impl ChiploadApp {
             self.transform_shapes(ids, from, to, scale, degrees);
             return;
         }
-        if let BoxOf::Group(id) = drag.of {
+        if let BoxOf::Whole(Source::Group(id)) = drag.of {
             let (from, to, scale, degrees) = box_transform(&drag.start, &drag.now, drag.pad);
             self.transform_group(id, from, to, scale, degrees);
             return;
@@ -280,11 +281,11 @@ impl ChiploadApp {
             return;
         };
         let drawing = &edit.job.drawing;
-        let BoxOf::Source(from) = drag.of else {
+        let BoxOf::Whole(of) = drag.of else {
             return;
         };
-        match from {
-            ShapeFrom::Image(id) => {
+        match of {
+            Source::Image(id) => {
                 let Some(image) = drawing.images.iter().find(|i| i.id == id) else {
                     return;
                 };
@@ -298,14 +299,14 @@ impl ChiploadApp {
                 };
                 self.set_image_place(id, &place);
             }
-            ShapeFrom::Text(id) => {
+            Source::Text(id) => {
                 let Some(text) = drawing.texts.iter().find(|t| t.id == id).cloned() else {
                     return;
                 };
                 let moved = text_in_box(&text, drag.start.size, &drag.now, drag.free);
                 self.set_text(id, &moved);
             }
-            ShapeFrom::Dxf(_) => {}
+            Source::Dxf(_) | Source::Group(_) => {}
         }
     }
 

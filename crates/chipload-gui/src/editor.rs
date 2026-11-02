@@ -9,7 +9,7 @@ use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_i18n::Message;
 use chipload_job::library::Cutting;
 use chipload_job::{
-    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
+    DEFAULT_RAMP_ANGLE_RAD, Direction, Drawing, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
     PocketOp, Problem, ProfileOp, SURFACE_STEPOVER, Selector, Side, Source, SurfaceOp, ToolType,
     VcarveOp, WorkZero, find_tool,
 };
@@ -36,19 +36,11 @@ pub enum CanvasSelection {
     /// Every contour on one layer; with a source, only that DXF's or image's
     /// (docs/specs/drawing-sources.md §4).
     Layer(String, Option<ShapeFrom>),
-    /// Every contour of one DXF or image, whatever its layers: an operation made from it
-    /// follows the DXF's updates and the image's retracing.
-    Source(ShapeFrom),
-    /// A whole DXF or image but the contours with these shapes, left out with Ctrl+click
-    /// (docs/specs/leave-out-shapes.md §5). Never empty.
-    Except(ShapeFrom, BTreeSet<u64>),
-    /// A whole group (docs/specs/shape-groups.md §5): its id, its shapes as they were when
-    /// it was picked (its texts' letters included), and those left out with Ctrl+click.
-    Group {
-        id: u64,
-        shapes: BTreeSet<u64>,
-        left_out: BTreeSet<u64>,
-    },
+    /// All of a DXF, picture, text or group, whatever its layers, but the contours with the
+    /// shapes left out with Ctrl+click (docs/specs/leave-out-shapes.md §5, shape-groups.md
+    /// §5, source-model.md §2.3). An operation made from it follows the source: a DXF's
+    /// updates, a picture's retracing, a text made again, a group's members.
+    Whole { of: Source, left_out: BTreeSet<u64> },
 }
 
 /// The shape ids a contour is made of.
@@ -75,8 +67,25 @@ impl CanvasSelection {
         }
     }
 
-    /// The contour ids this selection covers: those with a selected shape, or on the layer.
-    pub fn ids(&self, contours: &[Contour]) -> BTreeSet<usize> {
+    /// All of `of`.
+    pub fn whole(of: impl Into<Source>) -> Self {
+        CanvasSelection::Whole {
+            of: of.into(),
+            left_out: BTreeSet::new(),
+        }
+    }
+
+    /// The source it is all of, if it is.
+    pub fn source(&self) -> Option<Source> {
+        match self {
+            CanvasSelection::Whole { of, .. } => Some(*of),
+            _ => None,
+        }
+    }
+
+    /// The contour ids this selection covers: those with a selected shape, on the layer, or
+    /// of the source. A group's shapes are read from `drawing` (none without it).
+    pub fn ids(&self, contours: &[Contour], drawing: Option<&Drawing>) -> BTreeSet<usize> {
         match self {
             CanvasSelection::Nothing => BTreeSet::new(),
             CanvasSelection::Shapes(shapes) => contours
@@ -84,25 +93,24 @@ impl CanvasSelection {
                 .filter(|c| !shapes_of(c).is_disjoint(shapes))
                 .map(|c| c.id)
                 .collect(),
-            CanvasSelection::Source(from) => contours
-                .iter()
-                .filter(|c| c.parts.iter().all(|p| p.segment.from == Some(*from)))
-                .map(|c| c.id)
-                .collect(),
-            CanvasSelection::Except(from, left_out) => contours
-                .iter()
-                .filter(|c| c.parts.iter().all(|p| p.segment.from == Some(*from)))
-                .filter(|c| shapes_of(c).is_disjoint(left_out))
-                .map(|c| c.id)
-                .collect(),
-            CanvasSelection::Group {
-                shapes, left_out, ..
-            } => contours
-                .iter()
-                .filter(|c| !shapes_of(c).is_disjoint(shapes))
-                .filter(|c| shapes_of(c).is_disjoint(left_out))
-                .map(|c| c.id)
-                .collect(),
+            CanvasSelection::Whole { of, left_out } => {
+                let members: BTreeSet<u64> = match (of, drawing) {
+                    (Source::Group(id), Some(drawing)) => {
+                        drawing.group_shapes(*id).into_iter().collect()
+                    }
+                    _ => BTreeSet::new(),
+                };
+                let of_source = |c: &Contour| match of.shape_from() {
+                    Some(from) => c.parts.iter().all(|p| p.segment.from == Some(from)),
+                    None => !shapes_of(c).is_disjoint(&members),
+                };
+                contours
+                    .iter()
+                    .filter(|c| of_source(c))
+                    .filter(|c| shapes_of(c).is_disjoint(left_out))
+                    .map(|c| c.id)
+                    .collect()
+            }
             CanvasSelection::Layer(layer, from) => contours
                 .iter()
                 .filter(|c| c.layers().iter().any(|l| l.eq_ignore_ascii_case(layer)))
@@ -117,23 +125,18 @@ impl CanvasSelection {
     /// profiles and pockets would skip them anyway).
     pub fn selector(&self, contours: &[Contour], open: bool) -> Selector {
         match self {
-            CanvasSelection::Source(from) => Selector::of((*from).into()),
-            CanvasSelection::Except(from, left_out) => Selector {
-                exclude: left_out.iter().copied().collect(),
-                ..Selector::of((*from).into())
-            },
-            // An operation made from a group follows it (docs/specs/shape-groups.md,
+            // An operation made from a group follows it too (docs/specs/shape-groups.md,
             // decision 8).
-            CanvasSelection::Group { id, left_out, .. } => Selector {
+            CanvasSelection::Whole { of, left_out } => Selector {
                 exclude: left_out.iter().copied().collect(),
-                ..Selector::of(Source::Group(*id))
+                ..Selector::of(*of)
             },
             CanvasSelection::Layer(layer, from) => Selector {
                 source: from.map(Source::from),
                 ..Selector::on_layer(layer)
             },
-            _ => {
-                let ids = self.ids(contours);
+            CanvasSelection::Nothing | CanvasSelection::Shapes(_) => {
+                let ids = self.ids(contours, None);
                 let mut shapes: Vec<u64> = Vec::new();
                 for c in contours
                     .iter()
@@ -462,7 +465,8 @@ impl EditJob {
         };
         let (op, side_chosen) = match kind {
             OpKind::Profile => {
-                let side = default_side(&selection.ids(contours), contours);
+                let side =
+                    default_side(&selection.ids(contours, Some(&self.job.drawing)), contours);
                 (
                     Operation::Profile(ProfileOp {
                         material: None,
@@ -623,7 +627,10 @@ impl EditJob {
         match op {
             Operation::Profile(p) => {
                 p.select = select;
-                if unsided && let Some(side) = default_side(&selection.ids(contours), contours) {
+                if unsided
+                    && let Some(side) =
+                        default_side(&selection.ids(contours, Some(&self.job.drawing)), contours)
+                {
                     p.side = side;
                     self.unsided.remove(&index);
                 }

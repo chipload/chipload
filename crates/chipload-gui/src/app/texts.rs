@@ -3,7 +3,6 @@
 //! properties make its letters again, as one undo step.
 
 use chipload_core::Point;
-use chipload_core::chain::ShapeFrom;
 use chipload_job::Text;
 use chipload_pipeline::texts::{NewText, add_text, remake, remove_text};
 
@@ -49,7 +48,7 @@ impl ChiploadApp {
                     edit.job = job;
                 }
                 self.drawing_changed(&[]);
-                self.selection = CanvasSelection::Source(ShapeFrom::Text(report.id));
+                self.selection = CanvasSelection::whole(Source::Text(report.id));
                 self.focus = Focus::Text(report.id);
                 self.focus_text_field = true;
                 self.commit();
@@ -84,7 +83,7 @@ impl ChiploadApp {
                     edit.job = job;
                 }
                 self.drawing_changed(&[]);
-                self.selection = CanvasSelection::Source(ShapeFrom::Text(id));
+                self.selection = CanvasSelection::whole(Source::Text(id));
                 self.commit();
                 self.set_report(Report::of_messages(report.messages));
                 true

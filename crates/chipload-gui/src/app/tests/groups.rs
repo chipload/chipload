@@ -44,7 +44,7 @@ fn group_makes_one_and_a_click_picks_it_whole() {
         app.selection = CanvasSelection::Nothing;
         app.click(Some(contour_of(&app, shape)), false);
         assert_eq!(app.selected_group(), Some(1), "S{shape}");
-        assert_eq!(app.selection.ids(&app.contours).len(), app.contours.len());
+        assert_eq!(app.selected_ids().len(), app.contours.len());
     }
     // Already one group: nothing to group.
     assert!(!app.can_group());
@@ -55,7 +55,7 @@ fn ctrl_click_leaves_a_shape_out_of_the_selection_not_the_group() {
     let mut app = grouped();
     app.click(Some(contour_of(&app, 5)), false);
     app.click(Some(contour_of(&app, 6)), true);
-    let CanvasSelection::Group { left_out, .. } = &app.selection else {
+    let CanvasSelection::Whole { left_out, .. } = &app.selection else {
         panic!("{:?}", app.selection);
     };
     assert_eq!(left_out, &BTreeSet::from([6]));
@@ -65,7 +65,7 @@ fn ctrl_click_leaves_a_shape_out_of_the_selection_not_the_group() {
     // And back in.
     app.click(Some(contour_of(&app, 6)), true);
     assert!(
-        matches!(&app.selection, CanvasSelection::Group { left_out, .. } if left_out.is_empty())
+        matches!(&app.selection, CanvasSelection::Whole { left_out, .. } if left_out.is_empty())
     );
 }
 
@@ -114,7 +114,7 @@ fn an_operation_made_from_a_group_names_it() {
 fn copying_a_group_pastes_a_new_group() {
     let mut app = grouped();
     // A group of drawn shapes only: take the text out first.
-    app.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Text(1));
+    app.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Text(1));
     assert!(app.remove_selected_from_group());
     app.click(Some(contour_of(&app, 5)), false);
     assert!(app.copy_selected_shapes().is_some());

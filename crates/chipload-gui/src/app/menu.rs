@@ -334,7 +334,11 @@ impl ChiploadApp {
         }
         ui.separator();
         // Delete takes a text, a picture or a DXF selected whole, and letters' texts too.
-        let deletable = matches!(self.selection, CanvasSelection::Source(_)) || {
+        let deletable = matches!(
+            &self.selection,
+            CanvasSelection::Whole { of, left_out }
+                if left_out.is_empty() && of.shape_from().is_some()
+        ) || {
             let (ids, texts, _) = self.deletion();
             !ids.is_empty() || !texts.is_empty()
         };

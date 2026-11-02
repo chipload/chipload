@@ -151,7 +151,7 @@ fn the_selection_stays_on_its_shape_when_contours_are_renumbered() {
     app.undo();
     assert_eq!(contour_of(&app, 3), 3);
     assert_eq!(app.selected_shape(), Some(3));
-    assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([3]));
+    assert_eq!(app.selected_ids(), BTreeSet::from([3]));
 }
 
 #[test]
@@ -164,10 +164,7 @@ fn a_selected_shape_that_is_deleted_drops_out_of_the_selection() {
     edit.job.drawing.shapes.retain(|s| s.id != 3);
     app.commit();
     app.refresh_drawing();
-    assert_eq!(
-        app.selection.ids(&app.contours),
-        BTreeSet::from([contour_of(&app, 2)])
-    );
+    assert_eq!(app.selected_ids(), BTreeSet::from([contour_of(&app, 2)]));
 }
 
 #[test]
@@ -385,9 +382,9 @@ fn clicks_select_and_toggle() {
     assert_eq!(app.selector_json(), None);
     app.click(Some(4), false);
     app.click(Some(6), true);
-    assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([4, 6]));
+    assert_eq!(app.selected_ids(), BTreeSet::from([4, 6]));
     app.click(Some(6), true);
-    assert_eq!(app.selection.ids(&app.contours), BTreeSet::from([4]));
+    assert_eq!(app.selected_ids(), BTreeSet::from([4]));
     app.click(None, false);
     assert_eq!(app.selection, CanvasSelection::Nothing);
 }

@@ -79,7 +79,7 @@ impl ChiploadApp {
 
     /// The shapes of the selected contours, any kind: what a frame goes round.
     pub(super) fn framed_shape_ids(&self) -> Vec<u64> {
-        let picked = self.selection.ids(&self.contours);
+        let picked = self.selected_ids();
         let ids: std::collections::BTreeSet<u64> = self
             .contours
             .iter()

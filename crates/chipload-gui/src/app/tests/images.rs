@@ -24,7 +24,7 @@ fn an_imported_image_is_traced_selected_as_a_whole_and_v_carved() {
     );
     assert_eq!(
         app.selection,
-        CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1))
+        CanvasSelection::whole(chipload_core::chain::ShapeFrom::Image(1))
     );
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().job.operations[index];
@@ -164,7 +164,7 @@ fn a_hidden_toolpath_leaves_the_legend_and_the_plunges() {
 fn a_pictures_turn_handle_turns_it_in_steps() {
     use chipload_pipeline::box_handles::BoxHandle;
     let mut app = two_parts();
-    app.selection = CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1));
+    app.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Image(1));
     let handles = app.box_handle_points();
     assert_eq!(handles.len(), 6);
     let (_, center) = handles[0];

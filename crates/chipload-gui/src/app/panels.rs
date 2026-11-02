@@ -95,7 +95,7 @@ impl ChiploadApp {
         // One thing at a time (the user, 2026-10-28): what is picked on the canvas, or the
         // Browser's item.
         if self.focus == Focus::Selection {
-            if self.selection.ids(&self.contours).is_empty() {
+            if self.selected_ids().is_empty() {
                 ui.weak(t!(ui, "panels-nothing-selected"));
                 // An array tool waits for shapes: its values and Cancel stay at hand.
                 self.array_form(ui);
@@ -107,7 +107,7 @@ impl ChiploadApp {
             return;
         }
         problems::set_form_problems(ui, self.form_problem_map(self.focus));
-        let selected = self.selection.ids(&self.contours).len();
+        let selected = self.selected_ids().len();
         let selection_text = self.selection_lines().join("\n");
         let floor_hint = match self.focus {
             Focus::FloorPass(i) => self.floor_hint(i),

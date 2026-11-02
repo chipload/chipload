@@ -622,7 +622,7 @@ impl ChiploadApp {
             response.on_hover_text_at_pointer(text);
         }
         let highlight = Highlight {
-            selected: self.selection.ids(&self.contours),
+            selected: self.selected_ids(),
             operation_contours: self.focused_contours(),
             operation,
             followed: self.followed_contours(),
@@ -801,7 +801,7 @@ impl ChiploadApp {
     /// for the marker and the status bar. `dragging`: skip the selected shape's own points.
     pub(super) fn snap_world(&mut self, at: Point, free: bool, dragging: bool) -> Point {
         // A dragged box doesn't snap to its own letters or traced shapes.
-        let own_box = (dragging && self.dragging_box()).then(|| self.selection.ids(&self.contours));
+        let own_box = (dragging && self.dragging_box()).then(|| self.selected_ids());
         let moving: Option<BTreeSet<u64>> = self
             .drag
             .moving

@@ -971,7 +971,7 @@ impl ChiploadApp {
                 egui::StrokeKind::Inside,
             );
         }
-        let selected = !self.selection.ids(&self.contours).is_empty();
+        let selected = !self.selected_ids().is_empty();
         let hover = if is_active {
             t!(ui, "browser-part-active-hover")
         } else {
@@ -1411,15 +1411,18 @@ impl ChiploadApp {
     /// Properties: the selection, the selected shape's editor or facts, and Copy as
     /// selector (docs/specs/browser-and-layout.md §4), above the open form when shown.
     pub(super) fn selection_section(&mut self, ui: &mut egui::Ui) {
-        if self.selection.ids(&self.contours).is_empty() {
+        if self.selected_ids().is_empty() {
             return;
         }
         let icon = match &self.selection {
             CanvasSelection::Layer(..) => Icon::Layer,
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Dxf(_)) => Icon::Dxf,
-            CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(_))
-            | CanvasSelection::Except(chipload_core::chain::ShapeFrom::Image(_), _) => Icon::Image,
-            CanvasSelection::Except(chipload_core::chain::ShapeFrom::Dxf(_), _) => Icon::Dxf,
+            CanvasSelection::Whole {
+                of: Source::Dxf(_), ..
+            } => Icon::Dxf,
+            CanvasSelection::Whole {
+                of: Source::Image(_),
+                ..
+            } => Icon::Image,
             _ => Icon::Polyline,
         };
         let id = ui.make_persistent_id("properties-selection");

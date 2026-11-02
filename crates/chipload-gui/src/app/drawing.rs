@@ -3,7 +3,6 @@
 
 use super::*;
 use crate::draw::{EntryError, parse_entry};
-use chipload_core::chain::ShapeFrom;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
@@ -256,7 +255,7 @@ impl ChiploadApp {
         if let CanvasSelection::Layer(layer, _) = &self.selection {
             return layer.clone();
         }
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         let layers: BTreeSet<String> = self
             .contours
             .iter()
@@ -284,7 +283,7 @@ impl ChiploadApp {
         if !matches!(self.selection, CanvasSelection::Shapes(_)) {
             return None;
         }
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         let mut contours = self.contours.iter().filter(|c| ids.contains(&c.id));
         let (Some(only), None) = (contours.next(), contours.next()) else {
             return None;
@@ -449,20 +448,25 @@ impl ChiploadApp {
     /// undo step. Operations that used a deleted shape are flagged. Other imported shapes
     /// stay: they change only with their file.
     pub fn delete_selected_shapes(&mut self) {
-        match self.selection {
-            CanvasSelection::Source(ShapeFrom::Text(id)) => {
+        // Selected whole, nothing left out (a group is deleted by `delete_key`).
+        let whole = match &self.selection {
+            CanvasSelection::Whole { of, left_out } if left_out.is_empty() => Some(*of),
+            _ => None,
+        };
+        match whole {
+            Some(Source::Text(id)) => {
                 self.remove_text(id);
                 return;
             }
-            CanvasSelection::Source(ShapeFrom::Image(id)) => {
+            Some(Source::Image(id)) => {
                 self.remove_image(id);
                 return;
             }
-            CanvasSelection::Source(ShapeFrom::Dxf(id)) => {
+            Some(Source::Dxf(id)) => {
                 self.remove_dxf(id);
                 return;
             }
-            _ => {}
+            Some(Source::Group(_)) | None => {}
         }
         let (ids, texts, imported) = self.deletion();
         if ids.is_empty() && texts.is_empty() {

@@ -43,7 +43,7 @@ fn draw_text_places_a_text_opened_and_selected_as_one_undo_step() {
     assert_eq!(texts(&app).len(), 1);
     assert_eq!((texts(&app)[0].x, texts(&app)[0].y), (20.0, 30.0));
     assert_eq!(app.focus, Focus::Text(id));
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     assert!(app.focus_text_field, "the text field takes the keyboard");
     // Its letters are contours on the canvas.
     let letters = app
@@ -100,7 +100,7 @@ fn clicking_a_letter_selects_the_text_and_a_v_carve_cuts_it() {
         .unwrap()
         .id;
     app.click(Some(letter), false);
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     // Its properties open, as from its Browser row (the user, 2026-10-30).
     assert_eq!(app.focus, Focus::Text(id));
     draw_properties(&mut app);
@@ -143,7 +143,7 @@ fn dragging_a_texts_move_handle_moves_its_letters_as_one_undo_step() {
     let after = &texts(&app)[0];
     assert!((after.x - (before.x + 15.0)).abs() < 1e-9);
     assert!((after.y - (before.y - 5.0)).abs() < 1e-9);
-    assert_eq!(app.selection, CanvasSelection::Source(ShapeFrom::Text(id)));
+    assert_eq!(app.selection, CanvasSelection::whole(ShapeFrom::Text(id)));
     app.undo();
     assert_eq!(texts(&app)[0], before);
 }

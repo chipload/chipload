@@ -15,7 +15,7 @@ use chipload_dxf::{ImportError, shapes_from_file};
 use chipload_job::edit::{Handle, SegmentDrag, handles, try_drag};
 use chipload_job::library::Theme;
 use chipload_job::{
-    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Spindle, StockCorner,
+    Direction, Drawing, Geometry, Job, Operation, Selector, Side, Source, Spindle, StockCorner,
     StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
@@ -1109,6 +1109,12 @@ impl ChiploadApp {
             .unwrap_or_else(|| self.selection.clone())
     }
 
+    /// The contour ids the canvas selection covers.
+    pub fn selected_ids(&self) -> BTreeSet<usize> {
+        self.selection
+            .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
+    }
+
     /// Add an operation for the current canvas selection and select it.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let tool = self.edit.as_ref()?.tool_for(kind);
@@ -1927,28 +1933,12 @@ impl ChiploadApp {
         if picked.is_some() {
             self.focus = Focus::Selection;
         }
-        // A grouped shape selects its whole group; Ctrl+click on a shape of the selected
-        // group leaves it out and puts it back, as for a picture or a DXF
-        // (docs/specs/shape-groups.md §2, decision 10).
-        if let Some(group) = picked.and_then(|id| self.group_of_contour(id)) {
-            if !toggle {
-                self.selection = self.shape_group_selection(group, BTreeSet::new());
-                return;
-            }
-            if let CanvasSelection::Group { id, left_out, .. } = &self.selection
-                && *id == group
-                && let Some(contour) = picked.and_then(|c| self.contours.iter().find(|x| x.id == c))
-            {
-                let mut left_out = left_out.clone();
-                let hit = shapes_of(contour);
-                if hit.is_subset(&left_out) {
-                    left_out.retain(|s| !hit.contains(s));
-                } else {
-                    left_out.extend(hit);
-                }
-                self.selection = self.shape_group_selection(group, left_out);
-                return;
-            }
+        // A grouped shape selects its whole group (docs/specs/shape-groups.md §2, decision 10).
+        if let Some(group) = picked.and_then(|id| self.group_of_contour(id))
+            && !toggle
+        {
+            self.selection = CanvasSelection::whole(Source::Group(group));
+            return;
         }
         // A traced contour selects its whole picture, a letter its whole text: their shapes
         // get new ids each time the picture is traced again or the text written again, so
@@ -1964,7 +1954,7 @@ impl ChiploadApp {
                 _ => None,
             });
         if let (Some(from), false) = (traced, toggle) {
-            self.selection = CanvasSelection::Source(from);
+            self.selection = CanvasSelection::whole(from);
             // A letter opens its text, as the text's Browser row does: its words, font and
             // height to change (the user, 2026-10-30). The text stays selected for an
             // operation's Use selection.
@@ -1973,40 +1963,29 @@ impl ChiploadApp {
             }
             return;
         }
-        // Ctrl+click on a contour of the selected DXF or image leaves it out, or puts it
-        // back (docs/specs/leave-out-shapes.md §5).
-        let whole = match &self.selection {
-            CanvasSelection::Source(from) => Some((*from, BTreeSet::new())),
-            CanvasSelection::Except(from, left_out) => Some((*from, left_out.clone())),
-            _ => None,
-        };
-        if let (Some((from, mut left_out)), true) = (whole, toggle)
+        // Ctrl+click on a contour of the selected DXF, picture, text or group leaves it out,
+        // or puts it back (docs/specs/leave-out-shapes.md §5, shape-groups.md decision 10).
+        if toggle
+            && let CanvasSelection::Whole { of, left_out } = &self.selection
             && let Some(contour) = picked.and_then(|id| self.contours.iter().find(|c| c.id == id))
-            && contour.parts.iter().all(|p| p.segment.from == Some(from))
+            && CanvasSelection::whole(*of)
+                .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
+                .contains(&contour.id)
         {
+            let mut left_out = left_out.clone();
             let hit = shapes_of(contour);
             if hit.is_subset(&left_out) {
                 left_out.retain(|s| !hit.contains(s));
             } else {
                 left_out.extend(hit);
             }
-            self.selection = if left_out.is_empty() {
-                CanvasSelection::Source(from)
-            } else {
-                CanvasSelection::Except(from, left_out)
-            };
+            self.selection = CanvasSelection::Whole { of: *of, left_out };
             return;
         }
         let mut shapes: BTreeSet<u64> = match (&self.selection, toggle) {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
-            (
-                CanvasSelection::Layer(..)
-                | CanvasSelection::Source(_)
-                | CanvasSelection::Except(..)
-                | CanvasSelection::Group { .. },
-                true,
-            ) => {
-                let ids = self.selection.ids(&self.contours);
+            (CanvasSelection::Layer(..) | CanvasSelection::Whole { .. }, true) => {
+                let ids = self.selected_ids();
                 match CanvasSelection::of_contours(&ids, &self.contours) {
                     CanvasSelection::Shapes(shapes) => shapes,
                     _ => BTreeSet::new(),
@@ -2042,39 +2021,32 @@ impl ChiploadApp {
     }
 
     pub fn selection_lines(&self) -> Vec<String> {
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         if ids.is_empty() {
             return vec![t!(self, "app-nothing-selected")];
         }
         let what = match &self.selection {
             CanvasSelection::Layer(layer, _) => t!(self, "app-selection-layer", layer = layer),
-            CanvasSelection::Source(from) => self.source_text(*from),
-            CanvasSelection::Except(from, _) => {
-                let all = CanvasSelection::Source(*from).ids(&self.contours).len();
-                t!(
-                    self,
-                    "app-selection-left-out",
-                    source = self.source_text(*from),
-                    count = all - ids.len()
-                )
-            }
-            CanvasSelection::Group { id, left_out, .. } => {
-                let name = self
-                    .edit
-                    .as_ref()
-                    .and_then(|e| e.job.drawing.groups.iter().find(|g| g.id == *id))
-                    .map_or_else(String::new, |g| g.name.clone());
-                if left_out.is_empty() {
-                    t!(self, "groups-selection", name = name)
-                } else {
-                    let all = self.shape_group_selection(*id, BTreeSet::new());
-                    let count = all.ids(&self.contours).len() - ids.len();
-                    t!(
+            CanvasSelection::Whole { of, left_out } => {
+                let count = CanvasSelection::whole(*of)
+                    .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
+                    .len()
+                    - ids.len();
+                match (of.shape_from(), left_out.is_empty()) {
+                    (Some(from), true) => self.source_text(from),
+                    (Some(from), false) => t!(
+                        self,
+                        "app-selection-left-out",
+                        source = self.source_text(from),
+                        count = count
+                    ),
+                    (None, true) => t!(self, "groups-selection", name = self.group_name(of.id())),
+                    (None, false) => t!(
                         self,
                         "groups-selection-left-out",
-                        name = name,
+                        name = self.group_name(of.id()),
                         count = count
-                    )
+                    ),
                 }
             }
             _ => t!(self, "app-selection-contours"),

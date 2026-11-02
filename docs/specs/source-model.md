@@ -1,6 +1,26 @@
 # Spec: one way to say where a shape comes from
 
-Status: **draft 2026-11-02, for review.**
+Status: **agreed and built 2026-11-02**, decisions 1-7 as recommended (the user: "Go
+ahead").
+
+As built:
+- **Three commits**, as §4 plans. Each was checked against the build before it: all 56
+  corpus projects are saved byte for byte the same, and the JSON Schema is unchanged.
+- **`exclude` without a source can still be written in Rust.** The struct is the one in
+  §2.2, with `source` and `exclude` side by side, which keeps the call sites simple. Reading
+  a file still refuses it.
+- **The two read errors for selectors** use the existing message ids
+  (`job-selector-one-source`, `job-exclude-no-source`) in English, like the other errors
+  that come up while reading a file. So the wording is the same as `validate` gave before.
+- **A group named together with shapes** is still a validation problem, not a read error.
+  The type allows it, and it isn't ambiguous until the group is resolved.
+- **A group's shapes are read from the drawing** by `CanvasSelection::ids`, which now takes
+  the drawing. `ChiploadApp::selected_ids()` passes it.
+- **`Shape::from_dxf` went.** It was unused, and it counted an origin-less path (one
+  inserted from the shape library) as a DXF shape.
+- **The window's selector text** (*Copy as selector*) now names texts and groups too. Before,
+  it showed only DXFs and pictures.
+
 
 This is the user's review of 2026-11-02 ("where does the complexity lie? Any part that
 feels like a hack?"), point 1, asked for after point 2 (the window holds the project

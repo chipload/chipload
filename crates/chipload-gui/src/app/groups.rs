@@ -25,30 +25,20 @@ impl ChiploadApp {
         groups.all(|g| g == Some(first)).then_some(first)
     }
 
-    /// Group `id` selected whole, but `left_out`.
-    pub(super) fn shape_group_selection(
-        &self,
-        id: u64,
-        left_out: BTreeSet<u64>,
-    ) -> CanvasSelection {
-        let shapes = self
-            .edit
-            .as_ref()
-            .map(|e| e.job.drawing.group_shapes(id))
-            .unwrap_or_default();
-        CanvasSelection::Group {
-            id,
-            shapes: shapes.into_iter().collect(),
-            left_out,
+    /// The selected group, if a group is what is selected.
+    pub(super) fn selected_group(&self) -> Option<u64> {
+        match self.selection.source() {
+            Some(Source::Group(id)) => Some(id),
+            _ => None,
         }
     }
 
-    /// The selected group, if a group is what is selected.
-    pub(super) fn selected_group(&self) -> Option<u64> {
-        match &self.selection {
-            CanvasSelection::Group { id, .. } => Some(*id),
-            _ => None,
-        }
+    /// Group `id`'s name; empty when there is no such group.
+    pub(super) fn group_name(&self, id: u64) -> String {
+        self.edit
+            .as_ref()
+            .and_then(|e| e.job.drawing.groups.iter().find(|g| g.id == id))
+            .map_or_else(String::new, |g| g.name.clone())
     }
 
     /// What the selection is made of, as group members: drawn shapes and texts.
@@ -111,7 +101,7 @@ impl ChiploadApp {
         match group(&job, &members, None) {
             Ok((job, id)) => {
                 self.take_job(job);
-                self.selection = self.shape_group_selection(id, BTreeSet::new());
+                self.selection = CanvasSelection::whole(Source::Group(id));
                 self.focus = Focus::Selection;
                 true
             }
@@ -166,7 +156,7 @@ impl ChiploadApp {
         match add_to_group(&job, id, &members) {
             Ok(job) => {
                 self.take_job(job);
-                self.selection = self.shape_group_selection(id, BTreeSet::new());
+                self.selection = CanvasSelection::whole(Source::Group(id));
                 true
             }
             Err(err) => {
@@ -224,13 +214,16 @@ impl ChiploadApp {
             return false;
         };
         let left_out = match &self.selection {
-            CanvasSelection::Group { left_out, .. } => left_out.clone(),
+            CanvasSelection::Whole { left_out, .. } => left_out.clone(),
             _ => BTreeSet::new(),
         };
         match transform_group(&job, id, from, to, scale, degrees) {
             Ok(job) => {
                 self.take_job(job);
-                self.selection = self.shape_group_selection(id, left_out);
+                self.selection = CanvasSelection::Whole {
+                    of: Source::Group(id),
+                    left_out,
+                };
                 true
             }
             Err(err) => {

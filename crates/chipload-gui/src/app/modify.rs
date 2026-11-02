@@ -851,7 +851,7 @@ impl ChiploadApp {
 
     /// Whether contour `picked` is a drawn shape outside the selection.
     fn picks_unselected_drawn(&self, picked: Option<usize>) -> bool {
-        let ids = self.selection.ids(&self.contours);
+        let ids = self.selected_ids();
         picked.is_some_and(|p| !ids.contains(&p))
             && picked
                 .and_then(|id| self.contours.iter().find(|c| c.id == id))

@@ -69,7 +69,7 @@ fn clicking_a_traced_contour_selects_the_whole_picture() {
     app.click(Some(traced), false);
     assert_eq!(
         app.selection,
-        CanvasSelection::Source(chipload_core::chain::ShapeFrom::Image(1))
+        CanvasSelection::whole(chipload_core::chain::ShapeFrom::Image(1))
     );
     let index = app.add_operation(OpKind::Vcarve).unwrap();
     let op = &app.edit.as_ref().unwrap().job.operations[index];
