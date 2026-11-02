@@ -1,91 +1,189 @@
 # TODO
 
-What's planned, in order. Each item gets a spec in `docs/specs/` that is reviewed before
-it's built (see `CLAUDE.md`).
+What's planned. Each item gets a spec in `docs/specs/` that is reviewed before it's built
+(see `CLAUDE.md`). Reviewed and put in order 2026-11-02 (the user: "go through the todo and
+make sure it is up to date and give a prioritized order").
 
 ## In progress
 
-- **Translations** (docs/specs/translations.md, ADR 0022), asked for 2026-10-24: the app in
-  German, French, Spanish, Italian and Swedish. **Step 1 built 2026-10-24:** the
-  `chipload-i18n` crate (Fluent, texts compiled in), every text of the GUI as `t!(…)`
-  (about 1,180 texts in 34 `.ftl` files), the five translations (machine-made from
-  `crates/chipload-i18n/GLOSSARY.md`), View > Language and *This computer > Preferences*
-  (the system's language by default, `language` in `settings.json`), a decimal comma in
-  fields in those five languages, the guide page *Languages*. Left:
-  - The user reviews Swedish; the other four wait for native speakers who machine
-    (marked *review wanted* in the menu; `Language::reviewed`). The translators' open
-    suggestions are at the end of the glossary.
-  - **Step 2:** messages from the library crates (problems, report lines, notes, checker,
-    import report, `operation_label`, error texts, `Link::text`), and the GUI's own
-    problems in `EditJob::missing()`, which are worded like them. Typed length arguments
-    replace `text_in`. Planned in the spec, §7 (decisions 11–17, order of six commits),
-    approved 2026-10-24. Done: 7.3.1 (the `Message` type, the frozen English snapshot)
-    and 7.3.2 (problems), 7.3.3 (planning notes, the time estimate and chip loads, the
-    drawing's facts and the DXF import's issues), 7.3.4 (the checker's findings), 7.3.5
-    (errors, library and recovery messages, the reports of changes to the drawing), 7.3.6
-    (`text_in` deleted; the simulation's lines, the work zero line, hovers with a length
-    and the tool types and copy order in lists follow the language and display units).
-    **Done.**
-  - **Step 3 done 2026-10-24:** the setup sheet in the app's language (`sheet.ftl`;
-    `chipload sheet --lang`, `run --sheet-lang`; a German golden sheet).
-  - **Everything translated** 2026-10-24, the five languages complete; the ribbon fits
-    in every language at the default window size (German ribbon buttons *Import* and
-    *Export*, the French VIEW caption *Vue*).
-  - **Left:** native review of all five (the user reviews Swedish; the others are marked
-    *review wanted*; open suggestions at the end of the glossary). Still English on
-    purpose: the issues a DXF had when it was read (stored in the project as words;
-    a schema change would be needed: the user chose 2026-10-25 to leave it unless users ask), migration reasons and a library file's rule
-    violations, what other libraries write (file system, JSON, TOML, pictures), a new
-    text's starting word "Text", startup errors before the window opens. A rare English
-    slip kept word for word: "the centre line centre line" in
-    `toolpath-error-medial-name` for a traced centre line.
+- **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
+  setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
+  (machine-made from `crates/chipload-i18n/GLOSSARY.md`). Left:
+  - **Native review:** the user reviews Swedish; German, French, Spanish and Italian are
+    marked *review wanted* (`Language::reviewed`). The translators' open suggestions are at
+    the end of the glossary.
+  - **Russian, PR #11** (mushketer888, 2026-11-01, a CNC 3018 user): careful work, all
+    texts of 0.30 with Russian plural forms and its own tests. Asked 2026-11-02 for a DCO
+    sign-off and a rebase onto 0.31 (97 texts missing: `gui-groups`, `gui-layout`,
+    `gui-shape-library` are new; `header-add-dxf` and `menu-status-hint` changed meaning;
+    7 Russian texts to drop). Its CI waits for approval in Actions (a first-time
+    contributor). When it is merged, we fix the guide ourselves: the PR's
+    `docs/book/src/languages.md` lists Swedish as *review wanted*, but the user reviews
+    Swedish; only Russian joins German, French, Spanish and Italian there.
+  - **Still English on purpose:** the issues a DXF had when it was read (stored in the
+    project as words; a schema change would be needed: the user chose 2026-10-25 to leave
+    it unless users ask), migration reasons and a library file's rule violations, what
+    other libraries write (file system, JSON, TOML, pictures), a new text's starting word
+    "Text", startup errors before the window opens. A rare English slip kept word for
+    word: "the centre line centre line" in `toolpath-error-medial-name`.
 
-## State to remember (2026-10-19)
+## State to remember (2026-11-02)
 
-- **Releases**: the latest published is 0.27.1 (2026-10-27); before it 0.25.1 (2026-10-25) and 0.24.0 (2026-10-24, the translations),
-  built by Actions: Linux and Windows x86_64 and ARM64, macOS universal, the guide zip,
-  `SHA256SUMS.txt`; the guide is online from `v0.24.0`. The first v0.24.0 tag failed on the
-  message snapshot (platform digits); the tag was moved to the fix, 5b647c2, before any
-  release. 0.22.0 was tagged but withdrawn unpublished. **0.25.0** (explode a DXF, join
-  ends; the drawn shapes' box, Position and Turn, Browser rows and names; French
-  corrections) published 2026-10-25. **0.25.1** (French *Contour* everywhere, closed
-  shapes as drawn and chaining per layer, explode keeping half circles) published
-  2026-10-25.
-  **0.26.0** (dogbones chosen per corner; start points and corner choices follow moved
-  drawn shapes) tagged 2026-10-26, draft release from CI.
-  **0.26.1** (bones beside a contour that runs through a pocket or lies on its wall)
-  tagged 2026-10-26, draft release from CI.
-  **0.27.0** (tabs placed by hand; dogbones follow a dragged shape; bones beside
-  contours the operation cuts through) tagged 2026-10-26, draft release from CI.
-  **0.27.1** (a bone near another contour is a warning, only cut contours count) published
-  2026-10-27, its notes covering 0.26.0 to 0.27.1; the 0.26.0, 0.26.1 and 0.27.0 drafts
-  stay unpublished.
-  Old tags remain (`v0.3.0` on, and the guide-only tags `guide-0.21.0-1`, `-2`,
-  `guide-0.22.0-1`).
+- **Releases**: the latest published is **0.31.0** (2026-11-02), its guide online. Before
+  it 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1 (2026-10-29), 0.27.1, 0.25.1, 0.25.0,
+  0.24.0, 0.23.0, 0.22.2. Tagged but never published: 0.22.0 (withdrawn), 0.26.0, 0.26.1,
+  0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on, the guide-only tags
+  `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`). Built by Actions from a `vX.Y.Z` tag: Linux and
+  Windows x86_64 and ARM64 (AppImage, installer, portable), macOS universal, the guide zip,
+  `SHA256SUMS.txt`; docs/releasing.md.
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
-  github.com/chipload/chipload, the guide at chipload.github.io/chipload (published from
-  v0.21.1; guide-only fixes go out with a `guide-X.Y.Z-N` tag and
-  `packaging/docs/publish-book.sh`). Actions run (free for public repositories): a `vX.Y.Z`
-  tag builds every file and drafts the release; *Actions > Release > Run workflow* builds
-  without a release. The `gh` token's resource owner is `chipload` (Contents, Actions and
-  Pages read/write).
+  github.com/chipload/chipload, the guide at chipload.github.io/chipload (guide-only fixes go
+  out with a `guide-X.Y.Z-N` tag and `packaging/docs/publish-book.sh`). Actions run on every
+  push to main and on tags. The `gh` token's resource owner is `chipload` (Contents, Actions
+  and Pages read/write); it **can't comment on issues or pull requests** (403, 2026-11-02),
+  so the user posts replies.
 - **For the user to do on GitHub**: the organisation's avatar
   (`packaging/brand/png/chipload-avatar-512.png`), its name, description and website, and
-  the repository's social preview (`packaging/brand/png/github-social-preview.png`).
+  the repository's social preview (`packaging/brand/png/github-social-preview.png`), if not
+  done yet.
 - **Windows builds** (local fallback, without Actions): Rust (msvc) and the Build Tools are
   installed on the Windows side, checkout `C:\code\chipload`; the steps are in
   docs/releasing.md (*Without GitHub Actions*).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for history). Local tags
   `adaptive-final` (main before trochoidal and adaptive were removed) and `python-final`.
+  Local only: `pr-11-russian` (the PR as sent) and `ru-on-main` (it applied onto 0.31 for
+  testing, in a scratch worktree); delete both once the PR is merged.
 - **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
-  G-code, and the new builds (macOS, ARM64 Linux and Windows); the README asks for them.
-- **Scope** (ADR 0017): a lean power tool.
+  G-code, and the builds for macOS, ARM64 Linux and Windows; the README asks for them.
+- **Scope** (ADR 0017): a lean power tool; the yardstick is a CamBam replacement for the
+  user's own router (a Shapeoko), powerful but easy.
 - **Disk space** (2026-10-19): `target/` had grown to 322 GB and WSL's `ext4.vhdx` on C: to
-  360 GB (C: 94 % full). The user ran `cargo clean`; the image shrinks only after
-  `wsl --manage Ubuntu --set-sparse true` (or a `diskpart` compact) on the Windows side.
-  Run `cargo clean` now and then, and after a Rust update.
+  360 GB. Run `cargo clean` now and then, and after a Rust update; the image shrinks only
+  after `wsl --manage Ubuntu --set-sparse true` (or a `diskpart` compact) on Windows.
 
-## Next
+## Next, in order
+
+Proposed 2026-11-02; the user may reorder. Machining safety first (Chipload drives a real
+machine), then the last operation review, then the user's requests, then the rest.
+
+1. **Two review findings that need the user's decision** (they change what existing projects
+   do, so a spec and a choice first):
+   - **Holes: a drilled through hole doesn't go through at full diameter.** A drill's end
+     depth is its point (holes.md decision 3), so *Through* (0.5 mm) puts only the point
+     below the stock. An 8 mm drill in 12 mm stock reaches full diameter at about 10.1 mm,
+     leaving a pinhole underneath, with no warning; going deeper by hand is refused by the
+     max overcut. Suggested: with a drill and Through, add the point's length (about
+     0.3 × D for a 118° point) and apply the overcut limit to the full diameter. Changes
+     the G-code of existing drilled through holes.
+   - **Follow path: a V-bit cuts past its cone with only a warning.** A 12.7 mm 60° V-bit
+     (cone about 10.8 mm deep) at end depth 12, or with Through (12.5), is written and
+     passes the checker; the note says "straight walls above the cone". V-carve caps at
+     the cone because the shank would rub (`VBit::deepest`). Suggested: refuse it, as a
+     depth past the max overcut is. Stops projects that run today.
+2. **Review V-carve**, the last operation not reviewed (profile and pocket were, holes and
+   follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
+   wider or narrower than the strokes, the cone's depth, passes and step down, flat
+   bottom), the checker's view, and proptest invariants (the cut stays inside the outline;
+   no point deeper than the cone allows).
+3. **The smaller review findings**, each a small fix with a test:
+   - Holes: "No selected circle can be cut" drops the reason; say why and the smallest
+     size that fits (7.18 mm with a 6 mm end mill: 7.2 mm).
+   - Holes: a note for holes deeper than 3 × D without pecks, and a first peck of 1 × D.
+   - Holes: a new Holes operation takes the last tool, usually an end mill; prefer a drill
+     that matches the selected circles.
+   - Holes: the drill half of the property test (holes.md §8: every drill move at a hole's
+     centre); only the bores' exists.
+   - Follow path: the V-groove's width is shown as a warning ("warning:" in the CLI,
+     *Watch out* on the sheet); make it a plain note.
+   - Follow path (and small profile rings): a ramp on a path shorter than the tool, with
+     a tool not centre-cutting, goes back and forth within the tool's width, close to a
+     plunge. Not sure it is a real risk; look at a least ramp length (the tool's
+     diameter?).
+4. **The Russian translation** (PR #11, *In progress* above), when the contributor's
+   rebase comes back: review the 97 new texts, merge, fix the guide's Swedish line.
+5. **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
+   long time each operation will take, similar to how prusa slicer gives a report how much
+   time different operations take. Except time id like, g1 travelled length, g0 length,
+   etc."). Per operation (and per tool, file and the whole job): its time, the cutting
+   length (G1/G2/G3 in XY), the plunge and ramp length (feed moves in Z), the rapid length
+   (G0) and its time, and how many retracts. Today `plan` and the window give the time per
+   operation only (`chipload_pipeline::estimate`). Spec first: where it shows (the Report,
+   the setup sheet, `plan --json`), what each column counts (arcs by their length, ramps as
+   cutting or plunging), a table or a chart.
+6. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+   should also have a parameter for length of adjoining segments. If the adjoining profile
+   segments are very short we could probably ignore the kink"). Today a corner is ignored
+   only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
+   a corner whose adjoining outline segments are short is ignored at any angle, as a traced
+   picture's stair-steps and a font's tiny facets are. Spec first: one short side or both,
+   how it combines with the angle, a default (the V-carve tolerance? the trace's
+   smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
+   6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
+   review (2).
+7. **For the user to try** (built, not yet tried by hand; findings become items here):
+   - on the router: V-carve lifting less, with the script font (0.30.0);
+   - texts in Windows' own fonts (only checked on Linux);
+   - SVG import with real Inkscape and Illustrator files; the exported DXF in other
+     programs (LibreCAD, Inkscape, LightBurn, Fusion);
+   - materials (the user's verdict, docs/specs/materials.md);
+   - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box.
+8. **Small follow-ups:**
+   - A pasted shape loses its construction flag: the clipboard carries layer and geometry
+     only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
+   - Materials: import and export in the window (the command line has `material
+     export`/`import`).
+   - The remaining large files, split by topic as `forms/` and `models/` were, when next
+     worked on: toolpath `plan.rs` (2,550 lines), `pocket.rs` (1,970), the canvas `view.rs`
+     (1,940), the window's `app/mod.rs` (2,250).
+   - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
+     stock), if the user wants it (docs/specs/job-settings-layout.md).
+   - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
+     find which pictures are slow (centre lines on noise?) and whether a user could hit it.
+9. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
+   by the user; next after materials in the direction review of 2026-10-28. Decisions not
+   reviewed.
+10. **Later, the user's ideas for when the above is done**, each with its own spec:
+   - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
+     decision 2's alternative): each setup with its own coordinates, its parts placed onto
+     its board, setups side by side like PrusaSlicer's plates, the active in colour, the
+     others as ghosts. Spec: where a part's shapes are placed per setup, picking and
+     editing in the view, migration from one shared drawing.
+   - **STEP import** (2026-10-30): a STEP file seen from a chosen side (top, bottom, left,
+     right, front, back), its edges as lines and arcs; faces square to the view give
+     outlines at their depth (a pocket floor with its depth). Needs an ADR for the reader
+     (a GPL-compatible crate that reads AP203/AP214 B-rep, or OpenCASCADE).
+   - **Designs and parameters** (docs/specs/designs.md, parameters.md, a box maker with
+     finger joints first): drafted 2026-10-28, on hold by the user.
+   - **A full library panel**: tools and machines beside shapes (shape-library.md
+     decision 12), now that panels dock.
+   - **A chip-load warning per tool** (left of the lean plan's item 4; materials hold the
+     user's own feeds without a chip-load calculation, as the user wanted): a range per
+     tool and an amber warning. Ask whether it is still wanted.
+   - **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the
+     libraries compile for wasm32, checked in CI); step 2, the browser app, waits (the
+     user said wait, 2026-10-17).
+
+## Ideas, not planned
+
+Smaller follow-ups noted along the way, not in the order above:
+
+- **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
+- **Pockets:** a finishing pass (walls and floor); dogbones with rest passes.
+- **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
+  hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
+  counterbores in one operation.
+- **Simulation:** comparing with the design (gouges), holders and flute length; a G-code
+  panel with the current line during playback.
+- **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
+- **A bug-report bundle.**
+- **A list of every shape** in the Browser's Drawing folder, drawn and imported, to click
+  and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12; the sidebar is
+  now the Browser).
+- **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
+  0015) can make other parts faster or more robust: pocket clearing, narrow-part checks,
+  distance queries (user request 2026-10-11).
+
+## Done
 
 - **Cleanup after the review of 2026-11-02** (the user: "where does the complexity lie?
   Any part that feels like a hack?"; asked for 2 then 1):
@@ -137,53 +235,7 @@ it's built (see `CLAUDE.md`).
      every panel, the Report a panel (its warnings on its tab). **Step 2 done:**
      `layout.json` (format `chipload_job::layout`, v1 sample in tests/corpus/layout/v1). **Step 3 done:** the guide's
      screenshots renewed (`packaging/docs/screenshots.sh`). Dockable panels done.
-  7. **Review the operations not yet reviewed: follow path, holes and V-carve** (open
-     since the reviews of profile and pocket). These drive the machine, so a review there
-     finds more real bugs than any restructuring: boundaries (zero depth, depth equal to
-     the stock, tool larger than the feature), the checker's view of each, and proptest
-     invariants where one exists. Suggested before the next release.
-     - **Holes: reviewed 2026-11-02**, nothing that risks the machine or the tool. Pecks,
-       approach, bore direction and size limits, start depth and copies are sound.
-       Findings, not yet fixed (the user: "Add these to the todo"):
-       1. **A drilled through hole doesn't go through at full diameter.** A drill's end
-          depth is its point (holes.md decision 3), so *Through* (0.5 mm) puts only the
-          point below the stock. An 8 mm drill in 12 mm stock reaches full diameter at about
-          10.1 mm, leaving a pinhole underneath, with no warning. Going deeper by hand is
-          refused by the max overcut (0.5 mm). Suggested: with a drill and Through, add the
-          point's length (about 0.3 × D for a 118° point) and apply the overcut limit to the
-          full diameter. Changes the G-code of existing drilled through holes: a spec and
-          a decision first.
-       2. **"No selected circle can be cut" drops the reason.** When every hole is too
-          small to bore (7.18 mm with a 6 mm endmill), the size note is lost with the error,
-          and the note never says the smallest size that fits (7.2 mm). Suggested: the
-          reasons and the minimum size in the error.
-       3. **Deep holes without pecks get no note.** A 3 mm drill 12 mm deep (4 × D) drills
-          in one go. Ticking Pecks starts at the general step-down, whatever the drill.
-          Suggested: a note beyond 3 × D without pecks, and a starting peck of 1 × D.
-       4. **A new Holes operation takes the last tool**, usually an endmill (a bore), even
-          when a drill matches the selected circles. Suggested: prefer a matching drill.
-       5. **The drill half of the holes property test is missing** (holes.md §8: every
-          drill move at a hole's centre); only the bores' exists.
-     - **Follow path: reviewed 2026-11-02.** Depth passes (back and forth, ramps with a
-       level pass), helical arcs both ways, the nearer end, depth and tool refusals, the
-       checker and the property test are sound. Findings, not yet fixed (the user: "add to
-       the todo"):
-       1. **A V-bit cuts past its cone with only a warning.** A 12.7 mm 60° V-bit (cone
-          about 10.8 mm deep) at end depth 12, or with Through (12.5), is written and
-          passes the checker; the note says "straight walls above the cone". V-carve caps
-          at the cone because the shank would rub (`VBit::deepest`). Suggested: refuse it,
-          as a depth past the max overcut is. Stops projects that run today: a decision
-          first.
-       2. **The groove width is shown as a warning** ("warning:" in the CLI, *Watch out* on
-          the setup sheet), though it is information. Suggested: a plain note.
-       3. **A ramp on a path shorter than the tool** (0.5 mm with a 3 mm end mill not
-          centre-cutting) goes back and forth within the tool's own width, close to a
-          plunge; small rings in profiles do the same. Not sure it is a real risk: look at
-          a least ramp length (for example the tool's diameter) for tools not
-          centre-cutting.
-  8. Later, when next worked on: the remaining large files, toolpath `plan.rs` (2,550
-     lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
-     `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
+  7. and 8. (the operations' reviews, the remaining large files) continue under *Next*.
 
 - **A DXF or SVG selected whole on the canvas, moved by dragging** (the user, 2026-11-02:
   "imported dxfs and svgs should be able to be dragged similar to text and images. One
@@ -191,34 +243,6 @@ it's built (see `CLAUDE.md`).
   library"): docs/specs/dxf-whole-on-canvas.md, **done 2026-11-02**, decisions 1-4 as
   recommended. A click picks the whole DXF, a double-click one contour; its box moves, turns
   and scales it. A group's and a DXF's box stays turned (groups keep a `rotation`).
-
-- **Russian translation, PR #11** (mushketer888, 2026-11-01). Asked on 2026-11-02 for a DCO
-  sign-off and a rebase onto 0.31 (97 texts missing, `header-add-dxf` and
-  `menu-status-hint` changed). When it is merged, we fix the guide ourselves: the PR's
-  `docs/book/src/languages.md` lists Swedish as *review wanted*, but the user reviews Swedish;
-  only Russian joins German, French, Spanish and Italian there.
-
-- **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
-  should also have a parameter for length of adjoining segments. If the adjoining profile
-  segments are very short we could probably ignore the kink"). Today a corner is ignored
-  only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
-  a corner whose adjoining outline segments are both shorter than a length is ignored at
-  any angle, as a traced picture's stair-steps and a font's tiny facets are. Needs a spec
-  first: whether one short side is enough or both must be, how it combines with the angle
-  (either, or both), a default (perhaps tied to the V-carve tolerance or the trace's
-  smoothing), and that a real small corner (a serif's point) still gets its branch; the
-  coverage rule from 6e3ed35 (a branch goes only if the rest covers it) still applies.
-  Optional field, no schema bump.
-
-- **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
-  long time each operation will take, similar to how prusa slicer gives a report how much
-  time different operations take. Except time id like, g1 travelled length, g0 length,
-  etc."). Per operation (and per tool, file and the whole job): its time, the cutting
-  length (G1/G2/G3 in XY), the plunge and ramp length (feed moves in Z), the rapid length
-  (G0) and its time, and how many retracts. Today `plan` and the window give the time per
-  operation only (`chipload_pipeline::estimate`). Needs a spec first: where it shows (the
-  Report, the setup sheet, `plan --json`), what each column counts (arcs by their length,
-  ramps as cutting or plunging), and whether it is a table or a chart.
 
 - **Explode a picture or a text into drawn shapes** (the user, 2026-11-02: "i cant explode
   and image or text to shapes only an dxf, is that by design?"):
@@ -238,13 +262,7 @@ it's built (see `CLAUDE.md`).
   around"; "Each item shall have a preview and a name"): docs/specs/shape-library.md §5.1,
   **done 2026-11-02**, decisions 9-14 as recommended: entries (`.chipload-shapes`, v1),
   groups as folders, `shape save/insert/library`, the Shapes tab with drag and drop both
-  ways. To try: the guide's other pictures show the old PROPERTIES caption until the
-  next release's screenshots.
-- **Later: dockable panels** (the user, 2026-11-02: drag a panel onto another
-  for a tab, below it to stack; "no hack"): egui has no docking; egui_dock 0.21 (MIT) or
-  egui_tiles 0.17 (MIT/Apache-2.0) on egui 0.36. Its own spec and ADR: every panel becomes
-  a pane, the layout saved in the app settings. And a full library panel, tools and
-  machines beside shapes (shape-library.md decision 12).
+  ways. The guide's screenshots were renewed for 0.31.0.
 
 - **V-carve step down** (the user, 2026-11-02: "there should be an option to use ordinary
   step down as well"; docs/specs/vcarve-step-down.md): **done 2026-11-02**, all decisions
@@ -292,8 +310,8 @@ it's built (see `CLAUDE.md`).
   recommended, "we will iterate a bit on it". **Step 1, frames, done 2026-10-31:** seven
   frames round the selection or to a size, 0–3 border lines, *Draw > Frame…* and
   `chipload frame add`/`kinds`, golden v35_sign_frame, guide page *Signs and frames*.
-  **Next: step 2, the shape library** (entries of shapes and texts in the settings
-  folder's `shapes/`, *Save to library…*, a Shapes tab with *Insert*).
+  Step 2, the shape library, done 2026-11-02 (*Shape library in the right panel*,
+  above).
 
 - **Texts in the computer's fonts** (the user, 2026-10-31: "allow to use fonts from the
   computer when creating texts"; docs/specs/system-fonts.md, ADR 0027): **done
@@ -412,37 +430,6 @@ it's built (see `CLAUDE.md`).
   shape).
   CI runs on every push to main again since 2026-10-29 (by hand only from 2026-10-27, which let
   platform-dependent pocket G-code through to the 0.28.0 release build).
-
-- **STEP import** (the user, 2026-10-30): import a STEP file, choose the view direction
-  (top, bottom, left, right, front, back), and bring the model's edges into the drawing as
-  lines and arcs. Ideas for the spec: the faces that face the view (planar, square to it)
-  give closed outlines at their depth, so a pocket's floor could come with its depth;
-  edges seen side-on collapse and are left out; curved edges become arcs where they are
-  circles, else are fitted. Needs a spec and an ADR for the STEP reader (a crate with a
-  GPL-compatible licence that reads AP203/AP214 B-rep, checked against Cargo.lock; or
-  OpenCASCADE, a large C++ dependency). Not started.
-- **Setups on sheets of their own** (the user chose it 2026-10-30, for later;
-  docs/specs/setups.md decision 2's alternative): each setup gets its own coordinates and its
-  parts are placed onto its board, so setups show side by side like PrusaSlicer's plates,
-  the active in colour, the others as ghosts, even when their parts overlap in the drawing
-  (the same outline cut twice, a board turned over). Needs a spec: where a part's shapes
-  are placed per setup, picking and editing in the view, migration from one shared drawing.
-
-In order (proposed 2026-10-17; the user may reorder); each with a spec first.
-
-1. **Feeds and speeds per material** in the library, with a chip-load warning (lean plan
-   4, ADR 0017); with it a chip load range per tool (amber warning, schema change).
-2. **Operation presets and layer rules**: paused 2026-10-13 by the user, spec drafted
-   (docs/specs/presets.md, decisions not reviewed).
-3. **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the libraries
-   compile for wasm32, checked in CI). Step 2, the browser app (a Web Worker, upload and
-   download, browser storage, a bundled font): proposed again 2026-10-17 as a way to test
-   without installing, the user said wait. Its decisions are proposals to review then.
-4. **Image fuzzing got slow** (2026-10-13): 38 inputs a second with arcs and centre lines,
-   against thousands before; find which pictures are slow (centre lines on noise?) and
-   whether a user could hit it.
-
-## Done
 
 - **Edit and Simulate** (2026-10-30, the user: box selection didn't work after the
   simulation was shown, then "a distinct simulation switch"; docs/specs/edit-and-simulate.md):
@@ -981,28 +968,3 @@ In order (proposed 2026-10-17; the user may reorder); each with a spec first.
 - **Start points, lead-in/out, helical entry** (docs/specs/helix-and-leads.md), in 0.9.0.
 - **Offset retry** (docs/specs/offset-retry.md): a pocket or profile whose offsets hit a
   numerical coincidence is retried with offsets moved by 1e-6 mm instead of refused.
-
-## Later
-
-Follow-ups, not planned yet:
-
-- **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
-- **Pockets:** a finishing pass (walls and floor); dogbones with rest passes.
-- **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
-  hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
-  counterbores in one operation.
-- **Simulation:** comparing with the design (gouges), holders and flute length; a G-code
-  panel with the current line during playback.
-- **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
-- **A bug-report bundle.**
-- **A list of every shape** in the Browser's Drawing folder, drawn and imported, to click
-  and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12; the sidebar is
-  now the Browser).
-- **Import SVG** as well as DXF, working the same way: units, contours, the import report,
-  update from a new version, placement (user request 2026-10-11).
-- **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
-  0015) can make other parts faster or more robust: pocket clearing, narrow-part checks,
-  distance queries (user request 2026-10-11).
-- **V-carve: a flat floor** for strokes wider than the bit carves: the V-bit cuts the walls,
-  an endmill clears the floor (a tool per operation exists now). Not prioritised. (Steps 2
-  and 3 of docs/specs/v-carve.md, text and traced pictures, are done: see Text and Images.)
