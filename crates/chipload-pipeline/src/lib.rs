@@ -21,6 +21,7 @@ pub mod posts;
 pub mod recovery;
 pub mod report;
 pub mod setups;
+pub mod shape_library;
 pub mod shapes;
 pub mod sheet;
 pub mod simulate;

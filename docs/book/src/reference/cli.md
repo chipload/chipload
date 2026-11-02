@@ -376,6 +376,142 @@ chipload op rest <PROJECT> [OPTIONS]
 
 Draw in a project: add, change or delete circles, rectangles and polylines
 
+### `chipload shape save`
+
+Save shapes and texts to the shape library under a name
+
+```text
+chipload shape save <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S); a letter saves its whole text. |
+| `--texts <TEXTS>` | Texts to save, with their letters (ids as `text list` shows them) Repeatable. |
+| `--name <NAME>` | The entry's name, with its group: "Signs/House number". Required. |
+| `--replace` | Replace an entry of that name (it is kept as .bak) |
+
+### `chipload shape insert`
+
+Insert an entry of the shape library into a project; prints the new ids
+
+```text
+chipload shape insert <PROJECT> <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<NAME>` | The entry's name, with its group: "Signs/House number". |
+| `--at <AT>` | Where the middle of its box goes, X,Y in mm (default: the stock's middle) |
+| `--around <AROUND>` | Scaled to fit round these shapes, --margin from their box (ids without the S) Repeatable. |
+| `--margin <MARGIN>` | With --around: from the shapes' box to the entry's, mm. Default: `10`. |
+| `--width <WIDTH>` | Scaled to this width, mm; the height follows. |
+| `--height <HEIGHT>` | Scaled to this height, mm; the width follows. |
+| `--scale <SCALE>` | Scaled by this. |
+| `--layer <LAYER>` | Every shape and text on this layer (default: the layers they were saved on) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload shape library`
+
+The shape library: list (the default), rename, move, remove, groups
+
+### `chipload shape library list`
+
+The entries and groups (the default)
+
+```text
+chipload shape library list
+```
+
+### `chipload shape library path`
+
+Where the library's folder is
+
+```text
+chipload shape library path
+```
+
+### `chipload shape library rename`
+
+Rename an entry; a name with another group moves it there
+
+```text
+chipload shape library rename <FROM> <TO>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FROM>` |  |
+| `<TO>` |  |
+
+### `chipload shape library move`
+
+Move an entry into a group ("" for none)
+
+```text
+chipload shape library move <NAME> <GROUP>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `<GROUP>` |  |
+
+### `chipload shape library remove`
+
+Delete an entry: its file goes to the folder's .deleted
+
+```text
+chipload shape library remove <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload shape library group`
+
+Groups of entries: folders in the library's folder
+
+### `chipload shape library group add`
+
+Make an empty group
+
+```text
+chipload shape library group add <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload shape library group rename`
+
+Rename a group, with its entries
+
+```text
+chipload shape library group rename <FROM> <TO>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FROM>` |  |
+| `<TO>` |  |
+
+### `chipload shape library group remove`
+
+Delete an empty group
+
+```text
+chipload shape library group remove <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
 ### `chipload shape add`
 
 Add a drawn shape; prints its id

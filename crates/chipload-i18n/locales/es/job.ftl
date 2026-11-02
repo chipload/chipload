@@ -269,6 +269,8 @@ job-library-work-zero-point = punto X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
 job-library-cutting = avance { $feed }, penetración { $plunge }, prof. de pasada { $step_down }, paso lateral { $stepover }
 job-library-other-values = otros valores
+job-shapes-no-entry = esa entrada no existe en la biblioteca de formas
+job-shapes-bad-name = «{ $name }» no puede ser un nombre: de 1 a { $most } caracteres, ninguno de / \ : * ? " < > |, sin punto ni espacio al principio
 # A library tool put into a project: $id is its number there.
 job-library-tool-there = herramienta { $id } (ya está en el proyecto)
 job-library-tool-added = herramienta { $id } (añadida)

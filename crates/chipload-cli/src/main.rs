@@ -13,6 +13,7 @@ mod library;
 mod materials;
 mod parts;
 mod setups;
+mod shape_library;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -813,6 +814,9 @@ enum WallArg {
 
 #[derive(Subcommand)]
 enum ShapeAction {
+    /// The shape library: save, insert, list (docs/specs/shape-library.md §7).
+    #[command(flatten)]
+    Library(shape_library::LibraryCommand),
     /// Add a drawn shape; prints its id.
     Add {
         /// The project (.chipload).
@@ -2190,7 +2194,13 @@ fn about_point(
 }
 
 fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
+    let action = match action {
+        ShapeAction::Library(command) => return shape_library::run(out, command),
+        other => other,
+    };
     let (project, output) = match &action {
+        // Answered above.
+        ShapeAction::Library(_) => return ExitCode::FAILURE,
         ShapeAction::Add {
             project, output, ..
         }
@@ -2268,6 +2278,7 @@ fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     // What `shape join` joined and removed.
     let mut joined: Option<(Vec<u64>, Vec<u64>)> = None;
     let changed = match action {
+        ShapeAction::Library(_) => return ExitCode::FAILURE,
         ShapeAction::Add { kind, values, .. } => new_geometry(kind, &values)
             .map_err(|e| PipelineError::Job(foreign_text(e)))
             .and_then(|geometry| {

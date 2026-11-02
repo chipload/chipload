@@ -17,6 +17,7 @@ pub mod paths;
 pub mod problem;
 #[cfg(feature = "schema")]
 pub mod schema;
+pub mod shape_library;
 
 use std::path::Path;
 

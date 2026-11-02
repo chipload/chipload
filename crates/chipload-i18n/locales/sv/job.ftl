@@ -268,6 +268,8 @@ job-library-work-zero-point = punkten X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
 job-library-cutting = matning { $feed }, nedmatning { $plunge }, skärdjup { $step_down }, sidosteg { $stepover }
 job-library-other-values = andra värden
+job-shapes-no-entry = den posten finns inte i formbiblioteket
+job-shapes-bad-name = ”{ $name }” kan inte vara ett namn: 1 till { $most } tecken, inget av / \ : * ? " < > |, inte med punkt eller mellanslag först
 # A library tool put into a project: $id is its number there.
 job-library-tool-there = verktyg { $id } (finns redan i projektet)
 job-library-tool-added = verktyg { $id } (tillagt)

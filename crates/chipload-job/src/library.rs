@@ -1831,6 +1831,11 @@ pub fn load_library<L: LibraryFile>(path: &Path) -> Result<L, LibraryError> {
     load(path)
 }
 
+/// Save any library file (as `save_tools`).
+pub fn save_library<L: LibraryFile>(library: &L, path: &Path) -> Result<(), LibraryError> {
+    save(library, path)
+}
+
 /// Change any library file (as `update_tools`).
 pub fn update_library<L: LibraryFile, T>(
     path: &Path,
