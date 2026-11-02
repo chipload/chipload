@@ -164,6 +164,23 @@ it's built (see `CLAUDE.md`).
           when a drill matches the selected circles. Suggested: prefer a matching drill.
        5. **The drill half of the holes property test is missing** (holes.md §8: every
           drill move at a hole's centre); only the bores' exists.
+     - **Follow path: reviewed 2026-11-02.** Depth passes (back and forth, ramps with a
+       level pass), helical arcs both ways, the nearer end, depth and tool refusals, the
+       checker and the property test are sound. Findings, not yet fixed (the user: "add to
+       the todo"):
+       1. **A V-bit cuts past its cone with only a warning.** A 12.7 mm 60° V-bit (cone
+          about 10.8 mm deep) at end depth 12, or with Through (12.5), is written and
+          passes the checker; the note says "straight walls above the cone". V-carve caps
+          at the cone because the shank would rub (`VBit::deepest`). Suggested: refuse it,
+          as a depth past the max overcut is. Stops projects that run today: a decision
+          first.
+       2. **The groove width is shown as a warning** ("warning:" in the CLI, *Watch out* on
+          the setup sheet), though it is information. Suggested: a plain note.
+       3. **A ramp on a path shorter than the tool** (0.5 mm with a 3 mm end mill not
+          centre-cutting) goes back and forth within the tool's own width, close to a
+          plunge; small rings in profiles do the same. Not sure it is a real risk: look at
+          a least ramp length (for example the tool's diameter) for tools not
+          centre-cutting.
   8. Later, when next worked on: the remaining large files, toolpath `plan.rs` (2,550
      lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
      `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
