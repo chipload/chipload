@@ -1104,6 +1104,20 @@ chipload image remove <PROJECT> <ID> [OPTIONS]
 | `<ID>` | The image's id. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload image explode`
+
+Turn every shape traced from a picture into drawn shapes you can edit; the picture goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes
+
+```text
+chipload image explode <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The picture's id (as `image list` shows it); not needed when the project has one. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload text`
 
 Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)
@@ -1179,6 +1193,20 @@ chipload text remove <PROJECT> <ID> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | The text's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload text explode`
+
+Turn a text's letters into drawn shapes you can edit; the text goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes
+
+```text
+chipload text explode <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The text's id (as `text list` shows it); not needed when the project has one. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload text fonts`

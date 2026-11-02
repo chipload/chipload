@@ -46,6 +46,8 @@ Each change applies when you finish the edit, as one undo step: **Ctrl+Z** bring
 earlier text back. An operation that selects the text follows the change.
 
 **Del** removes the selected text with its letters (as *Remove* on its Browser row does).
+To edit the letters by hand, right-click > **Explode into shapes…**: they become drawn
+shapes, and the words can no longer be edited ([Exploding](explode.md)).
 
 **On the canvas:** with the text selected, its box shows handles (in top view):
 - the square in the **middle** moves it, and so does dragging one of its lines;

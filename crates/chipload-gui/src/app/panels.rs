@@ -242,7 +242,7 @@ impl ChiploadApp {
                     self.update_dxf_from(Some(dxf), &path, None);
                 }
             }
-            Some(JobRequest::ExplodeDxf(dxf)) => self.ask_explode(dxf),
+            Some(JobRequest::ExplodeDxf(dxf)) => self.ask_explode(Source::Dxf(dxf)),
             Some(JobRequest::RemoveDxf(dxf)) if self.remove_dxf(dxf) => {
                 self.focus = Focus::Job;
             }

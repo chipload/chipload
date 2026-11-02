@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Explode a DXF into drawn shapes, and join drawn polylines whose ends lie close
-//! (docs/specs/explode-and-join.md). The CLI and the GUI both go through here.
+//! Explode a DXF, a traced picture or a text into drawn shapes, and join drawn polylines
+//! whose ends lie close (docs/specs/explode-and-join.md, explode-pictures-and-texts.md). The
+//! CLI and the GUI both go through here.
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use chipload_core::chain::ShapeFrom;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::explode::{DEFAULT_JOIN_GAP_MM, MAX_JOIN_GAP_MM};
 use chipload_job::explode::{JoinOutcome, JoinPiece, gap_allowed, join, path_to_drawn};
-use chipload_job::{Geometry, Job, PathSegment, Selector, Shape};
+use chipload_job::{Geometry, Job, PathSegment, Selector, Shape, Source};
 
 use crate::{PipelineError, ids_text, load_drawing, placement};
 
@@ -69,10 +71,53 @@ pub fn which_dxf(job: &Job, id: Option<u64>) -> Result<u64, PipelineError> {
     }
 }
 
+/// The picture to explode: `id`, or the project's only one.
+pub fn which_image(job: &Job, id: Option<u64>) -> Result<u64, PipelineError> {
+    match (id, job.drawing.images.as_slice()) {
+        (Some(id), _) => Ok(id),
+        (None, [only]) => Ok(only.id),
+        (None, []) => Err(PipelineError::Job(Message::new(
+            "pipeline-explode-no-image",
+        ))),
+        (None, several) => {
+            let list: Vec<String> = several
+                .iter()
+                .map(|i| format!("{} {}", i.id, i.file))
+                .collect();
+            Err(PipelineError::Job(
+                Message::new("pipeline-explode-which-image")
+                    .arg("count", several.len())
+                    .arg("images", list.join(", ")),
+            ))
+        }
+    }
+}
+
+/// The text to explode: `id`, or the project's only one.
+pub fn which_text(job: &Job, id: Option<u64>) -> Result<u64, PipelineError> {
+    match (id, job.drawing.texts.as_slice()) {
+        (Some(id), _) => Ok(id),
+        (None, [only]) => Ok(only.id),
+        (None, []) => Err(PipelineError::Job(Message::new("pipeline-explode-no-text"))),
+        (None, several) => {
+            let list: Vec<String> = several
+                .iter()
+                .map(|t| format!("{} {}", t.id, crate::texts::text_label(t)))
+                .collect();
+            Err(PipelineError::Job(
+                Message::new("pipeline-explode-which-text")
+                    .arg("count", several.len())
+                    .arg("texts", list.join(", ")),
+            ))
+        }
+    }
+}
+
 /// Turn every shape of DXF `id` into drawn shapes and remove the DXF from the project
-/// (§2). Shapes keep their ids and layers; a path in several runs gets new ids for the
-/// runs after the first. Selectors limited to the DXF become lists of the shapes they
-/// matched. With `join`, the exploded polylines are then joined with that gap (§3).
+/// (explode-and-join.md §2). Shapes keep their ids and layers; a path in several runs gets
+/// new ids for the runs after the first. Selectors limited to the DXF become lists of the
+/// shapes they matched. With `join`, the exploded polylines are then joined with that gap
+/// (§3).
 pub fn explode_dxf(
     job: &Job,
     id: u64,
@@ -81,10 +126,45 @@ pub fn explode_dxf(
     let Some(source) = job.drawing.dxfs.iter().find(|d| d.id == id) else {
         return Err(placement::no_dxf(id));
     };
+    let done = Message::new("pipeline-dxf-exploded")
+        .arg("kind", source.format.name())
+        .arg("id", id)
+        .arg("name", source.name.as_str());
+    explode(job, ShapeFrom::Dxf(id), done, join_gap)
+}
+
+/// Turn every shape traced from picture `id` into drawn shapes and remove the picture from
+/// the project (explode-pictures-and-texts.md §2), as a DXF's.
+pub fn explode_image(job: &Job, id: u64) -> Result<(Job, ShapesReport), PipelineError> {
+    let image = crate::images::find(job, id)?;
+    let done = Message::new("pipeline-image-exploded")
+        .arg("id", id)
+        .arg("name", image.file.as_str());
+    explode(job, ShapeFrom::Image(id), done, None)
+}
+
+/// Turn every letter of text `id` into drawn shapes and remove the text from the project
+/// (explode-pictures-and-texts.md §3), as a DXF's. In a group, its letters take its place.
+pub fn explode_text(job: &Job, id: u64) -> Result<(Job, ShapesReport), PipelineError> {
+    let (_, text) = crate::texts::find(job, id)?;
+    let done = Message::new("pipeline-text-exploded")
+        .arg("id", id)
+        .arg("name", crate::texts::text_label(text));
+    explode(job, ShapeFrom::Text(id), done, None)
+}
+
+/// The shapes from `from` as drawn shapes, `from` gone from the project; `done` the
+/// report's first line, which `count` (the shapes made) is added to.
+fn explode(
+    job: &Job,
+    from: ShapeFrom,
+    done: Message,
+    join_gap: Option<f64>,
+) -> Result<(Job, ShapesReport), PipelineError> {
     if let Some(gap) = join_gap {
         check_gap(gap)?;
     }
-    let matched = selected_by_dxf(job, id)?;
+    let matched = selected_by(job, from)?;
     let mut out = job.clone();
     let mut report = ShapesReport::default();
     // Old id → every id it is now (empty: nothing of it was left).
@@ -93,7 +173,7 @@ pub fn explode_dxf(
     // Circles that started elsewhere, or ran clockwise: a drawn circle doesn't.
     let mut restarted: Vec<u64> = Vec::new();
     for shape in std::mem::take(&mut out.drawing.shapes) {
-        if shape.dxf() != Some(id) {
+        if shape.source() != Some(from) {
             shapes.push(shape);
             continue;
         }
@@ -128,19 +208,28 @@ pub fn explode_dxf(
         became.insert(shape.id, ids);
     }
     out.drawing.shapes = shapes;
-    out.drawing.dxfs.retain(|d| d.id != id);
-    let key = format!("dxf:{id}");
+    match from {
+        ShapeFrom::Dxf(id) => out.drawing.dxfs.retain(|d| d.id != id),
+        ShapeFrom::Image(id) => out.drawing.images.retain(|i| i.id != id),
+        ShapeFrom::Text(id) => {
+            out.drawing.texts.retain(|t| t.id != id);
+            // A group holding the text holds its letters instead.
+            let letters = became.values().flatten().copied();
+            let letters: Vec<u64> = letters.collect();
+            for group in &mut out.drawing.groups {
+                if group.texts.contains(&id) {
+                    group.texts.retain(|t| *t != id);
+                    group.shapes.extend(&letters);
+                }
+            }
+        }
+    }
+    let key = format!("{}:{}", Source::from(from).key(), Source::from(from).id());
     out.drawing
         .hidden
         .retain(|h| h != &key && !h.starts_with(&format!("{key}/")));
 
-    report.messages.push(
-        Message::new("pipeline-dxf-exploded")
-            .arg("kind", source.format.name())
-            .arg("id", id)
-            .arg("name", source.name.as_str())
-            .arg("count", report.shapes.len()),
-    );
+    report.messages.push(done.arg("count", report.shapes.len()));
     let split: Vec<u64> = became
         .iter()
         .filter(|(_, ids)| ids.len() > 1)
@@ -213,15 +302,15 @@ pub fn explode_dxf(
     Ok((out, report.finish()))
 }
 
-/// For each operation (by index) limited to DXF `id`, the ids of the shapes it cuts: the
-/// DXF's shapes it matches, without those in a contour with a shape it leaves out.
-fn selected_by_dxf(job: &Job, id: u64) -> Result<BTreeMap<usize, Vec<u64>>, PipelineError> {
+/// For each operation (by index) limited to `from`, the ids of the shapes it cuts: its
+/// shapes the operation matches, without those in a contour with a shape it leaves out.
+fn selected_by(job: &Job, from: ShapeFrom) -> Result<BTreeMap<usize, Vec<u64>>, PipelineError> {
     let mut out = BTreeMap::new();
     let limited: Vec<usize> = job
         .operations
         .iter()
         .enumerate()
-        .filter(|(_, op)| op.select().dxf() == Some(id))
+        .filter(|(_, op)| op.select().source == Some(Source::from(from)))
         .map(|(i, _)| i)
         .collect();
     if limited.is_empty() {
@@ -247,7 +336,7 @@ fn selected_by_dxf(job: &Job, id: u64) -> Result<BTreeMap<usize, Vec<u64>>, Pipe
             .drawing
             .shapes
             .iter()
-            .filter(|s| s.dxf() == Some(id))
+            .filter(|s| s.source() == Some(from))
             .filter(|s| {
                 select
                     .layer

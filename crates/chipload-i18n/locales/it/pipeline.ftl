@@ -480,6 +480,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } ora seleziona le forme { $shapes }.
 pipeline-explode-no-dxf = il progetto non ha un DXF da esplodere
 pipeline-explode-which-dxf = il progetto ha { $count } DXF ({ $dxfs }): indica quale esplodere
+pipeline-image-exploded = Immagine { $id } "{ $name }" esplosa in { $count } { $count ->
+    [one] forma disegnata
+   *[other] forme disegnate
+}. L'immagine non è più nel progetto: non può essere vettorizzata di nuovo.
+pipeline-text-exploded = Testo { $id } { $name } esploso in { $count } { $count ->
+    [one] forma disegnata
+   *[other] forme disegnate
+}. Le sue parole non possono più essere modificate.
+pipeline-explode-no-image = il progetto non ha un'immagine da esplodere
+pipeline-explode-which-image = il progetto ha { $count } immagini ({ $images }): indica quale esplodere
+pipeline-explode-no-text = il progetto non ha un testo da esplodere
+pipeline-explode-which-text = il progetto ha { $count } testi ({ $texts }): indica quale esplodere
 pipeline-join-gap-range = La distanza deve essere da { $least } a { $most }, trovato { $got }.
 pipeline-join-imported = La forma S{ $id } viene da un DXF: esplodi prima il DXF.
 pipeline-join-none = Nessun estremo unito (distanza { $gap }).

@@ -1,6 +1,17 @@
 # Spec: explode a picture or a text into drawn shapes
 
-Status: **draft** 2026-11-02, decisions in §8 to review.
+Status: **agreed 2026-11-02**, decisions 1-5 as recommended (the user: "looks good go
+ahead"). Built 2026-11-02.
+
+As built:
+- **The G-code is the same but for rounding.** A letter's or a traced outline's arcs come
+  back from the polylines' bulges a few billionths of a mm off. That can tip a V-carve's
+  depth to the next 0.001 mm: one line in the corpus, `v29/script_text`. The corpus test
+  allows a last-digit difference in numbers and nothing else.
+- **One `explode` in the pipeline** serves DXFs, pictures and texts, generalised over
+  `ShapeFrom`. The DXF's join stays its own.
+- **The dialog** is the DXF's, with the body for a picture or a text and without the join
+  row.
 
 The user (2026-11-02): "i cant explode and image or text to shapes only an dxf, is that by
 design?" It isn't: *Explode* (docs/specs/explode-and-join.md) was asked for DXFs and

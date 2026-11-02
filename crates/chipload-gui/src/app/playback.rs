@@ -389,7 +389,7 @@ impl ChiploadApp {
             && let Some(&first) = dxfs.first()
         {
             self.dialogs.prompt = Some(super::Prompt::Explode {
-                dxf: first,
+                of: Source::Dxf(first),
                 join: true,
                 gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
             });

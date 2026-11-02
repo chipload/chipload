@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::{Job, TextAlign, TextAnchor};
+use chipload_pipeline::explode::{explode_text, which_text};
 use chipload_pipeline::fonts::{ComputerFonts, available};
 use chipload_pipeline::library::{fonts_path, settings_dir};
 use chipload_pipeline::texts::{
@@ -71,6 +72,17 @@ pub enum TextAction {
         project: PathBuf,
         /// The text's id.
         id: u64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Turn a text's letters into drawn shapes you can edit; the text goes from the project
+    /// (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes.
+    Explode {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The text's id (as `text list` shows it); not needed when the project has one.
+        id: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -231,6 +243,27 @@ pub fn text(out: &mut Out, action: TextAction) -> ExitCode {
             set(out, &project, id, change, output.as_deref())
         }
         TextAction::List { project } => list(out, &project),
+        TextAction::Explode {
+            project,
+            id,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let done = which_text(&job, id).and_then(|id| explode_text(&job, id));
+            let (job, report) = match done {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            for line in &report.lines {
+                out.line(line.clone());
+            }
+            out.set("shapes", json!(report.shapes));
+            out.set("removed", json!(report.removed));
+            write_project(out, &job, output.as_deref().unwrap_or(&project))
+        }
         TextAction::Remove {
             project,
             id,

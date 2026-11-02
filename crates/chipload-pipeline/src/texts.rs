@@ -381,7 +381,7 @@ fn moved_letters(job: &Job, old: &Text, new: &Text) -> (Job, TextReport) {
     (out, report)
 }
 
-fn find(job: &Job, id: u64) -> Result<(usize, &Text), PipelineError> {
+pub(crate) fn find(job: &Job, id: u64) -> Result<(usize, &Text), PipelineError> {
     job.drawing
         .texts
         .iter()

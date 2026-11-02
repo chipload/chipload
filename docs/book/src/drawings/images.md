@@ -123,6 +123,8 @@ path…* takes the picture's path instead.
   same window opens (its button says **Apply**).
 - **Remove it:** right-click > **Remove** removes the picture and its shapes; so does
   **Del** with the picture selected.
+- **Edit its shapes by hand:** right-click > **Explode into shapes…** makes them drawn
+  shapes and takes the picture out of the project ([Exploding](explode.md)).
 - **See it:** **Images** on the canvas's navigation bar (or *View > Show images*) shows the
   pictures faintly on the stock top, over the simulated stock and under the drawing, in
   top view and 3D, for comparing the traced shapes, and the cut, with the picture.

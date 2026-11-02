@@ -483,6 +483,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } ahora selecciona las formas { $shapes }.
 pipeline-explode-no-dxf = el proyecto no tiene ningún DXF que descomponer
 pipeline-explode-which-dxf = el proyecto tiene { $count } DXF ({ $dxfs }): indica cuál descomponer
+pipeline-image-exploded = Imagen { $id } "{ $name }" descompuesta en { $count } { $count ->
+    [one] forma dibujada
+   *[other] formas dibujadas
+}. La imagen ya no está en el proyecto: no se puede volver a vectorizar.
+pipeline-text-exploded = Texto { $id } { $name } descompuesto en { $count } { $count ->
+    [one] forma dibujada
+   *[other] formas dibujadas
+}. Sus palabras ya no se pueden editar.
+pipeline-explode-no-image = el proyecto no tiene ninguna imagen que descomponer
+pipeline-explode-which-image = el proyecto tiene { $count } imágenes ({ $images }): indica cuál descomponer
+pipeline-explode-no-text = el proyecto no tiene ningún texto que descomponer
+pipeline-explode-which-text = el proyecto tiene { $count } textos ({ $texts }): indica cuál descomponer
 pipeline-join-gap-range = La separación debe estar entre { $least } y { $most }, es { $got }.
 pipeline-join-imported = La forma S{ $id } viene de un DXF: descompón primero el DXF.
 pipeline-join-none = No se unió ningún extremo (separación { $gap }).

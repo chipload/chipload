@@ -468,6 +468,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } now selects shapes { $shapes }.
 pipeline-explode-no-dxf = the project has no DXF to explode
 pipeline-explode-which-dxf = the project has { $count } DXFs ({ $dxfs }): say which to explode
+pipeline-image-exploded = Exploded picture { $id } "{ $name }" into { $count } drawn { $count ->
+    [one] shape
+   *[other] shapes
+}. The picture is gone from the project: it can't be traced again.
+pipeline-text-exploded = Exploded text { $id } { $name } into { $count } drawn { $count ->
+    [one] shape
+   *[other] shapes
+}. Its words can't be edited again.
+pipeline-explode-no-image = the project has no picture to explode
+pipeline-explode-which-image = the project has { $count } pictures ({ $images }): say which to explode
+pipeline-explode-no-text = the project has no text to explode
+pipeline-explode-which-text = the project has { $count } texts ({ $texts }): say which to explode
 pipeline-join-gap-range = The gap must be { $least } to { $most }, got { $got }.
 pipeline-join-imported = Shape S{ $id } comes from a DXF: explode the DXF first.
 pipeline-join-none = No ends were joined (gap { $gap }).

@@ -475,6 +475,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } markerar nu formerna { $shapes }.
 pipeline-explode-no-dxf = projektet har ingen DXF att bryta upp
 pipeline-explode-which-dxf = projektet har { $count } DXF:er ({ $dxfs }): ange vilken som ska brytas upp
+pipeline-image-exploded = Bröt upp bild { $id } "{ $name }" i { $count } ritade { $count ->
+    [one] form
+   *[other] former
+}. Bilden finns inte längre i projektet: den kan inte spåras om.
+pipeline-text-exploded = Bröt upp text { $id } { $name } i { $count } ritade { $count ->
+    [one] form
+   *[other] former
+}. Dess ord kan inte redigeras längre.
+pipeline-explode-no-image = projektet har ingen bild att bryta upp
+pipeline-explode-which-image = projektet har { $count } bilder ({ $images }): ange vilken som ska brytas upp
+pipeline-explode-no-text = projektet har ingen text att bryta upp
+pipeline-explode-which-text = projektet har { $count } texter ({ $texts }): ange vilken som ska brytas upp
 pipeline-join-gap-range = Glappet måste vara { $least } till { $most }, fick { $got }.
 pipeline-join-imported = Form S{ $id } kommer från en DXF: bryt upp DXF:en först.
 pipeline-join-none = Inga ändar fogades ihop (glapp { $gap }).

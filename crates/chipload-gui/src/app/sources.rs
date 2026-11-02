@@ -58,7 +58,7 @@ enum PanelAction {
     Update(u64),
     UpdatePath(u64),
     RemoveDxf(u64),
-    ExplodeDxf(u64),
+    Explode(Source),
     EditImage(u64),
     RemoveImage(u64),
     RemoveText(u64),
@@ -258,10 +258,11 @@ impl ChiploadApp {
         }
     }
 
-    /// Ask how to explode DXF `id` (docs/specs/explode-and-join.md §5).
-    pub(super) fn ask_explode(&mut self, dxf: u64) {
+    /// Ask how to explode a DXF, picture or text (docs/specs/explode-and-join.md §5,
+    /// explode-pictures-and-texts.md §6).
+    pub(super) fn ask_explode(&mut self, of: Source) {
         self.dialogs.prompt = Some(Prompt::Explode {
-            dxf,
+            of,
             join: false,
             gap: chipload_job::explode::DEFAULT_JOIN_GAP_MM,
         });
@@ -284,6 +285,27 @@ impl ChiploadApp {
         let failed = t!(self, "sources-explode-failed");
         let exploded = self.after_shapes_change(done, failed);
         if exploded && self.focus == Focus::Dxf(id) {
+            self.focus = Focus::Job;
+        }
+        exploded
+    }
+
+    /// Explode `of` into drawn shapes (a DXF then joined with gap `join` if given), as one
+    /// undo step. The new shapes are selected.
+    pub fn explode(&mut self, of: Source, join: Option<f64>) -> bool {
+        let done = match of {
+            Source::Dxf(id) => return self.explode_dxf(id, join),
+            Source::Image(id) => {
+                self.changed_job(|job| chipload_pipeline::explode::explode_image(job, id))
+            }
+            Source::Text(id) => {
+                self.changed_job(|job| chipload_pipeline::explode::explode_text(job, id))
+            }
+            Source::Group(_) => return false,
+        };
+        let failed = t!(self, "sources-explode-failed");
+        let exploded = self.after_shapes_change(done, failed);
+        if exploded && matches!(self.focus, Focus::Image(_) | Focus::Text(_)) {
             self.focus = Focus::Job;
         }
         exploded
@@ -474,7 +496,7 @@ impl ChiploadApp {
             Some(PanelAction::RemoveDxf(dxf)) => {
                 self.remove_dxf(dxf);
             }
-            Some(PanelAction::ExplodeDxf(dxf)) => self.ask_explode(dxf),
+            Some(PanelAction::Explode(of)) => self.ask_explode(of),
             Some(PanelAction::EditImage(image)) => {
                 self.focus = Focus::Image(image);
                 self.edit_image(image);
@@ -629,7 +651,7 @@ impl ChiploadApp {
                         .on_hover_text(t!(ui, "sources-explode-hover"))
                         .clicked()
                     {
-                        *action = Some(PanelAction::ExplodeDxf(dxf));
+                        *action = Some(PanelAction::Explode(Source::Dxf(dxf)));
                     }
                     ui.separator();
                     if ui
@@ -649,6 +671,13 @@ impl ChiploadApp {
                     {
                         *action = Some(PanelAction::EditImage(image));
                     }
+                    if ui
+                        .button(t!(ui, "sources-explode"))
+                        .on_hover_text(t!(ui, "sources-explode-image-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Explode(Source::Image(image)));
+                    }
                     ui.separator();
                     if ui
                         .button(t!(ui, "common-remove"))
@@ -659,6 +688,14 @@ impl ChiploadApp {
                     }
                 }
                 GroupKind::Text(text) => {
+                    ui.separator();
+                    if ui
+                        .button(t!(ui, "sources-explode"))
+                        .on_hover_text(t!(ui, "sources-explode-text-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::Explode(Source::Text(text)));
+                    }
                     ui.separator();
                     if ui
                         .button(t!(ui, "common-remove"))

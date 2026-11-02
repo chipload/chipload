@@ -357,6 +357,25 @@ impl ChiploadApp {
             self.ask_library_save(group);
             ui.close();
         }
+        // A whole DXF, picture or text: explode it (explode-pictures-and-texts.md §6).
+        if let CanvasSelection::Whole { of, .. } = &self.selection
+            && !matches!(of, Source::Group(_))
+        {
+            let of = *of;
+            let hover = match of {
+                Source::Image(_) => t!(ui, "sources-explode-image-hover"),
+                Source::Text(_) => t!(ui, "sources-explode-text-hover"),
+                Source::Dxf(_) | Source::Group(_) => t!(ui, "sources-explode-hover"),
+            };
+            if ui
+                .button(t!(ui, "sources-explode"))
+                .on_hover_text(hover)
+                .clicked()
+            {
+                self.ask_explode(of);
+                ui.close();
+            }
+        }
     }
 
     /// Under Selection, a group's name, what is in it, and Ungroup.

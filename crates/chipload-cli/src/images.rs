@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::{ImageThreshold, ImageTrace, Job};
+use chipload_pipeline::explode::{explode_image, which_image};
 use chipload_pipeline::images::{
     ImageReport, NewImage, add_image, black_white_png, remove_image, retrace,
 };
@@ -84,6 +85,17 @@ pub enum ImageAction {
         project: PathBuf,
         /// The image's id.
         id: u64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Turn every shape traced from a picture into drawn shapes you can edit; the picture goes from the project
+    /// (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes.
+    Explode {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The picture's id (as `image list` shows it); not needed when the project has one.
+        id: Option<u64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -202,6 +214,27 @@ pub fn image(out: &mut Out, action: ImageAction) -> ExitCode {
             id,
             output,
         } => preview(out, &project, id, &output),
+        ImageAction::Explode {
+            project,
+            id,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let done = which_image(&job, id).and_then(|id| explode_image(&job, id));
+            let (job, report) = match done {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            for line in &report.lines {
+                out.line(line.clone());
+            }
+            out.set("shapes", json!(report.shapes));
+            out.set("removed", json!(report.removed));
+            write_project(out, &job, output.as_deref().unwrap_or(&project))
+        }
         ImageAction::Remove {
             project,
             id,

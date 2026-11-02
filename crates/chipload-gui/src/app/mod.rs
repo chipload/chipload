@@ -228,10 +228,11 @@ enum Prompt {
     /// The project's file changed on disk while there are unsaved changes
     /// (docs/specs/reload-changed-file.md §4); the file's version is in `disk`.
     ChangedOnDisk,
-    /// Explode DXF `dxf` into drawn shapes, then join ends closer than `gap` mm if `join`
-    /// (docs/specs/explode-and-join.md §5).
+    /// Explode a DXF, picture or text into drawn shapes, then (a DXF) join ends closer than
+    /// `gap` mm if `join` (docs/specs/explode-and-join.md §5,
+    /// explode-pictures-and-texts.md §6).
     Explode {
-        dxf: u64,
+        of: Source,
         join: bool,
         gap: f64,
     },

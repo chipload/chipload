@@ -429,7 +429,7 @@ pub fn picture_bytes(image: &Image) -> Result<Vec<u8>, PipelineError> {
     })
 }
 
-fn find(job: &Job, id: u64) -> Result<&Image, PipelineError> {
+pub(crate) fn find(job: &Job, id: u64) -> Result<&Image, PipelineError> {
     job.drawing
         .images
         .iter()

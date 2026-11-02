@@ -478,6 +478,18 @@ pipeline-explode-dropped = { $count ->
 pipeline-explode-selects = { $label } wählt jetzt die Formen { $shapes }.
 pipeline-explode-no-dxf = das Projekt hat keine DXF zum Auflösen
 pipeline-explode-which-dxf = das Projekt hat { $count } DXFs ({ $dxfs }): Geben Sie an, welche aufgelöst werden soll
+pipeline-image-exploded = Bild { $id } „{ $name }“ in { $count } gezeichnete { $count ->
+    [one] Form
+   *[other] Formen
+} aufgelöst. Das Bild ist nicht mehr im Projekt: Es kann nicht erneut nachgezeichnet werden.
+pipeline-text-exploded = Text { $id } { $name } in { $count } gezeichnete { $count ->
+    [one] Form
+   *[other] Formen
+} aufgelöst. Seine Wörter können nicht mehr bearbeitet werden.
+pipeline-explode-no-image = das Projekt hat kein Bild zum Auflösen
+pipeline-explode-which-image = das Projekt hat { $count } Bilder ({ $images }): Geben Sie an, welches aufgelöst werden soll
+pipeline-explode-no-text = das Projekt hat keinen Text zum Auflösen
+pipeline-explode-which-text = das Projekt hat { $count } Texte ({ $texts }): Geben Sie an, welcher aufgelöst werden soll
 pipeline-join-gap-range = Der Abstand muss { $least } bis { $most } sein, war { $got }.
 pipeline-join-imported = Form S{ $id } stammt aus einer DXF: Lösen Sie zuerst die DXF auf.
 pipeline-join-none = Keine Enden verbunden (Abstand { $gap }).

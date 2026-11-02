@@ -342,31 +342,58 @@ impl ChiploadApp {
             Prompt::ChangedOnDisk => self.changed_on_disk_prompt(ctx),
             Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
             Prompt::LibraryName(kind, text) => self.library_name_prompt(ctx, kind, text),
-            Prompt::Explode { dxf, join, gap } => self.explode_prompt(ctx, dxf, join, gap),
+            Prompt::Explode { of, join, gap } => self.explode_prompt(ctx, of, join, gap),
             Prompt::Join { ids, gap } => self.join_prompt(ctx, ids, gap),
         }
     }
 
-    /// Explode a DXF into drawn shapes (docs/specs/explode-and-join.md §5): what it does,
-    /// and whether to join close ends too.
-    fn explode_prompt(&mut self, ctx: &egui::Context, dxf: u64, mut join: bool, mut gap: f64) {
+    /// Explode a DXF, picture or text into drawn shapes (docs/specs/explode-and-join.md §5,
+    /// explode-pictures-and-texts.md §6): what it does, and for a DXF whether to join close
+    /// ends too.
+    fn explode_prompt(&mut self, ctx: &egui::Context, of: Source, mut join: bool, mut gap: f64) {
         let name = self
             .edit
             .as_ref()
-            .and_then(|e| e.job.drawing.dxfs.iter().find(|d| d.id == dxf))
-            .map(|d| d.name.clone())
+            .and_then(|e| {
+                let drawing = &e.job.drawing;
+                match of {
+                    Source::Dxf(id) => drawing
+                        .dxfs
+                        .iter()
+                        .find(|d| d.id == id)
+                        .map(|d| d.name.clone()),
+                    Source::Image(id) => drawing
+                        .images
+                        .iter()
+                        .find(|i| i.id == id)
+                        .map(|i| i.file.clone()),
+                    Source::Text(id) => drawing
+                        .texts
+                        .iter()
+                        .find(|t| t.id == id)
+                        .map(chipload_pipeline::texts::text_label),
+                    Source::Group(_) => None,
+                }
+            })
             .unwrap_or_default();
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("explode-dxf")).show(ctx, |ui| {
             ui.set_width(380.0);
             ui.heading(t!(ui, "dialogs-explode-title", name = name.as_str()));
             ui.add_space(4.0);
-            ui.label(t!(ui, "dialogs-explode-body"));
-            ui.add_space(8.0);
-            ui.horizontal(|ui| {
-                ui.checkbox(&mut join, t!(ui, "dialogs-explode-join"));
-                ui.add_enabled(join, gap_field(&mut gap));
+            ui.label(match of {
+                Source::Image(_) => t!(ui, "dialogs-explode-image-body"),
+                Source::Text(_) => t!(ui, "dialogs-explode-text-body"),
+                Source::Dxf(_) | Source::Group(_) => t!(ui, "dialogs-explode-body"),
             });
+            ui.add_space(8.0);
+            // Traced outlines and letters are closed already (spec decision 4).
+            if let Source::Dxf(_) = of {
+                ui.horizontal(|ui| {
+                    ui.checkbox(&mut join, t!(ui, "dialogs-explode-join"));
+                    ui.add_enabled(join, gap_field(&mut gap));
+                });
+            }
             ui.add_space(8.0);
             ui.horizontal(|ui| {
                 if accent_button(ui, &t!(ui, "dialogs-explode")).clicked() {
@@ -383,10 +410,10 @@ impl ChiploadApp {
         match answer {
             Some(true) => {
                 self.dialogs.prompt = None;
-                self.explode_dxf(dxf, join.then_some(gap));
+                self.explode(of, join.then_some(gap));
             }
             Some(false) => self.dialogs.prompt = None,
-            None => self.dialogs.prompt = Some(Prompt::Explode { dxf, join, gap }),
+            None => self.dialogs.prompt = Some(Prompt::Explode { of, join, gap }),
         }
     }
 
