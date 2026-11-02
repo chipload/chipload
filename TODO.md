@@ -185,6 +185,16 @@ it's built (see `CLAUDE.md`).
      lines), `pocket.rs` (1,970), the canvas `view.rs` (1,940) and the window's
      `app/mod.rs` (2,250); split by topic as `forms/` and `models/` were.
 
+- **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
+  long time each operation will take, similar to how prusa slicer gives a report how much
+  time different operations take. Except time id like, g1 travelled length, g0 length,
+  etc."). Per operation (and per tool, file and the whole job): its time, the cutting
+  length (G1/G2/G3 in XY), the plunge and ramp length (feed moves in Z), the rapid length
+  (G0) and its time, and how many retracts. Today `plan` and the window give the time per
+  operation only (`chipload_pipeline::estimate`). Needs a spec first: where it shows (the
+  Report, the setup sheet, `plan --json`), what each column counts (arcs by their length,
+  ramps as cutting or plunging), and whether it is a table or a chart.
+
 - **Explode a picture or a text into drawn shapes** (the user, 2026-11-02: "i cant explode
   and image or text to shapes only an dxf, is that by design?"):
   docs/specs/explode-pictures-and-texts.md, **done 2026-11-02**, decisions 1-5 as
