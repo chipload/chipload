@@ -33,7 +33,7 @@ shortcuts-top-view = Top view
 shortcuts-grid = Show or hide the grid
 shortcuts-simulate = Simulate or edit
 shortcuts-measure = Measure: two clicks give the distance and angle
-shortcuts-panels = Fold or open the side panels, for a larger canvas
+shortcuts-panels = Hide every panel for the largest canvas, or bring them back
 shortcuts-this-list = This list
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the

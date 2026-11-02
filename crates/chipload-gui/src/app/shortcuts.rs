@@ -392,7 +392,7 @@ impl ChiploadApp {
             Action::Grid => self.set_show_grid(!self.prefs.show_grid),
             Action::Simulate => self.set_show_simulation(!self.display.simulate),
             Action::Measure => self.toggle_measure(),
-            Action::Panels => self.toggle_panels(),
+            Action::Panels => self.panels.toggle_hidden(),
             Action::DrawPolyline => self.start_drawing(Tool::Polyline),
             Action::DrawCircle => self.start_drawing(Tool::Circle),
             Action::DrawRectangle => self.start_drawing(Tool::Rectangle),

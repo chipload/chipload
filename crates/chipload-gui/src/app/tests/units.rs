@@ -143,13 +143,13 @@ fn with_inches_the_report_shows_its_notes_and_checks_in_inches() {
         "{:?}",
         app.report
     );
-    app.panels.report_open = true;
+    app.panels.show(crate::app::layout::Pane::Report);
     let painted = |units: Units, app: &mut ChiploadApp| {
         let ctx = egui::Context::default();
         let mut text = String::new();
         let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
             crate::units::set_display(ui.ctx(), units);
-            app.report_panel(ui);
+            app.report_pane(ui);
         });
         output.textures_delta.clear();
         for clipped in &output.shapes {

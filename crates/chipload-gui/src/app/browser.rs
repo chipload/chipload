@@ -312,17 +312,6 @@ pub(super) fn folder(ui: &mut egui::Ui, row: Row, default: bool) -> (bool, RowRe
     (open, out)
 }
 
-/// A small capital caption over a panel: "BROWSER", "PROPERTIES".
-pub(super) fn caption(ui: &mut egui::Ui, text: &str) {
-    ui.add_space(2.0);
-    ui.label(
-        RichText::new(text.to_uppercase())
-            .small()
-            .color(ui.visuals().weak_text_color()),
-    );
-    ui.add_space(2.0);
-}
-
 /// The Properties panel's title: an icon and what the panel shows.
 pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, text: &str) {
     ui.horizontal(|ui| {
@@ -534,8 +523,6 @@ pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, 
 impl ChiploadApp {
     /// Left: the Browser.
     pub(super) fn sidebar(&mut self, ui: &mut egui::Ui) {
-        let browser = t!(ui, "browser-caption");
-        caption(ui, &browser);
         ScrollArea::vertical()
             .id_salt("browser-scroll")
             .auto_shrink([false, false])

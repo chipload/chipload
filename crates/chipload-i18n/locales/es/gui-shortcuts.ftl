@@ -33,7 +33,7 @@ shortcuts-top-view = Vista superior
 shortcuts-grid = Mostrar u ocultar la cuadrícula
 shortcuts-simulate = Simular o editar
 shortcuts-measure = Medir: dos clics dan la distancia y el ángulo
-shortcuts-panels = Plegar o abrir los paneles laterales, para un lienzo más grande
+shortcuts-panels = Ocultar todos los paneles para el lienzo más grande, o volver a mostrarlos
 shortcuts-this-list = Esta lista
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the

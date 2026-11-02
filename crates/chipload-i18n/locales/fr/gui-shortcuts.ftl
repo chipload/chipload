@@ -33,7 +33,7 @@ shortcuts-top-view = Vue de dessus
 shortcuts-grid = Afficher ou masquer la grille
 shortcuts-simulate = Simuler ou modifier
 shortcuts-measure = Mesurer : deux clics donnent la distance et l'angle
-shortcuts-panels = Replier ou déplier les panneaux latéraux, pour un canevas plus grand
+shortcuts-panels = Masquer tous les panneaux pour le plus grand canevas, ou les remettre
 shortcuts-this-list = Cette liste
 
 # Mouse actions and keys that aren't menu shortcuts: the keys column (key names as on the

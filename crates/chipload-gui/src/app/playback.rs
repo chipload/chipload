@@ -463,7 +463,7 @@ impl ChiploadApp {
         // The README's picture: the canvas without the report under it, and an operation's
         // form in Properties (`op2`: the second operation) or a text's (`text1`).
         if steps.contains(&"noreport") {
-            self.panels.report_open = false;
+            self.panels.fold(super::layout::Pane::Report);
         }
         if let Some(n) = steps
             .iter()
@@ -747,6 +747,6 @@ impl ChiploadApp {
         }
         self.selection = CanvasSelection::Shapes(all.into_iter().collect());
         self.focus = Focus::Selection;
-        self.panels.right_tab = super::layout::RightTab::Shapes;
+        self.panels.show(super::layout::Pane::Shapes);
     }
 }

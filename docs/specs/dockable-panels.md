@@ -1,6 +1,25 @@
 # Spec: dockable panels
 
-Status: **draft 2026-11-02, for review.**
+Status: **agreed 2026-11-02**, decisions 1-7 as recommended (the user: "Sounds good, go
+ahead"). Step 1 built 2026-11-02; ADR 0028.
+
+As built (step 1):
+- **The Report's summary is on its own tab, not in the status bar** (decision 3). The status
+  bar's left side already holds hints and status lines.
+  - Folded, the Report shows only its tab bar, as the old one-line bar did, and its tab
+    reads "Report ⚠ 2" when it holds warnings.
+  - The headline is the first line inside the panel.
+- **The canvas is fixed as follows.** Its leaf's tab bar is hidden, and egui_dock's button
+  to show it again and its drag margin are styled to nothing. A panel dropped into the
+  canvas's middle is moved beside it.
+- **The dock's own texts are not shown at all** (no tab context menus, no floating windows),
+  so there was nothing of egui_dock's to translate.
+- **The tabs are named for accessibility** in `on_tab_button`: egui_dock's tabs aren't by
+  themselves, and the window tests find a panel by its title that way.
+- **Shares, not pixels.** The default layout gives today's widths at 1200 × 800, and the
+  panels grow with the window.
+- **Not saved yet:** step 2 (`layout.json`).
+
 
 The user (2026-11-02), about the shape library tab: "In some UI this is user configurable
 by dragging a panel onto another to create tabs and dragging below to stack. Is this a

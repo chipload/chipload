@@ -4,7 +4,7 @@
 //! selected shapes dragged onto it to save. The rules (names, groups, saving, inserting)
 //! are the pipeline's (`chipload_pipeline::shape_library`); this lists and shows them.
 
-use super::layout::RightTab;
+use super::layout::Pane;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -164,36 +164,8 @@ impl ChiploadApp {
         loaded
     }
 
-    /// The Properties | Shapes tabs at the top of the right panel. The Shapes tab takes a
-    /// drop of selected shapes while Properties is shown.
-    pub(super) fn right_tabs(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            let names = [
-                (RightTab::Properties, t!(ui, "app-properties")),
-                (RightTab::Shapes, t!(ui, "shape-library-tab")),
-            ];
-            for (tab, name) in names {
-                let text = RichText::new(name.to_uppercase()).small();
-                let tab_response = ui.selectable_label(self.panels.right_tab == tab, text);
-                if tab_response.clicked() {
-                    self.panels.right_tab = tab;
-                }
-                if tab == RightTab::Shapes && self.panels.right_tab != RightTab::Shapes {
-                    self.shape_library.drop_rect = Some(tab_response.rect);
-                    // An entry dragged over the tab's name opens it.
-                    if tab_response.contains_pointer()
-                        && egui::DragAndDrop::has_payload_of_type::<DraggedEntry>(ui.ctx())
-                    {
-                        self.panels.right_tab = RightTab::Shapes;
-                    }
-                }
-            }
-        });
-        ui.separator();
-    }
-
-    /// Back to Properties when the user asks for something shown there (decision 10): an
-    /// item picked in the Browser, a tool with values, a text being placed. Picking shapes
+    /// Properties to the front of its panel when the user asks for something shown there
+    /// (decision 10): an item picked in the Browser, a tool with values, a text being placed. Picking shapes
     /// on the canvas doesn't switch. Compared with what it was last frame.
     pub(super) fn follow_properties(&mut self) {
         let now = (self.focus, self.modify(), self.placing_text());
@@ -204,7 +176,7 @@ impl ChiploadApp {
             || (self.modify() != modify && self.modify().is_some())
             || (self.placing_text() && !placing);
         if asked {
-            self.panels.right_tab = RightTab::Properties;
+            self.panels.bring_to_front(Pane::Properties);
         }
     }
 
@@ -460,7 +432,7 @@ impl ChiploadApp {
         match entry_from(&edit.job, &ids, &[]) {
             Ok(entry) => {
                 let name = suggested_name(&entry);
-                self.panels.right_tab = RightTab::Shapes;
+                self.panels.show(Pane::Shapes);
                 self.shape_library.asking = Some(Asking::Save {
                     group,
                     name,
@@ -494,7 +466,7 @@ impl ChiploadApp {
 
     /// Whether `pos` (screen) is where selected shapes can be dropped to save them.
     pub(super) fn over_library(&self, pos: Pos2) -> bool {
-        self.panels.properties_open
+        self.panels.is_open(Pane::Shapes)
             && self.user.settings_dir.is_some()
             && self
                 .shape_library

@@ -22,6 +22,9 @@ chipload-toolpath = { version = "0.30.0", path = "../chipload-toolpath" }
 # No "default_fonts": egui's bundled fonts are OFL/Ubuntu-font licensed; the GUI loads
 # installed system fonts instead (decision 2026-10-09).
 eframe = { version = "0.36.2", default-features = false, features = ["accesskit", "glow", "wayland", "x11"] }
+# Dockable panels (docs/specs/dockable-panels.md, ADR 0028). MIT; its own dependencies are
+# MIT OR Apache-2.0. Without its "serde" feature: the layout is saved in Chipload's terms.
+egui_dock = "0.21.1"
 rfd = "0.17.2"
 serde_json = "1"
 # The system's language, for the app's default language (docs/specs/translations.md decision

@@ -1,47 +1,381 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The panels round the canvas: the Browser on the left, Properties and the shape library on
-//! the right, the report at the bottom. Which are open, and each panel's contents apart from
-//! where it is shown, so a different layout can show the same contents.
+//! The window's panels, docked round the canvas (docs/specs/dockable-panels.md, ADR 0028):
+//! the Browser, Properties, the shape library (Shapes) and the Report, arranged by the user
+//! with egui_dock. The canvas stays in place: no tab bar, never closed, moved or tabbed.
+
+use egui_dock::{DockArea, DockState, NodeIndex, SurfaceIndex, TabIndex, TabPath, TabViewer, Tree};
 
 use super::*;
 
-/// A folded side panel's width, and the least widths of the open ones: the Properties
-/// forms fit in theirs (narrower labels and fields, rows that wrap).
-const FOLDED_WIDTH: f32 = 26.0;
-const BROWSER_MIN_WIDTH: f32 = 180.0;
+/// The least width of the Properties forms: they lay out down to it (narrower labels and
+/// fields, rows that wrap) and scroll sideways below it. A docked panel can be dragged
+/// narrower; the narrow-window test checks the forms at this width.
+#[cfg(test)]
 pub(crate) const PROPERTIES_MIN_WIDTH: f32 = 250.0;
 
-/// Which panels are open, and what the right one shows.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Panels {
-    /// The Browser and the Properties panel open, or folded to a strip for a larger canvas
-    /// (View, the P key, or dragging a panel's edge past its least width).
-    pub browser_open: bool,
-    pub properties_open: bool,
-    /// What the right panel shows: Properties or the shape library
-    /// (docs/specs/shape-library.md §5.1).
-    pub right_tab: RightTab,
-    /// The report panel is open (it opens by itself on warnings and errors).
-    pub report_open: bool,
+/// The default layout's shares, giving today's widths in a 1200 × 800 window: the Browser
+/// 340, the right panel 440, the Report folded along the bottom. A split's share is its
+/// first side's: the left one, or the upper one.
+const BROWSER_SHARE: f32 = 0.28;
+const CANVAS_BESIDE_RIGHT: f32 = 0.49;
+const ABOVE_REPORT: f32 = 0.82;
+
+/// What the dock shows: the canvas, or one of the panels.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub enum Pane {
+    Canvas,
+    Browser,
+    Properties,
+    Shapes,
+    Report,
 }
 
-impl Default for Panels {
-    fn default() -> Self {
-        Panels {
-            browser_open: true,
-            properties_open: true,
-            right_tab: RightTab::default(),
-            report_open: false,
+impl Pane {
+    /// The panels a user can arrange, close and open again.
+    pub const PANELS: [Pane; 4] = [Pane::Browser, Pane::Properties, Pane::Shapes, Pane::Report];
+
+    /// Its title on its tab and in View ▸ Panels.
+    pub fn title(self, lang: &impl Lang) -> String {
+        match self {
+            Pane::Canvas => String::new(),
+            Pane::Browser => t!(lang, "browser-caption"),
+            Pane::Properties => t!(lang, "app-properties"),
+            Pane::Shapes => t!(lang, "shape-library-tab"),
+            Pane::Report => t!(lang, "report-heading"),
         }
     }
 }
 
-/// What the right panel shows (docs/specs/shape-library.md, decision 9: tabs).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum RightTab {
-    #[default]
-    Properties,
-    Shapes,
+/// A change to the layout asked for while the dock is being drawn, made once it is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Change {
+    Show(Pane),
+    Front(Pane),
+    Fold(Pane),
+}
+
+/// The panels' arrangement.
+pub struct Panels {
+    dock: DockState<Pane>,
+    /// While P hides the panels: the layout to bring back.
+    hidden: Option<DockState<Pane>>,
+    /// The dock is out being drawn: changes wait in `pending`, and `open` answers for it.
+    drawing: bool,
+    pending: Vec<Change>,
+    open: BTreeSet<Pane>,
+}
+
+impl Default for Panels {
+    fn default() -> Self {
+        let mut panels = Panels {
+            dock: default_dock(),
+            hidden: None,
+            drawing: false,
+            pending: Vec::new(),
+            open: BTreeSet::new(),
+        };
+        panels.settle();
+        panels
+    }
+}
+
+/// Today's layout: the Browser on the left, Properties and Shapes as tabs on the right,
+/// the Report folded along the bottom.
+fn default_dock() -> DockState<Pane> {
+    let mut dock = DockState::new(vec![Pane::Canvas]);
+    let tree = dock.main_surface_mut();
+    let [top, report] = tree.split_below(NodeIndex::root(), ABOVE_REPORT, vec![Pane::Report]);
+    let [canvas, _] = tree.split_left(top, BROWSER_SHARE, vec![Pane::Browser]);
+    tree.split_right(
+        canvas,
+        CANVAS_BESIDE_RIGHT,
+        vec![Pane::Properties, Pane::Shapes],
+    );
+    set_folded(tree, report, true);
+    dock
+}
+
+impl Panels {
+    /// Whether `pane` is open (in front or behind another tab, folded or not).
+    pub fn is_open(&self, pane: Pane) -> bool {
+        self.open.contains(&pane)
+    }
+
+    /// Whether `pane` is the tab in front of its panel and the panel isn't folded.
+    pub fn is_shown(&self, pane: Pane) -> bool {
+        let Some((node, tab)) = self.dock.find_main_surface_tab(&pane) else {
+            return false;
+        };
+        let tree = self.dock.main_surface();
+        tree[node]
+            .get_leaf()
+            .is_some_and(|leaf| leaf.active == tab && !leaf.collapsed)
+    }
+
+    /// Bring `pane` to the front, unfolded, opening it where it goes by default when it was
+    /// closed, and the panels back when P hid them.
+    pub fn show(&mut self, pane: Pane) {
+        if self.drawing {
+            self.pending.push(Change::Show(pane));
+            return;
+        }
+        if let Some(dock) = self.hidden.take() {
+            self.dock = dock;
+        }
+        if self.dock.find_main_surface_tab(&pane).is_none() {
+            self.open_at_default(pane);
+        }
+        if let Some((node, tab)) = self.dock.find_main_surface_tab(&pane) {
+            let tree = self.dock.main_surface_mut();
+            // The tab was just found there: setting it active can't fail.
+            let _ = tree.set_active_tab(node, tab);
+            set_folded(tree, node, false);
+        }
+        self.settle();
+    }
+
+    /// Bring `pane` to the front of its panel if it is open, leaving it folded or not.
+    pub fn bring_to_front(&mut self, pane: Pane) {
+        if self.drawing {
+            self.pending.push(Change::Front(pane));
+            return;
+        }
+        if let Some((node, tab)) = self.dock.find_main_surface_tab(&pane) {
+            // The tab was just found there: setting it active can't fail.
+            let _ = self.dock.main_surface_mut().set_active_tab(node, tab);
+        }
+    }
+
+    /// Fold `pane`'s panel to its tab bar.
+    pub fn fold(&mut self, pane: Pane) {
+        if self.drawing {
+            self.pending.push(Change::Fold(pane));
+            return;
+        }
+        if let Some((node, _)) = self.dock.find_main_surface_tab(&pane) {
+            set_folded(self.dock.main_surface_mut(), node, true);
+        }
+    }
+
+    /// Close `pane`; View ▸ Panels opens it again.
+    pub fn close(&mut self, pane: Pane) {
+        if pane == Pane::Canvas || self.drawing {
+            return;
+        }
+        if let Some((node, tab)) = self.dock.find_main_surface_tab(&pane) {
+            self.dock
+                .remove_tab(TabPath::new(SurfaceIndex::main(), node, tab));
+        }
+        self.settle();
+    }
+
+    /// P: hide every panel for the largest canvas, or bring them back as they were.
+    pub fn toggle_hidden(&mut self) {
+        match self.hidden.take() {
+            Some(dock) => self.dock = dock,
+            None => {
+                let all = std::mem::replace(&mut self.dock, DockState::new(vec![Pane::Canvas]));
+                self.hidden = Some(all);
+            }
+        }
+        self.settle();
+    }
+
+    /// Whether P has hidden the panels.
+    pub fn hidden(&self) -> bool {
+        self.hidden.is_some()
+    }
+
+    /// View ▸ Reset layout.
+    pub fn reset(&mut self) {
+        *self = Panels::default();
+    }
+
+    /// A panel dropped into the canvas's middle, as a drag there leaves it in egui_dock:
+    /// what `settle` then makes of it.
+    #[cfg(test)]
+    pub fn drop_on_canvas(&mut self, pane: Pane) {
+        self.close(pane);
+        if let Some((canvas, _)) = self.dock.find_main_surface_tab(&Pane::Canvas)
+            && let Some(leaf) = self.dock.main_surface_mut()[canvas].get_leaf_mut()
+        {
+            leaf.tabs.push(pane);
+        }
+        self.settle();
+    }
+
+    /// Whether `a` and `b` are tabs of one panel.
+    #[cfg(test)]
+    pub fn together(&self, a: Pane, b: Pane) -> bool {
+        let node = |p: Pane| self.dock.find_main_surface_tab(&p).map(|(n, _)| n);
+        node(a).is_some() && node(a) == node(b)
+    }
+
+    /// `pane`, closed, put back where the default layout has it: the Browser left of the
+    /// canvas, Properties and Shapes together right of it, the Report below everything.
+    fn open_at_default(&mut self, pane: Pane) {
+        let partner = match pane {
+            Pane::Properties => Some(Pane::Shapes),
+            Pane::Shapes => Some(Pane::Properties),
+            _ => None,
+        };
+        if let Some((node, _)) = partner.and_then(|p| self.dock.find_main_surface_tab(&p)) {
+            let tree = self.dock.main_surface_mut();
+            if let Some(leaf) = tree[node].get_leaf_mut() {
+                leaf.tabs.push(pane);
+            }
+            return;
+        }
+        let Some((canvas, _)) = self.dock.find_main_surface_tab(&Pane::Canvas) else {
+            return;
+        };
+        let tree = self.dock.main_surface_mut();
+        match pane {
+            Pane::Browser => {
+                tree.split_left(canvas, BROWSER_SHARE, vec![pane]);
+            }
+            Pane::Report => {
+                tree.split_below(NodeIndex::root(), ABOVE_REPORT, vec![pane]);
+            }
+            _ => {
+                tree.split_right(canvas, CANVAS_BESIDE_RIGHT, vec![pane]);
+            }
+        }
+    }
+
+    /// After any change: the canvas alone in its leaf with no tab bar (a panel dropped into
+    /// its middle docks beside it instead), and which panels are open.
+    fn settle(&mut self) {
+        if let Some((canvas, _)) = self.dock.find_main_surface_tab(&Pane::Canvas) {
+            let tree = self.dock.main_surface_mut();
+            let others: Vec<Pane> = tree[canvas]
+                .get_leaf_mut()
+                .map(|leaf| {
+                    let others = leaf.tabs.iter().copied().filter(|t| *t != Pane::Canvas);
+                    let others: Vec<Pane> = others.collect();
+                    leaf.tabs.retain(|t| *t == Pane::Canvas);
+                    leaf.active = TabIndex(0);
+                    leaf.collapsed = false;
+                    others
+                })
+                .unwrap_or_default();
+            tree[canvas].set_tab_bar_hidden(true);
+            if !others.is_empty() {
+                tree.split_right(canvas, CANVAS_BESIDE_RIGHT, others);
+            }
+        }
+        self.open = self
+            .dock
+            .main_surface()
+            .iter()
+            .filter_map(|node| node.tabs())
+            .flatten()
+            .copied()
+            .collect();
+    }
+}
+
+/// Fold or unfold leaf `node`, and keep its splits' counts of folded leaves right: a split
+/// side by side is as folded as its more folded side, one above the other as both together,
+/// and fully folded when both its sides are.
+fn set_folded(tree: &mut Tree<Pane>, node: NodeIndex, folded: bool) {
+    tree[node].set_collapsed(folded);
+    let mut at = node.parent();
+    while let Some(split) = at {
+        let (left, right) = (&tree[split.left()], &tree[split.right()]);
+        let (l, r) = (left.collapsed_leaf_count(), right.collapsed_leaf_count());
+        let both = left.is_collapsed() && right.is_collapsed();
+        let count = if tree[split].is_horizontal() {
+            l.max(r)
+        } else {
+            l + r
+        };
+        tree[split].set_collapsed_leaf_count(count);
+        tree[split].set_collapsed(both);
+        at = split.parent();
+    }
+}
+
+/// Draws each pane's contents for the dock.
+struct Viewer<'a> {
+    app: &'a mut ChiploadApp,
+    ctx: egui::Context,
+}
+
+impl TabViewer for Viewer<'_> {
+    type Tab = Pane;
+
+    fn id(&mut self, tab: &mut Pane) -> egui::Id {
+        egui::Id::new(("pane", *tab))
+    }
+
+    fn title(&mut self, tab: &mut Pane) -> egui::WidgetText {
+        let title = tab.title(self.app);
+        // A folded Report says what it holds (docs/specs/dockable-panels.md, As built).
+        let problems = self.app.report.problems();
+        if *tab == Pane::Report && problems > 0 {
+            let color = report::Tone::Warning.color(&self.ctx.global_style().visuals);
+            return RichText::new(format!("{title} ⚠ {problems}"))
+                .color(color)
+                .into();
+        }
+        title.into()
+    }
+
+    fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Pane) {
+        match tab {
+            Pane::Canvas => self.app.canvas_pane(ui, &self.ctx),
+            Pane::Browser => self.app.panel_contents(ui, PanelKind::Browser),
+            Pane::Properties => self.app.panel_contents(ui, PanelKind::Properties),
+            Pane::Shapes => self.app.panel_contents(ui, PanelKind::Shapes),
+            Pane::Report => self.app.report_pane(ui),
+        }
+    }
+
+    fn on_tab_button(&mut self, tab: &mut Pane, response: &egui::Response) {
+        // Named for screen readers (and the tests), as egui's own tabs are.
+        let title = tab.title(self.app);
+        let shown = self.app.panels.is_shown(*tab);
+        response.widget_info(|| {
+            egui::WidgetInfo::selected(egui::WidgetType::SelectableLabel, true, shown, &title)
+        });
+        // The Shapes tab is where selected shapes can be dropped to save them while
+        // another tab is in front; an entry dragged over it brings it to the front.
+        if *tab == Pane::Shapes && !self.app.panels.is_shown(Pane::Shapes) {
+            self.app.shape_library.drop_rect = Some(response.rect);
+            if response.contains_pointer()
+                && egui::DragAndDrop::has_payload_of_type::<shape_library::DraggedEntry>(&self.ctx)
+            {
+                self.app.panels.show(Pane::Shapes);
+            }
+        }
+    }
+
+    fn is_closeable(&self, tab: &Pane) -> bool {
+        *tab != Pane::Canvas
+    }
+
+    fn allowed_in_windows(&self, _tab: &mut Pane) -> bool {
+        false
+    }
+
+    fn tab_style_override(
+        &self,
+        tab: &Pane,
+        global: &egui_dock::TabStyle,
+    ) -> Option<egui_dock::TabStyle> {
+        // The canvas fills its pane edge to edge.
+        (*tab == Pane::Canvas).then(|| {
+            let mut style = global.clone();
+            style.tab_body.inner_margin = egui::Margin::ZERO;
+            style
+        })
+    }
+
+    fn scroll_bars(&self, _tab: &Pane) -> [bool; 2] {
+        // Each panel scrolls in its own way (`panel_contents`); the canvas doesn't.
+        [false, false]
+    }
 }
 
 /// A panel's contents, wherever the panel is shown.
@@ -50,17 +384,6 @@ pub(super) enum PanelKind {
     Browser,
     Properties,
     Shapes,
-}
-
-/// A folded side panel: one button that opens it again. True when clicked.
-fn folded_strip(ui: &mut egui::Ui, arrow: &str, hover: &str) -> bool {
-    ui.add_space(4.0);
-    ui.vertical_centered(|ui| {
-        ui.add(egui::Button::new(arrow).frame(false))
-            .on_hover_text(hover)
-            .clicked()
-    })
-    .inner
 }
 
 impl ChiploadApp {
@@ -92,59 +415,62 @@ impl ChiploadApp {
         }
     }
 
-    /// The side panels as laid out now: the Browser on the left, Properties and the shape
-    /// library as tabs on the right. Each folds to a strip (its edge dragged past the least
-    /// width, a double-click on the edge, the strip's button, View or P) for a larger canvas.
-    pub(super) fn side_panels(&mut self, ui: &mut egui::Ui) {
-        let mut open = self.panels.browser_open;
-        let unfold = Panel::show_switched(
-            ui,
-            &mut open,
-            Panel::left("operations-folded")
-                .resizable(true)
-                .exact_size(FOLDED_WIDTH),
-            Panel::left("operations")
-                .resizable(true)
-                .default_size(340.0)
-                .min_size(BROWSER_MIN_WIDTH),
-            |ui, open| {
-                if open {
-                    self.panel_contents(ui, PanelKind::Browser);
-                    false
-                } else {
-                    let hover = t!(ui, "app-show-browser-hover");
-                    folded_strip(ui, "▸", &hover)
-                }
-            },
-        )
-        .inner;
-        self.panels.browser_open = open || unfold;
-        let mut open = self.panels.properties_open;
-        let unfold = Panel::show_switched(
-            ui,
-            &mut open,
-            Panel::right("side-folded")
-                .resizable(true)
-                .exact_size(FOLDED_WIDTH),
-            Panel::right("side")
-                .resizable(true)
-                .default_size(440.0)
-                .min_size(PROPERTIES_MIN_WIDTH),
-            |ui, open| {
-                if !open {
-                    let hover = t!(ui, "app-show-properties-hover");
-                    return folded_strip(ui, "◂", &hover);
-                }
-                self.right_tabs(ui);
-                let kind = match self.panels.right_tab {
-                    RightTab::Properties => PanelKind::Properties,
-                    RightTab::Shapes => PanelKind::Shapes,
-                };
-                self.panel_contents(ui, kind);
-                false
-            },
-        )
-        .inner;
-        self.panels.properties_open = open || unfold;
+    /// The canvas's pane: the update question above it, the playback bar below it in
+    /// Simulate, and the canvas or, with no project, the start screen.
+    fn canvas_pane(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        // Asked once whether to check for new versions (docs/specs/update-notice.md §2).
+        if self.update_question_shown() {
+            Panel::top("update-question").show(ui, |ui| self.update_bar(ui));
+        }
+        if self.edit.is_some() && self.playback.is_some() && self.display.simulate {
+            Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
+            self.sync_playback(ctx);
+        }
+        if self.edit.is_some() {
+            self.canvas(ui);
+        } else {
+            self.start_screen(ui);
+        }
+    }
+
+    /// The dock: the canvas and the panels round it, as the user arranged them.
+    pub(super) fn dock_area(&mut self, ui: &mut egui::Ui) {
+        let ctx = ui.ctx().clone();
+        let mut dock = std::mem::replace(&mut self.panels.dock, DockState::new(vec![Pane::Canvas]));
+        self.panels.drawing = true;
+        let mut style = egui_dock::Style::from_egui(ui.style());
+        // The canvas's leaf has no tab bar, and nothing to show or drag it by.
+        style.buttons.show_tab_bar_size = 0.0;
+        style.tab.tab_body.hidden_tab_bar_drag_height = Some(0.0);
+        style.tab.tab_body.inner_margin = egui::Margin::same(4);
+        // No frame round the canvas or the dock: the panels' tab bars and dividers part them.
+        style.tab.tab_body.stroke = egui::Stroke::NONE;
+        style.main_surface_border_stroke = egui::Stroke::NONE;
+        DockArea::new(&mut dock)
+            .id(egui::Id::new("dock"))
+            .style(style)
+            .show_close_buttons(true)
+            .show_leaf_collapse_buttons(true)
+            .show_leaf_close_all_buttons(false)
+            .show_add_buttons(false)
+            .tab_context_menus(false)
+            .hidable_tab_bars(true)
+            .show_inside(
+                ui,
+                &mut Viewer {
+                    app: self,
+                    ctx: ctx.clone(),
+                },
+            );
+        self.panels.dock = dock;
+        self.panels.drawing = false;
+        for change in std::mem::take(&mut self.panels.pending) {
+            match change {
+                Change::Show(pane) => self.panels.show(pane),
+                Change::Front(pane) => self.panels.bring_to_front(pane),
+                Change::Fold(pane) => self.panels.fold(pane),
+            }
+        }
+        self.panels.settle();
     }
 }

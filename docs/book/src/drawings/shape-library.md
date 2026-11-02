@@ -9,8 +9,8 @@ holds drawn shapes and texts; a text stays a text, so a saved sign can get new w
 
 ## In the window
 
-The right panel has two tabs, **Properties** and **Shapes**. *Shapes* is the library: a
-search field, then the entries as small pictures with their names, the ones in no group
+The **Shapes** panel is the library, at the start a tab beside Properties on the right
+([arranged as you like](../window.md#arranging-the-panels)). It holds a search field, then the entries as small pictures with their names, the ones in no group
 first and each group under a header that folds.
 
 - **Insert:** drag an entry onto the canvas. Its outline follows the pointer, snapped as a

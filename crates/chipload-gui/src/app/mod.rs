@@ -1116,13 +1116,6 @@ impl ChiploadApp {
         }
     }
 
-    /// Fold both side panels for the largest canvas, or open both again (View, P).
-    pub fn toggle_panels(&mut self) {
-        let open = !(self.panels.browser_open || self.panels.properties_open);
-        self.panels.browser_open = open;
-        self.panels.properties_open = open;
-    }
-
     /// Add a rest pass to pocket `i`, cut with `tool` (docs/specs/rest-passes.md §6), and
     /// open it. False, with the reason shown, when it can't be added.
     pub fn add_rest_pass(&mut self, i: usize, tool: i64) -> bool {
@@ -2126,23 +2119,7 @@ impl eframe::App for ChiploadApp {
             .show(ui, |ui| self.top_bar(ui));
         Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
         Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
-        self.report_panel(ui);
-        self.side_panels(ui);
-        CentralPanel::no_frame().show(ui, |ui| {
-            // Asked once whether to check for new versions (docs/specs/update-notice.md §2).
-            if self.update_question_shown() {
-                Panel::top("update-question").show(ui, |ui| self.update_bar(ui));
-            }
-            if self.edit.is_some() && self.playback.is_some() && self.display.simulate {
-                Panel::bottom("playback").show(ui, |ui| self.playback_bar(ui));
-                self.sync_playback(&ctx);
-            }
-            if self.edit.is_some() {
-                self.canvas(ui);
-            } else {
-                self.start_screen(ui);
-            }
-        });
+        CentralPanel::no_frame().show(ui, |ui| self.dock_area(ui));
         self.follow_properties();
         self.prompts(&ctx);
         self.about(&ctx);

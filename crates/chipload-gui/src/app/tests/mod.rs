@@ -11,6 +11,7 @@ mod corner_choices;
 mod cycle_time;
 mod delete_selection;
 mod disk_changes;
+mod dock;
 mod drawing;
 mod drawn_box;
 mod frames;

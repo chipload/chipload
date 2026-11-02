@@ -5,7 +5,7 @@
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 
-use super::super::layout::RightTab;
+use super::super::layout::Pane;
 use super::*;
 
 /// A settings folder of its own for each test.
@@ -66,6 +66,23 @@ fn click_at(harness: &mut Harness<'_, ChiploadApp>, pos: egui::Pos2) {
     harness.run_steps(3);
 }
 
+/// Click a dock tab on its title, at its left end: a narrow tab's middle can be its ×.
+fn click_tab(harness: &mut Harness<'_, ChiploadApp>, title: &str) {
+    let rect = harness.get_by_label(title).rect();
+    let at = egui::pos2(rect.min.x + 6.0, rect.center().y);
+    harness.hover_at(at);
+    harness.run_steps(1);
+    for pressed in [true, false] {
+        harness.event(egui::Event::PointerButton {
+            pos: at,
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+        harness.run_steps(1);
+    }
+}
+
 fn shape_count(harness: &Harness<'_, ChiploadApp>) -> usize {
     harness
         .state()
@@ -82,9 +99,9 @@ fn shape_count(harness: &Harness<'_, ChiploadApp>) -> usize {
 fn the_selection_is_saved_then_dragged_onto_the_canvas() {
     let dir = settings("save-drag");
     let mut harness = sign(dir.clone());
-    harness.get_by_label("SHAPES").click();
+    click_tab(&mut harness, "Shapes");
     harness.run_steps(2);
-    assert_eq!(harness.state().panels.right_tab, RightTab::Shapes);
+    assert!(harness.state().panels.is_shown(Pane::Shapes));
     harness.get_by_label("Save selection…").click();
     harness.run_steps(3);
     // The text's words are the name suggested.
@@ -150,7 +167,9 @@ fn selected_shapes_carried_onto_the_tab_are_saved_not_moved() {
         .state()
         .view
         .to_screen((150.0 - 132.314 / 2.0, 80.0));
-    let tab = harness.get_by_label("SHAPES").rect().center();
+    // Onto the tab's title, clear of its ×.
+    let rect = harness.get_by_label("Shapes").rect();
+    let tab = egui::pos2(rect.min.x + 6.0, rect.center().y);
     harness.drag_at(grab);
     harness.run_steps(2);
     for step in 1..=4 {
@@ -162,7 +181,7 @@ fn selected_shapes_carried_onto_the_tab_are_saved_not_moved() {
     harness.run_steps(3);
     let app = harness.state();
     assert_eq!(app.edit.as_ref().unwrap().job.drawing, before, "not moved");
-    assert_eq!(app.panels.right_tab, RightTab::Shapes);
+    assert!(app.panels.is_shown(Pane::Shapes));
     assert!(matches!(
         app.shape_library.asking,
         Some(super::super::shape_library::Asking::Save { .. })
@@ -173,14 +192,14 @@ fn selected_shapes_carried_onto_the_tab_are_saved_not_moved() {
 fn a_browser_item_brings_properties_back_and_the_canvas_selection_does_not() {
     let dir = settings("tabs");
     let mut harness = sign(dir);
-    harness.get_by_label("SHAPES").click();
+    click_tab(&mut harness, "Shapes");
     harness.run_steps(2);
     harness.state_mut().selection = CanvasSelection::Shapes([5].into());
     harness.run_steps(2);
-    assert_eq!(harness.state().panels.right_tab, RightTab::Shapes);
+    assert!(harness.state().panels.is_shown(Pane::Shapes));
     harness.state_mut().focus = Focus::Op(0);
     harness.run_steps(2);
-    assert_eq!(harness.state().panels.right_tab, RightTab::Properties);
+    assert!(harness.state().panels.is_shown(Pane::Properties));
 }
 
 #[test]
@@ -192,7 +211,7 @@ fn an_entry_dragged_onto_a_group_moves_into_it() {
     chipload_pipeline::shape_library::save(&shapes, "Plate", &entry, false).unwrap();
     chipload_pipeline::shape_library::save(&shapes, "Frames/Oval", &entry, false).unwrap();
     let mut harness = sign(dir);
-    harness.get_by_label("SHAPES").click();
+    click_tab(&mut harness, "Shapes");
     harness.run_steps(3);
     let from = harness.get_by_label("Plate").rect().center();
     let to = harness.get_by_label("Oval").rect().center();

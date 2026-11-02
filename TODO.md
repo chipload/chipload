@@ -131,10 +131,11 @@ it's built (see `CLAUDE.md`).
      `toolpath` (the run state), `recovery`, `clipboard`, `prefs`, `user` (settings folder,
      library), `display`. The rest is the window's core (project, focus, selection,
      contours, scene, view) and small items.
-  6. **Dockable panels**: spec docs/specs/dockable-panels.md, **draft 2026-11-02, for
-     review** (decisions 1-7: egui_dock 0.21.1, the canvas fixed, the Report dockable, no
-     floating windows, P hides every panel, `layout.json` in Chipload's own terms, one
-     layout per user). The ADR comes with step 1.
+  6. **Dockable panels**: spec docs/specs/dockable-panels.md, agreed 2026-11-02
+     (decisions 1-7 as recommended), ADR 0028. **Step 1 done 2026-11-02:** egui_dock 0.21.1,
+     the dock with today's layout, the canvas fixed, View > Panels and Reset layout, P hides
+     every panel, the Report a panel (its warnings on its tab). Next: step 2,
+     `layout.json`; step 3, the guide's screenshots renewed.
   7. **Review the operations not yet reviewed: follow path, holes and V-carve** (open
      since the reviews of profile and pocket). These drive the machine, so a review there
      finds more real bugs than any restructuring: boundaries (zero depth, depth equal to

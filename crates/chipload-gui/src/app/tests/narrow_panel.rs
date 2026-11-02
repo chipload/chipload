@@ -86,15 +86,18 @@ fn every_properties_page_fits_the_narrowest_panel() {
 }
 
 #[test]
-fn p_folds_both_side_panels_and_opens_them_again() {
+fn p_hides_every_panel_and_brings_them_back_as_they_were() {
+    use crate::app::layout::Pane;
     let mut app = lower_part();
-    assert!(app.panels.browser_open && app.panels.properties_open);
-    app.toggle_panels();
-    assert!(!app.panels.browser_open && !app.panels.properties_open);
-    app.toggle_panels();
-    assert!(app.panels.browser_open && app.panels.properties_open);
-    // One folded: P folds the other too.
-    app.panels.properties_open = false;
-    app.toggle_panels();
-    assert!(!app.panels.browser_open && !app.panels.properties_open);
+    let open = |app: &ChiploadApp| Pane::PANELS.map(|p| app.panels.is_open(p));
+    assert_eq!(open(&app), [true; 4]);
+    app.panels.close(Pane::Shapes);
+    app.panels.toggle_hidden();
+    assert_eq!(open(&app), [false; 4]);
+    app.panels.toggle_hidden();
+    assert_eq!(open(&app), [true, true, false, true], "as they were");
+    // A panel asked for while hidden brings the others back too.
+    app.panels.toggle_hidden();
+    app.panels.show(Pane::Properties);
+    assert_eq!(open(&app), [true, true, false, true]);
 }

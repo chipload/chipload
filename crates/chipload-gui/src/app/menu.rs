@@ -2,6 +2,7 @@
 //! Keyboard shortcuts, the menus' items (shown from the header, header.rs) and the status
 //! bar.
 
+use super::layout::Pane;
 use super::shortcuts::{self, Action, with_keys};
 use super::*;
 use crate::i18n::Lang;
@@ -430,24 +431,42 @@ impl ChiploadApp {
             self.set_show_rulers(rulers);
         }
         ui.checkbox(&mut self.display.legend_open, t!(ui, "menu-show-legend"));
-        ui.checkbox(&mut self.panels.browser_open, t!(ui, "menu-show-browser"));
-        ui.checkbox(
-            &mut self.panels.properties_open,
-            t!(ui, "menu-show-properties"),
-        );
+        // The panels: each opened or closed, every one hidden with P, the default layout
+        // back (docs/specs/dockable-panels.md §1).
+        ui.menu_button(t!(ui, "menu-panels"), |ui| {
+            for pane in Pane::PANELS {
+                let mut open = self.panels.is_open(pane);
+                if ui.checkbox(&mut open, pane.title(ui)).changed() {
+                    if open {
+                        self.panels.show(pane);
+                    } else {
+                        self.panels.close(pane);
+                    }
+                }
+            }
+            ui.separator();
+            if ui
+                .button(t!(ui, "menu-reset-layout"))
+                .on_hover_text(t!(ui, "menu-reset-layout-hover"))
+                .clicked()
+            {
+                self.panels.reset();
+                ui.close();
+            }
+        });
         if ui
             .button(with_keys(
-                &if self.panels.browser_open || self.panels.properties_open {
-                    t!(ui, "menu-fold-panels")
-                } else {
+                &if self.panels.hidden() {
                     t!(ui, "menu-open-panels")
+                } else {
+                    t!(ui, "menu-fold-panels")
                 },
                 Action::Panels,
             ))
             .on_hover_text(t!(ui, "menu-panels-hover"))
             .clicked()
         {
-            self.toggle_panels();
+            self.panels.toggle_hidden();
         }
         let mut auto = self.prefs.auto_generate;
         if ui
