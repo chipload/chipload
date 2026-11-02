@@ -26,7 +26,7 @@ it in the Browser (it is selected right after importing) for its properties:
   DPI, which is often missing or wrong.
 
 **On the canvas:** with the picture selected, its box shows handles (in top view):
-- the square in the **middle** moves it;
+- the square in the **middle** moves it, and so does dragging one of its lines;
 - the square beyond its right side **turns** it about its centre, in steps of 15°;
 - a **corner** square makes it larger or smaller, keeping its proportions; the opposite
   corner stays where it is. Its width is rounded to 0.1 mm.

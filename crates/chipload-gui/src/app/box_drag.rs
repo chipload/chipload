@@ -55,6 +55,11 @@ pub(super) struct BoxDrag {
     free: bool,
     /// How far the box stands off the shapes in it, mm (0 for a picture or text).
     pad: f64,
+    /// A picture or text dragged by its own lines rather than the Move handle: the box's
+    /// centre from the point grabbed, mm.
+    offset: Point,
+    /// Carried onto the shape library: saved there, not moved.
+    pub carried: bool,
 }
 
 impl ChiploadApp {
@@ -220,6 +225,34 @@ impl ChiploadApp {
     }
 
     pub fn start_box_drag(&mut self, handle: BoxHandle) {
+        self.start_box_drag_at(handle, (0.0, 0.0));
+    }
+
+    /// A drag starting at `at` (drawing coordinates) on the contour `picked`, a line of the
+    /// selected picture or text: it moves the picture or text whole, as its Move handle
+    /// does, grabbed where it was (or carries it onto the shape library). False when that
+    /// isn't what is picked.
+    pub fn start_whole_drag(&mut self, picked: Option<usize>, at: Point) -> bool {
+        let Some(picked) = picked else {
+            return false;
+        };
+        if !matches!(self.selection, CanvasSelection::Whole { .. })
+            || !self.selected_ids().contains(&picked)
+        {
+            return false;
+        }
+        let Some((BoxOf::Whole(Source::Image(_) | Source::Text(_)), placed)) = self.selected_box()
+        else {
+            return false;
+        };
+        // Grabbed where it snaps, as drawn shapes are: that point lands where the cursor snaps.
+        let at = self.snap_world(at, false, false);
+        let (cx, cy) = placed.center();
+        self.start_box_drag_at(BoxHandle::Move, (cx - at.0, cy - at.1));
+        self.dragging_box()
+    }
+
+    fn start_box_drag_at(&mut self, handle: BoxHandle, offset: Point) {
         if let Some((of, start)) = self.selected_box() {
             let pad = match of {
                 BoxOf::Shapes(_) | BoxOf::Whole(Source::Group(_)) => {
@@ -234,6 +267,8 @@ impl ChiploadApp {
                 now: start,
                 free: false,
                 pad,
+                offset,
+                carried: false,
             });
         }
     }
@@ -245,6 +280,7 @@ impl ChiploadApp {
             return;
         };
         drag.free = free;
+        let to = (to.0 + drag.offset.0, to.1 + drag.offset.1);
         let dragged = match drag.handle {
             BoxHandle::Size(k) if drag.pad > 0.0 => size_shapes_box(&drag.start, drag.pad, k, to),
             handle => drag_box(&drag.start, handle, to, free),
@@ -345,6 +381,19 @@ impl ChiploadApp {
     /// A box handle is being dragged.
     pub(super) fn dragging_box(&self) -> bool {
         self.drag.boxed.is_some()
+    }
+
+    /// The dragged picture or text carried onto the shape library, or back off it: while
+    /// carried it stays where it was.
+    pub(super) fn carry_box(&mut self, carried: bool) {
+        if let Some(drag) = self.drag.boxed.as_mut()
+            && drag.handle == BoxHandle::Move
+        {
+            drag.carried = carried;
+            if carried {
+                drag.now = drag.start;
+            }
+        }
     }
 }
 

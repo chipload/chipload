@@ -228,13 +228,16 @@ fn an_entry_dragged_onto_a_group_moves_into_it() {
     assert!(!shapes.join("Plate.chipload-shapes").exists());
 }
 
-/// Selected shapes carried from the canvas to `to`, in steps as a hand would.
-fn carry(harness: &mut Harness<'_, ChiploadApp>, to: egui::Pos2) {
-    // The frame's left side (S5: 132.3 wide round (150, 80)).
-    let grab = harness
+/// The sign's frame grabbed on its left side (S5: 132.3 wide round (150, 80)).
+fn frame_side(harness: &Harness<'_, ChiploadApp>) -> egui::Pos2 {
+    harness
         .state()
         .view
-        .to_screen((150.0 - 132.314 / 2.0, 80.0));
+        .to_screen((150.0 - 132.314 / 2.0, 80.0))
+}
+
+/// What is under `grab` dragged on the canvas to `to`, in steps as a hand would.
+fn carry(harness: &mut Harness<'_, ChiploadApp>, grab: egui::Pos2, to: egui::Pos2) {
     harness.drag_at(grab);
     harness.run_steps(2);
     for step in 1..=4 {
@@ -259,7 +262,8 @@ fn shapes_carried_onto_the_tab_in_front_or_its_list_are_saved() {
         } else {
             egui::pos2(rect.min.x + 60.0, rect.max.y + 200.0)
         };
-        carry(&mut harness, to);
+        let grab = frame_side(&harness);
+        carry(&mut harness, grab, to);
         let app = harness.state();
         assert_eq!(
             app.edit.as_ref().unwrap().job.drawing,
@@ -274,4 +278,68 @@ fn shapes_carried_onto_the_tab_in_front_or_its_list_are_saved() {
             "onto the tab: {onto_tab}"
         );
     }
+}
+
+/// The traced picture of `vcarve_step_down` (picture 1 at (5, 5), 80 wide), selected whole
+/// by a click on its first outline; and that point on the screen.
+fn picture(settings: PathBuf) -> (Harness<'static, ChiploadApp>, egui::Pos2) {
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1400.0, 900.0))
+        .build_eframe(move |_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v35/vcarve_step_down.chipload")));
+            app.user.settings_dir = Some(settings);
+            app
+        });
+    harness.run_steps(4);
+    let on = harness.state().contours[0].parts[0].segment.prim.start();
+    let at = harness.state().view.to_screen(on);
+    click_at(&mut harness, at);
+    assert!(matches!(
+        harness.state().selection,
+        CanvasSelection::Whole {
+            of: Source::Image(1),
+            ..
+        }
+    ));
+    (harness, at)
+}
+
+fn picture_at(harness: &Harness<'_, ChiploadApp>) -> (f64, f64) {
+    let image = &harness.state().edit.as_ref().unwrap().job.drawing.images[0];
+    (image.x, image.y)
+}
+
+#[test]
+fn a_selected_picture_dragged_by_its_lines_moves_whole() {
+    let (mut harness, at) = picture(settings("picture-move"));
+    let scale = harness.state().view.scale as f32;
+    // 20 mm right and 10 mm up: the grabbed point (snapped onto the outline) lands on the
+    // grid point nearest the cursor, 5 mm steps here.
+    carry(
+        &mut harness,
+        at,
+        at + egui::vec2(20.0 * scale, -10.0 * scale),
+    );
+    let (x, y) = picture_at(&harness);
+    assert!(
+        (x - 25.0).abs() <= 2.5 && (y - 15.0).abs() <= 2.5,
+        "({x}, {y})"
+    );
+}
+
+#[test]
+fn a_selected_picture_carried_onto_the_tab_is_saved_not_moved() {
+    let (mut harness, at) = picture(settings("picture-carry"));
+    let rect = harness.get_by_label("Shapes").rect();
+    carry(
+        &mut harness,
+        at,
+        egui::pos2(rect.min.x + 6.0, rect.center().y),
+    );
+    assert_eq!(picture_at(&harness), (5.0, 5.0), "not moved");
+    assert!(matches!(
+        harness.state().shape_library.asking,
+        Some(super::super::shape_library::Asking::Save { .. })
+    ));
 }

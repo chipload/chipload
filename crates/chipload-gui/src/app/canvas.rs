@@ -171,14 +171,19 @@ impl ChiploadApp {
                     && self.drag_selects()
                 {
                     let picked = self.scene.pick(&self.view, origin);
-                    self.start_select_drag(picked, self.view.to_world(origin), shift, alt);
+                    let at = self.view.to_world(origin);
+                    if !self.start_whole_drag(picked, at) {
+                        self.start_select_drag(picked, at, shift, alt);
+                    }
                 }
             }
         }
         if response.drag_stopped() {
             // Selected shapes carried onto the shape library: saved there, not moved.
-            if self.drag.moving.as_ref().is_some_and(|m| m.carried) {
+            let box_carried = self.drag.boxed.as_ref().is_some_and(|b| b.carried);
+            if box_carried || self.drag.moving.as_ref().is_some_and(|m| m.carried) {
                 self.drag.moving = None;
+                self.drag.boxed = None;
                 if let Some(pos) = ui.input(|i| i.pointer.latest_pos()) {
                     self.drop_selection_on_library(pos);
                 }
@@ -232,8 +237,16 @@ impl ChiploadApp {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
-                let to = self.snap_world(self.view.to_world(pos), alt, true);
-                self.drag_box_to(to, alt);
+                // A picture or text grabbed by its lines can be carried onto the shape
+                // library, as drawn shapes are.
+                let carried = self.over_library(pos);
+                self.carry_box(carried);
+                if self.drag.boxed.as_ref().is_some_and(|b| b.carried) {
+                    self.paint_carried(ui.ctx(), pos);
+                } else {
+                    let to = self.snap_world(self.view.to_world(pos), alt, true);
+                    self.drag_box_to(to, alt);
+                }
             }
         } else if self.drag.moving.is_some() {
             if response.dragged()

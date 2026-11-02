@@ -19,8 +19,9 @@ first and each group under a header that folds.
   An entry of more than one shape or text comes in as a [group](groups.md) named after it,
   so one click selects it again later, to V-carve it for example.
   **Esc** while dragging lets go of it.
-- **Save:** select shapes and texts, then drag a drawn shape of the selection onto the
-  *Shapes* tab (onto its name when *Properties* is shown, or onto a group to save there),
+- **Save:** select shapes and texts, then drag a drawn shape of the selection, or a line
+  of the selected picture or text, onto the *Shapes* tab (onto its name, or onto a group
+  to save there),
   or click **Save selection…**, or right-click on the canvas: *Save to shape library…*. A
   name field opens, with the text's words or the layer's name in it; **Enter** saves. A
   name that is taken asks before it is replaced.
