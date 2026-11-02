@@ -409,14 +409,14 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             } else {
                 " (not on this computer: its letters are kept)"
             },
-            text.height,
+            mm(text.height),
             text.layer,
             match text.anchor {
                 TextAnchor::Corner => "corner",
                 TextAnchor::Center => "centre",
             },
-            text.x,
-            text.y,
+            mm(text.x),
+            mm(text.y),
             if text.rotation == 0.0 {
                 String::new()
             } else {
@@ -471,4 +471,15 @@ fn write(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
     }
     out.wrote(target, "");
     ExitCode::SUCCESS
+}
+
+/// A length for the listing, mm to a thousandth, without trailing zeros; never "-0".
+fn mm(value: f64) -> String {
+    let text = format!("{value:.3}");
+    let text = text.trim_end_matches('0').trim_end_matches('.');
+    if text == "-0" {
+        "0".to_string()
+    } else {
+        text.to_string()
+    }
 }
