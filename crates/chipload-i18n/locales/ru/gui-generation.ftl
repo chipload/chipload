@@ -1,0 +1,14 @@
+generation-no-project = Сначала импортируйте DXF или SVG либо откройте проект.
+generation-could-not-start = Не удалось начать расчёт: { $error }
+generation-cancelled = Расчёт отменён
+generation-worker-stopped = рабочий поток завершился без результата
+generation-check-failed = Проверка G-code НЕ ПРОЙДЕНА. Экспорт невозможен.
+generation-failed = Ошибка расчёта:
+generation-failed-unexpectedly = Непредвиденная ошибка расчёта: { $error }
+generation-please-report = Проект не изменён. Сообщите об ошибке, приложив файл проекта.
+generation-done = Создано строк: { $lines }, постпроцессор: { $post }. Проверка пройдена.
+generation-done-files = Создано строк: { $lines }, файлов: { $files }, по одному на группу инструментов, постпроцессор: { $post }. Проверка пройдена.
+generation-check-warning = Проверка: { $message }
+generation-work-zero = Ноль детали: { $zero }
+generation-one-part-shown = Показана только деталь «{ $part }» («Все детали» на панели рабочей области покажет остальные). Экспорт включает все обрабатываемые детали.
+generation-export-when-done = Экспорт после завершения расчёта траектории

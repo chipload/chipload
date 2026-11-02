@@ -1,0 +1,11 @@
+panels-no-project = Нет открытого проекта.
+panels-nothing-selected = Ничего не выделено. Нажмите на геометрию в рабочей области или элемент дерева проекта.
+panels-dxf-filter = Чертежи (DXF, SVG)
+panels-tagline = 2.5D CAM: из чертежей в проверенный G-code
+panels-new-project = Новый проект
+panels-new-project-hover = Пустой проект: начертите геометрию или импортируйте DXF либо SVG позже
+panels-import-dxf = Импортировать DXF или SVG…
+panels-import-dxf-hover = Новый проект из чертежа (Ctrl+I)
+panels-open-project = Открыть проект…
+panels-recent = Недавние
+panels-danger = Станки опасны. Перед резанием материала проверьте каждую программу в просмотрщике G-code и выполните пробный прогон над заготовкой без резания.
