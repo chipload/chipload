@@ -792,6 +792,11 @@ impl ChiploadApp {
             Ok(done) => {
                 edit.settings.drawing = done.job.drawing;
                 self.drawing_changed(&done.shapes);
+                // More than one thing comes in as a group, selected whole
+                // (docs/specs/shape-groups.md, decision 5).
+                if let Some(id) = done.group {
+                    self.selection = self.shape_group_selection(id, BTreeSet::new());
+                }
                 let text = t!(self, "shape-library-inserted", name = name.to_string());
                 self.set_status(text, STATUS_SECONDS);
                 true

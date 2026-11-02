@@ -376,6 +376,10 @@ impl ChiploadApp {
             Focus::Text(id) => {
                 self.remove_text(id);
             }
+            // A whole group goes with its shapes and texts (docs/specs/shape-groups.md §2).
+            _ if self.selected_group().is_some() => {
+                self.delete_selected_group();
+            }
             _ => self.delete_selected_shapes(),
         }
     }

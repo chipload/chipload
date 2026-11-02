@@ -92,3 +92,5 @@ shortcuts-draw-polygon = Disegna un poligono
 shortcuts-offset = Offset delle forme selezionate
 shortcuts-trim = Taglia forme disegnate
 shortcuts-construction = Geometria di costruzione: per le prossime forme disegnate, o la selezione
+shortcuts-group = Raggruppa la selezione
+shortcuts-ungroup = Separa

@@ -89,7 +89,10 @@ it's built (see `CLAUDE.md`).
 
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
-  spec drafted, decisions 1-10 to review.
+  **done 2026-11-02**, decisions 1-10 as recommended: `drawing.groups` (optional, no
+  bump), selected as a picture is (click whole, Ctrl+click leaves out, double-click one
+  shape), operations follow a group (`select.group`), Ctrl+G/Ctrl+Shift+G, `chipload
+  group …`, library inserts of several shapes come in as a group.
 
 - **Shape library in the right panel** (the user, 2026-11-02: "a tab in the right panel
   where I can drag and drop shapes from the library to the canvas … and also the other way

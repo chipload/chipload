@@ -18,6 +18,8 @@ pub(super) struct MoveDrag {
     /// Over the shape library's tab: not moved, saved there when dropped
     /// (docs/specs/shape-library.md §5.1).
     pub carried: bool,
+    /// The group being moved, its texts too (docs/specs/shape-groups.md §2).
+    pub group: Option<u64>,
 }
 
 impl ChiploadApp {
@@ -38,6 +40,20 @@ impl ChiploadApp {
     /// shapes there move, else a selection box opens. `add`: Shift was held (an unselected
     /// shape is added to the selection before it moves). `free`: Alt, no snapping.
     pub fn start_select_drag(&mut self, picked: Option<usize>, at: Point, add: bool, free: bool) {
+        // A shape of the selected group moves the whole group.
+        if let Some(id) = self.selected_group()
+            && picked.and_then(|c| self.group_of_contour(c)) == Some(id)
+        {
+            let grab = self.snap_world(at, free, false);
+            self.drag.moving = Some(MoveDrag {
+                ids: Vec::new(),
+                grab,
+                to: grab,
+                carried: false,
+                group: Some(id),
+            });
+            return;
+        }
         match self.shapes_to_move(picked, add) {
             Some(ids) => {
                 let grab = self.snap_world(at, free, false);
@@ -46,6 +62,7 @@ impl ChiploadApp {
                     grab,
                     to: grab,
                     carried: false,
+                    group: None,
                 });
             }
             None => self.drag.select_box = Some((at, at)),
@@ -103,8 +120,16 @@ impl ChiploadApp {
             return;
         };
         self.scene.snap_mark = None;
-        if moving.to != moving.grab {
-            self.transform_shapes(&moving.ids, moving.grab, moving.to, 1.0, 0.0);
+        if moving.to == moving.grab {
+            return;
+        }
+        match moving.group {
+            Some(id) => {
+                self.transform_group(id, moving.grab, moving.to, 1.0, 0.0);
+            }
+            None => {
+                self.transform_shapes(&moving.ids, moving.grab, moving.to, 1.0, 0.0);
+            }
         }
     }
 
@@ -115,6 +140,9 @@ impl ChiploadApp {
         };
         if moving.to == moving.grab {
             return Vec::new();
+        }
+        if let Some(id) = moving.group {
+            return self.group_outlines(id, moving.grab, moving.to, 1.0, 0.0);
         }
         let (from, to) = ([moving.grab.0, moving.grab.1], [moving.to.0, moving.to.1]);
         edit.settings

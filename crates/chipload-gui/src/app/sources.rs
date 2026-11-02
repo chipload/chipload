@@ -39,6 +39,8 @@ pub(super) enum GroupKind {
     Image(u64),
     Text(u64),
     Drawn,
+    /// A group of drawn shapes and texts, by id (docs/specs/shape-groups.md §5).
+    Shapes(u64),
 }
 
 /// A project changed by exploding or joining, with its report, or why not.
@@ -68,6 +70,9 @@ enum PanelAction {
     AddDxf,
     AddImage,
     AddText,
+    /// A group's row: ungroup it, or delete it with its shapes and texts.
+    Ungroup(u64),
+    DeleteGroup(u64),
 }
 
 impl ChiploadApp {
@@ -78,7 +83,10 @@ impl ChiploadApp {
         };
         let drawing = &edit.settings.drawing;
         let mut counts: BTreeMap<String, (usize, BTreeMap<String, usize>)> = BTreeMap::new();
-        for shape in &drawing.shapes {
+        // A grouped drawn shape is listed under its group, not again under its kind.
+        let grouped =
+            |shape: &chipload_job::Shape| shape.is_drawn() && drawing.group_of(shape.id).is_some();
+        for shape in drawing.shapes.iter().filter(|s| !grouped(s)) {
             let entry = counts.entry(Drawing::group_key(shape)).or_default();
             entry.0 += 1;
             *entry.1.entry(shape.layer.clone()).or_default() += 1;
@@ -99,7 +107,7 @@ impl ChiploadApp {
                 for shape in drawing
                     .shapes
                     .iter()
-                    .filter(|s| Drawing::group_key(s) == key)
+                    .filter(|s| Drawing::group_key(s) == key && !grouped(s))
                 {
                     by_layer
                         .entry(shape.layer.clone())
@@ -159,6 +167,29 @@ impl ChiploadApp {
         ] {
             push(key.into(), title, GroupKind::Drawn);
         }
+        // The groups of drawn shapes and texts, after the shapes by kind.
+        let mut shape_groups = Vec::new();
+        for g in &drawing.groups {
+            let shapes: Vec<Member> = drawing
+                .shapes
+                .iter()
+                .filter(|s| g.shapes.contains(&s.id))
+                .map(|s| (s.id, s.name.clone()))
+                .collect();
+            shape_groups.push(Group {
+                key: format!("group:{}", g.id),
+                title: g.name.clone(),
+                kind: GroupKind::Shapes(g.id),
+                shapes: shapes.len() + g.texts.len(),
+                layers: Vec::new(),
+                members: if shapes.is_empty() {
+                    Vec::new()
+                } else {
+                    vec![(String::new(), shapes)]
+                },
+            });
+        }
+        groups.extend(shape_groups);
         groups
     }
 
@@ -333,6 +364,9 @@ impl ChiploadApp {
         if let Some(source) = source {
             return CanvasSelection::Source(source);
         }
+        if let Some(id) = key.strip_prefix("group:").and_then(|id| id.parse().ok()) {
+            return self.shape_group_selection(id, BTreeSet::new());
+        }
         let Some(edit) = &self.edit else {
             return CanvasSelection::Nothing;
         };
@@ -476,6 +510,14 @@ impl ChiploadApp {
             Some(PanelAction::AddDxf) => self.ask_add_dxf(),
             Some(PanelAction::AddImage) => self.import_image_dialog(),
             Some(PanelAction::AddText) => self.start_text(),
+            Some(PanelAction::Ungroup(id)) => {
+                self.selection = self.shape_group_selection(id, BTreeSet::new());
+                self.ungroup_selected();
+            }
+            Some(PanelAction::DeleteGroup(id)) => {
+                self.selection = self.shape_group_selection(id, BTreeSet::new());
+                self.delete_selected_group();
+            }
             None => {}
         }
     }
@@ -492,14 +534,20 @@ impl ChiploadApp {
             (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
             (GroupKind::Drawn, "drawn:polygon") => Icon::Polygon,
             (GroupKind::Drawn, _) => Icon::Paths,
+            (GroupKind::Shapes(_), _) => Icon::Frame,
         };
         let id = egui::Id::new(("browser-group", &group.key));
         let open_id = id.with("folder-open");
         let has_layers = !group.layers.is_empty() || !group.members.is_empty();
         let open_first = group.members.is_empty() || group.shapes <= OPEN_GROUP_MOST;
         let open = has_layers && super::browser::folder_open(ui, open_id, open_first);
-        let mut row = Row::new(id, 2, &group.title)
-            .eye(!hidden)
+        let shape_group = matches!(group.kind, GroupKind::Shapes(_));
+        let mut row = Row::new(id, 2, &group.title);
+        // A group has no eye of its own: its shapes show and hide by their layers.
+        if !shape_group {
+            row = row.eye(!hidden);
+        }
+        let mut row = row
             .icon(icon)
             .trailing(group.shapes.to_string())
             .dim(hidden)
@@ -507,6 +555,9 @@ impl ChiploadApp {
                 // Some of it left out: still its row (docs/specs/leave-out-shapes.md §5).
                 (CanvasSelection::Except(from, _), CanvasSelection::Source(source)) => {
                     *from == source
+                }
+                (CanvasSelection::Group { id, .. }, CanvasSelection::Group { id: whole, .. }) => {
+                    *id == whole
                 }
                 (selection, whole) => *selection == whole,
             });
@@ -523,7 +574,7 @@ impl ChiploadApp {
             match group.kind {
                 GroupKind::Dxf(dxf) => *action = Some(PanelAction::Place(dxf)),
                 GroupKind::Image(image) => *action = Some(PanelAction::EditImage(image)),
-                GroupKind::Text(_) | GroupKind::Drawn => {}
+                GroupKind::Text(_) | GroupKind::Drawn | GroupKind::Shapes(_) => {}
             }
         } else if out.response.clicked() {
             *action = Some(PanelAction::SelectGroup(group.key.clone()));
@@ -533,10 +584,24 @@ impl ChiploadApp {
             GroupKind::Image(_) => t!(ui, "sources-image-hover"),
             GroupKind::Text(_) => t!(ui, "sources-text-hover"),
             GroupKind::Drawn => t!(ui, "sources-drawn-hover"),
+            GroupKind::Shapes(_) => t!(ui, "groups-row-hover"),
         };
         out.response.on_hover_text(hover).context_menu(|ui| {
             if ui.button(t!(ui, "sources-select")).clicked() {
                 *action = Some(PanelAction::SelectGroup(group.key.clone()));
+            }
+            if let GroupKind::Shapes(id) = group.kind {
+                if ui.button(t!(ui, "groups-ungroup")).clicked() {
+                    *action = Some(PanelAction::Ungroup(id));
+                }
+                if ui
+                    .button(t!(ui, "groups-delete"))
+                    .on_hover_text(t!(ui, "groups-delete-hover"))
+                    .clicked()
+                {
+                    *action = Some(PanelAction::DeleteGroup(id));
+                }
+                return;
             }
             if ui
                 .button(if hidden {
@@ -608,7 +673,7 @@ impl ChiploadApp {
                         *action = Some(PanelAction::RemoveText(text));
                     }
                 }
-                GroupKind::Drawn => {}
+                GroupKind::Drawn | GroupKind::Shapes(_) => {}
             }
         });
         if !open {
@@ -622,7 +687,7 @@ impl ChiploadApp {
             GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
             GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
             GroupKind::Text(text) => Some(ShapeFrom::Text(text)),
-            GroupKind::Drawn => None,
+            GroupKind::Drawn | GroupKind::Shapes(_) => None,
         };
         for (layer, count) in &group.layers {
             let key = Drawing::layer_key(&group.key, layer);

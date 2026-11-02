@@ -445,7 +445,21 @@ impl ChiploadApp {
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
                 let picked = self.scene.pick(&self.view, pos);
-                self.click(picked, toggle);
+                // A double-click on a grouped shape picks it alone, to work on it
+                // (docs/specs/shape-groups.md, decision 3).
+                let inside = response
+                    .double_clicked()
+                    .then_some(picked)
+                    .flatten()
+                    .filter(|id| self.group_of_contour(*id).is_some());
+                if let Some(contour) =
+                    inside.and_then(|id| self.contours.iter().find(|c| c.id == id))
+                {
+                    self.selection = CanvasSelection::Shapes(shapes_of(contour));
+                    self.focus = Focus::Selection;
+                } else {
+                    self.click(picked, toggle);
+                }
             }
         }
         let outline = self.box_outline();
@@ -560,6 +574,11 @@ impl ChiploadApp {
                     (None, None) => {
                         ui.label(t!(ui, "canvas-right-click-hint"));
                     }
+                }
+                // What can be done with the selection: groups, the shape library.
+                if context_start.is_none() && !self.framed_shape_ids().is_empty() {
+                    ui.separator();
+                    self.selection_menu(ui);
                 }
             });
         }

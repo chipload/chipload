@@ -20,6 +20,7 @@ editor-summary-whole-stock = tutto il grezzo
 editor-summary-dxf = disegno { $id }
 editor-summary-image = immagine { $id }
 editor-summary-text = testo { $id }
+editor-summary-group = gruppo { $id }
 # A drawing layer (user's name); the source is one of the three texts above.
 editor-summary-layer = layer { $layer }
 editor-summary-layer-of = layer { $layer } di { $source }

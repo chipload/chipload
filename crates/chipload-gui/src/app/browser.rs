@@ -1433,6 +1433,7 @@ impl ChiploadApp {
                 for line in self.selection_lines() {
                     ui.label(line);
                 }
+                self.group_section(ui);
                 self.array_form(ui);
                 self.frame_form(ui);
                 self.selected_shape_ui(ui);

@@ -16,6 +16,8 @@ first and each group under a header that folds.
 - **Insert:** drag an entry onto the canvas. Its outline follows the pointer, snapped as a
   drawn point is, and where you let go the middle of its box lands. Or double-click it: it
   goes in the middle of the view. Either way the new shapes are selected, as one undo step.
+  An entry of more than one shape or text comes in as a [group](groups.md) named after it,
+  so one click selects it again later, to V-carve it for example.
   **Esc** while dragging lets go of it.
 - **Save:** select shapes and texts, then drag a drawn shape of the selection onto the
   *Shapes* tab (onto its name when *Properties* is shown, or onto a group to save there),

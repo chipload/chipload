@@ -42,6 +42,13 @@ pub enum CanvasSelection {
     /// A whole DXF or image but the contours with these shapes, left out with Ctrl+click
     /// (docs/specs/leave-out-shapes.md §5). Never empty.
     Except(ShapeFrom, BTreeSet<u64>),
+    /// A whole group (docs/specs/shape-groups.md §5): its id, its shapes as they were when
+    /// it was picked (its texts' letters included), and those left out with Ctrl+click.
+    Group {
+        id: u64,
+        shapes: BTreeSet<u64>,
+        left_out: BTreeSet<u64>,
+    },
 }
 
 /// The shape ids a contour is made of.
@@ -88,6 +95,14 @@ impl CanvasSelection {
                 .filter(|c| shapes_of(c).is_disjoint(left_out))
                 .map(|c| c.id)
                 .collect(),
+            CanvasSelection::Group {
+                shapes, left_out, ..
+            } => contours
+                .iter()
+                .filter(|c| !shapes_of(c).is_disjoint(shapes))
+                .filter(|c| shapes_of(c).is_disjoint(left_out))
+                .map(|c| c.id)
+                .collect(),
             CanvasSelection::Layer(layer, from) => contours
                 .iter()
                 .filter(|c| c.layers().iter().any(|l| l.eq_ignore_ascii_case(layer)))
@@ -120,6 +135,13 @@ impl CanvasSelection {
             CanvasSelection::Except(from, left_out) => Selector {
                 exclude: Some(left_out.iter().copied().collect()),
                 ..CanvasSelection::Source(*from).selector(contours, open)
+            },
+            // An operation made from a group follows it (docs/specs/shape-groups.md,
+            // decision 8).
+            CanvasSelection::Group { id, left_out, .. } => Selector {
+                group: Some(*id),
+                exclude: (!left_out.is_empty()).then(|| left_out.iter().copied().collect()),
+                ..Selector::default()
             },
             CanvasSelection::Layer(layer, from) => Selector {
                 layer: Some(layer.clone()),
@@ -741,7 +763,7 @@ impl EditJob {
 
     /// The project as it stands, complete or not, its cuts through the stock following the
     /// thickness as set now.
-    fn job(&self) -> Job {
+    pub(crate) fn job(&self) -> Job {
         let mut job = self.settings.clone();
         job.operations = self.ops.iter().map(|e| e.op.clone()).collect();
         job.follow_thickness();
@@ -790,7 +812,9 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour], lang: &impl Lang) 
         (Some(dxf), _, _) => Some(t!(lang, "editor-summary-dxf", id = dxf)),
         (_, Some(image), _) => Some(t!(lang, "editor-summary-image", id = image)),
         (_, _, Some(text)) => Some(t!(lang, "editor-summary-text", id = text)),
-        _ => None,
+        _ => select
+            .group
+            .map(|id| t!(lang, "editor-summary-group", id = id)),
     };
     if let Some(layer) = &select.layer {
         return match source {

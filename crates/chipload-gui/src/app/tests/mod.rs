@@ -14,6 +14,7 @@ mod drawing;
 mod drawn_box;
 mod frames;
 mod generating;
+mod groups;
 mod handles;
 mod header;
 mod holding;

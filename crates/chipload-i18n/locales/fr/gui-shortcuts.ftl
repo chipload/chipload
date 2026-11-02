@@ -92,3 +92,5 @@ shortcuts-draw-polygon = Dessiner un polygone
 shortcuts-offset = Décaler les formes sélectionnées
 shortcuts-trim = Ajuster des formes dessinées
 shortcuts-construction = Géométrie de construction : pour les prochaines formes dessinées, ou la sélection
+shortcuts-group = Grouper la sélection
+shortcuts-ungroup = Dégrouper

@@ -26,6 +26,8 @@ pub(super) enum BoxOf {
     Source(ShapeFrom),
     /// Drawn shapes, by id.
     Shapes(Vec<u64>),
+    /// A group, its texts too (docs/specs/shape-groups.md §2).
+    Group(u64),
 }
 
 /// What a box's size was worked out from, so it is worked out again only when that changes.
@@ -72,6 +74,18 @@ impl ChiploadApp {
         }
         if let CanvasSelection::Shapes(_) = self.selection {
             return self.shapes_box();
+        }
+        if let Some(id) = self.selected_group() {
+            let ((x0, y0), (x1, y1)) = self.group_box(id)?;
+            let pad = SHAPES_BOX_PAD_PX / self.view.scale;
+            return Some((
+                BoxOf::Group(id),
+                PlacedBox {
+                    corner: (x0 - pad, y0 - pad),
+                    size: (x1 - x0 + 2.0 * pad, y1 - y0 + 2.0 * pad),
+                    rotation: 0.0,
+                },
+            ));
         }
         let CanvasSelection::Source(from) = self.selection else {
             return None;
@@ -160,6 +174,19 @@ impl ChiploadApp {
             .find(|(h, _)| *h == BoxHandle::Turn)
             .map_or(edge, |(_, p)| p);
         let mut lines = vec![vec![c[0], c[1], c[2], c[3], c[0]], vec![edge, turn]];
+        // A group follows the box while it is dragged, its letters too.
+        if let Some(BoxDrag {
+            of: BoxOf::Group(id),
+            start,
+            now,
+            pad,
+            ..
+        }) = &self.drag.boxed
+            && now != start
+        {
+            let (from, to, scale, degrees) = box_transform(start, now, *pad);
+            lines.extend(self.group_outlines(*id, from, to, scale, degrees));
+        }
         // Drawn shapes follow the box while it is dragged.
         if let Some(BoxDrag {
             of: BoxOf::Shapes(ids),
@@ -196,7 +223,7 @@ impl ChiploadApp {
     pub fn start_box_drag(&mut self, handle: BoxHandle) {
         if let Some((of, start)) = self.selected_box() {
             let pad = match of {
-                BoxOf::Shapes(_) => SHAPES_BOX_PAD_PX / self.view.scale,
+                BoxOf::Shapes(_) | BoxOf::Group(_) => SHAPES_BOX_PAD_PX / self.view.scale,
                 BoxOf::Source(_) => 0.0,
             };
             self.drag.boxed = Some(BoxDrag {
@@ -242,6 +269,11 @@ impl ChiploadApp {
         if let BoxOf::Shapes(ids) = &drag.of {
             let (from, to, scale, degrees) = box_transform(&drag.start, &drag.now, drag.pad);
             self.transform_shapes(ids, from, to, scale, degrees);
+            return;
+        }
+        if let BoxOf::Group(id) = drag.of {
+            let (from, to, scale, degrees) = box_transform(&drag.start, &drag.now, drag.pad);
+            self.transform_group(id, from, to, scale, degrees);
             return;
         }
         let Some(edit) = self.edit.as_ref() else {

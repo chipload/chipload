@@ -14,7 +14,23 @@ impl ChiploadApp {
     /// Keep the selected drawn shapes for pasting. Returns the text for the system
     /// clipboard (egui only reports Ctrl+V when that holds text).
     pub fn copy_selected_shapes(&mut self) -> Option<String> {
-        let (ids, imported) = self.deletable_shapes();
+        // A whole group copies its drawn shapes, and pastes as a group.
+        let group = self.selected_group();
+        let (ids, imported) = match group {
+            Some(id) => {
+                let drawn = self.edit.as_ref().map(|e| {
+                    e.settings
+                        .drawing
+                        .groups
+                        .iter()
+                        .find(|g| g.id == id)
+                        .map(|g| g.shapes.clone())
+                        .unwrap_or_default()
+                });
+                (drawn.unwrap_or_default(), false)
+            }
+            None => self.deletable_shapes(),
+        };
         if ids.is_empty() {
             let why = if imported {
                 t!(self, "copy-paste-imported-no-copy")
@@ -29,6 +45,7 @@ impl ChiploadApp {
             Ok(shapes) => {
                 let text = clipboard_text(&shapes);
                 let n = shapes.len();
+                self.clipboard_group = group.is_some() && n > 1;
                 self.shape_clipboard = shapes;
                 let status = t!(self, "copy-paste-copied", count = n);
                 self.set_status(status, STATUS_SECONDS);
@@ -54,6 +71,7 @@ impl ChiploadApp {
             },
             None => self.shape_clipboard.clone(),
         };
+        let as_group = text.is_none() && self.clipboard_group;
         if shapes.is_empty() {
             self.set_status(t!(self, "copy-paste-copy-first"), STATUS_SECONDS);
             return false;
@@ -66,6 +84,9 @@ impl ChiploadApp {
             Ok((job, ids)) => {
                 edit.settings.drawing = job.drawing;
                 self.drawing_changed(&ids);
+                if as_group {
+                    self.group_selected();
+                }
                 let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
                 let text = t!(self, "copy-paste-pasted", shapes = names.join(", "));
                 self.set_status(text, STATUS_SECONDS);

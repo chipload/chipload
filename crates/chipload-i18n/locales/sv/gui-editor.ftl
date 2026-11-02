@@ -20,6 +20,7 @@ editor-summary-whole-stock = hela ämnet
 editor-summary-dxf = ritning { $id }
 editor-summary-image = bild { $id }
 editor-summary-text = text { $id }
+editor-summary-group = grupp { $id }
 # A drawing layer (user's name); the source is one of the three texts above.
 editor-summary-layer = lager { $layer }
 editor-summary-layer-of = lager { $layer } i { $source }

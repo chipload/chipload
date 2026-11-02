@@ -1,6 +1,25 @@
 # Spec: groups of drawn shapes
 
-Status: **draft 2026-11-02**, decisions 1-10 to review (8 changed, 9 and 10 added the same day).
+Status: **agreed and built 2026-11-02**, decisions 1-10 as recommended (the user: "Good go
+ahead").
+
+As built:
+- **Moving, turning and scaling** on the command line is `group move/turn/scale ID`, not
+  `--group` on `shape move` (§6): the group's id is the one thing they need.
+- **Ungroup refuses** a group with texts while an operation cuts it: an operation can't
+  name a text's letters by id, and cutting them silently differently is not allowed. The
+  message says to choose the operation's shapes again, or take the texts out first.
+- **Texts in a group** move, turn and scale with their letters moved as they are (no font
+  needed); their height and spacing scale. Their rows stay where texts are in the Browser;
+  the group's row lists its drawn shapes.
+- **A group's row** has no eye: its shapes show and hide by their layers and kinds.
+- **Members that are gone** (a shape deleted) are taken out by every edit
+  (`tidy_groups`); a gone member in a file is not a problem. A trimmed or combined shape's
+  new pieces join its group.
+- **Pasting a copied group** groups the pasted shapes; a group's texts aren't copied (texts
+  aren't copied at all yet).
+- **The canvas's right-click menu** got the selection's items: Group, Ungroup, Add to
+  group ▸, Remove from group, Save to shape library… (the last was only in DRAW ▾ before).
 
 The user (2026-11-02), about a traced picture saved to the shape library and inserted
 again: "If I save a traced image will the shapes be grouped when inserting or are they free

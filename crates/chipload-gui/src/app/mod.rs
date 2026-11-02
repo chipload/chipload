@@ -52,6 +52,7 @@ mod dxf_export;
 mod forms;
 mod frames;
 mod generation;
+mod groups;
 pub(crate) mod header;
 mod images;
 mod library_transfer;
@@ -413,6 +414,9 @@ pub struct ChiploadApp {
     pub measure: Option<measure::Measure>,
     /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
     shape_clipboard: Vec<(String, Geometry)>,
+    /// The shapes copied were a whole group: they paste as a new group
+    /// (docs/specs/shape-groups.md, decision 6).
+    clipboard_group: bool,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
     /// The shape's name field takes the keyboard next frame (Browser: Rename…).
@@ -571,6 +575,7 @@ impl Default for ChiploadApp {
             focus_text_field: false,
             measure: None,
             shape_clipboard: Vec::new(),
+            clipboard_group: false,
             shape_draft: None,
             grab_shape_name: false,
             drag: Drag::default(),
@@ -1940,6 +1945,29 @@ impl ChiploadApp {
         if picked.is_some() {
             self.focus = Focus::Selection;
         }
+        // A grouped shape selects its whole group; Ctrl+click on a shape of the selected
+        // group leaves it out and puts it back, as for a picture or a DXF
+        // (docs/specs/shape-groups.md §2, decision 10).
+        if let Some(group) = picked.and_then(|id| self.group_of_contour(id)) {
+            if !toggle {
+                self.selection = self.shape_group_selection(group, BTreeSet::new());
+                return;
+            }
+            if let CanvasSelection::Group { id, left_out, .. } = &self.selection
+                && *id == group
+                && let Some(contour) = picked.and_then(|c| self.contours.iter().find(|x| x.id == c))
+            {
+                let mut left_out = left_out.clone();
+                let hit = shapes_of(contour);
+                if hit.is_subset(&left_out) {
+                    left_out.retain(|s| !hit.contains(s));
+                } else {
+                    left_out.extend(hit);
+                }
+                self.selection = self.shape_group_selection(group, left_out);
+                return;
+            }
+        }
         // A traced contour selects its whole picture, a letter its whole text: their shapes
         // get new ids each time the picture is traced again or the text written again, so
         // operations select the picture or text, not its shapes (docs/specs/image-trace.md
@@ -1992,7 +2020,8 @@ impl ChiploadApp {
             (
                 CanvasSelection::Layer(..)
                 | CanvasSelection::Source(_)
-                | CanvasSelection::Except(..),
+                | CanvasSelection::Except(..)
+                | CanvasSelection::Group { .. },
                 true,
             ) => {
                 let ids = self.selection.ids(&self.contours);
@@ -2046,6 +2075,25 @@ impl ChiploadApp {
                     source = self.source_text(*from),
                     count = all - ids.len()
                 )
+            }
+            CanvasSelection::Group { id, left_out, .. } => {
+                let name = self
+                    .edit
+                    .as_ref()
+                    .and_then(|e| e.settings.drawing.groups.iter().find(|g| g.id == *id))
+                    .map_or_else(String::new, |g| g.name.clone());
+                if left_out.is_empty() {
+                    t!(self, "groups-selection", name = name)
+                } else {
+                    let all = self.shape_group_selection(*id, BTreeSet::new());
+                    let count = all.ids(&self.contours).len() - ids.len();
+                    t!(
+                        self,
+                        "groups-selection-left-out",
+                        name = name,
+                        count = count
+                    )
+                }
             }
             _ => t!(self, "app-selection-contours"),
         };

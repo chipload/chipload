@@ -12,6 +12,24 @@ shapes. A shape is in one group at most, and groups don't hold groups.
 
 Inserting a library entry of more than one shape or text makes a group named after it.
 
+## In the window
+
+- **Group:** select shapes and texts (Ctrl+click, or a box), then right-click > **Group**,
+  or **Ctrl+G**. With one group among them, the rest join it; with several, they become
+  one. Right-click > **Add to group ▸** adds the selection to a group you pick.
+- **Select:** a click on any shape or letter of a group selects all of it, and so does its
+  row in the Browser (under *Drawing*, with its shapes under it). **Ctrl+click** on shapes
+  of the selected group leaves them out of the selection and back in.
+- **One shape inside:** **double-click** it on the canvas, or click its row under the
+  group in the Browser. Then right-click > **Remove from group** takes it out of the group;
+  it stays where it is.
+- **Move, turn, scale:** drag any of its shapes, or the handles of its box: the texts in
+  it move, turn and scale too.
+- **Ungroup:** right-click > **Ungroup**, or **Ctrl+Shift+G**. **Del** deletes the group
+  with its shapes and texts. Properties shows its name, which you can change, what it
+  holds, and *Ungroup*.
+- **Copy and paste:** a whole group of drawn shapes pastes as a new group.
+
 ## Cutting a group
 
 Select the group and choose an operation, V-carve for example: it cuts the group as it is
