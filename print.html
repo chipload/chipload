@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.30.0 user guide</title>
+        <title>Chipload 0.31.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-edd296fe.js"></script>
+        <script src="toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -341,7 +341,8 @@ says what it found. Change your answer in <em>This computer &gt; Preferences &gt
 Behind a proxy, set <code>HTTPS_PROXY</code>.</p>
 <h2 id="your-settings"><a class="header" href="#your-settings">Your settings</a></h2>
 <p>Chipload keeps your tool library, machine profiles, own post-processors (in <code>posts/</code>),
-fonts for texts that you haven’t installed (in <code>fonts/</code>) and app settings in one folder:</p>
+fonts for texts that you haven’t installed (in <code>fonts/</code>), app settings and the arrangement
+of the window’s panels (<code>layout.json</code>) in one folder:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -390,7 +391,7 @@ top.</p>
 <li>
 <p><strong>Select what to cut:</strong></p>
 <ul>
-<li>click the outline on the canvas;</li>
+<li>double-click the outline on the canvas (a single click takes the whole DXF);</li>
 <li>Ctrl+click adds more;</li>
 <li>right-click selects a whole layer;</li>
 <li>or click a DXF or one of its layers in the Browser.</li>
@@ -509,11 +510,11 @@ guide, keyboard shortcuts, about) and the version.</li>
 </thead>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
-<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="#signs-and-frames">a frame for a sign</a>), Text, Image, Add DXF</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="#signs-and-frames">a frame for a sign</a>), Text, Image, DXF/SVG (add a DXF or SVG)</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
 <tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
-<tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme</td></tr>
+<tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme</td></tr>
 </tbody>
 </table>
 </div>
@@ -578,7 +579,7 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 pocket <em>Add rest pass ▸</em> (a <a href="#rest-machining-1">rest pass</a> shows under it), and
 <em>Delete</em>.</li>
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
-<li><strong>The Drawing folder:</strong> <em>Add DXF…</em> and <em>Import image…</em>.</li>
+<li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em> and <em>Import image…</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
@@ -719,18 +720,34 @@ DRAW ▾, and Ctrl+Shift+C).</li>
 selection</em> button counts it (“Use selection (3)”) and takes it as the operation’s geometry.
 With nothing picked, Properties says how to pick something.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"><span class="img-wrapper"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"></span></label></p>
-<h2 id="making-room-for-the-canvas"><a class="header" href="#making-room-for-the-canvas">Making room for the canvas</a></h2>
+<h2 id="arranging-the-panels"><a class="header" href="#arranging-the-panels">Arranging the panels</a></h2>
+<p>The <strong>Browser</strong>, <strong>Properties</strong>, <strong>Shapes</strong> (the <a href="#the-shape-library">shape library</a>)
+and the <strong>Report</strong> are panels round the canvas, each with a tab. At the start, the Browser
+is on the left, Properties and Shapes are two tabs on the right, and the Report is folded
+along the bottom. Arrange them as suits you:</p>
 <ul>
-<li><strong>Narrower panels:</strong> drag the edge between a panel and the canvas. The Properties panel
-goes down to about 250 pixels: its labels and fields get narrower, a button or a note
-beside a field moves under it, and a long section summary ends in “…”.</li>
-<li><strong>Folding a panel:</strong> drag its edge past its narrowest, or double-click the edge. It
-folds to a thin strip at the window’s side; the arrow on the strip opens it again.</li>
-<li><strong>Both at once:</strong> <strong>P</strong> folds the Browser and Properties together for the largest
-canvas, and opens them again. Also in <em>View</em>: <em>Show Browser</em>, <em>Show Properties</em>, <em>Fold
-both panels</em>.</li>
-<li>The <strong>Report</strong> at the bottom folds with its triangle.</li>
+<li><strong>Tabs together:</strong> drag a panel’s tab onto another panel’s tabs. Its tab joins theirs,
+and a click on a tab brings it to the front.</li>
+<li><strong>Side by side or stacked:</strong> drag a tab onto a panel’s edge: left, right, above or below.
+It splits that panel, for example Shapes under Properties to see both at once. Dropped on
+the canvas’s edge, it becomes a panel along that side of the window. Dropped on the
+canvas’s middle, it goes beside the canvas: the canvas is always a canvas of its own.</li>
+<li><strong>Sizes:</strong> drag the line between two panels. The Properties panel works down to about 250
+pixels: its labels and fields get narrower, a button or a note beside a field moves under
+it, and a long section summary ends in “…”. Narrower than that, it scrolls sideways.</li>
+<li><strong>Folding:</strong> the triangle at the left of a panel’s tabs folds it to its tab bar, and
+opens it again. The Report starts folded; a warning or an error opens it, and folded,
+its tab shows how many warnings it holds.</li>
+<li><strong>Closing:</strong> the × on a tab closes the panel. <em>View &gt; Panels</em> lists them all with a tick
+for those open: tick one to open it again where it goes at the start.</li>
+<li><strong>The largest canvas:</strong> <strong>P</strong> hides every panel, and brings them back as they were. Also
+<em>View &gt; Hide the panels</em>.</li>
+<li><strong>Back to the start:</strong> <em>View &gt; Panels &gt; Reset layout</em>.</li>
 </ul>
+<p>The arrangement is kept for the next start, the same for every project, in <code>layout.json</code>
+in your <a href="#your-settings">settings folder</a>. Should that file not be readable (one
+from a newer Chipload, say), the panels start as they do at first, the status bar says so,
+and the file is left as it is until you arrange the panels again.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="units-and-coordinates"><a class="header" href="#units-and-coordinates">Units and coordinates</a></h1>
 <ul>
@@ -1221,6 +1238,17 @@ changing the DXF. In the app, click the DXF in the <a href="#the-browser">Browse
 <p>Each row has a reset button: the position back to where the DXF has it, rotation 0, scale 1.
 A change applies when you finish the edit (Enter, Tab or releasing a drag), as one undo
 step.</p>
+<p><strong>On the canvas:</strong> click the drawing, and its box shows handles (in top view), as a
+picture’s does:</p>
+<ul>
+<li>the square in the <strong>middle</strong> moves it, and so does dragging one of its lines;</li>
+<li>the square beyond its side <strong>turns</strong> it about the box’s centre, in steps of 15° (Alt:
+1°); the box stays turned with it;</li>
+<li>a <strong>corner</strong> square scales it, the opposite corner staying where it is.</li>
+</ul>
+<p>Each drag is one undo step, and start points and tabs move with it. Dropped on the
+<em>Shapes</em> tab, it is saved to the <a href="#the-shape-library">shape library</a> instead of moved.
+A double-click picks one contour alone, for an operation that cuts only that.</p>
 <p>On the command line, <code>chipload place</code> (for a picture, <code>--image ID</code> with <code>--at</code>, <code>--rotate</code>
 and <code>--width</code>):</p>
 <div class="table-wrapper">
@@ -1346,7 +1374,9 @@ they can’t run until you give them geometry again.</li>
 <p>A DXF or an image selected as a whole, or one of its layers, follows the DXF when it is
 updated and the picture when it is traced again. In the app:</p>
 <ul>
-<li><strong>A click</strong> on a DXF or image in the Browser picks the whole DXF or image.</li>
+<li><strong>A click</strong> on a DXF or image in the Browser, or on one of its contours on the canvas,
+picks the whole DXF or image. A <strong>double-click</strong> on a DXF’s contour picks that contour
+alone.</li>
 <li><strong>A click</strong> on a layer in the Browser, or right-click <em>Select layer</em> on the canvas, picks
 that layer of that DXF only.</li>
 <li><strong>Leaving some out:</strong> with a whole DXF or picture selected, <strong>Ctrl+click</strong> a contour on the
@@ -1563,7 +1593,7 @@ drawn shapes are selected, have <em>Position</em> (the lower-left corner of the 
 type a value to move them there) and <em>Turn</em>: ⟲ 90, ⟳ 90, or type an angle and press
 Enter. A polyline keeps no angle of its own; turning moves its points.</li>
 <li><strong>In the Browser:</strong> under <em>Drawing</em>, the <em>Circles</em>, <em>Rectangles</em>, <em>Polylines</em> and
-<em>Polygons</em> groups list their shapes, in a folder per layer when there are several. Click a row to select the
+<em>Polygons</em> groups list their shapes in a folder per layer. Click a row to select the
 shape (Ctrl+click adds or removes); right-click to rename, copy or delete it. A group
 with more than 20 shapes starts closed.</li>
 <li><strong>Names:</strong> give a drawn shape a <em>Name</em> in its form (or <em>Rename…</em> in the Browser); the
@@ -1581,7 +1611,7 @@ with its file.</li>
 <li><strong>Undo:</strong> Ctrl+Z.</li>
 </ul>
 <p>Imported shapes can’t be edited: they change only with the DXF, unless you
-<a href="#exploding-a-dxf-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
+<a href="#exploding-a-dxf-picture-or-text-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
 <em>Draw &gt; Join ends…</em> (same page).</p>
 <h2 id="on-the-command-line-2"><a class="header" href="#on-the-command-line-2">On the command line</a></h2>
 <pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
@@ -1601,14 +1631,16 @@ chipload shape join part.chipload --gap 0.05   # join ends that almost meet
 <p>Bulges are as in DXF: tan(sweep / 4), 0 straight, 1 a counter-clockwise half circle, −1
 clockwise.</p>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="exploding-a-dxf-joining-ends"><a class="header" href="#exploding-a-dxf-joining-ends">Exploding a DXF, joining ends</a></h1>
+<h1 id="exploding-a-dxf-picture-or-text-joining-ends"><a class="header" href="#exploding-a-dxf-picture-or-text-joining-ends">Exploding a DXF, picture or text, joining ends</a></h1>
 <p>A DXF’s shapes are read-only: they change only when the DXF is
-<a href="#updating-from-a-new-dxf">updated</a>. To rework them in Chipload, <strong>explode</strong> the DXF: its shapes become
-drawn shapes, with handles, values you can type, copy, mirror and delete, like the ones you
+<a href="#updating-from-a-new-dxf">updated</a>. A traced picture’s shapes and a text’s letters are read-only too:
+they change only when the picture is traced again or the text is edited. To rework them in
+Chipload, <strong>explode</strong> the DXF, picture or text: its shapes become drawn shapes, with
+handles, values you can type, copy, mirror and delete, like the ones you
 <a href="#drawing-shapes">draw</a>.</p>
-<h2 id="explode"><a class="header" href="#explode">Explode</a></h2>
+<h2 id="explode-a-dxf"><a class="header" href="#explode-a-dxf">Explode a DXF</a></h2>
 <p>Right-click the DXF in the Browser, <em>Explode into shapes…</em>, or <em>Explode…</em> in its
-properties.</p>
+properties. With the whole DXF selected on the canvas, right-click there for the same.</p>
 <ul>
 <li><strong>The project forgets the DXF file.</strong> It leaves the Browser, and <em>Update from DXF</em> is
 no longer possible for these shapes. Ctrl+Z undoes it until the project is saved;
@@ -1622,6 +1654,22 @@ by number, so a layer of the same name elsewhere doesn’t join in; the report l
 every drawn circle does, so the cut may start elsewhere on them. The report names them.</li>
 </ul>
 <p>Tick <em>Join ends closer than</em> to join the exploded lines straight away (below).</p>
+<h2 id="explode-a-picture-or-a-text"><a class="header" href="#explode-a-picture-or-a-text">Explode a picture or a text</a></h2>
+<p>Right-click the picture or text in the Browser, <em>Explode into shapes…</em>; or select it on the
+canvas and right-click there.</p>
+<ul>
+<li><strong>A picture goes from the project</strong> with its trace settings: it is no longer shown under
+its shapes and can’t be traced again. The project file gets smaller by the picture.</li>
+<li><strong>A text’s words can’t be edited again;</strong> its letters stay where they are, each outline
+and each hole (the inside of an O) a shape of its own. A text in a
+<a href="#groups">group</a> is replaced there by its letters.</li>
+<li><strong>Operations keep cutting the same shapes,</strong> as for a DXF: an operation that cut the whole
+picture or text now selects its shapes by number. The G-code stays the same, apart from
+a V-carve’s depth now and then by 0.001 mm (arcs come back a hair different).</li>
+<li><strong>No join:</strong> traced outlines and letters are closed already. <em>Join ends</em> (below) is
+there if a centre-line trace needs it.</li>
+<li>Ctrl+Z undoes it until the project is saved.</li>
+</ul>
 <h2 id="join-ends"><a class="header" href="#join-ends">Join ends</a></h2>
 <p>A drawing made of separate lines and arcs whose ends almost meet can’t be pocketed: each
 piece is an open contour. <em>Draw &gt; Join ends…</em> joins open drawn polylines whose ends lie
@@ -1641,6 +1689,8 @@ still open with the distance to the nearest other end: the gap that would close 
 <h2 id="on-the-command-line-3"><a class="header" href="#on-the-command-line-3">On the command line</a></h2>
 <pre><code class="language-sh">chipload dxf explode part.chipload                  # the project's only DXF
 chipload dxf explode part.chipload 2 --join 0.05mm  # DXF 2, then join ends closer than 0.05 mm
+chipload image explode part.chipload                # the project's only picture (or give its id)
+chipload text explode part.chipload 2               # text 2
 chipload shape join part.chipload                   # every drawn shape, gap 0.01 mm
 chipload shape join part.chipload 12 13 14 --gap 0.1
 </code></pre>
@@ -1705,7 +1755,7 @@ DPI, which is often missing or wrong.</li>
 </ul>
 <p><strong>On the canvas:</strong> with the picture selected, its box shows handles (in top view):</p>
 <ul>
-<li>the square in the <strong>middle</strong> moves it;</li>
+<li>the square in the <strong>middle</strong> moves it, and so does dragging one of its lines;</li>
 <li>the square beyond its right side <strong>turns</strong> it about its centre, in steps of 15°;</li>
 <li>a <strong>corner</strong> square makes it larger or smaller, keeping its proportions; the opposite
 corner stays where it is. Its width is rounded to 0.1 mm.</li>
@@ -1782,10 +1832,12 @@ as outlines. With both kinds, the open lines are skipped, with a note.</li>
 none is open. Without a file dialog (see <a href="#installing">Install</a>), <em>File &gt; Import image from
 path…</em> takes the picture’s path instead.</p>
 <ul>
-<li><strong>Left:</strong> the picture as black and white, updated as you change the settings: the dark
-parts are what is traced. With <em>centre lines</em>, the lines are drawn over it in orange.
-<strong>Scroll</strong> over it to zoom in at the pointer, up to 32 times, <strong>drag</strong> to move about, and
-<strong>double-click</strong> to see all of it again.</li>
+<li><strong>Left:</strong> the picture as it will be carved, updated as you change the settings: light
+oak where the wood stays, dark brown for the black parts, which are traced and carved.
+The traced lines (outlines or centre lines) are drawn over it in thin blue; untick
+<strong>Show the traced lines</strong> to see the picture alone, to judge the threshold by its
+detail. <strong>Scroll</strong> over it to zoom in at the pointer, up to 32 times, <strong>drag</strong> to move
+about, and <strong>double-click</strong> to see all of it again.</li>
 <li><strong>Right:</strong> the conversion settings, and what was traced (with the threshold <em>auto</em>
 picked). The size, place and layer are not here: they are the picture’s properties.</li>
 <li><strong>Import:</strong> puts the shapes into the project and selects the image, so <strong>V-carve</strong> carves
@@ -1800,6 +1852,8 @@ position, rotation, width or layer in Properties.</li>
 same window opens (its button says <strong>Apply</strong>).</li>
 <li><strong>Remove it:</strong> right-click &gt; <strong>Remove</strong> removes the picture and its shapes; so does
 <strong>Del</strong> with the picture selected.</li>
+<li><strong>Edit its shapes by hand:</strong> right-click &gt; <strong>Explode into shapes…</strong> makes them drawn
+shapes and takes the picture out of the project (<a href="#exploding-a-dxf-picture-or-text-joining-ends">Exploding</a>).</li>
 <li><strong>See it:</strong> <strong>Images</strong> on the canvas’s navigation bar (or <em>View &gt; Show images</em>) shows the
 pictures faintly on the stock top, over the simulated stock and under the drawing, in
 top view and 3D, for comparing the traced shapes, and the cut, with the picture.</li>
@@ -1874,10 +1928,12 @@ kerning included (in a serif font, “AV” sits closer than “A V”);</li>
 </ul>
 <p>Each change applies when you finish the edit, as one undo step: <strong>Ctrl+Z</strong> brings the
 earlier text back. An operation that selects the text follows the change.</p>
-<p><strong>Del</strong> removes the selected text with its letters (as <em>Remove</em> on its Browser row does).</p>
+<p><strong>Del</strong> removes the selected text with its letters (as <em>Remove</em> on its Browser row does).
+To edit the letters by hand, right-click &gt; <strong>Explode into shapes…</strong>: they become drawn
+shapes, and the words can no longer be edited (<a href="#exploding-a-dxf-picture-or-text-joining-ends">Exploding</a>).</p>
 <p><strong>On the canvas:</strong> with the text selected, its box shows handles (in top view):</p>
 <ul>
-<li>the square in the <strong>middle</strong> moves it;</li>
+<li>the square in the <strong>middle</strong> moves it, and so does dragging one of its lines;</li>
 <li>the square beyond its right side <strong>turns</strong> it about its centre, in steps of 15°;</li>
 <li>a <strong>corner</strong> square makes it larger or smaller, keeping its proportions; the opposite
 corner stays where it is. Its height is rounded to 0.1 mm.</li>
@@ -1948,7 +2004,8 @@ chipload text fonts                                           # built in, then t
 <h1 id="signs-and-frames"><a class="header" href="#signs-and-frames">Signs and frames</a></h1>
 <p>An engraved sign is a few words with a frame round them, cut out of a board. <strong>Draw &gt;
 Frame…</strong> draws the frame for you: round the text you have written, centred on it, with
-border lines inside it, or to a size as a blank. (Design: <code>docs/specs/shape-library.md</code>.)</p>
+border lines inside it, or to a size as a blank. A sign you will make again can be kept in the
+<a href="#the-shape-library">shape library</a>. (Design: <code>docs/specs/shape-library.md</code>.)</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"><span class="img-wrapper"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"></span></label></p>
 <h2 id="a-frame-round-a-text"><a class="header" href="#a-frame-round-a-text">A frame round a text</a></h2>
 <ol>
@@ -2025,6 +2082,125 @@ chipload frame kinds
 either, <code>--width</code> and <code>--height</code> give the outline’s size and <code>--at</code> its centre (the stock’s
 centre by default). The new shapes’ ids are printed, the outline’s first; <code>--json</code> gives
 them with the frame’s size and corner.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="the-shape-library"><a class="header" href="#the-shape-library">The shape library</a></h1>
+<p>Shapes you use again and again, such as a frame you like, a house-number plate or a logo
+with its border, can be kept in your <strong>shape library</strong> and put into any project. An entry
+holds drawn shapes and texts; a text stays a text, so a saved sign can get new words.
+(Design: <code>docs/specs/shape-library.md</code>.)</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/shape-library.png" alt="The Shapes tab beside the canvas: a saved sign, and frames in a group"><span class="img-wrapper"><img src="images/shape-library.png" alt="The Shapes tab beside the canvas: a saved sign, and frames in a group"></span></label></p>
+<h2 id="in-the-window-1"><a class="header" href="#in-the-window-1">In the window</a></h2>
+<p>The <strong>Shapes</strong> panel is the library, at the start a tab beside Properties on the right
+(<a href="#arranging-the-panels">arranged as you like</a>). It holds a search field, then the entries as small pictures with their names, the ones in no group
+first and each group under a header that folds.</p>
+<ul>
+<li><strong>Insert:</strong> drag an entry onto the canvas. Its outline follows the pointer, snapped as a
+drawn point is, and where you let go the middle of its box lands. Or double-click it: it
+goes in the middle of the view. Either way the new shapes are selected, as one undo step.
+An entry of more than one shape or text comes in as a <a href="#groups">group</a> named after it,
+so one click selects it again later, to V-carve it for example.
+<strong>Esc</strong> while dragging lets go of it.</li>
+<li><strong>Save:</strong> select shapes and texts, then drag a drawn shape of the selection, or a line
+of the selected DXF, picture or text, onto the <em>Shapes</em> tab (onto its name, or onto a group
+to save there),
+or click <strong>Save selection…</strong>, or right-click on the canvas: <em>Save to shape library…</em>. A
+name field opens, with the text’s words or the layer’s name in it; <strong>Enter</strong> saves. A
+name that is taken asks before it is replaced.</li>
+<li><strong>Right-click an entry:</strong> <em>Insert in the middle of the view</em>, <em>Insert round the
+selection</em> (scaled to fit round what is selected, with the frame tool’s margin),
+<em>Rename…</em>, <em>Move to</em> a group, <em>Delete…</em>, <em>Show in folder</em>.</li>
+<li><strong>Groups:</strong> <em>New group</em>; drag an entry onto a group to move it there (or to the top for
+none). Right-click a group’s header to rename it, delete it (only when empty) or show
+its folder.</li>
+<li>The tab stays open while you select shapes on the canvas. Clicking something in the
+Browser, or starting a tool with values (<em>Frame…</em>, <em>Array…</em>, a text), shows <em>Properties</em>
+again.</li>
+</ul>
+<h2 id="where-it-is-kept"><a class="header" href="#where-it-is-kept">Where it is kept</a></h2>
+<p>The library is a folder, <code>shapes</code> in your settings folder (<code>chipload shape library path</code>
+says where). Each entry is one file, <code>NAME.chipload-shapes</code>, so an entry is backed up,
+shared or deleted like any file. <strong>Groups</strong> are folders in it: <code>shapes/Signs/</code> is the group
+<em>Signs</em>.</p>
+<p>DXF and SVG files you copy into the folder are in the library too, inserted as an import
+would read them (a DXF needs its units set). Imported shapes saved to the library become
+drawn shapes; the link to their file isn’t kept. A text whose font isn’t on the computer it
+is inserted on keeps its letters, as in <a href="#text">Text</a>.</p>
+<h2 id="on-the-command-line-5"><a class="header" href="#on-the-command-line-5">On the command line</a></h2>
+<pre><code class="language-sh">chipload shape save sign.chipload 5 6 --texts 1 --name "Signs/Welcome"   # shapes S5, S6 and text 1
+chipload shape library list                                # the entries, by group (also just `shape library`)
+chipload shape insert part.chipload "Signs/Welcome" --at 150,80
+chipload shape insert part.chipload "Signs/Welcome" --around 3,4 --margin 10   # scaled round S3, S4
+chipload shape insert part.chipload "Signs/Welcome" --width 300 --layer sign
+chipload shape library rename "Signs/Welcome" "Signs/Hello"   # another group moves it
+chipload shape library move "Signs/Hello" Doors             # "" for no group
+chipload shape library remove "Doors/Hello"
+chipload shape library group add Doors
+chipload shape library group rename Doors "Front doors"
+chipload shape library group remove "Front doors"           # only an empty one
+chipload shape library path                                # the folder
+</code></pre>
+<ul>
+<li><strong>save:</strong> the shapes and texts given; a letter of a text saves the whole text. An entry
+of the same name is replaced only with <code>--replace</code>, and kept as <code>.bak</code>.</li>
+<li><strong>insert:</strong> new shapes and texts with new ids, the middle of the entry’s box at <code>--at</code>
+(the stock’s middle without it), at the size it was saved, or scaled: <code>--width</code>,
+<code>--height</code>, <code>--scale</code>, or <code>--around</code> shapes with a <code>--margin</code> round their box. Shapes
+keep the layers they were saved on, or all go on <code>--layer</code>.</li>
+<li><strong>remove</strong> moves the file to the folder’s <code>.deleted</code>, where it can be taken back. A
+group is removed only when it is empty.</li>
+<li><strong>list</strong> names an entry that can’t be read and why; it is never changed.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="groups"><a class="header" href="#groups">Groups</a></h1>
+<p>A <strong>group</strong> keeps drawn shapes and texts together: a sign’s frame, border and words, or a
+logo inserted from the <a href="#the-shape-library">shape library</a>. One click selects all of it, and
+it moves, turns, scales and is deleted as one. An operation made from a group cuts what is
+in the group, also shapes added to it later. (Design: <code>docs/specs/shape-groups.md</code>.)</p>
+<p>What can be in a group: drawn shapes and texts (a text whole, with its letters). A DXF’s
+shapes and a traced picture’s already belong to their file or picture, which keeps them
+together; explode the DXF, or put the picture through the shape library, to group its
+shapes. A shape is in one group at most, and groups don’t hold groups.</p>
+<p>Inserting a library entry of more than one shape or text makes a group named after it.</p>
+<h2 id="in-the-window-2"><a class="header" href="#in-the-window-2">In the window</a></h2>
+<ul>
+<li><strong>Group:</strong> select shapes and texts (Ctrl+click, or a box), then right-click &gt; <strong>Group</strong>,
+or <strong>Ctrl+G</strong>. With one group among them, the rest join it; with several, they become
+one. Right-click &gt; <strong>Add to group ▸</strong> adds the selection to a group you pick.</li>
+<li><strong>Select:</strong> a click on any shape or letter of a group selects all of it, and so does its
+row in the Browser (under <em>Drawing</em>, with its shapes under it). <strong>Ctrl+click</strong> on shapes
+of the selected group leaves them out of the selection and back in.</li>
+<li><strong>One shape inside:</strong> <strong>double-click</strong> it on the canvas, or click its row under the
+group in the Browser. Then right-click &gt; <strong>Remove from group</strong> takes it out of the group;
+it stays where it is.</li>
+<li><strong>Move, turn, scale:</strong> drag any of its shapes, or the handles of its box: the texts in
+it move, turn and scale too. The box turns with the group and stays turned.</li>
+<li><strong>Ungroup:</strong> right-click &gt; <strong>Ungroup</strong>, or <strong>Ctrl+Shift+G</strong>. <strong>Del</strong> deletes the group
+with its shapes and texts. Properties shows its name, which you can change, what it
+holds, and <em>Ungroup</em>.</li>
+<li><strong>Copy and paste:</strong> a whole group of drawn shapes pastes as a new group.</li>
+</ul>
+<h2 id="cutting-a-group"><a class="header" href="#cutting-a-group">Cutting a group</a></h2>
+<p>Select the group and choose an operation, V-carve for example: it cuts the group as it is
+each time, so a shape added to the group later is cut too, and one taken out isn’t.
+Ctrl+click on shapes of the selected group leaves them out of the selection and back in,
+as for a picture or a DXF: the operation cuts the rest. In the project file the operation’s
+selection is <code>{"group": 1}</code>, or <code>{"group": 1, "exclude": [7]}</code>.</p>
+<p>Ungrouping keeps what an operation made from the group cuts: it gets the group’s shapes by
+id. A group with texts in it can’t be ungrouped while an operation cuts it (an operation
+can’t name a text’s letters by id): choose that operation’s shapes again first, or take the
+texts out of the group.</p>
+<h2 id="on-the-command-line-6"><a class="header" href="#on-the-command-line-6">On the command line</a></h2>
+<pre><code class="language-sh">chipload group add sign.chipload 5 6 --texts 1 --name Sign   # prints the group's id
+chipload group list sign.chipload
+chipload group set sign.chipload 1 --name "Door sign" --add 9,10 --add-texts 2 --remove 6 --remove-texts 3
+chipload group move sign.chipload 1 --dx 10 --dy 0
+chipload group turn sign.chipload 1 --angle-deg 90           # about its middle, or --about X,Y
+chipload group scale sign.chipload 1 --factor 0.5            # its texts' height scales too
+chipload group remove sign.chipload 1                        # ungroup: the shapes stay, free
+chipload group delete sign.chipload 1                        # the shapes and texts too
+</code></pre>
+<p><code>group add</code> with shapes of one group among them adds the rest to that group; with shapes of
+several groups, those groups become one.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="copies"><a class="header" href="#copies">Copies</a></h1>
 <p>Each <a href="#parts">part</a> can be cut several times, in a grid of its own: click
@@ -2529,7 +2705,10 @@ a V-bit without one is refused.</p>
 <tbody>
 <tr><td><strong>Start depth</strong></td><td>where the carved surface is: 0 for the stock top, more to carve into a floor an earlier pocket cut</td></tr>
 <tr><td><strong>End depth</strong></td><td>the deepest the tip may go. Strokes that need more get walls (see <em>Wide strokes</em>). The bit’s own size is a limit too: it can’t go deeper than its cutting edge reaches.</td></tr>
-<tr><td><strong>Passes</strong></td><td>how many passes to the end depth, 1 for one: each removes as much as the others, so they get shallower on the way down, and each runs only where the last stopped short. Their depths are shown under the field (see <em>Passes</em>)</td></tr>
+<tr><td><strong>Depth passes</strong></td><td>how the depth is split into passes: <strong>Equal load</strong> or <strong>Step down</strong> (see <em>Passes</em>)</td></tr>
+<tr><td><strong>Passes</strong></td><td>with <em>Equal load</em>: how many passes to the end depth, 1 for one. Each removes as much as the others, so they get shallower on the way down. Their depths are shown under the field</td></tr>
+<tr><td><strong>Step down</strong></td><td>with <em>Step down</em>: the deepest each pass goes. The passes are equal, the last at the end depth, as in a pocket. Their depths are shown under the field</td></tr>
+<tr><td><strong>Ignore kinks</strong></td><td>corners where the outline bends less than this angle (20° for a new V-carve) get no branch of the centre line, so the bit doesn’t rise into every kink of a curve (see <em>Smooth carving</em>); 0° carves every corner. In the project file: <code>ignore_kinks_deg</code></td></tr>
 <tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>moves steeper than 45° use the plunge feed</td></tr>
 </tbody>
 </table>
@@ -2538,12 +2717,20 @@ a V-bit without one is refused.</p>
 an O stays standing). Open contours are skipped.</p>
 <h2 id="passes"><a class="header" href="#passes">Passes</a></h2>
 <p>A V groove gets wider as it gets deeper: twice as deep removes four times as much. Passes
-of the same depth would get heavier and heavier, the last one the hardest on the bit and the
-machine. So you say how deep and in how many passes, and each pass removes the same amount:
-the steps get smaller on the way down. 5 mm in 6 passes goes to 2.04, 2.89, 3.54, 4.08, 4.56
-and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. The depths are counted from the end
-depth, so a stroke that is shallower than that is done in fewer passes: the deeper ones find
-nothing left to cut. More passes are lighter on the bit and take longer.</p>
+of the same depth get heavier and heavier, the last one the hardest on the bit and the
+machine. <em>Depth passes</em> chooses how the depth is split:</p>
+<ul>
+<li><strong>Equal load</strong> (a new V-carve’s choice): you say in how many passes, and each pass removes
+the same amount, so the steps get smaller on the way down. 5 mm in 6 passes goes to 2.04,
+2.89, 3.54, 4.08, 4.56 and 5 mm; 3 mm in 3 passes to 1.73, 2.45 and 3 mm. More passes are
+lighter on the bit and take longer.</li>
+<li><strong>Step down</strong>: you say how deep each pass may go, as for a pocket, and the passes are
+equal steps. 5 mm with a 2 mm step down goes to 1.67, 3.33 and 5 mm. Each pass removes
+more than the one before (with three, 1 : 3 : 5), so pick a step the last pass can take.</li>
+</ul>
+<p>Either way, the depths are counted from the end depth, so a stroke that is shallower than
+that is done in fewer passes: the deeper ones find nothing left to cut. Switching from one
+to the other keeps the count of passes, for when you switch back.</p>
 <p>The carving is done area by area: each letter (or each closed part of a drawing, such as
 the dot of an <em>i</em>) gets all its passes, and its walls, before the bit moves to the
 nearest next one.</p>
@@ -2553,6 +2740,31 @@ instead of each with a trip up to safe Z. In the passes after the first, where t
 to cut lie at most 10 mm apart along the centre line, the bit goes from one to the next
 through the groove already cut instead of lifting. The carving is the same; there are
 fewer lifts (in a script font about half).</p>
+<h2 id="smooth-carving"><a class="header" href="#smooth-carving">Smooth carving</a></h2>
+<p>A curve in a drawing or a font is made of short pieces, and each joint is a small kink.
+The centre line runs a branch out to every corner, so the bit would rise into each kink and
+come down again, and the depth would wobble by hundredths of a millimetre along the
+stroke. Both make the Z axis stop and start, the slowest axis on most routers.</p>
+<ul>
+<li><strong>The depth is smoothed</strong> along each cut: wobbles smaller than the V-carve’s tolerance
+(0.005 mm at the edge of the cut; 0.009 mm in depth for a 60° bit) are taken out, never
+deeper than the exact cut, so nothing is carved wider than drawn.</li>
+<li><strong>Ignore kinks</strong> (20° for a new V-carve) leaves out the branches into corners where the
+outline bends less than that angle. A kink bending θ in a stroke whose centre is r from
+its edges keeps a sliver of at most r · (1/cos(θ/2) − 1): at 20°, 0.05 mm in a stroke
+6 mm wide; at 60°, 0.46 mm. A real corner, such as the 90° corner of a block letter,
+keeps its branch at any setting up to 90°. Try a few values and look at the toolpath
+and the simulation: the change shows at once.</li>
+<li><strong>A traced picture</strong> has its pixel steps in every curve: kinks of 20° to 30°. On a
+traced ring, <strong>30°</strong> took the bit’s turns up and down from 48 to none and the time by a
+tenth.</li>
+<li><strong>Only kinks go.</strong> A branch is left out only when the rest of the carving covers what
+it would cut, but for the sliver above. The centre line of a whole stroke that happens
+to end in a kink (the rounded, traced end of a leg of an <em>H</em>, the tapered end of a
+script stroke) stays at any angle.</li>
+</ul>
+<p>Projects from before Chipload 0.31 open with <em>Ignore kinks</em> at 0°, so they carve every
+corner as before; their depth is smoothed.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/vcarve-passes.png" alt="A V-carve 3.5 mm deep in 4 passes: their depths under Passes"><span class="img-wrapper"><img src="images/vcarve-passes.png" alt="A V-carve 3.5 mm deep in 4 passes: their depths under Passes"></span></label></p>
 <p>Projects from before Chipload 0.29 had a step down instead. They open with as many passes
 as that step down took to reach the end depth (3.5 mm with a 1.6 mm step down: 3 passes),
@@ -2611,7 +2823,8 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>tool</code></td><td>Tool: the project tool’s id</td></tr>
 <tr><td><code>start_depth</code></td><td>Start depth</td></tr>
 <tr><td><code>end_depth</code></td><td>End depth</td></tr>
-<tr><td><code>passes</code></td><td>Passes: how many, 1 to 100</td></tr>
+<tr><td><code>passes</code></td><td>Passes: how many, 1 to 100, for equal load</td></tr>
+<tr><td><code>step_down</code></td><td>Step down, mm: left out for equal load. At most 100 passes: at least a hundredth of the depth</td></tr>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
 <tr><td><code>floor</code></td><td>the floor pass, left out when there is none: <code>tool</code> (an end mill), <code>feed</code>, <code>plunge_feed</code>, <code>step_down</code>, <code>stepover</code> (a fraction of the end mill’s diameter), <code>entry</code> and <code>enabled</code></td></tr>
@@ -2862,7 +3075,7 @@ them, a new operation copies the operation above it, or starts from the tool’s
 diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
 step down. Check the <a href="#chip-load">chip load</a> before cutting.</li>
 </ul>
-<h2 id="on-the-command-line-5"><a class="header" href="#on-the-command-line-5">On the command line</a></h2>
+<h2 id="on-the-command-line-7"><a class="header" href="#on-the-command-line-7">On the command line</a></h2>
 <pre><code class="language-sh">chipload tool list                                     # the tools, and where the file is
 chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000 \
   --feed 1500 --plunge-feed 400 --step-down 2 --stepover 0.4
@@ -2928,7 +3141,7 @@ library</em>.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/machine.png" alt="The project’s machine from the profile “Shapeoko”: the same as in the library, its machine values greyed under From the profile"><span class="img-wrapper"><img src="images/machine.png" alt="The project’s machine from the profile “Shapeoko”: the same as in the library, its machine values greyed under From the profile"></span></label></p>
 <p>A profile whose post is one of your own <a href="#your-own-post">post-processors</a> copies
 that post into the project.</p>
-<h2 id="on-the-command-line-6"><a class="header" href="#on-the-command-line-6">On the command line</a></h2>
+<h2 id="on-the-command-line-8"><a class="header" href="#on-the-command-line-8">On the command line</a></h2>
 <pre><code class="language-sh">chipload machine list
 chipload machine add "Shapeoko" --post grbl --safe-z 10 --travel 838,838,95 --max-feed 5000
 chipload machine set "Shapeoko" --safe-z 15        # or --rename
@@ -3001,7 +3214,7 @@ tool</em> (with <em>Save to Plywood</em>). Editing a feed by hand keeps the mate
 <p>The project keeps only each material’s name (<code>material</code> on each operation, and on the
 stock for the operations added later). The values are already in the operations, so the
 project cuts the same on a computer without that material.</p>
-<h2 id="on-the-command-line-7"><a class="header" href="#on-the-command-line-7">On the command line</a></h2>
+<h2 id="on-the-command-line-9"><a class="header" href="#on-the-command-line-9">On the command line</a></h2>
 <pre><code>chipload material add Plywood
 chipload material set Plywood --tool "6 mm 2-flute" --feed 1500 --plunge-feed 500 --step-down 2.5 --stepover 0.4
 chipload material list                         # every material with its values per tool
@@ -3958,6 +4171,146 @@ reaches the assistant only once you save.</li>
 </div>
 <h2 id="chipload-shape"><a class="header" href="#chipload-shape"><code>chipload shape</code></a></h2>
 <p>Draw in a project: add, change or delete circles, rectangles and polylines</p>
+<h3 id="chipload-shape-save"><a class="header" href="#chipload-shape-save"><code>chipload shape save</code></a></h3>
+<p>Save shapes and texts to the shape library under a name</p>
+<pre><code class="language-text">chipload shape save &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); a letter saves its whole text.</td></tr>
+<tr><td><code>--texts &lt;TEXTS&gt;</code></td><td>Texts to save, with their letters (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>The entry’s name, with its group: “Signs/House number”. Required.</td></tr>
+<tr><td><code>--replace</code></td><td>Replace an entry of that name (it is kept as .bak)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-insert"><a class="header" href="#chipload-shape-insert"><code>chipload shape insert</code></a></h3>
+<p>Insert an entry of the shape library into a project; prints the new ids</p>
+<pre><code class="language-text">chipload shape insert &lt;PROJECT&gt; &lt;NAME&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;NAME&gt;</code></td><td>The entry’s name, with its group: “Signs/House number”.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Where the middle of its box goes, X,Y in mm (default: the stock’s middle)</td></tr>
+<tr><td><code>--around &lt;AROUND&gt;</code></td><td>Scaled to fit round these shapes, –margin from their box (ids without the S) Repeatable.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>With –around: from the shapes’ box to the entry’s, mm. Default: <code>10</code>.</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Scaled to this width, mm; the height follows.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>Scaled to this height, mm; the width follows.</td></tr>
+<tr><td><code>--scale &lt;SCALE&gt;</code></td><td>Scaled by this.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape and text on this layer (default: the layers they were saved on)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library"><a class="header" href="#chipload-shape-library"><code>chipload shape library</code></a></h3>
+<p>The shape library: list (the default), rename, move, remove, groups</p>
+<h3 id="chipload-shape-library-list"><a class="header" href="#chipload-shape-library-list"><code>chipload shape library list</code></a></h3>
+<p>The entries and groups (the default)</p>
+<pre><code class="language-text">chipload shape library list
+</code></pre>
+<h3 id="chipload-shape-library-path"><a class="header" href="#chipload-shape-library-path"><code>chipload shape library path</code></a></h3>
+<p>Where the library’s folder is</p>
+<pre><code class="language-text">chipload shape library path
+</code></pre>
+<h3 id="chipload-shape-library-rename"><a class="header" href="#chipload-shape-library-rename"><code>chipload shape library rename</code></a></h3>
+<p>Rename an entry; a name with another group moves it there</p>
+<pre><code class="language-text">chipload shape library rename &lt;FROM&gt; &lt;TO&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FROM&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;TO&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-move"><a class="header" href="#chipload-shape-library-move"><code>chipload shape library move</code></a></h3>
+<p>Move an entry into a group (“” for none)</p>
+<pre><code class="language-text">chipload shape library move &lt;NAME&gt; &lt;GROUP&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;GROUP&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-remove"><a class="header" href="#chipload-shape-library-remove"><code>chipload shape library remove</code></a></h3>
+<p>Delete an entry: its file goes to the folder’s .deleted</p>
+<pre><code class="language-text">chipload shape library remove &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-group"><a class="header" href="#chipload-shape-library-group"><code>chipload shape library group</code></a></h3>
+<p>Groups of entries: folders in the library’s folder</p>
+<h3 id="chipload-shape-library-group-add"><a class="header" href="#chipload-shape-library-group-add"><code>chipload shape library group add</code></a></h3>
+<p>Make an empty group</p>
+<pre><code class="language-text">chipload shape library group add &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-group-rename"><a class="header" href="#chipload-shape-library-group-rename"><code>chipload shape library group rename</code></a></h3>
+<p>Rename a group, with its entries</p>
+<pre><code class="language-text">chipload shape library group rename &lt;FROM&gt; &lt;TO&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FROM&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;TO&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-group-remove"><a class="header" href="#chipload-shape-library-group-remove"><code>chipload shape library group remove</code></a></h3>
+<p>Delete an empty group</p>
+<pre><code class="language-text">chipload shape library group remove &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-shape-add"><a class="header" href="#chipload-shape-add"><code>chipload shape add</code></a></h3>
 <p>Add a drawn shape; prints its id</p>
 <pre><code class="language-text">chipload shape add &lt;PROJECT&gt; &lt;KIND&gt; [OPTIONS]
@@ -4374,6 +4727,147 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="chipload-group"><a class="header" href="#chipload-group"><code>chipload group</code></a></h2>
+<p>Groups of drawn shapes and texts: add, list, set, remove (ungroup), delete, move, turn, scale</p>
+<h3 id="chipload-group-add"><a class="header" href="#chipload-group-add"><code>chipload group add</code></a></h3>
+<p>Group shapes and texts; prints the group’s id. With shapes of one group among them, the rest join it; of several, those groups become one</p>
+<pre><code class="language-text">chipload group add &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); a letter stands for its whole text.</td></tr>
+<tr><td><code>--texts &lt;TEXTS&gt;</code></td><td>Texts (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name (default: “Group N”)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-list"><a class="header" href="#chipload-group-list"><code>chipload group list</code></a></h3>
+<p>The project’s groups and what is in them</p>
+<pre><code class="language-text">chipload group list &lt;PROJECT&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-set"><a class="header" href="#chipload-group-set"><code>chipload group set</code></a></h3>
+<p>Rename a group, or add to it and take out of it</p>
+<pre><code class="language-text">chipload group set &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The group’s id.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>--add &lt;ADD&gt;</code></td><td>Shapes to add (any in another group move over) Repeatable.</td></tr>
+<tr><td><code>--add-texts &lt;ADD_TEXTS&gt;</code></td><td>Texts to add. Repeatable.</td></tr>
+<tr><td><code>--remove &lt;REMOVE&gt;</code></td><td>Shapes to take out; they stay where they are, free. Repeatable.</td></tr>
+<tr><td><code>--remove-texts &lt;REMOVE_TEXTS&gt;</code></td><td>Texts to take out. Repeatable.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-remove"><a class="header" href="#chipload-group-remove"><code>chipload group remove</code></a></h3>
+<p>Ungroup: the shapes and texts stay, free. Operations made from the group get its shapes by id</p>
+<pre><code class="language-text">chipload group remove &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-delete"><a class="header" href="#chipload-group-delete"><code>chipload group delete</code></a></h3>
+<p>Delete a group with its shapes and texts</p>
+<pre><code class="language-text">chipload group delete &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-move"><a class="header" href="#chipload-group-move"><code>chipload group move</code></a></h3>
+<p>Move a group, its texts too</p>
+<pre><code class="language-text">chipload group move &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>--dx &lt;DX&gt;</code></td><td>How far right, mm. Required.</td></tr>
+<tr><td><code>--dy &lt;DY&gt;</code></td><td>How far up, mm. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-turn"><a class="header" href="#chipload-group-turn"><code>chipload group turn</code></a></h3>
+<p>Turn a group counter-clockwise about the middle of its box, or a point</p>
+<pre><code class="language-text">chipload group turn &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>The angle, degrees, counter-clockwise; negative turns clockwise. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Turn about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-scale"><a class="header" href="#chipload-group-scale"><code>chipload group scale</code></a></h3>
+<p>Scale a group about the middle of its box, or a point; its texts’ height scales</p>
+<pre><code class="language-text">chipload group scale &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor: 2 doubles, 0.5 halves. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Scale about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-image"><a class="header" href="#chipload-image"><code>chipload image</code></a></h2>
 <p>Pictures traced into shapes for V-carving: add, change, list, preview, remove</p>
 <h3 id="chipload-image-add"><a class="header" href="#chipload-image-add"><code>chipload image add</code></a></h3>
@@ -4475,6 +4969,22 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="chipload-image-explode"><a class="header" href="#chipload-image-explode"><code>chipload image explode</code></a></h3>
+<p>Turn every shape traced from a picture into drawn shapes you can edit; the picture goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes</p>
+<pre><code class="language-text">chipload image explode &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The picture’s id (as <code>image list</code> shows it); not needed when the project has one.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-text"><a class="header" href="#chipload-text"><code>chipload text</code></a></h2>
 <p>Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)</p>
 <h3 id="chipload-text-add"><a class="header" href="#chipload-text-add"><code>chipload text add</code></a></h3>
@@ -4554,6 +5064,22 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;ID&gt;</code></td><td>The text’s id.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-text-explode"><a class="header" href="#chipload-text-explode"><code>chipload text explode</code></a></h3>
+<p>Turn a text’s letters into drawn shapes you can edit; the text goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes</p>
+<pre><code class="language-text">chipload text explode &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The text’s id (as <code>text list</code> shows it); not needed when the project has one.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -5555,6 +6081,24 @@ reaches the assistant only once you save.</li>
 <h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
 <p>What a chosen corner gets.</p>
 <p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
+<h2 id="clearingpass"><a class="header" href="#clearingpass">ClearingPass</a></h2>
+<p>A clearing pass with its own end mill, inside an operation’s shapes and depths: a pocket’s rest pass (docs/specs/rest-passes.md §2: an endmill smaller than the tool before it, clearing only what that tool leaves) or a V-carve’s floor pass (docs/specs/vcarve-wide-strokes.md §4: an end mill clearing the floor between the walls, before the V-carve).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
+<tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="copies-1"><a class="header" href="#copies-1">Copies</a></h2>
 <p>A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.</p>
 <div class="table-wrapper">
@@ -5645,6 +6189,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>dxfs</code></td><td>list of <a href="#drawingsource">DrawingSource</a></td><td>no</td><td>The DXFs the imported shapes came from, each as at its last import or update, with its own placement.</td></tr>
+<tr><td><code>groups</code></td><td>list of <a href="#shapegroup">ShapeGroup</a></td><td>no</td><td>Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions.</td></tr>
 <tr><td><code>hidden</code></td><td>list of string</td><td>no</td><td>Groups and layers not drawn on the canvas (they are still cut): <code>dxf:1</code>, <code>dxf:1/layer:Cut</code>, <code>image:1</code>, <code>text:1</code>, <code>drawn:circle</code>, <code>drawn:rectangle</code>, <code>drawn:polyline</code>.</td></tr>
 <tr><td><code>images</code></td><td>list of <a href="#image">Image</a></td><td>no</td><td>Pictures traced into shapes, for V-carving.</td></tr>
 <tr><td><code>next_shape_id</code></td><td>integer</td><td>yes</td><td>The id the next new shape gets. Ids are never reused.</td></tr>
@@ -5718,24 +6263,6 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>stock</code></td><td>number</td><td>yes</td><td>Left on the wall by the roughing passes, mm: more than 0, less than the tool radius.</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="floorpass"><a class="header" href="#floorpass">FloorPass</a></h2>
-<p>The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears the floor between the walls, in the V-carve’s shapes and depths, before it.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
-</thead>
-<tbody>
-<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
-<tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
-<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
-<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
-<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
-<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
-<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5927,7 +6454,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
 <tr><td><code>rest</code></td><td><a href="#rest">Rest</a> or null</td><td>no</td><td>Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket.</td></tr>
-<tr><td><code>rest_passes</code></td><td>list of <a href="#restpass">RestPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
+<tr><td><code>rest_passes</code></td><td>list of <a href="#clearingpass">ClearingPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there.</td></tr>
 <tr><td><code>starts</code></td><td>list of 2 × number</td><td>no</td><td>Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload.</td></tr>
@@ -5949,7 +6476,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
 <tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>The deepest the V-bit’s tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The feed, mm/min, for moves no steeper than 45°.</td></tr>
-<tr><td><code>floor</code></td><td><a href="#floorpass">FloorPass</a> or null</td><td>no</td><td>A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing.</td></tr>
+<tr><td><code>floor</code></td><td><a href="#clearingpass">ClearingPass</a> or null</td><td>no</td><td>A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing.</td></tr>
+<tr><td><code>ignore_kinks_deg</code></td><td>number</td><td>no</td><td>Corners where the outline turns by less than this, degrees (0 to 90), get no branch of the centre line: the bit doesn’t rise into every kink. Missing: 0, every corner carved, as before the setting existed.</td></tr>
 <tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
@@ -5957,6 +6485,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed for moves steeper than 45°, mm/min.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>An ordinary step down instead, mm: equal passes, none deeper than it, the last at the end depth, as in a pocket. Missing: passes of equal load (<code>passes</code>), which is kept meanwhile. Left out when missing.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>).</td></tr>
 </tbody>
 </table>
@@ -6082,24 +6611,6 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
-<h2 id="restpass"><a class="header" href="#restpass">RestPass</a></h2>
-<p>One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket’s shapes, depths, clearance and direction, and clears only what the tool before it leaves.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
-</thead>
-<tbody>
-<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
-<tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
-<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
-<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
-<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
-<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
-<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an endmill smaller than the tool before it.</td></tr>
-</tbody>
-</table>
-</div>
 <h2 id="selector"><a class="header" href="#selector">Selector</a></h2>
 <div class="table-wrapper">
 <table>
@@ -6108,7 +6619,8 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>dxf</code></td><td>integer or null</td><td>no</td><td>Only shapes from this DXF (an id in <code>drawing.dxfs</code>).</td></tr>
-<tr><td><code>exclude</code></td><td>list of integer or null</td><td>no</td><td>Shapes of that DXF, image or text left out (ids); with <code>dxf</code>, <code>image</code> or <code>text</code> only. A contour with any of them isn’t cut. A traced image’s, or a text’s, are found again when it is made again.</td></tr>
+<tr><td><code>exclude</code></td><td>list of integer or null</td><td>no</td><td>Shapes of that DXF, image, text or group left out (ids); with <code>dxf</code>, <code>image</code>, <code>text</code> or <code>group</code> only. A contour with any of them isn’t cut. A traced image’s, or a text’s, are found again when it is made again.</td></tr>
+<tr><td><code>group</code></td><td>integer or null</td><td>no</td><td>The shapes and texts’ letters of this group (an id in <code>drawing.groups</code>), as they are at each run.</td></tr>
 <tr><td><code>image</code></td><td>integer or null</td><td>no</td><td>Only shapes traced from this image (an id in <code>drawing.images</code>).</td></tr>
 <tr><td><code>layer</code></td><td>string or null</td><td>no</td><td>Every shape on this layer (upper or lower case don’t matter).</td></tr>
 <tr><td><code>shapes</code></td><td>list of integer or null</td><td>no</td><td>These shapes, by id.</td></tr>
@@ -6161,6 +6673,22 @@ reaches the assistant only once you save.</li>
 <tr><td><code>sides</code></td><td>integer or null</td><td>no</td><td>polygon: how many sides (and corners) it has, 3 to 1000.</td></tr>
 <tr><td><code>text</code></td><td>integer or null</td><td>no</td><td>path: the text it is a letter of (its id in <code>drawing.texts</code>).</td></tr>
 <tr><td><code>width</code></td><td>number or null</td><td>no</td><td>rectangle: its size along its own Y axis, mm.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="shapegroup"><a class="header" href="#shapegroup">ShapeGroup</a></h2>
+<p>Drawn shapes and texts kept together: one click selects them all, and they move, turn, scale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one group; groups don’t hold groups.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The group’s id, which operations’ selectors name.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name in the Browser.</td></tr>
+<tr><td><code>rotation</code></td><td>number</td><td>no</td><td>How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was given, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a new group.</td></tr>
+<tr><td><code>shapes</code></td><td>list of integer</td><td>no</td><td>Its drawn shapes, by id.</td></tr>
+<tr><td><code>texts</code></td><td>list of integer</td><td>no</td><td>Its texts, by id, with their letters.</td></tr>
 </tbody>
 </table>
 </div>

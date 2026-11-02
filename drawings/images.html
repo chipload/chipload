@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Images - Chipload 0.30.0 user guide</title>
+        <title>Images - Chipload 0.31.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-edd296fe.js"></script>
+        <script src="../toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -201,7 +201,7 @@ DPI, which is often missing or wrong.</li>
 </ul>
 <p><strong>On the canvas:</strong> with the picture selected, its box shows handles (in top view):</p>
 <ul>
-<li>the square in the <strong>middle</strong> moves it;</li>
+<li>the square in the <strong>middle</strong> moves it, and so does dragging one of its lines;</li>
 <li>the square beyond its right side <strong>turns</strong> it about its centre, in steps of 15°;</li>
 <li>a <strong>corner</strong> square makes it larger or smaller, keeping its proportions; the opposite
 corner stays where it is. Its width is rounded to 0.1 mm.</li>
@@ -278,10 +278,12 @@ as outlines. With both kinds, the open lines are skipped, with a note.</li>
 none is open. Without a file dialog (see <a href="../install.html">Install</a>), <em>File &gt; Import image from
 path…</em> takes the picture’s path instead.</p>
 <ul>
-<li><strong>Left:</strong> the picture as black and white, updated as you change the settings: the dark
-parts are what is traced. With <em>centre lines</em>, the lines are drawn over it in orange.
-<strong>Scroll</strong> over it to zoom in at the pointer, up to 32 times, <strong>drag</strong> to move about, and
-<strong>double-click</strong> to see all of it again.</li>
+<li><strong>Left:</strong> the picture as it will be carved, updated as you change the settings: light
+oak where the wood stays, dark brown for the black parts, which are traced and carved.
+The traced lines (outlines or centre lines) are drawn over it in thin blue; untick
+<strong>Show the traced lines</strong> to see the picture alone, to judge the threshold by its
+detail. <strong>Scroll</strong> over it to zoom in at the pointer, up to 32 times, <strong>drag</strong> to move
+about, and <strong>double-click</strong> to see all of it again.</li>
 <li><strong>Right:</strong> the conversion settings, and what was traced (with the threshold <em>auto</em>
 picked). The size, place and layer are not here: they are the picture’s properties.</li>
 <li><strong>Import:</strong> puts the shapes into the project and selects the image, so <strong>V-carve</strong> carves
@@ -296,6 +298,8 @@ position, rotation, width or layer in Properties.</li>
 same window opens (its button says <strong>Apply</strong>).</li>
 <li><strong>Remove it:</strong> right-click &gt; <strong>Remove</strong> removes the picture and its shapes; so does
 <strong>Del</strong> with the picture selected.</li>
+<li><strong>Edit its shapes by hand:</strong> right-click &gt; <strong>Explode into shapes…</strong> makes them drawn
+shapes and takes the picture out of the project (<a href="explode.html">Exploding</a>).</li>
 <li><strong>See it:</strong> <strong>Images</strong> on the canvas’s navigation bar (or <em>View &gt; Show images</em>) shows the
 pictures faintly on the stock top, over the simulated stock and under the drawing, in
 top view and 3D, for comparing the traced shapes, and the cut, with the picture.</li>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.30.0 user guide</title>
+        <title>The window - Chipload 0.31.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-edd296fe.js"></script>
+        <script src="toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -201,11 +201,11 @@ guide, keyboard shortcuts, about) and the version.</li>
 </thead>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
-<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="drawings/signs.html">a frame for a sign</a>), Text, Image, Add DXF</td><td>Frame… (<a href="drawings/signs.html">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="drawings/signs.html">a frame for a sign</a>), Text, Image, DXF/SVG (add a DXF or SVG)</td><td>Frame… (<a href="drawings/signs.html">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="drawings/shapes.html#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
 <tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
-<tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, update automatically, units, colour theme</td></tr>
+<tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme</td></tr>
 </tbody>
 </table>
 </div>
@@ -270,7 +270,7 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 pocket <em>Add rest pass ▸</em> (a <a href="operations/rest.html">rest pass</a> shows under it), and
 <em>Delete</em>.</li>
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
-<li><strong>The Drawing folder:</strong> <em>Add DXF…</em> and <em>Import image…</em>.</li>
+<li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em> and <em>Import image…</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
@@ -411,18 +411,34 @@ DRAW ▾, and Ctrl+Shift+C).</li>
 selection</em> button counts it (“Use selection (3)”) and takes it as the operation’s geometry.
 With nothing picked, Properties says how to pick something.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"><span class="img-wrapper"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"></span></label></p>
-<h2 id="making-room-for-the-canvas"><a class="header" href="#making-room-for-the-canvas">Making room for the canvas</a></h2>
+<h2 id="arranging-the-panels"><a class="header" href="#arranging-the-panels">Arranging the panels</a></h2>
+<p>The <strong>Browser</strong>, <strong>Properties</strong>, <strong>Shapes</strong> (the <a href="drawings/shape-library.html">shape library</a>)
+and the <strong>Report</strong> are panels round the canvas, each with a tab. At the start, the Browser
+is on the left, Properties and Shapes are two tabs on the right, and the Report is folded
+along the bottom. Arrange them as suits you:</p>
 <ul>
-<li><strong>Narrower panels:</strong> drag the edge between a panel and the canvas. The Properties panel
-goes down to about 250 pixels: its labels and fields get narrower, a button or a note
-beside a field moves under it, and a long section summary ends in “…”.</li>
-<li><strong>Folding a panel:</strong> drag its edge past its narrowest, or double-click the edge. It
-folds to a thin strip at the window’s side; the arrow on the strip opens it again.</li>
-<li><strong>Both at once:</strong> <strong>P</strong> folds the Browser and Properties together for the largest
-canvas, and opens them again. Also in <em>View</em>: <em>Show Browser</em>, <em>Show Properties</em>, <em>Fold
-both panels</em>.</li>
-<li>The <strong>Report</strong> at the bottom folds with its triangle.</li>
+<li><strong>Tabs together:</strong> drag a panel’s tab onto another panel’s tabs. Its tab joins theirs,
+and a click on a tab brings it to the front.</li>
+<li><strong>Side by side or stacked:</strong> drag a tab onto a panel’s edge: left, right, above or below.
+It splits that panel, for example Shapes under Properties to see both at once. Dropped on
+the canvas’s edge, it becomes a panel along that side of the window. Dropped on the
+canvas’s middle, it goes beside the canvas: the canvas is always a canvas of its own.</li>
+<li><strong>Sizes:</strong> drag the line between two panels. The Properties panel works down to about 250
+pixels: its labels and fields get narrower, a button or a note beside a field moves under
+it, and a long section summary ends in “…”. Narrower than that, it scrolls sideways.</li>
+<li><strong>Folding:</strong> the triangle at the left of a panel’s tabs folds it to its tab bar, and
+opens it again. The Report starts folded; a warning or an error opens it, and folded,
+its tab shows how many warnings it holds.</li>
+<li><strong>Closing:</strong> the × on a tab closes the panel. <em>View &gt; Panels</em> lists them all with a tick
+for those open: tick one to open it again where it goes at the start.</li>
+<li><strong>The largest canvas:</strong> <strong>P</strong> hides every panel, and brings them back as they were. Also
+<em>View &gt; Hide the panels</em>.</li>
+<li><strong>Back to the start:</strong> <em>View &gt; Panels &gt; Reset layout</em>.</li>
 </ul>
+<p>The arrangement is kept for the next start, the same for every project, in <code>layout.json</code>
+in your <a href="install.html#your-settings">settings folder</a>. Should that file not be readable (one
+from a newer Chipload, say), the panels start as they do at first, the status bar says so,
+and the file is left as it is until you arrange the panels again.</p>
 
                     </main>
 

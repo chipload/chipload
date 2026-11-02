@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Project file - Chipload 0.30.0 user guide</title>
+        <title>Project file - Chipload 0.31.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-edd296fe.js"></script>
+        <script src="../toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -222,6 +222,24 @@
 <h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
 <p>What a chosen corner gets.</p>
 <p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
+<h2 id="clearingpass"><a class="header" href="#clearingpass">ClearingPass</a></h2>
+<p>A clearing pass with its own end mill, inside an operation’s shapes and depths: a pocket’s rest pass (docs/specs/rest-passes.md §2: an endmill smaller than the tool before it, clearing only what that tool leaves) or a V-carve’s floor pass (docs/specs/vcarve-wide-strokes.md §4: an end mill clearing the floor between the walls, before the V-carve).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
+<tr><td><code>entry</code></td><td><a href="#entry">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="copies"><a class="header" href="#copies">Copies</a></h2>
 <p>A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.</p>
 <div class="table-wrapper">
@@ -312,6 +330,7 @@
 </thead>
 <tbody>
 <tr><td><code>dxfs</code></td><td>list of <a href="#drawingsource">DrawingSource</a></td><td>no</td><td>The DXFs the imported shapes came from, each as at its last import or update, with its own placement.</td></tr>
+<tr><td><code>groups</code></td><td>list of <a href="#shapegroup">ShapeGroup</a></td><td>no</td><td>Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions.</td></tr>
 <tr><td><code>hidden</code></td><td>list of string</td><td>no</td><td>Groups and layers not drawn on the canvas (they are still cut): <code>dxf:1</code>, <code>dxf:1/layer:Cut</code>, <code>image:1</code>, <code>text:1</code>, <code>drawn:circle</code>, <code>drawn:rectangle</code>, <code>drawn:polyline</code>.</td></tr>
 <tr><td><code>images</code></td><td>list of <a href="#image">Image</a></td><td>no</td><td>Pictures traced into shapes, for V-carving.</td></tr>
 <tr><td><code>next_shape_id</code></td><td>integer</td><td>yes</td><td>The id the next new shape gets. Ids are never reused.</td></tr>
@@ -385,24 +404,6 @@
 </thead>
 <tbody>
 <tr><td><code>stock</code></td><td>number</td><td>yes</td><td>Left on the wall by the roughing passes, mm: more than 0, less than the tool radius.</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="floorpass"><a class="header" href="#floorpass">FloorPass</a></h2>
-<p>The floor pass of a V-carve (docs/specs/vcarve-wide-strokes.md §4): an end mill clears the floor between the walls, in the V-carve’s shapes and depths, before it.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
-</thead>
-<tbody>
-<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
-<tr><td><code>entry</code></td><td><a href="#entry">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
-<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
-<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
-<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
-<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
-<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
 </tbody>
 </table>
 </div>
@@ -594,7 +595,7 @@
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
 <tr><td><code>rest</code></td><td><a href="#rest">Rest</a> or null</td><td>no</td><td>Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket.</td></tr>
-<tr><td><code>rest_passes</code></td><td>list of <a href="#restpass">RestPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
+<tr><td><code>rest_passes</code></td><td>list of <a href="#clearingpass">ClearingPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there.</td></tr>
 <tr><td><code>starts</code></td><td>list of 2 × number</td><td>no</td><td>Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload.</td></tr>
@@ -616,7 +617,8 @@
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
 <tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>The deepest the V-bit’s tip may go, mm down from the stock top. Strokes that need more are carved to it, narrower than drawn, with a warning.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The feed, mm/min, for moves no steeper than 45°.</td></tr>
-<tr><td><code>floor</code></td><td><a href="#floorpass">FloorPass</a> or null</td><td>no</td><td>A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing.</td></tr>
+<tr><td><code>floor</code></td><td><a href="#clearingpass">ClearingPass</a> or null</td><td>no</td><td>A floor pass: an end mill that clears the floor between the walls of strokes too wide to carve from their centre line. Missing: none. Left out when missing.</td></tr>
+<tr><td><code>ignore_kinks_deg</code></td><td>number</td><td>no</td><td>Corners where the outline turns by less than this, degrees (0 to 90), get no branch of the centre line: the bit doesn’t rise into every kink. Missing: 0, every corner carved, as before the setting existed.</td></tr>
 <tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
@@ -624,6 +626,7 @@
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed for moves steeper than 45°, mm/min.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>An ordinary step down instead, mm: equal passes, none deeper than it, the last at the end depth, as in a pocket. Missing: passes of equal load (<code>passes</code>), which is kept meanwhile. Left out when missing.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>).</td></tr>
 </tbody>
 </table>
@@ -749,24 +752,6 @@
 </tbody>
 </table>
 </div>
-<h2 id="restpass"><a class="header" href="#restpass">RestPass</a></h2>
-<p>One rest pass of a pocket (docs/specs/rest-passes.md §2): it takes the pocket’s shapes, depths, clearance and direction, and clears only what the tool before it leaves.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
-</thead>
-<tbody>
-<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
-<tr><td><code>entry</code></td><td><a href="#entry">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
-<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
-<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
-<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
-<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
-<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an endmill smaller than the tool before it.</td></tr>
-</tbody>
-</table>
-</div>
 <h2 id="selector"><a class="header" href="#selector">Selector</a></h2>
 <div class="table-wrapper">
 <table>
@@ -775,7 +760,8 @@
 </thead>
 <tbody>
 <tr><td><code>dxf</code></td><td>integer or null</td><td>no</td><td>Only shapes from this DXF (an id in <code>drawing.dxfs</code>).</td></tr>
-<tr><td><code>exclude</code></td><td>list of integer or null</td><td>no</td><td>Shapes of that DXF, image or text left out (ids); with <code>dxf</code>, <code>image</code> or <code>text</code> only. A contour with any of them isn’t cut. A traced image’s, or a text’s, are found again when it is made again.</td></tr>
+<tr><td><code>exclude</code></td><td>list of integer or null</td><td>no</td><td>Shapes of that DXF, image, text or group left out (ids); with <code>dxf</code>, <code>image</code>, <code>text</code> or <code>group</code> only. A contour with any of them isn’t cut. A traced image’s, or a text’s, are found again when it is made again.</td></tr>
+<tr><td><code>group</code></td><td>integer or null</td><td>no</td><td>The shapes and texts’ letters of this group (an id in <code>drawing.groups</code>), as they are at each run.</td></tr>
 <tr><td><code>image</code></td><td>integer or null</td><td>no</td><td>Only shapes traced from this image (an id in <code>drawing.images</code>).</td></tr>
 <tr><td><code>layer</code></td><td>string or null</td><td>no</td><td>Every shape on this layer (upper or lower case don’t matter).</td></tr>
 <tr><td><code>shapes</code></td><td>list of integer or null</td><td>no</td><td>These shapes, by id.</td></tr>
@@ -828,6 +814,22 @@
 <tr><td><code>sides</code></td><td>integer or null</td><td>no</td><td>polygon: how many sides (and corners) it has, 3 to 1000.</td></tr>
 <tr><td><code>text</code></td><td>integer or null</td><td>no</td><td>path: the text it is a letter of (its id in <code>drawing.texts</code>).</td></tr>
 <tr><td><code>width</code></td><td>number or null</td><td>no</td><td>rectangle: its size along its own Y axis, mm.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="shapegroup"><a class="header" href="#shapegroup">ShapeGroup</a></h2>
+<p>Drawn shapes and texts kept together: one click selects them all, and they move, turn, scale and are cut as one (docs/specs/shape-groups.md). A shape or text is in at most one group; groups don’t hold groups.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The group’s id, which operations’ selectors name.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name in the Browser.</td></tr>
+<tr><td><code>rotation</code></td><td>number</td><td>no</td><td>How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was given, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a new group.</td></tr>
+<tr><td><code>shapes</code></td><td>list of integer</td><td>no</td><td>Its drawn shapes, by id.</td></tr>
+<tr><td><code>texts</code></td><td>list of integer</td><td>no</td><td>Its texts, by id, with their letters.</td></tr>
 </tbody>
 </table>
 </div>

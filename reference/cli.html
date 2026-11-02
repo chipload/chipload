@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.30.0 user guide</title>
+        <title>Command line - Chipload 0.31.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-edd296fe.js"></script>
+        <script src="../toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -594,6 +594,146 @@
 </div>
 <h2 id="chipload-shape"><a class="header" href="#chipload-shape"><code>chipload shape</code></a></h2>
 <p>Draw in a project: add, change or delete circles, rectangles and polylines</p>
+<h3 id="chipload-shape-save"><a class="header" href="#chipload-shape-save"><code>chipload shape save</code></a></h3>
+<p>Save shapes and texts to the shape library under a name</p>
+<pre><code class="language-text">chipload shape save &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); a letter saves its whole text.</td></tr>
+<tr><td><code>--texts &lt;TEXTS&gt;</code></td><td>Texts to save, with their letters (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>The entry’s name, with its group: “Signs/House number”. Required.</td></tr>
+<tr><td><code>--replace</code></td><td>Replace an entry of that name (it is kept as .bak)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-insert"><a class="header" href="#chipload-shape-insert"><code>chipload shape insert</code></a></h3>
+<p>Insert an entry of the shape library into a project; prints the new ids</p>
+<pre><code class="language-text">chipload shape insert &lt;PROJECT&gt; &lt;NAME&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;NAME&gt;</code></td><td>The entry’s name, with its group: “Signs/House number”.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Where the middle of its box goes, X,Y in mm (default: the stock’s middle)</td></tr>
+<tr><td><code>--around &lt;AROUND&gt;</code></td><td>Scaled to fit round these shapes, –margin from their box (ids without the S) Repeatable.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>With –around: from the shapes’ box to the entry’s, mm. Default: <code>10</code>.</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Scaled to this width, mm; the height follows.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>Scaled to this height, mm; the width follows.</td></tr>
+<tr><td><code>--scale &lt;SCALE&gt;</code></td><td>Scaled by this.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape and text on this layer (default: the layers they were saved on)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library"><a class="header" href="#chipload-shape-library"><code>chipload shape library</code></a></h3>
+<p>The shape library: list (the default), rename, move, remove, groups</p>
+<h3 id="chipload-shape-library-list"><a class="header" href="#chipload-shape-library-list"><code>chipload shape library list</code></a></h3>
+<p>The entries and groups (the default)</p>
+<pre><code class="language-text">chipload shape library list
+</code></pre>
+<h3 id="chipload-shape-library-path"><a class="header" href="#chipload-shape-library-path"><code>chipload shape library path</code></a></h3>
+<p>Where the library’s folder is</p>
+<pre><code class="language-text">chipload shape library path
+</code></pre>
+<h3 id="chipload-shape-library-rename"><a class="header" href="#chipload-shape-library-rename"><code>chipload shape library rename</code></a></h3>
+<p>Rename an entry; a name with another group moves it there</p>
+<pre><code class="language-text">chipload shape library rename &lt;FROM&gt; &lt;TO&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FROM&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;TO&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-move"><a class="header" href="#chipload-shape-library-move"><code>chipload shape library move</code></a></h3>
+<p>Move an entry into a group (“” for none)</p>
+<pre><code class="language-text">chipload shape library move &lt;NAME&gt; &lt;GROUP&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;GROUP&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-remove"><a class="header" href="#chipload-shape-library-remove"><code>chipload shape library remove</code></a></h3>
+<p>Delete an entry: its file goes to the folder’s .deleted</p>
+<pre><code class="language-text">chipload shape library remove &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-group"><a class="header" href="#chipload-shape-library-group"><code>chipload shape library group</code></a></h3>
+<p>Groups of entries: folders in the library’s folder</p>
+<h3 id="chipload-shape-library-group-add"><a class="header" href="#chipload-shape-library-group-add"><code>chipload shape library group add</code></a></h3>
+<p>Make an empty group</p>
+<pre><code class="language-text">chipload shape library group add &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-group-rename"><a class="header" href="#chipload-shape-library-group-rename"><code>chipload shape library group rename</code></a></h3>
+<p>Rename a group, with its entries</p>
+<pre><code class="language-text">chipload shape library group rename &lt;FROM&gt; &lt;TO&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FROM&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;TO&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-library-group-remove"><a class="header" href="#chipload-shape-library-group-remove"><code>chipload shape library group remove</code></a></h3>
+<p>Delete an empty group</p>
+<pre><code class="language-text">chipload shape library group remove &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-shape-add"><a class="header" href="#chipload-shape-add"><code>chipload shape add</code></a></h3>
 <p>Add a drawn shape; prints its id</p>
 <pre><code class="language-text">chipload shape add &lt;PROJECT&gt; &lt;KIND&gt; [OPTIONS]
@@ -1010,6 +1150,147 @@
 </tbody>
 </table>
 </div>
+<h2 id="chipload-group"><a class="header" href="#chipload-group"><code>chipload group</code></a></h2>
+<p>Groups of drawn shapes and texts: add, list, set, remove (ungroup), delete, move, turn, scale</p>
+<h3 id="chipload-group-add"><a class="header" href="#chipload-group-add"><code>chipload group add</code></a></h3>
+<p>Group shapes and texts; prints the group’s id. With shapes of one group among them, the rest join it; of several, those groups become one</p>
+<pre><code class="language-text">chipload group add &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); a letter stands for its whole text.</td></tr>
+<tr><td><code>--texts &lt;TEXTS&gt;</code></td><td>Texts (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name (default: “Group N”)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-list"><a class="header" href="#chipload-group-list"><code>chipload group list</code></a></h3>
+<p>The project’s groups and what is in them</p>
+<pre><code class="language-text">chipload group list &lt;PROJECT&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-set"><a class="header" href="#chipload-group-set"><code>chipload group set</code></a></h3>
+<p>Rename a group, or add to it and take out of it</p>
+<pre><code class="language-text">chipload group set &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The group’s id.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>--add &lt;ADD&gt;</code></td><td>Shapes to add (any in another group move over) Repeatable.</td></tr>
+<tr><td><code>--add-texts &lt;ADD_TEXTS&gt;</code></td><td>Texts to add. Repeatable.</td></tr>
+<tr><td><code>--remove &lt;REMOVE&gt;</code></td><td>Shapes to take out; they stay where they are, free. Repeatable.</td></tr>
+<tr><td><code>--remove-texts &lt;REMOVE_TEXTS&gt;</code></td><td>Texts to take out. Repeatable.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-remove"><a class="header" href="#chipload-group-remove"><code>chipload group remove</code></a></h3>
+<p>Ungroup: the shapes and texts stay, free. Operations made from the group get its shapes by id</p>
+<pre><code class="language-text">chipload group remove &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-delete"><a class="header" href="#chipload-group-delete"><code>chipload group delete</code></a></h3>
+<p>Delete a group with its shapes and texts</p>
+<pre><code class="language-text">chipload group delete &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-move"><a class="header" href="#chipload-group-move"><code>chipload group move</code></a></h3>
+<p>Move a group, its texts too</p>
+<pre><code class="language-text">chipload group move &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>--dx &lt;DX&gt;</code></td><td>How far right, mm. Required.</td></tr>
+<tr><td><code>--dy &lt;DY&gt;</code></td><td>How far up, mm. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-turn"><a class="header" href="#chipload-group-turn"><code>chipload group turn</code></a></h3>
+<p>Turn a group counter-clockwise about the middle of its box, or a point</p>
+<pre><code class="language-text">chipload group turn &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>--angle-deg &lt;ANGLE_DEG&gt;</code></td><td>The angle, degrees, counter-clockwise; negative turns clockwise. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Turn about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-group-scale"><a class="header" href="#chipload-group-scale"><code>chipload group scale</code></a></h3>
+<p>Scale a group about the middle of its box, or a point; its texts’ height scales</p>
+<pre><code class="language-text">chipload group scale &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td></td></tr>
+<tr><td><code>--factor &lt;FACTOR&gt;</code></td><td>The factor: 2 doubles, 0.5 halves. Required.</td></tr>
+<tr><td><code>--about &lt;ABOUT&gt;</code></td><td>Scale about this point “X,Y” instead.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-image"><a class="header" href="#chipload-image"><code>chipload image</code></a></h2>
 <p>Pictures traced into shapes for V-carving: add, change, list, preview, remove</p>
 <h3 id="chipload-image-add"><a class="header" href="#chipload-image-add"><code>chipload image add</code></a></h3>
@@ -1111,6 +1392,22 @@
 </tbody>
 </table>
 </div>
+<h3 id="chipload-image-explode"><a class="header" href="#chipload-image-explode"><code>chipload image explode</code></a></h3>
+<p>Turn every shape traced from a picture into drawn shapes you can edit; the picture goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes</p>
+<pre><code class="language-text">chipload image explode &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The picture’s id (as <code>image list</code> shows it); not needed when the project has one.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-text"><a class="header" href="#chipload-text"><code>chipload text</code></a></h2>
 <p>Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)</p>
 <h3 id="chipload-text-add"><a class="header" href="#chipload-text-add"><code>chipload text add</code></a></h3>
@@ -1190,6 +1487,22 @@
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>&lt;ID&gt;</code></td><td>The text’s id.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-text-explode"><a class="header" href="#chipload-text-explode"><code>chipload text explode</code></a></h3>
+<p>Turn a text’s letters into drawn shapes you can edit; the text goes from the project (docs/specs/explode-pictures-and-texts.md). Operations keep cutting the same shapes</p>
+<pre><code class="language-text">chipload text explode &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The text’s id (as <code>text list</code> shows it); not needed when the project has one.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>

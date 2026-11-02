@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Exploding a DXF, joining ends - Chipload 0.30.0 user guide</title>
+        <title>Exploding a DXF, picture or text, joining ends - Chipload 0.31.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-edd296fe.js"></script>
+        <script src="../toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -177,14 +177,16 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="exploding-a-dxf-joining-ends"><a class="header" href="#exploding-a-dxf-joining-ends">Exploding a DXF, joining ends</a></h1>
+                        <h1 id="exploding-a-dxf-picture-or-text-joining-ends"><a class="header" href="#exploding-a-dxf-picture-or-text-joining-ends">Exploding a DXF, picture or text, joining ends</a></h1>
 <p>A DXF’s shapes are read-only: they change only when the DXF is
-<a href="update.html">updated</a>. To rework them in Chipload, <strong>explode</strong> the DXF: its shapes become
-drawn shapes, with handles, values you can type, copy, mirror and delete, like the ones you
+<a href="update.html">updated</a>. A traced picture’s shapes and a text’s letters are read-only too:
+they change only when the picture is traced again or the text is edited. To rework them in
+Chipload, <strong>explode</strong> the DXF, picture or text: its shapes become drawn shapes, with
+handles, values you can type, copy, mirror and delete, like the ones you
 <a href="shapes.html">draw</a>.</p>
-<h2 id="explode"><a class="header" href="#explode">Explode</a></h2>
+<h2 id="explode-a-dxf"><a class="header" href="#explode-a-dxf">Explode a DXF</a></h2>
 <p>Right-click the DXF in the Browser, <em>Explode into shapes…</em>, or <em>Explode…</em> in its
-properties.</p>
+properties. With the whole DXF selected on the canvas, right-click there for the same.</p>
 <ul>
 <li><strong>The project forgets the DXF file.</strong> It leaves the Browser, and <em>Update from DXF</em> is
 no longer possible for these shapes. Ctrl+Z undoes it until the project is saved;
@@ -198,6 +200,22 @@ by number, so a layer of the same name elsewhere doesn’t join in; the report l
 every drawn circle does, so the cut may start elsewhere on them. The report names them.</li>
 </ul>
 <p>Tick <em>Join ends closer than</em> to join the exploded lines straight away (below).</p>
+<h2 id="explode-a-picture-or-a-text"><a class="header" href="#explode-a-picture-or-a-text">Explode a picture or a text</a></h2>
+<p>Right-click the picture or text in the Browser, <em>Explode into shapes…</em>; or select it on the
+canvas and right-click there.</p>
+<ul>
+<li><strong>A picture goes from the project</strong> with its trace settings: it is no longer shown under
+its shapes and can’t be traced again. The project file gets smaller by the picture.</li>
+<li><strong>A text’s words can’t be edited again;</strong> its letters stay where they are, each outline
+and each hole (the inside of an O) a shape of its own. A text in a
+<a href="groups.html">group</a> is replaced there by its letters.</li>
+<li><strong>Operations keep cutting the same shapes,</strong> as for a DXF: an operation that cut the whole
+picture or text now selects its shapes by number. The G-code stays the same, apart from
+a V-carve’s depth now and then by 0.001 mm (arcs come back a hair different).</li>
+<li><strong>No join:</strong> traced outlines and letters are closed already. <em>Join ends</em> (below) is
+there if a centre-line trace needs it.</li>
+<li>Ctrl+Z undoes it until the project is saved.</li>
+</ul>
 <h2 id="join-ends"><a class="header" href="#join-ends">Join ends</a></h2>
 <p>A drawing made of separate lines and arcs whose ends almost meet can’t be pocketed: each
 piece is an open contour. <em>Draw &gt; Join ends…</em> joins open drawn polylines whose ends lie
@@ -217,6 +235,8 @@ still open with the distance to the nearest other end: the gap that would close 
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
 <pre><code class="language-sh">chipload dxf explode part.chipload                  # the project's only DXF
 chipload dxf explode part.chipload 2 --join 0.05mm  # DXF 2, then join ends closer than 0.05 mm
+chipload image explode part.chipload                # the project's only picture (or give its id)
+chipload text explode part.chipload 2               # text 2
 chipload shape join part.chipload                   # every drawn shape, gap 0.01 mm
 chipload shape join part.chipload 12 13 14 --gap 0.1
 </code></pre>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Placing the drawing - Chipload 0.30.0 user guide</title>
+        <title>Placing the drawing - Chipload 0.31.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-890fe37e.js";
+            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-edd296fe.js"></script>
+        <script src="../toc-58b32aa4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.30.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -197,6 +197,17 @@ changing the DXF. In the app, click the DXF in the <a href="../window.html#the-b
 <p>Each row has a reset button: the position back to where the DXF has it, rotation 0, scale 1.
 A change applies when you finish the edit (Enter, Tab or releasing a drag), as one undo
 step.</p>
+<p><strong>On the canvas:</strong> click the drawing, and its box shows handles (in top view), as a
+picture’s does:</p>
+<ul>
+<li>the square in the <strong>middle</strong> moves it, and so does dragging one of its lines;</li>
+<li>the square beyond its side <strong>turns</strong> it about the box’s centre, in steps of 15° (Alt:
+1°); the box stays turned with it;</li>
+<li>a <strong>corner</strong> square scales it, the opposite corner staying where it is.</li>
+</ul>
+<p>Each drag is one undo step, and start points and tabs move with it. Dropped on the
+<em>Shapes</em> tab, it is saved to the <a href="shape-library.html">shape library</a> instead of moved.
+A double-click picks one contour alone, for an operation that cuts only that.</p>
 <p>On the command line, <code>chipload place</code> (for a picture, <code>--image ID</code> with <code>--at</code>, <code>--rotate</code>
 and <code>--width</code>):</p>
 <div class="table-wrapper">
