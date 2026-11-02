@@ -1,6 +1,15 @@
 # Spec: a DXF or SVG selected whole on the canvas, moved by dragging
 
-Status: **draft** 2026-11-02, decisions in §5 to review.
+Status: **agreed 2026-11-02**, decisions 1-4 as recommended (the user: "go ahead"). Built
+2026-11-02.
+
+As built:
+- **The box turns with what it holds** (§6). A DXF's box is turned by its placement's
+  turn, so it no longer jumps back upright after a turn.
+- **One placement step** (`Move::About`) does the drag. It scales and turns about the
+  box's own centre, which then goes where the box was dragged. `place_dxf`'s own turn and
+  scale pivot on the upright bounding box's centre, which isn't the centre of a turned box.
+- **A drag doesn't fill the Report** the way *Place* does; where the DXF goes says it.
 
 The user (2026-11-02): "imported dxfs and svgs should be able to be dragged similar to text
 and images. One click selects the whole dxf or svg and it can be dragged around and into
@@ -81,3 +90,19 @@ The CLI already does all of this (`place --dxf`); nothing new there.
 4. **Box selection stays per contour.** *Recommended:* dragging a rectangle is how several
    contours from several DXFs are picked at once. *Instead:* a rectangle that touches a
    DXF takes all of it.
+
+## 6. The box turns with what it holds
+
+The user (2026-11-02), while this was being built: "the box with scale handles is reset
+after each rotation, preferably it should remember its rotation angle."
+
+- **A DXF's box** is the box round its shapes in axes turned by its placement's turn
+  (`box_handles::turned_box`). Turning it adds to that turn, so the box stays turned.
+- **A group's box** is turned by the group's own `rotation` (`drawing.groups[].rotation`,
+  degrees counter-clockwise, in [0, 360), default 0). This is an optional field with a safe
+  default, so no schema bump. Turning a group adds to it.
+- **The box is worked out afresh** from the shapes in those axes each time. A group whose
+  shapes are mirrored or edited one by one still gets a box round all of them, perhaps a
+  little loose.
+- **Scaling by a corner of a turned box** works in the box's own axes: the opposite corner
+  stays put.

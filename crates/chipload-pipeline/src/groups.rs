@@ -98,6 +98,7 @@ pub fn group(
                 name: name.map_or_else(|| format!("Group {id}"), str::to_string),
                 shapes: Vec::new(),
                 texts: Vec::new(),
+                rotation: 0.0,
             });
             id
         }
@@ -338,6 +339,13 @@ pub fn transform_group(
         }
         if let Some(slot) = out.drawing.texts.iter_mut().find(|t| t.id == *text_id) {
             *slot = moved;
+        }
+    }
+    // Its box turns with it (docs/specs/dxf-whole-on-canvas.md §6).
+    if let Some(slot) = out.drawing.groups.iter_mut().find(|g| g.id == id) {
+        slot.rotation = (slot.rotation + degrees).rem_euclid(360.0);
+        if slot.rotation >= 360.0 {
+            slot.rotation = 0.0;
         }
     }
     crate::refuse_problems(&out.drawing.validate())?;

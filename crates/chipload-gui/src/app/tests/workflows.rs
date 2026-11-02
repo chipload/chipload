@@ -951,7 +951,7 @@ fn the_delete_key_deletes_the_selected_drawn_shapes() {
 #[test]
 fn the_delete_key_keeps_imported_shapes() {
     let mut app = lower_part();
-    app.click(Some(4), false);
+    app.pick_alone(4);
     let id = app.selected_shape().unwrap();
     press(&mut app, egui::Key::Delete);
     assert!(app.shape(id).is_some());

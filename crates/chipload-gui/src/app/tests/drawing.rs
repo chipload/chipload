@@ -170,7 +170,7 @@ fn a_selected_shape_that_is_deleted_drops_out_of_the_selection() {
 #[test]
 fn imported_shapes_are_not_editable() {
     let mut app = lower_part();
-    app.click(Some(4), false);
+    app.pick_alone(4);
     let id = app.selected_shape().unwrap();
     assert!(!app.shape(id).unwrap().is_drawn());
     let err = app
@@ -383,7 +383,21 @@ fn clicks_select_and_toggle() {
     let mut app = ChiploadApp::default();
     app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
     assert_eq!(app.selector_json(), None);
+    // A click selects the whole DXF; Ctrl+click leaves a contour out (dxf-whole-on-canvas.md).
     app.click(Some(4), false);
+    assert!(matches!(
+        app.selection,
+        CanvasSelection::Whole {
+            of: Source::Dxf(_),
+            ..
+        }
+    ));
+    let all = app.selected_ids().len();
+    app.click(Some(6), true);
+    assert_eq!(app.selected_ids().len(), all - 1);
+    assert!(!app.selected_ids().contains(&6));
+    // A double-click picks one contour; Ctrl+click adds and takes away others.
+    app.pick_alone(4);
     app.click(Some(6), true);
     assert_eq!(app.selected_ids(), BTreeSet::from([4, 6]));
     app.click(Some(6), true);

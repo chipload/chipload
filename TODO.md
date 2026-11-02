@@ -188,7 +188,9 @@ it's built (see `CLAUDE.md`).
 - **A DXF or SVG selected whole on the canvas, moved by dragging** (the user, 2026-11-02:
   "imported dxfs and svgs should be able to be dragged similar to text and images. One
   click selects the whole dxf or svg and it can be dragged around and into the shape
-  library"): docs/specs/dxf-whole-on-canvas.md, **draft**, decisions 1-4 to review.
+  library"): docs/specs/dxf-whole-on-canvas.md, **done 2026-11-02**, decisions 1-4 as
+  recommended. A click picks the whole DXF, a double-click one contour; its box moves, turns
+  and scales it. A group's and a DXF's box stays turned (groups keep a `rotation`).
 
 - **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
   long time each operation will take, similar to how prusa slicer gives a report how much

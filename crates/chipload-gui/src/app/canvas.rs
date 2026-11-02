@@ -458,18 +458,16 @@ impl ChiploadApp {
             {
                 let toggle = ui.input(|i| i.modifiers.command || i.modifiers.ctrl);
                 let picked = self.scene.pick(&self.view, pos);
-                // A double-click on a grouped shape picks it alone, to work on it
-                // (docs/specs/shape-groups.md, decision 3).
+                // A double-click on a grouped shape, or a DXF's contour, picks it alone, to
+                // work on it (docs/specs/shape-groups.md, decision 3; dxf-whole-on-canvas.md
+                // decision 1).
                 let inside = response
                     .double_clicked()
                     .then_some(picked)
                     .flatten()
-                    .filter(|id| self.group_of_contour(*id).is_some());
-                if let Some(contour) =
-                    inside.and_then(|id| self.contours.iter().find(|c| c.id == id))
-                {
-                    self.selection = CanvasSelection::Shapes(shapes_of(contour));
-                    self.focus = Focus::Selection;
+                    .filter(|id| self.group_of_contour(*id).is_some() || self.dxf_contour(*id));
+                if let Some(contour) = inside {
+                    self.pick_alone(contour);
                 } else {
                     self.click(picked, toggle);
                 }

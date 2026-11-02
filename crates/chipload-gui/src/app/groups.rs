@@ -9,8 +9,8 @@ use std::collections::BTreeSet;
 use chipload_core::Point;
 use chipload_job::{Geometry, Job};
 use chipload_pipeline::groups::{
-    Members, add_to_group, delete_group, group, group_box, remove_from_group, rename_group,
-    transform_group, transformed_segment, ungroup,
+    Members, add_to_group, delete_group, group, remove_from_group, rename_group, transform_group,
+    transformed_segment, ungroup,
 };
 
 use super::*;
@@ -23,6 +23,24 @@ impl ChiploadApp {
         let mut groups = shapes_of(contour).into_iter().map(|s| drawing.group_of(s));
         let first = groups.next()??;
         groups.all(|g| g == Some(first)).then_some(first)
+    }
+
+    /// Contour `id` selected alone, as a double-click on a grouped shape or a DXF's contour
+    /// picks it (docs/specs/shape-groups.md decision 3, dxf-whole-on-canvas.md decision 1).
+    pub fn pick_alone(&mut self, id: usize) {
+        if let Some(contour) = self.contours.iter().find(|c| c.id == id) {
+            self.selection = CanvasSelection::Shapes(shapes_of(contour));
+            self.focus = Focus::Selection;
+        }
+    }
+
+    /// Whether contour `id` is a DXF's, all of it.
+    pub(super) fn dxf_contour(&self, id: usize) -> bool {
+        self.contours.iter().find(|c| c.id == id).is_some_and(|c| {
+            let from = c.parts.first().and_then(|p| p.segment.from);
+            matches!(from, Some(chipload_core::chain::ShapeFrom::Dxf(_)))
+                && c.parts.iter().all(|p| p.segment.from == from)
+        })
     }
 
     /// The selected group, if a group is what is selected.
@@ -233,15 +251,11 @@ impl ChiploadApp {
         }
     }
 
-    /// The box round group `id`.
-    pub(super) fn group_box(&self, id: u64) -> Option<((f64, f64), (f64, f64))> {
-        group_box(&self.edit.as_ref()?.job, id)
-    }
-
-    /// Group `id`'s outlines moved, turned and scaled as a drag has them, for its preview.
-    pub(super) fn group_outlines(
+    /// The outlines of shapes `ids` (a group's, a DXF's) moved, turned and scaled as a drag
+    /// has them, for its preview.
+    pub(super) fn moved_outlines(
         &self,
-        id: u64,
+        ids: &[u64],
         from: Point,
         to: Point,
         scale: f64,
@@ -251,7 +265,6 @@ impl ChiploadApp {
             return Vec::new();
         };
         let drawing = &edit.job.drawing;
-        let ids = drawing.group_shapes(id);
         let (from, to) = ([from.0, from.1], [to.0, to.1]);
         drawing
             .shapes

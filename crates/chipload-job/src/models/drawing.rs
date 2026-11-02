@@ -57,6 +57,11 @@ pub struct ShapeGroup {
     /// Its texts, by id, with their letters.
     #[serde(default)]
     pub texts: Vec<u64>,
+    /// How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was
+    /// given, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a
+    /// new group.
+    #[serde(default)]
+    pub rotation: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -306,6 +311,12 @@ impl Drawing {
             }
             if group.shapes.is_empty() && group.texts.is_empty() {
                 problems.push(Problem::at(at.clone(), Message::new("job-group-empty")));
+            }
+            if !group.rotation.is_finite() {
+                problems.push(Problem::at(
+                    format!("{at}.rotation"),
+                    Message::new("job-must-be-finite"),
+                ));
             }
             for id in &group.shapes {
                 if self.shapes.iter().any(|s| s.id == *id && !s.is_drawn()) {

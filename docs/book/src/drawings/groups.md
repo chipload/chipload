@@ -24,7 +24,7 @@ Inserting a library entry of more than one shape or text makes a group named aft
   group in the Browser. Then right-click > **Remove from group** takes it out of the group;
   it stays where it is.
 - **Move, turn, scale:** drag any of its shapes, or the handles of its box: the texts in
-  it move, turn and scale too.
+  it move, turn and scale too. The box turns with the group and stays turned.
 - **Ungroup:** right-click > **Ungroup**, or **Ctrl+Shift+G**. **Del** deletes the group
   with its shapes and texts. Properties shows its name, which you can change, what it
   holds, and *Ungroup*.

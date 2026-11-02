@@ -955,6 +955,43 @@ impl ChiploadApp {
         }
     }
 
+    /// DXF `id`'s box dragged on the canvas: scaled and turned about its centre `from`,
+    /// which goes to `to` (docs/specs/dxf-whole-on-canvas.md §2), as one undo step. It stays
+    /// selected; the report is left as it was, a drag says what it did by where the DXF is.
+    pub fn drag_dxf(&mut self, id: u64, from: Point, to: Point, scale: f64, degrees: f64) -> bool {
+        self.commit();
+        let Some(edit) = &self.edit else {
+            return false;
+        };
+        let job = match edit.to_job() {
+            Ok(job) => job,
+            Err(problems) => {
+                self.error_report(Report::of_problems(
+                    &t!(self, "app-project-incomplete"),
+                    &problems,
+                ));
+                return false;
+            }
+        };
+        match chipload_pipeline::placement::drag_dxf(&job, id, from, to, scale, degrees) {
+            Ok((placed, _)) => {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.adopt(placed);
+                }
+                self.commit();
+                self.refresh_drawing();
+                true
+            }
+            Err(err) => {
+                self.error_report(Report::failed(
+                    t!(self, "app-could-not-move-drawing"),
+                    err.message(),
+                ));
+                false
+            }
+        }
+    }
+
     pub fn set_copies_gap(&mut self, id: u64, gap: f64) {
         self.commit();
         let Some(edit) = &self.edit else {
@@ -1707,14 +1744,13 @@ impl ChiploadApp {
         // A traced contour selects its whole picture, a letter its whole text: their shapes
         // get new ids each time the picture is traced again or the text written again, so
         // operations select the picture or text, not its shapes (docs/specs/image-trace.md
-        // §4, decision 6; user report 2026-10-13; text.md §5).
+        // §4, decision 6; user report 2026-10-13; text.md §5). A DXF's contour selects the
+        // whole DXF too, to be moved by its box; a double-click picks the contour alone
+        // (dxf-whole-on-canvas.md §2).
         let traced = picked
             .and_then(|id| self.contours.iter().find(|c| c.id == id))
             .and_then(|c| match c.parts.first().and_then(|p| p.segment.from) {
-                Some(
-                    from @ (chipload_core::chain::ShapeFrom::Image(_)
-                    | chipload_core::chain::ShapeFrom::Text(_)),
-                ) if c.parts.iter().all(|p| p.segment.from == Some(from)) => Some(from),
+                Some(from) if c.parts.iter().all(|p| p.segment.from == Some(from)) => Some(from),
                 _ => None,
             });
         if let (Some(from), false) = (traced, toggle) {

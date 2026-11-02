@@ -529,6 +529,7 @@ Drawn shapes and texts kept together: one click selects them all, and they move,
 |---|---|---|---|
 | `id` | integer | yes | The group's id, which operations' selectors name. |
 | `name` | string | yes | Its name in the Browser. |
+| `rotation` | number | no | How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was given, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a new group. |
 | `shapes` | list of integer | no | Its drawn shapes, by id. |
 | `texts` | list of integer | no | Its texts, by id, with their letters. |
 

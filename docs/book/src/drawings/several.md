@@ -68,7 +68,9 @@ An operation selects a **DXF or image as a whole**, a **layer** within one, or *
 
 A DXF or an image selected as a whole, or one of its layers, follows the DXF when it is
 updated and the picture when it is traced again. In the app:
-- **A click** on a DXF or image in the Browser picks the whole DXF or image.
+- **A click** on a DXF or image in the Browser, or on one of its contours on the canvas,
+  picks the whole DXF or image. A **double-click** on a DXF's contour picks that contour
+  alone.
 - **A click** on a layer in the Browser, or right-click *Select layer* on the canvas, picks
   that layer of that DXF only.
 - **Leaving some out:** with a whole DXF or picture selected, **Ctrl+click** a contour on the

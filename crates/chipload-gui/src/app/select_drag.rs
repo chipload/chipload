@@ -142,7 +142,8 @@ impl ChiploadApp {
             return Vec::new();
         }
         if let Some(id) = moving.group {
-            return self.group_outlines(id, moving.grab, moving.to, 1.0, 0.0);
+            let ids = edit.job.drawing.group_shapes(id);
+            return self.moved_outlines(&ids, moving.grab, moving.to, 1.0, 0.0);
         }
         let (from, to) = ([moving.grab.0, moving.grab.1], [moving.to.0, moving.to.1]);
         edit.job

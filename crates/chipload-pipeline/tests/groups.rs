@@ -108,12 +108,14 @@ fn only_drawn_shapes_and_texts_and_each_in_one_group() {
             name: "A".into(),
             shapes: vec![5],
             texts: vec![],
+            rotation: 0.0,
         },
         chipload_job::ShapeGroup {
             id: 2,
             name: "B".into(),
             shapes: vec![5],
             texts: vec![],
+            rotation: 0.0,
         },
     ];
     let problems: Vec<String> = job

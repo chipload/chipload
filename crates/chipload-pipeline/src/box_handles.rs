@@ -4,6 +4,7 @@
 //! result through the same setters as Properties.
 
 use chipload_core::Point;
+use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Image, Text, TextAnchor, rotated};
 
@@ -56,6 +57,44 @@ impl PlacedBox {
         let (hw, hh) = (self.size.0 / 2.0, self.size.1 / 2.0);
         [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]].map(|p| self.at(p))
     }
+}
+
+/// The box round `prims` in axes turned `degrees` counter-clockwise, standing `pad` mm off
+/// them on every side: a box that turns with what it holds, a DXF by its placement's turn
+/// or a group by its own (docs/specs/dxf-whole-on-canvas.md §2). None without primitives.
+pub fn turned_box(prims: &[Primitive], degrees: f64, pad: f64) -> Option<PlacedBox> {
+    let back = |p: Point| {
+        let q = rotated([p.0, p.1], -degrees);
+        (q[0], q[1])
+    };
+    let mut bounds: Option<(Point, Point)> = None;
+    for prim in prims {
+        // The primitive in the box's own axes.
+        let local = match prim {
+            Primitive::Line(l) => Primitive::Line(Line {
+                start: back(l.start),
+                end: back(l.end),
+            }),
+            Primitive::Arc(a) => Primitive::Arc(Arc {
+                center: back(a.center),
+                start_angle: a.start_angle - degrees.to_radians(),
+                ..*a
+            }),
+        };
+        let ((x0, y0), (x1, y1)) = local.bounds();
+        bounds = Some(match bounds {
+            None => ((x0, y0), (x1, y1)),
+            Some(((a0, b0), (a1, b1))) => ((a0.min(x0), b0.min(y0)), (a1.max(x1), b1.max(y1))),
+        });
+    }
+    let ((x0, y0), (x1, y1)) = bounds?;
+    let size = (x1 - x0 + 2.0 * pad, y1 - y0 + 2.0 * pad);
+    let centre = rotated([(x0 + x1) / 2.0, (y0 + y1) / 2.0], degrees);
+    Some(PlacedBox {
+        corner: (centre[0] - size.0 / 2.0, centre[1] - size.1 / 2.0),
+        size,
+        rotation: degrees,
+    })
 }
 
 /// The handles of `b` and where they are; the turn handle sits `turn_reach` mm beyond the
@@ -207,6 +246,36 @@ pub fn text_in_box(text: &Text, size: (f64, f64), b: &PlacedBox, free: bool) -> 
         height,
         rotation: b.rotation,
         ..text.clone()
+    }
+}
+
+#[cfg(test)]
+mod turned_box_tests {
+    #![allow(clippy::unwrap_used)]
+    use super::*;
+
+    #[test]
+    fn a_turned_square_gets_a_box_turned_with_it() {
+        // A 10 mm square turned 30° about (5, 5): its own box is 10 x 10, turned 30°.
+        let corners = [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]].map(|p| {
+            let q = rotated([p[0] - 5.0, p[1] - 5.0], 30.0);
+            (q[0] + 5.0, q[1] + 5.0)
+        });
+        let prims: Vec<Primitive> = (0..4)
+            .map(|k| {
+                Primitive::Line(Line {
+                    start: corners[k],
+                    end: corners[(k + 1) % 4],
+                })
+            })
+            .collect();
+        let b = turned_box(&prims, 30.0, 1.0).unwrap();
+        assert!((b.size.0 - 12.0).abs() < 1e-9 && (b.size.1 - 12.0).abs() < 1e-9);
+        assert!((b.center().0 - 5.0).abs() < 1e-9 && (b.center().1 - 5.0).abs() < 1e-9);
+        assert_eq!(b.rotation, 30.0);
+        // Upright, the same square's box is wider.
+        let upright = turned_box(&prims, 0.0, 0.0).unwrap();
+        assert!(upright.size.0 > 13.0);
     }
 }
 

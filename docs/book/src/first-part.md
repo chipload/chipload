@@ -23,7 +23,7 @@ outside profile. The same steps follow in the app and on the command line.
    defaults come instead. Set the real stock thickness now: depths are measured from its
    top.
 3. **Select what to cut:**
-   - click the outline on the canvas;
+   - double-click the outline on the canvas (a single click takes the whole DXF);
    - Ctrl+click adds more;
    - right-click selects a whole layer;
    - or click a DXF or one of its layers in the Browser.

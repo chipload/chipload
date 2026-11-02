@@ -2038,6 +2038,12 @@
           "description": "Its name in the Browser.",
           "type": "string"
         },
+        "rotation": {
+          "default": 0.0,
+          "description": "How far its box is turned, degrees counter-clockwise, in [0, 360): the turns it was\ngiven, so that its box turns with it (docs/specs/dxf-whole-on-canvas.md §6). 0 for a\nnew group.",
+          "format": "double",
+          "type": "number"
+        },
         "shapes": {
           "default": [],
           "description": "Its drawn shapes, by id.",

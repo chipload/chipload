@@ -40,6 +40,14 @@ pub enum Move {
     Height(f64),
     /// Back to where the DXF has it: no turn, no scale, no move.
     Reset,
+    /// Scale by `scale` and turn `degrees` counter-clockwise about `from`, which then goes
+    /// to `to`: a box dragged on the canvas (docs/specs/dxf-whole-on-canvas.md §2).
+    About {
+        from: (f64, f64),
+        to: (f64, f64),
+        scale: f64,
+        degrees: f64,
+    },
 }
 
 /// One change of placement: turn about the origin by `degrees` counter-clockwise (exact
@@ -111,6 +119,29 @@ pub fn place_drawing(job: &Job, how: Move) -> Result<(Job, PlaceReport), Pipelin
                 .arg("dxfs", dxf_list(several)),
         )),
     }
+}
+
+/// DXF `id`'s box dragged on the canvas (docs/specs/dxf-whole-on-canvas.md §2): scaled by
+/// `scale` and turned `degrees` counter-clockwise about the box's centre `from`, which goes
+/// to `to`; as `place_dxf` does any change, start points and tabs following.
+pub fn drag_dxf(
+    job: &Job,
+    id: u64,
+    from: (f64, f64),
+    to: (f64, f64),
+    scale: f64,
+    degrees: f64,
+) -> Result<(Job, PlaceReport), PipelineError> {
+    place_dxf(
+        job,
+        id,
+        Move::About {
+            from,
+            to,
+            scale,
+            degrees,
+        },
+    )
 }
 
 /// "1 part-a, 2 part-b".
@@ -484,6 +515,29 @@ fn step_for(
             let ((x0, y0), (x1, y1)) = bbox()?;
             let factor = size_factor("height", height, y1 - y0)?;
             scaled_about_centre(((x0, y0), (x1, y1)), current, factor)?
+        }
+        Move::About {
+            from,
+            to,
+            scale,
+            degrees,
+        } => {
+            if !degrees.is_finite() {
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-place-rotation")
+                        .arg("got", Value::Number(degrees, Digits::Shortest)),
+                ));
+            }
+            // p -> f·turn(p - from) + to = f·turn(p) + to - f·turn(from).
+            let checked = scaled_about_centre((from, from), current, scale)?;
+            let degrees = normal_degrees(degrees);
+            let tf = rotated([from.0, from.1], degrees);
+            Step {
+                scale: checked.scale,
+                degrees,
+                dx: to.0 - scale * tf[0],
+                dy: to.1 - scale * tf[1],
+            }
         }
         Move::Rotate(d) => {
             if !d.is_finite() {
