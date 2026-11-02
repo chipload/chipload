@@ -55,8 +55,9 @@ As built:
   | 90° | 0 | 12 | 53.2 s |
 
   (With the first version, before the coverage rule, 45° already gave 12 cuts.) The guide
-  advises 30° for traced pictures. A default by what the V-carve cuts is open, to decide
-  after the user's tests.
+  advises 30° for traced pictures. The user tried the traced logo again (2026-11-02): "now
+  it works, 20 or 30 deg is a good value". So one default, 20°, for text and pictures
+  alike; no default by what the V-carve cuts.
 
 The user (2026-11-01, after V-carve tests with Edwardian Script): "we must improve the
 v-carve. Could we add options to the operation so the user can try different parameters,

@@ -91,8 +91,10 @@ it's built (see `CLAUDE.md`).
   because the path is not entirely smooth … prune voronoi branches if the angle is more
   than say 60°"; docs/specs/vcarve-smooth.md): **done 2026-11-01**, all decisions as
   recommended. The depth smoothed within half the tolerance (always); *Ignore kinks*, 20°
-  for new V-carves, 0° in older projects. Z reversals 326 → 138 on the script example. To
-  try on the router.
+  for new V-carves, 0° in older projects. Z reversals 326 → 172 on the script example.
+  Only a branch the rest covers goes (a traced logo at 20° had lost a leg of its "H").
+  Tried by the user on the traced logo (2026-11-02): "now it works, 20 or 30 deg is a good
+  value"; the default stays 20°.
 
 - **Image window** (the user, 2026-11-01: the traced paths had disappeared; the picture
   should look like V-carved wood): **done 2026-11-01.** Light oak and dark brown instead of
