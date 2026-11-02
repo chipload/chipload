@@ -124,6 +124,16 @@ it's built (see `CLAUDE.md`).
      - **`models.rs`: done 2026-11-02.** A pure split into `models/`: project, machine,
        drawing, shapes, sources (pictures, texts), selector, operations, validate; paths
        unchanged (`chipload_job::X`, `chipload_job::models::X`). None over 1,200 lines.
+  5. **The window module** (the user, 2026-11-02: before dockable panels, kept separate):
+     **done 2026-11-02**, seven commits, no change in behaviour. The app's 92 fields are
+     44: `panels` (layout.rs: what is open, `panel_contents(PanelKind)` apart from where a
+     panel sits, `side_panels` as today's layout), `canvas_tools`, `file` and `history`,
+     `toolpath` (the run state), `recovery`, `clipboard`, `prefs`, `user` (settings folder,
+     library), `display`. The rest is the window's core (project, focus, selection,
+     contours, scene, view) and small items.
+  6. **Dockable panels** next: a spec and ADR first (egui_dock 0.21 or egui_tiles 0.17,
+     licences, the layout saved per user, how it meets the folding side panels); the dock
+     shows `panel_contents`.
 
 - **Groups of drawn shapes** (the user, 2026-11-02, about a traced picture inserted from
   the shape library: "we need to be able to group them"; docs/specs/shape-groups.md):
