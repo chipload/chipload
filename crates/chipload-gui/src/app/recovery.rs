@@ -86,7 +86,7 @@ impl ChiploadApp {
         };
         let result = if self.dirty() {
             match self.edit.as_ref().map(EditJob::to_job) {
-                Some(Ok(job)) => session.write(&job, self.job_path.as_deref()),
+                Some(Ok(job)) => session.write(&job, self.file.path.as_deref()),
                 _ => Ok(()),
             }
         } else {

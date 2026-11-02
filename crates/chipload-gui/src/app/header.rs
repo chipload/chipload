@@ -71,11 +71,11 @@ impl ChiploadApp {
                 self.ask_save(false);
             }
             let hover = hover_keys(&t!(ui, "header-undo"), Action::Undo);
-            if quick_button(ui, Icon::Undo, &hover, !self.undo.is_empty()).clicked() {
+            if quick_button(ui, Icon::Undo, &hover, !self.history.undo.is_empty()).clicked() {
                 self.undo();
             }
             let hover = hover_keys(&t!(ui, "header-redo"), Action::Redo);
-            if quick_button(ui, Icon::Redo, &hover, !self.redo.is_empty()).clicked() {
+            if quick_button(ui, Icon::Redo, &hover, !self.history.redo.is_empty()).clicked() {
                 self.redo();
             }
             let left_end = ui.min_rect().right();
@@ -126,7 +126,8 @@ impl ChiploadApp {
             return;
         }
         let name = self
-            .job_path
+            .file
+            .path
             .as_deref()
             .map_or_else(|| t!(ui, "header-new-project"), file_name);
         let dirty = self.dirty();
@@ -169,7 +170,7 @@ impl ChiploadApp {
             let dot = egui::pos2(rect.right() - 14.0, rect.center().y);
             painter.circle_filled(dot, 3.5, visuals.text_color());
         }
-        let hover = match (&self.job_path, dirty) {
+        let hover = match (&self.file.path, dirty) {
             (Some(path), true) => t!(
                 ui,
                 "header-tab-unsaved-hover",

@@ -88,7 +88,8 @@ impl ChiploadApp {
             return false;
         }
         let current = self
-            .job_path
+            .file
+            .path
             .clone()
             .filter(|p| p.extension().is_some_and(|e| e == PROJECT_EXTENSION));
         if !save_as && let Some(path) = current {
@@ -331,7 +332,7 @@ impl ChiploadApp {
                     }
                     Some(Unsaved::Discard) => {
                         self.dialogs.prompt = None;
-                        self.saved.clone_from(&self.edit); // nothing left to protect
+                        self.file.saved.clone_from(&self.edit); // nothing left to protect
                         self.run_pending(action, ctx);
                     }
                     Some(Unsaved::Cancel) => self.dialogs.prompt = None,
@@ -432,7 +433,7 @@ impl ChiploadApp {
     /// The project's file changed while there are unsaved changes
     /// (docs/specs/reload-changed-file.md §4): in the middle, as for unsaved changes.
     fn changed_on_disk_prompt(&mut self, ctx: &egui::Context) {
-        let name = self.job_path.as_deref().map(file_name).unwrap_or_default();
+        let name = self.file.path.as_deref().map(file_name).unwrap_or_default();
         let mut load: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("changed-on-disk")).show(ctx, |ui| {
             ui.set_width(380.0);
@@ -563,7 +564,8 @@ impl ChiploadApp {
         let mut parts = vec!["Chipload".to_string()];
         if self.edit.is_some() {
             let name = self
-                .job_path
+                .file
+                .path
                 .as_deref()
                 .map_or_else(|| t!(self, "dialogs-title-new-project"), file_name);
             parts.push(if self.dirty() {

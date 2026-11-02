@@ -554,7 +554,8 @@ impl ChiploadApp {
 
     fn browser_tree(&mut self, ui: &mut egui::Ui) {
         let name = self
-            .job_path
+            .file
+            .path
             .as_deref()
             .map_or_else(|| t!(ui, "browser-new-project"), file_name);
         let root = Row::new(Id::new("browser-project"), 0, name).icon(Icon::Project);

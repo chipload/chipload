@@ -232,7 +232,7 @@ impl ChiploadApp {
     pub(super) fn undo_menu(&mut self, ui: &mut egui::Ui) {
         if ui
             .add_enabled(
-                !self.undo.is_empty(),
+                !self.history.undo.is_empty(),
                 egui::Button::new(with_keys(&t!(ui, "menu-undo"), Action::Undo)),
             )
             .clicked()
@@ -241,7 +241,7 @@ impl ChiploadApp {
         }
         if ui
             .add_enabled(
-                !self.redo.is_empty(),
+                !self.history.redo.is_empty(),
                 egui::Button::new(with_keys(&t!(ui, "menu-redo"), Action::Redo)),
             )
             .clicked()

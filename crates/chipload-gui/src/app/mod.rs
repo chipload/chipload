@@ -56,6 +56,7 @@ mod frames;
 mod generation;
 mod groups;
 pub(crate) mod header;
+mod history;
 mod images;
 mod layout;
 mod library_transfer;
@@ -311,16 +312,11 @@ struct Dialogs {
 pub struct ChiploadApp {
     /// The project being edited.
     pub edit: Option<EditJob>,
-    /// Where it was opened from or last saved to.
-    pub job_path: Option<PathBuf>,
-    /// The project as last opened or saved; differs from `edit` when there are unsaved changes.
-    saved: Option<EditJob>,
-    /// The project's file, watched for changes by other programs.
-    disk: disk::DiskWatch,
-    /// The project as last recorded for undo.
-    committed: Option<EditJob>,
-    undo: Vec<Option<EditJob>>,
-    redo: Vec<Option<EditJob>>,
+    /// The project's file: where it is, what was last saved there, and changes other
+    /// programs make to it.
+    pub file: disk::ProjectFile,
+    /// Undo and redo.
+    pub history: history::History,
     pub focus: Focus,
 
     /// The project's contours (from its embedded drawing), and the drawing they came from.
@@ -475,12 +471,8 @@ impl Default for ChiploadApp {
     fn default() -> Self {
         ChiploadApp {
             edit: None,
-            job_path: None,
-            saved: None,
-            disk: disk::DiskWatch::default(),
-            committed: None,
-            undo: Vec::new(),
-            redo: Vec::new(),
+            file: disk::ProjectFile::default(),
+            history: history::History::default(),
             focus: Focus::Job,
             contours: Vec::new(),
             loaded_drawing: None,
@@ -620,87 +612,20 @@ impl ChiploadApp {
 
     /// The project has changes that aren't saved.
     pub fn dirty(&self) -> bool {
-        self.edit.is_some() && self.edit != self.saved
-    }
-
-    /// Record the current project as one undo step if it changed since the last one. Called
-    /// once the user has finished an edit (no drag or text entry in progress).
-    pub fn commit(&mut self) {
-        if self.edit != self.committed {
-            self.undo.push(self.committed.take());
-            self.redo.clear();
-            self.committed.clone_from(&self.edit);
-            // A shape no operation selects changes nothing that is cut: the toolpath
-            // stands, and nothing is generated again (docs/specs/edit-and-simulate.md §5).
-            if self.edit_keeps_cut() {
-                self.refresh_problems();
-                self.recovery_due = Some(Instant::now());
-            } else {
-                self.toolpath_out_of_date();
-            }
-        }
-    }
-
-    pub fn undo(&mut self) {
-        self.commit();
-        if let Some(previous) = self.undo.pop() {
-            self.redo.push(self.edit.take());
-            self.edit = previous;
-            self.committed.clone_from(&self.edit);
-            self.after_history_step();
-        }
-    }
-
-    /// Take back the last edit for good (no redo): a drop the planner refused.
-    pub(super) fn take_back_edit(&mut self) {
-        if let Some(previous) = self.undo.pop() {
-            self.edit = previous;
-            self.committed.clone_from(&self.edit);
-            self.after_history_step();
-        }
-    }
-
-    pub fn redo(&mut self) {
-        if let Some(next) = self.redo.pop() {
-            self.undo.push(self.edit.take());
-            self.edit = next;
-            self.committed.clone_from(&self.edit);
-            self.after_history_step();
-        }
-    }
-
-    fn after_history_step(&mut self) {
-        self.shape_draft = None;
-        // Undo or redo ends drawing; another tool stays for the next click.
-        self.cancel_drawing();
-        let len = self.edit.as_ref().map_or(0, |e| e.job.operations.len());
-        if let Focus::Op(i) = self.focus
-            && i >= len
-        {
-            self.focus = if len == 0 {
-                Focus::Job
-            } else {
-                Focus::Op(len - 1)
-            };
-        }
-        if self.edit_keeps_cut() {
-            self.refresh_problems();
-        } else {
-            self.toolpath_out_of_date();
-        }
+        self.edit.is_some() && self.edit != self.file.saved
     }
 
     /// Start editing `job` as a fresh document (no undo history).
     fn start_editing(&mut self, job: EditJob, saved: bool, path: Option<PathBuf>) {
         // The previous project was saved or its changes deliberately dropped.
         self.clear_recovery();
-        self.saved = saved.then(|| job.clone());
-        self.committed = Some(job.clone());
+        self.file.saved = saved.then(|| job.clone());
+        self.history.committed = Some(job.clone());
         self.edit = Some(job);
-        self.job_path = path;
+        self.file.path = path;
         self.remember_disk();
-        self.undo.clear();
-        self.redo.clear();
+        self.history.undo.clear();
+        self.history.redo.clear();
         self.focus = Focus::Job;
         self.error_ops.clear();
         self.selection = CanvasSelection::Nothing;
@@ -1732,7 +1657,8 @@ impl ChiploadApp {
                 // step 3).
                 let info = SheetInfo {
                     project: self
-                        .job_path
+                        .file
+                        .path
                         .as_deref()
                         .map_or_else(|| t!(self, "export-untitled-project"), file_name),
                     written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
@@ -1848,9 +1774,9 @@ impl ChiploadApp {
         }
         let saved = EditJob::from_job(&job);
         self.edit = Some(saved.clone());
-        self.committed = Some(saved.clone());
-        self.saved = Some(saved);
-        self.job_path = Some(path.to_path_buf());
+        self.history.committed = Some(saved.clone());
+        self.file.saved = Some(saved);
+        self.file.path = Some(path.to_path_buf());
         self.remember_disk();
         self.clear_recovery();
         let text = t!(self, "app-saved", path = path.display().to_string());
@@ -2210,7 +2136,7 @@ impl ChiploadApp {
     }
 
     fn default_project_path(&self) -> PathBuf {
-        if let Some(path) = &self.job_path {
+        if let Some(path) = &self.file.path {
             return path.with_extension(PROJECT_EXTENSION);
         }
         self.edit

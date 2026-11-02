@@ -39,7 +39,7 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
         Some(Prompt::Discard(Pending::Open(_)))
     ));
     app.dialogs.prompt = None;
-    app.saved.clone_from(&app.edit);
+    app.file.saved.clone_from(&app.edit);
 
     std::fs::remove_file(&second).unwrap();
     assert!(!app.open_recent(&second_path));
@@ -64,7 +64,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     let job = app.edit.as_ref().unwrap().job.clone();
     assert!(job.drawing.shapes.is_empty() && job.drawing.dxfs.is_empty());
     assert_eq!((job.stock().x, job.stock().y), (300.0, 200.0));
-    assert!(app.job_path.is_none() && app.contours.is_empty());
+    assert!(app.file.path.is_none() && app.contours.is_empty());
     assert_eq!(app.update_labels().0, "Import DXF or SVG into project…");
     assert_eq!(
         app.scene.fit_points(0.0).len(),

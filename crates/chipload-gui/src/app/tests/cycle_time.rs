@@ -150,7 +150,7 @@ fn measuring_changes_nothing_in_the_project() {
     );
     app.commit();
     assert_eq!(app.edit, before);
-    assert!(app.undo.is_empty(), "no undo step");
+    assert!(app.history.undo.is_empty(), "no undo step");
     // Esc ends it; so does starting to draw.
     press(&mut app, egui::Key::Escape);
     assert!(app.measure().is_none());
