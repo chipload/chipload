@@ -15,8 +15,8 @@ use super::*;
 /// The default window, as main.rs opens it.
 const WINDOW: egui::Vec2 = egui::vec2(1200.0, 800.0);
 
-/// The six languages, by their setting.
-const LANGUAGES: [&str; 6] = ["en", "de", "fr", "es", "it", "sv"];
+/// The supported languages, by their setting.
+const LANGUAGES: [&str; 7] = ["en", "de", "fr", "es", "it", "sv", "ru"];
 
 /// The ribbon's last large button (View > Measure) and Generate, as named in `language`.
 fn ribbon_ends(language: &str) -> (String, String) {

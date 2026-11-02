@@ -104,7 +104,40 @@ correction here is a correction everywhere: change the term, then every text usi
 *surépaisseur*, *sobrematerial*, *sovrametallo*, *övermått*) mean the opposite sign, so
 they are never used for it.
 
-## Suggestions for reviewers
+## Russian (ru)
+
+Draft, pending review by a Russian-speaking machinist. Use neutral, concise wording;
+buttons use infinitives. Keep controller commands, identifiers, file names and user
+names unchanged. Numbers display a decimal point; input also accepts a decimal comma.
+
+| English | Русский |
+|---|---|
+| project / part / setup / operation | проект / деталь / установ / операция |
+| drawing / layer / shape / contour | чертёж / слой / объект / контур |
+| profile / pocket / island | обработка контура / выборка кармана / остров |
+| V-carve / follow path / surfacing | V-гравировка / вдоль линии / торцевание |
+| drill / helical bore | сверление / винтовое фрезерование отверстия |
+| stock / spoilboard / work zero | заготовка / жертвенный стол / ноль детали |
+| tool / end mill / V-bit | инструмент / концевая фреза / V-образная фреза |
+| spindle speed / feed / plunge feed | обороты шпинделя / подача / подача врезания |
+| chip load / flutes | подача на зуб / число зубьев |
+| step down / step over | глубина за проход / боковой шаг |
+| climb / conventional milling | попутное / встречное фрезерование |
+| inside / outside / on the line | внутри / снаружи / по линии |
+| tabs / onion skin | перемычки / остаточный слой |
+| ramp / helix entry | наклонное / винтовое врезание |
+| finishing pass / stock to leave | чистовой проход / припуск |
+| oversize (clearance) | перерез |
+| dogbone / T-bone | разгрузка dogbone / T-bone |
+| rest machining / floor pass | доработка остатка / обработка дна |
+| toolpath / rapid move / safe height | траектория / быстрый ход / безопасная высота |
+| setup sheet / air cut | карта наладки / пробный прогон над заготовкой без резания |
+| Browser / construction geometry | дерево проекта / вспомогательная геометрия |
+
+Positive **перерез** removes more material (a larger pocket or smaller part), not a
+positive finishing allowance. **Припуск** is reserved for material left for a later cut.
+
+## Suggestions for reviewers (other languages)
 
 Raised by the translators, not yet applied; a native speaker who machines decides.
 

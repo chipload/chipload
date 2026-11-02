@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The app's texts in English, German, French, Spanish, Italian and Swedish
+//! The app's texts in English, German, French, Spanish, Italian, Swedish and Russian
 //! (docs/specs/translations.md). Texts are Fluent messages in `locales/<lang>/*.ftl`,
 //! compiled in; `tr` finds one by id and fills in its arguments. English is the source:
 //! a text missing in another language falls back to it.
@@ -22,17 +22,19 @@ pub enum Language {
     Es,
     It,
     Sv,
+    Ru,
 }
 
 impl Language {
     /// Every language, English first, the rest in the order of the language menu.
-    pub const ALL: [Language; 6] = [
+    pub const ALL: [Language; 7] = [
         Language::En,
         Language::De,
         Language::Fr,
         Language::Es,
         Language::It,
         Language::Sv,
+        Language::Ru,
     ];
 
     /// The ISO 639-1 code, as written in the settings: `en`, `de`, …
@@ -44,6 +46,7 @@ impl Language {
             Language::Es => "es",
             Language::It => "it",
             Language::Sv => "sv",
+            Language::Ru => "ru",
         }
     }
 
@@ -56,6 +59,7 @@ impl Language {
             Language::Es => "Español",
             Language::It => "Italiano",
             Language::Sv => "Svenska",
+            Language::Ru => "Русский",
         }
     }
 
@@ -138,6 +142,7 @@ macro_rules! sources {
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/es/", $file)),
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/it/", $file)),
                     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/sv/", $file)),
+                    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/locales/ru/", $file)),
                 ],
             )
         ),*]
@@ -145,7 +150,7 @@ macro_rules! sources {
 }
 
 /// Every file of texts, as `build.rs` found them in `locales/en/`.
-pub const SOURCES: &[(&str, [&str; 6])] = &include!(concat!(env!("OUT_DIR"), "/sources.rs"));
+pub const SOURCES: &[(&str, [&str; 7])] = &include!(concat!(env!("OUT_DIR"), "/sources.rs"));
 
 type Bundle = FluentBundle<FluentResource>;
 

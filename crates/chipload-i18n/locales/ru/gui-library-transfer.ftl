@@ -1,0 +1,9 @@
+library-transfer-import-from = Импорт из { $file }
+library-transfer-import = Импортировать
+library-transfer-import-hover = Добавить новое; при различиях сохранить ваши значения
+library-transfer-import-replace = Импортировать с заменой
+library-transfer-import-replace-hover = При различиях также принять значения из файла
+library-transfer-library-files = Файлы библиотеки
+library-transfer-exported-tools = Экспортировано инструментов: { $count } в { $file }
+library-transfer-exported-machines = Экспортировано станков: { $count } в { $file }
+library-transfer-no-settings-folder = Нет папки настроек

@@ -1,0 +1,17 @@
+updates-ask = Проверять новые версии Chipload? Раз в день приложение запрашивает последний выпуск на GitHub; сведения о вас и ваших проектах не отправляются.
+updates-ask-yes = Проверять
+updates-ask-no = Не проверять
+updates-ask-close-hover = Спросить в следующий раз
+updates-available = Доступен Chipload { $version }
+updates-available-hover = На GitHub есть новая версия
+updates-whats-new = Что нового…
+updates-whats-new-hover = Страница выпуска на GitHub в браузере
+updates-skip = Пропустить эту версию
+updates-skip-hover = Не уведомлять о { $version }; сообщить о следующей версии
+updates-check-now = Проверить новые версии сейчас
+updates-checking = Проверка новых версий…
+updates-latest = Chipload { $version } — последняя версия
+updates-failed = Не удалось связаться с GitHub: { $reason }
+updates-setting = Новые версии
+updates-setting-check = Проверять раз в день
+updates-setting-hover = Раз в день запрашивает последний выпуск на GitHub; сведения о вас и проектах не отправляются. «Справка > Проверить новые версии сейчас» работает при любой настройке.

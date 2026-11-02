@@ -1285,6 +1285,7 @@ pub enum LangArg {
     Es,
     It,
     Sv,
+    Ru,
 }
 
 impl LangArg {
@@ -1296,6 +1297,7 @@ impl LangArg {
             LangArg::Es => Language::Es,
             LangArg::It => Language::It,
             LangArg::Sv => Language::Sv,
+            LangArg::Ru => Language::Ru,
         }
     }
 }

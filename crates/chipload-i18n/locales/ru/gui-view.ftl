@@ -1,0 +1,13 @@
+view-legend-outline = внешний контур
+view-legend-hole = отверстие
+view-legend-open = разомкнутый контур (не обрабатывается)
+view-legend-selected = выделение
+view-legend-operation = контуры операции
+view-legend-stock = заготовка
+view-legend-copies = копии
+view-legend-cutting = рабочий ход
+view-legend-rapid = быстрый ход над заготовкой
+view-legend-plunge = место заглубления инструмента
+view-legend-tab = перемычка
+view-legend-ring-start = начало витка (перетащите для перемещения)
+view-legend-corner = угол (нажмите для индивидуальной настройки)

@@ -1,0 +1,12 @@
+image-error-too-large = размер изображения { $bytes } байт; поддерживается не более 20 МБ: уменьшите его
+image-error-too-many-pixels = изображение { $width } × { $height } пикселей; поддерживается не более 20 мегапикселей: уменьшите его
+image-error-format = изображение не в формате PNG, JPEG или BMP
+image-error-decode = невозможно прочитать изображение: { $reason }
+image-error-no-pixels = в изображении нет пикселей
+image-error-decoder-failed = сбой декодера
+image-error-width = ширина должна быть больше { $zero }
+image-error-too-many-loops = после векторизации получилось контуров: { $loops }, больше { $most }: увеличьте размытие или минимальный размер фрагмента либо измените порог
+image-error-threshold = порог должен быть от 1 до 254 или авто
+image-error-blur = размытие должно быть от 0 до 10 px
+image-error-smallest-piece = минимальный размер фрагмента должен быть от 0 до 100 mm²
+image-error-smoothing = сглаживание должно быть от { $min } до { $max }
