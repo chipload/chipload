@@ -298,11 +298,11 @@ impl ChiploadApp {
             self.show_images = !images;
         }
         let label = t!(ui, "navigation-grid");
-        if nav_button(ui, compact, Icon::Grid, &label, true, self.show_grid)
+        if nav_button(ui, compact, Icon::Grid, &label, true, self.prefs.show_grid)
             .on_hover_text(hover_keys(&t!(ui, "navigation-grid-hover"), Action::Grid))
             .clicked()
         {
-            self.set_show_grid(!self.show_grid);
+            self.set_show_grid(!self.prefs.show_grid);
         }
         // With several parts, the toolpath and simulation are of the active part unless
         // this is on (docs/specs/active-part-preview.md §3).

@@ -38,7 +38,7 @@ fn the_live_preview_generates_once_the_project_is_quiet() {
     assert!(!app.toolpath.stale && app.toolpath.result.is_some());
     assert!(!app.scene.toolpath.as_ref().unwrap().stale);
     // Switched off, an edit waits for Generate.
-    app.auto_generate = false;
+    app.prefs.auto_generate = false;
     edit_feed(&mut app, 700.0);
     assert_eq!(
         app.live_preview(Instant::now() + Duration::from_secs(5)),

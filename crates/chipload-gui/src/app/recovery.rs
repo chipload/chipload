@@ -47,14 +47,14 @@ impl ChiploadApp {
     /// Find left-over copies, then start this window's session (none without a settings
     /// folder, as in tests that don't ask for one).
     pub(super) fn start_recovery(&mut self) {
-        self.recovery = None;
-        self.leftovers.clear();
+        self.recovery.session = None;
+        self.recovery.leftovers.clear();
         let Some(dir) = self.settings_dir.as_deref().map(recovery_dir) else {
             return;
         };
-        self.leftovers = leftovers(&dir);
+        self.recovery.leftovers = leftovers(&dir);
         match Session::start(&dir) {
-            Ok(session) => self.recovery = Some(session),
+            Ok(session) => self.recovery.session = Some(session),
             Err(err) => self.set_status(
                 t!(
                     self,
@@ -69,7 +69,7 @@ impl ChiploadApp {
     /// Write the recovery copy once the project has been quiet for the delay. Returns how
     /// long to wait before looking again, if a write is due later.
     pub(super) fn recovery_tick(&mut self, now: Instant) -> Option<Duration> {
-        let since = now.saturating_duration_since(self.recovery_due?);
+        let since = now.saturating_duration_since(self.recovery.due?);
         if since < RECOVERY_DELAY {
             return Some(RECOVERY_DELAY - since);
         }
@@ -80,8 +80,8 @@ impl ChiploadApp {
     /// The recovery copy as the project is now: written while there are unsaved changes,
     /// removed when there are none. An incomplete project keeps the last copy (decision 4).
     pub(super) fn write_recovery(&mut self) {
-        self.recovery_due = None;
-        let Some(session) = &self.recovery else {
+        self.recovery.due = None;
+        let Some(session) = &self.recovery.session else {
             return;
         };
         let result = if self.dirty() {
@@ -99,8 +99,8 @@ impl ChiploadApp {
 
     /// The changes were saved or deliberately dropped: no copy to keep.
     pub(super) fn clear_recovery(&mut self) {
-        self.recovery_due = None;
-        if let Some(Err(err)) = self.recovery.as_ref().map(Session::clear) {
+        self.recovery.due = None;
+        if let Some(Err(err)) = self.recovery.session.as_ref().map(Session::clear) {
             self.set_status(self.say(&err.message()), ERROR_STATUS_SECONDS);
         }
     }
@@ -108,10 +108,10 @@ impl ChiploadApp {
     /// Open a left-over copy as an unsaved project with its original path, made this
     /// window's copy at once, and the left-over removed.
     pub fn open_leftover(&mut self, index: usize) -> bool {
-        if index >= self.leftovers.len() {
+        if index >= self.recovery.leftovers.len() {
             return false;
         }
-        let left = self.leftovers.remove(index);
+        let left = self.recovery.leftovers.remove(index);
         let job = match left.open() {
             Ok(job) => job,
             Err(err) => {
@@ -119,7 +119,7 @@ impl ChiploadApp {
                     t!(self, "recovery-cannot-open"),
                     err.message(),
                 ));
-                self.leftovers.insert(index, left);
+                self.recovery.leftovers.insert(index, left);
                 return false;
             }
         };
@@ -139,8 +139,8 @@ impl ChiploadApp {
 
     /// Delete a left-over copy for good.
     pub fn delete_leftover(&mut self, index: usize) {
-        if index < self.leftovers.len()
-            && let Err(err) = self.leftovers.remove(index).delete()
+        if index < self.recovery.leftovers.len()
+            && let Err(err) = self.recovery.leftovers.remove(index).delete()
         {
             self.set_status(self.say(&err.message()), ERROR_STATUS_SECONDS);
         }
@@ -148,7 +148,7 @@ impl ChiploadApp {
 
     /// Recover unsaved work: one row per left-over copy.
     pub(super) fn recovery_window(&mut self, ctx: &egui::Context) {
-        if self.leftovers.is_empty() {
+        if self.recovery.leftovers.is_empty() {
             return;
         }
         let dirty = self.dirty();
@@ -160,7 +160,7 @@ impl ChiploadApp {
             .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
             .show(ctx, |ui| {
                 ui.label(t!(ui, "recovery-intro"));
-                for (i, left) in self.leftovers.iter().enumerate() {
+                for (i, left) in self.recovery.leftovers.iter().enumerate() {
                     ui.separator();
                     ui.strong(leftover_title(ui, left));
                     if let Some(path) = &left.project_path {
@@ -179,7 +179,7 @@ impl ChiploadApp {
                             t!(
                                 ui,
                                 "recovery-cannot-be-opened",
-                                problem = problem.render(ui.lang(), self.units.into())
+                                problem = problem.render(ui.lang(), self.prefs.units.into())
                             ),
                         );
                     }
@@ -217,8 +217,20 @@ impl ChiploadApp {
             }
             Some(LeftoverChoice::Delete(i)) => self.delete_leftover(i),
             // Dropping it releases its lock: offered again at the next start.
-            Some(LeftoverChoice::Later(i)) => drop(self.leftovers.remove(i)),
+            Some(LeftoverChoice::Later(i)) => drop(self.recovery.leftovers.remove(i)),
             None => {}
         }
     }
+}
+
+/// Recovery copies (docs/specs/autosave-and-backup.md).
+#[derive(Default)]
+pub struct Recovery {
+    /// This window's recovery copy (docs/specs/autosave-and-backup.md); None without a
+    /// settings folder.
+    pub(super) session: Option<chipload_pipeline::recovery::Session>,
+    /// When the project last changed, while its recovery copy isn't written yet.
+    pub(super) due: Option<Instant>,
+    /// Recovery copies left by windows that closed without saving, offered at start.
+    pub leftovers: Vec<chipload_pipeline::recovery::Leftover>,
 }

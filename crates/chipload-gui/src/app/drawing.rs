@@ -86,7 +86,7 @@ impl ChiploadApp {
         value: f64,
         at: egui::Pos2,
     ) {
-        let text = chipload_pipeline::units::length_number(value, self.units);
+        let text = chipload_pipeline::units::length_number(value, self.prefs.units);
         self.canvas_tools.typed = Some(Typed {
             text,
             at,
@@ -105,7 +105,7 @@ impl ChiploadApp {
         if typed.target != TypedTarget::Point {
             return Err(EntryError::Unreadable);
         }
-        let entry = parse_entry(&typed.text, self.units)?;
+        let entry = parse_entry(&typed.text, self.prefs.units)?;
         sketch.typed(entry, cursor)
     }
 
@@ -188,7 +188,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         let shape = self.selected_shape().and_then(|id| self.shape(id)).cloned();
         let result = match (
-            chipload_pipeline::units::parse_length(&text, self.units),
+            chipload_pipeline::units::parse_length(&text, self.prefs.units),
             shape,
         ) {
             (Some(value), Some(shape)) => {
@@ -295,7 +295,7 @@ impl ChiploadApp {
     /// and the reason is returned (shown under the form).
     pub fn set_selected_shape(&mut self, layer: &str, geometry: Geometry) -> Result<(), String> {
         let lang = crate::i18n::Lang::lang(self);
-        let units = self.units.into();
+        let units = self.prefs.units.into();
         let id = self
             .selected_shape()
             .ok_or_else(|| t!(lang, "drawing-no-shape-selected"))?;
@@ -314,7 +314,7 @@ impl ChiploadApp {
     /// Name drawn shape `id` (trimmed; empty: no name). On failure the reason is returned.
     pub fn name_shape(&mut self, id: u64, name: &str) -> Result<(), String> {
         let lang = crate::i18n::Lang::lang(self);
-        let units = self.units.into();
+        let units = self.prefs.units.into();
         let edit = self
             .edit
             .as_mut()

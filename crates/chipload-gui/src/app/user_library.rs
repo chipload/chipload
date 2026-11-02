@@ -503,28 +503,28 @@ impl ChiploadApp {
             .and_then(|path| load_settings(&path).ok())
             .unwrap_or_default();
         self.load_update_settings(&settings);
-        self.recent = settings.recent_projects;
-        self.theme = settings.theme;
-        self.auto_generate = settings.auto_generate;
-        self.setup_sheet = settings.setup_sheet;
-        self.show_grid = settings.show_grid;
-        self.show_rulers = settings.show_rulers;
-        self.units = settings.units;
+        self.prefs.recent = settings.recent_projects;
+        self.prefs.theme = settings.theme;
+        self.prefs.auto_generate = settings.auto_generate;
+        self.prefs.setup_sheet = settings.setup_sheet;
+        self.prefs.show_grid = settings.show_grid;
+        self.prefs.show_rulers = settings.show_rulers;
+        self.prefs.units = settings.units;
         self.show_in(crate::i18n::resolve(&settings.language));
-        self.language_setting = settings.language;
+        self.prefs.language_setting = settings.language;
         self.start_recovery();
     }
 
     /// Settings > Units: used at once and kept in the settings for next time.
     pub fn set_units(&mut self, units: chipload_job::Units) {
-        self.units = units;
+        self.prefs.units = units;
         self.change_settings(|settings| settings.units = units);
     }
 
     /// Settings > Language: used at once and kept in the settings for next time.
     pub fn set_language(&mut self, setting: &str) {
         self.show_in(crate::i18n::resolve(setting));
-        self.language_setting = setting.to_string();
+        self.prefs.language_setting = setting.to_string();
         self.change_settings(|settings| settings.language = setting.to_string());
     }
 
@@ -532,15 +532,15 @@ impl ChiploadApp {
     /// was known, is written again in it.
     fn show_in(&mut self, language: crate::i18n::Language) {
         let hint = |l| Report::info([t!(l, "app-start-hint")]);
-        if self.report == hint(self.language) {
+        if self.report == hint(self.prefs.language) {
             self.report = hint(language);
         }
-        self.language = language;
+        self.prefs.language = language;
     }
 
     /// Settings > Colour theme: used at once and kept in the settings for next time.
     pub fn set_theme(&mut self, theme: Theme) {
-        self.theme = theme;
+        self.prefs.theme = theme;
         self.change_settings(|settings| settings.theme = theme);
     }
 
@@ -574,7 +574,7 @@ impl ChiploadApp {
             Ok(settings.recent_projects.clone())
         });
         match result {
-            Ok(recent) => self.recent = recent,
+            Ok(recent) => self.prefs.recent = recent,
             Err(err) => {
                 let status = t!(
                     self,

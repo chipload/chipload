@@ -45,8 +45,8 @@ impl ChiploadApp {
             Ok(shapes) => {
                 let text = clipboard_text(&shapes);
                 let n = shapes.len();
-                self.clipboard_group = group.is_some() && n > 1;
-                self.shape_clipboard = shapes;
+                self.clipboard.group = group.is_some() && n > 1;
+                self.clipboard.shapes = shapes;
                 let status = t!(self, "copy-paste-copied", count = n);
                 self.set_status(status, STATUS_SECONDS);
                 Some(text)
@@ -69,9 +69,9 @@ impl ChiploadApp {
                     return false;
                 }
             },
-            None => self.shape_clipboard.clone(),
+            None => self.clipboard.shapes.clone(),
         };
-        let as_group = text.is_none() && self.clipboard_group;
+        let as_group = text.is_none() && self.clipboard.group;
         if shapes.is_empty() {
             self.set_status(t!(self, "copy-paste-copy-first"), STATUS_SECONDS);
             return false;
@@ -159,4 +159,14 @@ impl ChiploadApp {
             }
         }
     }
+}
+
+/// The drawn shapes copied last.
+#[derive(Default)]
+pub struct Clipboard {
+    /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
+    pub(super) shapes: Vec<(String, Geometry)>,
+    /// The shapes copied were a whole group: they paste as a new group
+    /// (docs/specs/shape-groups.md, decision 6).
+    pub(super) group: bool,
 }

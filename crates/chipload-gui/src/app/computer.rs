@@ -94,11 +94,11 @@ impl ChiploadApp {
         title_line(ui, Icon::Settings, None, &title);
         ui.weak(t!(ui, "computer-preferences-about"));
         ui.add_space(4.0);
-        let mut sheet = self.setup_sheet;
-        let mut auto = self.auto_generate;
-        let mut theme = self.theme;
-        let mut units = self.units;
-        let mut language = self.language_setting.clone();
+        let mut sheet = self.prefs.setup_sheet;
+        let mut auto = self.prefs.auto_generate;
+        let mut theme = self.prefs.theme;
+        let mut units = self.prefs.units;
+        let mut language = self.prefs.language_setting.clone();
         Grid::new("preferences")
             .num_columns(2)
             .spacing([12.0, 6.0])
@@ -153,19 +153,19 @@ impl ChiploadApp {
                 ui.end_row();
                 self.update_setting_row(ui);
             });
-        if sheet != self.setup_sheet {
+        if sheet != self.prefs.setup_sheet {
             self.set_setup_sheet(sheet);
         }
-        if auto != self.auto_generate {
+        if auto != self.prefs.auto_generate {
             self.set_auto_generate(auto);
         }
-        if theme != self.theme {
+        if theme != self.prefs.theme {
             self.set_theme(theme);
         }
-        if units != self.units {
+        if units != self.prefs.units {
             self.set_units(units);
         }
-        if language != self.language_setting {
+        if language != self.prefs.language_setting {
             self.set_language(&language);
         }
     }

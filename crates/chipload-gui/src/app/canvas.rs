@@ -60,8 +60,8 @@ impl ChiploadApp {
         self.keep_drawing_in_view();
         self.scene.hide_toolpath = !self.show_toolpath;
         self.scene.hide_drawing = !self.show_drawing();
-        self.scene.grid = self.show_grid;
-        self.scene.inch_grid = self.units == chipload_job::Units::Inch;
+        self.scene.grid = self.prefs.show_grid;
+        self.scene.inch_grid = self.prefs.units == chipload_job::Units::Inch;
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self.shown_zero_xy();
         // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
@@ -86,7 +86,7 @@ impl ChiploadApp {
                 .unwrap_or_else(|| self.scene.fit_points(self.view.top_z));
             if !points.is_empty() {
                 // Not under the rulers (top view only, as they are).
-                let free = if self.show_rulers && self.view.is_top() {
+                let free = if self.prefs.show_rulers && self.view.is_top() {
                     let ruler = super::rulers::RULER;
                     egui::Rect::from_min_max(rect.min + egui::vec2(ruler, ruler), rect.max)
                 } else {
@@ -313,7 +313,9 @@ impl ChiploadApp {
                 _ => Vec::new(),
             };
             readout = match (&self.sketch(), at) {
-                (Some(sketch), Some(at)) => sketch.readout(at, self.units).map(|text| (at, text)),
+                (Some(sketch), Some(at)) => {
+                    sketch.readout(at, self.prefs.units).map(|text| (at, text))
+                }
                 _ => None,
             };
             self.scene.sketch_points = self.sketch().map(|s| s.points.clone()).unwrap_or_default();
@@ -330,7 +332,7 @@ impl ChiploadApp {
                     None => Vec::new(),
                 };
                 if let (Some((d, _)), Some(at)) = (target, self.cursor) {
-                    readout = Some((at, format!("d {}", crate::draw::fixed(d, self.units))));
+                    readout = Some((at, format!("d {}", crate::draw::fixed(d, self.prefs.units))));
                 }
             } else if matches!(
                 self.modify(),
@@ -667,7 +669,7 @@ impl ChiploadApp {
                     ui.horizontal(|ui| {
                         // Live preview: the new toolpath is on its way (or about to be).
                         let coming = self.generating()
-                            || (self.auto_generate && self.toolpath.changed_at.is_some());
+                            || (self.prefs.auto_generate && self.toolpath.changed_at.is_some());
                         if coming {
                             ui.spinner();
                             ui.label(t!(ui, "canvas-updating-toolpath"));
@@ -828,7 +830,7 @@ impl ChiploadApp {
                 .map(|ids| ids.into_iter().collect())
                 .unwrap_or_default(),
         };
-        let step = grid_step(self.view.scale, self.units);
+        let step = grid_step(self.view.scale, self.prefs.units);
         let cursor = Cursor {
             at,
             from: self.last_point(),
@@ -839,7 +841,7 @@ impl ChiploadApp {
             &self.drag.snapper,
             self.view.scale,
             step,
-            self.units,
+            self.prefs.units,
             free,
         );
         self.drag.snapped = Some((p, hit));
@@ -853,8 +855,8 @@ impl ChiploadApp {
         let anchor = self.sketch().and_then(Sketch::anchor);
         match anchor.filter(|_| shift) {
             Some(anchor) => {
-                let step = (!alt).then(|| grid_step(self.view.scale, self.units));
-                let p = crate::draw::angle_step(anchor, raw, step, self.units);
+                let step = (!alt).then(|| grid_step(self.view.scale, self.prefs.units));
+                let p = crate::draw::angle_step(anchor, raw, step, self.prefs.units);
                 self.drag.snapped = Some((p, None));
                 self.scene.snap_mark = None;
                 p
@@ -889,7 +891,7 @@ impl ChiploadApp {
         chipload_job::edit::dimensions(&shape.geometry)
             .into_iter()
             .filter_map(|shown| {
-                let number = crate::draw::fixed(shown.value, self.units);
+                let number = crate::draw::fixed(shown.value, self.prefs.units);
                 let text = if radius {
                     format!("R {number}")
                 } else {
@@ -1256,7 +1258,8 @@ impl ChiploadApp {
             .and_then(|e| e.job.operations.get(index))
             .map(|e| e.name().to_string())
             .unwrap_or_default();
-        chipload_job::operation_label_message(index, &name).render(self.language, self.units.into())
+        chipload_job::operation_label_message(index, &name)
+            .render(self.prefs.language, self.prefs.units.into())
     }
 }
 

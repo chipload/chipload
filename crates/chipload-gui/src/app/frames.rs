@@ -125,8 +125,8 @@ impl ChiploadApp {
         let key = format!("{frame:?}{:?}", edit.job.drawing);
         if self.canvas_tools.frame_preview.key != key {
             let job = &edit.job;
-            let lang = self.language;
-            let units = self.units.into();
+            let lang = self.prefs.language;
+            let units = self.prefs.units.into();
             let place = place_frame(job, &frame)
                 .map(|p| (p.width, p.height, p.r))
                 .map_err(|e| e.message().render(lang, units));
@@ -181,7 +181,7 @@ impl ChiploadApp {
             t!(ui, "frame-to-size")
         });
         self.frame_kinds(ui);
-        let units = self.units;
+        let units = self.prefs.units;
         let f = &mut self.canvas_tools.frame;
         egui::Grid::new("frame-form").num_columns(2).show(ui, |ui| {
             if around {

@@ -157,8 +157,8 @@ impl ChiploadApp {
         let d = if free {
             d
         } else {
-            let step = grid_step(self.view.scale, self.units);
-            crate::draw::snap((d, 0.0), step, self.units).0
+            let step = grid_step(self.view.scale, self.prefs.units);
+            crate::draw::snap((d, 0.0), step, self.prefs.units).0
         };
         (d > 0.0).then_some((d, side))
     }
@@ -228,22 +228,24 @@ impl ChiploadApp {
                 edit.adopt(edited.job);
                 self.drawing_changed(&edited.new_ids);
                 self.selection = CanvasSelection::Shapes(edited.new_ids.iter().copied().collect());
-                let units = self.units.into();
+                let units = self.prefs.units.into();
                 let mut text = t!(
                     self,
                     "modify-offset-done",
                     count = edited.new_ids.len(),
-                    distance = chipload_pipeline::units::length_text(d, self.units)
+                    distance = chipload_pipeline::units::length_text(d, self.prefs.units)
                 );
                 for note in &edited.notes {
                     text.push(' ');
-                    text.push_str(&note.render(self.language, units));
+                    text.push_str(&note.render(self.prefs.language, units));
                 }
                 self.set_status(text, STATUS_SECONDS);
                 true
             }
             Err(err) => {
-                let text = err.message().render(self.language, self.units.into());
+                let text = err
+                    .message()
+                    .render(self.prefs.language, self.prefs.units.into());
                 self.set_status(text, STATUS_SECONDS);
                 false
             }
@@ -258,7 +260,7 @@ impl ChiploadApp {
             .as_ref()
             .map(|t| t.text.clone())
             .unwrap_or_default();
-        let value = chipload_pipeline::units::parse_length(&text, self.units);
+        let value = chipload_pipeline::units::parse_length(&text, self.prefs.units);
         let side = self.offset_for_cursor(cursor, true).map(|(_, side)| side);
         let applied = match (value, side) {
             (Some(d), Some(side)) => self.apply_offset(d, side),
@@ -343,7 +345,9 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                let text = err.message().render(self.language, self.units.into());
+                let text = err
+                    .message()
+                    .render(self.prefs.language, self.prefs.units.into());
                 self.set_status(text, STATUS_SECONDS);
                 false
             }
@@ -449,11 +453,11 @@ impl ChiploadApp {
                 }
                 self.shape_draft = None;
                 self.drawing_changed(&ids);
-                let units = self.units.into();
+                let units = self.prefs.units.into();
                 let notes: Vec<String> = edited
                     .notes
                     .iter()
-                    .map(|n| n.render(self.language, units))
+                    .map(|n| n.render(self.prefs.language, units))
                     .collect();
                 if !notes.is_empty() {
                     self.set_status(notes.join(" "), STATUS_SECONDS);
@@ -461,7 +465,9 @@ impl ChiploadApp {
                 true
             }
             Err(err) => {
-                let text = err.message().render(self.language, self.units.into());
+                let text = err
+                    .message()
+                    .render(self.prefs.language, self.prefs.units.into());
                 self.set_status(text, STATUS_SECONDS);
                 false
             }
@@ -890,7 +896,7 @@ impl ChiploadApp {
                 Some((d, side)) => t!(
                     self,
                     "modify-offset-status",
-                    distance = chipload_pipeline::units::length_text(d, self.units),
+                    distance = chipload_pipeline::units::length_text(d, self.prefs.units),
                     side = side_word(self, side)
                 ),
                 None => t!(self, "modify-offset-pick"),

@@ -320,8 +320,13 @@ impl ChiploadApp {
                     {
                         self.ask_open();
                     }
-                    let recent: Vec<String> =
-                        self.recent.iter().take(START_RECENT).cloned().collect();
+                    let recent: Vec<String> = self
+                        .prefs
+                        .recent
+                        .iter()
+                        .take(START_RECENT)
+                        .cloned()
+                        .collect();
                     if !recent.is_empty() {
                         ui.add_space(16.0);
                         ui.label(RichText::new(t!(ui, "panels-recent")).strong());

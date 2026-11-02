@@ -190,7 +190,7 @@ impl ChiploadApp {
                 .icon(tool_icon(tool.kind))
                 .trailing(leaf_note(
                     ui,
-                    &tool_summary(self, tool, self.units),
+                    &tool_summary(self, tool, self.prefs.units),
                     is_default,
                     draft,
                 ))
@@ -251,7 +251,7 @@ impl ChiploadApp {
             .icon(Icon::Machine)
             .trailing(leaf_note(
                 ui,
-                &machine_summary(machine, self.units),
+                &machine_summary(machine, self.prefs.units),
                 is_default,
                 draft,
             ))

@@ -64,7 +64,7 @@ impl ChiploadApp {
         let measure = self.measure()?;
         let start = measure.start?;
         let end = measure.end.or(cursor)?;
-        Some((start, end, measure_text(start, end, self.units)))
+        Some((start, end, measure_text(start, end, self.prefs.units)))
     }
 
     /// The status bar while measuring.
@@ -75,7 +75,7 @@ impl ChiploadApp {
             (Some(_), None) => t!(self, "measure-second-point", snapped = snapped),
             (Some(a), Some(b)) => format!(
                 "{}  · {}",
-                measure_text(a, b, self.units),
+                measure_text(a, b, self.prefs.units),
                 t!(self, "measure-again")
             ),
         })

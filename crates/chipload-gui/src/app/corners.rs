@@ -153,7 +153,7 @@ impl ChiploadApp {
                 ),
             )
             .arg("gets", gets_text(self, row.gets))
-            .render(self.language, self.units.into())
+            .render(self.prefs.language, self.prefs.units.into())
     }
 
     /// The open corner menu: the five choices, the current one ticked; hovering one draws

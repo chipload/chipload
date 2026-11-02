@@ -126,7 +126,12 @@ impl ChiploadApp {
                 lib.listing = listing;
                 lib.error = None;
             }
-            Err(err) => lib.error = Some(err.message().render(self.language, self.units.into())),
+            Err(err) => {
+                lib.error = Some(
+                    err.message()
+                        .render(self.prefs.language, self.prefs.units.into()),
+                )
+            }
         }
     }
 
@@ -141,7 +146,10 @@ impl ChiploadApp {
             return loaded.clone();
         }
         let loaded = read(item)
-            .map_err(|e| e.message().render(self.language, self.units.into()))
+            .map_err(|e| {
+                e.message()
+                    .render(self.prefs.language, self.prefs.units.into())
+            })
             .and_then(|entry| {
                 let bounds = entry_box(&entry).ok_or_else(|| "—".to_string())?;
                 Ok(Arc::new(Loaded {

@@ -325,7 +325,7 @@ impl ChiploadApp {
         let mut map = BTreeMap::new();
         for problem in pick {
             map.entry(problem.field().to_string())
-                .or_insert_with(|| at_field(self, self.units, problem));
+                .or_insert_with(|| at_field(self, self.prefs.units, problem));
         }
         // A rest pass's form names its fields without the pass's place in its pocket, a
         // floor pass's without `floor.`.
@@ -362,7 +362,7 @@ impl ChiploadApp {
             .as_ref()
             .map(|e| e.job.tools.iter().map(|t| t.id).collect())
             .unwrap_or_default();
-        let units = self.units;
+        let units = self.prefs.units;
         let mut go = None;
         egui::Frame::new()
             .stroke(egui::Stroke::new(1.0, color))
@@ -374,7 +374,7 @@ impl ChiploadApp {
                     color,
                     RichText::new(t!(ui, "problems-count", count = count)).strong(),
                 );
-                if self.auto_generate {
+                if self.prefs.auto_generate {
                     ui.weak(t!(ui, "problems-updates-when-fixed"));
                 }
                 for problem in &self.problems {

@@ -13,7 +13,7 @@ fn only(app: &ChiploadApp, id: u64) -> Vec<String> {
 #[test]
 fn a_part_exports_alone_and_the_project_is_unchanged() {
     let mut app = two_parts();
-    app.setup_sheet = true;
+    app.prefs.setup_sheet = true;
     let project = app.edit.clone();
     let dirty = app.dirty();
     let dir = temp_dir("part-export");

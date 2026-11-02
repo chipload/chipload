@@ -8,7 +8,10 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
     let _ = std::fs::remove_dir_all(&settings);
     let mut app = lower_part();
     app.set_settings_dir(Some(settings.clone()));
-    assert!(app.recent.is_empty(), "an import isn't recent until saved");
+    assert!(
+        app.prefs.recent.is_empty(),
+        "an import isn't recent until saved"
+    );
     let first = dir.join("first.chipload");
     let second = dir.join("second.chipload");
     assert!(app.save_project(&first));
@@ -21,18 +24,18 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
             .to_string_lossy()
             .into_owned()
     };
-    let names: Vec<String> = app.recent.iter().map(|p| name(p)).collect();
+    let names: Vec<String> = app.prefs.recent.iter().map(|p| name(p)).collect();
     assert_eq!(names, ["first.chipload", "second.chipload"]);
-    assert!(Path::new(&app.recent[0]).is_absolute());
+    assert!(Path::new(&app.prefs.recent[0]).is_absolute());
 
     // A new window reads the same list.
     let mut other = ChiploadApp::default();
     other.set_settings_dir(Some(settings.clone()));
-    assert_eq!(other.recent, app.recent);
+    assert_eq!(other.prefs.recent, app.prefs.recent);
 
     // Unsaved changes: opening a recent project asks first.
     app.edit.as_mut().unwrap().job.stock_mut().thickness = 12.0;
-    let second_path = app.recent[1].clone();
+    let second_path = app.prefs.recent[1].clone();
     assert!(!app.open_recent(&second_path));
     assert!(matches!(
         app.dialogs.prompt,
@@ -48,10 +51,10 @@ fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
         "{:?}",
         app.report
     );
-    assert_eq!(app.recent.len(), 1);
+    assert_eq!(app.prefs.recent.len(), 1);
 
     app.forget_recent(None);
-    assert!(app.recent.is_empty());
+    assert!(app.prefs.recent.is_empty());
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

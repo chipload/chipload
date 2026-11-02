@@ -113,10 +113,8 @@ fn a_length_field_shows_inches_and_keeps_mm() {
 
 #[test]
 fn a_new_project_in_inches_starts_from_tidy_inch_values() {
-    let mut app = ChiploadApp {
-        units: Units::Inch,
-        ..Default::default()
-    };
+    let mut app = ChiploadApp::default();
+    app.prefs.units = Units::Inch;
     app.new_project();
     let job = &app.edit.as_ref().unwrap().job;
     let inches = |mm: f64| mm / 25.4;

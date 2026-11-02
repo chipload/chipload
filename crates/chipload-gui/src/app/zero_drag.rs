@@ -111,8 +111,8 @@ impl ChiploadApp {
         Some(match now {
             WorkZero::Point { x, y } => format!(
                 "X {}  Y {}",
-                crate::draw::fixed(x, self.units),
-                crate::draw::fixed(y, self.units)
+                crate::draw::fixed(x, self.prefs.units),
+                crate::draw::fixed(y, self.prefs.units)
             ),
             zero => super::forms::work_zero_name(self, &zero),
         })

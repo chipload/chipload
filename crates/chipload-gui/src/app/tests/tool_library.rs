@@ -84,14 +84,14 @@ mod library {
         let mut app = ChiploadApp::default();
         app.set_settings_dir(Some(dir.clone()));
         assert_eq!(
-            app.theme,
+            app.prefs.theme,
             Theme::System,
             "no settings yet: follow the system"
         );
         app.set_theme(Theme::Light);
         let mut again = ChiploadApp::default();
         again.set_settings_dir(Some(dir));
-        assert_eq!(again.theme, Theme::Light);
+        assert_eq!(again.prefs.theme, Theme::Light);
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod library {
         let _ = std::fs::remove_file(dir.join("settings.json"));
         let mut app = lower_part();
         app.set_settings_dir(Some(dir.clone()));
-        assert!(app.setup_sheet, "on by default");
+        assert!(app.prefs.setup_sheet, "on by default");
         assert!(app.generate_and_wait(), "{:?}", app.report);
         let out = temp_dir("sheet-export");
         let project = out.join("lower.chipload");
@@ -125,7 +125,7 @@ mod library {
         assert!(!out.join("again-sheet.html").exists());
         let mut again = ChiploadApp::default();
         again.set_settings_dir(Some(dir));
-        assert!(!again.setup_sheet);
+        assert!(!again.prefs.setup_sheet);
         std::fs::remove_dir_all(&out).unwrap();
     }
 
@@ -510,7 +510,7 @@ mod library {
         app.set_setup_sheet(false);
         let mut again = ChiploadApp::default();
         again.set_settings_dir(Some(dir));
-        assert!(!again.setup_sheet);
+        assert!(!again.prefs.setup_sheet);
         again.focus = Focus::Post(0);
         assert!(again.focus.is_library());
     }

@@ -68,6 +68,7 @@ mod modify;
 mod navigation;
 mod panels;
 mod playback;
+mod prefs;
 mod problems;
 mod recovery;
 mod report;
@@ -359,11 +360,8 @@ pub struct ChiploadApp {
     pub dxf_export: dxf_export::DxfExportChoice,
     /// A text was just placed: its text field takes the keyboard once.
     pub(super) focus_text_field: bool,
-    /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
-    shape_clipboard: Vec<(String, Geometry)>,
-    /// The shapes copied were a whole group: they paste as a new group
-    /// (docs/specs/shape-groups.md, decision 6).
-    clipboard_group: bool,
+    /// The drawn shapes copied last, for Ctrl+V.
+    pub clipboard: copy_paste::Clipboard,
     /// The selected drawn shape's values as being edited.
     shape_draft: Option<ShapeDraft>,
     /// The shape's name field takes the keyboard next frame (Browser: Rename…).
@@ -378,40 +376,17 @@ pub struct ChiploadApp {
     pub drawing_facts: Option<DrawingFacts>,
     /// The canvas legend is unfolded.
     pub legend_open: bool,
-    /// View > Update toolpath automatically, kept in the app settings.
-    pub auto_generate: bool,
-    /// Settings > Write a setup sheet with the G-code (docs/specs/setup-sheet.md §4).
-    pub setup_sheet: bool,
-    /// View → Show grid (kept in the app settings).
-    pub show_grid: bool,
-    /// Rulers along the canvas's edges in top view (docs/specs/rulers.md).
-    pub show_rulers: bool,
+    /// The preferences kept in the app settings, and the language and theme they resolve to.
+    pub prefs: prefs::Prefs,
     /// Preview every part, not only the active one (canvas bar; this session only).
     pub all_parts: bool,
-    /// This window's recovery copy (docs/specs/autosave-and-backup.md); None without a
-    /// settings folder.
-    recovery: Option<chipload_pipeline::recovery::Session>,
-    /// When the project last changed, while its recovery copy isn't written yet.
-    recovery_due: Option<Instant>,
-    /// Recovery copies left by windows that closed without saving, offered at start.
-    pub leftovers: Vec<chipload_pipeline::recovery::Leftover>,
-    /// Settings > Colour theme, kept in the app settings.
-    pub theme: Theme,
-    /// Settings > Units: what lengths and feeds are shown and typed in
-    /// (docs/specs/inch-units.md §5), kept in the app settings.
-    pub units: chipload_job::Units,
-    /// Settings > Language as kept in the app settings: `"system"` or a language code.
-    pub language_setting: String,
+    /// Recovery copies: this window's, when it is next written, and those other windows left.
+    pub recovery: recovery::Recovery,
     /// The update notice: the user's answer, the daily check, a newer release
     /// (docs/specs/update-notice.md).
     pub updates: crate::updates::Updates,
     /// The computer's fonts for texts (docs/specs/system-fonts.md §6).
     pub text_fonts: text_fonts::TextFonts,
-    /// The language the app is shown in: `language_setting` resolved
-    /// (docs/specs/translations.md decision 5).
-    pub language: crate::i18n::Language,
-    /// The theme last handed to egui.
-    applied_theme: Option<Theme>,
     status: Option<(String, Instant)>,
     cursor: Option<Point>,
     dialogs: Dialogs,
@@ -424,8 +399,6 @@ pub struct ChiploadApp {
     /// The tool library and machine profiles as last read.
     library: chipload_pipeline::library::Library,
     library_state: LibraryState,
-    /// File > Open recent (docs/specs/open-recent.md), most recent first.
-    pub recent: Vec<String>,
     /// The image window, while open (docs/specs/image-trace.md §6).
     pub image_dialog: Option<images::ImageDialog>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
@@ -473,8 +446,7 @@ impl Default for ChiploadApp {
             canvas_tools: canvas_tools::CanvasTools::default(),
             dxf_export: dxf_export::DxfExportChoice::default(),
             focus_text_field: false,
-            shape_clipboard: Vec::new(),
-            clipboard_group: false,
+            clipboard: copy_paste::Clipboard::default(),
             shape_draft: None,
             grab_shape_name: false,
             drag: Drag::default(),
@@ -482,21 +454,11 @@ impl Default for ChiploadApp {
             report: Report::info([t!(crate::i18n::Language::En, "app-start-hint")]),
             drawing_facts: None,
             legend_open: true,
-            auto_generate: true,
-            setup_sheet: true,
-            show_grid: true,
-            show_rulers: true,
-            units: chipload_job::Units::Mm,
-            language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
+            prefs: prefs::Prefs::default(),
             updates: crate::updates::Updates::default(),
             text_fonts: text_fonts::TextFonts::default(),
-            language: crate::i18n::Language::En,
             all_parts: false,
-            recovery: None,
-            recovery_due: None,
-            leftovers: Vec::new(),
-            theme: Theme::System,
-            applied_theme: None,
+            recovery: recovery::Recovery::default(),
             status: None,
             cursor: None,
             dialogs: Dialogs::default(),
@@ -505,7 +467,6 @@ impl Default for ChiploadApp {
             settings_dir: None,
             library: chipload_pipeline::library::Library::default(),
             library_state: LibraryState::default(),
-            recent: Vec::new(),
             image_dialog: None,
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),
@@ -696,7 +657,7 @@ impl ChiploadApp {
     /// A new project's starting values: tidy inch ones when lengths are shown in inches
     /// (docs/specs/inch-units.md §5.2).
     fn in_display_units(&self, job: chipload_job::Job) -> chipload_job::Job {
-        match self.units {
+        match self.prefs.units {
             Units::Mm => job,
             Units::Inch => chipload_pipeline::with_inch_defaults(job),
         }
@@ -952,7 +913,7 @@ impl ChiploadApp {
             &selection,
             &self.contours,
             cutting.as_ref(),
-            &self.language,
+            &self.prefs.language,
         );
         if let Some(entry) = edit.job.operations.get_mut(index) {
             entry.set_material(material_ref);
@@ -1055,8 +1016,8 @@ impl ChiploadApp {
                 }
                 self.commit();
                 let (units, unit) = (
-                    self.units,
-                    chipload_pipeline::units::length_unit(self.units),
+                    self.prefs.units,
+                    chipload_pipeline::units::length_unit(self.prefs.units),
                 );
                 let text = t!(
                     self,
@@ -1170,7 +1131,7 @@ impl ChiploadApp {
 
     pub fn duplicate_operation(&mut self) {
         if let (Focus::Op(i), Some(edit)) = (self.focus, self.edit.as_mut())
-            && let Some(copy) = edit.duplicate(i, &self.language)
+            && let Some(copy) = edit.duplicate(i, &self.prefs.language)
         {
             self.focus = Focus::Op(copy);
             self.commit();
@@ -1621,7 +1582,7 @@ impl ChiploadApp {
                 return false;
             }
         };
-        let sheet = match (&self.toolpath.job, self.setup_sheet) {
+        let sheet = match (&self.toolpath.job, self.prefs.setup_sheet) {
             (Some(job), true) => {
                 // In the app's language and display units (docs/specs/translations.md
                 // step 3).
@@ -1632,7 +1593,7 @@ impl ChiploadApp {
                         .as_deref()
                         .map_or_else(|| t!(self, "export-untitled-project"), file_name),
                     written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
-                    units: self.units,
+                    units: self.prefs.units,
                     language: self.lang(),
                     parts,
                 };
@@ -2009,7 +1970,7 @@ impl ChiploadApp {
         self.stop_generation();
         self.toolpath.shown_inputs = None;
         self.toolpath.changed_at = Some(Instant::now());
-        self.recovery_due = self.toolpath.changed_at;
+        self.recovery.due = self.toolpath.changed_at;
         if self.toolpath.result.is_some() || self.scene.toolpath.is_some() {
             self.toolpath.result = None;
             if let Some(path) = &mut self.scene.toolpath {
@@ -2166,11 +2127,11 @@ impl eframe::App for ChiploadApp {
                 self.clear_recovery(); // nothing unsaved: no copy to leave behind
             }
         }
-        crate::units::set_display(&ctx, self.units);
-        crate::i18n::set_language(&ctx, self.language);
-        if self.applied_theme != Some(self.theme) {
-            ctx.set_theme(theme_preference(self.theme));
-            self.applied_theme = Some(self.theme);
+        crate::units::set_display(&ctx, self.prefs.units);
+        crate::i18n::set_language(&ctx, self.prefs.language);
+        if self.prefs.applied_theme != Some(self.prefs.theme) {
+            ctx.set_theme(theme_preference(self.prefs.theme));
+            self.prefs.applied_theme = Some(self.prefs.theme);
         }
         // Esc lets go of an entry dragged out of the shape library.
         if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
@@ -2245,7 +2206,7 @@ impl eframe::App for ChiploadApp {
 
 impl crate::i18n::Lang for ChiploadApp {
     fn lang(&self) -> crate::i18n::Language {
-        self.language
+        self.prefs.language
     }
 }
 
@@ -2254,7 +2215,7 @@ impl ChiploadApp {
     /// and display units (docs/specs/translations.md §7).
     pub(crate) fn say(&self, message: &chipload_i18n::Message) -> String {
         use crate::i18n::Lang;
-        message.render(self.lang(), self.units.into())
+        message.render(self.lang(), self.prefs.units.into())
     }
 }
 

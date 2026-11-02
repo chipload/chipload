@@ -24,7 +24,7 @@ impl ChiploadApp {
             // stands, and nothing is generated again (docs/specs/edit-and-simulate.md §5).
             if self.edit_keeps_cut() {
                 self.refresh_problems();
-                self.recovery_due = Some(Instant::now());
+                self.recovery.due = Some(Instant::now());
             } else {
                 self.toolpath_out_of_date();
             }

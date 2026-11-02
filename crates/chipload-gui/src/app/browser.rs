@@ -675,7 +675,7 @@ impl ChiploadApp {
                 let response = match &link {
                     Some(link) => row.response.on_hover_text(
                         link.message(chipload_job::library::LinkEntry::Tool)
-                            .render(ui.lang(), self.units.into()),
+                            .render(ui.lang(), self.prefs.units.into()),
                     ),
                     None => row.response,
                 };
@@ -1092,7 +1092,7 @@ impl ChiploadApp {
             .problems
             .iter()
             .find(|p| p.operation() == Some(i))
-            .map(|p| problems::plain(ui, self.units, p));
+            .map(|p| problems::plain(ui, self.prefs.units, p));
         let missing = edit.missing().iter().any(|p| p.operation() == Some(i));
         let flagged = missing || self.error_ops.contains(&i) || problem.is_some();
         let hidden = self.hidden_cut(op);
@@ -1259,7 +1259,7 @@ impl ChiploadApp {
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
             .map_or(String::new(), |(_, s)| {
                 let time = chipload_pipeline::estimate::duration_message(*s);
-                format!("{} · ", time.render(ui.lang(), self.units.into()))
+                format!("{} · ", time.render(ui.lang(), self.prefs.units.into()))
             });
         let row = Row::new(
             Id::new(("browser-floor", i)),
@@ -1310,7 +1310,7 @@ impl ChiploadApp {
             .and_then(|r| r.estimate.operations.iter().find(|(o, _)| *o == at))
             .map_or(String::new(), |(_, s)| {
                 let time = chipload_pipeline::estimate::duration_message(*s);
-                format!("{} · ", time.render(ui.lang(), self.units.into()))
+                format!("{} · ", time.render(ui.lang(), self.prefs.units.into()))
             });
         let row = Row::new(
             Id::new(("browser-pass", i, k)),
@@ -1381,14 +1381,14 @@ impl ChiploadApp {
             })
             .map_or(String::new(), |(_, s)| {
                 let time = chipload_pipeline::estimate::duration_message(*s);
-                format!(" · {}", time.render(self.lang(), self.units.into()))
+                format!(" · {}", time.render(self.lang(), self.prefs.units.into()))
             });
         // The depths as Rust writes them in mm, 4 decimals in inches.
         let depth = |mm: f64| {
             chipload_i18n::message::length_number(
                 mm,
                 chipload_i18n::Digits::Shortest,
-                self.units.into(),
+                self.prefs.units.into(),
             )
         };
         let first = format!(
@@ -1396,7 +1396,7 @@ impl ChiploadApp {
             op.tool(),
             depth(start),
             depth(end),
-            chipload_pipeline::units::length_unit(self.units)
+            chipload_pipeline::units::length_unit(self.prefs.units)
         );
         let mut lines = vec![first];
         if !op.enabled() {

@@ -94,7 +94,7 @@ impl ChiploadApp {
                 egui::Popup::menu(&help).show(|ui| self.help_menu(ui));
                 // The colour theme: a click goes on to the next (docs/specs/
                 // view-and-settings.md §3).
-                let (icon, hover, next) = match self.theme {
+                let (icon, hover, next) = match self.prefs.theme {
                     Theme::System => (
                         Icon::ThemeSystem,
                         t!(ui, "header-theme-system-hover"),
@@ -238,7 +238,7 @@ impl ChiploadApp {
         let compact_id = egui::Id::new(RIBBON_COMPACT);
         let full_id = egui::Id::new("ribbon-full-width");
         let compact = ui.data(|d| d.get_temp::<bool>(compact_id)).unwrap_or(false);
-        let language = self.language;
+        let language = self.prefs.language;
         ui.horizontal(|ui| {
             let groups = vec2(
                 (ui.available_width() - actions.width(ui)).max(0.0),

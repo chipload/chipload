@@ -93,7 +93,7 @@ impl ChiploadApp {
         {
             self.ask_open();
         }
-        let recent = self.recent.clone();
+        let recent = self.prefs.recent.clone();
         ui.add_enabled_ui(!recent.is_empty(), |ui| {
             ui.menu_button(t!(ui, "menu-open-recent"), |ui| {
                 for path in &recent {
@@ -283,7 +283,7 @@ impl ChiploadApp {
         }
         if ui
             .add_enabled(
-                !self.shape_clipboard.is_empty() && has_job,
+                !self.clipboard.shapes.is_empty() && has_job,
                 egui::Button::new(with_keys(&t!(ui, "menu-paste"), Action::Paste)),
             )
             .on_hover_text(t!(
@@ -410,7 +410,7 @@ impl ChiploadApp {
                 ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
             }
         });
-        let mut grid = self.show_grid;
+        let mut grid = self.prefs.show_grid;
         if ui
             .checkbox(
                 &mut grid,
@@ -421,7 +421,7 @@ impl ChiploadApp {
         {
             self.set_show_grid(grid);
         }
-        let mut rulers = self.show_rulers;
+        let mut rulers = self.prefs.show_rulers;
         if ui
             .checkbox(&mut rulers, t!(ui, "menu-show-rulers"))
             .on_hover_text(t!(ui, "menu-show-rulers-hover"))
@@ -449,7 +449,7 @@ impl ChiploadApp {
         {
             self.toggle_panels();
         }
-        let mut auto = self.auto_generate;
+        let mut auto = self.prefs.auto_generate;
         if ui
             .checkbox(&mut auto, t!(ui, "menu-auto-update"))
             .on_hover_text(t!(ui, "menu-auto-update-hover"))
@@ -499,7 +499,7 @@ impl ChiploadApp {
             ),
         ] {
             if ui
-                .radio(self.units == choice, label)
+                .radio(self.prefs.units == choice, label)
                 .on_hover_text(hover)
                 .clicked()
             {
@@ -526,7 +526,7 @@ impl ChiploadApp {
             ),
         ] {
             if ui
-                .radio(self.theme == choice, label)
+                .radio(self.prefs.theme == choice, label)
                 .on_hover_text(hover)
                 .clicked()
             {
@@ -545,7 +545,8 @@ impl ChiploadApp {
         let mut choice = None;
         let codes = std::iter::once(system).chain(crate::i18n::Language::ALL.map(|l| l.code()));
         for code in codes {
-            let mut response = ui.radio(self.language_setting == code, language_name(ui, code));
+            let mut response =
+                ui.radio(self.prefs.language_setting == code, language_name(ui, code));
             response = match crate::i18n::Language::from_tag(code) {
                 None => response.on_hover_text(t!(ui, "menu-language-system-hover")),
                 Some(l) if !l.reviewed() => {
@@ -734,15 +735,15 @@ impl ChiploadApp {
             });
             let time = self.toolpath.result.as_ref().map(|r| {
                 let time = chipload_pipeline::estimate::duration_message(r.estimate.total)
-                    .render(ui.lang(), self.units.into());
+                    .render(ui.lang(), self.prefs.units.into());
                 let cycle = t!(ui, "menu-status-cycle", time = time);
                 match &scope {
                     Some(scope) => format!("{scope} · {cycle}"),
                     None => cycle,
                 }
             });
-            let grid = (self.show_grid && self.edit.is_some())
-                .then(|| grid_step(self.view.scale, self.units));
+            let grid = (self.prefs.show_grid && self.edit.is_some())
+                .then(|| grid_step(self.view.scale, self.prefs.units));
             // With two parts or more, the one new operations go into (docs/specs/parts.md §8),
             // unless the cycle time already names it.
             let active = self.edit.as_ref().and_then(|e| {
@@ -758,7 +759,7 @@ impl ChiploadApp {
                 .as_ref()
                 .map_or((0.0, 0.0), crate::editor::EditJob::work_zero_xy);
             let cursor = self.cursor;
-            let units = self.units;
+            let units = self.prefs.units;
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 // A newer version, at the far right (docs/specs/update-notice.md §2).
                 self.update_notice_status(ui);
@@ -883,10 +884,10 @@ impl ChiploadApp {
         } else if let Some(text) = self.modify_status(self.cursor, ui.input(|i| i.modifiers.alt)) {
             ui.label(text);
         } else if let (Some(sketch), Some((at, name))) = (&self.sketch(), &snapped) {
-            let step = grid_step(self.view.scale, self.units);
+            let step = grid_step(self.view.scale, self.prefs.units);
             ui.label(format!(
                 "{}{name}",
-                sketch.status(*at, step, self.units, ui)
+                sketch.status(*at, step, self.prefs.units, ui)
             ));
         } else if let (true, Some((at, name))) = (
             self.drag.handle.is_some() || self.drag.moving.is_some(),
@@ -895,8 +896,8 @@ impl ChiploadApp {
             ui.label(t!(
                 ui,
                 "menu-dragging",
-                x = crate::draw::fixed(at.0, self.units),
-                y = crate::draw::fixed(at.1, self.units),
+                x = crate::draw::fixed(at.0, self.prefs.units),
+                y = crate::draw::fixed(at.1, self.prefs.units),
                 snapped = name.as_str()
             ));
         } else if let Some((text, until)) = &self.status {

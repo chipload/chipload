@@ -78,7 +78,7 @@ fn clicking_a_traced_contour_selects_the_whole_picture() {
     assert!(
         !app.problems
             .iter()
-            .any(|p| problems::plain(&app, app.units, p).contains("traced from an image")),
+            .any(|p| problems::plain(&app, app.prefs.units, p).contains("traced from an image")),
         "{:?}",
         app.problems
     );
@@ -123,7 +123,7 @@ fn use_selection_with_a_picture_selects_the_picture() {
         assert!(
             !app.problems
                 .iter()
-                .any(|p| problems::plain(&app, app.units, p).contains("traced from an image")),
+                .any(|p| problems::plain(&app, app.prefs.units, p).contains("traced from an image")),
             "{pick}: {:?}",
             app.problems
         );

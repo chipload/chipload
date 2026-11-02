@@ -412,7 +412,7 @@ impl ChiploadApp {
     /// Returns how long to wait before looking again, if a run is due later.
     pub(super) fn live_preview(&mut self, now: Instant) -> Option<Duration> {
         let since = now.saturating_duration_since(self.toolpath.changed_at?);
-        if !self.auto_generate || self.edit.is_none() {
+        if !self.prefs.auto_generate || self.edit.is_none() {
             return None;
         }
         if !self.problems.is_empty() {
@@ -431,7 +431,7 @@ impl ChiploadApp {
     /// planned again at once.
     pub fn set_all_parts(&mut self, on: bool) {
         self.all_parts = on;
-        if self.edit.is_some() && (self.toolpath.result.is_some() || self.auto_generate) {
+        if self.edit.is_some() && (self.toolpath.result.is_some() || self.prefs.auto_generate) {
             self.start_generation(false);
         }
     }
@@ -479,23 +479,23 @@ impl ChiploadApp {
     }
 
     pub fn set_show_grid(&mut self, on: bool) {
-        self.show_grid = on;
+        self.prefs.show_grid = on;
         self.change_settings(|settings| settings.show_grid = on);
     }
 
     pub fn set_show_rulers(&mut self, on: bool) {
-        self.show_rulers = on;
+        self.prefs.show_rulers = on;
         self.change_settings(|settings| settings.show_rulers = on);
     }
 
     pub fn set_setup_sheet(&mut self, on: bool) {
-        self.setup_sheet = on;
+        self.prefs.setup_sheet = on;
         self.change_settings(|settings| settings.setup_sheet = on);
     }
 
     /// View > Update toolpath automatically, kept in the app settings.
     pub fn set_auto_generate(&mut self, on: bool) {
-        self.auto_generate = on;
+        self.prefs.auto_generate = on;
         self.change_settings(|settings| settings.auto_generate = on);
     }
 

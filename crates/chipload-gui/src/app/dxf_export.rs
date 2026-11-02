@@ -22,7 +22,7 @@ pub struct DxfExportChoice {
 impl ChiploadApp {
     /// Open the export's choices, inch as the display is.
     pub(super) fn ask_export_dxf(&mut self) {
-        self.dxf_export.inch = self.units == chipload_job::Units::Inch;
+        self.dxf_export.inch = self.prefs.units == chipload_job::Units::Inch;
         self.dxf_export.selection = false;
         self.dialogs.prompt = Some(Prompt::ExportDxf);
     }
@@ -57,7 +57,8 @@ impl ChiploadApp {
             Err(err) => {
                 self.error(vec![
                     t!(self, "app-could-not-export-dxf"),
-                    err.message().render(self.language, self.units.into()),
+                    err.message()
+                        .render(self.prefs.language, self.prefs.units.into()),
                 ]);
                 return false;
             }
@@ -75,10 +76,10 @@ impl ChiploadApp {
             ]);
             return false;
         }
-        let units = self.units.into();
+        let units = self.prefs.units.into();
         let mut status: Vec<String> = notes
             .iter()
-            .map(|n| n.render(self.language, units))
+            .map(|n| n.render(self.prefs.language, units))
             .collect();
         status.push(t!(
             self,

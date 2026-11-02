@@ -101,8 +101,8 @@ impl ChiploadApp {
             return;
         };
         let to = if shift {
-            let step = (!free).then(|| grid_step(self.view.scale, self.units));
-            let p = crate::draw::angle_step(grab, cursor, step, self.units);
+            let step = (!free).then(|| grid_step(self.view.scale, self.prefs.units));
+            let p = crate::draw::angle_step(grab, cursor, step, self.prefs.units);
             self.drag.snapped = Some((p, None));
             self.scene.snap_mark = None;
             p
