@@ -1,5 +1,3 @@
-app-show-browser-hover = Показать дерево проекта (P: обе панели)
-app-show-properties-hover = Показать свойства (P: обе панели)
 app-properties = Свойства
 app-start-hint = Импортируйте DXF или SVG (Ctrl+I), чтобы создать проект, или откройте существующий (Ctrl+O).
 app-cannot-open = Не удалось открыть { $file }:

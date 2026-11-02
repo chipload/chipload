@@ -183,6 +183,10 @@ pipeline-image-unsimplified = { $count } { $count ->
    *[other] объектов оставлены
 } без упрощения: сглаживание вызвало пересечения.
 pipeline-no-text = нет текста { $id }
+pipeline-no-group = нет группы { $id }
+pipeline-group-imported = объект { $shape } принадлежит DXF или изображению, которые уже объединяют свою геометрию: группировать можно только начерченные объекты и тексты
+pipeline-group-no-name = группе нужно имя
+pipeline-ungroup-cut-texts = операция { $op } обрабатывает группу «{ $name }», содержащую тексты: заново выберите геометрию операции или сначала исключите тексты из группы
 pipeline-text-join-failed = { $text }: не удалось объединить перекрывающиеся границы букв: { $error }
 pipeline-text-font-missing = Шрифта «{ $font }» нет на этом компьютере. Геометрия букв и обработка текста { $text } сохранены; для изменения содержимого или размера выберите другой шрифт.
 pipeline-text-no-font = На этом компьютере нет шрифта «{ $font }». Встроенные: { $fonts }; `chipload text fonts` также показывает шрифты компьютера.
@@ -233,6 +237,15 @@ pipeline-shape-twice = объект { $id } задан дважды
 pipeline-no-shape = нет объекта { $id }
 pipeline-shape-imported-copy = объект { $id } импортирован из DXF; копировать и отражать можно только начерченную геометрию
 pipeline-shapes-no-extent = у геометрии нет габаритов
+pipeline-shapes-no-item = в библиотеке геометрии нет «{ $name }»
+pipeline-shapes-file-empty = «{ $name }» не содержит геометрии
+pipeline-shapes-nothing-to-save = выделите геометрию или тексты для сохранения
+pipeline-shapes-exists = в библиотеке геометрии уже есть «{ $name }»
+pipeline-shapes-flat = у геометрии нет ширины или высоты для масштабирования
+pipeline-shapes-group-exists = в библиотеке геометрии уже есть группа «{ $name }»
+pipeline-shapes-no-group = в библиотеке геометрии нет группы «{ $name }»
+pipeline-shapes-group-not-empty = группа «{ $name }» не пуста: сначала переместите или удалите её содержимое
+pipeline-shapes-file-error = { $path }: { $error }
 pipeline-shape-imported-transform = объект { $id } не является начерченным: перемещение, поворот и масштаб доступны только для начерченных объектов (сначала разбейте DXF)
 pipeline-construction-imported = объект { $id } не является начерченным: только начерченные объекты могут быть вспомогательными (сначала разбейте DXF)
 pipeline-construction-used = { $label } выбирает вспомогательную геометрию, которая не обрабатывается: выберите другие объекты для выполнения.
@@ -314,6 +327,20 @@ pipeline-explode-dropped = { $count ->
 }
 pipeline-explode-selects = { $label } теперь выбирает объекты { $shapes }.
 pipeline-explode-no-dxf = в проекте нет DXF для разбиения
+pipeline-image-exploded = Изображение { $id } «{ $name }» разбито на { $count } { $count ->
+    [one] начерченный объект
+    [few] начерченных объекта
+   *[other] начерченных объектов
+}. Изображение удалено из проекта: повторная векторизация невозможна.
+pipeline-text-exploded = Текст { $id } { $name } разбит на { $count } { $count ->
+    [one] начерченный объект
+    [few] начерченных объекта
+   *[other] начерченных объектов
+}. Изменить содержимое текста больше не получится.
+pipeline-explode-no-image = в проекте нет изображения для разбиения
+pipeline-explode-which-image = в проекте изображений: { $count } ({ $images }); укажите, какое разбить
+pipeline-explode-no-text = в проекте нет текста для разбиения
+pipeline-explode-which-text = в проекте текстов: { $count } ({ $texts }); укажите, какой разбить
 pipeline-explode-which-dxf = в проекте { $count } DXF ({ $dxfs }): укажите, какой разбить
 pipeline-join-gap-range = Зазор должен быть от { $least } до { $most }, получено { $got }.
 pipeline-join-imported = Объект S{ $id } из DXF: сначала разбейте DXF.
