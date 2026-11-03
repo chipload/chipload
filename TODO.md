@@ -79,8 +79,9 @@ style.
    try. Next of it: layer rules (step 4), keys for styles (item 3).
 3. **Tabs along the grain** (the user, 2026-11-03: "could we have the option to place them
    in x direction or y direction? This way i can quickly align them to the fibre direction
-   of the wood"): a Placement for a profile's tabs, *Around* (today), *Left and right* or
-   *Top and bottom*. Spec drafted: docs/specs/tabs-along-grain.md, decisions §6 to review.
+   of the wood"): a Placement for a profile's tabs, *Around* (today), *Along X* or *Along
+   Y*: on the edges running with the grain, easy to cut loose (decision 1 agreed). Spec:
+   docs/specs/tabs-along-grain.md, decisions 2-4 to review.
 4. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
