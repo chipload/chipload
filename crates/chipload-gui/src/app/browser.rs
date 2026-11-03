@@ -669,6 +669,13 @@ impl ChiploadApp {
                 if response.clicked() {
                     self.focus = Focus::Tool(tool.id);
                 }
+                let mut delete = false;
+                response.context_menu(|ui| {
+                    delete = tool_delete_item(ui, self.edit.as_ref(), tool.id);
+                });
+                if delete {
+                    self.delete_project_tool(tool.id);
+                }
             }
         }
         if let Some(uid) = dropped {
@@ -1544,5 +1551,55 @@ pub(super) fn kind_color(op: &Operation, dark: bool) -> Color32 {
         (Operation::Holes(_), false) => Color32::from_rgb(0xa8, 0x1e, 0x55),
         (Operation::Surface(_), true) => Color32::from_rgb(0xb8, 0xc4, 0x8a),
         (Operation::Surface(_), false) => Color32::from_rgb(0x5a, 0x6b, 0x1e),
+    }
+}
+
+/// *Delete* in a project tool's menu, refused (with why) while an operation uses it. Whether
+/// it was clicked.
+fn tool_delete_item(ui: &mut egui::Ui, edit: Option<&EditJob>, id: i64) -> bool {
+    let users = edit.map(|e| forms::tool_users(e, id)).unwrap_or_default();
+    let button = ui.add_enabled(users.is_empty(), egui::Button::new(t!(ui, "common-delete")));
+    if users.is_empty() {
+        button.clicked()
+    } else {
+        button.on_disabled_hover_text(t!(
+            ui,
+            "forms-remove-tool-disabled",
+            operations = users.join(", ")
+        ));
+        false
+    }
+}
+
+impl ChiploadApp {
+    /// Remove project tool `id`, as one undo step; refused, in the status bar, while an
+    /// operation or a pass cuts with it. Whether it was removed.
+    pub(super) fn delete_project_tool(&mut self, id: i64) -> bool {
+        let Some(edit) = self.edit.as_ref() else {
+            return false;
+        };
+        let users = forms::tool_users(edit, id);
+        if !users.is_empty() {
+            let text = t!(
+                self,
+                "forms-remove-tool-disabled",
+                operations = users.join(", ")
+            );
+            self.set_status(text, ERROR_STATUS_SECONDS);
+            return false;
+        }
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        let before = edit.job.tools.len();
+        edit.job.tools.retain(|t| t.id != id);
+        if edit.job.tools.len() == before {
+            return false;
+        }
+        self.commit();
+        if self.focus == Focus::Tool(id) {
+            self.focus = Focus::Tools;
+        }
+        true
     }
 }

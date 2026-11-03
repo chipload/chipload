@@ -476,6 +476,35 @@ impl ChiploadApp {
         }
     }
 
+    /// Delete the library tool or machine profile in focus, as its menu's *Delete* does (the
+    /// Delete key).
+    pub(super) fn delete_library_focus(&mut self) {
+        let found = match self.focus {
+            Focus::LibraryTool(key) => {
+                let uid = key_uid(key);
+                self.user
+                    .library
+                    .tools
+                    .find_uid(&uid)
+                    .map(|t| (LibraryKind::Tools, t.name.clone()))
+            }
+            Focus::LibraryMachine(key) => {
+                let uid = key_uid(key);
+                self.user
+                    .library
+                    .machines
+                    .machines
+                    .iter()
+                    .find(|m| m.uid == uid)
+                    .map(|m| (LibraryKind::Machines, m.name.clone()))
+            }
+            _ => None,
+        };
+        if let Some((kind, name)) = found {
+            self.library_act(Act::Delete(kind, name));
+        }
+    }
+
     fn library_act(&mut self, act: Act) {
         self.user.library_state.error = None;
         match act {

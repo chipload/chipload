@@ -363,6 +363,11 @@ impl ChiploadApp {
             Focus::Text(id) => {
                 self.remove_text(id);
             }
+            Focus::Tool(id) => {
+                self.delete_project_tool(id);
+            }
+            // As *Delete* in its menu (the library has no undo; the file keeps a `.bak`).
+            Focus::LibraryTool(_) | Focus::LibraryMachine(_) => self.delete_library_focus(),
             // A whole group goes with its shapes and texts (docs/specs/shape-groups.md §2).
             _ if self.selected_group().is_some() => {
                 self.delete_selected_group();

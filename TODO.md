@@ -181,6 +181,13 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
+- **Deleting tools from the Browser: fixed 2026-11-03** (the user: "tools can not be
+  deleted from the browser using the delete key or right click delete"). A project tool
+  had only *Remove tool* in its properties: now *Delete* in its menu and the Delete key, as
+  one undo step, refused (with which) while an operation or a rest or floor pass cuts with
+  it; the check counted operations only, so *Remove tool* could leave a pass without its
+  tool. The Delete key on a library tool or machine does as its menu's *Delete*.
+
 - **Cutting data in the tools, slot and clearing: done 2026-11-03**
   (docs/specs/cutting-data.md, ADR 0029; the user: a pocket's first ring takes the full
   diameter, its rings 0.4 D, a profile 1 × D, "Right now it doe not feel coherent"). A

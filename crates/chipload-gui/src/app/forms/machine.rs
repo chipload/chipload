@@ -95,14 +95,33 @@ pub(in crate::app) fn tool_label(
 }
 
 /// The operations (1-based numbers) that cut with tool `id`.
-pub(super) fn tool_users(edit: &EditJob, id: i64) -> Vec<String> {
-    edit.job
-        .operations
-        .iter()
-        .enumerate()
-        .filter(|(_, e)| e.tool() == id)
-        .map(|(i, _)| (i + 1).to_string())
-        .collect()
+pub(in crate::app) fn tool_users(edit: &EditJob, id: i64) -> Vec<String> {
+    let mut users = Vec::new();
+    for (i, op) in edit.job.operations.iter().enumerate() {
+        let at = chipload_job::OpRef::op(i);
+        // A rest pass rests after a tool too: a pocket's own, or the pass before.
+        let rests_after = match op {
+            Operation::Pocket(p) => p.rest.is_some_and(|r| r.after_tool == id),
+            _ => false,
+        };
+        if op.tool() == id || rests_after {
+            users.push(at.to_string());
+        }
+        match op {
+            Operation::Pocket(p) => {
+                for (k, pass) in p.rest_passes.iter().enumerate() {
+                    if pass.tool == id {
+                        users.push(chipload_job::OpRef::pass(i, k).to_string());
+                    }
+                }
+            }
+            Operation::Vcarve(v) if v.floor.is_some_and(|f| f.tool == id) => {
+                users.push(chipload_job::OpRef::pass(i, 0).to_string());
+            }
+            _ => {}
+        }
+    }
+    users
 }
 
 /// The project's tools, each in a section of its own, and buttons to add one

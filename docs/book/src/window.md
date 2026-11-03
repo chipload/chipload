@@ -82,6 +82,8 @@ operations; the first DXF's placement window is open](images/drawing.png)
     pocket *Add rest pass ▸* (a [rest pass](operations/rest.md) shows under it), and
     *Delete*.
   - **A rest pass:** *Remove*.
+  - **A project tool:** *Delete*, greyed while an operation or a rest or floor pass cuts
+    with it (its hover says which).
   - **The Drawing folder:** *Add DXF or SVG…* and *Import image…*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down*, *Move to setup ▸* and *Delete part* (with its operations).
@@ -91,7 +93,8 @@ operations; the first DXF's placement window is open](images/drawing.png)
     *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,
     *Import…*, *Export…*.
 - **Del** deletes what Properties shows: an operation or a rest pass picked in the
-  Browser, a text opened there, or else what is selected on the canvas (drawn shapes, or a
+  Browser, a text opened there, a project tool nothing cuts with, a library tool or machine
+  (as its *Delete*: the library has no undo, its file keeps a `.bak`), or else what is selected on the canvas (drawn shapes, or a
   text, a picture or a DXF as a whole). Parts and setups take their operations with them,
   so they are deleted only from their right-click menu. **Ctrl+Z** brings anything back.
 - **The triangle** opens and closes a folder, and so does a click on a plain folder like

@@ -633,4 +633,113 @@ mod library {
         );
         assert!(settings_of(&app).machine.name.is_none());
     }
+
+    /// Delete on a project tool (the key, or its Browser menu): one undo step; refused while
+    /// an operation or a pass cuts with it (the user, 2026-11-03: "tools can not be deleted
+    /// from the browser using the delete key or right click delete").
+    #[test]
+    fn delete_removes_a_project_tool_nothing_cuts_with() {
+        let mut app = lower_part();
+        let job = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.clone();
+        let used = job(&app).operations[0].tool();
+        let mut spare = job(&app).tools[0].clone();
+        spare.id = 9;
+        app.edit.as_mut().unwrap().job.tools.push(spare);
+        app.commit();
+        let before = job(&app).tools.len();
+        // In use: kept, and the status bar says by what.
+        app.focus = Focus::Tool(used);
+        app.delete_key();
+        assert_eq!(job(&app).tools.len(), before);
+        let status = app.status.as_ref().map(|(text, _)| text.clone());
+        assert!(
+            status.as_deref().is_some_and(|t| t.contains("1")),
+            "{status:?}"
+        );
+        // A rest pass's tool counts too.
+        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
+            let mut pass = p
+                .rest_passes
+                .first()
+                .copied()
+                .unwrap_or(chipload_job::ClearingPass {
+                    tool: 9,
+                    feed: p.feed,
+                    plunge_feed: p.plunge_feed,
+                    step_down: p.step_down,
+                    stepover: p.stepover,
+                    slot_feed: None,
+                    slot_step_down: None,
+                    entry: p.entry,
+                    enabled: true,
+                });
+            pass.tool = 9;
+            p.rest_passes = vec![pass];
+        }
+        assert_eq!(
+            forms::tool_users(app.edit.as_ref().unwrap(), 9),
+            ["1.1".to_string()]
+        );
+        if let Operation::Pocket(p) = &mut app.edit.as_mut().unwrap().job.operations[0] {
+            p.rest_passes.clear();
+        }
+        app.commit();
+        // Unused: gone, focus back on Tools, undone in one step.
+        app.focus = Focus::Tool(9);
+        app.delete_key();
+        assert_eq!(job(&app).tools.len(), before - 1);
+        assert!(job(&app).tool(9).is_none());
+        assert_eq!(app.focus, Focus::Tools);
+        app.undo();
+        assert!(job(&app).tool(9).is_some());
+    }
+
+    #[test]
+    fn delete_removes_a_library_tool_in_focus() {
+        let (mut app, dir) = app_with_library("delete-key");
+        let uid = upcut().uid;
+        app.focus = Focus::LibraryTool(super::super::library_view::uid_key(&uid));
+        app.delete_key();
+        assert!(app.user.library.tools.find_uid(&uid).is_none());
+        assert_eq!(app.focus, Focus::LibraryTools);
+        assert!(dir.join("tools.json.bak").exists());
+    }
+
+    #[test]
+    fn a_project_tools_menu_deletes_it() {
+        use egui_kittest::Harness;
+        use egui_kittest::kittest::Queryable;
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(1400.0, 900.0))
+            .build_eframe(|_| {
+                let mut app = lower_part();
+                let mut spare = app.edit.as_ref().unwrap().job.tools[0].clone();
+                spare.id = 9;
+                spare.diameter = 3.175;
+                app.edit.as_mut().unwrap().job.tools.push(spare);
+                app.commit();
+                app
+            });
+        // The project's Tools folder, opened.
+        harness.ctx.data_mut(|d| {
+            d.insert_persisted(egui::Id::new("browser-tools").with("folder-open"), true)
+        });
+        harness.run_steps(4);
+        let row = harness.get_by_label_contains("T9").rect().center();
+        harness.hover_at(row);
+        harness.run_steps(1);
+        for pressed in [true, false] {
+            harness.event(egui::Event::PointerButton {
+                pos: row,
+                button: egui::PointerButton::Secondary,
+                pressed,
+                modifiers: egui::Modifiers::NONE,
+            });
+            harness.run_steps(1);
+        }
+        harness.run_steps(2);
+        harness.get_all_by_label("Delete").last().unwrap().click();
+        harness.run_steps(3);
+        assert!(harness.state().edit.as_ref().unwrap().job.tool(9).is_none());
+    }
 }
