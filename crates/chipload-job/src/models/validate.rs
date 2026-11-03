@@ -318,6 +318,13 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                     positive(at("stepover"), p.stepover);
+                    // Full-width rings (docs/specs/cutting-data.md §5).
+                    if let Some(feed) = p.slot_feed {
+                        positive(at("slot_feed"), feed);
+                    }
+                    if let Some(step) = p.slot_step_down {
+                        positive(at("slot_step_down"), step);
+                    }
                     // Rest passes (docs/specs/rest-passes.md §7).
                     for (k, pass) in p.rest_passes.iter().enumerate() {
                         let at = |field: &str| format!("operations.{i}.rest_passes.{k}.{field}");
@@ -325,6 +332,12 @@ impl Job {
                         positive(at("feed"), pass.feed);
                         positive(at("plunge_feed"), pass.plunge_feed);
                         positive(at("stepover"), pass.stepover);
+                        if let Some(feed) = pass.slot_feed {
+                            positive(at("slot_feed"), feed);
+                        }
+                        if let Some(step) = pass.slot_step_down {
+                            positive(at("slot_step_down"), step);
+                        }
                     }
                 }
                 Operation::Vcarve(v) => {
@@ -372,6 +385,12 @@ impl Job {
                         positive(at("feed"), floor.feed);
                         positive(at("plunge_feed"), floor.plunge_feed);
                         positive(at("stepover"), floor.stepover);
+                        if let Some(feed) = floor.slot_feed {
+                            positive(at("slot_feed"), feed);
+                        }
+                        if let Some(step) = floor.slot_step_down {
+                            positive(at("slot_step_down"), step);
+                        }
                     }
                 }
                 Operation::Path(p) => {

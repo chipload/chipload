@@ -763,6 +763,16 @@ pub struct PocketOp {
     /// The distance between the clearing rings, as a fraction of the tool diameter: more
     /// than 0, at most 1.
     pub stepover: f64,
+    /// The feed of the rings that cut full width (those with no ring inside them), mm/min.
+    /// Null: `feed`.
+    // Spec: docs/specs/cutting-data.md §5 (optional, no schema bump).
+    #[serde(default)]
+    pub slot_feed: Option<f64>,
+    /// The deepest each step of a full-width ring goes, mm: it goes down in such steps to
+    /// each depth pass, before the other rings cut the pass at once. Null: `step_down`.
+    // Spec: docs/specs/cutting-data.md §4.
+    #[serde(default)]
+    pub slot_step_down: Option<f64>,
     /// `climb` or `conventional` milling.
     pub direction: Direction,
     /// The cutting feed, mm/min.
@@ -826,6 +836,13 @@ pub struct ClearingPass {
     pub step_down: f64,
     /// The distance between the clearing rings, as a fraction of the tool diameter.
     pub stepover: f64,
+    /// As a pocket's `slot_feed`. Null: `feed`.
+    // Spec: docs/specs/cutting-data.md §5 (optional, no schema bump).
+    #[serde(default)]
+    pub slot_feed: Option<f64>,
+    /// As a pocket's `slot_step_down`. Null: `step_down`.
+    #[serde(default)]
+    pub slot_step_down: Option<f64>,
     /// How the tool goes down: `plunge`, `ramp` or `helix`.
     pub entry: Entry,
     /// False: kept, but not cut. Missing: true.

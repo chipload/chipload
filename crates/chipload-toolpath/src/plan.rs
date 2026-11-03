@@ -811,6 +811,8 @@ fn plan_pocket_op(
         feed: op.feed,
         plunge_feed: op.plunge_feed,
         entry: op.entry,
+        slot_feed: op.slot_feed.unwrap_or(op.feed),
+        slot_step: op.slot_step_down,
     };
     for piece in &plan.pieces {
         for ring in piece.rings.iter().filter(|r| r.wall) {

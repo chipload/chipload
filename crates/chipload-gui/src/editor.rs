@@ -509,6 +509,8 @@ impl EditJob {
                     clearance: 0.0,
                     step_down,
                     stepover,
+                    slot_feed: None,
+                    slot_step_down: None,
                     direction: Direction::Climb,
                     feed,
                     plunge_feed,

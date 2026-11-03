@@ -1494,3 +1494,76 @@ fn no_vertical_move_is_float_noise() {
         }
     }
 }
+
+// -- slot steps (docs/specs/cutting-data.md §4)
+
+mod slot_steps {
+    use super::*;
+    use chipload_job::Operation;
+
+    /// Every pocket and rest pass of `job` with full-width rings in half steps at a slower
+    /// feed, and the entry `entry` where given.
+    fn stepped(mut job: Job, entry: Option<chipload_job::Entry>) -> Job {
+        for op in &mut job.operations {
+            if let Operation::Pocket(p) = op {
+                p.slot_step_down = Some(p.step_down / 2.0);
+                p.slot_feed = Some(p.feed * 0.6);
+                if let Some(entry) = entry {
+                    p.entry = entry;
+                }
+                for pass in &mut p.rest_passes {
+                    pass.slot_step_down = Some(pass.step_down / 2.0);
+                    pass.slot_feed = Some(pass.feed * 0.6);
+                }
+            }
+        }
+        job
+    }
+
+    #[test]
+    fn stepped_pockets_pass_the_checker_with_every_entry() {
+        use chipload_job::Entry;
+        let entries = [
+            None,
+            Some(Entry::Plunge {}),
+            Some(Entry::Ramp {
+                ramp_angle: 5f64.to_radians(),
+            }),
+            Some(Entry::Helix {
+                radius: 1.0,
+                ramp_angle: 3f64.to_radians(),
+            }),
+        ];
+        for project in [
+            "jobs/v24/rectangle_part.chipload",
+            "jobs/v28/rest_passes.chipload",
+            "jobs/v14/round_corners.chipload",
+        ] {
+            let job = load_job(&corpus(project)).unwrap();
+            let gcode = |r: &RunResult| -> Vec<String> {
+                r.files.iter().map(|f| f.gcode.clone()).collect()
+            };
+            let before = gcode(&run(&job));
+            for entry in entries {
+                // An entry the project refuses without slot steps too (a plunge with a tool
+                // that isn't centre-cutting) says nothing here.
+                let mut plain = stepped(job.clone(), entry);
+                for op in &mut plain.operations {
+                    if let Operation::Pocket(p) = op {
+                        p.slot_step_down = None;
+                        p.slot_feed = None;
+                    }
+                }
+                if run_job(&plain).is_err() {
+                    continue;
+                }
+                // run_job refuses G-code the checker finds fault with.
+                let after = run_job(&stepped(job.clone(), entry))
+                    .unwrap_or_else(|e| panic!("{project} {entry:?}: {e}"));
+                if entry.is_none() {
+                    assert_ne!(gcode(&after), before, "{project}: the slot steps cut");
+                }
+            }
+        }
+    }
+}

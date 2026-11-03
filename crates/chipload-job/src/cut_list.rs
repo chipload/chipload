@@ -128,7 +128,7 @@ impl Job {
 
     /// The operation `r` names: the operation itself, or for a rest pass a pocket made from
     /// its pocket (shapes, depths, clearance, direction, part) and the pass (tool, feeds,
-    /// step down, stepover, entry), resting after the tool before it. None if `r` names
+    /// step downs, stepover, entry), resting after the tool before it. None if `r` names
     /// nothing.
     pub fn resolve(&self, r: OpRef) -> Option<Operation> {
         let op = self.operations.get(r.operation)?;
@@ -154,6 +154,8 @@ impl Job {
             plunge_feed: pass.plunge_feed,
             step_down: pass.step_down,
             stepover: pass.stepover,
+            slot_feed: pass.slot_feed,
+            slot_step_down: pass.slot_step_down,
             entry: pass.entry,
             // The pocket's rings, not the pass's: starts and leads stay with it, and so do
             // dogbones (docs/specs/rest-passes.md §2).
@@ -187,6 +189,8 @@ impl Job {
             clearance: -inset,
             step_down: floor.step_down,
             stepover: floor.stepover,
+            slot_feed: floor.slot_feed,
+            slot_step_down: floor.slot_step_down,
             direction: Direction::Climb,
             feed: floor.feed,
             plunge_feed: floor.plunge_feed,

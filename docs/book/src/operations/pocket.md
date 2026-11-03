@@ -24,6 +24,15 @@ The pocket is cleared in **rings**:
   rings and the wall's take turns there, so no ring meets more than a stepover of material.
 - **Stepover:** the distance between rings, as a fraction of the tool diameter (0.4 by
   default).
+- **Full-width rings:** the first ring at each depth (and the first of each branch, where
+  the pocket parts in two) has no ring inside it, so the bit cuts its whole width, as in a
+  slot. The others take only the stepover. So the full-width rings have their own **Slot
+  feed** and **Slot step down**: at each depth, they go down in slot steps first, and then
+  the other rings cut the whole step down at once. For example, with a step down of 5 mm
+  and a slot step down of 2.5 mm, the first ring is cut at 2.5 and then at 5 mm, and the
+  rings out to the wall at 5 mm. Left empty, they are the feed and step down: every ring
+  cuts the same, as before. They usually come from the tool's
+  [cutting data](../library/tools.md#cutting-data).
 - **Rounded inner rings:** every ring but the wall ring has rounded corners (up to two
   stepovers in radius), for smoother, faster motion. Where rounding would leave material,
   the corners are rounded less.
@@ -95,6 +104,8 @@ in mm, feeds in mm/min, angles in radians.
 | `clearance` | Oversize |
 | `step_down` | Step down |
 | `stepover` | Stepover, a fraction of the tool diameter |
+| `slot_feed` | Slot feed: the full-width rings' feed; null: `feed` |
+| `slot_step_down` | Slot step down: how deep each step of a full-width ring goes; null: `step_down` |
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
 | `entry` | Entry: plunge, ramp, or `{"type": "helix", "radius": …, "ramp_angle": …}` |
@@ -103,7 +114,7 @@ in mm, feeds in mm/min, angles in radians.
 | `corners` | Corners (dogbones, T-bones) |
 | `corner_choices` | corners with their own choice, as on [profiles](profile.md#in-the-file); left out when there are none |
 | `rest` | Rest after: `{"after_tool": id}` or null |
-| `rest_passes` | Its rest passes, each `{tool, feed, plunge_feed, step_down, stepover, entry, enabled}`; left out when there are none |
+| `rest_passes` | Its rest passes, each `{tool, feed, plunge_feed, step_down, stepover, slot_feed, slot_step_down, entry, enabled}`; left out when there are none |
 
 Projects from before Chipload 0.14 that used the removed *trochoidal* or *adaptive*
 clearing are cut as ring pockets. Projects from before 0.18 that had the tool retracting

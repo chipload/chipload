@@ -107,6 +107,8 @@ fn pocket() -> Operation {
         clearance: 0.0,
         step_down: 1.0,
         stepover: 0.4,
+        slot_feed: None,
+        slot_step_down: None,
         direction: chipload_job::Direction::Climb,
         feed: 600.0,
         plunge_feed: 200.0,

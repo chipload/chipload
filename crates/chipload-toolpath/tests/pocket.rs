@@ -59,6 +59,8 @@ fn moves_of(
             feed: 1500.0,
             plunge_feed: 400.0,
             entry: Entry::Plunge {},
+            slot_feed: 1500.0,
+            slot_step: None,
         },
     )
     .unwrap()
@@ -841,6 +843,106 @@ fn deeper_rings_are_cut_first_round_islands_and_in_a_neck() {
 
 // -- moves
 
+/// A piece's moves with slot steps (docs/specs/cutting-data.md §4): clearing feed 1500,
+/// full-width rings at 900 in steps of at most `slot_step`.
+fn slot_moves(
+    piece: &chipload_toolpath::pocket::PocketPiece,
+    pass_z: &[f64],
+    slot_step: Option<f64>,
+) -> Vec<chipload_toolpath::model::Move> {
+    pocket_moves(
+        piece,
+        &PocketCut {
+            pass_z,
+            top_z: 0.0,
+            safe_z: 5.0,
+            feed: 1500.0,
+            plunge_feed: 400.0,
+            entry: Entry::Plunge {},
+            slot_feed: 900.0,
+            slot_step,
+        },
+    )
+    .unwrap()
+}
+
+/// The depths the tool goes down to at the plunge feed, in order.
+fn plunge_depths(moves: &[chipload_toolpath::model::Move]) -> Vec<f64> {
+    moves
+        .iter()
+        .filter(|m| m.kind == MoveKind::Feed && m.x.is_none() && m.y.is_none())
+        .filter_map(|m| m.z)
+        .collect()
+}
+
+#[test]
+fn the_innermost_ring_goes_down_in_slot_steps_and_the_rings_cut_the_layer() {
+    let result = plan(&[outline()]);
+    let piece = &result.pieces[0];
+    let full: Vec<bool> = piece.rings.iter().map(|r| r.full_width).collect();
+    assert!(full[0] && full[1..].iter().all(|f| !f), "{full:?}");
+    let moves = slot_moves(piece, &[-5.0, -10.0], Some(2.5));
+    // The first ring at -2.5 then -5; lifted 0.5 mm; at -7.5 then -10.
+    assert_eq!(plunge_depths(&moves), [-2.5, -5.0, -4.5, -7.5, -10.0]);
+    // Full width at the slot feed, the rings at the clearing feed.
+    let feeds_at = |z: f64| -> Vec<f64> {
+        let mut at = 0.0;
+        let mut feeds = Vec::new();
+        for m in &moves {
+            if let Some(mz) = m.z {
+                at = mz;
+            }
+            if m.kind == MoveKind::Feed && m.x.is_some() && (at - z).abs() < 1e-9 {
+                feeds.push(m.feed.unwrap());
+            }
+        }
+        feeds
+    };
+    assert!(feeds_at(-2.5).iter().all(|f| *f == 900.0), "a slot step");
+    let layer = feeds_at(-5.0);
+    assert!(
+        layer.contains(&900.0) && layer.contains(&1500.0),
+        "{layer:?}"
+    );
+    // Without slot steps, or with steps as deep as the layers, nothing changes.
+    let plain = slot_moves(piece, &[-5.0, -10.0], None);
+    assert_eq!(slot_moves(piece, &[-5.0, -10.0], Some(5.0)), plain);
+    assert_eq!(plunge_depths(&plain), [-5.0, -4.5, -10.0]);
+}
+
+#[test]
+fn each_branch_of_a_pocket_goes_down_in_slot_steps() {
+    // Two squares joined by a neck the rings soon part at: two innermost rings.
+    let dumbbell = polygon_id(
+        1,
+        &[
+            (0.0, 0.0),
+            (40.0, 0.0),
+            (40.0, 15.0),
+            (80.0, 15.0),
+            (80.0, 0.0),
+            (120.0, 0.0),
+            (120.0, 40.0),
+            (80.0, 40.0),
+            (80.0, 25.0),
+            (40.0, 25.0),
+            (40.0, 40.0),
+            (0.0, 40.0),
+        ],
+    );
+    let result = plan(std::slice::from_ref(&dumbbell));
+    let piece = &result.pieces[0];
+    let leaves = piece.rings.iter().filter(|r| r.full_width).count();
+    assert_eq!(leaves, 2);
+    let moves = slot_moves(piece, &[-5.0], Some(2.5));
+    let steps = plunge_depths(&moves)
+        .iter()
+        .filter(|z| (**z + 2.5).abs() < 1e-9)
+        .count();
+    assert_eq!(steps, 2, "both branches go down to the slot step first");
+    assert_clear(std::slice::from_ref(&dumbbell), &result, 3.0);
+}
+
 #[test]
 fn moves_plunge_at_the_centre_for_every_depth() {
     let result = plan(&[outline()]);
@@ -1149,7 +1251,7 @@ proptest! {
         };
         let cut = PocketCut {
             pass_z: &[-1.0], top_z: 0.0, safe_z: 5.0, feed: 1000.0, plunge_feed: 300.0,
-            entry: Entry::Plunge {},
+            entry: Entry::Plunge {}, slot_feed: 1000.0, slot_step: None,
         };
         let mut moves = Vec::new();
         for piece in &plan.pieces {

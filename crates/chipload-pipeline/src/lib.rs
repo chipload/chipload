@@ -336,6 +336,8 @@ pub fn rest_pass_of(
         plunge_feed,
         step_down,
         stepover,
+        slot_feed: None,
+        slot_step_down: None,
         entry,
         enabled: true,
     })
@@ -412,6 +414,8 @@ pub fn floor_pass_of(
         plunge_feed,
         step_down,
         stepover,
+        slot_feed: None,
+        slot_step_down: None,
         entry,
         enabled: true,
     })
@@ -518,6 +522,8 @@ pub fn make_rest_pass(job: &mut Job, index: usize) -> Option<chipload_job::OpRef
         plunge_feed: rest.plunge_feed,
         step_down: rest.step_down,
         stepover: rest.stepover,
+        slot_feed: rest.slot_feed,
+        slot_step_down: rest.slot_step_down,
         entry: rest.entry,
         enabled: rest.enabled,
     });

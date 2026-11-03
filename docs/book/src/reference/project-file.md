@@ -54,6 +54,8 @@ A clearing pass with its own end mill, inside an operation's shapes and depths: 
 | `entry` | [Entry](#entry) | yes | How the tool goes down: `plunge`, `ramp` or `helix`. |
 | `feed` | number | yes | The cutting feed, mm/min. |
 | `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `slot_feed` | number or null | no | As a pocket's `slot_feed`. Null: `feed`. |
+| `slot_step_down` | number or null | no | As a pocket's `slot_step_down`. Null: `step_down`. |
 | `step_down` | number | yes | The deepest each pass goes, mm. |
 | `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill. |
@@ -347,6 +349,8 @@ A library material, as a project names it.
 | `rest` | [Rest](#rest) or null | no | Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket. |
 | `rest_passes` | list of [ClearingPass](#clearingpass) | no | Rest passes: smaller endmills that clear what this pocket's tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
+| `slot_feed` | number or null | no | The feed of the rings that cut full width (those with no ring inside them), mm/min. Null: `feed`. |
+| `slot_step_down` | number or null | no | The deepest each step of a full-width ring goes, mm: it goes down in such steps to each depth pass, before the other rings cut the pass at once. Null: `step_down`. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there. |
 | `starts` | list of 2 × number | no | Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload. |
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
