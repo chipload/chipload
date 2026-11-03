@@ -76,9 +76,10 @@ style.
    *Done*). Left from it for the first-run setup: tabs with a tool not marked
    centre-cutting still warn, and machine travel not set.
 2. **Styles: operation presets** (docs/specs/styles.md, replacing presets.md; the
-   direction review's step 2, CamBam's speed). **Steps 1 to 3 done 2026-11-03** (the
-   defaults; `styles.json` and `chipload style …`, ADR 0030; the window). For the user to
-   try. Next of it: layer rules (step 4), keys for styles (item 3).
+   direction review's step 2, CamBam's speed). **Steps 1 to 3 and 3b done 2026-11-03**
+   (the defaults; `styles.json` and `chipload style …`, ADR 0030; the window; a style
+   shown and edited in the operation's own form, `style show`/`style set PATH=VALUE`,
+   styles.md §10). For the user to try before styles are released. Next of it: layer rules (step 4), keys for styles (item 3).
 3. **Tabs along the grain: done 2026-11-03** (docs/specs/tabs-along-grain.md; see *Done*).
 4. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
@@ -216,6 +217,9 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
+- **Styles shown and edited (2026-11-03, the user):** a style's form under *This
+  computer > Styles* is the operation's own form, a draft until Save; `style show` lists
+  its values by path and `style set NAME PATH=VALUE` sets them (docs/specs/styles.md §10).
 - **Stock is an item of its own (2026-11-03, the user):** under each setup, above *Work
   zero*, with its thickness and material beside it; its form is the board and material, the
   setup's own keeps name, on/off and parts. A new project opens on it; a click on the

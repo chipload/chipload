@@ -198,6 +198,10 @@ pub(in crate::app) struct ToolChoice<'a> {
     /// The library's materials, each with its values for the operation's tool
     /// (docs/specs/materials.md §2). None: no library.
     pub materials: Option<Vec<(MaterialRef, Option<Cutting>)>>,
+    /// A style's operation, not a project's (docs/specs/styles.md §9, step 3b): no title,
+    /// name or shapes; the tools are the library's, by name; a profile's side is by the
+    /// selection or on the line.
+    pub style: bool,
 }
 
 /// The selected operation's fields, in sections.
@@ -234,21 +238,31 @@ pub(in crate::app) fn op_form(
     };
     let surface = !op.selects_shapes();
     let color = super::browser::kind_color(&*op, ui.visuals().dark_mode);
-    super::browser::title_line(
-        ui,
-        super::browser::op_icon(&*op),
-        Some(color),
-        &format!(
-            "{kind} · {}",
-            t!(ui, "forms-operation-number", number = index + 1)
-        ),
-    );
+    if !choice.style {
+        super::browser::title_line(
+            ui,
+            super::browser::op_icon(&*op),
+            Some(color),
+            &format!(
+                "{kind} · {}",
+                t!(ui, "forms-operation-number", number = index + 1)
+            ),
+        );
+    }
     labels_weak(ui);
     Grid::new(("op-form", index))
         .num_columns(2)
         // Past the sections' indent, so the values line up with theirs.
         .min_col_width(label_width(ui) + ui.spacing().indent)
         .show(ui, |ui| {
+            if choice.style {
+                // A style's name is its own, its shapes the selection it is used on.
+                tool_row(ui, index, &mut *op, &choice, &mut request);
+                if let Operation::Profile(p) = &mut *op {
+                    style_side_row(ui, index, p);
+                }
+                return;
+            }
             let name = op.name_mut();
             ui.label(t!(ui, "forms-name"));
             ui.add(TextEdit::singleline(name).desired_width(field_width(ui, 200.0)));
@@ -539,6 +553,36 @@ pub(in crate::app) fn op_form(
     request
 }
 
+/// A profile style's side: by the selection (outlines outside, holes inside) or on the
+/// line (docs/specs/styles.md §2.1). The operation keeps it as its side: on, or outside.
+fn style_side_row(ui: &mut egui::Ui, index: usize, p: &mut chipload_job::ProfileOp) {
+    let on = p.side == Side::On;
+    let name = |ui: &egui::Ui, on: bool| {
+        if on {
+            t!(ui, "forms-side-on")
+        } else {
+            t!(ui, "styles-side-selection")
+        }
+    };
+    ui.label(t!(ui, "forms-side"));
+    let combo = ComboBox::from_id_salt(("style-side", index))
+        .selected_text(name(ui, on))
+        .show_ui(ui, |ui| {
+            if ui.selectable_label(!on, name(ui, false)).clicked() && on {
+                p.side = Side::Outside;
+            }
+            if ui.selectable_label(on, name(ui, true)).clicked() {
+                p.side = Side::On;
+            }
+        });
+    flag(
+        combo.response.on_hover_text(t!(ui, "styles-side-hover")),
+        ui,
+        "side",
+    );
+    ui.end_row();
+}
+
 /// The operation's tool: one of the project's, or one copied in from the library
 /// (docs/specs/tool-per-operation.md §8). Changing it keeps the feeds; when the tool's
 /// library cutting values differ from the operation's, a button applies them.
@@ -553,13 +597,21 @@ pub(super) fn tool_row(
     let len_unit = chipload_pipeline::units::length_unit(units);
     let feed_unit = chipload_pipeline::units::feed_unit(units);
     let current = op.tool();
+    // A style's tools are the library's, known by name (their numbers are only places).
+    let label = |ui: &egui::Ui, tool: &Tool| match (&tool.name, choice.style) {
+        (Some(name), true) => name.clone(),
+        _ => tool_label(ui, tool, units),
+    };
+    let missing = if choice.style {
+        t!(ui, "styles-tool-not-in-library")
+    } else {
+        t!(ui, "forms-tool-not-in-project", tool = current)
+    };
     let selected = choice
         .tools
         .iter()
         .find(|t| t.id == current)
-        .map_or(t!(ui, "forms-tool-not-in-project", tool = current), |t| {
-            tool_label(ui, t, units)
-        });
+        .map_or(missing, |t| label(ui, t));
     ui.label(t!(ui, "forms-tool"));
     let combo = ComboBox::from_id_salt(("op-tool", index))
         .selected_text(selected)
@@ -568,7 +620,7 @@ pub(super) fn tool_row(
         .show_ui(ui, |ui| {
             for tool in choice.tools {
                 if ui
-                    .selectable_label(tool.id == current, tool_label(ui, tool, units))
+                    .selectable_label(tool.id == current, label(ui, tool))
                     .clicked()
                 {
                     if tool.id != current {

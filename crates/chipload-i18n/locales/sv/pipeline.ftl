@@ -601,3 +601,4 @@ pipeline-name-outline-of = { $name } (ytterkontur)
 pipeline-new-by-shapes = { $holes } och { $outline } väljer sina former en och en: former som läggs till ritningen senare fräses inte av dem
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = stilen ”{ $style }” fräser med ”{ $tool }”, som inte finns i ditt bibliotek: välj ett annat verktyg för stilen
+pipeline-style-tool-unknown = stilen nämner verktyg { $tool }, som varken finns i ditt bibliotek eller bland dess egna verktyg

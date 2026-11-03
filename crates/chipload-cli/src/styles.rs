@@ -56,12 +56,17 @@ pub enum StyleAction {
     },
     /// Rename a style.
     Rename { name: String, new: String },
-    /// Give a style another tool of your library (by name), for example after an import
-    /// whose tool you don't have.
+    /// Change a style: values of its operation by path, as `chipload set` changes a
+    /// project's (`end_depth=6`, `tabs.count=6`, `side=on`; `style show` lists them), and
+    /// its tool by name from your library, for example after an import whose tool you
+    /// don't have. Projects that used the style keep their operations.
     Set {
         name: String,
+        /// PATH=VALUE, paths within the style's operation.
+        values: Vec<String>,
+        /// Another tool of your library, by name.
         #[arg(long)]
-        tool: String,
+        tool: Option<String>,
     },
     /// Remove a style.
     Remove { name: String },
@@ -107,6 +112,12 @@ pub fn style(out: &mut Out, action: StyleAction) -> ExitCode {
             return match styles.get(&name) {
                 Ok(style) => {
                     out.line(format!("{}: {}", style.name, summary(style, &tools)));
+                    // Every value, by the path `style set` takes.
+                    let mut lines = Vec::new();
+                    value_lines("", &style.operation, &mut lines);
+                    for line in lines {
+                        out.line(format!("  {line}"));
+                    }
                     out.set("style", json!(style));
                     ExitCode::SUCCESS
                 }
@@ -146,22 +157,8 @@ pub fn style(out: &mut Out, action: StyleAction) -> ExitCode {
             library.rename(&name, &new)?;
             Ok(format!("Renamed style \"{name}\" to \"{}\".", new.trim()))
         }),
-        StyleAction::Set { name, tool } => {
-            let Some(entry) = tools.find(&tool) else {
-                return out.fail(format!("no tool named \"{tool}\" in your library"));
-            };
-            update_library(&path, |library: &mut StyleLibrary| {
-                let style = library.find_mut(&name)?;
-                let Some(first) = style.tools.first_mut() else {
-                    return Ok(format!("Style \"{name}\" names no tool."));
-                };
-                first.uid = entry.uid.clone();
-                first.name = entry.name.clone();
-                Ok(format!(
-                    "Style \"{}\" cuts with \"{}\".",
-                    style.name, entry.name
-                ))
-            })
+        StyleAction::Set { name, values, tool } => {
+            return set(out, &path, &styles, &tools, &name, &values, tool.as_deref());
         }
         StyleAction::Remove { name } => update_library(&path, |library: &mut StyleLibrary| {
             let removed = library.remove(&name)?;
@@ -190,6 +187,131 @@ pub fn style(out: &mut Out, action: StyleAction) -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(err) => out.fail(err),
+    }
+}
+
+/// The paths a style's operation keeps but never uses: they come from the shapes and
+/// the project it is used in, or are placed by hand on them.
+const NOT_SET: [&str; 9] = [
+    "type",
+    "name",
+    "part",
+    "enabled",
+    "material",
+    "select",
+    "tool",
+    "starts",
+    "corner_choices",
+];
+
+/// `style set` (docs/specs/styles.md §9, step 3b): the values set in the style's
+/// operation, read back as an operation, and its tool from the library; written with the
+/// problems it has listed, as `chipload set` does.
+fn set(
+    out: &mut Out,
+    path: &Path,
+    styles: &StyleLibrary,
+    tools: &chipload_job::library::ToolLibrary,
+    name: &str,
+    values: &[String],
+    tool: Option<&str>,
+) -> ExitCode {
+    if values.is_empty() && tool.is_none() {
+        return out.fail("give PATH=VALUE or --tool NAME");
+    }
+    let style = match styles.get(name) {
+        Ok(style) => style.clone(),
+        Err(err) => return out.fail(err),
+    };
+    let mut changed = style.clone();
+    let mut lines = Vec::new();
+    for text in values {
+        let (at, value) = match chipload_job::paths::assignment(text) {
+            Ok(assignment) => assignment,
+            Err(err) => return out.fail(err),
+        };
+        let first = at.split('.').next().unwrap_or_default();
+        if NOT_SET.contains(&first) {
+            let how = if first == "tool" {
+                "give it with --tool NAME"
+            } else {
+                "it comes from where the style is used"
+            };
+            return out.fail(format!("{at} can't be set in a style: {how}"));
+        }
+        if let Err(err) = chipload_job::paths::set(&mut changed.operation, &at, value.clone()) {
+            return out.fail(err);
+        }
+        lines.push(format!("Set {at} = {value}"));
+    }
+    let op = match changed.operation() {
+        Ok(op) => op,
+        Err(err) => return out.fail(err),
+    };
+    changed.side = chipload_job::styles::side_of(&op);
+    if let Some(tool) = tool {
+        let Some(entry) = tools.find(tool) else {
+            return out.fail(format!("no tool named \"{tool}\" in your library"));
+        };
+        let Some(first) = changed.tools.first_mut() else {
+            return out.fail(format!("style \"{}\" names no tool", style.name));
+        };
+        first.uid = entry.uid.clone();
+        first.name = entry.name.clone();
+        lines.push(format!(
+            "Style \"{}\" cuts with \"{}\".",
+            style.name, entry.name
+        ));
+    }
+    let problems = match chipload_pipeline::styles::style_draft(&changed, tools) {
+        Ok(draft) => chipload_pipeline::styles::style_problems(&draft.operation, &draft.tools),
+        Err(err) => return out.fail(err),
+    };
+    let written = update_library(path, |library: &mut StyleLibrary| {
+        *library.find_mut(name)? = changed.clone();
+        Ok(())
+    });
+    if let Err(err) = written {
+        return out.fail(err);
+    }
+    for line in lines {
+        out.line(line);
+    }
+    for problem in &problems {
+        out.line(format!("problem: {}: {}", problem.field(), problem.text));
+    }
+    out.set(
+        "problems",
+        json!(
+            problems
+                .iter()
+                .map(|p| json!({"path": p.field(), "short": p.short, "text": p.text}))
+                .collect::<Vec<_>>()
+        ),
+    );
+    out.wrote(path, "");
+    ExitCode::SUCCESS
+}
+
+/// `value` as "path = value" lines under `at`, the fields a style keeps but never uses
+/// left out.
+fn value_lines(at: &str, value: &serde_json::Value, lines: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, inner) in map {
+                if at.is_empty() && NOT_SET.contains(&key.as_str()) {
+                    continue;
+                }
+                let path = if at.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{at}.{key}")
+                };
+                value_lines(&path, inner, lines);
+            }
+        }
+        // Lists (a hole's steps, corner choices) as one value.
+        _ => lines.push(format!("{at} = {value}")),
     }
 }
 

@@ -158,8 +158,8 @@ A style is one operation saved by name:
 - **Browser:** *This computer* gets a **Styles** folder beside Tools, Machines and
   Materials. A style's properties show its kind, tool, depth and a summary of its settings
   ("outside by selection, climb, through + 0.3 mm, 4 tabs 8 × 3 mm"), with *Rename*,
-  *Delete* and the Delete key. A style isn't edited in a form of its own (decision 6): use
-  it, change the operation, *Save as style…* with the same name.
+  *Delete* and the Delete key. Its settings are edited in the operation's own form (step
+  3b, decision 6 as changed on 2026-11-03).
 - **Command line:** `chipload style list [--json]`, `style show NAME`, `style rename NAME
   NEW`, `style remove NAME`, `style export FILE [--name …]`, `style import FILE
   [--replace]`.
@@ -250,6 +250,9 @@ A new persisted file in the settings folder, beside `tools.json`:
    remember their style and offer *Update from style*, as tools do from the library.
 6. **No style form; save again to change one** (presets.md decision 2). *Recommended:* the
    operation form already exists and is tested. Alternative: a full style editor.
+   *Changed 2026-11-03* (the user: "would it be possible to show and possible edit the
+   content of the saved styles?"): a style opens in the operation's own form, step 3b, so
+   there is still one form to learn and keep right.
 7. **The name "style"**, CamBam's word for it, in every language (Stil, style, estilo,
    stile, stil, стиль). *Recommended:* short, and what a CamBam user looks for.
    Alternative: "preset".
@@ -269,6 +272,7 @@ A new persisted file in the settings folder, beside `tools.json`:
    sample), `style save/use/list/show/rename/remove/export/import/set`.
 3. **Styles in the window:** the ribbon's Style button, the canvas menu, *Save as style…*,
    the Styles folder; a new guide page *Styles* under the library.
+3b. **Styles shown and edited** (2026-11-03, before styles are released): §10.
 4. **Later:** layer rules, keys (§5).
 
 ## 9. As built
@@ -332,3 +336,40 @@ A new persisted file in the settings folder, beside `tools.json`:
   `Library::styles` is read with the rest of the library; a style that can't be read is
   named among the library's problems.
 - Texts in `gui-styles.ftl` in all seven languages.
+
+## 10. Step 3b: a style shown and edited
+
+The user, 2026-11-03: "would it be possible to show and possible edit the content of the
+saved styles?" Before, a style's form showed one summary line, and changing a value meant
+using the style, changing the operation and saving it again under the same name. Decided
+the same day, as recommended:
+
+1. **The style's form is the operation form** (`op_form` with `ToolChoice::style`): its
+   folded sections, the same rows and problems by field, without what a project gives it:
+   the title, name and shapes rows, the material rows, statistics, and what is placed by
+   hand on shapes (start points, tabs and corners by hand, which a style never holds).
+2. **A draft until Save**, with *Revert* and "not saved", as a library tool's form
+   (`LibraryState::style_drafts`); *Apply to the selection* waits until it is saved or
+   reverted. (Recommended at first as saved on every change; corrected to the library's
+   own way when built.)
+3. **The tools are the library's**, by name: `chipload_pipeline::styles::style_draft`
+   numbers them by their place in the library and the operation's tool ids with them;
+   `style_from_draft` names them by uid again. A style tool the library no longer has is
+   numbered after them and shown as *not in your library: choose a tool*.
+4. **A profile's side** is *by the selection* (outlines outside, holes inside) or *on*
+   the line, the two a style has (`styles::side_of`, also used by `style_of`).
+5. **Only the style changes:** operations made with it keep their values (decision 5);
+   the form says so.
+6. **The command line:** `style show NAME` lists every value by path; `style set NAME
+   PATH=VALUE… [--tool NAME]` sets them, as `chipload set` does for a project: read back as
+   an operation (a wrong value is refused, nothing written), its problems listed but
+   written. The fields a style keeps but never uses (`type`, `name`, `part`, `enabled`,
+   `material`, `select`, `tool`, `starts`, `corner_choices`) can't be set.
+
+Feeds and step downs stay as decision 3 has them: the tool's cutting data for the
+project's material comes first; the form's note says the style's own are used otherwise.
+
+As built 2026-11-03: `style_draft`, `style_from_draft`, `style_problems` (the operation
+tried in an empty project, its shapes' problems left out) in the pipeline, with tests; a
+CLI test for `style show` and `style set`; a window test for editing and saving. Texts in
+seven languages.

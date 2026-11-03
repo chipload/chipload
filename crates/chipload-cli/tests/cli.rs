@@ -2097,6 +2097,80 @@ fn styles_are_saved_used_and_make_the_golden_project() {
 }
 
 #[test]
+fn a_style_shows_its_values_and_sets_them_by_path() {
+    // docs/specs/styles.md §9, step 3b: `style show` lists the paths `style set` takes.
+    let dir = temp_dir("style-set");
+    let settings = dir.join("settings");
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_chipload"))
+            .env("CHIPLOAD_CONFIG_DIR", &settings)
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let ok = |args: &[&str]| {
+        let out = run(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    let dxf = corpus("dxf/simple_part.dxf");
+    let a = dir.join("a.chipload");
+    let a = path(&a);
+    ok(&[
+        "tool",
+        "add",
+        "6 mm 2F",
+        "--type",
+        "endmill",
+        "--diameter",
+        "6",
+        "--rpm",
+        "18000",
+    ]);
+    ok(&["import", path(&dxf), "-o", a]);
+    ok(&["tool", "use", "6 mm 2F", a]);
+    ok(&[
+        "op",
+        "add",
+        a,
+        "profile",
+        "--layer",
+        "CUT_OUTSIDE",
+        "--tool",
+        "2",
+    ]);
+    ok(&["style", "save", a, "--op", "1", "--name", "Cut out"]);
+    let shown = ok(&["style", "show", "Cut out"]);
+    assert!(shown.contains("  tabs.count = 4"), "{shown}");
+    assert!(shown.contains("  step_down = "), "{shown}");
+    assert!(
+        !shown.contains("  select"),
+        "the shapes aren't the style's: {shown}"
+    );
+    // Values by path; a profile put on the line keeps it.
+    let set = ok(&["style", "set", "Cut out", "tabs.count=6", "side=on"]);
+    assert!(set.contains("Set tabs.count = 6"), "{set}");
+    let shown = ok(&["style", "show", "Cut out"]);
+    assert!(shown.contains("on the line"), "{shown}");
+    assert!(shown.contains("  tabs.count = 6"), "{shown}");
+    // A value that breaks a rule is written and named, as `chipload set` does.
+    let set = ok(&["style", "set", "Cut out", "step_down=0"]);
+    assert!(set.contains("problem: step_down:"), "{set}");
+    // What comes from where it is used, a wrong path or value: refused, nothing written.
+    for args in [
+        &["style", "set", "Cut out", "select.layers=[]"][..],
+        &["style", "set", "Cut out", "tool=1"],
+        &["style", "set", "Cut out", "nothing.here=1"],
+        &["style", "set", "Cut out", "side=sideways"],
+        &["style", "set", "Cut out"],
+    ] {
+        assert!(!run(args).status.success(), "{args:?}");
+    }
+    assert!(ok(&["style", "show", "Cut out"]).contains("  tabs.count = 6"));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn tabs_along_an_axis_cut_as_the_same_tabs_placed_by_hand() {
     // docs/specs/tabs-along-grain.md §5: the golden v35_tabs_along made again, and its
     // tabs placed by hand at the points it chose give the same G-code.

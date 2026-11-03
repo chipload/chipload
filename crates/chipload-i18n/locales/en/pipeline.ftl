@@ -600,3 +600,4 @@ pipeline-name-outline-of = { $name } (outline)
 pipeline-new-by-shapes = { $holes } and { $outline } select their shapes one by one: shapes added to the drawing later aren't cut by them
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = style "{ $style }" cuts with "{ $tool }", which isn't in your library: choose another tool for the style
+pipeline-style-tool-unknown = the style names tool { $tool }, which is neither in your library nor among its own tools

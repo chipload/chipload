@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 use chipload_core::chain::Contour;
 use chipload_i18n::{Language, Message, Units};
 use chipload_job::library::{ToolLibrary, use_tool};
-use chipload_job::styles::{Style, StyleSide};
-use chipload_job::{Job, Operation, Selector, Side, Tool};
+use chipload_job::styles::{Style, StyleSide, StyleTool, side_of};
+use chipload_job::{Job, Operation, Problem, Selector, Side, Tool};
 
 use crate::PipelineError;
 use crate::new_ops::{NewOp, NewOps, NewRequest, OpKind, by_shapes, new_operations, tool_cutting};
@@ -183,6 +183,111 @@ pub fn insert(job: &mut Job, ops: StyleOps) -> usize {
     crate::new_ops::insert(job, ops.made)
 }
 
+/// A style laid out for the operation form (docs/specs/styles.md §9, step 3b): its
+/// operation with its tools numbered by their place in the library (from 1), and the
+/// library's tools as project tools by those numbers. A style tool the library no longer
+/// has is numbered after them and has no tool in the list.
+#[derive(Debug, Clone, PartialEq)]
+pub struct StyleDraft {
+    pub operation: Operation,
+    pub tools: Vec<Tool>,
+}
+
+/// Style `style` laid out for editing with the tools of `library`.
+pub fn style_draft(style: &Style, library: &ToolLibrary) -> Result<StyleDraft, PipelineError> {
+    let mut operation = style
+        .operation()
+        .map_err(|e| PipelineError::Job(e.message()))?;
+    let tools = library
+        .tools
+        .iter()
+        .zip(1..)
+        .map(|(entry, id)| entry.tool(id))
+        .collect::<Vec<_>>();
+    let missing = |k: usize| i64::try_from(library.tools.len() + 1 + k).unwrap_or(i64::MAX);
+    let ids = style
+        .tools
+        .iter()
+        .enumerate()
+        .map(|(k, tool)| {
+            let id = library
+                .tools
+                .iter()
+                .position(|t| t.uid == tool.uid)
+                .and_then(|i| i64::try_from(i + 1).ok())
+                .unwrap_or_else(|| missing(k));
+            (tool.id, id)
+        })
+        .collect::<BTreeMap<_, _>>();
+    operation.remap_tools(&ids);
+    Ok(StyleDraft { operation, tools })
+}
+
+/// `style` with the operation `op` of its draft (made by [`style_draft`] with the same
+/// `library`): its tools named by uid again, its side by [`side_of`].
+pub fn style_from_draft(
+    style: &Style,
+    op: &Operation,
+    library: &ToolLibrary,
+) -> Result<Style, PipelineError> {
+    let count = library.tools.len();
+    let mut tools = Vec::new();
+    for id in op.tool_ids() {
+        let place = usize::try_from(id).ok().and_then(|k| k.checked_sub(1));
+        let tool = match place {
+            Some(k) if k < count => library.tools.get(k).map(|entry| StyleTool {
+                id,
+                uid: entry.uid.clone(),
+                name: entry.name.clone(),
+            }),
+            Some(k) => style
+                .tools
+                .get(k - count)
+                .map(|kept| StyleTool { id, ..kept.clone() }),
+            None => None,
+        };
+        let Some(tool) = tool else {
+            return Err(PipelineError::Job(
+                Message::new("pipeline-style-tool-unknown").arg("tool", id),
+            ));
+        };
+        tools.push(tool);
+    }
+    let operation = serde_json::to_value(op).map_err(|e| {
+        PipelineError::Job(
+            Message::new("job-style-unreadable")
+                .arg("name", style.name.as_str())
+                .arg("reason", e.to_string()),
+        )
+    })?;
+    Ok(Style {
+        tools,
+        side: side_of(op),
+        operation,
+        ..style.clone()
+    })
+}
+
+/// The problems of a style's operation `op` with `tools` (a draft's), as the operation's
+/// own form shows them: tried in an empty project, its shapes left out.
+pub fn style_problems(op: &Operation, tools: &[Tool]) -> Vec<Problem> {
+    let mut job = crate::empty_project();
+    job.tools = tools.to_vec();
+    let mut op = op.clone();
+    if let Some(part) = job.parts.first() {
+        op.set_part(part.id);
+    }
+    job.operations = vec![op];
+    crate::job_problems(&job)
+        .into_iter()
+        .filter(|p| p.operation() == Some(0))
+        .filter(|p| {
+            let field = p.field();
+            field != "select" && !field.starts_with("select.")
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -304,5 +409,75 @@ mod tests {
         )
         .unwrap_err();
         assert!(err.to_string().contains("6 mm 2F"), "{err}");
+    }
+
+    /// A style laid out for the form and put back: its tool by the library's place, its
+    /// values changed, its tools named by uid again; a profile put on the line keeps it.
+    #[test]
+    fn a_style_draft_edited_goes_back_with_its_tools_by_uid() {
+        let (job, mut library, _) = project();
+        // A second library tool before the style's, so the numbers change.
+        let mut other = library.tools[0].clone();
+        other.uid = "00000000000000aa".into();
+        other.name = "3 mm 1F".into();
+        other.diameter = 3.0;
+        library.tools.insert(0, other);
+        let style = style_of(&job, 2, "Cut out", &library).unwrap();
+        assert_eq!(style.side, Some(StyleSide::BySelection));
+        let draft = style_draft(&style, &library).unwrap();
+        assert_eq!(draft.tools.len(), 2);
+        assert_eq!(draft.operation.tool(), 2, "the second in the library");
+        let mut op = draft.operation.clone();
+        op.set_end_depth(6.5);
+        let Operation::Profile(p) = &mut op else {
+            panic!("a profile");
+        };
+        p.side = Side::On;
+        op.set_tool(1);
+        let saved = style_from_draft(&style, &op, &library).unwrap();
+        assert_eq!(saved.name, style.name);
+        assert_eq!(saved.uid, style.uid);
+        assert_eq!(saved.tools.len(), 1);
+        assert_eq!(saved.tools[0].uid, "00000000000000aa");
+        assert_eq!(saved.side, Some(StyleSide::AsSaved));
+        assert_eq!(saved.operation().unwrap().depths().1, 6.5);
+        // Unchanged, it is the style it was.
+        let same = style_from_draft(&style, &draft.operation, &library).unwrap();
+        assert_eq!(same.operation().unwrap(), style.operation().unwrap());
+        assert_eq!(same.tools[0].uid, style.tools[0].uid);
+    }
+
+    /// A style tool the library no longer has keeps its place after the library's, and is
+    /// named as before when written back.
+    #[test]
+    fn a_missing_tool_stays_in_the_draft() {
+        let (job, library, _) = project();
+        let style = style_of(&job, 0, "Pocket 3 mm", &library).unwrap();
+        let empty = ToolLibrary::default();
+        let draft = style_draft(&style, &empty).unwrap();
+        assert!(draft.tools.is_empty());
+        assert_eq!(draft.operation.tool(), 1);
+        let back = style_from_draft(&style, &draft.operation, &empty).unwrap();
+        assert_eq!(back.tools[0].uid, style.tools[0].uid);
+        assert_eq!(back.tools[0].name, style.tools[0].name);
+    }
+
+    /// A style's problems are its operation's, by field; having no shapes isn't one.
+    #[test]
+    fn a_style_has_its_operations_problems_but_not_for_shapes() {
+        let (job, library, _) = project();
+        let style = style_of(&job, 0, "Pocket 3 mm", &library).unwrap();
+        let draft = style_draft(&style, &library).unwrap();
+        assert_eq!(style_problems(&draft.operation, &draft.tools), Vec::new());
+        let mut op = draft.operation.clone();
+        let Operation::Pocket(p) = &mut op else {
+            panic!("a pocket");
+        };
+        p.step_down = 0.0;
+        let problems = style_problems(&op, &draft.tools);
+        assert!(
+            problems.iter().any(|p| p.field() == "step_down"),
+            "{problems:?}"
+        );
     }
 }

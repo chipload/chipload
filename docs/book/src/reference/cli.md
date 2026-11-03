@@ -1752,16 +1752,17 @@ chipload style rename <NAME> <NEW>
 
 ### `chipload style set`
 
-Give a style another tool of your library (by name), for example after an import whose tool you don't have
+Change a style: values of its operation by path, as `chipload set` changes a project's (`end_depth=6`, `tabs.count=6`, `side=on`; `style show` lists them), and its tool by name from your library, for example after an import whose tool you don't have. Projects that used the style keep their operations
 
 ```text
-chipload style set <NAME> [OPTIONS]
+chipload style set <NAME> <VALUES>... [OPTIONS]
 ```
 
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--tool <TOOL>` | Required. |
+| `<VALUES>` | PATH=VALUE, paths within the style's operation. |
+| `--tool <TOOL>` | Another tool of your library, by name. |
 
 ### `chipload style remove`
 

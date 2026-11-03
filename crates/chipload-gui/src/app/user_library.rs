@@ -298,6 +298,9 @@ pub(super) struct LibraryState {
     pub(super) machine_drafts: BTreeMap<String, MachineProfile>,
     /// Materials being edited and not saved yet, by uid (docs/specs/materials.md §4).
     pub(super) material_drafts: BTreeMap<String, chipload_job::materials::Material>,
+    /// Styles' operations being edited and not saved yet, by uid, as their drafts number
+    /// the tools (docs/specs/styles.md §9, step 3b).
+    pub(super) style_drafts: BTreeMap<String, chipload_job::Operation>,
     pub(super) error: Option<String>,
     /// What the last import or export did, shown in that folder's properties.
     pub(super) message: Option<(LibraryKind, String)>,

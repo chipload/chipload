@@ -198,6 +198,7 @@ impl ChiploadApp {
                         .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect()),
                     cutting,
                     materials,
+                    style: false,
                 };
                 let stock = StockDepths {
                     thickness: edit.job.stock().thickness,

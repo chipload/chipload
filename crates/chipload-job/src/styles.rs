@@ -330,11 +330,7 @@ pub fn style_of(
     if let Some(choices) = op.corner_choices_mut() {
         choices.clear();
     }
-    let side = match &op {
-        Operation::Profile(p) if p.side == Side::On => Some(StyleSide::AsSaved),
-        Operation::Profile(_) => Some(StyleSide::BySelection),
-        _ => None,
-    };
+    let side = side_of(&op);
     let operation = serde_json::to_value(&op).map_err(|e| {
         refused(
             Message::new("job-style-unreadable")
@@ -349,6 +345,16 @@ pub fn style_of(
         side,
         operation,
     })
+}
+
+/// Where a style with operation `op` cuts: a profile on the line keeps it, inside or
+/// outside go by the selection; other kinds have no side.
+pub fn side_of(op: &Operation) -> Option<StyleSide> {
+    match op {
+        Operation::Profile(p) if p.side == Side::On => Some(StyleSide::AsSaved),
+        Operation::Profile(_) => Some(StyleSide::BySelection),
+        _ => None,
+    }
 }
 
 /// Export and import as for tools (docs/specs/library-import-export.md).

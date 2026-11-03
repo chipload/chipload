@@ -8,7 +8,7 @@ styles-count = { $count ->
 } i ditt bibliotek.
 styles-about = En stil är en operation sparad med Spara som stil…: dess inställningar, djup och verktyg, utan dess former. Markera former och välj sedan Stil i menyfliksområdet (eller högerklicka på ritytan). Matningarna kommer från verktygets skärdata för materialet.
 styles-gone = Den här stilen finns inte längre i ditt bibliotek.
-styles-entry-about = Markera former och välj sedan Använd för att lägga till stilens operation för dem. För att ändra stilen: använd den, ändra operationen och spara den igen med samma namn.
+styles-entry-about = Markera former och välj sedan Använd för att lägga till stilens operation för dem. En ändring här ändrar bara stilen: operationer som redan gjorts med den förblir som de är.
 styles-name = Namn
 styles-rename = Byt namn
 styles-apply = Använd på markeringen
@@ -34,3 +34,9 @@ styles-tabs = { $count ->
    *[other] { $count } bryggor
 }
 styles-tool-missing = { $tool } (finns inte i ditt bibliotek)
+styles-side-selection = efter markeringen
+styles-side-hover = Efter markeringen: konturer fräses utvändigt och hål invändigt, som för en ny profil. På linjen: på varje form den används på.
+styles-tool-not-in-library = finns inte i ditt bibliotek: välj ett verktyg
+styles-save-first = Spara eller återställ ändringarna först
+styles-feeds-note = Har verktyget skärdata för projektets material används dess matningar och skärdjup i stället för dessa när stilen används.
+styles-save-hover = Skriv ändringarna till stilen

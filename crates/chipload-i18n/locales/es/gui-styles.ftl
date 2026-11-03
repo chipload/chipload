@@ -8,7 +8,7 @@ styles-count = { $count ->
 } en tu biblioteca.
 styles-about = Un estilo es una operación guardada con «Guardar como estilo…»: sus ajustes, profundidades y herramienta, sin sus formas. Selecciona formas y luego Estilo en la cinta (o clic derecho en el lienzo). Sus avances vienen de los datos de corte de la herramienta para el material.
 styles-gone = Este estilo ya no está en tu biblioteca.
-styles-entry-about = Selecciona formas y luego Aplicar para añadir la operación de este estilo. Para cambiar el estilo: aplícalo, cambia la operación y guárdala de nuevo con el mismo nombre.
+styles-entry-about = Selecciona formas y luego Aplicar para añadir la operación de este estilo. Un cambio aquí solo cambia el estilo: las operaciones ya hechas con él se quedan como están.
 styles-name = Nombre
 styles-rename = Renombrar
 styles-apply = Aplicar a la selección
@@ -34,3 +34,9 @@ styles-tabs = { $count ->
    *[other] { $count } puentes
 }
 styles-tool-missing = { $tool } (no está en tu biblioteca)
+styles-side-selection = según la selección
+styles-side-hover = Según la selección: los contornos se cortan por fuera y los agujeros por dentro, como en un perfil nuevo. Sobre la línea: en cada forma a la que se aplique.
+styles-tool-not-in-library = no está en tu biblioteca: elige una herramienta
+styles-save-first = Guarda o revierte primero los cambios
+styles-feeds-note = Si la herramienta tiene datos de corte para el material del proyecto, al aplicar el estilo se usan sus avances y su profundidad de pasada en lugar de estos.
+styles-save-hover = Escribir los cambios en el estilo

@@ -33,7 +33,8 @@ chipload style save part.chipload --op 3 --name "Cut out 18 mm ply" --replace   
 - **A profile's side** is kept as "by the selection": the style cuts outlines outside and
   holes inside, as a [new profile](../concepts/depths.md#what-a-new-operation-starts-with)
   does. A profile *on* the line keeps that.
-- **To change a style,** use it, change the operation, and save it again with `--replace`.
+- **To change a style,** open it under *This computer > Styles* (see below), or save an
+  operation again under its name.
 
 ## Using a style
 
@@ -62,15 +63,21 @@ chipload style use part.chipload "Cut out 18 mm ply" --dxf 1       # also --laye
 ## Managing styles
 
 **This computer > Styles** in the Browser lists them; hover over one for what it does.
-Click one for its properties: what it does in a few words, its name to change
-(**Rename**), **Apply to the selection** and **Delete** (also the Del key; the library has
-no undo, `styles.json.bak` keeps the file as it was).
+Click one for its properties: its name (**Rename**), **Apply to the selection**,
+**Delete** (also the Del key; the library has no undo, `styles.json.bak` keeps the file as
+it was), and below them the style's operation in the same form an operation has: its
+tool from your library, a profile's side (*by the selection* or *on* the line) and its
+sections, folded. Change what you want, then **Save** (or **Revert**); until then it says
+*not saved*, and *Apply* waits. Changing a style changes only the style: operations
+already made with it stay as they are. Its feeds are used only where the tool has no
+cutting data for the project's material.
 
 On the command line:
 
 ```
 chipload style list                       # every style in a few words, and where the file is
-chipload style show "Pocket 6 mm"         # one style (--json: all of it)
+chipload style show "Pocket 6 mm"         # one style, every value by path (--json: all of it)
+chipload style set "Cut out 18 mm ply" tabs.count=6 end_depth=18.5   # values by path, as `chipload set`
 chipload style rename "Pocket 6 mm" "Pocket 6 mm MDF"
 chipload style remove "Pocket 6 mm MDF"
 chipload style export styles-backup.json  # --name NAME (repeatable) for some

@@ -8,7 +8,7 @@ styles-count = { $count ->
 } nella tua libreria.
 styles-about = Uno stile è una lavorazione salvata con «Salva come stile…»: impostazioni, profondità e utensile, senza le forme. Seleziona delle forme, poi Stile nella barra (o clic destro sull'area di disegno). Gli avanzamenti vengono dai dati di taglio dell'utensile per il materiale.
 styles-gone = Questo stile non è più nella tua libreria.
-styles-entry-about = Seleziona delle forme, poi Applica per aggiungere la lavorazione di questo stile. Per cambiare lo stile: applicalo, cambia la lavorazione e salvala di nuovo con lo stesso nome.
+styles-entry-about = Seleziona delle forme, poi Applica per aggiungere la lavorazione di questo stile. Una modifica qui cambia solo lo stile: le lavorazioni già fatte con esso restano come sono.
 styles-name = Nome
 styles-rename = Rinomina
 styles-apply = Applica alla selezione
@@ -34,3 +34,9 @@ styles-tabs = { $count ->
    *[other] { $count } ponticelli
 }
 styles-tool-missing = { $tool } (non nella tua libreria)
+styles-side-selection = secondo la selezione
+styles-side-hover = Secondo la selezione: i contorni si tagliano all'esterno e i fori all'interno, come in un nuovo profilo. Sulla linea: su ogni forma a cui viene applicato.
+styles-tool-not-in-library = non nella tua libreria: scegli un utensile
+styles-save-first = Prima salva o ripristina le modifiche
+styles-feeds-note = Se l'utensile ha dati di taglio per il materiale del progetto, applicando lo stile si usano i suoi avanzamenti e la sua profondità di passata al posto di questi.
+styles-save-hover = Scrivi le modifiche nello stile

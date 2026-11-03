@@ -3,6 +3,8 @@
 //! style applied to the canvas selection from the ribbon, the canvas' right-click menu or
 //! the style's own menu, and the Styles folder under *This computer* with a form per style.
 
+use std::collections::BTreeMap;
+
 use chipload_job::library::{LibraryError, update_library};
 use chipload_job::styles::{Style, StyleLibrary, StyleSide, style_of};
 use chipload_job::{Operation, Side};
@@ -24,6 +26,9 @@ pub(super) enum StyleAct {
     Apply(String),
     Rename(String, String),
     Delete(String),
+    /// Write the style's draft, or drop it (docs/specs/styles.md §9, step 3b).
+    Save(String),
+    Revert(String),
 }
 
 impl ChiploadApp {
@@ -266,6 +271,9 @@ impl ChiploadApp {
         ui.weak(t!(ui, "styles-about"));
     }
 
+    /// A style's form (docs/specs/styles.md §9, step 3b): its name, what to do with it, and
+    /// its operation in the operation's own form, the tools the library's. Changes are a
+    /// draft until *Save*, as a library tool's are.
     fn style_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<StyleAct>) {
         let Some(style) = self
             .user
@@ -280,12 +288,22 @@ impl ChiploadApp {
             ui.weak(t!(ui, "styles-gone"));
             return;
         };
-        let icon = style
-            .operation()
-            .ok()
-            .map_or(Icon::Style, |op| op_icon(&op));
-        title_line(ui, icon, None, &style.name);
-        ui.label(self.style_summary(ui, &style));
+        let draft = match chipload_pipeline::styles::style_draft(&style, &self.user.library.tools) {
+            Ok(draft) => draft,
+            Err(err) => {
+                title_line(ui, Icon::Style, None, &style.name);
+                ui.colored_label(ui.visuals().warn_fg_color, self.say(&err.message()));
+                return;
+            }
+        };
+        let mut op = self
+            .user
+            .library_state
+            .style_drafts
+            .get(uid)
+            .cloned()
+            .unwrap_or_else(|| draft.operation.clone());
+        title_line(ui, op_icon(&op), None, &style.name);
         ui.weak(t!(ui, "styles-entry-about"));
         ui.add_space(4.0);
         let draft_id = Id::new(("style-name-draft", uid));
@@ -299,6 +317,7 @@ impl ChiploadApp {
         });
         let renamed = name.trim() != style.name && !name.trim().is_empty();
         ui.data_mut(|d| d.insert_temp(draft_id, name.clone()));
+        let changed = op != draft.operation;
         ui.horizontal_wrapped(|ui| {
             if ui
                 .add_enabled(renamed, egui::Button::new(t!(ui, "styles-rename")))
@@ -309,11 +328,15 @@ impl ChiploadApp {
             }
             if ui
                 .add_enabled(
-                    self.edit.is_some() && self.selection != CanvasSelection::Nothing,
+                    !changed && self.edit.is_some() && self.selection != CanvasSelection::Nothing,
                     egui::Button::new(t!(ui, "styles-apply")),
                 )
                 .on_hover_text(t!(ui, "styles-apply-hover"))
-                .on_disabled_hover_text(t!(ui, "styles-select-first"))
+                .on_disabled_hover_text(if changed {
+                    t!(ui, "styles-save-first")
+                } else {
+                    t!(ui, "styles-select-first")
+                })
                 .clicked()
             {
                 *act = Some(StyleAct::Apply(uid.to_string()));
@@ -326,6 +349,110 @@ impl ChiploadApp {
                 *act = Some(StyleAct::Delete(uid.to_string()));
             }
         });
+        ui.add_space(6.0);
+        // Its problems by field, as an operation's form shows them.
+        let problems = chipload_pipeline::styles::style_problems(&op, &draft.tools);
+        let mut map = BTreeMap::new();
+        for problem in &problems {
+            map.entry(problem.field().to_string())
+                .or_insert_with(|| super::problems::at_field(self, self.prefs.units, problem));
+        }
+        super::problems::set_form_problems(ui, map);
+        let thickness = self
+            .user
+            .library
+            .materials
+            .default_thickness
+            .unwrap_or(chipload_pipeline::DEFAULT_THICKNESS);
+        let choice = forms::ToolChoice {
+            selected: 0,
+            selection_text: "",
+            tools: &draft.tools,
+            library: None,
+            cutting: None,
+            materials: None,
+            style: true,
+        };
+        let stock = forms::StockDepths {
+            thickness,
+            max_overcut: chipload_pipeline::DEFAULT_MAX_OVERCUT,
+        };
+        let mut side_chosen = true;
+        forms::op_form(ui, 0, &mut op, &mut side_chosen, &[], choice, stock);
+        super::problems::set_form_problems(ui, BTreeMap::new());
+        ui.add(egui::Label::new(egui::RichText::new(t!(ui, "styles-feeds-note")).weak()).wrap());
+        ui.add_space(4.0);
+        let changed = op != draft.operation;
+        ui.horizontal(|ui| {
+            if ui
+                .add_enabled(changed, egui::Button::new(t!(ui, "common-save")))
+                .on_hover_text(t!(ui, "styles-save-hover"))
+                .clicked()
+            {
+                *act = Some(StyleAct::Save(uid.to_string()));
+            }
+            if ui
+                .add_enabled(changed, egui::Button::new(t!(ui, "library-view-revert")))
+                .on_hover_text(t!(ui, "library-view-revert-hover"))
+                .clicked()
+            {
+                *act = Some(StyleAct::Revert(uid.to_string()));
+            }
+            if changed {
+                ui.colored_label(ui.visuals().warn_fg_color, t!(ui, "library-view-not-saved"));
+            }
+        });
+        if changed {
+            self.user
+                .library_state
+                .style_drafts
+                .insert(uid.to_string(), op);
+        } else {
+            self.user.library_state.style_drafts.remove(uid);
+        }
+    }
+
+    /// Write style `uid`'s draft into `styles.json`; the draft goes once it is saved.
+    pub fn save_style_draft(&mut self, uid: &str) -> bool {
+        let Some(op) = self.user.library_state.style_drafts.get(uid).cloned() else {
+            return false;
+        };
+        let Some(style) = self
+            .user
+            .library
+            .styles
+            .styles
+            .iter()
+            .find(|s| s.uid == uid)
+            .cloned()
+        else {
+            return false;
+        };
+        let saved = match chipload_pipeline::styles::style_from_draft(
+            &style,
+            &op,
+            &self.user.library.tools,
+        ) {
+            Ok(saved) => saved,
+            Err(err) => {
+                self.user.library_state.error = Some(self.say(&err.message()));
+                return false;
+            }
+        };
+        let name = style.name.clone();
+        if self
+            .change_styles(|library| {
+                *library.find_mut(&name)? = saved;
+                Ok(())
+            })
+            .is_err()
+        {
+            return false;
+        }
+        self.user.library_state.style_drafts.remove(uid);
+        let status = t!(self, "styles-saved", name = name);
+        self.set_status(status, STATUS_SECONDS);
+        true
     }
 
     pub(super) fn style_act(&mut self, act: StyleAct) {
@@ -343,7 +470,14 @@ impl ChiploadApp {
                 let _ = self.change_styles(|library| library.rename(&old, &new));
             }
             StyleAct::Delete(uid) => {
+                self.user.library_state.style_drafts.remove(&uid);
                 self.delete_style(&uid);
+            }
+            StyleAct::Save(uid) => {
+                self.save_style_draft(&uid);
+            }
+            StyleAct::Revert(uid) => {
+                self.user.library_state.style_drafts.remove(&uid);
             }
         }
     }
