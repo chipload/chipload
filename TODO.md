@@ -77,7 +77,11 @@ style.
    direction review's step 2, CamBam's speed). **Steps 1 to 3 done 2026-11-03** (the
    defaults; `styles.json` and `chipload style …`, ADR 0030; the window). For the user to
    try. Next of it: layer rules (step 4), keys for styles (item 3).
-3. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
+3. **Tabs along the grain** (the user, 2026-11-03: "could we have the option to place them
+   in x direction or y direction? This way i can quickly align them to the fibre direction
+   of the wood"): a Placement for a profile's tabs, *Around* (today), *Left and right* or
+   *Top and bottom*. Spec drafted: docs/specs/tabs-along-grain.md, decisions §6 to review.
+4. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
      and a style's key;
@@ -87,7 +91,7 @@ style.
    - generating without F9 once the project is complete (background generation exists:
      docs/specs/background-generation.md), if it stays quick on large jobs;
    - export straight after generating: one key, the last folder and name remembered.
-4. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
+5. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
    2026-11-03: "dxf layers should be expandable to show its shapes like leafs. The report
    gives warnings about a shape in the dxf, the profile is open for example. Then a click
    on that warning should select the shape, similar to how warnings on operations is
@@ -103,10 +107,10 @@ style.
    traced picture's, a large DXF's: virtual rows, or only the first N with "more…");
    pictures' and SVGs' layers alike. Takes in the idea "a list of every shape in the
    Browser's Drawing folder" (Ideas).
-5. **The walk again:** after 1-3, drive the usual jobs headless as the direction review
+6. **The walk again:** after 1-4, drive the usual jobs headless as the direction review
    did (a DXF part through with tabs and pockets; a V-carved sign; a sheet of copies) and
    count the edits and clicks. Each that remains becomes an item here.
-6. **For the user to try** (built, not yet tried by hand; findings become items here):
+7. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
@@ -117,13 +121,13 @@ style.
      steps (the user, 2026-11-03: "it works quite good"; the bugs found are fixed);
    - project tools updated from the library (the offer after Save, the Report on open);
    - new operations' defaults (through with tabs, holes first) and styles, in the window.
-7. **Review V-carve** (safety; after the workflow items by the user's priority of
+8. **Review V-carve** (safety; after the workflow items by the user's priority of
    2026-11-03), the last operation not reviewed (profile and pocket were, holes and
    follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
    wider or narrower than the strokes, the cone's depth, passes and step down, flat
    bottom), the checker's view, and proptest invariants (the cut stays inside the outline;
    no point deeper than the cone allows).
-8. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+9. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
    should also have a parameter for length of adjoining segments. If the adjoining profile
    segments are very short we could probably ignore the kink"). Today a corner is ignored
    only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
@@ -132,8 +136,8 @@ style.
    how it combines with the angle, a default (the V-carve tolerance? the trace's
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
    6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
-   review (7).
-9. **Small follow-ups:**
+   review (8).
+10. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -145,7 +149,7 @@ style.
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-10. **Later, the user's ideas for when the above is done**, each with its own spec:
+11. **Later, the user's ideas for when the above is done**, each with its own spec:
     - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
       decision 2's alternative): each setup with its own coordinates, its parts placed onto
       its board, setups side by side like PrusaSlicer's plates, the active in colour, the
