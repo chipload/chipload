@@ -463,3 +463,24 @@ forms-font-script = Schreibschrift
 forms-font-display = Zierschrift
 forms-explode-dxf = Auflösen…
 forms-explode-dxf-hover = Die Formen dieser DXF in gezeichnete Formen umwandeln, die Sie bearbeiten können; die Verknüpfung zur DXF-Datei geht verloren
+
+## The Statistics section of an operation (docs/specs/operation-statistics.md)
+forms-section-statistics = Statistik
+forms-statistics-time = Zeit
+forms-statistics-time-parts = { $time } (Fräsen { $cutting }, Eilgänge { $rapids })
+forms-statistics-cutting = Fräsen
+forms-statistics-cutting-hover = Vorschubbewegungen zur Seite: Geraden, Bögen, Rampen und Helixe, in 3D gemessen
+forms-statistics-plunging = Eintauchen
+forms-statistics-plunging-hover = Vorschubbewegungen gerade nach unten oder oben: Eintauchen und Bohren
+forms-statistics-rapids = Eilgänge
+forms-statistics-rapids-hover = Eilgänge (G0), nach oben und unten mitgezählt
+forms-statistics-lifts = Anheben
+forms-statistics-lifts-hover = Wie oft das Werkzeug im Eilgang nach oben fährt: zwischen den Bahnen und bei jedem Hub einer Tieflochbohrung
+forms-statistics-copies = Für { $copies } Kopien.
+forms-statistics-generate = Erzeugen (F5), um die Statistik zu sehen.
+forms-statistics-generating = Wird erzeugt…
+forms-statistics-failed = Nicht erzeugt: siehe den Bericht.
+forms-statistics-off = Aus: wird nicht gefräst.
+forms-statistics-out-of-date = veraltet
+forms-statistics-not-generated = nicht erzeugt
+forms-statistics-off-summary = aus

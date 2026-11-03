@@ -47,6 +47,13 @@ pipeline-estimate-operation = {"  "}{ $label } : { $time }
 pipeline-estimate-part-operation = {"    "}{ $label } : { $time }
 # One G-code file of a project written one file per tool.
 pipeline-estimate-file = {"  "}Fichier { $number } : { $time }
+pipeline-counts = coupe { $cutting }, plongées { $plunging }, rapides { $rapids }, { $lifts ->
+    [one] { $lifts } remontée
+   *[other] { $lifts } remontées
+}
+pipeline-estimate-counts = {"  "}En tout : { $counts }.
+pipeline-estimate-operation-counted = {"  "}{ $label } : { $time } ; { $counts }
+pipeline-estimate-part-operation-counted = {"    "}{ $label } : { $time } ; { $counts }
 # $rate is a feed ("5000 mm/min").
 pipeline-estimate-rapids-assumed = {"  "}Aux avances programmées (rapides à { $rate }, supposé : réglez l'avance max de la machine pour une meilleure estimation) ; l'accélération et les coins rallongent le temps réel.
 pipeline-estimate-rapids = {"  "}Aux avances programmées (rapides à l'avance max de la machine, { $rate }) ; l'accélération et les coins rallongent le temps réel.

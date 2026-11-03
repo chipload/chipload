@@ -47,6 +47,17 @@ pipeline-estimate-operation = {"  "}{ $label }: { $time }
 pipeline-estimate-part-operation = {"    "}{ $label }: { $time }
 # One G-code file of a project written one file per tool.
 pipeline-estimate-file = {"  "}File { $number }: { $time }
+# The lengths and lifts of an operation or the whole job (docs/specs/operation-statistics.md):
+# $cutting, $plunging and $rapids are distances ("12.4 m"), $lifts how many times the tool
+# goes up at rapid.
+pipeline-counts = cutting { $cutting }, plunging { $plunging }, rapids { $rapids }, { $lifts ->
+    [one] { $lifts } lift
+   *[other] { $lifts } lifts
+}
+# $counts is a pipeline-counts text.
+pipeline-estimate-counts = {"  "}In all: { $counts }.
+pipeline-estimate-operation-counted = {"  "}{ $label }: { $time }; { $counts }
+pipeline-estimate-part-operation-counted = {"    "}{ $label }: { $time }; { $counts }
 # $rate is a feed ("5000 mm/min").
 pipeline-estimate-rapids-assumed = {"  "}At the programmed feeds (rapids at { $rate }, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 pipeline-estimate-rapids = {"  "}At the programmed feeds (rapids at the machine's max feed, { $rate }); acceleration and corners make the real time longer.

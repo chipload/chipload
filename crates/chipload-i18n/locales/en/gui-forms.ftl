@@ -462,3 +462,26 @@ forms-font-script = Script
 forms-font-display = Display
 forms-explode-dxf = Explode…
 forms-explode-dxf-hover = Turn this DXF's shapes into drawn shapes you can edit; the link to the DXF file goes
+
+## The Statistics section of an operation (docs/specs/operation-statistics.md)
+forms-section-statistics = Statistics
+forms-statistics-time = Time
+# $time, $cutting and $rapids are durations ("8 min 10 s").
+forms-statistics-time-parts = { $time } (cutting { $cutting }, rapids { $rapids })
+forms-statistics-cutting = Cutting
+forms-statistics-cutting-hover = Feed moves that go sideways: lines, arcs, ramps and helices, measured in 3D
+forms-statistics-plunging = Plunging
+forms-statistics-plunging-hover = Feed moves straight down or up: plunges and drilling
+forms-statistics-rapids = Rapids
+forms-statistics-rapids-hover = Rapid moves (G0), up and down included
+forms-statistics-lifts = Lifts
+forms-statistics-lifts-hover = How many times the tool goes up at rapid: between paths, and at each peck of a peck drill
+forms-statistics-copies = For { $copies } copies.
+forms-statistics-generate = Generate (F5) to see the statistics.
+forms-statistics-generating = Generating…
+forms-statistics-failed = Not generated: see the Report.
+forms-statistics-off = Off: not cut.
+# Short, beside the folded section's title.
+forms-statistics-out-of-date = out of date
+forms-statistics-not-generated = not generated
+forms-statistics-off-summary = off

@@ -45,6 +45,13 @@ pipeline-estimate-operation = {"  "}{ $label }: { $time }
 pipeline-estimate-part-operation = {"    "}{ $label }: { $time }
 # One G-code file of a project written one file per tool.
 pipeline-estimate-file = {"  "}Fil { $number }: { $time }
+pipeline-counts = fräsning { $cutting }, nedgång { $plunging }, snabbförflyttningar { $rapids }, { $lifts ->
+    [one] { $lifts } lyft
+   *[other] { $lifts } lyft
+}
+pipeline-estimate-counts = {"  "}Totalt: { $counts }.
+pipeline-estimate-operation-counted = {"  "}{ $label }: { $time }; { $counts }
+pipeline-estimate-part-operation-counted = {"    "}{ $label }: { $time }; { $counts }
 # $rate is a feed ("5000 mm/min").
 pipeline-estimate-rapids-assumed = {"  "}Vid de programmerade matningarna (snabbförflyttningar med { $rate }, antaget: ange maskinens maxmatning för en bättre uppskattning); acceleration och hörn gör den verkliga tiden längre.
 pipeline-estimate-rapids = {"  "}Vid de programmerade matningarna (snabbförflyttningar med maskinens maxmatning, { $rate }); acceleration och hörn gör den verkliga tiden längre.

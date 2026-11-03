@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! How long a job takes, estimated from its moves (docs/specs/cycle-time.md): cutting
 //! moves at their feed, rapids at the rapid rate, spindle waits at every spindle start.
-//! No acceleration: a real machine takes longer.
+//! No acceleration: a real machine takes longer. Beside the time, the lengths cut, plunged
+//! and moved at rapid and the lifts, per operation (docs/specs/operation-statistics.md).
 
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Note};
 use chipload_toolpath::model::{MoveKind, Program};
@@ -21,6 +23,10 @@ pub struct Estimate {
     /// (operation or rest pass, seconds), in the order they are listed, each pass after its
     /// pocket; the time of all of its copies.
     pub operations: Vec<(chipload_job::OpRef, f64)>,
+    /// The lengths and lifts of the whole job, the moves between operations included.
+    pub counts: Counts,
+    /// Each operation's (or rest pass's) lengths and lifts, in the order of `operations`.
+    pub operation_counts: Vec<(chipload_job::OpRef, Counts)>,
     /// Each tool group's time with its spindle wait: one file each when written one file
     /// per tool.
     pub groups: Vec<f64>,
@@ -34,29 +40,83 @@ pub struct Estimate {
     pub outline: Option<((f64, f64), (f64, f64))>,
 }
 
-/// The seconds of each move: (cutting, rapid). Lengths in 3D from where the last move
-/// ended; an axis not known yet (the first moves) adds nothing.
-fn move_times(program: &Program, rapid_rate: f64) -> Vec<(f64, f64)> {
+/// The lengths and lifts of some moves, with their time
+/// (docs/specs/operation-statistics.md §2).
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Counts {
+    /// Seconds of the feed moves, plunges included.
+    pub cutting_s: f64,
+    /// Seconds at rapid.
+    pub rapid_s: f64,
+    /// Feed moves that move in X or Y (lines, arcs, ramps, helices), in 3D, mm.
+    pub cutting_mm: f64,
+    /// Feed moves along Z alone, down or up, mm.
+    pub plunge_mm: f64,
+    /// Rapids, in 3D, mm.
+    pub rapid_mm: f64,
+    /// Rapids that move up: each time the tool leaves the work, a peck's too.
+    pub lifts: usize,
+}
+
+impl Counts {
+    /// The time of these moves.
+    pub fn seconds(&self) -> f64 {
+        self.cutting_s + self.rapid_s
+    }
+
+    fn add(&mut self, other: &Counts) {
+        self.cutting_s += other.cutting_s;
+        self.rapid_s += other.rapid_s;
+        self.cutting_mm += other.cutting_mm;
+        self.plunge_mm += other.plunge_mm;
+        self.rapid_mm += other.rapid_mm;
+        self.lifts += other.lifts;
+    }
+
+    fn sum<'a>(moves: impl IntoIterator<Item = &'a Counts>) -> Counts {
+        let mut total = Counts::default();
+        for m in moves {
+            total.add(m);
+        }
+        total
+    }
+}
+
+/// Each move's [`Counts`]. Lengths in 3D from where the last move ended; an axis not known
+/// yet (the first moves) adds nothing.
+fn move_counts(program: &Program, rapid_rate: f64) -> Vec<Counts> {
     let mut at: [Option<f64>; 3] = [None, None, None];
     program
         .moves
         .iter()
         .map(|m| {
-            let mut squared = 0.0;
+            let mut step = [0.0; 3];
             for (axis, to) in [m.x, m.y, m.z].into_iter().enumerate() {
                 if let Some(to) = to {
                     if let Some(from) = at[axis] {
-                        squared += (to - from) * (to - from);
+                        step[axis] = to - from;
                     }
                     at[axis] = Some(to);
                 }
             }
-            let length = f64::sqrt(squared);
+            let [dx, dy, dz] = step;
+            let length = f64::sqrt(dx * dx + dy * dy + dz * dz);
+            let in_xy = f64::hypot(dx, dy) > CHAIN_TOL_MM;
             match (m.kind, m.feed) {
-                (MoveKind::Rapid, _) => (0.0, length / rapid_rate * 60.0),
-                (_, Some(feed)) if feed > 0.0 => (length / feed * 60.0, 0.0),
-                // The checker refuses a cut without a feed: nothing to time.
-                _ => (0.0, 0.0),
+                (MoveKind::Rapid, _) => Counts {
+                    rapid_s: length / rapid_rate * 60.0,
+                    rapid_mm: length,
+                    lifts: usize::from(dz > CHAIN_TOL_MM),
+                    ..Counts::default()
+                },
+                (_, Some(feed)) if feed > 0.0 => Counts {
+                    cutting_s: length / feed * 60.0,
+                    cutting_mm: if in_xy { length } else { 0.0 },
+                    plunge_mm: if in_xy { 0.0 } else { length },
+                    ..Counts::default()
+                },
+                // The checker refuses a cut without a feed: nothing to count.
+                _ => Counts::default(),
             }
         })
         .collect()
@@ -69,9 +129,9 @@ pub fn move_seconds(job: &Job, program: &Program) -> Vec<f64> {
         Some(max) if max > 0.0 => max,
         _ => ASSUMED_RAPID_MM_MIN,
     };
-    move_times(program, rapid_rate)
-        .into_iter()
-        .map(|(cut, rapid)| cut + rapid)
+    move_counts(program, rapid_rate)
+        .iter()
+        .map(Counts::seconds)
         .collect()
 }
 
@@ -88,38 +148,41 @@ pub fn estimate(
         Some(max) if max > 0.0 => (max, false),
         _ => (ASSUMED_RAPID_MM_MIN, true),
     };
-    let times = move_times(program, rapid_rate);
-    let sum = |range: std::ops::Range<usize>| -> f64 {
-        times
-            .get(range)
-            .map_or(0.0, |part| part.iter().map(|(c, r)| c + r).sum())
+    let counts = move_counts(program, rapid_rate);
+    let sum = |range: std::ops::Range<usize>| -> Counts {
+        counts.get(range).map_or(Counts::default(), Counts::sum)
     };
-    let cutting: f64 = times.iter().map(|(c, _)| c).sum();
-    let rapid: f64 = times.iter().map(|(_, r)| r).sum();
+    let all = Counts::sum(&counts);
     let starts = groups.len().max(1);
     let spindle = dwell_s.max(0.0) * starts as f64;
-    let mut operations: Vec<(chipload_job::OpRef, f64)> = Vec::new();
+    let mut operation_counts: Vec<(chipload_job::OpRef, Counts)> = Vec::new();
     for span in spans {
-        let seconds = sum(span.moves.clone());
+        let part = sum(span.moves.clone());
         let at = chipload_job::OpRef {
             operation: span.operation,
             pass: span.pass,
         };
-        match operations.iter_mut().find(|(op, _)| *op == at) {
-            Some((_, total)) => *total += seconds,
-            None => operations.push((at, seconds)),
+        match operation_counts.iter_mut().find(|(op, _)| *op == at) {
+            Some((_, total)) => total.add(&part),
+            None => operation_counts.push((at, part)),
         }
     }
-    operations.sort_by_key(|(op, _)| *op);
+    operation_counts.sort_by_key(|(op, _)| *op);
+    let operations = operation_counts
+        .iter()
+        .map(|(at, c)| (*at, c.seconds()))
+        .collect();
     Estimate {
-        total: cutting + rapid + spindle,
-        cutting,
-        rapid,
+        total: all.seconds() + spindle,
+        cutting: all.cutting_s,
+        rapid: all.rapid_s,
         spindle,
         operations,
+        counts: all,
+        operation_counts,
         groups: groups
             .iter()
-            .map(|g| sum(g.moves.clone()) + dwell_s.max(0.0))
+            .map(|g| sum(g.moves.clone()).seconds() + dwell_s.max(0.0))
             .collect(),
         tool_changes: groups.len().saturating_sub(1),
         rapid_rate,
@@ -154,9 +217,36 @@ pub fn duration_message(seconds: f64) -> Message {
     }
 }
 
+/// Lengths and lifts in a line: `cutting 12.4 m, plunging 86 mm, rapids 3.1 m, 23 lifts`.
+pub fn counts_message(counts: &Counts) -> Message {
+    Message::new("pipeline-counts")
+        .arg("cutting", Value::Distance(counts.cutting_mm))
+        .arg("plunging", Value::Distance(counts.plunge_mm))
+        .arg("rapids", Value::Distance(counts.rapid_mm))
+        .arg("lifts", counts.lifts)
+}
+
+/// Which lengths and lifts the estimate's lines give (docs/specs/operation-statistics.md
+/// §3.2-3.4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Lengths {
+    /// None: the setup sheet.
+    Without,
+    /// The whole job's, in one line: the Report, `chipload run`.
+    Totals,
+    /// The whole job's and each operation's: `chipload plan`.
+    PerOperation,
+}
+
 /// The report's lines: the total and its parts, each operation, each file of a job
-/// written one file per tool, and what the estimate leaves out.
-pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Vec<Note> {
+/// written one file per tool, the lengths and lifts as `lengths` says, and what the
+/// estimate leaves out.
+pub fn estimate_lines(
+    job: &Job,
+    estimate: &Estimate,
+    several_files: bool,
+    lengths: Lengths,
+) -> Vec<Note> {
     let mut lines = vec![Note::job(
         Message::new("pipeline-estimate")
             .arg("total", duration_message(estimate.total))
@@ -213,16 +303,25 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                 ));
             }
         }
-        let id = if several_parts {
-            Message::new("pipeline-estimate-part-operation")
-        } else {
-            Message::new("pipeline-estimate-operation")
+        let counts = estimate
+            .operation_counts
+            .iter()
+            .find(|(r, _)| *r == at)
+            .map(|(_, c)| c)
+            .filter(|_| lengths == Lengths::PerOperation);
+        let id = match (several_parts, counts.is_some()) {
+            (true, false) => "pipeline-estimate-part-operation",
+            (false, false) => "pipeline-estimate-operation",
+            (true, true) => "pipeline-estimate-part-operation-counted",
+            (false, true) => "pipeline-estimate-operation-counted",
         };
-        lines.push(Note::at(
-            index,
-            id.arg("label", job.label_message(at))
-                .arg("time", duration_message(seconds)),
-        ));
+        let mut line = Message::new(id)
+            .arg("label", job.label_message(at))
+            .arg("time", duration_message(seconds));
+        if let Some(counts) = counts {
+            line = line.arg("counts", counts_message(counts));
+        }
+        lines.push(Note::at(index, line));
     }
     if several_files {
         for (i, seconds) in estimate.groups.iter().enumerate() {
@@ -232,6 +331,12 @@ pub fn estimate_lines(job: &Job, estimate: &Estimate, several_files: bool) -> Ve
                     .arg("time", duration_message(*seconds)),
             ));
         }
+    }
+    if lengths != Lengths::Without {
+        lines.push(Note::job(
+            Message::new("pipeline-estimate-counts")
+                .arg("counts", counts_message(&estimate.counts)),
+        ));
     }
     let rapids = if estimate.rapid_assumed {
         Message::new("pipeline-estimate-rapids-assumed")

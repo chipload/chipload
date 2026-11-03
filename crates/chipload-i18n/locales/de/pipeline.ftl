@@ -45,6 +45,13 @@ pipeline-estimate-operation = {"  "}{ $label }: { $time }
 pipeline-estimate-part-operation = {"    "}{ $label }: { $time }
 # One G-code file of a project written one file per tool.
 pipeline-estimate-file = {"  "}Datei { $number }: { $time }
+pipeline-counts = Fräsen { $cutting }, Eintauchen { $plunging }, Eilgänge { $rapids }, { $lifts ->
+    [one] { $lifts } Anheben
+   *[other] { $lifts } Anheben
+}
+pipeline-estimate-counts = {"  "}Insgesamt: { $counts }.
+pipeline-estimate-operation-counted = {"  "}{ $label }: { $time }; { $counts }
+pipeline-estimate-part-operation-counted = {"    "}{ $label }: { $time }; { $counts }
 # $rate is a feed ("5000 mm/min").
 pipeline-estimate-rapids-assumed = {"  "}Bei den programmierten Vorschüben (Eilgänge mit { $rate }, angenommen: geben Sie den max. Vorschub der Maschine an, um besser zu schätzen); Beschleunigung und Ecken machen die tatsächliche Zeit länger.
 pipeline-estimate-rapids = {"  "}Bei den programmierten Vorschüben (Eilgänge mit dem max. Vorschub der Maschine, { $rate }); Beschleunigung und Ecken machen die tatsächliche Zeit länger.

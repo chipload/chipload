@@ -21,6 +21,14 @@ pipeline-estimate-part = {"  "}Деталь { $number } ({ $name }): { $time }
 pipeline-estimate-operation = {"  "}{ $label }: { $time }
 pipeline-estimate-part-operation = {"    "}{ $label }: { $time }
 pipeline-estimate-file = {"  "}Файл { $number }: { $time }
+pipeline-counts = резание { $cutting }, врезание { $plunging }, быстрые ходы { $rapids }, { $lifts ->
+    [one] { $lifts } подъём
+    [few] { $lifts } подъёма
+   *[other] { $lifts } подъёмов
+}
+pipeline-estimate-counts = {"  "}Всего: { $counts }.
+pipeline-estimate-operation-counted = {"  "}{ $label }: { $time }; { $counts }
+pipeline-estimate-part-operation-counted = {"    "}{ $label }: { $time }; { $counts }
 pipeline-estimate-rapids-assumed = {"  "}При заданных подачах (быстрые ходы приняты за { $rate }; задайте максимальную подачу станка для точности); разгон и углы увеличивают реальное время.
 pipeline-estimate-rapids = {"  "}При заданных подачах (быстрые ходы на максимальной подаче станка, { $rate }); разгон и углы увеличивают реальное время.
 pipeline-chip-load-title = Подача на зуб (при рабочей подаче):

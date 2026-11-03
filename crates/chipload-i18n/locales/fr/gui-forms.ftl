@@ -462,3 +462,24 @@ forms-font-script = Manuscrite
 forms-font-display = Fantaisie
 forms-explode-dxf = Décomposer…
 forms-explode-dxf-hover = Transformer les formes de ce DXF en formes dessinées modifiables ; le lien avec le fichier DXF disparaît
+
+## The Statistics section of an operation (docs/specs/operation-statistics.md)
+forms-section-statistics = Statistiques
+forms-statistics-time = Temps
+forms-statistics-time-parts = { $time } (coupe { $cutting }, rapides { $rapids })
+forms-statistics-cutting = Coupe
+forms-statistics-cutting-hover = Mouvements en avance sur le côté : droites, arcs, rampes et hélices, mesurés en 3D
+forms-statistics-plunging = Plongées
+forms-statistics-plunging-hover = Mouvements en avance droit vers le bas ou le haut : plongées et perçage
+forms-statistics-rapids = Rapides
+forms-statistics-rapids-hover = Mouvements rapides (G0), vers le haut et le bas compris
+forms-statistics-lifts = Remontées
+forms-statistics-lifts-hover = Combien de fois l'outil remonte en rapide : entre les trajets, et à chaque débourrage d'un perçage par débourrage
+forms-statistics-copies = Pour { $copies } copies.
+forms-statistics-generate = Générez (F5) pour voir les statistiques.
+forms-statistics-generating = Génération…
+forms-statistics-failed = Non généré : voir le rapport.
+forms-statistics-off = Désactivée : pas usinée.
+forms-statistics-out-of-date = périmé
+forms-statistics-not-generated = non généré
+forms-statistics-off-summary = désactivée

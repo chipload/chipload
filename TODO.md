@@ -89,22 +89,7 @@ machine), then the last operation review, then the user's requests, then the res
      a tool not centre-cutting, goes back and forth within the tool's width, close to a
      plunge. Not sure it is a real risk; look at a least ramp length (the tool's
      diameter?).
-4. **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
-   long time each operation will take, similar to how prusa slicer gives a report how much
-   time different operations take. Except time id like, g1 travelled length, g0 length,
-   etc."). Per operation (and per tool, file and the whole job): its time, the cutting
-   length (G1/G2/G3 in XY), the plunge and ramp length (feed moves in Z), the rapid length
-   (G0) and its time, and how many retracts. Today `plan` and the window give the time per
-   operation only (`chipload_pipeline::estimate`). Spec first: where it shows (the Report,
-   the setup sheet, `plan --json`), what each column counts (arcs by their length, ramps as
-   cutting or plunging), a table or a chart. Spec drafted 2026-11-03:
-   docs/specs/operation-statistics.md (decisions 1-6). Where, the user 2026-11-03: "each operation
-   properties could have a section added last called Statistics or something similar.
-   There the time, length, number of lifts could be summarized for that operation. It
-   will be invalidated if a parameters changes and instead show something like 'Press F9
-   to generate the operations and see statistics'" (generate is F5 in the app; with
-   auto-generate on, the section only waits for the run).
-5. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+4. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
    should also have a parameter for length of adjoining segments. If the adjoining profile
    segments are very short we could probably ignore the kink"). Today a corner is ignored
    only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
@@ -114,14 +99,15 @@ machine), then the last operation review, then the user's requests, then the res
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
    6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
    review (2).
-6. **For the user to try** (built, not yet tried by hand; findings become items here):
+5. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
      programs (LibreCAD, Inkscape, LightBurn, Fusion);
    - materials (the user's verdict, docs/specs/materials.md);
-   - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box.
-7. **Small follow-ups:**
+   - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box;
+   - an operation's Statistics section (lengths and lifts: do they match the router?).
+6. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -133,10 +119,10 @@ machine), then the last operation review, then the user's requests, then the res
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-8. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
+7. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
    by the user; next after materials in the direction review of 2026-10-28. Decisions not
    reviewed.
-9. **Later, the user's ideas for when the above is done**, each with its own spec:
+8. **Later, the user's ideas for when the above is done**, each with its own spec:
    - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
      decision 2's alternative): each setup with its own coordinates, its parts placed onto
      its board, setups side by side like PrusaSlicer's plates, the active in colour, the
@@ -178,6 +164,12 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **Operation statistics: done 2026-11-03** (docs/specs/operation-statistics.md, the
+  user's idea of a Statistics section): each operation's and pass's properties end with its
+  time, cutting, plunge and rapid lengths and lifts from the last run; the Report and
+  `chipload run` give the job's totals, `chipload plan` each operation's, the JSON every
+  number. Not on the setup sheet, no chart, no per-tool lengths yet.
 
 - **Russian translation, PR #11: merged 2026-11-03** (mushketer888, a CNC 3018 user):
   every text of 0.31 with Russian plural forms, its own tests and a glossary section,

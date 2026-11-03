@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The property forms, by what they are for: an operation (`operation`, `passes`), the
 //! project (`project`), the machine and tools (`machine`), the drawing sources (`sources`),
-//! and the pieces they share (`widgets`).
+//! an operation's numbers from the last run (`statistics`), and the pieces they share
+//! (`widgets`).
 
 mod machine;
 mod operation;
 mod passes;
 mod project;
 mod sources;
+mod statistics;
 mod widgets;
 
 pub(super) use machine::*;
@@ -15,6 +17,7 @@ pub(super) use operation::*;
 pub(super) use passes::*;
 pub(super) use project::*;
 pub(super) use sources::*;
+pub(super) use statistics::*;
 pub(super) use widgets::*;
 
 use super::problems::{self, flag};

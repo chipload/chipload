@@ -1,6 +1,6 @@
 # Spec: operation statistics
 
-Status: draft (2026-11-03), for review. TODO.md "Next, in order" item 4.
+Status: approved (2026-11-03; decisions 1–6 as recommended, the user: "go ahead"); built.
 
 Builds on docs/specs/cycle-time.md (the time estimate). Guide: docs/book/src/checking/time.md.
 
@@ -146,3 +146,25 @@ file: no schema change.
   with auto-generate, "Off: not cut." for an operation that is off; its summary is the time.
 - The guide's page on time (`checking/time.md`) and the operation pages say where the
   statistics are.
+
+## 7. As built (2026-11-03)
+
+- `chipload_pipeline::estimate`: `Counts` (`cutting_s`, `rapid_s`, `cutting_mm`,
+  `plunge_mm`, `rapid_mm`, `lifts`) from one pass over the moves (`move_counts`, which the
+  time also comes from); `Estimate::counts` for the job, `Estimate::operation_counts` per
+  `OpRef`. A move is "in XY" when it moves more than `CHAIN_TOL_MM` there; a lift is a rapid
+  that rises more than that.
+- `estimate_lines(job, estimate, several_files, Lengths)`: `Without` for the setup sheet,
+  `Totals` (the "In all" line) for the Report and `chipload run`, `PerOperation` for
+  `chipload plan`. `counts_message` gives "cutting …, plunging …, rapids …, N lifts".
+- `chipload_i18n::Value::Distance` and `message::distance`: mm under 1 m, else m with one
+  decimal; in, else ft from 100 in.
+- `plan --json` and `run --json`: each `estimate.operations` entry and `estimate` itself
+  carry `cutting_mm`, `plunge_mm`, `rapid_mm`, `lifts`; the entries also `cutting_s` and
+  `rapid_s`.
+- GUI: `forms::statistics_section`, drawn under the operation's, rest pass's or floor
+  pass's form; `ChiploadApp::statistics_of(OpRef)` picks what it shows; `Toolpath::failed`
+  marks a failed last run. An operation planned in no run (another part's preview, another
+  setup) shows the generate hint.
+- The frozen English `plan` messages gained the lines (`tests/corpus/expected/messages`);
+  no time changed, and no G-code or setup sheet.

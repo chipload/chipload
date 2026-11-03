@@ -73,6 +73,23 @@ pub fn length_number(mm: f64, digits: Digits, units: Units) -> String {
     }
 }
 
+/// A distance travelled with its unit: whole mm under 1 m (`850 mm`), else m with one
+/// decimal (`12.4 m`); in inches, one decimal under 100 in (`33.5 in`), else ft (`41.2 ft`).
+pub fn distance(mm: f64, units: Units) -> String {
+    match units {
+        Units::Mm if mm < 999.5 => format!("{} mm", fixed(mm, 0)),
+        Units::Mm => format!("{} m", fixed(mm / 1000.0, 1)),
+        Units::Inch => {
+            let inches = units.of_mm(mm);
+            if inches < 99.95 {
+                format!("{} in", fixed(inches, 1))
+            } else {
+                format!("{} ft", fixed(inches / 12.0, 1))
+            }
+        }
+    }
+}
+
 /// The length unit after a number: `mm` or `in`.
 pub fn length_unit(units: Units) -> &'static str {
     match units {
@@ -108,6 +125,8 @@ pub enum Value {
     Length(f64, Digits),
     /// A length in mm, its number only: the first end of a range, `2–5 mm`.
     LengthNumber(f64, Digits),
+    /// A distance travelled, in mm: `850 mm` or `12.4 m`; `33.5 in` or `41.2 ft`.
+    Distance(f64),
     /// A feed in mm/min, with its unit: `1200 mm/min`, `47.24 in/min`.
     Feed(f64, Digits),
     /// A chip load in mm per tooth, with its unit: `0.050 mm/tooth`, `0.0020 in/tooth`.
@@ -144,6 +163,7 @@ impl Value {
                 length_unit(units)
             )),
             Value::LengthNumber(mm, digits) => Arg::Text(length_number(*mm, *digits, units)),
+            Value::Distance(mm) => Arg::Text(distance(*mm, units)),
             Value::Feed(feed, digits) => Arg::Text(format!(
                 "{} {}",
                 feed_number(*feed, *digits, units),
@@ -184,6 +204,7 @@ impl PartialEq for Value {
             | (Value::Feed(a, da), Value::Feed(b, db))
             | (Value::ChipLoad(a, da), Value::ChipLoad(b, db))
             | (Value::Number(a, da), Value::Number(b, db)) => bits(a) == bits(b) && da == db,
+            (Value::Distance(a), Value::Distance(b)) => bits(a) == bits(b),
             (Value::Point(ax, ay, da), Value::Point(bx, by, db)) => {
                 bits(ax) == bits(bx) && bits(ay) == bits(by) && da == db
             }

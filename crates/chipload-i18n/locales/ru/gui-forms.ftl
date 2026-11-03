@@ -395,3 +395,27 @@ forms-font-script = Рукописные
 forms-font-display = Декоративные
 forms-explode-dxf = Разбить…
 forms-explode-dxf-hover = Преобразовать геометрию DXF в редактируемые начерченные объекты; связь с файлом DXF будет удалена
+
+## The Statistics section of an operation (docs/specs/operation-statistics.md)
+forms-section-statistics = Статистика
+forms-statistics-time = Время
+forms-statistics-time-parts = { $time } (резание { $cutting }, быстрые ходы { $rapids })
+forms-statistics-cutting = Резание
+forms-statistics-cutting-hover = Рабочие ходы вбок: прямые, дуги, рампы и спирали, измеренные в 3D
+forms-statistics-plunging = Врезание
+forms-statistics-plunging-hover = Рабочие ходы прямо вниз или вверх: врезания и сверление
+forms-statistics-rapids = Быстрые ходы
+forms-statistics-rapids-hover = Быстрые ходы (G0), включая ходы вверх и вниз
+forms-statistics-lifts = Подъёмы
+forms-statistics-lifts-hover = Сколько раз инструмент поднимается на быстром ходу: между траекториями и при каждом выводе при сверлении с выводом
+forms-statistics-copies = Для { $copies ->
+    [one] { $copies } копии
+   *[other] { $copies } копий
+}.
+forms-statistics-generate = Выполните генерацию (F5), чтобы увидеть статистику.
+forms-statistics-generating = Генерация…
+forms-statistics-failed = Не сгенерировано: см. отчёт.
+forms-statistics-off = Выключено: не обрабатывается.
+forms-statistics-out-of-date = устарело
+forms-statistics-not-generated = не сгенерировано
+forms-statistics-off-summary = выключено

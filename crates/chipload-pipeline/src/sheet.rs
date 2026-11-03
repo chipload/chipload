@@ -22,7 +22,7 @@ use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::select::{select_contours, select_paths};
 
-use crate::estimate::{duration_message, estimate_lines};
+use crate::estimate::{Lengths, duration_message, estimate_lines};
 use crate::{GcodeFile, RunResult, copies, write_atomically};
 
 /// What the sheet says about where it comes from.
@@ -129,7 +129,7 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
         w.text(&Message::new("sheet-time"))
     );
     // The estimate's lines in the sheet's units, as everything else on it.
-    for line in estimate_lines(job, &result.estimate, several) {
+    for line in estimate_lines(job, &result.estimate, several, Lengths::Without) {
         let text = line.message.render(w.lang, w.units.into());
         let _ = writeln!(html, "<p>{}</p>", escape(text.trim_start()));
     }

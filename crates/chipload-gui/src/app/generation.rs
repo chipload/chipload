@@ -57,6 +57,50 @@ fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
 }
 
 impl ChiploadApp {
+    /// What the Statistics section of operation `at` shows
+    /// (docs/specs/operation-statistics.md §3.1).
+    pub(super) fn statistics_of(&self, at: chipload_job::OpRef) -> forms::Statistics {
+        use forms::Statistics;
+        if self.generating() {
+            return Statistics::Generating;
+        }
+        let Some(result) = &self.toolpath.result else {
+            return if self.toolpath.failed {
+                Statistics::Failed
+            } else {
+                Statistics::OutOfDate
+            };
+        };
+        let job = self.edit.as_ref().map(|e| &e.job);
+        let cut = job.is_some_and(|job| {
+            job.cuts(at.operation)
+                && at.pass.is_none_or(|k| {
+                    job.operations
+                        .get(at.operation)
+                        .is_some_and(|op| pass_enabled(op, k))
+                })
+        });
+        if !cut {
+            return Statistics::Off;
+        }
+        match result
+            .estimate
+            .operation_counts
+            .iter()
+            .find(|(o, _)| *o == at)
+        {
+            Some((_, counts)) => Statistics::Counted {
+                counts: *counts,
+                copies: job
+                    .and_then(|job| job.operations.get(at.operation).map(|op| (job, op)))
+                    .and_then(|(job, op)| job.part_of(op))
+                    .map_or(1, |p| p.count()),
+            },
+            // Not in this run: another part's preview, or another setup.
+            None => Statistics::OutOfDate,
+        }
+    }
+
     /// Generate now (F5, the Generate button): errors are reported loudly.
     pub fn generate(&mut self) -> bool {
         self.start_generation(true)
@@ -223,6 +267,7 @@ impl ChiploadApp {
             inputs,
             ..
         } = generation;
+        self.toolpath.failed = false;
         let done = match outcome {
             Ok(Ok(result)) => {
                 self.toolpath.part = scope;
@@ -235,6 +280,7 @@ impl ChiploadApp {
                 messages, program, ..
             })) => {
                 self.clear_toolpath();
+                self.toolpath.failed = true;
                 self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
                 let mut report = Report::error([t!(self, "generation-check-failed")]);
                 for message in messages {
@@ -255,6 +301,7 @@ impl ChiploadApp {
             }
             Ok(Err(err)) => {
                 self.clear_toolpath();
+                self.toolpath.failed = true;
                 let op = match &err {
                     PipelineError::Toolpath(err) => err.operation(),
                     _ => None,
@@ -267,6 +314,7 @@ impl ChiploadApp {
             }
             Err(panic) => {
                 self.clear_toolpath();
+                self.toolpath.failed = true;
                 let lines = vec![
                     t!(self, "generation-failed-unexpectedly", error = panic),
                     t!(self, "generation-please-report"),
@@ -326,7 +374,12 @@ impl ChiploadApp {
         };
         report.push(Tone::Good, done);
         let several = result.files.len() > 1;
-        for line in chipload_pipeline::estimate::estimate_lines(job, &result.estimate, several) {
+        for line in chipload_pipeline::estimate::estimate_lines(
+            job,
+            &result.estimate,
+            several,
+            chipload_pipeline::estimate::Lengths::Totals,
+        ) {
             report.push_message(Tone::Info, line.message, line.operation);
         }
         for note in &result.notes {
@@ -518,6 +571,15 @@ impl ChiploadApp {
     }
 }
 
+/// Whether pass `k` of `op` is cut: a pocket's rest pass, or a V-carve's floor pass (0).
+fn pass_enabled(op: &chipload_job::Operation, k: usize) -> bool {
+    match op {
+        chipload_job::Operation::Pocket(p) => p.rest_passes.get(k).is_some_and(|r| r.enabled),
+        chipload_job::Operation::Vcarve(v) => v.floor.as_ref().is_some_and(|f| f.enabled),
+        _ => false,
+    }
+}
+
 /// The toolpath shown and its runs (docs/specs/background-generation.md).
 pub struct Toolpath {
     // The last generation.
@@ -546,6 +608,9 @@ pub struct Toolpath {
     pub(super) undo_if_refused: Option<EditJob>,
     /// The part the last result is a preview of; None: the whole project.
     pub(super) part: Option<u64>,
+    /// The last run failed: the operations' statistics say so
+    /// (docs/specs/operation-statistics.md §3.1).
+    pub(super) failed: bool,
 }
 
 impl Default for Toolpath {
@@ -563,6 +628,7 @@ impl Default for Toolpath {
             export_path_when_done: None,
             export_part_when_done: None,
             undo_if_refused: None,
+            failed: false,
         }
     }
 }

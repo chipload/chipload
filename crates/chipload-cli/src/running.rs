@@ -233,7 +233,12 @@ pub(crate) fn run(
                 "rest_passes": rest_passes_json(&file.operations),
             }));
         }
-        for line in estimate_lines(&one, &result.estimate, result.files.len() > 1) {
+        for line in estimate_lines(
+            &one,
+            &result.estimate,
+            result.files.len() > 1,
+            Lengths::Totals,
+        ) {
             out.line(line.to_string());
         }
         if result.files.len() > 1 {
@@ -491,7 +496,12 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
                 out.line(line);
             }
         }
-        for line in estimate_lines(&job, &estimate, plan.groups.len() > 1) {
+        for line in estimate_lines(
+            &job,
+            &estimate,
+            plan.groups.len() > 1,
+            Lengths::PerOperation,
+        ) {
             out.line(line.to_string());
         }
         for line in chip_load_lines(&planned) {
@@ -514,21 +524,38 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
 
 /// The cycle time estimate as `plan` and `run` print it with `--json`.
 pub(crate) fn estimate_json(estimate: &chipload_pipeline::estimate::Estimate) -> Value {
-    json!({
+    let mut value = json!({
         "total_s": estimate.total,
         "cutting_s": estimate.cutting,
         "rapid_s": estimate.rapid,
         "spindle_s": estimate.spindle,
-        "operations": estimate.operations.iter().map(|(at, s)| json!({
-            "operation": at.operation,
-            "pass": at.pass,
-            "seconds": s,
-        })).collect::<Vec<_>>(),
+        "operations": estimate.operation_counts.iter().map(|(at, c)| {
+            let mut op = json!({
+                "operation": at.operation,
+                "pass": at.pass,
+                "seconds": c.seconds(),
+                "cutting_s": c.cutting_s,
+                "rapid_s": c.rapid_s,
+            });
+            add_counts(&mut op, c);
+            op
+        }).collect::<Vec<_>>(),
         "groups_s": estimate.groups,
         "tool_changes": estimate.tool_changes,
         "rapid_mm_min": estimate.rapid_rate,
         "rapid_assumed": estimate.rapid_assumed,
-    })
+    });
+    add_counts(&mut value, &estimate.counts);
+    value
+}
+
+/// An estimate's lengths (mm) and lifts beside its seconds
+/// (docs/specs/operation-statistics.md §3.3).
+fn add_counts(value: &mut Value, counts: &chipload_pipeline::estimate::Counts) {
+    value["cutting_mm"] = json!(counts.cutting_mm);
+    value["plunge_mm"] = json!(counts.plunge_mm);
+    value["rapid_mm"] = json!(counts.rapid_mm);
+    value["lifts"] = json!(counts.lifts);
 }
 
 /// The program as `render` reads it, with how many tool groups it has: `render` refuses a

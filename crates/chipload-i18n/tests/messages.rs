@@ -7,8 +7,20 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use chipload_i18n::check::texts;
-use chipload_i18n::message::{feed_number, length_number, trimmed};
+use chipload_i18n::message::{distance, feed_number, length_number, trimmed};
 use chipload_i18n::{Digits, Language, Message, SOURCES, Units, Value};
+
+#[test]
+fn distances_take_metres_or_feet_when_long() {
+    assert_eq!(distance(0.0, Units::Mm), "0 mm");
+    assert_eq!(distance(850.4, Units::Mm), "850 mm");
+    assert_eq!(distance(999.6, Units::Mm), "1.0 m");
+    assert_eq!(distance(12_437.0, Units::Mm), "12.4 m");
+    assert_eq!(distance(850.9, Units::Inch), "33.5 in");
+    assert_eq!(distance(2537.0, Units::Inch), "99.9 in");
+    assert_eq!(distance(2539.0, Units::Inch), "8.3 ft");
+    assert_eq!(distance(12_557.76, Units::Inch), "41.2 ft");
+}
 
 #[test]
 fn lengths_keep_their_digits_in_mm_and_take_four_decimals_in_inches() {

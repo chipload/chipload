@@ -462,3 +462,24 @@ forms-font-script = Skrivstil
 forms-font-display = Dekorativa
 forms-explode-dxf = Bryt upp…
 forms-explode-dxf-hover = Gör om denna DXF:s former till ritade former som du kan ändra; kopplingen till DXF-filen försvinner
+
+## The Statistics section of an operation (docs/specs/operation-statistics.md)
+forms-section-statistics = Statistik
+forms-statistics-time = Tid
+forms-statistics-time-parts = { $time } (fräsning { $cutting }, snabbförflyttningar { $rapids })
+forms-statistics-cutting = Fräsning
+forms-statistics-cutting-hover = Matningsrörelser åt sidan: linjer, bågar, ramper och helixar, mätta i 3D
+forms-statistics-plunging = Nedgång
+forms-statistics-plunging-hover = Matningsrörelser rakt ner eller upp: nedgångar och borrning
+forms-statistics-rapids = Snabbförflyttningar
+forms-statistics-rapids-hover = Snabbförflyttningar (G0), uppåt och nedåt medräknade
+forms-statistics-lifts = Lyft
+forms-statistics-lifts-hover = Hur många gånger verktyget går upp med snabbförflyttning: mellan banorna och vid varje steg av en stegborrning
+forms-statistics-copies = För { $copies } kopior.
+forms-statistics-generate = Generera (F5) för att se statistiken.
+forms-statistics-generating = Genererar…
+forms-statistics-failed = Inte genererad: se rapporten.
+forms-statistics-off = Av: fräses inte.
+forms-statistics-out-of-date = inaktuell
+forms-statistics-not-generated = inte genererad
+forms-statistics-off-summary = av

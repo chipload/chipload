@@ -37,7 +37,7 @@ use chipload_pipeline::drawing_edit::{
     break_shape, combine_shapes, cut_shape_corners, distribute_shapes, extend_shape, offset_shapes,
     trim_shape,
 };
-use chipload_pipeline::estimate::{estimate, estimate_lines};
+use chipload_pipeline::estimate::{Lengths, estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
 use chipload_pipeline::library::{Library, apply_library, settings_dir};
 use chipload_pipeline::placement::{

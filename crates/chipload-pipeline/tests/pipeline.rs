@@ -1145,7 +1145,7 @@ fn the_short_message_leaves_out_the_operation() {
 
 mod cycle_time {
     use super::*;
-    use chipload_pipeline::estimate::{ASSUMED_RAPID_MM_MIN, estimate};
+    use chipload_pipeline::estimate::{ASSUMED_RAPID_MM_MIN, Lengths, estimate};
     use chipload_toolpath::model::{Move, Program};
     use chipload_toolpath::{OpSpan, ToolGroup};
 
@@ -1260,6 +1260,95 @@ mod cycle_time {
         assert!(near(e.cutting, 5.0 / 300.0 * 60.0), "{}", e.cutting);
     }
 
+    // -- lengths and lifts (docs/specs/operation-statistics.md §2)
+
+    fn one_span(moves: std::ops::Range<usize>) -> OpSpan {
+        OpSpan {
+            operation: 0,
+            pass: None,
+            copy: 1,
+            moves,
+            tool_radius: 3.0,
+        }
+    }
+
+    #[test]
+    fn a_rectangle_cuts_its_perimeter_plunges_its_depth_and_lifts_once() {
+        let job = job(json!({}));
+        let e = estimate(
+            &job,
+            &rectangle(),
+            &[one_span(0..8)],
+            &[group(&job, 0..8)],
+            0.0,
+        );
+        let (_, c) = e.operation_counts[0];
+        // The first two rapids start from where the tool is not known: nothing.
+        assert!(near(c.cutting_mm, 300.0), "{c:?}");
+        assert!(near(c.plunge_mm, 8.0), "{c:?}");
+        assert!(near(c.rapid_mm, 8.0), "{c:?}");
+        assert_eq!(c.lifts, 1);
+        // The time is made of the same moves.
+        assert!(near(
+            c.cutting_s,
+            8.0 / 300.0 * 60.0 + 300.0 / 1200.0 * 60.0
+        ));
+        assert!(near(c.seconds(), e.operations[0].1));
+        assert_eq!(e.counts, c);
+    }
+
+    #[test]
+    fn a_helix_is_cutting_and_each_peck_is_a_lift() {
+        let job = job(json!({}));
+        let mut program = rectangle();
+        program.moves = vec![
+            Move::rapid_z(5.0),
+            Move::rapid_xy((0.0, 0.0)),
+            Move::feed_xyz((4.0, 0.0), 2.0, 300.0),
+            // Three pecks: down at the feed, up and back down at rapid.
+            Move::feed_z(-1.0, 100.0),
+            Move::rapid_z(5.0),
+            Move::rapid_z(-0.5),
+            Move::feed_z(-2.0, 100.0),
+            Move::rapid_z(5.0),
+            Move::rapid_z(-1.5),
+            Move::feed_z(-3.0, 100.0),
+            Move::rapid_z(5.0),
+        ];
+        let e = estimate(
+            &job,
+            &program,
+            &[one_span(0..11)],
+            &[group(&job, 0..11)],
+            0.0,
+        );
+        let (_, c) = e.operation_counts[0];
+        // Down 3 mm while going 4 mm across.
+        assert!(near(c.cutting_mm, 5.0), "{c:?}");
+        assert!(near(c.plunge_mm, 3.0 + 1.5 + 1.5), "{c:?}");
+        assert!(near(c.rapid_mm, 6.0 + 5.5 + 7.0 + 6.5 + 8.0), "{c:?}");
+        assert_eq!(c.lifts, 3);
+    }
+
+    #[test]
+    fn copies_add_their_lengths_and_the_job_counts_the_moves_between() {
+        let job = job(json!({}));
+        let mut program = rectangle();
+        let again = program.moves.clone();
+        program.moves.extend(again);
+        let spans = [one_span(0..8), one_span(8..16)];
+        let one = estimate(&job, &rectangle(), &spans[..1], &[group(&job, 0..8)], 0.0);
+        let two = estimate(&job, &program, &spans, &[group(&job, 0..16)], 0.0);
+        let (one, two_op) = (one.operation_counts[0].1, two.operation_counts[0].1);
+        assert!(near(two_op.cutting_mm, 2.0 * one.cutting_mm));
+        assert_eq!(two_op.lifts, 2 * one.lifts);
+        // The second copy starts where the first ended, above its start: no more rapids.
+        assert!(near(two_op.rapid_mm, 2.0 * one.rapid_mm), "{two_op:?}");
+        let first_only = estimate(&job, &program, &spans[..1], &[group(&job, 0..16)], 0.0);
+        let counted = first_only.operation_counts[0].1;
+        assert!(first_only.counts.cutting_mm > counted.cutting_mm);
+    }
+
     #[test]
     fn a_run_reports_its_estimate() {
         let job = load_job(&corpus("jobs/v11/two_tools.chipload")).unwrap();
@@ -1269,10 +1358,24 @@ mod cycle_time {
         assert_eq!(e.groups.len(), 2);
         assert_eq!(e.tool_changes, 1);
         assert!(e.total > e.cutting && e.cutting > 0.0);
-        let lines = chipload_pipeline::estimate::estimate_lines(&job, e, true);
+        let lines = chipload_pipeline::estimate::estimate_lines(&job, e, true, Lengths::Totals);
         assert!(lines[0].starts_with("Estimated time: "), "{lines:?}");
         assert!(lines[0].ends_with("plus 1 tool change"), "{lines:?}");
         assert!(lines.iter().any(|l| l.starts_with("  File 2: ")));
+        assert!(
+            lines.iter().any(|l| l.starts_with("  In all: cutting ")),
+            "{lines:?}"
+        );
+        assert!(!lines.iter().any(|l| l.contains("; cutting ")), "{lines:?}");
+        let each =
+            chipload_pipeline::estimate::estimate_lines(&job, e, true, Lengths::PerOperation);
+        assert_eq!(
+            each.iter().filter(|l| l.contains("; cutting ")).count(),
+            2,
+            "{each:?}"
+        );
+        let sheet = chipload_pipeline::estimate::estimate_lines(&job, e, true, Lengths::Without);
+        assert!(!sheet.iter().any(|l| l.contains("In all")), "{sheet:?}");
     }
 }
 
@@ -1282,8 +1385,12 @@ mod cycle_time {
 fn the_report_gives_each_parts_time_over_its_operations() {
     let job = load_job(&corpus_path("jobs/v22/two_parts.chipload")).unwrap();
     let result = run(&job);
-    let lines =
-        chipload_pipeline::estimate::estimate_lines(&job, &result.estimate, result.files.len() > 1);
+    let lines = chipload_pipeline::estimate::estimate_lines(
+        &job,
+        &result.estimate,
+        result.files.len() > 1,
+        chipload_pipeline::estimate::Lengths::Totals,
+    );
     let part = |n: usize| {
         lines
             .iter()
@@ -1306,8 +1413,12 @@ fn the_report_gives_each_parts_time_over_its_operations() {
     );
     // One part: as before parts.
     let one_part = run(&job_of_one_part());
-    let lines =
-        chipload_pipeline::estimate::estimate_lines(&job_of_one_part(), &one_part.estimate, false);
+    let lines = chipload_pipeline::estimate::estimate_lines(
+        &job_of_one_part(),
+        &one_part.estimate,
+        false,
+        chipload_pipeline::estimate::Lengths::Totals,
+    );
     assert!(lines.iter().all(|l| !l.contains("Part ")), "{lines:?}");
     assert!(
         lines.iter().any(|l| l.starts_with("  Operation 1")),

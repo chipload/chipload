@@ -3,7 +3,8 @@ exit 0
 --- stdout
 Estimated time: 41 s (cutting 31 s, rapids 6 s, spindle 3 s)
 Cut outline: 66.146 × 32.500 mm (X -1.250 … 64.896, Y -1.250 … 31.250, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 38 s
+  Operation 1 (Letters): 38 s; cutting 349 mm, plunging 78 mm, rapids 542 mm, 28 lifts
+  In all: cutting 349 mm, plunging 78 mm, rapids 542 mm, 28 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth
@@ -19,8 +20,9 @@ Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 2 min 6 s (cutting 1 min 59 s, rapids 3 s, spindle 3 s)
 Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 0 s
-  Operation 2 (Outline): 1 min 3 s
+  Operation 1 (Holes): 1 min 0 s; cutting 1.5 m, plunging 3 mm, rapids 128 mm, 3 lifts
+  Operation 2 (Outline): 1 min 3 s; cutting 1.8 m, plunging 1 mm, rapids 154 mm, 1 lift
+  In all: cutting 3.3 m, plunging 4 mm, rapids 283 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -37,10 +39,11 @@ Operation 1: a ring starts at (53.500, 110.548) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 7 min 17 s (cutting 7 min 7 s, rapids 3 s, spindle 6 s), plus 1 tool change
 Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 6 min 8 s
-  Operation 2 (Outline): 1 min 2 s
+  Operation 1 (Holes): 6 min 8 s; cutting 7.2 m, plunging 27 mm, rapids 150 mm, 3 lifts
+  Operation 2 (Outline): 1 min 2 s; cutting 1.8 m, plunging 1 mm, rapids 118 mm, 1 lift
   File 1: 6 min 11 s
   File 2: 1 min 5 s
+  In all: cutting 9.1 m, plunging 28 mm, rapids 268 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.030 mm/tooth
@@ -59,8 +62,9 @@ Operation 1: a ring starts at (118.910, 76.560) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 2 min 31 s (cutting 2 min 26 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 28 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Holes): 1 min 28 s; cutting 1.7 m, plunging 16 mm, rapids 84 mm, 2 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 96 mm, 1 lift
+  In all: cutting 3.4 m, plunging 17 mm, rapids 180 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -77,10 +81,11 @@ Operation 1: a ring starts at (53.500, 110.548) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 7 min 17 s (cutting 7 min 7 s, rapids 3 s, spindle 6 s), plus 1 tool change
 Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 6 min 8 s
-  Operation 2 (Outline): 1 min 2 s
+  Operation 1 (Holes): 6 min 8 s; cutting 7.2 m, plunging 27 mm, rapids 150 mm, 3 lifts
+  Operation 2 (Outline): 1 min 2 s; cutting 1.8 m, plunging 1 mm, rapids 118 mm, 1 lift
   File 1: 6 min 11 s
   File 2: 1 min 5 s
+  In all: cutting 9.1 m, plunging 28 mm, rapids 268 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.030 mm/tooth
@@ -98,7 +103,8 @@ Operation 1: a ring starts at (89.446, 83.218) (default)
 Operation 1: a ring starts at (42.800, 117.200) (default)
 Estimated time: 5 min 36 s (cutting 5 min 24 s, rapids 9 s, spindle 3 s)
 Cut outline: 120.400 × 80.400 mm (X 39.800 … 160.200, Y 39.800 … 120.200, the tool included): the smallest stock that holds the job.
-  Operation 1 (Pocket round two islands): 5 min 33 s
+  Operation 1 (Pocket round two islands): 5 min 33 s; cutting 6.3 m, plunging 62 mm, rapids 777 mm, 15 lifts
+  In all: cutting 6.3 m, plunging 62 mm, rapids 777 mm, 15 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Pocket round two islands): 0.033 mm/tooth
@@ -114,8 +120,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 50 s (cutting 1 min 44 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline): 59 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline): 59 s; cutting 1.8 m, plunging 1 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 17 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -134,8 +141,9 @@ Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 30 s (cutting 7 min 12 s, rapids 15 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Rounded rings): 6 min 27 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Rounded rings): 6 min 27 s; cutting 7.2 m, plunging 84 mm, rapids 1.1 m, 21 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 88 mm, 1 lift
+  In all: cutting 9.0 m, plunging 85 mm, rapids 1.2 m, 22 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rounded rings): 0.033 mm/tooth
@@ -152,8 +160,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 50 s (cutting 1 min 44 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline): 59 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline): 59 s; cutting 1.8 m, plunging 1 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 17 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -170,8 +179,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 50 s (cutting 1 min 44 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline): 59 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline): 59 s; cutting 1.8 m, plunging 1 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 17 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -188,8 +198,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 52 s (cutting 1 min 46 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline, straight tabs): 1 min 1 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline, straight tabs): 1 min 1 s; cutting 1.8 m, plunging 20 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 36 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -206,8 +217,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 50 s (cutting 1 min 45 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline, spiral): 1 min 0 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline, spiral): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 17 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -225,8 +237,9 @@ Operation 1: a ring starts at (114.854, 68.000) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 55 s (cutting 1 min 48 s, rapids 4 s, spindle 3 s)
 Cut outline: 145.265 × 112.821 mm (X 27.367 … 172.633, Y 23.589 … 136.409, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes, finished): 33 s
-  Operation 2 (Outline, finish and skin): 1 min 18 s
+  Operation 1 (Holes, finished): 33 s; cutting 573 mm, plunging 16 mm, rapids 189 mm, 4 lifts
+  Operation 2 (Outline, finish and skin): 1 min 18 s; cutting 2.2 m, plunging 27 mm, rapids 131 mm, 3 lifts
+  In all: cutting 2.8 m, plunging 43 mm, rapids 319 mm, 7 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes, finished): 0.033 mm/tooth
@@ -240,10 +253,11 @@ exit 0
 warning: Operation 1 (Engrave): the V-groove is 1.932 mm wide at the top
 Estimated time: 1 min 15 s (cutting 1 min 7 s, rapids 2 s, spindle 6 s), plus 1 tool change
 Cut outline: 112.700 × 77.850 mm (X 43.650 … 156.350, Y 33.650 … 111.500, the tool included): the smallest stock that holds the job.
-  Operation 1 (Engrave): 30 s
-  Operation 2 (Groove): 39 s
+  Operation 1 (Engrave): 30 s; cutting 560 mm, plunging 5 mm, rapids 96 mm, 2 lifts
+  Operation 2 (Groove): 39 s; cutting 627 mm, plunging 2 mm, rapids 96 mm, 2 lifts
   File 1: 33 s
   File 2: 42 s
+  In all: cutting 1.2 m, plunging 7 mm, rapids 192 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Engrave): 0.033 mm/tooth
@@ -262,9 +276,10 @@ Operation 2: a ring starts at (77.900, 38.900) (default)
 Operation 3: a ring starts at (10.000, 7.000) (default)
 Estimated time: 1 min 38 s (cutting 1 min 33 s, rapids 2 s, spindle 3 s)
 Cut outline: 132.000 × 92.000 mm (X 4.000 … 136.000, Y 4.000 … 96.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Mortise): 8 s
-  Operation 2 (Slot): 20 s
-  Operation 3 (Outline): 1 min 7 s
+  Operation 1 (Mortise): 8 s; cutting 132 mm, plunging 8 mm, rapids 15 mm, 1 lift
+  Operation 2 (Slot): 20 s; cutting 380 mm, plunging 1 mm, rapids 59 mm, 1 lift
+  Operation 3 (Outline): 1 min 7 s; cutting 1.9 m, plunging 19 mm, rapids 85 mm, 1 lift
+  In all: cutting 2.4 m, plunging 28 mm, rapids 159 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Mortise): 0.033 mm/tooth
@@ -281,10 +296,11 @@ warning: Operation 1 (Drilled): hole 10 mm: not the 8 mm drill's size (within 0.
 warning: Operation 2 (Bored): 1 hole leaves a loose core (hole more than twice the tool); hold it down or use a pocket
 Estimated time: 43 s (cutting 34 s, rapids 3 s, spindle 6 s), plus 1 tool change
 Cut outline: 69.000 × 64.998 mm (X 26.000 … 95.000, Y 25.000 … 89.998, the tool included): the smallest stock that holds the job.
-  Operation 1 (Drilled): 7 s
-  Operation 2 (Bored): 30 s
+  Operation 1 (Drilled): 7 s; cutting 0 mm, plunging 28 mm, rapids 158 mm, 6 lifts
+  Operation 2 (Bored): 30 s; cutting 561 mm, plunging 2 mm, rapids 129 mm, 2 lifts
   File 1: 10 s
   File 2: 33 s
+  In all: cutting 561 mm, plunging 30 mm, rapids 287 mm, 8 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Drilled): 0.025 mm/tooth
@@ -306,10 +322,11 @@ Operation 2: a ring starts at (15.854, 48.000) (default)
 Operation 2: a ring starts at (12.000, 15.854) (default)
 Estimated time: 1 min 1 s (cutting 52 s, rapids 3 s, spindle 6 s), plus 1 tool change
 Cut outline: 80.000 × 40.000 mm (X 10.000 … 90.000, Y 10.000 … 50.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Rough): 25 s
-  Operation 2 (Rest): 31 s
+  Operation 1 (Rough): 25 s; cutting 525 mm, plunging 19 mm, rapids 70 mm, 3 lifts
+  Operation 2 (Rest): 31 s; cutting 535 mm, plunging 45 mm, rapids 200 mm, 5 lifts
   File 1: 28 s
   File 2: 34 s
+  In all: cutting 1.1 m, plunging 64 mm, rapids 270 mm, 8 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rough): 0.047 mm/tooth
@@ -326,7 +343,8 @@ warning: Operation 1 (Logo): contours #1, #3: wider than a carve at most 3.500 m
 warning: Operation 1 (Logo): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Estimated time: 1 min 12 s (cutting 1 min 2 s, rapids 7 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Logo): 1 min 9 s
+  Operation 1 (Logo): 1 min 9 s; cutting 902 mm, plunging 88 mm, rapids 563 mm, 24 lifts
+  In all: cutting 902 mm, plunging 88 mm, rapids 563 mm, 24 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Logo): 0.033 mm/tooth
@@ -338,7 +356,8 @@ exit 0
 --- stdout
 Estimated time: 10 s (cutting 6 s, rapids 1 s, spindle 3 s)
 Cut outline: 40.026 × 21.541 mm (X 10.001 … 50.027, Y 9.501 … 31.043, the tool included): the smallest stock that holds the job.
-  Operation 1 (Strokes): 7 s
+  Operation 1 (Strokes): 7 s; cutting 81 mm, plunging 8 mm, rapids 70 mm, 4 lifts
+  In all: cutting 81 mm, plunging 8 mm, rapids 70 mm, 4 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Strokes): 0.028 mm/tooth
@@ -354,8 +373,9 @@ Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Estimated time: 2 min 6 s (cutting 1 min 59 s, rapids 3 s, spindle 3 s)
 Cut outline: 120.000 × 192.000 mm (X 4.000 … 124.000, Y 4.000 … 196.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 0 s
-  Operation 2 (Outline): 1 min 3 s
+  Operation 1 (Holes): 1 min 0 s; cutting 1.5 m, plunging 3 mm, rapids 128 mm, 3 lifts
+  Operation 2 (Outline): 1 min 3 s; cutting 1.8 m, plunging 1 mm, rapids 154 mm, 1 lift
+  In all: cutting 3.3 m, plunging 4 mm, rapids 283 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -373,8 +393,9 @@ Operation 2: a ring starts at (47.857, 26.889) (default)
 Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, copy by copy
 Estimated time: 10 min 10 s (cutting 9 min 47 s, rapids 20 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 4 min 9 s
-  Operation 2 (Outline): 5 min 58 s
+  Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.2 m, 12 lifts
+  Operation 2 (Outline): 5 min 58 s; cutting 10.5 m, plunging 6 mm, rapids 525 mm, 6 lifts
+  In all: cutting 15.1 m, plunging 54 mm, rapids 1.7 m, 18 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -397,12 +418,13 @@ Operation 2: a ring starts at (19.000, 7.000) (default)
 Operation 3: a ring starts at (230.000, 2.000) (default)
 Estimated time: 4 min 1 s (cutting 3 min 39 s, rapids 16 s, spindle 6 s), plus 1 tool change
 Cut outline: 458.481 × 197.000 mm (X 4.000 … 462.481, Y -1.000 … 196.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 51 s
-  Operation 2 (Outline): 1 min 4 s
-  Operation 3 (Outline B): 39 s
-  Operation 4 (Logo): 21 s
+  Operation 1 (Holes): 1 min 51 s; cutting 2.6 m, plunging 6 mm, rapids 443 mm, 6 lifts
+  Operation 2 (Outline): 1 min 4 s; cutting 1.8 m, plunging 1 mm, rapids 287 mm, 1 lift
+  Operation 3 (Outline B): 39 s; cutting 1.1 m, plunging 1 mm, rapids 246 mm, 1 lift
+  Operation 4 (Logo): 21 s; cutting 229 mm, plunging 29 mm, rapids 355 mm, 8 lifts
   File 1: 3 min 37 s
   File 2: 24 s
+  In all: cutting 5.7 m, plunging 37 mm, rapids 1.3 m, 16 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -429,14 +451,15 @@ Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
 Estimated time: 3 min 48 s (cutting 3 min 28 s, rapids 10 s, spindle 9 s), plus 2 tool changes
 Cut outline: 417.000 × 196.800 mm (X 4.000 … 421.000, Y 4.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s
-    Operation 1 (Holes): 1 min 0 s
-    Operation 2 (Outline): 1 min 3 s
-    Operation 3 (Logo): 20 s
+    Operation 1 (Holes): 1 min 0 s; cutting 1.5 m, plunging 3 mm, rapids 128 mm, 3 lifts
+    Operation 2 (Outline): 1 min 3 s; cutting 1.8 m, plunging 1 mm, rapids 154 mm, 1 lift
+    Operation 3 (Logo): 20 s; cutting 229 mm, plunging 29 mm, rapids 283 mm, 8 lifts
   Part 2 (part B): 1 min 16 s
-    Operation 4 (Outline B): 1 min 16 s
+    Operation 4 (Outline B): 1 min 16 s; cutting 2.2 m, plunging 2 mm, rapids 298 mm, 2 lifts
   File 1: 2 min 6 s
   File 2: 23 s
   File 3: 1 min 19 s
+  In all: cutting 5.7 m, plunging 35 mm, rapids 864 mm, 14 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -464,14 +487,15 @@ Part 2 part B: 2 × 1 copies, pitch 82.000 × 122.000 mm, operation by operation
 Estimated time: 3 min 49 s (cutting 3 min 28 s, rapids 12 s, spindle 9 s), plus 2 tool changes
 Cut outline: 479.000 × 201.800 mm (X 4.000 … 483.000, Y -1.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s
-    Operation 1 (Holes): 1 min 0 s
-    Operation 2 (Outline): 1 min 3 s
-    Operation 3 (Logo): 20 s
+    Operation 1 (Holes): 1 min 0 s; cutting 1.5 m, plunging 3 mm, rapids 128 mm, 3 lifts
+    Operation 2 (Outline): 1 min 3 s; cutting 1.8 m, plunging 1 mm, rapids 154 mm, 1 lift
+    Operation 3 (Logo): 20 s; cutting 229 mm, plunging 29 mm, rapids 283 mm, 8 lifts
   Part 2 (part B): 1 min 17 s
-    Operation 4 (Outline B): 1 min 17 s
+    Operation 4 (Outline B): 1 min 17 s; cutting 2.2 m, plunging 2 mm, rapids 422 mm, 2 lifts
   File 1: 2 min 6 s
   File 2: 23 s
   File 3: 1 min 20 s
+  In all: cutting 5.7 m, plunging 35 mm, rapids 987 mm, 14 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -495,8 +519,9 @@ Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 30 s (cutting 7 min 12 s, rapids 15 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Rings round the rectangle): 6 min 27 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Rings round the rectangle): 6 min 27 s; cutting 7.2 m, plunging 84 mm, rapids 1.1 m, 21 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 88 mm, 1 lift
+  In all: cutting 9.0 m, plunging 85 mm, rapids 1.2 m, 22 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rings round the rectangle): 0.033 mm/tooth
@@ -516,8 +541,9 @@ Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 20 s (cutting 7 min 3 s, rapids 14 s, spindle 3 s)
 Cut outline: 139.906 × 107.464 mm (X 30.047 … 169.953, Y 26.266 … 133.730, the tool included): the smallest stock that holds the job.
-  Operation 1 (Rings in the rounded rectangle): 6 min 21 s
-  Operation 2 (Rounded outline): 56 s
+  Operation 1 (Rings in the rounded rectangle): 6 min 21 s; cutting 7.1 m, plunging 84 mm, rapids 1.1 m, 21 lifts
+  Operation 2 (Rounded outline): 56 s; cutting 1.7 m, plunging 1 mm, rapids 88 mm, 1 lift
+  In all: cutting 8.8 m, plunging 85 mm, rapids 1.2 m, 22 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Rings in the rounded rectangle): 0.033 mm/tooth
@@ -534,8 +560,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 52 s (cutting 1 min 46 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline, plunge with leads): 1 min 1 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline, plunge with leads): 1 min 1 s; cutting 1.8 m, plunging 20 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 36 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -549,10 +576,11 @@ exit 0
 Operation 2: a ring starts at (134.972, 62.970) (default)
 Estimated time: 56 s (cutting 45 s, rapids 5 s, spindle 6 s), plus 1 tool change
 Cut outline: 148.732 × 52.465 mm (X 8.793 … 157.525, Y 20.000 … 72.465, the tool included): the smallest stock that holds the job.
-  Operation 1 (Words): 39 s
-  Operation 2 (Letter): 12 s
+  Operation 1 (Words): 39 s; cutting 439 mm, plunging 21 mm, rapids 306 mm, 17 lifts
+  Operation 2 (Letter): 12 s; cutting 248 mm, plunging 2 mm, rapids 109 mm, 1 lift
   File 1: 42 s
   File 2: 15 s
+  In all: cutting 687 mm, plunging 23 mm, rapids 416 mm, 18 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Words): 0.033 mm/tooth
@@ -571,14 +599,15 @@ Operation 2: a ring starts at (146.000, 86.432) (default)
 Operation 3: a ring starts at (10.000, 24.000) (default)
 Estimated time: 3 min 22 s (cutting 3 min 2 s, rapids 11 s, spindle 9 s), plus 2 tool changes
 Cut outline: 244.000 × 144.000 mm (X -2.000 … 242.000, Y 18.000 … 162.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Box): 44 s
-  Operation 1.1 (Box, rest): 12 s
-  Operation 2 (Square): 47 s
-  Operation 2.1 (Square, rest): 12 s
-  Operation 3 (Outline): 1 min 19 s
+  Operation 1 (Box): 44 s; cutting 1.1 m, plunging 7 mm, rapids 14 mm, 1 lift
+  Operation 1.1 (Box, rest): 12 s; cutting 110 mm, plunging 28 mm, rapids 245 mm, 4 lifts
+  Operation 2 (Square): 47 s; cutting 1.1 m, plunging 7 mm, rapids 126 mm, 1 lift
+  Operation 2.1 (Square, rest): 12 s; cutting 110 mm, plunging 28 mm, rapids 314 mm, 4 lifts
+  Operation 3 (Outline): 1 min 19 s; cutting 2.2 m, plunging 17 mm, rapids 202 mm, 1 lift
   File 1: 1 min 34 s
   File 2: 27 s
   File 3: 1 min 22 s
+  In all: cutting 4.6 m, plunging 87 mm, rapids 900 mm, 11 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Box): 0.047 mm/tooth
@@ -601,10 +630,11 @@ Operation 2: a ring starts at (132.082, 46.063) (default)
 Operation 2: a ring starts at (137.974, 45.662) (default)
 Estimated time: 2 min 19 s (cutting 2 min 1 s, rapids 12 s, spindle 6 s), plus 1 tool change
 Cut outline: 145.290 × 61.495 mm (X 8.379 … 153.668, Y 20.000 … 81.495, the tool included): the smallest stock that holds the job.
-  Operation 1 (Words): 50 s
-  Operation 2 (Letter): 1 min 23 s
+  Operation 1 (Words): 50 s; cutting 653 mm, plunging 30 mm, rapids 477 mm, 26 lifts
+  Operation 2 (Letter): 1 min 23 s; cutting 1.8 m, plunging 24 mm, rapids 496 mm, 14 lifts
   File 1: 53 s
   File 2: 1 min 26 s
+  In all: cutting 2.5 m, plunging 55 mm, rapids 973 mm, 40 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Words): 0.033 mm/tooth
@@ -629,16 +659,17 @@ Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
 Estimated time: 8 min 23 s (cutting 7 min 59 s, rapids 11 s, spindle 12 s), plus 3 tool changes
 Cut outline: 530.000 × 232.500 mm (X -25.000 … 505.000, Y -6.250 … 226.250, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 6 min 55 s
-    Operation 1 (Face the stock): 4 min 31 s
-    Operation 2 (Holes): 1 min 1 s
-    Operation 3 (Outline): 1 min 3 s
-    Operation 4 (Logo): 20 s
+    Operation 1 (Face the stock): 4 min 31 s; cutting 13.5 m, plunging 2 mm, rapids 10 mm, 1 lift
+    Operation 2 (Holes): 1 min 1 s; cutting 1.5 m, plunging 3 mm, rapids 210 mm, 3 lifts
+    Operation 3 (Outline): 1 min 3 s; cutting 1.8 m, plunging 1 mm, rapids 154 mm, 1 lift
+    Operation 4 (Logo): 20 s; cutting 229 mm, plunging 29 mm, rapids 283 mm, 8 lifts
   Part 2 (part B): 1 min 16 s
-    Operation 5 (Outline B): 1 min 16 s
+    Operation 5 (Outline B): 1 min 16 s; cutting 2.2 m, plunging 2 mm, rapids 298 mm, 2 lifts
   File 1: 4 min 34 s
   File 2: 2 min 7 s
   File 3: 23 s
   File 4: 1 min 19 s
+  In all: cutting 19.2 m, plunging 37 mm, rapids 956 mm, 15 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Face the stock): 0.083 mm/tooth
@@ -661,8 +692,9 @@ Operation 1: a ring starts at (150.000, 72.349) (default)
 Operation 2: a ring starts at (119.158, 58.249) (default)
 Estimated time: 4 min 58 s (cutting 4 min 53 s, rapids 2 s, spindle 3 s)
 Cut outline: 124.389 × 119.523 mm (X 87.805 … 212.195, Y 55.249 … 174.772, the tool included): the smallest stock that holds the job.
-  Operation 1 (Pocket in the pentagon): 3 min 58 s
-  Operation 2 (Scalloped outline): 57 s
+  Operation 1 (Pocket in the pentagon): 3 min 58 s; cutting 4.7 m, plunging 12 mm, rapids 121 mm, 3 lifts
+  Operation 2 (Scalloped outline): 57 s; cutting 1.7 m, plunging 1 mm, rapids 46 mm, 1 lift
+  In all: cutting 6.4 m, plunging 13 mm, rapids 167 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Pocket in the pentagon): 0.033 mm/tooth
@@ -681,8 +713,9 @@ Operation 1: a ring starts at (106.460, 43.365) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 7 min 20 s (cutting 7 min 4 s, rapids 13 s, spindle 3 s)
 Cut outline: 139.906 × 107.464 mm (X 30.047 … 169.953, Y 26.266 … 133.730, the tool included): the smallest stock that holds the job.
-  Operation 1 (Pocket round a hexagon): 6 min 21 s
-  Operation 2 (Rounded outline): 56 s
+  Operation 1 (Pocket round a hexagon): 6 min 21 s; cutting 7.2 m, plunging 76 mm, rapids 1.0 m, 19 lifts
+  Operation 2 (Rounded outline): 56 s; cutting 1.7 m, plunging 1 mm, rapids 88 mm, 1 lift
+  In all: cutting 8.8 m, plunging 77 mm, rapids 1.1 m, 20 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Pocket round a hexagon): 0.033 mm/tooth
@@ -701,8 +734,9 @@ Operation 1: a ring starts at (68.814, 49.376) (default)
 Operation 2: a ring starts at (18.000, 6.700) (default)
 Estimated time: 1 min 39 s (cutting 1 min 33 s, rapids 3 s, spindle 3 s)
 Cut outline: 112.600 × 72.600 mm (X 3.700 … 116.300, Y 3.700 … 76.300, the tool included): the smallest stock that holds the job.
-  Operation 1 (Leaf round the eye): 49 s
-  Operation 2 (Badge outline): 47 s
+  Operation 1 (Leaf round the eye): 49 s; cutting 886 mm, plunging 20 mm, rapids 146 mm, 5 lifts
+  Operation 2 (Badge outline): 47 s; cutting 1.4 m, plunging 1 mm, rapids 73 mm, 1 lift
+  In all: cutting 2.3 m, plunging 21 mm, rapids 218 mm, 6 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Leaf round the eye): 0.033 mm/tooth
@@ -716,10 +750,11 @@ exit 0
 warning: Operation 1 (Sign): contours #2, #4: with the 3 mm end mill, 94 % of the floor is cleared; one of at most 1.3 mm would clear all of it
 Estimated time: 2 min 9 s (cutting 1 min 53 s, rapids 10 s, spindle 6 s), plus 1 tool change
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Sign): 1 min 15 s
-  Operation 1.1 (Sign, floor): 48 s
+  Operation 1 (Sign): 1 min 15 s; cutting 957 mm, plunging 114 mm, rapids 608 mm, 30 lifts
+  Operation 1.1 (Sign, floor): 48 s; cutting 824 mm, plunging 27 mm, rapids 213 mm, 7 lifts
   File 1: 51 s
   File 2: 1 min 18 s
+  In all: cutting 1.8 m, plunging 140 mm, rapids 821 mm, 37 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Sign): 0.033 mm/tooth
@@ -742,11 +777,12 @@ Part 1 simple part: one
 Estimated time: 2 min 29 s (cutting 2 min 16 s, rapids 7 s, spindle 6 s), plus 1 tool change
 Cut outline: 128.481 × 196.800 mm (X 4.000 … 132.481, Y 4.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s
-    Operation 1 (Holes): 1 min 0 s
-    Operation 2 (Outline): 1 min 3 s
-    Operation 3 (Logo): 20 s
+    Operation 1 (Holes): 1 min 0 s; cutting 1.5 m, plunging 3 mm, rapids 128 mm, 3 lifts
+    Operation 2 (Outline): 1 min 3 s; cutting 1.8 m, plunging 1 mm, rapids 154 mm, 1 lift
+    Operation 3 (Logo): 20 s; cutting 229 mm, plunging 29 mm, rapids 283 mm, 8 lifts
   File 1: 2 min 6 s
   File 2: 23 s
+  In all: cutting 3.5 m, plunging 33 mm, rapids 566 mm, 12 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -764,7 +800,8 @@ warning: Operation 1 (Sign): contours #1, #3: wider than a carve at most 3.500 m
 warning: Operation 1 (Sign): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Estimated time: 1 min 29 s (cutting 1 min 17 s, rapids 9 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Sign): 1 min 26 s
+  Operation 1 (Sign): 1 min 26 s; cutting 1.2 m, plunging 115 mm, rapids 746 mm, 32 lifts
+  In all: cutting 1.2 m, plunging 115 mm, rapids 746 mm, 32 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Sign): 0.033 mm/tooth
@@ -779,11 +816,12 @@ warning: Operation 2 (Border): the V-groove is 1.932 mm wide at the top
 Operation 3: a ring starts at (91.843, 42.691) (default)
 Estimated time: 2 min 28 s (cutting 2 min 15 s, rapids 6 s, spindle 6 s), plus 1 tool change
 Cut outline: 144.314 × 80.618 mm (X 77.843 … 222.157, Y 39.691 … 120.309, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 38 s
-  Operation 2 (Border): 19 s
-  Operation 3 (Cut out): 1 min 24 s
+  Operation 1 (Letters): 38 s; cutting 432 mm, plunging 34 mm, rapids 385 mm, 13 lifts
+  Operation 2 (Border): 19 s; cutting 350 mm, plunging 2 mm, rapids 115 mm, 1 lift
+  Operation 3 (Cut out): 1 min 24 s; cutting 2.1 m, plunging 1 mm, rapids 18 mm, 1 lift
   File 1: 1 min 1 s
   File 2: 1 min 27 s
+  In all: cutting 2.9 m, plunging 38 mm, rapids 517 mm, 15 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth
@@ -801,7 +839,8 @@ warning: Operation 1 (Sign): contours #1, #3: wider than a carve at most 3.500 m
 warning: Operation 1 (Sign): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Estimated time: 1 min 28 s (cutting 1 min 16 s, rapids 9 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
-  Operation 1 (Sign): 1 min 25 s
+  Operation 1 (Sign): 1 min 25 s; cutting 1.2 m, plunging 98 mm, rapids 734 mm, 32 lifts
+  In all: cutting 1.2 m, plunging 98 mm, rapids 734 mm, 32 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Sign): 0.033 mm/tooth
@@ -814,7 +853,8 @@ exit 0
 Operation 1: a ring starts at (60.000, 47.000) (default)
 Estimated time: 1 min 5 s (cutting 1 min 2 s, rapids 0 s, spindle 3 s)
 Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Outside cut): 1 min 2 s
+  Operation 1 (Outside cut): 1 min 2 s; cutting 2.1 m, plunging 1 mm, rapids 9 mm, 1 lift
+  In all: cutting 2.1 m, plunging 1 mm, rapids 9 mm, 1 lift.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Outside cut): 0.056 mm/tooth
@@ -831,8 +871,9 @@ Operation 1: a ring starts at (-62.500, 52.000) (default)
 Operation 2: a ring starts at (-60.000, -53.000) (default)
 Estimated time: 2 min 1 s (cutting 1 min 53 s, rapids 4 s, spindle 3 s)
 Cut outline: 193.000 × 112.000 mm (X -96.500 … 96.500, Y -56.000 … 56.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Openings): 57 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Openings): 57 s; cutting 1.3 m, plunging 24 mm, rapids 247 mm, 3 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 114 mm, 1 lift
+  In all: cutting 3.0 m, plunging 25 mm, rapids 361 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Openings): 0.042 mm/tooth
@@ -850,8 +891,9 @@ Operation 1: a ring starts at (-62.500, 52.000) (default)
 Operation 2: a ring starts at (-60.000, -53.000) (default)
 Estimated time: 2 min 2 s (cutting 1 min 55 s, rapids 4 s, spindle 3 s)
 Cut outline: 193.000 × 112.000 mm (X -96.500 … 96.500, Y -56.000 … 56.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Openings): 57 s
-  Operation 2 (Outline): 1 min 2 s
+  Operation 1 (Openings): 57 s; cutting 1.3 m, plunging 24 mm, rapids 247 mm, 3 lifts
+  Operation 2 (Outline): 1 min 2 s; cutting 1.8 m, plunging 17 mm, rapids 114 mm, 1 lift
+  In all: cutting 3.0 m, plunging 41 mm, rapids 361 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Openings): 0.042 mm/tooth
@@ -868,8 +910,9 @@ Operation 1: a ring starts at (153.000, 123.000) (default)
 Operation 2: a ring starts at (60.000, 47.000) (default)
 Estimated time: 2 min 19 s (cutting 2 min 12 s, rapids 4 s, spindle 3 s)
 Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 6 s
-  Operation 2 (Outline): 1 min 9 s
+  Operation 1 (Holes): 1 min 6 s; cutting 1.6 m, plunging 3 mm, rapids 127 mm, 3 lifts
+  Operation 2 (Outline): 1 min 9 s; cutting 2.0 m, plunging 1 mm, rapids 183 mm, 1 lift
+  In all: cutting 3.6 m, plunging 4 mm, rapids 310 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -887,8 +930,9 @@ Operation 1: a ring starts at (153.000, 123.000) (default)
 Operation 2: a ring starts at (60.000, 47.000) (default)
 Estimated time: 2 min 21 s (cutting 2 min 15 s, rapids 4 s, spindle 3 s)
 Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 6 s
-  Operation 2 (Outline with tabs): 1 min 12 s
+  Operation 1 (Holes): 1 min 6 s; cutting 1.6 m, plunging 3 mm, rapids 127 mm, 3 lifts
+  Operation 2 (Outline with tabs): 1 min 12 s; cutting 2.0 m, plunging 28 mm, rapids 183 mm, 1 lift
+  In all: cutting 3.6 m, plunging 31 mm, rapids 310 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -904,8 +948,9 @@ Operation 1: a ring starts at (114.854, 68.000) (default)
 Operation 2: a ring starts at (47.857, 27.189) (default)
 Estimated time: 1 min 22 s (cutting 1 min 17 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.068 × 111.622 mm (X 27.966 … 172.034, Y 24.189 … 135.811, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 33 s
-  Operation 2 (Outline): 46 s
+  Operation 1 (Holes): 33 s; cutting 791 mm, plunging 2 mm, rapids 61 mm, 2 lifts
+  Operation 2 (Outline): 46 s; cutting 1.3 m, plunging 1 mm, rapids 102 mm, 1 lift
+  In all: cutting 2.1 m, plunging 3 mm, rapids 163 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -921,8 +966,9 @@ Operation 1: a ring starts at (114.854, 68.000) (default)
 Operation 2: a ring starts at (47.857, 27.189) (default)
 Estimated time: 1 min 22 s (cutting 1 min 17 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.068 × 111.622 mm (X 27.966 … 172.034, Y 24.189 … 135.811, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 33 s
-  Operation 2 (Outline): 46 s
+  Operation 1 (Holes): 33 s; cutting 791 mm, plunging 2 mm, rapids 61 mm, 2 lifts
+  Operation 2 (Outline): 46 s; cutting 1.3 m, plunging 1 mm, rapids 102 mm, 1 lift
+  In all: cutting 2.1 m, plunging 3 mm, rapids 163 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -939,8 +985,9 @@ Operation 1: a ring starts at (118.910, 76.560) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 2 min 31 s (cutting 2 min 26 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 28 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Holes): 1 min 28 s; cutting 1.7 m, plunging 16 mm, rapids 84 mm, 2 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 96 mm, 1 lift
+  In all: cutting 3.4 m, plunging 17 mm, rapids 180 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -958,8 +1005,9 @@ Operation 2: a ring starts at (47.857, 26.889) (default)
 Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, operation by operation
 Estimated time: 10 min 15 s (cutting 9 min 47 s, rapids 25 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 4 min 9 s
-  Operation 2 (Outline): 6 min 3 s
+  Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.1 m, 12 lifts
+  Operation 2 (Outline): 6 min 3 s; cutting 10.5 m, plunging 6 mm, rapids 995 mm, 6 lifts
+  In all: cutting 15.1 m, plunging 54 mm, rapids 2.1 m, 18 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -976,8 +1024,9 @@ Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 33 s (cutting 1 min 28 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 30 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Holes): 30 s; cutting 535 mm, plunging 16 mm, rapids 84 mm, 2 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 95 mm, 1 lift
+  In all: cutting 2.3 m, plunging 17 mm, rapids 180 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -994,8 +1043,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 50 s (cutting 1 min 44 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 48 s
-  Operation 2 (Outline): 59 s
+  Operation 1 (Holes): 48 s; cutting 869 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline): 59 s; cutting 1.8 m, plunging 1 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 17 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -1012,8 +1062,9 @@ Operation 1: a ring starts at (119.765, 78.270) (default)
 Operation 2: a ring starts at (100.176, 123.999) (start point 1)
 Estimated time: 1 min 50 s (cutting 1 min 44 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 47 s
-  Operation 2 (Outline): 59 s
+  Operation 1 (Holes): 47 s; cutting 864 mm, plunging 16 mm, rapids 138 mm, 4 lifts
+  Operation 2 (Outline): 59 s; cutting 1.8 m, plunging 1 mm, rapids 62 mm, 1 lift
+  In all: cutting 2.6 m, plunging 17 mm, rapids 199 mm, 5 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -1030,8 +1081,9 @@ Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 43 s (cutting 1 min 38 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 40 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Holes): 40 s; cutting 760 mm, plunging 8 mm, rapids 84 mm, 2 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 95 mm, 1 lift
+  In all: cutting 2.5 m, plunging 9 mm, rapids 180 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -1048,8 +1100,9 @@ Operation 1: a ring starts at (153.000, 123.000) (default)
 Operation 2: a ring starts at (60.000, 47.000) (default)
 Estimated time: 2 min 19 s (cutting 2 min 12 s, rapids 4 s, spindle 3 s)
 Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 6 s
-  Operation 2 (Outline): 1 min 9 s
+  Operation 1 (Holes): 1 min 6 s; cutting 1.6 m, plunging 3 mm, rapids 127 mm, 3 lifts
+  Operation 2 (Outline): 1 min 9 s; cutting 2.0 m, plunging 1 mm, rapids 183 mm, 1 lift
+  In all: cutting 3.6 m, plunging 4 mm, rapids 310 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -1066,8 +1119,9 @@ Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
 Estimated time: 1 min 33 s (cutting 1 min 28 s, rapids 2 s, spindle 3 s)
 Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 30 s
-  Operation 2 (Outline): 1 min 0 s
+  Operation 1 (Holes): 30 s; cutting 535 mm, plunging 16 mm, rapids 84 mm, 2 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 95 mm, 1 lift
+  In all: cutting 2.3 m, plunging 17 mm, rapids 180 mm, 3 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.033 mm/tooth
@@ -1084,8 +1138,9 @@ Operation 1: a ring starts at (133.000, 153.000) (default)
 Operation 2: a ring starts at (130.000, 77.000) (start point 1)
 Estimated time: 2 min 18 s (cutting 2 min 12 s, rapids 3 s, spindle 3 s)
 Cut outline: 212.000 × 132.000 mm (X 24.000 … 236.000, Y 74.000 … 206.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 6 s
-  Operation 2 (Outline): 1 min 9 s
+  Operation 1 (Holes): 1 min 6 s; cutting 1.6 m, plunging 3 mm, rapids 127 mm, 3 lifts
+  Operation 2 (Outline): 1 min 9 s; cutting 2.0 m, plunging 1 mm, rapids 122 mm, 1 lift
+  In all: cutting 3.6 m, plunging 4 mm, rapids 249 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth
@@ -1102,8 +1157,9 @@ Operation 1: a ring starts at (33.000, 113.000) (default)
 Operation 2: a ring starts at (133.000, 110.000) (start point 1)
 Estimated time: 2 min 18 s (cutting 2 min 12 s, rapids 3 s, spindle 3 s)
 Cut outline: 132.000 × 212.000 mm (X 4.000 … 136.000, Y 4.000 … 216.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Holes): 1 min 7 s
-  Operation 2 (Outline): 1 min 9 s
+  Operation 1 (Holes): 1 min 7 s; cutting 1.6 m, plunging 3 mm, rapids 160 mm, 3 lifts
+  Operation 2 (Outline): 1 min 9 s; cutting 2.0 m, plunging 1 mm, rapids 107 mm, 1 lift
+  In all: cutting 3.6 m, plunging 4 mm, rapids 267 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Holes): 0.042 mm/tooth

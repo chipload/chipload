@@ -242,10 +242,11 @@ exit 0
 warning: Operation 1 (Engrave): the V-groove is 1.932 mm wide at the top
 Estimated time: 1 min 19 s (cutting 1 min 10 s, rapids 2 s, spindle 6 s), plus 1 tool change
 Cut outline: 160.000 × 130.000 mm (X 20.000 … 180.000, Y 10.000 … 140.000, the tool included): the smallest stock that holds the job.
-  Operation 1 (Engrave): 30 s
-  Operation 2 (Groove): 43 s
+  Operation 1 (Engrave): 30 s; cutting 560 mm, plunging 5 mm, rapids 96 mm, 2 lifts
+  Operation 2 (Groove): 43 s; cutting 683 mm, plunging 2 mm, rapids 101 mm, 2 lifts
   File 1: 33 s
   File 2: 46 s
+  In all: cutting 1.2 m, plunging 7 mm, rapids 198 mm, 4 lifts.
   At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Engrave): 0.033 mm/tooth
@@ -926,7 +927,8 @@ exit 0
 --- stdout
 Estimated time: 41 s (cutting 31 s, rapids 6 s, spindle 3 s)
 Cut outline: 113.446 × 79.800 mm (X -24.900 … 88.546, Y -24.900 … 54.900, the tool included): the smallest stock that holds the job.
-  Operation 1 (Letters): 38 s
+  Operation 1 (Letters): 38 s; cutting 349 mm, plunging 78 mm, rapids 542 mm, 28 lifts
+  In all: cutting 349 mm, plunging 78 mm, rapids 542 mm, 28 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
   Operation 1 (Letters): 0.033 mm/tooth

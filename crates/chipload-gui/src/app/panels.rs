@@ -199,6 +199,16 @@ impl ChiploadApp {
                 }
             }
         });
+        let counted = match focus {
+            Focus::Op(i) => Some(chipload_job::OpRef::op(i)),
+            Focus::RestPass(i, k) => Some(chipload_job::OpRef::pass(i, k)),
+            Focus::FloorPass(i) => Some(chipload_job::OpRef::pass(i, 0)),
+            _ => None,
+        };
+        if let Some(at) = counted {
+            let statistics = self.statistics_of(at);
+            forms::statistics_section(ui, &statistics);
+        }
         // The map was for this form only (library windows draw the same rows).
         problems::set_form_problems(ui, std::collections::BTreeMap::new());
         if op_request.use_selection {

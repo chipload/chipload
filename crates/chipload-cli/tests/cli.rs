@@ -1121,6 +1121,35 @@ fn plan_and_run_say_how_long_the_job_takes() {
 }
 
 #[test]
+fn plan_gives_each_operations_lengths_and_lifts() {
+    // docs/specs/operation-statistics.md §3.3
+    let project = corpus("jobs/v11/two_tools.chipload");
+    let out = chipload(&["plan", path(&project), "--json"]);
+    let plan: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let estimate = &plan["estimate"];
+    let number = |v: &serde_json::Value, key: &str| v[key].as_f64().unwrap();
+    let mut cutting = 0.0;
+    for op in estimate["operations"].as_array().unwrap() {
+        assert!(number(op, "cutting_mm") > 0.0, "{op}");
+        assert!(op["lifts"].as_u64().unwrap() > 0, "{op}");
+        let seconds = number(op, "cutting_s") + number(op, "rapid_s");
+        assert!((seconds - number(op, "seconds")).abs() < 1e-9, "{op}");
+        cutting += number(op, "cutting_mm");
+    }
+    // The job's own count holds the moves between operations too.
+    assert!(
+        number(estimate, "cutting_mm") >= cutting - 1e-9,
+        "{estimate}"
+    );
+    for key in ["plunge_mm", "rapid_mm"] {
+        assert!(number(estimate, key) > 0.0, "{key}");
+    }
+    let said = text(&chipload(&["plan", path(&project)]).stdout);
+    assert_eq!(said.matches("; cutting ").count(), 2, "{said}");
+    assert!(said.contains("  In all: cutting "), "{said}");
+}
+
+#[test]
 fn run_writes_a_setup_sheet_next_to_the_gcode() {
     // docs/specs/setup-sheet.md §4
     let dir = temp_dir("sheet");
