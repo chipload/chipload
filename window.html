@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.31.0 user guide</title>
+        <title>The window - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -270,6 +270,8 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 pocket <em>Add rest pass ▸</em> (a <a href="operations/rest.html">rest pass</a> shows under it), and
 <em>Delete</em>.</li>
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
+<li><strong>A project tool:</strong> <em>Delete</em>, greyed while an operation or a rest or floor pass cuts
+with it (its hover says which).</li>
 <li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em> and <em>Import image…</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
@@ -281,7 +283,8 @@ setup</em>.</li>
 </ul>
 </li>
 <li><strong>Del</strong> deletes what Properties shows: an operation or a rest pass picked in the
-Browser, a text opened there, or else what is selected on the canvas (drawn shapes, or a
+Browser, a text opened there, a project tool nothing cuts with, a library tool or machine
+(as its <em>Delete</em>: the library has no undo, its file keeps a <code>.bak</code>), or else what is selected on the canvas (drawn shapes, or a
 text, a picture or a DXF as a whole). Parts and setups take their operations with them,
 so they are deleted only from their right-click menu. <strong>Ctrl+Z</strong> brings anything back.</li>
 <li><strong>The triangle</strong> opens and closes a folder, and so does a click on a plain folder like
@@ -398,7 +401,8 @@ the edit, and traces the picture again. <em>Trace settings…</em> opens its
 </ul>
 <p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
-both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+both. A new project, empty or imported, starts on its setup, with the stock to fill in
+first. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <ul>
 <li>what is selected, by contour number;</li>

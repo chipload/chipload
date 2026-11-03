@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Follow path - Chipload 0.31.0 user guide</title>
+        <title>Follow path - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -198,12 +198,16 @@ cut that layer’s centre lines.</p>
 </thead>
 <tbody>
 <tr><td><strong>Start depth</strong>, <strong>End depth</strong>, <strong>Step down</strong></td><td>as on every operation</td></tr>
-<tr><td><strong>Entry</strong></td><td><em>plunge</em>, or <em>ramp</em> along the path. A pointed V-bit counts as centre-cutting.</td></tr>
+<tr><td><strong>Entry</strong></td><td><em>plunge</em>, or <em>ramp</em> along the path. A pointed V-bit counts as centre-cutting. A tool marked not centre-cutting ramps only along a path at least its diameter long.</td></tr>
 <tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min</td></tr>
 </tbody>
 </table>
 </div>
 <p>There is no side, oversize, tabs, lead or start point: the tool is on the line.</p>
+<p><strong>With a V-bit</strong>, the groove’s width at the top follows from the depth and the bit’s angle;
+the report and the setup sheet give it. A V-bit goes no deeper than its cone (12.7 mm at 60° with a 0.2 mm tip:
+10.8 mm deep): deeper, its shank would rub, so such a path is refused. Use an end mill for a
+deeper slot.</p>
 <h2 id="in-the-file"><a class="header" href="#in-the-file">In the file</a></h2>
 <p><code>"type": "path"</code> in the <a href="../reference/project-file.html#operation">project file</a>. Lengths are
 in mm, feeds in mm/min, angles in radians.</p>

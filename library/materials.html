@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Materials - Chipload 0.31.0 user guide</title>
+        <title>Materials - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -178,82 +178,75 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="materials"><a class="header" href="#materials">Materials</a></h1>
-<p>A material keeps <strong>your own</strong> feeds, step down and stepover for each tool you use with it:
-the numbers that work on your machine. Choose a material for an operation, or for the whole
-project, and the operations cut with them.</p>
+<p>A material is a name, “Plywood”, “Oak”, “MDF” or “Plywood careful”, that you choose for an
+operation or for a whole setup. Its numbers are <strong>your own</strong>: each tool keeps them in its
+<a href="tools.html#cutting-data">cutting data</a>, one row per material. Choose a material, and the
+operations cut with their tools’ rows for it.</p>
 <p>Chipload has no built-in materials and doesn’t calculate feeds. Catalogue values are made
 for rigid industrial machines; a hobby router wants far less. As an example, a Shapeoko
 cutting wood with a 6 mm 2-flute bit runs about 1500 mm/min with a 2–2.5 mm step down. Start
 from what you know works on yours.</p>
 <p>A material is about feeds only: choosing one never changes the stock or any depth.</p>
-<h2 id="what-a-material-holds"><a class="header" href="#what-a-material-holds">What a material holds</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th></th><th></th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Name</strong></td><td>“Plywood”, “Oak”, “MDF”, or “Plywood careful”: unique in your library</td></tr>
-<tr><td><strong>Values per tool</strong></td><td>for each tool of your <a href="tools.html">tool library</a>: feed, plunge feed, step down and stepover</td></tr>
-</tbody>
-</table>
-</div>
-<p>A material only needs values for the tools you use with it.</p>
 <h2 id="making-one"><a class="header" href="#making-one">Making one</a></h2>
-<p>The quickest way is from a job that cut well:</p>
-<ol>
-<li>Make a material under <em>This computer &gt; Materials &gt; New material</em>, and choose it in an
-operation’s <strong>Material</strong> list, under its tool.</li>
-<li>Cut, and adjust the operation’s feeds or step down until they’re right.</li>
-<li>Its <strong>Material</strong> row then says <em>Changed from Plywood</em>: click <strong>Save to Plywood</strong>. The next
-operation in plywood starts with these values.</li>
-</ol>
-<p>You can also type them in: <em>This computer &gt; Materials</em>, click the material, <em>Add a tool…</em>,
-then fill in the values and <strong>Save</strong>.</p>
+<p><em>This computer &gt; Materials &gt; New material</em>, then name it. Its page lists the tools with
+values for it; click one to open its cutting data. To give it values:</p>
+<ul>
+<li><strong>From a job that cut well:</strong> choose the material in an operation’s <strong>Material</strong> list,
+under its tool. Cut, and adjust the operation’s feeds or step down until they’re right.
+Its <strong>Material</strong> row then says <em>Changed from Plywood</em>: click <strong>Save to Plywood</strong>. The values
+the operation uses go into its tool’s Plywood row (a profile its slot values, a pocket
+both); the row’s others stay. A tool without a Plywood row gets one.</li>
+<li><strong>By hand:</strong> open the tool (<em>This computer &gt; Tools</em>), and under <strong>Cutting data</strong>, <em>Add a
+material…</em>.</li>
+</ul>
 <p>The tool must be in your tool library: the values belong to that library tool, so every
 project that uses it finds them. A tool only in the project is saved to the library first
 (<em>Save to library…</em> on the tool).</p>
 <h2 id="choosing-a-material"><a class="header" href="#choosing-a-material">Choosing a material</a></h2>
-<p><strong>For one operation:</strong> its <strong>Material</strong> list, under <em>Tool</em>. The operation takes the
-material’s values for its tool: feed and plunge feed, step down, and stepover for pockets (a
-surface keeps its own wide stepover). A material without values for the tool is listed as
-“Plywood (no values for this tool)”; choosing it changes nothing yet, and <em>Save to Plywood</em>
-fills it from the operation. <em>None</em> leaves the operation’s feeds as they are.</p>
+<p><strong>For one operation:</strong> its <strong>Material</strong> list, under <em>Tool</em>. The operation takes its tool’s
+row for the material, else its row for <em>Any material</em>: the values it uses (a profile the
+slot values, a pocket both, a surface the clearing ones and its own wide stepover). A
+material the tool has neither row for is listed as “Plywood (no values for this tool)”;
+choosing it changes nothing yet, and <em>Save to Plywood</em> fills it from the operation. <em>None</em>
+leaves the operation’s feeds as they are.</p>
 <p><strong>For every operation:</strong> the setup’s <em>Material</em>, or <em>Use for all operations</em> on a
 material. As one step (one Undo takes it back) every operation takes the material and its
 values; an operation whose tool has no values there keeps its own, and the report says so.
-Operations you add later start with this material.</p>
+Each project tool also takes its row’s spindle speed. Operations you add later start with
+this material.</p>
 <p><strong>For new projects:</strong> <em>Make default</em> on a material (<code>chipload material default Plywood</code>,
 <code>--none</code> to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.</p>
-<p><strong>Changing an operation’s tool</strong> takes its material’s values for the new tool, when the
-material has some.</p>
+<p><strong>Changing an operation’s tool</strong> takes the new tool’s values for its material, when it has
+some.</p>
 <p>Each operation’s material row says where its values stand: <em>From Plywood</em>, <em>Changed from
 Plywood</em> (with <em>Use Plywood’s</em> and <em>Save to Plywood</em>), or <em>Plywood has no values for this
 tool</em> (with <em>Save to Plywood</em>). Editing a feed by hand keeps the material; the row then says
-<em>Changed from Plywood</em>.</p>
+<em>Changed from Plywood</em>. When the tool’s Plywood row is for another spindle speed than the
+tool runs at, the row says that too.</p>
 <p>The project keeps only each material’s name (<code>material</code> on each operation, and on the
 stock for the operations added later). The values are already in the operations, so the
 project cuts the same on a computer without that material.</p>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
 <pre><code>chipload material add Plywood
-chipload material set Plywood --tool "6 mm 2-flute" --feed 1500 --plunge-feed 500 --step-down 2.5 --stepover 0.4
-chipload material list                         # every material with its values per tool
+chipload tool cutting "6 mm 2-flute" --material Plywood --plunge-feed 500 \
+  --slot-feed 1500 --slot-step-down 2.5 --feed 1800 --step-down 5 --stepover 0.4
+chipload material list                         # every material with its tools' rows
 chipload material show Plywood
 chipload material default Plywood              # new projects start with it (--none: no default)
 chipload material use part.chipload Plywood    # every operation, and those added later (--none: no material)
 chipload material use part.chipload Plywood --op 2   # operation 2 alone
-chipload material save part.chipload --op 2    # keep operation 2's values in its material (--material NAME)
+chipload material save part.chipload --op 2    # operation 2's values into its tool's row (--material NAME)
 chipload material set Plywood --rename "Birch ply"
-chipload material remove Plywood --tool "6 mm 2-flute"   # one tool's values (without --tool: the material)
+chipload material remove Plywood               # and every tool's row for it
 chipload material export materials-backup.json # (--name NAME, repeatable)
 chipload material import materials-backup.json [--replace]
 </code></pre>
 <p><code>chipload op tool</code> on an operation with a material takes the material’s values for the new
 tool too.</p>
-<p>Removing a tool from the library (<code>tool remove</code>, or <em>Delete</em> on the tool) removes its
-values from every material. Materials live in <code>materials.json</code> in the settings folder,
-beside the tool library; see the <a href="../reference/materials-file.html">Materials file</a>.</p>
+<p>Removing a material removes every tool’s row for it. Materials, names only, live in
+<code>materials.json</code> in the settings folder, beside the tool library; see the <a href="../reference/materials-file.html">Materials
+file</a>. The rows live in <code>tools.json</code>.</p>
 
                     </main>
 

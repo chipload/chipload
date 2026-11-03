@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Tool library - Chipload 0.31.0 user guide</title>
+        <title>Tool library - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -214,8 +214,18 @@ how they stand:</p>
 <li><strong>Pick another tool in the dropdown</strong> to give the project tool its values.</li>
 <li><strong>⋯</strong> beside it: <em>Save as new…</em> keeps the project tool’s values under another name;
 <em>Show in library</em> opens the library tool.</li>
-<li>A new operation gets a library tool’s cutting values while the project tool still has the
-library tool’s values.</li>
+<li>A new operation gets the library tool’s <a href="#cutting-data">cutting data</a> while the project
+tool still has the library tool’s values.</li>
+<li><strong>After you change a library tool</strong>, its properties list the open project’s copies that
+now differ (“T3 in this project differs: diameter 6 mm -&gt; 6.35 mm”), each with <strong>Update in
+this project</strong>.</li>
+<li><strong>When you open a project</strong>, the report lists each tool that differs from its library
+tool; click a line to open the tool, or <strong>Update all from library</strong> (also in the
+right-click menu of the project’s <em>Tools</em>, and on the Tools page). Nothing changes
+until you choose: a project keeps the tools it was made with, so a proven job cuts as it
+did.</li>
+<li>A spindle speed that the setup’s <a href="materials.html">material</a> set from the tool’s cutting data
+is not a difference, and updating keeps it.</li>
 </ul>
 <h2 id="what-a-tool-has"><a class="header" href="#what-a-tool-has">What a tool has</a></h2>
 <p>The project tool’s values (<a href="../concepts/tools.html">Tools and tool changes</a>), plus:</p>
@@ -223,16 +233,53 @@ library tool’s values.</li>
 <li><strong>Name:</strong> how you find it, e.g. “6 mm 2F upcut”.</li>
 <li><strong>Tool number:</strong> the id it gets in a project, when that number is free there.</li>
 <li><strong>Flutes:</strong> used for the <a href="../checking/time.html#chip-load">chip load</a>.</li>
-<li><strong>Cutting values</strong> (optional): feed, plunge feed, step down and stepover. A new operation
-made with this tool starts with them. They never change an existing operation. Without
-them, a new operation copies the operation above it, or starts from the tool’s
-diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
-step down. Check the <a href="../checking/time.html#chip-load">chip load</a> before cutting.</li>
+<li><strong>Cutting data</strong> (optional): your own feeds and step downs, one row per
+<a href="materials.html">material</a>. See below.</li>
 </ul>
+<h2 id="cutting-data"><a class="header" href="#cutting-data">Cutting data</a></h2>
+<p>How hard a bit can work depends on how wide it cuts. A <strong>slot</strong>, the full width of the bit,
+loads it most: a profile through the stock, a follow path, a V-carve, a bore, and a
+pocket’s first ring at each depth. A cut at a <strong>stepover</strong>, the rest of a pocket’s rings
+and a surface, takes only part of the width, so it can go deeper at once. So a row of cutting
+data has two sets of values:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Spindle speed</strong></td><td>the speed the row is for; <em>The tool’s</em> when it’s the tool’s own</td></tr>
+<tr><td><strong>Plunge feed</strong></td><td>going straight down, and drilling</td></tr>
+<tr><td><strong>Slot feed</strong>, <strong>Slot step down</strong></td><td>full-width cuts</td></tr>
+<tr><td><strong>Clearing feed</strong>, <strong>Clearing step down</strong>, <strong>Stepover</strong></td><td>cuts at a stepover</td></tr>
+</tbody>
+</table>
+</div>
+<p>There is one row per material you cut with the tool, and one for <strong>Any material</strong>, used
+without a material or for a material the tool has no row for. In the tool’s properties,
+<strong>Cutting data</strong> lists the rows, each folded to a summary (<em>slot 1500 / 2.5 · clearing
+1800 / 5 × 0.4</em>); open one to edit it, <strong>Remove</strong> it, or <strong>Add a material…</strong> for another row.
+A new row starts from the <em>Any material</em> row.</p>
+<p>The values fill an operation when you choose a material for it, change its tool, or add it,
+never by themselves. Each operation takes the ones it uses: a profile its slot values, a
+pocket both (its full-width rings go down in slot steps, see <a href="../operations/pocket.html#rings">Pocket</a>),
+a surface the clearing ones. Choosing a material for a whole setup also sets the project
+tool’s speed from the row. When an operation’s own material is for another speed than the
+tool runs at, its <em>Material</em> row says so.</p>
+<p>Without cutting data, a new operation copies the operation above it, or starts from the
+tool’s diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
+1 mm step down. Check the <a href="../checking/time.html#chip-load">chip load</a> before cutting.</p>
+<p>Libraries from before Chipload 0.32 had one set of values per tool, and the values per tool
+in each material. The first time 0.32 reads such a library, they become rows: slot and
+clearing the same, so nothing cuts differently until you change them. The old files are
+kept as <code>.bak</code>, and the report says what moved.</p>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
 <pre><code class="language-sh">chipload tool list                                     # the tools, and where the file is
-chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000 \
-  --feed 1500 --plunge-feed 400 --step-down 2 --stepover 0.4
+chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000
+chipload tool cutting "6 mm 2F" --material any --plunge-feed 400 \
+  --slot-feed 1500 --slot-step-down 2 --feed 1800 --step-down 4 --stepover 0.4
+chipload tool cutting "6 mm 2F" --material Oak --rpm 20000 --slot-feed 1200   # a row there keeps the rest
+chipload tool cutting "6 mm 2F" --material Oak --remove
 chipload tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2
 chipload tool add "5 mm drill" --type drill --diameter 5 --rpm 3000
 chipload tool set "6 mm 2F" --rpm 20000                # or --rename
@@ -240,9 +287,11 @@ chipload tool default "6 mm 2F"
 chipload tool use "V 60" part.chipload                 # copy into a project; prints its id there
 chipload tool save part.chipload --tool 2 --name "3 mm downcut"   # links tool 2 to it
 chipload tool compare part.chipload                # each project tool: same, differs, not in the library, or not from it
+chipload tool update part.chipload [--tool 3]      # tools that differ take the library's values
 chipload tool remove "5 mm drill"
 </code></pre>
-<p>Cutting values come as a set: give all four, or none.</p>
+<p>A new row needs every value but <code>--rpm</code> (without it, the tool’s own speed); a row that is
+there keeps the values you don’t give. <code>tool list</code> shows each tool’s rows.</p>
 <h2 id="sharing"><a class="header" href="#sharing">Sharing</a></h2>
 <p><code>chipload tool export tools.json [--name …]</code> writes your tools, or some of them, to a file.
 <code>chipload tool import FILE</code> adds a file’s tools:</p>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Pocket - Chipload 0.31.0 user guide</title>
+        <title>Pocket - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -201,6 +201,15 @@ between rings. Where an island is close to the wall (less than a tool diameter),
 rings and the wall’s take turns there, so no ring meets more than a stepover of material.</li>
 <li><strong>Stepover:</strong> the distance between rings, as a fraction of the tool diameter (0.4 by
 default).</li>
+<li><strong>Full-width rings:</strong> the first ring at each depth (and the first of each branch, where
+the pocket parts in two) has no ring inside it, so the bit cuts its whole width, as in a
+slot. The others take only the stepover. So the full-width rings have their own <strong>Slot
+feed</strong> and <strong>Slot step down</strong>: at each depth, they go down in slot steps first, and then
+the other rings cut the whole step down at once. For example, with a step down of 5 mm
+and a slot step down of 2.5 mm, the first ring is cut at 2.5 and then at 5 mm, and the
+rings out to the wall at 5 mm. Left empty, they are the feed and step down: every ring
+cuts the same, as before. They usually come from the tool’s
+<a href="../library/tools.html#cutting-data">cutting data</a>.</li>
 <li><strong>Rounded inner rings:</strong> every ring but the wall ring has rounded corners (up to two
 stepovers in radius), for smoother, faster motion. Where rounding would leave material,
 the corners are rounded less.</li>
@@ -272,6 +281,8 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>clearance</code></td><td>Oversize</td></tr>
 <tr><td><code>step_down</code></td><td>Step down</td></tr>
 <tr><td><code>stepover</code></td><td>Stepover, a fraction of the tool diameter</td></tr>
+<tr><td><code>slot_feed</code></td><td>Slot feed: the full-width rings’ feed; null: <code>feed</code></td></tr>
+<tr><td><code>slot_step_down</code></td><td>Slot step down: how deep each step of a full-width ring goes; null: <code>step_down</code></td></tr>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
 <tr><td><code>entry</code></td><td>Entry: plunge, ramp, or <code>{"type": "helix", "radius": …, "ramp_angle": …}</code></td></tr>
@@ -280,7 +291,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
 <tr><td><code>corner_choices</code></td><td>corners with their own choice, as on <a href="profile.html#in-the-file">profiles</a>; left out when there are none</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
-<tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, entry, enabled}</code>; left out when there are none</td></tr>
+<tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, slot_feed, slot_step_down, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>
 </table>
 </div>

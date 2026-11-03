@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Holes - Chipload 0.31.0 user guide</title>
+        <title>Holes - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -180,7 +180,8 @@
                         <h1 id="holes"><a class="header" href="#holes">Holes</a></h1>
 <p><strong>Holes</strong> cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
-note), then <strong>Holes</strong> (ribbon, OPERATION). Circles drawn in Chipload count, and so do imported circles,
+note), then <strong>Holes</strong> (ribbon, OPERATION). It takes a drill of the project that fits the
+circles, if there is one. Circles drawn in Chipload count, and so do imported circles,
 including ones drawn as two half arcs.</p>
 <p>The tool decides how:</p>
 <div class="table-wrapper">
@@ -199,9 +200,14 @@ including ones drawn as two half arcs.</p>
 <ul>
 <li>The drill feeds straight down at the hole’s centre.</li>
 <li><strong>Pecks</strong> (optional): it drills that many mm, rapids up to clear the chips, rapids back
-down to 0.5 mm above the bottom, and drills on.</li>
+down to 0.5 mm above the bottom, and drills on. Turned on, they start at one drill
+diameter. A hole deeper than three diameters drilled in one go gets a note: the chips
+can pack and the drill bind.</li>
 <li><strong>End depth</strong> is the depth of the drill’s <strong>point</strong>. The full diameter ends a little
 higher, about 0.3 × the diameter for a 118° point.</li>
+<li><strong>Through</strong> takes that into account: the point goes its length deeper, so the full
+diameter goes <em>Through</em> below the stock (an 8 mm drill in 12 mm stock with 0.5 mm: point
+at 14.9 mm). The <em>max depth below stock</em> is for the full diameter; the point goes below it.</li>
 <li><strong>Plain moves:</strong> the holes are written as plain G0/G1 moves, not canned cycles, so they
 run the same on every controller and the checker reads them. The checker allows exactly
 one kind of rapid below the stock top: straight back into the hole just drilled.</li>
@@ -213,8 +219,9 @@ per turn and never steeper than the ramp angle. Then it cuts one level circle at
 bottom, for a flat floor and a clean wall.</li>
 <li><strong>Size:</strong> the hole comes out at its drawn size.</li>
 <li><strong>Any endmill:</strong> the helix never plunges, so a tool that isn’t centre-cutting is fine.</li>
-<li><strong>Too small:</strong> a hole must be larger than the tool, by at least a tenth of the tool’s
-diameter. Smaller holes are skipped, with a note.</li>
+<li><strong>Too small:</strong> a hole must be larger than the tool by at least a fifth of its diameter (a
+6 mm endmill bores holes from 7.2 mm). Smaller holes are skipped, with a note that says
+the smallest; when none is large enough, the operation is refused, saying so.</li>
 <li><strong>Larger holes:</strong> more than twice the tool’s diameter, the helix cuts a ring and leaves a
 core.
 <ul>

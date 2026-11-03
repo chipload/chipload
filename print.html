@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.31.0 user guide</title>
+        <title>Chipload 0.32.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-58b32aa4.js"></script>
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -579,6 +579,8 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 pocket <em>Add rest pass ▸</em> (a <a href="#rest-machining-1">rest pass</a> shows under it), and
 <em>Delete</em>.</li>
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
+<li><strong>A project tool:</strong> <em>Delete</em>, greyed while an operation or a rest or floor pass cuts
+with it (its hover says which).</li>
 <li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em> and <em>Import image…</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
@@ -590,7 +592,8 @@ setup</em>.</li>
 </ul>
 </li>
 <li><strong>Del</strong> deletes what Properties shows: an operation or a rest pass picked in the
-Browser, a text opened there, or else what is selected on the canvas (drawn shapes, or a
+Browser, a text opened there, a project tool nothing cuts with, a library tool or machine
+(as its <em>Delete</em>: the library has no undo, its file keeps a <code>.bak</code>), or else what is selected on the canvas (drawn shapes, or a
 text, a picture or a DXF as a whole). Parts and setups take their operations with them,
 so they are deleted only from their right-click menu. <strong>Ctrl+Z</strong> brings anything back.</li>
 <li><strong>The triangle</strong> opens and closes a folder, and so does a click on a plain folder like
@@ -707,7 +710,8 @@ the edit, and traces the picture again. <em>Trace settings…</em> opens its
 </ul>
 <p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
-both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+both. A new project, empty or imported, starts on its setup, with the stock to fill in
+first. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <ul>
 <li>what is selected, by contour number;</li>
@@ -2320,6 +2324,9 @@ may take more than one lap);</li>
 </ul>
 <p>A steeper angle makes the ramp shorter: 4 mm at 3° takes 76 mm of contour, at 10° 23 mm.
 In the file the angle is <code>ramp_angle</code>, in radians.</p>
+<p>A tool marked not centre-cutting needs a ring at least its diameter long to ramp on (a
+small hole profiled inside can be shorter): its centre doesn’t cut, and on a shorter ring it
+never moves off the material under it. Such a ring is refused; use a centre-cutting tool.</p>
 <h2 id="holding-the-part"><a class="header" href="#holding-the-part">Holding the part</a></h2>
 <p><strong>Holding</strong> chooses how a part that is cut out stays in place: <em>none</em>, <em>tabs</em>, <em>onion
 skin</em>, or <em>onion skin and tabs</em>. Only the chosen kind’s settings show.</p>
@@ -2515,6 +2522,15 @@ between rings. Where an island is close to the wall (less than a tool diameter),
 rings and the wall’s take turns there, so no ring meets more than a stepover of material.</li>
 <li><strong>Stepover:</strong> the distance between rings, as a fraction of the tool diameter (0.4 by
 default).</li>
+<li><strong>Full-width rings:</strong> the first ring at each depth (and the first of each branch, where
+the pocket parts in two) has no ring inside it, so the bit cuts its whole width, as in a
+slot. The others take only the stepover. So the full-width rings have their own <strong>Slot
+feed</strong> and <strong>Slot step down</strong>: at each depth, they go down in slot steps first, and then
+the other rings cut the whole step down at once. For example, with a step down of 5 mm
+and a slot step down of 2.5 mm, the first ring is cut at 2.5 and then at 5 mm, and the
+rings out to the wall at 5 mm. Left empty, they are the feed and step down: every ring
+cuts the same, as before. They usually come from the tool’s
+<a href="#cutting-data">cutting data</a>.</li>
 <li><strong>Rounded inner rings:</strong> every ring but the wall ring has rounded corners (up to two
 stepovers in radius), for smoother, faster motion. Where rounding would leave material,
 the corners are rounded less.</li>
@@ -2586,6 +2602,8 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>clearance</code></td><td>Oversize</td></tr>
 <tr><td><code>step_down</code></td><td>Step down</td></tr>
 <tr><td><code>stepover</code></td><td>Stepover, a fraction of the tool diameter</td></tr>
+<tr><td><code>slot_feed</code></td><td>Slot feed: the full-width rings’ feed; null: <code>feed</code></td></tr>
+<tr><td><code>slot_step_down</code></td><td>Slot step down: how deep each step of a full-width ring goes; null: <code>step_down</code></td></tr>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
 <tr><td><code>entry</code></td><td>Entry: plunge, ramp, or <code>{"type": "helix", "radius": …, "ramp_angle": …}</code></td></tr>
@@ -2594,7 +2612,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
 <tr><td><code>corner_choices</code></td><td>corners with their own choice, as on <a href="#in-the-file-1">profiles</a>; left out when there are none</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
-<tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, entry, enabled}</code>; left out when there are none</td></tr>
+<tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, slot_feed, slot_step_down, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>
 </table>
 </div>
@@ -2853,12 +2871,16 @@ cut that layer’s centre lines.</p>
 </thead>
 <tbody>
 <tr><td><strong>Start depth</strong>, <strong>End depth</strong>, <strong>Step down</strong></td><td>as on every operation</td></tr>
-<tr><td><strong>Entry</strong></td><td><em>plunge</em>, or <em>ramp</em> along the path. A pointed V-bit counts as centre-cutting.</td></tr>
+<tr><td><strong>Entry</strong></td><td><em>plunge</em>, or <em>ramp</em> along the path. A pointed V-bit counts as centre-cutting. A tool marked not centre-cutting ramps only along a path at least its diameter long.</td></tr>
 <tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min</td></tr>
 </tbody>
 </table>
 </div>
 <p>There is no side, oversize, tabs, lead or start point: the tool is on the line.</p>
+<p><strong>With a V-bit</strong>, the groove’s width at the top follows from the depth and the bit’s angle;
+the report and the setup sheet give it. A V-bit goes no deeper than its cone (12.7 mm at 60° with a 0.2 mm tip:
+10.8 mm deep): deeper, its shank would rub, so such a path is refused. Use an end mill for a
+deeper slot.</p>
 <h2 id="in-the-file-4"><a class="header" href="#in-the-file-4">In the file</a></h2>
 <p><code>"type": "path"</code> in the <a href="#operation">project file</a>. Lengths are
 in mm, feeds in mm/min, angles in radians.</p>
@@ -2886,7 +2908,8 @@ in mm, feeds in mm/min, angles in radians.</p>
 <h1 id="holes"><a class="header" href="#holes">Holes</a></h1>
 <p><strong>Holes</strong> cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
-note), then <strong>Holes</strong> (ribbon, OPERATION). Circles drawn in Chipload count, and so do imported circles,
+note), then <strong>Holes</strong> (ribbon, OPERATION). It takes a drill of the project that fits the
+circles, if there is one. Circles drawn in Chipload count, and so do imported circles,
 including ones drawn as two half arcs.</p>
 <p>The tool decides how:</p>
 <div class="table-wrapper">
@@ -2905,9 +2928,14 @@ including ones drawn as two half arcs.</p>
 <ul>
 <li>The drill feeds straight down at the hole’s centre.</li>
 <li><strong>Pecks</strong> (optional): it drills that many mm, rapids up to clear the chips, rapids back
-down to 0.5 mm above the bottom, and drills on.</li>
+down to 0.5 mm above the bottom, and drills on. Turned on, they start at one drill
+diameter. A hole deeper than three diameters drilled in one go gets a note: the chips
+can pack and the drill bind.</li>
 <li><strong>End depth</strong> is the depth of the drill’s <strong>point</strong>. The full diameter ends a little
 higher, about 0.3 × the diameter for a 118° point.</li>
+<li><strong>Through</strong> takes that into account: the point goes its length deeper, so the full
+diameter goes <em>Through</em> below the stock (an 8 mm drill in 12 mm stock with 0.5 mm: point
+at 14.9 mm). The <em>max depth below stock</em> is for the full diameter; the point goes below it.</li>
 <li><strong>Plain moves:</strong> the holes are written as plain G0/G1 moves, not canned cycles, so they
 run the same on every controller and the checker reads them. The checker allows exactly
 one kind of rapid below the stock top: straight back into the hole just drilled.</li>
@@ -2919,8 +2947,9 @@ per turn and never steeper than the ramp angle. Then it cuts one level circle at
 bottom, for a flat floor and a clean wall.</li>
 <li><strong>Size:</strong> the hole comes out at its drawn size.</li>
 <li><strong>Any endmill:</strong> the helix never plunges, so a tool that isn’t centre-cutting is fine.</li>
-<li><strong>Too small:</strong> a hole must be larger than the tool, by at least a tenth of the tool’s
-diameter. Smaller holes are skipped, with a note.</li>
+<li><strong>Too small:</strong> a hole must be larger than the tool by at least a fifth of its diameter (a
+6 mm endmill bores holes from 7.2 mm). Smaller holes are skipped, with a note that says
+the smallest; when none is large enough, the operation is refused, saying so.</li>
 <li><strong>Larger holes:</strong> more than twice the tool’s diameter, the helix cuts a ring and leaves a
 core.
 <ul>
@@ -3060,8 +3089,18 @@ how they stand:</p>
 <li><strong>Pick another tool in the dropdown</strong> to give the project tool its values.</li>
 <li><strong>⋯</strong> beside it: <em>Save as new…</em> keeps the project tool’s values under another name;
 <em>Show in library</em> opens the library tool.</li>
-<li>A new operation gets a library tool’s cutting values while the project tool still has the
-library tool’s values.</li>
+<li>A new operation gets the library tool’s <a href="#cutting-data">cutting data</a> while the project
+tool still has the library tool’s values.</li>
+<li><strong>After you change a library tool</strong>, its properties list the open project’s copies that
+now differ (“T3 in this project differs: diameter 6 mm -&gt; 6.35 mm”), each with <strong>Update in
+this project</strong>.</li>
+<li><strong>When you open a project</strong>, the report lists each tool that differs from its library
+tool; click a line to open the tool, or <strong>Update all from library</strong> (also in the
+right-click menu of the project’s <em>Tools</em>, and on the Tools page). Nothing changes
+until you choose: a project keeps the tools it was made with, so a proven job cuts as it
+did.</li>
+<li>A spindle speed that the setup’s <a href="#materials">material</a> set from the tool’s cutting data
+is not a difference, and updating keeps it.</li>
 </ul>
 <h2 id="what-a-tool-has"><a class="header" href="#what-a-tool-has">What a tool has</a></h2>
 <p>The project tool’s values (<a href="#tools-and-tool-changes">Tools and tool changes</a>), plus:</p>
@@ -3069,16 +3108,53 @@ library tool’s values.</li>
 <li><strong>Name:</strong> how you find it, e.g. “6 mm 2F upcut”.</li>
 <li><strong>Tool number:</strong> the id it gets in a project, when that number is free there.</li>
 <li><strong>Flutes:</strong> used for the <a href="#chip-load">chip load</a>.</li>
-<li><strong>Cutting values</strong> (optional): feed, plunge feed, step down and stepover. A new operation
-made with this tool starts with them. They never change an existing operation. Without
-them, a new operation copies the operation above it, or starts from the tool’s
-diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
-step down. Check the <a href="#chip-load">chip load</a> before cutting.</li>
+<li><strong>Cutting data</strong> (optional): your own feeds and step downs, one row per
+<a href="#materials">material</a>. See below.</li>
 </ul>
+<h2 id="cutting-data"><a class="header" href="#cutting-data">Cutting data</a></h2>
+<p>How hard a bit can work depends on how wide it cuts. A <strong>slot</strong>, the full width of the bit,
+loads it most: a profile through the stock, a follow path, a V-carve, a bore, and a
+pocket’s first ring at each depth. A cut at a <strong>stepover</strong>, the rest of a pocket’s rings
+and a surface, takes only part of the width, so it can go deeper at once. So a row of cutting
+data has two sets of values:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Spindle speed</strong></td><td>the speed the row is for; <em>The tool’s</em> when it’s the tool’s own</td></tr>
+<tr><td><strong>Plunge feed</strong></td><td>going straight down, and drilling</td></tr>
+<tr><td><strong>Slot feed</strong>, <strong>Slot step down</strong></td><td>full-width cuts</td></tr>
+<tr><td><strong>Clearing feed</strong>, <strong>Clearing step down</strong>, <strong>Stepover</strong></td><td>cuts at a stepover</td></tr>
+</tbody>
+</table>
+</div>
+<p>There is one row per material you cut with the tool, and one for <strong>Any material</strong>, used
+without a material or for a material the tool has no row for. In the tool’s properties,
+<strong>Cutting data</strong> lists the rows, each folded to a summary (<em>slot 1500 / 2.5 · clearing
+1800 / 5 × 0.4</em>); open one to edit it, <strong>Remove</strong> it, or <strong>Add a material…</strong> for another row.
+A new row starts from the <em>Any material</em> row.</p>
+<p>The values fill an operation when you choose a material for it, change its tool, or add it,
+never by themselves. Each operation takes the ones it uses: a profile its slot values, a
+pocket both (its full-width rings go down in slot steps, see <a href="#rings">Pocket</a>),
+a surface the clearing ones. Choosing a material for a whole setup also sets the project
+tool’s speed from the row. When an operation’s own material is for another speed than the
+tool runs at, its <em>Material</em> row says so.</p>
+<p>Without cutting data, a new operation copies the operation above it, or starts from the
+tool’s diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
+1 mm step down. Check the <a href="#chip-load">chip load</a> before cutting.</p>
+<p>Libraries from before Chipload 0.32 had one set of values per tool, and the values per tool
+in each material. The first time 0.32 reads such a library, they become rows: slot and
+clearing the same, so nothing cuts differently until you change them. The old files are
+kept as <code>.bak</code>, and the report says what moved.</p>
 <h2 id="on-the-command-line-7"><a class="header" href="#on-the-command-line-7">On the command line</a></h2>
 <pre><code class="language-sh">chipload tool list                                     # the tools, and where the file is
-chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000 \
-  --feed 1500 --plunge-feed 400 --step-down 2 --stepover 0.4
+chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000
+chipload tool cutting "6 mm 2F" --material any --plunge-feed 400 \
+  --slot-feed 1500 --slot-step-down 2 --feed 1800 --step-down 4 --stepover 0.4
+chipload tool cutting "6 mm 2F" --material Oak --rpm 20000 --slot-feed 1200   # a row there keeps the rest
+chipload tool cutting "6 mm 2F" --material Oak --remove
 chipload tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2
 chipload tool add "5 mm drill" --type drill --diameter 5 --rpm 3000
 chipload tool set "6 mm 2F" --rpm 20000                # or --rename
@@ -3086,9 +3162,11 @@ chipload tool default "6 mm 2F"
 chipload tool use "V 60" part.chipload                 # copy into a project; prints its id there
 chipload tool save part.chipload --tool 2 --name "3 mm downcut"   # links tool 2 to it
 chipload tool compare part.chipload                # each project tool: same, differs, not in the library, or not from it
+chipload tool update part.chipload [--tool 3]      # tools that differ take the library's values
 chipload tool remove "5 mm drill"
 </code></pre>
-<p>Cutting values come as a set: give all four, or none.</p>
+<p>A new row needs every value but <code>--rpm</code> (without it, the tool’s own speed); a row that is
+there keeps the values you don’t give. <code>tool list</code> shows each tool’s rows.</p>
 <h2 id="sharing"><a class="header" href="#sharing">Sharing</a></h2>
 <p><code>chipload tool export tools.json [--name …]</code> writes your tools, or some of them, to a file.
 <code>chipload tool import FILE</code> adds a file’s tools:</p>
@@ -3157,82 +3235,75 @@ chipload machine remove "Shapeoko 4"
 is documented.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="materials"><a class="header" href="#materials">Materials</a></h1>
-<p>A material keeps <strong>your own</strong> feeds, step down and stepover for each tool you use with it:
-the numbers that work on your machine. Choose a material for an operation, or for the whole
-project, and the operations cut with them.</p>
+<p>A material is a name, “Plywood”, “Oak”, “MDF” or “Plywood careful”, that you choose for an
+operation or for a whole setup. Its numbers are <strong>your own</strong>: each tool keeps them in its
+<a href="#cutting-data">cutting data</a>, one row per material. Choose a material, and the
+operations cut with their tools’ rows for it.</p>
 <p>Chipload has no built-in materials and doesn’t calculate feeds. Catalogue values are made
 for rigid industrial machines; a hobby router wants far less. As an example, a Shapeoko
 cutting wood with a 6 mm 2-flute bit runs about 1500 mm/min with a 2–2.5 mm step down. Start
 from what you know works on yours.</p>
 <p>A material is about feeds only: choosing one never changes the stock or any depth.</p>
-<h2 id="what-a-material-holds"><a class="header" href="#what-a-material-holds">What a material holds</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th></th><th></th></tr>
-</thead>
-<tbody>
-<tr><td><strong>Name</strong></td><td>“Plywood”, “Oak”, “MDF”, or “Plywood careful”: unique in your library</td></tr>
-<tr><td><strong>Values per tool</strong></td><td>for each tool of your <a href="#tool-library">tool library</a>: feed, plunge feed, step down and stepover</td></tr>
-</tbody>
-</table>
-</div>
-<p>A material only needs values for the tools you use with it.</p>
 <h2 id="making-one"><a class="header" href="#making-one">Making one</a></h2>
-<p>The quickest way is from a job that cut well:</p>
-<ol>
-<li>Make a material under <em>This computer &gt; Materials &gt; New material</em>, and choose it in an
-operation’s <strong>Material</strong> list, under its tool.</li>
-<li>Cut, and adjust the operation’s feeds or step down until they’re right.</li>
-<li>Its <strong>Material</strong> row then says <em>Changed from Plywood</em>: click <strong>Save to Plywood</strong>. The next
-operation in plywood starts with these values.</li>
-</ol>
-<p>You can also type them in: <em>This computer &gt; Materials</em>, click the material, <em>Add a tool…</em>,
-then fill in the values and <strong>Save</strong>.</p>
+<p><em>This computer &gt; Materials &gt; New material</em>, then name it. Its page lists the tools with
+values for it; click one to open its cutting data. To give it values:</p>
+<ul>
+<li><strong>From a job that cut well:</strong> choose the material in an operation’s <strong>Material</strong> list,
+under its tool. Cut, and adjust the operation’s feeds or step down until they’re right.
+Its <strong>Material</strong> row then says <em>Changed from Plywood</em>: click <strong>Save to Plywood</strong>. The values
+the operation uses go into its tool’s Plywood row (a profile its slot values, a pocket
+both); the row’s others stay. A tool without a Plywood row gets one.</li>
+<li><strong>By hand:</strong> open the tool (<em>This computer &gt; Tools</em>), and under <strong>Cutting data</strong>, <em>Add a
+material…</em>.</li>
+</ul>
 <p>The tool must be in your tool library: the values belong to that library tool, so every
 project that uses it finds them. A tool only in the project is saved to the library first
 (<em>Save to library…</em> on the tool).</p>
 <h2 id="choosing-a-material"><a class="header" href="#choosing-a-material">Choosing a material</a></h2>
-<p><strong>For one operation:</strong> its <strong>Material</strong> list, under <em>Tool</em>. The operation takes the
-material’s values for its tool: feed and plunge feed, step down, and stepover for pockets (a
-surface keeps its own wide stepover). A material without values for the tool is listed as
-“Plywood (no values for this tool)”; choosing it changes nothing yet, and <em>Save to Plywood</em>
-fills it from the operation. <em>None</em> leaves the operation’s feeds as they are.</p>
+<p><strong>For one operation:</strong> its <strong>Material</strong> list, under <em>Tool</em>. The operation takes its tool’s
+row for the material, else its row for <em>Any material</em>: the values it uses (a profile the
+slot values, a pocket both, a surface the clearing ones and its own wide stepover). A
+material the tool has neither row for is listed as “Plywood (no values for this tool)”;
+choosing it changes nothing yet, and <em>Save to Plywood</em> fills it from the operation. <em>None</em>
+leaves the operation’s feeds as they are.</p>
 <p><strong>For every operation:</strong> the setup’s <em>Material</em>, or <em>Use for all operations</em> on a
 material. As one step (one Undo takes it back) every operation takes the material and its
 values; an operation whose tool has no values there keeps its own, and the report says so.
-Operations you add later start with this material.</p>
+Each project tool also takes its row’s spindle speed. Operations you add later start with
+this material.</p>
 <p><strong>For new projects:</strong> <em>Make default</em> on a material (<code>chipload material default Plywood</code>,
 <code>--none</code> to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.</p>
-<p><strong>Changing an operation’s tool</strong> takes its material’s values for the new tool, when the
-material has some.</p>
+<p><strong>Changing an operation’s tool</strong> takes the new tool’s values for its material, when it has
+some.</p>
 <p>Each operation’s material row says where its values stand: <em>From Plywood</em>, <em>Changed from
 Plywood</em> (with <em>Use Plywood’s</em> and <em>Save to Plywood</em>), or <em>Plywood has no values for this
 tool</em> (with <em>Save to Plywood</em>). Editing a feed by hand keeps the material; the row then says
-<em>Changed from Plywood</em>.</p>
+<em>Changed from Plywood</em>. When the tool’s Plywood row is for another spindle speed than the
+tool runs at, the row says that too.</p>
 <p>The project keeps only each material’s name (<code>material</code> on each operation, and on the
 stock for the operations added later). The values are already in the operations, so the
 project cuts the same on a computer without that material.</p>
 <h2 id="on-the-command-line-9"><a class="header" href="#on-the-command-line-9">On the command line</a></h2>
 <pre><code>chipload material add Plywood
-chipload material set Plywood --tool "6 mm 2-flute" --feed 1500 --plunge-feed 500 --step-down 2.5 --stepover 0.4
-chipload material list                         # every material with its values per tool
+chipload tool cutting "6 mm 2-flute" --material Plywood --plunge-feed 500 \
+  --slot-feed 1500 --slot-step-down 2.5 --feed 1800 --step-down 5 --stepover 0.4
+chipload material list                         # every material with its tools' rows
 chipload material show Plywood
 chipload material default Plywood              # new projects start with it (--none: no default)
 chipload material use part.chipload Plywood    # every operation, and those added later (--none: no material)
 chipload material use part.chipload Plywood --op 2   # operation 2 alone
-chipload material save part.chipload --op 2    # keep operation 2's values in its material (--material NAME)
+chipload material save part.chipload --op 2    # operation 2's values into its tool's row (--material NAME)
 chipload material set Plywood --rename "Birch ply"
-chipload material remove Plywood --tool "6 mm 2-flute"   # one tool's values (without --tool: the material)
+chipload material remove Plywood               # and every tool's row for it
 chipload material export materials-backup.json # (--name NAME, repeatable)
 chipload material import materials-backup.json [--replace]
 </code></pre>
 <p><code>chipload op tool</code> on an operation with a material takes the material’s values for the new
 tool too.</p>
-<p>Removing a tool from the library (<code>tool remove</code>, or <em>Delete</em> on the tool) removes its
-values from every material. Materials live in <code>materials.json</code> in the settings folder,
-beside the tool library; see the <a href="#materials-file">Materials file</a>.</p>
+<p>Removing a material removes every tool’s row for it. Materials, names only, live in
+<code>materials.json</code> in the settings folder, beside the tool library; see the <a href="#materials-file">Materials
+file</a>. The rows live in <code>tools.json</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="post-processors"><a class="header" href="#post-processors">Post-processors</a></h1>
 <p>A post-processor turns Chipload’s toolpath into the G-code dialect your controller reads.
@@ -3462,6 +3533,25 @@ Take the estimate as a lower bound for jobs with many short moves.</li>
 estimate assumes 5 000 mm/min and says so: set the max feed for a better estimate.</li>
 </ul>
 <p><code>chipload plan part.chipload</code> prints the same, and <code>--json</code> gives it as numbers.</p>
+<h2 id="statistics-of-an-operation"><a class="header" href="#statistics-of-an-operation">Statistics of an operation</a></h2>
+<p>The last section of an operation’s properties, <strong>Statistics</strong>, says what the operation
+does, from the last run. Folded, it shows the operation’s time. Open, it shows:</p>
+<ul>
+<li><strong>Time:</strong> split into cutting and rapids.</li>
+<li><strong>Cutting:</strong> the length of the feed moves that go sideways: lines, arcs, ramps and
+helices, measured along the move (a ramp counts its way down too).</li>
+<li><strong>Plunging:</strong> the length of the feed moves straight down or up: plunges and drilling.</li>
+<li><strong>Rapids:</strong> the length of the rapid moves (G0), up and down included.</li>
+<li><strong>Lifts:</strong> how many times the tool goes up at rapid: between paths, and at each peck of
+a peck drill. Many lifts in an operation can mean time spent in the air.</li>
+</ul>
+<p>The numbers are for all of the part’s copies, and a rest pass or floor pass has its own.
+After a change they are out of date: the section asks you to generate (F5), and says
+<em>Generating…</em> while the live preview runs. An operation that is off says so.</p>
+<p>The report ends its time lines with the whole job’s lengths and lifts (<em>In all: …</em>), the
+moves between operations included. <code>chipload plan</code> gives each operation’s numbers on its
+line, and <code>--json</code> has them for each operation and the job: <code>cutting_mm</code>, <code>plunge_mm</code>,
+<code>rapid_mm</code>, <code>lifts</code>, and the seconds <code>cutting_s</code> and <code>rapid_s</code>.</p>
 <h2 id="chip-load"><a class="header" href="#chip-load">Chip load</a></h2>
 <p>For each operation, Chipload shows the <strong>chip load</strong>: how thick a chip each cutting edge
 takes, in mm per tooth:</p>
@@ -3857,7 +3947,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this run only: one file per tool, or one file with M6 tool changes (default: the project’s machine setting) One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--no-sheet</code></td><td>Don’t write the setup sheet (by default <code>part-sheet.html</code> next to <code>part.nc</code>)</td></tr>
 <tr><td><code>--sheet-units &lt;UNITS&gt;</code></td><td>The setup sheet’s lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
-<tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>, <code>ru</code>.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
@@ -3899,7 +3989,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--gcode &lt;GCODE&gt;</code></td><td>The G-code the sheet is for, as given to <code>run -o</code>, for its file names (default: the project’s name with the post’s extension)</td></tr>
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this sheet only: one file per tool, or one file with M6 tool changes. One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--units &lt;UNITS&gt;</code></td><td>Its lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
-<tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>, <code>ru</code>.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
@@ -5264,10 +5354,6 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
-<tr><td><code>--feed &lt;FEED&gt;</code></td><td>Cutting values for new operations: give all four the first time.</td></tr>
-<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
-<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
-<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter (pockets)</td></tr>
 </tbody>
 </table>
 </div>
@@ -5290,10 +5376,6 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
-<tr><td><code>--feed &lt;FEED&gt;</code></td><td>Cutting values for new operations: give all four the first time.</td></tr>
-<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
-<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
-<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter (pockets)</td></tr>
 <tr><td><code>--rename &lt;RENAME&gt;</code></td><td>A new name.</td></tr>
 </tbody>
 </table>
@@ -5326,6 +5408,29 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="chipload-tool-cutting"><a class="header" href="#chipload-tool-cutting"><code>chipload tool cutting</code></a></h3>
+<p>Set or remove a row of a tool’s cutting data: its values for a material, or for any material (docs/specs/cutting-data.md)</p>
+<pre><code class="language-text">chipload tool cutting &lt;NAME&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The material’s name, or <code>any</code>: the row used without a material, or for a material the tool has no row for. Required.</td></tr>
+<tr><td><code>--rpm &lt;RPM&gt;</code></td><td>Spindle speed; default: the tool’s own.</td></tr>
+<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
+<tr><td><code>--slot-feed &lt;SLOT_FEED&gt;</code></td><td>Full-width cuts: profiles, paths, V-carves, a pocket’s first ring.</td></tr>
+<tr><td><code>--slot-step-down &lt;SLOT_STEP_DOWN&gt;</code></td><td></td></tr>
+<tr><td><code>--feed &lt;FEED&gt;</code></td><td>Cuts at a stepover: a pocket’s rings, a surface.</td></tr>
+<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
+<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the row instead.</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-tool-use"><a class="header" href="#chipload-tool-use"><code>chipload tool use</code></a></h3>
 <p>Copy a library tool into a project; prints its id there</p>
 <pre><code class="language-text">chipload tool use &lt;NAME&gt; &lt;PROJECT&gt; [OPTIONS]
@@ -5343,7 +5448,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-tool-compare"><a class="header" href="#chipload-tool-compare"><code>chipload tool compare</code></a></h3>
-<p>How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none</p>
+<p>How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none. A speed from the setup’s material is no difference</p>
 <pre><code class="language-text">chipload tool compare &lt;PROJECT&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -5353,6 +5458,22 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-tool-update"><a class="header" href="#chipload-tool-update"><code>chipload tool update</code></a></h3>
+<p>The project’s tools that differ from their library tools take the library’s values; a speed from the setup’s material stays</p>
+<pre><code class="language-text">chipload tool update &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>Only this tool (its id in the project)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5380,7 +5501,7 @@ reaches the assistant only once you save.</li>
 <pre><code class="language-text">chipload material list
 </code></pre>
 <h3 id="chipload-material-show"><a class="header" href="#chipload-material-show"><code>chipload material show</code></a></h3>
-<p>A material’s values per tool</p>
+<p>A material and the tools with values for it (their rows, <code>tool cutting</code>)</p>
 <pre><code class="language-text">chipload material show &lt;NAME&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -5394,7 +5515,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-material-add"><a class="header" href="#chipload-material-add"><code>chipload material add</code></a></h3>
-<p>Add a material, with no values yet</p>
+<p>Add a material; its values are the tools’ rows for it (<code>tool cutting</code>)</p>
 <pre><code class="language-text">chipload material add &lt;NAME&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -5408,7 +5529,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-material-set"><a class="header" href="#chipload-material-set"><code>chipload material set</code></a></h3>
-<p>Change a material: its name, or one library tool’s values</p>
+<p>Rename a material</p>
 <pre><code class="language-text">chipload material set &lt;NAME&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -5418,12 +5539,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--rename &lt;RENAME&gt;</code></td><td></td></tr>
-<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The library tool whose values these are.</td></tr>
-<tr><td><code>--feed &lt;FEED&gt;</code></td><td>mm/min. The four values come as a set the first time for a tool.</td></tr>
-<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
-<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
-<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter (pockets)</td></tr>
+<tr><td><code>--rename &lt;RENAME&gt;</code></td><td>Required.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5443,8 +5559,8 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-material-remove"><a class="header" href="#chipload-material-remove"><code>chipload material remove</code></a></h3>
-<p>Remove a material, or with –tool only that tool’s values</p>
-<pre><code class="language-text">chipload material remove &lt;NAME&gt; [OPTIONS]
+<p>Remove a material, and every tool’s row for it</p>
+<pre><code class="language-text">chipload material remove &lt;NAME&gt;
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -5453,7 +5569,6 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--tool &lt;TOOL&gt;</code></td><td></td></tr>
 </tbody>
 </table>
 </div>
@@ -5476,7 +5591,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-material-save"><a class="header" href="#chipload-material-save"><code>chipload material save</code></a></h3>
-<p>Save an operation’s feeds, step down and stepover as its tool’s values in a material</p>
+<p>Save an operation’s values into its tool’s row for a material</p>
 <pre><code class="language-text">chipload material save &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -6093,6 +6208,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>slot_feed</code></td><td>number or null</td><td>no</td><td>As a pocket’s <code>slot_feed</code>. Null: <code>feed</code>.</td></tr>
+<tr><td><code>slot_step_down</code></td><td>number or null</td><td>no</td><td>As a pocket’s <code>slot_step_down</code>. Null: <code>step_down</code>.</td></tr>
 <tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
 <tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
@@ -6456,6 +6573,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>rest</code></td><td><a href="#rest">Rest</a> or null</td><td>no</td><td>Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket.</td></tr>
 <tr><td><code>rest_passes</code></td><td>list of <a href="#clearingpass">ClearingPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
+<tr><td><code>slot_feed</code></td><td>number or null</td><td>no</td><td>The feed of the rings that cut full width (those with no ring inside them), mm/min. Null: <code>feed</code>.</td></tr>
+<tr><td><code>slot_step_down</code></td><td>number or null</td><td>no</td><td>The deepest each step of a full-width ring goes, mm: it goes down in such steps to each depth pass, before the other rings cut the pass at once. Null: <code>step_down</code>.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there.</td></tr>
 <tr><td><code>starts</code></td><td>list of 2 × number</td><td>no</td><td>Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload.</td></tr>
 <tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth.</td></tr>
@@ -6889,7 +7008,7 @@ reaches the assistant only once you save.</li>
 <h1 id="tool-library-file"><a class="header" href="#tool-library-file">Tool library file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>Your tool library (<code>tools.json</code> in the settings folder) and the files <code>tool export</code> writes. Lengths in mm, angles in radians, feeds in mm/min.</p>
-<p>Schema version 3. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 4. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file-2"><a class="header" href="#the-file-2">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -6898,24 +7017,40 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>default_tool</code></td><td>string or null</td><td>no</td><td>The name of the tool new projects start with. Null: the built-in 6 mm endmill.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>3</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>4</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>tools</code></td><td>list of <a href="#librarytool">LibraryTool</a></td><td>yes</td><td>The tools.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file.</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="cutting"><a class="header" href="#cutting">Cutting</a></h2>
-<p>Values filled into an operation when it is created with this tool. Never applied to an existing operation.</p>
+<p>One tested way to cut with a tool: the values an operation takes from a row of the tool’s cutting data (docs/specs/cutting-data.md §2, §3).</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>Cutting feed, mm/min.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The feed of a cut at a stepover (a pocket’s rings), mm/min.</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>Plunge feed, mm/min.</td></tr>
-<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>Step down, mm.</td></tr>
+<tr><td><code>rpm</code></td><td>number or null</td><td>no</td><td>Spindle speed, rpm. Null: the tool’s own.</td></tr>
+<tr><td><code>slot_feed</code></td><td>number</td><td>yes</td><td>The feed of a full-width cut (a profile, a pocket’s first ring), mm/min.</td></tr>
+<tr><td><code>slot_step_down</code></td><td>number</td><td>yes</td><td>The step down of a full-width cut, mm.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The step down of a cut at a stepover, mm.</td></tr>
 <tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="cuttingrow"><a class="header" href="#cuttingrow">CuttingRow</a></h2>
+<p>A row of a tool’s cutting data: the values for one material, or for any material.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>material_uid</code></td><td>string or null</td><td>no</td><td>The material’s uid (<code>materials.json</code>). Null: any material, the row used without a material or when the tool has no row for it.</td></tr>
+<tr><td><code>values</code></td><td><a href="#cutting">Cutting</a></td><td>yes</td><td>The values.</td></tr>
 </tbody>
 </table>
 </div>
@@ -6929,7 +7064,7 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown.</td></tr>
 <tr><td><code>center_cutting</code></td><td>boolean or null</td><td>no</td><td>Whether it can plunge straight down. Null: unknown.</td></tr>
-<tr><td><code>cutting</code></td><td><a href="#cutting">Cutting</a> or null</td><td>no</td><td>Feeds, step down and stepover a new operation with this tool starts with. Never changes an existing operation. Null: none.</td></tr>
+<tr><td><code>cutting_data</code></td><td>list of <a href="#cuttingrow">CuttingRow</a></td><td>no</td><td>The cutting data: one row per material, and one for any material (docs/specs/cutting-data.md §2). What an operation takes when a material is chosen, its tool changes or it is added. Missing: none.</td></tr>
 <tr><td><code>diameter</code></td><td>number</td><td>yes</td><td>Diameter, mm.</td></tr>
 <tr><td><code>flutes</code></td><td>integer or null</td><td>no</td><td>Number of flutes. Null: unknown.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The tool number it gets in a project, when that number is free there.</td></tr>
@@ -7037,7 +7172,7 @@ reaches the assistant only once you save.</li>
 <h1 id="materials-file"><a class="header" href="#materials-file">Materials file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>Your materials (<code>materials.json</code> in the settings folder) and the files <code>material export</code> writes: your own values per library tool. Lengths in mm, feeds in mm/min.</p>
-<p>Schema version 2. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 3. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file-4"><a class="header" href="#the-file-4">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -7047,13 +7182,13 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>default_material</code></td><td>string or null</td><td>no</td><td>The name of the material new projects start with. Null: none.</td></tr>
 <tr><td><code>materials</code></td><td>list of <a href="#material">Material</a></td><td>yes</td><td>The materials.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>2</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>3</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file.</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="material"><a class="header" href="#material">Material</a></h2>
-<p>A material: a name and the user’s values per tool.</p>
+<p>A material: a name to choose. Its values are the tools’ rows for it.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -7061,24 +7196,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>name</code></td><td>string</td><td>yes</td><td>The material’s name, unique in the library (upper or lower case don’t matter).</td></tr>
-<tr><td><code>tools</code></td><td>list of <a href="#materialtool">MaterialTool</a></td><td>yes</td><td>Values for the tools used with this material, one entry per library tool.</td></tr>
-<tr><td><code>uid</code></td><td>string</td><td>yes</td><td>What projects name the material by: 16 lowercase hex digits, never changed.</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="materialtool"><a class="header" href="#materialtool">MaterialTool</a></h2>
-<p>One tool’s values in a material.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
-</thead>
-<tbody>
-<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>Cutting feed, mm/min.</td></tr>
-<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>Plunge feed, mm/min.</td></tr>
-<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>Step down, mm.</td></tr>
-<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.</td></tr>
-<tr><td><code>tool_uid</code></td><td>string</td><td>yes</td><td>The library tool’s uid.</td></tr>
+<tr><td><code>uid</code></td><td>string</td><td>yes</td><td>What projects and the tools’ rows name the material by: 16 lowercase hex digits, never changed.</td></tr>
 </tbody>
 </table>
 </div>
@@ -7192,7 +7310,7 @@ Check each profile’s side.</li>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="languages"><a class="header" href="#languages">Languages</a></h1>
 <p>The app speaks English, German (Deutsch), French (Français), Spanish (Español), Italian
-(Italiano) and Swedish (Svenska).</p>
+(Italiano), Swedish (Svenska) and Russian (Русский).</p>
 <h2 id="choosing-the-language"><a class="header" href="#choosing-the-language">Choosing the language</a></h2>
 <p>At the start the app follows your computer’s language, and English when it isn’t one of
 these. To choose another, use <em>View &gt; Language</em> or <em>This computer &gt; Preferences</em> in the
@@ -7209,11 +7327,11 @@ written, and what other programs say (the file system, a picture that can’t be
 <li>This guide.</li>
 </ul>
 <p>Names you give things (parts, operations, tools, machines, layers) are yours and are never
-translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian
-and Swedish a field also takes a decimal comma (<code>6,5</code>); in English a comma isn’t read, since
+translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian,
+Swedish and Russian a field also takes a decimal comma (<code>6,5</code>); in English a comma isn’t read, since
 <code>1,000</code> would mean a thousand.</p>
 <h2 id="helping-with-a-translation"><a class="header" href="#helping-with-a-translation">Helping with a translation</a></h2>
-<p>German, French, Spanish and Italian are marked <em>(review wanted)</em> in the language menu: they
+<p>German, French, Spanish, Italian and Russian are marked <em>(review wanted)</em> in the language menu: they
 haven’t yet been read by someone who speaks the language and runs a CNC machine. A wrong
 word in a CAM program can mislead (climb or conventional, inside or outside), so your
 corrections matter.</p>

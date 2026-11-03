@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Project file - Chipload 0.31.0 user guide</title>
+        <title>Project file - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -234,6 +234,8 @@
 <tr><td><code>entry</code></td><td><a href="#entry">Entry</a></td><td>yes</td><td>How the tool goes down: <code>plunge</code>, <code>ramp</code> or <code>helix</code>.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>slot_feed</code></td><td>number or null</td><td>no</td><td>As a pocket’s <code>slot_feed</code>. Null: <code>feed</code>.</td></tr>
+<tr><td><code>slot_step_down</code></td><td>number or null</td><td>no</td><td>As a pocket’s <code>slot_step_down</code>. Null: <code>step_down</code>.</td></tr>
 <tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm.</td></tr>
 <tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between the clearing rings, as a fraction of the tool diameter.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill.</td></tr>
@@ -597,6 +599,8 @@
 <tr><td><code>rest</code></td><td><a href="#rest">Rest</a> or null</td><td>no</td><td>Rest machining: clear only what a larger tool leaves in these shapes. Null: the whole pocket.</td></tr>
 <tr><td><code>rest_passes</code></td><td>list of <a href="#clearingpass">ClearingPass</a></td><td>no</td><td>Rest passes: smaller endmills that clear what this pocket’s tool (or the pass before) leaves, in its shapes and depths. Missing or empty: none. Left out when empty.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
+<tr><td><code>slot_feed</code></td><td>number or null</td><td>no</td><td>The feed of the rings that cut full width (those with no ring inside them), mm/min. Null: <code>feed</code>.</td></tr>
+<tr><td><code>slot_step_down</code></td><td>number or null</td><td>no</td><td>The deepest each step of a full-width ring goes, mm: it goes down in such steps to each depth pass, before the other rings cut the pass at once. Null: <code>step_down</code>.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the cut starts, mm down from the stock top: 0 for the top, more when an earlier operation already cut down to there.</td></tr>
 <tr><td><code>starts</code></td><td>list of 2 × number</td><td>no</td><td>Where each wall ring starts, as points in drawing coordinates (mm): each moves the start of the wall ring nearest to it. Empty: chosen by Chipload.</td></tr>
 <tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth.</td></tr>

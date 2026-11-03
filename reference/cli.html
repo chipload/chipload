@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.31.0 user guide</title>
+        <title>Command line - Chipload 0.32.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f8d9184.js";
+            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-58b32aa4.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.31.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -280,7 +280,7 @@
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this run only: one file per tool, or one file with M6 tool changes (default: the project’s machine setting) One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--no-sheet</code></td><td>Don’t write the setup sheet (by default <code>part-sheet.html</code> next to <code>part.nc</code>)</td></tr>
 <tr><td><code>--sheet-units &lt;UNITS&gt;</code></td><td>The setup sheet’s lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
-<tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>, <code>ru</code>.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
@@ -322,7 +322,7 @@
 <tr><td><code>--gcode &lt;GCODE&gt;</code></td><td>The G-code the sheet is for, as given to <code>run -o</code>, for its file names (default: the project’s name with the post’s extension)</td></tr>
 <tr><td><code>--tool-change &lt;TOOL_CHANGE&gt;</code></td><td>For this sheet only: one file per tool, or one file with M6 tool changes. One of: <code>files</code> (One G-code file per tool group), <code>program</code> (One file with <code>T&lt;n&gt; M6</code> at each tool change).</td></tr>
 <tr><td><code>--units &lt;UNITS&gt;</code></td><td>Its lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
-<tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>.</td></tr>
+<tr><td><code>--lang &lt;LANG&gt;</code></td><td>Its language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>, <code>ru</code>.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
@@ -1687,10 +1687,6 @@
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
-<tr><td><code>--feed &lt;FEED&gt;</code></td><td>Cutting values for new operations: give all four the first time.</td></tr>
-<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
-<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
-<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter (pockets)</td></tr>
 </tbody>
 </table>
 </div>
@@ -1713,10 +1709,6 @@
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
-<tr><td><code>--feed &lt;FEED&gt;</code></td><td>Cutting values for new operations: give all four the first time.</td></tr>
-<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
-<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
-<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter (pockets)</td></tr>
 <tr><td><code>--rename &lt;RENAME&gt;</code></td><td>A new name.</td></tr>
 </tbody>
 </table>
@@ -1749,6 +1741,29 @@
 </tbody>
 </table>
 </div>
+<h3 id="chipload-tool-cutting"><a class="header" href="#chipload-tool-cutting"><code>chipload tool cutting</code></a></h3>
+<p>Set or remove a row of a tool’s cutting data: its values for a material, or for any material (docs/specs/cutting-data.md)</p>
+<pre><code class="language-text">chipload tool cutting &lt;NAME&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The material’s name, or <code>any</code>: the row used without a material, or for a material the tool has no row for. Required.</td></tr>
+<tr><td><code>--rpm &lt;RPM&gt;</code></td><td>Spindle speed; default: the tool’s own.</td></tr>
+<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
+<tr><td><code>--slot-feed &lt;SLOT_FEED&gt;</code></td><td>Full-width cuts: profiles, paths, V-carves, a pocket’s first ring.</td></tr>
+<tr><td><code>--slot-step-down &lt;SLOT_STEP_DOWN&gt;</code></td><td></td></tr>
+<tr><td><code>--feed &lt;FEED&gt;</code></td><td>Cuts at a stepover: a pocket’s rings, a surface.</td></tr>
+<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
+<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the row instead.</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-tool-use"><a class="header" href="#chipload-tool-use"><code>chipload tool use</code></a></h3>
 <p>Copy a library tool into a project; prints its id there</p>
 <pre><code class="language-text">chipload tool use &lt;NAME&gt; &lt;PROJECT&gt; [OPTIONS]
@@ -1766,7 +1781,7 @@
 </table>
 </div>
 <h3 id="chipload-tool-compare"><a class="header" href="#chipload-tool-compare"><code>chipload tool compare</code></a></h3>
-<p>How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none</p>
+<p>How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none. A speed from the setup’s material is no difference</p>
 <pre><code class="language-text">chipload tool compare &lt;PROJECT&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -1776,6 +1791,22 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-tool-update"><a class="header" href="#chipload-tool-update"><code>chipload tool update</code></a></h3>
+<p>The project’s tools that differ from their library tools take the library’s values; a speed from the setup’s material stays</p>
+<pre><code class="language-text">chipload tool update &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>Only this tool (its id in the project)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
@@ -1803,7 +1834,7 @@
 <pre><code class="language-text">chipload material list
 </code></pre>
 <h3 id="chipload-material-show"><a class="header" href="#chipload-material-show"><code>chipload material show</code></a></h3>
-<p>A material’s values per tool</p>
+<p>A material and the tools with values for it (their rows, <code>tool cutting</code>)</p>
 <pre><code class="language-text">chipload material show &lt;NAME&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -1817,7 +1848,7 @@
 </table>
 </div>
 <h3 id="chipload-material-add"><a class="header" href="#chipload-material-add"><code>chipload material add</code></a></h3>
-<p>Add a material, with no values yet</p>
+<p>Add a material; its values are the tools’ rows for it (<code>tool cutting</code>)</p>
 <pre><code class="language-text">chipload material add &lt;NAME&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -1831,7 +1862,7 @@
 </table>
 </div>
 <h3 id="chipload-material-set"><a class="header" href="#chipload-material-set"><code>chipload material set</code></a></h3>
-<p>Change a material: its name, or one library tool’s values</p>
+<p>Rename a material</p>
 <pre><code class="language-text">chipload material set &lt;NAME&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -1841,12 +1872,7 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--rename &lt;RENAME&gt;</code></td><td></td></tr>
-<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The library tool whose values these are.</td></tr>
-<tr><td><code>--feed &lt;FEED&gt;</code></td><td>mm/min. The four values come as a set the first time for a tool.</td></tr>
-<tr><td><code>--plunge-feed &lt;PLUNGE_FEED&gt;</code></td><td></td></tr>
-<tr><td><code>--step-down &lt;STEP_DOWN&gt;</code></td><td></td></tr>
-<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>Fraction of the tool diameter (pockets)</td></tr>
+<tr><td><code>--rename &lt;RENAME&gt;</code></td><td>Required.</td></tr>
 </tbody>
 </table>
 </div>
@@ -1866,8 +1892,8 @@
 </table>
 </div>
 <h3 id="chipload-material-remove"><a class="header" href="#chipload-material-remove"><code>chipload material remove</code></a></h3>
-<p>Remove a material, or with –tool only that tool’s values</p>
-<pre><code class="language-text">chipload material remove &lt;NAME&gt; [OPTIONS]
+<p>Remove a material, and every tool’s row for it</p>
+<pre><code class="language-text">chipload material remove &lt;NAME&gt;
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1876,7 +1902,6 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--tool &lt;TOOL&gt;</code></td><td></td></tr>
 </tbody>
 </table>
 </div>
@@ -1899,7 +1924,7 @@
 </table>
 </div>
 <h3 id="chipload-material-save"><a class="header" href="#chipload-material-save"><code>chipload material save</code></a></h3>
-<p>Save an operation’s feeds, step down and stepover as its tool’s values in a material</p>
+<p>Save an operation’s values into its tool’s row for a material</p>
 <pre><code class="language-text">chipload material save &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
