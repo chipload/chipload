@@ -2,7 +2,8 @@
 
 What's planned. Each item gets a spec in `docs/specs/` that is reviewed before it's built
 (see `CLAUDE.md`). Reviewed and put in order 2026-11-02 and again 2026-11-03 (the user:
-"go through the todo once again and make sure it is up to date").
+"go through the todo once again and make sure it is up to date"); *Next* reordered the
+same day for usability and a quick workflow.
 
 ## In progress
 
@@ -65,35 +66,50 @@ What's planned. Each item gets a spec in `docs/specs/` that is reviewed before i
 
 ## Next, in order
 
-Proposed 2026-11-02, checked 2026-11-03; the user may reorder. Machining safety first
-(Chipload drives a real machine), then the last operation review, then the user's
-requests, then the rest. Before them: release what is on main as 0.32 (see *State to
-remember*).
+Reordered 2026-11-03 by the user's wish: "prioritize usability improvements and a
+streamlined, quick and efficient workflow". The yardstick is the direction review's measure
+(2026-10-28, kept private): for the usual router job, how many edits from opening the DXF
+to a program you trust. It was about four per operation; the aim is none beyond choosing a
+style. Before them: release what is on main as 0.32 (see *State to remember*).
 
-1. **Review V-carve**, the last operation not reviewed (profile and pocket were, holes and
-   follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
-   wider or narrower than the strokes, the cone's depth, passes and step down, flat
-   bottom), the checker's view, and proptest invariants (the cut stays inside the outline;
-   no point deeper than the cone allows).
-2. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
-   should also have a parameter for length of adjoining segments. If the adjoining profile
-   segments are very short we could probably ignore the kink"). Today a corner is ignored
-   only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
-   a corner whose adjoining outline segments are short is ignored at any angle, as a traced
-   picture's stair-steps and a font's tiny facets are. Spec first: one short side or both,
-   how it combines with the angle, a default (the V-carve tolerance? the trace's
-   smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
-   6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
-   review (1).
-3. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
+1. **Defaults that know the job** (the direction review's F1 and F2, still open: a new
+   profile starts 1 mm deep, without *Through* and without tabs, in any stock). Spec
+   first:
+   - a profile outside an outer outline goes through (`through`, the box ticked) with tabs;
+     a profile inside a hole goes through too; a pocket stays at a depth;
+   - the depth of a new pocket, V-carve or path from the last of its kind, as the feeds are
+     today (`inherited` in the window's `editor.rs`);
+   - feeds and step downs from the tool's cutting data for the setup's material
+     (cutting-data.md), the operation above only when the tool has no row;
+   - warnings that aren't about this job (machine travel not set: `check-no-travel`;
+     a tool not marked centre-cutting) said once where they are set, not on every run;
+   - the same defaults on the command line (`op add`), rule 5.
+2. **Styles: operation presets** (docs/specs/presets.md, paused 2026-10-13; the direction
+   review's step 2, CamBam's speed). Simpler now that feeds live in the tools (ADR 0029):
+   a style is an operation's settings, a library tool and a depth (a number or through);
+   its feeds come from the tool's row for the material. Saved from an operation (⋯ > *Save
+   as style…*), applied to the selection in one click, from the Browser, the canvas'
+   right-click menu and the command line. Layer rules (a style applied by layer name on
+   import) as a second step. Rework the spec's decisions (§10) with the user first.
+3. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
+   today:
+   - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
+     and a style's key;
+   - the canvas' right-click menu on a selection: add an operation or apply a style;
+   - selecting by kind: a layer's shapes from its row, *select similar* (every circle of
+     this size, for holes; every closed shape inside the outline, for pockets);
+   - generating without F9 once the project is complete (background generation exists:
+     docs/specs/background-generation.md), if it stays quick on large jobs;
+   - export straight after generating: one key, the last folder and name remembered.
+4. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
    2026-11-03: "dxf layers should be expandable to show its shapes like leafs. The report
    gives warnings about a shape in the dxf, the profile is open for example. Then a click
    on that warning should select the shape, similar to how warnings on operations is
    linked to the operation."). Today a DXF's row opens to its layers with their shape
    counts (`sources.rs`, `layers: Vec<(String, usize)>`), and a Report line points at an
-   operation or a tool (`report::Target`, since 35b2b92: add a shape); the drawing's warnings (open contours, invalid
-   ones, the contour table from `chipload_pipeline::report::contour_messages`) point at
-   nothing. Spec first: a layer opens to one row per shape (its kind and size, open or
+   operation or a tool (`report::Target`, since 35b2b92: add a shape); the drawing's
+   warnings (open contours, invalid ones, the contour table from
+   `chipload_pipeline::report::contour_messages`) point at nothing. Spec first: a layer opens to one row per shape (its kind and size, open or
    closed, a warning mark); a click on the row selects the shape on the canvas as a
    double-click does (`pick_alone`, the DXF stays whole otherwise); a Report line about a
    shape carries its contour (a `ReportLine` target that is an operation or a shape) and
@@ -101,7 +117,10 @@ remember*).
    traced picture's, a large DXF's: virtual rows, or only the first N with "more…");
    pictures' and SVGs' layers alike. Takes in the idea "a list of every shape in the
    Browser's Drawing folder" (Ideas).
-4. **For the user to try** (built, not yet tried by hand; findings become items here):
+5. **The walk again:** after 1-3, drive the usual jobs headless as the direction review
+   did (a DXF part through with tabs and pockets; a V-carved sign; a sheet of copies) and
+   count the edits and clicks. Each that remains becomes an item here.
+6. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
@@ -111,7 +130,23 @@ remember*).
    - on the router: slot and clearing values in the tools' cutting data, a pocket's slot
      steps (the user, 2026-11-03: "it works quite good"; the bugs found are fixed);
    - project tools updated from the library (the offer after Save, the Report on open).
-5. **Small follow-ups:**
+7. **Review V-carve** (safety; after the workflow items by the user's priority of
+   2026-11-03), the last operation not reviewed (profile and pocket were, holes and
+   follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
+   wider or narrower than the strokes, the cone's depth, passes and step down, flat
+   bottom), the checker's view, and proptest invariants (the cut stays inside the outline;
+   no point deeper than the cone allows).
+8. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+   should also have a parameter for length of adjoining segments. If the adjoining profile
+   segments are very short we could probably ignore the kink"). Today a corner is ignored
+   only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
+   a corner whose adjoining outline segments are short is ignored at any angle, as a traced
+   picture's stair-steps and a font's tiny facets are. Spec first: one short side or both,
+   how it combines with the angle, a default (the V-carve tolerance? the trace's
+   smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
+   6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
+   review (7).
+9. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -123,29 +158,26 @@ remember*).
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-6. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
-   by the user; next after materials in the direction review of 2026-10-28. Decisions not
-   reviewed.
-7. **Later, the user's ideas for when the above is done**, each with its own spec:
-   - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
-     decision 2's alternative): each setup with its own coordinates, its parts placed onto
-     its board, setups side by side like PrusaSlicer's plates, the active in colour, the
-     others as ghosts. Spec: where a part's shapes are placed per setup, picking and
-     editing in the view, migration from one shared drawing.
-   - **STEP import** (2026-10-30): a STEP file seen from a chosen side (top, bottom, left,
-     right, front, back), its edges as lines and arcs; faces square to the view give
-     outlines at their depth (a pocket floor with its depth). Needs an ADR for the reader
-     (a GPL-compatible crate that reads AP203/AP214 B-rep, or OpenCASCADE).
-   - **Designs and parameters** (docs/specs/designs.md, parameters.md, a box maker with
-     finger joints first): drafted 2026-10-28, on hold by the user.
-   - **A full library panel**: tools and machines beside shapes (shape-library.md
-     decision 12), now that panels dock.
-   - **A chip-load warning per tool** (left of the lean plan's item 4; the tools' cutting
-     data holds the user's own feeds without a chip-load calculation, as the user wanted):
-     a range per tool and an amber warning. Ask whether it is still wanted.
-   - **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the
-     libraries compile for wasm32, checked in CI); step 2, the browser app, waits (the
-     user said wait, 2026-10-17).
+10. **Later, the user's ideas for when the above is done**, each with its own spec:
+    - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
+      decision 2's alternative): each setup with its own coordinates, its parts placed onto
+      its board, setups side by side like PrusaSlicer's plates, the active in colour, the
+      others as ghosts. Spec: where a part's shapes are placed per setup, picking and
+      editing in the view, migration from one shared drawing.
+    - **STEP import** (2026-10-30): a STEP file seen from a chosen side (top, bottom, left,
+      right, front, back), its edges as lines and arcs; faces square to the view give
+      outlines at their depth (a pocket floor with its depth). Needs an ADR for the reader
+      (a GPL-compatible crate that reads AP203/AP214 B-rep, or OpenCASCADE).
+    - **Designs and parameters** (docs/specs/designs.md, parameters.md, a box maker with
+      finger joints first): drafted 2026-10-28, on hold by the user.
+    - **A full library panel**: tools and machines beside shapes (shape-library.md
+      decision 12), now that panels dock.
+    - **A chip-load warning per tool** (left of the lean plan's item 4; the tools' cutting
+      data holds the user's own feeds without a chip-load calculation, as the user wanted):
+      a range per tool and an amber warning. Ask whether it is still wanted.
+    - **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the
+      libraries compile for wasm32, checked in CI); step 2, the browser app, waits (the
+      user said wait, 2026-10-17).
 
 ## Ideas, not planned
 
