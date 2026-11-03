@@ -98,3 +98,20 @@ fn a_fitting_board_and_its_zero_are_placed_around_their_own_parts() {
     app.focus = Focus::WorkZero;
     draw_properties(&mut app);
 }
+
+/// A new project, empty or imported, opens on its setup, where the stock is (the user,
+/// 2026-11-03).
+#[test]
+fn a_new_project_opens_its_setup() {
+    let mut app = ChiploadApp::default();
+    app.new_project();
+    let first = app.edit.as_ref().unwrap().job.active_setup_id().unwrap();
+    assert_eq!(app.focus, Focus::Setup(first));
+    let mut app = ChiploadApp::default();
+    assert!(app.import_dxf(&corpus("dxf/messy_2.dxf"), None));
+    let first = app.edit.as_ref().unwrap().job.active_setup_id().unwrap();
+    assert_eq!(app.focus, Focus::Setup(first));
+    // An opened project opens on the job, as before.
+    assert!(app.open(&corpus("jobs/v31/svg_badge.chipload")));
+    assert_eq!(app.focus, Focus::Job);
+}

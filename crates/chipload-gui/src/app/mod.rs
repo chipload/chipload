@@ -520,6 +520,14 @@ impl ChiploadApp {
         self.edit.is_some() && self.edit != self.file.saved
     }
 
+    /// A new project opens on its setup, whose stock is where to start (the user,
+    /// 2026-11-03: "When starting a new project we should open the stock setup first").
+    fn open_stock(&mut self) {
+        if let Some(id) = self.edit.as_ref().and_then(|e| e.job.active_setup_id()) {
+            self.focus = Focus::Setup(id);
+        }
+    }
+
     /// Start editing `job` as a fresh document (no undo history).
     fn start_editing(&mut self, job: EditJob, saved: bool, path: Option<PathBuf>) {
         // The previous project was saved or its changes deliberately dropped.
@@ -650,6 +658,7 @@ impl ChiploadApp {
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
+        self.open_stock();
         let mut lines = vec![t!(self, "app-new-project")];
         lines.extend(
             notes
@@ -710,6 +719,7 @@ impl ChiploadApp {
         let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
             .unwrap_or_default();
         self.start_editing(EditJob::from_job(&job), false, None);
+        self.open_stock();
         let mut lines = vec![t!(
             self,
             "app-new-project-from",

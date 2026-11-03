@@ -742,4 +742,22 @@ mod library {
         harness.run_steps(3);
         assert!(harness.state().edit.as_ref().unwrap().job.tool(9).is_none());
     }
+
+    #[test]
+    fn the_delete_key_in_the_window_removes_a_library_tool() {
+        use egui_kittest::Harness;
+        let uid = upcut().uid;
+        let key = super::super::library_view::uid_key(&uid);
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(1400.0, 900.0))
+            .build_eframe(move |_| {
+                let (mut app, _) = app_with_library("delete-key-window");
+                app.focus = Focus::LibraryTool(key);
+                app
+            });
+        harness.run_steps(4);
+        harness.key_press(egui::Key::Delete);
+        harness.run_steps(3);
+        assert!(harness.state().user.library.tools.find_uid(&uid).is_none());
+    }
 }

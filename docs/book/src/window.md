@@ -202,7 +202,8 @@ The **Properties** panel on the right shows what is open, under a title:
 
 **Properties shows one thing at a time:** the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
-both. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+both. A new project, empty or imported, starts on its setup, with the stock to fill in
+first. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the **Selection**:
 - what is selected, by contour number;
 - a drawn shape's exact values, to edit, and the tools for the selection (align, arrays,
