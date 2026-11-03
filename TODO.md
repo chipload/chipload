@@ -32,7 +32,9 @@ same day for usability and a quick workflow.
   drill-point and V-bit cone fixes. Its notes warn that the first start converts the tool
   and material library (tools.json 4, materials.json 3, the old files kept as `.bak`) and
   that 0.31 can't read the converted files.
-- **Releases**: the latest published is **0.32.0** (2026-11-03), its guide online. Before
+- **Releases**: **0.33.0** tagged 2026-11-03, a draft for the user to publish (styles,
+  defaults that know the job, tabs along X or Y, Stock as its own item, calmer forms, the
+  Windows startup fix). The latest published is **0.32.0** (2026-11-03), its guide online. Before
   it 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1 (2026-10-29), 0.27.1, 0.25.1, 0.25.0,
   0.24.0, 0.23.0, 0.22.2. Tagged but never published: 0.22.0 (withdrawn), 0.26.0, 0.26.1,
   0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on, the guide-only tags
