@@ -27,15 +27,13 @@ same day for usability and a quick workflow.
 
 ## State to remember (2026-11-03)
 
-- **Not released yet** (on main, 2026-11-03, pushed or not): the Russian translation (PR
-  #11, merged), operation statistics, the Report's wrapping first line, cutting data in
-  the tools with pocket slot steps, Delete for tools, a new project opening on its setup,
-  tool updates from the library. **Release notes for 0.32 must say:** the first start
-  converts the tool and material library (tools.json 4, materials.json 3, the old files
-  kept as `.bak`), and 0.31 can't read the converted files; restore the `.bak` files to go
-  back.
-- **Releases**: the latest published is **0.31.0** (2026-11-02), its guide online. Before
-  it 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1 (2026-10-29), 0.27.1, 0.25.1, 0.25.0,
+- **Released in 0.32.0** (2026-11-03): the Russian translation, operation statistics,
+  cutting data in the tools with pocket slot steps, tool updates from the library, the
+  drill-point and V-bit cone fixes. Its notes warn that the first start converts the tool
+  and material library (tools.json 4, materials.json 3, the old files kept as `.bak`) and
+  that 0.31 can't read the converted files.
+- **Releases**: the latest published is **0.32.0** (2026-11-03), its guide online. Before
+  it 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1 (2026-10-29), 0.27.1, 0.25.1, 0.25.0,
   0.24.0, 0.23.0, 0.22.2. Tagged but never published: 0.22.0 (withdrawn), 0.26.0, 0.26.1,
   0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on, the guide-only tags
   `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`). Built by Actions from a `vX.Y.Z` tag: Linux and
@@ -70,7 +68,7 @@ Reordered 2026-11-03 by the user's wish: "prioritize usability improvements and 
 streamlined, quick and efficient workflow". The yardstick is the direction review's measure
 (2026-10-28, kept private): for the usual router job, how many edits from opening the DXF
 to a program you trust. It was about four per operation; the aim is none beyond choosing a
-style. Before them: release what is on main as 0.32 (see *State to remember*).
+style.
 
 1. **Defaults that know the job** (the direction review's F1 and F2, still open: a new
    profile starts 1 mm deep, without *Through* and without tabs, in any stock). Spec
