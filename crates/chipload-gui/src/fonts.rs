@@ -5,6 +5,7 @@
 //! the font list (docs/specs/more-fonts.md §5).
 
 use std::path::{Path, PathBuf};
+#[cfg(not(windows))]
 use std::process::Command;
 use std::sync::Arc;
 
@@ -50,6 +51,7 @@ const SYMBOL_CANDIDATES: &[&str] = &[
 ];
 
 /// Ask fontconfig (Linux and other Unix desktops) for a font file.
+#[cfg(not(windows))]
 fn fontconfig(pattern: &str) -> Option<PathBuf> {
     let output = Command::new("fc-match")
         .args(["-f", "%{file}", pattern])
@@ -57,6 +59,15 @@ fn fontconfig(pattern: &str) -> Option<PathBuf> {
         .ok()?;
     let path = PathBuf::from(String::from_utf8(output.stdout).ok()?.trim());
     is_loadable(&path).then_some(path)
+}
+
+/// Windows has no fontconfig: its fonts are the candidates' files. An `fc-match` that Git
+/// for Windows, Inkscape or GIMP put on the PATH is a console program, and each call
+/// flashed a terminal window at startup (the user, 2026-11-03: "three terminal windows
+/// that briefly flash and disappear").
+#[cfg(windows)]
+fn fontconfig(_pattern: &str) -> Option<PathBuf> {
+    None
 }
 
 /// TrueType/OpenType files only: collections (.ttc) need a face index we can't know.
