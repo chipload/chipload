@@ -102,3 +102,25 @@ fn a_rectangle_gets_rounded_corners_from_its_form() {
     );
     assert_eq!(corner_radius, 10.0);
 }
+
+#[test]
+fn edit_and_simulate_each_keep_their_own_view() {
+    // The user, 2026-11-03: 3D or top, the toolpath, the drawing and the pictures
+    // remembered for each mode.
+    let mut app = lower_part();
+    assert!(!app.display.three_d && app.display.toolpath);
+    app.set_show_simulation(true);
+    // Simulate starts as Edit was, then is set up its own way.
+    assert!(!app.display.three_d && app.display.toolpath && app.show_drawing());
+    app.view_3d();
+    app.display.toolpath = false;
+    app.display.images = false;
+    app.set_show_drawing(false);
+    app.set_show_simulation(false);
+    // Edit as it was left, the drawing shown.
+    assert!(!app.display.three_d && app.display.toolpath && app.display.images);
+    assert!(app.show_drawing());
+    app.set_show_simulation(true);
+    assert!(app.display.three_d && !app.display.toolpath && !app.display.images);
+    assert!(!app.show_drawing());
+}

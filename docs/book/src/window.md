@@ -154,6 +154,8 @@ colour theme: dark, or light grey.
     filled.
   - Starting a drawing or editing tool, or selecting something in the Browser, goes back to
     Edit. F6 or **Edit** does too.
+  - **Each mode keeps its own view:** top or 3D, the toolpath, the drawing and the pictures
+    as you left them there. Simulate starts as Edit is, the first time.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - the mode: **Edit | Simulate** (F6 switches);
   - how you look: **Fit** (F), **Top** (T) and **3D**;
@@ -202,12 +204,15 @@ The **Properties** panel on the right shows what is open, under a title:
   the edit, and traces the picture again. *Trace settings…* opens its
   [window](drawings/images.md).
 - **A part:** its name, on or off, and its [copies](drawings/copies.md).
-- **An operation:** its settings, under its kind and number ("Pocket · Operation 1").
+- **An operation:** its settings, under its kind and number ("Pocket · Operation 1"): its
+  name, shapes, tool and side, then its sections (*Cut*, *Feeds*, *Holding*, …) folded,
+  each with what it holds in a few words beside its title. Click a title to open it; it
+  stays open. A section with a problem opens by itself.
 
 **Properties shows one thing at a time:** the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
-both. A new project, empty or imported, starts on its setup, with the stock to fill in
-first. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+both. A new project, empty or imported, starts on its setup: its stock's thickness first,
+ready to type, then its material, then the rest. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the **Selection**:
 - what is selected, by contour number;
 - a drawn shape's exact values, to edit, and the tools for the selection (align, arrays,

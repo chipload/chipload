@@ -330,7 +330,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         let free = self.selected_group().is_none() && self.selected_members().is_some();
         ui.add_enabled_ui(free && !groups.is_empty(), |ui| {
-            ui.menu_button(t!(ui, "groups-add-to"), |ui| {
+            super::header::submenu(ui, t!(ui, "groups-add-to"), |ui| {
                 for (id, name) in &groups {
                     if ui.button(name).clicked() {
                         self.add_selected_to_group(*id);

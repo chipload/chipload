@@ -1599,6 +1599,19 @@ chipload material default <NAME> [OPTIONS]
 | `<NAME>` | The material; omit with --none. |
 | `--none` |  |
 
+### `chipload material thickness`
+
+The stock thickness new projects start with (--none: 10 mm)
+
+```text
+chipload material thickness <THICKNESS> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<THICKNESS>` | The thickness (a plain number is mm); omit with --none. |
+| `--none` |  |
+
 ### `chipload material remove`
 
 Remove a material, and every tool's row for it

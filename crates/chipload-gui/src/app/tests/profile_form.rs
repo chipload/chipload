@@ -37,7 +37,8 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
     use egui_kittest::kittest::Queryable;
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
-        .build_eframe(|_| {
+        .build_eframe(|cc| {
+            open_sections(&cc.egui_ctx);
             let mut app = lower_part();
             let i = app
                 .edit
@@ -96,4 +97,27 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
     let (op, stock) = profile(&harness);
     assert_eq!(op.through(), None);
     assert_eq!(op.depths().1, 12.0 + stock.max_overcut);
+}
+
+#[test]
+fn an_operations_sections_start_folded_with_their_summaries() {
+    // The user, 2026-11-03: the properties were overwhelming; the sections start folded.
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = lower_part();
+            app.focus = Focus::Op(1);
+            app
+        });
+    harness.run_steps(4);
+    assert!(
+        harness.query_by_label_contains("Cut").is_some(),
+        "its title"
+    );
+    assert!(harness.query_by_label("Direction").is_none(), "folded");
+    harness.get_by_label_contains("Cut").click();
+    harness.run_steps(4);
+    assert!(harness.query_by_label("Direction").is_some(), "opened");
 }

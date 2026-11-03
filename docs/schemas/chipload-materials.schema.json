@@ -32,6 +32,15 @@
         "null"
       ]
     },
+    "default_thickness": {
+      "default": null,
+      "description": "The stock thickness new projects start with, mm. Null: 10 mm.",
+      "format": "double",
+      "type": [
+        "number",
+        "null"
+      ]
+    },
     "materials": {
       "description": "The materials.",
       "items": {

@@ -42,6 +42,14 @@ pub enum MaterialAction {
         #[arg(long, conflicts_with = "name")]
         none: bool,
     },
+    /// The stock thickness new projects start with (--none: 10 mm).
+    Thickness {
+        /// The thickness (a plain number is mm); omit with --none.
+        #[arg(required_unless_present = "none", value_parser = crate::lengths::length)]
+        thickness: Option<f64>,
+        #[arg(long, conflicts_with = "thickness")]
+        none: bool,
+    },
     /// Remove a material, and every tool's row for it.
     Remove { name: String },
     /// Choose the material for every operation and those added later: they take its values
@@ -137,6 +145,18 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
                     library.default_material = None;
                     Ok("New projects start with no material.".to_string())
                 }
+            })
+        }
+        MaterialAction::Thickness { thickness, none: _ } => {
+            update_library(&path, |library: &mut MaterialLibrary| {
+                library.default_thickness = thickness;
+                Ok(match thickness {
+                    Some(t) => format!(
+                        "New projects start with stock {} mm thick.",
+                        chipload_core::text::mm(t)
+                    ),
+                    None => "New projects start with stock 10 mm thick.".to_string(),
+                })
             })
         }
         MaterialAction::Remove { name } => update_library(

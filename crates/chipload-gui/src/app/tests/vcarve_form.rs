@@ -27,7 +27,8 @@ fn vcarve(harness: &Harness<'_, ChiploadApp>) -> chipload_job::VcarveOp {
 fn a_vcarve_switches_between_equal_load_and_a_step_down() {
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
-        .build_eframe(|_| {
+        .build_eframe(|cc| {
+            open_sections(&cc.egui_ctx);
             let mut app = ChiploadApp::default();
             assert!(app.open(&corpus("jobs/v34/vcarve_step_down.chipload")));
             app.focus = Focus::Op(0);

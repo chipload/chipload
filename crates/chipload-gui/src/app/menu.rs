@@ -96,7 +96,7 @@ impl ChiploadApp {
         }
         let recent = self.prefs.recent.clone();
         ui.add_enabled_ui(!recent.is_empty(), |ui| {
-            ui.menu_button(t!(ui, "menu-open-recent"), |ui| {
+            super::header::submenu(ui, t!(ui, "menu-open-recent"), |ui| {
                 for path in &recent {
                     let name = file_name(Path::new(path));
                     if ui.button(name).on_hover_text(path).clicked() {
@@ -406,7 +406,7 @@ impl ChiploadApp {
         if ui.button(t!(ui, "menu-3d-view")).clicked() {
             self.view_3d();
         }
-        ui.menu_button(t!(ui, "menu-z-scale"), |ui| {
+        super::header::submenu(ui, t!(ui, "menu-z-scale"), |ui| {
             for factor in [1.0, 2.0, 5.0, 10.0] {
                 ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
             }
@@ -433,7 +433,7 @@ impl ChiploadApp {
         ui.checkbox(&mut self.display.legend_open, t!(ui, "menu-show-legend"));
         // The panels: each opened or closed, every one hidden with P, the default layout
         // back (docs/specs/dockable-panels.md §1).
-        ui.menu_button(t!(ui, "menu-panels"), |ui| {
+        super::header::submenu(ui, t!(ui, "menu-panels"), |ui| {
             for pane in Pane::PANELS {
                 let mut open = self.panels.is_open(pane);
                 if ui.checkbox(&mut open, pane.title(ui)).changed() {

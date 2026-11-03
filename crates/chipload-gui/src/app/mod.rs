@@ -344,6 +344,8 @@ pub struct ChiploadApp {
     pub scene: Scene,
     view: View,
     fit_pending: bool,
+    /// A new project: its thickness field takes the keyboard when the setup is drawn.
+    focus_thickness: bool,
     /// What the pending fit shows instead of everything (a screenshot's close-up).
     fit_only: Option<Vec<crate::view::Point3>>,
     pub selection: CanvasSelection,
@@ -425,6 +427,7 @@ impl Default for ChiploadApp {
             scene: Scene::default(),
             view: View::default(),
             fit_pending: false,
+            focus_thickness: false,
             fit_only: None,
             selection: CanvasSelection::Nothing,
             corners: corners::CornerMarkers::default(),
@@ -533,6 +536,7 @@ impl ChiploadApp {
     fn open_stock(&mut self) {
         if let Some(id) = self.edit.as_ref().and_then(|e| e.job.active_setup_id()) {
             self.focus = Focus::Setup(id);
+            self.focus_thickness = true;
         }
     }
 

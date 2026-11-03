@@ -190,6 +190,18 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
+- **The user's window round of 2026-11-03: done the same day.**
+  1. A new project's setup shows its stock (thickness first, the cursor in it) and its
+     material before its name, parts and zero.
+  2. Edit and Simulate each keep their own view: 3D or top, toolpath, drawing, pictures.
+  3. Submenus showed an empty box for their arrow (egui's ⏵ is in none of the fonts):
+     every submenu now ends in ▸.
+  4. An operation's sections start folded with their summaries (one with a problem opens);
+     form labels in the weak colour, values in fields brighter.
+  5. A default stock thickness for new projects, beside the default material
+     (`materials.json` `default_thickness`, `chipload material thickness`, the Materials
+     folder in the window).
+
 - **Tabs along the grain: done 2026-11-03** (docs/specs/tabs-along-grain.md, the user:
   "place them in x direction or y direction ... align them to the fibre direction"). A
   profile's tabs get a placement: *around* (as before), *along X* (bottom and top edges) or

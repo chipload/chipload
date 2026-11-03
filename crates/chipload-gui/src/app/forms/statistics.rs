@@ -32,7 +32,7 @@ pub(in crate::app) fn statistics_section(ui: &mut egui::Ui, statistics: &Statist
         Statistics::Off => t!(ui, "forms-statistics-off-summary"),
     };
     let title = t!(ui, "forms-section-statistics");
-    section(ui, "op-statistics", &title, &summary, |ui| {
+    folded_section(ui, "op-statistics", &title, &summary, |ui| {
         let note = match statistics {
             Statistics::Counted { counts, copies } => {
                 counted_rows(ui, counts, units);

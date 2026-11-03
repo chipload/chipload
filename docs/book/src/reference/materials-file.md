@@ -11,6 +11,7 @@ Schema version 3. Older files load through Chipload's migrations; this schema de
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `default_material` | string or null | no | The name of the material new projects start with. Null: none. |
+| `default_thickness` | number or null | no | The stock thickness new projects start with, mm. Null: 10 mm. |
 | `materials` | list of [Material](#material) | yes | The materials. |
 | `schema_version` | `3` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |

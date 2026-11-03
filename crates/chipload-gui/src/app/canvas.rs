@@ -593,7 +593,7 @@ impl ChiploadApp {
                 {
                     ui.separator();
                     let mut act = None;
-                    ui.menu_button(t!(ui, "styles-apply-menu"), |ui| {
+                    super::header::submenu(ui, t!(ui, "styles-apply-menu"), |ui| {
                         self.style_menu(ui, &mut act);
                     });
                     if let Some(act) = act {

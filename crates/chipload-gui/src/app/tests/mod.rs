@@ -231,3 +231,8 @@ fn the_simulation_shows_what_the_tools_leave() {
             .any(|l| l.contains("can't reach material"))
     );
 }
+
+/// Operation sections start open in `ctx`, for tests that read the fields in them.
+fn open_sections(ctx: &egui::Context) {
+    ctx.data_mut(|d| d.insert_temp(egui::Id::new(super::forms::OPEN_SECTIONS), true));
+}

@@ -24,3 +24,5 @@ materials-saved = Salvato in { $name }
 materials-no-rows = Nessun utensile ha ancora valori per esso.
 materials-open-tool-hover = Apri l'utensile: i suoi dati di taglio contengono i valori
 materials-rows-about = Aggiungi i valori per un altro utensile nei dati di taglio di quell'utensile.
+materials-default-thickness = Nuovi progetti: spessore del grezzo
+materials-default-thickness-hover = Il grezzo con cui inizia un nuovo progetto, accanto al materiale predefinito. Disattivato: 10 mm

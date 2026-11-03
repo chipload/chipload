@@ -56,7 +56,8 @@ fn the_numbers_come_with_a_run_and_go_with_a_change() {
 fn the_section_is_last_in_the_properties_and_folds_to_the_time() {
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1400.0, 900.0))
-        .build_eframe(|_| {
+        .build_eframe(|cc| {
+            open_sections(&cc.egui_ctx);
             let mut app = lower_part();
             app.set_auto_generate(false);
             app.focus = Focus::Op(0);

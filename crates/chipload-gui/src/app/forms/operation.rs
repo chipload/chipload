@@ -243,6 +243,7 @@ pub(in crate::app) fn op_form(
             t!(ui, "forms-operation-number", number = index + 1)
         ),
     );
+    labels_weak(ui);
     Grid::new(("op-form", index))
         .num_columns(2)
         // Past the sections' indent, so the values line up with theirs.
@@ -325,7 +326,7 @@ pub(in crate::app) fn op_form(
                 direction = direction_name(ui, p.direction),
                 ramp = degrees(p.ramp_angle)
             );
-            section(
+            folded_section(
                 ui,
                 "op-profile-cut",
                 &t!(ui, "forms-section-cut"),
@@ -368,7 +369,7 @@ pub(in crate::app) fn op_form(
                 step = len_in(units, p.step_down),
                 direction = direction_name(ui, p.direction)
             );
-            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+            folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
                 ui.label(t!(ui, "forms-direction"));
                 direction_combo(ui, ("direction", index), &mut p.direction);
                 ui.end_row();
@@ -399,7 +400,7 @@ pub(in crate::app) fn op_form(
                 ),
             };
             let title = t!(ui, "forms-section-clearing");
-            section(ui, "op-clearing", &title, &clearing, |ui| {
+            folded_section(ui, "op-clearing", &title, &clearing, |ui| {
                 rest_row(ui, index, &mut p.rest, choice.tools, op_tool);
                 ui.label(t!(ui, "forms-stepover"))
                     .on_hover_text(t!(ui, "forms-stepover-hover"));
@@ -421,7 +422,7 @@ pub(in crate::app) fn op_form(
             );
             let entry_text = entry_summary(ui.lang(), &p.entry, p.lead.as_ref(), units);
             let title = t!(ui, "forms-section-entry-lead");
-            section(ui, "op-entry", &title, &entry_text, |ui| {
+            folded_section(ui, "op-entry", &title, &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
                 lead_rows(ui, &mut p.lead, tool_diameter);
             });
@@ -440,7 +441,7 @@ pub(in crate::app) fn op_form(
                     count = count
                 ),
             };
-            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+            folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
                 ui.label(t!(ui, "forms-start-depth"))
                     .on_hover_text(t!(ui, "forms-vcarve-start-depth-hover"));
                 flag(ui.add(mm(&mut v.start_depth)), ui, "start_depth");
@@ -478,7 +479,7 @@ pub(in crate::app) fn op_form(
                 unit = len_unit,
                 step = len_in(units, p.step_down)
             );
-            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+            folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
                 ui.label(t!(ui, "forms-start-depth"))
                     .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut p.start_depth)), ui, "start_depth");
@@ -492,7 +493,7 @@ pub(in crate::app) fn op_form(
             feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
             let entry_text = entry_summary(ui.lang(), &p.entry, None, units);
             let title = t!(ui, "forms-section-entry");
-            section(ui, "op-entry", &title, &entry_text, |ui| {
+            folded_section(ui, "op-entry", &title, &entry_text, |ui| {
                 entry_rows(ui, index, &mut p.entry, None);
             });
         }
@@ -507,7 +508,7 @@ pub(in crate::app) fn op_form(
                 step = len_in(units, f.step_down),
                 stepover = format!("{:.2}", f.stepover)
             );
-            section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+            folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
                 ui.label(t!(ui, "forms-start-depth"))
                     .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut f.start_depth)), ui, "start_depth");
@@ -784,7 +785,7 @@ pub(super) fn feeds_section_with(
         feed_in(units, *cut),
         feed_in(units, *plunge)
     );
-    section(
+    folded_section(
         ui,
         "op-feeds",
         &t!(ui, "forms-section-feeds"),
@@ -1090,7 +1091,7 @@ pub(super) fn holes_sections(
         unit = len_unit,
         method = method
     );
-    section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+    folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
         ui.label(t!(ui, "forms-start-depth"))
             .on_hover_text(t!(ui, "forms-start-depth-hover"));
         flag(ui.add(mm(&mut h.start_depth)), ui, "start_depth");
@@ -1155,7 +1156,7 @@ pub(super) fn holes_sections(
             feed = feed_in(units, h.plunge_feed),
             unit = feed_unit
         );
-        section(
+        folded_section(
             ui,
             "op-feeds",
             &t!(ui, "forms-section-feeds"),
@@ -1269,7 +1270,7 @@ pub(super) fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Opt
             thickness = format!("{} {len_unit}", len_in(units, skin.thickness))
         );
     }
-    section(
+    folded_section(
         ui,
         "op-holding",
         &t!(ui, "forms-section-holding"),
@@ -1371,7 +1372,7 @@ pub(super) fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
         ),
     };
     let title = t!(ui, "forms-finishing-pass");
-    section(ui, "op-finish", &title, &summary, |ui| {
+    folded_section(ui, "op-finish", &title, &summary, |ui| {
         ui.label(t!(ui, "forms-finishing-pass"))
             .on_hover_text(t!(ui, "forms-finishing-pass-hover"));
         let mut on = p.finish.is_some();

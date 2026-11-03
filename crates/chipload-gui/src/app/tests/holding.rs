@@ -143,7 +143,8 @@ fn tabs_placed_along_x_sit_on_the_bottom_and_top_edges() {
     use egui_kittest::kittest::Queryable;
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1400.0, 900.0))
-        .build_eframe(|_| {
+        .build_eframe(|cc| {
+            open_sections(&cc.egui_ctx);
             let mut app = ChiploadApp::default();
             assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
             select(&mut app, &[1]);

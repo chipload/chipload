@@ -46,7 +46,24 @@ impl ChiploadApp {
         if on == self.display.simulate {
             return;
         }
+        // Each mode keeps its own view: this one's is put away, the other's comes back.
+        let leaving = super::display::ModeView {
+            three_d: self.display.three_d,
+            toolpath: self.display.toolpath,
+            drawing: self.show_drawing(),
+            images: self.display.images,
+        };
+        let coming = self.display.other.replace(leaving).unwrap_or(leaving);
         self.display.simulate = on;
+        self.display.toolpath = coming.toolpath;
+        self.display.images = coming.images;
+        if coming.three_d != self.display.three_d {
+            if coming.three_d {
+                self.view_3d();
+            } else {
+                self.view_top();
+            }
+        }
         if let Some(playback) = &mut self.playback {
             playback.shown = None; // redrawn from the history when shown again
         }
@@ -57,6 +74,7 @@ impl ChiploadApp {
             self.drawing_hidden = None;
             return;
         }
+        self.set_show_drawing(coming.drawing);
         if self.sim.simulation.is_some() {
             self.scene.sim.clone_from(&self.sim.full_layer);
         } else if self.toolpath.result.is_some() {

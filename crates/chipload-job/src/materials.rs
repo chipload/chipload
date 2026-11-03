@@ -42,6 +42,10 @@ pub struct MaterialLibrary {
     // Spec: docs/specs/job-settings-layout.md §3 (optional, no version bump).
     #[serde(default)]
     pub default_material: Option<String>,
+    /// The stock thickness new projects start with, mm. Null: 10 mm.
+    // Spec: the user, 2026-11-03 (optional, no version bump).
+    #[serde(default)]
+    pub default_thickness: Option<f64>,
     /// The materials.
     pub materials: Vec<Material>,
 }
@@ -52,6 +56,7 @@ impl Default for MaterialLibrary {
             schema_version: MATERIALS_VERSION,
             written_by: None,
             default_material: None,
+            default_thickness: None,
             materials: Vec::new(),
         }
     }
@@ -136,6 +141,13 @@ impl MaterialLibrary {
             "materials",
             self.materials.iter().map(|m| m.uid.as_str()),
         ));
+        if let Some(t) = self.default_thickness
+            && !(t.is_finite() && t > 0.0)
+        {
+            problems.push(format!(
+                "default_thickness: must be more than 0 mm, got {t}"
+            ));
+        }
         problems
     }
 }

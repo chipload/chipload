@@ -24,3 +24,5 @@ materials-saved = In { $name } gespeichert
 materials-no-rows = Noch kein Werkzeug hat Werte dafür.
 materials-open-tool-hover = Werkzeug öffnen: seine Schnittdaten enthalten die Werte
 materials-rows-about = Werte für ein anderes Werkzeug fügen Sie in dessen Schnittdaten hinzu.
+materials-default-thickness = Neue Projekte: Rohteildicke
+materials-default-thickness-hover = Das Rohteil, mit dem ein neues Projekt beginnt, neben dem Standardmaterial. Aus: 10 mm

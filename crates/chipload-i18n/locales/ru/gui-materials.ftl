@@ -25,3 +25,5 @@ materials-saved = Сохранено в { $name }
 materials-no-rows = Ни у одного инструмента пока нет значений для него.
 materials-open-tool-hover = Открыть инструмент: значения в его режимах резания
 materials-rows-about = Значения для другого инструмента добавляются в его режимах резания.
+materials-default-thickness = Новые проекты: толщина заготовки
+materials-default-thickness-hover = Заготовка, с которой начинается новый проект, вместе с материалом по умолчанию. Выкл.: 10 mm

@@ -430,6 +430,7 @@ pipeline-library-machine = maskin: { $name } ({ $how ->
 })
 pipeline-library-tool = verktyg { $tool }: { $name } (standardverktyg)
 pipeline-library-material = material: { $name } (standardmaterial)
+pipeline-library-thickness = ämnets tjocklek: { $thickness } (standard)
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = postprocessor "{ $name }": { $error }
 pipeline-library-unknown-post = Maskinen "{ $name }": den här Chipload har ingen postprocessor "{ $post }"; projekt som använder den kan inte göra G-kod förrän den har det

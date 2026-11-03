@@ -198,7 +198,7 @@ pub(super) fn library_rows(
             return;
         }
         if linked.is_some() {
-            ui.menu_button("⋯", |ui| {
+            super::header::submenu(ui, "⋯", |ui| {
                 if ui
                     .button(t!(ui, "user-library-save-as-new"))
                     .on_hover_text(t!(ui, "user-library-save-as-new-hover"))

@@ -264,7 +264,8 @@ fn a_pocket_has_its_slot_feed_and_slot_step_down() {
     use egui_kittest::kittest::Queryable;
     let mut harness = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
-        .build_eframe(|_| {
+        .build_eframe(|cc| {
+            open_sections(&cc.egui_ctx);
             let mut app = app_with_library("pocket-form");
             let uid = add_plywood(&mut app);
             set_row(

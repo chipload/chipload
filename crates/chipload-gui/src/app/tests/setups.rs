@@ -115,3 +115,38 @@ fn a_new_project_opens_its_setup() {
     assert!(app.open(&corpus("jobs/v31/svg_badge.chipload")));
     assert_eq!(app.focus, Focus::Job);
 }
+
+/// A new project's first view rendered to PNG files to look at:
+/// `CHIPLOAD_PICTURES=/some/dir cargo test -p chipload-gui new_project_pictures -- --ignored`.
+#[test]
+#[ignore = "writes pictures; run by hand"]
+fn new_project_pictures() {
+    use egui_kittest::Harness;
+    let Ok(dir) = std::env::var("CHIPLOAD_PICTURES") else {
+        panic!("set CHIPLOAD_PICTURES to the folder to write to");
+    };
+    let dir = PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, import) in [("new-empty", false), ("new-import", true)] {
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(1200.0, 800.0))
+            .wgpu()
+            .build_eframe(move |cc| {
+                if let Ok(mut fonts) = crate::fonts::system_fonts() {
+                    crate::fonts::add_text_fonts(&mut fonts);
+                    cc.egui_ctx.set_fonts(fonts);
+                }
+                crate::style::apply(&cc.egui_ctx);
+                let mut app = ChiploadApp::default();
+                if import {
+                    assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
+                } else {
+                    app.new_project();
+                }
+                app
+            });
+        harness.run_steps(6);
+        let image = harness.render().unwrap();
+        image.save(dir.join(format!("{name}.png"))).unwrap();
+    }
+}

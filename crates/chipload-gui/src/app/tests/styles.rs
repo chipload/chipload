@@ -184,3 +184,99 @@ fn style_pictures() {
             .unwrap();
     }
 }
+
+/// The canvas' right-click menu with styles, rendered to look at (as `style_pictures`).
+#[test]
+#[ignore = "writes pictures; run by hand"]
+fn style_menu_pictures() {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    let Ok(dir) = std::env::var("CHIPLOAD_PICTURES") else {
+        panic!("set CHIPLOAD_PICTURES to the folder to write to");
+    };
+    let dir = PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .wgpu()
+        .build_eframe(move |cc| {
+            if let Ok(mut fonts) = crate::fonts::system_fonts() {
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+            }
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = app_with_library("menu-pictures");
+            select(&mut app, &[1]);
+            let i = app.add_operation(OpKind::Profile).unwrap();
+            assert!(app.save_style(i, "Cut out 10 mm"));
+            select(&mut app, &[1, 2, 3, 4]);
+            app.focus = Focus::Selection;
+            app
+        });
+    harness.run_steps(6);
+    // Inside the part's outline on the canvas, at the default size.
+    let at = egui::pos2(470.0, 430.0);
+    harness.hover_at(at);
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Secondary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.event(egui::Event::PointerButton {
+        pos: at,
+        button: egui::PointerButton::Secondary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    harness.run_steps(4);
+    if let Some(item) = harness.query_by_label("Apply style") {
+        item.hover();
+    }
+    harness.run_steps(4);
+    let image = harness.render().unwrap();
+    image.save(dir.join("style-menu.png")).unwrap();
+}
+
+/// A profile's and a pocket's properties rendered to look at (as `style_pictures`).
+#[test]
+#[ignore = "writes pictures; run by hand"]
+fn operation_form_pictures() {
+    use egui_kittest::Harness;
+    let Ok(dir) = std::env::var("CHIPLOAD_PICTURES") else {
+        panic!("set CHIPLOAD_PICTURES to the folder to write to");
+    };
+    let dir = PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for (name, kind) in [
+        ("form-profile", OpKind::Profile),
+        ("form-profile-open", OpKind::Profile),
+        ("form-pocket", OpKind::Pocket),
+    ] {
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(1200.0, 900.0))
+            .wgpu()
+            .build_eframe(move |cc| {
+                if let Ok(mut fonts) = crate::fonts::system_fonts() {
+                    crate::fonts::add_text_fonts(&mut fonts);
+                    cc.egui_ctx.set_fonts(fonts);
+                }
+                crate::style::apply(&cc.egui_ctx);
+                let mut app = app_with_library(&format!("{name}-pictures"));
+                select(&mut app, &[if kind == OpKind::Pocket { 2 } else { 1 }]);
+                let i = app.add_operation(kind).unwrap();
+                app.focus = Focus::Op(i);
+                app
+            });
+        harness.run_steps(6);
+        if name.ends_with("-open") {
+            use egui_kittest::kittest::Queryable;
+            for section in ["Cut", "Holding"] {
+                harness.get_by_label_contains(section).click();
+                harness.run_steps(4);
+            }
+        }
+        let image = harness.render().unwrap();
+        image.save(dir.join(format!("{name}.png"))).unwrap();
+    }
+}

@@ -24,3 +24,5 @@ materials-saved = Enregistré dans { $name }
 materials-no-rows = Aucun outil n'a encore de valeurs pour lui.
 materials-open-tool-hover = Ouvrir l'outil : ses données de coupe contiennent les valeurs
 materials-rows-about = Ajoutez les valeurs d'un autre outil dans les données de coupe de cet outil.
+materials-default-thickness = Nouveaux projets : épaisseur du brut
+materials-default-thickness-hover = Le brut avec lequel un nouveau projet commence, avec le matériau par défaut. Désactivé : 10 mm

@@ -6,7 +6,7 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
-use chipload_i18n::Message;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::Job;
 use chipload_job::library::{
     LibraryError, MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary,
@@ -229,6 +229,14 @@ pub fn apply_library(
         let (with, _) = crate::materials::use_material(job, &library.tools, Some(material));
         *job = with;
         notes.push(Message::new("pipeline-library-material").arg("name", &material.name));
+    }
+    // The board new projects are cut from (the user, 2026-11-03).
+    if let Some(thickness) = library.materials.default_thickness {
+        job.stock_mut().thickness = thickness;
+        notes.push(
+            Message::new("pipeline-library-thickness")
+                .arg("thickness", Value::Length(thickness, Digits::Shortest)),
+        );
     }
     Ok(notes)
 }

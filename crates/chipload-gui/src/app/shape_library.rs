@@ -703,7 +703,7 @@ impl ChiploadApp {
                 ui.close();
             }
             let groups = self.shape_library.listing.groups.clone();
-            ui.menu_button(t!(ui, "shape-library-move-to"), |ui| {
+            super::header::submenu(ui, t!(ui, "shape-library-move-to"), |ui| {
                 let dir = self.shapes_folder();
                 let mut target = None;
                 if ui

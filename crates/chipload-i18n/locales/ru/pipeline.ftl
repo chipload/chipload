@@ -302,6 +302,7 @@ pipeline-library-machine = станок: { $name } ({ $how ->
 })
 pipeline-library-tool = инструмент { $tool }: { $name } (по умолчанию)
 pipeline-library-material = материал: { $name } (по умолчанию)
+pipeline-library-thickness = толщина заготовки: { $thickness } (по умолчанию)
 pipeline-library-post-unusable = постпроцессор «{ $name }»: { $error }
 pipeline-library-unknown-post = Станок «{ $name }»: в этой версии Chipload нет постпроцессора «{ $post }»; проекты с ним не смогут создать G-code, пока он не появится
 pipeline-material-chosen = Материал: { $name }

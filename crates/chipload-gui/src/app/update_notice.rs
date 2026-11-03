@@ -120,7 +120,7 @@ impl ChiploadApp {
             version = release.version.to_string()
         );
         let label = egui::RichText::new(text).color(ui.visuals().hyperlink_color);
-        ui.menu_button(label, |ui| self.update_choices(ui, &release))
+        super::header::submenu(ui, label, |ui| self.update_choices(ui, &release))
             .response
             .on_hover_text(t!(ui, "updates-available-hover"));
         ui.separator();
@@ -135,7 +135,7 @@ impl ChiploadApp {
                 "updates-available",
                 version = release.version.to_string()
             );
-            ui.menu_button(text, |ui| self.update_choices(ui, &release));
+            super::header::submenu(ui, text, |ui| self.update_choices(ui, &release));
         }
         if ui
             .add_enabled(

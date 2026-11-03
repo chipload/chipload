@@ -28,6 +28,8 @@ enum MaterialAct {
     Delete(String),
     UseInProject(String),
     MakeDefault(String),
+    /// The stock thickness new projects start with (None: 10 mm).
+    DefaultThickness(Option<f64>),
 }
 
 impl ChiploadApp {
@@ -230,6 +232,35 @@ impl ChiploadApp {
     }
 
     fn materials_folder_form(&self, ui: &mut egui::Ui, act: &mut Option<MaterialAct>) {
+        self.materials_folder_header(ui, act);
+        self.default_thickness_row(ui, act);
+    }
+
+    /// New projects' stock thickness: off (10 mm) or a value, saved when the field is left.
+    fn default_thickness_row(&self, ui: &mut egui::Ui, act: &mut Option<MaterialAct>) {
+        let saved = self.user.library.materials.default_thickness;
+        let id = Id::new("default-thickness-draft");
+        let mut value: f64 = ui
+            .data(|d| d.get_temp(id))
+            .or(saved)
+            .unwrap_or(chipload_pipeline::DEFAULT_THICKNESS);
+        let mut on = saved.is_some();
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            let check = ui
+                .checkbox(&mut on, t!(ui, "materials-default-thickness"))
+                .on_hover_text(t!(ui, "materials-default-thickness-hover"));
+            let field = ui.add_enabled(on, crate::units::length(&mut value));
+            if check.changed() {
+                *act = Some(MaterialAct::DefaultThickness(on.then_some(value)));
+            } else if on && field.lost_focus() && Some(value) != saved {
+                *act = Some(MaterialAct::DefaultThickness(Some(value)));
+            }
+        });
+        ui.data_mut(|d| d.insert_temp(id, value));
+    }
+
+    fn materials_folder_header(&self, ui: &mut egui::Ui, act: &mut Option<MaterialAct>) {
         title_line(ui, Icon::Material, None, &t!(ui, "materials-folder"));
         let path = self.user.settings_dir.as_deref().map(materials_path);
         library_header(ui, path.as_deref(), &self.user.library.problems);
@@ -415,6 +446,9 @@ impl ChiploadApp {
             MaterialAct::MakeDefault(uid) => {
                 self.make_default_material(&uid);
             }
+            MaterialAct::DefaultThickness(thickness) => {
+                self.set_default_thickness(thickness);
+            }
         }
     }
 
@@ -465,6 +499,16 @@ impl ChiploadApp {
         };
         self.change_materials(|library| {
             library.default_material = Some(name);
+            Ok(())
+        })
+        .is_ok()
+    }
+
+    /// The stock thickness new projects start with (None: 10 mm), kept in the materials
+    /// file beside the default material.
+    pub fn set_default_thickness(&mut self, thickness: Option<f64>) -> bool {
+        self.change_materials(|library| {
+            library.default_thickness = thickness;
             Ok(())
         })
         .is_ok()

@@ -440,7 +440,7 @@ fn tool_menu(
     match menu {
         RestMenu::Tools { project, library } => {
             let size = |d: f64| chipload_pipeline::units::length_text(d, units);
-            ui.menu_button(label, |ui| {
+            super::header::submenu(ui, label, |ui| {
                 for (tool, diameter) in project {
                     if ui
                         .button(t!(
@@ -1011,7 +1011,7 @@ impl ChiploadApp {
                 action = Some(OpAction::PartExport(part.id));
             }
             if setups.len() > 1 {
-                ui.menu_button(t!(ui, "browser-move-to-setup"), |ui| {
+                super::header::submenu(ui, t!(ui, "browser-move-to-setup"), |ui| {
                     for (id, name) in &setups {
                         if ui
                             .add_enabled(*id != part.setup, egui::Button::new(name))
@@ -1022,7 +1022,7 @@ impl ChiploadApp {
                     }
                 });
             }
-            ui.menu_button(t!(ui, "browser-new-operation"), |ui| {
+            super::header::submenu(ui, t!(ui, "browser-new-operation"), |ui| {
                 for (label, kind, hover) in new_operations(ui) {
                     if ui
                         .add_enabled(

@@ -14,6 +14,7 @@ fn properties_text(app: &mut ChiploadApp) -> String {
         }
     }
     let ctx = egui::Context::default();
+    open_sections(&ctx);
     let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.properties_panel(ui));
     output.textures_delta.clear();
     let mut text = String::new();
@@ -69,6 +70,7 @@ fn feeds_pictures() {
             .with_size(egui::vec2(width, 800.0))
             .wgpu()
             .build_eframe(move |cc| {
+                open_sections(&cc.egui_ctx);
                 if let Ok(mut fonts) = crate::fonts::system_fonts() {
                     crate::fonts::add_text_fonts(&mut fonts);
                     cc.egui_ctx.set_fonts(fonts);

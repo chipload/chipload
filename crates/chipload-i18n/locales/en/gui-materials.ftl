@@ -24,3 +24,5 @@ materials-saved = Saved in { $name }
 materials-no-rows = No tool has values for it yet.
 materials-open-tool-hover = Open the tool: its cutting data has the values
 materials-rows-about = Add values for another tool in that tool's cutting data.
+materials-default-thickness = New projects: stock thickness
+materials-default-thickness-hover = The board a new project starts with, beside the default material. Off: 10 mm

@@ -77,6 +77,30 @@ pub(in crate::app) fn section<R>(
     section_marked(ui, key, title, summary, marked, rows)
 }
 
+/// In the egui memory: folded sections start open instead (tests that read their fields).
+pub(in crate::app) const OPEN_SECTIONS: &str = "open-sections";
+
+/// A [`section`] that starts folded, its summary beside its title: an operation's sections,
+/// so its properties open on what matters (the user, 2026-11-03: "the user feels
+/// overwhelmed with the information"). Opened, it stays open; one with a problem starts
+/// open.
+pub(in crate::app) fn folded_section<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
+    let marked = problems::section_has_problem(ui, key);
+    // A section with a problem opens, so the problem is never folded away.
+    let unfolded = ui.data(|d| d.get_temp::<bool>(egui::Id::new(OPEN_SECTIONS)));
+    let look = SectionLook {
+        open: marked || unfolded == Some(true),
+        labels: label_width(ui),
+    };
+    section_shown(ui, key, title, summary, marked, look, rows)
+}
+
 /// How a section opens and how wide its label column is.
 #[derive(Clone, Copy)]
 pub(super) struct SectionLook {
@@ -165,6 +189,7 @@ pub(super) fn section_shown<R>(
         .id_salt(("section", key))
         .default_open(look.open)
         .show(ui, |ui| {
+            labels_weak(ui);
             Grid::new(("section-grid", key))
                 .num_columns(2)
                 .min_col_width(look.labels)
@@ -172,6 +197,14 @@ pub(super) fn section_shown<R>(
                 .inner
         })
         .body_returned
+}
+
+/// A form's labels in the weak colour, so its values (in their fields, the text of active
+/// widgets) and the sections' bold titles stand out (the user, 2026-11-03: "all the font
+/// colors and styling is a little same, so it hard to see what is important").
+pub(in crate::app) fn labels_weak(ui: &mut egui::Ui) {
+    let weak = ui.visuals().weak_text_color();
+    ui.visuals_mut().widgets.noninteractive.fg_stroke.color = weak;
 }
 
 /// A grid's value cell whose row wraps within the panel: a field with a button or a note

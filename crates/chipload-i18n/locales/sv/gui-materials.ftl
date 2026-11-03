@@ -24,3 +24,5 @@ materials-saved = Sparat i { $name }
 materials-no-rows = Inget verktyg har värden för det än.
 materials-open-tool-hover = Öppna verktyget: dess skärdata har värdena
 materials-rows-about = Lägg till värden för ett annat verktyg i det verktygets skärdata.
+materials-default-thickness = Nya projekt: ämnets tjocklek
+materials-default-thickness-hover = Ämnet som ett nytt projekt börjar med, bredvid standardmaterialet. Av: 10 mm

@@ -435,6 +435,7 @@ pipeline-library-machine = macchina: { $name } ({ $how ->
 })
 pipeline-library-tool = utensile { $tool }: { $name } (utensile predefinito)
 pipeline-library-material = materiale: { $name } (materiale predefinito)
+pipeline-library-thickness = spessore del grezzo: { $thickness } (predefinito)
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = post-processore "{ $name }": { $error }
 pipeline-library-unknown-post = Macchina "{ $name }": questo Chipload non ha il post-processore "{ $post }"; i progetti che la usano non possono generare G-code finché non lo avrà

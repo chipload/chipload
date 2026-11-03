@@ -684,7 +684,7 @@ impl ChiploadApp {
                         app.add_operation(kind);
                     }
                 }
-                ui.menu_button(t!(ui, "styles-apply-menu"), |ui| {
+                submenu(ui, t!(ui, "styles-apply-menu"), |ui| {
                     let mut act = None;
                     app.style_menu(ui, &mut act);
                     if let Some(act) = act {
@@ -990,6 +990,24 @@ fn generate_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) ->
 /// A small square icon button for the top bar.
 fn quick_button(ui: &mut egui::Ui, icon: Icon, hover: &str, enabled: bool) -> Response {
     icon_button(ui, icon, hover, enabled, false, QUICK_BUTTON)
+}
+
+/// A menu entry that opens a submenu, or a menu button outside a menu. Inside a menu its
+/// arrow is ▸: egui's own (⏵, U+23F5) is in none of the fonts the window loads and showed
+/// as an empty box (the user, 2026-11-03).
+pub(crate) fn submenu<'a, R>(
+    ui: &mut egui::Ui,
+    label: impl egui::IntoAtoms<'a>,
+    add_contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> egui::InnerResponse<Option<R>> {
+    if egui::containers::menu::is_in_menu(ui) {
+        let button = egui::Button::new(label).right_text("▸");
+        let (response, inner) =
+            egui::containers::menu::SubMenuButton::from_button(button).ui(ui, add_contents);
+        egui::InnerResponse::new(inner.map(|i| i.inner), response)
+    } else {
+        ui.menu_button(label, add_contents)
+    }
 }
 
 /// A square icon button of `side` points: for the top bar and the canvas's navigation bar.

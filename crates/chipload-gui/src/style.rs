@@ -10,9 +10,10 @@ const ACCENT_DARK: Color32 = Color32::from_rgb(0x2a, 0x6c, 0xb0);
 const ACCENT_LIGHT: Color32 = Color32::from_rgb(0xa8, 0xcd, 0xf5);
 /// Text on the dark accent (egui's light blue reads only 3.9:1 on it).
 const ON_ACCENT_DARK: Color32 = Color32::WHITE;
-/// Dark theme: labels, button text, weak text and errors, brighter than egui's.
+/// Dark theme: labels, button text, weak text and errors, brighter than egui's. Button
+/// text, which is also the values in fields, a step above labels (the user, 2026-11-03).
 const TEXT_DARK: Color32 = Color32::from_gray(185);
-const BUTTON_TEXT_DARK: Color32 = Color32::from_gray(200);
+const BUTTON_TEXT_DARK: Color32 = Color32::from_gray(225);
 const WEAK_DARK: Color32 = Color32::from_gray(160);
 const ERROR_DARK: Color32 = Color32::from_rgb(0xff, 0x7b, 0x72);
 /// Light theme: weak text, warnings and errors, darker than egui's.

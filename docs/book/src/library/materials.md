@@ -47,6 +47,10 @@ this material.
 `--none` to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.
 
+**The board's thickness for new projects:** on *This computer > Materials*, tick *New
+projects: stock thickness* and type it (`chipload material thickness 18`, `--none` for the
+built-in 10 mm). It is kept in `materials.json` beside the default material.
+
 **Changing an operation's tool** takes the new tool's values for its material, when it has
 some.
 
@@ -69,6 +73,7 @@ chipload tool cutting "6 mm 2-flute" --material Plywood --plunge-feed 500 \
 chipload material list                         # every material with its tools' rows
 chipload material show Plywood
 chipload material default Plywood              # new projects start with it (--none: no default)
+chipload material thickness 18                 # and with stock 18 mm thick (--none: 10 mm)
 chipload material use part.chipload Plywood    # every operation, and those added later (--none: no material)
 chipload material use part.chipload Plywood --op 2   # operation 2 alone
 chipload material save part.chipload --op 2    # operation 2's values into its tool's row (--material NAME)

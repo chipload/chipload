@@ -166,6 +166,10 @@ pub(super) fn job_label_width(ui: &egui::Ui) -> f32 {
 /// (docs/specs/stock-around-drawing.md).
 /// `board`: the extents of the drawing the board is placed on, its setup's own shapes
 /// ([`chipload_job::Job::board_extents`]).
+/// Set in the egui memory to put the keyboard in the stock's thickness the next time it is
+/// drawn: a new project's first field.
+pub(in crate::app) const FOCUS_THICKNESS: &str = "focus-thickness";
+
 pub(super) fn stock_section(
     ui: &mut egui::Ui,
     job: &mut chipload_job::Job,
@@ -196,11 +200,13 @@ pub(super) fn stock_section(
         look,
         |ui| {
             ui.label(t!(ui, "forms-thickness"));
-            flag(
-                ui.add(mm(&mut job.stock_mut().thickness)),
-                ui,
-                "stock.thickness",
-            );
+            let thickness = ui.add(mm(&mut job.stock_mut().thickness));
+            // A new project: the thickness is typed first (the user, 2026-11-03).
+            if ui.data_mut(|d| d.remove_temp::<bool>(egui::Id::new(FOCUS_THICKNESS))) == Some(true)
+            {
+                thickness.request_focus();
+            }
+            flag(thickness, ui, "stock.thickness");
             ui.end_row();
             // The board's own: a setup's (docs/specs/setups.md §7).
             ui.label(t!(ui, "forms-max-overcut"))
@@ -558,33 +564,17 @@ pub(in crate::app) fn setup_form(
             None,
             &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
         );
-        let at = |field: &str| format!("setups.{index}.{field}");
-        Grid::new(("setup-form", id))
-            .num_columns(2)
-            .min_col_width(labels + ui.spacing().indent)
-            .show(ui, |ui| {
-                ui.label(t!(ui, "forms-name"));
-                let response = ui.add(
-                    TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)),
-                );
-                flag(response, ui, &at("name"));
-                ui.end_row();
-                if several {
-                    ui.label(t!(ui, "forms-setup-cut"))
-                        .on_hover_text(t!(ui, "forms-setup-cut-hover"));
-                    ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
-                    ui.end_row();
-                }
-                ui.label(t!(ui, "forms-setup-parts"));
-                ui.label(if parts.is_empty() {
-                    t!(ui, "forms-operations-none")
-                } else {
-                    parts.join(", ")
-                });
-                ui.end_row();
-            });
     }
     if !active {
+        setup_name_rows(
+            ui,
+            &mut edit.job.setups[index],
+            index,
+            id,
+            several,
+            &parts,
+            labels,
+        );
         ui.add_space(6.0);
         if ui.button(t!(ui, "forms-setup-make-active")).clicked() {
             request = Some(JobRequest::ActivateSetup(id));
@@ -594,6 +584,24 @@ pub(in crate::app) fn setup_form(
     // Taken before the stock is borrowed for its fields.
     let board = edit.job.board_extents();
     let job = &mut edit.job;
+    // The board first: its thickness and material are what a new project needs before
+    // anything else (the user, 2026-11-03).
+    stock_section(ui, job, board, open);
+    if let Some(library) = library
+        && let Some(material) = material_section(ui, job, library, open)
+    {
+        request = Some(material);
+    }
+    ui.add_space(4.0);
+    setup_name_rows(
+        ui,
+        &mut job.setups[index],
+        index,
+        id,
+        several,
+        &parts,
+        labels,
+    );
     // The zero has its own properties; here where it is, a click away
     // (docs/specs/work-zero-marker.md §4).
     let zero = ui
@@ -606,12 +614,7 @@ pub(in crate::app) fn setup_form(
     if zero.clicked() {
         request = Some(JobRequest::OpenWorkZero);
     }
-    stock_section(ui, job, board, open);
-    if let Some(library) = library
-        && let Some(material) = material_section(ui, job, library, open)
-    {
-        request = Some(material);
-    }
+
     if several {
         ui.add_space(6.0);
         if ui.button(t!(ui, "forms-remove-setup")).clicked() {
@@ -619,6 +622,42 @@ pub(in crate::app) fn setup_form(
         }
     }
     request
+}
+
+/// A setup's name, whether it is cut (with several), and its parts.
+fn setup_name_rows(
+    ui: &mut egui::Ui,
+    setup: &mut chipload_job::Setup,
+    index: usize,
+    id: u64,
+    several: bool,
+    parts: &[String],
+    labels: f32,
+) {
+    let at = |field: &str| format!("setups.{index}.{field}");
+    Grid::new(("setup-form", id))
+        .num_columns(2)
+        .min_col_width(labels + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label(t!(ui, "forms-name"));
+            let response =
+                ui.add(TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)));
+            flag(response, ui, &at("name"));
+            ui.end_row();
+            if several {
+                ui.label(t!(ui, "forms-setup-cut"))
+                    .on_hover_text(t!(ui, "forms-setup-cut-hover"));
+                ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
+                ui.end_row();
+            }
+            ui.label(t!(ui, "forms-setup-parts"));
+            ui.label(if parts.is_empty() {
+                t!(ui, "forms-operations-none")
+            } else {
+                parts.join(", ")
+            });
+            ui.end_row();
+        });
 }
 
 pub(in crate::app) fn part_form(

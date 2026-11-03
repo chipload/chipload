@@ -24,3 +24,5 @@ materials-saved = Guardado en { $name }
 materials-no-rows = Ninguna herramienta tiene aún valores para él.
 materials-open-tool-hover = Abrir la herramienta: sus datos de corte tienen los valores
 materials-rows-about = Añade valores para otra herramienta en los datos de corte de esa herramienta.
+materials-default-thickness = Proyectos nuevos: espesor del material en bruto
+materials-default-thickness-hover = El material en bruto con el que empieza un proyecto nuevo, junto al material predeterminado. Desactivado: 10 mm
