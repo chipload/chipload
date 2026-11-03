@@ -253,6 +253,8 @@ job-library-field = { $field ->
     [work-zero] Werkstücknullpunkt
     [max-overcut] max. Tiefe unter Rohteil
     [tool-values] Werte eines Werkzeugs
+    [style-tool] Werkzeug
+    [style-settings] Bearbeitung
    *[other] { $field }
 }
 # An angle in degrees, $degrees without its unit.
@@ -322,3 +324,13 @@ job-import-differs = Weicht von Ihrem ab: { $name } (Datei: { $differences })
 job-import-default = Standard: { $name }
 job-import-becomes-default = Wird Standard: { $name }
 job-polygon-sides = ein Vieleck hat { $least } bis { $most } Seiten, erhalten { $got }
+
+# Styles: operations saved by name (docs/specs/styles.md). $reason is in English.
+job-style-unreadable = Stil „{ $name }“ kann nicht gelesen werden: { $reason }
+job-style-exists = es gibt schon einen Stil namens „{ $name }“ (ersetzen oder anderen Namen wählen)
+job-style-none = kein Stil namens „{ $name }“
+job-style-no-operation = das Projekt hat keine Bearbeitung { $number }
+job-style-tool-not-in-library = Werkzeug { $tool } ist nicht in Ihrer Bibliothek: speichern Sie es zuerst in der Bibliothek
+# What differs between two styles of the same name: theirs and the other one's.
+job-style-these-settings = diese Einstellungen
+job-style-other-settings = andere Einstellungen

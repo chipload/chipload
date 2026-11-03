@@ -857,6 +857,30 @@ Tool group 2: tool 2, operations 3
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v35/style_use.chipload
+exit 0
+--- stdout
+note: Operation 2 (Cut out (holes)): cuts through, 0.500 mm into the spoilboard
+note: Operation 3 (Cut out (outline)): cuts through, 0.500 mm into the spoilboard
+Operation 1: a ring starts at (82.519, 100.617) (default)
+Operation 2: a ring starts at (90.000, 98.000) (default)
+Operation 2: a ring starts at (140.000, 83.000) (default)
+Operation 2: a ring starts at (153.000, 123.000) (default)
+Operation 3: a ring starts at (60.000, 47.000) (default)
+Estimated time: 8 min 18 s (cutting 8 min 12 s, rapids 3 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
+  Operation 1 (Pocket 3 mm): 30 s; cutting 718 mm, plunging 6 mm, rapids 12 mm, 1 lift
+  Operation 2 (Cut out (holes)): 3 min 0 s; cutting 4.4 m, plunging 3 mm, rapids 127 mm, 3 lifts
+  Operation 3 (Cut out (outline)): 4 min 46 s; cutting 7.1 m, plunging 1 mm, rapids 149 mm, 1 lift
+  In all: cutting 12.3 m, plunging 10 mm, rapids 288 mm, 5 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Pocket 3 mm): 0.042 mm/tooth
+  Operation 2 (Cut out (holes)): 0.042 mm/tooth
+  Operation 3 (Cut out (outline)): 0.042 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v35/vcarve_step_down.chipload
 exit 0
 --- stdout

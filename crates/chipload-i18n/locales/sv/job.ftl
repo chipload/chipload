@@ -253,6 +253,8 @@ job-library-field = { $field ->
     [work-zero] arbetsnollpunkt
     [max-overcut] max djup under ämnet
     [tool-values] ett verktygs värden
+    [style-tool] verktyg
+    [style-settings] operation
    *[other] { $field }
 }
 # An angle in degrees, $degrees without its unit.
@@ -322,3 +324,13 @@ job-import-differs = Skiljer sig från din: { $name } (filen: { $differences })
 job-import-default = Standard: { $name }
 job-import-becomes-default = Blir standard: { $name }
 job-polygon-sides = en polygon har { $least } till { $most } sidor, fick { $got }
+
+# Styles: operations saved by name (docs/specs/styles.md). $reason is in English.
+job-style-unreadable = stilen ”{ $name }” kan inte läsas: { $reason }
+job-style-exists = det finns redan en stil som heter ”{ $name }” (ersätt den eller välj ett annat namn)
+job-style-none = ingen stil som heter ”{ $name }”
+job-style-no-operation = projektet har ingen operation { $number }
+job-style-tool-not-in-library = verktyg { $tool } finns inte i ditt bibliotek: spara det i biblioteket först
+# What differs between two styles of the same name: theirs and the other one's.
+job-style-these-settings = de här inställningarna
+job-style-other-settings = andra inställningar

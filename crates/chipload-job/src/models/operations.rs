@@ -373,6 +373,63 @@ impl Operation {
         }
     }
 
+    /// Every project tool it cuts with or names, each once: its own first, then a rest
+    /// pocket's larger tool, its rest passes' and floor pass's.
+    pub fn tool_ids(&self) -> Vec<i64> {
+        let mut ids = vec![self.tool()];
+        let mut push = |id: i64| {
+            if !ids.contains(&id) {
+                ids.push(id);
+            }
+        };
+        match self {
+            Operation::Pocket(p) => {
+                if let Some(rest) = &p.rest {
+                    push(rest.after_tool);
+                }
+                for pass in &p.rest_passes {
+                    push(pass.tool);
+                }
+            }
+            Operation::Vcarve(v) => {
+                if let Some(pass) = &v.floor {
+                    push(pass.tool);
+                }
+            }
+            Operation::Profile(_)
+            | Operation::Path(_)
+            | Operation::Holes(_)
+            | Operation::Surface(_) => {}
+        }
+        ids
+    }
+
+    /// Give every tool it names the id `ids` maps it to; ids not in `ids` stay.
+    pub fn remap_tools(&mut self, ids: &std::collections::BTreeMap<i64, i64>) {
+        let new = |id: i64| ids.get(&id).copied().unwrap_or(id);
+        let own = new(self.tool());
+        self.set_tool(own);
+        match self {
+            Operation::Pocket(p) => {
+                if let Some(rest) = &mut p.rest {
+                    rest.after_tool = new(rest.after_tool);
+                }
+                for pass in &mut p.rest_passes {
+                    pass.tool = new(pass.tool);
+                }
+            }
+            Operation::Vcarve(v) => {
+                if let Some(pass) = &mut v.floor {
+                    pass.tool = new(pass.tool);
+                }
+            }
+            Operation::Profile(_)
+            | Operation::Path(_)
+            | Operation::Holes(_)
+            | Operation::Surface(_) => {}
+        }
+    }
+
     /// Set the end depth, mm down from the stock top.
     pub fn set_end_depth(&mut self, depth: f64) {
         match self {

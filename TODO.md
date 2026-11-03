@@ -74,12 +74,10 @@ style.
    *Done*). Left from it for the first-run setup: tabs with a tool not marked
    centre-cutting still warn, and machine travel not set.
 2. **Styles: operation presets** (docs/specs/styles.md, replacing presets.md; the
-   direction review's step 2, CamBam's speed). Simpler now that feeds live in the tools (ADR 0029):
-   a style is an operation's settings, a library tool and a depth (a number or through);
-   its feeds come from the tool's row for the material. Saved from an operation (⋯ > *Save
-   as style…*), applied to the selection in one click, from the Browser, the canvas'
-   right-click menu and the command line. Layer rules (a style applied by layer name on
-   import) as a second step. Rework the spec's decisions (§10) with the user first.
+   direction review's step 2, CamBam's speed). **Steps 1 and 2 done 2026-11-03** (the
+   defaults; `styles.json` and `chipload style …`, ADR 0030). **Next, step 3, the window:**
+   the ribbon's Style button, the canvas' right-click *Apply style ▸*, *Save as style…* on
+   an operation, the Browser's Styles folder under This computer; then layer rules (step 4).
 3. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
@@ -190,6 +188,12 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **Styles in a file and on the command line: done 2026-11-03** (docs/specs/styles.md
+  step 2, ADR 0030). `chipload style save` keeps an operation's settings and library tool
+  by name; `style use` makes it on shapes of any project (a profile style by the
+  selection: holes inside, outline outside with tabs); feeds from the tool's cutting data.
+  Older styles are carried over by the project migrations. The window follows (step 3).
 
 - **Defaults that know the job: done 2026-11-03** (docs/specs/styles.md §2, the user: "ok
   go ahead"). A new profile of outlines goes outside and through with tabs, of holes

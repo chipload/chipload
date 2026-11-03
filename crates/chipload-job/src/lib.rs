@@ -19,6 +19,7 @@ pub mod problem;
 #[cfg(feature = "schema")]
 pub mod schema;
 pub mod shape_library;
+pub mod styles;
 
 use std::path::Path;
 

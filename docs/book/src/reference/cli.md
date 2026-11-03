@@ -1664,6 +1664,127 @@ chipload material import <FILE> [OPTIONS]
 | `<FILE>` |  |
 | `--replace` | Overwrite yours where the file has other values under the same name. |
 
+## `chipload style`
+
+Your styles: operations saved by name, used again on shapes in one go (docs/specs/styles.md)
+
+### `chipload style list`
+
+List your styles and where the file is
+
+```text
+chipload style list
+```
+
+### `chipload style show`
+
+A style: its kind, tool, depth and settings
+
+```text
+chipload style show <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload style save`
+
+Save an operation of a project as a style. Its tools must be in your library; its shapes and its start points, tabs and corners placed by hand are not kept, nor its feeds when its tool has cutting data
+
+```text
+chipload style save <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The operation, 1-based as listed. Required. |
+| `--name <NAME>` | The style's name. Required. |
+| `--replace` | Put it in place of the style of that name. |
+
+### `chipload style use`
+
+Add the style's operation for shapes of a project, at the end of the active part: a profile style on an outline with its holes gives two, the holes first
+
+```text
+chipload style use <PROJECT> <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<NAME>` | The style. |
+| `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
+| `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
+| `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
+| `--group <GROUP>` | All of this group. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload style rename`
+
+Rename a style
+
+```text
+chipload style rename <NAME> <NEW>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `<NEW>` |  |
+
+### `chipload style set`
+
+Give a style another tool of your library (by name), for example after an import whose tool you don't have
+
+```text
+chipload style set <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `--tool <TOOL>` | Required. |
+
+### `chipload style remove`
+
+Remove a style
+
+```text
+chipload style remove <NAME>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+
+### `chipload style export`
+
+Write styles to a file: a backup, or for another computer
+
+```text
+chipload style export <FILE> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FILE>` |  |
+| `--name <NAMES>` | Only these (repeatable); default: all. Repeatable. |
+
+### `chipload style import`
+
+Add the styles of an exported file
+
+```text
+chipload style import <FILE> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<FILE>` |  |
+| `--replace` | Overwrite yours where the file has another style under the same name. |
+
 ## `chipload machine`
 
 Your machine profiles: machine values a new project starts with

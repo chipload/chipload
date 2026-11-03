@@ -203,11 +203,7 @@ pub fn new_operations(
                     let hole_name = suffixed("pipeline-name-holes-of", number);
                     let outline_name = suffixed("pipeline-name-outline-of", number + 1);
                     if follows_drawing(&request.select) {
-                        messages.push(
-                            Message::new("pipeline-new-by-shapes")
-                                .arg("holes", hole_name.clone())
-                                .arg("outline", outline_name.clone()),
-                        );
+                        messages.push(by_shapes(&hole_name, &outline_name));
                     }
                     vec![
                         (start.profile(hole_name, &holes, Side::Inside, true), true),
@@ -237,6 +233,13 @@ pub fn new_operations(
         ops,
         messages,
     }
+}
+
+/// The note for two profiles split from a layer or a whole drawing: they name their shapes.
+pub fn by_shapes(holes: &str, outline: &str) -> Message {
+    Message::new("pipeline-new-by-shapes")
+        .arg("holes", holes)
+        .arg("outline", outline)
 }
 
 /// Whether a selector follows the drawing (a layer or a whole source) rather than naming

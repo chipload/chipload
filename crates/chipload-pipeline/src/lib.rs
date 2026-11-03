@@ -27,6 +27,7 @@ pub mod shape_library;
 pub mod shapes;
 pub mod sheet;
 pub mod simulate;
+pub mod styles;
 pub mod surface;
 pub mod tabs;
 pub mod texts;

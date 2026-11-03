@@ -51,6 +51,7 @@
 - [Tool library](library/tools.md)
 - [Machine profiles](library/machines.md)
 - [Materials](library/materials.md)
+- [Styles](library/styles.md)
 - [Post-processors](posts.md)
 
 # Before cutting

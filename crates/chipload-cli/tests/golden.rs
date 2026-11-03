@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 57] = [
+const GOLDEN: [(&str, &str); 58] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -174,6 +174,10 @@ const GOLDEN: [(&str, &str); 57] = [
     // circle 3 mm deep, then the whole DXF as two profiles, the holes inside, then the
     // outline outside with tabs, both through. `cli.rs` makes it again from the commands.
     ("v35_op_add", "jobs/v35/op_add.chipload"),
+    // simple_part made with `style use` alone (docs/specs/styles.md §3): the styles of
+    // tests/corpus/styles/v1, a pocket of the circle and a cut out, which on the whole DXF
+    // is the holes inside, then the outline outside with tabs. `cli.rs` makes it again.
+    ("v35_style_use", "jobs/v35/style_use.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

@@ -598,3 +598,5 @@ pipeline-name-holes-of = { $name } (hål)
 pipeline-name-outline-of = { $name } (ytterkontur)
 # The two profiles name their shapes rather than following a layer or a whole drawing.
 pipeline-new-by-shapes = { $holes } och { $outline } väljer sina former en och en: former som läggs till ritningen senare fräses inte av dem
+# A style names a library tool the library no longer has (an import from another computer).
+pipeline-style-tool-missing = stilen ”{ $style }” fräser med ”{ $tool }”, som inte finns i ditt bibliotek: välj ett annat verktyg för stilen

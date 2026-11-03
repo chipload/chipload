@@ -156,6 +156,8 @@ job-library-field = { $field ->
     [work-zero] ноль детали
     [max-overcut] макс. глубина под заготовкой
     [tool-values] параметры инструмента
+    [style-tool] инструмент
+    [style-settings] операция
    *[other] { $field }
 }
 job-library-degrees = { $degrees }°
@@ -208,3 +210,11 @@ job-import-differs = Отличается от ваших: { $name } (файл: 
 job-import-default = По умолчанию: { $name }
 job-import-becomes-default = Станет значением по умолчанию: { $name }
 job-polygon-sides = многоугольник должен иметь от { $least } до { $most } сторон, получено { $got }
+
+job-style-unreadable = стиль «{ $name }» не удаётся прочитать: { $reason }
+job-style-exists = стиль с именем «{ $name }» уже есть (замените его или выберите другое имя)
+job-style-none = нет стиля с именем «{ $name }»
+job-style-no-operation = в проекте нет операции { $number }
+job-style-tool-not-in-library = инструмента { $tool } нет в вашей библиотеке: сначала сохраните его в библиотеку
+job-style-these-settings = эти настройки
+job-style-other-settings = другие настройки

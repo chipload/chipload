@@ -253,6 +253,8 @@ job-library-field = { $field ->
     [work-zero] work zero
     [max-overcut] max overcut
     [tool-values] a tool's values
+    [style-tool] tool
+    [style-settings] operation
    *[other] { $field }
 }
 # An angle in degrees, $degrees without its unit.
@@ -324,3 +326,13 @@ job-import-differs = Differs from yours: { $name } (file: { $differences })
 job-import-default = Default: { $name }
 job-import-becomes-default = Becomes the default: { $name }
 job-polygon-sides = a polygon has { $least } to { $most } sides, got { $got }
+
+# Styles: operations saved by name (docs/specs/styles.md). $reason is in English.
+job-style-unreadable = style "{ $name }" can't be read: { $reason }
+job-style-exists = there is already a style named "{ $name }" (replace it, or choose another name)
+job-style-none = no style named "{ $name }"
+job-style-no-operation = the project has no operation { $number }
+job-style-tool-not-in-library = tool { $tool } isn't in your library: save it to the library first
+# What differs between two styles of the same name: theirs and the other one's.
+job-style-these-settings = these settings
+job-style-other-settings = other settings

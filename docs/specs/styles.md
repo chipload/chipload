@@ -1,7 +1,7 @@
 # Spec: defaults that know the job, and styles
 
 Status: approved 2026-11-03 (decisions 1-10 as recommended, the user: "ok go ahead");
-step 1 built (§9). Replaces docs/specs/presets.md (paused 2026-10-13), whose layer rules
+steps 1 and 2 built (§9). Replaces docs/specs/presets.md (paused 2026-10-13), whose layer rules
 (§5 there) come back as step 4 here.
 
 ## 1. Why
@@ -298,3 +298,22 @@ A new persisted file in the settings folder, beside `tools.json`:
   sure it is a centre-cutting tool") and machine travel not set; both go once the tool and
   machine are set up in the library (the first-run setup, TODO).
 - Golden `v35_op_add` (simple_part made with `op add` alone); no existing G-code changed.
+
+**Step 2, 2026-11-03:** styles in a file and on the command line (ADR 0030).
+- `chipload_job::styles`: `StyleLibrary` (`styles.json` v1: `operation_schema`, styles with
+  name, uid, `tools` as id/uid/name, `side` `by_selection`/`as_saved` for profiles, the
+  operation as JSON), `load_styles` (upgrading older operations through the project
+  migrations, refusing a style by name), `style_of` (saving from an operation).
+  `Operation::tool_ids`/`remap_tools` for the tools a style names, a rest pocket's larger
+  tool and its passes' included.
+- `chipload_pipeline::styles::style_operations`: the operations `new_ops` makes for the
+  selection with the style's settings over them; its tools by uid, copied in when the
+  project has none; feeds from the tool's cutting data, else the saved ones. A profile
+  style by the selection gives inside profiles no tabs.
+- **A style whose library tool is gone** still works in a project that has a copy of that
+  tool (linked by uid); elsewhere it is refused until `style set NAME --tool` gives it one.
+- `chipload style save/use/list/show/rename/set/remove/export/import`. Golden
+  `v35_style_use` made with `style use` alone, the frozen sample
+  `tests/corpus/styles/v1/styles.json` the styles it was made with; a test migrates a
+  schema-34 V-carve style (its step down becomes passes).
+- Not yet: a JSON Schema for `styles.json` (`chipload schema`), the window (step 3).

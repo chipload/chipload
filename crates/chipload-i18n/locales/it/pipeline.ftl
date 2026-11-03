@@ -603,3 +603,5 @@ pipeline-name-holes-of = { $name } (fori)
 pipeline-name-outline-of = { $name } (contorno esterno)
 # The two profiles name their shapes rather than following a layer or a whole drawing.
 pipeline-new-by-shapes = { $holes } e { $outline } selezionano le loro forme una per una: le forme aggiunte in seguito al disegno non vengono lavorate da esse
+# A style names a library tool the library no longer has (an import from another computer).
+pipeline-style-tool-missing = lo stile «{ $style }» lavora con «{ $tool }», che non è nella tua libreria: scegli un altro utensile per lo stile

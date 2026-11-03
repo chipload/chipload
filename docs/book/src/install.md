@@ -100,7 +100,8 @@ Behind a proxy, set `HTTPS_PROXY`.
 
 ## Your settings
 
-Chipload keeps your tool library, machine profiles, own post-processors (in `posts/`),
+Chipload keeps your tool library, machine profiles, [styles](library/styles.md)
+(`styles.json`), own post-processors (in `posts/`),
 fonts for texts that you haven't installed (in `fonts/`), app settings and the arrangement
 of the window's panels (`layout.json`) in one folder:
 

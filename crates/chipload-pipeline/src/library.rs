@@ -52,6 +52,11 @@ pub fn materials_path(dir: &Path) -> PathBuf {
     dir.join(MATERIALS_FILE)
 }
 
+/// The user's styles in the settings folder `dir` (docs/specs/styles.md §4).
+pub fn styles_path(dir: &Path) -> PathBuf {
+    dir.join(chipload_job::styles::STYLES_FILE)
+}
+
 /// The folder of fonts for texts beside the installed ones (docs/specs/system-fonts.md §2).
 pub fn fonts_path(dir: &Path) -> PathBuf {
     dir.join("fonts")

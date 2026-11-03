@@ -1978,6 +1978,125 @@ fn op_add_makes_the_golden_project_and_says_what_it_added() {
 }
 
 #[test]
+fn styles_are_saved_used_and_make_the_golden_project() {
+    // docs/specs/styles.md §3: tests/corpus/jobs/v35/style_use.chipload (golden
+    // v35_style_use) and the styles of tests/corpus/styles/v1, made again with commands.
+    let dir = temp_dir("styles");
+    let settings = dir.join("settings");
+    let run = |args: &[&str]| {
+        Command::new(env!("CARGO_BIN_EXE_chipload"))
+            .env("CHIPLOAD_CONFIG_DIR", &settings)
+            .args(args)
+            .output()
+            .unwrap()
+    };
+    let ok = |args: &[&str]| {
+        let out = run(args);
+        assert!(out.status.success(), "{args:?}: {}", text(&out.stderr));
+        text(&out.stdout)
+    };
+    let dxf = corpus("dxf/simple_part.dxf");
+    let (a, b) = (dir.join("a.chipload"), dir.join("b.chipload"));
+    let (a, b) = (path(&a), path(&b));
+    ok(&[
+        "tool",
+        "add",
+        "6 mm 2F",
+        "--type",
+        "endmill",
+        "--diameter",
+        "6",
+        "--flutes",
+        "2",
+        "--rpm",
+        "18000",
+        "--center-cutting",
+        "yes",
+    ]);
+    ok(&["import", path(&dxf), "-o", a]);
+    ok(&["tool", "use", "6 mm 2F", a]);
+    ok(&[
+        "op", "add", a, "pocket", "--shapes", "2", "--depth", "3", "--tool", "2",
+    ]);
+    ok(&[
+        "op",
+        "add",
+        a,
+        "profile",
+        "--layer",
+        "CUT_OUTSIDE",
+        "--tool",
+        "2",
+    ]);
+    let saved = ok(&["style", "save", a, "--op", "1", "--name", "Pocket 3 mm"]);
+    assert!(
+        saved.contains("pocket, 3 mm deep, tool \"6 mm 2F\""),
+        "{saved}"
+    );
+    ok(&["style", "save", a, "--op", "2", "--name", "Cut out"]);
+    // A name in use: refused unless replaced.
+    assert!(
+        !run(&["style", "save", a, "--op", "2", "--name", "cut OUT"])
+            .status
+            .success()
+    );
+    ok(&["import", path(&dxf), "-o", b]);
+    let used = ok(&["style", "use", b, "Pocket 3 mm", "--shapes", "2"]);
+    assert!(
+        used.contains("Copied tool 2 in from your library."),
+        "{used}"
+    );
+    let used = ok(&["style", "use", b, "Cut out", "--dxf", "1"]);
+    assert!(used.contains("\"Cut out (holes)\", inside"), "{used}");
+    let json = |file: &Path| -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(file).unwrap()).unwrap()
+    };
+    let golden = json(&corpus("jobs/v35/style_use.chipload"));
+    let made = json(Path::new(b));
+    assert_eq!(made["operations"], golden["operations"]);
+    assert_eq!(made["tools"], golden["tools"]);
+    let styles = json(&settings.join("styles.json"));
+    assert_eq!(
+        styles["styles"],
+        json(&corpus("styles/v1/styles.json"))["styles"]
+    );
+    // List, rename, export, remove, import back.
+    assert!(ok(&["style", "list"]).contains("Cut out: profile, side by the selection"));
+    ok(&["style", "rename", "Cut out", "Through"]);
+    let export = dir.join("styles-export.json");
+    ok(&["style", "export", path(&export), "--name", "Through"]);
+    ok(&["style", "remove", "through"]);
+    assert!(ok(&["style", "import", path(&export)]).contains("Added: Through"));
+    // Its tool gone from the library: a new project can't use it until another is chosen.
+    ok(&["tool", "remove", "6 mm 2F"]);
+    let c = dir.join("c.chipload");
+    ok(&["import", path(&dxf), "-o", path(&c)]);
+    let out = run(&["style", "use", path(&c), "Through", "--dxf", "1"]);
+    assert!(!out.status.success());
+    assert!(
+        text(&out.stderr).contains("isn't in your library"),
+        "{}",
+        text(&out.stderr)
+    );
+    ok(&[
+        "tool",
+        "add",
+        "6 mm 3F",
+        "--type",
+        "endmill",
+        "--diameter",
+        "6",
+        "--flutes",
+        "3",
+        "--rpm",
+        "18000",
+    ]);
+    ok(&["style", "set", "Through", "--tool", "6 mm 3F"]);
+    ok(&["style", "use", path(&c), "Through", "--dxf", "1"]);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn the_golden_sign_is_framed_with_frame_add() {
     // docs/specs/shape-library.md §9: tests/corpus/jobs/v35/sign_frame.chipload (golden
     // v35_sign_frame) drawn again with these commands; the drawing must come out the same.

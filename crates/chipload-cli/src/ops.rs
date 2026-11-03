@@ -4,6 +4,7 @@
 
 use super::*;
 use chipload_job::Operation;
+use clap::Args;
 
 #[derive(Subcommand)]
 pub(crate) enum OpAction {
@@ -16,18 +17,8 @@ pub(crate) enum OpAction {
         project: PathBuf,
         /// What to add.
         kind: KindArg,
-        /// Every shape on this layer (with --dxf: on that DXF's layer).
-        #[arg(long)]
-        layer: Option<String>,
-        /// These shapes, by id (as `inspect` lists them).
-        #[arg(long, num_args = 1.., value_delimiter = ',')]
-        shapes: Option<Vec<u64>>,
-        /// All of this DXF or SVG (an id from `dxf list`).
-        #[arg(long)]
-        dxf: Option<u64>,
-        /// All of this group.
-        #[arg(long)]
-        group: Option<u64>,
+        #[command(flatten)]
+        what: Shapes,
         /// The tool's id in the project; default: the one the app would take.
         #[arg(long)]
         tool: Option<i64>,
@@ -276,6 +267,43 @@ pub(crate) enum OpAction {
     },
 }
 
+/// What to cut, for `op add` and `style use`: a layer, shapes, a DXF or a group.
+#[derive(Args)]
+pub(crate) struct Shapes {
+    /// Every shape on this layer (with --dxf: on that DXF's layer).
+    #[arg(long)]
+    layer: Option<String>,
+    /// These shapes, by id (as `inspect` lists them).
+    #[arg(long, num_args = 1.., value_delimiter = ',')]
+    shapes: Option<Vec<u64>>,
+    /// All of this DXF or SVG (an id from `dxf list`).
+    #[arg(long, conflicts_with = "group")]
+    dxf: Option<u64>,
+    /// All of this group.
+    #[arg(long)]
+    group: Option<u64>,
+}
+
+impl Shapes {
+    /// The selector; refused when it names nothing.
+    pub(crate) fn selector(self) -> Result<chipload_job::Selector, &'static str> {
+        let source = self
+            .dxf
+            .map(chipload_job::Source::Dxf)
+            .or(self.group.map(chipload_job::Source::Group));
+        let select = chipload_job::Selector {
+            layer: self.layer,
+            shapes: self.shapes,
+            source,
+            exclude: Vec::new(),
+        };
+        if select.is_empty() {
+            return Err("say what to cut: --layer, --shapes, --dxf or --group");
+        }
+        Ok(select)
+    }
+}
+
 /// The kinds `op add` adds (a surface has `op add-surface`).
 #[derive(Clone, Copy, ValueEnum)]
 pub(crate) enum KindArg {
@@ -404,10 +432,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
         OpAction::Add {
             project,
             kind,
-            layer,
-            shapes,
-            dxf,
-            group,
+            what,
             tool,
             depth,
             through,
@@ -417,23 +442,10 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Ok(job) => job,
                 Err(code) => return code,
             };
-            let source = match (dxf, group) {
-                (Some(_), Some(_)) => {
-                    return out.fail("give --dxf or --group, not both");
-                }
-                (Some(id), None) => Some(chipload_job::Source::Dxf(id)),
-                (None, Some(id)) => Some(chipload_job::Source::Group(id)),
-                (None, None) => None,
+            let select = match what.selector() {
+                Ok(select) => select,
+                Err(why) => return out.fail(why),
             };
-            let select = chipload_job::Selector {
-                layer,
-                shapes,
-                source,
-                exclude: Vec::new(),
-            };
-            if select.is_empty() {
-                return out.fail("say what to cut: --layer, --shapes, --dxf or --group");
-            }
             if let Some(id) = tool
                 && job.tool(id).is_none()
             {
@@ -1056,7 +1068,7 @@ fn set_depth(job: &Job, op: &mut Operation, depth: Option<f64>, through: bool) {
 
 /// What `op add` added, in a few words: "\"Profile 1\", outside, through to 12.300 mm, with
 /// tabs, tool 1".
-fn describe(op: &Operation) -> String {
+pub(crate) fn describe(op: &Operation) -> String {
     let mut parts = vec![format!("\"{}\"", op.name())];
     if let Operation::Profile(p) = op {
         parts.push(

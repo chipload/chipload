@@ -597,3 +597,5 @@ pipeline-name-holes-of = { $name } (holes)
 pipeline-name-outline-of = { $name } (outline)
 # The two profiles name their shapes rather than following a layer or a whole drawing.
 pipeline-new-by-shapes = { $holes } and { $outline } select their shapes one by one: shapes added to the drawing later aren't cut by them
+# A style names a library tool the library no longer has (an import from another computer).
+pipeline-style-tool-missing = style "{ $style }" cuts with "{ $tool }", which isn't in your library: choose another tool for the style

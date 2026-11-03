@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "written_by": "chipload 0.32.0",
+  "operation_schema": 35,
+  "styles": [
+    {
+      "name": "Pocket 3 mm",
+      "uid": "623c2046c1216134",
+      "tools": [
+        {
+          "id": 2,
+          "uid": "339c1c6bce21ba9b",
+          "name": "6 mm 2F"
+        }
+      ],
+      "side": null,
+      "operation": {
+        "clearance": 0.0,
+        "corners": null,
+        "direction": "climb",
+        "enabled": true,
+        "end_depth": 3.0,
+        "entry": {
+          "type": "plunge"
+        },
+        "feed": 1500.0,
+        "lead": null,
+        "material": null,
+        "name": "",
+        "part": 1,
+        "plunge_feed": 500.0,
+        "rest": null,
+        "select": {
+          "layer": null,
+          "shapes": null
+        },
+        "slot_feed": null,
+        "slot_step_down": null,
+        "start_depth": 0.0,
+        "starts": [],
+        "step_down": 1.0,
+        "stepover": 0.4,
+        "through": null,
+        "tool": 2,
+        "type": "pocket"
+      }
+    },
+    {
+      "name": "Cut out",
+      "uid": "5c4773a33e28eb33",
+      "tools": [
+        {
+          "id": 2,
+          "uid": "339c1c6bce21ba9b",
+          "name": "6 mm 2F"
+        }
+      ],
+      "side": "by_selection",
+      "operation": {
+        "clearance": 0.0,
+        "corners": null,
+        "direction": "climb",
+        "enabled": true,
+        "end_depth": 10.5,
+        "feed": 1500.0,
+        "finish": null,
+        "material": null,
+        "name": "",
+        "part": 1,
+        "plunge_feed": 500.0,
+        "ramp_angle": 0.05235987755982988,
+        "select": {
+          "layer": null,
+          "shapes": null
+        },
+        "side": "outside",
+        "skin": null,
+        "start_depth": 0.0,
+        "starts": [],
+        "step_down": 1.0,
+        "tabs": {
+          "count": 4,
+          "flank_angle": 0.5235987755982988,
+          "height": 3.0,
+          "width": 8.0
+        },
+        "through": 0.5,
+        "tool": 2,
+        "type": "profile"
+      }
+    }
+  ]
+}

@@ -70,6 +70,7 @@ mod placing;
 mod reference;
 mod running;
 mod shapes;
+mod styles;
 mod texts;
 
 use ops::*;
@@ -343,6 +344,12 @@ enum Command {
     Material {
         #[command(subcommand)]
         action: materials::MaterialAction,
+    },
+    /// Your styles: operations saved by name, used again on shapes in one go
+    /// (docs/specs/styles.md).
+    Style {
+        #[command(subcommand)]
+        action: styles::StyleAction,
     },
     /// Your machine profiles: machine values a new project starts with.
     Machine {
@@ -745,6 +752,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),
         Command::Material { action } => materials::material(out, action),
+        Command::Style { action } => styles::style(out, action),
         Command::Machine { action } => library::machine(out, action),
         Command::Post { action } => library::post(out, action),
         Command::Part { action } => parts::part(out, action),

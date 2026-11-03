@@ -444,3 +444,4 @@ pipeline-name-surface = Торцевание { $number }
 pipeline-name-holes-of = { $name } (отверстия)
 pipeline-name-outline-of = { $name } (внешний контур)
 pipeline-new-by-shapes = { $holes } и { $outline } выбирают свои фигуры по одной: фигуры, добавленные в чертёж позже, ими не обрабатываются
+pipeline-style-tool-missing = стиль «{ $style }» режет инструментом «{ $tool }», которого нет в вашей библиотеке: выберите для стиля другой инструмент

@@ -978,7 +978,7 @@ pub fn fresh_uid<'a>(name: &str, taken: impl Iterator<Item = &'a str> + Clone) -
 }
 
 /// 16 lowercase hex digits.
-fn is_uid(uid: &str) -> bool {
+pub(crate) fn is_uid(uid: &str) -> bool {
     uid.len() == 16
         && uid
             .bytes()

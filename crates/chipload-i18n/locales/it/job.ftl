@@ -253,6 +253,8 @@ job-library-field = { $field ->
     [work-zero] zero pezzo
     [max-overcut] prof. max sotto grezzo
     [tool-values] valori di un utensile
+    [style-tool] utensile
+    [style-settings] lavorazione
    *[other] { $field }
 }
 # An angle in degrees, $degrees without its unit.
@@ -322,3 +324,13 @@ job-import-differs = Diverso dal tuo: { $name } (file: { $differences })
 job-import-default = Predefinito: { $name }
 job-import-becomes-default = Diventa il predefinito: { $name }
 job-polygon-sides = un poligono ha da { $least } a { $most } lati, ricevuto { $got }
+
+# Styles: operations saved by name (docs/specs/styles.md). $reason is in English.
+job-style-unreadable = lo stile «{ $name }» non può essere letto: { $reason }
+job-style-exists = esiste già uno stile chiamato «{ $name }» (sostituiscilo o scegli un altro nome)
+job-style-none = nessuno stile chiamato «{ $name }»
+job-style-no-operation = il progetto non ha la lavorazione { $number }
+job-style-tool-not-in-library = l'utensile { $tool } non è nella tua libreria: salvalo prima nella libreria
+# What differs between two styles of the same name: theirs and the other one's.
+job-style-these-settings = queste impostazioni
+job-style-other-settings = altre impostazioni
