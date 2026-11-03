@@ -60,8 +60,8 @@ forms-use-selection-disabled = Markera konturer på ritytan först
 
 # A profile's side of the line.
 forms-side = Sida
-forms-side-inside = inuti
-forms-side-outside = utanför
+forms-side-inside = insida
+forms-side-outside = utsida
 forms-side-on = på linjen
 forms-side-choose = — välj —
 

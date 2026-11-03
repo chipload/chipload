@@ -73,7 +73,7 @@ correction here is a correction everywhere: change the term, then every text usi
 | step over | seitliche Zustellung | pas latéral | paso lateral | passo laterale | sidosteg |
 | climb milling | Gleichlauf | en avalant | en concordancia | concorde | medfräsning |
 | conventional milling | Gegenlauf | en opposition | en oposición | discorde | motfräsning |
-| inside / outside / on the line | innen / außen / auf der Linie | intérieur / extérieur / sur la ligne | interior / exterior / sobre la línea | interno / esterno / sulla linea | inuti / utanför / på linjen |
+| inside / outside / on the line | innen / außen / auf der Linie | intérieur / extérieur / sur la ligne | interior / exterior / sobre la línea | interno / esterno / sulla linea | insida / utsida / på linjen (the user, 2026-11-03) |
 | tabs | Haltestege | attaches | puentes | ponticelli | bryggor |
 | ramp | Rampe | rampe | rampa | rampa | ramp |
 | helix (entry) | Helix | hélice | hélice | elica | helix |

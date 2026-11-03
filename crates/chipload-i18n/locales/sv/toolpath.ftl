@@ -123,7 +123,7 @@ toolpath-narrow-loops = verktyget får inte plats genom en smal del; fräses som
 # $point is a start point the user set ("(10.000, 5.000) mm").
 toolpath-start-far-contour = startpunkten { $point } ligger { $distance } från kontur #{ $contour }; närmaste punkten används
 toolpath-start-twice-contour = startpunkten { $point } ligger också på kontur #{ $contour }, som redan har en; den ignoreras
-toolpath-tabs-inside = bryggor på en konturfräsning inuti håller kvar den utfrästa biten
+toolpath-tabs-inside = bryggor på en konturfräsning på insidan håller kvar den utfrästa biten
 # $contours is a list of contour numbers ("#3, #4").
 toolpath-tabs-on-curves = några bryggor på konturerna { $contours } sitter på ett hörn eller en kurva (ingen rak sträcka i närheten)
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.

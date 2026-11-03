@@ -35,7 +35,7 @@ styles-tabs = { $count ->
 }
 styles-tool-missing = { $tool } (finns inte i ditt bibliotek)
 styles-side-selection = efter markeringen
-styles-side-hover = Efter markeringen: konturer fräses utvändigt och hål invändigt, som för en ny profil. På linjen: på varje form den används på.
+styles-side-hover = Efter markeringen: konturer fräses på utsidan och hål på insidan, som för en ny profil. På linjen: på varje form den används på.
 styles-tool-not-in-library = finns inte i ditt bibliotek: välj ett verktyg
 styles-save-first = Spara eller återställ ändringarna först
 styles-feeds-note = Har verktyget skärdata för projektets material används dess matningar och skärdjup i stället för dessa när stilen används.

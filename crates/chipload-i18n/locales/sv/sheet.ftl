@@ -93,8 +93,8 @@ sheet-operation = Operation { $number }
 sheet-feed-down = { $feed } nedåt
 # The kind column, its parts joined with ", ": "Profile, outside, climb, leaves 0.2 mm".
 sheet-kind-profile = Konturfräsning
-sheet-side-outside = utanför
-sheet-side-inside = inuti
+sheet-side-outside = utsida
+sheet-side-inside = insida
 sheet-side-on = på linjen
 sheet-kind-pocket = Ficka, slingor
 sheet-climb = medfräsning

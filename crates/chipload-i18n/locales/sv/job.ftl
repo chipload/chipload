@@ -174,7 +174,7 @@ job-wall-only-tbone = bara en T-bone har en vägg att gå längs
 job-corner-chosen-twice = två val för hörnet vid { $at }
 job-starts-not-finite = varje startpunkt behöver ändliga x och y
 job-stepover-at-most-1 = måste vara högst 1 (en andel av verktygsdiametern), fick { $got }
-job-on-line-finish = en konturfräsning på linjen har ingen vägg att finbearbeta; använd inuti eller utanför
+job-on-line-finish = en konturfräsning på linjen har ingen vägg att finbearbeta; använd insida eller utsida
 # Lengths without their unit.
 job-skin-above-step-down = måste vara högst skärdjupet ({ $step_down }), fick { $got }
 job-skin-above-cut = måste vara mindre än fräsdjupet ({ $cut }, slutdjup minus startdjup), fick { $got }

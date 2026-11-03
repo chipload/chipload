@@ -22,5 +22,5 @@ editor-summary-no-geometry = ingen geometri
 
 # What an operation still lacks, under its field and in the list of problems. "Use
 # selection" is the button that gives the operation the selected shapes.
-editor-choose-side = välj konturfräsningens sida (inuti, utanför eller på linjen)
+editor-choose-side = välj konturfräsningens sida (insida, utsida eller på linjen)
 editor-no-geometry = ingen geometri: markera konturer och välj sedan Använd markering
