@@ -126,6 +126,7 @@ sheet-pecks = stegborrning { $peck }
 sheet-one-go = i ett tag
 sheet-per-turn = { $step } per varv
 sheet-per-pass = skärdjup { $step }
+sheet-groove-width = { $width } brett upptill
 sheet-one-pass = ett skär
 sheet-passes = { $count } skär
 sheet-finish = finskär { $stock }

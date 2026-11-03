@@ -20,6 +20,9 @@ The tool decides how:
   down to 0.5 mm above the bottom, and drills on.
 - **End depth** is the depth of the drill's **point**. The full diameter ends a little
   higher, about 0.3 × the diameter for a 118° point.
+- **Through** takes that into account: the point goes its length deeper, so the full
+  diameter goes *Through* below the stock (an 8 mm drill in 12 mm stock with 0.5 mm: point
+  at 14.9 mm). The *max depth below stock* is for the full diameter; the point goes below it.
 - **Plain moves:** the holes are written as plain G0/G1 moves, not canned cycles, so they
   run the same on every controller and the checker reads them. The checker allows exactly
   one kind of rapid below the stock top: straight back into the hole just drilled.

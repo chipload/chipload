@@ -68,6 +68,8 @@ fn rendered_program_passes_the_checker() {
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,
         tool_radii: std::collections::BTreeMap::from([(1, 3.0), (2, 1.5)]),
+        tool_point: 0.0,
+        tool_points: std::collections::BTreeMap::new(),
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
     };
@@ -143,6 +145,8 @@ fn checked(text: &str) {
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,
         tool_radii: std::collections::BTreeMap::from([(1, 3.0)]),
+        tool_point: 0.0,
+        tool_points: std::collections::BTreeMap::new(),
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
     };

@@ -305,12 +305,32 @@ fn tools_a_follow_path_takes() {
                 "tip_diameter": 0.0, "rpm": 18000}]),
     );
     let plan = plan_job(&vbit, &line()).unwrap();
+    // A plain note, not a warning.
     assert!(
-        plan.notes
+        plan.facts
             .iter()
-            .any(|n| n.contains("V-groove is 6 mm wide")),
+            .any(|n| n.text.contains("V-groove is 6 mm wide")),
+        "{:?}",
+        plan.facts
+    );
+    assert!(
+        !plan.notes.iter().any(|n| n.contains("V-groove")),
         "{:?}",
         plan.notes
+    );
+    // Deeper than the cone (6.35 mm for 12.7 mm at 90°): refused, as V-carve stops there.
+    let mut deep = vbit.clone();
+    if let chipload_job::Operation::Path(p) = &mut deep.operations[0] {
+        p.end_depth = 6.5;
+    }
+    let err = plan_job(&deep, &line()).unwrap_err().to_string();
+    assert!(err.contains("no deeper than its cone, 6.35 mm"), "{err}");
+    if let chipload_job::Operation::Path(p) = &mut deep.operations[0] {
+        p.end_depth = 6.35;
+    }
+    assert!(
+        plan_job(&deep, &line()).is_ok(),
+        "the cone's own depth is fine"
     );
     // A helix is for pockets.
     let helix = job(

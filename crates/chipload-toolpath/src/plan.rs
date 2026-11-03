@@ -48,6 +48,9 @@ pub struct Plan {
     pub program: Program,
     /// Warnings for the user, each with the operation it is about.
     pub notes: Vec<Note>,
+    /// Facts worth knowing that need no care, such as a V-groove's width: shown as plain
+    /// notes, not warnings.
+    pub facts: Vec<Note>,
     /// Tool-path stretch of every tab, for display.
     pub tabs: Vec<Vec<Point>>,
     /// Every pocket piece in cut order (rings and links), for display and conformance tests.
@@ -169,6 +172,7 @@ pub fn plan_job_cancellable(
         .collect();
     let (steps, mut groups) = cut_order(job, &chosen)?;
     let mut gathered = Gathered::default();
+    let mut facts = Vec::new();
     let mut position: Point = (0.0, 0.0);
     for step in &steps {
         cancel.check()?;
@@ -186,6 +190,11 @@ pub fn plan_job_cancellable(
         let tool = op_tool(job, op).map_err(|err| err.at(at.operation))?;
         if !gathered.started.contains(at) {
             gathered.started.push(*at);
+            if let Operation::Path(p) = op
+                && let Some(width) = groove_width(tool, p.end_depth - p.start_depth)
+            {
+                facts.push(Note::at(at.operation, labelled_note(label, width)));
+            }
             notes.extend(
                 selection
                     .notes
@@ -236,6 +245,7 @@ pub fn plan_job_cancellable(
             comments,
         },
         notes,
+        facts,
         tabs,
         pockets,
         op_spans,
@@ -923,7 +933,9 @@ fn plan_path_op(
         .into_iter()
         .map(|n| labelled_note(ctx.label_message, n))
         .collect();
-    if let Some(note) = groove_note(ctx.tool, op.end_depth - op.start_depth) {
+    // A V-bit without an angle: its groove's width can't be told.
+    if ctx.tool.kind == ToolType::Vbit && ctx.tool.angle.is_none() {
+        let note = Message::new("toolpath-groove-no-angle").arg("tool", ctx.tool.id);
         notes.push(labelled_note(ctx.label_message, note));
     }
     let cut = PathCut {
@@ -1116,21 +1128,31 @@ fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
     }
 }
 
-/// How wide a V-bit's groove is at the top, `depth` deep (docs/specs/follow-path.md §5).
-fn groove_note(tool: &Tool, depth: f64) -> Option<Message> {
+/// How wide a V-bit's groove is at the top, `depth` deep (docs/specs/follow-path.md §5): a
+/// plain note. None for another tool, or a V-bit without an angle.
+fn groove_width(tool: &Tool, depth: f64) -> Option<Message> {
+    let width = groove_width_mm(tool, depth)?;
+    Some(Message::new("toolpath-groove-width").arg("width", Value::mm(width)))
+}
+
+/// How wide a V-bit's groove is at the top, `depth` deep, mm (at most its diameter). None
+/// for another tool, or a V-bit without an angle.
+pub fn groove_width_mm(tool: &Tool, depth: f64) -> Option<f64> {
+    let deepest = vbit_cone_depth(tool)?;
+    let tip = tool.tip_diameter.unwrap_or(0.0);
+    Some(tip + (tool.diameter - tip) * (depth / deepest).clamp(0.0, 1.0))
+}
+
+/// How deep a V-bit's cone goes, from its tip to its full diameter: below it, the shank
+/// would rub (as `VBit::deepest` for V-carves). None for another tool, or a V-bit without
+/// an angle.
+pub fn vbit_cone_depth(tool: &Tool) -> Option<f64> {
     if tool.kind != ToolType::Vbit {
         return None;
     }
-    let Some(angle) = tool.angle else {
-        return Some(Message::new("toolpath-groove-no-angle").arg("tool", tool.id));
-    };
+    let angle = tool.angle.filter(|a| *a > 0.0)?;
     let tip = tool.tip_diameter.unwrap_or(0.0);
-    let width = tip + 2.0 * depth * (angle / 2.0).tan();
-    Some(if width > tool.diameter {
-        Message::new("toolpath-groove-past-cone").arg("width", Value::mm(tool.diameter))
-    } else {
-        Message::new("toolpath-groove-width").arg("width", Value::mm(width))
-    })
+    Some((tool.diameter - tip) / 2.0 / (angle / 2.0).tan())
 }
 
 /// The smallest end mill a floor hint names, mm: below it, no end mill clears the floor.
@@ -1937,7 +1959,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         // Its own setup's board (docs/specs/setups.md §5).
         let stock = job.setup_of(op).map_or(job.stock(), |s| &s.stock);
         let thickness = stock.thickness;
-        let below = end_depth - thickness;
+        // A drill's point goes deeper than its full diameter: the allowance is for the
+        // diameter (docs/specs/holes.md decision 10).
+        let below = end_depth - job.drill_point(op) - thickness;
         if below > stock.max_overcut + DEPTH_TOL_MM {
             problems.push(labelled(
                 at("end_depth"),
@@ -1956,6 +1980,20 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     Message::new("toolpath-into-spoilboard")
                         .arg("below", Value::Length(below, Digits::Fixed(3))),
                 ),
+            ));
+        }
+        // A V-bit following a path no deeper than its cone: the shank would rub below it
+        // (docs/specs/follow-path.md §5).
+        if let Operation::Path(p) = op
+            && let Some(deepest) = vbit_cone_depth(tool)
+            && p.end_depth - p.start_depth > deepest + DEPTH_TOL_MM
+        {
+            problems.push(labelled(
+                at("end_depth"),
+                &label_message,
+                Message::new("toolpath-path-past-cone")
+                    .arg("deepest", Value::Length(deepest, Digits::Trim(3)))
+                    .arg("depth", length(p.end_depth - p.start_depth)),
             ));
         }
         if op.clearance() >= tool.diameter / 2.0 {

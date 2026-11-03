@@ -1567,3 +1567,43 @@ mod slot_steps {
         }
     }
 }
+
+// -- drilled through holes (docs/specs/holes.md decision 10)
+
+mod drilled_through {
+    use super::*;
+    use chipload_job::{DRILL_POINT_PER_DIAMETER, Operation};
+
+    #[test]
+    fn a_drill_through_the_stock_goes_its_points_length_deeper() {
+        let mut job = load_job(&corpus("jobs/v18/holes.chipload")).unwrap();
+        // The drilled holes (8 mm drill) and the bored ones (end mill), both through.
+        for op in &mut job.operations {
+            if let Operation::Holes(h) = op {
+                h.through = Some(0.5);
+            }
+        }
+        job.follow_thickness();
+        let point = DRILL_POINT_PER_DIAMETER * 8.0;
+        let ends: Vec<f64> = job.operations.iter().map(|op| op.depths().1).collect();
+        assert!((ends[0] - (12.0 + 0.5 + point)).abs() < 1e-9, "{ends:?}");
+        assert!((ends[1] - 12.5).abs() < 1e-9, "a bore is flat: {ends:?}");
+        assert!(job.validate().is_empty(), "{:?}", job.validate());
+        // The point goes 2.9 mm below the stock, but the full diameter only 0.5 mm: within
+        // the 0.5 mm overcut allowance, so it cuts.
+        let result = run(&job);
+        let deepest = result.files[0]
+            .gcode
+            .lines()
+            .filter_map(|l| l.split_whitespace().find(|w| w.starts_with('Z')))
+            .filter_map(|w| w[1..].parse::<f64>().ok())
+            .fold(f64::INFINITY, f64::min);
+        assert!((deepest + 12.0 + 0.5 + point).abs() < 0.001, "{deepest}");
+        // A drill sent deeper by hand is judged by its full diameter too.
+        if let Operation::Holes(h) = &mut job.operations[0] {
+            h.through = None;
+            h.end_depth = 12.0 + 0.6 + point;
+        }
+        job_error(&job, "below");
+    }
+}

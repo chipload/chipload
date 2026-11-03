@@ -126,6 +126,7 @@ sheet-pecks = pecks { $peck }
 sheet-one-go = in one go
 sheet-per-turn = { $step } per turn
 sheet-per-pass = { $step } per pass
+sheet-groove-width = { $width } wide at the top
 sheet-one-pass = one pass
 sheet-passes = { $count } passes
 sheet-finish = finish { $stock }

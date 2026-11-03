@@ -129,6 +129,7 @@ sheet-pecks = Entspanen alle { $peck }
 sheet-one-go = in einem Zug
 sheet-per-turn = { $step } pro Umdrehung
 sheet-per-pass = { $step } pro Durchgang
+sheet-groove-width = oben { $width } breit
 sheet-one-pass = ein Durchgang
 sheet-passes = { $count } Durchgänge
 sheet-finish = Schlichten, Aufmaß { $stock }

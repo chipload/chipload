@@ -169,8 +169,8 @@ toolpath-vcarve-floor-cleared-none = contours { $contours }: with the { $diamete
 toolpath-vcarve-narrow = contours { $contours }: { $narrow } of centre line is narrower than the tip ({ $tip }) and isn't carved
 toolpath-path-too-short = contour #{ $contour } is too short to follow ({ $length }); skipped
 toolpath-groove-no-angle = tool { $tool } is a V-bit without an angle: the groove's width is unknown
-toolpath-groove-past-cone = the V-groove is deeper than the V-bit's cone: { $width } wide at the top, with straight walls above the cone
 toolpath-groove-width = the V-groove is { $width } wide at the top
+toolpath-path-past-cone = a V-bit cuts no deeper than its cone, { $deepest } here, or its shank would rub; this path goes { $depth } deep: make it shallower, or use an end mill
 toolpath-holes-not-circles = skipped { $count ->
     [one] { $count } shape that isn't a circle
    *[other] { $count } shapes that aren't circles

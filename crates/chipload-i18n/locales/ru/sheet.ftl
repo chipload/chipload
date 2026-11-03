@@ -90,6 +90,7 @@ sheet-pecks = сверление с выводом, шаг { $peck }
 sheet-one-go = за один раз
 sheet-per-turn = { $step } за оборот
 sheet-per-pass = { $step } за проход
+sheet-groove-width = ширина вверху { $width }
 sheet-one-pass = один проход
 sheet-passes = проходов: { $count }
 sheet-finish = чистовой припуск { $stock }

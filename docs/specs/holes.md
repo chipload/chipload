@@ -273,3 +273,12 @@ Rules:
    only.
 9. **Holes cut to the drawn size, no clearance field.** **Recommended** for now: draw the
    hole at the size wanted. A clearance can come later as an optional field.
+10. **A drilled through hole goes through at its full diameter** (added 2026-11-03, the
+    review of 2026-11-02; the user: "do" the suggestion). With *Through*, a drill's end
+    depth (its point) is the stock's thickness plus *Through* plus the point's length,
+    0.3004 × D for a 118° point ((D / 2) / tan 59°), so the full diameter goes *Through*
+    below the stock; before, only the point did, and an 8 mm drill left a 2.4 mm deep
+    pinhole in 12 mm stock. The max overcut applies to the full diameter, for a drill whose
+    depth is set by hand too; the checker allows a drill's point below it by its own copy of
+    the same length. Only a tool of type drill has a point; an end mill drilling is flat.
+    Changes the G-code of existing drilled through holes (none in the goldens).

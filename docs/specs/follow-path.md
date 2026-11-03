@@ -74,8 +74,11 @@ An open path has two ends, so the tool can't go round and round as on a ring.
 - **Endmill:** a slot as wide as the tool. Plunge entry needs a centre-cutting tool (the
   same rule and messages as profiles).
 - **V-bit:** a V-groove; its width at the top follows from the depth and the angle, and is
-  shown in the report ("groove 2.31 mm wide at the top"). A pointed V-bit always plunges
-  fine (it is centre-cutting by shape).
+  shown in the report as a plain note ("the V-groove is 2.31 mm wide at the top"), and on
+  the setup sheet beside the depth. A pointed V-bit always plunges fine (it is
+  centre-cutting by shape). **No deeper than its cone** (2026-11-03, the review of
+  2026-11-02): below it the shank would rub, so a path deeper than the cone is refused, as
+  V-carve stops there (`VBit::deepest`); before, it was cut with a warning.
 - **Drill:** refused ("use a drilling operation").
 
 ## 6. Safety and checks

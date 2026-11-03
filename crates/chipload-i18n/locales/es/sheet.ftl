@@ -129,6 +129,7 @@ sheet-pecks = picoteo { $peck }
 sheet-one-go = de una vez
 sheet-per-turn = { $step } por vuelta
 sheet-per-pass = { $step } por pasada
+sheet-groove-width = { $width } de ancho arriba
 sheet-one-pass = una pasada
 sheet-passes = { $count } pasadas
 sheet-finish = acabado { $stock }

@@ -129,6 +129,7 @@ sheet-pecks = débourrages { $peck }
 sheet-one-go = en une fois
 sheet-per-turn = { $step } par tour
 sheet-per-pass = { $step } par passe
+sheet-groove-width = { $width } de large en haut
 sheet-one-pass = une passe
 sheet-passes = { $count } passes
 sheet-finish = finition { $stock }

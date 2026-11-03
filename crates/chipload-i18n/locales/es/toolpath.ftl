@@ -169,8 +169,8 @@ toolpath-vcarve-floor-cleared-none = contornos { $contours }: con la fresa plana
 toolpath-vcarve-narrow = contornos { $contours }: { $narrow } de línea central son más estrechos que la punta ({ $tip }) y no se tallan
 toolpath-path-too-short = el contorno #{ $contour } es demasiado corto para seguirlo ({ $length }); se omite
 toolpath-groove-no-angle = la herramienta { $tool } es una fresa en V sin ángulo: no se conoce el ancho de la ranura
-toolpath-groove-past-cone = la ranura en V es más profunda que el cono de la fresa en V: { $width } de ancho arriba, con paredes rectas por encima del cono
 toolpath-groove-width = la ranura en V tiene { $width } de ancho arriba
+toolpath-path-past-cone = una fresa en V no corta más hondo que su cono, aquí { $deepest }, o su mango rozaría; esta trayectoria baja { $depth }: hazla menos profunda o usa una fresa plana
 toolpath-holes-not-circles = { $count ->
     [one] se omitió { $count } forma que no es un círculo
    *[other] se omitieron { $count } formas que no son círculos

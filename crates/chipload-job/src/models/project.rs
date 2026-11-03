@@ -234,16 +234,32 @@ impl From<Units> for chipload_i18n::Units {
 
 impl Job {
     /// Every operation cut through the stock ends its setup's thickness plus `through` down
-    /// (docs/specs/job-settings-layout.md §5): run wherever a project is read or changed, so
-    /// no end depth is left from an older thickness.
+    /// (docs/specs/job-settings-layout.md §5), a drill's point lower so its full diameter
+    /// goes through: run wherever a project is read or changed, so no end depth is left
+    /// from an older thickness.
     pub fn follow_thickness(&mut self) {
-        let thickness: Vec<f64> = self
+        let depths: Vec<(f64, f64)> = self
             .operations
             .iter()
-            .map(|op| self.setup_of(op).map_or(0.0, |s| s.stock.thickness))
+            .map(|op| {
+                let thickness = self.setup_of(op).map_or(0.0, |s| s.stock.thickness);
+                (thickness, self.drill_point(op))
+            })
             .collect();
-        for (op, thickness) in self.operations.iter_mut().zip(thickness) {
-            op.follow_thickness(thickness);
+        for (op, (thickness, point)) in self.operations.iter_mut().zip(depths) {
+            op.follow_thickness(thickness, point);
+        }
+    }
+
+    /// How far below its full diameter `op`'s cut reaches: a drilled hole's drill point
+    /// (docs/specs/holes.md decision 10); 0 for everything else, flat at the bottom.
+    pub fn drill_point(&self, op: &Operation) -> f64 {
+        match op {
+            Operation::Holes(h) if matches!(h.method, HoleMethod::Drill { .. }) => self
+                .tool(h.tool)
+                .filter(|t| t.kind == ToolType::Drill)
+                .map_or(0.0, |t| DRILL_POINT_PER_DIAMETER * t.diameter),
+            _ => 0.0,
         }
     }
 

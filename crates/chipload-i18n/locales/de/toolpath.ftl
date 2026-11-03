@@ -169,8 +169,8 @@ toolpath-vcarve-floor-cleared-none = Konturen { $contours }: mit dem Schaftfräs
 toolpath-vcarve-narrow = Konturen { $contours }: { $narrow } Mittellinie sind schmaler als die Spitze ({ $tip }) und werden nicht graviert
 toolpath-path-too-short = Kontur #{ $contour } ist zu kurz zum Folgen ({ $length }); übersprungen
 toolpath-groove-no-angle = Werkzeug { $tool } ist ein V-Fräser ohne Winkel: die Breite der Nut ist unbekannt
-toolpath-groove-past-cone = die V-Nut ist tiefer als der Kegel des V-Fräsers: oben { $width } breit, mit senkrechten Wänden über dem Kegel
 toolpath-groove-width = die V-Nut ist oben { $width } breit
+toolpath-path-past-cone = ein V-Fräser schneidet nicht tiefer als sein Kegel, hier { $deepest }, sonst reibt sein Schaft; dieser Pfad geht { $depth } tief: flacher machen oder einen Schaftfräser nehmen
 toolpath-holes-not-circles = { $count ->
     [one] { $count } Form übersprungen, die kein Kreis ist
    *[other] { $count } Formen übersprungen, die keine Kreise sind

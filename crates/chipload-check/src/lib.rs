@@ -34,6 +34,10 @@ const ALLOWED_M: [i64; 8] = [3, 4, 5, 6, 7, 8, 9, 30];
 pub const PECK_CLEARANCE_MM: f64 = 0.5;
 /// How far G64 may let the controller blend corners away from the program, mm.
 pub const MAX_BLEND_MM: f64 = 0.05;
+/// How far a drill's point reaches below its full diameter, per mm of diameter: a 118°
+/// point, (D / 2) / tan(59°). The checker's own copy (docs/specs/holes.md decision 10): the
+/// allowance below the stock is for a drill's full diameter, its point may go deeper.
+pub const DRILL_POINT_PER_DIAMETER: f64 = 0.3004;
 const MOTION_G: [i64; 4] = [0, 1, 2, 3];
 const VALUE_LETTERS: &str = "XYZIJFSPNT";
 const AXES: [char; 3] = ['X', 'Y', 'Z'];
@@ -54,6 +58,11 @@ pub struct CheckLimits {
     /// Every tool of the job by number: the radius after `T<n> M6`
     /// (docs/specs/tool-per-operation.md §6). Empty: tool changes are refused.
     pub tool_radii: BTreeMap<i64, f64>,
+    /// How far below the overcut allowance the tool's point may go until a tool change says
+    /// which tool cuts: a drill's point, 0 for a flat tool.
+    pub tool_point: f64,
+    /// Every drill of the job by number: its point's length, after `T<n> M6`.
+    pub tool_points: BTreeMap<i64, f64>,
     /// Machine travel span per axis.
     pub travel: Option<(f64, f64, f64)>,
     /// The units the machine's G-code is in: a program in others is an error
@@ -78,17 +87,36 @@ pub fn limits_from_job(job: &Job) -> CheckLimits {
         .filter(|t| used.contains(&t.id))
         .map(|t| t.diameter / 2.0)
         .fold(0.0, f64::max);
-    limits_with_radius(job, radius)
+    let point = job
+        .tools
+        .iter()
+        .filter(|t| used.contains(&t.id))
+        .map(point_of)
+        .fold(0.0, f64::max);
+    limits_with_radius(job, radius, point)
+}
+
+/// A tool's point below its full diameter: a drill's, 0 for every other tool.
+fn point_of(tool: &chipload_job::Tool) -> f64 {
+    if tool.kind == chipload_job::ToolType::Drill {
+        DRILL_POINT_PER_DIAMETER * tool.diameter
+    } else {
+        0.0
+    }
 }
 
 /// The same, for a program cut with one tool of the job (docs/specs/tool-per-operation.md
 /// §6). None if the job has no tool with that id.
 pub fn limits_for_tool(job: &Job, tool: i64) -> Option<CheckLimits> {
     let found = job.tool(tool)?;
-    Some(limits_with_radius(job, found.diameter / 2.0))
+    Some(limits_with_radius(
+        job,
+        found.diameter / 2.0,
+        point_of(found),
+    ))
 }
 
-fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
+fn limits_with_radius(job: &Job, radius: f64, point: f64) -> CheckLimits {
     let stock = &job.stock();
     let top = stock.top_z();
     // The program is in work coordinates: the stock as placed in the drawing, shifted so
@@ -105,6 +133,8 @@ fn limits_with_radius(job: &Job, radius: f64) -> CheckLimits {
         stock_max,
         tool_radius: radius,
         tool_radii: job.tools.iter().map(|t| (t.id, t.diameter / 2.0)).collect(),
+        tool_point: point,
+        tool_points: job.tools.iter().map(|t| (t.id, point_of(t))).collect(),
         travel: job.machine.travel.as_ref().map(|t| (t.x, t.y, t.z)),
         units: job.machine.gcode_units,
     }
@@ -172,6 +202,8 @@ struct State {
     tool: Option<i64>,
     /// The radius of the tool put in by the last M6; None: `limits.tool_radius`.
     radius: Option<f64>,
+    /// Its point's length; None: `limits.tool_point`.
+    point: Option<f64>,
     /// After M6 the spindle must be started again with a speed.
     needs_speed: bool,
     /// The hole the tool last fed straight down into, (x, y, deepest z), while it has only
@@ -198,6 +230,7 @@ impl State {
             ended: false,
             tool: None,
             radius: None,
+            point: None,
             needs_speed: false,
             hole: None,
         }
@@ -472,7 +505,10 @@ fn tool_change(state: &mut State, limits: &CheckLimits) -> Vec<Message> {
     match state.tool {
         None => problems.push(Message::new("check-change-without-tool")),
         Some(t) => match limits.tool_radii.get(&t) {
-            Some(&radius) => state.radius = Some(radius),
+            Some(&radius) => {
+                state.radius = Some(radius);
+                state.point = Some(limits.tool_points.get(&t).copied().unwrap_or(0.0));
+            }
             None => problems.push(Message::new("check-change-unknown-tool").arg("tool", t)),
         },
     }
@@ -569,7 +605,8 @@ fn move_to(
     if let Some(z) = at('Z')
         && z < limits.stock_bottom_z - state.tol
     {
-        let floor = limits.stock_bottom_z - limits.max_overcut;
+        let point = state.point.unwrap_or(limits.tool_point);
+        let floor = limits.stock_bottom_z - limits.max_overcut - point;
         if z < floor - state.tol {
             problems.push(
                 Message::new("check-below-stock-too-far")

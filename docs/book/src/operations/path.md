@@ -22,6 +22,11 @@ cut that layer's centre lines.
 
 There is no side, oversize, tabs, lead or start point: the tool is on the line.
 
+**With a V-bit**, the groove's width at the top follows from the depth and the bit's angle;
+the report and the setup sheet give it. A V-bit goes no deeper than its cone (12.7 mm at 60° with a 0.2 mm tip:
+10.8 mm deep): deeper, its shank would rub, so such a path is refused. Use an end mill for a
+deeper slot.
+
 ## In the file
 
 `"type": "path"` in the [project file](../reference/project-file.md#operation). Lengths are

@@ -16,6 +16,8 @@ fn limits() -> CheckLimits {
         stock_max: (600.0, 400.0),
         tool_radius: 3.0,
         tool_radii: std::collections::BTreeMap::from([(1, 3.0), (2, 1.5)]),
+        tool_point: 0.0,
+        tool_points: std::collections::BTreeMap::new(),
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
     }
@@ -594,4 +596,32 @@ fn findings_are_messages_in_any_language_and_units() {
         issue.text_message.render(Language::En, Units::Inch),
         "Rapid to Z-0.1181 in, below the stock top (rapid into material)"
     );
+}
+
+/// A drill's point may go below the allowance by its length: the allowance is for the full
+/// diameter (docs/specs/holes.md decision 10).
+#[test]
+fn a_drills_point_may_go_below_the_allowance_by_its_length() {
+    let mut drill = limits();
+    drill.max_overcut = 0.5;
+    // An 8 mm drill as tool 2, put in by M6; its point is 2.4 mm long.
+    drill.tool_points = std::collections::BTreeMap::from([(1, 0.0), (2, 2.4032)]);
+    let program = |tool: u8, z: &str| {
+        format!(
+            "G21 G90 G17 G94\nG0 Z5\nT{tool} M6\nM3 S6000\nG4 P3\nG0 X10 Y10\nG1 Z{z} F100\n{FOOTER}"
+        )
+    };
+    assert!(check_gcode(&program(2, "-20.9"), &drill).ok());
+    assert!(
+        !check_gcode(&program(2, "-21.0"), &drill).ok(),
+        "past the point too"
+    );
+    assert!(
+        !check_gcode(&program(1, "-20.9"), &drill).ok(),
+        "an end mill has no point"
+    );
+    // A file for the drill alone, without a tool change.
+    drill.tool_point = 2.4032;
+    let alone = format!("{HEADER}G0 X10 Y10\nG1 Z-20.9 F100\n{FOOTER}");
+    assert!(check_gcode(&alone, &drill).ok());
 }

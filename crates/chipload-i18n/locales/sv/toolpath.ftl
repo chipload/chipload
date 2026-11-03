@@ -169,8 +169,8 @@ toolpath-vcarve-floor-cleared-none = konturer { $contours }: med pinnfräsen på
 toolpath-vcarve-narrow = konturerna { $contours }: { $narrow } av mittlinjen är smalare än spetsen ({ $tip }) och graveras inte
 toolpath-path-too-short = kontur #{ $contour } är för kort att följa ({ $length }); hoppas över
 toolpath-groove-no-angle = verktyg { $tool } är en V-fräs utan vinkel: spårets bredd är okänd
-toolpath-groove-past-cone = V-spåret är djupare än V-fräsens kon: { $width } brett upptill, med raka väggar ovanför konen
 toolpath-groove-width = V-spåret är { $width } brett upptill
+toolpath-path-past-cone = en V-fräs skär inte djupare än sin kon, här { $deepest }, annars skaver skaftet; den här banan går { $depth } djupt: gör den grundare eller använd en pinnfräs
 toolpath-holes-not-circles = hoppade över { $count ->
     [one] { $count } form som inte är en cirkel
    *[other] { $count } former som inte är cirklar

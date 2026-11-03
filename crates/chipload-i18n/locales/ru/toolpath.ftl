@@ -101,8 +101,8 @@ toolpath-vcarve-floor-cleared-none = контуры { $contours }: концев�
 toolpath-vcarve-narrow = контуры { $contours }: участок средней линии длиной { $narrow } уже вершины ({ $tip }) и не гравируется
 toolpath-path-too-short = контур №{ $contour } слишком короткий для обработки вдоль линии ({ $length }); пропущен
 toolpath-groove-no-angle = инструмент { $tool } — V-образная фреза без заданного угла: ширина паза неизвестна
-toolpath-groove-past-cone = V-образный паз глубже конуса фрезы: ширина вверху { $width }, выше конуса — прямые стенки
 toolpath-groove-width = ширина V-образного паза вверху — { $width }
+toolpath-path-past-cone = V-образная фреза режет не глубже своего конуса, здесь { $deepest }, иначе хвостовик будет тереться; эта линия идёт на { $depth }: уменьшите глубину или возьмите концевую фрезу
 toolpath-holes-not-circles = Пропущено { $count ->
     [one] { $count } объект, не являющийся окружностью
     [few] { $count } объекта, не являющихся окружностями

@@ -195,6 +195,9 @@ pub(crate) fn run(
         for note in &result.notes {
             out.line(format!("warning: {note}"));
         }
+        for fact in &result.facts {
+            out.line(format!("note: {fact}"));
+        }
         for line in floor_hint_lines(&result.floor_hints) {
             out.line(line);
         }
@@ -446,6 +449,10 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
                 "stored": s.stored,
             })).collect::<Vec<_>>(),
             "estimate": estimate_json(&estimate),
+            "facts": plan.facts.iter().map(|n| json!({
+                "operation": n.operation,
+                "text": n.text,
+            })).collect::<Vec<_>>(),
             "floor_hints": plan.floor_hints.iter().map(|&(operation, largest)| json!({
                 "operation": operation,
                 "largest_mm": largest,
@@ -460,6 +467,9 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
     } else {
         for note in &plan.notes {
             out.line(format!("warning: {note}"));
+        }
+        for fact in &plan.facts {
+            out.line(format!("note: {fact}"));
         }
         for line in floor_hint_lines(&plan.floor_hints) {
             out.line(line);

@@ -169,8 +169,8 @@ toolpath-vcarve-floor-cleared-none = contours { $contours } : avec la fraise dro
 toolpath-vcarve-narrow = contours { $contours } : { $narrow } de ligne médiane sont plus étroits que la pointe ({ $tip }) et ne sont pas gravés
 toolpath-path-too-short = le contour #{ $contour } est trop court pour être suivi ({ $length }) ; ignoré
 toolpath-groove-no-angle = l'outil { $tool } est une fraise en V sans angle : la largeur de la rainure est inconnue
-toolpath-groove-past-cone = la rainure en V est plus profonde que le cône de la fraise en V : { $width } de large en haut, avec des parois droites au-dessus du cône
 toolpath-groove-width = la rainure en V fait { $width } de large en haut
+toolpath-path-past-cone = une fraise en V ne coupe pas plus profond que son cône, ici { $deepest }, sinon sa queue frotte ; ce tracé descend à { $depth } : réduisez la profondeur ou prenez une fraise droite
 toolpath-holes-not-circles = { $count ->
     [one] { $count } forme qui n'est pas un cercle ignorée
    *[other] { $count } formes qui ne sont pas des cercles ignorées

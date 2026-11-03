@@ -385,6 +385,9 @@ impl ChiploadApp {
         for note in &result.notes {
             report.push_message(Tone::Warning, note.message.clone(), note.operation);
         }
+        for fact in &result.facts {
+            report.push_message(Tone::Info, fact.message.clone(), fact.operation);
+        }
         for warning in &result.check_warnings {
             let message = Message::new("generation-check-warning")
                 .arg("message", warning.text_message.clone());

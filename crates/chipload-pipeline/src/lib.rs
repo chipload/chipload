@@ -172,6 +172,8 @@ pub struct RunResult {
     pub floor_hints: Vec<(usize, f64)>,
     /// Toolpath warnings, each with the operation it is about.
     pub notes: Vec<Note>,
+    /// Plain notes, each with the operation it is about: a V-groove's width.
+    pub facts: Vec<Note>,
     pub check_warnings: Vec<CheckIssue>,
 }
 
@@ -688,6 +690,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         tab_centres: plan.tab_centres,
         floor_hints: plan.floor_hints,
         notes,
+        facts: plan.facts,
         check_warnings,
     })
 }

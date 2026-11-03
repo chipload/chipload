@@ -593,7 +593,7 @@ fn operations_table(
             at,
             escape(&name),
             escape(&kind_text(op, &job.tools, w)),
-            escape(&depth_text(op, w)),
+            escape(&depth_text(op, &job.tools, w)),
             feeds_text,
             escape(&entry_text(op, w)),
             escape(&tabs_text(op, w)),
@@ -699,7 +699,7 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
 }
 
 /// "0 to 6, 2 per pass", with a profile's finishing stock and skin.
-fn depth_text(op: &Operation, w: Words) -> String {
+fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
     let (start, end) = op.depths();
     let step = match op {
         Operation::Profile(p) => Some(p.step_down),
@@ -750,6 +750,15 @@ fn depth_text(op: &Operation, w: Words) -> String {
             },
         ],
     };
+    // A V-bit following a path: how wide its groove is (docs/specs/follow-path.md §5).
+    if let Operation::Path(p) = op
+        && let Some(width) = tools
+            .iter()
+            .find(|t| t.id == p.tool)
+            .and_then(|t| chipload_toolpath::plan::groove_width_mm(t, end - start))
+    {
+        parts.push(Message::new("sheet-groove-width").arg("width", len(width)));
+    }
     if let Operation::Profile(p) = op {
         // docs/specs/finish-and-skin.md §6: "finish 0.3 mm, skin 0.2 mm".
         if let Some(finish) = p.finish {

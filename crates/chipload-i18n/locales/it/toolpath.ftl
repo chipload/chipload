@@ -169,8 +169,8 @@ toolpath-vcarve-floor-cleared-none = contorni { $contours }: con la fresa piatta
 toolpath-vcarve-narrow = contorni { $contours }: { $narrow } di linea mediana sono più stretti della punta ({ $tip }) e non vengono incisi
 toolpath-path-too-short = il contorno #{ $contour } è troppo corto da seguire ({ $length }); saltato
 toolpath-groove-no-angle = l'utensile { $tool } è una fresa a V senza angolo: la larghezza della scanalatura è sconosciuta
-toolpath-groove-past-cone = la scanalatura a V è più profonda del cono della fresa a V: larga { $width } in alto, con pareti dritte sopra il cono
 toolpath-groove-width = la scanalatura a V è larga { $width } in alto
+toolpath-path-past-cone = una fresa a V non taglia più a fondo del suo cono, qui { $deepest }, o il gambo sfregherebbe; questo percorso scende di { $depth }: rendilo meno profondo o usa una fresa cilindrica
 toolpath-holes-not-circles = { $count ->
     [one] saltata { $count } forma che non è un cerchio
    *[other] saltate { $count } forme che non sono cerchi

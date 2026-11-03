@@ -434,13 +434,17 @@ impl Job {
                     Message::new("job-must-be-0-or-more")
                         .arg("got", Value::LengthNumber(below, Digits::Shortest)),
                 ));
-            } else if (op.depths().1 - (thickness + below)).abs() > DEPTH_TOL_MM {
+            } else if (op.depths().1 - (thickness + below + self.drill_point(op))).abs()
+                > DEPTH_TOL_MM
+            {
                 // A project read or edited follows the thickness (`follow_thickness`); one
                 // that doesn't is refused rather than cut at an old depth.
                 problems.push(Problem::at(
                     format!("operations.{i}.end_depth"),
-                    Message::new("job-through-stale")
-                        .arg("depth", Value::Length(thickness + below, Digits::Shortest)),
+                    Message::new("job-through-stale").arg(
+                        "depth",
+                        Value::Length(thickness + below + self.drill_point(op), Digits::Shortest),
+                    ),
                 ));
             }
         }

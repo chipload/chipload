@@ -365,8 +365,9 @@ impl Operation {
     }
 
     /// The end depth of an operation cut through stock `thickness` mm thick: the thickness
-    /// plus `through`. Nothing changes for one whose end depth is as set.
-    pub fn follow_thickness(&mut self, thickness: f64) {
+    /// plus `through`, plus `point` (a drill's point, so its full diameter goes through:
+    /// `Job::drill_point`). Nothing changes for one whose end depth is as set.
+    pub fn follow_thickness(&mut self, thickness: f64, point: f64) {
         let end = match self {
             Operation::Profile(op) => op.through.map(|t| (&mut op.end_depth, t)),
             Operation::Pocket(op) => op.through.map(|t| (&mut op.end_depth, t)),
@@ -375,7 +376,7 @@ impl Operation {
             Operation::Vcarve(_) | Operation::Surface(_) => None,
         };
         if let Some((end_depth, below)) = end {
-            *end_depth = thickness + below;
+            *end_depth = thickness + below + point;
         }
     }
 
@@ -1110,6 +1111,11 @@ pub(super) fn surface_problems(i: usize, f: &SurfaceOp, thickness: f64) -> Vec<P
     }
     problems
 }
+
+/// How far a drill's point reaches below its full diameter, per mm of diameter: a 118°
+/// point, the common one for twist drills, is (D / 2) / tan(59°) long
+/// (docs/specs/holes.md decision 10).
+pub const DRILL_POINT_PER_DIAMETER: f64 = 0.3004;
 
 /// How a Holes operation cuts.
 // Spec: docs/specs/holes.md §2.
