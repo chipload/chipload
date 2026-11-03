@@ -101,3 +101,38 @@ fn p_hides_every_panel_and_brings_them_back_as_they_were() {
     app.panels.show(Pane::Properties);
     assert_eq!(open(&app), [true, true, false, true]);
 }
+
+/// A narrow Report wraps its first line instead of cutting it off (the user, 2026-11-03:
+/// the start hint ended in "(Ctr…").
+#[test]
+fn a_narrow_report_wraps_its_first_line() {
+    let mut app = ChiploadApp::default();
+    let first = app.report.lines[0].clone();
+    let ctx = egui::Context::default();
+    // The fonts main.rs sets: a bare context has none to measure with.
+    let mut fonts = crate::fonts::system_fonts().unwrap();
+    crate::fonts::add_text_fonts(&mut fonts);
+    ctx.set_fonts(fonts);
+    let input = egui::RawInput {
+        screen_rect: Some(egui::Rect::from_min_size(
+            egui::Pos2::ZERO,
+            egui::vec2(1400.0, 2000.0),
+        )),
+        ..Default::default()
+    };
+    let mut size = egui::Vec2::ZERO;
+    let mut row = 0.0;
+    for _ in 0..3 {
+        let mut output = ctx.run_ui(input.clone(), |ui| {
+            let rect = egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(260.0, 2000.0));
+            let mut panel = ui.new_child(egui::UiBuilder::new().max_rect(rect));
+            app.report_line(&mut panel, &first, true);
+            size = panel.min_rect().size();
+            row = panel.text_style_height(&egui::TextStyle::Body);
+        });
+        output.textures_delta.clear();
+    }
+    assert!(size.x <= 260.0, "{size:?}");
+    // More than one line high: the text is all there, not cut off after one.
+    assert!(size.y > 1.5 * row, "{size:?}, a line {row}");
+}

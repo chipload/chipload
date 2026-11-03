@@ -290,7 +290,7 @@ impl ChiploadApp {
     }
 
     /// One line: its mark and text in its tone; a line about an operation selects it.
-    fn report_line(&mut self, ui: &mut egui::Ui, line: &ReportLine, headline: bool) {
+    pub(super) fn report_line(&mut self, ui: &mut egui::Ui, line: &ReportLine, headline: bool) {
         let color = line.tone.color(ui.visuals());
         let mut text = RichText::new(line.shown(ui)).color(color);
         if headline {
@@ -298,12 +298,7 @@ impl ChiploadApp {
         }
         let row = ui.horizontal_top(|ui| {
             ui.label(RichText::new(line.tone.mark()).color(color));
-            let label = if headline {
-                egui::Label::new(text).truncate()
-            } else {
-                egui::Label::new(text).wrap()
-            };
-            ui.add(label.sense(Sense::click()))
+            ui.add(egui::Label::new(text).wrap().sense(Sense::click()))
         });
         let response = row.inner;
         if let Some(op) = line.op {

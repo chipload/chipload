@@ -123,11 +123,6 @@ machine), then the last operation review, then the user's requests, then the res
    - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box;
    - an operation's Statistics section (lengths and lifts: do they match the router?).
 7. **Small follow-ups:**
-   - **The Report's first line doesn't wrap** (the user, 2026-11-03, with a screenshot:
-     "Text in the report panel need to wrap if it is to long"; the start hint "Import a DXF
-     or SVG (Ctrl+I) to start a project, or open one (Ctr…" is cut off). `report_line` in
-     `report.rs` truncates the headline on purpose since d52d988 (2026-10-10), when the
-     Report was a strip under the canvas; as a panel it should wrap like the other lines.
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -184,6 +179,10 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **The Report's first line wraps: done 2026-11-03** (the user's screenshot: the start
+  hint was cut off after "(Ctr…"). It was truncated since the Report was a strip under the
+  canvas (d52d988); now it wraps like the other lines.
 
 - **Operation statistics: done 2026-11-03** (docs/specs/operation-statistics.md, the
   user's idea of a Statistics section): each operation's and pass's properties end with its
