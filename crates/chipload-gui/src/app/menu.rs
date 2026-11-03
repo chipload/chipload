@@ -931,7 +931,11 @@ impl ChiploadApp {
         } else if self.edit.is_some() && self.display.simulate {
             ui.label(RichText::new(t!(ui, "menu-status-simulate-hint")).weak());
         } else if self.edit.is_some() {
-            ui.label(RichText::new(t!(ui, "menu-status-hint")).weak());
+            // Cut short rather than pushing the bar's other items, the whole in the hover;
+            // Space + drag first (the user, 2026-11-03: never seen before).
+            let hint = t!(ui, "menu-status-hint");
+            ui.add(egui::Label::new(RichText::new(&hint).weak()).truncate())
+                .on_hover_text(hint);
         }
     }
 }

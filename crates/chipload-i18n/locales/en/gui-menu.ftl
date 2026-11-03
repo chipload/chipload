@@ -136,7 +136,7 @@ menu-snapped-to = — snapped to { $target }
 menu-generating = Generating…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Dragging to ({ $x }, { $y }){ $snapped } (Alt: no snapping; on a segment Ctrl inserts a point, Shift bends it)
-menu-status-hint = Click selects a drawing, picture, text or group whole · double-click one contour · Ctrl+click adds or leaves out · Esc clears
+menu-status-hint = Space+drag moves the view · click selects a drawing, picture, text or group whole · double-click one contour · Ctrl+click adds or leaves out · Esc clears
 menu-status-simulate-hint = Simulate: drag to pan (3D: orbit) · click an operation's number to open it · F6 back to Edit
 menu-join-ends = Join ends…
 menu-join-ends-hover = Join open drawn polylines whose ends almost meet into one: the selected ones, or all when none is selected

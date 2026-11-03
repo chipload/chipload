@@ -136,7 +136,7 @@ menu-snapped-to = — gefangen an { $target }
 menu-generating = Berechnung läuft…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Ziehen nach ({ $x }, { $y }){ $snapped } (Alt: ohne Fang; an einem Segment fügt Strg einen Punkt ein, Shift biegt es)
-menu-status-hint = Klick wählt eine Zeichnung, ein Bild, einen Text oder eine Gruppe ganz · Doppelklick eine Kontur · Ctrl+Klick fügt hinzu oder lässt aus · Esc hebt auf
+menu-status-hint = Leertaste+Ziehen verschiebt die Ansicht · Klick wählt eine Zeichnung, ein Bild, einen Text oder eine Gruppe ganz · Doppelklick eine Kontur · Ctrl+Klick fügt hinzu oder lässt aus · Esc hebt auf
 menu-status-simulate-hint = Simulieren: ziehen verschiebt (3D: dreht) · Nummer eines Arbeitsgangs anklicken öffnet ihn · F6 zurück zu Bearbeiten
 menu-join-ends = Enden verbinden…
 menu-join-ends-hover = Offene gezeichnete Polylinien, deren Enden sich fast treffen, zu einer verbinden: die ausgewählten, oder alle, wenn keine ausgewählt ist

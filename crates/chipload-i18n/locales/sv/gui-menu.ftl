@@ -136,7 +136,7 @@ menu-snapped-to = — fäst mot { $target }
 menu-generating = Beräknar…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Drar till ({ $x }, { $y }){ $snapped } (Alt: ingen fästning; på ett segment infogar Ctrl en punkt, Shift böjer det)
-menu-status-hint = Klick markerar en ritning, bild, text eller grupp hel · dubbelklick en kontur · Ctrl+klick lägger till eller lämnar ute · Esc rensar
+menu-status-hint = Mellanslag+dra flyttar vyn · klick markerar en ritning, bild, text eller grupp hel · dubbelklick en kontur · Ctrl+klick lägger till eller lämnar ute · Esc rensar
 menu-status-simulate-hint = Simulera: dra för att panorera (3D: rotera) · klicka på en operations nummer för att öppna den · F6 tillbaka till Redigera
 menu-join-ends = Foga ihop ändar…
 menu-join-ends-hover = Foga ihop öppna ritade polylinjer vars ändar nästan möts till en: de markerade, eller alla om ingen är markerad

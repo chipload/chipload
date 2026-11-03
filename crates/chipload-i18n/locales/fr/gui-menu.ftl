@@ -136,7 +136,7 @@ menu-snapped-to = — accroché à { $target }
 menu-generating = Calcul…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Glissement vers ({ $x }, { $y }){ $snapped } (Alt : sans accrochage ; sur un segment, Ctrl insère un point, Shift le courbe)
-menu-status-hint = Un clic sélectionne un dessin, une image, un texte ou un groupe entier · double-clic un contour · Ctrl+clic ajoute ou laisse de côté · Esc désélectionne
+menu-status-hint = Espace+glisser déplace la vue · un clic sélectionne un dessin, une image, un texte ou un groupe entier · double-clic un contour · Ctrl+clic ajoute ou laisse de côté · Esc désélectionne
 menu-status-simulate-hint = Simuler : glisser pour déplacer (3D : pivoter) · cliquer le numéro d'une opération l'ouvre · F6 revient à Modifier
 menu-join-ends = Joindre les extrémités…
 menu-join-ends-hover = Joindre en une seule les polylignes dessinées ouvertes dont les extrémités se touchent presque : celles sélectionnées, ou toutes si aucune ne l'est

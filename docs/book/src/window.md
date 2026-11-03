@@ -178,8 +178,9 @@ colour theme: dark, or light grey.
   selects with a box: from left to right it takes what lies wholly inside, from right to left also what
   it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
   shape [moves it](drawings/shapes.md#editing). To pan, drag with the right or middle
-  button, or hold Space and drag. In 3D, a left drag orbits. In Simulate a left drag pans
-  (in 3D it orbits).
+  button, or hold Space and drag (the way on a touchpad; the status bar's hint starts with
+  it). In 3D, a left drag orbits. In Simulate a left drag pans (in 3D it orbits). On a
+  touchpad, a two-finger scroll or a pinch zooms.
 
 ![The canvas in 3D: the simulated stock on the grid, the cube in the corner and the
 navigation bar](images/simulation-3d.png)
