@@ -42,9 +42,10 @@ pub struct MaterialLibrary {
     // Spec: docs/specs/job-settings-layout.md §3 (optional, no version bump).
     #[serde(default)]
     pub default_material: Option<String>,
-    /// The stock thickness new projects start with, mm. Null: 10 mm.
-    // Spec: the user, 2026-11-03 (optional, no version bump).
-    #[serde(default)]
+    /// The stock thickness new projects start with, mm. Left out: 10 mm.
+    // Spec: the user, 2026-11-03 (optional, no version bump). Written only when set, so
+    // 0.32, which refuses unknown fields, still reads a file that doesn't use it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_thickness: Option<f64>,
     /// The materials.
     pub materials: Vec<Material>,
@@ -334,6 +335,17 @@ mod tests {
         });
         assert!(again.is_err());
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// Without a default thickness the file is as 0.32 wrote it, so 0.32 still reads it.
+    #[test]
+    fn the_default_thickness_is_written_only_when_set() {
+        let mut lib = MaterialLibrary::default();
+        let json = serde_json::to_value(&lib).unwrap();
+        assert!(json.get("default_thickness").is_none(), "{json}");
+        lib.default_thickness = Some(18.0);
+        let json = serde_json::to_value(&lib).unwrap();
+        assert_eq!(json["default_thickness"], 18.0);
     }
 
     #[test]
