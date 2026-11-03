@@ -195,6 +195,9 @@ pub fn plan_job_cancellable(
             {
                 facts.push(Note::at(at.operation, labelled_note(label, width)));
             }
+            if let Some(below) = through_overcut(job, op) {
+                facts.push(Note::at(at.operation, labelled_note(label, below)));
+            }
             notes.extend(
                 selection
                     .notes
@@ -1940,6 +1943,18 @@ fn length(mm: f64) -> Value {
 
 /// The problems, in the order the checks were always made (so the first is the error
 /// `validate_job` always gave), and the notes of a job without problems.
+/// How far a through cut goes into the spoilboard, as a plain note (docs/specs/styles.md
+/// §2.1); None for a cut that isn't through or stays in the stock.
+fn through_overcut(job: &Job, op: &Operation) -> Option<Message> {
+    op.through()?;
+    let stock = job.setup_of(op).map_or(job.stock(), |s| &s.stock);
+    let below = op.depths().1 - job.drill_point(op) - stock.thickness;
+    (below > DEPTH_TOL_MM).then(|| {
+        Message::new("toolpath-through-spoilboard")
+            .arg("below", Value::Length(below, Digits::Fixed(3)))
+    })
+}
+
 fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
     let mut problems = Vec::new();
     if job.operations.is_empty() {
@@ -2047,7 +2062,8 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .arg("thickness", length(thickness))
                     .arg("allowed", length(stock.max_overcut)),
             ));
-        } else if below > DEPTH_TOL_MM {
+        } else if below > DEPTH_TOL_MM && op.through().is_none() {
+            // A through cut goes below on purpose: a plain note when planned (`facts`).
             notes.push(Note::at(
                 index,
                 labelled_note(

@@ -94,6 +94,8 @@ toolpath-operation-kind = { $number } ({ $kind ->
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
 toolpath-skipped-open = skipped open contour #{ $contour } on { $layers } { $from } to { $to }
 toolpath-into-spoilboard = cuts { $below } below the stock (into the spoilboard)
+# A cut with Through ticked: deeper than the stock on purpose, said as a plain note.
+toolpath-through-spoilboard = cuts through, { $below } into the spoilboard
 # $operations lists operation numbers with their kind: "1 (pocket), 3 (profile) and 4 (holes)".
 toolpath-plunge-unknown = Tool { $tool } isn't marked center_cutting and { $count ->
     [one] operation { $operations } plunges

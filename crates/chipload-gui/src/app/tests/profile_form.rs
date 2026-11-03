@@ -65,6 +65,11 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
             edit.job.stock().clone(),
         )
     };
+    // A profile of an outline starts through (docs/specs/styles.md §2.1): off, then on.
+    let stock = profile(&harness).1;
+    assert_eq!(profile(&harness).0.through(), Some(stock.max_overcut));
+    harness.get_by_label("Through").click();
+    harness.run_steps(4);
     assert_eq!(profile(&harness).0.through(), None);
     harness.get_by_label("Through").click();
     harness.run_steps(4);

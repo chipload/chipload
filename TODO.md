@@ -70,19 +70,9 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; the aim is none beyond choosing a
 style.
 
-1. **Defaults that know the job** (the direction review's F1 and F2, still open: a new
-   profile starts 1 mm deep, without *Through* and without tabs, in any stock). Spec
-   drafted 2026-11-03 with styles (2): docs/specs/styles.md, decisions §7 to review.
-   Outline:
-   - a profile outside an outer outline goes through (`through`, the box ticked) with tabs;
-     a profile inside a hole goes through too; a pocket stays at a depth;
-   - the depth of a new pocket, V-carve or path from the last of its kind, as the feeds are
-     today (`inherited` in the window's `editor.rs`);
-   - feeds and step downs from the tool's cutting data for the setup's material
-     (cutting-data.md), the operation above only when the tool has no row;
-   - warnings that aren't about this job (machine travel not set: `check-no-travel`;
-     a tool not marked centre-cutting) said once where they are set, not on every run;
-   - the same defaults on the command line (`op add`), rule 5.
+1. **Defaults that know the job: done 2026-11-03** (docs/specs/styles.md §2, step 1; see
+   *Done*). Left from it for the first-run setup: tabs with a tool not marked
+   centre-cutting still warn, and machine travel not set.
 2. **Styles: operation presets** (docs/specs/styles.md, replacing presets.md; the
    direction review's step 2, CamBam's speed). Simpler now that feeds live in the tools (ADR 0029):
    a style is an operation's settings, a library tool and a depth (a number or through);
@@ -200,6 +190,15 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **Defaults that know the job: done 2026-11-03** (docs/specs/styles.md §2, the user: "ok
+  go ahead"). A new profile of outlines goes outside and through with tabs, of holes
+  inside and through; an outline with its holes gives two profiles, the holes first. New
+  pockets, V-carves and paths take the last of their kind's depth, holes go through; feeds
+  come from the tool's cutting data, never from another tool's operation; a tool not known
+  to be centre-cutting helixes or ramps. Made in the pipeline (`new_ops`) for the window
+  and the new `chipload op add`. A through cut's spoilboard depth is a note, not a
+  warning; a helix too wide after a tool change is fitted.
 
 - **The review findings of 2026-11-02: done 2026-11-03** (the user: "do" them, as
   suggested). Drilled through holes go through at full diameter (holes.md decision 10, the

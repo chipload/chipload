@@ -575,6 +575,7 @@ pub(super) fn tool_row(
                     }
                     op.set_tool(tool.id);
                     crate::editor::fit_hole_method(op, choice.tools);
+                    op.fit_helixes(choice.tools);
                 }
             }
             if let Some(names) = &choice.library

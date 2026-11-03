@@ -580,3 +580,20 @@ pipeline-frame-borders-fit = { $count ->
    *[other] { $count } borders { $gap } apart don't fit in this frame
 }
 pipeline-library-converted = Your library was updated: the materials' values are now in the tools' cutting data (the old files are kept as .bak).
+
+# Names of new operations, numbered per kind; the user can rename them. A profile cuts
+# along a contour, a pocket clears the area inside it, a V-carve cuts with a V-shaped bit,
+# a follow path runs the tool along the line itself, holes are drilled or bored, a
+# surface faces the whole stock flat (crates/chipload-pipeline/src/new_ops.rs).
+pipeline-name-profile = Profile { $number }
+pipeline-name-pocket = Pocket { $number }
+pipeline-name-vcarve = V-carve { $number }
+pipeline-name-path = Follow path { $number }
+pipeline-name-holes = Holes { $number }
+pipeline-name-surface = Surface { $number }
+# A selection of outlines with their holes gets two profiles: the holes cut inside, then
+# the outlines outside. $name is the numbered name above.
+pipeline-name-holes-of = { $name } (holes)
+pipeline-name-outline-of = { $name } (outline)
+# The two profiles name their shapes rather than following a layer or a whole drawing.
+pipeline-new-by-shapes = { $holes } and { $outline } select their shapes one by one: shapes added to the drawing later aren't cut by them

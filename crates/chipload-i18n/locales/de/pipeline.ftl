@@ -584,3 +584,20 @@ pipeline-frame-borders-fit = { $count ->
    *[other] { $count } Randlinien im Abstand { $gap } passen nicht in diesen Rahmen
 }
 pipeline-library-converted = Ihre Bibliothek wurde aktualisiert: die Werte der Materialien stehen jetzt in den Schnittdaten der Werkzeuge (die alten Dateien bleiben als .bak).
+
+# Names of new operations, numbered per kind; the user can rename them. A profile cuts
+# along a contour, a pocket clears the area inside it, a V-carve cuts with a V-shaped bit,
+# a follow path runs the tool along the line itself, holes are drilled or bored, a
+# surface faces the whole stock flat (crates/chipload-pipeline/src/new_ops.rs).
+pipeline-name-profile = Konturfräsen { $number }
+pipeline-name-pocket = Tasche { $number }
+pipeline-name-vcarve = V-Gravur { $number }
+pipeline-name-path = Pfad folgen { $number }
+pipeline-name-holes = Bohrungen { $number }
+pipeline-name-surface = Planfräsen { $number }
+# A selection of outlines with their holes gets two profiles: the holes cut inside, then
+# the outlines outside. $name is the numbered name above.
+pipeline-name-holes-of = { $name } (Löcher)
+pipeline-name-outline-of = { $name } (Außenkontur)
+# The two profiles name their shapes rather than following a layer or a whole drawing.
+pipeline-new-by-shapes = { $holes } und { $outline } wählen ihre Formen einzeln: später zur Zeichnung hinzugefügte Formen werden von ihnen nicht bearbeitet

@@ -889,31 +889,20 @@ impl ChiploadApp {
             .ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing))
     }
 
-    /// Add an operation for the current canvas selection and select it.
+    /// Add the operations of `kind` for the current canvas selection (one, or two for a
+    /// profile of outlines with their holes; docs/specs/styles.md §2) and select the first.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
-        let tool = self.edit.as_ref()?.tool_for(kind);
-        let cutting = self.tool_cutting(tool);
-        // The project's material: the new operation names it, and its values for the tool
-        // come first (docs/specs/materials.md §2).
-        let material = self.material_cutting(tool);
-        let material_ref = self.edit.as_ref()?.job.stock().material.clone();
         let selection = self.op_selection();
+        let library = self.library().map(|l| l.tools.clone());
+        let lang = self.prefs.language;
         let edit = self.edit.as_mut()?;
-        let index = edit.add_with(
-            kind,
-            &selection,
-            &self.contours,
-            cutting.as_ref(),
-            &self.prefs.language,
-        );
-        if let Some(entry) = edit.job.operations.get_mut(index) {
-            entry.set_material(material_ref);
-            if let Some(values) = material {
-                entry.apply_cutting(&values);
-            }
-        }
+        let (index, messages) =
+            edit.add_with(kind, &selection, &self.contours, library.as_ref(), &lang);
         self.focus = Focus::Op(index);
         self.commit();
+        if !messages.is_empty() {
+            self.set_report(Report::of_messages(messages));
+        }
         Some(index)
     }
 

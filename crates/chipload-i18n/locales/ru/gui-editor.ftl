@@ -1,9 +1,3 @@
-editor-name-profile = Обработка контура { $number }
-editor-name-pocket = Выборка кармана { $number }
-editor-name-vcarve = V-гравировка { $number }
-editor-name-path = Вдоль линии { $number }
-editor-name-holes = Отверстия { $number }
-editor-name-surface = Торцевание { $number }
 editor-name-copy = { $name } (копия)
 editor-summary-whole-stock = вся заготовка
 editor-summary-dxf = чертёж { $id }

@@ -51,7 +51,22 @@ impl Tabs {
             DEFAULT_RAMPED_FLANK_RAD
         }
     }
+
+    /// The tabs a profile starts with (docs/specs/styles.md §2.1): 4 per contour, 8 mm
+    /// wide, 3 mm high but at most half of `thickness`, the flank from `default_flank`.
+    pub fn starting(ramp_angle: f64, center_cutting: Option<bool>, thickness: f64) -> Tabs {
+        Tabs {
+            count: 4,
+            width: 8.0,
+            height: STARTING_TAB_HEIGHT.min(0.5 * thickness),
+            flank_angle: Tabs::default_flank(ramp_angle, center_cutting),
+            at: Vec::new(),
+        }
+    }
 }
+
+/// A new tab's height, mm, in stock at least twice as thick.
+pub const STARTING_TAB_HEIGHT: f64 = 3.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -326,6 +341,47 @@ impl Operation {
             Operation::Path(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
             Operation::Surface(op) => op.tool = tool,
+        }
+    }
+
+    /// Its helixes, and its passes', that no longer fit their tool in `tools` get the
+    /// default for it ([`Job::fit_helixes`]).
+    pub fn fit_helixes(&mut self, tools: &[Tool]) {
+        let diameter = |id: i64| find_tool(tools, id).map(|t| t.diameter);
+        match self {
+            Operation::Pocket(p) => {
+                if let Some(d) = diameter(p.tool) {
+                    fit_helix(&mut p.entry, d);
+                }
+                for pass in &mut p.rest_passes {
+                    if let Some(d) = diameter(pass.tool) {
+                        fit_helix(&mut pass.entry, d);
+                    }
+                }
+            }
+            Operation::Vcarve(v) => {
+                if let Some(pass) = &mut v.floor
+                    && let Some(d) = diameter(pass.tool)
+                {
+                    fit_helix(&mut pass.entry, d);
+                }
+            }
+            Operation::Profile(_)
+            | Operation::Path(_)
+            | Operation::Holes(_)
+            | Operation::Surface(_) => {}
+        }
+    }
+
+    /// Set the end depth, mm down from the stock top.
+    pub fn set_end_depth(&mut self, depth: f64) {
+        match self {
+            Operation::Profile(op) => op.end_depth = depth,
+            Operation::Pocket(op) => op.end_depth = depth,
+            Operation::Vcarve(op) => op.end_depth = depth,
+            Operation::Path(op) => op.end_depth = depth,
+            Operation::Holes(op) => op.end_depth = depth,
+            Operation::Surface(op) => op.end_depth = depth,
         }
     }
 
@@ -1220,6 +1276,19 @@ impl Entry {
             radius: DEFAULT_HELIX_DIAMETERS * diameter,
             ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
         }
+    }
+}
+
+/// A helix as wide as the tool's radius or wider, for a tool of `diameter`: the default
+/// radius, its angle kept (it would leave a core standing).
+fn fit_helix(entry: &mut Entry, diameter: f64) {
+    if let Entry::Helix { radius, ramp_angle } = *entry
+        && radius >= diameter / 2.0
+    {
+        *entry = Entry::Helix {
+            radius: DEFAULT_HELIX_DIAMETERS * diameter,
+            ramp_angle,
+        };
     }
 }
 

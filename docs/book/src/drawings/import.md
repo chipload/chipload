@@ -26,7 +26,8 @@ shows what Chipload sees in a DXF without making a project.
   - **closed**, for profiles, pockets and V-carving;
   - **open**, for follow path; profiles and pockets skip them with a note.
 - **Outer and hole:** each closed contour is an *outer* (outline) or a *hole* (inside
-  another), which sets the default side of a new profile.
+  another), which sets the side of a new profile (and an outline with its holes gets two
+  profiles).
 - **The project keeps the geometry itself.** The DXF isn't needed afterwards, unless the
   drawing changes ([Updating from a new DXF](update.md)).
 

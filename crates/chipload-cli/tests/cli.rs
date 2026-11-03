@@ -1921,6 +1921,63 @@ fn the_golden_edited_part_is_drawn_with_the_editing_commands_alone() {
 }
 
 #[test]
+fn op_add_makes_the_golden_project_and_says_what_it_added() {
+    // docs/specs/styles.md §2: tests/corpus/jobs/v35/op_add.chipload (golden v35_op_add)
+    // made again with these commands; the operations must come out the same.
+    let dir = temp_dir("op-add");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let dxf = corpus("dxf/simple_part.dxf");
+    let out = chipload(&["import", path(&dxf), "-o", p]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["op", "add", p, "pocket", "--shapes", "2", "--depth", "3"]);
+    assert!(
+        text(&out.stdout).contains("Added operation 1: \"Pocket 1\", 3 mm deep, tool 1."),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["op", "add", p, "profile", "--dxf", "1", "--json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["operations"], serde_json::json!([1, 2]), "{json}");
+    let notes = json["notes"].to_string();
+    assert!(
+        notes.contains("\\\"Profile 1 (holes)\\\", inside, through"),
+        "{notes}"
+    );
+    assert!(notes.contains("4 tabs per contour"), "{notes}");
+    assert!(notes.contains("added to the drawing later"), "{notes}");
+    let operations = |path: &Path| {
+        let json: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
+        json["operations"].clone()
+    };
+    assert_eq!(
+        operations(&project),
+        operations(&corpus("jobs/v35/op_add.chipload"))
+    );
+    // Nothing to cut, an unknown tool, --depth with --through: refused.
+    for args in [
+        &["op", "add", p, "pocket"][..],
+        &["op", "add", p, "pocket", "--layer", "HOLES", "--tool", "9"],
+        &[
+            "op",
+            "add",
+            p,
+            "pocket",
+            "--layer",
+            "HOLES",
+            "--depth",
+            "2",
+            "--through",
+        ],
+    ] {
+        let out = chipload(args);
+        assert!(!out.status.success(), "{args:?}");
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn the_golden_sign_is_framed_with_frame_add() {
     // docs/specs/shape-library.md §9: tests/corpus/jobs/v35/sign_frame.chipload (golden
     // v35_sign_frame) drawn again with these commands; the drawing must come out the same.

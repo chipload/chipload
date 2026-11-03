@@ -548,11 +548,15 @@ fn holes_take_the_tools_method_and_generate() {
     };
     assert!(matches!(h.method, HoleMethod::Bore { step_down, .. } if step_down == 3.0));
     assert!(app.generate_and_wait(), "{:?}", app.report);
+    // New holes go through (docs/specs/styles.md §2.2).
+    let stock = app.edit.as_ref().unwrap().job.stock().clone();
+    let through = -(stock.thickness + stock.max_overcut);
     let moves = &app.toolpath.result.as_ref().unwrap().program.moves;
     assert!(
         moves
             .iter()
-            .any(|m| m.z == Some(-crate::editor::DEFAULT_DEPTH))
+            .any(|m| m.z.is_some_and(|z| (z - through).abs() < 1e-9)),
+        "{through}"
     );
 }
 

@@ -3,7 +3,7 @@
 **Holes** cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
 note), then **Holes** (ribbon, OPERATION). It takes a drill of the project that fits the
-circles, if there is one. Circles drawn in Chipload count, and so do imported circles,
+circles, if there is one, and goes [through](../concepts/depths.md#start-and-end-depth). Circles drawn in Chipload count, and so do imported circles,
 including ones drawn as two half arcs.
 
 The tool decides how:

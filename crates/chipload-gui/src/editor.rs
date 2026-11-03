@@ -7,22 +7,21 @@ use std::collections::BTreeSet;
 
 use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_i18n::Message;
-use chipload_job::library::Cutting;
+use chipload_job::library::ToolLibrary;
 use chipload_job::{
-    DEFAULT_RAMP_ANGLE_RAD, Direction, Drawing, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, Problem, ProfileOp, SURFACE_STEPOVER, Selector, Side, Source, SurfaceOp, ToolType,
-    VcarveOp, WorkZero, find_tool,
+    Drawing, HoleMethod, Job, Operation, Problem, Selector, Side, Source, WorkZero, find_tool,
 };
+use chipload_pipeline::new_ops::{NewRequest, new_operations};
 
 use crate::i18n::{Lang, t};
 use crate::view::Kind;
 
-/// Defaults for a new operation when there's none above it to copy from (decision
-/// 2026-10-09): a shallow, slow test cut.
+/// Defaults for a new operation with nothing to take them from (decision 2026-10-09): a
+/// shallow, slow test cut. New operations are made in the pipeline
+/// (docs/specs/styles.md §2).
 pub use chipload_pipeline::chip_load::{default_feed, default_plunge_feed};
-pub const DEFAULT_DEPTH: f64 = 1.0;
+pub use chipload_pipeline::new_ops::{DEFAULT_STEPOVER, OpKind};
 pub const DEFAULT_STEP_DOWN: f64 = chipload_pipeline::DEFAULT_STEP_DOWN;
-pub const DEFAULT_STEPOVER: f64 = 0.4;
 
 /// What is selected on the canvas. Clicked geometry is kept as shape ids, which never
 /// change, so a selection survives anything that renumbers contours (undo, updating or
@@ -172,28 +171,6 @@ pub fn default_side(ids: &BTreeSet<usize>, contours: &[Contour]) -> Option<Side>
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OpKind {
-    Profile,
-    Pocket,
-    Vcarve,
-    /// Follow path (docs/specs/follow-path.md).
-    Path,
-    /// Holes (docs/specs/holes.md).
-    Holes,
-    /// Surface: the whole stock (docs/specs/surfacing.md).
-    Surface,
-}
-
-use chipload_pipeline::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
-
-impl OpKind {
-    /// Whether it cuts selected shapes; a surface faces the whole stock.
-    pub fn needs_selection(self) -> bool {
-        self != OpKind::Surface
-    }
-}
-
 /// A Holes operation's method follows its tool (docs/specs/holes.md §7): after the tool
 /// changes between a drill and an endmill, the method becomes that tool's, with its
 /// defaults. A V-bit keeps the method (the planner refuses the tool).
@@ -297,96 +274,6 @@ impl EditJob {
             .map_or(0, |i| i + 1)
     }
 
-    /// The tool a new operation gets: the last operation's, else the project's first
-    /// (docs/specs/tool-per-operation.md §8).
-    pub fn next_tool_id(&self) -> i64 {
-        let known = |id: &i64| self.job.tools.iter().any(|t| t.id == *id);
-        self.job
-            .operations
-            .last()
-            .map(|e| e.tool())
-            .filter(known)
-            .or(self.job.tools.first().map(|t| t.id))
-            .unwrap_or(1)
-    }
-
-    /// The tool a new operation of `kind` starts with: the last operation's tool when it
-    /// suits the kind, else the project's first that does. A V-carve takes a V-bit; other
-    /// kinds don't (user report 2026-10-14: a V-carve made in a project with a V-bit got
-    /// the endmill and was refused).
-    pub fn tool_for(&self, kind: OpKind) -> i64 {
-        // A surface takes the widest endmill (docs/specs/surfacing.md §4).
-        if kind == OpKind::Surface
-            && let Some(widest) = chipload_pipeline::surface::surface_tool(&self.job)
-        {
-            return widest;
-        }
-        let suits = |id: i64| {
-            self.job
-                .tools
-                .iter()
-                .find(|t| t.id == id)
-                .is_some_and(|t| (t.kind == ToolType::Vbit) == (kind == OpKind::Vcarve))
-        };
-        let next = self.next_tool_id();
-        if suits(next) {
-            return next;
-        }
-        self.job
-            .tools
-            .iter()
-            .map(|t| t.id)
-            .find(|id| suits(*id))
-            .unwrap_or(next)
-    }
-
-    /// Feeds, step-down and stepover from the nearest operation above `index`, else the
-    /// tool's cutting values from the library, else defaults.
-    fn inherited(
-        &self,
-        index: usize,
-        cutting: Option<&Cutting>,
-        diameter: f64,
-    ) -> (f64, f64, f64, f64) {
-        let above = self.job.operations[..index]
-            .iter()
-            .next_back()
-            .map(|e| match &e {
-                Operation::Profile(p) => (p.step_down, p.feed, p.plunge_feed, None),
-                Operation::Pocket(p) => (p.step_down, p.feed, p.plunge_feed, Some(p.stepover)),
-                Operation::Vcarve(v) => (DEFAULT_STEP_DOWN, v.feed, v.plunge_feed, None),
-                Operation::Path(p) => (p.step_down, p.feed, p.plunge_feed, None),
-                Operation::Holes(h) => (DEFAULT_STEP_DOWN, h.feed, h.plunge_feed, None),
-                Operation::Surface(f) => (f.step_down, f.feed, f.plunge_feed, None),
-            });
-        let stepover_above = self.job.operations[..index]
-            .iter()
-            .rev()
-            .find_map(|e| match &e {
-                Operation::Pocket(p) => Some(p.stepover),
-                _ => None,
-            });
-        match above {
-            Some((step_down, feed, plunge, _)) => (
-                step_down,
-                feed,
-                plunge,
-                stepover_above
-                    .or(cutting.map(|c| c.stepover))
-                    .unwrap_or(DEFAULT_STEPOVER),
-            ),
-            None => match cutting {
-                Some(c) => (c.step_down, c.feed, c.plunge_feed, c.stepover),
-                None => (
-                    DEFAULT_STEP_DOWN,
-                    default_feed(diameter),
-                    default_plunge_feed(diameter),
-                    DEFAULT_STEPOVER,
-                ),
-            },
-        }
-    }
-
     /// Add an operation for the canvas selection at the end of the list; returns its index.
     #[cfg(test)]
     pub fn add(
@@ -396,226 +283,33 @@ impl EditJob {
         contours: &[Contour],
     ) -> usize {
         self.add_with(kind, selection, contours, None, &crate::i18n::Language::En)
+            .0
     }
 
-    /// As `add`, with the tool's cutting values from the library (used when there is no
-    /// operation above to copy from; docs/specs/tool-library-and-machines.md §3). The new
-    /// operation is named in `lang`'s language.
+    /// Add the operations of `kind` for the canvas selection, as the pipeline makes them
+    /// (docs/specs/styles.md §2), with the tool's cutting data from `library`, named in
+    /// `lang`'s language. Returns the first one's index and what the report should say.
     pub fn add_with(
         &mut self,
         kind: OpKind,
         selection: &CanvasSelection,
         contours: &[Contour],
-        cutting: Option<&Cutting>,
+        library: Option<&ToolLibrary>,
         lang: &impl Lang,
-    ) -> usize {
-        // Into the active part, after its operations (docs/specs/parts.md §8).
-        let part = self.job.active_part_id().unwrap_or(1);
-        // A surface goes first in its part: it faces the stock before anything is cut
-        // (docs/specs/surfacing.md §6).
-        let index = match kind {
-            OpKind::Surface => self
-                .job
-                .operations
-                .iter()
-                .position(|e| e.part() == part)
-                .unwrap_or_else(|| self.insert_index(part)),
-            _ => self.insert_index(part),
+    ) -> (usize, Vec<Message>) {
+        let request = NewRequest {
+            kind,
+            select: selection.selector(contours, kind == OpKind::Path),
+            tool: None,
         };
-        let select = selection.selector(contours, kind == OpKind::Path);
-        // Holes take a drill that fits the circles, when the project has one.
-        let tool = match kind {
-            OpKind::Holes => chipload_pipeline::matching_drill(&self.job, &select, contours),
-            _ => None,
-        }
-        .unwrap_or_else(|| self.tool_for(kind));
-        let chosen = self.job.tool(tool);
-        let diameter = chosen.map_or(0.0, |t| t.diameter);
-        let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting, diameter);
-        let number = self
-            .job
-            .operations
-            .iter()
-            .filter(|e| {
-                matches!(
-                    (&e, kind),
-                    (Operation::Profile(_), OpKind::Profile)
-                        | (Operation::Pocket(_), OpKind::Pocket)
-                        | (Operation::Vcarve(_), OpKind::Vcarve)
-                        | (Operation::Path(_), OpKind::Path)
-                        | (Operation::Holes(_), OpKind::Holes)
-                        | (Operation::Surface(_), OpKind::Surface)
-                )
-            })
-            .count()
-            + 1;
-        // A tool marked not centre-cutting can't plunge: new pockets go down round a helix
-        // (docs/specs/helix-and-leads.md, decision 6), new follow paths ramp in
-        // (docs/specs/ramp-entry.md, decision 6). Profiles always spiral.
-        let plunges = chosen.and_then(|t| t.center_cutting) != Some(false);
-        let entry = match (plunges, kind) {
-            (true, _) | (false, OpKind::Profile) => Entry::Plunge {},
-            (false, OpKind::Pocket) => Entry::default_helix(diameter),
-            // A V-bit's point goes in along the path; the entry isn't used.
-            (false, OpKind::Vcarve) => Entry::Plunge {},
-            // A pointed V-bit is centre-cutting by its shape (docs/specs/follow-path.md §5).
-            (false, OpKind::Path) if chosen.is_some_and(|t| t.kind == ToolType::Vbit) => {
-                Entry::Plunge {}
+        let made = new_operations(&self.job, &request, contours, library, lang.lang());
+        let index = made.index;
+        self.reorder(|ops| {
+            for (offset, new) in made.ops.into_iter().enumerate() {
+                ops.insert(index + offset, (new.op, !new.side_chosen));
             }
-            (false, OpKind::Path) => Entry::Ramp {
-                ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
-            },
-            // Holes go down their own way, a surface beside the stock; the entry isn't used.
-            (false, OpKind::Holes | OpKind::Surface) => Entry::Plunge {},
-        };
-        let (op, side_chosen) = match kind {
-            OpKind::Profile => {
-                let side =
-                    default_side(&selection.ids(contours, Some(&self.job.drawing)), contours);
-                (
-                    Operation::Profile(ProfileOp {
-                        material: None,
-                        name: t!(lang, "editor-name-profile", number = number),
-                        enabled: true,
-                        part,
-                        select,
-                        side: side.unwrap_or(Side::Outside),
-                        direction: Direction::Climb,
-                        tool,
-                        start_depth: 0.0,
-                        end_depth: DEFAULT_DEPTH,
-                        through: None,
-                        clearance: 0.0,
-                        step_down,
-                        feed,
-                        plunge_feed,
-                        tabs: None,
-                        ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
-                        starts: Vec::new(),
-                        finish: None,
-                        skin: None,
-                        corners: None,
-                        corner_choices: Vec::new(),
-                    }),
-                    side.is_some(),
-                )
-            }
-            OpKind::Pocket => (
-                Operation::Pocket(PocketOp {
-                    material: None,
-                    name: t!(lang, "editor-name-pocket", number = number),
-                    enabled: true,
-                    part,
-                    select,
-                    tool,
-                    start_depth: 0.0,
-                    end_depth: DEFAULT_DEPTH,
-                    through: None,
-                    clearance: 0.0,
-                    step_down,
-                    stepover,
-                    slot_feed: None,
-                    slot_step_down: None,
-                    direction: Direction::Climb,
-                    feed,
-                    plunge_feed,
-                    entry,
-                    starts: Vec::new(),
-                    lead: None,
-                    corners: None,
-                    corner_choices: Vec::new(),
-                    rest: None,
-                    rest_passes: Vec::new(),
-                }),
-                true,
-            ),
-            OpKind::Vcarve => (
-                Operation::Vcarve(VcarveOp {
-                    material: None,
-                    name: t!(lang, "editor-name-vcarve", number = number),
-                    enabled: true,
-                    part,
-                    select,
-                    tool,
-                    start_depth: 0.0,
-                    end_depth: DEFAULT_DEPTH,
-                    passes: 1,
-                    step_down: None,
-                    ignore_kinks_deg: chipload_job::DEFAULT_IGNORE_KINKS_DEG,
-                    feed,
-                    plunge_feed,
-                    floor: None,
-                }),
-                true,
-            ),
-            OpKind::Path => (
-                Operation::Path(PathOp {
-                    material: None,
-                    name: t!(lang, "editor-name-path", number = number),
-                    enabled: true,
-                    part,
-                    select,
-                    tool,
-                    start_depth: 0.0,
-                    end_depth: DEFAULT_DEPTH,
-                    through: None,
-                    step_down,
-                    feed,
-                    plunge_feed,
-                    entry,
-                }),
-                true,
-            ),
-            OpKind::Holes => {
-                // A drill drills; anything else gets a bore, which the planner refuses for
-                // a V-bit with a message.
-                let method = chosen
-                    .and_then(|t| HoleMethod::default_for(t.kind, t.diameter))
-                    .unwrap_or(HoleMethod::Bore {
-                        step_down: 0.5 * diameter,
-                        ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
-                        direction: Direction::Climb,
-                    });
-                (
-                    Operation::Holes(HolesOp {
-                        material: None,
-                        name: t!(lang, "editor-name-holes", number = number),
-                        enabled: true,
-                        part,
-                        select,
-                        tool,
-                        start_depth: 0.0,
-                        end_depth: DEFAULT_DEPTH,
-                        through: None,
-                        feed,
-                        plunge_feed,
-                        method,
-                    }),
-                    true,
-                )
-            }
-            OpKind::Surface => {
-                let (lo, hi) = SURFACE_STEPOVER;
-                (
-                    Operation::Surface(SurfaceOp {
-                        material: None,
-                        name: t!(lang, "editor-name-surface", number = number),
-                        enabled: true,
-                        part,
-                        tool,
-                        start_depth: 0.0,
-                        end_depth: DEFAULT_SURFACE_DEPTH,
-                        step_down: step_down.max(DEFAULT_SURFACE_DEPTH),
-                        stepover: DEFAULT_SURFACE_STEPOVER.clamp(lo, hi),
-                        feed,
-                        plunge_feed,
-                    }),
-                    true,
-                )
-            }
-        };
-        self.reorder(|ops| ops.insert(index, (op, !side_chosen)));
-        index
+        });
+        (index, made.messages)
     }
 
     /// Replace an operation's geometry with the canvas selection.
@@ -869,6 +563,7 @@ mod tests {
     use super::*;
     use crate::i18n::Language::En;
     use chipload_dxf::shapes_from_dxf;
+    use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry};
     use chipload_pipeline::{load_drawing, new_project};
     use std::path::PathBuf;
 
@@ -901,8 +596,8 @@ mod tests {
                 .filter(|&k| !job.side_chosen(k))
                 .collect()
         };
-        // Outer and hole together: no side to guess.
-        job.add(OpKind::Profile, &ids(&[1, 2]), &contours);
+        // Nothing selected yet: no side to tell.
+        job.add(OpKind::Profile, &CanvasSelection::Nothing, &contours);
         job.add(OpKind::Pocket, &ids(&[2]), &contours);
         assert_eq!(unsided(&job), [0]);
         // [pocket, profile*]
@@ -937,10 +632,35 @@ mod tests {
         assert_eq!(default_side(&[1, 2].into(), &contours), None);
         assert_eq!(default_side(&BTreeSet::new(), &contours), None);
         let mut job = new_job();
-        let i = job.add(OpKind::Profile, &ids(&[1, 2]), &contours);
+        let i = job.add(OpKind::Profile, &CanvasSelection::Nothing, &contours);
         assert!(!job.side_chosen(i));
         let err = job.to_job().unwrap_err();
         assert!(err[0].text.contains("choose the profile side"), "{err:?}");
+    }
+
+    #[test]
+    fn an_outline_with_its_hole_gets_two_profiles_the_hole_first() {
+        let contours = messy_2();
+        let mut job = new_job();
+        let i = job.add(OpKind::Profile, &ids(&[1, 2]), &contours);
+        assert_eq!((i, job.job.operations.len()), (0, 2));
+        let sides: Vec<(Side, bool, bool)> = job
+            .job
+            .operations
+            .iter()
+            .enumerate()
+            .map(|(k, op)| {
+                let Operation::Profile(p) = op else { panic!() };
+                (p.side, p.tabs.is_some(), job.side_chosen(k))
+            })
+            .collect();
+        assert_eq!(
+            sides,
+            [(Side::Inside, false, true), (Side::Outside, true, true)]
+        );
+        assert_eq!(job.job.operations[0].name(), "Profile 1 (holes)");
+        assert_eq!(job.job.operations[1].name(), "Profile 2 (outline)");
+        assert!(job.to_job().is_ok());
     }
 
     #[test]
@@ -949,7 +669,7 @@ mod tests {
         let mut job = new_job();
         let a = job.add(OpKind::Pocket, &ids(&[4, 6, 7]), &contours); // #7 is open: left out
         let b = job.add(
-            OpKind::Profile,
+            OpKind::Pocket,
             &CanvasSelection::Layer("upper".into(), None),
             &contours,
         );
@@ -961,10 +681,10 @@ mod tests {
             geometry_summary(&job.job.operations[a], &contours, &En),
             "#4, #6"
         );
-        let Operation::Profile(profile) = &job.job.operations[b] else {
+        let Operation::Pocket(layered) = &job.job.operations[b] else {
             panic!()
         };
-        assert_eq!(profile.select.layer.as_deref(), Some("upper"));
+        assert_eq!(layered.select.layer.as_deref(), Some("upper"));
         assert_eq!(
             geometry_summary(&job.job.operations[b], &contours, &En),
             "layer upper"
@@ -976,13 +696,20 @@ mod tests {
         let contours = messy_2();
         let mut job = new_job();
         let first = job.add(OpKind::Profile, &ids(&[2]), &contours);
+        let stock = job.job.stock().clone();
         let Operation::Profile(p) = &mut job.job.operations[first] else {
             panic!()
         };
-        // The 6 mm tool: 250 mm/min per mm, a third of it to plunge.
+        // An outline goes through; the 6 mm tool: 250 mm/min per mm, a third to plunge.
         assert_eq!(
-            (p.end_depth, p.step_down, p.feed, p.plunge_feed),
-            (1.0, 1.0, 1500.0, 500.0)
+            (p.end_depth, p.through, p.step_down, p.feed, p.plunge_feed),
+            (
+                stock.thickness + stock.max_overcut,
+                Some(stock.max_overcut),
+                1.0,
+                1500.0,
+                500.0
+            )
         );
         assert_eq!(
             (default_feed(3.0), default_plunge_feed(3.0)),
@@ -1008,29 +735,6 @@ mod tests {
     }
 
     #[test]
-    fn the_tools_cutting_values_come_before_the_defaults_but_after_the_operation_above() {
-        let contours = messy_2();
-        let mut job = new_job();
-        let cutting = Cutting::uniform(1500.0, 400.0, 2.5, 0.3);
-        let first = job.add_with(OpKind::Pocket, &ids(&[4]), &contours, Some(&cutting), &En);
-        let Operation::Pocket(p) = &mut job.job.operations[first] else {
-            panic!()
-        };
-        assert_eq!(
-            (p.step_down, p.feed, p.plunge_feed, p.stepover),
-            (2.5, 1500.0, 400.0, 0.3)
-        );
-        // The depth is not a tool value: still the shallow test cut.
-        assert_eq!(p.end_depth, DEFAULT_DEPTH);
-        p.feed = 900.0;
-        let second = job.add_with(OpKind::Profile, &ids(&[2]), &contours, Some(&cutting), &En);
-        let Operation::Profile(q) = &job.job.operations[second] else {
-            panic!()
-        };
-        assert_eq!(q.feed, 900.0, "copied from the operation above");
-    }
-
-    #[test]
     fn new_pockets_go_down_round_a_helix_when_the_tool_cant_plunge() {
         let contours = messy_2();
         let mut job = new_job();
@@ -1047,6 +751,14 @@ mod tests {
     fn new_profiles_spiral_and_pockets_plunge_when_the_tool_can() {
         let contours = messy_2();
         let mut job = new_job();
+        // Not known to be centre-cutting: round a helix (docs/specs/styles.md §2.4).
+        let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
+        let diameter = job.job.tools[0].diameter;
+        assert_eq!(
+            job.job.operations[i].entry(),
+            Entry::default_helix(diameter)
+        );
+        job.job.tools[0].center_cutting = Some(true);
         let i = job.add(OpKind::Pocket, &ids(&[4]), &contours);
         assert_eq!(job.job.operations[i].entry(), Entry::Plunge {});
         let j = job.add(OpKind::Profile, &ids(&[2]), &contours);

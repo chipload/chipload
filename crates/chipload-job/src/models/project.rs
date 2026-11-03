@@ -253,6 +253,16 @@ impl Job {
 
     /// How far below its full diameter `op`'s cut reaches: a drilled hole's drill point
     /// (docs/specs/holes.md decision 10); 0 for everything else, flat at the bottom.
+    /// Give every helix that no longer fits its tool the default for that tool, keeping its
+    /// angle (docs/specs/styles.md §2.4): one as wide as the tool's radius or wider leaves a
+    /// core standing, as one made for a larger tool does after the tool changed. Call after
+    /// an operation's tool, or a tool's diameter, changes.
+    pub fn fit_helixes(&mut self) {
+        for op in &mut self.operations {
+            op.fit_helixes(&self.tools);
+        }
+    }
+
     pub fn drill_point(&self, op: &Operation) -> f64 {
         match op {
             Operation::Holes(h) if matches!(h.method, HoleMethod::Drill { .. }) => self

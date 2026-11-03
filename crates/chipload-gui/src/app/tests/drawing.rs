@@ -266,6 +266,7 @@ fn undo_and_redo_restore_earlier_projects() {
     app.redo();
     assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
     // A field edit is one step.
+    let before = app.edit.as_ref().unwrap().job.operations[1].depths().1;
     if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.end_depth = 5.0;
     }
@@ -274,14 +275,15 @@ fn undo_and_redo_restore_earlier_projects() {
     let Operation::Profile(p) = &app.edit.as_ref().unwrap().job.operations[1] else {
         panic!("expected the profile");
     };
-    assert_eq!(p.end_depth, 1.0);
+    assert_eq!(p.end_depth, before);
 }
 
 #[test]
 fn incomplete_projects_say_what_is_missing() {
     let mut app = ChiploadApp::default();
     app.import_dxf(&corpus("dxf/messy_2.dxf"), None);
-    select(&mut app, &[1, 2]); // a hole and an outer: side must be chosen
+    // Nothing selected: the side can't be told and must be chosen.
+    select(&mut app, &[]);
     app.add_operation(OpKind::Profile).unwrap();
     assert!(!app.generate_and_wait());
     assert!(

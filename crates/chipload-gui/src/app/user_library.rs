@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 
 use chipload_job::library::{AppSettings, load_settings, update_settings};
 use chipload_job::library::{
-    Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineProfile, linked_cutting,
-    machine_link, same_name, update_machines, update_tools,
+    Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineProfile, machine_link, same_name,
+    update_machines, update_tools,
 };
 use chipload_job::{Machine, Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
@@ -745,21 +745,11 @@ impl ChiploadApp {
         self.user.settings_dir.as_ref().map(|_| &self.user.library)
     }
 
-    /// A project tool's cutting values from the library, its row for any material: only
-    /// when the tool came from the library and still has its values.
+    /// Project tool `id`'s cutting values for the setup's material, from its library tool
+    /// (docs/specs/styles.md §2.3).
     pub(super) fn tool_cutting(&self, id: i64) -> Option<Cutting> {
-        let tool = self.edit.as_ref()?.job.tools.iter().find(|t| t.id == id)?;
-        linked_cutting(&self.library()?.tools, tool, None)
-    }
-
-    /// The project material's values for project tool `id` (docs/specs/materials.md §2).
-    pub(super) fn material_cutting(&self, id: i64) -> Option<Cutting> {
-        chipload_pipeline::materials::material_values(
-            &self.edit.as_ref()?.job,
-            &self.library()?.materials,
-            &self.library()?.tools,
-            id,
-        )
+        let edit = self.edit.as_ref()?;
+        chipload_pipeline::new_ops::tool_cutting(&edit.job, self.library().map(|l| &l.tools), id)
     }
 
     pub(super) fn library_request(&mut self, request: LibraryRequest) {
@@ -925,6 +915,7 @@ impl ChiploadApp {
         if let Some(rpm) = keep {
             tool.rpm = Some(rpm);
         }
+        edit.job.fit_helixes();
         self.commit();
         let what = t!(self, "user-library-library-tool-named", name = &entry.name);
         self.report_changes(&what, changes);
@@ -1038,6 +1029,7 @@ impl ChiploadApp {
             && let Some(entry) = edit.job.operations.get_mut(op)
         {
             crate::editor::fit_hole_method(entry, &edit.job.tools);
+            entry.fit_helixes(&edit.job.tools);
         }
         self.commit();
         true

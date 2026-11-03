@@ -392,8 +392,14 @@ mod library {
         assert_eq!(job.tools[1], upcut().tool(2));
         let ops: Vec<Operation> = app.edit.as_ref().unwrap().job.operations.clone();
         assert_eq!((ops[0].tool(), ops[1].tool()), (2, 1));
+        // Only the tool changed, and the helix made for the 6 mm tool now fits the 3 mm one
+        // (docs/specs/styles.md §2.4).
+        assert_eq!(ops[0].entry(), chipload_job::Entry::default_helix(3.0));
         let mut same = ops[0].clone();
         same.set_tool(ops_before[0].tool());
+        if let (Operation::Pocket(a), Operation::Pocket(b)) = (&mut same, &ops_before[0]) {
+            a.entry = b.entry;
+        }
         assert_eq!(same, ops_before[0], "only the tool changed");
         assert!(app.generate_and_wait(), "{:?}", app.report);
         let files = &app.toolpath.result.as_ref().unwrap().files;

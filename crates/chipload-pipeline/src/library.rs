@@ -308,6 +308,7 @@ pub fn update_from_library(
         }
         updated.push((tool.id, changes));
     }
+    out.fit_helixes();
     (out, updated)
 }
 

@@ -3,9 +3,44 @@
 //! passes.
 
 use super::*;
+use chipload_job::Operation;
 
 #[derive(Subcommand)]
 pub(crate) enum OpAction {
+    /// Add an operation for shapes of the drawing, with the defaults the app gives
+    /// (docs/specs/styles.md §2): a profile of outlines goes outside and through with tabs,
+    /// of holes inside and through; of both, two profiles, the holes first. Feeds and step
+    /// downs come from the tool's cutting data. Added at the end of the active part.
+    Add {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// What to add.
+        kind: KindArg,
+        /// Every shape on this layer (with --dxf: on that DXF's layer).
+        #[arg(long)]
+        layer: Option<String>,
+        /// These shapes, by id (as `inspect` lists them).
+        #[arg(long, num_args = 1.., value_delimiter = ',')]
+        shapes: Option<Vec<u64>>,
+        /// All of this DXF or SVG (an id from `dxf list`).
+        #[arg(long)]
+        dxf: Option<u64>,
+        /// All of this group.
+        #[arg(long)]
+        group: Option<u64>,
+        /// The tool's id in the project; default: the one the app would take.
+        #[arg(long)]
+        tool: Option<i64>,
+        /// End depth instead of the default (not with --through).
+        #[arg(long, value_parser = crate::lengths::length, conflicts_with = "through")]
+        depth: Option<f64>,
+        /// Cut through the stock, below it by the setup's max overcut.
+        #[arg(long)]
+        through: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Set the tool an operation cuts with (docs/specs/tool-per-operation.md §7). The tool
     /// must be in the project: copy one in from your library with `tool use`.
     Tool {
@@ -241,6 +276,29 @@ pub(crate) enum OpAction {
     },
 }
 
+/// The kinds `op add` adds (a surface has `op add-surface`).
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum KindArg {
+    Profile,
+    Pocket,
+    Vcarve,
+    Path,
+    Holes,
+}
+
+impl KindArg {
+    fn kind(self) -> chipload_pipeline::new_ops::OpKind {
+        use chipload_pipeline::new_ops::OpKind;
+        match self {
+            KindArg::Profile => OpKind::Profile,
+            KindArg::Pocket => OpKind::Pocket,
+            KindArg::Vcarve => OpKind::Vcarve,
+            KindArg::Path => OpKind::Path,
+            KindArg::Holes => OpKind::Holes,
+        }
+    }
+}
+
 #[derive(Clone, Copy, ValueEnum)]
 pub(crate) enum BoneArg {
     None,
@@ -340,6 +398,100 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ));
             out.set("operation", json!(at.operation));
             out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::Add {
+            project,
+            kind,
+            layer,
+            shapes,
+            dxf,
+            group,
+            tool,
+            depth,
+            through,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let source = match (dxf, group) {
+                (Some(_), Some(_)) => {
+                    return out.fail("give --dxf or --group, not both");
+                }
+                (Some(id), None) => Some(chipload_job::Source::Dxf(id)),
+                (None, Some(id)) => Some(chipload_job::Source::Group(id)),
+                (None, None) => None,
+            };
+            let select = chipload_job::Selector {
+                layer,
+                shapes,
+                source,
+                exclude: Vec::new(),
+            };
+            if select.is_empty() {
+                return out.fail("say what to cut: --layer, --shapes, --dxf or --group");
+            }
+            if let Some(id) = tool
+                && job.tool(id).is_none()
+            {
+                return out.fail(format!(
+                    "the project has no tool {id}: copy one in from your library with `tool use`"
+                ));
+            }
+            let drawing = match chipload_pipeline::load_drawing(&job) {
+                Ok(drawing) => drawing,
+                Err(err) => return out.fail(err),
+            };
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let request = chipload_pipeline::new_ops::NewRequest {
+                kind: kind.kind(),
+                select,
+                tool,
+            };
+            let mut made = chipload_pipeline::new_ops::new_operations(
+                &job,
+                &request,
+                &drawing.contours,
+                Some(&library.tools),
+                chipload_i18n::Language::En,
+            );
+            for new in &mut made.ops {
+                set_depth(&job, &mut new.op, depth, through);
+            }
+            let notes: Vec<String> = made.messages.iter().map(|m| m.english()).collect();
+            let count = made.ops.len();
+            let unsided = made.ops.iter().any(|n| !n.side_chosen);
+            let first = chipload_pipeline::new_ops::insert(&mut job, made);
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            for (offset, op) in job.operations[first..first + count].iter().enumerate() {
+                out.line(format!(
+                    "Added operation {}: {}.",
+                    first + offset + 1,
+                    describe(op)
+                ));
+            }
+            if unsided {
+                out.line(
+                    "The selection doesn't tell the profile's side: it cuts outside; set \
+                     `side` if that is wrong."
+                        .to_string(),
+                );
+            }
+            for note in notes {
+                out.line(format!("note: {note}"));
+            }
+            out.set(
+                "operations",
+                json!((first..first + count).collect::<Vec<usize>>()),
+            );
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
@@ -884,4 +1036,49 @@ pub(crate) fn rest_passes_json(refs: &[chipload_job::OpRef]) -> Value {
             .filter_map(|r| r.pass.map(|k| json!({"operation": r.operation, "pass": k})))
             .collect::<Vec<_>>()
     )
+}
+
+/// `op add`'s --depth and --through over the defaults.
+fn set_depth(job: &Job, op: &mut Operation, depth: Option<f64>, through: bool) {
+    if through {
+        if let Some(t) = op.through_mut() {
+            *t = Some(job.stock().max_overcut);
+        }
+    } else if let Some(depth) = depth {
+        if let Some(t) = op.through_mut() {
+            *t = None;
+        }
+        op.set_end_depth(depth);
+    }
+    let point = job.drill_point(op);
+    op.follow_thickness(job.stock().thickness, point);
+}
+
+/// What `op add` added, in a few words: "\"Profile 1\", outside, through to 12.300 mm, with
+/// tabs, tool 1".
+fn describe(op: &Operation) -> String {
+    let mut parts = vec![format!("\"{}\"", op.name())];
+    if let Operation::Profile(p) = op {
+        parts.push(
+            match p.side {
+                chipload_job::Side::Inside => "inside",
+                chipload_job::Side::Outside => "outside",
+                chipload_job::Side::On => "on the line",
+            }
+            .to_string(),
+        );
+    }
+    let (_, end) = op.depths();
+    let depth = chipload_core::text::mm(end);
+    parts.push(match op.through() {
+        Some(_) => format!("through to {depth} mm"),
+        None => format!("{depth} mm deep"),
+    });
+    if let Operation::Profile(p) = op
+        && let Some(tabs) = &p.tabs
+    {
+        parts.push(format!("{} tabs per contour", tabs.count));
+    }
+    parts.push(format!("tool {}", op.tool()));
+    parts.join(", ")
 }

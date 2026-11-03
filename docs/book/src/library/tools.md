@@ -84,8 +84,8 @@ a surface the clearing ones. Choosing a material for a whole setup also sets the
 tool's speed from the row. When an operation's own material is for another speed than the
 tool runs at, its *Material* row says so.
 
-Without cutting data, a new operation copies the operation above it, or starts from the
-tool's diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
+Without cutting data, a new operation copies the nearest operation above it with the same
+tool, or starts from the tool's diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
 1 mm step down. Check the [chip load](../checking/time.md#chip-load) before cutting.
 
 Libraries from before Chipload 0.32 had one set of values per tool, and the values per tool

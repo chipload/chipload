@@ -168,6 +168,27 @@ chipload check <GCODE> [OPTIONS]
 
 Change an operation of a project
 
+### `chipload op add`
+
+Add an operation for shapes of the drawing, with the defaults the app gives (docs/specs/styles.md §2): a profile of outlines goes outside and through with tabs, of holes inside and through; of both, two profiles, the holes first. Feeds and step downs come from the tool's cutting data. Added at the end of the active part
+
+```text
+chipload op add <PROJECT> <KIND> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `holes`. |
+| `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
+| `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
+| `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
+| `--group <GROUP>` | All of this group. |
+| `--tool <TOOL>` | The tool's id in the project; default: the one the app would take. |
+| `--depth <DEPTH>` | End depth instead of the default (not with --through) |
+| `--through` | Cut through the stock, below it by the setup's max overcut. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op tool`
 
 Set the tool an operation cuts with (docs/specs/tool-per-operation.md §7). The tool must be in the project: copy one in from your library with `tool use`

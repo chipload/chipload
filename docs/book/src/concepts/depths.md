@@ -12,7 +12,8 @@ stock top, whatever the [Z zero](stock.md#stock) is.
 - **Cutting through:** an end depth below the stock bottom goes into the spoilboard. That's
   allowed up to *Max depth below stock* (the setup's Stock), with a warning; deeper is refused,
   so a typo can't reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
-  0.3 mm into the spoilboard.
+  0.3 mm into the spoilboard. An operation with **Through** ticked goes there on purpose:
+  the Report gives it as a plain note ("cuts through, 0.300 mm into the spoilboard").
 - **Through:** tick **Through** next to the end depth of a profile, pocket, follow path or
   holes, and the end depth is the stock thickness plus **Below stock**, which starts at
   *Max depth below stock*. It follows the thickness: make the board 18 mm and the cut ends
@@ -23,6 +24,34 @@ stock top, whatever the [Z zero](stock.md#stock) is.
 - **Going down:** from safe Z the tool rapids to 1 mm above the stock top, then goes down
   at the plunge feed. The air between the stock top and the start depth is crossed at the
   plunge feed too: Chipload doesn't know whether another operation already cleared it.
+
+## What a new operation starts with
+
+A new operation is set up from what you selected, so the usual job needs few edits:
+
+| New | Starts |
+|---|---|
+| Profile of outlines | outside, **through**, with tabs (4 per contour, 8 mm wide, 3 mm high, at most half the stock's thickness) |
+| Profile of holes | inside, **through**, no tabs |
+| Profile of an outline with its holes | **two profiles**: *Profile 1 (holes)* inside first, then *Profile 2 (outline)* outside with tabs, both through, so the holes are cut while the part is still held |
+| Pocket, V-carve, follow path | the end depth (or *Through*) of the last one of its kind in the project, else 1 mm |
+| Holes | through |
+
+- **Two profiles** select their shapes one by one, also when you picked a layer or a whole
+  DXF: shapes added to it later (by [updating the DXF](../drawings/update.md)) aren't cut by
+  them, and the Report says so.
+- **Feeds, step downs and stepover** come from the tool's [cutting
+  data](../library/tools.md#cutting-data) for the setup's material. A tool without cutting
+  data takes them from the nearest operation above with the same tool, else from its
+  diameter.
+- **Going down:** a pocket helixes and a follow path ramps in unless the tool is marked
+  centre-cutting (see [Tools](tools.md)).
+- **When the selection doesn't tell** (nothing selected yet, or a traced picture's or a
+  text's outlines and holes together), a profile is 1 mm deep with its side to choose.
+- **On the command line:** `chipload op add part.chipload profile --dxf 1` (also
+  `--layer`, `--shapes`, `--group`; kinds `profile`, `pocket`, `vcarve`, `path`, `holes`)
+  makes the same operations and says what it added; `--depth`, `--through` and `--tool`
+  change the defaults.
 
 ## Oversize
 

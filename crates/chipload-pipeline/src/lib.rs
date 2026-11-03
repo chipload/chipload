@@ -15,6 +15,7 @@ pub mod groups;
 pub mod images;
 pub mod library;
 pub mod materials;
+pub mod new_ops;
 pub mod notices;
 pub mod parts;
 pub mod placement;
@@ -251,6 +252,7 @@ pub fn set_op_tool(job: &mut Job, number: usize, tool: i64) -> Result<(), Pipeli
         .and_then(|i| job.operations.get_mut(i))
         .ok_or_else(|| no_operation(number, count))?;
     op.set_tool(tool);
+    op.fit_helixes(&job.tools);
     Ok(())
 }
 

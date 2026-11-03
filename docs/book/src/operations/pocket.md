@@ -68,7 +68,9 @@ Chipload also warns about two things:
   - The radius is a quarter of the tool diameter by default, and must be less than the
     tool radius. Where there's no room, it shrinks.
   - With no room for even a tenth of the tool's diameter, the pocket ramps in, with a note.
-  - New pockets use a helix when the tool is marked not centre-cutting.
+  - New pockets use a helix unless the tool is marked centre-cutting.
+  - When the pocket's tool changes to a smaller one, a helix too wide for it becomes a
+    quarter of its diameter.
 
 ## Start point and lead
 

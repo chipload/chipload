@@ -581,3 +581,20 @@ pipeline-frame-borders-fit = { $count ->
    *[other] { $count } kantlinjer { $gap } isär får inte plats i den här ramen
 }
 pipeline-library-converted = Ditt bibliotek uppdaterades: materialens värden finns nu i verktygens skärdata (de gamla filerna sparas som .bak).
+
+# Names of new operations, numbered per kind; the user can rename them. A profile cuts
+# along a contour, a pocket clears the area inside it, a V-carve cuts with a V-shaped bit,
+# a follow path runs the tool along the line itself, holes are drilled or bored, a
+# surface faces the whole stock flat (crates/chipload-pipeline/src/new_ops.rs).
+pipeline-name-profile = Konturfräsning { $number }
+pipeline-name-pocket = Ficka { $number }
+pipeline-name-vcarve = V-gravyr { $number }
+pipeline-name-path = Följ bana { $number }
+pipeline-name-holes = Hål { $number }
+pipeline-name-surface = Planfräsning { $number }
+# A selection of outlines with their holes gets two profiles: the holes cut inside, then
+# the outlines outside. $name is the numbered name above.
+pipeline-name-holes-of = { $name } (hål)
+pipeline-name-outline-of = { $name } (ytterkontur)
+# The two profiles name their shapes rather than following a layer or a whole drawing.
+pipeline-new-by-shapes = { $holes } och { $outline } väljer sina former en och en: former som läggs till ritningen senare fräses inte av dem

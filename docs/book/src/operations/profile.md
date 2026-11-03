@@ -8,6 +8,10 @@ A profile cuts along a closed contour:
 Select the contours, then **Profile** (ribbon, OPERATION). See [Side and direction](../concepts/side-direction.md)
 and [Depths and oversize](../concepts/depths.md) for what every profile shares.
 
+A new profile of outlines goes outside and through with tabs, of holes inside and through;
+an outline selected with its holes gives two profiles, the holes first ([What a new
+operation starts with](../concepts/depths.md#what-a-new-operation-starts-with)).
+
 Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use [Follow path](path.md).
 

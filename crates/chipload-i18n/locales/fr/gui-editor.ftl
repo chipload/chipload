@@ -1,16 +1,6 @@
 # The operations being edited: names given to new operations, and the short description
 # of what an operation cuts (crates/chipload-gui/src/editor.rs).
 
-# Names of new operations, numbered per kind; the user can rename them. A profile cuts
-# along a contour, a pocket clears the area inside it, a V-carve cuts with a V-shaped bit,
-# a follow path runs the tool along the line itself, holes are drilled or bored, a
-# surface faces the whole stock flat.
-editor-name-profile = Contour { $number }
-editor-name-pocket = Poche { $number }
-editor-name-vcarve = Gravure en V { $number }
-editor-name-path = Suivi de tracé { $number }
-editor-name-holes = Perçages { $number }
-editor-name-surface = Surfaçage { $number }
 # The name of a duplicated operation.
 editor-name-copy = { $name } (copie)
 

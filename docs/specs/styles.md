@@ -1,7 +1,8 @@
 # Spec: defaults that know the job, and styles
 
-Status: draft 2026-11-03, decisions in §7 to review. Replaces docs/specs/presets.md (paused
-2026-10-13), whose layer rules (§5 there) come back as step 4 here.
+Status: approved 2026-11-03 (decisions 1-10 as recommended, the user: "ok go ahead");
+step 1 built (§9). Replaces docs/specs/presets.md (paused 2026-10-13), whose layer rules
+(§5 there) come back as step 4 here.
 
 ## 1. Why
 
@@ -269,3 +270,31 @@ A new persisted file in the settings folder, beside `tools.json`:
 3. **Styles in the window:** the ribbon's Style button, the canvas menu, *Save as style…*,
    the Styles folder; a new guide page *Styles* under the library.
 4. **Later:** layer rules, keys (§5).
+
+## 9. As built
+
+**Step 1, 2026-11-03:**
+- `chipload_pipeline::new_ops`: `OpKind`, `new_operations` (a `NewRequest` of kind,
+  selector and tool gives `NewOps`: where they go, each with its side mark, and the report's
+  messages), `tool_for`, `tool_cutting`, `insert`. The window's `EditJob::add_with` inserts
+  what it returns; its own defaults went. Operation names moved from the window's texts to
+  the pipeline's (`pipeline-name-*`).
+- **Open contours** a profile's selection matches (centre lines on a cutting layer) don't
+  change its side: they are skipped as before.
+- **Tabs** are at most half the stock's thickness (`Tabs::starting`), not only in stock
+  under 4 mm.
+- **Through cuts:** going below the stock with *Through* ticked is now a plain note (a
+  `Plan` fact, "cuts through, 0.300 mm into the spoilboard"), not a warning; a typed depth
+  below the stock still warns. The checker's own line about moves below the stock bottom
+  stays: it doesn't know why.
+- **Helixes follow the tool:** with unknown tools now helixing, a pocket whose tool became
+  smaller kept a helix too wide for it and was refused. `Operation::fit_helixes` /
+  `Job::fit_helixes` give such a helix the default for the tool (its angle kept), after
+  choosing a tool for an operation (window, `op tool`), *Update from library* and
+  `tool update`.
+- **`op add`** takes `--layer`, `--shapes`, `--dxf`, `--group` (no `--all`: a selector
+  needs something to name), `--tool`, `--depth`, `--through`.
+- **Still warned on a fresh project:** tabs with a tool not marked centre-cutting ("make
+  sure it is a centre-cutting tool") and machine travel not set; both go once the tool and
+  machine are set up in the library (the first-run setup, TODO).
+- Golden `v35_op_add` (simple_part made with `op add` alone); no existing G-code changed.

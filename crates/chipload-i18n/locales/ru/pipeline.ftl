@@ -434,3 +434,13 @@ pipeline-frame-borders-fit = { $count ->
    *[other] окантовки ({ $count }) с шагом { $gap } не помещаются в рамке
 }
 pipeline-library-converted = Библиотека обновлена: значения материалов теперь в режимах резания инструментов (старые файлы сохранены как .bak).
+
+pipeline-name-profile = Обработка контура { $number }
+pipeline-name-pocket = Выборка кармана { $number }
+pipeline-name-vcarve = V-гравировка { $number }
+pipeline-name-path = Вдоль линии { $number }
+pipeline-name-holes = Отверстия { $number }
+pipeline-name-surface = Торцевание { $number }
+pipeline-name-holes-of = { $name } (отверстия)
+pipeline-name-outline-of = { $name } (внешний контур)
+pipeline-new-by-shapes = { $holes } и { $outline } выбирают свои фигуры по одной: фигуры, добавленные в чертёж позже, ими не обрабатываются

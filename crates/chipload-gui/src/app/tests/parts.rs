@@ -8,12 +8,12 @@ fn new_operations_go_into_the_active_part_whatever_is_open() {
     // An operation of part 1 is open; the new one still goes into part 2, at its end.
     app.focus = Focus::Op(0);
     app.select_row(app.group_selection("dxf:2"), false);
-    let index = app.add_operation(OpKind::Profile).unwrap();
+    let index = app.add_operation(OpKind::Pocket).unwrap();
     assert_eq!(index, 4);
     assert_eq!(op_parts(&app), [1, 1, 1, 2, 2]);
     // Activating part 1: the next one goes after part 1's operations.
     app.activate_part(1);
-    let index = app.add_operation(OpKind::Profile).unwrap();
+    let index = app.add_operation(OpKind::Pocket).unwrap();
     assert_eq!(index, 3);
     assert_eq!(op_parts(&app), [1, 1, 1, 1, 2, 2]);
     // It is kept with the project.
