@@ -77,9 +77,11 @@ fn the_ribbon_fits_the_default_window_in_every_language() {
 
 #[test]
 fn the_ribbon_shows_names_where_they_fit_and_icons_alone_where_not() {
-    // English fits with names; German needs icons alone at the default size.
+    // English fits with names at the default size. Whether German does depends on the
+    // font (DejaVu Sans on Linux: no; Windows' narrower Segoe UI: yes, seen on CI
+    // 2026-11-03), so German is tried in a window too narrow for either.
     assert!(names_shown(&harness("en", WINDOW), "Measure"));
-    let mut german = harness("de", WINDOW);
+    let mut german = harness("de", egui::vec2(1000.0, 800.0));
     assert!(!names_shown(&german, "Messen"));
     // A wider window shows the names again.
     german.set_size(egui::vec2(1600.0, 800.0));
