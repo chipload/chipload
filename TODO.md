@@ -136,7 +136,31 @@ style.
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
    6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
    review (8).
-10. **Small follow-ups:**
+10. **V-carve inlays** (the gap review of 2026-11-03, the user agreed to add it): a plug
+   and its pocket from one outline, V-carved to fit: the pocket at its depth, the plug
+   mirrored, cut with a start depth and a glue gap, so the two press together and the
+   plug's back is planed off. Among the most made maker jobs on a hobby router. Builds on
+   V-carve (the medial axis, flat-floor passes); best after its review (8). Spec first:
+   the fields (gap, start depth, plug as a mirrored copy or its own setup), what the
+   checker and the simulation show, a golden pair.
+11. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9,
+   left for later then): a setup that is the same board turned over, its drawing mirrored
+   about an axis, located by dowel pins or an edge, for parts machined on both faces
+   (boxes, signs with a back pocket, cutting boards). Spec first: the mirror axis, how
+   the zero follows, dowel holes as an operation, the setup sheet's words.
+12. **Pockets: a finishing pass** (the gap review of 2026-11-03; was in Ideas): a light
+   last cut of the walls and of the floor, for fits (inlays, lids, recesses) and clean
+   floors. Spec first: the allowance left by the roughing, the wall lap's direction, the
+   floor's stepover, with rest passes and dogbones.
+13. **First-run setup** (the gap review of 2026-11-03; left from item 1): on the first
+   start, ask for the machine's travel and the first tool (marked centre-cutting or
+   not), so the first project has no warning but its own.
+14. **Laser and plasma: decide** (the gap review of 2026-11-03). CLAUDE.md promises G-code
+   for "CNC routers, mills, plasma, laser", but the posts are spindle-only: no laser mode
+   (power instead of RPM, M4 dynamic power, no Z), no plasma kerf or pierce delay.
+   *Recommended:* narrow the claim to routers and mills until a user asks; the
+   alternative is a basic laser post and mode with its own spec. The user decides.
+15. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -148,7 +172,7 @@ style.
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-11. **Later, the user's ideas for when the above is done**, each with its own spec:
+16. **Later, the user's ideas for when the above is done**, each with its own spec:
     - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
       decision 2's alternative): each setup with its own coordinates, its parts placed onto
       its board, setups side by side like PrusaSlicer's plates, the active in colour, the
@@ -174,7 +198,7 @@ style.
 Smaller follow-ups noted along the way, not in the order above:
 
 - **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
-- **Pockets:** a finishing pass (walls and floor); dogbones with rest passes.
+- **Pockets:** dogbones with rest passes (the finishing pass is *Next* item 12).
 - **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
   hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
   counterbores in one operation.
