@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Profile - Chipload 0.32.0 user guide</title>
+        <title>Profile - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "../searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-58b32aa4.js"></script>
+        <script src="../toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -186,6 +186,9 @@
 </ul>
 <p>Select the contours, then <strong>Profile</strong> (ribbon, OPERATION). See <a href="../concepts/side-direction.html">Side and direction</a>
 and <a href="../concepts/depths.html">Depths and oversize</a> for what every profile shares.</p>
+<p>A new profile of outlines goes outside and through with tabs, of holes inside and through;
+an outline selected with its holes gives two profiles, the holes first (<a href="../concepts/depths.html#what-a-new-operation-starts-with">What a new
+operation starts with</a>).</p>
 <p>Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use <a href="path.html">Follow path</a>.</p>
 <h2 id="the-spiral-ramp"><a class="header" href="#the-spiral-ramp">The spiral ramp</a></h2>
@@ -224,7 +227,8 @@ loose on the last pass.</p>
 <tr><th>Setting</th><th></th></tr>
 </thead>
 <tbody>
-<tr><td><strong>count</strong></td><td>tabs per contour, spread evenly along it</td></tr>
+<tr><td><strong>count</strong></td><td>tabs per contour</td></tr>
+<tr><td><strong>placement</strong></td><td><em>around</em>: spread evenly along the contour; <em>along X</em>: on its bottom and top edges; <em>along Y</em>: on its left and right edges (<a href="#tabs-along-x-or-y">below</a>)</td></tr>
 <tr><td><strong>width</strong></td><td>the bridge left on the part, along its edge (the flat top for sloped tabs)</td></tr>
 <tr><td><strong>height</strong></td><td>the bridge’s thickness, up from the bottom of the cut</td></tr>
 <tr><td><strong>flank angle</strong></td><td>90° for straight tabs (the tool goes straight up and down); less for sloped ones. A ramped profile gets 30° by default and follows the slope, which is gentler on the tool.</td></tr>
@@ -232,10 +236,30 @@ loose on the last pass.</p>
 </table>
 </div>
 <ul>
-<li><strong>Placement:</strong> tabs slide off corners to straight stretches, by up to a quarter of their
+<li><strong>Around:</strong> tabs slide off corners to straight stretches, by up to a quarter of their
 spacing.</li>
 <li><strong>Spacing:</strong> they keep a tool diameter from each other and from the start of the contour.</li>
 <li><strong>Shown</strong> highlighted on the canvas.</li>
+</ul>
+<h3 id="tabs-along-x-or-y"><a class="header" href="#tabs-along-x-or-y">Tabs along X or Y</a></h3>
+<p>To line the tabs up with the wood’s grain, choose <strong>placement</strong> <em>along X</em> or <em>along Y</em>.
+<em>Along X</em> puts them on each contour’s bottom and top edges, the edges that run in X: half
+of <strong>count</strong> on each (an odd one more at the bottom), evenly across the contour’s width,
+so 4 tabs on a rectangle sit at a quarter and three quarters across, two on each edge.
+<em>Along Y</em> does the same on the left and right edges. On a round part they go near its
+lowest and highest (or leftmost and rightmost) points.</p>
+<ul>
+<li><strong>Which one:</strong> with the grain along the tabs’ edges, a tab’s fibres run across its bridge
+and it cuts loose easily with a knife or chisel; with the grain across them, the fibres
+run along the bridge and it holds stronger. X and Y name the edges, so either works.</li>
+<li>A tab that would cover the contour’s start moves along it, just clear. Tabs that don’t fit
+(too close together on a small part) stop generating with the reason: fewer tabs, or
+<em>around</em>.</li>
+<li>Holes cut through with tabs get the same rule on their own edges.</li>
+<li>A contour with tabs you placed by hand keeps them (below). The setup sheet says where the
+tabs are. In the file it is <code>tabs.along</code>, <code>"x"</code> or <code>"y"</code> (left out for <em>around</em>);
+on the command line <code>chipload op tabs part.chipload --op 2 --along x</code> (<code>--around</code> to go
+back), and a <a href="../library/styles.html">style</a> keeps it.</li>
 </ul>
 <h3 id="tabs-placed-by-hand"><a class="header" href="#tabs-placed-by-hand">Tabs placed by hand</a></h3>
 <p>You can put a contour’s tabs where you want them instead. Select the profile after
@@ -246,10 +270,11 @@ filled where you placed it.</p>
 it can’t be (on the contour’s start, or too close to another tab) goes back where it
 was, and the status bar says why; drag it somewhere else. The same goes for a start
 point dropped onto a tab.</li>
-<li><strong>Right-click a tab</strong> to remove it, or to space that contour’s tabs evenly again.</li>
+<li><strong>Right-click a tab</strong> to remove it, or to place that contour’s tabs again as the
+<strong>placement</strong> says.</li>
 <li><strong>Right-click the contour’s toolpath</strong> for <em>Add a tab here</em>.</li>
-<li>Under <strong>Tabs</strong> in Properties, <em>5 tabs placed by hand</em> counts them, and <em>Reset</em> spaces every
-contour’s tabs evenly again. Each change is one undo step.</li>
+<li>Under <strong>Tabs</strong> in Properties, <em>5 tabs placed by hand</em> counts them, and <em>Reset</em> places every
+contour’s tabs again as the <strong>placement</strong> says. Each change is one undo step.</li>
 </ul>
 <p>On the command line, list them and add or remove one at a point on (or near) the contour:</p>
 <pre><code>chipload op tabs part.chipload --op 2
@@ -257,7 +282,7 @@ ring 1  (146.551, 132.176)  spaced
 …
 chipload op tab part.chipload --op 2 --at 162,91            # add one
 chipload op tab part.chipload --op 2 --at 146.5,132 --remove
-chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour spaced evenly again
+chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour placed again
 chipload op tab part.chipload --op 2 --reset                # every contour
 </code></pre>
 <ul>

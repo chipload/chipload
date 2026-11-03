@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.32.0 user guide</title>
+        <title>Command line - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "../searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-58b32aa4.js"></script>
+        <script src="../toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -362,6 +362,29 @@
 </div>
 <h2 id="chipload-op"><a class="header" href="#chipload-op"><code>chipload op</code></a></h2>
 <p>Change an operation of a project</p>
+<h3 id="chipload-op-add"><a class="header" href="#chipload-op-add"><code>chipload op add</code></a></h3>
+<p>Add an operation for shapes of the drawing, with the defaults the app gives (docs/specs/styles.md §2): a profile of outlines goes outside and through with tabs, of holes inside and through; of both, two profiles, the holes first. Feeds and step downs come from the tool’s cutting data. Added at the end of the active part</p>
+<pre><code class="language-text">chipload op add &lt;PROJECT&gt; &lt;KIND&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
+<tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
+<tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
+<tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project; default: the one the app would take.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>End depth instead of the default (not with –through)</td></tr>
+<tr><td><code>--through</code></td><td>Cut through the stock, below it by the setup’s max overcut.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-op-tool"><a class="header" href="#chipload-op-tool"><code>chipload op tool</code></a></h3>
 <p>Set the tool an operation cuts with (docs/specs/tool-per-operation.md §7). The tool must be in the project: copy one in from your library with <code>tool use</code></p>
 <pre><code class="language-text">chipload op tool &lt;PROJECT&gt; [OPTIONS]
@@ -540,7 +563,7 @@
 </table>
 </div>
 <h3 id="chipload-op-tabs"><a class="header" href="#chipload-op-tabs"><code>chipload op tabs</code></a></h3>
-<p>List a profile’s tabs: each contour’s, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned</p>
+<p>List a profile’s tabs: each contour’s, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned. With –along or –around, first choose where contours without tabs placed by hand get theirs (docs/specs/tabs-along-grain.md)</p>
 <pre><code class="language-text">chipload op tabs &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -551,6 +574,9 @@
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--along &lt;ALONG&gt;</code></td><td>On the edges along this axis: x (bottom and top) or y (left and right), half on each. One of: <code>x</code>, <code>y</code>.</td></tr>
+<tr><td><code>--around</code></td><td>Evenly round each contour (as without –along)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
@@ -568,8 +594,8 @@
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>--at &lt;AT&gt;</code></td><td>The point, X,Y in drawing coordinates (a plain number is mm): on or near the contour, within a tool diameter.</td></tr>
 <tr><td><code>--remove</code></td><td>Remove the tab nearest to –at.</td></tr>
-<tr><td><code>--even</code></td><td>Space the tabs of the contour nearest to –at evenly again.</td></tr>
-<tr><td><code>--reset</code></td><td>Space every contour’s tabs evenly again.</td></tr>
+<tr><td><code>--even</code></td><td>Place the tabs of the contour nearest to –at again, as the operation places them (evenly, or along an axis: <code>op tabs --along</code>)</td></tr>
+<tr><td><code>--reset</code></td><td>Place every contour’s tabs again, as the operation places them.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -1891,6 +1917,21 @@
 </tbody>
 </table>
 </div>
+<h3 id="chipload-material-thickness"><a class="header" href="#chipload-material-thickness"><code>chipload material thickness</code></a></h3>
+<p>The stock thickness new projects start with (–none: 10 mm)</p>
+<pre><code class="language-text">chipload material thickness &lt;THICKNESS&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;THICKNESS&gt;</code></td><td>The thickness (a plain number is mm); omit with –none.</td></tr>
+<tr><td><code>--none</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-material-remove"><a class="header" href="#chipload-material-remove"><code>chipload material remove</code></a></h3>
 <p>Remove a material, and every tool’s row for it</p>
 <pre><code class="language-text">chipload material remove &lt;NAME&gt;
@@ -1966,6 +2007,138 @@
 <tbody>
 <tr><td><code>&lt;FILE&gt;</code></td><td></td></tr>
 <tr><td><code>--replace</code></td><td>Overwrite yours where the file has other values under the same name.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="chipload-style"><a class="header" href="#chipload-style"><code>chipload style</code></a></h2>
+<p>Your styles: operations saved by name, used again on shapes in one go (docs/specs/styles.md)</p>
+<h3 id="chipload-style-list"><a class="header" href="#chipload-style-list"><code>chipload style list</code></a></h3>
+<p>List your styles and where the file is</p>
+<pre><code class="language-text">chipload style list
+</code></pre>
+<h3 id="chipload-style-show"><a class="header" href="#chipload-style-show"><code>chipload style show</code></a></h3>
+<p>A style: its kind, tool, depth and settings</p>
+<pre><code class="language-text">chipload style show &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-save"><a class="header" href="#chipload-style-save"><code>chipload style save</code></a></h3>
+<p>Save an operation of a project as a style. Its tools must be in your library; its shapes and its start points, tabs and corners placed by hand are not kept, nor its feeds when its tool has cutting data</p>
+<pre><code class="language-text">chipload style save &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation, 1-based as listed. Required.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>The style’s name. Required.</td></tr>
+<tr><td><code>--replace</code></td><td>Put it in place of the style of that name.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-use"><a class="header" href="#chipload-style-use"><code>chipload style use</code></a></h3>
+<p>Add the style’s operation for shapes of a project, at the end of the active part: a profile style on an outline with its holes gives two, the holes first</p>
+<pre><code class="language-text">chipload style use &lt;PROJECT&gt; &lt;NAME&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;NAME&gt;</code></td><td>The style.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
+<tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
+<tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
+<tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-rename"><a class="header" href="#chipload-style-rename"><code>chipload style rename</code></a></h3>
+<p>Rename a style</p>
+<pre><code class="language-text">chipload style rename &lt;NAME&gt; &lt;NEW&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;NEW&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-set"><a class="header" href="#chipload-style-set"><code>chipload style set</code></a></h3>
+<p>Change a style: values of its operation by path, as <code>chipload set</code> changes a project’s (<code>end_depth=6</code>, <code>tabs.count=6</code>, <code>side=on</code>; <code>style show</code> lists them), and its tool by name from your library, for example after an import whose tool you don’t have. Projects that used the style keep their operations</p>
+<pre><code class="language-text">chipload style set &lt;NAME&gt; &lt;VALUES&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;VALUES&gt;</code></td><td>PATH=VALUE, paths within the style’s operation.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>Another tool of your library, by name.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-remove"><a class="header" href="#chipload-style-remove"><code>chipload style remove</code></a></h3>
+<p>Remove a style</p>
+<pre><code class="language-text">chipload style remove &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-export"><a class="header" href="#chipload-style-export"><code>chipload style export</code></a></h3>
+<p>Write styles to a file: a backup, or for another computer</p>
+<pre><code class="language-text">chipload style export &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FILE&gt;</code></td><td></td></tr>
+<tr><td><code>--name &lt;NAMES&gt;</code></td><td>Only these (repeatable); default: all. Repeatable.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-import"><a class="header" href="#chipload-style-import"><code>chipload style import</code></a></h3>
+<p>Add the styles of an exported file</p>
+<pre><code class="language-text">chipload style import &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FILE&gt;</code></td><td></td></tr>
+<tr><td><code>--replace</code></td><td>Overwrite yours where the file has another style under the same name.</td></tr>
 </tbody>
 </table>
 </div>

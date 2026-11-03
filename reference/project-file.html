@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Project file - Chipload 0.32.0 user guide</title>
+        <title>Project file - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "../searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-58b32aa4.js"></script>
+        <script src="../toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -219,6 +219,9 @@
 <h2 id="autothreshold"><a class="header" href="#autothreshold">AutoThreshold</a></h2>
 <p>The word “auto”.</p>
 <p>One of: <code>"auto"</code>.</p>
+<h2 id="axis"><a class="header" href="#axis">Axis</a></h2>
+<p>An axis of the drawing.</p>
+<p>One of: <code>"x"</code>, <code>"y"</code>.</p>
 <h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
 <p>What a chosen corner gets.</p>
 <p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
@@ -912,6 +915,7 @@
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
+<tr><td><code>along</code></td><td><a href="#axis">Axis</a> or null</td><td>no</td><td>Where a ring without tabs placed by hand gets its <code>count</code> tabs: on its edges along <code>x</code> (bottom and top) or <code>y</code> (left and right), half on each. Left out: evenly round it.</td></tr>
 <tr><td><code>at</code></td><td>list of 2 × number</td><td>no</td><td>Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets exactly those tabs, one without gets <code>count</code>, evenly spaced. Left out when empty.</td></tr>
 <tr><td><code>count</code></td><td>integer</td><td>yes</td><td>Tabs per contour, at least 1.</td></tr>
 <tr><td><code>flank_angle</code></td><td>number</td><td>yes</td><td>The slope of the tab’s sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows.</td></tr>

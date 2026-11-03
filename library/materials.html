@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Materials - Chipload 0.32.0 user guide</title>
+        <title>Materials - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "../searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-58b32aa4.js"></script>
+        <script src="../toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -217,6 +217,9 @@ this material.</p>
 <p><strong>For new projects:</strong> <em>Make default</em> on a material (<code>chipload material default Plywood</code>,
 <code>--none</code> to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.</p>
+<p><strong>The board’s thickness for new projects:</strong> on <em>This computer &gt; Materials</em>, tick <em>New
+projects: stock thickness</em> and type it (<code>chipload material thickness 18</code>, <code>--none</code> for the
+built-in 10 mm). It is kept in <code>materials.json</code> beside the default material.</p>
 <p><strong>Changing an operation’s tool</strong> takes the new tool’s values for its material, when it has
 some.</p>
 <p>Each operation’s material row says where its values stand: <em>From Plywood</em>, <em>Changed from
@@ -234,6 +237,7 @@ chipload tool cutting "6 mm 2-flute" --material Plywood --plunge-feed 500 \
 chipload material list                         # every material with its tools' rows
 chipload material show Plywood
 chipload material default Plywood              # new projects start with it (--none: no default)
+chipload material thickness 18                 # and with stock 18 mm thick (--none: 10 mm)
 chipload material use part.chipload Plywood    # every operation, and those added later (--none: no material)
 chipload material use part.chipload Plywood --op 2   # operation 2 alone
 chipload material save part.chipload --op 2    # operation 2's values into its tool's row (--material NAME)
@@ -256,7 +260,7 @@ file</a>. The rows live in <code>tools.json</code>.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../posts.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../library/styles.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -270,7 +274,7 @@ file</a>. The rows live in <code>tools.json</code>.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../posts.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../library/styles.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

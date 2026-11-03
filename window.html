@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.32.0 user guide</title>
+        <title>The window - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-58b32aa4.js"></script>
+        <script src="toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -203,13 +203,14 @@ guide, keyboard shortcuts, about) and the version.</li>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
 <tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="drawings/signs.html">a frame for a sign</a>), Text, Image, DXF/SVG (add a DXF or SVG)</td><td>Frame… (<a href="drawings/signs.html">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="drawings/shapes.html#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your <a href="library/styles.html">styles</a>, for the selected shapes)</td><td><em>Apply style ▸</em>, Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
 <tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end. When the buttons with their names
+<p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end; Generate is greyed out until the
+project has an operation. When the buttons with their names
 don’t fit, in a longer language or a narrow window, the large buttons show their icons
 alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
 <p>Each group’s caption (<strong>FILE ▾</strong> …) opens its whole menu. This guide writes those menus as
@@ -228,6 +229,8 @@ itself, the <a href="concepts/units.html#mm-or-inches-on-screen">units</a>, the 
 checking for <a href="install.html#new-versions">new versions</a>.</li>
 <li><strong>Tools</strong> and <strong>Machines:</strong> your <a href="library/tools.html">tool library</a> and <a href="library/machines.html">machine
 profiles</a>.</li>
+<li><strong>Materials</strong> and <strong>Styles:</strong> your <a href="library/materials.html">materials</a> and
+<a href="library/styles.html">styles</a>, operations saved by name.</li>
 <li><strong>Post-processors:</strong> the built-in ones and <a href="posts.html#your-own-post">yours</a>; click one
 for what it writes, and <em>Use in this project</em>.</li>
 </ul>
@@ -242,7 +245,7 @@ library</a>.</li>
 <li><strong>Drawing:</strong> what the shapes come from. Each DXF has its layers under it; then come
 each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
 polylines). See <a href="drawings/several.html">Several drawings</a>.</li>
-<li><strong>Setups</strong>, each a board with its <strong>Work zero</strong> and its <strong>parts</strong> under it, each part
+<li><strong>Setups</strong>, each with its <strong>Stock</strong>, its <strong>Work zero</strong> and its <strong>parts</strong> under it, each part
 with its operations, in cutting order. A line marks each tool change. A floor pass is
 cut before its V-carve and a rest pass after its pockets, so the line above them names
 their tools in the order they are cut: <em>tool change → T2 → T1</em>. See
@@ -257,7 +260,7 @@ their tools in the order they are cut: <em>tool change → T2 → T1</em>. See
 <ul>
 <li>A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
 to the selection.</li>
-<li>An operation, a part, a setup, its work zero, a tool, <em>Tools</em>, <em>Machine</em>, a DXF (or one of its layers)
+<li>An operation, a part, a setup, its stock or work zero, a tool, <em>Tools</em>, <em>Machine</em>, a DXF (or one of its layers)
 or a picture shows its settings on the right, in <a href="#properties">Properties</a>.</li>
 </ul>
 </li>
@@ -266,9 +269,10 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 <ul>
 <li><strong>A DXF:</strong> <em>Place…</em> (its properties), <em>Update from a DXF…</em> and <em>Remove</em>.</li>
 <li><strong>A picture:</strong> <em>Trace settings…</em> and <em>Remove</em>.</li>
-<li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>, for a
-pocket <em>Add rest pass ▸</em> (a <a href="operations/rest.html">rest pass</a> shows under it), and
-<em>Delete</em>.</li>
+<li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>,
+<em>Save as style…</em> (a <a href="library/styles.html">style</a>), for a pocket <em>Add rest pass ▸</em> (a
+<a href="operations/rest.html">rest pass</a> shows under it), and <em>Delete</em>.</li>
+<li><strong>A style:</strong> <em>Apply to the selection</em> and <em>Delete</em>.</li>
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
 <li><strong>A project tool:</strong> <em>Delete</em>, greyed while an operation or a rest or floor pass cuts
 with it (its hover says which).</li>
@@ -283,8 +287,8 @@ setup</em>.</li>
 </ul>
 </li>
 <li><strong>Del</strong> deletes what Properties shows: an operation or a rest pass picked in the
-Browser, a text opened there, a project tool nothing cuts with, a library tool or machine
-(as its <em>Delete</em>: the library has no undo, its file keeps a <code>.bak</code>), or else what is selected on the canvas (drawn shapes, or a
+Browser, a text opened there, a project tool nothing cuts with, a library tool, machine
+or style (as its <em>Delete</em>: the library has no undo, its file keeps a <code>.bak</code>), or else what is selected on the canvas (drawn shapes, or a
 text, a picture or a DXF as a whole). Parts and setups take their operations with them,
 so they are deleted only from their right-click menu. <strong>Ctrl+Z</strong> brings anything back.</li>
 <li><strong>The triangle</strong> opens and closes a folder, and so does a click on a plain folder like
@@ -343,6 +347,8 @@ blue frame round the canvas says you are in Simulate.</li>
 filled.</li>
 <li>Starting a drawing or editing tool, or selecting something in the Browser, goes back to
 Edit. F6 or <strong>Edit</strong> does too.</li>
+<li><strong>Each mode keeps its own view:</strong> top or 3D, the toolpath, the drawing and the pictures
+as you left them there. Simulate starts as Edit is, the first time.</li>
 </ul>
 </li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
@@ -373,15 +379,17 @@ operation’s number. Click it to open that operation.</li>
 selects with a box: from left to right it takes what lies wholly inside, from right to left also what
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="drawings/shapes.html#editing">moves it</a>. To pan, drag with the right or middle
-button, or hold Space and drag. In 3D, a left drag orbits. In Simulate a left drag pans
-(in 3D it orbits).</li>
+button, or hold Space and drag (the way on a touchpad; the status bar’s hint starts with
+it). In 3D, a left drag orbits. In Simulate a left drag pans (in 3D it orbits). On a
+touchpad, a two-finger scroll or a pinch zooms.</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
 <h2 id="properties"><a class="header" href="#properties">Properties</a></h2>
 <p>The <strong>Properties</strong> panel on the right shows what is open, under a title:</p>
 <ul>
 <li><strong>Machine:</strong> the machine and its post.</li>
-<li><strong>A setup:</strong> its name, its board (stock and material) and where its work zero is.</li>
+<li><strong>A setup:</strong> its name, whether it is cut (with several) and its parts.</li>
+<li><strong>Stock:</strong> the setup’s board, its thickness, size and margin, and its material.</li>
 <li><strong>Work zero:</strong> the stock’s corners and centre to click, the drawing origin, its position
 and Z zero.</li>
 <li><strong>Preferences:</strong> the settings folder, whether a <a href="checking/sheet.html">setup sheet</a> is
@@ -397,12 +405,15 @@ how it stands to the library tool it came from, <em>Save to library</em> and <em
 the edit, and traces the picture again. <em>Trace settings…</em> opens its
 <a href="drawings/images.html">window</a>.</li>
 <li><strong>A part:</strong> its name, on or off, and its <a href="drawings/copies.html">copies</a>.</li>
-<li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”).</li>
+<li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”): its
+name, shapes, tool and side, then its sections (<em>Cut</em>, <em>Feeds</em>, <em>Holding</em>, …) folded,
+each with what it holds in a few words beside its title. Click a title to open it; it
+stays open. A section with a problem opens by itself.</li>
 </ul>
 <p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
-both. A new project, empty or imported, starts on its setup, with the stock to fill in
-first. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+both. A new project, empty or imported, starts on its setup: its stock’s thickness first,
+ready to type, then its material, then the rest. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <ul>
 <li>what is selected, by contour number;</li>

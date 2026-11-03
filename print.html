@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.32.0 user guide</title>
+        <title>Chipload 0.33.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-58b32aa4.js"></script>
+        <script src="toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -340,7 +340,8 @@ installs anything by itself: download the new version as you did this one.</p>
 says what it found. Change your answer in <em>This computer &gt; Preferences &gt; New versions</em>.
 Behind a proxy, set <code>HTTPS_PROXY</code>.</p>
 <h2 id="your-settings"><a class="header" href="#your-settings">Your settings</a></h2>
-<p>Chipload keeps your tool library, machine profiles, own post-processors (in <code>posts/</code>),
+<p>Chipload keeps your tool library, machine profiles, <a href="#styles">styles</a>
+(<code>styles.json</code>), own post-processors (in <code>posts/</code>),
 fonts for texts that you haven’t installed (in <code>fonts/</code>), app settings and the arrangement
 of the window’s panels (<code>layout.json</code>) in one folder:</p>
 <div class="table-wrapper">
@@ -512,13 +513,14 @@ guide, keyboard shortcuts, about) and the version.</li>
 <tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
 <tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="#signs-and-frames">a frame for a sign</a>), Text, Image, DXF/SVG (add a DXF or SVG)</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock)</td><td>Generate</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your <a href="#styles">styles</a>, for the selected shapes)</td><td><em>Apply style ▸</em>, Generate</td></tr>
 <tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
 <tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme</td></tr>
 </tbody>
 </table>
 </div>
-<p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end. When the buttons with their names
+<p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end; Generate is greyed out until the
+project has an operation. When the buttons with their names
 don’t fit, in a longer language or a narrow window, the large buttons show their icons
 alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
 <p>Each group’s caption (<strong>FILE ▾</strong> …) opens its whole menu. This guide writes those menus as
@@ -537,6 +539,8 @@ itself, the <a href="#mm-or-inches-on-screen">units</a>, the colour theme and
 checking for <a href="#new-versions">new versions</a>.</li>
 <li><strong>Tools</strong> and <strong>Machines:</strong> your <a href="#tool-library">tool library</a> and <a href="#machine-profiles">machine
 profiles</a>.</li>
+<li><strong>Materials</strong> and <strong>Styles:</strong> your <a href="#materials">materials</a> and
+<a href="#styles">styles</a>, operations saved by name.</li>
 <li><strong>Post-processors:</strong> the built-in ones and <a href="#your-own-post">yours</a>; click one
 for what it writes, and <em>Use in this project</em>.</li>
 </ul>
@@ -551,7 +555,7 @@ library</a>.</li>
 <li><strong>Drawing:</strong> what the shapes come from. Each DXF has its layers under it; then come
 each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
 polylines). See <a href="#several-drawings">Several drawings</a>.</li>
-<li><strong>Setups</strong>, each a board with its <strong>Work zero</strong> and its <strong>parts</strong> under it, each part
+<li><strong>Setups</strong>, each with its <strong>Stock</strong>, its <strong>Work zero</strong> and its <strong>parts</strong> under it, each part
 with its operations, in cutting order. A line marks each tool change. A floor pass is
 cut before its V-carve and a rest pass after its pockets, so the line above them names
 their tools in the order they are cut: <em>tool change → T2 → T1</em>. See
@@ -566,7 +570,7 @@ their tools in the order they are cut: <em>tool change → T2 → T1</em>. See
 <ul>
 <li>A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
 to the selection.</li>
-<li>An operation, a part, a setup, its work zero, a tool, <em>Tools</em>, <em>Machine</em>, a DXF (or one of its layers)
+<li>An operation, a part, a setup, its stock or work zero, a tool, <em>Tools</em>, <em>Machine</em>, a DXF (or one of its layers)
 or a picture shows its settings on the right, in <a href="#properties">Properties</a>.</li>
 </ul>
 </li>
@@ -575,9 +579,10 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 <ul>
 <li><strong>A DXF:</strong> <em>Place…</em> (its properties), <em>Update from a DXF…</em> and <em>Remove</em>.</li>
 <li><strong>A picture:</strong> <em>Trace settings…</em> and <em>Remove</em>.</li>
-<li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>, for a
-pocket <em>Add rest pass ▸</em> (a <a href="#rest-machining-1">rest pass</a> shows under it), and
-<em>Delete</em>.</li>
+<li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>,
+<em>Save as style…</em> (a <a href="#styles">style</a>), for a pocket <em>Add rest pass ▸</em> (a
+<a href="#rest-machining-1">rest pass</a> shows under it), and <em>Delete</em>.</li>
+<li><strong>A style:</strong> <em>Apply to the selection</em> and <em>Delete</em>.</li>
 <li><strong>A rest pass:</strong> <em>Remove</em>.</li>
 <li><strong>A project tool:</strong> <em>Delete</em>, greyed while an operation or a rest or floor pass cuts
 with it (its hover says which).</li>
@@ -592,8 +597,8 @@ setup</em>.</li>
 </ul>
 </li>
 <li><strong>Del</strong> deletes what Properties shows: an operation or a rest pass picked in the
-Browser, a text opened there, a project tool nothing cuts with, a library tool or machine
-(as its <em>Delete</em>: the library has no undo, its file keeps a <code>.bak</code>), or else what is selected on the canvas (drawn shapes, or a
+Browser, a text opened there, a project tool nothing cuts with, a library tool, machine
+or style (as its <em>Delete</em>: the library has no undo, its file keeps a <code>.bak</code>), or else what is selected on the canvas (drawn shapes, or a
 text, a picture or a DXF as a whole). Parts and setups take their operations with them,
 so they are deleted only from their right-click menu. <strong>Ctrl+Z</strong> brings anything back.</li>
 <li><strong>The triangle</strong> opens and closes a folder, and so does a click on a plain folder like
@@ -652,6 +657,8 @@ blue frame round the canvas says you are in Simulate.</li>
 filled.</li>
 <li>Starting a drawing or editing tool, or selecting something in the Browser, goes back to
 Edit. F6 or <strong>Edit</strong> does too.</li>
+<li><strong>Each mode keeps its own view:</strong> top or 3D, the toolpath, the drawing and the pictures
+as you left them there. Simulate starts as Edit is, the first time.</li>
 </ul>
 </li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
@@ -682,15 +689,17 @@ operation’s number. Click it to open that operation.</li>
 selects with a box: from left to right it takes what lies wholly inside, from right to left also what
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="#editing">moves it</a>. To pan, drag with the right or middle
-button, or hold Space and drag. In 3D, a left drag orbits. In Simulate a left drag pans
-(in 3D it orbits).</li>
+button, or hold Space and drag (the way on a touchpad; the status bar’s hint starts with
+it). In 3D, a left drag orbits. In Simulate a left drag pans (in 3D it orbits). On a
+touchpad, a two-finger scroll or a pinch zooms.</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
 <h2 id="properties"><a class="header" href="#properties">Properties</a></h2>
 <p>The <strong>Properties</strong> panel on the right shows what is open, under a title:</p>
 <ul>
 <li><strong>Machine:</strong> the machine and its post.</li>
-<li><strong>A setup:</strong> its name, its board (stock and material) and where its work zero is.</li>
+<li><strong>A setup:</strong> its name, whether it is cut (with several) and its parts.</li>
+<li><strong>Stock:</strong> the setup’s board, its thickness, size and margin, and its material.</li>
 <li><strong>Work zero:</strong> the stock’s corners and centre to click, the drawing origin, its position
 and Z zero.</li>
 <li><strong>Preferences:</strong> the settings folder, whether a <a href="#setup-sheet">setup sheet</a> is
@@ -706,12 +715,15 @@ how it stands to the library tool it came from, <em>Save to library</em> and <em
 the edit, and traces the picture again. <em>Trace settings…</em> opens its
 <a href="#images">window</a>.</li>
 <li><strong>A part:</strong> its name, on or off, and its <a href="#copies">copies</a>.</li>
-<li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”).</li>
+<li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”): its
+name, shapes, tool and side, then its sections (<em>Cut</em>, <em>Feeds</em>, <em>Holding</em>, …) folded,
+each with what it holds in a few words beside its title. Click a title to open it; it
+stays open. A section with a problem opens by itself.</li>
 </ul>
 <p><strong>Properties shows one thing at a time:</strong> the item you clicked in the Browser (Machine,
 an operation, a tool, a part, a DXF or picture), or what you picked on the canvas, never
-both. A new project, empty or imported, starts on its setup, with the stock to fill in
-first. Picking on the canvas (a click, a box, a layer from the right-click menu or the
+both. A new project, empty or imported, starts on its setup: its stock’s thickness first,
+ready to type, then its material, then the rest. Picking on the canvas (a click, a box, a layer from the right-click menu or the
 Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <ul>
 <li>what is selected, by contour number;</li>
@@ -803,11 +815,15 @@ G-code’s units are a separate setting of the machine (above): you can show
 inches and send mm G-code, or the other way round.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stock-and-work-zero"><a class="header" href="#stock-and-work-zero">Stock and work zero</a></h1>
-<p>The board is its <a href="#setups">setup</a>’s: click the setup in the Browser for its properties.
-They have two sections, <strong>Stock</strong> (the board) and <strong>Material</strong> (the feeds new operations
-take), and above them a line that says where the zero is, e.g. “Work zero: X0 Y0 stock bottom
-left · Z0 stock top”; click it to set the zero. The machine, shared by every setup, is under
-<strong>Machine</strong>.</p>
+<p>The board is its <a href="#setups">setup</a>’s. Under each setup in the Browser are two items:</p>
+<ul>
+<li><strong>Stock</strong>, with its thickness and material beside it (“18 mm · Plywood”): click it for
+two sections, <strong>Stock</strong> (the board) and <strong>Material</strong> (the feeds new operations take). A
+click on the board’s edge in the top view opens it too. A new project opens here, with
+the cursor in the thickness.</li>
+<li><strong>Work zero</strong>, with where it is beside it (“stock bottom left”): click it to set the zero.</li>
+</ul>
+<p>The machine, shared by every setup, is under <strong>Machine</strong>.</p>
 <h2 id="stock"><a class="header" href="#stock">Stock</a></h2>
 <div class="table-wrapper">
 <table>
@@ -901,9 +917,9 @@ file names its setup first: <code>part-S1.nc</code>, <code>part-S2-1-T1.nc</code
 them (<code>part-S2-sheet.html</code>). <code>run</code> writes every setup that is on; <code>--setup N</code> only one.
 <code>plan</code>, <code>sheet</code> and <code>simulate</code> work on the active setup, or the one <code>--setup N</code> names.</p>
 <h2 id="in-the-window"><a class="header" href="#in-the-window">In the window</a></h2>
-<p>The Browser shows <strong>Setups</strong>, always, each with its <strong>Work zero</strong> and its parts beneath it.
-Click a setup for its properties: its name, its board (Stock and Material) and where its zero
-is. Right-click <em>Setups</em> or a setup for <strong>Add a setup</strong>, another board: it starts like the
+<p>The Browser shows <strong>Setups</strong>, always, each with its <strong>Stock</strong>, its <strong>Work zero</strong> and its
+parts beneath it. Click a setup for its name, whether it is cut and its parts; its board and
+zero are the two items beneath it. Right-click <em>Setups</em> or a setup for <strong>Add a setup</strong>, another board: it starts like the
 active one, with a part of its own, and both become active. Right-click a setup for <strong>New
 part</strong> in it.</p>
 <p>With two or more, the setup you click is the <strong>active setup</strong>: it is shown in full colour,
@@ -941,7 +957,8 @@ last pass is exactly at the end depth. Start 2, end 6, step down 2 gives passes 
 <li><strong>Cutting through:</strong> an end depth below the stock bottom goes into the spoilboard. That’s
 allowed up to <em>Max depth below stock</em> (the setup’s Stock), with a warning; deeper is refused,
 so a typo can’t reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
-0.3 mm into the spoilboard.</li>
+0.3 mm into the spoilboard. An operation with <strong>Through</strong> ticked goes there on purpose:
+the Report gives it as a plain note (“cuts through, 0.300 mm into the spoilboard”).</li>
 <li><strong>Through:</strong> tick <strong>Through</strong> next to the end depth of a profile, pocket, follow path or
 holes, and the end depth is the stock thickness plus <strong>Below stock</strong>, which starts at
 <em>Max depth below stock</em>. It follows the thickness: make the board 18 mm and the cut ends
@@ -951,6 +968,39 @@ unticks it.</li>
 <li><strong>Going down:</strong> from safe Z the tool rapids to 1 mm above the stock top, then goes down
 at the plunge feed. The air between the stock top and the start depth is crossed at the
 plunge feed too: Chipload doesn’t know whether another operation already cleared it.</li>
+</ul>
+<h2 id="what-a-new-operation-starts-with"><a class="header" href="#what-a-new-operation-starts-with">What a new operation starts with</a></h2>
+<p>A new operation is set up from what you selected, so the usual job needs few edits:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>New</th><th>Starts</th></tr>
+</thead>
+<tbody>
+<tr><td>Profile of outlines</td><td>outside, <strong>through</strong>, with tabs (4 per contour, 8 mm wide, 3 mm high, at most half the stock’s thickness)</td></tr>
+<tr><td>Profile of holes</td><td>inside, <strong>through</strong>, no tabs</td></tr>
+<tr><td>Profile of an outline with its holes</td><td><strong>two profiles</strong>: <em>Profile 1 (holes)</em> inside first, then <em>Profile 2 (outline)</em> outside with tabs, both through, so the holes are cut while the part is still held</td></tr>
+<tr><td>Pocket, V-carve, follow path</td><td>the end depth (or <em>Through</em>) of the last one of its kind in the project, else 1 mm</td></tr>
+<tr><td>Holes</td><td>through</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><strong>Two profiles</strong> select their shapes one by one, also when you picked a layer or a whole
+DXF: shapes added to it later (by <a href="#updating-from-a-new-dxf">updating the DXF</a>) aren’t cut by
+them, and the Report says so.</li>
+<li><strong>Feeds, step downs and stepover</strong> come from the tool’s <a href="#cutting-data">cutting
+data</a> for the setup’s material. A tool without cutting
+data takes them from the nearest operation above with the same tool, else from its
+diameter.</li>
+<li><strong>Going down:</strong> a pocket helixes and a follow path ramps in unless the tool is marked
+centre-cutting (see <a href="#tools-and-tool-changes">Tools</a>).</li>
+<li><strong>When the selection doesn’t tell</strong> (nothing selected yet, or a traced picture’s or a
+text’s outlines and holes together), a profile is 1 mm deep with its side to choose.</li>
+<li><strong>On the command line:</strong> <code>chipload op add part.chipload profile --dxf 1</code> (also
+<code>--layer</code>, <code>--shapes</code>, <code>--group</code>; kinds <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>)
+makes the same operations and says what it added; <code>--depth</code>, <code>--through</code> and <code>--tool</code>
+change the defaults.</li>
 </ul>
 <h2 id="oversize"><a class="header" href="#oversize">Oversize</a></h2>
 <p><strong>Oversize</strong> is how much more than drawn is cut, in mm: the cut moves into the material
@@ -1024,7 +1074,7 @@ which is the tool number in the G-code, and:</p>
 <tr><td><strong>Type</strong></td><td>endmill, drill or V-bit</td></tr>
 <tr><td><strong>Diameter</strong></td><td>mm</td></tr>
 <tr><td><strong>Spindle speed</strong></td><td>rpm. Required: a program can’t start the spindle without it.</td></tr>
-<tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill; when it can’t plunge, pockets go down round a helix and sloped tabs may be no steeper than the ramp angle.</td></tr>
+<tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill. New pockets go down round a helix and new follow paths ramp unless it is marked centre-cutting; when it can’t plunge, sloped tabs may be no steeper than the ramp angle.</td></tr>
 <tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter</td></tr>
 </tbody>
 </table>
@@ -1113,7 +1163,8 @@ against the part’s outline leaves both whole.</li>
 </ul>
 </li>
 <li><strong>Outer and hole:</strong> each closed contour is an <em>outer</em> (outline) or a <em>hole</em> (inside
-another), which sets the default side of a new profile.</li>
+another), which sets the side of a new profile (and an outline with its holes gets two
+profiles).</li>
 <li><strong>The project keeps the geometry itself.</strong> The DXF isn’t needed afterwards, unless the
 drawing changes (<a href="#updating-from-a-new-dxf">Updating from a new DXF</a>).</li>
 </ul>
@@ -2308,6 +2359,9 @@ for a new one. Drag an operation onto a part to move it there.</p>
 </ul>
 <p>Select the contours, then <strong>Profile</strong> (ribbon, OPERATION). See <a href="#side-and-direction">Side and direction</a>
 and <a href="#depths-and-oversize">Depths and oversize</a> for what every profile shares.</p>
+<p>A new profile of outlines goes outside and through with tabs, of holes inside and through;
+an outline selected with its holes gives two profiles, the holes first (<a href="#what-a-new-operation-starts-with">What a new
+operation starts with</a>).</p>
 <p>Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use <a href="#follow-path">Follow path</a>.</p>
 <h2 id="the-spiral-ramp"><a class="header" href="#the-spiral-ramp">The spiral ramp</a></h2>
@@ -2346,7 +2400,8 @@ loose on the last pass.</p>
 <tr><th>Setting</th><th></th></tr>
 </thead>
 <tbody>
-<tr><td><strong>count</strong></td><td>tabs per contour, spread evenly along it</td></tr>
+<tr><td><strong>count</strong></td><td>tabs per contour</td></tr>
+<tr><td><strong>placement</strong></td><td><em>around</em>: spread evenly along the contour; <em>along X</em>: on its bottom and top edges; <em>along Y</em>: on its left and right edges (<a href="#tabs-along-x-or-y">below</a>)</td></tr>
 <tr><td><strong>width</strong></td><td>the bridge left on the part, along its edge (the flat top for sloped tabs)</td></tr>
 <tr><td><strong>height</strong></td><td>the bridge’s thickness, up from the bottom of the cut</td></tr>
 <tr><td><strong>flank angle</strong></td><td>90° for straight tabs (the tool goes straight up and down); less for sloped ones. A ramped profile gets 30° by default and follows the slope, which is gentler on the tool.</td></tr>
@@ -2354,10 +2409,30 @@ loose on the last pass.</p>
 </table>
 </div>
 <ul>
-<li><strong>Placement:</strong> tabs slide off corners to straight stretches, by up to a quarter of their
+<li><strong>Around:</strong> tabs slide off corners to straight stretches, by up to a quarter of their
 spacing.</li>
 <li><strong>Spacing:</strong> they keep a tool diameter from each other and from the start of the contour.</li>
 <li><strong>Shown</strong> highlighted on the canvas.</li>
+</ul>
+<h3 id="tabs-along-x-or-y"><a class="header" href="#tabs-along-x-or-y">Tabs along X or Y</a></h3>
+<p>To line the tabs up with the wood’s grain, choose <strong>placement</strong> <em>along X</em> or <em>along Y</em>.
+<em>Along X</em> puts them on each contour’s bottom and top edges, the edges that run in X: half
+of <strong>count</strong> on each (an odd one more at the bottom), evenly across the contour’s width,
+so 4 tabs on a rectangle sit at a quarter and three quarters across, two on each edge.
+<em>Along Y</em> does the same on the left and right edges. On a round part they go near its
+lowest and highest (or leftmost and rightmost) points.</p>
+<ul>
+<li><strong>Which one:</strong> with the grain along the tabs’ edges, a tab’s fibres run across its bridge
+and it cuts loose easily with a knife or chisel; with the grain across them, the fibres
+run along the bridge and it holds stronger. X and Y name the edges, so either works.</li>
+<li>A tab that would cover the contour’s start moves along it, just clear. Tabs that don’t fit
+(too close together on a small part) stop generating with the reason: fewer tabs, or
+<em>around</em>.</li>
+<li>Holes cut through with tabs get the same rule on their own edges.</li>
+<li>A contour with tabs you placed by hand keeps them (below). The setup sheet says where the
+tabs are. In the file it is <code>tabs.along</code>, <code>"x"</code> or <code>"y"</code> (left out for <em>around</em>);
+on the command line <code>chipload op tabs part.chipload --op 2 --along x</code> (<code>--around</code> to go
+back), and a <a href="#styles">style</a> keeps it.</li>
 </ul>
 <h3 id="tabs-placed-by-hand"><a class="header" href="#tabs-placed-by-hand">Tabs placed by hand</a></h3>
 <p>You can put a contour’s tabs where you want them instead. Select the profile after
@@ -2368,10 +2443,11 @@ filled where you placed it.</p>
 it can’t be (on the contour’s start, or too close to another tab) goes back where it
 was, and the status bar says why; drag it somewhere else. The same goes for a start
 point dropped onto a tab.</li>
-<li><strong>Right-click a tab</strong> to remove it, or to space that contour’s tabs evenly again.</li>
+<li><strong>Right-click a tab</strong> to remove it, or to place that contour’s tabs again as the
+<strong>placement</strong> says.</li>
 <li><strong>Right-click the contour’s toolpath</strong> for <em>Add a tab here</em>.</li>
-<li>Under <strong>Tabs</strong> in Properties, <em>5 tabs placed by hand</em> counts them, and <em>Reset</em> spaces every
-contour’s tabs evenly again. Each change is one undo step.</li>
+<li>Under <strong>Tabs</strong> in Properties, <em>5 tabs placed by hand</em> counts them, and <em>Reset</em> places every
+contour’s tabs again as the <strong>placement</strong> says. Each change is one undo step.</li>
 </ul>
 <p>On the command line, list them and add or remove one at a point on (or near) the contour:</p>
 <pre><code>chipload op tabs part.chipload --op 2
@@ -2379,7 +2455,7 @@ ring 1  (146.551, 132.176)  spaced
 …
 chipload op tab part.chipload --op 2 --at 162,91            # add one
 chipload op tab part.chipload --op 2 --at 146.5,132 --remove
-chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour spaced evenly again
+chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour placed again
 chipload op tab part.chipload --op 2 --reset                # every contour
 </code></pre>
 <ul>
@@ -2568,7 +2644,9 @@ pass</a> with a smaller tool can clear it.</li>
 <li>The radius is a quarter of the tool diameter by default, and must be less than the
 tool radius. Where there’s no room, it shrinks.</li>
 <li>With no room for even a tenth of the tool’s diameter, the pocket ramps in, with a note.</li>
-<li>New pockets use a helix when the tool is marked not centre-cutting.</li>
+<li>New pockets use a helix unless the tool is marked centre-cutting.</li>
+<li>When the pocket’s tool changes to a smaller one, a helix too wide for it becomes a
+quarter of its diameter.</li>
 </ul>
 </li>
 </ul>
@@ -2909,7 +2987,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <p><strong>Holes</strong> cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
 note), then <strong>Holes</strong> (ribbon, OPERATION). It takes a drill of the project that fits the
-circles, if there is one. Circles drawn in Chipload count, and so do imported circles,
+circles, if there is one, and goes <a href="#start-and-end-depth">through</a>. Circles drawn in Chipload count, and so do imported circles,
 including ones drawn as two half arcs.</p>
 <p>The tool decides how:</p>
 <div class="table-wrapper">
@@ -3141,8 +3219,8 @@ pocket both (its full-width rings go down in slot steps, see <a href="#rings">Po
 a surface the clearing ones. Choosing a material for a whole setup also sets the project
 tool’s speed from the row. When an operation’s own material is for another speed than the
 tool runs at, its <em>Material</em> row says so.</p>
-<p>Without cutting data, a new operation copies the operation above it, or starts from the
-tool’s diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
+<p>Without cutting data, a new operation copies the nearest operation above it with the same
+tool, or starts from the tool’s diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
 1 mm step down. Check the <a href="#chip-load">chip load</a> before cutting.</p>
 <p>Libraries from before Chipload 0.32 had one set of values per tool, and the values per tool
 in each material. The first time 0.32 reads such a library, they become rows: slot and
@@ -3274,6 +3352,9 @@ this material.</p>
 <p><strong>For new projects:</strong> <em>Make default</em> on a material (<code>chipload material default Plywood</code>,
 <code>--none</code> to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.</p>
+<p><strong>The board’s thickness for new projects:</strong> on <em>This computer &gt; Materials</em>, tick <em>New
+projects: stock thickness</em> and type it (<code>chipload material thickness 18</code>, <code>--none</code> for the
+built-in 10 mm). It is kept in <code>materials.json</code> beside the default material.</p>
 <p><strong>Changing an operation’s tool</strong> takes the new tool’s values for its material, when it has
 some.</p>
 <p>Each operation’s material row says where its values stand: <em>From Plywood</em>, <em>Changed from
@@ -3291,6 +3372,7 @@ chipload tool cutting "6 mm 2-flute" --material Plywood --plunge-feed 500 \
 chipload material list                         # every material with its tools' rows
 chipload material show Plywood
 chipload material default Plywood              # new projects start with it (--none: no default)
+chipload material thickness 18                 # and with stock 18 mm thick (--none: 10 mm)
 chipload material use part.chipload Plywood    # every operation, and those added later (--none: no material)
 chipload material use part.chipload Plywood --op 2   # operation 2 alone
 chipload material save part.chipload --op 2    # operation 2's values into its tool's row (--material NAME)
@@ -3304,6 +3386,91 @@ tool too.</p>
 <p>Removing a material removes every tool’s row for it. Materials, names only, live in
 <code>materials.json</code> in the settings folder, beside the tool library; see the <a href="#materials-file">Materials
 file</a>. The rows live in <code>tools.json</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="styles"><a class="header" href="#styles">Styles</a></h1>
+<p>A <strong>style</strong> is one of your operations saved by name, to use again on other shapes in one
+go: “Cut out 18 mm ply”, “Pocket 6 mm”, “Drill 5 mm”. CamBam users know these as machining
+styles.</p>
+<p>A style keeps the operation’s settings: side, direction, depths (a number, or
+<a href="#start-and-end-depth"><em>Through</em></a>, which follows the next project’s
+stock), tabs, finishing pass, onion skin, corners, entry, hole method, V-carve passes, rest
+and floor passes, and the <a href="#tool-library">library tool</a> it cuts with. It doesn’t keep the shapes,
+start points, tabs or corners placed by hand, or the operation’s name and part.</p>
+<p><strong>Feeds come from the tool.</strong> A style keeps no feeds or step downs of its own: when it is
+used, they come from its tool’s <a href="#cutting-data">cutting data</a> for the setup’s
+material, so one style works in every material your tool has values for, and a better feed
+saved in the tool reaches every style that uses it. Only a tool without cutting data cuts
+with the feeds the operation had when it was saved.</p>
+<h2 id="saving-a-style"><a class="header" href="#saving-a-style">Saving a style</a></h2>
+<p>Set an operation up as you want it, in any project, then save it under a name: right-click
+it in the Browser, or the button under its properties, <strong>Save as style…</strong>, and give the
+name (a name you already have replaces that style). On the command line:</p>
+<pre><code>chipload style save part.chipload --op 3 --name "Cut out 18 mm ply"
+chipload style save part.chipload --op 3 --name "Cut out 18 mm ply" --replace   # in place of the old one
+</code></pre>
+<ul>
+<li><strong>Its tools must be in your library:</strong> the operation’s, and its rest or floor passes’.
+A project tool that isn’t is refused with “tool 2 isn’t in your library: save it to the
+library first”.</li>
+<li><strong>A profile’s side</strong> is kept as “by the selection”: the style cuts outlines outside and
+holes inside, as a <a href="#what-a-new-operation-starts-with">new profile</a>
+does. A profile <em>on</em> the line keeps that.</li>
+<li><strong>To change a style,</strong> open it under <em>This computer &gt; Styles</em> (see below), or save an
+operation again under its name.</li>
+</ul>
+<h2 id="using-a-style"><a class="header" href="#using-a-style">Using a style</a></h2>
+<p>Select the shapes on the canvas, then one of:</p>
+<ul>
+<li><strong>Style</strong> at the end of the ribbon’s OPERATION group: its menu lists your styles;</li>
+<li>right-click the canvas, <strong>Apply style ▸</strong>;</li>
+<li>right-click the style under <em>This computer &gt; Styles</em>, or open it there: <strong>Apply to the
+selection</strong>.</li>
+</ul>
+<p>On the command line:</p>
+<pre><code>chipload style use part.chipload "Cut out 18 mm ply" --dxf 1       # also --layer, --shapes, --group
+</code></pre>
+<ul>
+<li><strong>The operations</strong> go at the end of the active part, as a new operation of the kind would,
+with the style’s settings: a profile style on an outline with its holes gives two, <em>Cut
+out 18 mm ply (holes)</em> inside first, then <em>(outline)</em> outside with the style’s tabs; the
+holes get no tabs.</li>
+<li><strong>The tool:</strong> the project’s copy of the style’s library tool, or, when the project has
+none, the library tool copied in (the command says so).</li>
+<li><strong>The name</strong> is the style’s, numbered when the project already has it (“Pocket 6 mm 2”).</li>
+<li>Nothing in the project remembers the style afterwards: changing the style later doesn’t
+change operations made from it.</li>
+</ul>
+<h2 id="managing-styles"><a class="header" href="#managing-styles">Managing styles</a></h2>
+<p><strong>This computer &gt; Styles</strong> in the Browser lists them; hover over one for what it does.
+Click one for its properties: its name (<strong>Rename</strong>), <strong>Apply to the selection</strong>,
+<strong>Delete</strong> (also the Del key; the library has no undo, <code>styles.json.bak</code> keeps the file as
+it was), and below them the style’s operation in the same form an operation has: its
+tool from your library, a profile’s side (<em>by the selection</em> or <em>on</em> the line) and its
+sections, folded. Change what you want, then <strong>Save</strong> (or <strong>Revert</strong>); until then it says
+<em>not saved</em>, and <em>Apply</em> waits. Changing a style changes only the style: operations
+already made with it stay as they are. Its feeds are used only where the tool has no
+cutting data for the project’s material.</p>
+<p>On the command line:</p>
+<pre><code>chipload style list                       # every style in a few words, and where the file is
+chipload style show "Pocket 6 mm"         # one style, every value by path (--json: all of it)
+chipload style set "Cut out 18 mm ply" tabs.count=6 end_depth=18.5   # values by path, as `chipload set`
+chipload style rename "Pocket 6 mm" "Pocket 6 mm MDF"
+chipload style remove "Pocket 6 mm MDF"
+chipload style export styles-backup.json  # --name NAME (repeatable) for some
+chipload style import styles-backup.json  # --replace overwrites styles of the same name
+chipload style set "Cut out 18 mm ply" --tool "6 mm 3F"   # another tool of your library
+</code></pre>
+<ul>
+<li><strong>From another computer:</strong> a style whose tool isn’t in your library is imported with a
+note, and lists as <em>not in your library</em>. A project that already has a copy of that tool
+can use it; another is refused until you give the style a tool with <code>style set … --tool</code>.</li>
+</ul>
+<h2 id="the-file-1"><a class="header" href="#the-file-1">The file</a></h2>
+<p>Styles are kept in <code>styles.json</code> in the <a href="#your-settings">settings folder</a>, beside
+<code>tools.json</code>. Each style’s operation is stored as a project stores it, with the version of
+the project format it was written in: when a later Chipload changes operations, the styles
+are carried over by the same steps as projects, the old file kept as <code>styles.json.bak</code>. A
+style that can’t be carried over is named and left out; the others load.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="post-processors"><a class="header" href="#post-processors">Post-processors</a></h1>
 <p>A post-processor turns Chipload’s toolpath into the G-code dialect your controller reads.
@@ -4029,6 +4196,29 @@ reaches the assistant only once you save.</li>
 </div>
 <h2 id="chipload-op"><a class="header" href="#chipload-op"><code>chipload op</code></a></h2>
 <p>Change an operation of a project</p>
+<h3 id="chipload-op-add"><a class="header" href="#chipload-op-add"><code>chipload op add</code></a></h3>
+<p>Add an operation for shapes of the drawing, with the defaults the app gives (docs/specs/styles.md §2): a profile of outlines goes outside and through with tabs, of holes inside and through; of both, two profiles, the holes first. Feeds and step downs come from the tool’s cutting data. Added at the end of the active part</p>
+<pre><code class="language-text">chipload op add &lt;PROJECT&gt; &lt;KIND&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
+<tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
+<tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
+<tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project; default: the one the app would take.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>End depth instead of the default (not with –through)</td></tr>
+<tr><td><code>--through</code></td><td>Cut through the stock, below it by the setup’s max overcut.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-op-tool"><a class="header" href="#chipload-op-tool"><code>chipload op tool</code></a></h3>
 <p>Set the tool an operation cuts with (docs/specs/tool-per-operation.md §7). The tool must be in the project: copy one in from your library with <code>tool use</code></p>
 <pre><code class="language-text">chipload op tool &lt;PROJECT&gt; [OPTIONS]
@@ -4207,7 +4397,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-op-tabs"><a class="header" href="#chipload-op-tabs"><code>chipload op tabs</code></a></h3>
-<p>List a profile’s tabs: each contour’s, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned</p>
+<p>List a profile’s tabs: each contour’s, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned. With –along or –around, first choose where contours without tabs placed by hand get theirs (docs/specs/tabs-along-grain.md)</p>
 <pre><code class="language-text">chipload op tabs &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -4218,6 +4408,9 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>--along &lt;ALONG&gt;</code></td><td>On the edges along this axis: x (bottom and top) or y (left and right), half on each. One of: <code>x</code>, <code>y</code>.</td></tr>
+<tr><td><code>--around</code></td><td>Evenly round each contour (as without –along)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4235,8 +4428,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The operation’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>--at &lt;AT&gt;</code></td><td>The point, X,Y in drawing coordinates (a plain number is mm): on or near the contour, within a tool diameter.</td></tr>
 <tr><td><code>--remove</code></td><td>Remove the tab nearest to –at.</td></tr>
-<tr><td><code>--even</code></td><td>Space the tabs of the contour nearest to –at evenly again.</td></tr>
-<tr><td><code>--reset</code></td><td>Space every contour’s tabs evenly again.</td></tr>
+<tr><td><code>--even</code></td><td>Place the tabs of the contour nearest to –at again, as the operation places them (evenly, or along an axis: <code>op tabs --along</code>)</td></tr>
+<tr><td><code>--reset</code></td><td>Place every contour’s tabs again, as the operation places them.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -5558,6 +5751,21 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="chipload-material-thickness"><a class="header" href="#chipload-material-thickness"><code>chipload material thickness</code></a></h3>
+<p>The stock thickness new projects start with (–none: 10 mm)</p>
+<pre><code class="language-text">chipload material thickness &lt;THICKNESS&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;THICKNESS&gt;</code></td><td>The thickness (a plain number is mm); omit with –none.</td></tr>
+<tr><td><code>--none</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-material-remove"><a class="header" href="#chipload-material-remove"><code>chipload material remove</code></a></h3>
 <p>Remove a material, and every tool’s row for it</p>
 <pre><code class="language-text">chipload material remove &lt;NAME&gt;
@@ -5633,6 +5841,138 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>&lt;FILE&gt;</code></td><td></td></tr>
 <tr><td><code>--replace</code></td><td>Overwrite yours where the file has other values under the same name.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="chipload-style"><a class="header" href="#chipload-style"><code>chipload style</code></a></h2>
+<p>Your styles: operations saved by name, used again on shapes in one go (docs/specs/styles.md)</p>
+<h3 id="chipload-style-list"><a class="header" href="#chipload-style-list"><code>chipload style list</code></a></h3>
+<p>List your styles and where the file is</p>
+<pre><code class="language-text">chipload style list
+</code></pre>
+<h3 id="chipload-style-show"><a class="header" href="#chipload-style-show"><code>chipload style show</code></a></h3>
+<p>A style: its kind, tool, depth and settings</p>
+<pre><code class="language-text">chipload style show &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-save"><a class="header" href="#chipload-style-save"><code>chipload style save</code></a></h3>
+<p>Save an operation of a project as a style. Its tools must be in your library; its shapes and its start points, tabs and corners placed by hand are not kept, nor its feeds when its tool has cutting data</p>
+<pre><code class="language-text">chipload style save &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The operation, 1-based as listed. Required.</td></tr>
+<tr><td><code>--name &lt;NAME&gt;</code></td><td>The style’s name. Required.</td></tr>
+<tr><td><code>--replace</code></td><td>Put it in place of the style of that name.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-use"><a class="header" href="#chipload-style-use"><code>chipload style use</code></a></h3>
+<p>Add the style’s operation for shapes of a project, at the end of the active part: a profile style on an outline with its holes gives two, the holes first</p>
+<pre><code class="language-text">chipload style use &lt;PROJECT&gt; &lt;NAME&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;NAME&gt;</code></td><td>The style.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
+<tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
+<tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
+<tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-rename"><a class="header" href="#chipload-style-rename"><code>chipload style rename</code></a></h3>
+<p>Rename a style</p>
+<pre><code class="language-text">chipload style rename &lt;NAME&gt; &lt;NEW&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;NEW&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-set"><a class="header" href="#chipload-style-set"><code>chipload style set</code></a></h3>
+<p>Change a style: values of its operation by path, as <code>chipload set</code> changes a project’s (<code>end_depth=6</code>, <code>tabs.count=6</code>, <code>side=on</code>; <code>style show</code> lists them), and its tool by name from your library, for example after an import whose tool you don’t have. Projects that used the style keep their operations</p>
+<pre><code class="language-text">chipload style set &lt;NAME&gt; &lt;VALUES&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+<tr><td><code>&lt;VALUES&gt;</code></td><td>PATH=VALUE, paths within the style’s operation.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>Another tool of your library, by name.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-remove"><a class="header" href="#chipload-style-remove"><code>chipload style remove</code></a></h3>
+<p>Remove a style</p>
+<pre><code class="language-text">chipload style remove &lt;NAME&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-export"><a class="header" href="#chipload-style-export"><code>chipload style export</code></a></h3>
+<p>Write styles to a file: a backup, or for another computer</p>
+<pre><code class="language-text">chipload style export &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FILE&gt;</code></td><td></td></tr>
+<tr><td><code>--name &lt;NAMES&gt;</code></td><td>Only these (repeatable); default: all. Repeatable.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-import"><a class="header" href="#chipload-style-import"><code>chipload style import</code></a></h3>
+<p>Add the styles of an exported file</p>
+<pre><code class="language-text">chipload style import &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FILE&gt;</code></td><td></td></tr>
+<tr><td><code>--replace</code></td><td>Overwrite yours where the file has another style under the same name.</td></tr>
 </tbody>
 </table>
 </div>
@@ -6155,7 +6495,7 @@ reaches the assistant only once you save.</li>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A project (<code>.chipload</code>) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked <em>no</em> may be left out. Lengths are in mm, angles in radians, feeds in mm/min. <code>chipload schema project</code> prints the JSON Schema this page is made from.</p>
 <p>Schema version 35. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
-<h2 id="the-file-1"><a class="header" href="#the-file-1">The file</a></h2>
+<h2 id="the-file-2"><a class="header" href="#the-file-2">The file</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -6193,6 +6533,9 @@ reaches the assistant only once you save.</li>
 <h2 id="autothreshold"><a class="header" href="#autothreshold">AutoThreshold</a></h2>
 <p>The word “auto”.</p>
 <p>One of: <code>"auto"</code>.</p>
+<h2 id="axis"><a class="header" href="#axis">Axis</a></h2>
+<p>An axis of the drawing.</p>
+<p>One of: <code>"x"</code>, <code>"y"</code>.</p>
 <h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
 <p>What a chosen corner gets.</p>
 <p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
@@ -6886,6 +7229,7 @@ reaches the assistant only once you save.</li>
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
+<tr><td><code>along</code></td><td><a href="#axis">Axis</a> or null</td><td>no</td><td>Where a ring without tabs placed by hand gets its <code>count</code> tabs: on its edges along <code>x</code> (bottom and top) or <code>y</code> (left and right), half on each. Left out: evenly round it.</td></tr>
 <tr><td><code>at</code></td><td>list of 2 × number</td><td>no</td><td>Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets exactly those tabs, one without gets <code>count</code>, evenly spaced. Left out when empty.</td></tr>
 <tr><td><code>count</code></td><td>integer</td><td>yes</td><td>Tabs per contour, at least 1.</td></tr>
 <tr><td><code>flank_angle</code></td><td>number</td><td>yes</td><td>The slope of the tab’s sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows.</td></tr>
@@ -7009,7 +7353,7 @@ reaches the assistant only once you save.</li>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>Your tool library (<code>tools.json</code> in the settings folder) and the files <code>tool export</code> writes. Lengths in mm, angles in radians, feeds in mm/min.</p>
 <p>Schema version 4. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
-<h2 id="the-file-2"><a class="header" href="#the-file-2">The file</a></h2>
+<h2 id="the-file-3"><a class="header" href="#the-file-3">The file</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -7083,7 +7427,7 @@ reaches the assistant only once you save.</li>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>Your machine profiles (<code>machines.json</code> in the settings folder) and the files <code>machine export</code> writes. Lengths in mm, feeds in mm/min.</p>
 <p>Schema version 4. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
-<h2 id="the-file-3"><a class="header" href="#the-file-3">The file</a></h2>
+<h2 id="the-file-4"><a class="header" href="#the-file-4">The file</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -7173,7 +7517,7 @@ reaches the assistant only once you save.</li>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>Your materials (<code>materials.json</code> in the settings folder) and the files <code>material export</code> writes: your own values per library tool. Lengths in mm, feeds in mm/min.</p>
 <p>Schema version 3. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
-<h2 id="the-file-4"><a class="header" href="#the-file-4">The file</a></h2>
+<h2 id="the-file-5"><a class="header" href="#the-file-5">The file</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -7181,6 +7525,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>default_material</code></td><td>string or null</td><td>no</td><td>The name of the material new projects start with. Null: none.</td></tr>
+<tr><td><code>default_thickness</code></td><td>number or null</td><td>no</td><td>The stock thickness new projects start with, mm. Left out: 10 mm.</td></tr>
 <tr><td><code>materials</code></td><td>list of <a href="#material">Material</a></td><td>yes</td><td>The materials.</td></tr>
 <tr><td><code>schema_version</code></td><td><code>3</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file.</td></tr>
@@ -7204,7 +7549,7 @@ reaches the assistant only once you save.</li>
 <h1 id="post-processors-1"><a class="header" href="#post-processors-1">Post-processors</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A post-processor is a small TOML file (<code>name.toml</code>) and a Jinja template (<code>name.*.j2</code>); see <a href="#post-processors">Post-processors</a> for writing your own. The TOML file’s fields:</p>
-<h2 id="the-file-5"><a class="header" href="#the-file-5">The file</a></h2>
+<h2 id="the-file-6"><a class="header" href="#the-file-6">The file</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>

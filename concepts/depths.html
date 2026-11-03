@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Depths and oversize - Chipload 0.32.0 user guide</title>
+        <title>Depths and oversize - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "../searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-58b32aa4.js"></script>
+        <script src="../toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -189,7 +189,8 @@ last pass is exactly at the end depth. Start 2, end 6, step down 2 gives passes 
 <li><strong>Cutting through:</strong> an end depth below the stock bottom goes into the spoilboard. That’s
 allowed up to <em>Max depth below stock</em> (the setup’s Stock), with a warning; deeper is refused,
 so a typo can’t reach the machine bed. For 12 mm board, an end depth of 12.3 cuts
-0.3 mm into the spoilboard.</li>
+0.3 mm into the spoilboard. An operation with <strong>Through</strong> ticked goes there on purpose:
+the Report gives it as a plain note (“cuts through, 0.300 mm into the spoilboard”).</li>
 <li><strong>Through:</strong> tick <strong>Through</strong> next to the end depth of a profile, pocket, follow path or
 holes, and the end depth is the stock thickness plus <strong>Below stock</strong>, which starts at
 <em>Max depth below stock</em>. It follows the thickness: make the board 18 mm and the cut ends
@@ -199,6 +200,39 @@ unticks it.</li>
 <li><strong>Going down:</strong> from safe Z the tool rapids to 1 mm above the stock top, then goes down
 at the plunge feed. The air between the stock top and the start depth is crossed at the
 plunge feed too: Chipload doesn’t know whether another operation already cleared it.</li>
+</ul>
+<h2 id="what-a-new-operation-starts-with"><a class="header" href="#what-a-new-operation-starts-with">What a new operation starts with</a></h2>
+<p>A new operation is set up from what you selected, so the usual job needs few edits:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>New</th><th>Starts</th></tr>
+</thead>
+<tbody>
+<tr><td>Profile of outlines</td><td>outside, <strong>through</strong>, with tabs (4 per contour, 8 mm wide, 3 mm high, at most half the stock’s thickness)</td></tr>
+<tr><td>Profile of holes</td><td>inside, <strong>through</strong>, no tabs</td></tr>
+<tr><td>Profile of an outline with its holes</td><td><strong>two profiles</strong>: <em>Profile 1 (holes)</em> inside first, then <em>Profile 2 (outline)</em> outside with tabs, both through, so the holes are cut while the part is still held</td></tr>
+<tr><td>Pocket, V-carve, follow path</td><td>the end depth (or <em>Through</em>) of the last one of its kind in the project, else 1 mm</td></tr>
+<tr><td>Holes</td><td>through</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><strong>Two profiles</strong> select their shapes one by one, also when you picked a layer or a whole
+DXF: shapes added to it later (by <a href="../drawings/update.html">updating the DXF</a>) aren’t cut by
+them, and the Report says so.</li>
+<li><strong>Feeds, step downs and stepover</strong> come from the tool’s <a href="../library/tools.html#cutting-data">cutting
+data</a> for the setup’s material. A tool without cutting
+data takes them from the nearest operation above with the same tool, else from its
+diameter.</li>
+<li><strong>Going down:</strong> a pocket helixes and a follow path ramps in unless the tool is marked
+centre-cutting (see <a href="tools.html">Tools</a>).</li>
+<li><strong>When the selection doesn’t tell</strong> (nothing selected yet, or a traced picture’s or a
+text’s outlines and holes together), a profile is 1 mm deep with its side to choose.</li>
+<li><strong>On the command line:</strong> <code>chipload op add part.chipload profile --dxf 1</code> (also
+<code>--layer</code>, <code>--shapes</code>, <code>--group</code>; kinds <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>)
+makes the same operations and says what it added; <code>--depth</code>, <code>--through</code> and <code>--tool</code>
+change the defaults.</li>
 </ul>
 <h2 id="oversize"><a class="header" href="#oversize">Oversize</a></h2>
 <p><strong>Oversize</strong> is how much more than drawn is cut, in mm: the cut moves into the material

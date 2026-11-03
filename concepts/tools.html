@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Tools and tool changes - Chipload 0.32.0 user guide</title>
+        <title>Tools and tool changes - Chipload 0.33.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4749dbf9.js";
+            window.path_to_searchindex_js = "../searchindex-4c3f3e9c.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-58b32aa4.js"></script>
+        <script src="../toc-9a5ad1b5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.32.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.33.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -191,7 +191,7 @@ which is the tool number in the G-code, and:</p>
 <tr><td><strong>Type</strong></td><td>endmill, drill or V-bit</td></tr>
 <tr><td><strong>Diameter</strong></td><td>mm</td></tr>
 <tr><td><strong>Spindle speed</strong></td><td>rpm. Required: a program can’t start the spindle without it.</td></tr>
-<tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill; when it can’t plunge, pockets go down round a helix and sloped tabs may be no steeper than the ramp angle.</td></tr>
+<tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill. New pockets go down round a helix and new follow paths ramp unless it is marked centre-cutting; when it can’t plunge, sloped tabs may be no steeper than the ramp angle.</td></tr>
 <tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter</td></tr>
 </tbody>
 </table>
