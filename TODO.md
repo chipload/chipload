@@ -99,7 +99,22 @@ machine), then the last operation review, then the user's requests, then the res
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
    6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
    review (2).
-5. **For the user to try** (built, not yet tried by hand; findings become items here):
+5. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
+   2026-11-03: "dxf layers should be expandable to show its shapes like leafs. The report
+   gives warnings about a shape in the dxf, the profile is open for example. Then a click
+   on that warning should select the shape, similar to how warnings on operations is
+   linked to the operation."). Today a DXF's row opens to its layers with their shape
+   counts (`sources.rs`, `layers: Vec<(String, usize)>`), and a Report line can only point
+   at an operation (`ReportLine::op`); the drawing's warnings (open contours, invalid
+   ones, the contour table from `chipload_pipeline::report::contour_messages`) point at
+   nothing. Spec first: a layer opens to one row per shape (its kind and size, open or
+   closed, a warning mark); a click on the row selects the shape on the canvas as a
+   double-click does (`pick_alone`, the DXF stays whole otherwise); a Report line about a
+   shape carries its contour (a `ReportLine` target that is an operation or a shape) and
+   a click selects it and shows it; how the rows stay fast with thousands of shapes (a
+   traced picture's, a large DXF's: virtual rows, or only the first N with "more…");
+   pictures' and SVGs' layers alike.
+6. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
@@ -107,7 +122,7 @@ machine), then the last operation review, then the user's requests, then the res
    - materials (the user's verdict, docs/specs/materials.md);
    - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box;
    - an operation's Statistics section (lengths and lifts: do they match the router?).
-6. **Small follow-ups:**
+7. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -119,10 +134,10 @@ machine), then the last operation review, then the user's requests, then the res
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-7. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
+8. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
    by the user; next after materials in the direction review of 2026-10-28. Decisions not
    reviewed.
-8. **Later, the user's ideas for when the above is done**, each with its own spec:
+9. **Later, the user's ideas for when the above is done**, each with its own spec:
    - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
      decision 2's alternative): each setup with its own coordinates, its parts placed onto
      its board, setups side by side like PrusaSlicer's plates, the active in colour, the
