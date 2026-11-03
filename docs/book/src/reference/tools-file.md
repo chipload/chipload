@@ -4,27 +4,39 @@
 
 Your tool library (`tools.json` in the settings folder) and the files `tool export` writes. Lengths in mm, angles in radians, feeds in mm/min.
 
-Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 4. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `default_tool` | string or null | no | The name of the tool new projects start with. Null: the built-in 6 mm endmill. |
-| `schema_version` | `3` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `4` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `tools` | list of [LibraryTool](#librarytool) | yes | The tools. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## Cutting
 
-Values filled into an operation when it is created with this tool. Never applied to an existing operation.
+One tested way to cut with a tool: the values an operation takes from a row of the tool's cutting data (docs/specs/cutting-data.md §2, §3).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `feed` | number | yes | Cutting feed, mm/min. |
+| `feed` | number | yes | The feed of a cut at a stepover (a pocket's rings), mm/min. |
 | `plunge_feed` | number | yes | Plunge feed, mm/min. |
-| `step_down` | number | yes | Step down, mm. |
+| `rpm` | number or null | no | Spindle speed, rpm. Null: the tool's own. |
+| `slot_feed` | number | yes | The feed of a full-width cut (a profile, a pocket's first ring), mm/min. |
+| `slot_step_down` | number | yes | The step down of a full-width cut, mm. |
+| `step_down` | number | yes | The step down of a cut at a stepover, mm. |
 | `stepover` | number | yes | Pocket stepover, a fraction of the tool diameter: more than 0, at most 1. |
+
+## CuttingRow
+
+A row of a tool's cutting data: the values for one material, or for any material.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `material_uid` | string or null | no | The material's uid (`materials.json`). Null: any material, the row used without a material or when the tool has no row for it. |
+| `values` | [Cutting](#cutting) | yes | The values. |
 
 ## LibraryTool
 
@@ -34,7 +46,7 @@ One tool of the library: a project tool with a name and optional cutting values.
 |---|---|---|---|
 | `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown. |
 | `center_cutting` | boolean or null | no | Whether it can plunge straight down. Null: unknown. |
-| `cutting` | [Cutting](#cutting) or null | no | Feeds, step down and stepover a new operation with this tool starts with. Never changes an existing operation. Null: none. |
+| `cutting_data` | list of [CuttingRow](#cuttingrow) | no | The cutting data: one row per material, and one for any material (docs/specs/cutting-data.md §2). What an operation takes when a material is chosen, its tool changes or it is added. Missing: none. |
 | `diameter` | number | yes | Diameter, mm. |
 | `flutes` | integer or null | no | Number of flutes. Null: unknown. |
 | `id` | integer | yes | The tool number it gets in a project, when that number is free there. |

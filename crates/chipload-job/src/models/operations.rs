@@ -119,66 +119,87 @@ pub fn operation_label_message(index: usize, name: &str) -> Message {
 }
 
 impl Operation {
-    /// Whether the operation already cuts with these feeds, step down and (pockets)
-    /// stepover. A hole has only feeds; a surface keeps its own wide stepover.
+    /// Whether the operation already cuts with these values: the ones it takes
+    /// (docs/specs/cutting-data.md §3). Full-width cuts (profiles, paths, V-carves, bores)
+    /// take the slot values, a surface the clearing ones and its own stepover, a pocket
+    /// both. The speed is the tool's, not the operation's.
     pub fn has_cutting(&self, c: &crate::library::Cutting) -> bool {
-        match self {
-            Operation::Profile(p) => {
-                (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
-            }
-            Operation::Pocket(p) => {
-                (p.feed, p.plunge_feed, p.step_down, p.stepover)
-                    == (c.feed, c.plunge_feed, c.step_down, c.stepover)
-            }
-            Operation::Vcarve(v) => (v.feed, v.plunge_feed) == (c.feed, c.plunge_feed),
-            Operation::Path(p) => {
-                (p.feed, p.plunge_feed, p.step_down) == (c.feed, c.plunge_feed, c.step_down)
-            }
-            Operation::Holes(h) => (h.feed, h.plunge_feed) == (c.feed, c.plunge_feed),
-            Operation::Surface(f) => {
-                (f.feed, f.plunge_feed, f.step_down) == (c.feed, c.plunge_feed, c.step_down)
-            }
+        // A pocket without slot values cuts its full-width rings at its feed and step down.
+        let mut own = self.clone();
+        if let Operation::Pocket(p) = &mut own {
+            p.slot_feed = Some(p.slot_feed.unwrap_or(p.feed));
+            p.slot_step_down = Some(p.slot_step_down.unwrap_or(p.step_down));
         }
+        let mut applied = own.clone();
+        applied.apply_cutting(c);
+        applied == own
     }
 
-    /// Cut with these values: the ones the operation has (as `has_cutting`).
+    /// Cut with these values: the ones the operation takes (as `has_cutting`).
     pub fn apply_cutting(&mut self, c: &crate::library::Cutting) {
         match self {
             Operation::Profile(p) => {
-                (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
+                (p.feed, p.plunge_feed, p.step_down) =
+                    (c.slot_feed, c.plunge_feed, c.slot_step_down);
             }
             Operation::Pocket(p) => {
                 (p.feed, p.plunge_feed, p.step_down, p.stepover) =
                     (c.feed, c.plunge_feed, c.step_down, c.stepover);
+                (p.slot_feed, p.slot_step_down) = (Some(c.slot_feed), Some(c.slot_step_down));
             }
-            Operation::Vcarve(v) => (v.feed, v.plunge_feed) = (c.feed, c.plunge_feed),
+            Operation::Vcarve(v) => {
+                (v.feed, v.plunge_feed) = (c.slot_feed, c.plunge_feed);
+                if let Some(step) = &mut v.step_down {
+                    *step = c.slot_step_down;
+                }
+            }
             Operation::Path(p) => {
-                (p.feed, p.plunge_feed, p.step_down) = (c.feed, c.plunge_feed, c.step_down);
+                (p.feed, p.plunge_feed, p.step_down) =
+                    (c.slot_feed, c.plunge_feed, c.slot_step_down);
             }
-            Operation::Holes(h) => (h.feed, h.plunge_feed) = (c.feed, c.plunge_feed),
+            Operation::Holes(h) => {
+                (h.feed, h.plunge_feed) = (c.slot_feed, c.plunge_feed);
+                if let HoleMethod::Bore { step_down, .. } = &mut h.method {
+                    *step_down = c.slot_step_down;
+                }
+            }
             Operation::Surface(f) => {
                 (f.feed, f.plunge_feed, f.step_down) = (c.feed, c.plunge_feed, c.step_down);
             }
         }
     }
 
-    /// `base` with the operation's own values in place of its (as `has_cutting`): what
-    /// saving the operation's values keeps.
+    /// `base` with the operation's own values in place of those it takes (as
+    /// `has_cutting`): what saving the operation's values keeps.
     pub fn cutting_over(&self, base: crate::library::Cutting) -> crate::library::Cutting {
         let mut c = base;
         match self {
             Operation::Profile(p) => {
-                (c.feed, c.plunge_feed, c.step_down) = (p.feed, p.plunge_feed, p.step_down);
+                (c.slot_feed, c.plunge_feed, c.slot_step_down) =
+                    (p.feed, p.plunge_feed, p.step_down);
             }
             Operation::Pocket(p) => {
                 (c.feed, c.plunge_feed, c.step_down, c.stepover) =
                     (p.feed, p.plunge_feed, p.step_down, p.stepover);
+                c.slot_feed = p.slot_feed.unwrap_or(p.feed);
+                c.slot_step_down = p.slot_step_down.unwrap_or(p.step_down);
             }
-            Operation::Vcarve(v) => (c.feed, c.plunge_feed) = (v.feed, v.plunge_feed),
+            Operation::Vcarve(v) => {
+                (c.slot_feed, c.plunge_feed) = (v.feed, v.plunge_feed);
+                if let Some(step) = v.step_down {
+                    c.slot_step_down = step;
+                }
+            }
             Operation::Path(p) => {
-                (c.feed, c.plunge_feed, c.step_down) = (p.feed, p.plunge_feed, p.step_down);
+                (c.slot_feed, c.plunge_feed, c.slot_step_down) =
+                    (p.feed, p.plunge_feed, p.step_down);
             }
-            Operation::Holes(h) => (c.feed, c.plunge_feed) = (h.feed, h.plunge_feed),
+            Operation::Holes(h) => {
+                (c.slot_feed, c.plunge_feed) = (h.feed, h.plunge_feed);
+                if let HoleMethod::Bore { step_down, .. } = h.method {
+                    c.slot_step_down = step_down;
+                }
+            }
             Operation::Surface(f) => {
                 (c.feed, c.plunge_feed, c.step_down) = (f.feed, f.plunge_feed, f.step_down);
             }

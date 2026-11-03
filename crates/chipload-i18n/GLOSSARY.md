@@ -43,6 +43,10 @@ correction here is a correction everywhere: change the term, then every text usi
 | profile (operation) | Konturfräsen | Contour | contorneado | contornatura | konturfräsning |
 | pocket | Tasche | poche | cajera | tasca | ficka |
 | island (in a pocket) | Insel | îlot | isla | isola | ö |
+| slot (a full-width cut: profile, a pocket's first ring) | Nut | rainure | ranura | cava | spår |
+| clearing (a cut at a stepover: a pocket's rings) | Räumen | évidement | vaciado | svuotamento | urfräsning |
+| cutting data (a tool's values per material) | Schnittdaten | données de coupe | datos de corte | dati di taglio | skärdata |
+| any material (the row used without one) | jedes Material | tout matériau | cualquier material | qualsiasi materiale | alla material |
 | V-carve | V-Gravur | gravure en V | tallado en V | incisione a V | V-gravyr |
 | follow path | Pfad folgen | suivi de tracé | seguir trayectoria | segui percorso | följ bana |
 | holes | Bohrungen | perçages | taladros | fori | hål |
@@ -115,6 +119,8 @@ names unchanged. Numbers display a decimal point; input also accepts a decimal c
 | project / part / setup / operation | проект / деталь / установ / операция |
 | drawing / layer / shape / contour | чертёж / слой / объект / контур |
 | profile / pocket / island | обработка контура / выборка кармана / остров |
+| slot / clearing | паз / выборка |
+| cutting data / any material | режимы резания / любой материал |
 | V-carve / follow path / surfacing | V-гравировка / вдоль линии / торцевание |
 | drill / helical bore | сверление / винтовое фрезерование отверстия |
 | stock / spoilboard / work zero | заготовка / жертвенный стол / ноль детали |

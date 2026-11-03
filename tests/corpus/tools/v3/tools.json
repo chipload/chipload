@@ -1,0 +1,38 @@
+{
+  "schema_version": 3,
+  "written_by": "chipload 0.31.0",
+  "default_tool": "6 mm 2-flute",
+  "tools": [
+    {
+      "name": "6 mm 2-flute",
+      "uid": "a1b2c3d4e5f60718",
+      "id": 1,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": 2,
+      "center_cutting": true,
+      "rpm": 18000.0,
+      "cutting": {
+        "feed": 1200.0,
+        "plunge_feed": 400.0,
+        "step_down": 2.0,
+        "stepover": 0.45
+      },
+      "angle": null,
+      "tip_diameter": null
+    },
+    {
+      "name": "V 60",
+      "uid": "b2c3d4e5f6071829",
+      "id": 2,
+      "type": "vbit",
+      "diameter": 12.7,
+      "flutes": 2,
+      "center_cutting": true,
+      "rpm": 16000.0,
+      "cutting": null,
+      "angle": 1.0471975511965976,
+      "tip_diameter": 0.2
+    }
+  ]
+}

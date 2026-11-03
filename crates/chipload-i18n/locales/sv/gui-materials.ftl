@@ -1,6 +1,6 @@
 # Materials (docs/specs/materials.md).
 materials-folder = Material
-materials-folder-hover = Dina egna matningar, skärdjup och sidosteg per verktyg, för varje material du fräser
+materials-folder-hover = Materialen du fräser: varje verktyg har sina egna värden för dem, i sina skärdata
 materials-new = Nytt material
 materials-new-name = Nytt material
 materials-tool-count = { $count ->
@@ -14,14 +14,13 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } material
 } i ditt bibliotek.
-materials-about = Varje material håller dina egna värden för verktygen du använder med det. Fyll i dem här, eller med Spara i … under en operation som fräste bra. Välj ett per operation, under dess verktyg, eller för en hel uppspänning, i dess egenskaper.
+materials-about = Ett material är ett namn du väljer för en operation, under dess verktyg, eller för en hel uppspänning, i dess egenskaper. Dess värden finns i varje verktygs skärdata (Den här datorn > Verktyg): fyll i dem där, eller med Spara i … under en operation som fräste bra.
 materials-gone = Det här materialet finns inte längre i ditt bibliotek.
-materials-entry-about = Dina värden för det här materialet, per verktyg i biblioteket. En operation med det här materialet fräser med dem.
+materials-entry-about = En operation med det här materialet fräser med sitt verktygs värden för det, från verktygets skärdata.
 materials-name = Namn
-materials-values = Värden per verktyg
-materials-tool-not-in-library = (ett verktyg som inte längre finns i ditt bibliotek)
-materials-remove-tool-hover = Ta bort det här verktygets värden
-materials-add-tool = Lägg till ett verktyg…
-materials-no-library-tools = Ditt verktygsbibliotek är tomt: spara ett verktyg där först.
+materials-values = Verktyg med värden för det
 materials-name-taken = det finns redan ett material som heter "{ $name }"
 materials-saved = Sparat i { $name }
+materials-no-rows = Inget verktyg har värden för det än.
+materials-open-tool-hover = Öppna verktyget: dess skärdata har värdena
+materials-rows-about = Lägg till värden för ett annat verktyg i det verktygets skärdata.

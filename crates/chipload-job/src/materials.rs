@@ -1,92 +1,32 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The user's materials (docs/specs/materials.md): for each material, the feeds, step down
-//! and stepover the user has found good for each library tool. A persisted library file,
-//! `materials.json`, loaded and saved as `tools.json` is.
+//! The user's materials (docs/specs/materials.md, docs/specs/cutting-data.md): names to
+//! choose for a project or an operation. The values for each are rows of the tools' cutting
+//! data. A persisted library file, `materials.json`, loaded and saved as `tools.json` is.
 
 use chipload_i18n::Message;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::library::{
-    Changes, Collection, Cutting, Entry, LibraryError, LibraryFile, cutting_text, fresh_uid,
-    name_problems, position, refused, uid_problems, written_by,
+    Collection, Entry, LibraryError, LibraryFile, ToolLibrary, fresh_uid, name_problems, position,
+    refused, uid_problems, uniform_row, written_by,
 };
 
 pub const MATERIALS_FILE: &str = "materials.json";
-/// Current `schema_version` of `materials.json`.
-pub const MATERIALS_VERSION: i64 = 2;
+/// Current `schema_version` of `materials.json`. Version 3 moved the values per tool into
+/// the tools' cutting data (docs/specs/cutting-data.md §8).
+pub const MATERIALS_VERSION: i64 = 3;
 
-/// One tool's values in a material.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
-#[serde(deny_unknown_fields)]
-pub struct MaterialTool {
-    /// The library tool's uid.
-    pub tool_uid: String,
-    /// Cutting feed, mm/min.
-    pub feed: f64,
-    /// Plunge feed, mm/min.
-    pub plunge_feed: f64,
-    /// Step down, mm.
-    pub step_down: f64,
-    /// Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.
-    pub stepover: f64,
-}
-
-impl MaterialTool {
-    pub fn cutting(&self) -> Cutting {
-        Cutting {
-            feed: self.feed,
-            plunge_feed: self.plunge_feed,
-            step_down: self.step_down,
-            stepover: self.stepover,
-        }
-    }
-}
-
-/// A material: a name and the user's values per tool.
+/// A material: a name to choose. Its values are the tools' rows for it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Material {
     /// The material's name, unique in the library (upper or lower case don't matter).
     pub name: String,
-    /// What projects name the material by: 16 lowercase hex digits, never changed.
+    /// What projects and the tools' rows name the material by: 16 lowercase hex digits,
+    /// never changed.
     pub uid: String,
-    /// Values for the tools used with this material, one entry per library tool.
-    pub tools: Vec<MaterialTool>,
-}
-
-impl Material {
-    /// The values for the library tool with this uid.
-    pub fn values(&self, tool_uid: &str) -> Option<Cutting> {
-        self.tools
-            .iter()
-            .find(|t| t.tool_uid == tool_uid)
-            .map(MaterialTool::cutting)
-    }
-
-    /// Set (or replace) a tool's values.
-    pub fn set_values(&mut self, tool_uid: &str, c: Cutting) {
-        let entry = MaterialTool {
-            tool_uid: tool_uid.to_string(),
-            feed: c.feed,
-            plunge_feed: c.plunge_feed,
-            step_down: c.step_down,
-            stepover: c.stepover,
-        };
-        match self.tools.iter_mut().find(|t| t.tool_uid == tool_uid) {
-            Some(existing) => *existing = entry,
-            None => self.tools.push(entry),
-        }
-    }
-
-    /// Remove a tool's values; whether it had any.
-    pub fn remove_values(&mut self, tool_uid: &str) -> bool {
-        let before = self.tools.len();
-        self.tools.retain(|t| t.tool_uid != tool_uid);
-        self.tools.len() != before
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -150,7 +90,6 @@ impl MaterialLibrary {
         self.materials.push(Material {
             name: name.to_string(),
             uid,
-            tools: Vec::new(),
         });
         Ok(&self.materials[self.materials.len() - 1])
     }
@@ -185,15 +124,6 @@ impl MaterialLibrary {
         Ok(removed)
     }
 
-    /// Remove a library tool's values from every material: the names of those that had
-    /// some.
-    pub fn forget_tool(&mut self, tool_uid: &str) -> Vec<String> {
-        self.materials
-            .iter_mut()
-            .filter_map(|m| m.remove_values(tool_uid).then(|| m.name.clone()))
-            .collect()
-    }
-
     /// Every rule violation as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = name_problems(
@@ -206,22 +136,6 @@ impl MaterialLibrary {
             "materials",
             self.materials.iter().map(|m| m.uid.as_str()),
         ));
-        for (i, material) in self.materials.iter().enumerate() {
-            let at = format!("materials.{i}");
-            for (k, tool) in material.tools.iter().enumerate() {
-                let at = format!("{at}.tools.{k}");
-                problems.extend(tool.cutting().problems(&at));
-                if material.tools[..k]
-                    .iter()
-                    .any(|t| t.tool_uid == tool.tool_uid)
-                {
-                    problems.push(format!(
-                        "{at}.tool_uid: \"{}\" has values twice",
-                        tool.tool_uid
-                    ));
-                }
-            }
-        }
         problems
     }
 }
@@ -241,8 +155,10 @@ impl LibraryFile for MaterialLibrary {
         self.written_by = Some(written_by());
     }
     fn upgrade(from: i64, data: &mut serde_json::Map<String, Value>) {
-        if from == 1 {
-            materials_v1_to_v2(data);
+        match from {
+            1 => materials_v1_to_v2(data),
+            2 => materials_v2_to_v3(data),
+            _ => {}
         }
     }
 }
@@ -258,6 +174,80 @@ pub fn materials_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
         }
     }
     data.insert("schema_version".into(), Value::from(2));
+}
+
+/// Materials 2 -> 3: a material keeps its name and uid; its values per tool belong to the
+/// tools now (docs/specs/cutting-data.md §8). They are moved there first, by
+/// [`move_material_values`], when the user's library is converted; this step only drops them.
+pub fn materials_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
+    if let Some(Value::Array(materials)) = data.get_mut("materials") {
+        for material in materials {
+            if let Value::Object(material) = material {
+                material.remove("tools");
+            }
+        }
+    }
+    data.insert("schema_version".into(), Value::from(3));
+}
+
+/// The values of an old (version 1 or 2) `materials.json` moved into the tools' cutting
+/// data (docs/specs/cutting-data.md §8): each material's values for a tool become that
+/// tool's row for the material, the same for full-width cuts and cuts at a stepover, at
+/// the tool's own speed. A tool that already has a row for the material keeps it, so
+/// moving twice changes nothing. Pure: no I/O. One message per tool given rows, and per
+/// value dropped because its tool isn't in the library.
+pub fn move_material_values(tools: &mut ToolLibrary, old: &Value) -> Vec<Message> {
+    let mut messages = Vec::new();
+    let materials = old
+        .get("materials")
+        .and_then(Value::as_array)
+        .map_or(&[][..], Vec::as_slice);
+    for material in materials {
+        let (Some(uid), Some(name)) = (
+            material.get("uid").and_then(Value::as_str),
+            material.get("name").and_then(Value::as_str),
+        ) else {
+            continue;
+        };
+        let values = material
+            .get("tools")
+            .and_then(Value::as_array)
+            .map_or(&[][..], Vec::as_slice);
+        for value in values {
+            let Some(old) = value.as_object() else {
+                continue;
+            };
+            let tool_uid = old.get("tool_uid").and_then(Value::as_str).unwrap_or("");
+            let Some(tool) = tools.tools.iter_mut().find(|t| t.uid == tool_uid) else {
+                messages.push(
+                    Message::new("job-library-values-dropped")
+                        .arg("material", name)
+                        .arg("uid", tool_uid),
+                );
+                continue;
+            };
+            if tool.row(Some(uid)).is_some() {
+                continue;
+            }
+            let row = uniform_row(Value::from(uid), old);
+            match serde_json::from_value(row) {
+                Ok(row) => {
+                    tool.cutting_data.push(row);
+                    messages.push(
+                        Message::new("job-library-values-moved")
+                            .arg("material", name)
+                            .arg("tool", tool.name.as_str()),
+                    );
+                }
+                Err(_) => messages.push(
+                    Message::new("job-library-values-dropped")
+                        .arg("material", name)
+                        .arg("uid", tool_uid),
+                ),
+            }
+        }
+    }
+    messages
 }
 
 /// Export and import as for tools (docs/specs/library-import-export.md).
@@ -299,49 +289,19 @@ impl Entry for Material {
             ..self.clone()
         }
     }
-    fn differences(&self, other: &Self) -> Vec<Message> {
-        let mut changes = Changes(Vec::new());
-        // One line per tool whose values differ, in the order they are listed.
-        let uids = self
-            .tools
-            .iter()
-            .chain(&other.tools)
-            .map(|t| t.tool_uid.as_str());
-        let mut seen: Vec<&str> = Vec::new();
-        for uid in uids {
-            if seen.contains(&uid) {
-                continue;
-            }
-            seen.push(uid);
-            let (mine, theirs) = (self.values(uid), other.values(uid));
-            if mine != theirs {
-                changes.differs(
-                    "tool-values",
-                    cutting_text(mine.as_ref()),
-                    cutting_text(theirs.as_ref()),
-                );
-            }
-        }
-        changes.0
+    fn differences(&self, _other: &Self) -> Vec<Message> {
+        // A name and a uid: nothing else to differ.
+        Vec::new()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::library::{load_library, update_library};
-
-    fn values(feed: f64) -> Cutting {
-        Cutting {
-            feed,
-            plunge_feed: 500.0,
-            step_down: 2.5,
-            stepover: 0.4,
-        }
-    }
+    use crate::library::{Cutting, LibraryTool, load_library, update_library};
 
     #[test]
-    fn materials_are_added_given_values_and_saved_and_read_back() {
+    fn materials_are_added_saved_and_read_back() {
         let dir = std::env::temp_dir().join(format!("chipload-materials-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join(MATERIALS_FILE);
@@ -350,14 +310,11 @@ mod tests {
         assert!(empty.materials.is_empty());
         update_library(&path, |lib: &mut MaterialLibrary| {
             lib.add("Plywood")?;
-            lib.find_mut("plywood")?
-                .set_values("a1b2c3d4e5f60718", values(1500.0));
             Ok(())
         })
         .unwrap();
         let lib: MaterialLibrary = load_library(&path).unwrap();
         let ply = lib.find("PLYWOOD").unwrap();
-        assert_eq!(ply.values("a1b2c3d4e5f60718"), Some(values(1500.0)));
         assert_eq!(lib.find_uid(&ply.uid), Some(ply));
         // Same name again: refused, nothing written.
         let again = update_library(&path, |lib: &mut MaterialLibrary| {
@@ -368,25 +325,9 @@ mod tests {
     }
 
     #[test]
-    fn values_are_replaced_removed_and_checked() {
+    fn the_default_follows_a_rename_and_goes_with_the_material() {
         let mut lib = MaterialLibrary::default();
         lib.add("Oak").unwrap();
-        let oak = lib.find_mut("Oak").unwrap();
-        oak.set_values("a1b2c3d4e5f60718", values(1500.0));
-        oak.set_values("a1b2c3d4e5f60718", values(1200.0));
-        assert_eq!(oak.tools.len(), 1);
-        assert_eq!(oak.values("a1b2c3d4e5f60718").unwrap().feed, 1200.0);
-        assert!(lib.validate().is_empty());
-        lib.materials[0].tools[0].stepover = 1.5;
-        let problems = lib.validate().join("\n");
-        assert!(
-            problems.contains("materials.0.tools.0.stepover"),
-            "{problems}"
-        );
-        lib.materials[0].tools[0].stepover = 0.4;
-        assert_eq!(lib.forget_tool("a1b2c3d4e5f60718"), vec!["Oak".to_string()]);
-        assert!(lib.materials[0].tools.is_empty());
-        // The default follows a rename and goes with the material.
         lib.default_material = Some("Oak".into());
         assert!(lib.validate().is_empty());
         lib.materials[0].name = "White oak".into();
@@ -399,15 +340,60 @@ mod tests {
         assert!(lib.validate().join("\n").contains("default_material"));
     }
 
+    fn corpus(file: &str) -> std::path::PathBuf {
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/corpus")
+            .join(file)
+    }
+
     #[test]
-    fn a_version_1_file_loses_its_thicknesses() {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../tests/corpus/materials/v1/materials.json");
-        let lib: MaterialLibrary = load_library(&path).unwrap();
-        assert_eq!(lib.schema_version, MATERIALS_VERSION);
-        let ply = lib.find("Plywood").unwrap();
-        assert_eq!(ply.values("a1b2c3d4e5f60718"), Some(values(1500.0)));
-        assert!(lib.find("Oak").unwrap().tools.is_empty());
+    fn old_files_lose_their_values_which_move_into_the_tools() {
+        // Version 1 (with a thickness) and 2 load as names only.
+        for file in ["materials/v1/materials.json", "materials/v2/materials.json"] {
+            let lib: MaterialLibrary = load_library(&corpus(file)).unwrap();
+            assert_eq!(lib.schema_version, MATERIALS_VERSION);
+            assert!(
+                lib.find("Plywood").is_some() && lib.find("Oak").is_some(),
+                "{file}"
+            );
+        }
+        // The values, moved: Plywood's for the 6 mm tool become its Plywood row.
+        let old: Value = serde_json::from_str(
+            &std::fs::read_to_string(corpus("materials/v2/materials.json")).unwrap(),
+        )
+        .unwrap();
+        let mut tools = ToolLibrary::default();
+        let tool = crate::Tool {
+            id: 1,
+            name: None,
+            library_uid: None,
+            kind: crate::ToolType::Endmill,
+            diameter: 6.0,
+            flutes: Some(2),
+            center_cutting: Some(true),
+            rpm: Some(18000.0),
+            angle: None,
+            tip_diameter: None,
+        };
+        tools.tools.push(LibraryTool::from_tool(
+            "6 mm",
+            "a1b2c3d4e5f60718",
+            &tool,
+            Vec::new(),
+        ));
+        let messages = move_material_values(&mut tools, &old);
+        let ply = old["materials"][0]["uid"].as_str().unwrap();
+        assert_eq!(
+            tools.tools[0].row(Some(ply)).map(|r| r.values),
+            Some(Cutting::uniform(1500.0, 500.0, 2.5, 0.4))
+        );
+        assert!(tools.validate().is_empty(), "{:?}", tools.validate());
+        let text: Vec<String> = messages.iter().map(Message::english).collect();
+        assert!(text.iter().any(|t| t.contains("6 mm")), "{text:?}");
+        // Twice: nothing more.
+        let before = tools.clone();
+        move_material_values(&mut tools, &old);
+        assert_eq!(tools, before);
     }
 
     #[test]
@@ -416,7 +402,7 @@ mod tests {
             std::env::temp_dir().join(format!("chipload-materials-new-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join(MATERIALS_FILE);
-        std::fs::write(&path, r#"{"schema_version": 3, "materials": []}"#).unwrap();
+        std::fs::write(&path, r#"{"schema_version": 4, "materials": []}"#).unwrap();
         let read: Result<MaterialLibrary, _> = load_library(&path);
         assert!(matches!(read, Err(LibraryError::UnsupportedVersion { .. })));
         std::fs::remove_dir_all(dir).unwrap();

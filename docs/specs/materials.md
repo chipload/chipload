@@ -7,7 +7,7 @@ geometry and tool, so I can choose material preset per operation freely") and **
 thickness** ("changing material shouldn't change stock thickness"). See §10 for where it
 differs from the first draft.
 
-**Being replaced** (draft 2026-11-03, docs/specs/cutting-data.md): the values move into the
+**Replaced 2026-11-03** (docs/specs/cutting-data.md, ADR 0029): the values moved into the
 tools, one row per material, with slot and clearing values; a material keeps only its name.
 
 ## Why

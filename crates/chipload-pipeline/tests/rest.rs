@@ -100,12 +100,7 @@ fn a_pass_follows_its_pocket() {
 fn library_cutting_values_and_a_fitting_entry() {
     let job = sample();
     let mut rough = pocket(&job, 0);
-    let cutting = Cutting {
-        feed: 900.0,
-        plunge_feed: 250.0,
-        step_down: 1.0,
-        stepover: 0.3,
-    };
+    let cutting = Cutting::uniform(900.0, 250.0, 1.0, 0.3);
     let pass = rest_pass_of(&rough, &job.tools, 2, Some(&cutting)).unwrap();
     assert_eq!(
         (pass.feed, pass.plunge_feed, pass.step_down, pass.stepover),

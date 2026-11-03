@@ -990,6 +990,9 @@ fn create(
     for problem in &library.problems {
         out.err(format!("warning: {}", problem.english()));
     }
+    for note in &library.converted {
+        out.line(note.english());
+    }
     for note in notes {
         out.line(note.english());
     }

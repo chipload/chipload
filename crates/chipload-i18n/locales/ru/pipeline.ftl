@@ -307,6 +307,7 @@ pipeline-library-unknown-post = Станок «{ $name }»: в этой верс
 pipeline-material-chosen = Материал: { $name }
 pipeline-material-none = Материал { $name } больше не выбран; подачи не изменены
 pipeline-material-op-set = Операция { $op } ({ $name }): подачи из { $material }
+pipeline-material-tool-speed = Инструмент { $tool } работает на { $rpm } об/мин, как указано для { $material }
 pipeline-material-op-kept = Операция { $op } ({ $name }): для инструмента { $tool } нет режимов в { $material }; подачи не изменены
 pipeline-material-tool-not-in-library = Инструмента { $tool } нет в библиотеке: сначала сохраните его туда (tool save), затем можно сохранить его режимы в материале
 pipeline-recovery-io = Не удалось записать копию для восстановления { $path }: { $reason }
@@ -432,3 +433,4 @@ pipeline-frame-borders-fit = { $count ->
     [one] окантовка с отступом { $gap } внутрь не помещается в рамке
    *[other] окантовки ({ $count }) с шагом { $gap } не помещаются в рамке
 }
+pipeline-library-converted = Библиотека обновлена: значения материалов теперь в режимах резания инструментов (старые файлы сохранены как .bak).

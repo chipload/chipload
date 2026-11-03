@@ -1,7 +1,8 @@
 # Spec: cutting data in the tools, slot and clearing
 
-Status: draft (2026-11-03), for review. Replaces the values part of docs/specs/materials.md
-(materials stay, as names).
+Status: approved (2026-11-03; decisions 1-8 as recommended, the user: "yes it is good, go
+ahead"); built. Replaces the values part of docs/specs/materials.md (materials stay, as
+names). ADR 0029.
 
 ## 1. Why
 
@@ -241,3 +242,30 @@ Projects keep their format: their operations hold their own values, and their
 - **Window:** the tool's Cutting data rows, the pocket's two feed groups, the layout tests
   in every language.
 - **Goldens:** unchanged.
+
+## 13. As built (2026-11-03)
+
+- **Toolpath** (6206737): `PocketRing::full_width` (a ring with no ring cut before it inside:
+  `deps` empty in the cut order) and `unstepped` (the closed ring a spiral ring was);
+  `PocketCut::slot_feed`, `slot_step`; `slot_levels` and `slot_lap` in `pocket_moves`. A
+  full-width ring that a feed link would reach at depth is reached from above instead.
+- **Files:** a row is `{ "material_uid": …, "values": { "rpm", "plunge_feed", "slot_feed",
+  "slot_step_down", "feed", "step_down", "stepover" } }` (the values nested, as `Cutting`,
+  rather than flat as §8 sketched: serde can't refuse unknown fields in a flattened struct).
+  A converted row's speed is null, the tool's own, so it means what it meant.
+- **Library:** `LibraryTool::{row, cutting_for, set_row, remove_row}`,
+  `ToolLibrary::forget_material`, `Cutting::uniform`, `linked_cutting(library, tool,
+  material)`; `chipload_job::materials::move_material_values`;
+  `chipload_pipeline::library::{convert_library, forget_material_in_tools}`,
+  `Library::converted` (shown in the Report, printed by `new`/`import`).
+- **Pipeline:** `materials::{library_tool, tool_values, material_values, material_state,
+  speed_differs, use_material, use_material_for_op, follow_material, values_to_save}` take
+  the tool library. Saving to a tool without a row makes one from the operation's own values
+  for both kinds of cut (as the conversion does) instead of refusing (§7).
+- **CLI:** `tool cutting NAME --material NAME|any [--rpm …] [--remove]`; `tool list` prints
+  the rows; `tool add/set` lost the feed options, `material set` keeps `--rename` only and
+  `material remove` its `--tool`; `material show --json` lists the tools.
+- **Window:** the library tool's *Cutting data* (`cutting_data_rows`); the material's form
+  lists its tools as links; the pocket's *Slot step down* (Cut) and *Slot feed* (Feeds), also
+  on rest and floor passes; the Material row's speed note.
+- **Glossary:** slot, clearing, cutting data, any material.

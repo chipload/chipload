@@ -12,6 +12,7 @@ use chipload_job::library::{
     machine_link, read_import, tool_link, update_library, update_machines, update_tools, use_tool,
     write_export,
 };
+use chipload_job::materials::MaterialLibrary;
 use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
 use chipload_pipeline::library::{
     CONFIG_DIR_VAR, copy_profile_post, machines_path, settings_dir, tools_path, unknown_posts,
@@ -62,6 +63,20 @@ pub enum ToolAction {
     Remove { name: String },
     /// The tool new projects start with.
     Default { name: String },
+    /// Set or remove a row of a tool's cutting data: its values for a material, or for any
+    /// material (docs/specs/cutting-data.md).
+    Cutting {
+        name: String,
+        /// The material's name, or `any`: the row used without a material, or for a material
+        /// the tool has no row for.
+        #[arg(long)]
+        material: String,
+        #[command(flatten)]
+        values: RowValues,
+        /// Remove the row instead.
+        #[arg(long)]
+        remove: bool,
+    },
     /// Copy a library tool into a project; prints its id there.
     Use {
         name: String,
@@ -115,14 +130,28 @@ pub struct ToolValues {
     /// The id it gets in a project where that id is free (default 1).
     #[arg(long)]
     id: Option<i64>,
-    /// Cutting values for new operations: give all four the first time.
-    #[arg(value_parser = crate::lengths::feed, long)]
-    feed: Option<f64>,
+}
+
+/// A row of a tool's cutting data (docs/specs/cutting-data.md §2): lengths in mm, feeds in
+/// mm/min. A new row needs every value but the speed; a row there keeps what isn't given.
+#[derive(clap::Args)]
+pub struct RowValues {
+    /// Spindle speed; default: the tool's own.
+    #[arg(long)]
+    rpm: Option<f64>,
     #[arg(value_parser = crate::lengths::feed, long)]
     plunge_feed: Option<f64>,
+    /// Full-width cuts: profiles, paths, V-carves, a pocket's first ring.
+    #[arg(value_parser = crate::lengths::feed, long)]
+    slot_feed: Option<f64>,
+    #[arg(value_parser = crate::lengths::length, long)]
+    slot_step_down: Option<f64>,
+    /// Cuts at a stepover: a pocket's rings, a surface.
+    #[arg(value_parser = crate::lengths::feed, long)]
+    feed: Option<f64>,
     #[arg(value_parser = crate::lengths::length, long)]
     step_down: Option<f64>,
-    /// Fraction of the tool diameter (pockets).
+    /// Fraction of the tool diameter.
     #[arg(long)]
     stepover: Option<f64>,
 }
@@ -264,9 +293,13 @@ enum SpindleArg {
 
 /// The settings folder, or an error naming the variable that sets it.
 pub(crate) fn dir() -> Result<PathBuf, String> {
-    settings_dir().ok_or_else(|| {
+    let dir = settings_dir().ok_or_else(|| {
         format!("can't find your settings folder (no home folder); set {CONFIG_DIR_VAR}")
-    })
+    })?;
+    // An old library is converted once, before any command reads it
+    // (docs/specs/cutting-data.md §8).
+    chipload_pipeline::library::convert_library(&dir).map_err(|err| err.to_string())?;
+    Ok(dir)
 }
 
 pub(crate) fn refused(text: String) -> LibraryError {
@@ -305,7 +338,7 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                 flutes: None,
                 center_cutting: None,
                 rpm: None,
-                cutting: None,
+                cutting_data: Vec::new(),
                 angle: None,
                 tip_diameter: None,
             };
@@ -329,18 +362,13 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
             Ok(format!("Changed tool \"{}\".", library.tools[i].name))
         }),
         ToolAction::Remove { name } => update_tools(&path, |library| library.remove(&name))
-            .and_then(|removed| {
-                let mut line = format!("Removed tool \"{}\".", removed.name);
-                let names =
-                    chipload_pipeline::library::forget_tool_in_materials(&dir, &removed.uid)?;
-                if !names.is_empty() {
-                    line.push_str(&format!(
-                        " Its values were removed from: {}.",
-                        names.join(", ")
-                    ));
-                }
-                Ok(line)
-            }),
+            .map(|removed| format!("Removed tool \"{}\".", removed.name)),
+        ToolAction::Cutting {
+            name,
+            material,
+            values,
+            remove,
+        } => set_cutting_row(&dir, &path, &name, &material, &values, remove),
         ToolAction::Default { name } => update_tools(&path, |library| {
             let entry = library
                 .find(&name)
@@ -373,8 +401,12 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                 match library.position(&name) {
                     Some(i) if replace => {
                         let old = &library.tools[i];
-                        let entry =
-                            LibraryTool::from_tool(&old.name, &old.uid, &found, old.cutting);
+                        let entry = LibraryTool::from_tool(
+                            &old.name,
+                            &old.uid,
+                            &found,
+                            old.cutting_data.clone(),
+                        );
                         library.tools[i] = entry.clone();
                         Ok((
                             entry,
@@ -385,8 +417,12 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                         "the library already has a tool named \"{name}\" (add --replace)"
                     ))),
                     None => {
-                        let entry =
-                            LibraryTool::from_tool(&name, &library.new_uid(&name), &found, None);
+                        let entry = LibraryTool::from_tool(
+                            &name,
+                            &library.new_uid(&name),
+                            &found,
+                            Vec::new(),
+                        );
                         library.tools.push(entry.clone());
                         Ok((entry, format!("Saved tool {tool} as \"{name}\".")))
                     }
@@ -484,34 +520,77 @@ fn set_tool_values(entry: &mut LibraryTool, values: &ToolValues) -> Result<(), L
         }
         entry.id = id;
     }
-    let given = [
-        values.feed,
-        values.plunge_feed,
-        values.step_down,
-        values.stepover,
-    ];
-    if given.iter().any(Option::is_some) {
-        let old = entry.cutting;
-        let pick = |new: Option<f64>, old: Option<f64>, flag: &str| {
-            new.or(old).ok_or_else(|| {
-                refused(format!(
-                    "cutting values come as a set: give --feed, --plunge-feed, --step-down \
-                     and --stepover (missing --{flag})"
-                ))
+    Ok(())
+}
+
+/// `tool cutting`: set or remove tool `name`'s row for `material` (a name, or `any`).
+fn set_cutting_row(
+    dir: &Path,
+    path: &Path,
+    name: &str,
+    material: &str,
+    values: &RowValues,
+    remove: bool,
+) -> Result<String, LibraryError> {
+    let (uid, shown) = if material.eq_ignore_ascii_case("any") {
+        (None, "any material".to_string())
+    } else {
+        let materials: MaterialLibrary =
+            load_library(&chipload_pipeline::library::materials_path(dir))?;
+        let found = materials
+            .find(material)
+            .ok_or_else(|| refused(format!("no material named \"{material}\"")))?;
+        (Some(found.uid.clone()), found.name.clone())
+    };
+    update_tools(path, |library| {
+        let i = library
+            .position(name)
+            .ok_or_else(|| refused(format!("no tool named \"{name}\"")))?;
+        let entry = &mut library.tools[i];
+        if remove {
+            return if entry.remove_row(uid.as_deref()) {
+                Ok(format!("Removed {shown} from \"{}\".", entry.name))
+            } else {
+                Err(refused(format!(
+                    "\"{}\" has no row for {shown}",
+                    entry.name
+                )))
+            };
+        }
+        let old = entry.row(uid.as_deref()).map(|r| r.values);
+        let mut missing = Vec::new();
+        let mut pick = |new: Option<f64>, old: Option<f64>, flag: &'static str| {
+            new.or(old).unwrap_or_else(|| {
+                missing.push(format!("--{flag}"));
+                0.0
             })
         };
-        entry.cutting = Some(Cutting {
-            feed: pick(values.feed, old.map(|c| c.feed), "feed")?,
+        let row = Cutting {
+            rpm: values.rpm.or(old.and_then(|c| c.rpm)),
             plunge_feed: pick(
                 values.plunge_feed,
                 old.map(|c| c.plunge_feed),
                 "plunge-feed",
-            )?,
-            step_down: pick(values.step_down, old.map(|c| c.step_down), "step-down")?,
-            stepover: pick(values.stepover, old.map(|c| c.stepover), "stepover")?,
-        });
-    }
-    Ok(())
+            ),
+            slot_feed: pick(values.slot_feed, old.map(|c| c.slot_feed), "slot-feed"),
+            slot_step_down: pick(
+                values.slot_step_down,
+                old.map(|c| c.slot_step_down),
+                "slot-step-down",
+            ),
+            feed: pick(values.feed, old.map(|c| c.feed), "feed"),
+            step_down: pick(values.step_down, old.map(|c| c.step_down), "step-down"),
+            stepover: pick(values.stepover, old.map(|c| c.stepover), "stepover"),
+        };
+        if !missing.is_empty() {
+            return Err(refused(format!(
+                "a new row needs every value but --rpm (missing {})",
+                missing.join(", ")
+            )));
+        }
+        entry.set_row(uid.as_deref(), row);
+        Ok(format!("Set {shown} for \"{}\".", entry.name))
+    })
 }
 
 fn rename_default(default: &mut Option<String>, old: &str, new: &str) {
@@ -594,7 +673,22 @@ fn optional<T: std::fmt::Display>(label: &str, value: Option<T>, unit: &str) -> 
     value.map_or_else(String::new, |v| format!(", {label} {v}{unit}"))
 }
 
+/// A row's values in one line: "18000 rpm, plunge 500, slot 1500 / 2.5, clearing 1800 / 5 ×
+/// 0.4" (mm/min and mm).
+pub(crate) fn row_text(c: &Cutting) -> String {
+    let rpm = c.rpm.map_or_else(String::new, |r| format!("{r} rpm, "));
+    format!(
+        "{rpm}plunge {} mm/min, slot {} mm/min / {} mm, clearing {} mm/min / {} mm × {}",
+        c.plunge_feed, c.slot_feed, c.slot_step_down, c.feed, c.step_down, c.stepover
+    )
+}
+
 fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
+    // Names for the rows' materials; a library without materials names them by uid.
+    let materials: MaterialLibrary = path
+        .parent()
+        .and_then(|dir| load_library(&chipload_pipeline::library::materials_path(dir)).ok())
+        .unwrap_or_default();
     let library = match load_tools(path) {
         Ok(library) => library,
         Err(err) => return out.fail(err),
@@ -632,14 +726,17 @@ fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
             "°",
         ));
         line.push_str(&optional("tip", t.tip_diameter, " mm"));
-        if let Some(c) = t.cutting {
-            line.push_str(&format!(
-                "; feed {} plunge {} mm/min, step down {} mm, stepover {}",
-                c.feed, c.plunge_feed, c.step_down, c.stepover
-            ));
-        }
         line.push_str(&format!(" (uid {})", t.uid));
         out.line(line.to_string());
+        for row in &t.cutting_data {
+            let material = match &row.material_uid {
+                None => "any material".to_string(),
+                Some(uid) => materials
+                    .find_uid(uid)
+                    .map_or_else(|| format!("material {uid}"), |m| m.name.clone()),
+            };
+            out.line(format!("    {material}: {}", row_text(&row.values)));
+        }
     }
     ExitCode::SUCCESS
 }

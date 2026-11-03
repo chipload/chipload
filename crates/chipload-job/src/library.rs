@@ -24,8 +24,9 @@ pub const TOOLS_FILE: &str = "tools.json";
 pub const MACHINES_FILE: &str = "machines.json";
 /// Current `schema_version` of `tools.json`.
 /// Version 2 added a V-bit's `angle` and `tip_diameter` (docs/specs/v-carve.md §9), version
-/// 3 each tool's `uid` (docs/specs/library-in-browser.md §2).
-pub const TOOLS_VERSION: i64 = 3;
+/// 3 each tool's `uid` (docs/specs/library-in-browser.md §2), version 4 its cutting data, a
+/// row per material in place of one set of values (docs/specs/cutting-data.md §8).
+pub const TOOLS_VERSION: i64 = 4;
 /// Current `schema_version` of `machines.json`. Version 3 added each profile's `uid`,
 /// version 4 its `gcode_units` (docs/specs/inch-units.md §4.1).
 pub const MACHINES_VERSION: i64 = 4;
@@ -107,17 +108,24 @@ impl std::fmt::Display for LibraryError {
 
 impl std::error::Error for LibraryError {}
 
-/// Values filled into an operation when it is created with this tool. Never applied to an
-/// existing operation.
+/// One tested way to cut with a tool: the values an operation takes from a row of the
+/// tool's cutting data (docs/specs/cutting-data.md §2, §3).
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Cutting {
-    /// Cutting feed, mm/min.
-    pub feed: f64,
+    /// Spindle speed, rpm. Null: the tool's own.
+    #[serde(default)]
+    pub rpm: Option<f64>,
     /// Plunge feed, mm/min.
     pub plunge_feed: f64,
-    /// Step down, mm.
+    /// The feed of a full-width cut (a profile, a pocket's first ring), mm/min.
+    pub slot_feed: f64,
+    /// The step down of a full-width cut, mm.
+    pub slot_step_down: f64,
+    /// The feed of a cut at a stepover (a pocket's rings), mm/min.
+    pub feed: f64,
+    /// The step down of a cut at a stepover, mm.
     pub step_down: f64,
     /// Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.
     pub stepover: f64,
@@ -128,11 +136,16 @@ impl Cutting {
     pub fn problems(&self, at: &str) -> Vec<String> {
         let mut problems = Vec::new();
         for (field, value) in [
-            ("feed", self.feed),
             ("plunge_feed", self.plunge_feed),
+            ("slot_feed", self.slot_feed),
+            ("slot_step_down", self.slot_step_down),
+            ("feed", self.feed),
             ("step_down", self.step_down),
             ("stepover", self.stepover),
-        ] {
+        ]
+        .into_iter()
+        .chain(self.rpm.map(|rpm| ("rpm", rpm)))
+        {
             if value <= 0.0 || value.is_nan() {
                 problems.push(format!("{at}.{field}: must be greater than 0, got {value}"));
             }
@@ -145,6 +158,33 @@ impl Cutting {
         }
         problems
     }
+
+    /// One set of values for both kinds of cut, as an operation's values were before slot
+    /// and clearing (docs/specs/cutting-data.md §8).
+    pub fn uniform(feed: f64, plunge_feed: f64, step_down: f64, stepover: f64) -> Cutting {
+        Cutting {
+            rpm: None,
+            plunge_feed,
+            slot_feed: feed,
+            slot_step_down: step_down,
+            feed,
+            step_down,
+            stepover,
+        }
+    }
+}
+
+/// A row of a tool's cutting data: the values for one material, or for any material.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct CuttingRow {
+    /// The material's uid (`materials.json`). Null: any material, the row used without a
+    /// material or when the tool has no row for it.
+    #[serde(default)]
+    pub material_uid: Option<String>,
+    /// The values.
+    pub values: Cutting,
 }
 
 /// One tool of the library: a project tool with a name and optional cutting values.
@@ -173,10 +213,11 @@ pub struct LibraryTool {
     /// Spindle speed, rpm. Null: unknown.
     #[serde(default)]
     pub rpm: Option<f64>,
-    /// Feeds, step down and stepover a new operation with this tool starts with. Never
-    /// changes an existing operation. Null: none.
+    /// The cutting data: one row per material, and one for any material
+    /// (docs/specs/cutting-data.md §2). What an operation takes when a material is chosen,
+    /// its tool changes or it is added. Missing: none.
     #[serde(default)]
-    pub cutting: Option<Cutting>,
+    pub cutting_data: Vec<CuttingRow>,
     /// V-bits: the included angle, radians. Null: unknown.
     #[serde(default)]
     pub angle: Option<f64>,
@@ -187,7 +228,12 @@ pub struct LibraryTool {
 
 impl LibraryTool {
     /// A library entry made from a project tool, with the given uid.
-    pub fn from_tool(name: &str, uid: &str, tool: &Tool, cutting: Option<Cutting>) -> LibraryTool {
+    pub fn from_tool(
+        name: &str,
+        uid: &str,
+        tool: &Tool,
+        cutting_data: Vec<CuttingRow>,
+    ) -> LibraryTool {
         LibraryTool {
             name: name.to_string(),
             uid: uid.to_string(),
@@ -197,7 +243,7 @@ impl LibraryTool {
             flutes: tool.flutes,
             center_cutting: tool.center_cutting,
             rpm: tool.rpm,
-            cutting,
+            cutting_data,
             angle: tool.angle,
             tip_diameter: tool.tip_diameter,
         }
@@ -217,6 +263,45 @@ impl LibraryTool {
             angle: self.angle,
             tip_diameter: self.tip_diameter,
         }
+    }
+
+    /// The row for `material` (its uid; None: the row for any material), if there is one.
+    pub fn row(&self, material: Option<&str>) -> Option<&CuttingRow> {
+        self.cutting_data
+            .iter()
+            .find(|r| r.material_uid.as_deref() == material)
+    }
+
+    /// The values to cut `material` with (None: no material): its row, else the row for any
+    /// material (docs/specs/cutting-data.md §2).
+    pub fn cutting_for(&self, material: Option<&str>) -> Option<Cutting> {
+        self.row(material)
+            .or_else(|| self.row(None))
+            .map(|r| r.values)
+    }
+
+    /// Set (or replace) the row for `material` (None: any material).
+    pub fn set_row(&mut self, material: Option<&str>, values: Cutting) {
+        let row = CuttingRow {
+            material_uid: material.map(str::to_string),
+            values,
+        };
+        match self
+            .cutting_data
+            .iter_mut()
+            .find(|r| r.material_uid.as_deref() == material)
+        {
+            Some(existing) => *existing = row,
+            None => self.cutting_data.push(row),
+        }
+    }
+
+    /// Remove the row for `material`; whether there was one.
+    pub fn remove_row(&mut self, material: Option<&str>) -> bool {
+        let before = self.cutting_data.len();
+        self.cutting_data
+            .retain(|r| r.material_uid.as_deref() != material);
+        self.cutting_data.len() != before
     }
 
     /// What replacing a project tool's values with this entry would change, one message
@@ -296,6 +381,15 @@ impl Default for ToolLibrary {
 }
 
 impl ToolLibrary {
+    /// Remove every tool's row for the material with this uid (the material was removed):
+    /// the names of the tools that had one.
+    pub fn forget_material(&mut self, uid: &str) -> Vec<String> {
+        self.tools
+            .iter_mut()
+            .filter_map(|t| t.remove_row(Some(uid)).then(|| t.name.clone()))
+            .collect()
+    }
+
     /// The index of the tool with this name, ignoring case.
     pub fn position(&self, name: &str) -> Option<usize> {
         position(self.tools.iter().map(|t| t.name.as_str()), name)
@@ -356,8 +450,15 @@ impl ToolLibrary {
                     .iter()
                     .map(ToString::to_string),
             );
-            if let Some(c) = &entry.cutting {
-                problems.extend(c.problems(&format!("{at}.cutting")));
+            for (k, row) in entry.cutting_data.iter().enumerate() {
+                let at = format!("{at}.cutting_data.{k}");
+                problems.extend(row.values.problems(&format!("{at}.values")));
+                if entry.cutting_data[..k]
+                    .iter()
+                    .any(|r| r.material_uid == row.material_uid)
+                {
+                    problems.push(format!("{at}.material_uid: the material has two rows"));
+                }
             }
         }
         problems
@@ -1119,12 +1220,17 @@ pub fn machine_link(library: &MachineLibrary, job: &Job) -> Link {
     }
 }
 
-/// A project tool's cutting values for a new operation: the linked entry's, while the tool
-/// still has its values.
-pub fn linked_cutting(library: &ToolLibrary, tool: &Tool) -> Option<Cutting> {
+/// A project tool's cutting values for a new operation in `material` (its uid; None: no
+/// material): the linked entry's row for it, else its row for any material, while the tool
+/// still has the entry's values.
+pub fn linked_cutting(
+    library: &ToolLibrary,
+    tool: &Tool,
+    material: Option<&str>,
+) -> Option<Cutting> {
     let entry = library.find_uid(tool.library_uid.as_deref()?)?;
     if entry.same_values(tool) {
-        entry.cutting
+        entry.cutting_for(material)
     } else {
         None
     }
@@ -1157,6 +1263,7 @@ impl LibraryFile for ToolLibrary {
         match from {
             1 => tools_v1_to_v2(data),
             2 => tools_v2_to_v3(data),
+            3 => tools_v3_to_v4(data),
             _ => {}
         }
     }
@@ -1171,6 +1278,42 @@ pub fn tools_v1_to_v2(data: &mut serde_json::Map<String, Value>) {
 /// they copied, so they stay linked.
 pub fn tools_v2_to_v3(data: &mut serde_json::Map<String, Value>) {
     add_uids(data, "tools");
+}
+
+/// Tools 3 -> 4: a tool's one set of values (`cutting`) becomes its row for any material,
+/// with the same values for full-width cuts and cuts at a stepover, so nothing cuts
+/// differently (docs/specs/cutting-data.md §8). A tool without values gets no row.
+pub fn tools_v3_to_v4(data: &mut serde_json::Map<String, Value>) {
+    if let Some(Value::Array(tools)) = data.get_mut("tools") {
+        for tool in tools {
+            if let Value::Object(tool) = tool {
+                let rows = match tool.remove("cutting") {
+                    Some(Value::Object(old)) => vec![uniform_row(Value::Null, &old)],
+                    _ => Vec::new(),
+                };
+                tool.insert("cutting_data".into(), Value::Array(rows));
+            }
+        }
+    }
+    data.insert("schema_version".into(), Value::from(4));
+}
+
+/// A cutting data row for `material` from one old set of values (`feed`, `plunge_feed`,
+/// `step_down`, `stepover`): slot and clearing alike, the tool's own speed.
+pub(crate) fn uniform_row(material: Value, old: &serde_json::Map<String, Value>) -> Value {
+    let value = |key: &str| old.get(key).cloned().unwrap_or(Value::Null);
+    serde_json::json!({
+        "material_uid": material,
+        "values": {
+            "rpm": null,
+            "plunge_feed": value("plunge_feed"),
+            "slot_feed": value("feed"),
+            "slot_step_down": value("step_down"),
+            "feed": value("feed"),
+            "step_down": value("step_down"),
+            "stepover": value("stepover"),
+        },
+    })
 }
 
 /// Machines 2 -> 3: each profile gets the uid of its name.
@@ -1552,12 +1695,22 @@ impl Entry for LibraryTool {
     fn differences(&self, other: &Self) -> Vec<Message> {
         let mut changes = Changes(other.changes(&self.tool(self.id)));
         changes.differs("id", self.id.into(), other.id.into());
-        if self.cutting != other.cutting {
-            changes.differs(
-                "cutting-values",
-                cutting_text(self.cutting.as_ref()),
-                cutting_text(other.cutting.as_ref()),
-            );
+        // One line per material whose row differs, in the order they are listed.
+        let mut seen: Vec<Option<&str>> = Vec::new();
+        for row in self.cutting_data.iter().chain(&other.cutting_data) {
+            let material = row.material_uid.as_deref();
+            if seen.contains(&material) {
+                continue;
+            }
+            seen.push(material);
+            let (mine, theirs) = (self.row(material), other.row(material));
+            if mine != theirs {
+                changes.differs(
+                    "cutting-values",
+                    cutting_text(mine.map(|r| &r.values)),
+                    cutting_text(theirs.map(|r| &r.values)),
+                );
+            }
         }
         changes.0
     }
@@ -1590,6 +1743,8 @@ impl Entry for MachineProfile {
 pub(crate) fn cutting_text(cutting: Option<&Cutting>) -> I18nValue {
     optional(cutting.map(|c| {
         Message::new("job-library-cutting")
+            .arg("slot_feed", feed(c.slot_feed))
+            .arg("slot_step_down", mm(c.slot_step_down))
             .arg("feed", feed(c.feed))
             .arg("plunge", feed(c.plunge_feed))
             .arg("step_down", mm(c.step_down))

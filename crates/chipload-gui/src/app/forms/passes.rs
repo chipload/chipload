@@ -43,6 +43,7 @@ pub(super) fn clearing_pass_rows(
     ui.label(t!(ui, "forms-step-down"));
     flag(ui.add(mm(&mut pass.step_down)), ui, "step_down");
     ui.end_row();
+    slot_step_row(ui, &mut pass.slot_step_down, pass.step_down);
     ui.label(t!(ui, "forms-stepover"));
     let stepover = ui.add(
         crate::units::number(ui, &mut pass.stepover)
@@ -54,6 +55,15 @@ pub(super) fn clearing_pass_rows(
     ui.end_row();
     ui.label(t!(ui, "forms-feed"));
     flag(ui.add(feed(&mut pass.feed)), ui, "feed");
+    ui.end_row();
+    ui.label(t!(ui, "forms-slot-feed"))
+        .on_hover_text(t!(ui, "forms-slot-feed-hover"));
+    let mut slot_feed = pass.slot_feed.unwrap_or(pass.feed);
+    let field = ui.add(feed(&mut slot_feed));
+    if field.changed() {
+        pass.slot_feed = Some(slot_feed);
+    }
+    flag(field, ui, "slot_feed");
     ui.end_row();
     ui.label(t!(ui, "forms-plunge-feed"));
     flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");

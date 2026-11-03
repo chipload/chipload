@@ -441,6 +441,7 @@ pipeline-library-unknown-post = Macchina "{ $name }": questo Chipload non ha il 
 pipeline-material-chosen = Materiale: { $name }
 pipeline-material-none = Materiale { $name } non più scelto; gli avanzamenti restano come sono
 pipeline-material-op-set = Operazione { $op } ({ $name }): avanzamenti da { $material }
+pipeline-material-tool-speed = L'utensile { $tool } gira a { $rpm } rpm, come indica { $material }
 pipeline-material-op-kept = Operazione { $op } ({ $name }): l'utensile { $tool } non ha valori per { $material }; i suoi avanzamenti non cambiano
 pipeline-material-tool-not-in-library = L'utensile { $tool } non è nella tua libreria utensili: salvalo prima lì (tool save), poi i suoi valori potranno stare in un materiale
 
@@ -584,3 +585,4 @@ pipeline-frame-borders-fit = { $count ->
     [one] un bordo a { $gap } verso l'interno non sta in questa cornice
    *[other] { $count } bordi distanti { $gap } non stanno in questa cornice
 }
+pipeline-library-converted = La tua libreria è stata aggiornata: i valori dei materiali sono ora nei dati di taglio degli utensili (i vecchi file restano come .bak).

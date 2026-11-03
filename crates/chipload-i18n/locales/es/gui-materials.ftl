@@ -1,6 +1,6 @@
 # Materials (docs/specs/materials.md).
 materials-folder = Materiales
-materials-folder-hover = Tus propios avances, profundidad de pasada y paso lateral por herramienta, para cada material que cortas
+materials-folder-hover = Los materiales que cortas: cada herramienta guarda sus propios valores para ellos, en sus datos de corte
 materials-new = Nuevo material
 materials-new-name = Nuevo material
 materials-tool-count = { $count ->
@@ -14,14 +14,13 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } materiales
 } en tu biblioteca.
-materials-about = Cada material guarda tus propios valores para las herramientas que usas con él. Escríbelos aquí, o con Guardar en … bajo una operación que cortó bien. Elige uno por operación, bajo su herramienta, o para toda una sujeción, en sus propiedades.
+materials-about = Un material es un nombre que eliges para una operación, bajo su herramienta, o para toda una sujeción, en sus propiedades. Sus valores están en los datos de corte de cada herramienta (Este equipo > Herramientas): rellénalos allí, o con Guardar en … bajo una operación que cortó bien.
 materials-gone = Este material ya no está en tu biblioteca.
-materials-entry-about = Tus valores para este material, por herramienta de la biblioteca. Una operación con este material corta con ellos.
+materials-entry-about = Una operación con este material corta con los valores de su herramienta para él, de los datos de corte de la herramienta.
 materials-name = Nombre
-materials-values = Valores por herramienta
-materials-tool-not-in-library = (una herramienta que ya no está en tu biblioteca)
-materials-remove-tool-hover = Quitar los valores de esta herramienta
-materials-add-tool = Añadir una herramienta…
-materials-no-library-tools = Tu biblioteca de herramientas está vacía: guarda primero una herramienta allí.
+materials-values = Herramientas con valores para él
 materials-name-taken = ya existe un material llamado "{ $name }"
 materials-saved = Guardado en { $name }
+materials-no-rows = Ninguna herramienta tiene aún valores para él.
+materials-open-tool-hover = Abrir la herramienta: sus datos de corte tienen los valores
+materials-rows-about = Añade valores para otra herramienta en los datos de corte de esa herramienta.

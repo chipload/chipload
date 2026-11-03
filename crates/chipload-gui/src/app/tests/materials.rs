@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Materials in the window (docs/specs/materials.md).
+//! Materials in the window (docs/specs/materials.md, docs/specs/cutting-data.md §7).
 use super::*;
-use chipload_job::library::{Cutting, LibraryTool, ToolLibrary, save_tools, uid_for_name};
+use chipload_job::library::{
+    Cutting, LibraryTool, ToolLibrary, save_tools, uid_for_name, update_tools,
+};
 
 const TOOL: &str = "6 mm 2-flute";
 
@@ -15,7 +17,7 @@ fn app_with_library(name: &str) -> ChiploadApp {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v31/svg_badge.chipload")));
     let tool = app.edit.as_ref().unwrap().job.tools[0].clone();
-    let entry = LibraryTool::from_tool(TOOL, &uid_for_name(TOOL), &tool, None);
+    let entry = LibraryTool::from_tool(TOOL, &uid_for_name(TOOL), &tool, Vec::new());
     let library = ToolLibrary {
         tools: vec![entry.clone()],
         ..ToolLibrary::default()
@@ -30,25 +32,44 @@ fn app_with_library(name: &str) -> ChiploadApp {
 }
 
 fn plywood() -> Cutting {
-    Cutting {
-        feed: 1500.0,
-        plunge_feed: 500.0,
-        step_down: 2.5,
-        stepover: 0.45,
-    }
+    Cutting::uniform(1500.0, 500.0, 2.5, 0.45)
 }
 
-/// A material "Plywood" with values for the library tool; its uid.
+/// Library tool `tool_uid`'s row for material `material` (a copy of the badge's tool when
+/// the library hasn't got it), written to `tools.json` and read back.
+fn set_row(app: &mut ChiploadApp, tool_uid: &str, material: &str, values: Cutting) {
+    let dir = app.user.settings_dir.clone().unwrap();
+    let tool = app.edit.as_ref().unwrap().job.tools[0].clone();
+    update_tools(&chipload_pipeline::library::tools_path(&dir), |library| {
+        if library.find_uid(tool_uid).is_none() {
+            let name = format!("tool {tool_uid}");
+            library
+                .tools
+                .push(LibraryTool::from_tool(&name, tool_uid, &tool, Vec::new()));
+        }
+        let entry = library
+            .tools
+            .iter_mut()
+            .find(|t| t.uid == tool_uid)
+            .unwrap();
+        entry.set_row(Some(material), values);
+        Ok(())
+    })
+    .unwrap();
+    app.reload_library();
+}
+
+/// A material "Plywood" with the library tool's values for it; its uid.
 fn add_plywood(app: &mut ChiploadApp) -> String {
     let uid = app.new_material().expect("a new material");
     let mut draft = app.user.library.materials.find_uid(&uid).unwrap().clone();
     draft.name = "Plywood".into();
-    draft.set_values(&uid_for_name(TOOL), plywood());
     app.user
         .library_state
         .material_drafts
         .insert(uid.clone(), draft);
     assert!(app.save_material_draft(&uid));
+    set_row(app, &uid_for_name(TOOL), &uid, plywood());
     uid
 }
 
@@ -158,16 +179,11 @@ fn a_new_tool_takes_the_operations_materials_values() {
     assert!(app.use_material(Some(&uid)));
     // A second tool, from the library too, with its own values in Plywood.
     let second = Cutting {
+        slot_feed: 900.0,
         feed: 900.0,
         ..plywood()
     };
-    let mut draft = app.user.library.materials.find_uid(&uid).unwrap().clone();
-    draft.set_values("b000000000000002", second);
-    app.user
-        .library_state
-        .material_drafts
-        .insert(uid.clone(), draft);
-    assert!(app.save_material_draft(&uid));
+    set_row(&mut app, "b000000000000002", &uid, second);
     let edit = app.edit.as_mut().unwrap();
     let mut tool = edit.job.tools[0].clone();
     tool.id = 2;
@@ -195,34 +211,84 @@ fn an_operations_tuned_values_are_saved_to_the_material() {
     let values = |app: &ChiploadApp| {
         app.user
             .library
-            .materials
-            .find_uid(&uid)
+            .tools
+            .find_uid(&uid_for_name(TOOL))
             .unwrap()
-            .values(&uid_for_name(TOOL))
+            .row(Some(&uid))
             .unwrap()
+            .values
     };
-    assert_eq!(values(&app).feed, 1500.0);
+    assert_eq!(values(&app).slot_feed, 1500.0);
     assert!(app.save_op_to_material(1));
-    assert_eq!(values(&app).feed, 1300.0);
-    // The pocket's own stepover stays the material's, the profile has none.
-    assert_eq!(values(&app).stepover, 0.45);
+    // A profile is a full-width cut: its feed is the row's slot feed; the clearing values
+    // and the stepover stay the row's.
+    assert_eq!(values(&app).slot_feed, 1300.0);
+    assert_eq!((values(&app).feed, values(&app).stepover), (1500.0, 0.45));
 }
 
 #[test]
-fn removing_a_library_tool_removes_its_values_from_the_materials() {
-    let mut app = app_with_library("forget");
-    let uid = add_plywood(&mut app);
-    app.remove_from_library(super::super::user_library::LibraryKind::Tools, TOOL)
-        .unwrap();
-    assert!(
-        app.user
-            .library
-            .materials
-            .find_uid(&uid)
-            .unwrap()
-            .tools
-            .is_empty()
-    );
+fn the_tool_shows_its_cutting_data_and_the_material_its_tools() {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::{NodeT, Queryable};
+    let uid = std::cell::RefCell::new(String::new());
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = app_with_library("tool-form");
+            *uid.borrow_mut() = add_plywood(&mut app);
+            app.focus =
+                Focus::LibraryTool(super::super::library_view::uid_key(&uid_for_name(TOOL)));
+            app
+        });
+    harness.run_steps(4);
+    assert!(harness.query_by_label_contains("Cutting data").is_some());
+    assert!(harness.query_by_label_contains("Plywood").is_some());
+    assert!(harness.query_by_label_contains("slot 1500").is_some());
+    // The material lists the tool, a link to it.
+    let key = super::super::library_view::uid_key(&uid.borrow());
+    harness.state_mut().focus = Focus::LibraryMaterial(key);
+    harness.run_steps(4);
+    // A link: found by its text among the window's labels.
+    harness
+        .get_all_by_role(egui::accesskit::Role::Label)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(TOOL))
+        .expect("the tool's link")
+        .click();
+    harness.run_steps(4);
+    assert!(matches!(harness.state().focus, Focus::LibraryTool(_)));
+}
+
+#[test]
+fn a_pocket_has_its_slot_feed_and_slot_step_down() {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = app_with_library("pocket-form");
+            let uid = add_plywood(&mut app);
+            set_row(
+                &mut app,
+                &uid_for_name(TOOL),
+                &uid,
+                Cutting {
+                    slot_feed: 1100.0,
+                    slot_step_down: 1.5,
+                    ..plywood()
+                },
+            );
+            assert!(app.use_material(Some(&uid)));
+            app.focus = Focus::Op(0);
+            app
+        });
+    harness.run_steps(4);
+    assert!(harness.query_by_label("Slot feed").is_some());
+    assert!(harness.query_by_label("Slot step down").is_some());
+    let Operation::Pocket(p) = &harness.state().edit.as_ref().unwrap().job.operations[0] else {
+        panic!("operation 1 is a pocket");
+    };
+    assert_eq!((p.slot_feed, p.slot_step_down), (Some(1100.0), Some(1.5)));
+    assert!(harness.query_by_label("From Plywood").is_some());
 }
 
 /// The material views rendered to PNG files to look at, as `layout::pictures`:

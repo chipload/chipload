@@ -10,9 +10,9 @@ use chipload_i18n::Message;
 use chipload_job::ToolChange;
 use chipload_job::library::{AppSettings, RECENT_MAX, Theme, load_settings, update_settings};
 use chipload_job::library::{
-    Cutting, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary, UsedTool,
-    export, import_into, import_plan, load_machines, load_tools, read_import, save_machines,
-    save_tools, update_tools, use_tool, write_export,
+    Cutting, CuttingRow, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary,
+    UsedTool, export, import_into, import_plan, load_machines, load_tools, read_import,
+    save_machines, save_tools, update_tools, use_tool, write_export,
 };
 use chipload_job::library::{Link, LinkEntry, fresh_uid, machine_link, tool_link, uid_for_name};
 use chipload_job::{Job, Spindle, StockCorner, ToolType, Travel, WorkZero, load_job};
@@ -44,12 +44,10 @@ fn upcut() -> LibraryTool {
         flutes: Some(2),
         center_cutting: Some(true),
         rpm: Some(18000.0),
-        cutting: Some(Cutting {
-            feed: 1200.0,
-            plunge_feed: 300.0,
-            step_down: 2.0,
-            stepover: 0.4,
-        }),
+        cutting_data: vec![CuttingRow {
+            material_uid: None,
+            values: Cutting::uniform(1200.0, 300.0, 2.0, 0.4),
+        }],
         angle: None,
         tip_diameter: None,
     }
@@ -130,7 +128,7 @@ fn both_files_round_trip_with_every_field_written() {
 
     let text = std::fs::read_to_string(&tools_path).unwrap();
     for field in [
-        "\"schema_version\": 3",
+        "\"schema_version\": 4",
         "\"uid\": \"",
         "\"center_cutting\": true",
         "\"angle\": null",
@@ -181,7 +179,7 @@ fn unknown_versions_and_broken_files_are_refused() {
     let dir = temp_dir("versions");
     let path = dir.join("tools.json");
     for (text, found) in [
-        (r#"{"schema_version": 4, "tools": []}"#, "4"),
+        (r#"{"schema_version": 5, "tools": []}"#, "5"),
         (r#"{"schema_version": 0, "tools": []}"#, "0"),
         (r#"{"tools": []}"#, "(missing)"),
         (r#"{"schema_version": "1", "tools": []}"#, "\"1\""),
@@ -192,7 +190,7 @@ fn unknown_versions_and_broken_files_are_refused() {
                 found: f, current, ..
             } => {
                 assert_eq!(f, found);
-                assert_eq!(current, 3);
+                assert_eq!(current, 4);
             }
             other => panic!("{text}: {other}"),
         }
@@ -219,7 +217,7 @@ fn a_version_1_library_loads_with_v_bits_of_unknown_angle() {
                    "center_cutting": null, "rpm": 18000.0, "cutting": null}]}"#;
     std::fs::write(&path, v1).unwrap();
     let library = load_tools(&path).unwrap();
-    assert_eq!(library.schema_version, 3);
+    assert_eq!(library.schema_version, 4);
     let tool = &library.tools[0];
     assert_eq!(tool.kind, ToolType::Vbit);
     assert_eq!((tool.angle, tool.tip_diameter), (None, None));
@@ -251,7 +249,7 @@ fn a_version_1_machine_library_writes_one_file_per_tool() {
 fn a_broken_library_is_never_overwritten() {
     let dir = temp_dir("broken");
     let path = dir.join("tools.json");
-    let newer = r#"{"schema_version": 4, "tools": [], "from_the_future": true}"#;
+    let newer = r#"{"schema_version": 5, "tools": [], "from_the_future": true}"#;
     std::fs::write(&path, newer).unwrap();
     let err = update_tools(&path, |library| {
         library.tools.push(upcut());
@@ -276,7 +274,7 @@ fn update_changes_the_file_as_it_is_now() {
         name: "3 mm".into(),
         uid: uid_for_name("3 mm"),
         diameter: 3.0,
-        cutting: None,
+        cutting_data: Vec::new(),
         ..upcut()
     });
     save_tools(&other, &path).unwrap();
@@ -305,18 +303,21 @@ fn library_rules() {
     let mut bad = tools();
     bad.tools[0].name = " padded".into();
     bad.tools[0].diameter = 0.0;
-    bad.tools[0].cutting = Some(Cutting {
+    bad.tools[0].cutting_data[0].values = Cutting {
         stepover: 1.5,
         feed: -1.0,
-        ..upcut().cutting.unwrap()
-    });
+        ..upcut().cutting_data[0].values
+    };
+    let twice_any = bad.tools[0].cutting_data[0].clone();
+    bad.tools[0].cutting_data.push(twice_any);
     bad.default_tool = Some("nothing".into());
     let text = problems(&bad);
     for expected in [
         "tools.0.name: must not start or end with spaces",
         "tools.0.diameter: must be greater than 0, got 0",
-        "tools.0.cutting.feed: must be greater than 0, got -1",
-        "tools.0.cutting.stepover: must be at most 1",
+        "tools.0.cutting_data.0.values.feed: must be greater than 0, got -1",
+        "tools.0.cutting_data.0.values.stepover: must be at most 1",
+        "tools.0.cutting_data.1.material_uid: the material has two rows",
         "default_tool: \"nothing\" is not in tools",
     ] {
         assert!(text.contains(expected), "{expected} in {text}");
@@ -619,7 +620,7 @@ fn downcut() -> LibraryTool {
         uid: uid_for_name("3 mm downcut"),
         id: 2,
         diameter: 3.0,
-        cutting: None,
+        cutting_data: Vec::new(),
         ..upcut()
     }
 }
@@ -706,7 +707,7 @@ fn import_adds_new_keeps_or_replaces_differing_and_skips_same() {
 fn differing_tools_and_machines_say_what_differs() {
     let mut other = upcut();
     other.id = 4;
-    other.cutting = None;
+    other.cutting_data.clear();
     let plan = import_plan(
         &tools(),
         &ToolLibrary {
@@ -719,7 +720,7 @@ fn differing_tools_and_machines_say_what_differs() {
     assert!(
         plan.differing[0].1[1]
             .english()
-            .starts_with("cutting values feed 1200")
+            .starts_with("cutting values slot 1200")
     );
 
     let mut other = shapeoko();
@@ -968,4 +969,26 @@ fn import_keeps_uids_and_gives_a_clashing_one_a_new_uid() {
     assert_eq!(library.tools[1].name, "Clash");
     assert_ne!(library.tools[1].uid, library.tools[0].uid);
     assert!(library.validate().is_empty(), "{:?}", library.validate());
+}
+
+#[test]
+fn a_version_3_library_gives_each_tool_its_values_as_a_row_for_any_material() {
+    // docs/specs/cutting-data.md §8: slot and clearing alike, so nothing cuts differently.
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/corpus/tools/v3/tools.json");
+    let library = load_tools(&path).unwrap();
+    assert_eq!(library.schema_version, chipload_job::library::TOOLS_VERSION);
+    let six = library.find("6 mm 2-flute").unwrap();
+    assert_eq!(
+        six.cutting_data,
+        [CuttingRow {
+            material_uid: None,
+            values: Cutting::uniform(1200.0, 400.0, 2.0, 0.45),
+        }]
+    );
+    assert_eq!(
+        six.cutting_for(Some("3f9c0a1b2d4e5f60")),
+        six.cutting_for(None)
+    );
+    assert!(library.find("V 60").unwrap().cutting_data.is_empty());
+    assert!(library.validate().is_empty());
 }

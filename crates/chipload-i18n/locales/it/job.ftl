@@ -272,7 +272,9 @@ job-library-work-zero-stock = grezzo { $corner }
 # $x and $y are lengths without their unit.
 job-library-work-zero-point = punto X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
-job-library-cutting = avanzamento { $feed }, affondamento { $plunge }, prof. di passata { $step_down }, passo laterale { $stepover }
+job-library-cutting = cava { $slot_feed } / { $slot_step_down }, svuotamento { $feed } / { $step_down } × { $stepover }, affondamento { $plunge }
+job-library-values-moved = { $material }: i valori di { $tool } sono ora i suoi dati di taglio per { $material }
+job-library-values-dropped = { $material }: i valori di un utensile non presente nella libreria (uid { $uid }) sono stati scartati
 job-library-other-values = altri valori
 job-shapes-no-entry = questa voce non esiste nella libreria di forme
 job-shapes-bad-name = «{ $name }» non può essere un nome: da 1 a { $most } caratteri, nessuno di / \ : * ? " < > |, senza punto o spazio all'inizio

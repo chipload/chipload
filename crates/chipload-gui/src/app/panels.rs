@@ -133,7 +133,12 @@ impl ChiploadApp {
                     .map(|m| {
                         (
                             chipload_pipeline::materials::material_ref(m),
-                            chipload_pipeline::materials::tool_values(&edit.job, m, e.tool()),
+                            chipload_pipeline::materials::tool_values(
+                                &edit.job,
+                                &library.tools,
+                                Some(m),
+                                e.tool(),
+                            ),
                         )
                     })
                     .collect()
@@ -284,7 +289,7 @@ fn self_tool_cutting(
     id: i64,
 ) -> Option<chipload_job::library::Cutting> {
     let tool = find_tool(tools, id)?;
-    chipload_job::library::linked_cutting(&library?.tools, tool)
+    chipload_job::library::linked_cutting(&library?.tools, tool, None)
 }
 
 impl ChiploadApp {

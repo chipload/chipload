@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Materials in the window (docs/specs/materials.md): choosing the material for every
-//! operation, following it when an operation's tool changes, saving an operation's values
-//! into its material, and the Library's Materials folder with a form
-//! per material. Edits to a material stay a draft until *Save*, as for tools.
+//! Materials in the window (docs/specs/materials.md, docs/specs/cutting-data.md §7):
+//! choosing the material for every operation, following it when an operation's tool
+//! changes, saving an operation's values into its tool's row for its material, and the
+//! Library's Materials folder with a form per material: its name, and the tools with values
+//! for it. Edits to a material stay a draft until *Save*, as for tools.
 
-use chipload_job::library::{Cutting, LibraryError, update_library};
+use chipload_job::library::{LibraryError, update_library, update_tools};
 use chipload_job::materials::MaterialLibrary;
-use chipload_pipeline::library::materials_path;
+use chipload_pipeline::library::{materials_path, tools_path};
 use chipload_pipeline::materials::{use_material, values_to_save};
 use eframe::egui::Id;
 
@@ -56,7 +57,8 @@ impl ChiploadApp {
                 return false;
             }
         };
-        let (job, messages) = use_material(&job, material.as_ref());
+        let tools = self.user.library.tools.clone();
+        let (job, messages) = use_material(&job, &tools, material.as_ref());
         // The "side not chosen" marks stay: operations aren't added or removed.
         if let Some(edit) = self.edit.as_mut() {
             edit.adopt(job);
@@ -66,7 +68,7 @@ impl ChiploadApp {
         true
     }
 
-    /// Save operation `i`'s values (0-based) for its tool in its material (else the
+    /// Save operation `i`'s values (0-based) into its tool's row for its material (else the
     /// project's).
     pub fn save_op_to_material(&mut self, i: usize) -> bool {
         self.commit();
@@ -96,16 +98,15 @@ impl ChiploadApp {
         else {
             return false;
         };
-        let tools = self.user.library.tools.clone();
-        let saved = update_library(&materials_path(&dir), |library: &mut MaterialLibrary| {
-            let material = library
-                .materials
-                .iter_mut()
-                .find(|m| m.uid == uid)
-                .ok_or_else(|| LibraryError::Refused(chipload_i18n::Value::Text(uid.clone())))?;
-            let (tool_uid, values) = values_to_save(&job, i + 1, &tools, material)
+        let Some(material) = self.user.library.materials.find_uid(&uid).cloned() else {
+            return false;
+        };
+        let saved = update_tools(&tools_path(&dir), |tools| {
+            let (tool_uid, values) = values_to_save(&job, i + 1, tools, &material)
                 .map_err(|e| LibraryError::Refused(e.message().into()))?;
-            material.set_values(&tool_uid, values);
+            if let Some(entry) = tools.tools.iter_mut().find(|t| t.uid == tool_uid) {
+                entry.set_row(Some(&material.uid), values);
+            }
             Ok(material.name.clone())
         });
         self.reload_library();
@@ -155,7 +156,15 @@ impl ChiploadApp {
                 .and_then(|e| e.job.stock().material.as_ref())
                 .map(|m| m.library_uid.clone());
             for material in &materials {
-                let mut note = t!(ui, "materials-tool-count", count = material.tools.len());
+                let count = self
+                    .user
+                    .library
+                    .tools
+                    .tools
+                    .iter()
+                    .filter(|t| t.row(Some(&material.uid)).is_some())
+                    .count();
+                let mut note = t!(ui, "materials-tool-count", count = count);
                 if self.user.library.materials.default_entry().map(|m| &m.uid)
                     == Some(&material.uid)
                 {
@@ -264,75 +273,27 @@ impl ChiploadApp {
                 ui.end_row();
             });
         ui.add_space(4.0);
+        // Its values are the tools' rows for it (docs/specs/cutting-data.md §7): each tool
+        // with one, a click away.
         ui.strong(t!(ui, "materials-values"));
-        let mut remove = None;
-        for (k, entry) in draft.tools.iter_mut().enumerate() {
-            let name = tools.find_uid(&entry.tool_uid).map_or_else(
-                || t!(ui, "materials-tool-not-in-library"),
-                |t| t.name.clone(),
-            );
-            ui.horizontal(|ui| {
-                ui.label(egui::RichText::new(name).strong());
-                if ui
-                    .small_button("×")
-                    .on_hover_text(t!(ui, "materials-remove-tool-hover"))
-                    .clicked()
-                {
-                    remove = Some(k);
-                }
-            });
-            egui::Grid::new(("material-tool", k))
-                .num_columns(2)
-                .show(ui, |ui| {
-                    ui.label(t!(ui, "forms-feed"));
-                    ui.add(crate::units::feed(&mut entry.feed).range(1.0..=100_000.0));
-                    ui.end_row();
-                    ui.label(t!(ui, "forms-plunge-feed"));
-                    ui.add(crate::units::feed(&mut entry.plunge_feed).range(1.0..=100_000.0));
-                    ui.end_row();
-                    ui.label(t!(ui, "forms-step-down"));
-                    ui.add(crate::units::length(&mut entry.step_down).range(0.01..=1000.0));
-                    ui.end_row();
-                    ui.label(t!(ui, "forms-stepover"));
-                    ui.add(
-                        crate::units::number(ui, &mut entry.stepover)
-                            .range(0.01..=1.0)
-                            .speed(0.01),
-                    );
-                    ui.end_row();
-                });
-        }
-        if let Some(k) = remove {
-            draft.tools.remove(k);
-        }
-        // Another library tool's values: they start from the tool's own, else a new
-        // operation's.
-        let missing: Vec<_> = tools
+        let with_rows: Vec<_> = tools
             .tools
             .iter()
-            .filter(|t| draft.values(&t.uid).is_none())
+            .filter(|t| t.row(Some(uid)).is_some())
             .collect();
-        if !missing.is_empty() {
-            egui::ComboBox::from_id_salt("material-add-tool")
-                .selected_text(t!(ui, "materials-add-tool"))
-                .show_ui(ui, |ui| {
-                    for tool in missing {
-                        if ui.selectable_label(false, &tool.name).clicked() {
-                            let values = tool.cutting.unwrap_or(Cutting {
-                                feed: chipload_pipeline::chip_load::default_feed(tool.diameter),
-                                plunge_feed: chipload_pipeline::chip_load::default_plunge_feed(
-                                    tool.diameter,
-                                ),
-                                step_down: chipload_pipeline::DEFAULT_STEP_DOWN,
-                                stepover: chipload_pipeline::materials::DEFAULT_STEPOVER,
-                            });
-                            draft.set_values(&tool.uid, values);
-                        }
-                    }
-                });
-        } else if tools.tools.is_empty() {
-            ui.weak(t!(ui, "materials-no-library-tools"));
+        if with_rows.is_empty() {
+            ui.weak(t!(ui, "materials-no-rows"));
         }
+        for tool in with_rows {
+            if ui
+                .link(&tool.name)
+                .on_hover_text(t!(ui, "materials-open-tool-hover"))
+                .clicked()
+            {
+                *act = Some(MaterialAct::Focus(Focus::LibraryTool(uid_key(&tool.uid))));
+            }
+        }
+        ui.weak(t!(ui, "materials-rows-about"));
         ui.add_space(4.0);
         let changed = draft != stored;
         if changed {
@@ -434,6 +395,14 @@ impl ChiploadApp {
                     .change_materials(|library| library.remove(&name).map(|_| ()))
                     .is_ok()
                 {
+                    // Its rows go from the tools too (docs/specs/cutting-data.md §2).
+                    if let Some(dir) = self.user.settings_dir.clone()
+                        && let Err(err) =
+                            chipload_pipeline::library::forget_material_in_tools(&dir, &uid)
+                    {
+                        self.user.library_state.error = Some(self.say(&err.message()));
+                    }
+                    self.reload_library();
                     self.user.library_state.material_drafts.remove(&uid);
                     self.focus = Focus::LibraryMaterials;
                     let status = t!(self, "library-view-deleted", name = name);
@@ -470,7 +439,12 @@ impl ChiploadApp {
                 .library
                 .materials
                 .find_uid(&e.material()?.library_uid)?;
-            chipload_pipeline::materials::tool_values(&edit.job, material, e.tool())
+            chipload_pipeline::materials::tool_values(
+                &edit.job,
+                &self.user.library.tools,
+                Some(material),
+                e.tool(),
+            )
         });
         if let (Some(values), Some(entry)) = (values, edit.job.operations.get_mut(i)) {
             entry.apply_cutting(&values);

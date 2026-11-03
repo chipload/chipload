@@ -34,8 +34,8 @@ how they stand:
 - **Pick another tool in the dropdown** to give the project tool its values.
 - **⋯** beside it: *Save as new…* keeps the project tool's values under another name;
   *Show in library* opens the library tool.
-- A new operation gets a library tool's cutting values while the project tool still has the
-  library tool's values.
+- A new operation gets the library tool's [cutting data](#cutting-data) while the project
+  tool still has the library tool's values.
 
 ## What a tool has
 
@@ -43,18 +43,55 @@ The project tool's values ([Tools and tool changes](../concepts/tools.md)), plus
 - **Name:** how you find it, e.g. "6 mm 2F upcut".
 - **Tool number:** the id it gets in a project, when that number is free there.
 - **Flutes:** used for the [chip load](../checking/time.md#chip-load).
-- **Cutting values** (optional): feed, plunge feed, step down and stepover. A new operation
-  made with this tool starts with them. They never change an existing operation. Without
-  them, a new operation copies the operation above it, or starts from the tool's
-  diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge, 1 mm
-  step down. Check the [chip load](../checking/time.md#chip-load) before cutting.
+- **Cutting data** (optional): your own feeds and step downs, one row per
+  [material](materials.md). See below.
+
+## Cutting data
+
+How hard a bit can work depends on how wide it cuts. A **slot**, the full width of the bit,
+loads it most: a profile through the stock, a follow path, a V-carve, a bore, and a
+pocket's first ring at each depth. A cut at a **stepover**, the rest of a pocket's rings
+and a surface, takes only part of the width, so it can go deeper at once. So a row of cutting
+data has two sets of values:
+
+| | |
+|---|---|
+| **Spindle speed** | the speed the row is for; *The tool's* when it's the tool's own |
+| **Plunge feed** | going straight down, and drilling |
+| **Slot feed**, **Slot step down** | full-width cuts |
+| **Clearing feed**, **Clearing step down**, **Stepover** | cuts at a stepover |
+
+There is one row per material you cut with the tool, and one for **Any material**, used
+without a material or for a material the tool has no row for. In the tool's properties,
+**Cutting data** lists the rows, each folded to a summary (*slot 1500 / 2.5 · clearing
+1800 / 5 × 0.4*); open one to edit it, **Remove** it, or **Add a material…** for another row.
+A new row starts from the *Any material* row.
+
+The values fill an operation when you choose a material for it, change its tool, or add it,
+never by themselves. Each operation takes the ones it uses: a profile its slot values, a
+pocket both (its full-width rings go down in slot steps, see [Pocket](../operations/pocket.md#rings)),
+a surface the clearing ones. Choosing a material for a whole setup also sets the project
+tool's speed from the row. When an operation's own material is for another speed than the
+tool runs at, its *Material* row says so.
+
+Without cutting data, a new operation copies the operation above it, or starts from the
+tool's diameter: 250 mm/min per mm (a 6 mm tool: 1500 mm/min), a third of that to plunge,
+1 mm step down. Check the [chip load](../checking/time.md#chip-load) before cutting.
+
+Libraries from before Chipload 0.32 had one set of values per tool, and the values per tool
+in each material. The first time 0.32 reads such a library, they become rows: slot and
+clearing the same, so nothing cuts differently until you change them. The old files are
+kept as `.bak`, and the report says what moved.
 
 ## On the command line
 
 ```sh
 chipload tool list                                     # the tools, and where the file is
-chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000 \
-  --feed 1500 --plunge-feed 400 --step-down 2 --stepover 0.4
+chipload tool add "6 mm 2F" --diameter 6 --flutes 2 --rpm 18000
+chipload tool cutting "6 mm 2F" --material any --plunge-feed 400 \
+  --slot-feed 1500 --slot-step-down 2 --feed 1800 --step-down 4 --stepover 0.4
+chipload tool cutting "6 mm 2F" --material Oak --rpm 20000 --slot-feed 1200   # a row there keeps the rest
+chipload tool cutting "6 mm 2F" --material Oak --remove
 chipload tool add "V 60" --type vbit --diameter 12.7 --angle 60 --tip 0.2
 chipload tool add "5 mm drill" --type drill --diameter 5 --rpm 3000
 chipload tool set "6 mm 2F" --rpm 20000                # or --rename
@@ -65,7 +102,8 @@ chipload tool compare part.chipload                # each project tool: same, di
 chipload tool remove "5 mm drill"
 ```
 
-Cutting values come as a set: give all four, or none.
+A new row needs every value but `--rpm` (without it, the tool's own speed); a row that is
+there keeps the values you don't give. `tool list` shows each tool's rows.
 
 ## Sharing
 

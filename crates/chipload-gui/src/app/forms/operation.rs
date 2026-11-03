@@ -381,9 +381,11 @@ pub(in crate::app) fn op_form(
                     true,
                     stock,
                 );
-                ui.label(t!(ui, "forms-step-down"));
+                ui.label(t!(ui, "forms-step-down"))
+                    .on_hover_text(t!(ui, "forms-pocket-step-down-hover"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
+                slot_step_row(ui, &mut p.slot_step_down, p.step_down);
                 corner_rows(ui, index, &mut p.corners, &mut p.corner_choices, true);
             });
             let stepover = format!("{:.2}", p.stepover);
@@ -410,7 +412,13 @@ pub(in crate::app) fn op_form(
                 flag(stepover, ui, "stepover");
                 ui.end_row();
             });
-            feeds_section(ui, &mut p.feed, &mut p.plunge_feed, op_tool);
+            feeds_section_with(
+                ui,
+                &mut p.feed,
+                &mut p.plunge_feed,
+                Some(&mut p.slot_feed),
+                op_tool,
+            );
             let entry_text = entry_summary(ui.lang(), &p.entry, p.lead.as_ref(), units);
             let title = t!(ui, "forms-section-entry-lead");
             section(ui, "op-entry", &title, &entry_text, |ui| {
@@ -587,7 +595,12 @@ pub(super) fn tool_row(
     if let Some(materials) = &choice.materials
         && (!materials.is_empty() || op.material().is_some())
     {
-        material_values = material_rows(ui, index, op, materials, request);
+        let runs = choice
+            .tools
+            .iter()
+            .find(|t| t.id == op.tool())
+            .and_then(|t| t.rpm);
+        material_values = material_rows(ui, index, op, materials, runs, request);
     }
     // The tool's own values, when the operation's material has none for it.
     if let Some(cutting) = choice.cutting
@@ -623,6 +636,7 @@ pub(super) fn material_rows(
     index: usize,
     op: &mut Operation,
     materials: &[(MaterialRef, Option<Cutting>)],
+    tool_rpm: Option<f64>,
     request: &mut OpFormRequest,
 ) -> Option<Cutting> {
     let current = op.material().cloned();
@@ -685,6 +699,23 @@ pub(super) fn material_rows(
         }
     };
     ui.end_row();
+    // Its values are for another speed than the tool runs at (docs/specs/cutting-data.md
+    // §6): the chip load shown is at the tool's.
+    if let (Some(row), Some(runs)) = (values.and_then(|c| c.rpm), tool_rpm)
+        && row != runs
+    {
+        ui.label("");
+        wrapped_cell(ui, |ui| {
+            ui.weak(t!(
+                ui,
+                "forms-material-speed-differs",
+                name = name,
+                rpm = chipload_i18n::message::trimmed(row, 0),
+                runs = chipload_i18n::message::trimmed(runs, 0)
+            ))
+        });
+        ui.end_row();
+    }
     // A row each: a grid cell that wraps overlaps the row under it.
     if let Some(c) = use_values {
         ui.label("");
@@ -719,6 +750,32 @@ pub(super) fn feeds_section(
     plunge: &mut f64,
     tool: Option<&Tool>,
 ) {
+    feeds_section_with(ui, cut, plunge, None, tool);
+}
+
+/// A pocket's full-width rings' step down (docs/specs/cutting-data.md §4): shown as the step
+/// down while it has none of its own, set once edited.
+pub(super) fn slot_step_row(ui: &mut egui::Ui, slot: &mut Option<f64>, step_down: f64) {
+    ui.label(t!(ui, "forms-slot-step-down"))
+        .on_hover_text(t!(ui, "forms-slot-step-down-hover"));
+    let mut value = slot.unwrap_or(step_down);
+    let field = ui.add(mm(&mut value));
+    if field.changed() {
+        *slot = Some(value);
+    }
+    flag(field, ui, "slot_step_down");
+    ui.end_row();
+}
+
+/// The feeds, with a pocket's full-width rings' feed (`slot`, shown as the feed while it has
+/// none of its own) under the feed.
+pub(super) fn feeds_section_with(
+    ui: &mut egui::Ui,
+    cut: &mut f64,
+    plunge: &mut f64,
+    slot: Option<&mut Option<f64>>,
+    tool: Option<&Tool>,
+) {
     let units = crate::units::display(ui.ctx());
     let feed_unit = chipload_pipeline::units::feed_unit(units);
     let text = format!(
@@ -738,6 +795,21 @@ pub(super) fn feeds_section(
             if let Some(tool) = tool {
                 let load = chipload_pipeline::chip_load::chip_load_of(*cut, tool);
                 chip_load_row(ui, load, units);
+            }
+            if let Some(slot) = slot {
+                ui.label(t!(ui, "forms-slot-feed"))
+                    .on_hover_text(t!(ui, "forms-slot-feed-hover"));
+                let mut value = slot.unwrap_or(*cut);
+                let field = ui.add(feed(&mut value));
+                if field.changed() {
+                    *slot = Some(value);
+                }
+                flag(field, ui, "slot_feed");
+                ui.end_row();
+                if let Some(tool) = tool {
+                    let load = chipload_pipeline::chip_load::chip_load_of(value, tool);
+                    chip_load_row(ui, load, units);
+                }
             }
             ui.label(t!(ui, "forms-plunge-feed"));
             flag(ui.add(feed(plunge)), ui, "plunge_feed");

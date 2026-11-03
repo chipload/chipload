@@ -271,8 +271,12 @@ job-library-work-zero-origin = drawing origin
 job-library-work-zero-stock = stock { $corner }
 # $x and $y are lengths without their unit.
 job-library-work-zero-point = point X{ $x } Y{ $y }
-# A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
-job-library-cutting = feed { $feed }, plunge { $plunge }, step down { $step_down }, stepover { $stepover }
+# A tool's cutting values: the slot (full-width) and clearing feeds and step downs with their units, the stepover a fraction.
+job-library-cutting = slot { $slot_feed } / { $slot_step_down }, clearing { $feed } / { $step_down } × { $stepover }, plunge { $plunge }
+# Converting the library (docs/specs/cutting-data.md §8): a material's values for a tool moved into the tool.
+job-library-values-moved = { $material }: the values for { $tool } are now its { $material } cutting data
+# A material's values for a tool uid the tool library doesn't have.
+job-library-values-dropped = { $material }: values for a tool that isn't in the tool library (uid { $uid }) were dropped
 job-library-other-values = other values
 job-shapes-no-entry = there is no such entry in the shape library
 job-shapes-bad-name = “{ $name }” can't be a name: 1 to { $most } characters, none of / \ : * ? " < > |, not starting with a dot or a space

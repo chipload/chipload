@@ -370,7 +370,7 @@ impl ChiploadApp {
         title_line(ui, tool_icon(stored.kind), None, &stored.name);
         ui.weak(t!(ui, "library-view-entry-about"));
         ui.add_space(4.0);
-        tool_entry_form(ui, &mut draft);
+        tool_entry_form(ui, &mut draft, &self.user.library.materials);
         let changed = draft != stored;
         if changed {
             self.user

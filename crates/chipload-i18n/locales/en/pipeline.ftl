@@ -433,6 +433,8 @@ pipeline-library-unknown-post = Machine "{ $name }": this Chipload has no post-p
 pipeline-material-chosen = Material: { $name }
 pipeline-material-none = Material { $name } no longer chosen; the feeds stay as they are
 pipeline-material-op-set = Operation { $op } ({ $name }): feeds from { $material }
+# Choosing a project material set a tool's spindle speed from its row (docs/specs/cutting-data.md §6); $rpm is a number.
+pipeline-material-tool-speed = Tool { $tool } runs at { $rpm } rpm, as { $material } says
 pipeline-material-op-kept = Operation { $op } ({ $name }): tool { $tool } has no values for { $material }; its feeds are unchanged
 pipeline-material-tool-not-in-library = Tool { $tool } isn't in your tool library: save it there first (tool save), then its values can be kept in a material
 
@@ -577,3 +579,4 @@ pipeline-frame-borders-fit = { $count ->
     [one] a border { $gap } inside doesn't fit in this frame
    *[other] { $count } borders { $gap } apart don't fit in this frame
 }
+pipeline-library-converted = Your library was updated: the materials' values are now in the tools' cutting data (the old files are kept as .bak).

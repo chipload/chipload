@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! `chipload material …`: the user's materials, each with their own feeds per library tool,
-//! and choosing one for a project (docs/specs/materials.md).
+//! `chipload material …`: the user's materials, names whose values are the tools' rows of
+//! cutting data, and choosing one for a project (docs/specs/materials.md,
+//! docs/specs/cutting-data.md §7).
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::library::{
-    Cutting, LibraryError, ToolLibrary, export, import_into, load_library, load_tools, read_import,
-    update_library, write_export,
+    LibraryError, ToolLibrary, export, import_into, load_library, load_tools, read_import,
+    update_library, update_tools, write_export,
 };
 use chipload_job::materials::{Material, MaterialLibrary};
 use chipload_job::save_job;
@@ -15,7 +16,7 @@ use chipload_pipeline::library::{materials_path, tools_path};
 use chipload_pipeline::materials::{use_material, use_material_for_op, values_to_save};
 use clap::Subcommand;
 
-use crate::library::{dir, refused};
+use crate::library::{dir, refused, row_text};
 use crate::load;
 use crate::out::Out;
 
@@ -23,28 +24,15 @@ use crate::out::Out;
 pub enum MaterialAction {
     /// List the materials and where the file is.
     List,
-    /// A material's values per tool.
+    /// A material and the tools with values for it (their rows, `tool cutting`).
     Show { name: String },
-    /// Add a material, with no values yet.
+    /// Add a material; its values are the tools' rows for it (`tool cutting`).
     Add { name: String },
-    /// Change a material: its name, or one library tool's values.
+    /// Rename a material.
     Set {
         name: String,
         #[arg(long)]
-        rename: Option<String>,
-        /// The library tool whose values these are.
-        #[arg(long)]
-        tool: Option<String>,
-        /// mm/min. The four values come as a set the first time for a tool.
-        #[arg(value_parser = crate::lengths::feed, long, requires = "tool")]
-        feed: Option<f64>,
-        #[arg(value_parser = crate::lengths::feed, long, requires = "tool")]
-        plunge_feed: Option<f64>,
-        #[arg(value_parser = crate::lengths::length, long, requires = "tool")]
-        step_down: Option<f64>,
-        /// Fraction of the tool diameter (pockets).
-        #[arg(long, requires = "tool")]
-        stepover: Option<f64>,
+        rename: String,
     },
     /// The material new projects start with (--none: none).
     Default {
@@ -54,12 +42,8 @@ pub enum MaterialAction {
         #[arg(long, conflicts_with = "name")]
         none: bool,
     },
-    /// Remove a material, or with --tool only that tool's values.
-    Remove {
-        name: String,
-        #[arg(long)]
-        tool: Option<String>,
-    },
+    /// Remove a material, and every tool's row for it.
+    Remove { name: String },
     /// Choose the material for every operation and those added later: they take its values
     /// for their tools. The stock stays as it is.
     Use {
@@ -78,7 +62,7 @@ pub enum MaterialAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Save an operation's feeds, step down and stepover as its tool's values in a material.
+    /// Save an operation's values into its tool's row for a material.
     Save {
         /// The project (.chipload).
         project: PathBuf,
@@ -122,54 +106,23 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
             let added = library.add(&name)?;
             Ok(format!("Added material \"{}\".", added.name))
         }),
-        MaterialAction::Set {
-            name,
-            rename,
-            tool,
-            feed,
-            plunge_feed,
-            step_down,
-            stepover,
-        } => update_library(&path, |library: &mut MaterialLibrary| {
-            if let Some(new) = rename.as_deref()
-                && library
+        MaterialAction::Set { name, rename } => {
+            update_library(&path, |library: &mut MaterialLibrary| {
+                let new = rename.trim();
+                if library
                     .position(new)
                     .is_some_and(|i| Some(i) != library.position(&name))
-            {
-                return Err(refused(format!(
-                    "a material named \"{new}\" already exists"
-                )));
-            }
-            if let Some(new) = rename.as_deref() {
-                library.rename(&name, new.trim());
-            }
-            let material = library.find_mut(&name)?;
-            if let Some(new) = rename {
-                material.name = new.trim().to_string();
-            }
-            if let Some(tool) = tool {
-                let entry = tools
-                    .find(&tool)
-                    .ok_or_else(|| refused(format!("no tool named \"{tool}\" in your library")))?;
-                let old = material.values(&entry.uid);
-                let pick = |new: Option<f64>, old: Option<f64>, flag: &str| {
-                    new.or(old).ok_or_else(|| {
-                        refused(format!(
-                            "a tool's values come as a set the first time: give --feed, \
-                             --plunge-feed, --step-down and --stepover (missing --{flag})"
-                        ))
-                    })
-                };
-                let values = Cutting {
-                    feed: pick(feed, old.map(|c| c.feed), "feed")?,
-                    plunge_feed: pick(plunge_feed, old.map(|c| c.plunge_feed), "plunge-feed")?,
-                    step_down: pick(step_down, old.map(|c| c.step_down), "step-down")?,
-                    stepover: pick(stepover, old.map(|c| c.stepover), "stepover")?,
-                };
-                material.set_values(&entry.uid, values);
-            }
-            Ok(format!("Changed material \"{}\".", material.name))
-        }),
+                {
+                    return Err(refused(format!(
+                        "a material named \"{new}\" already exists"
+                    )));
+                }
+                library.rename(&name, new);
+                let material = library.find_mut(&name)?;
+                material.name = new.to_string();
+                Ok(format!("Changed material \"{}\".", material.name))
+            })
+        }
         MaterialAction::Default { name, none: _ } => {
             update_library(&path, |library: &mut MaterialLibrary| match name {
                 Some(name) => {
@@ -186,42 +139,36 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
                 }
             })
         }
-        MaterialAction::Remove { name, tool } => {
-            update_library(&path, |library: &mut MaterialLibrary| match tool {
-                None => {
-                    let removed = library.remove(&name)?;
-                    Ok(format!("Removed material \"{}\".", removed.name))
-                }
-                Some(tool) => {
-                    let uid = tools.find(&tool).map(|t| t.uid.clone()).ok_or_else(|| {
-                        refused(format!("no tool named \"{tool}\" in your library"))
-                    })?;
-                    let material = library.find_mut(&name)?;
-                    if !material.remove_values(&uid) {
-                        return Err(refused(format!(
-                            "\"{}\" has no values for tool \"{tool}\"",
-                            material.name
-                        )));
-                    }
-                    Ok(format!(
-                        "Removed tool \"{tool}\"'s values from \"{}\".",
-                        material.name
-                    ))
-                }
-            })
-        }
+        MaterialAction::Remove { name } => update_library(
+            &path,
+            |library: &mut MaterialLibrary| library.remove(&name),
+        )
+        .and_then(|removed| {
+            let mut line = format!("Removed material \"{}\".", removed.name);
+            let names = chipload_pipeline::library::forget_material_in_tools(&dir, &removed.uid)?;
+            if !names.is_empty() {
+                line.push_str(&format!(
+                    " Its rows were removed from: {}.",
+                    names.join(", ")
+                ));
+            }
+            Ok(line)
+        }),
         MaterialAction::Use {
             project,
             name,
             none: _,
             op,
             output,
-        } => return use_in_project(out, &path, &project, name.as_deref(), op, output),
+        } => return use_in_project(out, &path, &tools, &project, name.as_deref(), op, output),
         MaterialAction::Save {
             project,
             op,
             material,
-        } => return save_from_op(out, &path, &tools, &project, op, material.as_deref()),
+        } => {
+            let tools_file = tools_path(&dir);
+            return save_from_op(out, &path, &tools_file, &project, op, material.as_deref());
+        }
         MaterialAction::Export { file, names } => {
             let exported =
                 load_library::<MaterialLibrary>(&path).and_then(|library| export(&library, &names));
@@ -237,7 +184,7 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
             };
         }
         MaterialAction::Import { file, replace } => {
-            return import(out, &path, &tools, &file, replace);
+            return import(out, &path, &file, replace);
         }
     };
     match result {
@@ -250,28 +197,16 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
     }
 }
 
-/// A tool's name in the library, or its uid when the library no longer has it.
-fn tool_name(tools: &ToolLibrary, uid: &str) -> String {
-    tools.find_uid(uid).map_or_else(
-        || format!("(not in your library: {uid})"),
-        |t| t.name.clone(),
-    )
-}
-
-fn values_text(c: &Cutting) -> String {
-    format!(
-        "feed {} plunge {} mm/min, step down {} mm, stepover {}",
-        c.feed, c.plunge_feed, c.step_down, c.stepover
-    )
-}
-
-fn heading(material: &Material) -> String {
-    format!(
-        "{}: {} tool(s) (uid {})",
-        material.name,
-        material.tools.len(),
-        material.uid
-    )
+/// The tools with a row for `material`, and the row's values, one line each.
+fn rows_of(tools: &ToolLibrary, material: &Material) -> Vec<(String, String)> {
+    tools
+        .tools
+        .iter()
+        .filter_map(|t| {
+            t.row(Some(&material.uid))
+                .map(|row| (t.name.clone(), row_text(&row.values)))
+        })
+        .collect()
 }
 
 fn list(out: &mut Out, path: &Path, tools: &ToolLibrary) -> ExitCode {
@@ -292,13 +227,15 @@ fn list(out: &mut Out, path: &Path, tools: &ToolLibrary) -> ExitCode {
             .as_deref()
             .is_some_and(|d| chipload_job::library::same_name(d, &material.name));
         let mark = if is_default { " (default)" } else { "" };
-        out.line(format!("  {}{mark}", heading(material)));
-        for t in &material.tools {
-            out.line(format!(
-                "    {}: {}",
-                tool_name(tools, &t.tool_uid),
-                values_text(&t.cutting())
-            ));
+        let rows = rows_of(tools, material);
+        out.line(format!(
+            "  {}{mark}: {} tool(s) (uid {})",
+            material.name,
+            rows.len(),
+            material.uid
+        ));
+        for (tool, values) in rows {
+            out.line(format!("    {tool}: {values}"));
         }
     }
     ExitCode::SUCCESS
@@ -312,17 +249,23 @@ fn show(out: &mut Out, path: &Path, tools: &ToolLibrary, name: &str) -> ExitCode
     let Some(material) = library.find(name) else {
         return out.fail(format!("no material named \"{name}\""));
     };
-    out.line(heading(material));
+    let rows = rows_of(tools, material);
+    out.line(format!(
+        "{}: {} tool(s) (uid {})",
+        material.name,
+        rows.len(),
+        material.uid
+    ));
     out.set("material", serde_json::json!(material));
-    if material.tools.is_empty() {
-        out.line("  (no tool values yet)");
+    out.set(
+        "tools",
+        serde_json::json!(rows.iter().map(|(tool, _)| tool).collect::<Vec<_>>()),
+    );
+    if rows.is_empty() {
+        out.line("  (no tool has values for it yet: `tool cutting`)");
     }
-    for t in &material.tools {
-        out.line(format!(
-            "  {}: {}",
-            tool_name(tools, &t.tool_uid),
-            values_text(&t.cutting())
-        ));
+    for (tool, values) in rows {
+        out.line(format!("  {tool}: {values}"));
     }
     ExitCode::SUCCESS
 }
@@ -330,6 +273,7 @@ fn show(out: &mut Out, path: &Path, tools: &ToolLibrary, name: &str) -> ExitCode
 fn use_in_project(
     out: &mut Out,
     path: &Path,
+    tools: &ToolLibrary,
     project: &Path,
     name: Option<&str>,
     op: Option<usize>,
@@ -351,9 +295,9 @@ fn use_in_project(
         Err(code) => return code,
     };
     let (job, messages) = match op {
-        None => use_material(&job, material),
+        None => use_material(&job, tools, material),
         Some(0) => return out.fail("operations are numbered from 1"),
-        Some(number) => match use_material_for_op(&job, number - 1, material) {
+        Some(number) => match use_material_for_op(&job, tools, number - 1, material) {
             Ok(changed) => changed,
             Err(err) => return out.fail(err),
         },
@@ -374,7 +318,7 @@ fn use_in_project(
 fn save_from_op(
     out: &mut Out,
     path: &Path,
-    tools: &ToolLibrary,
+    tools_file: &Path,
     project: &Path,
     op: usize,
     material: Option<&str>,
@@ -383,74 +327,64 @@ fn save_from_op(
         Ok(job) => job,
         Err(code) => return code,
     };
-    let saved = update_library(path, |library: &mut MaterialLibrary| {
-        let name = match material {
-            Some(name) => name.to_string(),
-            None => op
-                .checked_sub(1)
-                .and_then(|i| job.operations.get(i))
-                .and_then(|o| o.material())
-                .or(job.stock().material.as_ref())
-                .and_then(|m| library.find_uid(&m.library_uid))
-                .map(|m| m.name.clone())
-                .ok_or_else(|| {
-                    refused(
-                        "neither the operation nor the project has a material from your \
-                         library: give --material NAME"
-                            .into(),
-                    )
-                })?,
-        };
-        let target = library.find_mut(&name)?;
+    let library = match load_library::<MaterialLibrary>(path) {
+        Ok(library) => library,
+        Err(err) => return out.fail(err),
+    };
+    let target = match material {
+        Some(name) => library.find(name),
+        None => op
+            .checked_sub(1)
+            .and_then(|i| job.operations.get(i))
+            .and_then(|o| o.material())
+            .or(job.stock().material.as_ref())
+            .and_then(|m| library.find_uid(&m.library_uid)),
+    };
+    let Some(target) = target else {
+        return out.fail(match material {
+            Some(name) => format!("no material named \"{name}\""),
+            None => "neither the operation nor the project has a material from your library: \
+                     give --material NAME"
+                .to_string(),
+        });
+    };
+    let saved = update_tools(tools_file, |tools| {
         let (uid, values) = values_to_save(&job, op, tools, target)
             .map_err(|e| LibraryError::Refused(e.message().into()))?;
-        target.set_values(&uid, values);
+        let entry = tools
+            .tools
+            .iter_mut()
+            .find(|t| t.uid == uid)
+            .ok_or_else(|| refused(format!("no library tool with uid {uid}")))?;
+        entry.set_row(Some(&target.uid), values);
         Ok(format!(
-            "Saved operation {op}'s values for tool \"{}\" in \"{}\": {}.",
-            tool_name(tools, &uid),
+            "Saved operation {op}'s values as \"{}\"'s row for \"{}\": {}.",
+            entry.name,
             target.name,
-            values_text(&values)
+            row_text(&values)
         ))
     });
     match saved {
         Ok(line) => {
             out.line(line);
-            out.wrote(path, "");
+            out.wrote(tools_file, "");
             ExitCode::SUCCESS
         }
         Err(err) => out.fail(err),
     }
 }
 
-/// `material import` (as `tool import`), naming values whose tool isn't in this library.
-fn import(out: &mut Out, path: &Path, tools: &ToolLibrary, file: &Path, replace: bool) -> ExitCode {
+/// `material import` (as `tool import`): names only, the values come with the tools.
+fn import(out: &mut Out, path: &Path, file: &Path, replace: bool) -> ExitCode {
     let imported = read_import::<MaterialLibrary>(file).and_then(|from| {
-        let plan = update_library(path, |library: &mut MaterialLibrary| {
+        update_library(path, |library: &mut MaterialLibrary| {
             Ok(import_into(library, &from, replace))
-        })?;
-        Ok((plan, from))
+        })
     });
     match imported {
-        Ok((plan, from)) => {
+        Ok(plan) => {
             for line in plan.report("materials", replace) {
                 out.line(line.to_string());
-            }
-            for material in &from.materials {
-                let missing = material
-                    .tools
-                    .iter()
-                    .filter(|t| tools.find_uid(&t.tool_uid).is_none())
-                    .count();
-                if missing > 0 {
-                    out.line(format!(
-                        "\"{}\": values for {missing} tool(s) that aren't in your tool library \
-                         (import those tools too)",
-                        material.name
-                    ));
-                }
-            }
-            if !replace && !plan.differing.is_empty() {
-                out.line("Use --replace to take the file's values.");
             }
             let differing: Vec<&String> = plan.differing.iter().map(|(name, _)| name).collect();
             out.set("added", serde_json::json!(plan.added));
@@ -469,9 +403,11 @@ fn import(out: &mut Out, path: &Path, tools: &ToolLibrary, file: &Path, replace:
 /// the feeds stay.
 pub fn follow_op_material(job: &mut chipload_job::Job, index: usize) -> Option<String> {
     job.operations.get(index)?.material()?;
-    let library = load_library::<MaterialLibrary>(&materials_path(&dir().ok()?)).ok()?;
+    let dir = dir().ok()?;
+    let library = load_library::<MaterialLibrary>(&materials_path(&dir)).ok()?;
+    let tools = load_tools(&tools_path(&dir)).ok()?;
     let name = chipload_pipeline::materials::op_material(job, &library, index)?
         .name
         .clone();
-    chipload_pipeline::materials::follow_material(job, &library, index).then_some(name)
+    chipload_pipeline::materials::follow_material(job, &library, &tools, index).then_some(name)
 }

@@ -2,73 +2,27 @@
   "$defs": {
     "Material": {
       "additionalProperties": false,
-      "description": "A material: a name and the user's values per tool.",
+      "description": "A material: a name to choose. Its values are the tools' rows for it.",
       "properties": {
         "name": {
           "description": "The material's name, unique in the library (upper or lower case don't matter).",
           "type": "string"
         },
-        "tools": {
-          "description": "Values for the tools used with this material, one entry per library tool.",
-          "items": {
-            "$ref": "#/$defs/MaterialTool"
-          },
-          "type": "array"
-        },
         "uid": {
-          "description": "What projects name the material by: 16 lowercase hex digits, never changed.",
+          "description": "What projects and the tools' rows name the material by: 16 lowercase hex digits,\nnever changed.",
           "type": "string"
         }
       },
       "required": [
         "name",
-        "uid",
-        "tools"
-      ],
-      "type": "object"
-    },
-    "MaterialTool": {
-      "additionalProperties": false,
-      "description": "One tool's values in a material.",
-      "properties": {
-        "feed": {
-          "description": "Cutting feed, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "plunge_feed": {
-          "description": "Plunge feed, mm/min.",
-          "format": "double",
-          "type": "number"
-        },
-        "step_down": {
-          "description": "Step down, mm.",
-          "format": "double",
-          "type": "number"
-        },
-        "stepover": {
-          "description": "Pocket stepover, a fraction of the tool diameter: more than 0, at most 1.",
-          "format": "double",
-          "type": "number"
-        },
-        "tool_uid": {
-          "description": "The library tool's uid.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "tool_uid",
-        "feed",
-        "plunge_feed",
-        "step_down",
-        "stepover"
+        "uid"
       ],
       "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "default_material": {
       "default": null,
@@ -86,7 +40,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 2,
+      "const": 3,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "written_by": {

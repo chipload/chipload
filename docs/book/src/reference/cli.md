@@ -1391,10 +1391,6 @@ chipload tool add <NAME> [OPTIONS]
 | `--angle <ANGLE>` | V-bits: the included angle, degrees. |
 | `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed) |
 | `--id <ID>` | The id it gets in a project where that id is free (default 1) |
-| `--feed <FEED>` | Cutting values for new operations: give all four the first time. |
-| `--plunge-feed <PLUNGE_FEED>` |  |
-| `--step-down <STEP_DOWN>` |  |
-| `--stepover <STEPOVER>` | Fraction of the tool diameter (pockets) |
 
 ### `chipload tool set`
 
@@ -1415,10 +1411,6 @@ chipload tool set <NAME> [OPTIONS]
 | `--angle <ANGLE>` | V-bits: the included angle, degrees. |
 | `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed) |
 | `--id <ID>` | The id it gets in a project where that id is free (default 1) |
-| `--feed <FEED>` | Cutting values for new operations: give all four the first time. |
-| `--plunge-feed <PLUNGE_FEED>` |  |
-| `--step-down <STEP_DOWN>` |  |
-| `--stepover <STEPOVER>` | Fraction of the tool diameter (pockets) |
 | `--rename <RENAME>` | A new name. |
 
 ### `chipload tool remove`
@@ -1444,6 +1436,27 @@ chipload tool default <NAME>
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
+
+### `chipload tool cutting`
+
+Set or remove a row of a tool's cutting data: its values for a material, or for any material (docs/specs/cutting-data.md)
+
+```text
+chipload tool cutting <NAME> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<NAME>` |  |
+| `--material <MATERIAL>` | The material's name, or `any`: the row used without a material, or for a material the tool has no row for. Required. |
+| `--rpm <RPM>` | Spindle speed; default: the tool's own. |
+| `--plunge-feed <PLUNGE_FEED>` |  |
+| `--slot-feed <SLOT_FEED>` | Full-width cuts: profiles, paths, V-carves, a pocket's first ring. |
+| `--slot-step-down <SLOT_STEP_DOWN>` |  |
+| `--feed <FEED>` | Cuts at a stepover: a pocket's rings, a surface. |
+| `--step-down <STEP_DOWN>` |  |
+| `--stepover <STEPOVER>` | Fraction of the tool diameter. |
+| `--remove` | Remove the row instead. |
 
 ### `chipload tool use`
 
@@ -1500,7 +1513,7 @@ chipload material list
 
 ### `chipload material show`
 
-A material's values per tool
+A material and the tools with values for it (their rows, `tool cutting`)
 
 ```text
 chipload material show <NAME>
@@ -1512,7 +1525,7 @@ chipload material show <NAME>
 
 ### `chipload material add`
 
-Add a material, with no values yet
+Add a material; its values are the tools' rows for it (`tool cutting`)
 
 ```text
 chipload material add <NAME>
@@ -1524,7 +1537,7 @@ chipload material add <NAME>
 
 ### `chipload material set`
 
-Change a material: its name, or one library tool's values
+Rename a material
 
 ```text
 chipload material set <NAME> [OPTIONS]
@@ -1533,12 +1546,7 @@ chipload material set <NAME> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--rename <RENAME>` |  |
-| `--tool <TOOL>` | The library tool whose values these are. |
-| `--feed <FEED>` | mm/min. The four values come as a set the first time for a tool. |
-| `--plunge-feed <PLUNGE_FEED>` |  |
-| `--step-down <STEP_DOWN>` |  |
-| `--stepover <STEPOVER>` | Fraction of the tool diameter (pockets) |
+| `--rename <RENAME>` | Required. |
 
 ### `chipload material default`
 
@@ -1555,16 +1563,15 @@ chipload material default <NAME> [OPTIONS]
 
 ### `chipload material remove`
 
-Remove a material, or with --tool only that tool's values
+Remove a material, and every tool's row for it
 
 ```text
-chipload material remove <NAME> [OPTIONS]
+chipload material remove <NAME>
 ```
 
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--tool <TOOL>` |  |
 
 ### `chipload material use`
 
@@ -1584,7 +1591,7 @@ chipload material use <PROJECT> <NAME> [OPTIONS]
 
 ### `chipload material save`
 
-Save an operation's feeds, step down and stepover as its tool's values in a material
+Save an operation's values into its tool's row for a material
 
 ```text
 chipload material save <PROJECT> [OPTIONS]

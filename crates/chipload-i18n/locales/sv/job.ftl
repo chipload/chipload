@@ -272,7 +272,9 @@ job-library-work-zero-stock = ämnet { $corner }
 # $x and $y are lengths without their unit.
 job-library-work-zero-point = punkten X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
-job-library-cutting = matning { $feed }, nedmatning { $plunge }, skärdjup { $step_down }, sidosteg { $stepover }
+job-library-cutting = spår { $slot_feed } / { $slot_step_down }, urfräsning { $feed } / { $step_down } × { $stepover }, nedmatning { $plunge }
+job-library-values-moved = { $material }: värdena för { $tool } är nu dess skärdata för { $material }
+job-library-values-dropped = { $material }: värden för ett verktyg som inte finns i verktygsbiblioteket (uid { $uid }) togs bort
 job-library-other-values = andra värden
 job-shapes-no-entry = den posten finns inte i formbiblioteket
 job-shapes-bad-name = ”{ $name }” kan inte vara ett namn: 1 till { $most } tecken, inget av / \ : * ? " < > |, inte med punkt eller mellanslag först

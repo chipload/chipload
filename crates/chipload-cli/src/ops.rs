@@ -357,11 +357,16 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 .map(|dir| Library::load(&dir))
                 .unwrap_or_default();
             let chosen = tool.or_else(|| chipload_pipeline::surface::surface_tool(&job));
+            // The project's material picks the tool's row (docs/specs/cutting-data.md §2).
+            let material = chipload_pipeline::materials::project_material(&job, &library.materials)
+                .map(|m| m.uid.clone());
             let cutting = job
                 .tools
                 .iter()
                 .find(|t| Some(t.id) == chosen)
-                .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
+                .and_then(|t| {
+                    chipload_job::library::linked_cutting(&library.tools, t, material.as_deref())
+                });
             let index = match chipload_pipeline::surface::add_surface(
                 &mut job,
                 tool,
@@ -407,11 +412,12 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             let library = settings_dir()
                 .map(|dir| Library::load(&dir))
                 .unwrap_or_default();
-            let cutting = job
-                .tools
-                .iter()
-                .find(|t| t.id == tool)
-                .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
+            // The project's material picks the tool's row (docs/specs/cutting-data.md §2).
+            let material = chipload_pipeline::materials::project_material(&job, &library.materials)
+                .map(|m| m.uid.clone());
+            let cutting = job.tools.iter().find(|t| t.id == tool).and_then(|t| {
+                chipload_job::library::linked_cutting(&library.tools, t, material.as_deref())
+            });
             let at = match add_rest_pass(&mut job, op, tool, cutting.as_ref()) {
                 Ok(at) => at,
                 Err(err) => return out.fail(err),
@@ -447,11 +453,12 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             let library = settings_dir()
                 .map(|dir| Library::load(&dir))
                 .unwrap_or_default();
-            let cutting = job
-                .tools
-                .iter()
-                .find(|t| t.id == tool)
-                .and_then(|t| chipload_job::library::linked_cutting(&library.tools, t));
+            // The project's material picks the tool's row (docs/specs/cutting-data.md §2).
+            let material = chipload_pipeline::materials::project_material(&job, &library.materials)
+                .map(|m| m.uid.clone());
+            let cutting = job.tools.iter().find(|t| t.id == tool).and_then(|t| {
+                chipload_job::library::linked_cutting(&library.tools, t, material.as_deref())
+            });
             let at = match add_floor_pass(&mut job, op, tool, cutting.as_ref()) {
                 Ok(at) => at,
                 Err(err) => return out.fail(err),

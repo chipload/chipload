@@ -226,12 +226,12 @@ pub(super) fn mm_field(value: &mut f64) -> crate::units::Field<'_> {
 }
 
 /// A length (or feed) in mm as a number in `units`, for reading.
-pub(super) fn len_in(units: Units, mm: f64) -> String {
+pub(in crate::app) fn len_in(units: Units, mm: f64) -> String {
     chipload_pipeline::units::length_number(mm, units)
 }
 
 /// A feed in mm/min as a number in `units` per minute, for reading.
-pub(super) fn feed_in(units: Units, mm_per_min: f64) -> String {
+pub(in crate::app) fn feed_in(units: Units, mm_per_min: f64) -> String {
     chipload_pipeline::units::feed_number(mm_per_min, units)
 }
 

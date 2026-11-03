@@ -436,6 +436,7 @@ pipeline-library-unknown-post = Maskinen "{ $name }": den här Chipload har inge
 pipeline-material-chosen = Material: { $name }
 pipeline-material-none = Materialet { $name } är inte längre valt; matningarna förblir som de är
 pipeline-material-op-set = Operation { $op } ({ $name }): matningar från { $material }
+pipeline-material-tool-speed = Verktyg { $tool } går på { $rpm } rpm, som { $material } anger
 pipeline-material-op-kept = Operation { $op } ({ $name }): verktyg { $tool } har inga värden för { $material }; dess matningar ändras inte
 pipeline-material-tool-not-in-library = Verktyg { $tool } finns inte i ditt verktygsbibliotek: spara det där först (tool save), sedan kan dess värden sparas i ett material
 
@@ -579,3 +580,4 @@ pipeline-frame-borders-fit = { $count ->
     [one] en kantlinje { $gap } innanför får inte plats i den här ramen
    *[other] { $count } kantlinjer { $gap } isär får inte plats i den här ramen
 }
+pipeline-library-converted = Ditt bibliotek uppdaterades: materialens värden finns nu i verktygens skärdata (de gamla filerna sparas som .bak).

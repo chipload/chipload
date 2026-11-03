@@ -1006,12 +1006,7 @@ mod tests {
     fn the_tools_cutting_values_come_before_the_defaults_but_after_the_operation_above() {
         let contours = messy_2();
         let mut job = new_job();
-        let cutting = Cutting {
-            feed: 1500.0,
-            plunge_feed: 400.0,
-            step_down: 2.5,
-            stepover: 0.3,
-        };
+        let cutting = Cutting::uniform(1500.0, 400.0, 2.5, 0.3);
         let first = job.add_with(OpKind::Pocket, &ids(&[4]), &contours, Some(&cutting), &En);
         let Operation::Pocket(p) = &mut job.job.operations[first] else {
             panic!()

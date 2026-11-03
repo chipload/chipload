@@ -75,10 +75,25 @@ fn add_upcut(settings: &Path) {
             "yes",
             "--rpm",
             "18000",
-            "--feed",
-            "1200",
+        ],
+    );
+    // Its values for any material (docs/specs/cutting-data.md §7).
+    ok(
+        settings,
+        &[
+            "tool",
+            "cutting",
+            "6 mm upcut",
+            "--material",
+            "any",
             "--plunge-feed",
             "300",
+            "--slot-feed",
+            "1200",
+            "--slot-step-down",
+            "2",
+            "--feed",
+            "1200",
             "--step-down",
             "2",
             "--stepover",
@@ -121,40 +136,82 @@ fn tools_are_added_listed_changed_and_removed() {
     assert!(listed.contains(path(&dir.join("tools.json"))), "{listed}");
     assert!(
         listed.contains(
-            "6 mm upcut (default): T1, endmill 6 mm, flutes 2, centre cutting yes, rpm 18000; \
-             feed 1200 plunge 300 mm/min, step down 2 mm, stepover 0.4"
+            "6 mm upcut (default): T1, endmill 6 mm, flutes 2, centre cutting yes, rpm 18000"
+        ),
+        "{listed}"
+    );
+    assert!(
+        listed.contains(
+            "    any material: plunge 300 mm/min, slot 1200 mm/min / 2 mm, clearing 1200 mm/min / 2 mm × 0.4"
         ),
         "{listed}"
     );
 
-    // A changed cutting value keeps the rest of the set; a rename keeps the default.
+    // A changed value keeps the rest of the row; a rename keeps the default.
     ok(
         &dir,
         &[
             "tool",
-            "set",
+            "cutting",
             "6 mm upcut",
+            "--material",
+            "any",
             "--feed",
             "1500",
-            "--rename",
-            "6 mm",
         ],
     );
+    ok(&dir, &["tool", "set", "6 mm upcut", "--rename", "6 mm"]);
     let file = json(&dir.join("tools.json"));
     assert_eq!(file["default_tool"], "6 mm");
-    assert_eq!(file["tools"][0]["cutting"]["feed"], 1500.0);
-    assert_eq!(file["tools"][0]["cutting"]["stepover"], 0.4);
-    assert_eq!(file["schema_version"], 3);
+    let row = &file["tools"][0]["cutting_data"][0];
+    assert!(row["material_uid"].is_null());
+    assert_eq!(row["values"]["feed"], 1500.0);
+    assert_eq!(row["values"]["slot_feed"], 1200.0);
+    assert_eq!(row["values"]["stepover"], 0.4);
+    assert_eq!(file["schema_version"], 4);
 
     let err = refused(&dir, &["tool", "add", "6 MM", "--diameter", "3"]);
     assert!(err.contains("already has a tool named"), "{err}");
     let err = refused(&dir, &["tool", "add", "3 mm"]);
     assert!(err.contains("needs --diameter"), "{err}");
+    ok(&dir, &["tool", "add", "3 mm", "--diameter", "3"]);
     let err = refused(
         &dir,
-        &["tool", "add", "3 mm", "--diameter", "3", "--feed", "900"],
+        &[
+            "tool",
+            "cutting",
+            "3 mm",
+            "--material",
+            "any",
+            "--feed",
+            "900",
+        ],
     );
     assert!(err.contains("missing --plunge-feed"), "{err}");
+    let err = refused(
+        &dir,
+        &[
+            "tool",
+            "cutting",
+            "3 mm",
+            "--material",
+            "Oak",
+            "--feed",
+            "900",
+        ],
+    );
+    assert!(err.contains("no material named"), "{err}");
+    ok(
+        &dir,
+        &["tool", "cutting", "6 mm", "--material", "any", "--remove"],
+    );
+    assert!(
+        json(&dir.join("tools.json"))["tools"][0]["cutting_data"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    ok(&dir, &["tool", "remove", "3 mm"]);
     let err = refused(&dir, &["tool", "add", "bad", "--diameter", "0"]);
     assert!(err.contains("diameter: must be greater than 0"), "{err}");
 
@@ -257,7 +314,7 @@ fn a_new_project_starts_from_the_default_machine_and_tool() {
 #[test]
 fn a_broken_library_warns_on_import_and_is_never_overwritten() {
     let dir = temp_dir("broken");
-    let newer = r#"{"schema_version": 4, "tools": []}"#;
+    let newer = r#"{"schema_version": 5, "tools": []}"#;
     std::fs::write(dir.join("tools.json"), newer).unwrap();
     let project = dir.join("part.chipload");
     let out = chipload(
@@ -272,14 +329,14 @@ fn a_broken_library_warns_on_import_and_is_never_overwritten() {
     assert!(out.status.success());
     let err = String::from_utf8(out.stderr).unwrap();
     assert!(
-        err.contains("warning:") && err.contains("schema_version 4 is not supported"),
+        err.contains("warning:") && err.contains("schema_version 5 is not supported"),
         "{err}"
     );
     assert!(err.contains("using built-in defaults"), "{err}");
     assert!(json(&project)["tools"][0]["name"].is_null());
 
     let err = refused(&dir, &["tool", "add", "3 mm", "--diameter", "3"]);
-    assert!(err.contains("schema_version 4 is not supported"), "{err}");
+    assert!(err.contains("schema_version 5 is not supported"), "{err}");
     assert_eq!(
         std::fs::read_to_string(dir.join("tools.json")).unwrap(),
         newer
@@ -361,8 +418,11 @@ fn library_tools_and_machines_go_into_projects_and_back() {
         ],
     );
     let tools = json(&dir.join("tools.json"));
-    // The replaced entry keeps its cutting values: a project tool has none.
-    assert_eq!(tools["tools"][0]["cutting"]["feed"], 1200.0);
+    // The replaced entry keeps its cutting data: a project tool has none.
+    assert_eq!(
+        tools["tools"][0]["cutting_data"][0]["values"]["feed"],
+        1200.0
+    );
     assert_eq!(tools["tools"][1]["name"], "Tool one");
     let machines = json(&dir.join("machines.json"));
     assert_eq!(machines["machines"][1]["name"], "Copy");
@@ -768,37 +828,30 @@ fn materials_fill_a_project_and_learn_from_it() {
     );
     ok(s, &["material", "add", "Plywood"]);
     assert!(refused(s, &["material", "add", "plywood"]).contains("already exists"));
-    // A tool's first values come as a set.
-    let err = refused(
-        s,
-        &[
-            "material",
-            "set",
-            "Plywood",
-            "--tool",
-            "6 mm 2-flute",
-            "--feed",
-            "1500",
-        ],
-    );
+    // A tool's first row for a material comes as a set (docs/specs/cutting-data.md §7).
+    let row = |extra: &[&'static str]| -> Vec<&'static str> {
+        let mut args = vec!["tool", "cutting", "6 mm 2-flute", "--material", "plywood"];
+        args.extend_from_slice(extra);
+        args
+    };
+    let err = refused(s, &row(&["--feed", "1500"]));
     assert!(err.contains("missing --plunge-feed"), "{err}");
     ok(
         s,
-        &[
-            "material",
-            "set",
-            "Plywood",
-            "--tool",
-            "6 mm 2-flute",
-            "--feed",
-            "1500",
+        &row(&[
             "--plunge-feed",
             "500",
+            "--slot-feed",
+            "1500",
+            "--slot-step-down",
+            "2.5",
+            "--feed",
+            "1500",
             "--step-down",
             "2.5",
             "--stepover",
             "0.4",
-        ],
+        ]),
     );
 
     // One operation first: only it takes Plywood.
@@ -822,18 +875,22 @@ fn materials_fill_a_project_and_learn_from_it() {
         );
     }
 
-    // Tuned on the machine, saved back.
+    // Tuned on the machine, saved back: the outline is a full-width cut, so into the row's
+    // slot feed.
     ok(s, &["set", p, "operations.1.feed=1300"]);
     ok(s, &["material", "save", p, "--op", "2"]);
     let shown: Value =
         serde_json::from_str(&ok(s, &["--json", "material", "show", "Plywood"])).unwrap();
-    assert_eq!(shown["material"]["tools"][0]["feed"], 1300.0);
+    assert_eq!(shown["tools"][0], "6 mm 2-flute");
+    let values = &json(&settings.join("tools.json"))["tools"][0]["cutting_data"][0]["values"];
+    assert_eq!(
+        (values["slot_feed"].as_f64(), values["feed"].as_f64()),
+        (Some(1300.0), Some(1500.0))
+    );
 
-    // Export, remove, import back.
+    // Export and import back: the name and uid, so the tool's row still finds it.
     let file = dir.join("materials-backup.json");
     ok(s, &["material", "export", path(&file)]);
-    ok(s, &["material", "remove", "Plywood"]);
-    assert!(ok(s, &["material", "list"]).contains("(no materials)"));
     ok(s, &["material", "import", path(&file)]);
     assert!(ok(s, &["material", "list"]).contains("Plywood: 1 tool(s)"));
 
@@ -849,10 +906,16 @@ fn materials_fill_a_project_and_learn_from_it() {
     ok(s, &["material", "default", "--none"]);
     assert!(!ok(s, &["material", "list"]).contains("(default)"));
 
-    // Removing the tool removes its values.
-    let out = ok(s, &["tool", "remove", "6 mm 2-flute"]);
-    assert!(out.contains("removed from: Plywood"), "{out}");
-    assert!(ok(s, &["material", "show", "Plywood"]).contains("(no tool values yet)"));
+    // Removing the material removes the tool's row for it.
+    let out = ok(s, &["material", "remove", "Plywood"]);
+    assert!(out.contains("removed from: 6 mm 2-flute"), "{out}");
+    assert!(
+        json(&settings.join("tools.json"))["tools"][0]["cutting_data"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(ok(s, &["material", "list"]).contains("(no materials)"));
 
     // No material: the feeds stay.
     ok(s, &["material", "use", p, "--none"]);

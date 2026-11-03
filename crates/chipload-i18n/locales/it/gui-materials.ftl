@@ -1,6 +1,6 @@
 # Materials (docs/specs/materials.md).
 materials-folder = Materiali
-materials-folder-hover = I tuoi avanzamenti, profondità di passata e passo laterale per utensile, per ogni materiale che lavori
+materials-folder-hover = I materiali che lavori: ogni utensile tiene i propri valori per essi, nei suoi dati di taglio
 materials-new = Nuovo materiale
 materials-new-name = Nuovo materiale
 materials-tool-count = { $count ->
@@ -14,14 +14,13 @@ materials-count = { $count ->
     [one] { $count } materiale
    *[other] { $count } materiali
 } nella tua libreria.
-materials-about = Ogni materiale tiene i tuoi valori per gli utensili che usi con esso. Inseriscili qui, o con Salva in … sotto un'operazione che ha lavorato bene. Scegline uno per operazione, sotto il suo utensile, o per tutto un piazzamento, nelle sue proprietà.
+materials-about = Un materiale è un nome da scegliere per un'operazione, sotto il suo utensile, o per un intero piazzamento, nelle sue proprietà. I suoi valori sono nei dati di taglio di ogni utensile (Questo computer > Utensili): compilali lì, o con Salva in … sotto un'operazione che ha tagliato bene.
 materials-gone = Questo materiale non è più nella tua libreria.
-materials-entry-about = I tuoi valori per questo materiale, per utensile della libreria. Un'operazione con questo materiale lavora con essi.
+materials-entry-about = Un'operazione con questo materiale taglia con i valori del suo utensile per esso, dai dati di taglio dell'utensile.
 materials-name = Nome
-materials-values = Valori per utensile
-materials-tool-not-in-library = (un utensile non più nella tua libreria)
-materials-remove-tool-hover = Togli i valori di questo utensile
-materials-add-tool = Aggiungi un utensile…
-materials-no-library-tools = La tua libreria utensili è vuota: salvaci prima un utensile.
+materials-values = Utensili con valori per esso
 materials-name-taken = esiste già un materiale di nome "{ $name }"
 materials-saved = Salvato in { $name }
+materials-no-rows = Nessun utensile ha ancora valori per esso.
+materials-open-tool-hover = Apri l'utensile: i suoi dati di taglio contengono i valori
+materials-rows-about = Aggiungi i valori per un altro utensile nei dati di taglio di quell'utensile.

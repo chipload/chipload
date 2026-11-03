@@ -355,7 +355,11 @@ pub(super) fn library_header(ui: &mut egui::Ui, path: Option<&Path>, problems: &
     }
 }
 
-pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
+pub(super) fn tool_entry_form(
+    ui: &mut egui::Ui,
+    entry: &mut LibraryTool,
+    materials: &chipload_job::materials::MaterialLibrary,
+) {
     Grid::new("library-tool").num_columns(2).show(ui, |ui| {
         ui.label(t!(ui, "user-library-name"));
         ui.text_edit_singleline(&mut entry.name);
@@ -373,29 +377,95 @@ pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
         entry.angle = tool.angle;
         entry.tip_diameter = tool.tip_diameter;
         entry.flutes = tool.flutes;
-        ui.label(t!(ui, "user-library-cutting-values"))
-            .on_hover_text(t!(ui, "user-library-cutting-values-hover"));
-        let mut set = entry.cutting.is_some();
-        if ui.checkbox(&mut set, "").changed() {
-            entry.cutting = set.then_some(Cutting {
-                feed: crate::editor::default_feed(entry.diameter),
-                plunge_feed: crate::editor::default_plunge_feed(entry.diameter),
-                step_down: crate::editor::DEFAULT_STEP_DOWN,
-                stepover: crate::editor::DEFAULT_STEPOVER,
-            });
+    });
+    cutting_data_rows(ui, entry, materials);
+}
+
+/// A library tool's cutting data (docs/specs/cutting-data.md §7): one folded row per
+/// material, *Any material* first, each with its seven values, and *Add a material…*.
+fn cutting_data_rows(
+    ui: &mut egui::Ui,
+    entry: &mut LibraryTool,
+    materials: &chipload_job::materials::MaterialLibrary,
+) {
+    ui.add_space(4.0);
+    ui.strong(t!(ui, "user-library-cutting-data"))
+        .on_hover_text(t!(ui, "user-library-cutting-data-hover"));
+    // Any material first, then the materials as the library lists them.
+    entry.cutting_data.sort_by_key(|r| match &r.material_uid {
+        None => 0,
+        Some(uid) => {
+            1 + materials
+                .materials
+                .iter()
+                .position(|m| &m.uid == uid)
+                .unwrap_or(usize::MAX - 1)
         }
-        ui.end_row();
-        if let Some(c) = &mut entry.cutting {
-            ui.label(format!("  {}", t!(ui, "user-library-feed")));
-            ui.add(feed(&mut c.feed));
+    });
+    let units = crate::units::display(ui.ctx());
+    let unit = chipload_pipeline::units::length_unit(units);
+    let feed_unit = chipload_pipeline::units::feed_unit(units);
+    let mut remove = None;
+    for (k, row) in entry.cutting_data.iter_mut().enumerate() {
+        let name = match &row.material_uid {
+            None => t!(ui, "user-library-any-material"),
+            Some(uid) => materials
+                .find_uid(uid)
+                .map_or_else(|| t!(ui, "user-library-material-gone"), |m| m.name.clone()),
+        };
+        let c = &mut row.values;
+        let summary = t!(
+            ui,
+            "user-library-row-summary",
+            slot_feed = super::forms::feed_in(units, c.slot_feed),
+            slot_step_down = super::forms::len_in(units, c.slot_step_down),
+            feed = super::forms::feed_in(units, c.feed),
+            step_down = super::forms::len_in(units, c.step_down),
+            stepover = chipload_i18n::message::trimmed(c.stepover, 2),
+            unit = unit,
+            feed_unit = feed_unit
+        );
+        let key = format!("cutting-row-{k}");
+        super::forms::section(ui, &key, &name, &summary, |ui| {
+            ui.label(t!(ui, "user-library-row-speed"))
+                .on_hover_text(t!(ui, "user-library-row-speed-hover"));
+            ui.horizontal(|ui| {
+                let mut own = c.rpm.is_none();
+                if ui
+                    .checkbox(&mut own, t!(ui, "user-library-row-own-speed"))
+                    .changed()
+                {
+                    c.rpm = (!own).then(|| entry_rpm_or_default(c.rpm));
+                }
+                if let Some(rpm) = &mut c.rpm {
+                    ui.add(
+                        crate::units::number(ui, rpm)
+                            .range(1.0..=100_000.0)
+                            .suffix(" rpm"),
+                    );
+                }
+            });
             ui.end_row();
-            ui.label(format!("  {}", t!(ui, "user-library-plunge-feed")));
+            ui.label(t!(ui, "user-library-plunge-feed"));
             ui.add(feed(&mut c.plunge_feed));
             ui.end_row();
-            ui.label(format!("  {}", t!(ui, "user-library-step-down")));
+            ui.label(t!(ui, "user-library-slot-feed"))
+                .on_hover_text(t!(ui, "user-library-slot-hover"));
+            ui.add(feed(&mut c.slot_feed));
+            ui.end_row();
+            ui.label(t!(ui, "user-library-slot-step-down"))
+                .on_hover_text(t!(ui, "user-library-slot-hover"));
+            ui.add(mm(&mut c.slot_step_down));
+            ui.end_row();
+            ui.label(t!(ui, "user-library-clearing-feed"))
+                .on_hover_text(t!(ui, "user-library-clearing-hover"));
+            ui.add(feed(&mut c.feed));
+            ui.end_row();
+            ui.label(t!(ui, "user-library-clearing-step-down"))
+                .on_hover_text(t!(ui, "user-library-clearing-hover"));
             ui.add(mm(&mut c.step_down));
             ui.end_row();
-            ui.label(format!("  {}", t!(ui, "user-library-stepover")));
+            ui.label(t!(ui, "user-library-stepover"));
             ui.add(
                 crate::units::number(ui, &mut c.stepover)
                     .speed(0.01)
@@ -403,8 +473,55 @@ pub(super) fn tool_entry_form(ui: &mut egui::Ui, entry: &mut LibraryTool) {
                     .suffix(" × D"),
             );
             ui.end_row();
-        }
+            ui.label("");
+            if ui
+                .button(t!(ui, "user-library-remove-row"))
+                .on_hover_text(t!(ui, "user-library-remove-row-hover"))
+                .clicked()
+            {
+                remove = Some(k);
+            }
+            ui.end_row();
+        });
+    }
+    if let Some(k) = remove {
+        entry.cutting_data.remove(k);
+    }
+    // A new row starts from the row for any material, else a new operation's values.
+    let start = entry.cutting_for(None).unwrap_or(Cutting {
+        rpm: None,
+        plunge_feed: crate::editor::default_plunge_feed(entry.diameter),
+        slot_feed: crate::editor::default_feed(entry.diameter),
+        slot_step_down: crate::editor::DEFAULT_STEP_DOWN,
+        feed: crate::editor::default_feed(entry.diameter),
+        step_down: crate::editor::DEFAULT_STEP_DOWN,
+        stepover: crate::editor::DEFAULT_STEPOVER,
     });
+    let mut choices: Vec<(Option<String>, String)> = Vec::new();
+    if entry.row(None).is_none() {
+        choices.push((None, t!(ui, "user-library-any-material")));
+    }
+    for m in &materials.materials {
+        if entry.row(Some(&m.uid)).is_none() {
+            choices.push((Some(m.uid.clone()), m.name.clone()));
+        }
+    }
+    if !choices.is_empty() {
+        egui::ComboBox::from_id_salt("library-tool-add-row")
+            .selected_text(t!(ui, "user-library-add-material"))
+            .show_ui(ui, |ui| {
+                for (uid, name) in choices {
+                    if ui.selectable_label(false, name).clicked() {
+                        entry.set_row(uid.as_deref(), start);
+                    }
+                }
+            });
+    }
+}
+
+/// A speed to start a row's own speed from: the one it had, else a common router's.
+fn entry_rpm_or_default(rpm: Option<f64>) -> f64 {
+    rpm.unwrap_or(DEFAULT_RPM)
 }
 
 pub(super) fn machine_entry_form(
@@ -611,6 +728,12 @@ impl ChiploadApp {
             .as_deref()
             .map(Library::load)
             .unwrap_or_default();
+        // An old library was just converted (docs/specs/cutting-data.md §8): the report says
+        // what moved, once.
+        if !self.user.library.converted.is_empty() {
+            let lines = self.user.library.converted.clone();
+            self.set_report(Report::of_messages(lines));
+        }
     }
 
     /// The library, if there is a settings folder.
@@ -618,11 +741,11 @@ impl ChiploadApp {
         self.user.settings_dir.as_ref().map(|_| &self.user.library)
     }
 
-    /// A project tool's cutting values from the library: only when the tool came from the
-    /// library and still has its values.
+    /// A project tool's cutting values from the library, its row for any material: only
+    /// when the tool came from the library and still has its values.
     pub(super) fn tool_cutting(&self, id: i64) -> Option<Cutting> {
         let tool = self.edit.as_ref()?.job.tools.iter().find(|t| t.id == id)?;
-        linked_cutting(&self.library()?.tools, tool)
+        linked_cutting(&self.library()?.tools, tool, None)
     }
 
     /// The project material's values for project tool `id` (docs/specs/materials.md §2).
@@ -630,6 +753,7 @@ impl ChiploadApp {
         chipload_pipeline::materials::material_values(
             &self.edit.as_ref()?.job,
             &self.library()?.materials,
+            &self.library()?.tools,
             id,
         )
     }
@@ -924,16 +1048,23 @@ impl ChiploadApp {
                         // A project tool has no cutting values: keep the library's.
                         (Some(i), _) => {
                             let old = &library.tools[i];
-                            let entry =
-                                LibraryTool::from_tool(&old.name, &old.uid, tool, old.cutting);
+                            let entry = LibraryTool::from_tool(
+                                &old.name,
+                                &old.uid,
+                                tool,
+                                old.cutting_data.clone(),
+                            );
                             library.tools[i] = entry.clone();
                             Ok((entry.name, entry.uid))
                         }
                         (None, Pick::Name(name)) => {
                             let uid = library.new_uid(name);
-                            library
-                                .tools
-                                .push(LibraryTool::from_tool(name, &uid, tool, None));
+                            library.tools.push(LibraryTool::from_tool(
+                                name,
+                                &uid,
+                                tool,
+                                Vec::new(),
+                            ));
                             Ok((name.clone(), uid))
                         }
                         (None, Pick::Uid(_)) => {
@@ -1124,7 +1255,7 @@ impl ChiploadApp {
                 let name = unique_name(&base, |n| self.user.library.tools.find(n).is_some());
                 let uid = self.user.library.tools.new_uid(&name);
                 let entry = match self.edit.as_ref().and_then(|e| e.job.tools.first()) {
-                    Some(tool) => LibraryTool::from_tool(&name, &uid, tool, None),
+                    Some(tool) => LibraryTool::from_tool(&name, &uid, tool, Vec::new()),
                     None => LibraryTool {
                         name,
                         uid: uid.clone(),
@@ -1134,7 +1265,7 @@ impl ChiploadApp {
                         flutes: None,
                         center_cutting: None,
                         rpm: Some(DEFAULT_RPM),
-                        cutting: None,
+                        cutting_data: Vec::new(),
                         angle: None,
                         tip_diameter: None,
                     },
@@ -1190,12 +1321,10 @@ impl ChiploadApp {
             .clone()
             .ok_or_else(|| t!(self, "user-library-no-settings-folder"))?;
         let result = match kind {
-            // A tool's values go from the materials with it (docs/specs/materials.md §4).
-            LibraryKind::Tools => update_tools(&tools_path(&dir), |library| library.remove(name))
-                .and_then(|removed| {
-                    chipload_pipeline::library::forget_tool_in_materials(&dir, &removed.uid)
-                        .map(|_| ())
-                }),
+            // Its rows of cutting data go with it.
+            LibraryKind::Tools => update_tools(&tools_path(&dir), |library| {
+                library.remove(name).map(|_| ())
+            }),
             LibraryKind::Machines => update_machines(&machines_path(&dir), |library| {
                 library.remove(name).map(|_| ())
             }),

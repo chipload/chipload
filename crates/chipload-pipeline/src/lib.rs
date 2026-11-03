@@ -330,14 +330,18 @@ pub fn rest_pass_of(
             pocket.stepover,
         ),
     };
+    let (slot_feed, slot_step_down) = match cutting {
+        Some(c) => (Some(c.slot_feed), Some(c.slot_step_down)),
+        None => (pocket.slot_feed, pocket.slot_step_down),
+    };
     Ok(chipload_job::ClearingPass {
         tool,
         feed,
         plunge_feed,
         step_down,
         stepover,
-        slot_feed: None,
-        slot_step_down: None,
+        slot_feed,
+        slot_step_down,
         entry,
         enabled: true,
     })
@@ -408,14 +412,18 @@ pub fn floor_pass_of(
             FLOOR_STEPOVER,
         ),
     };
+    let (slot_feed, slot_step_down) = match cutting {
+        Some(c) => (Some(c.slot_feed), Some(c.slot_step_down)),
+        None => (None, None),
+    };
     Ok(chipload_job::ClearingPass {
         tool,
         feed,
         plunge_feed,
         step_down,
         stepover,
-        slot_feed: None,
-        slot_step_down: None,
+        slot_feed,
+        slot_step_down,
         entry,
         enabled: true,
     })

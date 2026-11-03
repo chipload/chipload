@@ -4,7 +4,7 @@
 
 Your materials (`materials.json` in the settings folder) and the files `material export` writes: your own values per library tool. Lengths in mm, feeds in mm/min.
 
-Schema version 2. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 3. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -12,28 +12,15 @@ Schema version 2. Older files load through Chipload's migrations; this schema de
 |---|---|---|---|
 | `default_material` | string or null | no | The name of the material new projects start with. Null: none. |
 | `materials` | list of [Material](#material) | yes | The materials. |
-| `schema_version` | `2` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `3` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `written_by` | string or null | no | The Chipload version that wrote the file. |
 
 ## Material
 
-A material: a name and the user's values per tool.
+A material: a name to choose. Its values are the tools' rows for it.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `name` | string | yes | The material's name, unique in the library (upper or lower case don't matter). |
-| `tools` | list of [MaterialTool](#materialtool) | yes | Values for the tools used with this material, one entry per library tool. |
-| `uid` | string | yes | What projects name the material by: 16 lowercase hex digits, never changed. |
-
-## MaterialTool
-
-One tool's values in a material.
-
-| Field | Type | Required | Meaning |
-|---|---|---|---|
-| `feed` | number | yes | Cutting feed, mm/min. |
-| `plunge_feed` | number | yes | Plunge feed, mm/min. |
-| `step_down` | number | yes | Step down, mm. |
-| `stepover` | number | yes | Pocket stepover, a fraction of the tool diameter: more than 0, at most 1. |
-| `tool_uid` | string | yes | The library tool's uid. |
+| `uid` | string | yes | What projects and the tools' rows name the material by: 16 lowercase hex digits, never changed. |
 

@@ -26,12 +26,10 @@ mod library {
             flutes: Some(2),
             center_cutting: Some(true),
             rpm: Some(20000.0),
-            cutting: Some(Cutting {
-                feed: 800.0,
-                plunge_feed: 200.0,
-                step_down: 0.75,
-                stepover: 0.35,
-            }),
+            cutting_data: vec![chipload_job::library::CuttingRow {
+                material_uid: None,
+                values: Cutting::uniform(800.0, 200.0, 0.75, 0.35),
+            }],
             angle: None,
             tip_diameter: None,
         }

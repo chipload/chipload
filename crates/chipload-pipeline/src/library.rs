@@ -12,7 +12,7 @@ use chipload_job::library::{
     LibraryError, MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary,
     load_library, load_machines, load_tools, update_library,
 };
-use chipload_job::materials::{MATERIALS_FILE, MaterialLibrary};
+use chipload_job::materials::{MATERIALS_FILE, MaterialLibrary, move_material_values};
 
 /// Overrides the settings folder (tests, a portable install, a shared workshop folder).
 pub const CONFIG_DIR_VAR: &str = "CHIPLOAD_CONFIG_DIR";
@@ -57,18 +57,48 @@ pub fn fonts_path(dir: &Path) -> PathBuf {
     dir.join("fonts")
 }
 
-/// A library tool that was removed: its values go from every material in settings folder
-/// `dir` (docs/specs/materials.md §4). Returns the names of those that had some; the file
-/// is only written when one had.
-pub fn forget_tool_in_materials(dir: &Path, uid: &str) -> Result<Vec<String>, LibraryError> {
-    let path = materials_path(dir);
-    let library: MaterialLibrary = load_library(&path)?;
-    if library.materials.iter().all(|m| m.values(uid).is_none()) {
+/// A material that was removed: its rows go from every tool in settings folder `dir`
+/// (docs/specs/cutting-data.md §2). Returns the names of the tools that had one; the file is
+/// only written when one had.
+pub fn forget_material_in_tools(dir: &Path, uid: &str) -> Result<Vec<String>, LibraryError> {
+    let path = tools_path(dir);
+    let library = load_tools(&path)?;
+    if library.tools.iter().all(|t| t.row(Some(uid)).is_none()) {
         return Ok(Vec::new());
     }
-    update_library(&path, |library: &mut MaterialLibrary| {
-        Ok(library.forget_tool(uid))
+    update_library(&path, |library: &mut ToolLibrary| {
+        Ok(library.forget_material(uid))
     })
+}
+
+/// Convert the library in settings folder `dir` once, when its `materials.json` is older
+/// than version 3 (docs/specs/cutting-data.md §8): the materials' values move into the
+/// tools as rows ([`move_material_values`], pure), then both files are written in their
+/// current versions, each keeping the one before as `.bak`. A line saying so, then one
+/// message per tool given rows and per value dropped; nothing for a library that is
+/// current, missing or can't be read (loading it says why).
+pub fn convert_library(dir: &Path) -> Result<Vec<Message>, LibraryError> {
+    let Ok(text) = std::fs::read_to_string(materials_path(dir)) else {
+        return Ok(Vec::new());
+    };
+    let Ok(old) = serde_json::from_str::<serde_json::Value>(&text) else {
+        return Ok(Vec::new());
+    };
+    let version = old
+        .get("schema_version")
+        .and_then(serde_json::Value::as_i64);
+    if !version.is_some_and(|v| v < 3) {
+        return Ok(Vec::new());
+    }
+    // The tools first: a material file still old after a failure moves its values again,
+    // and rows already there are kept.
+    let moved = update_library(&tools_path(dir), |tools: &mut ToolLibrary| {
+        Ok(move_material_values(tools, &old))
+    })?;
+    update_library(&materials_path(dir), |_: &mut MaterialLibrary| Ok(()))?;
+    let mut messages = vec![Message::new("pipeline-library-converted")];
+    messages.extend(moved);
+    Ok(messages)
 }
 
 pub fn settings_path(dir: &Path) -> PathBuf {
@@ -85,6 +115,9 @@ pub struct Library {
     pub materials: MaterialLibrary,
     /// Why a file couldn't be read, as messages.
     pub problems: Vec<Message>,
+    /// What converting an old library did (docs/specs/cutting-data.md §8); empty but the
+    /// once it happens.
+    pub converted: Vec<Message>,
     /// Where the user's post-processors are (docs/specs/user-posts.md); None: no settings
     /// folder.
     pub posts: Option<PathBuf>,
@@ -95,6 +128,10 @@ pub struct Library {
 impl Library {
     pub fn load(dir: &Path) -> Library {
         let mut problems = Vec::new();
+        let converted = convert_library(dir).unwrap_or_else(|err| {
+            problems.push(Message::new("pipeline-library-defaults").arg("error", err.message()));
+            Vec::new()
+        });
         let defaults = |err: LibraryError| {
             Message::new("pipeline-library-defaults").arg("error", err.message())
         };
@@ -120,6 +157,7 @@ impl Library {
             machines,
             materials,
             problems,
+            converted,
             posts: Some(posts),
             user_posts,
         }
@@ -169,7 +207,7 @@ pub fn apply_library(
     // The default material, last: the operations an import made take its values for
     // their tools (docs/specs/job-settings-layout.md §3).
     if let Some(material) = library.materials.default_entry() {
-        let (with, _) = crate::materials::use_material(job, Some(material));
+        let (with, _) = crate::materials::use_material(job, &library.tools, Some(material));
         *job = with;
         notes.push(Message::new("pipeline-library-material").arg("name", &material.name));
     }

@@ -272,7 +272,9 @@ job-library-work-zero-stock = Rohteil { $corner }
 # $x and $y are lengths without their unit.
 job-library-work-zero-point = Punkt X{ $x } Y{ $y }
 # A tool's cutting values: feeds and the step down with their units, the stepover a fraction.
-job-library-cutting = Vorschub { $feed }, Eintauchen { $plunge }, Zustellung { $step_down }, seitl. Zustellung { $stepover }
+job-library-cutting = Nut { $slot_feed } / { $slot_step_down }, Räumen { $feed } / { $step_down } × { $stepover }, Eintauchen { $plunge }
+job-library-values-moved = { $material }: die Werte für { $tool } sind jetzt seine Schnittdaten für { $material }
+job-library-values-dropped = { $material }: Werte für ein Werkzeug, das nicht in der Werkzeugbibliothek ist (uid { $uid }), wurden verworfen
 job-library-other-values = andere Werte
 job-shapes-no-entry = diesen Eintrag gibt es in der Formenbibliothek nicht
 job-shapes-bad-name = „{ $name }“ kann kein Name sein: 1 bis { $most } Zeichen, keines von / \ : * ? " < > |, nicht mit einem Punkt oder Leerzeichen am Anfang

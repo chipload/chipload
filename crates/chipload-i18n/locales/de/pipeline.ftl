@@ -439,6 +439,7 @@ pipeline-library-unknown-post = Maschine „{ $name }“: dieses Chipload hat ke
 pipeline-material-chosen = Material: { $name }
 pipeline-material-none = Material { $name } nicht mehr gewählt; die Vorschübe bleiben, wie sie sind
 pipeline-material-op-set = Bearbeitung { $op } ({ $name }): Vorschübe aus { $material }
+pipeline-material-tool-speed = Werkzeug { $tool } läuft mit { $rpm } rpm, wie { $material } angibt
 pipeline-material-op-kept = Bearbeitung { $op } ({ $name }): Werkzeug { $tool } hat keine Werte für { $material }; seine Vorschübe bleiben
 pipeline-material-tool-not-in-library = Werkzeug { $tool } ist nicht in Ihrer Werkzeugbibliothek: zuerst dort speichern (tool save), dann können seine Werte in einem Material stehen
 
@@ -582,3 +583,4 @@ pipeline-frame-borders-fit = { $count ->
     [one] eine Randlinie { $gap } innen passt nicht in diesen Rahmen
    *[other] { $count } Randlinien im Abstand { $gap } passen nicht in diesen Rahmen
 }
+pipeline-library-converted = Ihre Bibliothek wurde aktualisiert: die Werte der Materialien stehen jetzt in den Schnittdaten der Werkzeuge (die alten Dateien bleiben als .bak).

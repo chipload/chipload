@@ -444,6 +444,7 @@ pipeline-library-unknown-post = Machine « { $name } » : ce Chipload n'a pas de
 pipeline-material-chosen = Matériau : { $name }
 pipeline-material-none = Matériau { $name } plus choisi ; les avances restent telles quelles
 pipeline-material-op-set = Opération { $op } ({ $name }) : avances de { $material }
+pipeline-material-tool-speed = L'outil { $tool } tourne à { $rpm } rpm, comme le veut { $material }
 pipeline-material-op-kept = Opération { $op } ({ $name }) : l'outil { $tool } n'a pas de valeurs pour { $material } ; ses avances ne changent pas
 pipeline-material-tool-not-in-library = L'outil { $tool } n'est pas dans votre bibliothèque d'outils : enregistrez-le d'abord (tool save), ensuite ses valeurs pourront aller dans un matériau
 
@@ -587,3 +588,4 @@ pipeline-frame-borders-fit = { $count ->
     [one] une bordure à { $gap } à l'intérieur ne tient pas dans ce cadre
    *[other] { $count } bordures espacées de { $gap } ne tiennent pas dans ce cadre
 }
+pipeline-library-converted = Votre bibliothèque a été mise à jour : les valeurs des matériaux sont maintenant dans les données de coupe des outils (les anciens fichiers sont gardés en .bak).
