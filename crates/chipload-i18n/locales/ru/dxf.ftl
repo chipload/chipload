@@ -1,0 +1,31 @@
+dxf-units-chosen = В DXF нет единиц; используются выбранные { $units }
+dxf-nonzero-z = Примитивов с ненулевой Z: { $count } (макс. |Z| { $max }); Z отброшена
+dxf-stored-issue = { $text }
+dxf-source-issue = { $source }: { $issue }
+dxf-block-depth = Вложенность блоков больше { $most }
+dxf-entity-skipped = { $kind } ({ $handle }): { $reason }
+dxf-skip-coordinate = координата не является числом или превышает { $most }
+dxf-skip-fit-points = только интерполяционные точки; экспортируйте заново с управляющими точками
+dxf-skip-not-flat = не параллелен плоскости XY
+dxf-skip-no-block = блок { $block } не существует
+dxf-skip-radius = радиус { $radius } не положителен
+dxf-spline-degree = степень должна быть не меньше 1
+dxf-spline-few-points = управляющих точек ({ $count }) недостаточно для степени { $degree }
+dxf-spline-knots = узлов: { $knots }, ожидается { $expected } для { $count } управляющих точек степени { $degree }
+dxf-spline-knots-order = узлы не упорядочены по возрастанию
+dxf-spline-weights = число весов не совпадает с числом управляющих точек
+dxf-zero-length = Удалён примитив нулевой длины { $type } на слое { $layer } ({ $handle })
+dxf-duplicate = Удалён дубликат { $type } на слое { $layer } ({ $handle })
+dxf-branch-point = В одной точке сходятся более двух сегментов
+dxf-open-contour = Контур { $contour } на { $layers } разомкнут: концы в { $start } и { $end }
+dxf-invalid-contour = Контур { $contour }: { $reason }
+dxf-ring-few-points = меньше 3 различных точек
+dxf-ring-self-intersecting = самопересечение
+dxf-ring-folds = складывается на себя: рёбра сближаются до { $within } около ({ $x }, { $y })
+dxf-ring-no-area = не ограничивает площадь
+dxf-error-unreadable = Не удалось прочитать { $path }: { $reason }
+dxf-error-parser-crashed = сбой парсера DXF на этом файле
+dxf-error-scale = невозможно импортировать с масштабом { $scale }
+dxf-error-units-missing = В DXF нет единиц ($INSUNITS=0); явно укажите мм или дюймы
+dxf-error-units-unsupported = DXF $INSUNITS={ $code } не поддерживается (только мм, дюймы или без единиц). Экспортируйте чертёж заново в мм или дюймах.
+dxf-error-units-mismatch = В DXF указано { $dxf }, ожидалось { $expected }. Исправьте чертёж или явно выберите единицы; они никогда не определяются догадкой.

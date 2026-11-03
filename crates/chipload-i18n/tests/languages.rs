@@ -109,6 +109,8 @@ fn languages_from_system_tags() {
     assert_eq!(Language::from_tag("sv_SE.UTF-8"), Some(Language::Sv));
     assert_eq!(Language::from_tag("fr"), Some(Language::Fr));
     assert_eq!(Language::from_tag("ES-mx"), Some(Language::Es));
+    assert_eq!(Language::from_tag("ru-RU"), Some(Language::Ru));
+    assert_eq!(Language::from_tag("ru_RU.UTF-8"), Some(Language::Ru));
     assert_eq!(Language::from_tag("pl-PL"), None);
     assert_eq!(Language::from_tag("C"), None);
     assert_eq!(Language::from_tag(""), None);
@@ -118,4 +120,63 @@ fn languages_from_system_tags() {
 fn a_missing_text_falls_back_to_english_then_to_its_id() {
     assert_eq!(tr(Language::Sv, "no-such-text", &[]), "no-such-text");
     assert_eq!(tr(Language::En, "common-ok", &[]), "OK");
+}
+
+#[test]
+fn russian_uses_machining_terms_and_plural_forms() {
+    assert_eq!(Language::Ru.native_name(), "Русский");
+    assert!(Language::Ru.decimal_comma());
+    assert!(!Language::Ru.reviewed());
+    assert_eq!(tr(Language::Ru, "forms-climb", &[]), "попутное");
+    assert_eq!(tr(Language::Ru, "forms-conventional", &[]), "встречное");
+    assert_eq!(tr(Language::Ru, "forms-side-inside", &[]), "внутри");
+    assert_eq!(tr(Language::Ru, "forms-side-outside", &[]), "снаружи");
+    assert_eq!(tr(Language::Ru, "forms-chip-load", &[]), "Подача на зуб");
+    for (count, expected) in [
+        (0, "0 копий"),
+        (1, "1 копия"),
+        (2, "2 копии"),
+        (5, "5 копий"),
+        (11, "11 копий"),
+        (21, "21 копия"),
+        (22, "22 копии"),
+        (25, "25 копий"),
+        (111, "111 копий"),
+    ] {
+        assert_eq!(
+            tr(
+                Language::Ru,
+                "menu-status-copies",
+                &[("count", Arg::Count(count))]
+            ),
+            expected
+        );
+    }
+}
+
+#[test]
+fn every_russian_text_formats_without_english_fallback() {
+    use fluent_bundle::{FluentArgs, FluentBundle, FluentResource};
+
+    let mut bundle = FluentBundle::new(vec![Language::Ru.code().parse().unwrap()]);
+    bundle.set_use_isolating(false);
+    for (_, sources) in SOURCES {
+        let resource = FluentResource::try_new(sources[Language::Ru as usize].to_string()).unwrap();
+        bundle.add_resource(resource).unwrap();
+    }
+    for (file, sources) in SOURCES {
+        for (id, names) in texts(sources[0]).texts {
+            let pattern = bundle.get_message(&id).unwrap().value().unwrap();
+            for count in [0, 1, 2, 5, 11, 21, 22, 25, 111] {
+                let mut args = FluentArgs::new();
+                for name in &names {
+                    args.set(name.as_str(), count);
+                }
+                let mut errors = Vec::new();
+                let rendered = bundle.format_pattern(pattern, Some(&args), &mut errors);
+                assert!(errors.is_empty(), "ru/{file}: {id}: {errors:?}");
+                assert!(!rendered.is_empty(), "ru/{file}: {id} is empty");
+            }
+        }
+    }
 }
