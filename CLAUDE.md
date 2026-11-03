@@ -23,7 +23,7 @@ v32 drawn shapes can be `construction` geometry, never cut; since v33 the stock 
 | `chipload-check` | the **independent** G-code checker |
 | `chipload-pipeline` | app services: job + DXF → checked G-code, report text, the material-removal simulation (height map) |
 | `chipload-cli` | the `chipload` command line (`--json` on every command through `out::Out`; no printing elsewhere) |
-| `chipload-i18n` | the app's texts in en, de, fr, es, it, sv: Fluent files in `locales/<lang>/`, compiled in, `tr(lang, id, args)`; `Message` (an id and typed arguments: lengths travel in mm and render in mm or inches) for the library crates' messages, and the number rules for lengths and feeds (docs/specs/translations.md, ADR 0022); no I/O, no other workspace crate |
+| `chipload-i18n` | the app's texts in en, de, fr, es, it, sv, ru: Fluent files in `locales/<lang>/`, compiled in, `tr(lang, id, args)`; `Message` (an id and typed arguments: lengths travel in mm and render in mm or inches) for the library crates' messages, and the number rules for lengths and feeds (docs/specs/translations.md, ADR 0022); no I/O, no other workspace crate |
 | `chipload-gui` | the egui desktop app (`chipload-gui`); every text it shows is `t!(ui, "id", …)` from `chipload-i18n`, never an English literal |
 
 ## Architecture rules (non-negotiable)

@@ -30,7 +30,7 @@ flowchart TB
     pipeline --> draw
     job["chipload-job<br/>project file, migrations"] --> core
     core["chipload-core<br/>lines, arcs, chaining, tolerances"]
-    i18n["chipload-i18n<br/>texts in six languages"]
+    i18n["chipload-i18n<br/>texts in seven languages"]
     gui --> i18n
     cli --> i18n
     job --> i18n

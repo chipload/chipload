@@ -20,13 +20,13 @@ the language:
 - This guide.
 
 Names you give things (parts, operations, tools, machines, layers) are yours and are never
-translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian
+translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian,
 Swedish and Russian a field also takes a decimal comma (`6,5`); in English a comma isn't read, since
 `1,000` would mean a thousand.
 
 ## Helping with a translation
 
-German, French, Spanish, Italian, Swedish and Russian are marked *(review wanted)* in the language menu: they
+German, French, Spanish, Italian and Russian are marked *(review wanted)* in the language menu: they
 haven't yet been read by someone who speaks the language and runs a CNC machine. A wrong
 word in a CAM program can mislead (climb or conventional, inside or outside), so your
 corrections matter.

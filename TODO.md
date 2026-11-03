@@ -8,18 +8,10 @@ make sure it is up to date and give a prioritized order").
 
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
-  (machine-made from `crates/chipload-i18n/GLOSSARY.md`). Left:
-  - **Native review:** the user reviews Swedish; German, French, Spanish and Italian are
-    marked *review wanted* (`Language::reviewed`). The translators' open suggestions are at
-    the end of the glossary.
-  - **Russian, PR #11** (mushketer888, 2026-11-01, a CNC 3018 user): careful work, all
-    texts of 0.30 with Russian plural forms and its own tests. Asked 2026-11-02 for a DCO
-    sign-off and a rebase onto 0.31 (97 texts missing: `gui-groups`, `gui-layout`,
-    `gui-shape-library` are new; `header-add-dxf` and `menu-status-hint` changed meaning;
-    7 Russian texts to drop). Its CI waits for approval in Actions (a first-time
-    contributor). When it is merged, we fix the guide ourselves: the PR's
-    `docs/book/src/languages.md` lists Swedish as *review wanted*, but the user reviews
-    Swedish; only Russian joins German, French, Spanish and Italian there.
+  (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:
+  - **Native review:** the user reviews Swedish; German, French, Spanish, Italian and
+    Russian are marked *review wanted* (`Language::reviewed`). The translators' open
+    suggestions are at the end of the glossary.
   - **Still English on purpose:** the issues a DXF had when it was read (stored in the
     project as words; a schema change would be needed: the user chose 2026-10-25 to leave
     it unless users ask), migration reasons and a library file's rule violations, what
@@ -51,8 +43,6 @@ make sure it is up to date and give a prioritized order").
   docs/releasing.md (*Without GitHub Actions*).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for history). Local tags
   `adaptive-final` (main before trochoidal and adaptive were removed) and `python-final`.
-  Local only: `pr-11-russian` (the PR as sent) and `ru-on-main` (it applied onto 0.31 for
-  testing, in a scratch worktree); delete both once the PR is merged.
 - **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
   G-code, and the builds for macOS, ARM64 Linux and Windows; the README asks for them.
 - **Scope** (ADR 0017): a lean power tool; the yardstick is a CamBam replacement for the
@@ -99,9 +89,7 @@ machine), then the last operation review, then the user's requests, then the res
      a tool not centre-cutting, goes back and forth within the tool's width, close to a
      plunge. Not sure it is a real risk; look at a least ramp length (the tool's
      diameter?).
-4. **The Russian translation** (PR #11, *In progress* above), when the contributor's
-   rebase comes back: review the 97 new texts, merge, fix the guide's Swedish line.
-5. **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
+4. **A report of what each operation does** (the user, 2026-11-02: "id like a report for how
    long time each operation will take, similar to how prusa slicer gives a report how much
    time different operations take. Except time id like, g1 travelled length, g0 length,
    etc."). Per operation (and per tool, file and the whole job): its time, the cutting
@@ -110,7 +98,7 @@ machine), then the last operation review, then the user's requests, then the res
    operation only (`chipload_pipeline::estimate`). Spec first: where it shows (the Report,
    the setup sheet, `plan --json`), what each column counts (arcs by their length, ramps as
    cutting or plunging), a table or a chart.
-6. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+5. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
    should also have a parameter for length of adjoining segments. If the adjoining profile
    segments are very short we could probably ignore the kink"). Today a corner is ignored
    only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
@@ -120,14 +108,14 @@ machine), then the last operation review, then the user's requests, then the res
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
    6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
    review (2).
-7. **For the user to try** (built, not yet tried by hand; findings become items here):
+6. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
      programs (LibreCAD, Inkscape, LightBurn, Fusion);
    - materials (the user's verdict, docs/specs/materials.md);
    - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box.
-8. **Small follow-ups:**
+7. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -139,10 +127,10 @@ machine), then the last operation review, then the user's requests, then the res
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-9. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
+8. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
    by the user; next after materials in the direction review of 2026-10-28. Decisions not
    reviewed.
-10. **Later, the user's ideas for when the above is done**, each with its own spec:
+9. **Later, the user's ideas for when the above is done**, each with its own spec:
    - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
      decision 2's alternative): each setup with its own coordinates, its parts placed onto
      its board, setups side by side like PrusaSlicer's plates, the active in colour, the
@@ -184,6 +172,11 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **Russian translation, PR #11: merged 2026-11-03** (mushketer888, a CNC 3018 user):
+  every text of 0.31 with Russian plural forms, its own tests and a glossary section,
+  signed off. Our own fix after it: the guide's *review wanted* list leaves out Swedish
+  again, and a comma.
 
 - **Cleanup after the review of 2026-11-02** (the user: "where does the complexity lie?
   Any part that feels like a hack?"; asked for 2 then 1):
