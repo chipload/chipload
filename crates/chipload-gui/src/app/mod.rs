@@ -117,6 +117,9 @@ pub enum RestMenu {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
     Job,
+    /// The active setup's board: its stock and material, an item beside its work zero
+    /// (the user, 2026-11-03).
+    Stock,
     /// The G-code's zero, selected in the Browser or the view
     /// (docs/specs/work-zero-marker.md).
     WorkZero,
@@ -531,11 +534,11 @@ impl ChiploadApp {
         self.edit.is_some() && self.edit != self.file.saved
     }
 
-    /// A new project opens on its setup, whose stock is where to start (the user,
-    /// 2026-11-03: "When starting a new project we should open the stock setup first").
+    /// A new project opens on its stock, where to start (the user, 2026-11-03: "When
+    /// starting a new project we should open the stock setup first").
     fn open_stock(&mut self) {
-        if let Some(id) = self.edit.as_ref().and_then(|e| e.job.active_setup_id()) {
-            self.focus = Focus::Setup(id);
+        if self.edit.is_some() {
+            self.focus = Focus::Stock;
             self.focus_thickness = true;
         }
     }

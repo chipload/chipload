@@ -10,6 +10,21 @@ const ROTATE_HANDLE_PX: f64 = 24.0;
 const SIMULATE_FRAME: f32 = 3.0;
 
 impl ChiploadApp {
+    /// `pos` lies on the active stock's outline, in the top view, within the pick
+    /// tolerance.
+    fn on_stock_edge(&self, pos: egui::Pos2) -> bool {
+        let Some(edit) = self.edit.as_ref().filter(|_| self.view.is_top()) else {
+            return false;
+        };
+        let ((x0, y0), (x1, y1)) = edit.job.stock_bounds();
+        let board =
+            egui::Rect::from_two_pos(self.view.to_screen((x0, y0)), self.view.to_screen((x1, y1)));
+        let near = crate::view::PICK_TOLERANCE_PX;
+        let outside = board.expand(near).contains(pos);
+        let inside = board.shrink(near).contains(pos);
+        outside && !inside
+    }
+
     /// Switch to the 3D view, starting from a three-quarter view (docs/specs/3d-view.md).
     pub fn view_3d(&mut self) {
         if !self.display.three_d {
@@ -468,6 +483,10 @@ impl ChiploadApp {
                     .filter(|id| self.group_of_contour(*id).is_some() || self.dxf_contour(*id));
                 if let Some(contour) = inside {
                     self.pick_alone(contour);
+                } else if picked.is_none() && !toggle && self.on_stock_edge(pos) {
+                    // The board's edge, where no shape is, opens its stock (the user,
+                    // 2026-11-03).
+                    self.focus = Focus::Stock;
                 } else {
                     self.click(picked, toggle);
                 }

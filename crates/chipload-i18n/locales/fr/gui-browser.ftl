@@ -33,6 +33,8 @@ browser-surface-hover = Tout le brut dressé à plat avec une large fraise : sur
 # Job settings and Tools.
 browser-job-settings = Machine
 browser-job-settings-hover = La machine : son post-processeur, les unités du G-code, la hauteur de sécurité, les courses et les changements d'outil, communs à tous les montages
+browser-stock = Brut
+browser-stock-hover = La planche que ce montage usine : son épaisseur, sa taille et son matériau. Cliquez pour les régler.
 browser-work-zero = Origine pièce
 browser-work-zero-hover = Où se trouve le X0 Y0 Z0 du G-code. Cliquez pour le régler, ou sélectionnez-le et faites-le glisser dans la vue.
 browser-job-settings-problems-hover = Machine, post-processeur, unités et courses. { $count ->

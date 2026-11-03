@@ -1,10 +1,13 @@
 # Stock and work zero
 
-The board is its [setup](setups.md)'s: click the setup in the Browser for its properties.
-They start with two sections, **Stock** (the board) and **Material** (the feeds new
-operations take). The zero is the **Work zero** item beneath the setup, which says where it
-is, e.g. "X0 Y0 stock bottom left · Z0 stock top"; click it to set the zero. The machine,
-shared by every setup, is under **Machine**.
+The board is its [setup](setups.md)'s. Under each setup in the Browser are two items:
+- **Stock**, with its thickness and material beside it ("18 mm · Plywood"): click it for
+  two sections, **Stock** (the board) and **Material** (the feeds new operations take). A
+  click on the board's edge in the top view opens it too. A new project opens here, with
+  the cursor in the thickness.
+- **Work zero**, with where it is beside it ("stock bottom left"): click it to set the zero.
+
+The machine, shared by every setup, is under **Machine**.
 
 ## Stock
 

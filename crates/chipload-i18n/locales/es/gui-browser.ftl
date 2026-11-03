@@ -33,8 +33,10 @@ browser-surface-hover = Todo el material en bruto rebajado en plano con una fres
 # Job settings and Tools.
 browser-job-settings = Máquina
 browser-job-settings-hover = La máquina: su postprocesador, las unidades del G-code, la Z segura, los recorridos y los cambios de herramienta, comunes a todas las sujeciones
+browser-stock = Material en bruto
+browser-stock-hover = El tablero que corta esta sujeción: su grosor, tamaño y material. Haz clic para ajustarlos.
 browser-work-zero = Cero pieza
-browser-work-zero-hover = Dónde está el X0 Y0 Z0 del código G. Haga clic para ajustarlo, o selecciónelo y arrástrelo en la vista.
+browser-work-zero-hover = Dónde está el X0 Y0 Z0 del código G. Haz clic para ajustarlo, o selecciónalo y arrástralo en la vista.
 browser-job-settings-problems-hover = Máquina, postprocesador, unidades y recorridos. { $count ->
         [one] { $count } problema
        *[other] { $count } problemas

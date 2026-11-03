@@ -139,6 +139,10 @@ or a point).
       ▸ ☑ bottom
 ```
 
+(As built 2026-11-03, the user: every setup has a **Stock** item, thickness and material
+beside it, above its **Work zero**; the setup's own form keeps its name, on/off and parts.
+A new project opens on Stock; a click on the board's edge in the top view opens it.)
+
 - The **active setup** (bold) is the one shown in the view and simulated, where new parts
   go, and what *Generate* previews; clicking a setup's row makes it active. The others are
   ghosts in the view (§5).

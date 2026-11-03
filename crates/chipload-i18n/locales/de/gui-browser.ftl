@@ -33,6 +33,8 @@ browser-surface-hover = Das ganze Rohteil mit einem breiten Schaftfräser plan a
 # Job settings and Tools.
 browser-job-settings = Maschine
 browser-job-settings-hover = Die Maschine: Postprozessor, G-Code-Einheiten, sichere Höhe, Verfahrwege und Werkzeugwechsel, für alle Aufspannungen gleich
+browser-stock = Rohteil
+browser-stock-hover = Die Platte, die diese Aufspannung bearbeitet: Dicke, Größe und Material. Klicken, um sie einzustellen.
 browser-work-zero = Nullpunkt
 browser-work-zero-hover = Wo X0 Y0 Z0 des G-Codes liegt. Klicken, um ihn einzustellen, oder auswählen und in der Ansicht ziehen.
 browser-job-settings-problems-hover = Maschine, Postprozessor, Einheiten und Verfahrwege. { $count ->

@@ -33,6 +33,8 @@ browser-surface-hover = Tutto il grezzo abbassato in piano con una fresa larga: 
 # Job settings and Tools.
 browser-job-settings = Macchina
 browser-job-settings-hover = La macchina: il suo post-processore, le unità del G-code, la Z di sicurezza, le corse e i cambi utensile, comuni a tutti i piazzamenti
+browser-stock = Grezzo
+browser-stock-hover = La tavola che questo piazzamento lavora: spessore, dimensioni e materiale. Fai clic per impostarli.
 browser-work-zero = Zero pezzo
 browser-work-zero-hover = Dove si trova X0 Y0 Z0 del G-code. Fai clic per impostarlo, oppure selezionalo e trascinalo nella vista.
 browser-job-settings-problems-hover = Macchina, post-processore, unità e corse. { $count ->

@@ -33,9 +33,9 @@ them (`part-S2-sheet.html`). `run` writes every setup that is on; `--setup N` on
 
 ## In the window
 
-The Browser shows **Setups**, always, each with its **Work zero** and its parts beneath it.
-Click a setup for its properties: its name, its board (Stock and Material) and where its zero
-is. Right-click *Setups* or a setup for **Add a setup**, another board: it starts like the
+The Browser shows **Setups**, always, each with its **Stock**, its **Work zero** and its
+parts beneath it. Click a setup for its name, whether it is cut and its parts; its board and
+zero are the two items beneath it. Right-click *Setups* or a setup for **Add a setup**, another board: it starts like the
 active one, with a part of its own, and both become active. Right-click a setup for **New
 part** in it.
 

@@ -415,6 +415,7 @@ enum SetupAction {
     Add,
     Toggle(u64),
     Open(u64),
+    Stock(u64),
     Zero(u64),
     NewPart(u64),
     Remove(u64),
@@ -574,6 +575,32 @@ impl ChiploadApp {
         self.tool_rows(ui);
         self.drawing_rows(ui);
         self.operation_rows(ui);
+    }
+
+    /// Setup `id`'s board, its thickness and material beside it, a leaf under the setup
+    /// above its work zero (the user, 2026-11-03). A click opens it, its setup made the
+    /// active one first.
+    fn stock_row(&mut self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+        let edit = self.edit.as_ref()?;
+        let job = edit.job.for_setup(id);
+        let active = edit.job.active_setup_id() == Some(id);
+        let summary = super::forms::stock_summary(ui, &job);
+        let problems = if active {
+            self.stock_problems().count()
+        } else {
+            0
+        };
+        let row = Row::new(Id::new(("browser-stock", id)), 3, t!(ui, "browser-stock"))
+            .icon(Icon::Material)
+            .trailing(summary)
+            .selected(active && self.focus == Focus::Stock)
+            .dim(!active)
+            .alert(problems > 0)
+            .show(ui);
+        row.response
+            .on_hover_text(t!(ui, "browser-stock-hover"))
+            .clicked()
+            .then_some(SetupAction::Stock(id))
     }
 
     /// Setup `id`'s G-code zero, with where it is (docs/specs/work-zero-marker.md §2), a
@@ -825,6 +852,9 @@ impl ChiploadApp {
                 if !setup_open {
                     continue;
                 }
+                if let Some(a) = self.stock_row(ui, setup.id) {
+                    setup_action = Some(a);
+                }
                 if let Some(a) = self.work_zero_row(ui, setup.id) {
                     setup_action = Some(a);
                 }
@@ -852,6 +882,10 @@ impl ChiploadApp {
             Some(SetupAction::Open(id)) => {
                 self.activate_setup(id);
                 self.focus = Focus::Setup(id);
+            }
+            Some(SetupAction::Stock(id)) => {
+                self.activate_setup(id);
+                self.focus = Focus::Stock;
             }
             Some(SetupAction::Zero(id)) => {
                 self.activate_setup(id);

@@ -189,8 +189,8 @@ fn position_shown(harness: &Harness<'_, ChiploadApp>) -> bool {
 #[test]
 fn the_stock_size_switches_between_outline_and_margin_and_a_fixed_size() {
     let mut harness = harness("en", WINDOW);
-    // The board is the setup's (docs/specs/setups.md §7).
-    harness.state_mut().focus = Focus::Setup(1);
+    // The board is the setup's (docs/specs/setups.md §7), its own item.
+    harness.state_mut().focus = Focus::Stock;
     harness.run_steps(3);
     let settings = |h: &Harness<'_, ChiploadApp>| h.state().edit.as_ref().unwrap().job.clone();
     let old = settings(&harness);
@@ -288,15 +288,19 @@ fn a_project_started_empty_can_add_a_drawing_file() {
     assert!(!settings.drawing.shapes.is_empty());
 }
 
-/// A setup's properties: its board, not its zero, which is the Browser's *Work zero* item
-/// beneath it (the user, 2026-11-03: not in two places); the machine is in Machine
-/// settings (docs/specs/setups.md §7, job-settings-layout.md §2).
+/// A setup's properties: its name and parts, not its board or zero, which are the
+/// Browser's *Stock* and *Work zero* items beneath it (the user, 2026-11-03: not in two
+/// places); the machine is in Machine settings (docs/specs/setups.md §7).
 #[test]
-fn setup_settings_show_the_board_but_not_the_zero_or_machine() {
+fn setup_settings_show_the_name_but_not_the_board_zero_or_machine() {
     let mut harness = harness("en", WINDOW);
     harness.state_mut().focus = Focus::Setup(1);
     harness.run_steps(3);
-    assert!(harness.query_by_label("Thickness").is_some());
+    assert!(harness.query_by_label("Name").is_some());
+    assert!(
+        harness.query_by_label("Thickness").is_none(),
+        "the board is Stock"
+    );
     assert!(
         harness
             .query_by_label_contains("X0 Y0 drawing origin · Z0 stock top")
@@ -307,6 +311,11 @@ fn setup_settings_show_the_board_but_not_the_zero_or_machine() {
         harness.query_by_label("Post").is_none(),
         "the machine is elsewhere"
     );
+    // Stock: the board and its material.
+    harness.state_mut().focus = Focus::Stock;
+    harness.run_steps(3);
+    assert!(harness.query_by_label("Thickness").is_some());
+    assert!(harness.query_by_label("Name").is_none());
 }
 
 /// The legend and the navigation bar never overlap: in a narrow canvas the legend stands on

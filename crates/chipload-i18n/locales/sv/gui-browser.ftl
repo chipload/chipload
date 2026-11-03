@@ -33,6 +33,8 @@ browser-surface-hover = Hela ämnet planfräst med en bred pinnfräs: plana offe
 # Job settings and Tools.
 browser-job-settings = Maskin
 browser-job-settings-hover = Maskinen: postprocessor, G-kodens enheter, säker höjd, rörelseområde och verktygsbyten, gemensamma för alla uppspänningar
+browser-stock = Ämne
+browser-stock-hover = Skivan som den här uppspänningen fräser: tjocklek, storlek och material. Klicka för att ställa in dem.
 browser-work-zero = Arbetsnollpunkt
 browser-work-zero-hover = Var G-kodens X0 Y0 Z0 ligger. Klicka för att ställa in den, eller markera den och dra den i vyn.
 browser-job-settings-problems-hover = Maskin, postprocessor, enheter och rörelseområde. { $count ->

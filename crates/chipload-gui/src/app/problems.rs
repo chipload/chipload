@@ -100,6 +100,11 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
     }
 }
 
+/// A field the stock's properties hold (its board and material, not its zero).
+fn is_stock_field(field: &str) -> bool {
+    under(field, "stock") && !is_zero_field(field)
+}
+
 /// A field the work zero's properties hold.
 fn is_zero_field(field: &str) -> bool {
     under(field, "work_zero") || under(field, "stock.z_zero")
@@ -258,6 +263,21 @@ impl ChiploadApp {
         })
     }
 
+    /// The active setup's board's problems: its stock and material.
+    pub(super) fn stock_problems(&self) -> impl Iterator<Item = &Problem> {
+        let active = self.edit.as_ref().and_then(|e| {
+            let id = e.job.active_setup_id()?;
+            e.job.setups.iter().position(|s| s.id == id)
+        });
+        let prefix = active.map(|k| format!("setups.{k}."));
+        self.job_problems().filter(move |p| {
+            prefix
+                .as_ref()
+                .is_some_and(|prefix| p.path.starts_with(prefix.as_str()))
+                && is_stock_field(p.field())
+        })
+    }
+
     /// The work zero's problems (docs/specs/work-zero-marker.md §4).
     pub(super) fn zero_problems(&self) -> impl Iterator<Item = &Problem> {
         self.job_problems().filter(|p| is_zero_field(p.field()))
@@ -281,6 +301,7 @@ impl ChiploadApp {
                 Box::new(self.op_problems(i))
             }
             Focus::Job => Box::new(self.settings_problems()),
+            Focus::Stock => Box::new(self.stock_problems()),
             Focus::WorkZero => Box::new(self.zero_problems()),
             Focus::Tools => Box::new(self.problems_under(Some("tools.".into()))),
             Focus::LibraryTools
@@ -308,6 +329,7 @@ impl ChiploadApp {
                         .as_ref()
                         .is_some_and(|prefix| p.path.starts_with(prefix.as_str()))
                         && !is_zero_field(p.field())
+                        && !is_stock_field(p.field())
                 }))
             }
             Focus::Tool(id) => {
@@ -414,6 +436,7 @@ impl ChiploadApp {
                             (None, Some(id), _) => Focus::Part(id),
                             (None, None, Some(id)) => Focus::Tool(id),
                             _ if is_zero_field(problem.field()) => Focus::WorkZero,
+                            _ if is_stock_field(problem.field()) => Focus::Stock,
                             (None, None, None) => Focus::Job,
                         });
                     }

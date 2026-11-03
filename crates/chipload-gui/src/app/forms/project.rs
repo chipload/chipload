@@ -534,14 +534,43 @@ pub(super) fn material_section(
 
 /// A part's properties (docs/specs/parts.md §8): its name, on or off, whether it is the
 /// active part, and its copies.
-/// Setup `id` (docs/specs/setups.md §7): its board (stock and material), then its name,
-/// on/off and parts; its work zero is the Browser item beneath it. They
-/// edit the active setup, so another setup's form offers to make it active first.
+/// The active setup's board (docs/specs/setups.md §7): its stock, thickness first, and its
+/// material, what a new project needs before anything else (the user, 2026-11-03). An
+/// item of its own beside the work zero, under the setup in the Browser.
+pub(in crate::app) fn stock_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    library: Option<&Library>,
+) -> Option<JobRequest> {
+    let title = t!(ui, "browser-stock");
+    super::browser::title_line(ui, crate::icons::Icon::Material, None, &title);
+    let labels = job_label_width(ui);
+    let open = SectionLook { open: true, labels };
+    // Taken before the stock is borrowed for its fields.
+    let board = edit.job.board_extents();
+    let job = &mut edit.job;
+    stock_section(ui, job, board, open);
+    library.and_then(|library| material_section(ui, job, library, open))
+}
+
+/// The active setup's board in one line, for its Browser row: "18 mm · Plywood".
+pub(in crate::app) fn stock_summary(ui: &egui::Ui, job: &chipload_job::Job) -> String {
+    let units = crate::units::display(ui.ctx());
+    let unit = chipload_pipeline::units::length_unit(units);
+    let thickness = format!("{} {unit}", len_in(units, job.stock().thickness));
+    match &job.stock().material {
+        Some(material) => format!("{thickness} · {}", material.name),
+        None => thickness,
+    }
+}
+
+/// Setup `id` (docs/specs/setups.md §7): its name, on/off and parts. Its board and its work
+/// zero are the items beneath it in the Browser (the user, 2026-11-03). Another setup's
+/// form offers to make it active.
 pub(in crate::app) fn setup_form(
     ui: &mut egui::Ui,
     edit: &mut EditJob,
     id: u64,
-    library: Option<&Library>,
 ) -> Option<JobRequest> {
     let mut request = None;
     let index = edit.job.setups.iter().position(|s| s.id == id)?;
@@ -555,56 +584,20 @@ pub(in crate::app) fn setup_form(
         .map(|p| p.name.clone())
         .collect();
     let labels = job_label_width(ui);
-    let open = SectionLook { open: true, labels };
-    {
-        let setup = &mut edit.job.setups[index];
-        super::browser::title_line(
-            ui,
-            crate::icons::Icon::Rectangle,
-            None,
-            &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
-        );
-    }
+    let setup = &mut edit.job.setups[index];
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Rectangle,
+        None,
+        &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
+    );
+    setup_name_rows(ui, setup, index, id, several, &parts, labels);
     if !active {
-        setup_name_rows(
-            ui,
-            &mut edit.job.setups[index],
-            index,
-            id,
-            several,
-            &parts,
-            labels,
-        );
         ui.add_space(6.0);
         if ui.button(t!(ui, "forms-setup-make-active")).clicked() {
             request = Some(JobRequest::ActivateSetup(id));
         }
-        return request;
     }
-    // Taken before the stock is borrowed for its fields.
-    let board = edit.job.board_extents();
-    let job = &mut edit.job;
-    // The board first: its thickness and material are what a new project needs before
-    // anything else (the user, 2026-11-03).
-    stock_section(ui, job, board, open);
-    if let Some(library) = library
-        && let Some(material) = material_section(ui, job, library, open)
-    {
-        request = Some(material);
-    }
-    ui.add_space(4.0);
-    setup_name_rows(
-        ui,
-        &mut job.setups[index],
-        index,
-        id,
-        several,
-        &parts,
-        labels,
-    );
-    // The zero is set on its own item under the setup in the Browser, which shows
-    // where it is (the user, 2026-11-03: not twice).
-
     if several {
         ui.add_space(6.0);
         if ui.button(t!(ui, "forms-remove-setup")).clicked() {

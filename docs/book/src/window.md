@@ -62,7 +62,7 @@ The **Browser** on the left holds your library and the whole project as a tree:
   - **Drawing:** what the shapes come from. Each DXF has its layers under it; then come
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
-  - **Setups**, each a board with its **Work zero** and its **parts** under it, each part
+  - **Setups**, each with its **Stock**, its **Work zero** and its **parts** under it, each part
     with its operations, in cutting order. A line marks each tool change. A floor pass is
     cut before its V-carve and a rest pass after its pockets, so the line above them names
     their tools in the order they are cut: *tool change → T2 → T1*. See
@@ -75,7 +75,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
 - **Click** a row to select it.
   - A DXF, picture or layer selects its shapes for a new operation, and Ctrl+click adds
     to the selection.
-  - An operation, a part, a setup, its work zero, a tool, *Tools*, *Machine*, a DXF (or one of its layers)
+  - An operation, a part, a setup, its stock or work zero, a tool, *Tools*, *Machine*, a DXF (or one of its layers)
     or a picture shows its settings on the right, in [Properties](#properties).
 - **Double-click** a picture for its trace settings, or a part to make it the active part.
 - **Right-click** a row for the rest:
@@ -188,8 +188,8 @@ navigation bar](images/simulation-3d.png)
 
 The **Properties** panel on the right shows what is open, under a title:
 - **Machine:** the machine and its post.
-- **A setup:** its board (stock and material), its name and its parts. Its work zero is
-  the item beneath it in the Browser.
+- **A setup:** its name, whether it is cut (with several) and its parts.
+- **Stock:** the setup's board, its thickness, size and margin, and its material.
 - **Work zero:** the stock's corners and centre to click, the drawing origin, its position
   and Z zero.
 - **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is

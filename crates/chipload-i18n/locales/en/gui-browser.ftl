@@ -33,6 +33,8 @@ browser-surface-hover = The whole stock taken down flat with a wide endmill: fla
 # Job settings and Tools.
 browser-job-settings = Machine
 browser-job-settings-hover = The machine: its post-processor, G-code units, safe Z, travel and tool changes, shared by every setup
+browser-stock = Stock
+browser-stock-hover = The board this setup cuts: its thickness, size and material. Click to set them.
 browser-work-zero = Work zero
 browser-work-zero-hover = Where the G-code's X0 Y0 Z0 is. Click to set it, or select it and drag it in the view.
 browser-job-settings-problems-hover = Machine, post-processor, units and travel. { $count ->

@@ -39,6 +39,7 @@ mod select_drag;
 mod setups;
 mod shape_library;
 mod statistics;
+mod stock;
 mod styles;
 mod tab_markers;
 mod texts;

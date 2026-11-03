@@ -190,8 +190,10 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-- **The setup's form no longer shows where the zero is (2026-11-03, the user):** the
-  Browser's *Work zero* item under the setup shows it and sets it; one place, not two.
+- **Stock is an item of its own (2026-11-03, the user):** under each setup, above *Work
+  zero*, with its thickness and material beside it; its form is the board and material, the
+  setup's own keeps name, on/off and parts. A new project opens on it; a click on the
+  board's edge opens it. Before that the same day, the setup's form lost its zero line.
 - **The user's window round of 2026-11-03: done the same day.**
   1. A new project's setup shows its stock (thickness first, the cursor in it) and its
      material before its name, parts and zero.
