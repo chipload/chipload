@@ -1,20 +1,21 @@
 # TODO
 
 What's planned. Each item gets a spec in `docs/specs/` that is reviewed before it's built
-(see `CLAUDE.md`). Reviewed and put in order 2026-11-02 and again 2026-11-03 (the user:
-"go through the todo once again and make sure it is up to date"); *Next* reordered the
-same day for usability and a quick workflow.
+(see `CLAUDE.md`). Reviewed and put in order 2026-11-02 and twice on 2026-11-03 (the user:
+"go through todo again and make sure it is tidy and up to date"); *Next* puts usability and
+a quick workflow first.
 
 ## In progress
 
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:
-  - **Native review:** the user reviews Swedish; German, French, Spanish, Italian and
-    Russian are marked *review wanted* (`Language::reviewed`). The translators' open
+  - **Native review:** the user reviews Swedish as they use it (2026-11-03: a profile's side
+    *insida* / *utsida*, oversize *spel*; in the glossary); German, French, Spanish, Italian
+    and Russian are marked *review wanted* (`Language::reviewed`). The translators' open
     suggestions are at the end of the glossary. The texts added since 0.31 (statistics,
-    cutting data with the glossary's new slot/clearing terms, tool updates, Delete) are
-    machine-made in every language, Swedish too.
+    cutting data, tool updates, Delete, and 0.33's styles, Stock, tabs along X or Y, folded
+    sections, the status hint) are machine-made in every language, Swedish too.
   - **`Language::reviewed`** marks only English, so the menu shows Swedish as *review
     wanted* while the guide (languages.md) leaves it out. Mark Swedish reviewed once the
     user has read it.
@@ -27,33 +28,35 @@ same day for usability and a quick workflow.
 
 ## State to remember (2026-11-03)
 
-- **Released in 0.32.0** (2026-11-03): the Russian translation, operation statistics,
-  cutting data in the tools with pocket slot steps, tool updates from the library, the
-  drill-point and V-bit cone fixes. Its notes warn that the first start converts the tool
-  and material library (tools.json 4, materials.json 3, the old files kept as `.bak`) and
-  that 0.31 can't read the converted files.
-- **Releases**: **0.33.0** tagged 2026-11-03, a draft for the user to publish (styles,
-  defaults that know the job, tabs along X or Y, Stock as its own item, calmer forms, the
-  Windows startup fix). The latest published is **0.32.0** (2026-11-03), its guide online. Before
-  it 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1 (2026-10-29), 0.27.1, 0.25.1, 0.25.0,
-  0.24.0, 0.23.0, 0.22.2. Tagged but never published: 0.22.0 (withdrawn), 0.26.0, 0.26.1,
-  0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on, the guide-only tags
-  `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`). Built by Actions from a `vX.Y.Z` tag: Linux and
-  Windows x86_64 and ARM64 (AppImage, installer, portable), macOS universal, the guide zip,
-  `SHA256SUMS.txt`; docs/releasing.md.
+- **Released in 0.33.0** (published 2026-11-03, its guide online): styles (saved, applied,
+  shown and edited), new operations that start from the selection, tabs along X or Y,
+  Stock as its own item, folded operation sections, a default stock thickness, the Windows
+  startup fix. Same G-code as 0.32; 0.32 can't open a project with tabs `along`, nor a
+  `materials.json` with `default_thickness`.
+- **Releases**: the latest published is **0.33.0** (2026-11-03). Before it 0.32.0
+  (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
+  (2026-10-29), 0.27.1, 0.25.1, 0.25.0, 0.24.0, 0.23.0, 0.22.2. Tagged but never published:
+  0.22.0 (withdrawn), 0.26.0, 0.26.1, 0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on,
+  the guide-only tags `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`). Built by Actions from a
+  `vX.Y.Z` tag: Linux and Windows x86_64 and ARM64 (AppImage, installer, portable), macOS
+  universal, the guide zip, `SHA256SUMS.txt`; docs/releasing.md. Write the third-party
+  notices to a temporary file first and copy it over: a stopped `cargo about >` left the
+  file empty once (2026-11-03).
 - **The repository is public, under the `chipload` organisation** (2026-10-17):
   github.com/chipload/chipload, the guide at chipload.github.io/chipload (guide-only fixes go
   out with a `guide-X.Y.Z-N` tag and `packaging/docs/publish-book.sh`). Actions run on every
-  push to main and on tags. The `gh` token's resource owner is `chipload` (Contents, Actions
-  and Pages read/write); it **can't comment on issues or pull requests** (403, 2026-11-02),
-  so the user posts replies.
+  push to main and on tags; CI on main tests Windows but uploads no program. The `gh`
+  token's resource owner is `chipload` (Contents, Actions and Pages read/write); it **can't
+  comment on issues or pull requests** (403, 2026-11-02), so the user posts replies.
 - **For the user to do on GitHub**: the organisation's avatar
   (`packaging/brand/png/chipload-avatar-512.png`), its name, description and website, and
   the repository's social preview (`packaging/brand/png/github-social-preview.png`), if not
   done yet.
 - **Windows builds** (local fallback, without Actions): Rust (msvc) and the Build Tools are
   installed on the Windows side, checkout `C:\code\chipload`; the steps are in
-  docs/releasing.md (*Without GitHub Actions*).
+  docs/releasing.md (*Without GitHub Actions*). Windows has its own fonts since 0.33 (Segoe
+  UI, not fontconfig's), so text widths there differ from Linux: German ribbon names fit at
+  1200 px on Windows, not on Linux.
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for history). Local tags
   `adaptive-final` (main before trochoidal and adaptive were removed) and `python-final`.
 - **Tested on a real machine:** the GRBL post, by the user on their Shapeoko (confirmed
@@ -68,68 +71,62 @@ same day for usability and a quick workflow.
 
 ## Next, in order
 
-Reordered 2026-11-03 by the user's wish: "prioritize usability improvements and a
+Ordered 2026-11-03 by the user's wish: "prioritize usability improvements and a
 streamlined, quick and efficient workflow". The yardstick is the direction review's measure
 (2026-10-28, kept private): for the usual router job, how many edits from opening the DXF
-to a program you trust. It was about four per operation; the aim is none beyond choosing a
-style.
+to a program you trust. It was about four per operation; with the defaults and styles of
+0.33 the aim is none beyond choosing a style.
 
-1. **Defaults that know the job: done 2026-11-03** (docs/specs/styles.md §2, step 1; see
-   *Done*). Left from it for the first-run setup: tabs with a tool not marked
-   centre-cutting still warn, and machine travel not set.
-2. **Styles: operation presets** (docs/specs/styles.md, replacing presets.md; the
-   direction review's step 2, CamBam's speed). **Steps 1 to 3 and 3b done 2026-11-03**
-   (the defaults; `styles.json` and `chipload style …`, ADR 0030; the window; a style
-   shown and edited in the operation's own form, `style show`/`style set PATH=VALUE`,
-   styles.md §10). For the user to try before styles are released. Next of it: layer rules (step 4), keys for styles (item 3).
-3. **Tabs along the grain: done 2026-11-03** (docs/specs/tabs-along-grain.md; see *Done*).
-4. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
+1. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
-     and a style's key;
-   - the canvas' right-click menu on a selection: add an operation or apply a style;
+     and a key per style;
+   - layer rules (docs/specs/styles.md §5): a style with a layer pattern, applied on import
+     or on demand (presets.md §5, its decisions 6-8 to review then); styles of several
+     operations (a profile and its pocket as one);
    - selecting by kind: a layer's shapes from its row, *select similar* (every circle of
      this size, for holes; every closed shape inside the outline, for pockets);
    - generating without F9 once the project is complete (background generation exists:
      docs/specs/background-generation.md), if it stays quick on large jobs;
    - export straight after generating: one key, the last folder and name remembered.
-5. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
+   (The canvas' right-click menu already adds an operation or applies a style.)
+2. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
    2026-11-03: "dxf layers should be expandable to show its shapes like leafs. The report
    gives warnings about a shape in the dxf, the profile is open for example. Then a click
    on that warning should select the shape, similar to how warnings on operations is
    linked to the operation."). Today a DXF's row opens to its layers with their shape
    counts (`sources.rs`, `layers: Vec<(String, usize)>`), and a Report line points at an
-   operation or a tool (`report::Target`, since 35b2b92: add a shape); the drawing's
-   warnings (open contours, invalid ones, the contour table from
-   `chipload_pipeline::report::contour_messages`) point at nothing. Spec first: a layer opens to one row per shape (its kind and size, open or
+   operation or a tool (`report::Target`); the drawing's warnings (open contours, invalid
+   ones, the contour table from `chipload_pipeline::report::contour_messages`) point at
+   nothing. Spec first: a layer opens to one row per shape (its kind and size, open or
    closed, a warning mark); a click on the row selects the shape on the canvas as a
    double-click does (`pick_alone`, the DXF stays whole otherwise); a Report line about a
    shape carries its contour (a `ReportLine` target that is an operation or a shape) and
    a click selects it and shows it; how the rows stay fast with thousands of shapes (a
    traced picture's, a large DXF's: virtual rows, or only the first N with "more…");
-   pictures' and SVGs' layers alike. Takes in the idea "a list of every shape in the
-   Browser's Drawing folder" (Ideas).
-6. **The walk again:** after 1-4, drive the usual jobs headless as the direction review
+   pictures' and SVGs' layers alike.
+3. **The walk again:** after 1 and 2, drive the usual jobs headless as the direction review
    did (a DXF part through with tabs and pockets; a V-carved sign; a sheet of copies) and
    count the edits and clicks. Each that remains becomes an item here.
-7. **For the user to try** (built, not yet tried by hand; findings become items here):
-   - on the router: V-carve lifting less, with the script font (0.30.0);
+4. **For the user to try** (built, not yet tried by hand; findings become items here):
+   - the 0.33 Windows build: no terminal windows at startup;
+   - on the router: tabs along X or Y; V-carve lifting less, with the script font (0.30);
+     slot and clearing values in the tools' cutting data (the user, 2026-11-03: "it works
+     quite good");
+   - new operations' defaults on real jobs (through with tabs, holes first, depths from the
+     last of their kind);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
      programs (LibreCAD, Inkscape, LightBurn, Fusion);
    - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box;
    - an operation's Statistics section (lengths and lifts: do they match the router?);
-   - on the router: slot and clearing values in the tools' cutting data, a pocket's slot
-     steps (the user, 2026-11-03: "it works quite good"; the bugs found are fixed);
-   - project tools updated from the library (the offer after Save, the Report on open);
-   - new operations' defaults (through with tabs, holes first) and styles, in the window.
-8. **Review V-carve** (safety; after the workflow items by the user's priority of
-   2026-11-03), the last operation not reviewed (profile and pocket were, holes and
-   follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
-   wider or narrower than the strokes, the cone's depth, passes and step down, flat
+   - project tools updated from the library (the offer after Save, the Report on open).
+5. **Review V-carve** (safety), the last operation not reviewed (profile and pocket were,
+   holes and follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock,
+   a bit wider or narrower than the strokes, the cone's depth, passes and step down, flat
    bottom), the checker's view, and proptest invariants (the cut stays inside the outline;
    no point deeper than the cone allows).
-9. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+6. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
    should also have a parameter for length of adjoining segments. If the adjoining profile
    segments are very short we could probably ignore the kink"). Today a corner is ignored
    only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
@@ -137,45 +134,47 @@ style.
    picture's stair-steps and a font's tiny facets are. Spec first: one short side or both,
    how it combines with the angle, a default (the V-carve tolerance? the trace's
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
-   6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
-   review (8).
-10. **V-carve inlays** (the gap review of 2026-11-03, the user agreed to add it): a plug
-   and its pocket from one outline, V-carved to fit: the pocket at its depth, the plug
-   mirrored, cut with a start depth and a glue gap, so the two press together and the
-   plug's back is planed off. Among the most made maker jobs on a hobby router. Builds on
-   V-carve (the medial axis, flat-floor passes); best after its review (8). Spec first:
-   the fields (gap, start depth, plug as a mirrored copy or its own setup), what the
-   checker and the simulation show, a golden pair.
-11. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9,
-   left for later then): a setup that is the same board turned over, its drawing mirrored
-   about an axis, located by dowel pins or an edge, for parts machined on both faces
-   (boxes, signs with a back pocket, cutting boards). Spec first: the mirror axis, how
-   the zero follows, dowel holes as an operation, the setup sheet's words.
-12. **Pockets: a finishing pass** (the gap review of 2026-11-03; was in Ideas): a light
-   last cut of the walls and of the floor, for fits (inlays, lids, recesses) and clean
-   floors. Spec first: the allowance left by the roughing, the wall lap's direction, the
-   floor's stepover, with rest passes and dogbones.
-13. **First-run setup** (the gap review of 2026-11-03; left from item 1): on the first
-   start, ask for the machine's travel and the first tool (marked centre-cutting or
-   not), so the first project has no warning but its own.
-14. **Laser and plasma: decide** (the gap review of 2026-11-03). CLAUDE.md promises G-code
-   for "CNC routers, mills, plasma, laser", but the posts are spindle-only: no laser mode
-   (power instead of RPM, M4 dynamic power, no Z), no plasma kerf or pierce delay.
-   *Recommended:* narrow the claim to routers and mills until a user asks; the
-   alternative is a basic laser post and mode with its own spec. The user decides.
-15. **Small follow-ups:**
-   - A pasted shape loses its construction flag: the clipboard carries layer and geometry
-     only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
-   - Materials: import and export in the window (the command line has `material
-     export`/`import`).
-   - The remaining large files, split by topic as `forms/` and `models/` were, when next
-     worked on: toolpath `plan.rs` (2,560 lines), `pocket.rs` (2,060), the canvas `view.rs`
-     (1,940), the window's `app/mod.rs` (2,270), `app/user_library.rs` (1,470).
-   - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
-     stock), if the user wants it (docs/specs/job-settings-layout.md).
-   - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
-     find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-16. **Later, the user's ideas for when the above is done**, each with its own spec:
+   6e3ed35 still applies. Optional field, no schema bump. After the review (5).
+7. **V-carve inlays** (the gap review of 2026-11-03): a plug and its pocket from one
+   outline, V-carved to fit: the pocket at its depth, the plug mirrored, cut with a start
+   depth and a glue gap, so the two press together and the plug's back is planed off.
+   Among the most made maker jobs on a hobby router. Builds on V-carve (the medial axis,
+   flat-floor passes); after the review (5). Spec first: the fields (gap, start depth, plug
+   as a mirrored copy or its own setup), what the checker and the simulation show, a golden
+   pair.
+8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
+   setup that is the same board turned over, its drawing mirrored about an axis, located
+   by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
+   pocket, cutting boards). Spec first: the mirror axis, how the zero follows, dowel holes
+   as an operation, the setup sheet's words.
+9. **Pockets: a finishing pass** (the gap review of 2026-11-03): a light last cut of the
+   walls and of the floor, for fits (inlays, lids, recesses) and clean floors. Spec first:
+   the allowance left by the roughing, the wall lap's direction, the floor's stepover,
+   with rest passes and dogbones.
+10. **First-run setup** (the gap review of 2026-11-03, and what the new defaults left): on
+    the first start, ask for the machine's travel and the first tool (marked
+    centre-cutting or not), so the first project has no warning but its own; today tabs
+    with a tool not marked centre-cutting warn, and a machine without travel isn't
+    checked against it.
+11. **Laser and plasma: decide** (the gap review of 2026-11-03). CLAUDE.md promises G-code
+    for "CNC routers, mills, plasma, laser", but the posts are spindle-only: no laser mode
+    (power instead of RPM, M4 dynamic power, no Z), no plasma kerf or pierce delay.
+    *Recommended:* narrow the claim to routers and mills until a user asks; the
+    alternative is a basic laser post and mode with its own spec. The user decides.
+12. **Small follow-ups:**
+    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
+      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
+    - Materials: import and export in the window (the command line has `material
+      export`/`import`).
+    - The remaining large files, split by topic as `forms/` and `models/` were, when next
+      worked on: toolpath `plan.rs` (2,560 lines), `pocket.rs` (2,060), the canvas `view.rs`
+      (1,940), the window's `app/mod.rs` (2,270), `app/user_library.rs` (1,470).
+    - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
+      stock), if the user wants it (docs/specs/job-settings-layout.md).
+    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
+      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
+    - A JSON Schema for `styles.json` (`chipload schema`), as the other library files have.
+13. **Later, the user's ideas for when the above is done**, each with its own spec:
     - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
       decision 2's alternative): each setup with its own coordinates, its parts placed onto
       its board, setups side by side like PrusaSlicer's plates, the active in colour, the
@@ -201,7 +200,7 @@ style.
 Smaller follow-ups noted along the way, not in the order above:
 
 - **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
-- **Pockets:** dogbones with rest passes (the finishing pass is *Next* item 12).
+- **Pockets:** dogbones with rest passes (the finishing pass is *Next* item 9).
 - **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
   hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
   counterbores in one operation.
@@ -209,6 +208,9 @@ Smaller follow-ups noted along the way, not in the order above:
   panel with the current line during playback.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A bug-report bundle.**
+- **Touchpad scrolling** (offered 2026-11-03, not asked for): a preference, off by default,
+  where a two-finger scroll moves the view and a pinch or Ctrl + scroll zooms; a mouse
+  wheel keeps zooming. Today Space + drag pans, which the status bar now says.
 - **Cutting data, not now** (docs/specs/cutting-data.md §10): faster feeds at a light
   stepover (chip thinning below about 0.3 D, finishing laps); the higher load in a ring's
   inside corners; a tool's flute length, to warn of a step down deeper than the flutes;
@@ -219,48 +221,46 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-- **Styles shown and edited (2026-11-03, the user):** a style's form under *This
-  computer > Styles* is the operation's own form, a draft until Save; `style show` lists
-  its values by path and `style set NAME PATH=VALUE` sets them (docs/specs/styles.md §10).
-- **Stock is an item of its own (2026-11-03, the user):** under each setup, above *Work
-  zero*, with its thickness and material beside it; its form is the board and material, the
-  setup's own keeps name, on/off and parts. A new project opens on it; a click on the
-  board's edge opens it. Before that the same day, the setup's form lost its zero line.
-- **The user's window round of 2026-11-03: done the same day.**
-  1. A new project's setup shows its stock (thickness first, the cursor in it) and its
-     material before its name, parts and zero.
-  2. Edit and Simulate each keep their own view: 3D or top, toolpath, drawing, pictures.
-  3. Submenus showed an empty box for their arrow (egui's ⏵ is in none of the fonts):
-     every submenu now ends in ▸.
-  4. An operation's sections start folded with their summaries (one with a problem opens);
-     form labels in the weak colour, values in fields brighter.
-  5. A default stock thickness for new projects, beside the default material
-     (`materials.json` `default_thickness`, `chipload material thickness`, the Materials
-     folder in the window).
+### In 0.33.0 (published 2026-11-03)
 
-- **Tabs along the grain: done 2026-11-03** (docs/specs/tabs-along-grain.md, the user:
-  "place them in x direction or y direction ... align them to the fibre direction"). A
-  profile's tabs get a placement: *around* (as before), *along X* (bottom and top edges) or
-  *along Y* (left and right), half of the count on each edge; tabs placed by hand still win
-  per contour. `op tabs --along`, the sheet, styles keep it. For the user to try.
+- **Styles** (docs/specs/styles.md, ADR 0030; the direction review's step 2): an
+  operation saved by name in `styles.json` and used again on a selection (a profile style
+  by the selection: holes inside, the outline outside with tabs; feeds from the tool's
+  cutting data); `chipload style …`; *Save as style…*, the ribbon's Style button, *Apply
+  style ▸* on the canvas, *This computer > Styles*. **Shown and edited** (§10, the user:
+  "would it be possible to show and possible edit the content"): a style opens in the
+  operation's own form, a draft until Save; `style show` lists its values by path,
+  `style set NAME PATH=VALUE` sets them. Tried by the user: "Seems to work fine".
+- **Defaults that know the job** (styles.md §2): a new profile of outlines goes outside
+  and through with tabs, of holes inside and through; an outline with its holes gives two
+  profiles, the holes first. New pockets, V-carves and paths take the last of their kind's
+  depth, holes go through; feeds come from an operation with the same tool, else the
+  tool's cutting data; a tool not known to be centre-cutting helixes or ramps. In the
+  pipeline (`new_ops`) for the window and `chipload op add`. A through cut's spoilboard
+  depth is a plan fact, not a warning; a helix too wide after a tool change is fitted.
+- **Tabs along the grain** (docs/specs/tabs-along-grain.md, the user: "align them to the
+  fibre direction"): *around*, *along X* (bottom and top edges) or *along Y* (left and
+  right), half of the count on each; tabs placed by hand still win per contour. `op tabs
+  --along`, the sheet, styles keep it.
+- **Stock as its own item** (the user): under each setup, above *Work zero*, with its
+  thickness and material beside it; the setup's form keeps name, on/off and parts. A new
+  project opens on it with the cursor in the thickness; a click on the board's edge opens
+  it. The setup's form lost its zero line, which repeated the Work zero item.
+- **The user's window round:** Edit and Simulate each keep their own view; an operation's
+  sections start folded with their summaries (one with a problem opens), labels weak and
+  values brighter; submenus end in ▸ (egui's ⏵ is in none of the fonts); a default stock
+  thickness for new projects (`materials.json` `default_thickness`, written only when set
+  so 0.32 still reads the file; `chipload material thickness`).
+- **Generate is greyed out without operations** (the user: "We should not generate if
+  there are no operations").
+- **Windows: no terminal windows at startup** (the user): `fc-match` from Git for Windows
+  and the like ran three times; fontconfig is no longer asked on Windows. A ribbon test
+  that assumed Linux's font widths was made font-independent.
+- **The status bar's Edit hint starts with Space+drag moves the view** (the user had
+  never come across it; touchpad panning).
+- **Swedish** (the user): a profile's side *insida* / *utsida*; oversize *spel*.
 
-- **Styles in the window: done 2026-11-03** (docs/specs/styles.md step 3): *Save as
-  style…* on an operation, a Style button on the ribbon, *Apply style ▸* on the canvas,
-  This computer > Styles with a form per style.
-- **Styles in a file and on the command line: done 2026-11-03** (docs/specs/styles.md
-  step 2, ADR 0030). `chipload style save` keeps an operation's settings and library tool
-  by name; `style use` makes it on shapes of any project (a profile style by the
-  selection: holes inside, outline outside with tabs); feeds from the tool's cutting data.
-  Older styles are carried over by the project migrations. The window follows (step 3).
-
-- **Defaults that know the job: done 2026-11-03** (docs/specs/styles.md §2, the user: "ok
-  go ahead"). A new profile of outlines goes outside and through with tabs, of holes
-  inside and through; an outline with its holes gives two profiles, the holes first. New
-  pockets, V-carves and paths take the last of their kind's depth, holes go through; feeds
-  come from the tool's cutting data, never from another tool's operation; a tool not known
-  to be centre-cutting helixes or ramps. Made in the pipeline (`new_ops`) for the window
-  and the new `chipload op add`. A through cut's spoilboard depth is a note, not a
-  warning; a helix too wide after a tool change is fitted.
+### In 0.32.0 (published 2026-11-03)
 
 - **The review findings of 2026-11-02: done 2026-11-03** (the user: "do" them, as
   suggested). Drilled through holes go through at full diameter (holes.md decision 10, the
@@ -303,6 +303,8 @@ Smaller follow-ups noted along the way, not in the order above:
   every text of 0.31 with Russian plural forms, its own tests and a glossary section,
   signed off. Our own fix after it: the guide's *review wanted* list leaves out Swedish
   again, and a comma.
+
+### Earlier (0.31.0 and before)
 
 - **Cleanup after the review of 2026-11-02** (the user: "where does the complexity lie?
   Any part that feels like a hack?"; asked for 2 then 1):
