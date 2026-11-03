@@ -190,6 +190,8 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
+- **The setup's form no longer shows where the zero is (2026-11-03, the user):** the
+  Browser's *Work zero* item under the setup shows it and sets it; one place, not two.
 - **The user's window round of 2026-11-03: done the same day.**
   1. A new project's setup shows its stock (thickness first, the cursor in it) and its
      material before its name, parts and zero.

@@ -45,8 +45,6 @@ pub(super) enum JobRequest {
     Library(LibraryRequest),
     /// Open operation i (a rest pass's pocket).
     OpenOperation(usize),
-    /// Show the work zero's properties (docs/specs/work-zero-marker.md §4).
-    OpenWorkZero,
     /// Make setup `id` the active one; remove it (docs/specs/setups.md §7).
     ActivateSetup(u64),
     RemoveSetup(u64),

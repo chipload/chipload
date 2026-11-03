@@ -534,8 +534,8 @@ pub(super) fn material_section(
 
 /// A part's properties (docs/specs/parts.md §8): its name, on or off, whether it is the
 /// active part, and its copies.
-/// Setup `id` (docs/specs/setups.md §7): its name and on/off, then its board (stock and
-/// material) and where its work zero is, the sections Job settings had before setups. They
+/// Setup `id` (docs/specs/setups.md §7): its board (stock and material), then its name,
+/// on/off and parts; its work zero is the Browser item beneath it. They
 /// edit the active setup, so another setup's form offers to make it active first.
 pub(in crate::app) fn setup_form(
     ui: &mut egui::Ui,
@@ -602,18 +602,8 @@ pub(in crate::app) fn setup_form(
         &parts,
         labels,
     );
-    // The zero has its own properties; here where it is, a click away
-    // (docs/specs/work-zero-marker.md §4).
-    let zero = ui
-        .horizontal_wrapped(|ui| {
-            ui.label(t!(ui, "browser-work-zero"));
-            ui.link(zero_summary(ui, job))
-                .on_hover_text(t!(ui, "forms-zero-link-hover"))
-        })
-        .inner;
-    if zero.clicked() {
-        request = Some(JobRequest::OpenWorkZero);
-    }
+    // The zero is set on its own item under the setup in the Browser, which shows
+    // where it is (the user, 2026-11-03: not twice).
 
     if several {
         ui.add_space(6.0);

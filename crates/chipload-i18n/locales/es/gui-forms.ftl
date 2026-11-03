@@ -222,7 +222,6 @@ forms-zero-drawing-origin-hover = X0 Y0 donde el dibujo tiene su propio 0,0
 forms-zero-at = Posición
 forms-zero-at-hover = Dónde está el cero, en coordenadas del dibujo. Escribir un valor lo convierte en un punto propio.
 forms-zero-note = El X0 Y0 Z0 del código G. Moverlo no mueve ningún corte, solo los números del programa. En la vista, selecciónelo y arrástrelo: se ajusta a las esquinas y al centro del material y al origen del dibujo.
-forms-zero-link-hover = Mostrar las propiedades del cero de pieza
 
 # An imported DXF.
 forms-file = Archivo

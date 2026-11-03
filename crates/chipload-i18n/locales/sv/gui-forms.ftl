@@ -222,7 +222,6 @@ forms-zero-drawing-origin-hover = X0 Y0 där ritningen har sin egen 0,0
 forms-zero-at = Position
 forms-zero-at-hover = Var nollpunkten ligger, i ritningens koordinater. Ett inskrivet värde gör den till en egen punkt.
 forms-zero-note = G-kodens X0 Y0 Z0. Att flytta den flyttar ingen fräsning, bara siffrorna i programmet. Markera den i vyn och dra den: den fäster vid ämnets hörn och mitt och vid ritningens origo.
-forms-zero-link-hover = Visa nollpunktens egenskaper
 
 # An imported DXF.
 forms-file = Fil

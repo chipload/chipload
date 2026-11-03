@@ -222,7 +222,6 @@ forms-zero-drawing-origin-hover = X0 Y0 where the drawing has its own 0,0
 forms-zero-at = Position
 forms-zero-at-hover = Where the zero is, in drawing coordinates. Typing a value makes it a point of its own.
 forms-zero-note = The G-code's X0 Y0 Z0. Moving it moves no cut, only the numbers in the program. In the view, select it and drag it: it snaps to the stock's corners and centre and to the drawing origin.
-forms-zero-link-hover = Show the work zero's properties
 
 # An imported DXF.
 forms-file = File

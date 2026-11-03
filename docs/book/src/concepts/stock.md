@@ -1,10 +1,10 @@
 # Stock and work zero
 
 The board is its [setup](setups.md)'s: click the setup in the Browser for its properties.
-They have two sections, **Stock** (the board) and **Material** (the feeds new operations
-take), and above them a line that says where the zero is, e.g. "Work zero: X0 Y0 stock bottom
-left · Z0 stock top"; click it to set the zero. The machine, shared by every setup, is under
-**Machine**.
+They start with two sections, **Stock** (the board) and **Material** (the feeds new
+operations take). The zero is the **Work zero** item beneath the setup, which says where it
+is, e.g. "X0 Y0 stock bottom left · Z0 stock top"; click it to set the zero. The machine,
+shared by every setup, is under **Machine**.
 
 ## Stock
 

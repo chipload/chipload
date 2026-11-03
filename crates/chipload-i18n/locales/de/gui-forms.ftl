@@ -222,7 +222,6 @@ forms-zero-drawing-origin-hover = X0 Y0 dort, wo die Zeichnung ihren eigenen Nul
 forms-zero-at = Position
 forms-zero-at-hover = Wo der Nullpunkt liegt, in Zeichnungskoordinaten. Ein eingetippter Wert macht ihn zu einem eigenen Punkt.
 forms-zero-note = X0 Y0 Z0 des G-Codes. Ihn zu verschieben verschiebt keinen Schnitt, nur die Zahlen im Programm. In der Ansicht auswählen und ziehen: er rastet an den Ecken und der Mitte des Rohteils und am Zeichnungsursprung ein.
-forms-zero-link-hover = Die Eigenschaften des Werkstücknullpunkts zeigen
 
 # An imported DXF.
 forms-file = Datei

@@ -188,7 +188,8 @@ navigation bar](images/simulation-3d.png)
 
 The **Properties** panel on the right shows what is open, under a title:
 - **Machine:** the machine and its post.
-- **A setup:** its name, its board (stock and material) and where its work zero is.
+- **A setup:** its board (stock and material), its name and its parts. Its work zero is
+  the item beneath it in the Browser.
 - **Work zero:** the stock's corners and centre to click, the drawing origin, its position
   and Z zero.
 - **Preferences:** the settings folder, whether a [setup sheet](checking/sheet.md) is

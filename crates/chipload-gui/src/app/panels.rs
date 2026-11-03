@@ -255,7 +255,6 @@ impl ChiploadApp {
                 self.use_material(uid.as_deref());
             }
             Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
-            Some(JobRequest::OpenWorkZero) => self.focus = Focus::WorkZero,
             Some(JobRequest::ActivateSetup(id)) => self.activate_setup(id),
             Some(JobRequest::RemoveSetup(id)) => self.remove_setup(id),
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),

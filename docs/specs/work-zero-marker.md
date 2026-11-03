@@ -67,6 +67,8 @@ in the program change. The checker shifts the stock itself, so it still judges t
 - **Z zero** moves here too: zero is one thing, X, Y and Z.
 - **Job settings:** the *Zero* section goes. Its summary line moves above the sections,
   as a link that selects the work zero. One place to set it, two places it shows.
+  (2026-11-03, the user: the setup's form drops the link; the Browser's *Work zero* item
+  under each setup shows where it is.)
 - The picture's row is called *On the stock*, with its hover saying the zero stays at that
   corner when the stock changes size.
 

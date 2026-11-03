@@ -222,7 +222,6 @@ forms-zero-drawing-origin-hover = X0 Y0 là où le dessin a son propre 0,0
 forms-zero-at = Position
 forms-zero-at-hover = Où se trouve l'origine, en coordonnées du dessin. Saisir une valeur en fait un point à part.
 forms-zero-note = Le X0 Y0 Z0 du G-code. Le déplacer ne déplace aucune coupe, seulement les nombres du programme. Dans la vue, sélectionnez-le et faites-le glisser : il s'accroche aux coins et au centre du brut et à l'origine du dessin.
-forms-zero-link-hover = Afficher les propriétés de l'origine pièce
 
 # An imported DXF.
 forms-file = Fichier
