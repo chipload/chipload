@@ -97,7 +97,12 @@ machine), then the last operation review, then the user's requests, then the res
    (G0) and its time, and how many retracts. Today `plan` and the window give the time per
    operation only (`chipload_pipeline::estimate`). Spec first: where it shows (the Report,
    the setup sheet, `plan --json`), what each column counts (arcs by their length, ramps as
-   cutting or plunging), a table or a chart.
+   cutting or plunging), a table or a chart. Where, the user 2026-11-03: "each operation
+   properties could have a section added last called Statistics or something similar.
+   There the time, length, number of lifts could be summarized for that operation. It
+   will be invalidated if a parameters changes and instead show something like 'Press F9
+   to generate the operations and see statistics'" (generate is F5 in the app; with
+   auto-generate on, the section only waits for the run).
 5. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
    should also have a parameter for length of adjoining segments. If the adjoining profile
    segments are very short we could probably ignore the kink"). Today a corner is ignored
