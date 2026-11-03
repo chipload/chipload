@@ -54,7 +54,9 @@ same day for usability and a quick workflow.
   docs/releasing.md (*Without GitHub Actions*).
 - **Branches**: `release-0.12` (the 0.12.1 fix branch, kept for history). Local tags
   `adaptive-final` (main before trochoidal and adaptive were removed) and `python-final`.
-- **Waiting on testers**: real-controller tests of every post (GRBL, LinuxCNC, Mach3/4), inch
+- **Tested on a real machine:** the GRBL post, by the user on their Shapeoko (confirmed
+  2026-11-03).
+- **Waiting on testers**: real-controller tests of the LinuxCNC and Mach3/4 posts, inch
   G-code, and the builds for macOS, ARM64 Linux and Windows; the README asks for them.
 - **Scope** (ADR 0017): a lean power tool; the yardstick is a CamBam replacement for the
   user's own router (a Shapeoko), powerful but easy.
