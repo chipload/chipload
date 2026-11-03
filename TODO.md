@@ -1,8 +1,8 @@
 # TODO
 
 What's planned. Each item gets a spec in `docs/specs/` that is reviewed before it's built
-(see `CLAUDE.md`). Reviewed and put in order 2026-11-02 (the user: "go through the todo and
-make sure it is up to date and give a prioritized order").
+(see `CLAUDE.md`). Reviewed and put in order 2026-11-02 and again 2026-11-03 (the user:
+"go through the todo once again and make sure it is up to date").
 
 ## In progress
 
@@ -11,7 +11,12 @@ make sure it is up to date and give a prioritized order").
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:
   - **Native review:** the user reviews Swedish; German, French, Spanish, Italian and
     Russian are marked *review wanted* (`Language::reviewed`). The translators' open
-    suggestions are at the end of the glossary.
+    suggestions are at the end of the glossary. The texts added since 0.31 (statistics,
+    cutting data with the glossary's new slot/clearing terms, tool updates, Delete) are
+    machine-made in every language, Swedish too.
+  - **`Language::reviewed`** marks only English, so the menu shows Swedish as *review
+    wanted* while the guide (languages.md) leaves it out. Mark Swedish reviewed once the
+    user has read it.
   - **Still English on purpose:** the issues a DXF had when it was read (stored in the
     project as words; a schema change would be needed: the user chose 2026-10-25 to leave
     it unless users ask), migration reasons and a library file's rule violations, what
@@ -19,8 +24,15 @@ make sure it is up to date and give a prioritized order").
     "Text", startup errors before the window opens. A rare English slip kept word for
     word: "the centre line centre line" in `toolpath-error-medial-name`.
 
-## State to remember (2026-11-02)
+## State to remember (2026-11-03)
 
+- **Not released yet** (on main, 2026-11-03, pushed or not): the Russian translation (PR
+  #11, merged), operation statistics, the Report's wrapping first line, cutting data in
+  the tools with pocket slot steps, Delete for tools, a new project opening on its setup,
+  tool updates from the library. **Release notes for 0.32 must say:** the first start
+  converts the tool and material library (tools.json 4, materials.json 3, the old files
+  kept as `.bak`), and 0.31 can't read the converted files; restore the `.bak` files to go
+  back.
 - **Releases**: the latest published is **0.31.0** (2026-11-02), its guide online. Before
   it 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1 (2026-10-29), 0.27.1, 0.25.1, 0.25.0,
   0.24.0, 0.23.0, 0.22.2. Tagged but never published: 0.22.0 (withdrawn), 0.26.0, 0.26.1,
@@ -53,8 +65,10 @@ make sure it is up to date and give a prioritized order").
 
 ## Next, in order
 
-Proposed 2026-11-02; the user may reorder. Machining safety first (Chipload drives a real
-machine), then the last operation review, then the user's requests, then the rest.
+Proposed 2026-11-02, checked 2026-11-03; the user may reorder. Machining safety first
+(Chipload drives a real machine), then the last operation review, then the user's
+requests, then the rest. Before them: release what is on main as 0.32 (see *State to
+remember*).
 
 1. **Two review findings that need the user's decision** (they change what existing projects
    do, so a spec and a choice first):
@@ -104,8 +118,8 @@ machine), then the last operation review, then the user's requests, then the res
    gives warnings about a shape in the dxf, the profile is open for example. Then a click
    on that warning should select the shape, similar to how warnings on operations is
    linked to the operation."). Today a DXF's row opens to its layers with their shape
-   counts (`sources.rs`, `layers: Vec<(String, usize)>`), and a Report line can only point
-   at an operation (`ReportLine::op`); the drawing's warnings (open contours, invalid
+   counts (`sources.rs`, `layers: Vec<(String, usize)>`), and a Report line points at an
+   operation or a tool (`report::Target`, since 35b2b92: add a shape); the drawing's warnings (open contours, invalid
    ones, the contour table from `chipload_pipeline::report::contour_messages`) point at
    nothing. Spec first: a layer opens to one row per shape (its kind and size, open or
    closed, a warning mark); a click on the row selects the shape on the canvas as a
@@ -113,24 +127,26 @@ machine), then the last operation review, then the user's requests, then the res
    shape carries its contour (a `ReportLine` target that is an operation or a shape) and
    a click selects it and shows it; how the rows stay fast with thousands of shapes (a
    traced picture's, a large DXF's: virtual rows, or only the first N with "more…");
-   pictures' and SVGs' layers alike.
+   pictures' and SVGs' layers alike. Takes in the idea "a list of every shape in the
+   Browser's Drawing folder" (Ideas).
 6. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
      programs (LibreCAD, Inkscape, LightBurn, Fusion);
-   - materials (the user's verdict, docs/specs/materials.md);
    - the 0.31 window: dockable panels, the shape library, groups, DXFs moved by their box;
    - an operation's Statistics section (lengths and lifts: do they match the router?);
-   - slot and clearing values in the tools' cutting data, and a pocket's slot steps.
+   - on the router: slot and clearing values in the tools' cutting data, a pocket's slot
+     steps (the user, 2026-11-03: "it works quite good"; the bugs found are fixed);
+   - project tools updated from the library (the offer after Save, the Report on open).
 7. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
      export`/`import`).
    - The remaining large files, split by topic as `forms/` and `models/` were, when next
-     worked on: toolpath `plan.rs` (2,550 lines), `pocket.rs` (1,970), the canvas `view.rs`
-     (1,940), the window's `app/mod.rs` (2,250).
+     worked on: toolpath `plan.rs` (2,560 lines), `pocket.rs` (2,060), the canvas `view.rs`
+     (1,940), the window's `app/mod.rs` (2,270), `app/user_library.rs` (1,470).
    - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
@@ -152,9 +168,9 @@ machine), then the last operation review, then the user's requests, then the res
      finger joints first): drafted 2026-10-28, on hold by the user.
    - **A full library panel**: tools and machines beside shapes (shape-library.md
      decision 12), now that panels dock.
-   - **A chip-load warning per tool** (left of the lean plan's item 4; materials hold the
-     user's own feeds without a chip-load calculation, as the user wanted): a range per
-     tool and an amber warning. Ask whether it is still wanted.
+   - **A chip-load warning per tool** (left of the lean plan's item 4; the tools' cutting
+     data holds the user's own feeds without a chip-load calculation, as the user wanted):
+     a range per tool and an amber warning. Ask whether it is still wanted.
    - **Chipload in the browser** (docs/specs/web.md): step 1 done 2026-10-13 (the
      libraries compile for wasm32, checked in CI); step 2, the browser app, waits (the
      user said wait, 2026-10-17).
@@ -172,9 +188,10 @@ Smaller follow-ups noted along the way, not in the order above:
   panel with the current line during playback.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A bug-report bundle.**
-- **A list of every shape** in the Browser's Drawing folder, drawn and imported, to click
-  and select (docs/specs/sidebar-sections.md decision 5, user 2026-10-12; the sidebar is
-  now the Browser).
+- **Cutting data, not now** (docs/specs/cutting-data.md §10): faster feeds at a light
+  stepover (chip thinning below about 0.3 D, finishing laps); the higher load in a ring's
+  inside corners; a tool's flute length, to warn of a step down deeper than the flutes;
+  the rows copied into a project's tools, so a project carries its materials' values.
 - **Voronoi elsewhere:** investigate whether the segment Voronoi diagram (boostvoronoi, ADR
   0015) can make other parts faster or more robust: pocket clearing, narrow-part checks,
   distance queries (user request 2026-10-11).
@@ -188,14 +205,12 @@ Smaller follow-ups noted along the way, not in the order above:
   setup's material is no difference and stays; `chipload tool update`. No question on
   opening (the user agreed: a proven job cuts as it did).
 - **A new project opens on its setup** (stock first; the user, 2026-11-03).
-
 - **Deleting tools from the Browser: fixed 2026-11-03** (the user: "tools can not be
   deleted from the browser using the delete key or right click delete"). A project tool
   had only *Remove tool* in its properties: now *Delete* in its menu and the Delete key, as
   one undo step, refused (with which) while an operation or a rest or floor pass cuts with
   it; the check counted operations only, so *Remove tool* could leave a pass without its
   tool. The Delete key on a library tool or machine does as its menu's *Delete*.
-
 - **Cutting data in the tools, slot and clearing: done 2026-11-03**
   (docs/specs/cutting-data.md, ADR 0029; the user: a pocket's first ring takes the full
   diameter, its rings 0.4 D, a profile 1 × D, "Right now it doe not feel coherent"). A
@@ -203,17 +218,14 @@ Smaller follow-ups noted along the way, not in the order above:
   step down, clearing feed, step down and stepover; a material is a name. A pocket's
   full-width rings go down in slot steps to each clearing layer. The library converts once
   (tools.json 4, materials.json 3). For the user to try on the router.
-
 - **The Report's first line wraps: done 2026-11-03** (the user's screenshot: the start
   hint was cut off after "(Ctr…"). It was truncated since the Report was a strip under the
   canvas (d52d988); now it wraps like the other lines.
-
 - **Operation statistics: done 2026-11-03** (docs/specs/operation-statistics.md, the
   user's idea of a Statistics section): each operation's and pass's properties end with its
   time, cutting, plunge and rapid lengths and lifts from the last run; the Report and
   `chipload run` give the job's totals, `chipload plan` each operation's, the JSON every
   number. Not on the setup sheet, no chart, no per-tool lengths yet.
-
 - **Russian translation, PR #11: merged 2026-11-03** (mushketer888, a CNC 3018 user):
   every text of 0.31 with Russian plural forms, its own tests and a glossary section,
   signed off. Our own fix after it: the guide's *review wanted* list leaves out Swedish
