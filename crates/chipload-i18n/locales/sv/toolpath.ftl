@@ -24,7 +24,7 @@ toolpath-safe-z = safe_z { $safe } måste vara ovanför ämnets ovansida (Z { $t
 # $below is how far below the stock's bottom it goes, $allowed the setting "max depth
 # below stock".
 toolpath-too-deep = slutdjupet { $end } går { $below } under ämnet ({ $thickness } tjockt), mer än tillåtna { $allowed } (max djup under ämnet)
-toolpath-clearance-radius = förskjutningen { $clearance } måste vara mindre än verktygsradien { $radius }
+toolpath-clearance-radius = spelet { $clearance } måste vara mindre än verktygsradien { $radius }
 toolpath-finish-radius = materialet kvar för finskär { $stock } måste vara mindre än verktygsradien { $radius }
 toolpath-tab-height = bryggornas höjd { $height } måste vara mindre än fräsdjupet { $cut } (slutdjup minus startdjup)
 # $field is "feed" or "plunge_feed", as written in the project file.
@@ -307,7 +307,7 @@ toolpath-error-arc-off-circle = bågutdata: ({ $x }, { $y }) ligger inte på cir
 # $contours are contour numbers ("#3, #4"): the pocket's boundary and its islands.
 toolpath-error-islands-enclose = konturerna { $contours }: överlappande öar omsluter en yta mellan sig, vilket fickor inte stöder ännu
 toolpath-error-pocket-no-fit = konturerna { $contours }: verktyget (diameter { $diameter }) får inte plats i fickan
-toolpath-error-pocket-no-fit-clearance = konturerna { $contours }: verktyget (diameter { $diameter }, förskjutning { $clearance }) får inte plats i fickan
+toolpath-error-pocket-no-fit-clearance = konturerna { $contours }: verktyget (diameter { $diameter }, spel { $clearance }) får inte plats i fickan
 toolpath-error-not-nested = konturerna { $contours }: fickans offsetslingor ligger inte innanför varandra
 toolpath-error-too-many-rings = konturerna { $contours }: fler än { $most } slingor i fickan
 toolpath-error-pocket-verification = konturerna { $contours }: fickans verktygsbana klarade inte kontrollen (för nära en vägg eller ö); ritningen kan vara degenererad

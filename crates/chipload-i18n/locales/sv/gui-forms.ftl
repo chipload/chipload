@@ -9,7 +9,7 @@ forms-through = Igenom
 forms-through-hover = Fräs igenom ämnet: slutdjupet är dess tjocklek plus djupet under det, och följer tjockleken när den ändras
 forms-through-below = Under ämnet
 forms-through-below-hover = Hur långt under ämnets undersida fräsningen går, ner i offerskivan. Uppspänningens ämne anger det största tillåtna ({ $depth })
-forms-oversize = Förskjutning
+forms-oversize = Spel
 forms-oversize-disabled = En konturfräsning på linjen har ingen sida att fräsa mer på
 forms-step-down = Skärdjup
 # Indented under "Passes": the depth of each pass.
@@ -441,7 +441,7 @@ forms-pointed = spetsig
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = operation { $number }
 forms-rest-pass-of-named = operation { $number } ({ $name })
-forms-rest-pass-facts = { $start }–{ $end } { $unit }, förskjutning { $clearance } { $unit }, { $direction }
+forms-rest-pass-facts = { $start }–{ $end } { $unit }, spel { $clearance } { $unit }, { $direction }
 forms-rest-pass = Restbearbetning
 forms-rest-of = Rest av
 forms-rest-of-hover = Den fräser fickans former och djup, och tar bara bort det som verktyget före lämnar
