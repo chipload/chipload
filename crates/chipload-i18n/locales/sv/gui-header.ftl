@@ -91,6 +91,8 @@ header-cancel = Avbryt
 header-cancel-hover = Avbryt beräkningen
 header-generate = Beräkna
 header-generate-hover = Planera verktygsbanorna, skriv och kontrollera G-koden
+# Generate is greyed out: the project has no operations yet.
+header-generate-no-operations = Inget att beräkna än: markera former och lägg sedan till en operation (Konturfräsning, Ficka, …)
 header-arc = Båge
 header-arc-hover = Rita en båge: start, slut, sedan en punkt den går genom
 header-slot = Spår

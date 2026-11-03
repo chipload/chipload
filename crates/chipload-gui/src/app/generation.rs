@@ -150,6 +150,11 @@ impl ChiploadApp {
             self.fail(vec![t!(self, "generation-no-project")], loud);
             return false;
         };
+        // Nothing to generate: no error, and the toolpath of operations since deleted goes.
+        if edit.job.operations.is_empty() {
+            self.invalidate();
+            return false;
+        }
         let project = edit.clone();
         let job = match edit.to_job() {
             // Only the active part: the others are planned as if switched off.

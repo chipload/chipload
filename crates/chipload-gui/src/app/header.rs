@@ -299,6 +299,11 @@ impl ChiploadApp {
             export_hover,
             generating: self.generating(),
             can_generate: self.can_generate(),
+            generate_hover: if self.edit.is_some() && !self.can_generate() {
+                t!(ui, "header-generate-no-operations")
+            } else {
+                hover_keys(&t!(ui, "header-generate-hover"), Action::Generate)
+            },
         }
     }
 
@@ -713,6 +718,7 @@ struct RibbonActions {
     export_hover: String,
     generating: bool,
     can_generate: bool,
+    generate_hover: String,
 }
 
 impl RibbonActions {
@@ -750,10 +756,7 @@ impl RibbonActions {
         } else {
             let label = t!(ui, "header-generate");
             if generate_button(ui, Icon::Generate, &label, self.can_generate)
-                .on_hover_text(hover_keys(
-                    &t!(ui, "header-generate-hover"),
-                    Action::Generate,
-                ))
+                .on_hover_text(&self.generate_hover)
                 .clicked()
             {
                 clicked = Some(RibbonAction::Generate);

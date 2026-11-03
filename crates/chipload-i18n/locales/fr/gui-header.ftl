@@ -91,6 +91,8 @@ header-cancel = Annuler
 header-cancel-hover = Arrêter le calcul
 header-generate = Calculer
 header-generate-hover = Calculer les parcours d'outil, écrire et vérifier le G-code
+# Generate is greyed out: the project has no operations yet.
+header-generate-no-operations = Rien à calculer pour l'instant : sélectionnez des formes, puis ajoutez une opération (Contour, Poche, …)
 header-arc = Arc
 header-arc-hover = Dessiner un arc : début, fin, puis un point par où il passe
 header-slot = Rainure

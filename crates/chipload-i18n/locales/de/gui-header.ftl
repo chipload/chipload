@@ -91,6 +91,8 @@ header-cancel = Abbrechen
 header-cancel-hover = Berechnung stoppen
 header-generate = Berechnen
 header-generate-hover = Werkzeugwege planen, G-Code schreiben und prüfen
+# Generate is greyed out: the project has no operations yet.
+header-generate-no-operations = Noch nichts zu berechnen: Formen auswählen, dann eine Bearbeitung hinzufügen (Konturfräsen, Tasche, …)
 header-arc = Bogen
 header-arc-hover = Einen Bogen zeichnen: Anfang, Ende, dann ein Punkt, durch den er geht
 header-slot = Langloch

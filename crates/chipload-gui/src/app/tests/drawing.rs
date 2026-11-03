@@ -855,6 +855,29 @@ fn a_new_project_without_operations_has_no_problem() {
     assert!(app.problems.is_empty(), "{:?}", app.problems);
 }
 
+#[test]
+fn without_operations_nothing_is_generated_and_nothing_is_said() {
+    // The user, 2026-11-03: "We should not generate if there are no operations".
+    let mut app = ChiploadApp::default();
+    assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
+    assert!(!app.can_generate());
+    assert!(!app.generate());
+    assert!(
+        !app.report.iter().any(|l| l.contains("no operations")),
+        "{:?}",
+        app.report
+    );
+    // Generated, then the last operation deleted: the old toolpath goes, quietly.
+    select(&mut app, &[1]);
+    app.add_operation(OpKind::Profile).unwrap();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    app.edit.as_mut().unwrap().remove(0);
+    app.commit();
+    assert!(!app.generate());
+    assert!(app.toolpath.result.is_none() && app.scene.toolpath.is_none());
+    assert!(!app.report.iter().any(|l| l.contains("no operations")));
+}
+
 /// docs/specs/edit-and-simulate.md §5: a shape no operation selects changes nothing that is
 /// cut, so the toolpath stands; one an operation selects, or one that moves a board that
 /// fits its drawing or reaches outside the stock, needs a new one.

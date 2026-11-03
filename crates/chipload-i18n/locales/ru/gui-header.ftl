@@ -66,6 +66,7 @@ header-cancel = Отмена
 header-cancel-hover = Остановить расчёт
 header-generate = Рассчитать
 header-generate-hover = Рассчитать траектории, записать и проверить G-code
+header-generate-no-operations = Пока нечего рассчитывать: выберите фигуры, затем добавьте операцию (Обработка контура, Выборка кармана, …)
 header-arc = Дуга
 header-arc-hover = Начертить дугу: начало, конец, затем точка на дуге
 header-slot = Паз

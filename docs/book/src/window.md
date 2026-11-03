@@ -26,7 +26,8 @@ Under it, the **ribbon** groups the buttons:
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme |
 
-**Generate** (F5) and **Export** sit at the right end. When the buttons with their names
+**Generate** (F5) and **Export** sit at the right end; Generate is greyed out until the
+project has an operation. When the buttons with their names
 don't fit, in a longer language or a narrow window, the large buttons show their icons
 alone; hover over one for its name. Narrower still, the groups scroll sideways.
 
