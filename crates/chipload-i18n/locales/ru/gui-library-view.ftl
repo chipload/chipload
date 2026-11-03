@@ -49,3 +49,6 @@ library-view-deleted = «{ $name }» удалено из библиотеки; �
 library-view-saved = Сохранено в библиотеку
 library-view-note-default = по умолчанию
 library-view-note-unsaved = не сохранено
+library-view-project-tool-differs = T{ $tool } в этом проекте отличается: { $changes }
+library-view-update-in-project = Обновить в этом проекте
+library-view-update-in-project-hover = Дать инструменту проекта эти значения, одним шагом отмены

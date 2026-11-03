@@ -16,3 +16,5 @@ report-select-operation-hover = Seleccionar la operación { $number }
 # A line of a list in the report, indented under its heading: $line is a message from
 # the project (a problem). Only the two spaces in front are this text's.
 report-indented = {"  "}{ $line }
+report-select-tool-hover = Abrir la herramienta T{ $tool }
+report-update-tools-hover = Dar a estas herramientas los valores de tu biblioteca, en un solo paso de deshacer

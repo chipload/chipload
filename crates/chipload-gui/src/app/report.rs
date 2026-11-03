@@ -49,8 +49,19 @@ pub struct ReportLine {
     /// A message from the library crates, shown in the app's language and display units
     /// (docs/specs/translations.md §7).
     pub message: Option<Message>,
-    /// The operation the line is about (index), if it names one.
-    pub op: Option<usize>,
+    /// What a click on the line opens or does, if anything.
+    pub target: Option<Target>,
+}
+
+/// What a report line is about (docs/specs/tool-updates.md decision 3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Target {
+    /// An operation (index): a click opens it.
+    Op(usize),
+    /// A project tool (id): a click opens it.
+    Tool(i64),
+    /// *Update all from library*: a click updates the project's tools.
+    UpdateTools,
 }
 
 impl ReportLine {
@@ -133,7 +144,17 @@ impl Report {
             tone,
             text,
             message: None,
-            op,
+            target: op.map(Target::Op),
+        });
+    }
+
+    /// A line of the app's own that a click acts on.
+    pub fn push_target(&mut self, tone: Tone, text: String, target: Target) {
+        self.lines.push(ReportLine {
+            tone,
+            text,
+            message: None,
+            target: Some(target),
         });
     }
 
@@ -144,7 +165,7 @@ impl Report {
             tone,
             text: message.english(),
             message: Some(message),
-            op,
+            target: op.map(Target::Op),
         });
     }
 
@@ -301,14 +322,25 @@ impl ChiploadApp {
             ui.add(egui::Label::new(text).wrap().sense(Sense::click()))
         });
         let response = row.inner;
-        if let Some(op) = line.op {
-            let response =
-                response.on_hover_text(t!(ui, "report-select-operation-hover", number = op + 1));
-            if response.hovered() {
-                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-            }
-            if response.clicked() {
-                self.focus = Focus::Op(op);
+        let Some(target) = line.target else {
+            return;
+        };
+        let hover = match target {
+            Target::Op(op) => t!(ui, "report-select-operation-hover", number = op + 1),
+            Target::Tool(id) => t!(ui, "report-select-tool-hover", tool = id),
+            Target::UpdateTools => t!(ui, "report-update-tools-hover"),
+        };
+        let response = response.on_hover_text(hover);
+        if response.hovered() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+        }
+        if response.clicked() {
+            match target {
+                Target::Op(op) => self.focus = Focus::Op(op),
+                Target::Tool(id) => self.focus = Focus::Tool(id),
+                Target::UpdateTools => {
+                    self.update_tools_from_library(None);
+                }
             }
         }
     }
@@ -330,8 +362,8 @@ mod tests {
             "Operation 2 (Outline): cuts below".into(),
             Some(1),
         );
-        assert_eq!(report.lines[0].op, None);
-        assert_eq!(report.lines[1].op, Some(1));
+        assert_eq!(report.lines[0].target, None);
+        assert_eq!(report.lines[1].target, Some(Target::Op(1)));
         assert_eq!(report.problems(), 1);
         assert_eq!(report[1], "Operation 2 (Outline): cuts below");
     }

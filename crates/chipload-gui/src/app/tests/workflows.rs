@@ -305,7 +305,11 @@ fn a_report_with_warnings_opens_and_links_to_its_operations() {
         .iter()
         .find(|l| l.tone == Tone::Warning)
         .unwrap();
-    assert_eq!(warning.op, Some(1), "{warning:?}");
+    assert_eq!(
+        warning.target,
+        Some(super::report::Target::Op(1)),
+        "{warning:?}"
+    );
     // Closing a project clears the drawing's facts with it.
     app.new_project();
     assert_eq!(app.drawing_facts.clone().unwrap().contours, 0);

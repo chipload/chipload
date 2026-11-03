@@ -1,6 +1,6 @@
 # Spec: keeping project tools up to date with the library
 
-Status: draft (2026-11-03), for review.
+Status: approved (2026-11-03; decisions 1-5 as recommended, the user: "go ahead"); built.
 
 ## 1. Why
 
@@ -91,3 +91,16 @@ the tool's row (cutting-data.md §6). That is not something to update:
   keeps it.
 - `tool update` (all, `--tool`), `tool compare` leaving out the material's speed; `--json`.
 - The Report line and the Tools folder's menu in every language (layout tests).
+
+## 8. As built (2026-11-03)
+
+- `chipload_pipeline::library::{material_speed, project_tool_link, update_from_library}`;
+  the window's Browser marks, tool forms (`LibraryRows::tool` takes the link) and `tool
+  compare` use `project_tool_link`. *Update from library* on one tool (`use_library_tool`)
+  keeps the material's speed too.
+- Report lines have a `Target` (an operation, a tool, *Update all*); `Report::push_target`.
+- The library tool's offer shows while the tool has no unsaved draft and a project copy
+  differs, not only right after *Save*: the same moment in practice, and it doesn't go
+  away while the difference is still there.
+- `chipload tool update PROJECT [--tool ID] [-o FILE]`, `--json` gives `updated` (id and
+  changes per tool).

@@ -489,6 +489,35 @@ fn project_tools_stay_linked_through_a_rename_and_compare_says_how() {
     assert_eq!(row["name"], "Upcut");
     assert_eq!(row["changes"][0], "rpm 18000 -> 16000");
 
+    // `tool update` gives it the library's values (docs/specs/tool-updates.md §5), on a copy.
+    let updated = dir.join("updated.chipload");
+    let out = ok(
+        &dir,
+        &[
+            "--json",
+            "tool",
+            "update",
+            path(&project),
+            "-o",
+            path(&updated),
+        ],
+    );
+    let said: Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(said["updated"][0]["id"], id);
+    let tool = json(&updated)["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["id"] == id)
+        .cloned()
+        .unwrap();
+    assert_eq!(tool["rpm"], 16000.0);
+    let out = ok(&dir, &["tool", "update", path(&updated)]);
+    assert!(out.contains("nothing to update"), "{out}");
+    assert!(
+        refused(&dir, &["tool", "update", path(&project), "--tool", "77"]).contains("no tool 77")
+    );
+
     // Saved from the project: the library tool is the project's again, and T1 is linked to
     // a new entry.
     ok(

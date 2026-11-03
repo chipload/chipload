@@ -1474,7 +1474,7 @@ chipload tool use <NAME> <PROJECT> [OPTIONS]
 
 ### `chipload tool compare`
 
-How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none
+How each project tool stands to the library tool it came from: same, differs (with the differences), missing, or none. A speed from the setup's material is no difference
 
 ```text
 chipload tool compare <PROJECT>
@@ -1483,6 +1483,20 @@ chipload tool compare <PROJECT>
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
+
+### `chipload tool update`
+
+The project's tools that differ from their library tools take the library's values; a speed from the setup's material stays
+
+```text
+chipload tool update <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--tool <TOOL>` | Only this tool (its id in the project) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload tool save`
 

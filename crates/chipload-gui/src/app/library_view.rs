@@ -49,6 +49,8 @@ enum Act {
     Save(LibraryKind, String),
     /// Drop the draft of the entry with this uid.
     Revert(LibraryKind, String),
+    /// Give project tool `id` its library tool's values (docs/specs/tool-updates.md §2).
+    UpdateProjectTool(i64),
 }
 
 fn folder_menu(ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
@@ -417,6 +419,38 @@ impl ChiploadApp {
                     tools = users.join(", ")
                 ));
             }
+            // A copy in the project with other values: an offer to update it
+            // (docs/specs/tool-updates.md §2), once the library tool is saved.
+            if !self.user.library_state.tool_drafts.contains_key(uid) {
+                for tool in edit
+                    .job
+                    .tools
+                    .iter()
+                    .filter(|t| t.library_uid.as_deref() == Some(uid))
+                {
+                    let Some(chipload_job::library::Link::Differs(_, changes)) =
+                        self.project_tool_link(tool)
+                    else {
+                        continue;
+                    };
+                    let text = t!(
+                        ui,
+                        "library-view-project-tool-differs",
+                        tool = tool.id,
+                        changes = self.changes_text(&changes)
+                    );
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(text);
+                        if ui
+                            .button(t!(ui, "library-view-update-in-project"))
+                            .on_hover_text(t!(ui, "library-view-update-in-project-hover"))
+                            .clicked()
+                        {
+                            *act = Some(Act::UpdateProjectTool(tool.id));
+                        }
+                    });
+                }
+            }
         }
     }
 
@@ -544,6 +578,9 @@ impl ChiploadApp {
             },
             Act::New(kind) => {
                 self.new_library_entry(kind);
+            }
+            Act::UpdateProjectTool(id) => {
+                self.update_tools_from_library(Some(id));
             }
             Act::Import(kind) => {
                 self.focus = match kind {

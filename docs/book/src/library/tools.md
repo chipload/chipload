@@ -36,6 +36,16 @@ how they stand:
   *Show in library* opens the library tool.
 - A new operation gets the library tool's [cutting data](#cutting-data) while the project
   tool still has the library tool's values.
+- **After you change a library tool**, its properties list the open project's copies that
+  now differ ("T3 in this project differs: diameter 6 mm -> 6.35 mm"), each with **Update in
+  this project**.
+- **When you open a project**, the report lists each tool that differs from its library
+  tool; click a line to open the tool, or **Update all from library** (also in the
+  right-click menu of the project's *Tools*, and on the Tools page). Nothing changes
+  until you choose: a project keeps the tools it was made with, so a proven job cuts as it
+  did.
+- A spindle speed that the setup's [material](materials.md) set from the tool's cutting data
+  is not a difference, and updating keeps it.
 
 ## What a tool has
 
@@ -99,6 +109,7 @@ chipload tool default "6 mm 2F"
 chipload tool use "V 60" part.chipload                 # copy into a project; prints its id there
 chipload tool save part.chipload --tool 2 --name "3 mm downcut"   # links tool 2 to it
 chipload tool compare part.chipload                # each project tool: same, differs, not in the library, or not from it
+chipload tool update part.chipload [--tool 3]      # tools that differ take the library's values
 chipload tool remove "5 mm drill"
 ```
 

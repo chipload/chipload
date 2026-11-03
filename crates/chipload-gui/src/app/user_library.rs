@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use chipload_job::library::{AppSettings, load_settings, update_settings};
 use chipload_job::library::{
     Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineProfile, linked_cutting,
-    machine_link, same_name, tool_link, update_machines, update_tools,
+    machine_link, same_name, update_machines, update_tools,
 };
 use chipload_job::{Machine, Tool, ToolChange};
 use chipload_pipeline::library::{Library, machines_path, tools_path};
@@ -62,6 +62,9 @@ pub enum LibraryRequest {
     SaveLinked(SaveTarget),
     /// Show a library entry, by uid, in the Browser and Properties.
     Show(LibraryKind, String),
+    /// The project's tools that differ from their library tools take its values
+    /// (docs/specs/tool-updates.md §3).
+    UpdateAllTools,
 }
 
 /// The library rows of a project tool or the machine: the entries to choose from, and how
@@ -93,10 +96,11 @@ impl LibraryRows {
         }
     }
 
-    pub(super) fn tool(tool: &Tool, library: Option<&Library>) -> Self {
+    /// A project tool's rows; `link`: how it stands to its library tool, a speed from the
+    /// setup's material aside (`project_tool_link`).
+    pub(super) fn tool(tool: &Tool, library: Option<&Library>, link: Option<Link>) -> Self {
         let names = library.map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect());
-        let link = library.map(|l| {
-            let link = tool_link(&l.tools, tool);
+        let link = link.map(|link| {
             let uid = tool
                 .library_uid
                 .clone()
@@ -789,6 +793,9 @@ impl ChiploadApp {
                 self.save_to_linked(target);
             }
             LibraryRequest::Show(kind, uid) => self.show_library(kind, Some(&uid)),
+            LibraryRequest::UpdateAllTools => {
+                self.update_tools_from_library(None);
+            }
         }
     }
 
@@ -897,16 +904,112 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return false;
         };
-        let Some(tool) = edit.job.tools.iter_mut().find(|t| t.id == id) else {
+        let Some(before) = edit.job.tools.iter().find(|t| t.id == id).cloned() else {
             self.error(vec![t!(self, "user-library-no-project-tool", id = id)]);
             return false;
         };
-        let changes = entry.changes(tool);
+        let changes = entry.changes(&before);
+        // Updating from its own library tool keeps a speed from the setup's material
+        // (docs/specs/tool-updates.md §4).
+        let keep = chipload_pipeline::library::material_speed(
+            &edit.job,
+            &self.user.library.tools,
+            &self.user.library.materials,
+            &before,
+        )
+        .filter(|_| before.library_uid.as_deref() == Some(entry.uid.as_str()));
+        let Some(tool) = edit.job.tools.iter_mut().find(|t| t.id == id) else {
+            return false;
+        };
         *tool = entry.tool(id);
+        if let Some(rpm) = keep {
+            tool.rpm = Some(rpm);
+        }
         self.commit();
         let what = t!(self, "user-library-library-tool-named", name = &entry.name);
         self.report_changes(&what, changes);
         true
+    }
+
+    /// How project tool `tool` stands to its library tool, a speed from the setup's material
+    /// aside (docs/specs/tool-updates.md §4). None without a library.
+    pub(super) fn project_tool_link(&self, tool: &Tool) -> Option<Link> {
+        let library = self.library()?;
+        let job = &self.edit.as_ref()?.job;
+        Some(chipload_pipeline::library::project_tool_link(
+            job,
+            &library.tools,
+            &library.materials,
+            tool,
+        ))
+    }
+
+    /// The project's tools (all, or tool `only`) that differ from their library tools take
+    /// the library's values, as one undo step; the Report says which
+    /// (docs/specs/tool-updates.md §2, §3). Whether any changed.
+    pub fn update_tools_from_library(&mut self, only: Option<i64>) -> bool {
+        self.commit();
+        self.reload_library();
+        let Some(edit) = self.edit.as_ref() else {
+            return false;
+        };
+        let (job, updated) = chipload_pipeline::library::update_from_library(
+            &edit.job,
+            &self.user.library.tools,
+            &self.user.library.materials,
+            only,
+        );
+        if updated.is_empty() {
+            return false;
+        }
+        if let Some(edit) = self.edit.as_mut() {
+            edit.adopt(job);
+        }
+        self.commit();
+        let mut report = Report::info([t!(self, "user-library-tools-updated")]);
+        for (id, changes) in updated {
+            let text = self.changes_text(&changes);
+            let line = t!(self, "user-library-tool-updated", tool = id, changes = text);
+            report.push_target(Tone::Info, line, super::report::Target::Tool(id));
+        }
+        self.set_report(report);
+        true
+    }
+
+    /// What differs, in one line: "diameter 6 mm -> 6.35 mm; rpm 18000 -> 16000".
+    pub(super) fn changes_text(&self, changes: &[Message]) -> String {
+        changes
+            .iter()
+            .map(|c| self.say(c))
+            .collect::<Vec<_>>()
+            .join("; ")
+    }
+
+    /// Lines for the Report when a project opens: each project tool that differs from its
+    /// library tool, and *Update all from library* (docs/specs/tool-updates.md §3).
+    pub(super) fn differing_tool_lines(&self, report: &mut Report) {
+        let Some(edit) = self.edit.as_ref() else {
+            return;
+        };
+        let mut any = false;
+        for tool in &edit.job.tools {
+            let Some(Link::Differs(name, changes)) = self.project_tool_link(tool) else {
+                continue;
+            };
+            let line = t!(
+                self,
+                "user-library-tool-differs",
+                tool = tool.id,
+                name = name,
+                changes = self.changes_text(&changes)
+            );
+            report.push_target(Tone::Warning, line, super::report::Target::Tool(tool.id));
+            any = true;
+        }
+        if any {
+            let line = t!(self, "user-library-update-all");
+            report.push_target(Tone::Info, line, super::report::Target::UpdateTools);
+        }
     }
 
     /// Copy a library tool into the project as a tool of its own, or find it there already

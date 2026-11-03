@@ -9,7 +9,7 @@ use chipload_i18n::Message;
 use chipload_job::library::{
     Collection, Cutting, LibraryError, LibraryTool, Link, LinkEntry, MachineLibrary,
     MachineProfile, ToolLibrary, export, import_into, load_library, load_machines, load_tools,
-    machine_link, read_import, tool_link, update_library, update_machines, update_tools, use_tool,
+    machine_link, read_import, update_library, update_machines, update_tools, use_tool,
     write_export,
 };
 use chipload_job::materials::MaterialLibrary;
@@ -87,10 +87,23 @@ pub enum ToolAction {
         output: Option<PathBuf>,
     },
     /// How each project tool stands to the library tool it came from: same, differs (with
-    /// the differences), missing, or none.
+    /// the differences), missing, or none. A speed from the setup's material is no
+    /// difference.
     Compare {
         /// The project (.chipload).
         project: PathBuf,
+    },
+    /// The project's tools that differ from their library tools take the library's values;
+    /// a speed from the setup's material stays.
+    Update {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Only this tool (its id in the project).
+        #[arg(long)]
+        tool: Option<i64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
     /// Save a project's tool into the library; the project's tool is linked to it.
     Save {
@@ -444,27 +457,85 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
             Ok(line)
         }
         ToolAction::Compare { project } => return compare_tools(out, &path, &project),
+        ToolAction::Update {
+            project,
+            tool,
+            output,
+        } => return update_tools_in_project(out, &path, &project, tool, output.as_deref()),
     };
     finish(out, result, &path)
 }
 
 /// `tool compare` (docs/specs/library-in-browser.md §7).
+/// The materials beside the tool library at `path`, to tell a speed from the material
+/// (docs/specs/tool-updates.md §4); none when there is no file to read.
+fn materials_beside(path: &Path) -> MaterialLibrary {
+    path.parent()
+        .and_then(|dir| load_library(&chipload_pipeline::library::materials_path(dir)).ok())
+        .unwrap_or_default()
+}
+
 fn compare_tools(out: &mut Out, path: &Path, project: &Path) -> ExitCode {
     let library = match load_tools(path) {
         Ok(library) => library,
         Err(err) => return out.fail(err),
     };
+    let materials = materials_beside(path);
     let job = match load(out, project) {
         Ok(job) => job,
         Err(code) => return code,
     };
     let mut rows = Vec::new();
     for tool in &job.tools {
-        let link = tool_link(&library, tool);
+        let link = chipload_pipeline::library::project_tool_link(&job, &library, &materials, tool);
         out.line(format!("  T{}: {}", tool.id, link.text(LinkEntry::Tool)));
         rows.push(link_json(&link, serde_json::json!({ "id": tool.id })));
     }
     out.set("tools", serde_json::Value::Array(rows));
+    ExitCode::SUCCESS
+}
+
+/// `tool update` (docs/specs/tool-updates.md §5): the project's tools that differ from their
+/// library tools take their values, a speed from the material kept.
+fn update_tools_in_project(
+    out: &mut Out,
+    path: &Path,
+    project: &Path,
+    only: Option<i64>,
+    output: Option<&Path>,
+) -> ExitCode {
+    let library = match load_tools(path) {
+        Ok(library) => library,
+        Err(err) => return out.fail(err),
+    };
+    let materials = materials_beside(path);
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    if let Some(id) = only
+        && job.tool(id).is_none()
+    {
+        return out.fail(format!("the project has no tool {id}"));
+    }
+    let (job, updated) =
+        chipload_pipeline::library::update_from_library(&job, &library, &materials, only);
+    let mut rows = Vec::new();
+    for (id, changes) in &updated {
+        let text: Vec<String> = changes.iter().map(Message::english).collect();
+        out.line(format!("Updated T{id}: {}", text.join("; ")));
+        rows.push(serde_json::json!({ "id": id, "changes": text }));
+    }
+    out.set("updated", serde_json::Value::Array(rows));
+    if updated.is_empty() {
+        out.line("Every tool from the library has its values: nothing to update.");
+        return ExitCode::SUCCESS;
+    }
+    let target = output.unwrap_or(project);
+    if let Err(err) = save_job(&job, target) {
+        return out.fail(err);
+    }
+    out.wrote(target, "");
     ExitCode::SUCCESS
 }
 

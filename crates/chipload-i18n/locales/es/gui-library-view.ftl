@@ -62,3 +62,6 @@ library-view-saved = Guardado en tu biblioteca
 # Notes at the right end of a library entry's row in the Browser.
 library-view-note-default = predeterminado
 library-view-note-unsaved = sin guardar
+library-view-project-tool-differs = T{ $tool } en este proyecto difiere: { $changes }
+library-view-update-in-project = Actualizar en este proyecto
+library-view-update-in-project-hover = Dar estos valores a la herramienta del proyecto, en un paso de deshacer

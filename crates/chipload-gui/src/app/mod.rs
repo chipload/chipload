@@ -637,7 +637,9 @@ impl ChiploadApp {
                 ),
             );
         }
-        self.set_report(Report::info(lines));
+        let mut report = Report::info(lines);
+        self.differing_tool_lines(&mut report);
+        self.set_report(report);
         true
     }
 

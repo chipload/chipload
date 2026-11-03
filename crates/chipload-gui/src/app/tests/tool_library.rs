@@ -570,7 +570,8 @@ mod library {
         // The dropdown's name and the status line under it.
         let rows = |app: &ChiploadApp| {
             let tool = settings_of(app).tools.iter().find(|t| t.id == id).unwrap();
-            let rows = user_library::LibraryRows::tool(tool, app.library());
+            let rows =
+                user_library::LibraryRows::tool(tool, app.library(), app.project_tool_link(tool));
             let note = rows.note_text()?;
             Some(match rows.entry_name() {
                 Some(name) => format!("{name}: {note}"),
@@ -759,5 +760,74 @@ mod library {
         harness.key_press(egui::Key::Delete);
         harness.run_steps(3);
         assert!(harness.state().user.library.tools.find_uid(&uid).is_none());
+    }
+
+    /// A project whose tool differs from its library tool, opened (docs/specs/tool-updates.md
+    /// §3): the app with the library, and the project's tool id.
+    fn opened_with_a_differing_tool(name: &str) -> (ChiploadApp, i64) {
+        let (mut app, dir) = app_with_library(name);
+        let mut job = lower_part().edit.unwrap().job;
+        let entry = upcut();
+        let mut tool = entry.tool(job.tools[0].id);
+        tool.diameter = 3.5;
+        let id = tool.id;
+        job.tools[0] = tool;
+        let path = dir.join("differs.chipload");
+        chipload_job::save_job(&job, &path).unwrap();
+        assert!(app.open(&path));
+        (app, id)
+    }
+
+    #[test]
+    fn opening_a_project_lists_its_differing_tools_and_updates_them_all() {
+        use super::super::report::Target;
+        let (mut app, id) = opened_with_a_differing_tool("open-differs");
+        let targets: Vec<_> = app.report.lines.iter().filter_map(|l| l.target).collect();
+        assert_eq!(
+            targets,
+            [Target::Tool(id), Target::UpdateTools],
+            "{:?}",
+            app.report
+        );
+        let line = app
+            .report
+            .lines
+            .iter()
+            .find(|l| l.target == Some(Target::Tool(id)))
+            .unwrap();
+        assert!(line.text.contains("3.5"), "{}", line.text);
+        assert!(app.update_tools_from_library(None));
+        assert_eq!(settings_of(&app).tool(id).unwrap().diameter, 3.0);
+        assert!(
+            !app.update_tools_from_library(None),
+            "nothing left to update"
+        );
+        app.undo();
+        assert_eq!(settings_of(&app).tool(id).unwrap().diameter, 3.5);
+    }
+
+    #[test]
+    fn a_saved_library_tool_offers_to_update_the_projects_copy() {
+        use egui_kittest::Harness;
+        use egui_kittest::kittest::Queryable;
+        let key = super::super::library_view::uid_key(&upcut().uid);
+        let mut harness = Harness::builder()
+            .with_size(egui::vec2(1400.0, 900.0))
+            .build_eframe(move |_| {
+                let (mut app, _) = opened_with_a_differing_tool("offer");
+                app.focus = Focus::LibraryTool(key);
+                app
+            });
+        harness.run_steps(4);
+        let id = harness.state().edit.as_ref().unwrap().job.tools[0].id;
+        assert!(
+            harness
+                .query_by_label_contains(&format!("T{id} in this project differs"))
+                .is_some()
+        );
+        harness.get_by_label("Update in this project").click();
+        harness.run_steps(3);
+        assert_eq!(settings_of(harness.state()).tool(id).unwrap().diameter, 3.0);
+        assert!(harness.query_by_label("Update in this project").is_none());
     }
 }

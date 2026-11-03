@@ -150,6 +150,22 @@ pub(in crate::app) fn tools_form(
                     }
                 });
         });
+        let differ = library.is_some_and(|_| {
+            (0..edit.job.tools.len()).any(|i| {
+                matches!(
+                    tool_link_of(edit, library, i),
+                    Some(chipload_job::library::Link::Differs(..))
+                )
+            })
+        });
+        if differ
+            && ui
+                .button(t!(ui, "user-library-update-all"))
+                .on_hover_text(t!(ui, "user-library-update-all-hover"))
+                .clicked()
+        {
+            request = Some(LibraryRequest::UpdateAllTools);
+        }
         if ui
             .button(t!(ui, "forms-new-tool"))
             .on_hover_text(t!(
@@ -187,6 +203,7 @@ pub(in crate::app) fn tools_form(
         let title = tool_label(ui, &edit.job.tools[index], crate::units::display(ui.ctx()));
         let at = format!("tools.{index}");
         let marked = problems::has_problem_under(ui, &at);
+        let link = tool_link_of(edit, library, index);
         let tool = &mut edit.job.tools[index];
         section_marked(
             ui,
@@ -195,7 +212,7 @@ pub(in crate::app) fn tools_form(
             &summary,
             marked,
             |ui| {
-                if tool_body(ui, tool, &at, &users, library, &mut request) {
+                if tool_body(ui, tool, &at, &users, library, link, &mut request) {
                     remove = Some(index);
                 }
             },
@@ -233,19 +250,37 @@ pub(in crate::app) fn tool_form(
         _ => t!(ui, "forms-tool-cuts", operations = users.join(", ")),
     });
     let at = format!("tools.{index}");
+    let link = tool_link_of(edit, library, index);
     let tool = &mut edit.job.tools[index];
     let mut removed = false;
     Grid::new(("tool-form", id))
         .num_columns(2)
         .min_col_width(label_width(ui))
         .show(ui, |ui| {
-            removed = tool_body(ui, tool, &at, &users, library, &mut request);
+            removed = tool_body(ui, tool, &at, &users, library, link, &mut request);
         });
     if removed {
         edit.job.tools.remove(index);
         return Some(JobRequest::ToolRemoved);
     }
     request.map(JobRequest::Library)
+}
+
+/// How project tool `index` stands to its library tool, a speed from the setup's material
+/// aside (docs/specs/tool-updates.md §4).
+fn tool_link_of(
+    edit: &EditJob,
+    library: Option<&Library>,
+    index: usize,
+) -> Option<chipload_job::library::Link> {
+    let l = library?;
+    let tool = edit.job.tools.get(index)?;
+    Some(chipload_pipeline::library::project_tool_link(
+        &edit.job,
+        &l.tools,
+        &l.materials,
+        tool,
+    ))
 }
 
 /// A tool's rows: its library line, its values and *Remove tool*. True when *Remove* was
@@ -256,10 +291,11 @@ pub(super) fn tool_body(
     at: &str,
     users: &[String],
     library: Option<&Library>,
+    link: Option<chipload_job::library::Link>,
     request: &mut Option<LibraryRequest>,
 ) -> bool {
     let salt = format!("job-tool-{}", tool.id);
-    library_rows(ui, request, LibraryRows::tool(tool, library));
+    library_rows(ui, request, LibraryRows::tool(tool, library, link));
     tool_rows(ui, &salt, at, tool);
     ui.label("");
     let button = ui.add_enabled(

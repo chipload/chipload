@@ -246,6 +246,71 @@ pub fn unknown_posts(file: &MachineLibrary, posts: Option<&Path>) -> Vec<Message
         .collect()
 }
 
+/// The speed project tool `tool` has from its setup's material: its row's speed for the
+/// project's material, when the tool runs at it (docs/specs/tool-updates.md §4).
+pub fn material_speed(
+    job: &Job,
+    tools: &ToolLibrary,
+    materials: &MaterialLibrary,
+    tool: &chipload_job::Tool,
+) -> Option<f64> {
+    let material = crate::materials::project_material(job, materials)?;
+    let rpm = crate::materials::tool_values(job, tools, Some(material), tool.id)?.rpm?;
+    (tool.rpm == Some(rpm)).then_some(rpm)
+}
+
+/// How project tool `tool` stands to its library tool, a speed from the material aside
+/// (docs/specs/tool-updates.md §4).
+pub fn project_tool_link(
+    job: &Job,
+    tools: &ToolLibrary,
+    materials: &MaterialLibrary,
+    tool: &chipload_job::Tool,
+) -> chipload_job::library::Link {
+    let mut compared = tool.clone();
+    if material_speed(job, tools, materials, tool).is_some()
+        && let Some(entry) = tools.find_uid(tool.library_uid.as_deref().unwrap_or(""))
+    {
+        compared.rpm = entry.rpm;
+    }
+    chipload_job::library::tool_link(tools, &compared)
+}
+
+/// The project with its tools that differ from their library tools (all, or tool `only`)
+/// given the library tools' values, keeping a speed from the material
+/// (docs/specs/tool-updates.md §3, §4). Per tool updated, its id and what changed.
+pub fn update_from_library(
+    job: &Job,
+    tools: &ToolLibrary,
+    materials: &MaterialLibrary,
+    only: Option<i64>,
+) -> (Job, Vec<(i64, Vec<Message>)>) {
+    let mut out = job.clone();
+    let mut updated = Vec::new();
+    for tool in &job.tools {
+        if only.is_some_and(|id| id != tool.id) {
+            continue;
+        }
+        let chipload_job::library::Link::Differs(_, changes) =
+            project_tool_link(job, tools, materials, tool)
+        else {
+            continue;
+        };
+        let Some(entry) = tools.find_uid(tool.library_uid.as_deref().unwrap_or("")) else {
+            continue;
+        };
+        let mut new = entry.tool(tool.id);
+        if let Some(rpm) = material_speed(job, tools, materials, tool) {
+            new.rpm = Some(rpm);
+        }
+        if let Some(slot) = out.tools.iter_mut().find(|t| t.id == tool.id) {
+            *slot = new;
+        }
+        updated.push((tool.id, changes));
+    }
+    (out, updated)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

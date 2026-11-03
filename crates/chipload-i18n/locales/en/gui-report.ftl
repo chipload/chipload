@@ -16,3 +16,5 @@ report-select-operation-hover = Select operation { $number }
 # A line of a list in the report, indented under its heading: $line is a message from
 # the project (a problem). Only the two spaces in front are this text's.
 report-indented = {"  "}{ $line }
+report-select-tool-hover = Open tool T{ $tool }
+report-update-tools-hover = Give these tools your library's values, as one undo step

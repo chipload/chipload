@@ -634,6 +634,28 @@ impl ChiploadApp {
             toggle_folder(ui, open_id, false);
         }
         let mut dropped = self.library_drop(ui, &out.response);
+        // Every tool that differs from its library tool, updated (docs/specs/tool-updates.md
+        // §3).
+        let differ = tools.iter().any(|t| {
+            matches!(
+                self.project_tool_link(t),
+                Some(chipload_job::library::Link::Differs(..))
+            )
+        });
+        let mut update_all = false;
+        out.response.context_menu(|ui| {
+            if ui
+                .add_enabled(differ, egui::Button::new(t!(ui, "user-library-update-all")))
+                .on_hover_text(t!(ui, "user-library-update-all-hover"))
+                .on_disabled_hover_text(t!(ui, "user-library-update-all-none"))
+                .clicked()
+            {
+                update_all = true;
+            }
+        });
+        if update_all {
+            self.update_tools_from_library(None);
+        }
         // A click shows every tool, to add one or compare them
         // (docs/specs/properties-for-tools-and-dxfs.md §2).
         if out
@@ -645,9 +667,7 @@ impl ChiploadApp {
         }
         if open {
             for (k, tool) in tools.iter().enumerate() {
-                let link = self
-                    .library()
-                    .map(|l| chipload_job::library::tool_link(&l.tools, tool));
+                let link = self.project_tool_link(tool);
                 let row = Row::new(
                     Id::new(("browser-tool", tool.id)),
                     2,

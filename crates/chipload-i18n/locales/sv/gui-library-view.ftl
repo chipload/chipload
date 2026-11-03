@@ -62,3 +62,6 @@ library-view-saved = Sparat i ditt bibliotek
 # Notes at the right end of a library entry's row in the Browser.
 library-view-note-default = standard
 library-view-note-unsaved = osparad
+library-view-project-tool-differs = T{ $tool } i det här projektet skiljer sig: { $changes }
+library-view-update-in-project = Uppdatera i det här projektet
+library-view-update-in-project-hover = Ge projektets verktyg de här värdena, som ett ångra-steg
