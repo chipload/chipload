@@ -168,6 +168,15 @@ forms-hold-the-part-hover =
     Ponticelli: ponti lasciati sul fondo del taglio; il pezzo resta attaccato finché non lo stacchi tu.
     Strato sottile: uno strato sottile lasciato tutto intorno durante la sgrossatura, poi un ultimo giro dopo ogni anello della lavorazione lo taglia. Durante quel giro il pezzo è libero: aggiungi ponticelli se i pezzi non devono muoversi in quel momento.
 forms-tab-count = n. ponticelli
+# Where a profile's tabs go (docs/specs/tabs-along-grain.md): X and Y name the edges.
+forms-tab-placement = disposizione
+forms-tab-placement-hover = Dove ogni contorno riceve i suoi ponticelli, se non li hai posti a mano
+forms-tab-around = tutto intorno
+forms-tab-around-hover = Distribuiti uniformemente intorno al contorno, spostati dagli angoli
+forms-tab-along-x = lungo X
+forms-tab-along-x-hover = Sui bordi inferiore e superiore del contorno, che vanno in X, metà su ciascuno. Con la venatura lungo i bordi i ponticelli si staccano facilmente; di traverso tengono di più
+forms-tab-along-y = lungo Y
+forms-tab-along-y-hover = Sui bordi sinistro e destro del contorno, che vanno in Y, metà su ciascuno. Con la venatura lungo i bordi i ponticelli si staccano facilmente; di traverso tengono di più
 forms-tab-width = larghezza
 forms-tab-height = altezza
 forms-tabs-placed = { $count ->
@@ -176,7 +185,7 @@ forms-tabs-placed = { $count ->
 }
 forms-tabs-placed-hover = Ponticelli trascinati, aggiunti o rimossi nell'area di disegno; i contorni senza ricevono il numero sopra, distribuiti uniformemente
 forms-tabs-reset = Ripristina
-forms-tabs-reset-hover = I ponticelli di ogni contorno tornano distribuiti uniformemente
+forms-tabs-reset-hover = I ponticelli di ogni contorno vengono riposizionati secondo la disposizione
 forms-skin-thickness = spessore strato
 forms-skin-thickness-hover = Lasciato sopra la profondità finale fino all'ultimo giro: al massimo una profondità di passata, e più sottile dei ponticelli
 

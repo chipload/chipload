@@ -16,7 +16,7 @@ canvas-tab-hover-placed = Attache placée à la main : la glisser le long du tou
 # A dropped tab or ring start that the planner refuses goes back; $reason says why.
 canvas-drop-refused = Non déplacé : { $reason }
 canvas-tab-remove = Retirer l'attache
-canvas-tab-even = Répartir régulièrement les attaches de ce tour
+canvas-tab-even = Replacer les attaches de ce tour
 canvas-tab-add = Ajouter une attache ici
 canvas-corner-hover = Coin en { $at }, { $angle }° : { $gets }. Cliquer pour choisir à part
 canvas-corner-hover-own = Coin en { $at }, { $angle }° : { $gets }, choisi à part. Cliquer pour changer

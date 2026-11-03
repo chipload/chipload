@@ -146,6 +146,9 @@ sheet-lead = approche r { $radius }
 sheet-tabs = { $count } × { $width } de large, { $height } de haut
 sheet-flanks = flancs { $degrees }°
 sheet-tabs-none = aucune
+# Where the tabs are, when not evenly round the contour.
+sheet-tabs-along-x = le long de X (bords inférieur et supérieur)
+sheet-tabs-along-y = le long de Y (bords gauche et droit)
 # Under the table: how deep the tool goes. $z is a number alone; the parts are joined with ", ".
 sheet-cuts-down = Usine jusqu'à Z{ $z } : { $depth } sous le dessus du brut
 sheet-into-spoilboard = { $depth } dans le martyr

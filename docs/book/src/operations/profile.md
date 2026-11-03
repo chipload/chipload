@@ -53,15 +53,37 @@ loose on the last pass.
 
 | Setting | |
 |---|---|
-| **count** | tabs per contour, spread evenly along it |
+| **count** | tabs per contour |
+| **placement** | *around*: spread evenly along the contour; *along X*: on its bottom and top edges; *along Y*: on its left and right edges ([below](#tabs-along-x-or-y)) |
 | **width** | the bridge left on the part, along its edge (the flat top for sloped tabs) |
 | **height** | the bridge's thickness, up from the bottom of the cut |
 | **flank angle** | 90° for straight tabs (the tool goes straight up and down); less for sloped ones. A ramped profile gets 30° by default and follows the slope, which is gentler on the tool. |
 
-- **Placement:** tabs slide off corners to straight stretches, by up to a quarter of their
+- **Around:** tabs slide off corners to straight stretches, by up to a quarter of their
   spacing.
 - **Spacing:** they keep a tool diameter from each other and from the start of the contour.
 - **Shown** highlighted on the canvas.
+
+### Tabs along X or Y
+
+To line the tabs up with the wood's grain, choose **placement** *along X* or *along Y*.
+*Along X* puts them on each contour's bottom and top edges, the edges that run in X: half
+of **count** on each (an odd one more at the bottom), evenly across the contour's width,
+so 4 tabs on a rectangle sit at a quarter and three quarters across, two on each edge.
+*Along Y* does the same on the left and right edges. On a round part they go near its
+lowest and highest (or leftmost and rightmost) points.
+
+- **Which one:** with the grain along the tabs' edges, a tab's fibres run across its bridge
+  and it cuts loose easily with a knife or chisel; with the grain across them, the fibres
+  run along the bridge and it holds stronger. X and Y name the edges, so either works.
+- A tab that would cover the contour's start moves along it, just clear. Tabs that don't fit
+  (too close together on a small part) stop generating with the reason: fewer tabs, or
+  *around*.
+- Holes cut through with tabs get the same rule on their own edges.
+- A contour with tabs you placed by hand keeps them (below). The setup sheet says where the
+  tabs are. In the file it is `tabs.along`, `"x"` or `"y"` (left out for *around*);
+  on the command line `chipload op tabs part.chipload --op 2 --along x` (`--around` to go
+  back), and a [style](../library/styles.md) keeps it.
 
 ### Tabs placed by hand
 
@@ -73,10 +95,11 @@ filled where you placed it.
   it can't be (on the contour's start, or too close to another tab) goes back where it
   was, and the status bar says why; drag it somewhere else. The same goes for a start
   point dropped onto a tab.
-- **Right-click a tab** to remove it, or to space that contour's tabs evenly again.
+- **Right-click a tab** to remove it, or to place that contour's tabs again as the
+  **placement** says.
 - **Right-click the contour's toolpath** for *Add a tab here*.
-- Under **Tabs** in Properties, *5 tabs placed by hand* counts them, and *Reset* spaces every
-  contour's tabs evenly again. Each change is one undo step.
+- Under **Tabs** in Properties, *5 tabs placed by hand* counts them, and *Reset* places every
+  contour's tabs again as the **placement** says. Each change is one undo step.
 
 On the command line, list them and add or remove one at a point on (or near) the contour:
 
@@ -86,7 +109,7 @@ ring 1  (146.551, 132.176)  spaced
 …
 chipload op tab part.chipload --op 2 --at 162,91            # add one
 chipload op tab part.chipload --op 2 --at 146.5,132 --remove
-chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour spaced evenly again
+chipload op tab part.chipload --op 2 --at 162,91 --even     # this contour placed again
 chipload op tab part.chipload --op 2 --reset                # every contour
 ```
 

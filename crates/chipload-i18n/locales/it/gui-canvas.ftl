@@ -16,7 +16,7 @@ canvas-tab-hover-placed = Ponticello posto a mano: trascinalo lungo l'anello; cl
 # A dropped tab or ring start that the planner refuses goes back; $reason says why.
 canvas-drop-refused = Non spostato: { $reason }
 canvas-tab-remove = Rimuovi il ponticello
-canvas-tab-even = Distribuisci uniformemente i ponticelli di questo anello
+canvas-tab-even = Riposiziona i ponticelli di questo anello
 canvas-tab-add = Aggiungi un ponticello qui
 canvas-corner-hover = Angolo in { $at }, { $angle }°: { $gets }. Clicca per scegliere a parte
 canvas-corner-hover-own = Angolo in { $at }, { $angle }°: { $gets }, scelto a parte. Clicca per cambiarlo

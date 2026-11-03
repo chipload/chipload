@@ -143,6 +143,9 @@ sheet-lead = lead r { $radius }
 sheet-tabs = { $count } × { $width } wide, { $height } high
 sheet-flanks = flanks { $degrees }°
 sheet-tabs-none = none
+# Where the tabs are, when not evenly round the contour.
+sheet-tabs-along-x = along X (bottom and top edges)
+sheet-tabs-along-y = along Y (left and right edges)
 # Under the table: how deep the tool goes. $z is a number alone; the parts are joined with ", ".
 sheet-cuts-down = Cuts down to Z{ $z }: { $depth } below the stock top
 sheet-into-spoilboard = { $depth } into the spoilboard

@@ -168,6 +168,15 @@ forms-hold-the-part-hover =
     Haltestege: Brücken, die unten im Schnitt stehen bleiben; das Teil bleibt verbunden, bis Sie es freischneiden.
     Restschicht: eine dünne Schicht bleibt beim Schruppen ringsum stehen, dann fräst ein letzter Umlauf nach allen Ringen der Bearbeitung sie durch. Das Teil ist während dieses Umlaufs lose: fügen Sie Haltestege hinzu, wenn sich die Teile dann nicht bewegen dürfen.
 forms-tab-count = Anzahl Stege
+# Where a profile's tabs go (docs/specs/tabs-along-grain.md): X and Y name the edges.
+forms-tab-placement = Anordnung
+forms-tab-placement-hover = Wo jede Kontur ihre Haltestege bekommt, sofern Sie sie nicht von Hand gesetzt haben
+forms-tab-around = ringsum
+forms-tab-around-hover = Gleichmäßig um die Kontur verteilt, von Ecken weggeschoben
+forms-tab-along-x = entlang X
+forms-tab-along-x-hover = An der unteren und oberen Kante der Kontur, die in X verlaufen, je zur Hälfte. Mit der Faser entlang der Kante lassen sich die Stege leicht lösen; quer dazu halten sie fester
+forms-tab-along-y = entlang Y
+forms-tab-along-y-hover = An der linken und rechten Kante der Kontur, die in Y verlaufen, je zur Hälfte. Mit der Faser entlang der Kante lassen sich die Stege leicht lösen; quer dazu halten sie fester
 forms-tab-width = Breite
 forms-tab-height = Höhe
 forms-tabs-placed = { $count ->
@@ -176,7 +185,7 @@ forms-tabs-placed = { $count ->
 }
 forms-tabs-placed-hover = Auf der Zeichenfläche gezogene, hinzugefügte oder entfernte Haltestege; Konturen ohne bekommen die Anzahl oben, gleichmäßig verteilt
 forms-tabs-reset = Zurücksetzen
-forms-tabs-reset-hover = Die Haltestege jeder Kontur werden wieder gleichmäßig verteilt
+forms-tabs-reset-hover = Die Haltestege jeder Kontur werden wieder gesetzt, wie die Anordnung sagt
 forms-skin-thickness = Schichtdicke
 forms-skin-thickness-hover = Bleibt bis zum letzten Umlauf über der Endtiefe stehen: höchstens eine Zustellung, und dünner als die Haltestege
 

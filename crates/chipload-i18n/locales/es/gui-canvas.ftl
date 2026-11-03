@@ -16,7 +16,7 @@ canvas-tab-hover-placed = Puente colocado a mano: arrástralo a lo largo del ani
 # A dropped tab or ring start that the planner refuses goes back; $reason says why.
 canvas-drop-refused = No movido: { $reason }
 canvas-tab-remove = Quitar el puente
-canvas-tab-even = Repartir por igual los puentes de este anillo
+canvas-tab-even = Volver a colocar los puentes de este anillo
 canvas-tab-add = Añadir un puente aquí
 canvas-corner-hover = Esquina en { $at }, { $angle }°: { $gets }. Haz clic para elegir aparte
 canvas-corner-hover-own = Esquina en { $at }, { $angle }°: { $gets }, elegida aparte. Haz clic para cambiarla

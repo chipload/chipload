@@ -881,6 +881,22 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v35/tabs_along.chipload
+exit 0
+--- stdout
+warning: Operation 1: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+note: Operation 1 (Profile 1): cuts through, 0.500 mm into the spoilboard
+Operation 1: a ring starts at (60.000, 47.000) (default)
+Estimated time: 4 min 47 s (cutting 4 min 44 s, rapids 0 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
+  Operation 1 (Profile 1): 4 min 44 s; cutting 7.1 m, plunging 1 mm, rapids 9 mm, 1 lift
+  In all: cutting 7.1 m, plunging 1 mm, rapids 9 mm, 1 lift.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Profile 1): set the tool's flutes to see the chip load
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v35/vcarve_step_down.chipload
 exit 0
 --- stdout

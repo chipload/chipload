@@ -16,7 +16,7 @@ canvas-tab-hover-placed = Handplacerad brygga: dra den längs slingan; högerkli
 # A dropped tab or ring start that the planner refuses goes back; $reason says why.
 canvas-drop-refused = Inte flyttad: { $reason }
 canvas-tab-remove = Ta bort bryggan
-canvas-tab-even = Sprid slingans bryggor jämnt
+canvas-tab-even = Placera slingans bryggor igen
 canvas-tab-add = Lägg till en brygga här
 canvas-corner-hover = Hörn vid { $at }, { $angle }°: { $gets }. Klicka för att välja något eget
 canvas-corner-hover-own = Hörn vid { $at }, { $angle }°: { $gets }, eget val. Klicka för att ändra

@@ -16,7 +16,7 @@ canvas-tab-hover-placed = Tab placed by hand: drag it along the ring; right-clic
 # A dropped tab or ring start that the planner refuses goes back; $reason says why.
 canvas-drop-refused = Not moved: { $reason }
 canvas-tab-remove = Remove tab
-canvas-tab-even = Space this ring's tabs evenly
+canvas-tab-even = Place this ring's tabs again
 canvas-tab-add = Add a tab here
 canvas-corner-hover = Corner at { $at }, { $angle }°: { $gets }. Click to choose its own
 canvas-corner-hover-own = Corner at { $at }, { $angle }°: { $gets }, its own choice. Click to change it

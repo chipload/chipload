@@ -45,6 +45,14 @@
       ],
       "type": "string"
     },
+    "Axis": {
+      "description": "An axis of the drawing.",
+      "enum": [
+        "x",
+        "y"
+      ],
+      "type": "string"
+    },
     "Bone": {
       "description": "What a chosen corner gets.",
       "enum": [
@@ -2270,6 +2278,17 @@
     "Tabs": {
       "additionalProperties": false,
       "properties": {
+        "along": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Axis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where a ring without tabs placed by hand gets its `count` tabs: on its edges along\n`x` (bottom and top) or `y` (left and right), half on each. Left out: evenly round\nit."
+        },
         "at": {
           "description": "Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets\nexactly those tabs, one without gets `count`, evenly spaced. Left out when empty.",
           "items": {

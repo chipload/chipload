@@ -348,7 +348,7 @@ chipload op corner <PROJECT> [OPTIONS]
 
 ### `chipload op tabs`
 
-List a profile's tabs: each contour's, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned
+List a profile's tabs: each contour's, with their centres on the tool path and whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned. With --along or --around, first choose where contours without tabs placed by hand get theirs (docs/specs/tabs-along-grain.md)
 
 ```text
 chipload op tabs <PROJECT> [OPTIONS]
@@ -358,6 +358,9 @@ chipload op tabs <PROJECT> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `--op <OP>` | The operation's number as the app lists it (1 = first) Required. |
+| `--along <ALONG>` | On the edges along this axis: x (bottom and top) or y (left and right), half on each. One of: `x`, `y`. |
+| `--around` | Evenly round each contour (as without --along) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op tab`
 
@@ -373,8 +376,8 @@ chipload op tab <PROJECT> [OPTIONS]
 | `--op <OP>` | The operation's number as the app lists it (1 = first) Required. |
 | `--at <AT>` | The point, X,Y in drawing coordinates (a plain number is mm): on or near the contour, within a tool diameter. |
 | `--remove` | Remove the tab nearest to --at. |
-| `--even` | Space the tabs of the contour nearest to --at evenly again. |
-| `--reset` | Space every contour's tabs evenly again. |
+| `--even` | Place the tabs of the contour nearest to --at again, as the operation places them (evenly, or along an axis: `op tabs --along`) |
+| `--reset` | Place every contour's tabs again, as the operation places them. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op rest`

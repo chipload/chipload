@@ -1,6 +1,7 @@
 # Spec: tabs along the grain
 
-Status: draft 2026-11-03, decisions in §6 to review.
+Status: built 2026-11-03 (§7); approved 2026-11-03 (decision 1 as the user put it, 2-4 as recommended; the user:
+"calling it x or y is good since another user might want the opposite direction").
 
 ## 1. Why
 
@@ -26,8 +27,9 @@ The profile's **Tabs** get a **Placement**:
 | **Along X** | on the contour's top and bottom edges, which run in X | along X |
 | **Along Y** | on the contour's left and right edges, which run in Y | along Y |
 
-With *Along X*, the grain runs along the edges the tabs sit on, across each tab's bridge, so
-the tabs cut loose easily along the part's edge.
+X and Y name the edges, not a use: with the grain along the tabs' edges they cut loose
+easily (the user's way); with the grain across them, along each bridge, they hold
+stronger (another user's). The hover says both.
 
 ## 3. Where exactly
 
@@ -82,3 +84,15 @@ For each ring the profile cuts, with *Along X* (*Along Y* the same, X and Y swap
 4. **Names:** *Around*, *Along X*, *Along Y* in the window (the hover says which edges);
    `--along x|y` and `"along": "x" | "y"` in the file. *Recommended:* the same word as the
    grain's direction everywhere.
+
+## 7. As built (2026-11-03)
+
+- `Tabs.along: Option<Axis>` (`chipload_job::Axis`, `"x"`/`"y"`), left out when null;
+  `chipload_toolpath::tabs::along_tabs` makes the target points on the tool-centre ring's
+  box and hands them to `tabs_at`, clamped along the ring clear of its start first.
+- Window: *placement* under Tabs (*around*, *along X*, *along Y*, each with its hover);
+  *Space this ring's tabs evenly* is *Place this ring's tabs again*, and *Reset*'s hover
+  says the same.
+- `op tabs --along x|y` / `--around` (then lists the tabs as before). The setup sheet adds
+  "along X (bottom and top edges)" to the tabs cell.
+- Golden `v35_tabs_along`; a CLI test gives the same G-code with those tabs placed by hand.

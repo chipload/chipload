@@ -168,6 +168,15 @@ forms-hold-the-part-hover =
     Bryggor: lämnas kvar i botten av spåret; detaljen sitter fast tills du skär loss den.
     Tunt skikt: ett tunt skikt lämnas runt om under grovbearbetningen, sedan fräser ett sista varv efter operationens alla slingor igenom det. Detaljen är lös under det varvet: lägg till bryggor om detaljerna inte får röra sig då.
 forms-tab-count = antal bryggor
+# Where a profile's tabs go (docs/specs/tabs-along-grain.md): X and Y name the edges.
+forms-tab-placement = placering
+forms-tab-placement-hover = Var varje kontur får sina bryggor, om du inte har placerat dem för hand
+forms-tab-around = runt om
+forms-tab-around-hover = Jämnt runt konturen, flyttade från hörn
+forms-tab-along-x = längs X
+forms-tab-along-x-hover = På konturens nedre och övre kant, som går i X, hälften på varje. Med fibrerna längs kanten lossnar bryggorna lätt; på tvären håller de bättre
+forms-tab-along-y = längs Y
+forms-tab-along-y-hover = På konturens vänstra och högra kant, som går i Y, hälften på varje. Med fibrerna längs kanten lossnar bryggorna lätt; på tvären håller de bättre
 forms-tab-width = bredd
 forms-tab-height = höjd
 forms-tabs-placed = { $count ->
@@ -176,7 +185,7 @@ forms-tabs-placed = { $count ->
 }
 forms-tabs-placed-hover = Bryggor som dragits, lagts till eller tagits bort i ritytan; konturer utan några får antalet ovan, jämnt spridda
 forms-tabs-reset = Återställ
-forms-tabs-reset-hover = Alla konturers bryggor sprids jämnt igen
+forms-tabs-reset-hover = Alla konturers bryggor placeras igen enligt placeringen
 forms-skin-thickness = skikttjocklek
 forms-skin-thickness-hover = Lämnas ovanför slutdjupet till sista varvet: högst ett skärdjup, och tunnare än bryggorna
 

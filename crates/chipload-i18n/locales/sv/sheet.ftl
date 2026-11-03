@@ -146,6 +146,9 @@ sheet-tabs = { $count ->
 }
 sheet-flanks = flanker { $degrees }°
 sheet-tabs-none = inga
+# Where the tabs are, when not evenly round the contour.
+sheet-tabs-along-x = längs X (nedre och övre kant)
+sheet-tabs-along-y = längs Y (vänster och höger kant)
 # Under the table: how deep the tool goes. $z is a number alone; the parts are joined with ", ".
 sheet-cuts-down = Fräser ned till Z{ $z }: { $depth } under ämnets ovansida
 sheet-into-spoilboard = { $depth } ned i offerskivan

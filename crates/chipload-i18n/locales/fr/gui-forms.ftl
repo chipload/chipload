@@ -168,6 +168,15 @@ forms-hold-the-part-hover =
     Attaches : des ponts laissés au fond de la coupe ; la pièce reste attachée jusqu'à ce que vous la libériez.
     Peau d'oignon : une fine peau laissée tout autour pendant l'ébauche, puis un dernier tour après chaque tour de l'opération la traverse. La pièce est libre pendant ce tour : ajoutez des attaches si les pièces ne doivent pas bouger à ce moment-là.
 forms-tab-count = nombre d'attaches
+# Where a profile's tabs go (docs/specs/tabs-along-grain.md): X and Y name the edges.
+forms-tab-placement = disposition
+forms-tab-placement-hover = Où chaque contour reçoit ses attaches, sauf si vous les avez placées à la main
+forms-tab-around = tout autour
+forms-tab-around-hover = Réparties régulièrement autour du contour, écartées des coins
+forms-tab-along-x = le long de X
+forms-tab-along-x-hover = Sur les bords inférieur et supérieur du contour, qui suivent X, moitié sur chacun. Avec le fil du bois le long de ces bords, les attaches se détachent facilement ; en travers, elles tiennent mieux
+forms-tab-along-y = le long de Y
+forms-tab-along-y-hover = Sur les bords gauche et droit du contour, qui suivent Y, moitié sur chacun. Avec le fil du bois le long de ces bords, les attaches se détachent facilement ; en travers, elles tiennent mieux
 forms-tab-width = largeur
 forms-tab-height = hauteur
 forms-tabs-placed = { $count ->
@@ -176,7 +185,7 @@ forms-tabs-placed = { $count ->
 }
 forms-tabs-placed-hover = Attaches glissées, ajoutées ou retirées sur le canevas ; les contours sans en reçoivent le nombre ci-dessus, réparties régulièrement
 forms-tabs-reset = Réinitialiser
-forms-tabs-reset-hover = Les attaches de chaque contour sont de nouveau réparties régulièrement
+forms-tabs-reset-hover = Les attaches de chaque contour sont replacées selon la disposition
 forms-skin-thickness = épaisseur de peau
 forms-skin-thickness-hover = Laissée au-dessus de la profondeur finale jusqu'au dernier tour : au plus une profondeur de passe, et plus fine que les attaches
 

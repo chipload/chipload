@@ -213,12 +213,24 @@ pub(crate) enum OpAction {
     },
     /// List a profile's tabs: each contour's, with their centres on the tool path and
     /// whether they were placed by hand (docs/specs/tabs-by-hand.md). The job is planned.
+    /// With --along or --around, first choose where contours without tabs placed by hand
+    /// get theirs (docs/specs/tabs-along-grain.md).
     Tabs {
         /// The project (.chipload).
         project: PathBuf,
         /// The operation's number as the app lists it (1 = first).
         #[arg(long)]
         op: usize,
+        /// On the edges along this axis: x (bottom and top) or y (left and right), half on
+        /// each.
+        #[arg(long, conflicts_with = "around")]
+        along: Option<AxisArg>,
+        /// Evenly round each contour (as without --along).
+        #[arg(long)]
+        around: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
     /// Place a profile's tabs by hand (docs/specs/tabs-by-hand.md): add a tab at a point, or
     /// remove the one there. The first on a contour keeps that contour's other tabs where
@@ -237,10 +249,11 @@ pub(crate) enum OpAction {
         /// Remove the tab nearest to --at.
         #[arg(long, conflicts_with_all = ["even", "reset"])]
         remove: bool,
-        /// Space the tabs of the contour nearest to --at evenly again.
+        /// Place the tabs of the contour nearest to --at again, as the operation places them
+        /// (evenly, or along an axis: `op tabs --along`).
         #[arg(long, conflicts_with = "reset")]
         even: bool,
-        /// Space every contour's tabs evenly again.
+        /// Place every contour's tabs again, as the operation places them.
         #[arg(long)]
         reset: bool,
         /// Where to write the result; default: the project itself.
@@ -302,6 +315,13 @@ impl Shapes {
         }
         Ok(select)
     }
+}
+
+/// An axis of the drawing, for `op tabs --along`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum AxisArg {
+    X,
+    Y,
 }
 
 /// The kinds `op add` adds (a surface has `op add-surface`).
@@ -699,14 +719,42 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             out.wrote(target, "");
             ExitCode::SUCCESS
         }
-        OpAction::Tabs { project, op } => {
-            let job = match load(out, &project) {
+        OpAction::Tabs {
+            project,
+            op,
+            along,
+            around,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
             };
             let Some(index) = op.checked_sub(1) else {
                 return out.fail("operations are numbered from 1");
             };
+            if along.is_some() || around {
+                let Some(Operation::Profile(chipload_job::ProfileOp {
+                    tabs: Some(tabs), ..
+                })) = job.operations.get_mut(index)
+                else {
+                    return out.fail(format!("operation {op} is not a profile with tabs"));
+                };
+                tabs.along = along.map(|a| match a {
+                    AxisArg::X => chipload_job::Axis::X,
+                    AxisArg::Y => chipload_job::Axis::Y,
+                });
+                let target = output.as_deref().unwrap_or(&project);
+                if let Err(err) = save_job(&job, target) {
+                    return out.fail(err);
+                }
+                out.line(match along {
+                    Some(AxisArg::X) => "Tabs on the edges along X (bottom and top).",
+                    Some(AxisArg::Y) => "Tabs on the edges along Y (left and right).",
+                    None => "Tabs evenly round each contour.",
+                });
+                out.wrote(target, "");
+            }
             let rows = match chipload_pipeline::tabs::tabs_of(&job, index) {
                 Ok(rows) => rows,
                 Err(err) => return out.fail(err),

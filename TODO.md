@@ -77,11 +77,7 @@ style.
    direction review's step 2, CamBam's speed). **Steps 1 to 3 done 2026-11-03** (the
    defaults; `styles.json` and `chipload style …`, ADR 0030; the window). For the user to
    try. Next of it: layer rules (step 4), keys for styles (item 3).
-3. **Tabs along the grain** (the user, 2026-11-03: "could we have the option to place them
-   in x direction or y direction? This way i can quickly align them to the fibre direction
-   of the wood"): a Placement for a profile's tabs, *Around* (today), *Along X* or *Along
-   Y*: on the edges running with the grain, easy to cut loose (decision 1 agreed). Spec:
-   docs/specs/tabs-along-grain.md, decisions 2-4 to review.
+3. **Tabs along the grain: done 2026-11-03** (docs/specs/tabs-along-grain.md; see *Done*).
 4. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
@@ -193,6 +189,12 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **Tabs along the grain: done 2026-11-03** (docs/specs/tabs-along-grain.md, the user:
+  "place them in x direction or y direction ... align them to the fibre direction"). A
+  profile's tabs get a placement: *around* (as before), *along X* (bottom and top edges) or
+  *along Y* (left and right), half of the count on each edge; tabs placed by hand still win
+  per contour. `op tabs --along`, the sheet, styles keep it. For the user to try.
 
 - **Styles in the window: done 2026-11-03** (docs/specs/styles.md step 3): *Save as
   style…* on an operation, a Style button on the ribbon, *Apply style ▸* on the canvas,

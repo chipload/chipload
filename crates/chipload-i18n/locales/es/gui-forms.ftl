@@ -168,6 +168,15 @@ forms-hold-the-part-hover =
     Puentes: material que se deja en el fondo del corte; la pieza queda unida hasta que la liberas.
     Piel de cebolla: una capa fina que se deja todo alrededor durante el desbaste, y luego una última vuelta, tras todos los anillos de la operación, la atraviesa. La pieza queda suelta durante esa vuelta: añade puentes si las piezas no deben moverse entonces.
 forms-tab-count = n.º de puentes
+# Where a profile's tabs go (docs/specs/tabs-along-grain.md): X and Y name the edges.
+forms-tab-placement = colocación
+forms-tab-placement-hover = Dónde recibe cada contorno sus puentes, salvo que los hayas colocado a mano
+forms-tab-around = alrededor
+forms-tab-around-hover = Repartidos por igual alrededor del contorno, apartados de las esquinas
+forms-tab-along-x = a lo largo de X
+forms-tab-along-x-hover = En los bordes inferior y superior del contorno, que van en X, la mitad en cada uno. Con la veta a lo largo de ellos los puentes se sueltan con facilidad; de través sujetan más
+forms-tab-along-y = a lo largo de Y
+forms-tab-along-y-hover = En los bordes izquierdo y derecho del contorno, que van en Y, la mitad en cada uno. Con la veta a lo largo de ellos los puentes se sueltan con facilidad; de través sujetan más
 forms-tab-width = ancho
 forms-tab-height = alto
 forms-tabs-placed = { $count ->
@@ -176,7 +185,7 @@ forms-tabs-placed = { $count ->
 }
 forms-tabs-placed-hover = Puentes arrastrados, añadidos o quitados en el lienzo; los contornos sin ninguno reciben el número de arriba, repartidos por igual
 forms-tabs-reset = Restablecer
-forms-tabs-reset-hover = Los puentes de cada contorno vuelven a repartirse por igual
+forms-tabs-reset-hover = Los puentes de cada contorno vuelven a colocarse según la colocación
 forms-skin-thickness = espesor de piel
 forms-skin-thickness-hover = Se deja por encima de la profundidad final hasta la última vuelta: como máximo una profundidad de pasada, y más fina que los puentes
 

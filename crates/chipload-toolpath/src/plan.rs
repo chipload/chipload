@@ -40,7 +40,9 @@ use crate::profile::{
 };
 use crate::select::{Selection, select_contours, select_paths};
 use crate::surface::{SurfaceCut, surface_moves};
-use crate::tabs::{TabLayout, arc_position, place_tabs, point_at_arc, tab_polylines, tabs_at};
+use crate::tabs::{
+    TabLayout, along_tabs, arc_position, place_tabs, point_at_arc, tab_polylines, tabs_at,
+};
 use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1562,7 +1564,9 @@ fn profile_tabs(
     for (k, (ring, points)) in rings.iter().zip(&by_ring).enumerate() {
         // Validated: count >= 1.
         let count = usize::try_from(tabs.count).unwrap_or(0);
-        let placed = if points.is_empty() {
+        let placed = if let (true, Some(axis)) = (points.is_empty(), tabs.along) {
+            along_tabs(&ring.points, count, axis, tabs.width, ctx.tool.diameter)
+        } else if points.is_empty() {
             place_tabs(&ring.points, count, tabs.width, ctx.tool.diameter)
         } else {
             tabs_at(&ring.points, points, tabs.width, ctx.tool.diameter)

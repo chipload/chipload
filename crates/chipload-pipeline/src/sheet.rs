@@ -813,6 +813,12 @@ fn tabs_text(op: &Operation, w: Words) -> String {
                     let degrees = Value::Number(t.flank_angle.to_degrees(), Digits::Trim(1));
                     parts.push(Message::new("sheet-flanks").arg("degrees", degrees));
                 }
+                // Where they go (docs/specs/tabs-along-grain.md §4); evenly round says nothing.
+                match t.along {
+                    Some(chipload_job::Axis::X) => parts.push(Message::new("sheet-tabs-along-x")),
+                    Some(chipload_job::Axis::Y) => parts.push(Message::new("sheet-tabs-along-y")),
+                    None => {}
+                }
                 listed(w, &parts)
             }
             _ => w.say(&Message::new("sheet-tabs-none")),

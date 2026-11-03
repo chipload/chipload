@@ -15,7 +15,8 @@ use chipload_toolpath::model::Move;
 use chipload_toolpath::offset::offset_rings;
 use chipload_toolpath::profile::orient;
 use chipload_toolpath::tabs::{
-    TAB_MAX_TURN_RAD, TabLayout, place_tabs, ring_length, split_ring, tab_polylines, tabs_at,
+    TAB_MAX_TURN_RAD, TabLayout, along_tabs, place_tabs, point_at_arc, ring_length, split_ring,
+    tab_polylines, tabs_at,
 };
 use common::polygon;
 use proptest::prelude::*;
@@ -342,4 +343,68 @@ proptest! {
         }
         prop_assert!(straight_tabbed(&ring, &layout, &[-3.0, -6.0], -4.0).is_ok());
     }
+}
+
+/// Each tab's centre point on the ring.
+fn centres(ring: &[Point], layout: &TabLayout) -> Vec<Point> {
+    layout
+        .spans
+        .iter()
+        .map(|&(a, b)| point_at_arc(ring, (a + b) / 2.0))
+        .collect()
+}
+
+#[test]
+fn tabs_along_x_sit_on_the_bottom_and_top_edges() {
+    // docs/specs/tabs-along-grain.md §3: a 200 × 120 rectangle from (0, 0).
+    let ring = orient(
+        &[(0.0, 0.0), (200.0, 0.0), (200.0, 120.0), (0.0, 120.0)],
+        true,
+    );
+    let mut got = centres(
+        &ring,
+        &along_tabs(&ring, 4, chipload_job::Axis::X, 8.0, D).unwrap(),
+    );
+    got.sort_by(|a, b| (a.1, a.0).partial_cmp(&(b.1, b.0)).unwrap());
+    let want = [(50.0, 0.0), (150.0, 0.0), (50.0, 120.0), (150.0, 120.0)];
+    for (g, w) in got.iter().zip(want) {
+        assert!(near(g.0, w.0) && near(g.1, w.1), "{got:?}");
+    }
+    // Along Y: on the left and right edges, at ¼ and ¾ of the height; an odd one more on
+    // the left.
+    let mut got = centres(
+        &ring,
+        &along_tabs(&ring, 3, chipload_job::Axis::Y, 8.0, D).unwrap(),
+    );
+    got.sort_by(|a, b| (a.0, a.1).partial_cmp(&(b.0, b.1)).unwrap());
+    let want = [(0.0, 30.0), (0.0, 90.0), (200.0, 60.0)];
+    for (g, w) in got.iter().zip(want) {
+        assert!(near(g.0, w.0) && near(g.1, w.1), "{got:?}");
+    }
+}
+
+#[test]
+fn tabs_along_an_axis_keep_clear_of_the_rings_start_and_are_checked() {
+    // The ring starts at (0, 0): a tab there along X moves along the ring, just clear.
+    let ring = orient(
+        &[(0.0, 0.0), (20.0, 0.0), (20.0, 120.0), (0.0, 120.0)],
+        true,
+    );
+    let layout = along_tabs(&ring, 2, chipload_job::Axis::Y, 8.0, D).unwrap();
+    assert_eq!(layout.spans.len(), 2);
+    // Too many for a small part: refused, as tabs by hand are.
+    let small = orient(&[(0.0, 0.0), (30.0, 0.0), (30.0, 30.0), (0.0, 30.0)], true);
+    assert!(along_tabs(&small, 6, chipload_job::Axis::X, 8.0, D).is_err());
+}
+
+#[test]
+fn tabs_along_x_on_a_circle_are_near_its_lowest_and_highest_points() {
+    let ring = circle_path(50.0, 360);
+    let got = centres(
+        &ring,
+        &along_tabs(&ring, 2, chipload_job::Axis::X, 8.0, D).unwrap(),
+    );
+    let lowest = got.iter().map(|p| p.1).fold(f64::INFINITY, f64::min);
+    let highest = got.iter().map(|p| p.1).fold(f64::NEG_INFINITY, f64::max);
+    assert!(lowest < -49.0 && highest > 49.0, "{got:?}");
 }

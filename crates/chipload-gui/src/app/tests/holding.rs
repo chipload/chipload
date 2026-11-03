@@ -135,3 +135,37 @@ fn use_selection_with_a_picture_selects_the_picture() {
         );
     }
 }
+
+#[test]
+fn tabs_placed_along_x_sit_on_the_bottom_and_top_edges() {
+    // docs/specs/tabs-along-grain.md: the Placement under Tabs, then the tabs it plans.
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::Queryable;
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1400.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
+            select(&mut app, &[1]);
+            let i = app.add_operation(OpKind::Profile).unwrap();
+            app.focus = Focus::Op(i);
+            app
+        });
+    harness.run_steps(4);
+    assert!(harness.query_by_label_contains("placement").is_some());
+    if let Operation::Profile(p) = &mut harness.state_mut().edit.as_mut().unwrap().job.operations[0]
+    {
+        p.tabs.as_mut().unwrap().along = Some(chipload_job::Axis::X);
+    }
+    harness.state_mut().commit();
+    harness.run_steps(4);
+    let app = harness.state_mut();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let tabs = app.scene.tabs.clone();
+    assert_eq!(tabs.len(), 4);
+    // Every tab lies on a horizontal edge: all its points at one Y.
+    for tab in &tabs {
+        let y = tab[0].1;
+        assert!(tab.iter().all(|p| (p.1 - y).abs() < 1e-6), "{tab:?}");
+    }
+}

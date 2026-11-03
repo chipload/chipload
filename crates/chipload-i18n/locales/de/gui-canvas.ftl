@@ -16,7 +16,7 @@ canvas-tab-hover-placed = Von Hand gesetzter Haltesteg: entlang des Rings ziehen
 # A dropped tab or ring start that the planner refuses goes back; $reason says why.
 canvas-drop-refused = Nicht verschoben: { $reason }
 canvas-tab-remove = Haltesteg entfernen
-canvas-tab-even = Haltestege dieses Rings gleichmäßig verteilen
+canvas-tab-even = Haltestege dieses Rings neu setzen
 canvas-tab-add = Hier einen Haltesteg hinzufügen
 canvas-corner-hover = Ecke bei { $at }, { $angle }°: { $gets }. Klicken, um für sie eigens zu wählen
 canvas-corner-hover-own = Ecke bei { $at }, { $angle }°: { $gets }, eigens gewählt. Klicken, um es zu ändern

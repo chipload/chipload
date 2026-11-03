@@ -165,6 +165,65 @@ pub fn tabs_at(
     })
 }
 
+/// `count` tabs on the edges of `ring` along `axis` (docs/specs/tabs-along-grain.md §3):
+/// along X, half at the bottom of its box and half at the top (an odd one more at the
+/// bottom), each at the ring's point nearest to evenly spaced points across the box; along
+/// Y the same on the left and right. A tab that would cover the ring's start, where every
+/// pass goes down, moves along the ring just clear of it. Then checked as tabs placed by
+/// hand are (`tabs_at`).
+pub fn along_tabs(
+    ring: &[Point],
+    count: usize,
+    axis: chipload_job::Axis,
+    width: f64,
+    tool_diameter: f64,
+) -> Result<TabLayout, ToolpathError> {
+    let Some(((x0, y0), (x1, y1))) = bounds(ring) else {
+        return tabs_at(ring, &[], width, tool_diameter);
+    };
+    let length = ring_length(ring);
+    let gap = width + tool_diameter;
+    // Clear of the start at both ends of the ring, as `tabs_at` asks.
+    let (lowest, highest) = (
+        tool_diameter / 2.0 + gap / 2.0,
+        length - tool_diameter / 2.0 - gap / 2.0,
+    );
+    let first = count.div_ceil(2);
+    let mut points = Vec::with_capacity(count);
+    for (side, n) in [(0, first), (1, count - first)] {
+        for k in 0..n {
+            let t = (k as f64 + 0.5) / n as f64;
+            let target = match (axis, side) {
+                (chipload_job::Axis::X, 0) => (x0 + t * (x1 - x0), y0),
+                (chipload_job::Axis::X, _) => (x0 + t * (x1 - x0), y1),
+                (chipload_job::Axis::Y, 0) => (x0, y0 + t * (y1 - y0)),
+                (chipload_job::Axis::Y, _) => (x1, y0 + t * (y1 - y0)),
+            };
+            let Some((at, _)) = arc_position(ring, target) else {
+                continue;
+            };
+            let at = if lowest <= highest {
+                at.clamp(lowest, highest)
+            } else {
+                at
+            };
+            points.push(point_at_arc(ring, at));
+        }
+    }
+    tabs_at(ring, &points, width, tool_diameter)
+}
+
+/// The box round `ring`: (lowest x, lowest y), (highest x, highest y).
+fn bounds(ring: &[Point]) -> Option<(Point, Point)> {
+    let first = *ring.first()?;
+    Some(
+        ring.iter()
+            .fold((first, first), |((x0, y0), (x1, y1)), &(x, y)| {
+                ((x0.min(x), y0.min(y)), (x1.max(x), y1.max(y)))
+            }),
+    )
+}
+
 /// The closed ring from ring[0] back to ring[0], with points inserted at every span
 /// boundary. Each entry is (end point of a segment, whether that segment lies in a tab).
 pub fn split_ring(ring: &[Point], spans: &[(f64, f64)]) -> Vec<(Point, bool)> {

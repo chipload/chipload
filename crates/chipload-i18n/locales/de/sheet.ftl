@@ -146,6 +146,9 @@ sheet-lead = Anfahrt r { $radius }
 sheet-tabs = { $count } × { $width } breit, { $height } hoch
 sheet-flanks = Flanken { $degrees }°
 sheet-tabs-none = keine
+# Where the tabs are, when not evenly round the contour.
+sheet-tabs-along-x = entlang X (untere und obere Kante)
+sheet-tabs-along-y = entlang Y (linke und rechte Kante)
 # Under the table: how deep the tool goes. $z is a number alone; the parts are joined with ", ".
 sheet-cuts-down = Fräst bis Z{ $z }: { $depth } unter der Rohteiloberkante
 sheet-into-spoilboard = { $depth } in die Opferplatte

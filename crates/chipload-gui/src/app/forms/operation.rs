@@ -1230,6 +1230,7 @@ impl Holding {
                 height: 3.0,
                 flank_angle: Tabs::default_flank(p.ramp_angle, center_cutting),
                 at: Vec::new(),
+                along: None,
             });
         }
         if !self.has_skin() {
@@ -1295,6 +1296,33 @@ pub(super) fn holding_section(ui: &mut egui::Ui, p: &mut ProfileOp, op_tool: Opt
                     ui,
                     "tabs.count",
                 );
+                ui.end_row();
+                // docs/specs/tabs-along-grain.md §2.
+                ui.label(format!("  {}", t!(ui, "forms-tab-placement")))
+                    .on_hover_text(t!(ui, "forms-tab-placement-hover"));
+                let placement = |ui: &egui::Ui, along: Option<chipload_job::Axis>| match along {
+                    None => t!(ui, "forms-tab-around"),
+                    Some(chipload_job::Axis::X) => t!(ui, "forms-tab-along-x"),
+                    Some(chipload_job::Axis::Y) => t!(ui, "forms-tab-along-y"),
+                };
+                let hover = |ui: &egui::Ui, along: Option<chipload_job::Axis>| match along {
+                    None => t!(ui, "forms-tab-around-hover"),
+                    Some(chipload_job::Axis::X) => t!(ui, "forms-tab-along-x-hover"),
+                    Some(chipload_job::Axis::Y) => t!(ui, "forms-tab-along-y-hover"),
+                };
+                let combo = ComboBox::from_id_salt("tab-placement")
+                    .selected_text(placement(ui, tabs.along))
+                    .show_ui(ui, |ui| {
+                        for choice in [
+                            None,
+                            Some(chipload_job::Axis::X),
+                            Some(chipload_job::Axis::Y),
+                        ] {
+                            ui.selectable_value(&mut tabs.along, choice, placement(ui, choice))
+                                .on_hover_text(hover(ui, choice));
+                        }
+                    });
+                flag(combo.response, ui, "tabs.along");
                 ui.end_row();
                 ui.label(format!("  {}", t!(ui, "forms-tab-width")));
                 flag(ui.add(mm(&mut tabs.width)), ui, "tabs.width");

@@ -168,6 +168,15 @@ forms-hold-the-part-hover =
     Tabs: bridges left at the bottom of the cut; the part stays attached until you cut it free.
     Onion skin: a thin skin left all round during the roughing, then a last lap after every ring of the operation cuts through it. The part is free during that lap: add tabs if the parts must not move then.
 forms-tab-count = tab count
+# Where a profile's tabs go (docs/specs/tabs-along-grain.md): X and Y name the edges.
+forms-tab-placement = placement
+forms-tab-placement-hover = Where each contour gets its tabs, unless you placed them by hand
+forms-tab-around = around
+forms-tab-around-hover = Evenly round the contour, slid off corners
+forms-tab-along-x = along X
+forms-tab-along-x-hover = On the contour's bottom and top edges, which run in X, half on each. With the grain along them the tabs cut loose easily; across them they hold stronger
+forms-tab-along-y = along Y
+forms-tab-along-y-hover = On the contour's left and right edges, which run in Y, half on each. With the grain along them the tabs cut loose easily; across them they hold stronger
 forms-tab-width = width
 forms-tab-height = height
 forms-tabs-placed = { $count ->
@@ -176,7 +185,7 @@ forms-tabs-placed = { $count ->
 }
 forms-tabs-placed-hover = Tabs dragged, added or removed on the canvas; contours without any get the count above, spaced evenly
 forms-tabs-reset = Reset
-forms-tabs-reset-hover = Every contour's tabs spaced evenly again
+forms-tabs-reset-hover = Every contour's tabs placed again, as Placement says
 forms-skin-thickness = skin thickness
 forms-skin-thickness-hover = Left above the end depth until the last lap: at most one step down, and thinner than the tabs
 

@@ -2097,6 +2097,61 @@ fn styles_are_saved_used_and_make_the_golden_project() {
 }
 
 #[test]
+fn tabs_along_an_axis_cut_as_the_same_tabs_placed_by_hand() {
+    // docs/specs/tabs-along-grain.md §5: the golden v35_tabs_along made again, and its
+    // tabs placed by hand at the points it chose give the same G-code.
+    let dir = temp_dir("tabs-along");
+    let a = dir.join("a.chipload");
+    let p = path(&a);
+    let dxf = corpus("dxf/simple_part.dxf");
+    assert!(chipload(&["import", path(&dxf), "-o", p]).status.success());
+    assert!(
+        chipload(&["op", "add", p, "profile", "--layer", "CUT_OUTSIDE"])
+            .status
+            .success()
+    );
+    let out = chipload(&["op", "tabs", p, "--op", "1", "--along", "x", "--json"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let read = |file: &Path| -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(file).unwrap()).unwrap()
+    };
+    assert_eq!(
+        read(&a)["operations"],
+        read(&corpus("jobs/v35/tabs_along.chipload"))["operations"]
+    );
+    // The same points by hand, without --along.
+    let points: Vec<serde_json::Value> = json["tabs"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["at"].clone())
+        .collect();
+    assert_eq!(points.len(), 4);
+    let mut by_hand = read(&a);
+    let tabs = &mut by_hand["operations"][0]["tabs"];
+    tabs.as_object_mut().unwrap().remove("along");
+    tabs["at"] = serde_json::Value::Array(points);
+    let b = dir.join("b.chipload");
+    std::fs::write(&b, by_hand.to_string()).unwrap();
+    let gcode = |project: &Path, name: &str| {
+        let nc = dir.join(name);
+        let out = chipload(&["run", path(project), "-o", path(&nc), "--no-sheet"]);
+        assert!(out.status.success(), "{}", text(&out.stderr));
+        std::fs::read_to_string(&nc).unwrap()
+    };
+    assert_eq!(gcode(&a, "a.nc"), gcode(&b, "b.nc"));
+    // --around takes it out again; a pocket has no tabs.
+    assert!(
+        chipload(&["op", "tabs", p, "--op", "1", "--around"])
+            .status
+            .success()
+    );
+    assert!(read(&a)["operations"][0]["tabs"].get("along").is_none());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn the_golden_sign_is_framed_with_frame_add() {
     // docs/specs/shape-library.md §9: tests/corpus/jobs/v35/sign_frame.chipload (golden
     // v35_sign_frame) drawn again with these commands; the drawing must come out the same.

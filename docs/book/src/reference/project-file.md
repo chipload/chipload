@@ -38,6 +38,12 @@ The word "auto".
 
 One of: `"auto"`.
 
+## Axis
+
+An axis of the drawing.
+
+One of: `"x"`, `"y"`.
+
 ## Bone
 
 What a chosen corner gets.
@@ -596,6 +602,7 @@ One of: `"center"`, `"bottom_left"`, `"bottom_right"`, `"top_left"`, `"top_right
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `along` | [Axis](#axis) or null | no | Where a ring without tabs placed by hand gets its `count` tabs: on its edges along `x` (bottom and top) or `y` (left and right), half on each. Left out: evenly round it. |
 | `at` | list of 2 × number | no | Tab centres placed by hand, in drawing coordinates (mm): a contour with points gets exactly those tabs, one without gets `count`, evenly spaced. Left out when empty. |
 | `count` | integer | yes | Tabs per contour, at least 1. |
 | `flank_angle` | number | yes | The slope of the tab's sides, radians: π/2 (90°) straight, less for sloped tabs a ramped profile follows. |

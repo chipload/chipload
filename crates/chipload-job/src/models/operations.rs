@@ -23,6 +23,21 @@ pub struct Tabs {
     // Spec: docs/specs/tabs-by-hand.md.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub at: Vec<[f64; 2]>,
+    /// Where a ring without tabs placed by hand gets its `count` tabs: on its edges along
+    /// `x` (bottom and top) or `y` (left and right), half on each. Left out: evenly round
+    /// it.
+    // Spec: docs/specs/tabs-along-grain.md (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub along: Option<Axis>,
+}
+
+/// An axis of the drawing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum Axis {
+    X,
+    Y,
 }
 
 /// Straight tabs: up and down vertically.
@@ -61,6 +76,7 @@ impl Tabs {
             height: STARTING_TAB_HEIGHT.min(0.5 * thickness),
             flank_angle: Tabs::default_flank(ramp_angle, center_cutting),
             at: Vec::new(),
+            along: None,
         }
     }
 }
