@@ -7,6 +7,9 @@ geometry and tool, so I can choose material preset per operation freely") and **
 thickness** ("changing material shouldn't change stock thickness"). See §10 for where it
 differs from the first draft.
 
+**Being replaced** (draft 2026-11-03, docs/specs/cutting-data.md): the values move into the
+tools, one row per material, with slot and clearing values; a material keeps only its name.
+
 ## Why
 
 Today every operation's feeds and step down are typed by hand, or come from a library
