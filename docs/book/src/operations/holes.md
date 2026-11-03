@@ -2,7 +2,8 @@
 
 **Holes** cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
-note), then **Holes** (ribbon, OPERATION). Circles drawn in Chipload count, and so do imported circles,
+note), then **Holes** (ribbon, OPERATION). It takes a drill of the project that fits the
+circles, if there is one. Circles drawn in Chipload count, and so do imported circles,
 including ones drawn as two half arcs.
 
 The tool decides how:
@@ -17,7 +18,9 @@ The tool decides how:
 
 - The drill feeds straight down at the hole's centre.
 - **Pecks** (optional): it drills that many mm, rapids up to clear the chips, rapids back
-  down to 0.5 mm above the bottom, and drills on.
+  down to 0.5 mm above the bottom, and drills on. Turned on, they start at one drill
+  diameter. A hole deeper than three diameters drilled in one go gets a note: the chips
+  can pack and the drill bind.
 - **End depth** is the depth of the drill's **point**. The full diameter ends a little
   higher, about 0.3 × the diameter for a 118° point.
 - **Through** takes that into account: the point goes its length deeper, so the full
@@ -34,8 +37,9 @@ The tool decides how:
   bottom, for a flat floor and a clean wall.
 - **Size:** the hole comes out at its drawn size.
 - **Any endmill:** the helix never plunges, so a tool that isn't centre-cutting is fine.
-- **Too small:** a hole must be larger than the tool, by at least a tenth of the tool's
-  diameter. Smaller holes are skipped, with a note.
+- **Too small:** a hole must be larger than the tool by at least a fifth of its diameter (a
+  6 mm endmill bores holes from 7.2 mm). Smaller holes are skipped, with a note that says
+  the smallest; when none is large enough, the operation is refused, saying so.
 - **Larger holes:** more than twice the tool's diameter, the helix cuts a ring and leaves a
   core.
   - In a **through hole**, the core comes loose at the last turn, with a note. Hold it down,

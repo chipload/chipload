@@ -25,6 +25,7 @@ toolpath-holes-method = Способ { $method ->
 }; инструмент { $tool } — { $type }
 toolpath-flank-not-centre-cutting = инструмент { $tool } без режущего центра, а склоны перемычек ({ $flank }°) круче угла врезания ({ $ramp }°); спуск по склону — наклонное врезание, поэтому задайте угол не больше { $ramp }°
 toolpath-plunge-not-centre-cutting = инструмент { $tool } без режущего центра, а операция врезается вертикально; используйте наклонное врезание (entry: ramp) или инструмент с режущим центром
+toolpath-ramp-too-short = инструмент { $tool } не режет центром, поэтому врезается по рампе только вдоль пути не короче своего диаметра ({ $diameter }); этот — { $length }: возьмите инструмент, режущий центром
 toolpath-rest-no-tool = доработка после инструмента { $tool }, которого нет в проекте
 toolpath-rest-not-endmill = доработка после инструмента { $tool } ({ $type }); инструмент кармана должен быть концевой фрезой
 toolpath-rest-not-larger = доработка после инструмента { $tool } ({ $large }) требует инструмента больше, чем у этого кармана ({ $small })
@@ -117,7 +118,7 @@ toolpath-holes-too-small-to-bore = { $count ->
     [one] Отверстие { $diameter }
     [few] { $count } отверстия диаметром { $diameter }
    *[other] { $count } отверстий диаметром { $diameter }
-}: слишком мало для фрезерования инструментом { $tool }; не обработано
+}: слишком мало для фрезерования инструментом { $tool } (от { $smallest }); не обработано
 toolpath-holes-core = { $count ->
     [one] В { $count } отверстии остаётся
    *[other] В { $count } отверстиях остаётся
@@ -147,6 +148,17 @@ toolpath-error-pass-depths = глубины должны удовлетворя�
 toolpath-error-rest-tool = доработка после инструмента { $tool }, которого нет в проекте
 toolpath-error-blind-bore = отверстие { $diameter } глухое и больше двух диаметров инструмента { $tool }; используйте карман
 toolpath-error-no-hole-fits = ни одну выделенную окружность нельзя обработать инструментом { $tool } ({ $diameter } { $type })
+toolpath-error-no-hole-drill-size = ни одну выделенную окружность нельзя обработать инструментом { $tool } ({ $diameter } { $type }): сверло сверлит окружности своего размера (в пределах { $within }), а { $count ->
+    [one] окружность — { $least }
+    [few] окружности — от { $least } до { $most }
+   *[other] окружности — от { $least } до { $most }
+}
+toolpath-error-no-hole-to-bore = ни одну выделенную окружность нельзя обработать инструментом { $tool } ({ $diameter } { $type }): он фрезерует отверстия от { $smallest }, а { $count ->
+    [one] окружность — { $least }
+    [few] окружности — от { $least } до { $most }
+   *[other] окружности — от { $least } до { $most }
+}
+toolpath-holes-deep-no-pecks = просверлено на { $depth } за один заход, больше 3 × диаметра сверла: стружка может забиться и сверло заклинить; сверлите с выводом (один диаметр, { $peck }, — обычное начало)
 toolpath-error-no-depth = не задана глубина обработки
 toolpath-error-no-angle = у инструмента { $tool } не задан угол
 toolpath-error-vbit-angle = угол V-образной фрезы должен быть больше 0 и меньше 180 градусов, получено { $got }

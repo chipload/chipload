@@ -52,6 +52,7 @@ toolpath-holes-method = il metodo è { $method ->
 # Angles in degrees.
 toolpath-flank-not-centre-cutting = l'utensile { $tool } non taglia al centro e i fianchi dei ponticelli ({ $flank }°) sono più ripidi dell'angolo di rampa ({ $ramp }°); scendere lungo un fianco è una rampa, quindi rendili non più ripidi di { $ramp }°
 toolpath-plunge-not-centre-cutting = l'utensile { $tool } non taglia al centro e questa lavorazione affonda in verticale; entra invece in rampa (entry: ramp) o usa un utensile che taglia al centro
+toolpath-ramp-too-short = l'utensile { $tool } non taglia al centro, quindi scende in rampa solo lungo un percorso lungo almeno il suo diametro ({ $diameter }); questo è { $length }: usa un utensile che taglia al centro
 
 ## Rest machining
 
@@ -181,8 +182,8 @@ toolpath-holes-not-drill-size = { $count ->
    *[other] { $count } fori da { $diameter }: non della misura della punta da { $tool } (entro { $within }); non forati
 }
 toolpath-holes-too-small-to-bore = { $count ->
-    [one] foro da { $diameter }: troppo piccolo per la foratura elicoidale con la fresa da { $tool }; non tagliato
-   *[other] { $count } fori da { $diameter }: troppo piccoli per la foratura elicoidale con la fresa da { $tool }; non tagliati
+    [one] foro da { $diameter }: troppo piccolo per la foratura elicoidale con la fresa da { $tool } (da { $smallest } in su); non tagliato
+   *[other] { $count } fori da { $diameter }: troppo piccoli per la foratura elicoidale con la fresa da { $tool } (da { $smallest } in su); non tagliati
 }
 toolpath-holes-core = { $count ->
     [one] { $count } foro lascia
@@ -237,6 +238,15 @@ toolpath-error-rest-tool = ripresa dopo l'utensile { $tool }, che il progetto no
 toolpath-error-blind-bore = il foro da { $diameter } è cieco e più del doppio dell'utensile da { $tool }; usa una tasca
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
 toolpath-error-no-hole-fits = nessun cerchio selezionato si può tagliare con l'utensile { $tool } ({ $type } da { $diameter })
+toolpath-error-no-hole-drill-size = nessun cerchio selezionato si può tagliare con l'utensile { $tool } ({ $type } da { $diameter }): una punta fora cerchi della sua misura (entro { $within }), e { $count ->
+    [one] il cerchio è da { $least }
+   *[other] i cerchi vanno da { $least } a { $most }
+}
+toolpath-error-no-hole-to-bore = nessun cerchio selezionato si può tagliare con l'utensile { $tool } ({ $type } da { $diameter }): fora a elica da { $smallest } in su, e { $count ->
+    [one] il cerchio è da { $least }
+   *[other] i cerchi vanno da { $least } a { $most }
+}
+toolpath-holes-deep-no-pecks = forato a { $depth } in una volta, più di 3 × la punta: i trucioli possono impaccarsi e la punta bloccarsi; fora a scarichi (un diametro, { $peck }, è un inizio comune)
 toolpath-error-no-depth = nessuna profondità a cui tagliare
 toolpath-error-no-angle = l'utensile { $tool } non ha un angolo
 # $got is an angle in degrees, without its unit.

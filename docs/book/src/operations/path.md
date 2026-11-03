@@ -17,7 +17,7 @@ cut that layer's centre lines.
 | Setting | |
 |---|---|
 | **Start depth**, **End depth**, **Step down** | as on every operation |
-| **Entry** | *plunge*, or *ramp* along the path. A pointed V-bit counts as centre-cutting. |
+| **Entry** | *plunge*, or *ramp* along the path. A pointed V-bit counts as centre-cutting. A tool marked not centre-cutting ramps only along a path at least its diameter long. |
 | **Feed**, **Plunge feed** | mm/min |
 
 There is no side, oversize, tabs, lead or start point: the tool is on the line.

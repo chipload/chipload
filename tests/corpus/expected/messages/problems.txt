@@ -367,7 +367,7 @@ $ chipload plan tests/corpus/messages/holes_big_tool.chipload
 exit 1
 --- stdout
 --- stderr
-error: Operation 1 (Drilled): no selected circle can be cut with tool 2 (60 mm drill)
+error: Operation 1 (Drilled): no selected circle can be cut with tool 2 (60 mm drill): a drill cuts circles of its own size (within 0.1 mm), and the circles are 8 mm to 10 mm
 
 $ chipload check-project tests/corpus/messages/holes_deep.chipload
 exit 1

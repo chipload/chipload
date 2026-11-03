@@ -422,7 +422,13 @@ impl EditJob {
                 .unwrap_or_else(|| self.insert_index(part)),
             _ => self.insert_index(part),
         };
-        let tool = self.tool_for(kind);
+        let select = selection.selector(contours, kind == OpKind::Path);
+        // Holes take a drill that fits the circles, when the project has one.
+        let tool = match kind {
+            OpKind::Holes => chipload_pipeline::matching_drill(&self.job, &select, contours),
+            _ => None,
+        }
+        .unwrap_or_else(|| self.tool_for(kind));
         let chosen = self.job.tool(tool);
         let diameter = chosen.map_or(0.0, |t| t.diameter);
         let (step_down, feed, plunge_feed, stepover) = self.inherited(index, cutting, diameter);
@@ -443,7 +449,6 @@ impl EditJob {
             })
             .count()
             + 1;
-        let select = selection.selector(contours, kind == OpKind::Path);
         // A tool marked not centre-cutting can't plunge: new pockets go down round a helix
         // (docs/specs/helix-and-leads.md, decision 6), new follow paths ramp in
         // (docs/specs/ramp-entry.md, decision 6). Profiles always spiral.

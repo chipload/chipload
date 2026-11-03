@@ -460,3 +460,43 @@ proptest! {
         prop_assert!((deepest + 3.0 * step).abs() < 1e-9);
     }
 }
+
+/// A tool that isn't centre-cutting ramps only along a path at least its diameter long
+/// (the review of 2026-11-02): shorter, its dead centre never leaves the material under it.
+#[test]
+fn a_ramp_shorter_than_a_tool_that_cant_plunge_is_refused() {
+    let ramp = json!({"type": "ramp", "ramp_angle": 3.0 * DEG});
+    // A 3 mm end mill: a 2 mm line is refused, a 3 mm one is fine.
+    let short = vec![open(1, &[(10.0, 10.0, 0.0), (12.0, 10.0, 0.0)])];
+    let err = plan_job(&job(path_op(ramp.clone()), endmill(false)), &short)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("ramps only along a path at least its diameter (3 mm) long"),
+        "{err}"
+    );
+    let enough = vec![open(1, &[(10.0, 10.0, 0.0), (13.0, 10.0, 0.0)])];
+    assert!(plan_job(&job(path_op(ramp.clone()), endmill(false)), &enough).is_ok());
+    // A centre-cutting tool ramps along anything.
+    assert!(plan_job(&job(path_op(ramp), endmill(true)), &short).is_ok());
+}
+
+#[test]
+fn a_profile_ring_shorter_than_a_tool_that_cant_plunge_is_refused() {
+    // A 3 mm end mill inside a 3.6 mm hole: its ring is 0.3 mm round, 1.9 mm long.
+    let profile = |side: &str| {
+        json!([{"type": "profile", "select": {"layer": "L"}, "side": side,
+            "direction": "climb", "tool": 1, "start_depth": 0, "end_depth": 3, "clearance": 0,
+            "step_down": 1, "feed": 1000, "plunge_feed": 300, "ramp_angle": 3.0 * DEG}])
+    };
+    let hole = vec![common::circle((50.0, 50.0), 1.8)];
+    let err = plan_job(&job(profile("inside"), endmill(false)), &hole)
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("isn't centre-cutting, so it ramps only along"),
+        "{err}"
+    );
+    assert!(plan_job(&job(profile("inside"), endmill(true)), &hole).is_ok());
+    assert!(plan_job(&job(profile("outside"), endmill(false)), &hole).is_ok());
+}

@@ -27,6 +27,10 @@ default, at most 30°) says how steeply:
 A steeper angle makes the ramp shorter: 4 mm at 3° takes 76 mm of contour, at 10° 23 mm.
 In the file the angle is `ramp_angle`, in radians.
 
+A tool marked not centre-cutting needs a ring at least its diameter long to ramp on (a
+small hole profiled inside can be shorter): its centre doesn't cut, and on a shorter ring it
+never moves off the material under it. Such a ring is refused; use a centre-cutting tool.
+
 ## Holding the part
 
 **Holding** chooses how a part that is cut out stays in place: *none*, *tabs*, *onion

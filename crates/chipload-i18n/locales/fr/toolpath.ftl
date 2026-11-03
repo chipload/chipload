@@ -52,6 +52,7 @@ toolpath-holes-method = la méthode est { $method ->
 # Angles in degrees.
 toolpath-flank-not-centre-cutting = l'outil { $tool } ne coupe pas au centre et les flancs des attaches ({ $flank }°) sont plus raides que l'angle de rampe ({ $ramp }°) ; descendre un flanc est une rampe, rendez-les donc au plus aussi raides que { $ramp }°
 toolpath-plunge-not-centre-cutting = l'outil { $tool } ne coupe pas au centre et cette opération plonge à la verticale ; entrez plutôt en rampe (entry: ramp) ou utilisez un outil qui coupe au centre
+toolpath-ramp-too-short = l'outil { $tool } ne coupe pas au centre, il ne descend en rampe que le long d'un tracé au moins aussi long que son diamètre ({ $diameter }) ; celui-ci fait { $length } : utilisez un outil qui coupe au centre
 
 ## Rest machining
 
@@ -181,8 +182,8 @@ toolpath-holes-not-drill-size = { $count ->
    *[other] { $count } perçages de { $diameter } : pas au diamètre du foret de { $tool } (à { $within } près) ; non percés
 }
 toolpath-holes-too-small-to-bore = { $count ->
-    [one] perçage de { $diameter } : trop petit pour être alésé par l'outil de { $tool } ; non usiné
-   *[other] { $count } perçages de { $diameter } : trop petits pour être alésés par l'outil de { $tool } ; non usinés
+    [one] perçage de { $diameter } : trop petit pour être alésé par l'outil de { $tool } (à partir de { $smallest }) ; non usiné
+   *[other] { $count } perçages de { $diameter } : trop petits pour être alésés par l'outil de { $tool } (à partir de { $smallest }) ; non usinés
 }
 toolpath-holes-core = { $count ->
     [one] { $count } perçage laisse
@@ -237,6 +238,15 @@ toolpath-error-rest-tool = reprise après l'outil { $tool }, que le projet n'a p
 toolpath-error-blind-bore = le perçage de { $diameter } est borgne et fait plus de deux fois l'outil de { $tool } ; utilisez une poche
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
 toolpath-error-no-hole-fits = aucun cercle sélectionné ne peut être usiné avec l'outil { $tool } ({ $type } de { $diameter })
+toolpath-error-no-hole-drill-size = aucun cercle sélectionné ne peut être usiné avec l'outil { $tool } ({ $type } de { $diameter }) : un foret perce les cercles de sa taille (à { $within } près), et { $count ->
+    [one] le cercle fait { $least }
+   *[other] les cercles font de { $least } à { $most }
+}
+toolpath-error-no-hole-to-bore = aucun cercle sélectionné ne peut être usiné avec l'outil { $tool } ({ $type } de { $diameter }) : il alèse les trous à partir de { $smallest }, et { $count ->
+    [one] le cercle fait { $least }
+   *[other] les cercles font de { $least } à { $most }
+}
+toolpath-holes-deep-no-pecks = percé à { $depth } de profondeur d'un coup, plus de 3 × le foret : les copeaux peuvent bourrer et le foret se coincer ; percez par débourrages (un diamètre, { $peck }, est un début courant)
 toolpath-error-no-depth = aucune profondeur à usiner
 toolpath-error-no-angle = l'outil { $tool } n'a pas d'angle
 # $got is an angle in degrees, without its unit.

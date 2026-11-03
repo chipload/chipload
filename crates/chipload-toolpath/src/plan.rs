@@ -950,6 +950,21 @@ fn plan_path_op(
     };
     let mut moves = Vec::new();
     let mut end = start;
+    if op.entry.ramp_angle().is_some() {
+        for path in &paths {
+            let length = if path.closed {
+                crate::ramp::polyline_length(&crate::profile::closed_path(&path.points))
+            } else {
+                crate::ramp::polyline_length(&path.points)
+            };
+            short_ramp_refusal(ctx.tool, length).map_err(|why| {
+                job_error(labelled_note(
+                    &contour_context(ctx.label_message, path.contour_id),
+                    why,
+                ))
+            })?;
+        }
+    }
     for path in &paths {
         ctx.cancel.check()?;
         let (more, at) = path_moves(path, &cut, &arcs)
@@ -969,6 +984,15 @@ fn plan_path_op(
         tab_centres: Vec::new(),
         floor_hint: None,
     })
+}
+
+/// A hole drilled in one go deeper than this many diameters gets a note to drill in pecks.
+const DEEP_HOLE_DIAMETERS: f64 = 3.0;
+
+/// The smallest hole an end mill of `diameter` bores: its own size plus a lead of
+/// `MIN_LEAD_DIAMETERS` × D on each side (docs/specs/holes.md §4).
+fn smallest_bore(diameter: f64) -> f64 {
+    diameter * (1.0 + 2.0 * MIN_LEAD_DIAMETERS)
 }
 
 fn plan_holes_op(
@@ -1026,7 +1050,8 @@ fn plan_holes_op(
             HoleMethod::Drill { .. } => {
                 Message::new("toolpath-holes-not-drill-size").arg("within", Value::mm(DRILL_FIT_MM))
             }
-            HoleMethod::Bore { .. } => Message::new("toolpath-holes-too-small-to-bore"),
+            HoleMethod::Bore { .. } => Message::new("toolpath-holes-too-small-to-bore")
+                .arg("smallest", Value::mm(smallest_bore(tool.diameter))),
         };
         notes.push(labelled_note(
             ctx.label_message,
@@ -1041,11 +1066,52 @@ fn plan_holes_op(
             Message::new("toolpath-holes-core").arg("count", cores),
         ));
     }
+    // Deeper than three times the drill in one go: the chips may pack and the drill bind
+    // (the review of 2026-11-02); pecks of one diameter are a common start.
+    let depth = op.end_depth - op.start_depth;
+    if let HoleMethod::Drill { peck: None } = op.method
+        && depth > DEEP_HOLE_DIAMETERS * tool.diameter + DEPTH_TOL_MM
+    {
+        notes.push(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-holes-deep-no-pecks")
+                .arg("depth", Value::mm(depth))
+                .arg("peck", Value::mm(tool.diameter)),
+        ));
+    }
     if holes.is_empty() {
+        // Why, with the sizes there are (the review of 2026-11-02: the notes above go with
+        // a refusal).
+        let sizes = || {
+            let least = unfit
+                .values()
+                .map(|(d, _)| *d)
+                .fold(f64::INFINITY, f64::min);
+            let most = unfit.values().map(|(d, _)| *d).fold(0.0, f64::max);
+            (unfit.len(), Value::mm(least), Value::mm(most))
+        };
+        let why = match op.method {
+            _ if unfit.is_empty() => Message::new("toolpath-error-no-hole-fits"),
+            HoleMethod::Drill { .. } => {
+                let (count, least, most) = sizes();
+                Message::new("toolpath-error-no-hole-drill-size")
+                    .arg("within", Value::mm(DRILL_FIT_MM))
+                    .arg("count", count)
+                    .arg("least", least)
+                    .arg("most", most)
+            }
+            HoleMethod::Bore { .. } => {
+                let (count, least, most) = sizes();
+                Message::new("toolpath-error-no-hole-to-bore")
+                    .arg("smallest", Value::mm(smallest_bore(tool.diameter)))
+                    .arg("count", count)
+                    .arg("least", least)
+                    .arg("most", most)
+            }
+        };
         return Err(job_error(labelled_note(
             ctx.label_message,
-            Message::new("toolpath-error-no-hole-fits")
-                .arg("tool", tool.id)
+            why.arg("tool", tool.id)
                 .arg("diameter", Value::mm(tool.diameter))
                 .arg("type", tool.kind.name()),
         )));
@@ -1282,6 +1348,15 @@ fn plan_profile_op(
         None => None,
     };
     let mut rough = rough;
+    for ring in plan.rings.iter().chain(rough.iter().flat_map(|r| &r.rings)) {
+        let length = crate::ramp::polyline_length(&crate::profile::closed_path(&ring.points));
+        short_ramp_refusal(ctx.tool, length).map_err(|why| {
+            job_error(labelled_note(
+                &contour_context(ctx.label_message, ring.contour_id),
+                why,
+            ))
+        })?;
+    }
     let mut unreached_at = Vec::new();
     // Dogbones go into every ring before the tabs are placed (docs/specs/dogbones.md §4).
     if op.corners.is_some() || !ctx.choices.is_empty() {
@@ -2576,6 +2651,19 @@ fn flank_notes(number: usize, tool: &Tool, op: &ProfileOp) -> Result<Vec<Message
         )]),
         Some(true) => Ok(Vec::new()),
     }
+}
+
+/// A tool marked not centre-cutting ramps only along a path at least its diameter long
+/// (the review of 2026-11-02): on a shorter one it goes back and forth over its own centre,
+/// whose dead zone never moves off the material under it, as in a plunge.
+fn short_ramp_refusal(tool: &Tool, length: f64) -> Result<(), Message> {
+    if tool.center_cutting == Some(false) && length < tool.diameter - CHAIN_TOL_MM {
+        return Err(Message::new("toolpath-ramp-too-short")
+            .arg("tool", tool.id)
+            .arg("length", Value::mm(length))
+            .arg("diameter", Value::mm(tool.diameter)));
+    }
+    Ok(())
 }
 
 /// A straight plunge needs a centre-cutting tool (docs/specs/ramp-entry.md §6): refused

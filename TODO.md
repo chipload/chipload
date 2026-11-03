@@ -70,40 +70,12 @@ Proposed 2026-11-02, checked 2026-11-03; the user may reorder. Machining safety 
 requests, then the rest. Before them: release what is on main as 0.32 (see *State to
 remember*).
 
-1. **Two review findings that need the user's decision** (they change what existing projects
-   do, so a spec and a choice first):
-   - **Holes: a drilled through hole doesn't go through at full diameter.** A drill's end
-     depth is its point (holes.md decision 3), so *Through* (0.5 mm) puts only the point
-     below the stock. An 8 mm drill in 12 mm stock reaches full diameter at about 10.1 mm,
-     leaving a pinhole underneath, with no warning; going deeper by hand is refused by the
-     max overcut. Suggested: with a drill and Through, add the point's length (about
-     0.3 × D for a 118° point) and apply the overcut limit to the full diameter. Changes
-     the G-code of existing drilled through holes.
-   - **Follow path: a V-bit cuts past its cone with only a warning.** A 12.7 mm 60° V-bit
-     (cone about 10.8 mm deep) at end depth 12, or with Through (12.5), is written and
-     passes the checker; the note says "straight walls above the cone". V-carve caps at
-     the cone because the shank would rub (`VBit::deepest`). Suggested: refuse it, as a
-     depth past the max overcut is. Stops projects that run today.
-2. **Review V-carve**, the last operation not reviewed (profile and pocket were, holes and
+1. **Review V-carve**, the last operation not reviewed (profile and pocket were, holes and
    follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
    wider or narrower than the strokes, the cone's depth, passes and step down, flat
    bottom), the checker's view, and proptest invariants (the cut stays inside the outline;
    no point deeper than the cone allows).
-3. **The smaller review findings**, each a small fix with a test:
-   - Holes: "No selected circle can be cut" drops the reason; say why and the smallest
-     size that fits (7.18 mm with a 6 mm end mill: 7.2 mm).
-   - Holes: a note for holes deeper than 3 × D without pecks, and a first peck of 1 × D.
-   - Holes: a new Holes operation takes the last tool, usually an end mill; prefer a drill
-     that matches the selected circles.
-   - Holes: the drill half of the property test (holes.md §8: every drill move at a hole's
-     centre); only the bores' exists.
-   - Follow path: the V-groove's width is shown as a warning ("warning:" in the CLI,
-     *Watch out* on the sheet); make it a plain note.
-   - Follow path (and small profile rings): a ramp on a path shorter than the tool, with
-     a tool not centre-cutting, goes back and forth within the tool's width, close to a
-     plunge. Not sure it is a real risk; look at a least ramp length (the tool's
-     diameter?).
-4. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
+2. **V-carve, Ignore kinks by segment length too** (the user, 2026-11-02: "Ignore kinks
    should also have a parameter for length of adjoining segments. If the adjoining profile
    segments are very short we could probably ignore the kink"). Today a corner is ignored
    only by its angle (`ignore_kinks_deg`, docs/specs/vcarve-smooth.md). A second setting:
@@ -112,8 +84,8 @@ remember*).
    how it combines with the angle, a default (the V-carve tolerance? the trace's
    smoothing?), a real small corner (a serif's point) still carved; the coverage rule of
    6e3ed35 still applies. Optional field, no schema bump. Best done after the V-carve
-   review (2).
-5. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
+   review (1).
+3. **DXF shapes in the Browser, and warnings that lead to their shape** (the user,
    2026-11-03: "dxf layers should be expandable to show its shapes like leafs. The report
    gives warnings about a shape in the dxf, the profile is open for example. Then a click
    on that warning should select the shape, similar to how warnings on operations is
@@ -129,7 +101,7 @@ remember*).
    traced picture's, a large DXF's: virtual rows, or only the first N with "more…");
    pictures' and SVGs' layers alike. Takes in the idea "a list of every shape in the
    Browser's Drawing folder" (Ideas).
-6. **For the user to try** (built, not yet tried by hand; findings become items here):
+4. **For the user to try** (built, not yet tried by hand; findings become items here):
    - on the router: V-carve lifting less, with the script font (0.30.0);
    - texts in Windows' own fonts (only checked on Linux);
    - SVG import with real Inkscape and Illustrator files; the exported DXF in other
@@ -139,7 +111,7 @@ remember*).
    - on the router: slot and clearing values in the tools' cutting data, a pocket's slot
      steps (the user, 2026-11-03: "it works quite good"; the bugs found are fixed);
    - project tools updated from the library (the offer after Save, the Report on open).
-7. **Small follow-ups:**
+5. **Small follow-ups:**
    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
    - Materials: import and export in the window (the command line has `material
@@ -151,10 +123,10 @@ remember*).
      stock), if the user wants it (docs/specs/job-settings-layout.md).
    - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
      find which pictures are slow (centre lines on noise?) and whether a user could hit it.
-8. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
+6. **Styles: operation presets and layer rules** (docs/specs/presets.md): paused 2026-10-13
    by the user; next after materials in the direction review of 2026-10-28. Decisions not
    reviewed.
-9. **Later, the user's ideas for when the above is done**, each with its own spec:
+7. **Later, the user's ideas for when the above is done**, each with its own spec:
    - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
      decision 2's alternative): each setup with its own coordinates, its parts placed onto
      its board, setups side by side like PrusaSlicer's plates, the active in colour, the
@@ -197,6 +169,15 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+- **The review findings of 2026-11-02: done 2026-11-03** (the user: "do" them, as
+  suggested). Drilled through holes go through at full diameter (holes.md decision 10, the
+  checker allows a drill's point); a V-bit on a follow path stops at its cone (refused
+  deeper); the V-groove's width is a plain note (`Plan::facts`) and on the sheet; holes
+  that don't fit say why and the smallest size; a note for holes deeper than 3 × D in one
+  go, pecks of one diameter; a new Holes operation takes a fitting drill; the drill
+  property test; a tool that isn't centre-cutting ramps only along a path or ring at least
+  its diameter long. The guide's smallest bore said a tenth, it is a fifth (1.2 × D).
 
 - **Project tools kept up to date with the library: done 2026-11-03**
   (docs/specs/tool-updates.md). A library tool's properties offer *Update in this project*

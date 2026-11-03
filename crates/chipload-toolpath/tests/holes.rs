@@ -228,6 +228,41 @@ fn a_drill_cuts_circles_within_a_tenth_of_its_size() {
         notes.contains("2 holes of 8.2 mm: not the 8 mm drill's size"),
         "{notes}"
     );
+    // None fits: the refusal says why, with the sizes there are.
+    let err = plan_err(
+        drill_op(5.0, Value::Null),
+        drill_tool(8.0),
+        &[circle(1, 20.0, 20.0, 3.0), circle(2, 40.0, 20.0, 5.0)],
+        18.0,
+    );
+    assert!(
+        err.contains(
+            "a drill cuts circles of its own size (within 0.1 mm), and the circles are 6 mm to 10 mm"
+        ),
+        "{err}"
+    );
+}
+
+#[test]
+fn a_hole_deeper_than_three_drills_in_one_go_gets_a_note() {
+    let contours = [circle(1, 20.0, 20.0, 2.0)];
+    let note = |end: f64, peck: Value| {
+        plan(drill_op(end, peck), drill_tool(4.0), &contours)
+            .notes
+            .iter()
+            .any(|n| n.text.contains("more than 3 × the drill"))
+    };
+    assert!(!note(12.0, Value::Null), "exactly 3 × D");
+    assert!(note(12.5, Value::Null));
+    assert!(!note(12.5, json!(4.0)), "in pecks");
+    let plan = plan(drill_op(12.5, Value::Null), drill_tool(4.0), &contours);
+    assert!(
+        plan.notes
+            .iter()
+            .any(|n| n.text.contains("one diameter, 4 mm, is a common start")),
+        "{:?}",
+        plan.notes
+    );
 }
 
 // -- bore (§4)
@@ -339,7 +374,10 @@ fn the_smallest_hole_bored_is_the_tool_plus_a_fifth() {
         18.0,
     );
     assert!(
-        err.contains("no selected circle can be cut with tool 1 (6 mm endmill)"),
+        err.contains(
+            "no selected circle can be cut with tool 1 (6 mm endmill): it bores holes of \
+             7.2 mm and more, and the circle is 7.18 mm"
+        ),
         "{err}"
     );
     let plan = plan(
@@ -348,9 +386,9 @@ fn the_smallest_hole_bored_is_the_tool_plus_a_fifth() {
         &[circle(1, 50.0, 50.0, 3.59), circle(2, 80.0, 50.0, 5.0)],
     );
     assert!(
-        plan.notes
-            .iter()
-            .any(|n| n.contains("hole 7.18 mm: too small for the 6 mm tool to bore")),
+        plan.notes.iter().any(|n| n.contains(
+            "hole 7.18 mm: too small for the 6 mm tool to bore (it bores 7.2 mm and more)"
+        )),
         "{:?}",
         plan.notes
     );
@@ -500,6 +538,34 @@ fn holes_go_nearest_first_and_every_copy_gets_its_own() {
 
 proptest! {
     #![proptest_config(common::proptest_config(64))]
+
+    /// Every drill move is at a hole's centre, straight down or up, never below the end
+    /// depth (docs/specs/holes.md §8).
+    #[test]
+    fn drills_stay_at_their_holes_centres(
+        drill in 2.0f64..12.0,
+        end in 1.0f64..12.0,
+        peck in prop::option::of(0.5f64..6.0),
+        x in 10.0f64..90.0,
+        y in 10.0f64..90.0,
+    ) {
+        let contours = [circle(1, x, y, drill / 2.0), circle(2, 100.0 - x, 100.0 - y, drill / 2.0)];
+        let peck = peck.map_or(Value::Null, |p| json!(p));
+        let plan = plan_job(
+            &job_with(drill_op(end, peck), drill_tool(drill), Value::Null, 12.0),
+            &contours,
+        )
+        .unwrap();
+        let centres = [(x, y), (100.0 - x, 100.0 - y)];
+        for (_, from, to) in walk(&plan.program.moves) {
+            prop_assert!(to.2 >= -end - TOL);
+            if to.2 < 0.0 || from.2 < 0.0 {
+                // In the stock: no sideways move, and at a centre.
+                prop_assert!((from.0, from.1) == (to.0, to.1));
+                prop_assert!(centres.iter().any(|c| distance(*c, (to.0, to.1)) < TOL));
+            }
+        }
+    }
 
     /// Every bore move stays in its hole, on the helix circle while cutting, never below
     /// the end depth.

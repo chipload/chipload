@@ -52,6 +52,7 @@ toolpath-holes-method = the method is { $method ->
 # Angles in degrees.
 toolpath-flank-not-centre-cutting = tool { $tool } is not centre-cutting and the tabs' flanks ({ $flank }°) are steeper than the ramp angle ({ $ramp }°); going down a flank is a ramp, so make them no steeper than { $ramp }°
 toolpath-plunge-not-centre-cutting = tool { $tool } is not centre-cutting and this operation plunges straight down; ramp in instead (entry: ramp) or use a centre-cutting tool
+toolpath-ramp-too-short = tool { $tool } isn't centre-cutting, so it ramps only along a path at least its diameter ({ $diameter }) long; this one is { $length }: use a centre-cutting tool
 
 ## Rest machining
 
@@ -183,7 +184,7 @@ toolpath-holes-not-drill-size = { $count ->
 toolpath-holes-too-small-to-bore = { $count ->
     [one] hole { $diameter }
    *[other] { $count } holes of { $diameter }
-}: too small for the { $tool } tool to bore; not cut
+}: too small for the { $tool } tool to bore (it bores { $smallest } and more); not cut
 toolpath-holes-core = { $count ->
     [one] { $count } hole leaves
    *[other] { $count } holes leave
@@ -237,6 +238,15 @@ toolpath-error-rest-tool = rest after tool { $tool }, which the project doesn't 
 toolpath-error-blind-bore = hole { $diameter } is blind and more than twice the { $tool } tool; use a pocket
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
 toolpath-error-no-hole-fits = no selected circle can be cut with tool { $tool } ({ $diameter } { $type })
+toolpath-error-no-hole-drill-size = no selected circle can be cut with tool { $tool } ({ $diameter } { $type }): a drill cuts circles of its own size (within { $within }), and { $count ->
+    [one] the circle is { $least }
+   *[other] the circles are { $least } to { $most }
+}
+toolpath-error-no-hole-to-bore = no selected circle can be cut with tool { $tool } ({ $diameter } { $type }): it bores holes of { $smallest } and more, and { $count ->
+    [one] the circle is { $least }
+   *[other] the circles are { $least } to { $most }
+}
+toolpath-holes-deep-no-pecks = drilled { $depth } deep in one go, more than 3 × the drill: the chips can pack and the drill bind; drill in pecks (one diameter, { $peck }, is a common start)
 toolpath-error-no-depth = no depth to cut to
 toolpath-error-no-angle = tool { $tool } has no angle
 # $got is an angle in degrees, without its unit.

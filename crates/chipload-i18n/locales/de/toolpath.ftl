@@ -52,6 +52,7 @@ toolpath-holes-method = die Methode ist { $method ->
 # Angles in degrees.
 toolpath-flank-not-centre-cutting = Werkzeug { $tool } schneidet nicht über Mitte, und die Flanken der Haltestege ({ $flank }°) sind steiler als der Rampenwinkel ({ $ramp }°); eine Flanke hinunter ist eine Rampe, also machen Sie sie nicht steiler als { $ramp }°
 toolpath-plunge-not-centre-cutting = Werkzeug { $tool } schneidet nicht über Mitte, und diese Bearbeitung taucht senkrecht ein; tauchen Sie stattdessen per Rampe ein (entry: ramp) oder verwenden Sie ein über Mitte schneidendes Werkzeug
+toolpath-ramp-too-short = Werkzeug { $tool } ist nicht über Mitte schneidend und rampt nur entlang eines Pfads, der mindestens seinen Durchmesser ({ $diameter }) lang ist; dieser ist { $length }: ein über Mitte schneidendes Werkzeug verwenden
 
 ## Rest machining
 
@@ -183,7 +184,7 @@ toolpath-holes-not-drill-size = { $count ->
 toolpath-holes-too-small-to-bore = { $count ->
     [one] Bohrung { $diameter }
    *[other] { $count } Bohrungen mit { $diameter }
-}: zu klein zum Helixbohren mit dem { $tool }-Werkzeug; nicht gefräst
+}: zu klein zum Helixbohren mit dem { $tool }-Werkzeug (ab { $smallest }); nicht gefräst
 toolpath-holes-core = { $count ->
     [one] { $count } Bohrung lässt
    *[other] { $count } Bohrungen lassen
@@ -237,6 +238,15 @@ toolpath-error-rest-tool = Rest nach Werkzeug { $tool }, das es im Projekt nicht
 toolpath-error-blind-bore = Bohrung { $diameter } ist ein Sackloch und mehr als doppelt so groß wie das Werkzeug ({ $tool }); verwenden Sie eine Tasche
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
 toolpath-error-no-hole-fits = kein ausgewählter Kreis kann mit Werkzeug { $tool } ({ $diameter } { $type }) gefräst werden
+toolpath-error-no-hole-drill-size = kein ausgewählter Kreis kann mit Werkzeug { $tool } ({ $diameter } { $type }) gefräst werden: ein Bohrer bohrt Kreise seiner eigenen Größe (auf { $within }), und { $count ->
+    [one] der Kreis ist { $least }
+   *[other] die Kreise sind { $least } bis { $most }
+}
+toolpath-error-no-hole-to-bore = kein ausgewählter Kreis kann mit Werkzeug { $tool } ({ $diameter } { $type }) gefräst werden: es bohrt Löcher ab { $smallest }, und { $count ->
+    [one] der Kreis ist { $least }
+   *[other] die Kreise sind { $least } bis { $most }
+}
+toolpath-holes-deep-no-pecks = in einem Zug { $depth } tief gebohrt, mehr als 3 × der Bohrer: die Späne können sich stauen und der Bohrer klemmen; in Hüben bohren (ein Durchmesser, { $peck }, ist ein üblicher Anfang)
 toolpath-error-no-depth = keine Tiefe zum Fräsen
 toolpath-error-no-angle = Werkzeug { $tool } hat keinen Winkel
 # $got is an angle in degrees, without its unit.

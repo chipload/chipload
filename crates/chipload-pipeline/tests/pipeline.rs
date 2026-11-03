@@ -1607,3 +1607,25 @@ mod drilled_through {
         job_error(&job, "below");
     }
 }
+
+#[test]
+fn a_new_holes_operation_takes_the_drill_that_fits_its_circles() {
+    use chipload_job::Operation;
+    let mut job = load_job(&corpus("jobs/v18/holes.chipload")).unwrap();
+    let contours = run(&job).contours;
+    let Operation::Holes(drilled) = &job.operations[0] else {
+        panic!("operation 1 drills");
+    };
+    let select = drilled.select.clone();
+    // The 8 mm drill (tool 2) fits the drilled circles; the end mill (tool 1) isn't a drill.
+    assert_eq!(
+        chipload_pipeline::matching_drill(&job, &select, &contours),
+        Some(2)
+    );
+    // No drill of their size: none.
+    job.tools[1].diameter = 5.0;
+    assert_eq!(
+        chipload_pipeline::matching_drill(&job, &select, &contours),
+        None
+    );
+}

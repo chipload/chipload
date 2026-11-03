@@ -52,6 +52,7 @@ toolpath-holes-method = el método es { $method ->
 # Angles in degrees.
 toolpath-flank-not-centre-cutting = la herramienta { $tool } no corta al centro y los flancos de los puentes ({ $flank }°) tienen más pendiente que el ángulo de rampa ({ $ramp }°); bajar por un flanco es una rampa, así que no les des más de { $ramp }°
 toolpath-plunge-not-centre-cutting = la herramienta { $tool } no corta al centro y esta operación penetra en vertical; entra en rampa (entry: ramp) o usa una herramienta que corte al centro
+toolpath-ramp-too-short = la herramienta { $tool } no corta al centro, así que solo baja en rampa por una trayectoria de al menos su diámetro ({ $diameter }); esta mide { $length }: usa una herramienta que corte al centro
 
 ## Rest machining
 
@@ -183,7 +184,7 @@ toolpath-holes-not-drill-size = { $count ->
 toolpath-holes-too-small-to-bore = { $count ->
     [one] taladro de { $diameter }: demasiado pequeño para taladrarlo
    *[other] { $count } taladros de { $diameter }: demasiado pequeños para taladrarlos
-} en hélice con la herramienta de { $tool }; sin cortar
+} en hélice con la herramienta de { $tool } (desde { $smallest }); sin cortar
 toolpath-holes-core = { $count ->
     [one] { $count } taladro deja
    *[other] { $count } taladros dejan
@@ -237,6 +238,15 @@ toolpath-error-rest-tool = restos tras la herramienta { $tool }, que el proyecto
 toolpath-error-blind-bore = el taladro de { $diameter } es ciego y mide más del doble de la herramienta de { $tool }; usa una cajera
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
 toolpath-error-no-hole-fits = ningún círculo seleccionado se puede cortar con la herramienta { $tool } ({ $diameter } { $type })
+toolpath-error-no-hole-drill-size = ningún círculo seleccionado se puede cortar con la herramienta { $tool } ({ $diameter } { $type }): una broca taladra círculos de su tamaño (con { $within } de margen), y { $count ->
+    [one] el círculo es de { $least }
+   *[other] los círculos son de { $least } a { $most }
+}
+toolpath-error-no-hole-to-bore = ningún círculo seleccionado se puede cortar con la herramienta { $tool } ({ $diameter } { $type }): taladra agujeros desde { $smallest }, y { $count ->
+    [one] el círculo es de { $least }
+   *[other] los círculos son de { $least } a { $most }
+}
+toolpath-holes-deep-no-pecks = taladrado a { $depth } de una vez, más de 3 × la broca: la viruta puede atascarse y la broca trabarse; taladra por picoteo (un diámetro, { $peck }, es un comienzo habitual)
 toolpath-error-no-depth = no hay profundidad hasta la que cortar
 toolpath-error-no-angle = la herramienta { $tool } no tiene ángulo
 # $got is an angle in degrees, without its unit.

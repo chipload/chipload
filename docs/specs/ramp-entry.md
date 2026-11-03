@@ -82,6 +82,10 @@ time; proving it isn't needed could come later.
 
 - New operations get a ramp when the project's tool is marked not centre-cutting, and a
   plunge otherwise. It is visible in the form and saved explicitly.
+- **A ramp needs room** (added 2026-11-03, the review of 2026-11-02): a tool marked not
+  centre-cutting ramps only along a path or profile ring at least its diameter long. On a
+  shorter one it goes back and forth over its own centre, whose dead zone never moves off
+  the material under it, as in a plunge; refused, naming the shape and its length.
 - Pockets still need an endmill.
 
 ## 6. Output and checking

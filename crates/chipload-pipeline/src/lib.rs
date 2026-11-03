@@ -1197,3 +1197,36 @@ pub fn write_atomically(path: &Path, text: &str) -> std::io::Result<()> {
     std::fs::write(&tmp, text)?;
     std::fs::rename(&tmp, path)
 }
+
+/// The project's drill that fits most of the circles `select` picks, for a new Holes
+/// operation (the review of 2026-11-02: it took the last tool, usually an end mill); ties
+/// go to the lower tool number. None when no drill fits one of them.
+pub fn matching_drill(
+    job: &Job,
+    select: &chipload_job::Selector,
+    contours: &[Contour],
+) -> Option<i64> {
+    let label = Message::new("toolpath-error-no-operation").arg("at", "new");
+    let selection =
+        chipload_toolpath::select::select_paths(contours, &select.resolved(&job.drawing), &label)
+            .ok()?;
+    let (holes, _) = chipload_toolpath::holes::find_holes(&selection.contours);
+    let fits = |tool: &Tool| {
+        holes
+            .iter()
+            .filter(|h| {
+                (2.0 * h.radius - tool.diameter).abs()
+                    <= chipload_toolpath::holes::DRILL_FIT_MM
+                        + chipload_core::tolerances::CHAIN_TOL_MM
+            })
+            .count()
+    };
+    let mut best: Option<(usize, i64)> = None;
+    for tool in job.tools.iter().filter(|t| t.kind == ToolType::Drill) {
+        let count = fits(tool);
+        if count > 0 && best.is_none_or(|(n, id)| count > n || (count == n && tool.id < id)) {
+            best = Some((count, tool.id));
+        }
+    }
+    best.map(|(_, id)| id)
+}

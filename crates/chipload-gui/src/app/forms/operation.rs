@@ -1108,7 +1108,8 @@ pub(super) fn holes_sections(
                 let mut on = peck.is_some();
                 let check = ui.checkbox(&mut on, t!(ui, "forms-in-pecks"));
                 if flag(check, ui, "method.peck").changed() {
-                    *peck = on.then_some(DEFAULT_STEP_DOWN);
+                    // Pecks of one drill diameter, a common start (the review of 2026-11-02).
+                    *peck = on.then_some(tool.map_or(DEFAULT_STEP_DOWN, |t| t.diameter));
                 }
                 ui.end_row();
                 if let Some(peck) = peck {

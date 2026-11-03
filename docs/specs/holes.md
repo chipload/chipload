@@ -282,3 +282,8 @@ Rules:
     depth is set by hand too; the checker allows a drill's point below it by its own copy of
     the same length. Only a tool of type drill has a point; an end mill drilling is flat.
     Changes the G-code of existing drilled through holes (none in the goldens).
+11. **Smaller findings of the review** (2026-11-03): a refusal when no circle fits says why
+    (a drill's size, or the smallest bore, 1.2 × D, with the circles' sizes); a hole drilled
+    in one go deeper than 3 × D gets a note, and pecks start at one diameter when turned on;
+    a new Holes operation takes the project's drill that fits most of the circles; the
+    property test covers drilling (every move in the stock at a hole's centre, straight).

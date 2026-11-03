@@ -52,6 +52,7 @@ toolpath-holes-method = metoden är { $method ->
 # Angles in degrees.
 toolpath-flank-not-centre-cutting = verktyg { $tool } är inte centrumskärande och bryggornas flanker ({ $flank }°) är brantare än rampvinkeln ({ $ramp }°); att gå ned längs en flank är en ramp, så gör dem inte brantare än { $ramp }°
 toolpath-plunge-not-centre-cutting = verktyg { $tool } är inte centrumskärande och denna operation matar rakt ned; rampa ned i stället (entry: ramp) eller använd ett centrumskärande verktyg
+toolpath-ramp-too-short = verktyg { $tool } skär inte i centrum, så det rampar bara längs en bana minst lika lång som sin diameter ({ $diameter }); den här är { $length }: använd ett centrumskärande verktyg
 
 ## Rest machining
 
@@ -183,7 +184,7 @@ toolpath-holes-not-drill-size = { $count ->
 toolpath-holes-too-small-to-bore = { $count ->
     [one] hål { $diameter }: för litet
    *[other] { $count } hål på { $diameter }: för små
-} för att helixborra med verktyget på { $tool }; fräses inte
+} för att helixborra med verktyget på { $tool } (från { $smallest }); fräses inte
 toolpath-holes-core = { $count ->
     [one] { $count } hål lämnar
    *[other] { $count } hål lämnar
@@ -237,6 +238,15 @@ toolpath-error-rest-tool = rest efter verktyg { $tool }, som projektet inte har
 toolpath-error-blind-bore = hålet { $diameter } är ett bottenhål och mer än dubbelt så stort som verktyget på { $tool }; använd en ficka
 # $tool is the tool's number, $type its kind as written in the project file (endmill, drill, vbit).
 toolpath-error-no-hole-fits = ingen vald cirkel kan fräsas med verktyg { $tool } ({ $diameter } { $type })
+toolpath-error-no-hole-drill-size = ingen vald cirkel kan fräsas med verktyg { $tool } ({ $diameter } { $type }): ett borr borrar cirklar av sin egen storlek (inom { $within }), och { $count ->
+    [one] cirkeln är { $least }
+   *[other] cirklarna är { $least } till { $most }
+}
+toolpath-error-no-hole-to-bore = ingen vald cirkel kan fräsas med verktyg { $tool } ({ $diameter } { $type }): det helixborrar hål från { $smallest }, och { $count ->
+    [one] cirkeln är { $least }
+   *[other] cirklarna är { $least } till { $most }
+}
+toolpath-holes-deep-no-pecks = borrat { $depth } djupt på en gång, mer än 3 × borret: spånen kan packas och borret kärva; borra i steg (en diameter, { $peck }, är en vanlig början)
 toolpath-error-no-depth = inget djup att fräsa till
 toolpath-error-no-angle = verktyg { $tool } har ingen vinkel
 # $got is an angle in degrees, without its unit.
