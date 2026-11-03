@@ -72,7 +72,8 @@ style.
 
 1. **Defaults that know the job** (the direction review's F1 and F2, still open: a new
    profile starts 1 mm deep, without *Through* and without tabs, in any stock). Spec
-   first:
+   drafted 2026-11-03 with styles (2): docs/specs/styles.md, decisions §7 to review.
+   Outline:
    - a profile outside an outer outline goes through (`through`, the box ticked) with tabs;
      a profile inside a hole goes through too; a pocket stays at a depth;
    - the depth of a new pocket, V-carve or path from the last of its kind, as the feeds are
@@ -82,8 +83,8 @@ style.
    - warnings that aren't about this job (machine travel not set: `check-no-travel`;
      a tool not marked centre-cutting) said once where they are set, not on every run;
    - the same defaults on the command line (`op add`), rule 5.
-2. **Styles: operation presets** (docs/specs/presets.md, paused 2026-10-13; the direction
-   review's step 2, CamBam's speed). Simpler now that feeds live in the tools (ADR 0029):
+2. **Styles: operation presets** (docs/specs/styles.md, replacing presets.md; the
+   direction review's step 2, CamBam's speed). Simpler now that feeds live in the tools (ADR 0029):
    a style is an operation's settings, a library tool and a depth (a number or through);
    its feeds come from the tool's row for the material. Saved from an operation (⋯ > *Save
    as style…*), applied to the selection in one click, from the Browser, the canvas'

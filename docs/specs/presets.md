@@ -1,7 +1,8 @@
 # Spec: operation presets and layer rules
 
-Status: **paused 2026-10-13** (user: "pause this one and continue with the next"), draft,
-decisions in §10 not yet reviewed.
+Status: **replaced 2026-11-03 by docs/specs/styles.md** (paused 2026-10-13, user: "pause
+this one and continue with the next"; decisions in §10 never reviewed). Kept for its layer
+rules (§5), which come back as styles.md step 4.
 
 Approved plan (2026-10-13, ADR 0017): "layer rules: operation presets keyed to DXF layers",
 the first leverage feature. It multiplies what exists (operations, the tool library) instead
