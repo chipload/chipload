@@ -84,6 +84,8 @@ pub enum Icon {
     Library,
     /// A board with its grain: a material.
     Material,
+    /// A style: a stamp, an operation used again (docs/specs/styles.md).
+    Style,
     /// Two axes from a dot: the G-code's zero (docs/specs/work-zero-marker.md §2).
     WorkZero,
     /// Edit mode: a pencil (docs/specs/edit-and-simulate.md §2).
@@ -314,6 +316,11 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.closed(&[(0.1, 0.3), (0.9, 0.3), (0.9, 0.7), (0.1, 0.7)]);
             pen.poly(&[(0.18, 0.43), (0.4, 0.39), (0.6, 0.46), (0.82, 0.42)]);
             pen.poly(&[(0.18, 0.58), (0.45, 0.54), (0.65, 0.6), (0.82, 0.56)]);
+        }
+        Icon::Style => {
+            pen.closed(&[(0.4, 0.12), (0.6, 0.12), (0.6, 0.42), (0.4, 0.42)]);
+            pen.closed(&[(0.16, 0.42), (0.84, 0.42), (0.84, 0.64), (0.16, 0.64)]);
+            pen.line([(0.16, 0.82), (0.84, 0.82)]);
         }
         Icon::Surface => {
             pen.poly(&[

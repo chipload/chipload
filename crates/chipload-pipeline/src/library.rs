@@ -118,6 +118,9 @@ pub struct Library {
     pub machines: MachineLibrary,
     /// The user's materials (docs/specs/materials.md).
     pub materials: MaterialLibrary,
+    /// The user's styles (docs/specs/styles.md); one that can't be read is left out and
+    /// named in `problems`.
+    pub styles: chipload_job::styles::StyleLibrary,
     /// Why a file couldn't be read, as messages.
     pub problems: Vec<Message>,
     /// What converting an old library did (docs/specs/cutting-data.md §8); empty but the
@@ -152,6 +155,16 @@ impl Library {
             problems.push(defaults(err));
             MaterialLibrary::default()
         });
+        let styles = match chipload_job::styles::load_styles(&styles_path(dir)) {
+            Ok(loaded) => {
+                problems.extend(loaded.refused);
+                loaded.library
+            }
+            Err(err) => {
+                problems.push(defaults(err));
+                chipload_job::styles::StyleLibrary::default()
+            }
+        };
         let posts = crate::posts::posts_dir(dir);
         let user_posts = chipload_post::list_user_posts(&posts)
             .into_iter()
@@ -161,6 +174,7 @@ impl Library {
             tools,
             machines,
             materials,
+            styles,
             problems,
             converted,
             posts: Some(posts),

@@ -80,6 +80,7 @@ mod shape_library;
 mod shortcuts;
 mod simulation;
 mod sources;
+mod styles;
 mod tab_markers;
 #[cfg(test)]
 mod tests;
@@ -148,6 +149,9 @@ pub enum Focus {
     /// The user's materials, and one by its uid as a number (docs/specs/materials.md §4).
     LibraryMaterials,
     LibraryMaterial(u64),
+    /// The user's styles, and one by its uid as a number (docs/specs/styles.md §3.3).
+    LibraryStyles,
+    LibraryStyle(u64),
     /// The app's preferences, the post-processors, and one post by its place in the list
     /// (docs/specs/this-computer.md).
     Preferences,
@@ -166,6 +170,8 @@ impl Focus {
                 | Focus::LibraryMachine(_)
                 | Focus::LibraryMaterials
                 | Focus::LibraryMaterial(_)
+                | Focus::LibraryStyles
+                | Focus::LibraryStyle(_)
                 | Focus::Preferences
                 | Focus::Posts
                 | Focus::Post(_)
@@ -225,6 +231,8 @@ enum Prompt {
     Discard(Pending),
     /// A name for the project's machine or tool in the user's library.
     LibraryName(SaveTarget, String),
+    /// *Save as style…*: a name for operation `0` as a style (docs/specs/styles.md §3.1).
+    StyleName(usize, String),
     /// The project's file changed on disk while there are unsaved changes
     /// (docs/specs/reload-changed-file.md §4); the file's version is in `disk`.
     ChangedOnDisk,

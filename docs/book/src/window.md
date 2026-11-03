@@ -22,7 +22,7 @@ Under it, the **ribbon** groups the buttons:
 | FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame ([a frame for a sign](drawings/signs.md)), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
-| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), Surface (the whole stock) | Generate |
+| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | *Apply style ▸*, Generate |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme |
 
@@ -49,6 +49,8 @@ The **Browser** on the left holds your library and the whole project as a tree:
     checking for [new versions](install.md#new-versions).
   - **Tools** and **Machines:** your [tool library](library/tools.md) and [machine
     profiles](library/machines.md).
+  - **Materials** and **Styles:** your [materials](library/materials.md) and
+    [styles](library/styles.md), operations saved by name.
   - **Post-processors:** the built-in ones and [yours](posts.md#your-own-post); click one
     for what it writes, and *Use in this project*.
 - **The project**, named after its file.
@@ -79,9 +81,10 @@ operations; the first DXF's placement window is open](images/drawing.png)
 - **Right-click** a row for the rest:
   - **A DXF:** *Place…* (its properties), *Update from a DXF…* and *Remove*.
   - **A picture:** *Trace settings…* and *Remove*.
-  - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*, for a
-    pocket *Add rest pass ▸* (a [rest pass](operations/rest.md) shows under it), and
-    *Delete*.
+  - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*,
+    *Save as style…* (a [style](library/styles.md)), for a pocket *Add rest pass ▸* (a
+    [rest pass](operations/rest.md) shows under it), and *Delete*.
+  - **A style:** *Apply to the selection* and *Delete*.
   - **A rest pass:** *Remove*.
   - **A project tool:** *Delete*, greyed while an operation or a rest or floor pass cuts
     with it (its hover says which).
@@ -94,8 +97,8 @@ operations; the first DXF's placement window is open](images/drawing.png)
     *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,
     *Import…*, *Export…*.
 - **Del** deletes what Properties shows: an operation or a rest pass picked in the
-  Browser, a text opened there, a project tool nothing cuts with, a library tool or machine
-  (as its *Delete*: the library has no undo, its file keeps a `.bak`), or else what is selected on the canvas (drawn shapes, or a
+  Browser, a text opened there, a project tool nothing cuts with, a library tool, machine
+  or style (as its *Delete*: the library has no undo, its file keeps a `.bak`), or else what is selected on the canvas (drawn shapes, or a
   text, a picture or a DXF as a whole). Parts and setups take their operations with them,
   so they are deleted only from their right-click menu. **Ctrl+Z** brings anything back.
 - **The triangle** opens and closes a folder, and so does a click on a plain folder like

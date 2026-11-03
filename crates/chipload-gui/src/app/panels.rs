@@ -178,6 +178,8 @@ impl ChiploadApp {
             | Focus::LibraryMachine(_)
             | Focus::LibraryMaterials
             | Focus::LibraryMaterial(_)
+            | Focus::LibraryStyles
+            | Focus::LibraryStyle(_)
             | Focus::Preferences
             | Focus::Posts
             | Focus::Post(_) => {}
@@ -213,6 +215,19 @@ impl ChiploadApp {
         if let Some(at) = counted {
             let statistics = self.statistics_of(at);
             forms::statistics_section(ui, &statistics);
+        }
+        // An operation can be kept as a style (docs/specs/styles.md §3.1).
+        if let Focus::Op(i) = focus
+            && self.user.settings_dir.is_some()
+        {
+            ui.add_space(6.0);
+            if ui
+                .button(t!(ui, "styles-save-as"))
+                .on_hover_text(t!(ui, "styles-save-as-hover"))
+                .clicked()
+            {
+                self.ask_style_name(i);
+            }
         }
         // The map was for this form only (library windows draw the same rows).
         problems::set_form_problems(ui, std::collections::BTreeMap::new());

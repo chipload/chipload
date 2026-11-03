@@ -376,6 +376,8 @@ enum OpAction {
     Toggle(usize),
     Move(usize, usize),
     Duplicate(usize),
+    /// *Save as style…* (docs/specs/styles.md §3.1).
+    SaveStyle(usize),
     Delete(usize),
     /// A rest pass for pocket i with this tool (docs/specs/rest-passes.md §6).
     AddRest(usize, i64),
@@ -876,6 +878,7 @@ impl ChiploadApp {
                 self.focus = Focus::Op(i);
                 self.duplicate_operation();
             }
+            Some(OpAction::SaveStyle(i)) => self.ask_style_name(i),
             Some(OpAction::Delete(i)) => {
                 self.focus = Focus::Op(i);
                 self.delete_operation();
@@ -1114,6 +1117,8 @@ impl ChiploadApp {
         // (docs/specs/rest-passes.md §6).
         let units = crate::units::display(ui.ctx());
         let rest_menu = self.rest_menu(i, units);
+        // Styles are kept in the settings folder (docs/specs/styles.md §4).
+        let has_library = self.user.settings_dir.is_some();
         // A V-carve's floor pass, or what it can be cut with
         // (docs/specs/vcarve-wide-strokes.md §7).
         let floor = match op {
@@ -1198,6 +1203,13 @@ impl ChiploadApp {
             }
             if ui.button(t!(ui, "browser-duplicate")).clicked() {
                 action = Some(OpAction::Duplicate(i));
+            }
+            if ui
+                .add_enabled(has_library, egui::Button::new(t!(ui, "styles-save-as")))
+                .on_hover_text(t!(ui, "styles-save-as-hover"))
+                .clicked()
+            {
+                action = Some(OpAction::SaveStyle(i));
             }
             if let Some(menu) = &rest_menu {
                 let label = t!(ui, "browser-add-rest-pass");

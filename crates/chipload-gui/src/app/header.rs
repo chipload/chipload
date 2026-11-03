@@ -607,6 +607,7 @@ impl ChiploadApp {
             &caption,
             |app, ui| {
                 let selected = !app.selected_ids().is_empty();
+                let mut surface = None;
                 for (label, kind, hover) in super::browser::new_operations(ui) {
                     let icon = match kind {
                         OpKind::Profile => Icon::Profile,
@@ -614,7 +615,10 @@ impl ChiploadApp {
                         OpKind::Vcarve => Icon::Vcarve,
                         OpKind::Path => Icon::FollowPath,
                         OpKind::Holes => Icon::Holes,
-                        OpKind::Surface => Icon::Surface,
+                        OpKind::Surface => {
+                            surface = Some((label, hover));
+                            continue;
+                        }
                     };
                     let short = if kind == OpKind::Path {
                         t!(ui, "header-follow")
@@ -636,6 +640,34 @@ impl ChiploadApp {
                         app.add_operation(kind);
                     }
                 }
+                // Surface and your styles (docs/specs/styles.md §3.2) as small buttons, so
+                // the ribbon keeps its names at the default width.
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                    if let Some((label, hover)) = surface
+                        && small_ribbon_button(ui, Icon::Surface, &label, true, false)
+                            .on_hover_text(format!("{label}: {hover}"))
+                            .clicked()
+                    {
+                        app.add_operation(OpKind::Surface);
+                    }
+                    let label = t!(ui, "styles-ribbon");
+                    let enabled = app.can_apply_style();
+                    let hover = if app.user.library.styles.styles.is_empty() {
+                        t!(ui, "styles-ribbon-none-hover")
+                    } else if enabled {
+                        t!(ui, "styles-ribbon-hover")
+                    } else {
+                        t!(ui, "styles-select-first")
+                    };
+                    let response = small_ribbon_button(ui, Icon::Style, &label, enabled, false)
+                        .on_hover_text(format!("{label}: {hover}"));
+                    let mut act = None;
+                    egui::Popup::menu(&response).show(|ui| app.style_menu(ui, &mut act));
+                    if let Some(act) = act {
+                        app.style_act(act);
+                    }
+                });
             },
             |app, ui| {
                 let selected = !app.selected_ids().is_empty();
@@ -652,6 +684,13 @@ impl ChiploadApp {
                         app.add_operation(kind);
                     }
                 }
+                ui.menu_button(t!(ui, "styles-apply-menu"), |ui| {
+                    let mut act = None;
+                    app.style_menu(ui, &mut act);
+                    if let Some(act) = act {
+                        app.style_act(act);
+                    }
+                });
                 ui.separator();
                 app.job_menu(ui);
             },

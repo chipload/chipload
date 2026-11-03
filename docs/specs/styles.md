@@ -1,7 +1,7 @@
 # Spec: defaults that know the job, and styles
 
 Status: approved 2026-11-03 (decisions 1-10 as recommended, the user: "ok go ahead");
-steps 1 and 2 built (§9). Replaces docs/specs/presets.md (paused 2026-10-13), whose layer rules
+steps 1 to 3 built (§9). Replaces docs/specs/presets.md (paused 2026-10-13), whose layer rules
 (§5 there) come back as step 4 here.
 
 ## 1. Why
@@ -317,3 +317,18 @@ A new persisted file in the settings folder, beside `tools.json`:
   `tests/corpus/styles/v1/styles.json` the styles it was made with; a test migrates a
   schema-34 V-carve style (its step down becomes passes).
 - Not yet: a JSON Schema for `styles.json` (`chipload schema`), the window (step 3).
+
+**Step 3, 2026-11-03:** styles in the window (`app/styles.rs`).
+- **Save as style…** in an operation's Browser menu and as a button under its properties
+  (after the statistics; the operation form has no ⋯ menu): a name prompt, a name you have
+  replaces that style. A tool not in the library is refused in the Report.
+- **Using:** a small **Style** button at the end of the ribbon's OPERATION group (a stamp
+  icon, under Surface, which became small too so English keeps its button names at the
+  default 1200 px) whose menu lists the styles, greyed with nothing selected or no styles; *Apply style ▸*
+  in the canvas' right-click menu and the OPERATION caption's menu; *Apply to the
+  selection* on a style's row and form. One undo step; library tools copied in with it.
+- **This computer > Styles:** a row per style with its operation's icon, its summary on
+  hover; its form: the summary, *Rename*, *Apply to the selection*, *Delete* (and Del).
+  `Library::styles` is read with the rest of the library; a style that can't be read is
+  named among the library's problems.
+- Texts in `gui-styles.ftl` in all seven languages.

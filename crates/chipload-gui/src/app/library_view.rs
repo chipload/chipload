@@ -125,6 +125,7 @@ impl ChiploadApp {
             self.library_tool_rows(ui, &mut act);
             self.library_machine_rows(ui, &mut act);
             self.library_material_rows(ui);
+            self.library_style_rows(ui);
         }
         if let Some(focus) = self.post_rows(ui) {
             act = Some(Act::Focus(focus));
@@ -305,6 +306,7 @@ impl ChiploadApp {
                 self.library_machine_form(ui, &key_uid(key), &mut act);
             }
             Focus::LibraryMaterials | Focus::LibraryMaterial(_) => self.material_properties(ui),
+            Focus::LibraryStyles | Focus::LibraryStyle(_) => self.style_properties(ui),
             Focus::Preferences => self.preferences_form(ui),
             Focus::Posts => self.posts_form(ui),
             Focus::Post(k) => self.post_form(ui, k as usize),
@@ -513,6 +515,10 @@ impl ChiploadApp {
     /// Delete the library tool or machine profile in focus, as its menu's *Delete* does (the
     /// Delete key).
     pub(super) fn delete_library_focus(&mut self) {
+        if let Focus::LibraryStyle(key) = self.focus {
+            self.delete_style(&key_uid(key));
+            return;
+        }
         let found = match self.focus {
             Focus::LibraryTool(key) => {
                 let uid = key_uid(key);

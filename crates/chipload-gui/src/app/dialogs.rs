@@ -342,6 +342,7 @@ impl ChiploadApp {
             Prompt::ChangedOnDisk => self.changed_on_disk_prompt(ctx),
             Prompt::Path(purpose, text) => self.path_prompt(ctx, purpose, text),
             Prompt::LibraryName(kind, text) => self.library_name_prompt(ctx, kind, text),
+            Prompt::StyleName(i, text) => self.style_name_prompt(ctx, i, text),
             Prompt::Explode { of, join, gap } => self.explode_prompt(ctx, of, join, gap),
             Prompt::Join { ids, gap } => self.join_prompt(ctx, ids, gap),
         }

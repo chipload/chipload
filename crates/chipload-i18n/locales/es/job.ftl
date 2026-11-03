@@ -328,10 +328,10 @@ job-polygon-sides = un polígono tiene de { $least } a { $most } lados, se recib
 
 # Styles: operations saved by name (docs/specs/styles.md). $reason is in English.
 job-style-unreadable = no se puede leer el estilo «{ $name }»: { $reason }
-job-style-exists = ya existe un estilo llamado «{ $name }» (sustitúyalo o elija otro nombre)
+job-style-exists = ya existe un estilo llamado «{ $name }» (sustitúyelo o elige otro nombre)
 job-style-none = no hay ningún estilo llamado «{ $name }»
 job-style-no-operation = el proyecto no tiene la operación { $number }
-job-style-tool-not-in-library = la herramienta { $tool } no está en su biblioteca: guárdela primero en la biblioteca
+job-style-tool-not-in-library = la herramienta { $tool } no está en tu biblioteca: guárdala primero en la biblioteca
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = estos ajustes
 job-style-other-settings = otros ajustes

@@ -586,6 +586,21 @@ impl ChiploadApp {
                         ui.label(t!(ui, "canvas-right-click-hint"));
                     }
                 }
+                // A style for what is selected (docs/specs/styles.md §3.2).
+                if context_start.is_none()
+                    && self.selection != CanvasSelection::Nothing
+                    && !self.user.library.styles.styles.is_empty()
+                {
+                    ui.separator();
+                    let mut act = None;
+                    ui.menu_button(t!(ui, "styles-apply-menu"), |ui| {
+                        self.style_menu(ui, &mut act);
+                    });
+                    if let Some(act) = act {
+                        self.style_act(act);
+                        ui.close();
+                    }
+                }
                 // What can be done with the selection: groups, the shape library.
                 if context_start.is_none() && !self.framed_shape_ids().is_empty() {
                     ui.separator();

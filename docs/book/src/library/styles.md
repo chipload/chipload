@@ -18,7 +18,9 @@ with the feeds the operation had when it was saved.
 
 ## Saving a style
 
-Set an operation up as you want it, in any project, then save it under a name:
+Set an operation up as you want it, in any project, then save it under a name: right-click
+it in the Browser, or the button under its properties, **Save as style…**, and give the
+name (a name you already have replaces that style). On the command line:
 
 ```
 chipload style save part.chipload --op 3 --name "Cut out 18 mm ply"
@@ -35,6 +37,14 @@ chipload style save part.chipload --op 3 --name "Cut out 18 mm ply" --replace   
 
 ## Using a style
 
+Select the shapes on the canvas, then one of:
+- **Style** at the end of the ribbon's OPERATION group: its menu lists your styles;
+- right-click the canvas, **Apply style ▸**;
+- right-click the style under *This computer > Styles*, or open it there: **Apply to the
+  selection**.
+
+On the command line:
+
 ```
 chipload style use part.chipload "Cut out 18 mm ply" --dxf 1       # also --layer, --shapes, --group
 ```
@@ -50,6 +60,13 @@ chipload style use part.chipload "Cut out 18 mm ply" --dxf 1       # also --laye
   change operations made from it.
 
 ## Managing styles
+
+**This computer > Styles** in the Browser lists them; hover over one for what it does.
+Click one for its properties: what it does in a few words, its name to change
+(**Rename**), **Apply to the selection** and **Delete** (also the Del key; the library has
+no undo, `styles.json.bak` keeps the file as it was).
+
+On the command line:
 
 ```
 chipload style list                       # every style in a few words, and where the file is

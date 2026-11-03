@@ -74,10 +74,9 @@ style.
    *Done*). Left from it for the first-run setup: tabs with a tool not marked
    centre-cutting still warn, and machine travel not set.
 2. **Styles: operation presets** (docs/specs/styles.md, replacing presets.md; the
-   direction review's step 2, CamBam's speed). **Steps 1 and 2 done 2026-11-03** (the
-   defaults; `styles.json` and `chipload style …`, ADR 0030). **Next, step 3, the window:**
-   the ribbon's Style button, the canvas' right-click *Apply style ▸*, *Save as style…* on
-   an operation, the Browser's Styles folder under This computer; then layer rules (step 4).
+   direction review's step 2, CamBam's speed). **Steps 1 to 3 done 2026-11-03** (the
+   defaults; `styles.json` and `chipload style …`, ADR 0030; the window). For the user to
+   try. Next of it: layer rules (step 4), keys for styles (item 3).
 3. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
    today:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
@@ -116,7 +115,8 @@ style.
    - an operation's Statistics section (lengths and lifts: do they match the router?);
    - on the router: slot and clearing values in the tools' cutting data, a pocket's slot
      steps (the user, 2026-11-03: "it works quite good"; the bugs found are fixed);
-   - project tools updated from the library (the offer after Save, the Report on open).
+   - project tools updated from the library (the offer after Save, the Report on open);
+   - new operations' defaults (through with tabs, holes first) and styles, in the window.
 7. **Review V-carve** (safety; after the workflow items by the user's priority of
    2026-11-03), the last operation not reviewed (profile and pocket were, holes and
    follow path on 2026-11-02): boundaries (zero depth, depth equal to the stock, a bit
@@ -189,6 +189,9 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
+- **Styles in the window: done 2026-11-03** (docs/specs/styles.md step 3): *Save as
+  style…* on an operation, a Style button on the ribbon, *Apply style ▸* on the canvas,
+  This computer > Styles with a form per style.
 - **Styles in a file and on the command line: done 2026-11-03** (docs/specs/styles.md
   step 2, ADR 0030). `chipload style save` keeps an operation's settings and library tool
   by name; `style use` makes it on shapes of any project (a profile style by the

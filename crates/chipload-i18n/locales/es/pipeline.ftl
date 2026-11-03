@@ -607,4 +607,4 @@ pipeline-name-outline-of = { $name } (contorno exterior)
 # The two profiles name their shapes rather than following a layer or a whole drawing.
 pipeline-new-by-shapes = { $holes } y { $outline } seleccionan sus formas una a una: las formas añadidas más tarde al dibujo no las cortan
 # A style names a library tool the library no longer has (an import from another computer).
-pipeline-style-tool-missing = el estilo «{ $style }» corta con «{ $tool }», que no está en su biblioteca: elija otra herramienta para el estilo
+pipeline-style-tool-missing = el estilo «{ $style }» corta con «{ $tool }», que no está en tu biblioteca: elige otra herramienta para el estilo

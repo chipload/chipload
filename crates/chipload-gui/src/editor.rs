@@ -303,13 +303,20 @@ impl EditJob {
             tool: None,
         };
         let made = new_operations(&self.job, &request, contours, library, lang.lang());
+        let messages = made.messages.clone();
+        (self.insert_made(made), messages)
+    }
+
+    /// Insert operations the pipeline made (a new operation's, or a style's), each with its
+    /// side mark; the first one's index.
+    pub fn insert_made(&mut self, made: chipload_pipeline::new_ops::NewOps) -> usize {
         let index = made.index;
         self.reorder(|ops| {
             for (offset, new) in made.ops.into_iter().enumerate() {
                 ops.insert(index + offset, (new.op, !new.side_chosen));
             }
         });
-        (index, made.messages)
+        index
     }
 
     /// Replace an operation's geometry with the canvas selection.
