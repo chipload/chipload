@@ -525,6 +525,23 @@ impl TabViewer for Viewer<'_> {
     }
 }
 
+/// The dock's look, from the app's style.
+pub(super) fn dock_style(ui: &egui::Style) -> egui_dock::Style {
+    let mut style = egui_dock::Style::from_egui(ui);
+    // The canvas's leaf has no tab bar, and nothing to show or drag it by.
+    style.buttons.show_tab_bar_size = 0.0;
+    style.tab.tab_body.hidden_tab_bar_drag_height = Some(0.0);
+    style.tab.tab_body.inner_margin = egui::Margin::same(4);
+    // No frame round the canvas or the dock: the panels' tab bars and dividers part them.
+    style.tab.tab_body.stroke = egui::Stroke::NONE;
+    style.main_surface_border_stroke = egui::Stroke::NONE;
+    // Square corners: the panels meet edge to edge, and a rounded corner showed what is
+    // drawn behind the dock, dark in the light theme (issue #14).
+    style.tab_bar.corner_radius = egui::CornerRadius::ZERO;
+    style.tab.tab_body.corner_radius = egui::CornerRadius::ZERO;
+    style
+}
+
 /// A panel's contents, wherever the panel is shown.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum PanelKind {
@@ -637,17 +654,9 @@ impl ChiploadApp {
             .collect();
         let mut dock = std::mem::replace(&mut panels.dock, DockState::new(vec![Pane::Canvas]));
         panels.drawing = true;
-        let mut style = egui_dock::Style::from_egui(ui.style());
-        // The canvas's leaf has no tab bar, and nothing to show or drag it by.
-        style.buttons.show_tab_bar_size = 0.0;
-        style.tab.tab_body.hidden_tab_bar_drag_height = Some(0.0);
-        style.tab.tab_body.inner_margin = egui::Margin::same(4);
-        // No frame round the canvas or the dock: the panels' tab bars and dividers part them.
-        style.tab.tab_body.stroke = egui::Stroke::NONE;
-        style.main_surface_border_stroke = egui::Stroke::NONE;
         DockArea::new(&mut dock)
             .id(egui::Id::new("dock"))
-            .style(style)
+            .style(dock_style(ui.style()))
             .show_close_buttons(true)
             .show_leaf_collapse_buttons(true)
             .show_leaf_close_all_buttons(false)

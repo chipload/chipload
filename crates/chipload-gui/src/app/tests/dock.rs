@@ -169,3 +169,15 @@ fn a_layout_that_cant_be_read_gives_the_default_and_stays_until_changed() {
         "changed: written"
     );
 }
+
+#[test]
+fn the_panels_have_square_corners_in_both_themes() {
+    // Rounded corners showed the dark behind the dock in the light theme (issue #14).
+    let ctx = egui::Context::default();
+    crate::style::apply(&ctx);
+    for theme in [egui::Theme::Dark, egui::Theme::Light] {
+        let style = crate::app::layout::dock_style(&ctx.style_of(theme));
+        assert_eq!(style.tab_bar.corner_radius, egui::CornerRadius::ZERO);
+        assert_eq!(style.tab.tab_body.corner_radius, egui::CornerRadius::ZERO);
+    }
+}
