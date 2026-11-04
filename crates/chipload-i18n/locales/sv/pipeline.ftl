@@ -480,6 +480,10 @@ pipeline-explode-dropped = { $count ->
     [one] Form { $shapes } hade bara segment kortare än { $tolerance } och är borta.
    *[other] Formerna { $shapes } hade bara segment kortare än { $tolerance } och är borta.
 }
+pipeline-explode-twins = { $count ->
+    [one] Form { $shapes } var ritad två gånger, ovanpå en annan på sitt lager, och är borta.
+   *[other] Formerna { $shapes } var ritade två gånger, ovanpå andra på sina lager, och är borta.
+}
 # $label is an operation's label.
 pipeline-explode-selects = { $label } markerar nu formerna { $shapes }.
 pipeline-explode-no-dxf = projektet har ingen DXF att bryta upp

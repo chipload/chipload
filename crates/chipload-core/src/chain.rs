@@ -7,7 +7,7 @@
 //! chain. Such a chain is closed only when it returns to its start and every node on it has
 //! exactly two connections (docs/specs/chaining-per-layer.md).
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::Point;
 use crate::primitives::{Primitive, distance};
@@ -125,6 +125,9 @@ pub struct ChainResult {
     pub zero_length: Vec<Segment>,
     pub duplicates: Vec<Segment>,
     pub branch_points: Vec<Point>,
+    /// A shape left out whole as a duplicate -> the shapes whose segments it repeats. It is in
+    /// no contour, so selecting what it repeats takes it along (a move leaves nothing behind).
+    pub twins: BTreeMap<u64, BTreeSet<u64>>,
 }
 
 /// Snaps points to nodes. The first point to create a node defines its position.
@@ -209,6 +212,8 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
 
     let mut layers: BTreeMap<String, LayerGraph> = BTreeMap::new();
     let mut duplicates: Vec<(usize, Segment)> = Vec::new();
+    // (dropped segment's shape, the shape it repeats)
+    let mut repeats: Vec<(Option<u64>, Option<u64>)> = Vec::new();
     // (first segment's index in the input, parts, closed)
     let mut found: Vec<(usize, Vec<OrientedSegment>, bool)> = Vec::new();
     for run in closed {
@@ -217,12 +222,14 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
         };
         let graph = layer_graph(&mut layers, segment, tol);
         let keys: Vec<EdgeKey> = run.iter().map(|(_, s)| graph.key(s)).collect();
-        if keys.iter().all(|k| graph.known(k)) {
+        let known: Vec<Option<Option<u64>>> = keys.iter().map(|k| graph.known(k)).collect();
+        if known.iter().all(Option::is_some) {
             duplicates.extend(run.iter().map(|&(i, s)| (i, s.clone())));
+            repeats.extend(known.into_iter().flatten().map(|of| (segment.shape, of)));
             continue;
         }
         for key in keys {
-            graph.remember(key);
+            graph.remember(key, segment.shape);
         }
         let parts = run
             .iter()
@@ -236,12 +243,13 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
     for &(index, segment) in loose.iter().flat_map(|run| run.iter()) {
         let graph = layer_graph(&mut layers, segment, tol);
         let key = graph.key(segment);
-        if graph.known(&key) {
+        if let Some(of) = graph.known(&key) {
             duplicates.push((index, segment.clone()));
+            repeats.push((segment.shape, of));
             continue;
         }
         let (a, b) = (key.a, key.b);
-        graph.remember(key);
+        graph.remember(key, segment.shape);
         graph.edges.push(Edge {
             segment: segment.clone(),
             a,
@@ -276,6 +284,7 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
     found.sort_by_key(|(first, _, _)| *first);
     duplicates.sort_by_key(|(index, _)| *index);
 
+    let twins = twins(&found, &repeats);
     let contours = found
         .into_iter()
         .enumerate()
@@ -292,7 +301,28 @@ pub fn chain_segments_with(segments: &[Segment], tol: f64) -> ChainResult {
         zero_length,
         duplicates: duplicates.into_iter().map(|(_, s)| s).collect(),
         branch_points,
+        twins,
     }
+}
+
+/// The shapes that are in no contour, each with the shapes its dropped segments repeat.
+fn twins(
+    found: &[(usize, Vec<OrientedSegment>, bool)],
+    repeats: &[(Option<u64>, Option<u64>)],
+) -> BTreeMap<u64, BTreeSet<u64>> {
+    let in_contours: BTreeSet<u64> = found
+        .iter()
+        .flat_map(|(_, parts, _)| parts.iter().filter_map(|p| p.segment.shape))
+        .collect();
+    let mut twins: BTreeMap<u64, BTreeSet<u64>> = BTreeMap::new();
+    for &(dropped, of) in repeats {
+        if let (Some(dropped), Some(of)) = (dropped, of)
+            && !in_contours.contains(&dropped)
+        {
+            twins.entry(dropped).or_default().insert(of);
+        }
+    }
+    twins
 }
 
 /// Segments with their index in the input.
@@ -329,8 +359,8 @@ fn closes_as_drawn(run: &[(usize, &Segment)], tol: f64) -> bool {
     let mut seen = LayerGraph::new(tol);
     let twice = run.iter().any(|(_, s)| {
         let key = seen.key(s);
-        let known = seen.known(&key);
-        seen.remember(key);
+        let known = seen.known(&key).is_some();
+        seen.remember(key, None);
         known
     });
     follows && !twice
@@ -339,11 +369,15 @@ fn closes_as_drawn(run: &[(usize, &Segment)], tol: f64) -> bool {
 /// One layer's nodes and edges.
 struct LayerGraph {
     nodes: NodeIndex,
-    /// The midpoints of the segments between two nodes, to find duplicates.
-    between: BTreeMap<(usize, usize), Vec<Point>>,
+    /// The midpoints of the segments between two nodes, with their shapes, to find
+    /// duplicates.
+    between: BTreeMap<(usize, usize), Vec<Seen>>,
     /// Loose segments, to chain.
     edges: Vec<Edge>,
 }
+
+/// A segment's midpoint and the shape it belongs to.
+type Seen = (Point, Option<u64>);
 
 /// A segment's two nodes and its midpoint.
 struct EdgeKey {
@@ -373,20 +407,22 @@ impl LayerGraph {
         }
     }
 
-    /// The same nodes and the same midpoint as a segment already here.
-    fn known(&self, key: &EdgeKey) -> bool {
+    /// The same nodes and the same midpoint as a segment already here: Some with that
+    /// segment's shape.
+    fn known(&self, key: &EdgeKey) -> Option<Option<u64>> {
         self.between
             .get(&(key.a.min(key.b), key.a.max(key.b)))
             .into_iter()
             .flatten()
-            .any(|&mid| distance(mid, key.mid) <= self.nodes.tol)
+            .find(|(mid, _)| distance(*mid, key.mid) <= self.nodes.tol)
+            .map(|&(_, shape)| shape)
     }
 
-    fn remember(&mut self, key: EdgeKey) {
+    fn remember(&mut self, key: EdgeKey, shape: Option<u64>) {
         self.between
             .entry((key.a.min(key.b), key.a.max(key.b)))
             .or_default()
-            .push(key.mid);
+            .push((key.mid, shape));
     }
 }
 

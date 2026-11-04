@@ -29,7 +29,7 @@ impl ChiploadApp {
     /// picks it (docs/specs/shape-groups.md decision 3, dxf-whole-on-canvas.md decision 1).
     pub fn pick_alone(&mut self, id: usize) {
         if let Some(contour) = self.contours.iter().find(|c| c.id == id) {
-            self.selection = CanvasSelection::Shapes(shapes_of(contour));
+            self.selection = CanvasSelection::Shapes(with_twins(shapes_of(contour), &self.twins));
             self.focus = Focus::Selection;
         }
     }

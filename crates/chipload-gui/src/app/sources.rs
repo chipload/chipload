@@ -410,7 +410,7 @@ impl ChiploadApp {
         }
         let mut ids = self.selected_ids();
         ids.extend(selection.ids(&self.contours, self.edit.as_ref().map(|e| &e.job.drawing)));
-        self.selection = CanvasSelection::of_contours(&ids, &self.contours);
+        self.selection = CanvasSelection::of_contours(&ids, &self.contours, &self.twins);
     }
 
     /// Drawing: each DXF with its layers, each image, and the drawn shapes by kind

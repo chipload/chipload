@@ -202,3 +202,52 @@ mod modes {
         assert!(app.show_drawing(), "Edit always shows the drawing");
     }
 }
+
+#[test]
+fn a_shape_drawn_twice_goes_where_the_one_it_repeats_goes() {
+    // Issue #12: a twin is in no contour; a click, a box and a drag take it along.
+    let mut app = drawn_part();
+    let job = app.edit.as_ref().unwrap().job.clone();
+    let (job, copies) = chipload_pipeline::shapes::copy_shapes(&job, &[2], (0.0, 0.0)).unwrap();
+    let twin = copies[0];
+    app.edit.as_mut().unwrap().adopt(job);
+    app.drawing_changed(&[twin]);
+    app.click(Some(contour_of(&app, 2)), false);
+    assert_eq!(selected(&app), [2, twin].into());
+    box_select(&mut app, (0.0, 0.0), (300.0, 200.0), false, false);
+    assert_eq!(selected(&app), [1, 2, 3, twin].into());
+    // Grab the circle alone (it was not selected first) and move it 10 mm right.
+    app.click(None, false);
+    app.view.scale = 10.0;
+    app.start_select_drag(Some(contour_of(&app, 2)), (87.0, 80.0), false, true);
+    app.drag_move_to((97.0, 80.0), true, false);
+    app.end_move_drag();
+    for id in [2, twin] {
+        assert_eq!(
+            app.shape(id).unwrap().geometry,
+            Geometry::Circle {
+                center: [85.0, 80.0],
+                radius: 12.0
+            },
+            "{id}"
+        );
+    }
+}
+
+#[test]
+fn an_exploded_drawing_keeps_no_shape_drawn_twice() {
+    // The user's DXF (issue #12): nine circles drawn twice, dropped by the explode.
+    let mut app = ChiploadApp::default();
+    assert!(app.import_dxf(
+        &corpus("dxf/shared_edges.dxf"),
+        Some(chipload_job::Units::Mm)
+    ));
+    let before = app.contours.len();
+    assert!(app.explode_dxf(1, None));
+    let drawing = &app.edit.as_ref().unwrap().job.drawing;
+    assert_eq!(drawing.shapes.len(), 59 - 9);
+    assert_eq!(app.contours.len(), before);
+    let all: BTreeSet<u64> = drawing.shapes.iter().map(|s| s.id).collect();
+    box_select(&mut app, (-1e4, -1e4), (1e4, 1e4), false, false);
+    assert_eq!(selected(&app), all);
+}

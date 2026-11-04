@@ -335,6 +335,10 @@ pipeline-explode-dropped = { $count ->
     [one] Объект { $shapes } содержал только сегменты короче { $tolerance } и удалён.
    *[other] Объекты { $shapes } содержали только сегменты короче { $tolerance } и удалены.
 }
+pipeline-explode-twins = { $count ->
+    [one] Объект { $shapes } был нарисован дважды, поверх другого на своём слое, и удалён.
+   *[other] Объекты { $shapes } были нарисованы дважды, поверх других на своих слоях, и удалены.
+}
 pipeline-explode-selects = { $label } теперь выбирает объекты { $shapes }.
 pipeline-explode-no-dxf = в проекте нет DXF для разбиения
 pipeline-image-exploded = Изображение { $id } «{ $name }» разбито на { $count } { $count ->

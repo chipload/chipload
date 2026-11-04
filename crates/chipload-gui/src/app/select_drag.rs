@@ -75,7 +75,7 @@ impl ChiploadApp {
     fn shapes_to_move(&mut self, picked: Option<usize>, add: bool) -> Option<Vec<u64>> {
         let contour = self.contours.iter().find(|c| Some(c.id) == picked)?;
         let id = contour.id;
-        let hit = shapes_of(contour);
+        let hit = with_twins(shapes_of(contour), &self.twins);
         let drawn = !hit.is_empty()
             && hit
                 .iter()
@@ -210,9 +210,9 @@ impl ChiploadApp {
             self.selection = CanvasSelection::whole(only);
             return;
         }
-        let hit = shapes_in(&plain, &self.contours);
+        let hit = self.shapes_in(&plain);
         let mut shapes = if add || toggle {
-            shapes_in(&self.selected_ids(), &self.contours)
+            self.shapes_in(&self.selected_ids())
         } else {
             BTreeSet::new()
         };
@@ -240,10 +240,12 @@ fn whole_source(contour: &Contour) -> Option<ShapeFrom> {
     (whole && matches!(from, ShapeFrom::Image(_) | ShapeFrom::Text(_))).then_some(from)
 }
 
-/// The shapes of these contours.
-fn shapes_in(ids: &BTreeSet<usize>, contours: &[Contour]) -> BTreeSet<u64> {
-    match CanvasSelection::of_contours(ids, contours) {
-        CanvasSelection::Shapes(shapes) => shapes,
-        _ => BTreeSet::new(),
+impl ChiploadApp {
+    /// The shapes of these contours, with their twins.
+    fn shapes_in(&self, ids: &BTreeSet<usize>) -> BTreeSet<u64> {
+        match CanvasSelection::of_contours(ids, &self.contours, &self.twins) {
+            CanvasSelection::Shapes(shapes) => shapes,
+            _ => BTreeSet::new(),
+        }
     }
 }

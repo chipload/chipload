@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use chipload_job::{Geometry, Job, Selector, Shape, load_job};
 use chipload_pipeline::dxfs::add_dxf;
 use chipload_pipeline::explode::{explode_dxf, join_shapes};
-use chipload_pipeline::run_job;
+use chipload_pipeline::{load_drawing, run_job};
 
 fn corpus(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -148,6 +148,44 @@ fn selectors_of_the_dxf_become_its_shapes() {
     hidden.drawing.hidden = vec!["dxf:1".into(), "dxf:1/layer:HOLES".into(), "dxf:2".into()];
     let (out, _) = explode_dxf(&hidden, 1, None).unwrap();
     assert_eq!(out.drawing.hidden, vec!["dxf:2".to_string()]);
+}
+
+#[test]
+fn shapes_drawn_twice_go_and_what_selected_them_selects_what_they_repeat() {
+    // The user's DXF (issue #12): nine circles drawn twice on one layer.
+    let one = load_job(&corpus("jobs/v20/scaled_part.chipload")).unwrap();
+    let units = Some(chipload_job::Units::Mm);
+    let (mut two, _) = add_dxf(&one, &corpus("dxf/shared_edges.dxf"), units).unwrap();
+    let loaded = load_drawing(&two).unwrap();
+    assert_eq!(loaded.twins.len(), 9);
+    let (&twin, of) = loaded.twins.iter().next().unwrap();
+    two.operations[0]
+        .select_mut()
+        .unwrap()
+        .clone_from(&Selector {
+            shapes: Some(vec![twin]),
+            ..Selector::default()
+        });
+    let (out, report) = explode_dxf(&two, 2, None).unwrap();
+    let ids: Vec<u64> = out.drawing.shapes.iter().map(|s| s.id).collect();
+    assert!(loaded.twins.keys().all(|t| !ids.contains(t)));
+    assert_eq!(ids.len(), two.drawing.shapes.len() - 9);
+    assert_eq!(
+        out.operations[0].select().shapes,
+        Some(of.iter().copied().collect())
+    );
+    // The same contours, now with nothing left out as a duplicate.
+    let after = load_drawing(&out).unwrap();
+    assert_eq!(after.contours.len(), loaded.contours.len());
+    assert!(after.twins.is_empty());
+    assert!(
+        report
+            .lines
+            .iter()
+            .any(|l| l.starts_with("Shapes ") && l.contains("were drawn twice")),
+        "{:?}",
+        report.lines
+    );
 }
 
 #[test]

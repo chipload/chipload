@@ -20,6 +20,9 @@ properties. With the whole DXF selected on the canvas, right-click there for the
 - **Operations keep cutting the same shapes,** with the same G-code. The shapes keep their
   ids and layers. An operation that selected a layer *of that DXF* now selects its shapes
   by number, so a layer of the same name elsewhere doesn't join in; the report lists these.
+- **Shapes drawn twice,** on top of another on the same layer, go: the import report
+  already listed them as *Removed duplicate*, and they are never cut. Left in, they would
+  stay behind when you move what they repeat. The report names them.
 - **Circles that the placement turned** start at their right-hand point afterwards, as
   every drawn circle does, so the cut may start elsewhere on them. The report names them.
 

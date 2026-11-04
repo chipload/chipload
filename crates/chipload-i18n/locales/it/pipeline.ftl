@@ -485,6 +485,10 @@ pipeline-explode-dropped = { $count ->
     [one] La forma { $shapes } aveva solo segmenti più corti di { $tolerance } ed è stata eliminata.
    *[other] Le forme { $shapes } avevano solo segmenti più corti di { $tolerance } e sono state eliminate.
 }
+pipeline-explode-twins = { $count ->
+    [one] La forma { $shapes } era disegnata due volte, sopra un'altra sul suo layer, ed è stata eliminata.
+   *[other] Le forme { $shapes } erano disegnate due volte, sopra altre sui loro layer, e sono state eliminate.
+}
 # $label is an operation's label.
 pipeline-explode-selects = { $label } ora seleziona le forme { $shapes }.
 pipeline-explode-no-dxf = il progetto non ha un DXF da esplodere

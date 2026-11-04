@@ -206,6 +206,29 @@ fn a_closed_shape_on_top_of_another_on_the_same_layer_is_a_duplicate() {
 }
 
 #[test]
+fn a_shape_left_out_as_a_duplicate_is_the_twin_of_what_it_repeats() {
+    // Issue #12: circles drawn twice; the twin is in no contour, so it is listed with the
+    // shape it repeats.
+    let mut s = shape_square(1, "a", 0.0, 10.0);
+    s.extend(shape_square(2, "a", 0.0, 10.0));
+    // A line drawn on the square's lower edge and on to (20, 0): it is in a contour of its
+    // own, so it is no twin. A line on the square's left edge alone is.
+    let shape = |id, segment: Segment| Segment {
+        shape: Some(id),
+        ..on("a", segment)
+    };
+    s.push(shape(3, line((0.0, 0.0), (10.0, 0.0))));
+    s.push(shape(3, line((10.0, 0.0), (20.0, 0.0))));
+    s.push(shape(4, line((0.0, 10.0), (0.0, 0.0))));
+    let result = chain_segments(&s);
+    assert_eq!(result.duplicates.len(), 6);
+    assert_eq!(
+        result.twins,
+        [(2, [1].into()), (4, [1].into())].into_iter().collect()
+    );
+}
+
+#[test]
 fn a_line_touching_a_closed_shape_is_its_own_contour() {
     let mut s = vec![on("a", line((20.0, 20.0), (10.0, 10.0)))];
     s.extend(shape_square(1, "a", 0.0, 10.0));

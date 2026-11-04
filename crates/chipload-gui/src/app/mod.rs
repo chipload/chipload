@@ -5,7 +5,7 @@
 //! G-code decisions are calls into the pipeline; this file only edits a `Job` (a project)
 //! and shows results.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
@@ -32,7 +32,7 @@ use eframe::egui::{
 use crate::draw::{
     Cursor, Sketch, SnapPoint, Snapper, Step, Tool, grid_step, snap_cursor, snapper,
 };
-use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of};
+use crate::editor::{CanvasSelection, EditJob, OpKind, geometry_summary, shapes_of, with_twins};
 use crate::i18n::{Lang, t};
 use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{ContourShape, Highlight, Scene, StartMarker, ToolpathShape, View};
@@ -334,6 +334,8 @@ pub struct ChiploadApp {
 
     /// The project's contours (from its embedded drawing), and the drawing they came from.
     pub contours: Vec<Contour>,
+    /// Shapes left out as duplicates -> the shapes they repeat (`ImportResult::twins`).
+    twins: BTreeMap<u64, BTreeSet<u64>>,
     loaded_drawing: Option<Drawing>,
 
     /// The toolpath: the last result, whether it is out of date, the run in progress and what waits for it.
@@ -423,6 +425,7 @@ impl Default for ChiploadApp {
             history: history::History::default(),
             focus: Focus::Job,
             contours: Vec::new(),
+            twins: BTreeMap::new(),
             loaded_drawing: None,
             toolpath: generation::Toolpath::default(),
             error_ops: BTreeSet::new(),
@@ -579,6 +582,7 @@ impl ChiploadApp {
         match load_drawing(&job) {
             Ok(imported) => {
                 self.contours = imported.contours;
+                self.twins = imported.twins;
                 // Hidden groups and layers aren't drawn, so they can't be clicked either.
                 self.hidden_contours = sources::hidden_contours(&job.drawing, &self.contours);
                 self.scene.contours = self
@@ -592,6 +596,7 @@ impl ChiploadApp {
             }
             Err(err) => {
                 self.contours.clear();
+                self.twins.clear();
                 self.hidden_contours.clear();
                 self.scene.contours.clear();
                 self.drag.snapper = Snapper::default();
@@ -1791,7 +1796,7 @@ impl ChiploadApp {
                 .contains(&contour.id)
         {
             let mut left_out = left_out.clone();
-            let hit = shapes_of(contour);
+            let hit = with_twins(shapes_of(contour), &self.twins);
             if hit.is_subset(&left_out) {
                 left_out.retain(|s| !hit.contains(s));
             } else {
@@ -1804,7 +1809,7 @@ impl ChiploadApp {
             (CanvasSelection::Shapes(shapes), true) => shapes.clone(),
             (CanvasSelection::Layer(..) | CanvasSelection::Whole { .. }, true) => {
                 let ids = self.selected_ids();
-                match CanvasSelection::of_contours(&ids, &self.contours) {
+                match CanvasSelection::of_contours(&ids, &self.contours, &self.twins) {
                     CanvasSelection::Shapes(shapes) => shapes,
                     _ => BTreeSet::new(),
                 }
@@ -1813,7 +1818,7 @@ impl ChiploadApp {
         };
         let hit: BTreeSet<u64> = picked
             .and_then(|id| self.contours.iter().find(|c| c.id == id))
-            .map(shapes_of)
+            .map(|c| with_twins(shapes_of(c), &self.twins))
             .unwrap_or_default();
         if toggle && !hit.is_empty() && hit.is_subset(&shapes) {
             shapes.retain(|s| !hit.contains(s));

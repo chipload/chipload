@@ -39,6 +39,14 @@ Per shape, in order:
   others get new ids.
 - Segments shorter than `CHAIN_TOL_MM` are left out (the polyline rule; the import report
   already listed them).
+- **A shape drawn twice** (added 2026-11-04, issue #12): a shape that chaining leaves out
+  whole as a duplicate of other exploded shapes on its layer (the import report's *Removed
+  duplicate*) is removed, and the report names it. It is never cut, and as a drawn shape it
+  would stay behind when what it repeats is moved, then turn into a contour of its own. An
+  operation that selected it selects the shapes it repeats instead.
+
+Drawn shapes that are twins otherwise (a copy pasted in place) stay, but a click, a box or a
+drag that takes the shapes they repeat takes them along (`ChainResult::twins`).
 
 What stays:
 

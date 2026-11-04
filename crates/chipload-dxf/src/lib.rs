@@ -18,7 +18,7 @@ mod export;
 mod sanitize;
 mod svg;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, Polyline};
@@ -140,6 +140,8 @@ pub struct ImportReport {
 pub struct ImportResult {
     pub contours: Vec<Contour>,
     pub report: ImportReport,
+    /// Shapes left out whole as duplicates -> the shapes they repeat (`ChainResult::twins`).
+    pub twins: BTreeMap<u64, BTreeSet<u64>>,
 }
 
 /// A DXF read into shapes (ids 1, 2, … in import order), plus what only the import knows.
@@ -448,6 +450,7 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
         );
     }
 
+    let twins = chained.twins;
     let contours = classify(chained.contours, &mut issues);
     let first = sources.first();
     let summed = |counts: fn(&DrawingSource) -> &BTreeMap<String, usize>| {
@@ -469,7 +472,11 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
         ignored: summed(|s| &s.ignored),
         issues,
     };
-    ImportResult { contours, report }
+    ImportResult {
+        contours,
+        report,
+        twins,
+    }
 }
 
 fn resolve_units(

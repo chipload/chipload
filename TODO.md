@@ -221,6 +221,16 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
+### Since 0.33.0 (not released)
+
+- **Circles left behind after an explode and a move** (issue #12, 2026-11-04, the user's
+  `shared_edges.dxf`): nine circles drawn twice on one layer were left out of the contours
+  as duplicates, so a box round everything didn't take them and a move left them behind,
+  where they became contours of their own. Chaining now lists such twins
+  (`ChainResult::twins`); a click, a box or a drag takes a twin along with what it repeats,
+  and an explode removes the twins it reports (explode-and-join.md §2). The G-code is
+  unchanged. Answer the issue once it is released.
+
 ### In 0.33.0 (published 2026-11-03)
 
 - **Styles** (docs/specs/styles.md, ADR 0030; the direction review's step 2): an

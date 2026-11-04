@@ -66,7 +66,8 @@ fn temp_dir(name: &str) -> PathBuf {
 }
 
 fn select(app: &mut ChiploadApp, ids: &[usize]) {
-    app.selection = CanvasSelection::of_contours(&ids.iter().copied().collect(), &app.contours);
+    app.selection =
+        CanvasSelection::of_contours(&ids.iter().copied().collect(), &app.contours, &app.twins);
 }
 
 /// messy_2 imported: a pocket on the crossing bars, then the lower outline.

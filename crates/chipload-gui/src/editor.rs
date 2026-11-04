@@ -3,7 +3,7 @@
 //! valid `Job`. Plain data, no GUI, so every rule here is unit tested.
 //! See docs/specs/job-editor.md.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_i18n::Message;
@@ -51,14 +51,34 @@ pub fn shapes_of(contour: &Contour) -> BTreeSet<u64> {
         .collect()
 }
 
+/// `shapes` with the shapes left out as their duplicates (`twins`, from chaining): a twin is
+/// in no contour, so it goes wherever all the shapes it repeats go (issue #12).
+pub fn with_twins(
+    mut shapes: BTreeSet<u64>,
+    twins: &BTreeMap<u64, BTreeSet<u64>>,
+) -> BTreeSet<u64> {
+    let found: Vec<u64> = twins
+        .iter()
+        .filter(|(_, of)| of.is_subset(&shapes))
+        .map(|(&twin, _)| twin)
+        .collect();
+    shapes.extend(found);
+    shapes
+}
+
 impl CanvasSelection {
-    /// The selection made of these contours (their shapes).
-    pub fn of_contours(ids: &BTreeSet<usize>, contours: &[Contour]) -> Self {
+    /// The selection made of these contours (their shapes, with their `twins`).
+    pub fn of_contours(
+        ids: &BTreeSet<usize>,
+        contours: &[Contour],
+        twins: &BTreeMap<u64, BTreeSet<u64>>,
+    ) -> Self {
         let shapes: BTreeSet<u64> = contours
             .iter()
             .filter(|c| ids.contains(&c.id))
             .flat_map(shapes_of)
             .collect();
+        let shapes = with_twins(shapes, twins);
         if shapes.is_empty() {
             CanvasSelection::Nothing
         } else {
@@ -586,7 +606,11 @@ mod tests {
     }
 
     fn ids(list: &[usize]) -> CanvasSelection {
-        CanvasSelection::of_contours(&list.iter().copied().collect(), &messy_2())
+        CanvasSelection::of_contours(
+            &list.iter().copied().collect(),
+            &messy_2(),
+            &BTreeMap::new(),
+        )
     }
 
     fn new_job() -> EditJob {

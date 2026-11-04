@@ -488,6 +488,10 @@ pipeline-explode-dropped = { $count ->
     [one] La forme { $shapes } n'avait que des segments plus courts que { $tolerance } et a disparu.
    *[other] Les formes { $shapes } n'avaient que des segments plus courts que { $tolerance } et ont disparu.
 }
+pipeline-explode-twins = { $count ->
+    [one] La forme { $shapes } était dessinée deux fois, superposée à une autre sur son calque, et a disparu.
+   *[other] Les formes { $shapes } étaient dessinées deux fois, superposées à d'autres sur leurs calques, et ont disparu.
+}
 # $label is an operation's label.
 pipeline-explode-selects = { $label } sélectionne maintenant les formes { $shapes }.
 pipeline-explode-no-dxf = le projet n'a aucun DXF à décomposer

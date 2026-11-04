@@ -228,6 +228,8 @@ fn explode(
     out.drawing
         .hidden
         .retain(|h| h != &key && !h.starts_with(&format!("{key}/")));
+    let twins = drop_twins(&mut out, &mut became, &report.shapes)?;
+    report.shapes.retain(|s| !twins.contains(s));
 
     report.messages.push(done.arg("count", report.shapes.len()));
     let split: Vec<u64> = became
@@ -249,6 +251,13 @@ fn explode(
                 .arg("shapes", ids_text(&restarted)),
         );
     }
+    if !twins.is_empty() {
+        report.messages.push(
+            Message::new("pipeline-explode-twins")
+                .arg("count", twins.len())
+                .arg("shapes", ids_text(&twins)),
+        );
+    }
     if !report.removed.is_empty() {
         report.messages.push(
             Message::new("pipeline-explode-dropped")
@@ -261,6 +270,8 @@ fn explode(
         );
     }
 
+    report.removed.extend(&twins);
+    report.removed.sort_unstable();
     for (i, op) in out.operations.iter_mut().enumerate() {
         let label = op.label_message(i);
         let Some(select) = op.select_mut() else {
@@ -300,6 +311,41 @@ fn explode(
     }
     crate::refuse_problems(&out.drawing.validate())?;
     Ok((out, report.finish()))
+}
+
+/// The exploded shapes drawn twice on one layer, which chaining already leaves out as
+/// duplicates (a DXF's `Removed duplicate`), gone from the project: otherwise they would stay
+/// behind when what they repeat is moved (issue #12). An id they had in `became` is the
+/// shapes they repeat instead, so operations that selected them select those. Returns their
+/// ids, sorted.
+fn drop_twins(
+    out: &mut Job,
+    became: &mut BTreeMap<u64, Vec<u64>>,
+    exploded: &[u64],
+) -> Result<Vec<u64>, PipelineError> {
+    let exploded: BTreeSet<u64> = exploded.iter().copied().collect();
+    let twins: BTreeMap<u64, BTreeSet<u64>> = load_drawing(out)?
+        .twins
+        .into_iter()
+        .filter(|(twin, of)| exploded.contains(twin) && of.is_subset(&exploded))
+        .collect();
+    if twins.is_empty() {
+        return Ok(Vec::new());
+    }
+    out.drawing.shapes.retain(|s| !twins.contains_key(&s.id));
+    out.drawing.tidy_groups();
+    for ids in became.values_mut() {
+        let mut seen = BTreeSet::new();
+        *ids = ids
+            .iter()
+            .flat_map(|id| match twins.get(id) {
+                Some(of) => of.iter().copied().collect(),
+                None => vec![*id],
+            })
+            .filter(|id| seen.insert(*id))
+            .collect();
+    }
+    Ok(twins.into_keys().collect())
 }
 
 /// For each operation (by index) limited to `from`, the ids of the shapes it cuts: its

@@ -478,6 +478,10 @@ pipeline-explode-dropped = { $count ->
     [one] Shape { $shapes } had only segments shorter than { $tolerance } and is gone.
    *[other] Shapes { $shapes } had only segments shorter than { $tolerance } and are gone.
 }
+pipeline-explode-twins = { $count ->
+    [one] Shape { $shapes } was drawn twice, on top of another on its layer, and is gone.
+   *[other] Shapes { $shapes } were drawn twice, on top of others on their layers, and are gone.
+}
 # $label is an operation's label.
 pipeline-explode-selects = { $label } now selects shapes { $shapes }.
 pipeline-explode-no-dxf = the project has no DXF to explode
