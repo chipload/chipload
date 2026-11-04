@@ -163,7 +163,8 @@ A new project opens on Stock; a click on the board's edge in the top view opens 
 
 Two-sided work (a setup that is the same board turned over, its drawing mirrored, located
 with dowel pins or a fence) is the next step this makes possible, and its own spec: it needs
-mirrored geometry, registration holes and a check that the two sides agree.
+mirrored geometry, registration holes and a check that the two sides agree. Drafted as
+docs/specs/two-sided.md (2026-11-04).
 
 ## 10. Decisions
 

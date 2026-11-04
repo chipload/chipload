@@ -1,0 +1,275 @@
+# Spec: two-sided work, turning the board over
+
+Status: **draft 2026-11-04, for review.** Decisions 1, 3, 6 and 8 are the user's
+(2026-11-04): the back drawn as seen from the front, dowel pins with a corner as the
+fallback, sides that meet give at most a note, and the view stays the front's while
+generation mirrors. The way setups link (§3) follows the user's question "is it in the
+properties panel for setup 2 we say that it is the backside of setup 1?". Follows
+docs/specs/setups.md §9.
+
+## 1. Why
+
+Parts machined on both faces: a box side with a groove inside and a chamfer outside, a sign
+with a pocket for a hanger on its back, a cutting board with juice grooves on one face and
+feet recesses on the other. Today that means two projects, with the drawing mirrored by hand
+and the zero worked out on paper, which is where two-sided work goes wrong. The two sides
+must line up to a fraction of a millimetre, and the operator must turn the board the
+right way.
+
+A **back setup** is a setup that is the same board as another setup, turned over. Chipload
+mirrors its cuts, keeps the board and zero in step with the front, and tells the operator
+how to turn the board.
+
+## 2. How it works, for the user
+
+1. Draw everything in one drawing, **as seen from the front**. Back features go on their
+   own layers, where they lie when you look through the board from the front (an x-ray
+   view). Front and back then line up because they are the same coordinates.
+2. Right-click the front setup and choose **Add the back side**. That makes "Setup 1 back",
+   linked to setup 1, with one empty part for the back's operations.
+3. Click **Add dowel holes** in the back setup's form. That adds two holes at the start of
+   setup 1, on the line the board turns about.
+4. Add the back's operations to the back setup as usual, picking the back layers in the
+   front view.
+5. Run setup 1: the front's cuts and the dowel holes, through the board into the
+   spoilboard.
+6. Turn the board over as the setup sheet says, put a pin through each hole into the
+   spoilboard, and run setup 2.
+
+## 3. The link (the setup's form)
+
+A setup's form gets a **Board** choice:
+
+- *its own board*, as today;
+- *back of: Setup N ▾*, offered for every other setup that is not itself a back and has no
+  back yet.
+
+With *back of*, one more row, **Turn over**:
+
+- *left to right*: about the board's vertical centre line, so X is mirrored;
+- *top to bottom*: about its horizontal centre line, so Y is mirrored.
+
+The quick way is **Add the back side** on the right-click menu of a setup without a back:
+a new setup named "<name> back", linked, with *left to right*, one empty part, and made
+active.
+
+What the link does:
+
+- **The board is shared, not copied.** The back setup has no stock of its own. Its Stock
+  item shows the front's board read-only ("12 mm, Setup 1's board"), and a click on it opens
+  the front's Stock. Change the thickness in setup 1 and the back follows.
+- **The work zero follows the front's, mirrored** (§5). It can't be set separately: a zero
+  of its own would let the sides disagree.
+- **In the Browser** the back setup sits right after its front, named with its turn:
+  "Setup 1 back  ⟲ left to right". Its parts and operations are listed and edited as usual.
+
+Rules:
+
+- **One back per front.** A second setup can't be *back of* the same setup.
+- **No back of a back.** The back of the back is the front again.
+- **Removing the front** unlinks its back first: the back gets a copy of the board and the
+  zero as they were, with a note in the Report. Choosing *its own board* in the back's form
+  does the same.
+- **Turning a setup off** works as today. The link stays.
+
+## 4. Mirroring (decision 8)
+
+The view stays the front's. Shapes are drawn, picked and edited in front coordinates, and
+the back's toolpath preview and markers are shown there too, lying on the shapes they cut,
+as if seen through the board.
+
+**Generation mirrors the geometry before planning, not the toolpath after it.** For a back
+setup, the pipeline mirrors the contours its operations pick about the turn axis, then plans
+them, checks them and writes the G-code as for any setup. The preview shows that toolpath
+mirrored back into front coordinates.
+
+Mirroring a contour reverses its direction, and that is why the planner sees the mirrored
+geometry. The operation's settings mean what they say on the face being cut:
+
+- **inside stays inside,** **outside stays outside;**
+- **climb stays climb,** **conventional stays conventional,** as the spindle turns on the
+  back face;
+- **a ring's start point,** tabs placed by hand and dogbone corners move with the mirror,
+  so they stay on the same feature;
+- **tabs along X or Y** keep their axis.
+
+Mirroring the finished toolpath instead would turn every climb cut into a conventional one
+without a word. This is the part of the feature that can break tools, so it gets explicit
+tests: a profile and a pocket on the back, climb and conventional, compared move by move
+with the same shapes drawn mirrored on the front.
+
+**Text and pictures.** A text drawn reading correctly in the front view reads mirrored on
+the back. When a back setup's operation carves a text that isn't mirrored, the Report says
+so as a note: "Operation 5 (Name) on the back carves text that reads right from the front,
+so it reads mirrored on the back face. Mirror the text if it should read right there." It
+is a note, not a warning: a mirrored text can be intended (a stamp, a mould). See
+decision 9.
+
+**The simulation** of a back setup simulates the back face. It is shown seen through the
+board from the front, like everything else in the view, so it lines up with the drawing.
+The 3D view can be turned to look at it from below, the way the board will lie. Carrying
+the front's height map over to show the finished part is a later step (§10).
+
+## 5. The zero and the depths
+
+The turn axis is always the **board's centre line**, so the board maps onto itself and the
+checker's stock is the same rectangle for both sides.
+
+- **XY zero:** the front's zero mirrored about the axis.
+  - A stock corner becomes the corner across the axis: bottom-left becomes bottom-right
+    when turned left to right, top-left when turned top to bottom. The board's centre stays
+    the centre.
+  - The drawing origin and a point are mirrored as points.
+  - The sheet says where to zero on the turned board.
+- **The recommended zero for two-sided work is a dowel hole:** the same physical pin for
+  both sides. *Add dowel holes* offers to set the front's zero to the first pin's centre
+  (a point zero), and the back's follows: the pin is on the axis, so it mirrors onto itself.
+- **Z zero:** the front's choice, on the face now up. *Stock top* is the back face, and the
+  back's depths count from it. *Stock bottom* is the spoilboard, as before.
+- **Thickness after surfacing:** a surface operation in the front setup leaves the board
+  thinner. The back setup's thickness is the board's minus the front's deepest surfacing.
+  Its Stock row shows both ("12 mm board, 11.5 mm after surfacing"), and the checker and
+  the `through` depths use the thinner one. Otherwise a through cut on the back would go
+  further into the spoilboard than the checker believes.
+
+## 6. Dowel holes (decision 3)
+
+**Add dowel holes**, in the back setup's form, or `setup dowels` on the command line:
+
+- draws two circles of the pin diameter as drawn shapes, on a layer "dowels" (made if
+  missing), on the turn axis, one at each end, centred in the board's margin beyond the
+  parts' outline;
+- adds a holes operation "Dowel holes" first in the front setup's first part. It cuts
+  through the board and to the **pin depth** into the spoilboard, drilled with a drill of
+  the pin diameter, or bored with the end mill when there is none (as holes choose today);
+- the pin diameter defaults to 6 mm, and the pin depth to 8 mm below the stock.
+
+**The pin depth is allowed only inside the dowel circles.** Every other cut stays within the
+setup's *max depth below stock*. The checker gets the dowel circles from the project, as it
+gets the stock, never from the toolpath, so it stays independent. A move deeper than the
+max depth below stock is refused unless it lies inside a dowel circle (grown by the
+position tolerance), and there it may go to the pin depth.
+
+If the margin beyond the parts' outline on the axis is narrower than the pin diameter plus
+2 mm, the button says so and offers to widen the board's fit margin.
+
+The circles and the operation are ordinary: they can be moved along the axis, resized or
+removed. Only their role is marked (the operation's `dowels: true`), so the setup sheet can
+name them and the checker can allow their depth. A dowel circle moved off the axis is a
+problem: on the turned board it would no longer meet its hole.
+
+**The fallback without pins: a corner.** A back setup's form has **Register by: pins ▾ /
+a corner**. With *a corner*, no holes are needed. The sheet says to push the turned board
+into the same corner of the fence, and warns that the board's real size must match the
+stock's, because any error moves the back by up to twice that error.
+
+## 7. Sides that meet (decision 6)
+
+Where a front cut and a back cut overlap in XY and their depths together reach the board's
+thickness, the cut goes through. That can be by design: a window, a slot cut from both
+sides, a hole made by two pockets. So it is **at most a note** in the Report, never a
+warning or an error: "Operations 2 (front) and 6 (back) meet: together they cut through the
+board." It's worked out from the operations' outlines and depths, not from the simulation.
+
+## 8. The setup sheet
+
+The back setup's sheet starts with how to turn the board, in words and a small top-view
+picture of the board with the axis, the pins and an arrow:
+
+- "Turn the board over left to right, about the line through the pins: the left edge goes
+  to the right. The face that was down is now up."
+- With pins: "Put a 6 mm pin through each hole into the spoilboard."
+- With a corner: "Push the board into the same corner of the fence as for setup 1. Its
+  size must be exactly 300 × 200 mm."
+- "Zero: X Y at pin 1, Z at the top of the back face."
+
+The front's sheet says after its last operation: "Leave the board in place until the dowel
+holes are drilled. Setup 2 cuts its back."
+
+## 9. Command line and file
+
+- `chipload setup add part.chipload --back-of 1 [--turn left-right|top-bottom]`
+- `chipload setup set part.chipload 2 --back-of 1 --turn top-bottom`, or `--own-board` to
+  unlink
+- `chipload setup dowels part.chipload --setup 2 [--diameter 6] [--depth 8] [--zero]`
+  (`--zero` sets the front's zero to pin 1)
+- `chipload setup set part.chipload 2 --register corner`
+- `setup list` shows the link: "2  Setup 1 back  back of 1, left to right, pins".
+
+**Schema 36.** A setup is either its own board or a back:
+
+```json
+{ "id": 2, "name": "Setup 1 back", "enabled": true,
+  "back_of": { "setup": 1, "turn": "left_right", "register": "pins" } }
+```
+
+A back setup has `back_of` and no `stock` or `work_zero`. A holes operation may have
+`dowels: true` and a `pin_depth`. The field is optional, but the version **is bumped**: an
+older Chipload reading a back setup would cut it unmirrored, which ruins the part. The
+migration 35 → 36 changes nothing, since no older file has a back. There's a frozen v35
+sample and the usual golden test.
+
+Validation:
+
+- `back_of.setup` names another setup that is not itself a back;
+- no two backs name the same setup;
+- a back has no stock and no zero;
+- dowel circles lie on the axis (within the chaining tolerance).
+
+## 10. Not in this step
+
+- **The finished part in the simulation:** the front's height map carried over, turned,
+  and the back simulated on it. It needs a height map with a bottom surface as well as a
+  top. It's the natural next step, and its own spec.
+- **More than two sides,** for example edges machined standing up. That needs a fourth
+  axis or a vise setup, and is out of scope (ADR 0017).
+- **Pins on another line than the centre line.** It would let the pins sit where the board
+  has room, but the board would then no longer map onto itself.
+
+## 11. Decisions
+
+1. **The back is drawn as seen from the front (x-ray), and Chipload mirrors it.** *The user,
+   2026-11-04: as recommended.* Alternative: draw the back mirrored by hand, which is how
+   the sides come to disagree.
+2. **A back setup is linked in its own form, *Board: back of Setup N*, with a quick *Add the
+   back side* on the front's menu; the board is shared, the zero follows.** **Recommended**
+   (§3). Alternative: a "two-sided" switch on one setup holding both sides' parts: fewer
+   items, but a setup would then be two programs, against setups.md decision 3.
+3. **Dowel pins on the turn axis, a corner as the fallback.** *The user, 2026-11-04: as
+   recommended.* Pins on the axis map onto themselves, so the stock's real size doesn't
+   matter.
+4. **The turn axis is always the board's centre line.** **Recommended:** the board maps
+   onto itself, so the checker, the fit and the corners need nothing new. Alternative: any
+   line (§10).
+5. **Generation mirrors the geometry before planning, so climb, sides, starts and tabs keep
+   their meaning on the back face.** **Recommended** (§4), and a safety rule, not a
+   preference. Alternative: mirror the finished toolpath, which silently turns climb into
+   conventional.
+6. **Sides that meet are at most a note.** *The user, 2026-11-04: cutting pockets that meet
+   can be by design.* (§7)
+7. **The pin depth is allowed only inside the dowel circles, and the checker learns them
+   from the project.** **Recommended** (§6). Alternative: raise the setup's max depth below
+   stock to the pin depth. That's simpler, but then every cut could go 8 mm into the
+   spoilboard unchecked.
+8. **The view stays the front's; the toolpath is mirrored on generation.** *The user,
+   2026-11-04: "that is how the geometry is drawn. We see the result in the simulation."*
+   (§4)
+9. **Text on the back that isn't mirrored gives a note, and nothing is mirrored for the
+   user.** **Recommended:** a mirrored text may be meant. Alternative: mirror texts on back
+   layers automatically. That's convenient, but it breaks decision 1's rule that the back
+   is drawn as it lies.
+10. **The back's thickness is the board's minus the front's surfacing.** **Recommended**
+    (§5). Alternative: a note asking the user to set it: one more number to get wrong.
+11. **Schema 36, with a bump although the field is optional.** **Recommended** (§9): old
+    code must refuse a back setup rather than cut it unmirrored.
+12. **Order of work,** each step a commit:
+    1. the model, schema 36, validation, `setup add --back-of`, `setup set`;
+    2. planning: mirrored contours, zero, thickness after surfacing, with the
+       climb/conventional tests of §4 and a two-sided golden (a sign with a back pocket);
+    3. dowel holes: `setup dowels`, the checker's allowance inside the circles, the
+       problems;
+    4. the notes (text, sides that meet) and the setup sheet's turning words and picture;
+    5. the window: the Board and Turn over rows, *Add the back side*, *Add dowel holes*, the
+       read-only Stock;
+    6. the guide page, translations, schemas.
+    **Recommended.**
