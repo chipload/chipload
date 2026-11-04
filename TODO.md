@@ -221,7 +221,7 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### Since 0.33.0 (not released)
+### In 0.33.1 (tagged 2026-11-04)
 
 - **Circles left behind after an explode and a move** (issue #12, 2026-11-04, the user's
   `shared_edges.dxf`): nine circles drawn twice on one layer were left out of the contours
