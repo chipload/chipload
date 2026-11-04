@@ -17,7 +17,7 @@ generation-please-report = Ihr Projekt ist unverändert. Bitte melden Sie dies m
 generation-done = { $lines } Zeilen für { $post } berechnet. Prüfung bestanden.
 generation-done-files = { $lines } Zeilen in { $files } Dateien berechnet, eine je Werkzeuggruppe, für { $post }. Prüfung bestanden.
 # A warning from the G-code checker.
-generation-check-warning = Prüfung: { $message }
+generation-check = Prüfung: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Werkstücknullpunkt: { $zero }
 # "All parts" is a switch on the bar above the canvas.

@@ -204,6 +204,9 @@ pub(crate) fn run(
         for warning in &result.check_warnings {
             out.line(format!("check warning: {}", warning.message));
         }
+        for note in &result.check_notes {
+            out.line(format!("check note: {}", note.message));
+        }
         out.line(format!("Work zero: {}", one.work_zero_text()));
         if !names.is_empty() {
             out.line(format!("Only: {}", names.join(", ")));
@@ -638,6 +641,7 @@ pub(crate) fn check(out: &mut Out, gcode: &Path, job_path: &Path, tool: Option<i
             "ok": report.ok(),
             "errors": issues(&report.errors),
             "warnings": issues(&report.warnings),
+            "facts": issues(&report.notes),
         }));
     } else {
         for e in &report.errors {
@@ -645,6 +649,9 @@ pub(crate) fn check(out: &mut Out, gcode: &Path, job_path: &Path, tool: Option<i
         }
         for w in &report.warnings {
             out.line(format!("warning: {}", w.message));
+        }
+        for n in &report.notes {
+            out.line(format!("note: {}", n.message));
         }
         out.line(
             (if report.ok() {

@@ -316,6 +316,32 @@ fn a_report_with_warnings_opens_and_links_to_its_operations() {
 }
 
 #[test]
+fn a_through_cut_within_the_overcut_is_no_warning_in_the_report() {
+    // The README's first picture: an outline cut through, with tabs.
+    let showcase =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../packaging/docs/showcase.chipload");
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&showcase));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let warnings: Vec<_> = app
+        .report
+        .lines
+        .iter()
+        .filter(|l| l.tone == Tone::Warning)
+        .collect();
+    assert!(warnings.is_empty(), "{warnings:?}");
+    // The checker still says how deep it went, as a plain line.
+    assert!(
+        app.report
+            .lines
+            .iter()
+            .any(|l| l.tone == Tone::Info && l.text.contains("below the stock bottom")),
+        "{:?}",
+        app.report
+    );
+}
+
+#[test]
 fn an_edit_after_generating_marks_the_toolpath_out_of_date() {
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("jobs/v7/leads.chipload")));

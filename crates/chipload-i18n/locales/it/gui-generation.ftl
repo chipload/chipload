@@ -17,7 +17,7 @@ generation-please-report = Il tuo progetto è invariato. Segnala il problema all
 generation-done = Calcolate { $lines } righe per { $post }. Verifica superata.
 generation-done-files = Calcolate { $lines } righe in { $files } file, uno per gruppo di utensili, per { $post }. Verifica superata.
 # A warning from the G-code checker.
-generation-check-warning = Verifica: { $message }
+generation-check = Verifica: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Zero pezzo: { $zero }
 # "All parts" is a switch on the bar above the canvas.

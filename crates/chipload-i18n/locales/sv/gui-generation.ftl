@@ -17,7 +17,7 @@ generation-please-report = Ditt projekt är oförändrat. Rapportera gärna dett
 generation-done = Beräknade { $lines } rader för { $post }. Kontrollen godkänd.
 generation-done-files = Beräknade { $lines } rader i { $files } filer, en per verktygsgrupp, för { $post }. Kontrollen godkänd.
 # A warning from the G-code checker.
-generation-check-warning = Kontroll: { $message }
+generation-check = Kontroll: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Arbetsnollpunkt: { $zero }
 # "All parts" is a switch on the bar above the canvas.

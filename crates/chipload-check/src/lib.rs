@@ -165,6 +165,8 @@ impl CheckIssue {
 pub struct CheckReport {
     pub errors: Vec<CheckIssue>,
     pub warnings: Vec<CheckIssue>,
+    /// Plain lines, nothing wrong: moves below the stock bottom within the allowed overcut.
+    pub notes: Vec<CheckIssue>,
 }
 
 impl CheckReport {
@@ -278,7 +280,7 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
                 "allowed",
                 Value::Length(limits.max_overcut, Digits::Fixed(3)),
             );
-        report.warnings.push(CheckIssue::new(0, message));
+        report.notes.push(CheckIssue::new(0, message));
     }
     if state.outside_stock > 0 {
         let message = Message::new("check-outside-stock").arg("count", state.outside_stock);

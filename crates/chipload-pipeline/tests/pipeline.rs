@@ -134,6 +134,28 @@ fn sample_runs_and_passes_check() {
 }
 
 #[test]
+fn a_through_cut_is_a_plain_check_note_not_a_warning() {
+    // 0.3 mm into the spoilboard, within the 0.5 mm allowed.
+    let result = run(&job(json!({
+        "stock": {"max_overcut": 0.5},
+        "operations": [op(json!({"end_depth": 12.3}))],
+    })));
+    assert!(
+        result.check_warnings.is_empty(),
+        "{:?}",
+        result.check_warnings
+    );
+    assert_eq!(result.check_notes.len(), 1, "{:?}", result.check_notes);
+    assert!(
+        result.check_notes[0]
+            .message
+            .contains("below the stock bottom (deepest Z-12.300 mm"),
+        "{:?}",
+        result.check_notes
+    );
+}
+
+#[test]
 fn depth_equal_to_thickness_is_allowed() {
     let result = run(&job(json!({"operations": [op(json!({"end_depth": 12}))]})));
     assert_eq!(min(&z_values(&result.files[0].gcode)), -12.0);

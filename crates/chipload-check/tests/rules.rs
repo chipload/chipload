@@ -178,16 +178,25 @@ fn exact_messages() {
 }
 
 #[test]
-fn below_the_stock_is_a_warning_within_the_overcut_and_an_error_beyond() {
+fn below_the_stock_is_a_plain_note_within_the_overcut_and_an_error_beyond() {
     let mut allowed = limits();
     allowed.max_overcut = 0.5;
     let program = |z: &str| format!("{HEADER}G0 X10 Y10\nG1 Z{z} F100\n{FOOTER}");
     let within = check_gcode(&program("-18.3"), &allowed);
     assert!(within.ok(), "{:?}", within.errors);
     assert!(
-        within.warnings.iter().any(|w| w
+        within.notes.iter().any(|n| n
             .message
             .contains("1 move goes below the stock bottom (deepest Z-18.300")),
+        "{:?}",
+        within.notes
+    );
+    // Nothing wrong: not a warning.
+    assert!(
+        !within
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("below the stock bottom")),
         "{:?}",
         within.warnings
     );

@@ -17,7 +17,7 @@ generation-please-report = Your project is unchanged. Please report this with th
 generation-done = Generated { $lines } lines for { $post }. Check passed.
 generation-done-files = Generated { $lines } lines in { $files } files, one per tool group, for { $post }. Check passed.
 # A warning from the G-code checker.
-generation-check-warning = Check: { $message }
+generation-check = Check: { $message }
 # Where X, Y and Z zero are on the stock.
 generation-work-zero = Work zero: { $zero }
 # "All parts" is a switch on the bar above the canvas.

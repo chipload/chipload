@@ -177,6 +177,16 @@ pub struct RunResult {
     /// Plain notes, each with the operation it is about: a V-groove's width.
     pub facts: Vec<Note>,
     pub check_warnings: Vec<CheckIssue>,
+    /// The checker's plain lines: moves below the stock bottom within the allowed overcut.
+    pub check_notes: Vec<CheckIssue>,
+}
+
+/// What the checker said about a run's programs besides errors, each line naming its file
+/// when there are several.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct CheckFindings {
+    pub warnings: Vec<CheckIssue>,
+    pub notes: Vec<CheckIssue>,
 }
 
 /// One G-code file of a run.
@@ -657,7 +667,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     let imported = load_drawing(job)?;
     let plan = plan_job_cancellable(job, &imported.contours, cancel)?;
     cancel.check()?;
-    let (files, check_warnings) = post_and_check(job, &post, &plan.program, &plan.groups)?;
+    let (files, checked) = post_and_check(job, &post, &plan.program, &plan.groups)?;
     let estimate = estimate::estimate(
         job,
         &plan.program,
@@ -694,7 +704,8 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         floor_hints: plan.floor_hints,
         notes,
         facts: plan.facts,
-        check_warnings,
+        check_warnings: checked.warnings,
+        check_notes: checked.notes,
     })
 }
 
@@ -714,7 +725,7 @@ pub fn post_and_check(
     post: &PostConfig,
     program: &Program,
     groups: &[ToolGroup],
-) -> Result<(Vec<GcodeFile>, Vec<CheckIssue>), PipelineError> {
+) -> Result<(Vec<GcodeFile>, CheckFindings), PipelineError> {
     let work_zero = work_zero_note(job);
     let units = job.machine.gcode_units;
     let several = groups.len() > 1;
@@ -722,7 +733,7 @@ pub fn post_and_check(
         return one_file_with_tool_changes(job, post, program, groups);
     }
     let mut files = Vec::new();
-    let mut warnings = Vec::new();
+    let mut checked = CheckFindings::default();
     for (i, group) in groups.iter().enumerate() {
         let part = in_work_coordinates(&group.program(program), job.work_zero_xy());
         let gcode = if several {
@@ -742,17 +753,17 @@ pub fn post_and_check(
         if !report.ok() {
             return Err(check_failed(&report.errors, file, program));
         }
-        warnings.extend(report.warnings.iter().map(|w| {
-            match file {
-                Some(file) => CheckIssue::new(
-                    w.line,
-                    Message::new("pipeline-check-file")
-                        .arg("file", file)
-                        .arg("message", w.text_message.clone()),
-                ),
-                None => w.clone(),
-            }
-        }));
+        let in_file = |w: &CheckIssue| match file {
+            Some(file) => CheckIssue::new(
+                w.line,
+                Message::new("pipeline-check-file")
+                    .arg("file", file)
+                    .arg("message", w.text_message.clone()),
+            ),
+            None => w.clone(),
+        };
+        checked.warnings.extend(report.warnings.iter().map(in_file));
+        checked.notes.extend(report.notes.iter().map(in_file));
         files.push(GcodeFile {
             suffix: several.then(|| format!("-{}-T{}", i + 1, group.tool.id)),
             tool: group.tool.id,
@@ -760,7 +771,7 @@ pub fn post_and_check(
             gcode,
         });
     }
-    Ok((files, warnings))
+    Ok((files, checked))
 }
 
 /// Every group in one program with `T M6` between them (docs/specs/tool-per-operation.md
@@ -770,7 +781,7 @@ fn one_file_with_tool_changes(
     post: &PostConfig,
     program: &Program,
     groups: &[ToolGroup],
-) -> Result<(Vec<GcodeFile>, Vec<CheckIssue>), PipelineError> {
+) -> Result<(Vec<GcodeFile>, CheckFindings), PipelineError> {
     let parts: Vec<ToolPart> = groups
         .iter()
         .map(|g| ToolPart {
@@ -796,7 +807,11 @@ fn one_file_with_tool_changes(
         operations: groups.iter().flat_map(|g| g.operations.clone()).collect(),
         gcode,
     };
-    Ok((vec![file], report.warnings))
+    let checked = CheckFindings {
+        warnings: report.warnings,
+        notes: report.notes,
+    };
+    Ok((vec![file], checked))
 }
 
 /// The checker's `errors` as the refusal: each with its line, and its file's number when

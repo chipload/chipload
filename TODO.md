@@ -162,11 +162,6 @@ to a program you trust. It was about four per operation; with the defaults and s
     *Recommended:* narrow the claim to routers and mills until a user asks; the
     alternative is a basic laser post and mode with its own spec. The user decides.
 12. **Small follow-ups:**
-    - **A through cut's checker line is a warning** (the user agreed 2026-11-04, after
-      0.33.1): "N moves go below the stock bottom … within the allowed 0.500 mm" shows as
-      a warning in the report (⚠ on the Report tab) for every through cut, though it is
-      inside the allowed overcut. The plan's own line became a fact in 0.33; make this one
-      a plain line too, with its tests. The README's first picture shows the ⚠ until then.
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
     - Materials: import and export in the window (the command line has `material
@@ -226,7 +221,17 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### In 0.33.1 (tagged 2026-11-04)
+### Not released yet
+
+- **A through cut's checker line is a plain note** (2026-11-04): "N moves go below the
+  stock bottom … within the allowed 0.500 mm" was a warning (⚠ on the Report tab) for
+  every through cut. The checker gives it as a note now (`CheckReport::notes`,
+  `RunResult::check_notes`, `facts` in `check --json`), shown as an Info line in the
+  Report and "check note:" by `run`; the setup sheet's Watch out leaves it out, as the
+  operation's own line already says how deep it goes. Cuts beyond the allowance are still
+  refused.
+
+### In 0.33.1 (published 2026-11-04)
 
 - **An outside profile refused on a rare arc** (2026-11-04, the offset property test in
   CI): an arc of the tool path split at its lowest point less than 0.001 mm from its end

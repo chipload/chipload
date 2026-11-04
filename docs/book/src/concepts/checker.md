@@ -21,8 +21,13 @@ toolpath code is likely to be caught by the checker, and the other way round.
 - any G or M code it doesn't know (see [Post-processors](../posts.md#your-own-post)).
 
 **What it warns about:**
-- cuts into the spoilboard, within the allowed depth;
+- cutting moves that end outside the stock (grown by the tool radius);
 - travel limits that weren't checked because the machine's travel isn't set.
+
+**What it says as a plain line:** how many moves go into the spoilboard and how deep, when
+they stay within the allowed depth. A through cut does this on purpose, so the Report shows
+it as a note, not a warning. The operation's own line says whether it was meant: a note for
+an operation with **Through** ticked, a warning for one that isn't.
 
 **On any G-code:** `chipload check part.nc --job part.chipload` checks a file, also one
 made by another program, against a project's stock and machine. With several tools, add

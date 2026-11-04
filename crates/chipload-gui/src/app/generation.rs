@@ -394,9 +394,14 @@ impl ChiploadApp {
             report.push_message(Tone::Info, fact.message.clone(), fact.operation);
         }
         for warning in &result.check_warnings {
-            let message = Message::new("generation-check-warning")
-                .arg("message", warning.text_message.clone());
+            let message =
+                Message::new("generation-check").arg("message", warning.text_message.clone());
             report.push_message(Tone::Warning, message, None);
+        }
+        for note in &result.check_notes {
+            let message =
+                Message::new("generation-check").arg("message", note.text_message.clone());
+            report.push_message(Tone::Info, message, None);
         }
         let zero = Self::work_zero_message(job);
         report.push_message(Tone::Info, zero, None);
