@@ -7,8 +7,11 @@ for Linux, Windows and macOS, written in Rust.
 **[User guide](https://chipload.github.io/chipload/)** · **[Download](https://github.com/chipload/chipload/releases)**
 
 ![Chipload: a plaque with a pocket round an island, bored holes, the Chipload logo V-carved
-from a traced picture and an outline held by tabs, its toolpaths over the simulated stock in
-3D](docs/book/src/images/showcase.png)
+from a traced picture and an outline cut through and held by tabs along X, its toolpaths over the simulated
+stock in 3D](docs/book/src/images/showcase.png)
+
+![Chipload: the word "Workshop" in a script font, V-carved with a 25° V-bit, as the
+simulation shows it in 3D](docs/book/src/images/showcase-text.png)
 
 > **Testers with real machines wanted.** Chipload's programs pass its own checker, and they
 > cut wood on a GRBL router (a Shapeoko), but they haven't yet run on LinuxCNC or Mach3/4,

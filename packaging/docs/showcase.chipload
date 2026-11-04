@@ -1,6 +1,6 @@
 {
-  "schema_version": 28,
-  "written_by": "chipload 0.21.1",
+  "schema_version": 35,
+  "written_by": "chipload 0.33.1",
   "drawing": {
     "shapes": [
       {
@@ -1288,14 +1288,27 @@
     ],
     "hidden": []
   },
-  "stock": {
-    "x": 170.0,
-    "y": 110.0,
-    "thickness": 12.0,
-    "origin": "bottom_left",
-    "z_zero": "top",
-    "max_overcut": 0.5
-  },
+  "setups": [
+    {
+      "id": 1,
+      "name": "Setup 1",
+      "enabled": true,
+      "stock": {
+        "x": 170.0,
+        "y": 110.0,
+        "thickness": 12.0,
+        "origin": "drawing",
+        "fit": 20.0,
+        "z_zero": "top",
+        "max_overcut": 0.5,
+        "material": null
+      },
+      "work_zero": {
+        "at": "drawing_origin"
+      }
+    }
+  ],
+  "active_setup": null,
   "machine": {
     "name": null,
     "library_uid": null,
@@ -1308,9 +1321,6 @@
       "x": 800.0,
       "y": 600.0,
       "z": 100.0
-    },
-    "work_zero": {
-      "at": "drawing_origin"
     },
     "tool_change": "files",
     "custom_post": null
@@ -1346,7 +1356,8 @@
       "id": 1,
       "name": "Part 1",
       "enabled": true,
-      "copies": null
+      "copies": null,
+      "setup": 1
     }
   ],
   "active_part": 1,
@@ -1356,6 +1367,7 @@
       "name": "Engrave logo",
       "enabled": true,
       "part": 1,
+      "material": null,
       "select": {
         "layer": null,
         "shapes": null,
@@ -1364,7 +1376,8 @@
       "tool": 2,
       "start_depth": 0.0,
       "end_depth": 5.5,
-      "step_down": 1.6,
+      "passes": 4,
+      "ignore_kinks_deg": 0.0,
       "feed": 1200.0,
       "plunge_feed": 400.0
     },
@@ -1373,6 +1386,7 @@
       "name": "Pocket",
       "enabled": true,
       "part": 1,
+      "material": null,
       "select": {
         "layer": "pocket",
         "shapes": null
@@ -1380,9 +1394,12 @@
       "tool": 1,
       "start_depth": 0.0,
       "end_depth": 5.0,
+      "through": null,
       "clearance": 0.0,
       "step_down": 2.5,
       "stepover": 0.4,
+      "slot_feed": null,
+      "slot_step_down": null,
       "direction": "climb",
       "feed": 1500.0,
       "plunge_feed": 400.0,
@@ -1400,6 +1417,7 @@
       "name": "Holes",
       "enabled": true,
       "part": 1,
+      "material": null,
       "select": {
         "layer": "holes",
         "shapes": null
@@ -1407,6 +1425,7 @@
       "tool": 1,
       "start_depth": 0.0,
       "end_depth": 12.0,
+      "through": null,
       "feed": 1200.0,
       "plunge_feed": 400.0,
       "method": {
@@ -1421,6 +1440,7 @@
       "name": "Outline",
       "enabled": true,
       "part": 1,
+      "material": null,
       "select": {
         "layer": "outline",
         "shapes": null
@@ -1429,7 +1449,8 @@
       "direction": "climb",
       "tool": 1,
       "start_depth": 0.0,
-      "end_depth": 12.0,
+      "end_depth": 12.5,
+      "through": 0.5,
       "clearance": 0.0,
       "step_down": 4.0,
       "feed": 1800.0,
@@ -1438,7 +1459,8 @@
         "count": 4,
         "width": 8.0,
         "height": 2.5,
-        "flank_angle": 0.05235987755982988
+        "flank_angle": 0.17453292519943295,
+        "along": "x"
       },
       "ramp_angle": 0.05235987755982988,
       "starts": [],

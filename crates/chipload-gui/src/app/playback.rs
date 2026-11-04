@@ -356,6 +356,15 @@ impl ChiploadApp {
         if steps.contains(&"notoolpath") {
             self.display.toolpath = false;
         }
+        // The drawing hidden in Simulate, so the carved stock shows (the README's second
+        // picture).
+        if steps.contains(&"nodrawing") {
+            self.set_show_drawing(false);
+        }
+        // The panels hidden, as P does: the canvas fills the window.
+        if steps.contains(&"nopanels") {
+            self.panels.toggle_hidden();
+        }
         // The first pocket's first rest pass open (docs/specs/rest-passes.md).
         if steps.contains(&"pass") {
             self.focus = Focus::RestPass(0, 0);

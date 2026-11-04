@@ -59,6 +59,13 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "simulation,3d,noreport,noimages,op4",
         (1600.0, 950.0),
     ),
+    // The README's second picture: a word in a script font V-carved with a 25° V-bit.
+    (
+        "showcase-text",
+        "packaging/docs/showcase-text.chipload",
+        "simulation,3d,noreport,notoolpath,nodrawing,nopanels",
+        (1600.0, 950.0),
+    ),
     // The Text page: a text and its properties.
     (
         "text",
