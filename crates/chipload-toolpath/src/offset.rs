@@ -159,6 +159,10 @@ pub fn flatten_tagged(pline: &Polyline<f64>, arcs: &mut ArcTable) -> Vec<Point> 
     ring
 }
 
+/// The arc split at its lowest point, so a ring can start there. Not where a piece would be
+/// shorter than CHAIN_TOL_MM: `dedupe_ring` would drop the split point, joining that piece's
+/// chord to the next one, and the joined chord could stray farther than ARC_APPROX_TOL_MM
+/// from the arc (found by the offset property test, 2026-11-04).
 fn split_at_bottom(arc: &Arc) -> Vec<Arc> {
     let bottom = -FRAC_PI_2;
     let delta = if arc.sweep > 0.0 {
@@ -167,6 +171,10 @@ fn split_at_bottom(arc: &Arc) -> Vec<Arc> {
         (arc.start_angle - bottom).rem_euclid(TAU)
     };
     if delta <= 0.0 || delta >= arc.sweep.abs() {
+        return vec![*arc];
+    }
+    let shortest = arc.radius * delta.min(arc.sweep.abs() - delta);
+    if shortest < CHAIN_TOL_MM {
         return vec![*arc];
     }
     let first = delta.copysign(arc.sweep);
