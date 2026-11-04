@@ -221,15 +221,13 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### Since 0.33.1 (not released)
+### In 0.33.1 (tagged 2026-11-04)
 
 - **Dark corners on the panels in the light theme** (issue #14, 2026-11-04, Windows 10,
   0.33.0; seen on Linux too): egui_dock rounds the tab bars' top corners and the panels'
   bodies, and what is behind the dock showed through, dark. The dock's corners are square
   now (`layout::dock_style`). The guide's screenshots change by those pixels at the next
   renewal. Answer the issue once it is released.
-
-### In 0.33.1 (tagged 2026-11-04)
 
 - **Circles left behind after an explode and a move** (issue #12, 2026-11-04, the user's
   `shared_edges.dxf`): nine circles drawn twice on one layer were left out of the contours
