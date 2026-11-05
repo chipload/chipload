@@ -8,5 +8,7 @@ pipeline-simulation-removed = Simulazione: { $volume } cm³ rimossi, celle { $ce
 pipeline-simulation-deepest = {"  "}Taglio più profondo: Z{ $z } ({ $depth } sotto la superficie del grezzo)
 pipeline-simulation-nothing-cut = {"  "}Nessun taglio
 pipeline-simulation-below-bottom = {"  "}Taglia { $depth } sotto il fondo del grezzo (dentro il piano di sacrificio)
+pipeline-simulation-through = {"  "}Tagliato da parte a parte: { $area } cm²
+pipeline-simulation-sides-meet = {"  "}Le due facce si incontrano: insieme attraversano la tavola su { $area } cm²
 pipeline-simulation-drill-point = {"  "}Punte simulate con vertice a 118°
 pipeline-simulation-vbit-angle = {"  "}Fresa a V senza angolo simulata a 90°

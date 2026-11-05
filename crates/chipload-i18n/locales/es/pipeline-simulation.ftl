@@ -8,5 +8,7 @@ pipeline-simulation-removed = Simulación: { $volume } cm³ retirados, celdas de
 pipeline-simulation-deepest = {"  "}Corte más profundo: Z{ $z } ({ $depth } por debajo de la cara superior del material en bruto)
 pipeline-simulation-nothing-cut = {"  "}No se ha cortado nada
 pipeline-simulation-below-bottom = {"  "}Corta { $depth } por debajo de la cara inferior del material en bruto (dentro del tablero de sacrificio)
+pipeline-simulation-through = {"  "}Cortado de lado a lado: { $area } cm²
+pipeline-simulation-sides-meet = {"  "}Las dos caras se encuentran: juntas atraviesan el tablero en { $area } cm²
 pipeline-simulation-drill-point = {"  "}Brocas simuladas con una punta de 118°
 pipeline-simulation-vbit-angle = {"  "}Una fresa en V sin ángulo se simula como de 90°

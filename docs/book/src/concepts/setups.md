@@ -147,5 +147,9 @@ open the front's, and how thick the board is after the front's surfacing. You pi
 the back's shapes in the same view as the front's, where you drew them; only its G-code and
 its setup sheet are turned over.
 
-This is being built (docs/specs/two-sided.md): a simulation of both sides is still to come.
+Simulating a back setup shows the whole part: its front cut first, then the back from
+below ([Simulation](../checking/simulation.md)).
+
+This is being built (docs/specs/two-sided.md): the 3D view draws only the top surface so
+far, without walls or the back face.
 

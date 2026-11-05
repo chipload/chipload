@@ -41,6 +41,10 @@ pub struct Simulation {
     /// Row by row from the bottom (lowest Y), each from the left: the top of the material,
     /// program Z, mm.
     pub heights: Vec<f32>,
+    /// Row by row as `heights`: the bottom of the material, in the same Z, raised by a back
+    /// setup's cuts (docs/specs/two-sided.md §10.1); the stock bottom where nothing is cut
+    /// from below. A cell whose floor reaches its height is cut through.
+    pub floors: Vec<f32>,
     /// Program Z of the stock top and bottom.
     pub top: f64,
     pub bottom: f64,
@@ -61,6 +65,11 @@ pub struct Numbers {
     pub drill_point_assumed: bool,
     /// A V-bit without an angle, simulated as 90°.
     pub vbit_angle_assumed: bool,
+    /// Simulating a back setup on its front's result (docs/specs/two-sided.md §10.1): the
+    /// area cut through, cm², and the part of it both sides cut, where they meet. None for
+    /// any other setup.
+    pub through_cm2: Option<f64>,
+    pub meet_cm2: Option<f64>,
 }
 
 /// The shape of a tool's cutting end.
@@ -128,6 +137,10 @@ fn grid_size(x: f64, y: f64, cell: f64) -> (usize, usize) {
 
 /// Cut the stock with `program` (drawing coordinates, before the work-zero shift), each
 /// move with the tool of its tool group. `cell`: None for the automatic size.
+///
+/// A back setup's program (docs/specs/two-sided.md §10.1) is cut from below on its front's
+/// result: the front is planned and simulated first, then the back's moves, planned in the
+/// front's coordinates, raise the floors.
 pub fn simulate(
     job: &Job,
     program: &Program,
@@ -135,7 +148,8 @@ pub fn simulate(
     cell: Option<f64>,
     cancel: &Cancel,
 ) -> Result<Simulation, PipelineError> {
-    run(job, program, groups, cell, cancel, false).map(|(sim, _)| sim)
+    let base = front_of_back(job, cell, cancel)?;
+    run(job, program, groups, cell, cancel, false, base.as_ref()).map(|(sim, _)| sim)
 }
 
 /// [`simulate`], also recording every cell's history on the display grid (docs/specs/
@@ -147,7 +161,38 @@ pub fn simulate_with_history(
     cell: Option<f64>,
     cancel: &Cancel,
 ) -> Result<(Simulation, Option<History>), PipelineError> {
-    run(job, program, groups, cell, cancel, true)
+    let base = front_of_back(job, cell, cancel)?;
+    run(job, program, groups, cell, cancel, true, base.as_ref())
+}
+
+/// When the active setup is a back: its front planned and simulated on its own, the board
+/// the back is cut on. None for any other setup.
+fn front_of_back(
+    job: &Job,
+    cell: Option<f64>,
+    cancel: &Cancel,
+) -> Result<Option<Simulation>, PipelineError> {
+    let Some(front) = job
+        .back_turn()
+        .and_then(|_| job.active_setup_id())
+        .and_then(|id| job.front_of(id))
+        .map(|f| f.id)
+    else {
+        return Ok(None);
+    };
+    let front = job.for_setup(front);
+    let contours = crate::load_drawing(&front)?.contours;
+    let plan = chipload_toolpath::plan_job_cancellable(&front, &contours, cancel)?;
+    let (sim, _) = run(
+        &front,
+        &plan.program,
+        &plan.groups,
+        cell,
+        cancel,
+        false,
+        None,
+    )?;
+    Ok(Some(sim))
 }
 
 fn run(
@@ -157,6 +202,7 @@ fn run(
     cell: Option<f64>,
     cancel: &Cancel,
     with_history: bool,
+    base: Option<&Simulation>,
 ) -> Result<(Simulation, Option<History>), PipelineError> {
     let stock = &job.stock();
     // The stock's real size (it may fit the drawing): the grid covers exactly it.
@@ -194,26 +240,55 @@ fn run(
             cell
         }
     };
+    // A back is cut on its front's board, on the same grid: heights and floors in the
+    // front's Z, a back's depth d below its own face reaching up to the front's bottom + d.
+    let cell = base.map_or(cell, |b| b.cell);
     let (columns, rows) = grid_size(size_x, size_y, cell);
     let (origin, _) = job.stock_bounds();
-    let top = stock.top_z();
+    let top = base.map_or(stock.top_z(), |b| b.top);
+    let bottom = base.map_or(top - stock.thickness, |b| b.bottom);
+    let up = base.map(|b| (b.bottom, stock.top_z()));
     let mut numbers = Numbers {
         removed_cm3: 0.0,
         deepest: None,
         below_bottom: None,
-        drill_point_assumed: false,
-        vbit_angle_assumed: false,
+        drill_point_assumed: base.is_some_and(|b| b.numbers.drill_point_assumed),
+        vbit_angle_assumed: base.is_some_and(|b| b.numbers.vbit_angle_assumed),
+        through_cm2: None,
+        meet_cm2: None,
+    };
+    let (heights, floors) = match base {
+        Some(b) => (b.heights.clone(), b.floors.clone()),
+        None => (
+            vec![top as f32; columns * rows],
+            vec![bottom as f32; columns * rows],
+        ),
     };
     let recorder = with_history.then(|| {
         let factor = factor_for_size(columns, rows, DISPLAY_CELLS, usize::MAX);
-        Recorder::new(columns.div_ceil(factor), rows.div_ceil(factor), factor, top)
+        let start = Simulation {
+            origin,
+            cell,
+            columns,
+            rows,
+            heights: heights.clone(),
+            floors: floors.clone(),
+            top,
+            bottom,
+            size: (size_x, size_y),
+            numbers: numbers.clone(),
+        }
+        .coarsened(factor);
+        Recorder::new(start, factor)
     });
     let mut grid = Grid {
         origin,
         cell,
         columns,
         rows,
-        heights: vec![top as f32; columns * rows],
+        heights,
+        floors,
+        up,
         recorder,
     };
     let mut here: (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
@@ -243,8 +318,12 @@ fn run(
         }
         grid.cut((x0, y0, z0), (x1, y1, z1), shape);
     }
-    let bottom = top - stock.thickness;
-    numbers.removed_cm3 = grid.removed(top, size_x, size_y) / 1000.0;
+    numbers.removed_cm3 = grid.removed(top, bottom, size_x, size_y) / 1000.0;
+    if up.is_some() {
+        let (through, meet) = grid.through(bottom, size_x, size_y);
+        numbers.through_cm2 = Some(through / 100.0);
+        numbers.meet_cm2 = Some(meet / 100.0);
+    }
     let lowest = grid
         .heights
         .iter()
@@ -257,6 +336,7 @@ fn run(
     }
     let history = grid.recorder.take().and_then(|r| {
         let (factor, columns, rows) = (r.factor, r.columns, r.rows);
+        let (start_heights, start_floors) = (r.start_heights.clone(), r.start_floors.clone());
         r.finish(History {
             origin,
             cell: cell * factor as f64,
@@ -265,6 +345,8 @@ fn run(
             top,
             bottom,
             size: (size_x, size_y),
+            start_heights,
+            start_floors,
             starts: Vec::new(),
             entries: Vec::new(),
         })
@@ -275,6 +357,7 @@ fn run(
         columns,
         rows,
         heights: grid.heights,
+        floors: grid.floors,
         top,
         bottom,
         size: (size_x, size_y),
@@ -307,18 +390,24 @@ pub struct History {
     pub top: f64,
     pub bottom: f64,
     pub size: (f64, f64),
+    /// The board before the first move: the stock as it comes, or a back's front cut
+    /// (docs/specs/two-sided.md §10.1).
+    start_heights: Vec<f32>,
+    start_floors: Vec<f32>,
     /// Cell `c`'s entries are `entries[starts[c]..starts[c + 1]]`.
     starts: Vec<usize>,
     entries: Vec<Entry>,
 }
 
 /// One lowering of a history cell: the move, how far along it the tool first reached the
-/// cell (0 to [`ALONG_MAX`] for the move's start to its end), and the cell's height after it.
+/// cell (0 to [`ALONG_MAX`] for the move's start to its end), and the cell's height after it;
+/// for a back's move, its floor raised to `z` instead.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Entry {
     pub step: u32,
     pub along: u16,
     pub z: f32,
+    pub floor: bool,
 }
 
 /// `Entry::along` at the end of a move.
@@ -340,7 +429,22 @@ impl History {
 
     /// The heights after `done` moves and, with `reached`, the part of move `done` up to it.
     fn heights_with(&self, done: usize, reached: Option<u16>) -> Vec<f32> {
+        self.values_with(done, reached, false)
+    }
+
+    /// The floors after `done` moves, as [`History::heights_with`].
+    fn floors_with(&self, done: usize, reached: Option<u16>) -> Vec<f32> {
+        self.values_with(done, reached, true)
+    }
+
+    /// Each cell's last height (or floor) set by the moves up to `done`, else its start.
+    fn values_with(&self, done: usize, reached: Option<u16>, floors: bool) -> Vec<f32> {
         let cells = self.columns * self.rows;
+        let start = if floors {
+            &self.start_floors
+        } else {
+            &self.start_heights
+        };
         (0..cells)
             .map(|c| {
                 let run = &self.entries[self.starts[c]..self.starts[c + 1]];
@@ -348,11 +452,11 @@ impl History {
                     (e.step as usize) < done
                         || (e.step as usize == done && reached.is_some_and(|r| e.along <= r))
                 });
-                if n == 0 {
-                    self.top as f32
-                } else {
-                    run[n - 1].z
-                }
+                run[..n]
+                    .iter()
+                    .rev()
+                    .find(|e| e.floor == floors)
+                    .map_or(start[c], |e| e.z)
             })
             .collect()
     }
@@ -371,6 +475,7 @@ impl History {
             columns: self.columns,
             rows: self.rows,
             heights: self.heights_at(done, along),
+            floors: self.floors_with(done, Some(along_units(along))),
             top: self.top,
             bottom: self.bottom,
             size: self.size,
@@ -398,8 +503,11 @@ struct Recorder {
     columns: usize,
     rows: usize,
     factor: usize,
-    /// The display grid's current heights.
+    /// The display grid's current heights and floors, and those it started with.
     heights: Vec<f32>,
+    floors: Vec<f32>,
+    start_heights: Vec<f32>,
+    start_floors: Vec<f32>,
     cells: Vec<Vec<Entry>>,
     count: usize,
     overflow: bool,
@@ -437,12 +545,18 @@ fn first_reach(p: (f64, f64), a: (f64, f64), b: (f64, f64), radius: f64) -> f64 
 }
 
 impl Recorder {
-    fn new(columns: usize, rows: usize, factor: usize, top: f64) -> Self {
+    /// A recorder on `start`, the board before the first move on the display grid,
+    /// `factor` times coarser than the simulation's.
+    fn new(start: Simulation, factor: usize) -> Self {
+        let (columns, rows) = (start.columns, start.rows);
         Recorder {
             columns,
             rows,
             factor,
-            heights: vec![top as f32; columns * rows],
+            heights: start.heights.clone(),
+            floors: start.floors.clone(),
+            start_heights: start.heights,
+            start_floors: start.floors,
             cells: vec![Vec::new(); columns * rows],
             count: 0,
             overflow: false,
@@ -451,26 +565,35 @@ impl Recorder {
         }
     }
 
-    /// Full cell (i, j), centred on `centre`, went down to `z`.
-    fn lowered(&mut self, i: usize, j: usize, centre: (f64, f64), z: f32) {
+    /// Full cell (i, j), centred on `centre`, went down to `z`; with `floor`, its floor
+    /// went up to `z`.
+    fn lowered(&mut self, i: usize, j: usize, centre: (f64, f64), z: f32, floor: bool) {
         if self.overflow {
             return;
         }
         let c = (j / self.factor) * self.columns + i / self.factor;
-        if z >= self.heights[c] {
-            return;
+        if floor {
+            if z <= self.floors[c] {
+                return;
+            }
+            self.floors[c] = z;
+        } else {
+            if z >= self.heights[c] {
+                return;
+            }
+            self.heights[c] = z;
         }
-        self.heights[c] = z;
         let cell = &mut self.cells[c];
         match cell.last_mut() {
             // Lowered again by the same move: the first reach stays.
-            Some(last) if last.step == self.current => last.z = z,
+            Some(last) if last.step == self.current && last.floor == floor => last.z = z,
             _ => {
                 let (a, b, radius) = self.path;
                 cell.push(Entry {
                     step: self.current,
                     along: along_units(first_reach(centre, a, b, radius)),
                     z,
+                    floor,
                 });
                 self.count += 1;
                 if self.count > MAX_HISTORY_ENTRIES {
@@ -508,6 +631,10 @@ struct Grid {
     columns: usize,
     rows: usize,
     heights: Vec<f32>,
+    floors: Vec<f32>,
+    /// Cutting a back from below (docs/specs/two-sided.md §10.1): the front's stock bottom
+    /// and the back's own stock top, so a back Z of `z` reaches up to `bottom + top - z`.
+    up: Option<(f64, f64)>,
     recorder: Option<Recorder>,
 }
 
@@ -551,15 +678,28 @@ impl Grid {
             let cy = self.origin.1 + (j as f64 + 0.5) * self.cell;
             for i in i0..=i1 {
                 let cx = self.origin.0 + (i as f64 + 0.5) * self.cell;
-                if let Some(z) = lowest_over((cx, cy), a, b, shape) {
-                    let h = &mut self.heights[j * self.columns + i];
-                    let z = z as f32;
-                    if z < *h {
-                        *h = z;
-                        if let Some(recorder) = &mut self.recorder {
-                            recorder.lowered(i, j, (cx, cy), z);
-                        }
-                    }
+                let Some(z) = lowest_over((cx, cy), a, b, shape) else {
+                    continue;
+                };
+                let k = j * self.columns + i;
+                // From below, the tool's lowest point on the back is its highest here.
+                let (z, floor) = match self.up {
+                    None => (z as f32, false),
+                    Some((bottom, top)) => ((bottom + top - z) as f32, true),
+                };
+                let changed = if floor {
+                    let f = &mut self.floors[k];
+                    let raised = z > *f;
+                    *f = f.max(z);
+                    raised
+                } else {
+                    let h = &mut self.heights[k];
+                    let lowered = z < *h;
+                    *h = h.min(z);
+                    lowered
+                };
+                if changed && let Some(recorder) = &mut self.recorder {
+                    recorder.lowered(i, j, (cx, cy), z, floor);
                 }
             }
         }
@@ -576,18 +716,50 @@ impl Grid {
         Some((first as usize, (last as usize).min(count - 1)))
     }
 
-    /// mm³ removed, each cell counted for the part of it inside the stock.
-    fn removed(&self, top: f64, x: f64, y: f64) -> f64 {
-        let mut total = 0.0;
-        for j in 0..self.rows {
+    /// The area of each cell inside the stock, mm², with its index.
+    fn areas(&self, x: f64, y: f64) -> impl Iterator<Item = (usize, f64)> + '_ {
+        (0..self.rows).flat_map(move |j| {
             let height = (y - j as f64 * self.cell).min(self.cell).max(0.0);
-            for i in 0..self.columns {
+            (0..self.columns).map(move |i| {
                 let width = (x - i as f64 * self.cell).min(self.cell).max(0.0);
-                let depth = top - f64::from(self.heights[j * self.columns + i]);
-                total += depth.max(0.0) * width * height;
+                (j * self.columns + i, width * height)
+            })
+        })
+    }
+
+    /// mm³ removed, each cell counted for the part of it inside the stock: from the top
+    /// down to its height, and from the bottom up to its floor where that stays below.
+    fn removed(&self, top: f64, bottom: f64, x: f64, y: f64) -> f64 {
+        self.areas(x, y)
+            .map(|(k, area)| {
+                let h = f64::from(self.heights[k]);
+                let from_top = (top - h).max(0.0);
+                let from_below = (f64::from(self.floors[k]).min(h) - bottom).max(0.0);
+                (from_top + from_below) * area
+            })
+            .sum()
+    }
+
+    /// The area cut through, mm², and the part of it where the two sides meet: neither
+    /// alone goes through there, the front stopping above the bottom and the back below the
+    /// board's face as the front left it (its highest height: a surface pass lowers it all).
+    fn through(&self, bottom: f64, x: f64, y: f64) -> (f64, f64) {
+        let face = self
+            .heights
+            .iter()
+            .fold(f64::NEG_INFINITY, |m, &h| m.max(f64::from(h)));
+        let mut through = 0.0;
+        let mut meet = 0.0;
+        for (k, area) in self.areas(x, y) {
+            let (h, f) = (f64::from(self.heights[k]), f64::from(self.floors[k]));
+            if f + DEPTH_TOL_MM >= h {
+                through += area;
+                if h > bottom + DEPTH_TOL_MM && f < face - DEPTH_TOL_MM {
+                    meet += area;
+                }
             }
         }
-        total
+        (through, meet)
     }
 }
 
@@ -674,6 +846,11 @@ impl Simulation {
         f64::from(self.heights[j * self.columns + i])
     }
 
+    /// The floor of cell (column `i`, row `j`): the bottom of its material.
+    pub fn floor(&self, i: usize, j: usize) -> f64 {
+        f64::from(self.floors[j * self.columns + i])
+    }
+
     /// RGBA pixels, one per cell, row 0 at the top (highest Y), shaded by depth with a light
     /// from the upper left (§4).
     pub fn shaded(&self, palette: Palette) -> Vec<u8> {
@@ -702,7 +879,8 @@ impl Simulation {
                 let lit = ((-gx * light.0 - gy * light.1 + light.2) / n).max(0.0);
                 // Flat ground keeps its colour; slopes go lighter or darker.
                 let shade = (0.55 + 0.45 * lit / flat).min(1.25);
-                let base = if h < self.bottom - DEPTH_TOL_MM {
+                let through = self.floor(i, j) + DEPTH_TOL_MM >= h;
+                let base = if h < self.bottom - DEPTH_TOL_MM || through {
                     palette.below
                 } else {
                     let f = ((self.top - h) / range).clamp(0.0, 1.0);
@@ -717,6 +895,37 @@ impl Simulation {
         out
     }
 
+    /// The board turned over `turn`, as it lies with its other face up
+    /// (docs/specs/two-sided.md §10.2): cells mirrored about its centre line, and each
+    /// cell's floor its height seen from that side, its height its floor.
+    pub fn turned_over(&self, turn: chipload_job::Turn) -> Simulation {
+        let flip = |z: f32| (self.top + self.bottom) as f32 - z;
+        let mut heights = vec![0.0; self.heights.len()];
+        let mut floors = vec![0.0; self.floors.len()];
+        for j in 0..self.rows {
+            for i in 0..self.columns {
+                let (ti, tj) = match turn {
+                    chipload_job::Turn::LeftRight => (self.columns - 1 - i, j),
+                    chipload_job::Turn::TopBottom => (i, self.rows - 1 - j),
+                };
+                let (from, to) = (j * self.columns + i, tj * self.columns + ti);
+                heights[to] = flip(self.floors[from]);
+                floors[to] = flip(self.heights[from]);
+            }
+        }
+        let lowest = heights
+            .iter()
+            .fold(f64::INFINITY, |m, &h| m.min(f64::from(h)));
+        let mut numbers = self.numbers.clone();
+        numbers.deepest = (lowest < self.top - DEPTH_TOL_MM).then_some(lowest);
+        Simulation {
+            heights,
+            floors,
+            numbers,
+            ..self.clone()
+        }
+    }
+
     /// The same stock on a grid `factor` times coarser, each cell the lowest of the cells it
     /// covers, so narrow cuts stay visible (§4). `factor` 1 is a copy.
     pub fn coarsened(&self, factor: usize) -> Simulation {
@@ -724,13 +933,14 @@ impl Simulation {
         let columns = self.columns.div_ceil(factor);
         let rows = self.rows.div_ceil(factor);
         let mut heights = vec![self.top as f32; columns * rows];
+        // The highest floor of those it covers, so a narrow cut from below shows too.
+        let mut floors = vec![self.bottom as f32; columns * rows];
         for j in 0..self.rows {
             for i in 0..self.columns {
+                let k = (j / factor) * columns + i / factor;
                 let h = self.heights[j * self.columns + i];
-                let cell = &mut heights[(j / factor) * columns + i / factor];
-                if h < *cell {
-                    *cell = h;
-                }
+                heights[k] = heights[k].min(h);
+                floors[k] = floors[k].max(self.floors[j * self.columns + i]);
             }
         }
         Simulation {
@@ -739,6 +949,7 @@ impl Simulation {
             columns,
             rows,
             heights,
+            floors,
             top: self.top,
             bottom: self.bottom,
             size: self.size,
@@ -807,6 +1018,19 @@ impl Simulation {
                     .arg("depth", Value::Length(below, Digits::Fixed(3))),
             );
         }
+        if let Some(through) = self.numbers.through_cm2 {
+            lines.push(
+                Message::new("pipeline-simulation-through")
+                    .arg("area", Value::Number(through, Digits::Fixed(1))),
+            );
+        }
+        // Sides that meet: at most a note (docs/specs/two-sided.md decision 6).
+        if let Some(meet) = self.numbers.meet_cm2.filter(|m| *m > 0.0) {
+            lines.push(
+                Message::new("pipeline-simulation-sides-meet")
+                    .arg("area", Value::Number(meet, Digits::Fixed(1))),
+            );
+        }
         if self.numbers.drill_point_assumed {
             lines.push(Message::new("pipeline-simulation-drill-point"));
         }
@@ -820,7 +1044,15 @@ impl Simulation {
     /// last bit of a platform's trigonometry doesn't change it.
     pub fn heights_hash(&self) -> u64 {
         let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-        for h in &self.heights {
+        // The floors count once something is cut from below, so a one-sided board's hash
+        // is as it always was.
+        let bottom = self.bottom as f32;
+        let floors: &[f32] = if self.floors.iter().any(|f| *f != bottom) {
+            &self.floors
+        } else {
+            &[]
+        };
+        for h in self.heights.iter().chain(floors) {
             // Heights are within the stock's few hundred mm: far inside i64.
             let microns = (f64::from(*h) * 1000.0).round() as i64;
             for byte in microns.to_le_bytes() {
@@ -915,6 +1147,7 @@ mod tests {
             columns: 3,
             rows: 2,
             heights: vec![0.0, -1.0, 0.0, 0.0, 0.0, -2.0],
+            floors: vec![-10.0, -10.0, -9.0, -10.0, -10.0, -10.0],
             top: 0.0,
             bottom: -10.0,
             size: (3.0, 2.0),
@@ -924,11 +1157,15 @@ mod tests {
                 below_bottom: None,
                 drill_point_assumed: false,
                 vbit_angle_assumed: false,
+                through_cm2: None,
+                meet_cm2: None,
             },
         };
         let coarse = sim.coarsened(2);
         assert_eq!((coarse.columns, coarse.rows, coarse.cell), (2, 1, 2.0));
         assert_eq!(coarse.heights, vec![-1.0, -2.0]);
+        // And the highest floor, so a narrow cut from below stays visible.
+        assert_eq!(coarse.floors, vec![-10.0, -9.0]);
         assert_eq!(sim.factor_for(2, 10), 2);
         assert_eq!(sim.factor_for(100, 2), 2);
         assert_eq!(sim.factor_for(100, 100), 1);

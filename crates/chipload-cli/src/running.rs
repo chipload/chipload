@@ -55,6 +55,8 @@ pub(crate) struct SimulateArgs {
     pub(crate) after: Option<usize>,
     pub(crate) image: bool,
     pub(crate) hash: bool,
+    /// The picture's face: the back (Some(true)), the front, or the one the setup cuts.
+    pub(crate) back_face: Option<bool>,
 }
 
 pub(crate) fn simulate(
@@ -69,6 +71,7 @@ pub(crate) fn simulate(
         after,
         image,
         hash,
+        back_face,
     } = args;
     let (job, result, _) = match load_and_run(out, project, None, sets, &[]) {
         Ok(run) => run,
@@ -113,6 +116,8 @@ pub(crate) fn simulate(
             "below_bottom_mm": sim.numbers.below_bottom,
             "drill_point_assumed": sim.numbers.drill_point_assumed,
             "vbit_angle_assumed": sim.numbers.vbit_angle_assumed,
+            "through_cm2": sim.numbers.through_cm2,
+            "meet_cm2": sim.numbers.meet_cm2,
             "cell_mm": sim.cell,
             "columns": sim.columns,
             "rows": sim.rows,
@@ -129,7 +134,23 @@ pub(crate) fn simulate(
             },
             Path::to_path_buf,
         );
-        let bytes = match sim.png(chipload_pipeline::simulate::PRINT_PALETTE) {
+        // The back face, as the board lies turned over (docs/specs/two-sided.md §10.2): by
+        // default for a back setup, the face it cuts.
+        let active = job.active_setup_id();
+        let turn = job.back_turn().or_else(|| {
+            active
+                .and_then(|id| job.back_of(id))
+                .and_then(|b| b.back_of)
+                .map(|b| b.turn)
+        });
+        let pictured = match (back_face.unwrap_or(job.back_turn().is_some()), turn) {
+            (false, _) => sim,
+            (true, Some(turn)) => sim.turned_over(turn),
+            (true, None) => {
+                return out.fail("--face back: the board has no back side (setup add --back-of)");
+            }
+        };
+        let bytes = match pictured.png(chipload_pipeline::simulate::PRINT_PALETTE) {
             Ok(bytes) => bytes,
             Err(err) => {
                 out.err(format!("error: {err}"));

@@ -8,5 +8,7 @@ pipeline-simulation-removed = Simulation : { $volume } cm³ enlevés, cellules {
 pipeline-simulation-deepest = {"  "}Coupe la plus profonde : Z{ $z } ({ $depth } sous le dessus du brut)
 pipeline-simulation-nothing-cut = {"  "}Rien n'est usiné
 pipeline-simulation-below-bottom = {"  "}Usine { $depth } sous le dessous du brut (dans le martyr)
+pipeline-simulation-through = {"  "}Usiné de part en part : { $area } cm²
+pipeline-simulation-sides-meet = {"  "}Les deux faces se rejoignent : ensemble, elles traversent la planche sur { $area } cm²
 pipeline-simulation-drill-point = {"  "}Forets simulés avec une pointe à 118°
 pipeline-simulation-vbit-angle = {"  "}Une fraise à graver en V sans angle simulée à 90°

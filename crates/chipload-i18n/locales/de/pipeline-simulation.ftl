@@ -8,5 +8,7 @@ pipeline-simulation-removed = Simulation: { $volume } cm³ abgetragen, Zellen { 
 pipeline-simulation-deepest = {"  "}Tiefster Schnitt: Z{ $z } ({ $depth } unter der Rohteiloberkante)
 pipeline-simulation-nothing-cut = {"  "}Nichts gefräst
 pipeline-simulation-below-bottom = {"  "}Fräst { $depth } unter die Rohteilunterkante (in die Opferplatte)
+pipeline-simulation-through = {"  "}Durchgefräst: { $area } cm²
+pipeline-simulation-sides-meet = {"  "}Die beiden Seiten treffen sich: zusammen fräsen sie auf { $area } cm² durch das Brett
 pipeline-simulation-drill-point = {"  "}Bohrer mit einer 118°-Spitze simuliert
 pipeline-simulation-vbit-angle = {"  "}Ein V-Fräser ohne Winkel als 90° simuliert

@@ -235,6 +235,10 @@ enum Command {
         /// The setup to simulate (as `setup list` numbers it); default: the active one.
         #[arg(long, value_name = "ID")]
         setup: Option<u64>,
+        /// The face the picture shows: front, or back (the board turned over, as it lies);
+        /// default: the face the setup cuts (docs/specs/two-sided.md §10.2).
+        #[arg(long, value_parser = ["front", "back"])]
+        face: Option<String>,
         /// For this run only: set a project value by path, e.g. `stock.thickness=18`
         /// (see `chipload set`). The project file isn't changed.
         #[arg(long = "set", value_name = "PATH=VALUE")]
@@ -728,6 +732,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             after,
             hash,
             setup,
+            face,
             sets,
         } => simulate(
             out,
@@ -738,6 +743,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 after,
                 image: !no_image,
                 hash,
+                back_face: face.map(|f| f == "back"),
             },
             &with_setup(sets, setup),
         ),

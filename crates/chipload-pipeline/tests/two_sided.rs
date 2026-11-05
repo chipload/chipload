@@ -590,3 +590,74 @@ fn text_on_the_back_is_said_to_read_mirrored() {
             .any(|f| f.message.english().contains("carves the text"))
     );
 }
+
+// -- the simulation of both sides (docs/specs/two-sided.md §10)
+
+#[test]
+fn the_back_is_simulated_from_below_on_the_fronts_board() {
+    use chipload_pipeline::simulate::simulate;
+    let job = sample_two_sided();
+    let cancel = chipload_pipeline::Cancel::new();
+    let sim_of = |job: &Job, setup: u64| {
+        let one = job.for_setup(setup);
+        let result = chipload_pipeline::run_job(&one).unwrap();
+        // The whole project, its active setup the one simulated, as the app and `simulate`
+        // pass it.
+        let mut whole = job.clone();
+        whole.active_setup = Some(setup);
+        simulate(&whole, &result.program, &result.groups, Some(1.0), &cancel).unwrap()
+    };
+    // The front alone: nothing from below, as always.
+    let front = sim_of(&job, 1);
+    assert!(front.floors.iter().all(|f| *f == front.bottom as f32));
+    assert_eq!(front.numbers.through_cm2, None);
+    // The back on it: its outline cut from below goes through, the front's pocket stays.
+    let back = sim_of(&job, 2);
+    assert!(back.removed_more_than(&front));
+    let through = back.numbers.through_cm2.unwrap();
+    assert!(through > 10.0, "{through}");
+    assert_eq!(
+        back.numbers.meet_cm2,
+        Some(0.0),
+        "no cut of one side reaches the other's"
+    );
+    // The front's pocket of the 30 mm circle 6 mm deep, and the back's 6 mm on the same
+    // circle: 10 mm less the 0.5 surfaced is 9.5, so they meet. Not in the 6 mm ring the
+    // front's inside profile cuts through alone: within 15 - 6 = 9 mm of the centre.
+    let mut meeting = job.clone();
+    let pocket = meeting
+        .operations
+        .iter()
+        .position(|op| op.name() == "Pocket 1")
+        .unwrap();
+    let mut from_back = meeting.operations[pocket].clone();
+    if let chipload_job::Operation::Pocket(p) = &mut meeting.operations[pocket] {
+        p.end_depth = 6.0;
+    }
+    if let chipload_job::Operation::Pocket(p) = &mut from_back {
+        p.end_depth = 6.0;
+        p.part = 2;
+        p.name = "Pocket from the back".into();
+    }
+    meeting.operations.push(from_back);
+    meeting.follow_thickness();
+    let met = sim_of(&meeting, 2);
+    let circle = std::f64::consts::PI * 9.0 * 9.0 / 100.0;
+    let meet = met.numbers.meet_cm2.unwrap();
+    assert!((meet - circle).abs() < 0.05 * circle, "{meet} vs {circle}");
+    assert!(
+        met.lines().iter().any(|l| l.contains("The two sides meet")),
+        "{:?}",
+        met.lines()
+    );
+}
+
+trait Removed {
+    fn removed_more_than(&self, other: &Self) -> bool;
+}
+
+impl Removed for chipload_pipeline::simulate::Simulation {
+    fn removed_more_than(&self, other: &Self) -> bool {
+        self.numbers.removed_cm3 > other.numbers.removed_cm3 + 1.0
+    }
+}

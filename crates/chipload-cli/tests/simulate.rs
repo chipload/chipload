@@ -8,10 +8,13 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// (golden name, project): a profile with tabs, a pocket with a helix, a V-carve.
-const GOLDEN: [(&str, &str); 3] = [
+const GOLDEN: [(&str, &str); 4] = [
     ("simple_part_tabs", "jobs/v4/simple_part_tabs.chipload"),
     ("helix_rings", "jobs/v13/helix_rings.chipload"),
     ("vcarve_letters", "jobs/v10/vcarve_letters.chipload"),
+    // Its active setup is the back (docs/specs/two-sided.md §10.1): cut from below on the
+    // front's result, the floors in the hash.
+    ("v36_two_sided", "jobs/v36/two_sided.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

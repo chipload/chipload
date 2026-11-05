@@ -305,6 +305,21 @@ side's own surface.
 
 Memory: one more `f32` per cell, at most 250 000 cells, so 1 MB more.
 
+*As built, 2026-11-05:*
+- **Sides that meet** are cells cut through where neither side alone goes through: the
+  front leaves material under its cut there, and the back stops below the board's face as
+  the front left it (its highest height, since a surface pass lowers it everywhere).
+  Without that, a surfaced front counts as cut everywhere and every through cut from the
+  back would "meet" it.
+- **Deepest** stays the front's lowest height.
+- **The top view** shows a cut-through cell in the colour of a cut below the stock (red on
+  the command line): both mean the bit went right through.
+- **The history** starts from the front's result and records a back's moves as floor
+  raises, so playback scrubs the back on the finished front.
+- **`--face back`** turns the result over (`Simulation::turned_over`): cells mirrored, each
+  floor seen from the other side as the height. A back setup's picture shows the back by
+  default.
+
 ### 10.2 Drawing it
 
 Today the 3D view meshes only the top surface, a sheet of quads from cell centre to cell

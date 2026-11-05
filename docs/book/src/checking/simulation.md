@@ -49,6 +49,14 @@ The report gives the volume removed and the deepest cut.
 On the command line, `chipload simulate part.chipload` prints the same numbers and writes a
 shaded top view (`part-sim.png`). `--after N` stops after the first N moves.
 
+**Both sides of a board.** A [back side](../concepts/setups.md#the-back-side-experimental)
+is simulated on its front's result: the front is cut first, then the back from below, so you
+see the finished part. The report adds the area cut through and, where neither side alone
+goes through but the two together do, *The two sides meet* with its area: a plain note, as
+that can be meant. `chipload simulate part.chipload --setup 2 --face back` draws the back
+face, the board as it lies turned over; `--face front` the front. A back setup's picture
+shows its own face by default.
+
 ## Playback
 
 Under the canvas, a **slider** runs through the program by time, like a 3D printer's

@@ -8,5 +8,7 @@ pipeline-simulation-removed = Simulation: { $volume } cm³ removed, cells { $cel
 pipeline-simulation-deepest = {"  "}Deepest cut: Z{ $z } ({ $depth } below the stock top)
 pipeline-simulation-nothing-cut = {"  "}Nothing cut
 pipeline-simulation-below-bottom = {"  "}Cuts { $depth } below the stock bottom (into the spoilboard)
+pipeline-simulation-through = {"  "}Cut through: { $area } cm²
+pipeline-simulation-sides-meet = {"  "}The two sides meet: they cut through the board together over { $area } cm²
 pipeline-simulation-drill-point = {"  "}Drills simulated with a 118° point
 pipeline-simulation-vbit-angle = {"  "}A V-bit without an angle simulated as 90°

@@ -8,5 +8,7 @@ pipeline-simulation-removed = Simulering: { $volume } cm³ borttaget, celler { $
 pipeline-simulation-deepest = {"  "}Djupaste fräsning: Z{ $z } ({ $depth } under ämnets ovansida)
 pipeline-simulation-nothing-cut = {"  "}Inget fräst
 pipeline-simulation-below-bottom = {"  "}Fräser { $depth } under ämnets undersida (ned i offerskivan)
+pipeline-simulation-through = {"  "}Genomfräst: { $area } cm²
+pipeline-simulation-sides-meet = {"  "}De två sidorna möts: tillsammans fräser de genom skivan på { $area } cm²
 pipeline-simulation-drill-point = {"  "}Borrar simulerade med 118° spets
 pipeline-simulation-vbit-angle = {"  "}En V-fräs utan vinkel simulerad som 90°

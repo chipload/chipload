@@ -115,6 +115,7 @@ chipload simulate <PROJECT> [OPTIONS]
 | `--no-image` | Print the numbers only. |
 | `--after <N>` | The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts. |
 | `--setup <ID>` | The setup to simulate (as `setup list` numbers it); default: the active one. |
+| `--face <FACE>` | The face the picture shows: front, or back (the board turned over, as it lies); default: the face the setup cuts (docs/specs/two-sided.md §10.2) One of: `front`, `back`. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
 ## `chipload sheet`
