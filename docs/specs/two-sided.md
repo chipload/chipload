@@ -1,9 +1,10 @@
 # Spec: two-sided work, turning the board over
 
 Status: **draft 2026-11-04, for review.** Decisions 1, 3, 6 and 8 are the user's
-(2026-11-04): the back drawn as seen from the front, dowel pins with a corner as the
+(2026-11-04), and 5 (2026-11-05): the back drawn as seen from the front, dowel pins with a corner as the
 fallback, sides that meet give at most a note, and the view stays the front's while
-generation mirrors. The way setups link (§3) follows the user's question "is it in the
+generation mirrors, and the back is planned with the cutting direction flipped rather than
+with mirrored geometry. The way setups link (§3) follows the user's question "is it in the
 properties panel for setup 2 we say that it is the backside of setup 1?". Follows
 docs/specs/setups.md §9.
 
@@ -78,25 +79,46 @@ The view stays the front's. Shapes are drawn, picked and edited in front coordin
 the back's toolpath preview and markers are shown there too, lying on the shapes they cut,
 as if seen through the board.
 
-**Generation mirrors the geometry before planning, not the toolpath after it.** For a back
-setup, the pipeline mirrors the contours its operations pick about the turn axis, then plans
-them, checks them and writes the G-code as for any setup. The preview shows that toolpath
-mirrored back into front coordinates.
+**A back setup is planned in front coordinates with the cutting sense flipped, and the
+finished program is mirrored** (the user, 2026-11-05).
 
-Mirroring a contour reverses its direction, and that is why the planner sees the mirrored
-geometry. The operation's settings mean what they say on the face being cut:
+- **Why it works:** mirroring a path reverses its sense of rotation, but the spindle keeps
+  turning the same way. A path planned as conventional in front coordinates, once mirrored,
+  cuts climb on the back face. Seen from the drawing, the back is cut as if the spindle
+  turned the other way.
+- **Planning:** the planner takes a **cutting sense**, the spindle's turn as seen in the
+  drawing's coordinates. It is the machine's spindle for a front setup and the opposite for
+  a back. Every choice of travel direction already goes through one function,
+  `cut_clockwise(side, direction, spindle)`: profiles, pocket walls, islands and links,
+  follow-path rings, helical bores. They all take the cutting sense, never
+  `machine.spindle` directly. The G-code's M3 or M4 still comes from the machine's
+  spindle, so planning and output can't be confused.
+- **Then the program is mirrored** about the turn axis before the post: X (left to right)
+  or Y (top to bottom) negated about the board's centre line, and G2 and G3 swapped, next
+  to the shift into work coordinates. The checker judges the mirrored G-code as it judges
+  any program.
+- **The preview** is the planned toolpath itself, in front coordinates, lying on the shapes
+  it cuts. Nothing needs mirroring back for the view.
+
+So the operation's settings mean what they say on the face being cut:
 
 - **inside stays inside,** **outside stays outside;**
-- **climb stays climb,** **conventional stays conventional,** as the spindle turns on the
-  back face;
-- **a ring's start point,** tabs placed by hand and dogbone corners move with the mirror,
-  so they stay on the same feature;
+- **climb stays climb,** **conventional stays conventional;**
+- **a ring's start point,** tabs placed by hand and dogbone corners stay on their feature
+  without being moved, because they are stored in front coordinates and planning stays
+  there;
 - **tabs along X or Y** keep their axis.
 
-Mirroring the finished toolpath instead would turn every climb cut into a conventional one
-without a word. This is the part of the feature that can break tools, so it gets explicit
-tests: a profile and a pocket on the back, climb and conventional, compared move by move
-with the same shapes drawn mirrored on the front.
+Choices made in the front frame, like a ring starting at its lowest point or the order of
+the cuts, come out mirrored on the back: the highest point, the far side first. That's
+harmless: the path is as valid, and the checker sees the real G-code.
+
+Mirroring the finished toolpath *without* flipping the cutting sense would turn every climb
+cut into a conventional one without a word. This is the part of the feature that can break
+tools, so it gets explicit tests. For each operation kind with a direction (profile, pocket,
+follow path, helical bore), climb and conventional, a back setup's G-code is compared move
+by move with a front setup cutting the same shapes drawn mirrored by hand. A test also
+checks that the planner reads no `machine.spindle` outside the cutting sense.
 
 **Text and pictures.** A text drawn reading correctly in the front view reads mirrored on
 the back. When a back setup's operation carves a text that isn't mirrored, the Report says
@@ -241,10 +263,13 @@ Validation:
 4. **The turn axis is always the board's centre line.** **Recommended:** the board maps
    onto itself, so the checker, the fit and the corners need nothing new. Alternative: any
    line (§10).
-5. **Generation mirrors the geometry before planning, so climb, sides, starts and tabs keep
-   their meaning on the back face.** **Recommended** (§4), and a safety rule, not a
-   preference. Alternative: mirror the finished toolpath, which silently turns climb into
-   conventional.
+5. **A back setup is planned in front coordinates with the cutting sense flipped, then its
+   program is mirrored, so climb and conventional keep their meaning on the back face.**
+   *The user, 2026-11-05: "invert the cut direction for mirrored operation … then we don't
+   need to modify the geometry."* (§4) Better than the first draft's mirroring the contours
+   before planning: hand-placed tabs, starts and corners stay put, and the preview needs no
+   mirror. Rejected: mirroring the toolpath without the flip, which silently turns climb
+   into conventional.
 6. **Sides that meet are at most a note.** *The user, 2026-11-04: cutting pockets that meet
    can be by design.* (§7)
 7. **The pin depth is allowed only inside the dowel circles, and the checker learns them
@@ -264,8 +289,9 @@ Validation:
     code must refuse a back setup rather than cut it unmirrored.
 12. **Order of work,** each step a commit:
     1. the model, schema 36, validation, `setup add --back-of`, `setup set`;
-    2. planning: mirrored contours, zero, thickness after surfacing, with the
-       climb/conventional tests of §4 and a two-sided golden (a sign with a back pocket);
+    2. planning: the cutting sense, the mirrored program, zero, thickness after surfacing,
+       with the climb/conventional tests of §4 and a two-sided golden (a sign with a back
+       pocket);
     3. dowel holes: `setup dowels`, the checker's allowance inside the circles, the
        problems;
     4. the notes (text, sides that meet) and the setup sheet's turning words and picture;
