@@ -127,10 +127,12 @@ so it reads mirrored on the back face. Mirror the text if it should read right t
 is a note, not a warning: a mirrored text can be intended (a stamp, a mould). See
 decision 9.
 
-**The simulation** of a back setup simulates the back face. It is shown seen through the
-board from the front, like everything else in the view, so it lines up with the drawing.
-The 3D view can be turned to look at it from below, the way the board will lie. Carrying
-the front's height map over to show the finished part is a later step (§10).
+**The simulation** of a back setup simulates the back face on its own, as a fresh board,
+with the planned (front-coordinate) toolpath. Today's height map holds one top per cell, so
+the back pocket shows as if cut from the top, at its place in the front view. That is right
+for checking the back's own cuts, not the finished part. Showing both sides together is a
+later step (§10). The 3D view can't look from below today: its tilt stops just short of
+side-on.
 
 ## 5. The zero and the depths
 
@@ -240,9 +242,21 @@ Validation:
 
 ## 10. Not in this step
 
-- **The finished part in the simulation:** the front's height map carried over, turned,
-  and the back simulated on it. It needs a height map with a bottom surface as well as a
-  top. It's the natural next step, and its own spec.
+- **The finished part in the simulation,** its own spec. With 2.5D cuts from the top and
+  from the bottom, a cell's material is always one unbroken column, so two numbers per
+  cell hold it exactly, with no voxels:
+  - the height map gets a **floor** beside each height; the front's moves lower the height,
+    and the back's moves, in front coordinates, raise the floor;
+  - where the floor meets the height, the cell is cut through;
+  - the back's simulation starts from the front's final map;
+  - the playback history gets a side per entry, and material left counts each column.
+
+  The larger work is drawing it. Today the 3D view meshes only the top surface. It would
+  need:
+  - a bottom surface;
+  - through cells left out, so holes look like holes;
+  - the board's edge walls;
+  - a way to see underneath: tilting past side-on, or a *turn the board over* button.
 - **More than two sides,** for example edges machined standing up. That needs a fourth
   axis or a vise setup, and is out of scope (ADR 0017).
 - **Pins on another line than the centre line.** It would let the pins sit where the board
