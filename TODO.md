@@ -8,7 +8,7 @@ a quick workflow first.
 ## In progress
 
 - **Two-sided work** (docs/specs/two-sided.md, on the local branch `two-sided`; not pushed
-  until the user has tried it and likes it, 2026-11-05). Steps 1 to 7 of 8 built:
+  until the user has tried it and likes it, 2026-11-05). All 8 steps built:
   - step 1: the model (`back_of`, schema 36), the back following its front's board and
     zero, a board fitting both sides, validation, `setup add --back-of`, `setup set
     --back-of/--own-board/--turn/--register`;
@@ -46,8 +46,12 @@ a quick workflow first.
     turns every point: `View::turned`), a back's toolpath and tool shown on the front's
     board from below (`shown_on_board`). No tilt past side-on (decision 15 as built).
 
-  Next: step 8, the guide (a page of its own?), schemas, the screenshots renewed (every 3D
-  simulation picture gains walls), then the user tries it.
+  - step 8: the guide's screenshots renewed (3D simulations gain walls, the report says
+    schema 36); the libraries still build for the browser.
+
+  Next: **the user tries it** (2026-11-05), on the branch: what to change, then merge.
+  Open: a guide page of its own if the Setups section grows too long; the per-operation
+  "sides that meet" (today one area for the board).
   Found on the way and fixed: moving an operation or a part into
   a setup of another thickness was refused, because its through depth didn't follow first.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
