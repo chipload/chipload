@@ -24,6 +24,16 @@ sheet-stock-and-zero = Material en bruto y cero
 sheet-stock = Material en bruto
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
 sheet-stock-size = { $width } &times; { $length }, { $thickness } de espesor
+sheet-back-side = Reverso
+# $back is the setup that cuts the board's back.
+sheet-back-side-value = { $back } mecaniza el reverso cuando se da la vuelta al tablero. Deja el tablero en su sitio hasta terminar esta sujeción.
+sheet-turn-heading = Dar la vuelta al tablero
+sheet-turn-left-right = Da la vuelta al tablero de izquierda a derecha, sobre su eje vertical: el borde izquierdo pasa a la derecha, y la cara que estaba abajo queda arriba.
+sheet-turn-top-bottom = Da la vuelta al tablero de abajo arriba, sobre su eje horizontal: el borde de abajo pasa arriba, y la cara que estaba abajo queda arriba.
+sheet-turn-pins = Pon un pasador de { $diameter } en cada agujero de pasador, hasta el tablero de sacrificio.
+sheet-turn-no-dowels = { $front } no tiene agujeros de pasador: añádelos antes de mecanizarla, o apoya el tablero en una esquina.
+sheet-turn-corner = Empuja el tablero contra la misma esquina del tope que para { $front }. Debe medir exactamente { $width } × { $length }.
+sheet-turn-picture = La imagen muestra el tablero tal como queda en la máquina, con el reverso arriba.
 sheet-copies = Copias
 sheet-part = Pieza
 sheet-dxf = DXF { $id }

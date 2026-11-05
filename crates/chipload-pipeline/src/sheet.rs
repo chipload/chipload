@@ -15,8 +15,9 @@ use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::{
-    Corners, Direction, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp, Side, Spindle,
-    StockCorner, Tool, ToolChange, ToolType, Units, WorkZero, ZZero, find_tool,
+    Corners, Direction, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp, Register,
+    Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn, Units, WorkZero, ZZero,
+    find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -116,6 +117,7 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
     head(&mut html, job, info, w);
     header(&mut html, job, result, info, w);
     setup(&mut html, job, w);
+    turning(&mut html, job, w);
     picture(&mut html, job, result, w);
     let names: Vec<String> = result.files.iter().map(|f| file_name(f, output)).collect();
     let several = result.files.len() > 1;
@@ -253,6 +255,14 @@ fn setup(html: &mut String, job: &Job, w: Words) {
     );
     fact(html, "X0 Y0", &w.text(&xy_zero_message(job)));
     fact(html, "Z0", &w.text(&z_zero_message(job)));
+    // A front: the board stays for its back (docs/specs/two-sided.md §8).
+    if let Some(back) = job.active_setup_id().and_then(|id| job.back_of(id)) {
+        fact(
+            html,
+            &w.text(&Message::new("sheet-back-side")),
+            &w.text(&Message::new("sheet-back-side-value").arg("back", back.name.as_str())),
+        );
+    }
     if let Some(copies) = copies::copies_message(job, w.units) {
         fact(
             html,
@@ -313,6 +323,64 @@ fn setup(html: &mut String, job: &Job, w: Words) {
         }
     }
     html.push_str("</table>\n</section>\n");
+}
+
+/// A back setup's first words: how to turn the board and put it back in place
+/// (docs/specs/two-sided.md §8). Nothing for any other setup.
+fn turning(html: &mut String, job: &Job, w: Words) {
+    let Some(id) = job.active_setup_id() else {
+        return;
+    };
+    let (Some(back), Some(front)) = (job.setup(id).and_then(|s| s.back_of), job.front_of(id))
+    else {
+        return;
+    };
+    let _ = writeln!(
+        html,
+        "<section class=\"turn\">\n<h2>{}</h2>",
+        w.text(&Message::new("sheet-turn-heading"))
+    );
+    let turn = match back.turn {
+        Turn::LeftRight => "sheet-turn-left-right",
+        Turn::TopBottom => "sheet-turn-top-bottom",
+    };
+    let mut lines = vec![Message::new(turn)];
+    match back.register {
+        Register::Pins => lines.push(match dowel_diameter(job, front.id) {
+            Some(diameter) => Message::new("sheet-turn-pins").arg("diameter", len_u(diameter)),
+            None => Message::new("sheet-turn-no-dowels").arg("front", front.name.as_str()),
+        }),
+        Register::Corner => lines.push(
+            Message::new("sheet-turn-corner")
+                .arg("front", front.name.as_str())
+                .arg("width", len(job.stock_size().0))
+                .arg("length", len_u(job.stock_size().1)),
+        ),
+    }
+    lines.push(Message::new("sheet-turn-picture"));
+    for line in lines {
+        let _ = writeln!(html, "<p class=\"do\">{}</p>", w.text(&line));
+    }
+    html.push_str("</section>\n");
+}
+
+/// The diameter of the dowel holes setup `front` cuts, if it has any.
+fn dowel_diameter(job: &Job, front: u64) -> Option<f64> {
+    job.operations
+        .iter()
+        .filter(|op| op.is_dowels() && job.setup_of(op).is_some_and(|s| s.id == front))
+        .find_map(|op| {
+            let select = op.select().resolved(&job.drawing);
+            job.drawing
+                .shapes
+                .iter()
+                .find_map(|shape| match shape.geometry {
+                    chipload_job::Geometry::Circle { radius, .. } if select.may_pick(shape) => {
+                        Some(2.0 * radius)
+                    }
+                    _ => None,
+                })
+        })
 }
 
 /// Where X0 Y0 is, in words measured on the stock (§2.3), in English and mm.
@@ -906,11 +974,20 @@ const DASHES: [&str; 4] = ["", "6 3", "2 2", "9 3 2 3"];
 /// The top view: stock, parts, each file's cutting moves, tabs and the X0 Y0 mark (§2.4).
 fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
     let ((sx0, sy0), (sx1, sy1)) = job.stock_bounds();
+    // A back setup is drawn as its board lies on the machine, back face up: the shapes, the
+    // toolpath and the tabs mirrored as its program is (docs/specs/two-sided.md §8). The
+    // board maps onto itself, and the zero is where it is on the machine.
+    let turned = |p: Point| match job.back_turn() {
+        Some(Turn::LeftRight) => (sx0 + sx1 - p.0, p.1),
+        Some(Turn::TopBottom) => (p.0, sy0 + sy1 - p.1),
+        None => p,
+    };
+    let program = crate::on_the_board(job, &result.program);
     let mut bounds = Bounds::new((sx0, sy0));
     bounds.add((sx1, sy1));
     let zero = job.work_zero_xy();
     bounds.add(zero);
-    for m in &result.program.moves {
+    for m in &program.moves {
         if let (Some(x), Some(y)) = (m.x, m.y) {
             bounds.add((x, y));
         }
@@ -941,7 +1018,10 @@ fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
     for (contour, shifts) in contour_copies(job, &result.contours) {
         let points = contour.points();
         for (dx, dy) in shifts {
-            let moved: Vec<Point> = points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
+            let moved: Vec<Point> = points
+                .iter()
+                .map(|p| turned((p.0 + dx, p.1 + dy)))
+                .collect();
             path_data(&mut parts, &moved, contour.closed);
         }
     }
@@ -952,7 +1032,7 @@ fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
         parts.trim_end()
     );
     for (i, group) in result.groups.iter().enumerate() {
-        let d = cutting_path(&result.program, group);
+        let d = cutting_path(&program, group);
         let dash = match DASHES[i % DASHES.len()] {
             "" => String::new(),
             dash => format!(" stroke-dasharray=\"{dash}\""),
@@ -967,7 +1047,8 @@ fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
     }
     let mut tabs = String::new();
     for tab in &result.tabs {
-        path_data(&mut tabs, tab, false);
+        let tab: Vec<Point> = tab.iter().map(|p| turned(*p)).collect();
+        path_data(&mut tabs, &tab, false);
     }
     if !tabs.is_empty() {
         let _ = writeln!(

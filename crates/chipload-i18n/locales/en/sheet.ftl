@@ -24,6 +24,16 @@ sheet-stock-and-zero = Stock and zero
 sheet-stock = Stock
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
 sheet-stock-size = { $width } &times; { $length }, { $thickness } thick
+sheet-back-side = Back side
+# $back is the setup that cuts the board's back.
+sheet-back-side-value = { $back } cuts the back after the board is turned over. Leave the board in place until this setup is done.
+sheet-turn-heading = Turn the board over
+sheet-turn-left-right = Turn the board over left to right, about its vertical centre line: the left edge goes to the right, and the face that was down is now up.
+sheet-turn-top-bottom = Turn the board over top to bottom, about its horizontal centre line: the bottom edge goes to the top, and the face that was down is now up.
+sheet-turn-pins = Put the { $diameter } pins through the dowel holes into the spoilboard, one in each.
+sheet-turn-no-dowels = { $front } has no dowel holes for the pins: add them before cutting it, or locate the board by a corner.
+sheet-turn-corner = Push the board into the same corner of the fence as for { $front }. Its size must be exactly { $width } × { $length }.
+sheet-turn-picture = The picture shows the board as it lies on the machine, back face up.
 sheet-copies = Copies
 sheet-part = Part
 sheet-dxf = DXF { $id }

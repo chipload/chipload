@@ -121,6 +121,17 @@ dowel hole moved off the turn axis is refused, as it would miss its pin on the t
 The margin must be wider than a hole and a millimetre each side; widen the board's fit if
 it isn't.
 
-This is being built (docs/specs/two-sided.md): the setup sheet's words for turning the
-board, the window and a simulation of both sides are still to come.
+### The setup sheets
+
+The front's sheet says that a back follows, so the board stays where it is until the front is
+done. The back's sheet starts with **Turn the board over**: which way to turn it, the pins to
+put in (or the fence corner to push it into, with the size it must have), and its picture
+shows the board as it lies on the machine, back face up.
+
+A text carved on the back gets a note: it reads right from the front, where you drew it, so
+on the back face it reads mirrored. To have it read right there, explode it (`text
+explode`) and mirror its shapes (`shape mirror`).
+
+This is being built (docs/specs/two-sided.md): the window and a simulation of both sides
+are still to come.
 

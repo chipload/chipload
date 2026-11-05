@@ -17,6 +17,9 @@ it, `part-sheet.html`. Open it in a browser, or print it. It holds:
   - feeds with the chip load;
   - entry, tabs and time.
 - **Watch out:** every warning and check warning.
+- **Turn the board over**, on a back side's sheet ([Setups](../concepts/setups.md#the-back-side-experimental)):
+  how to turn the board and put it back in place; its picture shows the board as it lies,
+  back face up.
 
 The sheet is written:
 - in the app, by *File > Export G-code…* when *This computer > Preferences > Setup sheet*

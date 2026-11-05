@@ -365,3 +365,46 @@ fn a_sheet_names_its_setup_when_there_are_several() {
     );
     assert!(!plain.contains("setup &#x201c;"));
 }
+
+#[test]
+fn a_two_sided_boards_sheets_say_how_to_turn_it() {
+    // docs/specs/two-sided.md §8: the front says its back follows; the back starts with how
+    // to turn the board and put the pins in, and draws it as it lies, back face up.
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    let project = "jobs/v36/two_sided.chipload";
+    let job = load_job(&corpus(project)).unwrap();
+    for (setup, name) in [(1, "v36_two_sided_front"), (2, "v36_two_sided_back")] {
+        let one = job.for_setup(setup);
+        let result = run_job(&one).unwrap();
+        let sheet = setup_sheet(&one, &result, Path::new("part.nc"), &info(project));
+        assert!(sheet.is_ascii(), "{name}: not ASCII");
+        let golden = corpus(&format!("expected/sheets/{name}.html"));
+        if update {
+            std::fs::write(&golden, &sheet).unwrap();
+        } else {
+            let expected = std::fs::read_to_string(&golden)
+                .unwrap_or_else(|e| panic!("{}: {e}", golden.display()));
+            assert!(
+                sheet == expected,
+                "{name}: differs from {}",
+                golden.display()
+            );
+        }
+        if setup == 1 {
+            assert!(sheet.contains("Setup 1 back cuts the back after the board is turned over"));
+            assert!(!sheet.contains("Turn the board over"));
+        } else {
+            assert!(
+                sheet.contains("Turn the board over left to right"),
+                "{sheet}"
+            );
+            assert!(
+                sheet.contains(
+                    "Put the 8 mm pins through the dowel holes into the spoilboard, one in each"
+                ),
+                "{sheet}"
+            );
+            assert!(sheet.contains("back face up"));
+        }
+    }
+}

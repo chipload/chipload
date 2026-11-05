@@ -704,7 +704,11 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         tab_centres: plan.tab_centres,
         floor_hints: plan.floor_hints,
         notes,
-        facts: plan.facts,
+        facts: plan
+            .facts
+            .into_iter()
+            .chain(setups::back_text_notes(job))
+            .collect(),
         check_warnings: checked.warnings,
         check_notes: checked.notes,
     })

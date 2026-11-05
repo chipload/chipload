@@ -24,6 +24,16 @@ sheet-stock-and-zero = Rohteil und Nullpunkt
 sheet-stock = Rohteil
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
 sheet-stock-size = { $width } &times; { $length }, { $thickness } dick
+sheet-back-side = Rückseite
+# $back is the setup that cuts the board's back.
+sheet-back-side-value = { $back } fräst die Rückseite, nachdem das Brett gewendet ist. Das Brett liegen lassen, bis diese Aufspannung fertig ist.
+sheet-turn-heading = Das Brett wenden
+sheet-turn-left-right = Das Brett von links nach rechts wenden, um seine senkrechte Mittellinie: die linke Kante kommt nach rechts, und die Seite, die unten lag, liegt jetzt oben.
+sheet-turn-top-bottom = Das Brett von unten nach oben wenden, um seine waagrechte Mittellinie: die untere Kante kommt nach oben, und die Seite, die unten lag, liegt jetzt oben.
+sheet-turn-pins = Einen Stift von { $diameter } durch jede Passstiftbohrung in die Opferplatte stecken.
+sheet-turn-no-dowels = { $front } hat keine Passstiftbohrungen für die Stifte: sie vorher hinzufügen oder das Brett an einer Ecke anlegen.
+sheet-turn-corner = Das Brett in dieselbe Ecke des Anschlags schieben wie bei { $front }. Es muss genau { $width } × { $length } groß sein.
+sheet-turn-picture = Das Bild zeigt das Brett, wie es auf der Maschine liegt, Rückseite oben.
 sheet-copies = Kopien
 sheet-part = Teil
 sheet-dxf = DXF { $id }

@@ -325,6 +325,7 @@ pipeline-no-setup = ingen uppspänning { $id } i projektet
 pipeline-setup-name-empty = en uppspänning behöver ett namn
 pipeline-last-setup = ett projekt behöver minst en uppspänning
 pipeline-setup-not-a-back = uppspänning { $id } är inte baksidan av någon annan: ange --back-of först
+pipeline-back-text = { $label } fräser texten { $text } på baksidan: den läses rätt från framsidan, där den är ritad, så på baksidan läses den spegelvänd. För att den ska läsas rätt där, bryt upp den (text explode) och spegla dess former (shape mirror)
 pipeline-dowels-there = framsidan har redan styrhål: operation { $number }
 pipeline-dowels-no-shapes = det finns inga former på skivan att lägga styrhålen utanför
 pipeline-dowels-no-room = kanten utanför formerna på vändaxeln är { $margin }, och ett styrhål behöver { $needed }: gör marginalen eller skivan större

@@ -24,6 +24,16 @@ sheet-stock-and-zero = Brut et origine
 sheet-stock = Brut
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
 sheet-stock-size = { $width } &times; { $length }, épaisseur { $thickness }
+sheet-back-side = Verso
+# $back is the setup that cuts the board's back.
+sheet-back-side-value = { $back } usine le verso une fois la planche retournée. Laissez la planche en place jusqu'à la fin de ce montage.
+sheet-turn-heading = Retourner la planche
+sheet-turn-left-right = Retournez la planche de gauche à droite, autour de son axe vertical : le bord gauche passe à droite, et la face qui était dessous est maintenant dessus.
+sheet-turn-top-bottom = Retournez la planche de bas en haut, autour de son axe horizontal : le bord du bas passe en haut, et la face qui était dessous est maintenant dessus.
+sheet-turn-pins = Mettez une goupille de { $diameter } dans chaque trou de goupille, jusque dans le plateau martyr.
+sheet-turn-no-dowels = { $front } n'a pas de trous de goupille : ajoutez-les avant de l'usiner, ou calez la planche dans un coin.
+sheet-turn-corner = Poussez la planche dans le même coin de la butée que pour { $front }. Elle doit mesurer exactement { $width } × { $length }.
+sheet-turn-picture = L'image montre la planche telle qu'elle repose sur la machine, verso dessus.
 sheet-copies = Copies
 sheet-part = Pièce
 sheet-dxf = DXF { $id }

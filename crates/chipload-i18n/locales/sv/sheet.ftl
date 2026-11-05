@@ -24,6 +24,16 @@ sheet-stock-and-zero = Ämne och nollpunkt
 sheet-stock = Ämne
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
 sheet-stock-size = { $width } &times; { $length }, { $thickness } tjockt
+sheet-back-side = Baksida
+# $back is the setup that cuts the board's back.
+sheet-back-side-value = { $back } fräser baksidan när skivan är vänd. Låt skivan ligga kvar tills den här uppspänningen är klar.
+sheet-turn-heading = Vänd skivan
+sheet-turn-left-right = Vänd skivan från vänster till höger, kring dess lodräta mittlinje: vänsterkanten hamnar till höger, och sidan som låg nedåt är nu uppåt.
+sheet-turn-top-bottom = Vänd skivan nerifrån och upp, kring dess vågräta mittlinje: nederkanten hamnar upptill, och sidan som låg nedåt är nu uppåt.
+sheet-turn-pins = Sätt en styrpinne på { $diameter } genom varje styrhål ner i offerskivan.
+sheet-turn-no-dowels = { $front } har inga styrhål för pinnarna: lägg till dem innan den fräses, eller lägg skivan mot ett hörn.
+sheet-turn-corner = Skjut in skivan i samma hörn av anslaget som för { $front }. Den måste vara exakt { $width } × { $length }.
+sheet-turn-picture = Bilden visar skivan som den ligger på maskinen, baksidan upp.
 sheet-copies = Kopior
 sheet-part = Detalj
 sheet-dxf = DXF { $id }

@@ -330,6 +330,7 @@ pipeline-no-setup = nessun piazzamento { $id } nel progetto
 pipeline-setup-name-empty = un piazzamento ha bisogno di un nome
 pipeline-last-setup = un progetto ha bisogno di almeno un piazzamento
 pipeline-setup-not-a-back = il piazzamento { $id } non è il retro di un altro: indica prima --back-of
+pipeline-back-text = { $label } incide il testo { $text } sul retro: si legge giusto dal fronte, dove è disegnato, quindi sul retro si legge a specchio. Perché lì si legga giusto, esplodilo (text explode) e specchia le sue forme (shape mirror)
 pipeline-dowels-there = il fronte ha già fori per spina: lavorazione { $number }
 pipeline-dowels-no-shapes = sulla tavola non ci sono forme oltre cui mettere i fori per spina
 pipeline-dowels-no-room = il margine oltre le forme sull'asse di capovolgimento è di { $margin }, e un foro per spina ne richiede { $needed }: allarga il margine o la tavola

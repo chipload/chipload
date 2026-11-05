@@ -322,6 +322,7 @@ pipeline-no-setup = no setup { $id } in the project
 pipeline-setup-name-empty = a setup needs a name
 pipeline-last-setup = a project needs at least one setup
 pipeline-setup-not-a-back = setup { $id } is not the back of another setup: give --back-of first
+pipeline-back-text = { $label } carves the text { $text } on the back: it reads right from the front, where it is drawn, so on the back face it reads mirrored. To read right there, explode it (text explode) and mirror its shapes (shape mirror)
 pipeline-dowels-there = the front has dowel holes already: operation { $number }
 pipeline-dowels-no-shapes = there are no shapes on the board to place dowel holes beyond
 pipeline-dowels-no-room = the margin beyond the shapes on the turn axis is { $margin }, and a dowel hole needs { $needed }: make the board's fit margin or the board larger

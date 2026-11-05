@@ -4,7 +4,7 @@
 //! cut from it, each run as a program of its own.
 
 use chipload_i18n::Message;
-use chipload_job::{BackOf, Job, Part, Register, Setup, Turn};
+use chipload_job::{BackOf, Geometry, Job, Note, Origin, Part, Register, Setup, Turn};
 
 use crate::PipelineError;
 use crate::parts::free_name;
@@ -261,4 +261,48 @@ pub fn move_part_to_setup(job: &Job, part: u64, id: u64) -> Result<Job, Pipeline
     // Its cuts through the stock go through its new board.
     job.follow_thickness();
     checked(job)
+}
+
+/// For the active setup, when it is a back: each operation that carves a text's letters,
+/// once per text (docs/specs/two-sided.md §4, decision 9). The text reads right from the
+/// front, where it is drawn, so on the back face it reads mirrored. That may be meant (a
+/// stamp), so it is a plain note, and nothing is mirrored for the user.
+pub fn back_text_notes(job: &Job) -> Vec<Note> {
+    if job.back_turn().is_none() {
+        return Vec::new();
+    }
+    let mut notes = Vec::new();
+    for (i, op) in job.operations.iter().enumerate() {
+        if !job.cuts(i) || !op.selects_shapes() {
+            continue;
+        }
+        let select = op.select().resolved(&job.drawing);
+        let mut texts: Vec<u64> = job
+            .drawing
+            .shapes
+            .iter()
+            .filter(|shape| select.may_pick(shape))
+            .filter_map(|shape| match &shape.geometry {
+                Geometry::Path {
+                    origin: Some(Origin::Text(id)),
+                    ..
+                } => Some(*id),
+                _ => None,
+            })
+            .collect();
+        texts.sort_unstable();
+        texts.dedup();
+        for id in texts {
+            let Some(text) = job.drawing.texts.iter().find(|t| t.id == id) else {
+                continue;
+            };
+            notes.push(Note::at(
+                i,
+                Message::new("pipeline-back-text")
+                    .arg("label", op.label_message(i))
+                    .arg("text", crate::texts::text_label(text)),
+            ));
+        }
+    }
+    notes
 }

@@ -24,6 +24,16 @@ sheet-stock-and-zero = Grezzo e zero
 sheet-stock = Grezzo
 # This text is HTML: keep &times; (the × sign). $width is a number alone.
 sheet-stock-size = { $width } &times; { $length }, spessore { $thickness }
+sheet-back-side = Retro
+# $back is the setup that cuts the board's back.
+sheet-back-side-value = { $back } lavora il retro dopo aver capovolto la tavola. Lascia la tavola dov'è finché questo piazzamento non è finito.
+sheet-turn-heading = Capovolgi la tavola
+sheet-turn-left-right = Capovolgi la tavola da sinistra a destra, attorno al suo asse verticale: il bordo sinistro va a destra, e la faccia che era sotto ora è sopra.
+sheet-turn-top-bottom = Capovolgi la tavola dal basso in alto, attorno al suo asse orizzontale: il bordo in basso va in alto, e la faccia che era sotto ora è sopra.
+sheet-turn-pins = Metti una spina da { $diameter } in ogni foro per spina, fino nel piano di sacrificio.
+sheet-turn-no-dowels = { $front } non ha fori per spina: aggiungili prima di lavorarlo, o appoggia la tavola in un angolo.
+sheet-turn-corner = Spingi la tavola nello stesso angolo della battuta usato per { $front }. Deve misurare esattamente { $width } × { $length }.
+sheet-turn-picture = L'immagine mostra la tavola come sta sulla macchina, con il retro in alto.
 sheet-copies = Copie
 sheet-part = Pezzo
 sheet-dxf = DXF { $id }

@@ -203,7 +203,9 @@ Where a front cut and a back cut overlap in XY and their depths together reach t
 thickness, the cut goes through. That can be by design: a window, a slot cut from both
 sides, a hole made by two pockets. So it is **at most a note** in the Report, never a
 warning or an error: "Operations 2 (front) and 6 (back) meet: together they cut through the
-board." It's worked out from the operations' outlines and depths, not from the simulation.
+board." *As built, 2026-11-05: it comes from the simulation (§10), which knows exactly
+which cells both sides cut through; working it out from the operations' outlines would need
+new geometry and could say they meet where they don't.*
 
 ## 8. The setup sheet
 
@@ -217,8 +219,14 @@ picture of the board with the axis, the pins and an arrow:
   size must be exactly 300 × 200 mm."
 - "Zero: X Y at pin 1, Z at the top of the back face."
 
-The front's sheet says after its last operation: "Leave the board in place until the dowel
-holes are drilled. Setup 2 cuts its back."
+The front's sheet says, in its stock and zero table: "Back side: Setup 1 back cuts the back
+after the board is turned over. Leave the board in place until this setup is done."
+
+*As built, 2026-11-05:* the back's picture shows the board **as it lies on the machine**,
+back face up: the shapes, the toolpath and the tabs mirrored as its program is, the zero
+where it is on the machine, so it matches what the operator sees. The app's view stays the
+front's (decision 8); the sheet is for the machine. The small separate picture with the
+axis is left out: the words and the turned picture say it.
 
 ## 9. Command line and file
 

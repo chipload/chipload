@@ -549,3 +549,44 @@ fn a_dowel_off_the_axis_or_without_a_back_is_refused() {
             .contains("has a back side, and setup 1 has none")
     );
 }
+
+#[test]
+fn text_on_the_back_is_said_to_read_mirrored() {
+    // docs/specs/two-sided.md §4, decision 9: a plain note, nothing mirrored.
+    use chipload_pipeline::fonts::BuiltinOnly;
+    use chipload_pipeline::new_ops::{NewRequest, OpKind, insert, new_operations};
+    use chipload_pipeline::texts::{NewText, add_text};
+    let job = sample_two_sided();
+    let mut new = NewText::new("HI", 40.0);
+    new.x = 110.0;
+    new.y = 110.0;
+    new.layer = "words";
+    let (mut job, _) = add_text(&job, new, &BuiltinOnly).unwrap();
+    // A groove along the letters in the back's part, the active one.
+    let contours = chipload_pipeline::load_drawing(&job).unwrap().contours;
+    let request = NewRequest {
+        kind: OpKind::Path,
+        select: chipload_job::Selector::on_layer("words"),
+        tool: None,
+    };
+    let made = new_operations(&job, &request, &contours, None, chipload_i18n::Language::En);
+    insert(&mut job, made);
+    let back = chipload_pipeline::run_job(&job.for_setup(2)).unwrap();
+    let said: Vec<String> = back.facts.iter().map(|f| f.message.english()).collect();
+    assert!(
+        said.iter()
+            .any(|f| f.contains("carves the text \"HI\" on the back")),
+        "{said:?}"
+    );
+    // The same text on the front reads right: nothing to say.
+    let mut front = job.clone();
+    let last = front.operations.len() - 1;
+    front.operations[last].set_part(1);
+    front.follow_thickness();
+    let cut = chipload_pipeline::run_job(&front.for_setup(1)).unwrap();
+    assert!(
+        !cut.facts
+            .iter()
+            .any(|f| f.message.english().contains("carves the text"))
+    );
+}
