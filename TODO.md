@@ -8,7 +8,7 @@ a quick workflow first.
 ## In progress
 
 - **Two-sided work** (docs/specs/two-sided.md, on the local branch `two-sided`; not pushed
-  until the user has tried it and likes it, 2026-11-05). Steps 1 to 4 of 8 built:
+  until the user has tried it and likes it, 2026-11-05). Steps 1 to 5 of 8 built:
   - step 1: the model (`back_of`, schema 36), the back following its front's board and
     zero, a board fitting both sides, validation, `setup add --back-of`, `setup set
     --back-of/--own-board/--turn/--register`;
@@ -30,7 +30,13 @@ a quick workflow first.
     picture as the board lies, back face up. "Sides that meet" moves to the simulation
     (step 6), which knows exactly where both sides cut through.
 
-  Next: step 5, the window.
+  - step 5: the window: *Add the back side* on a setup's menu (right after its front, ⟲ in
+    the Browser), the setup form's Board, Turn over, Put back by and Add dowel holes, a
+    back's Stock and Work zero read only (with the thickness the front's surfacing leaves),
+    the zero's handle fixed on a back. Fixed: a margin exactly as wide as a dowel hole
+    needs (the default 10 mm for 8 mm pins) was refused by a float hair.
+
+  Next: step 6, the simulation of both sides.
   Found on the way and fixed: moving an operation or a part into
   a setup of another thickness was refused, because its through depth didn't follow first.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the

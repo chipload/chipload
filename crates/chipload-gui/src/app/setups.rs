@@ -7,7 +7,7 @@ use chipload_job::Job;
 use chipload_pipeline::PipelineError;
 
 use super::{ChiploadApp, Focus};
-use crate::i18n::t;
+use crate::i18n::{Lang, t};
 
 impl ChiploadApp {
     /// Apply `change` to the edited project; on success its setups, parts and active ones
@@ -48,6 +48,58 @@ impl ChiploadApp {
             self.focus = Focus::Setup(id);
         }
         added
+    }
+
+    /// A new setup that is the back of setup `front`, the same board turned over left to
+    /// right (docs/specs/two-sided.md §3); it and its part become active, its form opens.
+    pub fn add_back_side(&mut self, front: u64) -> Option<u64> {
+        let mut added = None;
+        self.change_setups(|job| {
+            chipload_pipeline::setups::add_back_side(
+                job,
+                front,
+                chipload_job::Turn::LeftRight,
+                None,
+            )
+            .map(|(job, id, _)| {
+                added = Some(id);
+                job
+            })
+        });
+        if let Some(id) = added {
+            self.focus = Focus::Setup(id);
+        }
+        added
+    }
+
+    /// Change setup `id`'s board: the back of another, its own, how it turns, how it is
+    /// put back. Its board and zero follow the front's at once.
+    pub fn set_board(&mut self, id: u64, change: chipload_pipeline::setups::BoardChange) {
+        self.change_setups(|job| chipload_pipeline::setups::set_board(job, id, change));
+        if let Some(edit) = self.edit.as_mut() {
+            edit.job.follow_thickness();
+        }
+    }
+
+    /// Dowel holes for back setup `id`: two circles drawn on the turn axis and a holes
+    /// operation first in the front (docs/specs/two-sided.md §6), one undo step.
+    pub fn add_dowels(&mut self, id: u64) {
+        let Some(job) = self.edited_job() else {
+            return;
+        };
+        let dowels = chipload_pipeline::dowels::Dowels::default();
+        match chipload_pipeline::dowels::add_dowels(&job, id, dowels, self.lang()) {
+            Ok((changed, at)) => {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.job = changed;
+                }
+                self.commit();
+                self.focus = Focus::Op(at);
+            }
+            Err(err) => {
+                self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]);
+            }
+        }
     }
 
     /// Make setup `id` the one shown, simulated and previewed.

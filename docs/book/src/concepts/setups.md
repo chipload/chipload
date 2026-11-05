@@ -132,6 +132,20 @@ A text carved on the back gets a note: it reads right from the front, where you 
 on the back face it reads mirrored. To have it read right there, explode it (`text
 explode`) and mirror its shapes (`shape mirror`).
 
-This is being built (docs/specs/two-sided.md): the window and a simulation of both sides
-are still to come.
+### In the window
+
+Right-click a setup for **Add the back side**: a new setup right after it, "… back", with a
+part of its own, marked ⟲ in the Browser. Its form has:
+
+- **Board:** *Its own board*, or *Back of …* any setup that has no back yet;
+- **Turn over:** *Left to right* or *Top to bottom*;
+- **Put back by:** *Dowel pins* or *A fence corner*;
+- **Dowel holes:** with pins, **Add dowel holes**, or the operation that cuts them.
+
+A back's **Stock** and **Work zero** are its front's: their forms say so, with a button to
+open the front's, and how thick the board is after the front's surfacing. You pick and edit
+the back's shapes in the same view as the front's, where you drew them; only its G-code and
+its setup sheet are turned over.
+
+This is being built (docs/specs/two-sided.md): a simulation of both sides is still to come.
 

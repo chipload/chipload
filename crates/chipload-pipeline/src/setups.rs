@@ -73,8 +73,8 @@ pub fn add_setup(
 }
 
 /// A new setup that is the back of setup `front`, the same board turned over `turn`
-/// (docs/specs/two-sided.md §3): named "<front> back" unless `name` is given, located by
-/// pins, with a first part of its own; both become active. Refused for a front that is
+/// (docs/specs/two-sided.md §3), right after it: named "<front> back" unless `name` is
+/// given, located by pins, with a first part of its own; both become active. Refused for a front that is
 /// itself a back or already has one. Returns its id and its part's.
 pub fn add_back_side(
     job: &Job,
@@ -88,6 +88,10 @@ pub fn add_back_side(
         None => format!("{} back", job.setups[at].name),
     };
     let (mut job, id, part) = add_setup(job, Some(&name), None)?;
+    // Right after its front: cut, listed and numbered in the files after it.
+    if let Some(new) = job.setups.pop() {
+        job.setups.insert(at + 1, new);
+    }
     set_back_of(
         &mut job,
         id,

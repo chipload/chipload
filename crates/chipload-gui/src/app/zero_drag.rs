@@ -66,6 +66,14 @@ impl ChiploadApp {
         if self.focus != Focus::WorkZero {
             return false;
         }
+        // A back's zero is its front's, moved there (docs/specs/two-sided.md §5).
+        if self
+            .edit
+            .as_ref()
+            .is_some_and(|e| e.job.back_turn().is_some())
+        {
+            return false;
+        }
         let Some(zero) = self.edit.as_ref().map(|e| e.job.work_zero()) else {
             return false;
         };

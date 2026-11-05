@@ -49,6 +49,8 @@ browser-setups = Setups
 browser-setups-hover = The boards the project is cut from, one after the other: each its own program, with its stock and work zero. Click one to make it the active one
 browser-add-setup = Add a setup
 browser-add-setup-hover = Another board: its own stock, work zero and parts, cut as a program of its own
+browser-add-back-side = Add the back side
+browser-add-back-side-hover = A new setup that is this board turned over, with a part of its own. Draw the back as seen from the front, through the board: its cuts are mirrored
 browser-setup-parts = { $count ->
     [one] { $count } part
    *[other] { $count } parts

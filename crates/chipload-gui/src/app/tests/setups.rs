@@ -149,3 +149,78 @@ fn new_project_pictures() {
         image.save(dir.join(format!("{name}.png"))).unwrap();
     }
 }
+
+#[test]
+fn a_back_side_is_added_turned_given_dowels_and_shares_its_board() {
+    // docs/specs/two-sided.md §3, §6.
+    use chipload_job::{Register, Turn};
+    use chipload_pipeline::setups::BoardChange;
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
+    // The back of setup 1 goes right after it, active, its form open.
+    let back = app.add_back_side(1).unwrap();
+    let job = app.edited_job().unwrap();
+    let ids: Vec<u64> = job.setups.iter().map(|s| s.id).collect();
+    assert_eq!(ids, [1, back, 2]);
+    assert_eq!(app.focus, Focus::Setup(back));
+    assert_eq!(job.active_setup_id(), Some(back));
+    assert_eq!(job.setup(back).unwrap().name, "12 mm sides back");
+    assert_eq!(job.stock(), &job.setup(1).unwrap().stock);
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+    // Turned the other way, put back by a corner: the form's choices.
+    app.set_board(
+        back,
+        BoardChange {
+            turn: Some(Turn::TopBottom),
+            register: Some(Register::Corner),
+            ..BoardChange::default()
+        },
+    );
+    let link = app
+        .edited_job()
+        .unwrap()
+        .setup(back)
+        .unwrap()
+        .back_of
+        .unwrap();
+    assert_eq!(
+        (link.turn, link.register),
+        (Turn::TopBottom, Register::Corner)
+    );
+    // The back's stock and zero are read only: the zero's handle doesn't move.
+    app.focus = Focus::Stock;
+    draw_properties(&mut app);
+    app.focus = Focus::WorkZero;
+    draw_properties(&mut app);
+    assert!(!app.start_zero_drag());
+    // Dowel holes, first in the front, one undo step.
+    app.add_dowels(back);
+    let job = app.edited_job().unwrap();
+    let dowels = job
+        .operations
+        .iter()
+        .position(|op| op.is_dowels())
+        .unwrap_or_else(|| panic!("{:?}", app.report));
+    assert_eq!(app.focus, Focus::Op(dowels));
+    assert_eq!(job.setup_of(&job.operations[dowels]).unwrap().id, 1);
+    app.undo();
+    assert!(
+        !app.edited_job()
+            .unwrap()
+            .operations
+            .iter()
+            .any(|op| op.is_dowels())
+    );
+    // Its own board again: it keeps the board it had.
+    app.set_board(
+        back,
+        BoardChange {
+            back_of: Some(None),
+            ..BoardChange::default()
+        },
+    );
+    let job = app.edited_job().unwrap();
+    assert_eq!(job.setup(back).unwrap().back_of, None);
+    assert_eq!(job.setup(back).unwrap().stock, job.setup(1).unwrap().stock);
+}

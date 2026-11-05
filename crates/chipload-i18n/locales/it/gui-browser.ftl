@@ -49,6 +49,8 @@ browser-setups = Piazzamenti
 browser-setups-hover = I pannelli da cui si ricava il progetto, uno dopo l'altro: ognuno un programma a sé, con il suo grezzo e il suo zero pezzo. Un clic lo rende attivo
 browser-add-setup = Aggiungi un piazzamento
 browser-add-setup-hover = Un altro pannello: il suo grezzo, il suo zero e i suoi pezzi, lavorato come programma a sé
+browser-add-back-side = Aggiungi il retro
+browser-add-back-side-hover = Un nuovo piazzamento: questa tavola capovolta, con un pezzo proprio. Disegna il retro visto dal fronte, attraverso la tavola: i suoi tagli sono specchiati
 browser-setup-parts = { $count ->
     [one] { $count } pezzo
    *[other] { $count } pezzi

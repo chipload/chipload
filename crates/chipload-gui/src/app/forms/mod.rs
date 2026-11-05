@@ -48,6 +48,15 @@ pub(super) enum JobRequest {
     /// Make setup `id` the active one; remove it (docs/specs/setups.md §7).
     ActivateSetup(u64),
     RemoveSetup(u64),
+    /// Make setup `id` the back of another, or give it its own board; how it turns and is
+    /// located (docs/specs/two-sided.md §3).
+    SetBoard(u64, chipload_pipeline::setups::BoardChange),
+    /// Dowel holes for back setup `id` (docs/specs/two-sided.md §6).
+    AddDowels(u64),
+    /// A back's board and zero are its front's: open the front setup's Stock, or its Work
+    /// zero.
+    FrontStock(u64),
+    FrontZero(u64),
     /// Remove pocket i's rest pass k (docs/specs/rest-passes.md §6).
     RemoveRestPass(usize, usize),
     /// Remove V-carve i's floor pass.

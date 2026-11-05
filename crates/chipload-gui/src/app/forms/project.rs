@@ -338,9 +338,12 @@ pub(super) fn z_zero_name(ui: &egui::Ui, z: ZZero) -> String {
 
 /// The work zero's properties (docs/specs/work-zero-marker.md §4): the stock's corners and
 /// centre to click, the drawing origin, where it is, and Z zero.
-pub(in crate::app) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
+pub(in crate::app) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) -> Option<JobRequest> {
     let title = t!(ui, "browser-work-zero");
     super::browser::title_line(ui, crate::icons::Icon::WorkZero, None, &title);
+    if let Some(front) = front_of_active(&edit.job) {
+        return shared_with_front(ui, &edit.job, front, JobRequest::FrontZero(front));
+    }
     let (x, y) = edit.work_zero_xy();
     let ((x0, y0), (x1, y1)) = edit.job.stock_bounds();
     let job = &mut edit.job;
@@ -398,6 +401,61 @@ pub(in crate::app) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) {
     ui.add_space(4.0);
     ui.add(egui::Label::new(egui::RichText::new(t!(ui, "forms-zero-note")).weak()).wrap());
     *job.work_zero_mut() = zero;
+    None
+}
+
+/// The front setup whose board the active setup turns over, if it is a back
+/// (docs/specs/two-sided.md §3).
+fn front_of_active(job: &chipload_job::Job) -> Option<u64> {
+    let id = job.active_setup_id()?;
+    job.setup(id)?.back_of?;
+    job.front_of(id).map(|f| f.id)
+}
+
+/// A back's Stock or Work zero: its front's, said so, with a button to open the front's.
+fn shared_with_front(
+    ui: &mut egui::Ui,
+    job: &chipload_job::Job,
+    front: u64,
+    open: JobRequest,
+) -> Option<JobRequest> {
+    let back = job
+        .active_setup_id()
+        .and_then(|id| job.setup(id))
+        .map_or(String::new(), |s| s.name.clone());
+    let front_name = job.setup(front).map_or(String::new(), |s| s.name.clone());
+    ui.add(
+        egui::Label::new(t!(
+            ui,
+            "forms-shared-with-front",
+            back = back.as_str(),
+            front = front_name.as_str()
+        ))
+        .wrap(),
+    );
+    // Thinner than the front's board by what the front surfaces (two-sided.md §5).
+    let (board, left) = (
+        job.setup(front).map_or(0.0, |s| s.stock.thickness),
+        job.stock().thickness,
+    );
+    if (board - left).abs() > chipload_core::tolerances::DEPTH_TOL_MM {
+        let units = crate::units::display(ui.ctx());
+        let unit = chipload_pipeline::units::length_unit(units);
+        ui.add_space(4.0);
+        ui.add(
+            egui::Label::new(t!(
+                ui,
+                "forms-thinner-after-surfacing",
+                thickness = format!("{} {unit}", len_in(units, left)),
+                front = front_name.as_str()
+            ))
+            .wrap(),
+        );
+    }
+    ui.add_space(6.0);
+    ui.button(t!(ui, "forms-open-front", front = front_name.as_str()))
+        .clicked()
+        .then_some(open)
 }
 
 /// A small drawing of the stock, in its proportions, with a dot at each corner and the
@@ -544,6 +602,9 @@ pub(in crate::app) fn stock_form(
 ) -> Option<JobRequest> {
     let title = t!(ui, "browser-stock");
     super::browser::title_line(ui, crate::icons::Icon::Material, None, &title);
+    if let Some(front) = front_of_active(&edit.job) {
+        return shared_with_front(ui, &edit.job, front, JobRequest::FrontStock(front));
+    }
     let labels = job_label_width(ui);
     let open = SectionLook { open: true, labels };
     // Taken before the stock is borrowed for its fields.
@@ -592,6 +653,9 @@ pub(in crate::app) fn setup_form(
         &format!("{} · {}", t!(ui, "forms-setup"), setup.name),
     );
     setup_name_rows(ui, setup, index, id, several, &parts, labels);
+    if several && let Some(change) = board_rows(ui, &edit.job, id, labels) {
+        request = Some(change);
+    }
     if !active {
         ui.add_space(6.0);
         if ui.button(t!(ui, "forms-setup-make-active")).clicked() {
@@ -604,6 +668,154 @@ pub(in crate::app) fn setup_form(
             request = Some(JobRequest::RemoveSetup(id));
         }
     }
+    request
+}
+
+/// A setup's board (docs/specs/two-sided.md §3): its own, or the back of another setup,
+/// then how a back turns over and is put back, and its dowel holes.
+fn board_rows(
+    ui: &mut egui::Ui,
+    job: &chipload_job::Job,
+    id: u64,
+    labels: f32,
+) -> Option<JobRequest> {
+    use chipload_job::{Register, Turn};
+    use chipload_pipeline::setups::BoardChange;
+    let setup = job.setup(id)?;
+    let back = setup.back_of;
+    // Fronts it may turn over: another setup, not a back, with no other back.
+    let fronts: Vec<(u64, String)> = job
+        .setups
+        .iter()
+        .filter(|s| {
+            s.id != id
+                && s.back_of.is_none()
+                && job.back_of(s.id).is_none_or(|b| b.id == id)
+                && job.back_of(id).is_none()
+        })
+        .map(|s| (s.id, s.name.clone()))
+        .collect();
+    let name_of = |front: u64| job.setup(front).map_or(String::new(), |s| s.name.clone());
+    let mut request = None;
+    ui.add_space(6.0);
+    Grid::new(("setup-board", id))
+        .num_columns(2)
+        .min_col_width(labels + ui.spacing().indent)
+        .show(ui, |ui| {
+            ui.label(t!(ui, "forms-setup-board"))
+                .on_hover_text(t!(ui, "forms-setup-board-hover"));
+            let shown = match back {
+                Some(b) => t!(
+                    ui,
+                    "forms-setup-board-back",
+                    setup = name_of(b.setup).as_str()
+                ),
+                None => t!(ui, "forms-setup-board-own"),
+            };
+            ComboBox::from_id_salt(("setup-board-pick", id))
+                .selected_text(shown)
+                .show_ui(ui, |ui| {
+                    if ui
+                        .selectable_label(back.is_none(), t!(ui, "forms-setup-board-own"))
+                        .clicked()
+                        && back.is_some()
+                    {
+                        let change = BoardChange {
+                            back_of: Some(None),
+                            ..BoardChange::default()
+                        };
+                        request = Some(JobRequest::SetBoard(id, change));
+                    }
+                    for (front, name) in &fronts {
+                        let chosen = back.is_some_and(|b| b.setup == *front);
+                        let label = t!(ui, "forms-setup-board-back", setup = name.as_str());
+                        if ui.selectable_label(chosen, label).clicked() && !chosen {
+                            let change = BoardChange {
+                                back_of: Some(Some(*front)),
+                                ..BoardChange::default()
+                            };
+                            request = Some(JobRequest::SetBoard(id, change));
+                        }
+                    }
+                });
+            ui.end_row();
+            let Some(b) = back else {
+                return;
+            };
+            ui.label(t!(ui, "forms-setup-turn"))
+                .on_hover_text(t!(ui, "forms-setup-turn-hover"));
+            let turn_name = |ui: &egui::Ui, turn: Turn| match turn {
+                Turn::LeftRight => t!(ui, "forms-setup-turn-left-right"),
+                Turn::TopBottom => t!(ui, "forms-setup-turn-top-bottom"),
+            };
+            ComboBox::from_id_salt(("setup-turn", id))
+                .selected_text(turn_name(ui, b.turn))
+                .show_ui(ui, |ui| {
+                    for turn in [Turn::LeftRight, Turn::TopBottom] {
+                        if ui
+                            .selectable_label(b.turn == turn, turn_name(ui, turn))
+                            .clicked()
+                            && b.turn != turn
+                        {
+                            let change = BoardChange {
+                                turn: Some(turn),
+                                ..BoardChange::default()
+                            };
+                            request = Some(JobRequest::SetBoard(id, change));
+                        }
+                    }
+                });
+            ui.end_row();
+            ui.label(t!(ui, "forms-setup-register"))
+                .on_hover_text(t!(ui, "forms-setup-register-hover"));
+            let register_name = |ui: &egui::Ui, register: Register| match register {
+                Register::Pins => t!(ui, "forms-setup-register-pins"),
+                Register::Corner => t!(ui, "forms-setup-register-corner"),
+            };
+            ComboBox::from_id_salt(("setup-register", id))
+                .selected_text(register_name(ui, b.register))
+                .show_ui(ui, |ui| {
+                    for register in [Register::Pins, Register::Corner] {
+                        if ui
+                            .selectable_label(b.register == register, register_name(ui, register))
+                            .clicked()
+                            && b.register != register
+                        {
+                            let change = BoardChange {
+                                register: Some(register),
+                                ..BoardChange::default()
+                            };
+                            request = Some(JobRequest::SetBoard(id, change));
+                        }
+                    }
+                });
+            ui.end_row();
+            if b.register == Register::Pins {
+                ui.label(t!(ui, "forms-setup-dowels"));
+                let dowels = job.operations.iter().position(|op| {
+                    op.is_dowels() && job.setup_of(op).is_some_and(|s| s.id == b.setup)
+                });
+                match dowels {
+                    Some(i) => {
+                        ui.label(t!(ui, "forms-setup-dowels-there", number = i + 1));
+                    }
+                    None => {
+                        if ui
+                            .button(t!(ui, "forms-setup-add-dowels"))
+                            .on_hover_text(t!(
+                                ui,
+                                "forms-setup-add-dowels-hover",
+                                front = name_of(b.setup).as_str()
+                            ))
+                            .clicked()
+                        {
+                            request = Some(JobRequest::AddDowels(id));
+                        }
+                    }
+                }
+                ui.end_row();
+            }
+        });
     request
 }
 

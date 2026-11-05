@@ -413,6 +413,8 @@ enum OpAction {
 /// What a setup's rows ask for.
 enum SetupAction {
     Add,
+    /// A back side for this setup (docs/specs/two-sided.md §3).
+    AddBack(u64),
     Toggle(u64),
     Open(u64),
     Stock(u64),
@@ -798,10 +800,20 @@ impl ChiploadApp {
                 let open_id = id.with("folder-open");
                 let setup_open = folder_open(ui, open_id, true);
                 let several = setups.len() > 1;
+                // A back is marked as the board turned over (docs/specs/two-sided.md §3).
+                let parts_text = t!(ui, "browser-setup-parts", count = mine.len());
+                let trailing = match setup.back_of {
+                    Some(_) => format!("⟲ {parts_text}"),
+                    None => parts_text,
+                };
+                let can_turn = setup.back_of.is_none()
+                    && !setups
+                        .iter()
+                        .any(|s| s.back_of.is_some_and(|b| b.setup == setup.id));
                 let mut row = Row::new(id, 2, &setup.name)
                     .folder(setup_open)
                     .icon(Icon::Rectangle)
-                    .trailing(t!(ui, "browser-setup-parts", count = mine.len()))
+                    .trailing(trailing)
                     .selected(self.focus == Focus::Setup(setup.id))
                     .dim(!setup.enabled || !is_active)
                     .strong(is_active && several);
@@ -841,6 +853,13 @@ impl ChiploadApp {
                     {
                         setup_action = Some(SetupAction::Add);
                     }
+                    if ui
+                        .add_enabled(can_turn, egui::Button::new(t!(ui, "browser-add-back-side")))
+                        .on_hover_text(t!(ui, "browser-add-back-side-hover"))
+                        .clicked()
+                    {
+                        setup_action = Some(SetupAction::AddBack(setup.id));
+                    }
                     ui.separator();
                     if ui
                         .add_enabled(several, egui::Button::new(t!(ui, "browser-delete")))
@@ -877,6 +896,9 @@ impl ChiploadApp {
         match setup_action {
             Some(SetupAction::Add) => {
                 self.add_setup();
+            }
+            Some(SetupAction::AddBack(id)) => {
+                self.add_back_side(id);
             }
             Some(SetupAction::Toggle(id)) => self.toggle_setup(id),
             Some(SetupAction::Open(id)) => {

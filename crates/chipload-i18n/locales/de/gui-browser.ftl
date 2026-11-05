@@ -49,6 +49,8 @@ browser-setups = Aufspannungen
 browser-setups-hover = Die Platten, aus denen das Projekt nacheinander gefräst wird: jede ein eigenes Programm, mit ihrem Rohteil und Nullpunkt. Klicken macht eine zur aktiven
 browser-add-setup = Aufspannung hinzufügen
 browser-add-setup-hover = Eine weitere Platte: eigenes Rohteil, eigener Nullpunkt und eigene Teile, als eigenes Programm gefräst
+browser-add-back-side = Rückseite hinzufügen
+browser-add-back-side-hover = Eine neue Aufspannung: dieses Brett gewendet, mit einem eigenen Teil. Die Rückseite so zeichnen, wie man sie von vorn durch das Brett sieht: ihre Schnitte werden gespiegelt
 browser-setup-parts = { $count ->
     [one] { $count } Teil
    *[other] { $count } Teile

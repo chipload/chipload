@@ -49,6 +49,8 @@ browser-setups = Montages
 browser-setups-hover = Les panneaux dans lesquels le projet est usiné, l'un après l'autre : chacun un programme à lui, avec son brut et son origine pièce. Un clic le rend actif
 browser-add-setup = Ajouter un montage
 browser-add-setup-hover = Un autre panneau : son brut, son zéro et ses pièces, usiné comme un programme à lui
+browser-add-back-side = Ajouter le verso
+browser-add-back-side-hover = Un nouveau montage : cette planche retournée, avec sa propre pièce. Dessinez le verso vu du recto, à travers la planche : ses usinages sont mis en miroir
 browser-setup-parts = { $count ->
     [one] { $count } pièce
    *[other] { $count } pièces

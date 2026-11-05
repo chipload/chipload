@@ -5,6 +5,7 @@
 //! pins. On the turned board each hole lands on itself, so a pin through both locates it.
 
 use chipload_core::Point;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Units, Value};
 use chipload_job::{Geometry, Job, Operation, Selector, Turn, WorkZero};
 
@@ -83,7 +84,8 @@ pub fn dowel_centres(job: &Job, back: u64, diameter: f64) -> Result<[Point; 2], 
     };
     let needed = diameter + 2.0 * PIN_ROOM;
     let narrowest = gaps[0].min(gaps[1]);
-    if narrowest < needed {
+    // The default 10 mm margin holds the default 8 mm pins exactly.
+    if narrowest + CHAIN_TOL_MM < needed {
         let length = |v: f64| Value::Length(v, Digits::Fixed(1));
         return Err(refused(
             Message::new("pipeline-dowels-no-room")

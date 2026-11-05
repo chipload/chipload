@@ -157,7 +157,7 @@ impl ChiploadApp {
             // Shown above, alone.
             Focus::Selection => {}
             Focus::Job => request = job_form(ui, edit, library),
-            Focus::WorkZero => forms::work_zero_form(ui, edit),
+            Focus::WorkZero => request = forms::work_zero_form(ui, edit),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
             Focus::Stock => {
                 if std::mem::take(&mut self.focus_thickness) {
@@ -259,6 +259,16 @@ impl ChiploadApp {
             Some(JobRequest::OpenOperation(i)) => self.focus = Focus::Op(i),
             Some(JobRequest::ActivateSetup(id)) => self.activate_setup(id),
             Some(JobRequest::RemoveSetup(id)) => self.remove_setup(id),
+            Some(JobRequest::SetBoard(id, change)) => self.set_board(id, change),
+            Some(JobRequest::AddDowels(id)) => self.add_dowels(id),
+            Some(JobRequest::FrontStock(front)) => {
+                self.activate_setup(front);
+                self.focus = Focus::Stock;
+            }
+            Some(JobRequest::FrontZero(front)) => {
+                self.activate_setup(front);
+                self.focus = Focus::WorkZero;
+            }
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
             Some(JobRequest::RemoveFloorPass(i)) => self.remove_floor_pass(i),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
