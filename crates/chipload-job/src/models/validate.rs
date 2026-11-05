@@ -153,6 +153,7 @@ impl Job {
                 &format!("{at}.work_zero"),
                 setup.work_zero,
             ));
+            problems.extend(self.back_problems(k));
         }
         for (i, part) in self.parts.iter().enumerate() {
             if self.setup(part.setup).is_none() {
@@ -163,6 +164,35 @@ impl Job {
             }
         }
         problems
+    }
+
+    /// A back setup's rules (docs/specs/two-sided.md §9): its front is another setup that
+    /// is not itself a back, and has no other back.
+    fn back_problems(&self, k: usize) -> Vec<Problem> {
+        let setup = &self.setups[k];
+        let Some(back) = setup.back_of else {
+            return Vec::new();
+        };
+        let at = format!("setups.{k}.back_of.setup");
+        let problem = if back.setup == setup.id {
+            Message::new("job-back-of-itself")
+        } else {
+            match self.setup(back.setup) {
+                None => Message::new("job-no-such-setup").arg("id", back.setup),
+                Some(front) if front.back_of.is_some() => {
+                    Message::new("job-back-of-a-back").arg("id", back.setup)
+                }
+                Some(_)
+                    if self.setups[..k]
+                        .iter()
+                        .any(|s| s.back_of.is_some_and(|b| b.setup == back.setup)) =>
+                {
+                    Message::new("job-two-backs").arg("id", back.setup)
+                }
+                Some(_) => return Vec::new(),
+            }
+        };
+        vec![Problem::at(at, problem)]
     }
 
     fn part_problems(&self) -> Vec<Problem> {

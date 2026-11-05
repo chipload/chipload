@@ -53,6 +53,32 @@
       ],
       "type": "string"
     },
+    "BackOf": {
+      "additionalProperties": false,
+      "description": "Which setup a back setup turns over, and how (docs/specs/two-sided.md §3).",
+      "properties": {
+        "register": {
+          "$ref": "#/$defs/Register",
+          "description": "How the turned board is put back in place."
+        },
+        "setup": {
+          "description": "The id of the front setup: the board as it lies first.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "turn": {
+          "$ref": "#/$defs/Turn",
+          "description": "How the board is turned over."
+        }
+      },
+      "required": [
+        "setup",
+        "turn",
+        "register"
+      ],
+      "type": "object"
+    },
     "Bone": {
       "description": "What a chosen corner gets.",
       "enum": [
@@ -1756,6 +1782,21 @@
       ],
       "type": "object"
     },
+    "Register": {
+      "description": "How a turned board is located again.",
+      "oneOf": [
+        {
+          "const": "pins",
+          "description": "Dowel pins through holes on the turn axis, drilled with the front.",
+          "type": "string"
+        },
+        {
+          "const": "corner",
+          "description": "Pushed into the same corner of a fence: the board's size must be exact.",
+          "type": "string"
+        }
+      ]
+    },
     "Rest": {
       "additionalProperties": false,
       "description": "Rest machining: the pocket clears only the material the larger tool `after_tool` can't\nreach in its shapes.",
@@ -1850,6 +1891,18 @@
       "additionalProperties": false,
       "description": "A setup: one board clamped once on the machine, with its stock and work zero, and the\nparts cut from it (docs/specs/setups.md §2).",
       "properties": {
+        "back_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackOf"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Set: this setup is the back of another, the same board turned over. Its stock and\nwork zero then follow that setup's ([`Job::follow_fronts`]), and its cuts are\nmirrored about the board's centre line. Null: a board of its own. Since schema 36."
+        },
         "enabled": {
           "default": true,
           "description": "False: the setup and its parts stay in the project but aren't cut.",
@@ -2566,6 +2619,21 @@
       ],
       "type": "object"
     },
+    "Turn": {
+      "description": "How a board is turned over: about its vertical or its horizontal centre line.",
+      "oneOf": [
+        {
+          "const": "left_right",
+          "description": "About the vertical centre line: the left edge goes to the right, X is mirrored.",
+          "type": "string"
+        },
+        {
+          "const": "top_bottom",
+          "description": "About the horizontal centre line: the bottom edge goes to the top, Y is mirrored.",
+          "type": "string"
+        }
+      ]
+    },
     "Units": {
       "enum": [
         "mm",
@@ -2669,7 +2737,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 35. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 36. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -2714,7 +2782,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 35,
+      "const": 36,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "setups": {

@@ -496,7 +496,13 @@ mod tests {
 
     #[test]
     fn the_v1_sample_loads() {
-        let loaded = load_styles(&corpus("styles/v1/styles.json")).unwrap();
+        // A copy: loading saves an upgraded file, and the frozen sample must stay as it is.
+        let dir = std::env::temp_dir().join(format!("chipload-styles-v1-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let copy = dir.join("styles.json");
+        std::fs::copy(corpus("styles/v1/styles.json"), &copy).unwrap();
+        let loaded = load_styles(&copy).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
         assert!(loaded.refused.is_empty(), "{:?}", loaded.refused);
         let names: Vec<&str> = loaded
             .library

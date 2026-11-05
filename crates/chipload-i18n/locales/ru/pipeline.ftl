@@ -225,6 +225,7 @@ pipeline-corner-not-profile-or-pocket = у операции { $number } нет �
 pipeline-no-setup = в проекте нет установа { $id }
 pipeline-setup-name-empty = установу нужно имя
 pipeline-last-setup = в проекте должен быть хотя бы один установ
+pipeline-setup-not-a-back = установ { $id } не является обратной стороной другого: сначала укажите --back-of
 pipeline-setup-has-parts = в установе { $name } деталей: { $count }; сначала переместите их в другой установ или удалите вместе с ним
 pipeline-no-setup-cut = нет включённых установов с геометрией для обработки
 pipeline-not-a-pocket = операция { $number } не является карманом; доработка остатка есть только у карманов

@@ -130,6 +130,9 @@ job-no-parts = ett projekt behöver minst en detalj
 job-no-setups = projektet har ingen uppspänning; det behöver minst en
 job-setup-twice = uppspänningens id { $id } används två gånger
 job-no-such-setup = ingen uppspänning { $id } i setups
+job-back-of-itself = en uppspänning kan inte vara sin egen baksida
+job-back-of-a-back = uppspänning { $id } är själv en baksida: en baksida kan inte vändas igen
+job-two-backs = uppspänning { $id } har två baksidor: en skiva har en baksida
 job-part-twice = detalj { $id } finns med två gånger
 job-part-name-taken = en annan detalj heter "{ $name }"
 # "parts" is a place in the project file.

@@ -321,6 +321,7 @@ pipeline-corner-not-profile-or-pocket = operation { $number } has no corners to 
 pipeline-no-setup = no setup { $id } in the project
 pipeline-setup-name-empty = a setup needs a name
 pipeline-last-setup = a project needs at least one setup
+pipeline-setup-not-a-back = setup { $id } is not the back of another setup: give --back-of first
 pipeline-setup-has-parts = setup { $name } has { $count } part(s); move them to another setup first, or remove them with it
 pipeline-no-setup-cut = no setup is on with something to cut
 pipeline-not-a-pocket = operation { $number } is not a pocket; only pockets rest machine

@@ -130,6 +130,9 @@ job-no-parts = a project needs at least one part
 job-no-setups = the project has no setup; it needs at least one
 job-setup-twice = setup id { $id } is used twice
 job-no-such-setup = no setup { $id } in setups
+job-back-of-itself = a setup can't be the back of itself
+job-back-of-a-back = setup { $id } is itself a back side: a back can't be turned over again
+job-two-backs = setup { $id } has two back sides: one board has one back
 job-part-twice = part { $id } is listed twice
 job-part-name-taken = another part is named "{ $name }"
 # "parts" is a place in the project file.

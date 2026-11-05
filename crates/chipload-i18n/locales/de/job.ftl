@@ -130,6 +130,9 @@ job-no-parts = ein Projekt braucht mindestens ein Teil
 job-no-setups = das Projekt hat keine Aufspannung; es braucht mindestens eine
 job-setup-twice = die Aufspannungs-ID { $id } kommt zweimal vor
 job-no-such-setup = keine Aufspannung { $id } in setups
+job-back-of-itself = eine Aufspannung kann nicht ihre eigene Rückseite sein
+job-back-of-a-back = Aufspannung { $id } ist selbst eine Rückseite: eine Rückseite kann nicht noch einmal gewendet werden
+job-two-backs = Aufspannung { $id } hat zwei Rückseiten: ein Brett hat eine Rückseite
 job-part-twice = Teil { $id } ist zweimal aufgeführt
 job-part-name-taken = ein anderes Teil heißt bereits "{ $name }"
 # "parts" is a place in the project file.

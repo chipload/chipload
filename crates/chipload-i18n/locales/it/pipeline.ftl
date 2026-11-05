@@ -329,6 +329,7 @@ pipeline-corner-not-profile-or-pocket = la lavorazione { $number } non ha angoli
 pipeline-no-setup = nessun piazzamento { $id } nel progetto
 pipeline-setup-name-empty = un piazzamento ha bisogno di un nome
 pipeline-last-setup = un progetto ha bisogno di almeno un piazzamento
+pipeline-setup-not-a-back = il piazzamento { $id } non è il retro di un altro: indica prima --back-of
 pipeline-setup-has-parts = il piazzamento { $name } ha { $count } pezzo/i; spostali prima in un altro piazzamento o rimuovili insieme
 pipeline-no-setup-cut = nessun piazzamento è attivo con qualcosa da lavorare
 pipeline-not-a-pocket = la lavorazione { $number } non è una tasca; solo le tasche fanno ripresa dei residui

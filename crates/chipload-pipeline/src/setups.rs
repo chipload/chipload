@@ -4,7 +4,7 @@
 //! cut from it, each run as a program of its own.
 
 use chipload_i18n::Message;
-use chipload_job::{Job, Part, Setup};
+use chipload_job::{BackOf, Job, Part, Register, Setup, Turn};
 
 use crate::PipelineError;
 use crate::parts::free_name;
@@ -56,6 +56,7 @@ pub fn add_setup(
         enabled: true,
         stock,
         work_zero,
+        back_of: None,
     });
     let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
     let part_name = free_name(&job, None)?;
@@ -69,6 +70,90 @@ pub fn add_setup(
     job.active_setup = Some(id);
     job.active_part = Some(part);
     Ok((checked(job)?, id, part))
+}
+
+/// A new setup that is the back of setup `front`, the same board turned over `turn`
+/// (docs/specs/two-sided.md §3): named "<front> back" unless `name` is given, located by
+/// pins, with a first part of its own; both become active. Refused for a front that is
+/// itself a back or already has one. Returns its id and its part's.
+pub fn add_back_side(
+    job: &Job,
+    front: u64,
+    turn: Turn,
+    name: Option<&str>,
+) -> Result<(Job, u64, u64), PipelineError> {
+    let at = index_of(job, front)?;
+    let name = match name {
+        Some(name) => name.to_string(),
+        None => format!("{} back", job.setups[at].name),
+    };
+    let (mut job, id, part) = add_setup(job, Some(&name), None)?;
+    set_back_of(
+        &mut job,
+        id,
+        Some(BackOf {
+            setup: front,
+            turn,
+            register: Register::Pins,
+        }),
+    )?;
+    Ok((checked(job)?, id, part))
+}
+
+/// What to change of a setup's board (docs/specs/two-sided.md §9): make it the back of
+/// another setup (`Some(Some(front))`) or give it a board of its own (`Some(None)`), and
+/// how a back is turned over and located.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct BoardChange {
+    pub back_of: Option<Option<u64>>,
+    pub turn: Option<Turn>,
+    pub register: Option<Register>,
+}
+
+/// Change setup `id`'s board. A back keeps its turn and its way of locating unless they
+/// are given (new: left to right, pins); a setup unlinked keeps the board and zero it had
+/// as a back. A turn or a way of locating for a setup that isn't a back is refused.
+pub fn set_board(job: &Job, id: u64, change: BoardChange) -> Result<Job, PipelineError> {
+    let mut job = job.clone();
+    let at = index_of(&job, id)?;
+    let old = job.setups[at].back_of;
+    let back = match change.back_of {
+        Some(None) => None,
+        Some(Some(front)) => Some(BackOf {
+            setup: front,
+            turn: change
+                .turn
+                .or(old.map(|b| b.turn))
+                .unwrap_or(Turn::LeftRight),
+            register: change
+                .register
+                .or(old.map(|b| b.register))
+                .unwrap_or(Register::Pins),
+        }),
+        None => match old {
+            Some(old) => Some(BackOf {
+                turn: change.turn.unwrap_or(old.turn),
+                register: change.register.unwrap_or(old.register),
+                ..old
+            }),
+            None if change.turn.is_some() || change.register.is_some() => {
+                return Err(refused(
+                    Message::new("pipeline-setup-not-a-back").arg("id", id),
+                ));
+            }
+            None => None,
+        },
+    };
+    set_back_of(&mut job, id, back)?;
+    checked(job)
+}
+
+/// Set setup `id`'s link, then let every back follow its front's board and zero.
+fn set_back_of(job: &mut Job, id: u64, back: Option<BackOf>) -> Result<(), PipelineError> {
+    let at = index_of(job, id)?;
+    job.setups[at].back_of = back;
+    job.follow_thickness();
+    Ok(())
 }
 
 /// Rename a setup, or turn it on or off.
@@ -134,6 +219,16 @@ pub fn remove_setup(
         ));
     }
     let mut job = job.clone();
+    let mut lines = vec![format!("Removed setup {name}")];
+    // Its back keeps the board and zero it had: a copy, now its own.
+    if let Some(back) = job
+        .setups
+        .iter_mut()
+        .find(|s| s.back_of.is_some_and(|b| b.setup == id))
+    {
+        back.back_of = None;
+        lines.push(format!("{} has a board of its own now", back.name));
+    }
     job.setups.remove(at);
     job.parts.retain(|p| p.setup != id);
     job.operations.retain(|op| !parts.contains(&op.part()));
@@ -143,7 +238,6 @@ pub fn remove_setup(
     if job.active_part.is_some_and(|p| parts.contains(&p)) {
         job.active_part = job.parts.first().map(|p| p.id);
     }
-    let mut lines = vec![format!("Removed setup {name}")];
     if !parts.is_empty() {
         lines.push(format!(
             "Removed its {} part(s) and their operations",

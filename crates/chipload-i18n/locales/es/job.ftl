@@ -130,6 +130,9 @@ job-no-parts = un proyecto necesita al menos una pieza
 job-no-setups = el proyecto no tiene ninguna sujeción; necesita al menos una
 job-setup-twice = el id de sujeción { $id } se usa dos veces
 job-no-such-setup = no hay sujeción { $id } en setups
+job-back-of-itself = una sujeción no puede ser su propio reverso
+job-back-of-a-back = la sujeción { $id } ya es un reverso: un reverso no se puede dar la vuelta otra vez
+job-two-backs = la sujeción { $id } tiene dos reversos: un tablero tiene un solo reverso
 job-part-twice = la pieza { $id } aparece dos veces
 job-part-name-taken = otra pieza se llama "{ $name }"
 # "parts" is a place in the project file.

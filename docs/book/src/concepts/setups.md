@@ -67,3 +67,25 @@ chipload run box.chipload -o box.nc --setup 2
 
 In paths, a setup's board is `setups.N.stock…` and its zero `setups.N.work_zero`, counting
 from 0. The older `stock.…` and `machine.work_zero` still work and mean the active setup's.
+
+## The back side (experimental)
+
+A setup can be the **back of another**: the same board turned over, for parts cut on both
+faces. It shares its front's board and work zero: change the thickness of the front, and the
+back follows. A board that fits fits the shapes of both sides.
+
+```sh
+chipload setup add sign.chipload --back-of 1 --turn left-right   # "Setup 1 back", with a part
+chipload setup set sign.chipload 2 --turn top-bottom --register corner
+chipload setup set sign.chipload 2 --own-board    # a board of its own again, as it is now
+```
+
+`--turn` is how the board is turned over: **left-right** about its vertical centre line, or
+**top-bottom** about its horizontal one. `--register` is how it is put back in place:
+**pins** (dowel pins on the turn axis, the default) or **corner** (pushed into the same
+corner of a fence). A board has one back, and a back can't be turned over again. Removing
+the front gives its back a board of its own.
+
+This is being built (docs/specs/two-sided.md): the back's cuts aren't mirrored yet, so
+don't cut a back setup.
+

@@ -332,6 +332,7 @@ pipeline-corner-not-profile-or-pocket = la operación { $number } no tiene esqui
 pipeline-no-setup = no hay sujeción { $id } en el proyecto
 pipeline-setup-name-empty = una sujeción necesita un nombre
 pipeline-last-setup = un proyecto necesita al menos una sujeción
+pipeline-setup-not-a-back = la sujeción { $id } no es el reverso de otra: indica primero --back-of
 pipeline-setup-has-parts = la sujeción { $name } tiene { $count } pieza(s); muévelas antes a otra sujeción o quítalas con ella
 pipeline-no-setup-cut = ninguna sujeción está activada con algo que cortar
 pipeline-not-a-pocket = la operación { $number } no es una cajera; solo las cajeras admiten mecanizado de restos

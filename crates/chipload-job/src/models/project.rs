@@ -59,6 +59,65 @@ pub struct Setup {
     // Spec: docs/specs/work-zero.md.
     #[serde(default)]
     pub work_zero: WorkZero,
+    /// Set: this setup is the back of another, the same board turned over. Its stock and
+    /// work zero then follow that setup's ([`Job::follow_fronts`]), and its cuts are
+    /// mirrored about the board's centre line. Null: a board of its own. Since schema 36.
+    // Spec: docs/specs/two-sided.md.
+    #[serde(default)]
+    pub back_of: Option<BackOf>,
+}
+
+/// Which setup a back setup turns over, and how (docs/specs/two-sided.md §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct BackOf {
+    /// The id of the front setup: the board as it lies first.
+    pub setup: u64,
+    /// How the board is turned over.
+    pub turn: Turn,
+    /// How the turned board is put back in place.
+    pub register: Register,
+}
+
+/// How a board is turned over: about its vertical or its horizontal centre line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Turn {
+    /// About the vertical centre line: the left edge goes to the right, X is mirrored.
+    LeftRight,
+    /// About the horizontal centre line: the bottom edge goes to the top, Y is mirrored.
+    TopBottom,
+}
+
+impl Turn {
+    pub fn name(self) -> &'static str {
+        match self {
+            Turn::LeftRight => "left-right",
+            Turn::TopBottom => "top-bottom",
+        }
+    }
+}
+
+/// How a turned board is located again.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Register {
+    /// Dowel pins through holes on the turn axis, drilled with the front.
+    Pins,
+    /// Pushed into the same corner of a fence: the board's size must be exact.
+    Corner,
+}
+
+impl Register {
+    pub fn name(self) -> &'static str {
+        match self {
+            Register::Pins => "pins",
+            Register::Corner => "corner",
+        }
+    }
 }
 
 /// A part: a named group of operations, cut together, with its own copies
@@ -238,6 +297,7 @@ impl Job {
     /// goes through: run wherever a project is read or changed, so no end depth is left
     /// from an older thickness.
     pub fn follow_thickness(&mut self) {
+        self.follow_fronts();
         let depths: Vec<(f64, f64)> = self
             .operations
             .iter()
@@ -276,6 +336,40 @@ impl Job {
     /// The setup with this id.
     pub fn setup(&self, id: u64) -> Option<&Setup> {
         self.setups.iter().find(|s| s.id == id)
+    }
+
+    /// The setup whose back setup `id` is, when it is one and its front exists.
+    pub fn front_of(&self, id: u64) -> Option<&Setup> {
+        let back = self.setup(id)?.back_of?;
+        self.setup(back.setup)
+    }
+
+    /// The back setup of setup `id`, if it has one.
+    pub fn back_of(&self, id: u64) -> Option<&Setup> {
+        self.setups
+            .iter()
+            .find(|s| s.back_of.is_some_and(|b| b.setup == id))
+    }
+
+    /// Every back setup takes its front's board and work zero (docs/specs/two-sided.md §3,
+    /// §5): one board, so one stock and one zero, kept in step wherever a project is read
+    /// or changed ([`Job::follow_thickness`] calls it first). A back whose front is
+    /// missing, or is itself a back, keeps its own; validation refuses it.
+    pub fn follow_fronts(&mut self) {
+        let fronts: Vec<Option<(Stock, WorkZero)>> = self
+            .setups
+            .iter()
+            .map(|s| {
+                let front = self.front_of(s.id).filter(|f| f.back_of.is_none())?;
+                Some((front.stock.clone(), front.work_zero))
+            })
+            .collect();
+        for (setup, front) in self.setups.iter_mut().zip(fronts) {
+            if let Some((stock, zero)) = front {
+                setup.stock = stock;
+                setup.work_zero = zero;
+            }
+        }
     }
 
     /// The setup operation `op` is cut in: its part's.
@@ -388,15 +482,30 @@ impl Job {
         if self.setups.len() < 2 {
             return self.drawing.extents();
         }
-        let setup = self.active_setup_id();
+        let board = self.board_setups();
         let selectors: Vec<Selector> = self
             .operations
             .iter()
-            .filter(|op| op.selects_shapes() && self.part_of(op).map(|p| p.setup) == setup)
+            .filter(|op| {
+                op.selects_shapes() && self.part_of(op).is_some_and(|p| board.contains(&p.setup))
+            })
             .map(|op| op.select().resolved(&self.drawing))
             .collect();
         self.drawing
             .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
+    }
+
+    /// The setups that cut the active setup's board: it, and its front or its back
+    /// (docs/specs/two-sided.md §3). A board that fits fits both sides' shapes, so the front
+    /// and the back lie on the same rectangle.
+    fn board_setups(&self) -> Vec<u64> {
+        let Some(id) = self.active_setup_id() else {
+            return Vec::new();
+        };
+        let mut board = vec![id];
+        board.extend(self.front_of(id).map(|s| s.id));
+        board.extend(self.back_of(id).map(|s| s.id));
+        board
     }
 
     /// The stock's (min, max) corners in drawing coordinates, wherever it is placed: at the

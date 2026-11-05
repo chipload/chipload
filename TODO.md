@@ -7,6 +7,12 @@ a quick workflow first.
 
 ## In progress
 
+- **Two-sided work** (docs/specs/two-sided.md, on the local branch `two-sided`; not pushed
+  until the user has tried it and likes it, 2026-11-05). Step 1 of 8 built: the model
+  (`back_of`, schema 36), the back following its front's board and zero, a board fitting
+  both sides, validation, `setup add --back-of`, `setup set --back-of/--own-board/--turn/
+  --register`. Next: step 2, planning with the cutting sense flipped and the program
+  mirrored. Until then a back setup is cut unmirrored: don't cut one.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:

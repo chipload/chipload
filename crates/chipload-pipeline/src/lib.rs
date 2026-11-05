@@ -918,6 +918,7 @@ pub fn empty_project() -> Job {
             work_zero: WorkZero::Stock {
                 corner: StockCorner::BottomLeft,
             },
+            back_of: None,
         }],
         active_setup: Some(1),
         machine: Machine {

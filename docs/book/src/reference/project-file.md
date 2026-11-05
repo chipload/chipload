@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 35. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 36. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 35. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `35` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `36` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -43,6 +43,16 @@ One of: `"auto"`.
 An axis of the drawing.
 
 One of: `"x"`, `"y"`.
+
+## BackOf
+
+Which setup a back setup turns over, and how (docs/specs/two-sided.md §3).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `register` | [Register](#register) | yes | How the turned board is put back in place. |
+| `setup` | integer | yes | The id of the front setup: the board as it lies first. |
+| `turn` | [Turn](#turn) | yes | How the board is turned over. |
 
 ## Bone
 
@@ -471,6 +481,14 @@ Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (d
 | `rotation` | number | yes | Turned counter-clockwise about the DXF's origin, degrees, at least 0 and less than 360, after the scale. Multiples of 90 are exact. |
 | `scale` | number | yes | Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn. |
 
+## Register
+
+How a turned board is located again.
+
+- `"pins"`: Dowel pins through holes on the turn axis, drilled with the front.
+
+- `"corner"`: Pushed into the same corner of a fence: the board's size must be exact.
+
 ## Rest
 
 Rest machining: the pocket clears only the material the larger tool `after_tool` can't reach in its shapes.
@@ -497,6 +515,7 @@ A setup: one board clamped once on the machine, with its stock and work zero, an
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `back_of` | [BackOf](#backof) or null | no | Set: this setup is the back of another, the same board turned over. Its stock and work zero then follow that setup's ([`Job::follow_fronts`]), and its cuts are mirrored about the board's centre line. Null: a board of its own. Since schema 36. |
 | `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what parts name it by. |
 | `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
@@ -676,6 +695,14 @@ One of: `"endmill"`, `"drill"`, `"vbit"`.
 | `x` | number | yes | Travel along X, mm. |
 | `y` | number | yes | Travel along Y, mm. |
 | `z` | number | yes | Travel along Z, mm. |
+
+## Turn
+
+How a board is turned over: about its vertical or its horizontal centre line.
+
+- `"left_right"`: About the vertical centre line: the left edge goes to the right, X is mirrored.
+
+- `"top_bottom"`: About the horizontal centre line: the bottom edge goes to the top, Y is mirrored.
 
 ## Units
 

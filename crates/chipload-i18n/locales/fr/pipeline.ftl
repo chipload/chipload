@@ -332,6 +332,7 @@ pipeline-corner-not-profile-or-pocket = l'opération { $number } n'a pas de coin
 pipeline-no-setup = pas de montage { $id } dans le projet
 pipeline-setup-name-empty = un montage a besoin d'un nom
 pipeline-last-setup = un projet a besoin d'au moins un montage
+pipeline-setup-not-a-back = le montage { $id } n'est le verso d'aucun autre : indiquez d'abord --back-of
 pipeline-setup-has-parts = le montage { $name } a { $count } pièce(s) ; déplacez-les d'abord vers un autre montage, ou retirez-les avec lui
 pipeline-no-setup-cut = aucun montage n'est actif avec quelque chose à usiner
 pipeline-not-a-pocket = l'opération { $number } n'est pas une poche ; seules les poches font de la reprise des restes

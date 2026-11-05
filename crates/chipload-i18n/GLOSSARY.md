@@ -31,6 +31,9 @@ correction here is a correction everywhere: change the term, then every text usi
 | project | Projekt | projet | proyecto | progetto | projekt |
 | part (a group of operations) | Teil | pièce | pieza | pezzo | detalj |
 | setup (one board clamped once, a program of its own) | Aufspannung | montage | sujeción | piazzamento | uppspänning |
+| back side (a setup that is a board turned over) | Rückseite | verso | reverso | retro | baksida |
+| turn over (a board) | wenden | retourner | dar la vuelta | capovolgere | vända |
+| dowel pin / dowel hole | Passstift / Passstiftbohrung | goupille / trou de goupille | pasador / agujero de pasador | spina / foro per spina | styrpinne / styrhål |
 | floor pass (V-carve) | Bodendurchgang | passe de fond | pasada de fondo | passata di fondo | bottenpass |
 | operation | Bearbeitung | opération | operación | lavorazione | operation |
 | drawing | Zeichnung | dessin | dibujo | disegno | ritning |
@@ -124,6 +127,7 @@ names unchanged. Numbers display a decimal point; input also accepts a decimal c
 | V-carve / follow path / surfacing | V-гравировка / вдоль линии / торцевание |
 | drill / helical bore | сверление / винтовое фрезерование отверстия |
 | stock / spoilboard / work zero | заготовка / жертвенный стол / ноль детали |
+| back side / turn over / dowel pin | обратная сторона / перевернуть / установочный штифт |
 | tool / end mill / V-bit | инструмент / концевая фреза / V-образная фреза |
 | spindle speed / feed / plunge feed | обороты шпинделя / подача / подача врезания |
 | chip load / flutes | подача на зуб / число зубьев |

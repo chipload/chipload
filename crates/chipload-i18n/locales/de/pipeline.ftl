@@ -327,6 +327,7 @@ pipeline-corner-not-profile-or-pocket = Bearbeitung { $number } hat keine Ecken 
 pipeline-no-setup = keine Aufspannung { $id } im Projekt
 pipeline-setup-name-empty = eine Aufspannung braucht einen Namen
 pipeline-last-setup = ein Projekt braucht mindestens eine Aufspannung
+pipeline-setup-not-a-back = Aufspannung { $id } ist keine Rückseite einer anderen: zuerst --back-of angeben
 pipeline-setup-has-parts = Aufspannung { $name } hat { $count } Teil(e); verschieben Sie sie zuerst in eine andere Aufspannung oder entfernen Sie sie mit
 pipeline-no-setup-cut = keine Aufspannung ist eingeschaltet und hat etwas zu fräsen
 pipeline-not-a-pocket = Bearbeitung { $number } ist keine Tasche; nur Taschen haben eine Restbearbeitung

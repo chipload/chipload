@@ -483,3 +483,46 @@ fn dxfs_are_added_listed_placed_updated_and_removed() {
     assert_ne!(run.code, Some(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_back_side_is_added_listed_changed_and_unlinked() {
+    // docs/specs/two-sided.md §9
+    let dir = temp_dir("back-side");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v22/two_parts.chipload"), &project).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    let added = run(&[
+        "setup",
+        "add",
+        p,
+        "--back-of",
+        "1",
+        "--turn",
+        "top-bottom",
+        "--json",
+    ]);
+    assert_eq!(added["setup"], json!(2), "{added}");
+    let listed = run(&["setup", "list", p, "--json"]);
+    assert_eq!(
+        listed["setups"][1]["back_of"],
+        json!({"setup": 1, "turn": "top_bottom", "register": "pins"})
+    );
+    assert_eq!(listed["setups"][1]["name"], json!("Setup 1 back"));
+    assert_eq!(listed["setups"][0]["back_of"], Value::Null);
+    run(&["setup", "set", p, "2", "--register", "corner", "--json"]);
+    let changed = run(&["get", p, "setups.1.back_of.register", "--json"]);
+    assert_eq!(changed["value"], json!("corner"), "{changed}");
+    // A second back of the same board is refused, with the field's path.
+    let refused = chipload(&dir, &["setup", "add", p, "--back-of", "1", "--json"]);
+    assert_eq!(refused.code, Some(1), "{}", refused.stdout);
+    assert!(
+        refused.stdout.contains("two back sides"),
+        "{}",
+        refused.stdout
+    );
+    run(&["setup", "set", p, "2", "--own-board", "--json"]);
+    let own = run(&["get", p, "setups.1.back_of", "--json"]);
+    assert_eq!(own["value"], Value::Null, "{own}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

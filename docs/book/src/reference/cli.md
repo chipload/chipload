@@ -2090,6 +2090,8 @@ chipload setup add <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--name <NAME>` | Its name; default: "Setup N". |
 | `--thickness <THICKNESS>` | Its board's thickness; default: the active setup's. |
+| `--back-of <BACK_OF>` | The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to "<that setup> back". |
+| `--turn <TURN>` | How the board is turned over: left-right (default) or top-bottom. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload setup set`
@@ -2107,6 +2109,10 @@ chipload setup set <PROJECT> <ID> [OPTIONS]
 | `--name <NAME>` | Its new name. |
 | `--off` | Leave the setup and its parts out. |
 | `--on` | Cut the setup again. |
+| `--back-of <BACK_OF>` | Make it the back of this setup: the same board turned over. |
+| `--own-board` | Give a back a board of its own again, as it is now. |
+| `--turn <TURN>` | How a back is turned over: left-right or top-bottom. |
+| `--register <REGISTER>` | How a turned board is located: pins (dowel pins on the turn axis) or corner. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload setup activate`

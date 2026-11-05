@@ -130,6 +130,9 @@ job-no-parts = un progetto richiede almeno un pezzo
 job-no-setups = il progetto non ha alcun piazzamento; ne serve almeno uno
 job-setup-twice = l'id di piazzamento { $id } è usato due volte
 job-no-such-setup = nessun piazzamento { $id } in setups
+job-back-of-itself = un piazzamento non può essere il retro di sé stesso
+job-back-of-a-back = il piazzamento { $id } è già un retro: un retro non si capovolge di nuovo
+job-two-backs = il piazzamento { $id } ha due retri: una tavola ha un solo retro
 job-part-twice = il pezzo { $id } è elencato due volte
 job-part-name-taken = un altro pezzo si chiama "{ $name }"
 # "parts" is a place in the project file.

@@ -130,6 +130,9 @@ job-no-parts = un projet a besoin d'au moins une pièce
 job-no-setups = le projet n'a aucun montage ; il en faut au moins un
 job-setup-twice = l'id de montage { $id } est utilisé deux fois
 job-no-such-setup = pas de montage { $id } dans setups
+job-back-of-itself = un montage ne peut pas être son propre verso
+job-back-of-a-back = le montage { $id } est lui-même un verso : un verso ne se retourne pas une seconde fois
+job-two-backs = le montage { $id } a deux versos : une planche n'a qu'un verso
 job-part-twice = la pièce { $id } est listée deux fois
 job-part-name-taken = une autre pièce s'appelle « { $name } »
 # "parts" is a place in the project file.

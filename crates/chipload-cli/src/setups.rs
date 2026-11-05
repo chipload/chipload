@@ -6,8 +6,10 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use chipload_job::{Register, Turn};
 use chipload_pipeline::setups::{
-    activate_setup, add_setup, move_part_to_setup, remove_setup, set_setup,
+    BoardChange, activate_setup, add_back_side, add_setup, move_part_to_setup, remove_setup,
+    set_board, set_setup,
 };
 use clap::Subcommand;
 use serde_json::{Value, json};
@@ -31,8 +33,15 @@ pub enum SetupAction {
         #[arg(long)]
         name: Option<String>,
         /// Its board's thickness; default: the active setup's.
-        #[arg(long, value_parser = crate::lengths::length)]
+        #[arg(long, value_parser = crate::lengths::length, conflicts_with = "back_of")]
         thickness: Option<f64>,
+        /// The back of this setup: the same board turned over, its cuts mirrored
+        /// (docs/specs/two-sided.md). Its name defaults to "<that setup> back".
+        #[arg(long)]
+        back_of: Option<u64>,
+        /// How the board is turned over: left-right (default) or top-bottom.
+        #[arg(long, value_parser = turn, requires = "back_of")]
+        turn: Option<Turn>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -52,6 +61,18 @@ pub enum SetupAction {
         /// Cut the setup again.
         #[arg(long)]
         on: bool,
+        /// Make it the back of this setup: the same board turned over.
+        #[arg(long, conflicts_with = "own_board")]
+        back_of: Option<u64>,
+        /// Give a back a board of its own again, as it is now.
+        #[arg(long)]
+        own_board: bool,
+        /// How a back is turned over: left-right or top-bottom.
+        #[arg(long, value_parser = turn)]
+        turn: Option<Turn>,
+        /// How a turned board is located: pins (dowel pins on the turn axis) or corner.
+        #[arg(long, value_parser = register)]
+        register: Option<Register>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -120,6 +141,26 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
     let changed = match action {
         SetupAction::List { .. } => return ExitCode::SUCCESS,
         SetupAction::Add {
+            name,
+            back_of: Some(front),
+            turn,
+            ..
+        } => add_back_side(
+            &job,
+            front,
+            turn.unwrap_or(Turn::LeftRight),
+            name.as_deref(),
+        )
+        .map(|(job, id, part)| {
+            out.line(format!(
+                "Added setup {id}, the back of setup {front}, with part {part}, now the \
+                     active setup and part"
+            ));
+            out.set("setup", json!(id));
+            out.set("part", json!(part));
+            job
+        }),
+        SetupAction::Add {
             name, thickness, ..
         } => add_setup(&job, name.as_deref(), thickness).map(|(job, id, part)| {
             out.line(format!(
@@ -130,14 +171,37 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             job
         }),
         SetupAction::Set {
-            id, name, off, on, ..
+            id,
+            name,
+            off,
+            on,
+            back_of,
+            own_board,
+            turn,
+            register,
+            ..
         } => {
             let enabled = match (off, on) {
                 (true, _) => Some(false),
                 (_, true) => Some(true),
                 _ => None,
             };
-            set_setup(&job, id, name.as_deref(), enabled)
+            let change = BoardChange {
+                back_of: if own_board {
+                    Some(None)
+                } else {
+                    back_of.map(Some)
+                },
+                turn,
+                register,
+            };
+            set_setup(&job, id, name.as_deref(), enabled).and_then(|job| {
+                if change == BoardChange::default() {
+                    Ok(job)
+                } else {
+                    set_board(&job, id, change)
+                }
+            })
         }
         SetupAction::Activate { id, .. } => activate_setup(&job, id),
         SetupAction::Part { part, to, .. } => move_part_to_setup(&job, part, to),
@@ -174,8 +238,16 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .collect();
         let numbers: Vec<String> = parts.iter().map(u64::to_string).collect();
         let mm = chipload_core::text::mm;
+        let link = setup.back_of.map_or(String::new(), |b| {
+            format!(
+                ", back of {}, {}, {}",
+                b.setup,
+                b.turn.name(),
+                b.register.name()
+            )
+        });
         out.line(format!(
-            "{} {}{}{}: board {} × {} × {} mm; zero {}; parts {}",
+            "{} {}{}{}{link}: board {} × {} × {} mm; zero {}; parts {}",
             setup.id,
             setup.name,
             if Some(setup.id) == active {
@@ -201,9 +273,28 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "active": Some(setup.id) == active,
             "board": [x, y, setup.stock.thickness],
             "work_zero": setup.work_zero,
+            "back_of": setup.back_of,
             "parts": parts,
         }));
     }
     out.set("setups", Value::Array(rows));
     ExitCode::SUCCESS
+}
+
+/// A turn as the command line writes it.
+fn turn(text: &str) -> Result<Turn, String> {
+    match text {
+        "left-right" => Ok(Turn::LeftRight),
+        "top-bottom" => Ok(Turn::TopBottom),
+        _ => Err("left-right or top-bottom".into()),
+    }
+}
+
+/// A way of locating a turned board as the command line writes it.
+fn register(text: &str) -> Result<Register, String> {
+    match text {
+        "pins" => Ok(Register::Pins),
+        "corner" => Ok(Register::Corner),
+        _ => Err("pins or corner".into()),
+    }
 }
