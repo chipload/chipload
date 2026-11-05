@@ -86,6 +86,10 @@ check-in-dowel-holes = { $count ->
     [one] { $count } move goes
    *[other] { $count } moves go
 } deeper into dowel holes, down to Z{ $deepest }, within the depth the pins need
+check-into-dowel-pin = { $count ->
+    [one] { $count } move cuts
+   *[other] { $count } moves cut
+} into the dowel pin at ({ $x }, { $y }), which stands in the board while its back is cut: move the dowel holes clear of the cuts
 check-outside-stock = { $count ->
     [one] { $count } cutting move ends
    *[other] { $count } cutting moves end

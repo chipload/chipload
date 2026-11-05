@@ -683,6 +683,11 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
             .map(Note::job),
     );
     notes.extend(dxfs::layer_clash_notes(job));
+    notes.extend(dowels::broken_hole_notes(
+        job,
+        &plan.program,
+        &plan.op_spans,
+    ));
     notes.extend(
         copies_notes(job, &plan.program, &plan.op_spans)
             .into_iter()

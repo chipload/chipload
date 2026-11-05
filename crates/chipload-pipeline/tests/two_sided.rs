@@ -438,9 +438,11 @@ fn dowel_holes_sit_on_the_turn_axis_in_the_margin() {
         job.for_setup(1).stock_bounds().0.0,
         job.for_setup(1).stock_bounds().1.0,
     );
+    // Beyond the outline's profile, which the 6 mm end mill cuts out to Y 44 and Y 176,
+    // centred in what is left of the 16 mm margin.
     assert_eq!(
         dowel_centres(&job, 2, 8.0).unwrap(),
-        [(150.0, 45.0), (150.0, 175.0)]
+        [(150.0, 39.0), (150.0, 181.0)]
     );
     assert_eq!((x0 + x1) / 2.0, 150.0);
     let dowels = Dowels {
@@ -473,9 +475,9 @@ fn dowel_holes_sit_on_the_turn_axis_in_the_margin() {
             _ => panic!("{s:?}"),
         })
         .collect();
-    assert_eq!(circles, [[150.0, 45.0], [150.0, 175.0]]);
+    assert_eq!(circles, [[150.0, 39.0], [150.0, 181.0]]);
     // The front's zero is pin 1, and the back's with it.
-    let pin = chipload_job::WorkZero::Point { x: 150.0, y: 45.0 };
+    let pin = chipload_job::WorkZero::Point { x: 150.0, y: 39.0 };
     assert_eq!(
         (
             with.setup(1).unwrap().work_zero,
@@ -499,14 +501,70 @@ fn dowel_holes_sit_on_the_turn_axis_in_the_margin() {
     );
     // Only one pair per board.
     assert!(add_dowels(&with, 2, dowels, chipload_i18n::Language::En).is_err());
-    // A margin narrower than a hole and a millimetre each side.
+    // The 10 mm margin a board fits with by default: the profile leaves 4 mm of it, and
+    // the message says what margin would hold the holes.
     let mut narrow = job.clone();
     for setup in &mut narrow.setups {
-        setup.stock.fit = Some(4.0);
+        setup.stock.fit = Some(10.0);
     }
     narrow.follow_thickness();
     let err = add_dowels(&narrow, 2, dowels, chipload_i18n::Language::En).unwrap_err();
-    assert!(err.to_string().contains("needs 10.0 mm"), "{err}");
+    assert!(
+        err.to_string()
+            .contains("there is 4.0 mm, and a dowel hole needs 10.0 mm: make the board's fit margin 16.0 mm or more"),
+        "{err}"
+    );
+}
+
+/// The sample with its dowel circles moved to (150, y) and (150, 220 − y).
+fn dowels_at(y: f64) -> Job {
+    let mut job = sample_two_sided();
+    let mut ends = [y, 220.0 - y].into_iter();
+    for shape in &mut job.drawing.shapes {
+        if shape.layer == "dowels"
+            && let chipload_job::Geometry::Circle { center, .. } = &mut shape.geometry
+        {
+            center[1] = ends.next().unwrap();
+        }
+    }
+    job
+}
+
+#[test]
+fn the_checker_refuses_a_back_that_cuts_into_a_pin() {
+    // The sample as it is: the back's cuts stay clear of the pins.
+    let job = sample_two_sided();
+    chipload_pipeline::run_job(&job.for_setup(2)).unwrap();
+    // A hole moved to Y 45, under the outline's profile, which the back cuts.
+    let err = chipload_pipeline::run_job(&dowels_at(45.0).for_setup(2)).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("into the dowel pin at (0.000 mm, 6.000 mm), which stands in the board"),
+        "{err}"
+    );
+    // The front doesn't have pins in it: it may cut there (and makes the holes).
+    chipload_pipeline::run_job(&dowels_at(45.0).for_setup(1)).unwrap();
+}
+
+#[test]
+fn a_front_cut_into_a_dowel_hole_after_it_is_made_is_noted() {
+    let note = "cuts into a dowel hole after it is made";
+    let notes = |job: &Job| -> Vec<(Option<usize>, String)> {
+        chipload_pipeline::run_job(&job.for_setup(1))
+            .unwrap()
+            .notes
+            .iter()
+            .filter(|n| n.text.contains(note))
+            .map(|n| (n.operation, n.text.clone()))
+            .collect()
+    };
+    let job = sample_two_sided();
+    assert!(notes(&job).is_empty(), "{:?}", notes(&job));
+    // Holes moved along the axis to Y 102 and Y 118: the front's inside profile
+    // (operation 4, after the dowel holes) cuts the slot to Y 100 and the line at Y 120.
+    let found = notes(&dowels_at(102.0));
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert_eq!(found[0].0, Some(3));
 }
 
 #[test]

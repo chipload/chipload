@@ -86,6 +86,10 @@ check-in-dowel-holes = { $count ->
     [one] { $count } movimiento baja
    *[other] { $count } movimientos bajan
 } más en los agujeros de pasador, hasta Z{ $deepest }, dentro de la profundidad que necesitan los pasadores
+check-into-dowel-pin = { $count ->
+    [one] { $count } movimiento corta
+   *[other] { $count } movimientos cortan
+} el pasador en ({ $x }, { $y }), que está en el tablero mientras se mecaniza su reverso: aleja los agujeros de pasador de los cortes
 check-outside-stock = { $count ->
     [one] { $count } movimiento de corte termina
    *[other] { $count } movimientos de corte terminan

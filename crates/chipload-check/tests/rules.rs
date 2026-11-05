@@ -21,6 +21,7 @@ fn limits() -> CheckLimits {
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
         deep_holes: Vec::new(),
+        pins: Vec::new(),
     }
 }
 
@@ -673,4 +674,51 @@ fn a_dowel_hole_may_go_its_pin_depth_and_nothing_else_may() {
     let plunge = "G0 X100 Y50\nG1 Z-26 F300\nG0 Z5\n";
     assert!(!refused(plunge, &deep));
     assert!(refused(plunge, &wide));
+}
+
+#[test]
+fn a_cut_into_a_dowel_pin_is_refused() {
+    // A pin of 4 mm radius at (100, 30); the tool's radius is 3, so a path must keep 7 mm
+    // from its centre.
+    let mut pinned = limits();
+    pinned.pins = vec![chipload_check::Pin {
+        center: (100.0, 30.0),
+        radius: 4.0,
+    }];
+    let pin_errors = |body: &str| -> Vec<String> {
+        check_gcode(&format!("{HEADER}{body}{FOOTER}"), &pinned)
+            .errors
+            .into_iter()
+            .map(|e| e.message)
+            .collect()
+    };
+    let into = "into the dowel pin at (100.000 mm, 30.000 mm)";
+    // 8 mm away: clear.
+    assert!(pin_errors("G0 X50 Y22\nG1 Z-6 F600\nG1 X150 F1800\n").is_empty());
+    // 6 mm away, below the top: refused, once for the program, on the first line.
+    let report = check_gcode(
+        &format!("{HEADER}G0 X50 Y24\nG1 Z-6 F600\nG1 X150 F1800\nG1 X50\n{FOOTER}"),
+        &pinned,
+    );
+    assert_eq!(report.errors.len(), 1, "{:?}", report.errors);
+    assert_eq!(report.errors[0].line, 7);
+    assert!(
+        report.errors[0]
+            .message
+            .starts_with(&format!("2 moves cut {into}")),
+        "{:?}",
+        report.errors
+    );
+    // The same path above the stock's top: nothing to hit.
+    assert!(pin_errors("G0 X50 Y24\nG1 Z1 F600\nG1 X150 F1800\n").is_empty());
+    // An arc round the pin 8 mm out is clear; 6 mm out it is refused.
+    assert!(pin_errors("G0 X92 Y30\nG1 Z-6 F600\nG2 X108 Y30 I8 J0 F1800\n").is_empty());
+    let arc = pin_errors("G0 X94 Y30\nG1 Z-6 F600\nG2 X106 Y30 I6 J0 F1800\n");
+    assert!(arc.iter().any(|e| e.contains(into)), "{arc:?}");
+    // A half circle about (100, 50) of radius 20, whose circle runs through the pin: over
+    // the top it stays 20 mm off and is clear, under the bottom it is refused.
+    let over = "G0 X120 Y50\nG1 Z-6 F600\nG3 X80 Y50 I-20 J0 F1800\n";
+    assert!(pin_errors(over).is_empty(), "{:?}", pin_errors(over));
+    let under = pin_errors("G0 X120 Y50\nG1 Z-6 F600\nG2 X80 Y50 I-20 J0 F1800\n");
+    assert!(under.iter().any(|e| e.contains(into)), "{under:?}");
 }

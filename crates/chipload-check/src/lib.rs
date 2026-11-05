@@ -71,6 +71,16 @@ pub struct CheckLimits {
     /// Dowel holes (docs/specs/two-sided.md §6): inside one, a tool wholly within its
     /// circle may go its depth below the stock bottom, deeper than `max_overcut`.
     pub deep_holes: Vec<DeepHole>,
+    /// Dowel pins standing in the board while its back is cut (docs/specs/two-sided.md
+    /// §6): no tool may come within them below the stock's top.
+    pub pins: Vec<Pin>,
+}
+
+/// A dowel pin in the board as it lies, in work coordinates, mm.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pin {
+    pub center: (f64, f64),
+    pub radius: f64,
 }
 
 /// A circle a tool may cut deeper in than the max overcut: a dowel hole, in work
@@ -151,6 +161,7 @@ fn limits_with_radius(job: &Job, radius: f64, point: f64) -> CheckLimits {
         travel: job.machine.travel.as_ref().map(|t| (t.x, t.y, t.z)),
         units: job.machine.gcode_units,
         deep_holes: deep_holes(job, (zx, zy)),
+        pins: dowel_pins(job, (zx, zy)),
     }
 }
 
@@ -158,12 +169,63 @@ fn limits_with_radius(job: &Job, radius: f64, point: f64) -> CheckLimits {
 /// operation selects, shifted to work coordinates, with the operation's depth below the
 /// stock. Read from the project, never from the toolpath.
 fn deep_holes(job: &Job, (zx, zy): (f64, f64)) -> Vec<DeepHole> {
-    let mut holes = Vec::new();
+    let cut = |i: usize, _: &chipload_job::Operation| job.cuts(i);
+    dowel_circles(job, cut)
+        .into_iter()
+        .map(|((x, y), radius, depth)| DeepHole {
+            center: (x - zx, y - zy),
+            radius,
+            depth,
+        })
+        .collect()
+}
+
+/// For a back setup, the pins in its front's dowel holes (operations that are on), turned
+/// over with the board: mirrored about the stock's centre line across the turn, as the
+/// checker works it out from the stock, then in work coordinates. Empty for any other
+/// setup.
+fn dowel_pins(job: &Job, (zx, zy): (f64, f64)) -> Vec<Pin> {
+    let Some(back) = job
+        .active_setup_id()
+        .and_then(|id| job.setup(id))
+        .and_then(|s| s.back_of)
+    else {
+        return Vec::new();
+    };
+    if job.setup(back.setup).is_none() {
+        return Vec::new();
+    }
+    let in_front = |_: usize, op: &chipload_job::Operation| {
+        op.enabled() && job.setup_of(op).is_some_and(|s| s.id == back.setup)
+    };
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    dowel_circles(job, in_front)
+        .into_iter()
+        .map(|((x, y), radius, _)| {
+            let (x, y) = match back.turn {
+                chipload_job::Turn::LeftRight => (x0 + x1 - x, y),
+                chipload_job::Turn::TopBottom => (x, y0 + y1 - y),
+            };
+            Pin {
+                center: (x - zx, y - zy),
+                radius,
+            }
+        })
+        .collect()
+}
+
+/// The drawn circles of every dowel operation `take` accepts, in drawing coordinates:
+/// (centre, radius, depth below the stock).
+fn dowel_circles(
+    job: &Job,
+    take: impl Fn(usize, &chipload_job::Operation) -> bool,
+) -> Vec<((f64, f64), f64, f64)> {
+    let mut circles = Vec::new();
     for (i, op) in job.operations.iter().enumerate() {
         let chipload_job::Operation::Holes(h) = op else {
             continue;
         };
-        let (true, Some(depth), true) = (h.dowels, h.through, job.cuts(i)) else {
+        let (true, Some(depth), true) = (h.dowels, h.through, take(i, op)) else {
             continue;
         };
         let select = h.select.resolved(&job.drawing);
@@ -172,15 +234,66 @@ fn deep_holes(job: &Job, (zx, zy): (f64, f64)) -> Vec<DeepHole> {
                 && !shape.construction
                 && select.may_pick(shape)
             {
-                holes.push(DeepHole {
-                    center: (center[0] - zx, center[1] - zy),
-                    radius,
-                    depth,
-                });
+                circles.push(((center[0], center[1]), radius, depth));
             }
         }
     }
-    holes
+    circles
+}
+
+/// Whether a tool of `radius` on a straight path or arc (centre, radius, clockwise) from
+/// `from` to `to` comes within a dowel pin, and the first such pin.
+fn into_pin(
+    limits: &CheckLimits,
+    from: (f64, f64),
+    to: (f64, f64),
+    arc: Option<((f64, f64), f64, bool)>,
+    radius: f64,
+    tol: f64,
+) -> Option<Pin> {
+    limits
+        .pins
+        .iter()
+        .copied()
+        .find(|pin| distance_to_path(pin.center, from, to, arc) < pin.radius + radius - tol)
+}
+
+/// The shortest distance from `p` to a straight path or an arc from `from` to `to`.
+fn distance_to_path(
+    p: (f64, f64),
+    from: (f64, f64),
+    to: (f64, f64),
+    arc: Option<((f64, f64), f64, bool)>,
+) -> f64 {
+    let to_end = |q: (f64, f64)| (p.0 - q.0).hypot(p.1 - q.1);
+    let ends = to_end(from).min(to_end(to));
+    match arc {
+        None => {
+            let (dx, dy) = (to.0 - from.0, to.1 - from.1);
+            let length2 = dx * dx + dy * dy;
+            if length2 <= CHAIN_TOL_MM * CHAIN_TOL_MM {
+                return ends;
+            }
+            let t = (((p.0 - from.0) * dx + (p.1 - from.1) * dy) / length2).clamp(0.0, 1.0);
+            to_end((from.0 + t * dx, from.1 + t * dy))
+        }
+        Some((c, r, clockwise)) => {
+            let angle = |q: (f64, f64)| (q.1 - c.1).atan2(q.0 - c.0);
+            let along = |a: f64| {
+                let d = if clockwise {
+                    angle(from) - a
+                } else {
+                    a - angle(from)
+                };
+                d.rem_euclid(std::f64::consts::TAU)
+            };
+            if along(angle(p)) <= along(angle(to)) {
+                ((p.0 - c.0).hypot(p.1 - c.1) - r).abs().min(ends)
+            } else {
+                ends
+            }
+        }
+    }
 }
 
 /// Whether a move whose straight path or arc (centre, radius) runs from `from` to `to`,
@@ -271,6 +384,9 @@ struct State {
     /// Moves deeper than the overcut allowance inside dowel holes, and the lowest Z of them.
     in_dowels: usize,
     dowels_deepest: f64,
+    /// Moves that come within a dowel pin, and the first pin they hit.
+    into_pins: usize,
+    pin_hit: Option<Pin>,
     ended: bool,
     /// The tool number of the last T word.
     tool: Option<i64>,
@@ -303,6 +419,8 @@ impl State {
             deepest: f64::INFINITY,
             in_dowels: 0,
             dowels_deepest: f64::INFINITY,
+            into_pins: 0,
+            pin_hit: None,
             ended: false,
             tool: None,
             radius: None,
@@ -316,6 +434,7 @@ impl State {
 pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
     let mut report = CheckReport::default();
     let mut state = State::new();
+    let mut first_pin_line = 0;
     for (index, raw) in parse::split_lines(text).into_iter().enumerate() {
         let line = index + 1;
         // `%` alone marks the start or end of a program (LinuxCNC, Mach).
@@ -337,9 +456,21 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
                 .errors
                 .push(CheckIssue::new(line, Message::new("check-after-end")));
         }
+        let pins_before = state.into_pins;
         for message in execute(&words, &mut state, limits) {
             report.errors.push(CheckIssue::new(line, message));
         }
+        if pins_before == 0 && state.into_pins > 0 {
+            first_pin_line = line;
+        }
+    }
+
+    if let Some(pin) = state.pin_hit {
+        let message = Message::new("check-into-dowel-pin")
+            .arg("count", state.into_pins)
+            .arg("x", Value::Length(pin.center.0, Digits::Fixed(3)))
+            .arg("y", Value::Length(pin.center.1, Digits::Fixed(3)));
+        report.errors.push(CheckIssue::new(first_pin_line, message));
     }
 
     if state.below_stock > 0 {
@@ -736,6 +867,8 @@ fn move_to(
         }
     }
 
+    pin_check(motion, &start, &target, values, state, limits);
+
     for (&axis, value) in &target {
         if let Some(v) = *value {
             let lo = state.lo.entry(axis).or_insert(v);
@@ -747,6 +880,47 @@ fn move_to(
     update_hole(state, motion, xy_changes, current('Z'), &target);
     state.pos = target;
     problems
+}
+
+/// A move below the stock's top that comes within a dowel pin: counted, and the error
+/// written once at the end (docs/specs/two-sided.md §6).
+fn pin_check(
+    motion: i64,
+    start: &BTreeMap<char, Option<f64>>,
+    target: &BTreeMap<char, Option<f64>>,
+    values: &BTreeMap<char, f64>,
+    state: &mut State,
+    limits: &CheckLimits,
+) {
+    if limits.pins.is_empty() {
+        return;
+    }
+    let get = |m: &BTreeMap<char, Option<f64>>, a: char| m.get(&a).copied().flatten();
+    let (Some(x0), Some(y0), Some(z0), Some(x1), Some(y1), Some(z1)) = (
+        get(start, 'X'),
+        get(start, 'Y'),
+        get(start, 'Z'),
+        get(target, 'X'),
+        get(target, 'Y'),
+        get(target, 'Z'),
+    ) else {
+        return;
+    };
+    if z0.min(z1) >= limits.stock_top_z - state.tol {
+        return;
+    }
+    let arc = (motion == 2 || motion == 3).then(|| {
+        let (i, j) = (
+            values.get(&'I').copied().unwrap_or(0.0),
+            values.get(&'J').copied().unwrap_or(0.0),
+        );
+        ((x0 + i, y0 + j), i.hypot(j), motion == 2)
+    });
+    let radius = state.radius.unwrap_or(limits.tool_radius);
+    if let Some(pin) = into_pin(limits, (x0, y0), (x1, y1), arc, radius, state.tol) {
+        state.into_pins += 1;
+        state.pin_hit.get_or_insert(pin);
+    }
 }
 
 /// Whether a rapid down to `z` at (x, y) goes back into the hole the tool just came out of,

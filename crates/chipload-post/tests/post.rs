@@ -73,6 +73,7 @@ fn rendered_program_passes_the_checker() {
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
         deep_holes: Vec::new(),
+        pins: Vec::new(),
     };
     let report = check_gcode(&text, &limits);
     assert!(report.ok(), "{:?}", report.errors);
@@ -151,6 +152,7 @@ fn checked(text: &str) {
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
         deep_holes: Vec::new(),
+        pins: Vec::new(),
     };
     let report = check_gcode(text, &limits);
     assert!(report.ok(), "{:?}\n{text}", report.errors);

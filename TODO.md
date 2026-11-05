@@ -49,6 +49,15 @@ a quick workflow first.
   - step 8: the guide's screenshots renewed (3D simulations gain walls, the report says
     schema 36); the libraries still build for the browser.
 
+  - from the user's first try (2026-11-05): the dowel holes sat under the outline's
+    outside profile, which on the back would cut into the pin. They now go beyond where
+    both sides cut (the plans, tool width included), a too narrow margin is refused with
+    the margin that fits (16 mm for a 6 mm end mill and 8 mm pins), the checker refuses a
+    back that comes within a pin, and a front cut into a made hole is noted. The sample's
+    margin is 16 mm. Planning a back with nothing to cut yet no longer fails the holes.
+    Open: a back surface pass over the pins is refused (pins flush with the back face);
+    whether to allow a shallow one with the pins set lower is the user's call.
+
   Next: **the user tries it** (2026-11-05), on the branch: what to change, then merge.
   Open: a guide page of its own if the Setups section grows too long; the per-operation
   "sides that meet" (today one area for the board).

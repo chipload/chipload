@@ -194,7 +194,25 @@ fn a_back_side_is_added_turned_given_dowels_and_shares_its_board() {
     app.focus = Focus::WorkZero;
     draw_properties(&mut app);
     assert!(!app.start_zero_drag());
-    // Dowel holes, first in the front, one undo step.
+    // The board leaves no room beyond the cuts for dowel holes: refused, saying so.
+    app.add_dowels(back);
+    assert!(
+        app.report
+            .lines
+            .iter()
+            .any(|l| l.text.contains("and a dowel hole needs 10.0 mm")),
+        "{:?}",
+        app.report
+    );
+    // On a board fitted round the parts with room for them: dowel holes, first in the
+    // front, one undo step.
+    let edit = app.edit.as_mut().unwrap();
+    for setup in &mut edit.job.setups {
+        setup.stock.origin = chipload_job::StockOrigin::Drawing;
+        setup.stock.fit = Some(20.0);
+    }
+    edit.job.follow_thickness();
+    app.commit();
     app.add_dowels(back);
     let job = app.edited_job().unwrap();
     let dowels = job

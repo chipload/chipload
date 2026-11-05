@@ -86,6 +86,10 @@ check-in-dowel-holes = { $count ->
     [one] { $count } Bewegung geht
    *[other] { $count } Bewegungen gehen
 } tiefer in Passstiftbohrungen, bis Z{ $deepest }, innerhalb der Tiefe, die die Stifte brauchen
+check-into-dowel-pin = { $count ->
+    [one] { $count } Bewegung schneidet
+   *[other] { $count } Bewegungen schneiden
+} in den Passstift bei ({ $x }, { $y }), der im Brett steckt, während seine Rückseite gefräst wird: die Passstiftbohrungen weg von den Schnitten legen
 check-outside-stock = { $count ->
     [one] { $count } Schnittbewegung endet
    *[other] { $count } Schnittbewegungen enden

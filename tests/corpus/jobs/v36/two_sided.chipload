@@ -278,27 +278,27 @@
         ]
       },
       {
-        "id": 8,
+        "id": 10,
         "layer": "dowels",
         "kind": "circle",
         "center": [
           150.0,
-          45.0
+          39.0
         ],
         "radius": 4.0
       },
       {
-        "id": 9,
+        "id": 11,
         "layer": "dowels",
         "kind": "circle",
         "center": [
           150.0,
-          175.0
+          181.0
         ],
         "radius": 4.0
       }
     ],
-    "next_shape_id": 10,
+    "next_shape_id": 12,
     "dxfs": [
       {
         "id": 1,
@@ -338,7 +338,7 @@
         "y": 140.0,
         "thickness": 10.0,
         "origin": "drawing",
-        "fit": 10.0,
+        "fit": 16.0,
         "z_zero": "top",
         "max_overcut": 0.5,
         "material": null
@@ -346,7 +346,7 @@
       "work_zero": {
         "at": "point",
         "x": 150.0,
-        "y": 45.0
+        "y": 39.0
       },
       "back_of": null
     },
@@ -359,7 +359,7 @@
         "y": 140.0,
         "thickness": 9.5,
         "origin": "drawing",
-        "fit": 10.0,
+        "fit": 16.0,
         "z_zero": "top",
         "max_overcut": 0.5,
         "material": null
@@ -367,7 +367,7 @@
       "work_zero": {
         "at": "point",
         "x": 150.0,
-        "y": 45.0
+        "y": 39.0
       },
       "back_of": {
         "setup": 1,
@@ -444,8 +444,8 @@
       "select": {
         "layer": null,
         "shapes": [
-          8,
-          9
+          10,
+          11
         ]
       },
       "tool": 1,

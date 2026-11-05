@@ -86,6 +86,10 @@ check-in-dowel-holes = { $count ->
     [one] { $count } movimento scende
    *[other] { $count } movimenti scendono
 } più a fondo nei fori per spina, fino a Z{ $deepest }, entro la profondità che serve alle spine
+check-into-dowel-pin = { $count ->
+    [one] { $count } movimento taglia
+   *[other] { $count } movimenti tagliano
+} la spina in ({ $x }, { $y }), che resta nella tavola mentre se ne lavora il retro: sposta i fori per spina lontano dai tagli
 check-outside-stock = { $count ->
     [one] { $count } movimento di taglio finisce
    *[other] { $count } movimenti di taglio finiscono

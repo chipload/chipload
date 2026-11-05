@@ -86,6 +86,10 @@ check-in-dowel-holes = { $count ->
     [one] { $count } rörelse går
    *[other] { $count } rörelser går
 } djupare i styrhål, ner till Z{ $deepest }, inom det djup styrpinnarna behöver
+check-into-dowel-pin = { $count ->
+    [one] { $count } rörelse skär
+   *[other] { $count } rörelser skär
+} i styrpinnen vid ({ $x }, { $y }), som sitter i skivan medan baksidan fräses: flytta styrhålen bort från fräsningarna
 check-outside-stock = { $count ->
     [one] { $count } skärande rörelse slutar
    *[other] { $count } skärande rörelser slutar

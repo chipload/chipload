@@ -159,8 +159,12 @@ checker's stock is the same rectangle for both sides.
 **Add dowel holes**, in the back setup's form, or `setup dowels` on the command line:
 
 - draws two circles of the pin diameter as drawn shapes, on a layer "dowels" (made if
-  missing), on the turn axis, one at each end, centred in the board's margin beyond the
-  parts' outline;
+  missing), on the turn axis, one at each end, centred in the board's margin beyond
+  where both sides cut: every cutting move below the stock's top of both sides' plans,
+  the tool's radius included, and their shapes. Dowel holes and surface passes don't
+  count: a surface pass faces the board edge to edge, shallowly, before the holes. *Changed
+  2026-11-05, the user's test: centred beyond the shapes only, a hole sat under the
+  outline's outside profile, which on the back would cut into the pin;*
 - adds a holes operation "Dowel holes" first in the front setup's first part, after a
   surface pass if it starts with one, so the board is faced first. It cuts through the
   board and to the **pin depth** into the spoilboard, drilled with a drill of the pin
@@ -176,8 +180,19 @@ gets the stock, never from the toolpath, so it stays independent. A move deeper 
 max depth below stock is refused unless it lies inside a dowel circle (grown by the
 position tolerance), and there it may go to the pin depth.
 
-If the margin beyond the parts' outline on the axis is narrower than the pin diameter plus
-2 mm, the button says so and offers to widen the board's fit margin.
+If the room beyond the cuts on the axis is narrower than the pin diameter plus 2 mm, the
+holes are refused with the room there is and the room needed, and, for a board fitted round
+the drawing, the fit margin that would hold them (rounded up to 0.1 mm). The margin is
+never widened silently: it changes the board to saw (the user, 2026-11-05).
+
+**The pins stand in the board while its back is cut.** The checker gets the front's dowel
+circles from the project for a back setup, mirrors them with the board as it works the
+turn out from the stock, and refuses any move below the stock's top whose tool comes within
+a pin: one error for the program, on the first such line, with the count. On the front, a
+cut made after the dowel holes that cuts into one, but not wholly inside it, is noted on its
+operation (the generator's note, not the checker's: the hole is no longer round, so its pin
+won't sit firmly). A back surface pass over the pins is refused like any other cut: pins
+stand flush with the back face.
 
 The circles and the operation are ordinary: they can be moved along the axis, resized or
 removed. Only their role is marked (the operation's `dowels: true`), so the setup sheet can

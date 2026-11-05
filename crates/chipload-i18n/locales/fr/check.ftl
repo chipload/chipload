@@ -86,6 +86,10 @@ check-in-dowel-holes = { $count ->
     [one] { $count } mouvement descend
    *[other] { $count } mouvements descendent
 } plus bas dans les trous de goupille, jusqu'à Z{ $deepest }, dans la profondeur que demandent les goupilles
+check-into-dowel-pin = { $count ->
+    [one] { $count } mouvement entame
+   *[other] { $count } mouvements entament
+} la goupille en ({ $x }, { $y }), qui reste dans la planche pendant l'usinage de son dos : éloignez les trous de goupille des usinages
 check-outside-stock = { $count ->
     [one] { $count } mouvement d'usinage finit
    *[other] { $count } mouvements d'usinage finissent
