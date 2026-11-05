@@ -1,11 +1,14 @@
 # Spec: two-sided work, turning the board over
 
-Status: **draft 2026-11-04, for review.** Decisions 1, 3, 6, 8 and 13 are the user's
-(2026-11-04), and 5 (2026-11-05): the back drawn as seen from the front, dowel pins with a corner as the
-fallback, sides that meet give at most a note, and the view stays the front's while
-generation mirrors, and the back is planned with the cutting direction flipped rather than
-with mirrored geometry. The way setups link (§3) follows the user's question "is it in the
-properties panel for setup 2 we say that it is the backside of setup 1?". Follows
+Status: **draft, for review.** The user's decisions:
+- 2026-11-04: 1, the back drawn as seen from the front; 3, dowel pins with a corner as the
+  fallback; 6, sides that meet give at most a note; 8, the view stays the front's.
+- 2026-11-05: 5, the back planned with the cutting direction flipped, not with mirrored
+  geometry; 13, the simulation shows both sides in the first version.
+
+The way setups link (§3) follows the user's question "is it in the properties panel for
+setup 2 we say that it is the backside of setup 1?". It is built on a local branch and not
+pushed until the user likes it (decision 12). Follows
 docs/specs/setups.md §9.
 
 ## 1. Why
