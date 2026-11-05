@@ -146,7 +146,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
    pocket, cutting boards). Spec drafted 2026-11-04, **for review**: docs/specs/two-sided.md
-   (the user's decisions 1, 3, 5, 6 and 8 in; 2, 4, 7, 9-12 recommended, awaiting
+   (the user's decisions 1, 3, 5, 6, 8 and 13 in; 2, 4, 7, 9-12, 14, 15 recommended, awaiting
    approval).
 9. **Pockets: a finishing pass** (the gap review of 2026-11-03): a light last cut of the
    walls and of the floor, for fits (inlays, lids, recesses) and clean floors. Spec first:

@@ -1,6 +1,6 @@
 # Spec: two-sided work, turning the board over
 
-Status: **draft 2026-11-04, for review.** Decisions 1, 3, 6 and 8 are the user's
+Status: **draft 2026-11-04, for review.** Decisions 1, 3, 6, 8 and 13 are the user's
 (2026-11-04), and 5 (2026-11-05): the back drawn as seen from the front, dowel pins with a corner as the
 fallback, sides that meet give at most a note, and the view stays the front's while
 generation mirrors, and the back is planned with the cutting direction flipped rather than
@@ -127,12 +127,7 @@ so it reads mirrored on the back face. Mirror the text if it should read right t
 is a note, not a warning: a mirrored text can be intended (a stamp, a mould). See
 decision 9.
 
-**The simulation** of a back setup simulates the back face on its own, as a fresh board,
-with the planned (front-coordinate) toolpath. Today's height map holds one top per cell, so
-the back pocket shows as if cut from the top, at its place in the front view. That is right
-for checking the back's own cuts, not the finished part. Showing both sides together is a
-later step (§10). The 3D view can't look from below today: its tilt stops just short of
-side-on.
+**The simulation** shows both sides of the one board (§10).
 
 ## 5. The zero and the depths
 
@@ -240,29 +235,114 @@ Validation:
 - a back has no stock and no zero;
 - dowel circles lie on the axis (within the chaining tolerance).
 
-## 10. Not in this step
+## 10. The simulation, both sides (the user, 2026-11-05: "visualization is important")
 
-- **The finished part in the simulation,** its own spec. With 2.5D cuts from the top and
-  from the bottom, a cell's material is always one unbroken column, so two numbers per
-  cell hold it exactly, with no voxels:
-  - the height map gets a **floor** beside each height; the front's moves lower the height,
-    and the back's moves, in front coordinates, raise the floor;
-  - where the floor meets the height, the cell is cut through;
-  - the back's simulation starts from the front's final map;
-  - the playback history gets a side per entry, and material left counts each column.
+The point of simulating two-sided work is to see the finished part: the front's cuts and
+the back's meeting in one board, before any wood is cut.
 
-  The larger work is drawing it. Today the 3D view meshes only the top surface. It would
-  need:
-  - a bottom surface;
-  - through cells left out, so holes look like holes;
-  - the board's edge walls;
-  - a way to see underneath: tilting past side-on, or a *turn the board over* button.
+### 10.1 The model: a floor beside each height
+
+Today the simulation is a height map: one number per cell, the top of the material, which
+cuts only ever lower. Material cut from below has nowhere to go.
+
+With 2.5D cuts from the top and from the bottom, a cell's material is always **one
+unbroken column**. The front removes from the top down, the back from the bottom up, and
+neither can leave a void in the middle. So two numbers per cell hold it exactly, with no
+voxels:
+
+- `heights`, as today: the top of the material, program Z of the front;
+- `floors`, new: the bottom of the material, in the same Z. It starts at the stock bottom
+  everywhere;
+- a cell where the floor reaches the height is **cut through**: empty.
+
+**The back's moves in front coordinates.** The back is planned in front coordinates (§4),
+so its toolpath needs no un-mirroring for the simulation. Only its Z is turned over. With
+the board's front top at `top` and its bottom at `bottom`, a back move at depth `d` below
+the back face reaches up to `bottom + d`. A move raises the floor of every cell under the
+tool to the tool's highest point there. The tool's shape (flat end, V-bit cone, drill
+point) is the same as for the front, pointing up.
+
+**Surfacing:** the front's surfacing lowers the height; the back's thickness follows
+(§5). The floor isn't touched.
+
+**Order:**
+- Simulating the **front setup** is as today. Its floors stay at the stock bottom, unless
+  through cuts reach it: then those cells are cut through.
+- Simulating the **back setup** starts from the front's final map, heights and floors, and
+  runs the back's moves on it. The front is simulated first, without playback, and its
+  map is cached until the front changes.
+- The **playback** of the back shows the back's moves only, on top of the front's result.
+  Its history gets a side per entry: a height lowered or a floor raised.
+
+**Numbers:** removed volume counts both sides. *Deepest* stays the front's. A new *through*
+count gives the area cut through, in cm². *Material left* (rest of pockets) works on each
+side's own surface.
+
+Memory: one more `f32` per cell, at most 250 000 cells, so 1 MB more.
+
+### 10.2 Drawing it
+
+Today the 3D view meshes only the top surface, a sheet of quads from cell centre to cell
+centre, drawn back to front (painter's order) in an egui mesh. A two-sided board needs a
+solid:
+
+- **the top surface** over cells with material, as today;
+- **the bottom surface** from the floors, seen when looking from below;
+- **walls** where a cell with material meets a cut-through cell or the board's edge, from
+  its floor to its height. Today's sheet has no edge walls, so this also gives a one-sided
+  board its edges;
+- **cut-through cells left out**, so a hole is a hole and the spoilboard shows through.
+
+The drawing stays an egui mesh in painter's order, because there is no depth buffer. The
+app renders through glow and the screenshot tests through wgpu, and a mesh works in both;
+a custom paint callback with a depth buffer would need writing twice. On a grid of columns
+seen through an orthographic camera, drawing cells far to near is correct, as in tile-based
+isometric drawing. Within each cell, the faces turned away go first: the bottom when
+looking from above, the top from below. The quads are drawn as blocks per cell, not from
+centre to centre, so walls meet them cleanly. The surface keeps its smooth shading from
+the heights. If the painter's order shows faults (thin walls between deep pockets), a depth
+buffer is the fallback, and a decision for then.
+
+**Looking from below:** the tilt today stops just short of side-on. Two ways to see the
+back:
+
+- **Turn the board over**, a button by the view's orientation controls, shown when the
+  project has a back setup. It turns the 3D view about the setup's turn axis, so you see
+  the back face up, as the operator will after turning it. Press it again to see the front.
+  It is the same board, seen from the other side, with everything drawn on it: shapes,
+  toolpath and markers, mirrored with the view.
+- **The tilt goes past side-on**, down to straight up, so a drag can look underneath.
+
+**Recommended: both.** The button is the quick, exact view. The free tilt is for looking at
+where the sides meet. Activating the back setup turns the board over once, so its
+toolpath is seen on the face it cuts. Activating the front turns it back.
+
+**The top view** (2D, a shaded picture) shows the face up: the front, or the back after
+*Turn the board over*. Cut-through cells are shown as holes, in the background colour, on
+either face.
+
+**The command line:** `chipload simulate part.chipload --setup 2 -o sim.png` simulates
+through setup 2, front first. `--face back` draws the picture of the back face; the
+default is the face that setup cuts. The numbers in `--json` get `through_cm2`.
+
+### 10.3 What is checked
+
+- A back cut reaching up to meet a front pocket gives a through cell exactly where the two
+  overlap. This is tested: a 12 mm board, a 7 mm front pocket and a 7 mm back pocket
+  overlapping by 20 mm, so the through area is the overlap.
+- A back setup simulated alone, without its front, is the old behaviour turned over:
+  floors raised, heights untouched.
+- A one-sided project gives the same pictures and numbers as today, except for the new
+  edge walls, which are shown in the renewed screenshots.
+
+## 11. Not in this step
+
 - **More than two sides,** for example edges machined standing up. That needs a fourth
   axis or a vise setup, and is out of scope (ADR 0017).
 - **Pins on another line than the centre line.** It would let the pins sit where the board
   has room, but the board would then no longer map onto itself.
 
-## 11. Decisions
+## 12. Decisions
 
 1. **The back is drawn as seen from the front (x-ray), and Chipload mirrors it.** *The user,
    2026-11-04: as recommended.* Alternative: draw the back mirrored by hand, which is how
@@ -276,7 +356,7 @@ Validation:
    matter.
 4. **The turn axis is always the board's centre line.** **Recommended:** the board maps
    onto itself, so the checker, the fit and the corners need nothing new. Alternative: any
-   line (§10).
+   line (§11).
 5. **A back setup is planned in front coordinates with the cutting sense flipped, then its
    program is mirrored, so climb and conventional keep their meaning on the back face.**
    *The user, 2026-11-05: "invert the cut direction for mirrored operation … then we don't
@@ -311,5 +391,21 @@ Validation:
     4. the notes (text, sides that meet) and the setup sheet's turning words and picture;
     5. the window: the Board and Turn over rows, *Add the back side*, *Add dowel holes*, the
        read-only Stock;
-    6. the guide page, translations, schemas.
-    **Recommended.**
+    6. the simulation's floors, the back run on the front's map, through cells, the
+       numbers, `simulate --face` (§10.1);
+    7. the solid in the 3D view: walls, bottom surface, holes, *Turn the board over* and
+       the tilt past side-on (§10.2);
+    8. the guide page, translations, schemas.
+    **Recommended.** Built on a local branch and not pushed until the user has tried it and
+    likes it (the user, 2026-11-05: "an experiment … we must not push this before we like
+    it").
+13. **The simulation shows both sides in one board,** with a floor per cell beside each
+    height (§10.1). *The user, 2026-11-05: in the first version.* Alternative: simulate
+    each side alone, which can't show where they meet.
+14. **The 3D view draws a solid in painter's order in an egui mesh,** with walls, a bottom
+    surface and holes (§10.2). **Recommended:** it works in the glow app and in the wgpu
+    screenshot tests alike. Alternative: a depth buffer in a custom paint callback, kept as
+    the fallback if the order shows faults.
+15. **Looking at the back: a *Turn the board over* button and a tilt past side-on, both,**
+    and activating the back setup turns the board over (§10.2). **Recommended.**
+    Alternative: only one of them.
