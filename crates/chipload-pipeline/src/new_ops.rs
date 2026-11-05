@@ -523,6 +523,7 @@ impl Start {
                     feed: self.feed,
                     plunge_feed: self.plunge_feed,
                     method,
+                    dowels: false,
                 })
             }
             OpKind::Surface => {

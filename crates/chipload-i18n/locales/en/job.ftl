@@ -133,6 +133,10 @@ job-no-such-setup = no setup { $id } in setups
 job-back-of-itself = a setup can't be the back of itself
 job-back-of-a-back = setup { $id } is itself a back side: a back can't be turned over again
 job-two-backs = setup { $id } has two back sides: one board has one back
+job-dowels-no-back = dowel holes are cut with the front of a board that has a back side, and setup { $id } has none
+job-dowels-not-through = dowel holes go through the board into the spoilboard: set Below stock to the pins' depth
+job-dowel-not-circle = shape { $shape } isn't a drawn circle: a dowel hole is one
+job-dowel-off-axis = dowel hole { $shape } is { $off } off the line the board turns about, so on the turned board it would miss its pin
 job-part-twice = part { $id } is listed twice
 job-part-name-taken = another part is named "{ $name }"
 # "parts" is a place in the project file.

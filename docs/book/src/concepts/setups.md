@@ -98,6 +98,29 @@ back that much thinner, and its cuts through the stock follow.
 Its work zero is the front's, on the board as it lies after turning: a stock corner is the
 corner of the turned board in that place, so push the board against the same stops.
 
-This is being built (docs/specs/two-sided.md): the dowel holes, the setup sheet's words for
-turning the board, the window and a simulation of both sides are still to come.
+### Dowel holes
+
+Pins put the turned board back exactly where it was. `setup dowels` draws two circles on the
+layer *dowels*, on the line the board turns about, one at each end in the margin beyond the
+shapes of both sides, and adds a holes operation **Dowel holes** first in the front (after a
+surface pass). It cuts them through the board and on into the spoilboard for the pins:
+
+```sh
+chipload setup dowels sign.chipload --setup 2 --zero        # 8 mm pins, 8 mm deep
+chipload setup dowels sign.chipload --setup 2 --diameter 6 --depth 10
+```
+
+`--zero` puts the front's work zero at the first pin's centre (the bottom one, or the left
+one when the board turns top to bottom): a pin lands on itself when the board is turned, so
+front and back share it exactly. Pins of 8 mm are the default because a 6 mm end mill bores
+them; with a drill of the pins' size in the project, it drills them.
+
+The holes may go deeper than *Max depth below stock*, but only they, and only inside their
+circles: the checker knows them from the project and refuses any other cut that deep. A
+dowel hole moved off the turn axis is refused, as it would miss its pin on the turned board.
+The margin must be wider than a hole and a millimetre each side; widen the board's fit if
+it isn't.
+
+This is being built (docs/specs/two-sided.md): the setup sheet's words for turning the
+board, the window and a simulation of both sides are still to come.
 

@@ -68,3 +68,4 @@ in mm, feeds in mm/min, angles in radians.
 | `feed` | Feed: the bore's helix and circle |
 | `plunge_feed` | Drill feed, or the bore's descent to the start depth |
 | `method` | `{"type": "drill", "peck": … or null}` or `{"type": "bore", "step_down": …, "ramp_angle": …, "direction": …}` |
+| `dowels` | dowel holes for turning the board over ([Setups](../concepts/setups.md#the-back-side-experimental)): their `through` is how far the pins go into the spoilboard, deeper than *Max depth below stock* allows other cuts; missing: false |

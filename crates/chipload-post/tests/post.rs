@@ -72,6 +72,7 @@ fn rendered_program_passes_the_checker() {
         tool_points: std::collections::BTreeMap::new(),
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
+        deep_holes: Vec::new(),
     };
     let report = check_gcode(&text, &limits);
     assert!(report.ok(), "{:?}", report.errors);
@@ -149,6 +150,7 @@ fn checked(text: &str) {
         tool_points: std::collections::BTreeMap::new(),
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
+        deep_holes: Vec::new(),
     };
     let report = check_gcode(text, &limits);
     assert!(report.ok(), "{:?}\n{text}", report.errors);

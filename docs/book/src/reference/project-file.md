@@ -421,6 +421,7 @@ Holes: drilled with a drill, bored with a helix with an endmill.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `dowels` | boolean | no | Dowel holes for turning the board over (docs/specs/two-sided.md §6): drawn circles on the turn axis, cut through the board and `through` mm into the spoilboard for the pins, deeper than the stock's max overcut allows any other cut. Missing: false. |
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | Where the hole ends, mm down from the stock top. For a drill, the depth of its point. |
 | `feed` | number | yes | A bore's feed round its helix and bottom circle, mm/min. A drill doesn't use it. |

@@ -82,6 +82,10 @@ check-below-stock = { $count ->
     [one] { $count } move goes
    *[other] { $count } moves go
 } below the stock bottom (deepest Z{ $deepest }, bottom { $bottom }), within the allowed { $allowed }
+check-in-dowel-holes = { $count ->
+    [one] { $count } move goes
+   *[other] { $count } moves go
+} deeper into dowel holes, down to Z{ $deepest }, within the depth the pins need
 check-outside-stock = { $count ->
     [one] { $count } cutting move ends
    *[other] { $count } cutting moves end

@@ -155,6 +155,7 @@ impl Job {
             ));
             problems.extend(self.back_problems(k));
         }
+        problems.extend(self.dowel_problems());
         for (i, part) in self.parts.iter().enumerate() {
             if self.setup(part.setup).is_none() {
                 problems.push(Problem::at(
@@ -193,6 +194,62 @@ impl Job {
             }
         };
         vec![Problem::at(at, problem)]
+    }
+
+    /// Dowel holes' rules (docs/specs/two-sided.md §6): cut with the front of a board that
+    /// has a back, through it, and drawn circles on the line it turns about, so each meets
+    /// its pin on the turned board.
+    fn dowel_problems(&self) -> Vec<Problem> {
+        let mut problems = Vec::new();
+        for (i, op) in self.operations.iter().enumerate() {
+            let Operation::Holes(h) = op else {
+                continue;
+            };
+            if !h.dowels {
+                continue;
+            }
+            let at = |field: &str| format!("operations.{i}.{field}");
+            let Some(setup) = self.setup_of(op).map(|s| s.id) else {
+                continue;
+            };
+            let Some(back) = self.back_of(setup).and_then(|b| b.back_of) else {
+                problems.push(Problem::at(
+                    at("dowels"),
+                    Message::new("job-dowels-no-back").arg("id", setup),
+                ));
+                continue;
+            };
+            if h.through.is_none_or(|t| t <= 0.0) {
+                problems.push(Problem::at(
+                    at("through"),
+                    Message::new("job-dowels-not-through"),
+                ));
+            }
+            let ((x0, y0), (x1, y1)) = self.for_setup(setup).stock_bounds();
+            let select = h.select.resolved(&self.drawing);
+            for shape in self.drawing.shapes.iter().filter(|s| select.may_pick(s)) {
+                let Geometry::Circle { center, .. } = shape.geometry else {
+                    problems.push(Problem::at(
+                        at("select"),
+                        Message::new("job-dowel-not-circle").arg("shape", shape.id),
+                    ));
+                    continue;
+                };
+                let off = match back.turn {
+                    Turn::LeftRight => center[0] - (x0 + x1) / 2.0,
+                    Turn::TopBottom => center[1] - (y0 + y1) / 2.0,
+                };
+                if off.abs() > CHAIN_TOL_MM {
+                    problems.push(Problem::at(
+                        at("select"),
+                        Message::new("job-dowel-off-axis")
+                            .arg("shape", shape.id)
+                            .arg("off", Value::Length(off.abs(), Digits::Fixed(3))),
+                    ));
+                }
+            }
+        }
+        problems
     }
 
     fn part_problems(&self) -> Vec<Problem> {

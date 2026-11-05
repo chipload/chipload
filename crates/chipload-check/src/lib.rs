@@ -68,6 +68,19 @@ pub struct CheckLimits {
     /// The units the machine's G-code is in: a program in others is an error
     /// (docs/specs/inch-units.md §4.3).
     pub units: Units,
+    /// Dowel holes (docs/specs/two-sided.md §6): inside one, a tool wholly within its
+    /// circle may go its depth below the stock bottom, deeper than `max_overcut`.
+    pub deep_holes: Vec<DeepHole>,
+}
+
+/// A circle a tool may cut deeper in than the max overcut: a dowel hole, in work
+/// coordinates, mm.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct DeepHole {
+    pub center: (f64, f64),
+    pub radius: f64,
+    /// How far below the stock bottom the full diameter may go.
+    pub depth: f64,
 }
 
 /// Derived here from the job's raw numbers, deliberately not via any generator code. The
@@ -137,7 +150,63 @@ fn limits_with_radius(job: &Job, radius: f64, point: f64) -> CheckLimits {
         tool_points: job.tools.iter().map(|t| (t.id, point_of(t))).collect(),
         travel: job.machine.travel.as_ref().map(|t| (t.x, t.y, t.z)),
         units: job.machine.gcode_units,
+        deep_holes: deep_holes(job, (zx, zy)),
     }
+}
+
+/// The job's dowel holes that are cut, from its own numbers: each drawn circle a dowel
+/// operation selects, shifted to work coordinates, with the operation's depth below the
+/// stock. Read from the project, never from the toolpath.
+fn deep_holes(job: &Job, (zx, zy): (f64, f64)) -> Vec<DeepHole> {
+    let mut holes = Vec::new();
+    for (i, op) in job.operations.iter().enumerate() {
+        let chipload_job::Operation::Holes(h) = op else {
+            continue;
+        };
+        let (true, Some(depth), true) = (h.dowels, h.through, job.cuts(i)) else {
+            continue;
+        };
+        let select = h.select.resolved(&job.drawing);
+        for shape in &job.drawing.shapes {
+            if let chipload_job::Geometry::Circle { center, radius } = shape.geometry
+                && !shape.construction
+                && select.may_pick(shape)
+            {
+                holes.push(DeepHole {
+                    center: (center[0] - zx, center[1] - zy),
+                    radius,
+                    depth,
+                });
+            }
+        }
+    }
+    holes
+}
+
+/// Whether a move whose straight path or arc (centre, radius) runs from `from` to `to`,
+/// with a tool of `radius`, stays wholly inside a dowel hole that allows `below` mm under
+/// the stock bottom.
+fn inside_deep_hole(
+    limits: &CheckLimits,
+    from: (f64, f64),
+    to: (f64, f64),
+    arc: Option<((f64, f64), f64)>,
+    radius: f64,
+    below: f64,
+    tol: f64,
+) -> bool {
+    limits.deep_holes.iter().any(|hole| {
+        let room = hole.radius - radius + tol;
+        let inside = |p: (f64, f64)| (p.0 - hole.center.0).hypot(p.1 - hole.center.1) <= room;
+        // A disc holds the segment between two of its points; an arc it holds when its
+        // whole circle is in it. The circle's centre comes from the rounded start and I, J,
+        // so it may lie a tolerance more off.
+        let path_inside = match arc {
+            None => inside(from) && inside(to),
+            Some((c, r)) => (c.0 - hole.center.0).hypot(c.1 - hole.center.1) + r <= room + tol,
+        };
+        below <= hole.depth + tol && path_inside
+    })
 }
 
 /// A finding. `message` is `text_message` in English and mm, for the command line and
@@ -199,6 +268,9 @@ struct State {
     /// Moves below the stock bottom within the overcut allowance, and the lowest Z of them.
     below_stock: usize,
     deepest: f64,
+    /// Moves deeper than the overcut allowance inside dowel holes, and the lowest Z of them.
+    in_dowels: usize,
+    dowels_deepest: f64,
     ended: bool,
     /// The tool number of the last T word.
     tool: Option<i64>,
@@ -229,6 +301,8 @@ impl State {
             outside_stock: 0,
             below_stock: 0,
             deepest: f64::INFINITY,
+            in_dowels: 0,
+            dowels_deepest: f64::INFINITY,
             ended: false,
             tool: None,
             radius: None,
@@ -279,6 +353,15 @@ pub fn check_gcode(text: &str, limits: &CheckLimits) -> CheckReport {
             .arg(
                 "allowed",
                 Value::Length(limits.max_overcut, Digits::Fixed(3)),
+            );
+        report.notes.push(CheckIssue::new(0, message));
+    }
+    if state.in_dowels > 0 {
+        let message = Message::new("check-in-dowel-holes")
+            .arg("count", state.in_dowels)
+            .arg(
+                "deepest",
+                Value::Length(state.dowels_deepest, Digits::Fixed(3)),
             );
         report.notes.push(CheckIssue::new(0, message));
     }
@@ -609,7 +692,32 @@ fn move_to(
     {
         let point = state.point.unwrap_or(limits.tool_point);
         let floor = limits.stock_bottom_z - limits.max_overcut - point;
-        if z < floor - state.tol {
+        let arc = match (motion, current('X'), current('Y')) {
+            (2 | 3, Some(x), Some(y)) => {
+                let (i, j) = (
+                    values.get(&'I').copied().unwrap_or(0.0),
+                    values.get(&'J').copied().unwrap_or(0.0),
+                );
+                Some(((x + i, y + j), i.hypot(j)))
+            }
+            _ => None,
+        };
+        let in_dowel = match (current('X'), current('Y'), at('X'), at('Y')) {
+            (Some(x0), Some(y0), Some(x1), Some(y1)) => inside_deep_hole(
+                limits,
+                (x0, y0),
+                (x1, y1),
+                arc,
+                state.radius.unwrap_or(limits.tool_radius),
+                limits.stock_bottom_z - point - z,
+                state.tol,
+            ),
+            _ => false,
+        };
+        if z < floor - state.tol && in_dowel {
+            state.in_dowels += 1;
+            state.dowels_deepest = state.dowels_deepest.min(z);
+        } else if z < floor - state.tol {
             problems.push(
                 Message::new("check-below-stock-too-far")
                     .arg("z", Value::Length(z, Digits::Fixed(3)))

@@ -133,6 +133,10 @@ job-no-such-setup = pas de montage { $id } dans setups
 job-back-of-itself = un montage ne peut pas être son propre verso
 job-back-of-a-back = le montage { $id } est lui-même un verso : un verso ne se retourne pas une seconde fois
 job-two-backs = le montage { $id } a deux versos : une planche n'a qu'un verso
+job-dowels-no-back = les trous de goupille se percent avec le recto d'une planche qui a un verso, et le montage { $id } n'en a pas
+job-dowels-not-through = les trous de goupille traversent la planche jusque dans le plateau martyr : réglez « Sous le brut » sur la profondeur des goupilles
+job-dowel-not-circle = la forme { $shape } n'est pas un cercle dessiné : un trou de goupille en est un
+job-dowel-off-axis = le trou de goupille { $shape } est à { $off } de la ligne autour de laquelle la planche est retournée : sur la planche retournée, il manquerait sa goupille
 job-part-twice = la pièce { $id } est listée deux fois
 job-part-name-taken = une autre pièce s'appelle « { $name } »
 # "parts" is a place in the project file.

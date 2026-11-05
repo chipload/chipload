@@ -82,6 +82,10 @@ check-below-stock = { $count ->
     [one] { $count } Bewegung geht
    *[other] { $count } Bewegungen gehen
 } unter die Rohteilunterkante (tiefstes Z{ $deepest }, Unterkante { $bottom }), innerhalb der erlaubten { $allowed }
+check-in-dowel-holes = { $count ->
+    [one] { $count } Bewegung geht
+   *[other] { $count } Bewegungen gehen
+} tiefer in Passstiftbohrungen, bis Z{ $deepest }, innerhalb der Tiefe, die die Stifte brauchen
 check-outside-stock = { $count ->
     [one] { $count } Schnittbewegung endet
    *[other] { $count } Schnittbewegungen enden

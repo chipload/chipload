@@ -82,6 +82,10 @@ check-below-stock = { $count ->
     [one] { $count } movimiento baja
    *[other] { $count } movimientos bajan
 } de la cara inferior del material (lo más hondo Z{ $deepest }, cara inferior { $bottom }), dentro de lo permitido ({ $allowed })
+check-in-dowel-holes = { $count ->
+    [one] { $count } movimiento baja
+   *[other] { $count } movimientos bajan
+} más en los agujeros de pasador, hasta Z{ $deepest }, dentro de la profundidad que necesitan los pasadores
 check-outside-stock = { $count ->
     [one] { $count } movimiento de corte termina
    *[other] { $count } movimientos de corte terminan

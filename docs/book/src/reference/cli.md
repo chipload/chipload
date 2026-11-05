@@ -2115,6 +2115,23 @@ chipload setup set <PROJECT> <ID> [OPTIONS]
 | `--register <REGISTER>` | How a turned board is located: pins (dowel pins on the turn axis) or corner. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload setup dowels`
+
+Dowel holes for a back setup (docs/specs/two-sided.md §6): two circles on the line the board turns about, in the margin beyond the shapes, cut first with the front, through the board and into the spoilboard for the pins
+
+```text
+chipload setup dowels <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--setup <SETUP>` | The back setup's id. Required. |
+| `--diameter <DIAMETER>` | The pins' diameter; default 8 mm (a 6 mm end mill bores it) |
+| `--depth <DEPTH>` | How far the holes go into the spoilboard; default 8 mm. |
+| `--zero` | Set the front's work zero to the first pin's centre, which the back shares. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload setup activate`
 
 Make a setup the active one: shown, simulated, where new parts go

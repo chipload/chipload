@@ -6,7 +6,9 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use chipload_i18n::Language;
 use chipload_job::{Register, Turn};
+use chipload_pipeline::dowels::{DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, Dowels, add_dowels};
 use chipload_pipeline::setups::{
     BoardChange, activate_setup, add_back_side, add_setup, move_part_to_setup, remove_setup,
     set_board, set_setup,
@@ -77,6 +79,28 @@ pub enum SetupAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Dowel holes for a back setup (docs/specs/two-sided.md §6): two circles on the line
+    /// the board turns about, in the margin beyond the shapes, cut first with the front,
+    /// through the board and into the spoilboard for the pins.
+    Dowels {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The back setup's id.
+        #[arg(long)]
+        setup: u64,
+        /// The pins' diameter; default 8 mm (a 6 mm end mill bores it).
+        #[arg(long, value_parser = crate::lengths::length)]
+        diameter: Option<f64>,
+        /// How far the holes go into the spoilboard; default 8 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        depth: Option<f64>,
+        /// Set the front's work zero to the first pin's centre, which the back shares.
+        #[arg(long)]
+        zero: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Make a setup the active one: shown, simulated, where new parts go.
     Activate {
         /// The project (.chipload).
@@ -125,6 +149,9 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             project, output, ..
         }
         | SetupAction::Activate {
+            project, output, ..
+        }
+        | SetupAction::Dowels {
             project, output, ..
         }
         | SetupAction::Part {
@@ -204,6 +231,24 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             })
         }
         SetupAction::Activate { id, .. } => activate_setup(&job, id),
+        SetupAction::Dowels {
+            setup,
+            diameter,
+            depth,
+            zero,
+            ..
+        } => {
+            let dowels = Dowels {
+                diameter: diameter.unwrap_or(DEFAULT_PIN_DIAMETER),
+                depth: depth.unwrap_or(DEFAULT_PIN_DEPTH),
+                zero,
+            };
+            add_dowels(&job, setup, dowels, Language::En).map(|(job, at)| {
+                out.line(format!("Added operation {}: dowel holes", at + 1));
+                out.set("operation", json!(at + 1));
+                job
+            })
+        }
         SetupAction::Part { part, to, .. } => move_part_to_setup(&job, part, to),
         SetupAction::Remove { id, with_parts, .. } => {
             remove_setup(&job, id, with_parts).map(|(job, lines)| {

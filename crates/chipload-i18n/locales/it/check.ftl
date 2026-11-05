@@ -82,6 +82,10 @@ check-below-stock = { $count ->
     [one] { $count } movimento scende
    *[other] { $count } movimenti scendono
 } sotto il fondo del grezzo (punto più basso Z{ $deepest }, fondo { $bottom }), entro il margine consentito di { $allowed }
+check-in-dowel-holes = { $count ->
+    [one] { $count } movimento scende
+   *[other] { $count } movimenti scendono
+} più a fondo nei fori per spina, fino a Z{ $deepest }, entro la profondità che serve alle spine
 check-outside-stock = { $count ->
     [one] { $count } movimento di taglio finisce
    *[other] { $count } movimenti di taglio finiscono

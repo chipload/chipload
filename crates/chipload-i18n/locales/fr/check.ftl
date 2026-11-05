@@ -82,6 +82,10 @@ check-below-stock = { $count ->
     [one] { $count } mouvement descend
    *[other] { $count } mouvements descendent
 } sous le dessous du brut (le plus bas Z{ $deepest }, dessous { $bottom }), dans les { $allowed } permis
+check-in-dowel-holes = { $count ->
+    [one] { $count } mouvement descend
+   *[other] { $count } mouvements descendent
+} plus bas dans les trous de goupille, jusqu'à Z{ $deepest }, dans la profondeur que demandent les goupilles
 check-outside-stock = { $count ->
     [one] { $count } mouvement d'usinage finit
    *[other] { $count } mouvements d'usinage finissent

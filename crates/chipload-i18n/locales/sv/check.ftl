@@ -82,6 +82,10 @@ check-below-stock = { $count ->
     [one] { $count } rörelse går
    *[other] { $count } rörelser går
 } under ämnets botten (djupast Z{ $deepest }, botten { $bottom }), inom tillåtna { $allowed }
+check-in-dowel-holes = { $count ->
+    [one] { $count } rörelse går
+   *[other] { $count } rörelser går
+} djupare i styrhål, ner till Z{ $deepest }, inom det djup styrpinnarna behöver
 check-outside-stock = { $count ->
     [one] { $count } skärande rörelse slutar
    *[other] { $count } skärande rörelser slutar

@@ -5,6 +5,7 @@ pub mod box_handles;
 pub mod chip_load;
 pub mod copies;
 pub mod corners;
+pub mod dowels;
 pub mod drawing_edit;
 pub mod dxfs;
 pub mod estimate;

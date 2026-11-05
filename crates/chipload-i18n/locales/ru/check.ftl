@@ -47,6 +47,11 @@ check-below-stock = { $count ->
     [few] { $count } хода проходят
    *[other] { $count } ходов проходят
 } ниже низа заготовки (самая низкая Z{ $deepest }, низ { $bottom }), в пределах допуска { $allowed }
+check-in-dowel-holes = { $count ->
+    [one] { $count } ход уходит
+    [few] { $count } хода уходят
+   *[other] { $count } ходов уходят
+} глубже в отверстия под штифты, до Z{ $deepest }, в пределах глубины, нужной штифтам
 check-outside-stock = { $count ->
     [one] { $count } рабочий ход заканчивается
     [few] { $count } рабочих хода заканчиваются

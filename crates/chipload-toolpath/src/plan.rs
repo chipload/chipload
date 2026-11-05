@@ -2054,7 +2054,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         // A drill's point goes deeper than its full diameter: the allowance is for the
         // diameter (docs/specs/holes.md decision 10).
         let below = end_depth - job.drill_point(op) - thickness;
-        if below > stock.max_overcut + DEPTH_TOL_MM {
+        // Dowel holes go deeper, for the pins (docs/specs/two-sided.md §6).
+        let allowed = op.allowed_below(stock.max_overcut);
+        if below > allowed + DEPTH_TOL_MM {
             problems.push(labelled(
                 at("end_depth"),
                 &label_message,
@@ -2062,7 +2064,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .arg("end", length(end_depth))
                     .arg("below", Value::Length(below, Digits::Fixed(3)))
                     .arg("thickness", length(thickness))
-                    .arg("allowed", length(stock.max_overcut)),
+                    .arg("allowed", length(allowed)),
             ));
         } else if below > DEPTH_TOL_MM && op.through().is_none() {
             // A through cut goes below on purpose: a plain note when planned (`facts`).

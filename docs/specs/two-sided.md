@@ -161,10 +161,14 @@ checker's stock is the same rectangle for both sides.
 - draws two circles of the pin diameter as drawn shapes, on a layer "dowels" (made if
   missing), on the turn axis, one at each end, centred in the board's margin beyond the
   parts' outline;
-- adds a holes operation "Dowel holes" first in the front setup's first part. It cuts
-  through the board and to the **pin depth** into the spoilboard, drilled with a drill of
-  the pin diameter, or bored with the end mill when there is none (as holes choose today);
-- the pin diameter defaults to 6 mm, and the pin depth to 8 mm below the stock.
+- adds a holes operation "Dowel holes" first in the front setup's first part, after a
+  surface pass if it starts with one, so the board is faced first. It cuts through the
+  board and to the **pin depth** into the spoilboard, drilled with a drill of the pin
+  diameter, or bored with the end mill when there is none (as holes choose today);
+- the pin diameter defaults to **8 mm**, and the pin depth to 8 mm below the stock. *As
+  built, 2026-11-05: 8 mm, not the draft's 6 mm. A bore needs a hole 1.2 times the end
+  mill, so the default 6 mm end mill can't bore a 6 mm hole, and a 6 mm pin needs a 6 mm
+  drill.*
 
 **The pin depth is allowed only inside the dowel circles.** Every other cut stays within the
 setup's *max depth below stock*. The checker gets the dowel circles from the project, as it
@@ -177,7 +181,15 @@ If the margin beyond the parts' outline on the axis is narrower than the pin dia
 
 The circles and the operation are ordinary: they can be moved along the axis, resized or
 removed. Only their role is marked (the operation's `dowels: true`), so the setup sheet can
-name them and the checker can allow their depth. A dowel circle moved off the axis is a
+name them and the checker can allow their depth. The pin depth is the operation's
+`through`, as for any hole cut through the stock: no field of its own. The board's fit
+leaves the dowel circles out, so they stay in its margin.
+
+The checker allows a move below the max depth below stock when the whole tool stays inside
+a dowel circle and goes no deeper than its depth: both ends of a straight move inside the
+circle shrunk by the tool's radius, or for an arc its whole circle, with one tolerance more
+for the rounding of I and J. Those moves get a note of their own ("N moves go deeper into
+dowel holes, down to Z…"). A dowel circle moved off the axis is a
 problem: on the turned board it would no longer meet its hole.
 
 **The fallback without pins: a corner.** A back setup's form has **Register by: pins ▾ /
@@ -225,8 +237,10 @@ holes are drilled. Setup 2 cuts its back."
   "back_of": { "setup": 1, "turn": "left_right", "register": "pins" } }
 ```
 
-A back setup has `back_of` and no `stock` or `work_zero`. A holes operation may have
-`dowels: true` and a `pin_depth`. The field is optional, but the version **is bumped**: an
+A back setup has `back_of`. *As built: it keeps a `stock` and a `work_zero`, copies of
+its front's that every read and change makes again (`Job::follow_fronts`), so planning,
+the checker and the view read a back's board as any setup's; editing them on the back
+changes nothing.* A holes operation may have `dowels: true`, its pin depth in `through`. The field is optional, but the version **is bumped**: an
 older Chipload reading a back setup would cut it unmirrored, which ruins the part. The
 migration 35 → 36 changes nothing, since no older file has a back. There's a frozen v35
 sample and the usual golden test.

@@ -133,6 +133,10 @@ job-no-such-setup = ingen uppspänning { $id } i setups
 job-back-of-itself = en uppspänning kan inte vara sin egen baksida
 job-back-of-a-back = uppspänning { $id } är själv en baksida: en baksida kan inte vändas igen
 job-two-backs = uppspänning { $id } har två baksidor: en skiva har en baksida
+job-dowels-no-back = styrhål borras med framsidan av en skiva som har en baksida, och uppspänning { $id } har ingen
+job-dowels-not-through = styrhål går genom skivan ner i offerskivan: sätt Under ämnet till styrpinnarnas djup
+job-dowel-not-circle = form { $shape } är ingen ritad cirkel: ett styrhål är en
+job-dowel-off-axis = styrhål { $shape } ligger { $off } från linjen skivan vänds kring, så på den vända skivan skulle det missa sin styrpinne
 job-part-twice = detalj { $id } finns med två gånger
 job-part-name-taken = en annan detalj heter "{ $name }"
 # "parts" is a place in the project file.

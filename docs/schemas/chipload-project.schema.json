@@ -1502,6 +1502,11 @@
           "additionalProperties": false,
           "description": "Holes: drilled with a drill, bored with a helix with an endmill.",
           "properties": {
+            "dowels": {
+              "default": false,
+              "description": "Dowel holes for turning the board over (docs/specs/two-sided.md §6): drawn circles\non the turn axis, cut through the board and `through` mm into the spoilboard for the\npins, deeper than the stock's max overcut allows any other cut. Missing: false.",
+              "type": "boolean"
+            },
             "enabled": {
               "default": true,
               "description": "False: the operation stays in the project but isn't cut. Missing: true.",

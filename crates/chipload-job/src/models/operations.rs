@@ -482,6 +482,22 @@ impl Operation {
         }
     }
 
+    /// Dowel holes for turning the board over (docs/specs/two-sided.md §6).
+    pub fn is_dowels(&self) -> bool {
+        matches!(self, Operation::Holes(h) if h.dowels)
+    }
+
+    /// How far below the stock bottom it may cut with its full diameter: the stock's max
+    /// overcut, or a dowel hole's pin depth when that is deeper.
+    pub fn allowed_below(&self, max_overcut: f64) -> f64 {
+        match self {
+            Operation::Holes(h) if h.dowels => {
+                h.through.map_or(max_overcut, |t| t.max(max_overcut))
+            }
+            _ => max_overcut,
+        }
+    }
+
     /// None for an operation that never cuts through (a V-carve, a surface).
     pub fn through_mut(&mut self) -> Option<&mut Option<f64>> {
         match self {
@@ -1171,6 +1187,11 @@ pub struct HolesOp {
     pub plunge_feed: f64,
     /// How the holes are cut: `drill` with a drill, or `bore` (a helix) with an endmill.
     pub method: HoleMethod,
+    /// Dowel holes for turning the board over (docs/specs/two-sided.md §6): drawn circles
+    /// on the turn axis, cut through the board and `through` mm into the spoilboard for the
+    /// pins, deeper than the stock's max overcut allows any other cut. Missing: false.
+    #[serde(default)]
+    pub dowels: bool,
 }
 
 /// Surface: the whole stock top taken down flat by a wide flat endmill, in straight passes

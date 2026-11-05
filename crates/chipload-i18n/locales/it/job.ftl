@@ -133,6 +133,10 @@ job-no-such-setup = nessun piazzamento { $id } in setups
 job-back-of-itself = un piazzamento non può essere il retro di sé stesso
 job-back-of-a-back = il piazzamento { $id } è già un retro: un retro non si capovolge di nuovo
 job-two-backs = il piazzamento { $id } ha due retri: una tavola ha un solo retro
+job-dowels-no-back = i fori per spina si fanno con il fronte di una tavola che ha un retro, e il piazzamento { $id } non ne ha
+job-dowels-not-through = i fori per spina attraversano la tavola fino al piano di sacrificio: imposta «Sotto il grezzo» alla profondità delle spine
+job-dowel-not-circle = la forma { $shape } non è un cerchio disegnato: un foro per spina lo è
+job-dowel-off-axis = il foro per spina { $shape } è a { $off } dalla linea attorno a cui si capovolge la tavola: sulla tavola capovolta mancherebbe la sua spina
 job-part-twice = il pezzo { $id } è elencato due volte
 job-part-name-taken = un altro pezzo si chiama "{ $name }"
 # "parts" is a place in the project file.

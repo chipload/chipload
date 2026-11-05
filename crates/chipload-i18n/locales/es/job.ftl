@@ -133,6 +133,10 @@ job-no-such-setup = no hay sujeción { $id } en setups
 job-back-of-itself = una sujeción no puede ser su propio reverso
 job-back-of-a-back = la sujeción { $id } ya es un reverso: un reverso no se puede dar la vuelta otra vez
 job-two-backs = la sujeción { $id } tiene dos reversos: un tablero tiene un solo reverso
+job-dowels-no-back = los agujeros de pasador se hacen con el anverso de un tablero que tiene reverso, y la sujeción { $id } no lo tiene
+job-dowels-not-through = los agujeros de pasador atraviesan el tablero hasta el tablero de sacrificio: pon «Bajo el material» a la profundidad de los pasadores
+job-dowel-not-circle = la forma { $shape } no es un círculo dibujado: un agujero de pasador lo es
+job-dowel-off-axis = el agujero de pasador { $shape } está a { $off } de la línea sobre la que se da la vuelta al tablero: en el tablero vuelto no encontraría su pasador
 job-part-twice = la pieza { $id } aparece dos veces
 job-part-name-taken = otra pieza se llama "{ $name }"
 # "parts" is a place in the project file.

@@ -8,7 +8,7 @@ a quick workflow first.
 ## In progress
 
 - **Two-sided work** (docs/specs/two-sided.md, on the local branch `two-sided`; not pushed
-  until the user has tried it and likes it, 2026-11-05). Steps 1 and 2 of 8 built:
+  until the user has tried it and likes it, 2026-11-05). Steps 1 to 3 of 8 built:
   - step 1: the model (`back_of`, schema 36), the back following its front's board and
     zero, a board fitting both sides, validation, `setup add --back-of`, `setup set
     --back-of/--own-board/--turn/--register`;
@@ -19,7 +19,14 @@ a quick workflow first.
     direction, both turns, against shapes mirrored by hand; no `machine.spindle` read
     but the program's; golden `v36_two_sided`.
 
-  Next: step 3, dowel holes. Found on the way and fixed: moving an operation or a part into
+  - step 3: dowel holes (`setup dowels`, `dowels: true` on a holes operation, its pin
+    depth in `through`): two circles on the turn axis in the margin, the front's zero at
+    pin 1 with `--zero`, the depth allowed only inside them by the planner and the checker
+    (which reads them from the project), refused off the axis or without a back. 8 mm pins
+    by default (a 6 mm end mill can't bore 6 mm).
+
+  Next: step 4, the notes (text on the back, sides that meet) and the setup sheet's words.
+  Found on the way and fixed: moving an operation or a part into
   a setup of another thickness was refused, because its through depth didn't follow first.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0

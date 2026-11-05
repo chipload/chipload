@@ -386,14 +386,22 @@ fn the_back_is_as_thick_as_the_front_leaves_the_board() {
     .unwrap();
     assert_eq!(job.setup(1).unwrap().stock.thickness, 10.0);
     assert_eq!(job.setup(2).unwrap().stock.thickness, 9.5);
+    let outline = |job: &Job| {
+        job.operations
+            .iter()
+            .find(|op| op.name() == "Profile 2 (outline)")
+            .unwrap()
+            .depths()
+            .1
+    };
     // Through the 9.5 mm, 0.5 mm into the spoilboard.
-    assert_eq!(job.operations[4].depths().1, 10.0);
+    assert_eq!(outline(&job), 10.0);
     // Without the surfacing the back is the whole board again.
     let mut whole = job.clone();
     whole.operations.remove(0);
     whole.follow_thickness();
     assert_eq!(whole.setup(2).unwrap().stock.thickness, 10.0);
-    assert_eq!(whole.operations[3].depths().1, 10.5);
+    assert_eq!(outline(&whole), 10.5);
     // The back's program, checked against its own 9.5 mm board, goes no deeper.
     let back = chipload_pipeline::run_job(&job.for_setup(2)).unwrap();
     let deepest = back
@@ -403,4 +411,141 @@ fn the_back_is_as_thick_as_the_front_leaves_the_board() {
         .filter_map(|m| m.z)
         .fold(f64::INFINITY, f64::min);
     assert!((deepest + 10.0).abs() < 1e-9, "{deepest}");
+}
+
+// -- dowel holes (docs/specs/two-sided.md §6)
+
+/// The corpus sample: a 10 mm board fitting its shapes with a 10 mm margin, X 40-260 and
+/// Y 40-180, its back turned left to right, so about X 150.
+fn sample_two_sided() -> Job {
+    load_job(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/corpus/jobs/v36/two_sided.chipload"),
+    )
+    .unwrap()
+}
+
+#[test]
+fn dowel_holes_sit_on_the_turn_axis_in_the_margin() {
+    use chipload_job::{Geometry, Operation};
+    use chipload_pipeline::dowels::{Dowels, add_dowels, dowel_centres};
+    let mut job = sample_two_sided();
+    // The sample has its dowels: take them out to add them again.
+    let at = job.operations.iter().position(|op| op.is_dowels()).unwrap();
+    job.operations.remove(at);
+    job.drawing.shapes.retain(|s| s.layer != "dowels");
+    let (x0, x1) = (
+        job.for_setup(1).stock_bounds().0.0,
+        job.for_setup(1).stock_bounds().1.0,
+    );
+    assert_eq!(
+        dowel_centres(&job, 2, 8.0).unwrap(),
+        [(150.0, 45.0), (150.0, 175.0)]
+    );
+    assert_eq!((x0 + x1) / 2.0, 150.0);
+    let dowels = Dowels {
+        zero: true,
+        ..Dowels::default()
+    };
+    let (with, index) = add_dowels(&job, 2, dowels, chipload_i18n::Language::En).unwrap();
+    // After the surfacing, before everything else of the front.
+    assert_eq!(index, 1);
+    let Operation::Holes(h) = &with.operations[1] else {
+        panic!("{:?}", with.operations[1]);
+    };
+    assert!(h.dowels);
+    assert_eq!(
+        (h.through, h.end_depth),
+        (Some(8.0), 18.0),
+        "through 10 mm and 8 more"
+    );
+    assert_eq!(h.name, "Dowel holes");
+    let circles: Vec<[f64; 2]> = with
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.layer == "dowels")
+        .map(|s| match s.geometry {
+            Geometry::Circle { center, radius } => {
+                assert_eq!(radius, 4.0);
+                center
+            }
+            _ => panic!("{s:?}"),
+        })
+        .collect();
+    assert_eq!(circles, [[150.0, 45.0], [150.0, 175.0]]);
+    // The front's zero is pin 1, and the back's with it.
+    let pin = chipload_job::WorkZero::Point { x: 150.0, y: 45.0 };
+    assert_eq!(
+        (
+            with.setup(1).unwrap().work_zero,
+            with.setup(2).unwrap().work_zero
+        ),
+        (pin, pin)
+    );
+    // The board doesn't grow round them.
+    assert_eq!(
+        with.for_setup(1).stock_bounds(),
+        job.for_setup(1).stock_bounds()
+    );
+    // The front passes the checker, its holes 8 mm into the spoilboard and nothing else.
+    let front = chipload_pipeline::run_job(&with.for_setup(1)).unwrap();
+    assert!(
+        front.check_notes.iter().any(|n| n
+            .message
+            .contains("deeper into dowel holes, down to Z-18.000")),
+        "{:?}",
+        front.check_notes
+    );
+    // Only one pair per board.
+    assert!(add_dowels(&with, 2, dowels, chipload_i18n::Language::En).is_err());
+    // A margin narrower than a hole and a millimetre each side.
+    let mut narrow = job.clone();
+    for setup in &mut narrow.setups {
+        setup.stock.fit = Some(4.0);
+    }
+    narrow.follow_thickness();
+    let err = add_dowels(&narrow, 2, dowels, chipload_i18n::Language::En).unwrap_err();
+    assert!(err.to_string().contains("needs 10.0 mm"), "{err}");
+}
+
+#[test]
+fn a_dowel_off_the_axis_or_without_a_back_is_refused() {
+    use chipload_job::Geometry;
+    let job = sample_two_sided();
+    let problems =
+        |job: &Job| -> Vec<String> { job.validate().into_iter().map(|p| p.to_string()).collect() };
+    assert!(problems(&job).is_empty(), "{:?}", problems(&job));
+    // A circle moved 1 mm off the line the board turns about.
+    let mut off = job.clone();
+    let shape = off
+        .drawing
+        .shapes
+        .iter_mut()
+        .find(|s| s.layer == "dowels")
+        .unwrap();
+    if let Geometry::Circle { center, .. } = &mut shape.geometry {
+        center[0] += 1.0;
+    }
+    assert!(
+        problems(&off)
+            .iter()
+            .any(|p| p.contains("off the line the board turns about")),
+        "{:?}",
+        problems(&off)
+    );
+    // The board with no back any more.
+    let own = chipload_pipeline::setups::set_board(
+        &job,
+        2,
+        BoardChange {
+            back_of: Some(None),
+            ..BoardChange::default()
+        },
+    );
+    assert!(
+        own.unwrap_err()
+            .to_string()
+            .contains("has a back side, and setup 1 has none")
+    );
 }

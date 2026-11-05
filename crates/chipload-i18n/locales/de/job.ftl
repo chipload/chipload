@@ -133,6 +133,10 @@ job-no-such-setup = keine Aufspannung { $id } in setups
 job-back-of-itself = eine Aufspannung kann nicht ihre eigene Rückseite sein
 job-back-of-a-back = Aufspannung { $id } ist selbst eine Rückseite: eine Rückseite kann nicht noch einmal gewendet werden
 job-two-backs = Aufspannung { $id } hat zwei Rückseiten: ein Brett hat eine Rückseite
+job-dowels-no-back = Passstiftbohrungen werden mit der Vorderseite eines Bretts mit Rückseite gebohrt, und Aufspannung { $id } hat keine
+job-dowels-not-through = Passstiftbohrungen gehen durch das Brett bis in die Opferplatte: „Unter Rohteil“ auf die Tiefe der Stifte setzen
+job-dowel-not-circle = Form { $shape } ist kein gezeichneter Kreis: eine Passstiftbohrung ist einer
+job-dowel-off-axis = Passstiftbohrung { $shape } liegt { $off } neben der Linie, um die das Brett gewendet wird, und träfe auf dem gewendeten Brett ihren Stift nicht
 job-part-twice = Teil { $id } ist zweimal aufgeführt
 job-part-name-taken = ein anderes Teil heißt bereits "{ $name }"
 # "parts" is a place in the project file.

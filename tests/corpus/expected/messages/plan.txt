@@ -915,22 +915,22 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v36/two_sided.chipload
 exit 0
 --- stdout
-warning: Operation 5: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
-note: Operation 5 (Profile 2 (outline)): cuts through, 0.500 mm into the spoilboard
-Operation 4: a ring starts at (134.234, 86.032) (default)
-Operation 5: a ring starts at (60.000, 47.000) (default)
+warning: Operation 6: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+note: Operation 6 (Profile 2 (outline)): cuts through, 0.500 mm into the spoilboard
+Operation 5: a ring starts at (134.234, 86.032) (default)
+Operation 6: a ring starts at (60.000, 47.000) (default)
 Setup 2 (Setup 1 back) of 2: the other setups are planned on their own (--setup N)
 Part 2 Part 2: one
 Estimated time: 5 min 42 s (cutting 5 min 38 s, rapids 1 s, spindle 3 s)
 Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
   Part 2 (Part 2): 5 min 39 s
-    Operation 4 (Pocket 2): 1 min 19 s; cutting 2.0 m, plunging 4 mm, rapids 13 mm, 1 lift
-    Operation 5 (Profile 2 (outline)): 4 min 20 s; cutting 6.5 m, plunging 1 mm, rapids 93 mm, 1 lift
+    Operation 5 (Pocket 2): 1 min 19 s; cutting 2.0 m, plunging 4 mm, rapids 13 mm, 1 lift
+    Operation 6 (Profile 2 (outline)): 4 min 20 s; cutting 6.5 m, plunging 1 mm, rapids 93 mm, 1 lift
   In all: cutting 8.4 m, plunging 5 mm, rapids 106 mm, 2 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
 Chip load (at the cutting feed):
-  Operation 4 (Pocket 2): set the tool's flutes to see the chip load
-  Operation 5 (Profile 2 (outline)): set the tool's flutes to see the chip load
+  Operation 5 (Pocket 2): set the tool's flutes to see the chip load
+  Operation 6 (Profile 2 (outline)): set the tool's flutes to see the chip load
 Planned … moves.
 --- stderr
 

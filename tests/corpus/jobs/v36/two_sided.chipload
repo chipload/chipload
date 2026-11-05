@@ -276,9 +276,29 @@
             }
           }
         ]
+      },
+      {
+        "id": 8,
+        "layer": "dowels",
+        "kind": "circle",
+        "center": [
+          150.0,
+          45.0
+        ],
+        "radius": 4.0
+      },
+      {
+        "id": 9,
+        "layer": "dowels",
+        "kind": "circle",
+        "center": [
+          150.0,
+          175.0
+        ],
+        "radius": 4.0
       }
     ],
-    "next_shape_id": 8,
+    "next_shape_id": 10,
     "dxfs": [
       {
         "id": 1,
@@ -324,8 +344,9 @@
         "material": null
       },
       "work_zero": {
-        "at": "stock",
-        "corner": "bottom_left"
+        "at": "point",
+        "x": 150.0,
+        "y": 45.0
       },
       "back_of": null
     },
@@ -344,8 +365,9 @@
         "material": null
       },
       "work_zero": {
-        "at": "stock",
-        "corner": "bottom_left"
+        "at": "point",
+        "x": 150.0,
+        "y": 45.0
       },
       "back_of": {
         "setup": 1,
@@ -412,6 +434,33 @@
       "stepover": 0.75,
       "feed": 1500.0,
       "plunge_feed": 500.0
+    },
+    {
+      "type": "holes",
+      "name": "Dowel holes",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          8,
+          9
+        ]
+      },
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.0,
+      "through": 8.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "method": {
+        "type": "bore",
+        "step_down": 3.0,
+        "ramp_angle": 0.05235987755982988,
+        "direction": "climb"
+      },
+      "dowels": true
     },
     {
       "type": "pocket",

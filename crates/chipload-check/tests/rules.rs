@@ -20,6 +20,7 @@ fn limits() -> CheckLimits {
         tool_points: std::collections::BTreeMap::new(),
         travel: Some((800.0, 600.0, 100.0)),
         units: chipload_job::Units::Mm,
+        deep_holes: Vec::new(),
     }
 }
 
@@ -633,4 +634,43 @@ fn a_drills_point_may_go_below_the_allowance_by_its_length() {
     drill.tool_point = 2.4032;
     let alone = format!("{HEADER}G0 X10 Y10\nG1 Z-20.9 F100\n{FOOTER}");
     assert!(check_gcode(&alone, &drill).ok());
+}
+
+#[test]
+fn a_dowel_hole_may_go_its_pin_depth_and_nothing_else_may() {
+    // docs/specs/two-sided.md §6: an 8 mm hole at (100, 50) allowed 8 mm below the 18 mm
+    // board; the stock's own max overcut is 0.
+    let mut deep = limits();
+    deep.deep_holes = vec![chipload_check::DeepHole {
+        center: (100.0, 50.0),
+        radius: 4.0,
+        depth: 8.0,
+    }];
+    let refused = |body: &str, limits: &CheckLimits| {
+        let report = check_gcode(&format!("{HEADER}{body}{FOOTER}"), limits);
+        !report.ok()
+    };
+    // A 3 mm radius tool bored on a 1 mm circle round the centre, down to 8 mm below.
+    let bore = "G0 X101 Y50\nG1 Z-2 F300\nG2 X99 Y50 Z-14 I-1 J0 F600\nG2 X101 Y50 Z-26 I1 J0\n\
+                G2 X99 Y50 I-1 J0\nG0 Z5\n";
+    assert!(!refused(bore, &deep), "inside the hole, to its depth");
+    assert!(
+        refused(bore, &limits()),
+        "without the hole: below the max overcut"
+    );
+    // A hair deeper than the pins need.
+    let deeper = "G0 X100 Y50\nG1 Z-26.1 F300\nG0 Z5\n";
+    assert!(refused(deeper, &deep));
+    // Elsewhere on the board, as deep.
+    let elsewhere = "G0 X200 Y50\nG1 Z-26 F300\nG0 Z5\n";
+    assert!(refused(elsewhere, &deep));
+    // An arc whose circle leaves the hole, though both its ends are in it.
+    let bulging = "G0 X101 Y50\nG1 Z-20 F300\nG2 X99 Y50 I-1 J5 F600\nG0 Z5\n";
+    assert!(refused(bulging, &deep));
+    // A tool wider than the hole: its edge would be outside it.
+    let mut wide = deep.clone();
+    wide.tool_radius = 5.0;
+    let plunge = "G0 X100 Y50\nG1 Z-26 F300\nG0 Z5\n";
+    assert!(!refused(plunge, &deep));
+    assert!(refused(plunge, &wide));
 }
