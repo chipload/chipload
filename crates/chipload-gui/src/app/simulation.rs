@@ -204,23 +204,7 @@ impl ChiploadApp {
                 return;
             }
         };
-        let side = ctx.input(|i| i.max_texture_side);
-        let image = sim.coarsened(sim.factor_for(usize::MAX, side));
-        let texture =
-            ctx.load_texture("simulation", image_of(&image), egui::TextureOptions::LINEAR);
-        let surface = surface_of(&sim.coarsened(sim.factor_for(SURFACE_CELLS, usize::MAX)));
-        let max = (
-            sim.origin.0 + sim.columns as f64 * sim.cell,
-            sim.origin.1 + sim.rows as f64 * sim.cell,
-        );
-        let layer = SimLayer {
-            texture: texture.id(),
-            min: sim.origin,
-            max,
-            surface,
-        };
-        self.scene.sim = Some(layer.clone());
-        self.sim.full_layer = Some(layer);
+        self.show_simulation_layer(ctx, &sim);
         for line in sim.messages() {
             self.report.push_message(Tone::Info, line, None);
         }
@@ -234,18 +218,84 @@ impl ChiploadApp {
         if let Some(playback) = &mut self.playback {
             playback.shown = None; // redrawn from the history on the next frame
         }
-        self.sim.texture = Some(texture);
         self.sim.simulation = Some(sim);
+    }
+
+    /// The finished simulation as the canvas shows it: the top view's picture and the 3D
+    /// surface, turned over when the board is (docs/specs/two-sided.md §10.2).
+    fn show_simulation_layer(&mut self, ctx: &egui::Context, sim: &Simulation) {
+        let turn = self.shown_turn();
+        let side = ctx.input(|i| i.max_texture_side);
+        let image = sim.coarsened(sim.factor_for(usize::MAX, side));
+        let texture = ctx.load_texture(
+            "simulation",
+            image_of(&image, turn),
+            egui::TextureOptions::LINEAR,
+        );
+        let surface = surface_of(
+            &sim.coarsened(sim.factor_for(SURFACE_CELLS, usize::MAX)),
+            turn,
+        );
+        let max = (
+            sim.origin.0 + sim.columns as f64 * sim.cell,
+            sim.origin.1 + sim.rows as f64 * sim.cell,
+        );
+        let layer = SimLayer {
+            texture: texture.id(),
+            min: sim.origin,
+            max,
+            surface,
+        };
+        self.scene.sim = Some(layer.clone());
+        self.sim.full_layer = Some(layer);
+        self.sim.texture = Some(texture);
+    }
+
+    /// How the board the canvas shows is turned over, if it is: for a setup that has a
+    /// back or is one, when *Turn the board over* is on (docs/specs/two-sided.md §10.2). In
+    /// Simulate only: the shapes are edited as drawn, from the front (decision 8).
+    pub(super) fn shown_turn(&self) -> Option<chipload_job::Turn> {
+        if !self.display.turned || !self.display.simulate {
+            return None;
+        }
+        board_turn(&self.edit.as_ref()?.job)
+    }
+
+    /// Turn the board over, or back: the view, the simulation and playback with it.
+    pub fn toggle_turned(&mut self, ctx: &egui::Context) {
+        self.display.turned = !self.display.turned;
+        if let Some(sim) = self.sim.simulation.take() {
+            self.show_simulation_layer(ctx, &sim);
+            self.sim.simulation = Some(sim);
+        }
+        if let Some(playback) = &mut self.playback {
+            playback.shown = None;
+        }
     }
 }
 
-/// A simulation's shaded image for a texture.
-pub(super) fn image_of(sim: &Simulation) -> egui::ColorImage {
+/// How the active setup's board turns over: its own turn for a back, its back's for a
+/// front with one; None for a board with one side.
+pub(super) fn board_turn(job: &chipload_job::Job) -> Option<chipload_job::Turn> {
+    let id = job.active_setup_id()?;
+    job.setup(id)?
+        .back_of
+        .or_else(|| job.back_of(id)?.back_of)
+        .map(|b| b.turn)
+}
+
+/// A simulation's shaded image for a texture; with `turn`, of the board turned over.
+pub(super) fn image_of(sim: &Simulation, turn: Option<chipload_job::Turn>) -> egui::ColorImage {
+    let turned = turn.map(|t| sim.turned_over(t));
+    let sim = turned.as_ref().unwrap_or(sim);
     egui::ColorImage::from_rgba_unmultiplied([sim.columns, sim.rows], &sim.shaded(CANVAS_PALETTE))
 }
 
-/// The surface of a (coarse) simulation: its heights and shaded colours.
-pub(super) fn surface_of(sim: &Simulation) -> SimSurface {
+/// The surface of a (coarse) simulation: its heights and shaded colours; with `turn`, of
+/// the board turned over, its points already as it lies.
+pub(super) fn surface_of(sim: &Simulation, turn: Option<chipload_job::Turn>) -> SimSurface {
+    let turned = turn.map(|t| sim.turned_over(t));
+    let sim = turned.as_ref().unwrap_or(sim);
     let pixels = sim.shaded(CANVAS_PALETTE);
     // `shaded` runs from the top row (highest Y) down; the surface from the bottom row up.
     let mut colors = Vec::with_capacity(sim.columns * sim.rows);
@@ -260,12 +310,17 @@ pub(super) fn surface_of(sim: &Simulation) -> SimSurface {
             ));
         }
     }
+    let [r, g, b] = CANVAS_PALETTE.top;
     SimSurface {
         origin: sim.origin,
         cell: sim.cell,
         columns: sim.columns,
         rows: sim.rows,
         heights: sim.heights.clone(),
+        floors: sim.floors.clone(),
         colors,
+        // The board's sides a shade darker than its top.
+        wall: egui::Color32::from_rgb(r, g, b).gamma_multiply(0.7),
+        raw: turn.is_some(),
     }
 }

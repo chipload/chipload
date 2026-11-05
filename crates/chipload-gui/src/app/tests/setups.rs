@@ -224,3 +224,32 @@ fn a_back_side_is_added_turned_given_dowels_and_shares_its_board() {
     assert_eq!(job.setup(back).unwrap().back_of, None);
     assert_eq!(job.setup(back).unwrap().stock, job.setup(1).unwrap().stock);
 }
+
+#[test]
+fn a_back_is_simulated_turned_over_and_edited_from_the_front() {
+    // docs/specs/two-sided.md §10.2, decision 8.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/two_sided.chipload")));
+    app.activate_setup(1);
+    assert!(!app.display.turned, "a front face up");
+    app.activate_setup(2);
+    assert!(app.display.turned, "a back turned over");
+    // Edited from the front, as drawn; simulated turned.
+    assert_eq!(app.shown_turn(), None);
+    app.display.simulate = true;
+    assert_eq!(app.shown_turn(), Some(chipload_job::Turn::LeftRight));
+    let ctx = egui::Context::default();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    app.start_simulation();
+    assert!(app.wait_for_simulation(&ctx));
+    let raw = |app: &ChiploadApp| app.scene.sim.as_ref().unwrap().surface.raw;
+    assert!(raw(&app), "the turned surface is drawn as it lies");
+    app.toggle_turned(&ctx);
+    assert!(!raw(&app));
+    // A one-sided board has nothing to turn.
+    let mut one = ChiploadApp::default();
+    assert!(one.open(&corpus("jobs/v34/two_setups.chipload")));
+    one.display.simulate = true;
+    one.display.turned = true;
+    assert_eq!(one.shown_turn(), None);
+}

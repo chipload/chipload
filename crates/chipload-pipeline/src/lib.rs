@@ -901,6 +901,30 @@ pub fn on_the_board(job: &Job, program: &Program) -> Program {
     out
 }
 
+/// The front's board heights (top, bottom) a back setup is shown on, in its program's Z
+/// (docs/specs/two-sided.md §10.2); None for any other setup.
+pub fn front_board_z(job: &Job) -> Option<(f64, f64)> {
+    job.back_turn()?;
+    let front = job.front_of(job.active_setup_id()?)?;
+    let top = front.stock.top_z();
+    Some((top, top - front.stock.thickness))
+}
+
+/// A back setup's planned program with its Z as heights of the front's board, for showing
+/// it on that board in the front's view: a depth d below the back face is the front's bottom
+/// plus d. Any other program as it is.
+pub fn shown_on_board(job: &Job, program: &Program) -> Program {
+    let Some((_, bottom)) = front_board_z(job) else {
+        return program.clone();
+    };
+    let top = job.stock().top_z();
+    let mut out = program.clone();
+    for m in &mut out.moves {
+        m.z = m.z.map(|z| bottom + top - z);
+    }
+    out
+}
+
 /// The project's contours and import report (from its embedded shapes).
 pub fn load_drawing(job: &Job) -> Result<ImportResult, PipelineError> {
     Ok(contours_from_shapes(&job.drawing.shapes, &job.drawing.dxfs))

@@ -347,7 +347,9 @@ impl ChiploadApp {
 
     fn show_result(&mut self, job: &Job, result: RunResult) {
         self.error_ops.clear();
-        self.scene.toolpath = Some(ToolpathShape::new(&result.program, false, &result.op_spans));
+        // A back's moves on its front's board, where they cut (docs/specs/two-sided.md §10.2).
+        let shown = chipload_pipeline::shown_on_board(job, &result.program);
+        self.scene.toolpath = Some(ToolpathShape::new(&shown, false, &result.op_spans));
         self.scene.tabs.clone_from(&result.tabs);
         self.scene.start_markers = result
             .ring_starts

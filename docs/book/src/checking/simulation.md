@@ -18,7 +18,8 @@ The simulation cuts the stock with every move of the program and shows the resul
 **Simulate** mode: the **Edit | Simulate** switch on the canvas's navigation bar, *View >
 Simulate* or F6, and **Edit** or F6 to go back ([Edit and Simulate](../window.md#the-canvas)).
 - **Top view:** a shaded picture.
-- **3D:** a surface you can turn.
+- **3D:** the board as a solid you can turn: holes cut through are open, and the board
+  stands on its sides.
 - **Tool shapes:** each tool's real shape is used: a flat endmill, a V-bit's cone with its
   tip, and a drill's 118° point.
 - **When:** in the background, when you enter Simulate and after each new toolpath while
@@ -56,6 +57,12 @@ goes through but the two together do, *The two sides meet* with its area: a plai
 that can be meant. `chipload simulate part.chipload --setup 2 --face back` draws the back
 face, the board as it lies turned over; `--face front` the front. A back setup's picture
 shows its own face by default.
+
+In the window, Simulate mode has **Turn over** on the navigation bar for a board with two
+sides: the board shown back face up, as it lies for its back's setup, in the top view and
+in 3D, the toolpath and shapes turned with it. Making the back setup active turns it over;
+making the front active turns it back. In Edit mode the board is always seen from the
+front, where you draw.
 
 ## Playback
 

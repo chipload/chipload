@@ -150,6 +150,8 @@ its setup sheet are turned over.
 Simulating a back setup shows the whole part: its front cut first, then the back from
 below ([Simulation](../checking/simulation.md)).
 
-This is being built (docs/specs/two-sided.md): the 3D view draws only the top surface so
-far, without walls or the back face.
+In Simulate, **Turn over** on the navigation bar shows the board back face up, as it lies
+for the back.
+
+This is an experiment (docs/specs/two-sided.md): try it, and say what should change.
 

@@ -220,6 +220,29 @@ impl ChiploadApp {
         {
             self.view_3d();
         }
+        // A board with two sides (docs/specs/two-sided.md §10.2).
+        if self.display.simulate
+            && self
+                .edit
+                .as_ref()
+                .is_some_and(|e| super::simulation::board_turn(&e.job).is_some())
+        {
+            let label = t!(ui, "navigation-turn-over");
+            if nav_button(
+                ui,
+                compact,
+                Icon::TurnOver,
+                &label,
+                true,
+                self.display.turned,
+            )
+            .on_hover_text(t!(ui, "navigation-turn-over-hover"))
+            .clicked()
+            {
+                let ctx = ui.ctx().clone();
+                self.toggle_turned(&ctx);
+            }
+        }
     }
 
     /// Edit | Simulate, first in the bar: two halves in an accent outline, the mode's half

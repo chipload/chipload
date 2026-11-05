@@ -5,6 +5,8 @@ navigation-fit = Fit
 navigation-fit-hover = Fit the view
 navigation-top = Top
 navigation-top-hover = Look straight down
+navigation-turn-over = Turn over
+navigation-turn-over-hover = Turn the board over: show it back face up, as it lies for its back side's setup
 navigation-3d = 3D
 navigation-3d-hover = 3D: left-drag turns and tilts; right-drag or Shift+drag pans
 # $scale: how much the heights are stretched, a plain number.

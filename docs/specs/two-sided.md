@@ -448,4 +448,11 @@ default is the face that setup cuts. The numbers in `--json` get `through_cm2`.
     the fallback if the order shows faults.
 15. **Looking at the back: a *Turn the board over* button and a tilt past side-on, both,**
     and activating the back setup turns the board over (§10.2). **Recommended.**
-    Alternative: only one of them.
+    Alternative: only one of them. *As built, 2026-11-05: the button only.* It turns the
+    camera itself (`View::turned`): every point is mirrored and turned upside down, so the
+    simulation (the turned-over result), the shapes, the toolpath and picking all show the
+    board as it lies, back face up. Looking up from below would need a bottom face drawn,
+    and the button shows the back face as the operator sees it. Turning applies in Simulate
+    only: in Edit the board is seen from the front, where the shapes are drawn (decision
+    8). The 3D view's walls are drawn only where they face the viewer, so painter's order
+    stays right through holes.

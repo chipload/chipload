@@ -41,6 +41,8 @@ pub struct Playback {
     /// The moves done, and how far along the next one, that the canvas shows the stock for;
     /// None: the end (the full image).
     pub(super) shown: Option<(usize, u16)>,
+    /// A back setup's program: its tool cuts from below (docs/specs/two-sided.md §10.2).
+    from_below: bool,
 }
 
 impl Playback {
@@ -54,8 +56,8 @@ impl Playback {
             })
             .collect();
         let mut at: (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
-        let positions = result
-            .program
+        // A back's moves on its front's board, as the toolpath shows them.
+        let positions = chipload_pipeline::shown_on_board(job, &result.program)
             .moves
             .iter()
             .map(|m| {
@@ -110,6 +112,7 @@ impl Playback {
                 .map(|m| (m.kind, m.feed))
                 .collect(),
             shown: None,
+            from_below: chipload_pipeline::front_board_z(job).is_some(),
         }
     }
 
@@ -221,12 +224,14 @@ impl Playback {
             return ToolLook {
                 radius: 1.0,
                 cone: None,
+                from_below: self.from_below,
             };
         };
         let radius = tool.diameter / 2.0;
         let cone = |angle: f64, tip: f64| Some((tip.min(radius), 1.0 / (angle / 2.0).tan()));
         ToolLook {
             radius,
+            from_below: self.from_below,
             cone: match tool.kind {
                 ToolType::Endmill => None,
                 ToolType::Drill => cone(DRILL_POINT_RAD, 0.0),
@@ -575,7 +580,8 @@ impl ChiploadApp {
             return;
         };
         let stock = history.at(done, along, &sim.numbers);
-        let image = simulation::image_of(&stock);
+        let turn = self.shown_turn();
+        let image = simulation::image_of(&stock, turn);
         let texture = match &mut self.sim.playback_texture {
             Some(texture) => {
                 texture.set(image, egui::TextureOptions::LINEAR);
@@ -593,7 +599,7 @@ impl ChiploadApp {
             texture,
             min: full.min,
             max: full.max,
-            surface: simulation::surface_of(&stock),
+            surface: simulation::surface_of(&stock, turn),
         });
     }
 

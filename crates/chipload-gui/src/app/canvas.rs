@@ -82,12 +82,29 @@ impl ChiploadApp {
         // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
         // its operations cut; copy 1 is the drawing.
         self.scene.copies = self.copy_shifts();
-        // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md).
+        // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md). A
+        // back is shown on its front's board, in its heights, and a turned board with its
+        // other face up (docs/specs/two-sided.md §10.2).
         if let Some(edit) = &self.edit {
             let stock = &edit.job.stock();
-            let top = stock.top_z();
-            self.view.top_z = top;
-            self.scene.stock_z = Some((top, top - stock.thickness));
+            let (top, bottom) = chipload_pipeline::front_board_z(&edit.job)
+                .unwrap_or((stock.top_z(), stock.top_z() - stock.thickness));
+            let turn = self.shown_turn();
+            self.view.top_z = if turn.is_some() { bottom } else { top };
+            self.view.turned = turn.map(|turn| {
+                let ((x0, y0), (x1, y1)) = edit.job.stock_bounds();
+                let left_right = turn == chipload_job::Turn::LeftRight;
+                crate::view::Turned {
+                    left_right,
+                    at: if left_right {
+                        (x0 + x1) / 2.0
+                    } else {
+                        (y0 + y1) / 2.0
+                    },
+                    z_sum: top + bottom,
+                }
+            });
+            self.scene.stock_z = Some((top, bottom));
         }
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::click_and_drag());
         let rect = response.rect;

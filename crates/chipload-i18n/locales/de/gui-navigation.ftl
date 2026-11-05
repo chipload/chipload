@@ -5,6 +5,8 @@ navigation-fit = Einpassen
 navigation-fit-hover = Die Ansicht einpassen
 navigation-top = Oben
 navigation-top-hover = Senkrecht von oben schauen
+navigation-turn-over = Wenden
+navigation-turn-over-hover = Das Brett wenden: Rückseite oben zeigen, wie es für die Aufspannung seiner Rückseite liegt
 navigation-3d = 3D
 navigation-3d-hover = 3D: Ziehen mit links dreht und neigt; Ziehen mit rechts oder Shift+Ziehen verschiebt
 # $scale: how much the heights are stretched, a plain number.

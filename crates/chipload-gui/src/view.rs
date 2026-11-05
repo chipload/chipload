@@ -180,6 +180,35 @@ pub struct View {
     pub z_scale: f64,
     /// Where 2D items (contours, selection, material left) sit: the stock top's Z.
     pub top_z: f64,
+    /// The board turned over (docs/specs/two-sided.md §10.2): every point is mirrored about
+    /// its centre line and turned upside down before it is shown. None: as drawn.
+    pub turned: Option<Turned>,
+}
+
+/// How the view turns the board over: about the vertical line X = `at` (left to right) or
+/// the horizontal line Y = `at`, with Z turned about the board's middle: `z_sum` is its top
+/// plus its bottom.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Turned {
+    pub left_right: bool,
+    pub at: f64,
+    pub z_sum: f64,
+}
+
+impl Turned {
+    /// A point as it lies on the turned board; turning twice gives it back.
+    pub fn point(self, (x, y, z): Point3) -> Point3 {
+        let (x, y) = self.xy((x, y));
+        (x, y, self.z_sum - z)
+    }
+
+    pub fn xy(self, (x, y): Point) -> Point {
+        if self.left_right {
+            (2.0 * self.at - x, y)
+        } else {
+            (x, 2.0 * self.at - y)
+        }
+    }
 }
 
 impl Default for View {
@@ -191,6 +220,7 @@ impl Default for View {
             tilt: 0.0,
             z_scale: 1.0,
             top_z: 0.0,
+            turned: None,
         }
     }
 }
@@ -200,8 +230,21 @@ impl View {
         self.turn == 0.0 && self.tilt == 0.0
     }
 
-    /// (across, up) of a world point in camera units (mm), before pan and zoom.
-    fn camera(self, (x, y, z): Point3) -> (f64, f64) {
+    /// (across, up) of a world point in camera units (mm), before pan and zoom; on a
+    /// turned board, as it lies turned (2D items on its face up).
+    fn camera(self, p: Point3) -> (f64, f64) {
+        match self.turned {
+            Some(turned) => {
+                // Heights from the face 2D items sit on, which is up now.
+                let reference = turned.z_sum - self.top_z;
+                self.camera_raw(turned.point(p), reference)
+            }
+            None => self.camera_raw(p, self.top_z),
+        }
+    }
+
+    /// The camera on a point already as it lies, `reference` the Z at height 0.
+    fn camera_raw(self, (x, y, z): Point3, reference: f64) -> (f64, f64) {
         if self.is_top() {
             return (x, y); // exactly the 2D mapping, whatever Z is
         }
@@ -209,8 +252,21 @@ impl View {
         let (sin_a, cos_a) = self.tilt.sin_cos();
         let across = x * cos_t - y * sin_t;
         let depth = x * sin_t + y * cos_t;
-        let height = (z - self.top_z) * self.z_scale;
+        let height = (z - reference) * self.z_scale;
         (across, depth * cos_a + height * sin_a)
+    }
+
+    /// A point already as it lies on the turned board (the turned simulation's surface):
+    /// shown without turning it again.
+    pub fn to_screen3_raw(self, p: Point3) -> Pos2 {
+        let reference = self
+            .turned
+            .map_or(self.top_z, |turned| turned.z_sum - self.top_z);
+        let (across, up) = self.camera_raw(p, reference);
+        Pos2::new(
+            (self.offset.0 + across * self.scale) as f32,
+            (self.offset.1 - up * self.scale) as f32,
+        )
     }
 
     pub fn to_screen3(self, p: Point3) -> Pos2 {
@@ -230,15 +286,18 @@ impl View {
     pub fn to_world(self, p: Pos2) -> Point {
         let across = (f64::from(p.x) - self.offset.0) / self.scale;
         let up = (self.offset.1 - f64::from(p.y)) / self.scale;
-        if self.is_top() {
-            return (across, up);
-        }
-        let (sin_t, cos_t) = self.turn.sin_cos();
-        let depth = up / self.tilt.cos(); // on the stock top the height term is 0
-        (
-            across * cos_t + depth * sin_t,
-            -across * sin_t + depth * cos_t,
-        )
+        let lying = if self.is_top() {
+            (across, up)
+        } else {
+            let (sin_t, cos_t) = self.turn.sin_cos();
+            let depth = up / self.tilt.cos(); // on the stock top the height term is 0
+            (
+                across * cos_t + depth * sin_t,
+                -across * sin_t + depth * cos_t,
+            )
+        };
+        // Turned back from the board as it lies to the drawing.
+        self.turned.map_or(lying, |turned| turned.xy(lying))
     }
 
     /// Show every point inside `screen` with a 5 % margin, in the current orientation.
@@ -561,6 +620,9 @@ pub struct ToolLook {
     pub radius: f64,
     /// A cone's flat tip radius and how much it rises per mm out; None: a flat end.
     pub cone: Option<(f64, f64)>,
+    /// A back setup's tool: it cuts the board from below, its shank down
+    /// (docs/specs/two-sided.md §10.2).
+    pub from_below: bool,
 }
 
 /// How faint the moves still to come are drawn.
@@ -630,7 +692,8 @@ impl Progress {
             Some((tip, slope)) => (tip, slope * (r - tip)),
             None => (r, 0.0),
         };
-        let shank = (z + rise, z + rise + 3.0 * r);
+        let up = if self.tool.from_below { -1.0 } else { 1.0 };
+        let shank = (z + up * rise, z + up * (rise + 3.0 * r));
         painter.add(Shape::line(ring(z, tip), stroke));
         painter.add(Shape::line(ring(shank.0, r), stroke));
         painter.add(Shape::line(ring(shank.1, r), stroke));
@@ -655,7 +718,9 @@ pub struct SimLayer {
     pub surface: SimSurface,
 }
 
-/// A height map as a surface: one vertex per cell centre, row 0 at the lowest Y.
+/// A height map as a surface: one vertex per cell centre, row 0 at the lowest Y. A solid
+/// (docs/specs/two-sided.md §10.2): cells cut through are left out, so holes are holes, and
+/// walls go down to the floors where the surface ends, at the board's edges and round holes.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct SimSurface {
     pub origin: Point,
@@ -663,10 +728,40 @@ pub struct SimSurface {
     pub columns: usize,
     pub rows: usize,
     pub heights: Vec<f32>,
+    /// The bottom of the material under each cell.
+    pub floors: Vec<f32>,
     pub colors: Vec<Color32>,
+    /// The walls' colour.
+    pub wall: Color32,
+    /// Its points are already as the board lies turned over (the turned simulation): shown
+    /// without turning them again.
+    pub raw: bool,
 }
 
+/// One quad to draw: how far into the screen it lies, and its four vertices.
+type Quad = (f64, [u32; 4]);
+
 impl SimSurface {
+    /// Cell `k` has no material left: its floor reaches its height.
+    fn through(&self, k: usize) -> bool {
+        f64::from(self.floors[k]) + chipload_core::tolerances::DEPTH_TOL_MM
+            >= f64::from(self.heights[k])
+    }
+
+    /// The quad with lower-left vertex (i, j) is drawn: inside the grid, no corner cut
+    /// through.
+    fn kept(&self, i: isize, j: isize) -> bool {
+        let (columns, rows) = (self.columns as isize, self.rows as isize);
+        if i < 0 || j < 0 || i >= columns - 1 || j >= rows - 1 {
+            return false;
+        }
+        let k = (j * columns + i) as usize;
+        let c = self.columns;
+        ![k, k + 1, k + c, k + c + 1]
+            .iter()
+            .any(|&k| self.through(k))
+    }
+
     /// The surface as projected triangles, far quads first so near ones cover them.
     pub fn mesh(&self, view: &View, fade: bool) -> Mesh {
         let mut mesh = Mesh::default();
@@ -674,31 +769,114 @@ impl SimSurface {
             return mesh;
         }
         let tint = if fade { GHOST_FADE } else { 1.0 };
+        let project = |p: Point3| {
+            if self.raw {
+                view.to_screen3_raw(p)
+            } else {
+                view.to_screen3(p)
+            }
+        };
+        let centre = |i: usize, j: usize| {
+            (
+                self.origin.0 + (i as f64 + 0.5) * self.cell,
+                self.origin.1 + (j as f64 + 0.5) * self.cell,
+            )
+        };
         mesh.reserve_vertices(self.columns * self.rows);
         for j in 0..self.rows {
             for i in 0..self.columns {
                 let k = j * self.columns + i;
-                let x = self.origin.0 + (i as f64 + 0.5) * self.cell;
-                let y = self.origin.1 + (j as f64 + 0.5) * self.cell;
-                let at = view.to_screen3((x, y, f64::from(self.heights[k])));
+                let (x, y) = centre(i, j);
+                let at = project((x, y, f64::from(self.heights[k])));
                 mesh.colored_vertex(at, self.colors[k].gamma_multiply(tint));
             }
         }
         // Depth into the screen grows with x·sin(turn) + y·cos(turn) (View::camera).
         let (sin_t, cos_t) = view.turn.sin_cos();
-        let mut quads: Vec<(f64, u32)> = Vec::with_capacity((self.columns - 1) * (self.rows - 1));
+        let depth = |i: f64, j: f64| i * sin_t + j * cos_t;
+        let columns = self.columns as u32;
+        let mut quads: Vec<Quad> = Vec::with_capacity((self.columns - 1) * (self.rows - 1));
         for j in 0..self.rows - 1 {
             for i in 0..self.columns - 1 {
-                let depth = i as f64 * sin_t + j as f64 * cos_t;
+                if !self.kept(i as isize, j as isize) {
+                    continue;
+                }
                 // The grid's size is far within u32 (at most 250 000 cells).
-                quads.push((depth, (j * self.columns + i) as u32));
+                let k = (j * self.columns + i) as u32;
+                quads.push((
+                    depth(i as f64 + 0.5, j as f64 + 0.5),
+                    [k, k + 1, k + columns + 1, k + columns],
+                ));
+            }
+        }
+        // Walls where the surface ends, facing the viewer; one facing away lies behind the
+        // surface or the board and would cover what is seen through a hole.
+        if !view.is_top() {
+            let wall = self.wall.gamma_multiply(tint);
+            let floor_vertex = |mesh: &mut Mesh, i: usize, j: usize| -> u32 {
+                let k = j * self.columns + i;
+                let (x, y) = centre(i, j);
+                let index = mesh.vertices.len() as u32;
+                mesh.colored_vertex(project((x, y, f64::from(self.floors[k]))), wall);
+                index
+            };
+            let facing = |n: (f64, f64)| n.0 * sin_t + n.1 * cos_t < 0.0;
+            // Edges along X, between vertex rows: quads below (j - 1) and above (j).
+            for j in 0..self.rows {
+                for i in 0..self.columns - 1 {
+                    let (below, above) = (
+                        self.kept(i as isize, j as isize - 1),
+                        self.kept(i as isize, j as isize),
+                    );
+                    let normal = match (below, above) {
+                        (true, false) => (0.0, 1.0),
+                        (false, true) => (0.0, -1.0),
+                        _ => continue,
+                    };
+                    if !facing(normal) {
+                        continue;
+                    }
+                    let (a, b) = (
+                        (j * self.columns + i) as u32,
+                        (j * self.columns + i + 1) as u32,
+                    );
+                    let (fa, fb) = (
+                        floor_vertex(&mut mesh, i, j),
+                        floor_vertex(&mut mesh, i + 1, j),
+                    );
+                    quads.push((depth(i as f64 + 0.5, j as f64), [a, b, fb, fa]));
+                }
+            }
+            // Edges along Y, between vertex columns: quads left (i - 1) and right (i).
+            for j in 0..self.rows - 1 {
+                for i in 0..self.columns {
+                    let (left, right) = (
+                        self.kept(i as isize - 1, j as isize),
+                        self.kept(i as isize, j as isize),
+                    );
+                    let normal = match (left, right) {
+                        (true, false) => (1.0, 0.0),
+                        (false, true) => (-1.0, 0.0),
+                        _ => continue,
+                    };
+                    if !facing(normal) {
+                        continue;
+                    }
+                    let (a, b) = (
+                        (j * self.columns + i) as u32,
+                        ((j + 1) * self.columns + i) as u32,
+                    );
+                    let (fa, fb) = (
+                        floor_vertex(&mut mesh, i, j),
+                        floor_vertex(&mut mesh, i, j + 1),
+                    );
+                    quads.push((depth(i as f64, j as f64 + 0.5), [a, b, fb, fa]));
+                }
             }
         }
         quads.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.cmp(&b.1)));
         mesh.reserve_triangles(2 * quads.len());
-        let columns = self.columns as u32;
-        for (_, k) in quads {
-            let (a, b, c, d) = (k, k + 1, k + columns + 1, k + columns);
+        for (_, [a, b, c, d]) in quads {
             mesh.add_triangle(a, b, c);
             mesh.add_triangle(a, c, d);
         }
@@ -1482,6 +1660,82 @@ fn segment_distance(p: Pos2, a: Pos2, b: Pos2) -> f32 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_turned_board_shows_its_points_mirrored_and_upside_down() {
+        // docs/specs/two-sided.md §10.2: about X = 150, a 10 mm board from Z0 to Z-10.
+        let turned = Turned {
+            left_right: true,
+            at: 150.0,
+            z_sum: -10.0,
+        };
+        assert_eq!(turned.point((140.0, 30.0, -2.0)), (160.0, 30.0, -8.0));
+        assert_eq!(
+            turned.point(turned.point((1.0, 2.0, -3.0))),
+            (1.0, 2.0, -3.0)
+        );
+        let mut view = View {
+            turn: 0.4,
+            tilt: 0.6,
+            turned: Some(turned),
+            ..View::default()
+        };
+        // 2D items sit on the face that is up: the old bottom.
+        view.top_z = -10.0;
+        for p in [(40.0, 30.0), (150.0, 75.0), (260.0, 170.0)] {
+            let back = view.to_world(view.to_screen(p));
+            // Screen positions are f32: a micrometre or so.
+            assert!(
+                (back.0 - p.0).abs() < 1e-3 && (back.1 - p.1).abs() < 1e-3,
+                "{p:?} {back:?}"
+            );
+        }
+        // The old bottom is up: a point on it shows above one on the old top.
+        let bottom = view.to_screen3((100.0, 50.0, -10.0));
+        let top = view.to_screen3((100.0, 50.0, 0.0));
+        assert!(bottom.y < top.y, "{bottom:?} {top:?}");
+        // A raw point isn't turned again.
+        assert_eq!(
+            view.to_screen3_raw((200.0, 50.0, 0.0)),
+            view.to_screen3((100.0, 50.0, -10.0))
+        );
+    }
+
+    #[test]
+    fn the_surface_leaves_holes_and_stands_on_walls() {
+        // 4 × 4 cells, the middle one cut through.
+        let mut surface = SimSurface {
+            origin: (0.0, 0.0),
+            cell: 1.0,
+            columns: 4,
+            rows: 4,
+            heights: vec![0.0; 16],
+            floors: vec![-10.0; 16],
+            colors: vec![Color32::WHITE; 16],
+            wall: Color32::GRAY,
+            raw: false,
+        };
+        let view = View {
+            turn: 0.3,
+            tilt: 0.7,
+            ..View::default()
+        };
+        let solid = surface.mesh(&view, false).indices.len() / 6;
+        surface.floors[5] = 0.0;
+        let holed = surface.mesh(&view, false).indices.len() / 6;
+        // 9 quads, less the 4 round the hole's vertex, plus walls facing the viewer.
+        assert!(holed < solid + 8, "{solid} {holed}");
+        let top_quads = (0..3)
+            .flat_map(|j| (0..3).map(move |i| (i, j)))
+            .filter(|&(i, j)| surface.kept(i, j))
+            .count();
+        assert_eq!(top_quads, 5);
+        // Seen from straight above: no walls, only the top.
+        assert_eq!(
+            surface.mesh(&View::default(), false).indices.len() / 6,
+            top_quads
+        );
+    }
+
     use super::*;
     use chipload_job::Spindle;
     use chipload_toolpath::model::Move;

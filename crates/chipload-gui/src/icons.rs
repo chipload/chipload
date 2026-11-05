@@ -90,6 +90,8 @@ pub enum Icon {
     WorkZero,
     /// Edit mode: a pencil (docs/specs/edit-and-simulate.md §2).
     Edit,
+    /// A board with an arrow over it: turn the board over (docs/specs/two-sided.md §10.2).
+    TurnOver,
 }
 
 /// Line width of the icons, points.
@@ -440,6 +442,18 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::TurnOver => {
+            pen.closed(&[(0.1, 0.68), (0.9, 0.68), (0.9, 0.84), (0.1, 0.84)]);
+            // Over the top from the left edge to the right, the head pointing down.
+            let over = pen.arc(
+                (0.5, 0.58),
+                0.34,
+                std::f32::consts::PI,
+                std::f32::consts::TAU,
+            );
+            pen.poly(&over);
+            pen.poly(&[(0.74, 0.48), (0.84, 0.58), (0.92, 0.46)]);
         }
         Icon::Edit => {
             // A pencil leaning right: its body, the sharpened end, the lead.

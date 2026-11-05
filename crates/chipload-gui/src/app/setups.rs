@@ -68,6 +68,7 @@ impl ChiploadApp {
         });
         if let Some(id) = added {
             self.focus = Focus::Setup(id);
+            self.display.turned = true;
         }
         added
     }
@@ -102,9 +103,16 @@ impl ChiploadApp {
         }
     }
 
-    /// Make setup `id` the one shown, simulated and previewed.
+    /// Make setup `id` the one shown, simulated and previewed. A back is simulated turned
+    /// over, back face up; a front face up (docs/specs/two-sided.md §10.2).
     pub fn activate_setup(&mut self, id: u64) {
-        self.change_setups(|job| chipload_pipeline::setups::activate_setup(job, id));
+        if self.change_setups(|job| chipload_pipeline::setups::activate_setup(job, id)) {
+            self.display.turned = self
+                .edit
+                .as_ref()
+                .and_then(|e| e.job.setup(id))
+                .is_some_and(|s| s.back_of.is_some());
+        }
     }
 
     /// Turn setup `id` on or off.

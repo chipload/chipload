@@ -693,16 +693,22 @@ fn the_simulation_follows_the_toggle_and_the_toolpath() {
     let sim = app.scene.sim.as_ref().unwrap();
     assert!(sim.surface.columns * sim.surface.rows <= simulation::SURFACE_CELLS);
     assert!(sim.surface.columns > 1 && sim.surface.rows > 1);
-    // The 3D surface: a vertex per cell, two triangles per quad.
+    // The 3D surface: a vertex per cell, two triangles per quad, and a solid
+    // (docs/specs/two-sided.md §10.2): the through holes left out, walls round them and
+    // along the board's near edges, each with two vertices of its own at the floor.
     let view = View {
         tilt: 0.5,
         ..View::default()
     };
     let mesh = sim.surface.mesh(&view, false);
-    assert_eq!(mesh.vertices.len(), sim.surface.columns * sim.surface.rows);
-    assert_eq!(
-        mesh.indices.len(),
-        6 * (sim.surface.columns - 1) * (sim.surface.rows - 1)
+    let cells = sim.surface.columns * sim.surface.rows;
+    let walls = (mesh.vertices.len() - cells) / 2;
+    assert!(walls > 0, "the board stands on walls");
+    let quads = (sim.surface.columns - 1) * (sim.surface.rows - 1);
+    assert_eq!(mesh.indices.len() % 6, 0);
+    assert!(
+        mesh.indices.len() / 6 < quads + walls,
+        "the holes are left out"
     );
     assert!(
         app.report

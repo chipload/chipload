@@ -5,6 +5,8 @@ navigation-fit = Adatta
 navigation-fit-hover = Adatta la vista
 navigation-top = Alto
 navigation-top-hover = Guarda dritto dall'alto
+navigation-turn-over = Capovolgi
+navigation-turn-over-hover = Capovolgi la tavola: mostrala con il retro in alto, come sta per il piazzamento del suo retro
 navigation-3d = 3D
 navigation-3d-hover = 3D: trascina col tasto sinistro per ruotare e inclinare; col tasto destro o Shift+trascina per spostare
 # $scale: how much the heights are stretched, a plain number.
