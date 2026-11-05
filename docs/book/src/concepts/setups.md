@@ -86,6 +86,18 @@ chipload setup set sign.chipload 2 --own-board    # a board of its own again, as
 corner of a fence). A board has one back, and a back can't be turned over again. Removing
 the front gives its back a board of its own.
 
-This is being built (docs/specs/two-sided.md): the back's cuts aren't mirrored yet, so
-don't cut a back setup.
+You draw the back as seen **from the front**, looking through the board: the back's
+shapes lie where they are on the board, and the view, the toolpath and the markers stay the
+front's. The back's program is mirrored when it is made, about the board's centre line, so
+it cuts those shapes on the turned board. Climb stays climb and inside stays inside on the
+back face.
+
+The back's board is as thick as the front leaves it: a surfacing pass on the front makes the
+back that much thinner, and its cuts through the stock follow.
+
+Its work zero is the front's, on the board as it lies after turning: a stock corner is the
+corner of the turned board in that place, so push the board against the same stops.
+
+This is being built (docs/specs/two-sided.md): the dowel holes, the setup sheet's words for
+turning the board, the window and a simulation of both sides are still to come.
 

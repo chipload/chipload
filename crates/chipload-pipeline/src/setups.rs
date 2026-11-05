@@ -258,5 +258,7 @@ pub fn move_part_to_setup(job: &Job, part: u64, id: u64) -> Result<Job, Pipeline
         return Err(refused(Message::new("pipeline-no-part").arg("id", part)));
     };
     p.setup = id;
+    // Its cuts through the stock go through its new board.
+    job.follow_thickness();
     checked(job)
 }

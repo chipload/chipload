@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 59] = [
+const GOLDEN: [(&str, &str); 60] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -181,6 +181,13 @@ const GOLDEN: [(&str, &str); 59] = [
     // simple_part's outline cut out with its 4 tabs along X (docs/specs/tabs-along-grain.md):
     // two on the bottom edge and two on the top, at a quarter and three quarters across.
     ("v35_tabs_along", "jobs/v35/tabs_along.chipload"),
+    // Two-sided (docs/specs/two-sided.md): v35_op_add's front, surfaced 0.5 mm first, its
+    // pocket and holes; then the back, turned left to right, the slot pocketed 4 mm from
+    // the back face and the outline cut out from there through the 9.5 mm the surfacing
+    // left. The back's program is planned with the cutting sense turned and mirrored about
+    // the board's centre line (X 150), so climb stays climb on the back face. Made with
+    // `op add-surface`, `setup add --back-of 1`, `op add pocket --shapes 3`, `op part`.
+    ("v36_two_sided", "jobs/v36/two_sided.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

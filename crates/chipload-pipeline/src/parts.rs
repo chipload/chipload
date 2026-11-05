@@ -166,8 +166,8 @@ pub fn remove_part(
     Ok((checked(job)?, lines))
 }
 
-/// Move operation `index` (0-based) into part `id`, at the end of that part's operations.
-/// Returns its new index.
+/// Move operation `index` (0-based) into part `id`, at the end of that part's operations;
+/// a cut through the stock then goes through that part's board. Returns its new index.
 pub fn move_operation_to_part(
     job: &Job,
     index: usize,
@@ -184,6 +184,8 @@ pub fn move_operation_to_part(
     op.set_part(id);
     let at = job.insert_index(id);
     job.operations.insert(at, op);
+    // A cut through the stock ends at the thickness of its new part's board.
+    job.follow_thickness();
     Ok((checked(job)?, at))
 }
 

@@ -11,8 +11,8 @@ use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note,
-    OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, SurfaceOp,
-    Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Spindle,
+    SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -507,6 +507,7 @@ fn plan_step(
         cut_contours: &cut_contours,
         cancel,
         floor_pass: job.is_floor_pass(chosen.at),
+        sense: job.cutting_sense(),
     };
     let moved: Vec<Contour> = chosen
         .selection
@@ -708,6 +709,9 @@ struct Context<'a> {
     cancel: &'a Cancel,
     /// A V-carve's floor pass, planned as a pocket (docs/specs/vcarve-wide-strokes.md §4).
     floor_pass: bool,
+    /// The spindle's turn in the drawing's coordinates, which every travel direction is
+    /// chosen with: the other way for a back setup ([`Job::cutting_sense`]).
+    sense: Spindle,
 }
 
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
@@ -757,7 +761,7 @@ fn plan_pocket_op(
         clearance: op.clearance,
         stepover: op.stepover * ctx.tool.diameter,
         direction: op.direction,
-        spindle: ctx.job.machine.spindle,
+        spindle: ctx.sense,
         start,
         choices: Choices {
             starts,
@@ -927,13 +931,7 @@ fn plan_path_op(
 ) -> Result<Planned, ToolpathError> {
     let mut arcs = ArcTable::default();
     let mut notes = Vec::new();
-    let paths = order_paths(
-        &selection.contours,
-        start,
-        ctx.job.machine.spindle,
-        &mut arcs,
-        &mut notes,
-    );
+    let paths = order_paths(&selection.contours, start, ctx.sense, &mut arcs, &mut notes);
     let mut notes: Vec<Message> = notes
         .into_iter()
         .map(|n| labelled_note(ctx.label_message, n))
@@ -951,7 +949,7 @@ fn plan_path_op(
         plunge_feed: op.plunge_feed,
         entry: op.entry,
         tool_diameter: ctx.tool.diameter,
-        spindle: ctx.job.machine.spindle,
+        spindle: ctx.sense,
     };
     let mut moves = Vec::new();
     let mut end = start;
@@ -1150,7 +1148,7 @@ fn plan_holes_op(
                     step_down,
                     ramp_angle,
                     direction,
-                    spindle: ctx.job.machine.spindle,
+                    spindle: ctx.sense,
                 };
                 moves.extend(bore_moves(&hole, &bore, &cut).map_err(|err| {
                     err.with_context(contour_context(ctx.label_message, hole.contour_id))
@@ -1332,7 +1330,7 @@ fn plan_profile_op(
         ctx.label_message,
         &selection.contours,
         radius,
-        machine.spindle,
+        ctx.sense,
         start,
         starts,
     )?;
@@ -1346,7 +1344,7 @@ fn plan_profile_op(
             ctx.label_message,
             &selection.contours,
             radius,
-            machine.spindle,
+            ctx.sense,
             start,
             starts,
         )?),

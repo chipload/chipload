@@ -353,15 +353,18 @@ impl Job {
 
     /// Every back setup takes its front's board and work zero (docs/specs/two-sided.md §3,
     /// §5): one board, so one stock and one zero, kept in step wherever a project is read
-    /// or changed ([`Job::follow_thickness`] calls it first). A back whose front is
-    /// missing, or is itself a back, keeps its own; validation refuses it.
+    /// or changed ([`Job::follow_thickness`] calls it first). The board is as thick as the
+    /// front leaves it: thinner by what the front surfaces. A back whose front is missing,
+    /// or is itself a back, keeps its own; validation refuses it.
     pub fn follow_fronts(&mut self) {
         let fronts: Vec<Option<(Stock, WorkZero)>> = self
             .setups
             .iter()
             .map(|s| {
                 let front = self.front_of(s.id).filter(|f| f.back_of.is_none())?;
-                Some((front.stock.clone(), front.work_zero))
+                let mut stock = front.stock.clone();
+                stock.thickness -= self.surfaced_depth(front.id);
+                Some((stock, front.work_zero))
             })
             .collect();
         for (setup, front) in self.setups.iter_mut().zip(fronts) {
@@ -370,6 +373,43 @@ impl Job {
                 setup.work_zero = zero;
             }
         }
+    }
+
+    /// The active setup's front, when it is a back setup and its front exists
+    /// (docs/specs/two-sided.md §4): its cuts are mirrored about the board's centre line.
+    pub fn back_turn(&self) -> Option<Turn> {
+        let id = self.active_setup_id()?;
+        self.front_of(id)?;
+        self.setup(id)?.back_of.map(|b| b.turn)
+    }
+
+    /// The spindle's turn as seen in the drawing's coordinates, which every choice of
+    /// travel direction is made with (docs/specs/two-sided.md §4): the machine's, and the
+    /// other way for a back setup, whose program is mirrored after planning. A path
+    /// planned conventional and then mirrored cuts climb on the back face. The G-code's M3
+    /// or M4 is always the machine's own spindle.
+    pub fn cutting_sense(&self) -> Spindle {
+        match (self.back_turn(), self.machine.spindle) {
+            (None, spindle) => spindle,
+            (Some(_), Spindle::Cw) => Spindle::Ccw,
+            (Some(_), Spindle::Ccw) => Spindle::Cw,
+        }
+    }
+
+    /// How deep the front setup `id` surfaces the board: the deepest end of its cut surface
+    /// operations, 0 without one. Its back's board is that much thinner
+    /// (docs/specs/two-sided.md §5).
+    fn surfaced_depth(&self, id: u64) -> f64 {
+        self.operations
+            .iter()
+            .enumerate()
+            .filter(|(i, op)| {
+                matches!(op, Operation::Surface(_))
+                    && self.cuts(*i)
+                    && self.part_of(op).is_some_and(|p| p.setup == id)
+            })
+            .map(|(_, op)| op.depths().1)
+            .fold(0.0, f64::max)
     }
 
     /// The setup operation `op` is cut in: its part's.

@@ -46,15 +46,15 @@ use chipload_i18n::{Digits, Message, Value};
 use chipload_job::library::{Cutting, LibraryTool};
 use chipload_job::{
     CURRENT_VERSION, Drawing, Entry, Job, Machine, Note, Operation, PocketOp, RestRefusal, Spindle,
-    Stock, StockCorner, StockOrigin, Tool, ToolChange, ToolType, Units, VcarveOp, WorkZero, ZZero,
-    find_tool, rest_refusal,
+    Stock, StockCorner, StockOrigin, Tool, ToolChange, ToolType, Turn, Units, VcarveOp, WorkZero,
+    ZZero, find_tool, rest_refusal,
 };
 use chipload_post::{
     FileHeader, PostConfig, PostError, ToolPart, render_program_with, render_tool_file,
     render_with_tool_changes,
 };
 pub use chipload_toolpath::Cancel;
-use chipload_toolpath::model::Program;
+use chipload_toolpath::model::{MoveKind, Program};
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::pocket::PocketPiece;
 use chipload_toolpath::{
@@ -735,7 +735,10 @@ pub fn post_and_check(
     let mut files = Vec::new();
     let mut checked = CheckFindings::default();
     for (i, group) in groups.iter().enumerate() {
-        let part = in_work_coordinates(&group.program(program), job.work_zero_xy());
+        let part = in_work_coordinates(
+            &on_the_board(job, &group.program(program)),
+            job.work_zero_xy(),
+        );
         let gcode = if several {
             let header = FileHeader {
                 number: i + 1,
@@ -785,7 +788,10 @@ fn one_file_with_tool_changes(
     let parts: Vec<ToolPart> = groups
         .iter()
         .map(|g| ToolPart {
-            program: in_work_coordinates(&g.program(program), job.work_zero_xy()),
+            program: in_work_coordinates(
+                &on_the_board(job, &g.program(program)),
+                job.work_zero_xy(),
+            ),
             tool: g.tool.clone(),
             operations: g.operations.clone(),
         })
@@ -856,6 +862,36 @@ pub fn in_work_coordinates(program: &Program, (zx, zy): (f64, f64)) -> Program {
         if let Some(circle) = &mut m.circle {
             circle.center = (circle.center.0 - zx, circle.center.1 - zy);
         }
+    }
+    out
+}
+
+/// A program as it is cut on the board as it lies (docs/specs/two-sided.md §4): a back
+/// setup's, planned in the front's coordinates with the cutting sense turned, mirrored about
+/// the board's centre line, its arcs turning the other way; any other program as it is.
+pub fn on_the_board(job: &Job, program: &Program) -> Program {
+    let Some(turn) = job.back_turn() else {
+        return program.clone();
+    };
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    let mirror = |p: (f64, f64)| match turn {
+        Turn::LeftRight => (x0 + x1 - p.0, p.1),
+        Turn::TopBottom => (p.0, y0 + y1 - p.1),
+    };
+    let mut out = program.clone();
+    for m in &mut out.moves {
+        match turn {
+            Turn::LeftRight => m.x = m.x.map(|x| x0 + x1 - x),
+            Turn::TopBottom => m.y = m.y.map(|y| y0 + y1 - y),
+        }
+        if let Some(circle) = &mut m.circle {
+            circle.center = mirror(circle.center);
+        }
+        m.kind = match m.kind {
+            MoveKind::ArcCw => MoveKind::ArcCcw,
+            MoveKind::ArcCcw => MoveKind::ArcCw,
+            kind => kind,
+        };
     }
     out
 }
