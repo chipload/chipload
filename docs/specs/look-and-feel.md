@@ -3,7 +3,8 @@
 Status: steps 1 to 3 asked for by the user, 2026-11-06 ("give a little more color and
 cleaner/clearer design of the ui"; "do 1-3 first, use accent from logo"), then 4 to 6
 ("do 4-6"), then 8 and 9 ("do 8 and 9"; Inter and the OFL approved, 2026-11-06). Built on
-the branch `look-and-feel`.
+the branch `look-and-feel`, merged into main 2026-11-06 with the guide's screenshots
+renewed.
 
 ## 1. Why
 

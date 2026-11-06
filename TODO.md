@@ -7,16 +7,6 @@ a quick workflow first.
 
 ## In progress
 
-- **Look and feel** (docs/specs/look-and-feel.md, local branch `look-and-feel`, the user
-  2026-11-06): steps 1 to 3 built: shades (top bar, chrome, panels, cards) and the brand's
-  green as the accent (Generate strong, selection quiet), flat tabs; operation colours on
-  the ribbon, quiet tints in the Browser, disabled clearly off; every Properties form in
-  cards, an operation's with its colour down the edge, one heading, fields lined up. Steps
-  4 to 6 too: the report (a pill, warnings first, the estimate as a table), the Browser
-  (rounded selection, count pills, the eye on hover), the status bar (key caps, chips).
-  Steps 8 and 9 too: Inter built in (OFL approved 2026-11-06, ADR 0008), SemiBold for
-  bold text; the light theme reviewed (cards get a soft edge). Next: the user looks at it;
-  the guide's screenshots renewed.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:
@@ -234,6 +224,13 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### Not released yet
 
+- **Look and feel** (docs/specs/look-and-feel.md, 2026-11-06, merged into main): shades
+  (top bar, chrome, panels, cards) and the logo's green as the accent; operation colours on
+  the ribbon and quiet tints in the Browser; every Properties form in cards; the report
+  with a pill, warnings first and the estimate as a table; a tidier Browser; key caps and
+  chips in the status bar; Inter built in (OFL approved, ADR 0008), SemiBold for bold; the
+  light theme reviewed. The guide's screenshots renewed. Also: a new setup without
+  operations is no longer an error ("Every operation is disabled").
 - **A through cut's checker line is a plain note** (2026-11-04): "N moves go below the
   stock bottom … within the allowed 0.500 mm" was a warning (⚠ on the Report tab) for
   every through cut. The checker gives it as a note now (`CheckReport::notes`,
