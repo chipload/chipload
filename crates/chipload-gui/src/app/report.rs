@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The report under the canvas: the last action's result line, its warnings and notes
-//! (a line naming an operation selects it), and the drawing's facts.
+//! The report under the canvas (docs/specs/look-and-feel.md §6): the last action's result
+//! as a pill in its tone, its warnings in a card of their own, the time estimate as a
+//! table, the other notes (a line naming an operation selects it), and the drawing's facts.
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity};
@@ -79,6 +80,52 @@ impl ReportLine {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct Report {
     pub lines: Vec<ReportLine>,
+    /// A generated program's time estimate, shown as a table.
+    pub estimate: Option<EstimateTable>,
+}
+
+/// The time estimate as a table: its total, then a row per part, operation and file.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EstimateTable {
+    /// "Estimated time: …", with its parts.
+    pub total: Message,
+    pub rows: Vec<EstimateRow>,
+}
+
+/// One row of [`EstimateTable`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct EstimateRow {
+    pub label: RowLabel,
+    pub time: Message,
+    /// Under a part's row.
+    pub indented: bool,
+    pub target: Option<Target>,
+}
+
+/// What a row of the estimate names.
+#[derive(Debug, Clone, PartialEq)]
+pub enum RowLabel {
+    Part {
+        number: usize,
+        name: String,
+    },
+    /// An operation's or a rest pass's label, from the project.
+    Operation(Message),
+    File(usize),
+}
+
+impl RowLabel {
+    fn shown(&self, ui: &egui::Ui) -> String {
+        match self {
+            RowLabel::Part { number, name } => {
+                t!(ui, "report-part", number = *number, name = name.as_str())
+            }
+            RowLabel::Operation(message) => {
+                message.render(ui.lang(), crate::units::display(ui.ctx()).into())
+            }
+            RowLabel::File(number) => t!(ui, "report-file", number = *number),
+        }
+    }
 }
 
 impl Report {
@@ -262,11 +309,17 @@ impl ChiploadApp {
         self.report = report;
     }
 
-    /// The Report's pane: the headline, then the rest and the drawing's facts.
+    /// The Report's pane: the headline as a pill in its tone, then the rest and the
+    /// drawing's facts.
     pub(super) fn report_pane(&mut self, ui: &mut egui::Ui) {
         if let Some(first) = self.report.lines.first().cloned() {
-            self.report_line(ui, &first, true);
-            ui.separator();
+            let tint = first.tone.color(ui.visuals()).linear_multiply(0.14);
+            egui::Frame::new()
+                .fill(tint)
+                .corner_radius(12)
+                .inner_margin(egui::Margin::symmetric(10, 3))
+                .show(ui, |ui| self.report_line(ui, &first, true));
+            ui.add_space(4.0);
         }
         self.report_body(ui);
     }
@@ -277,13 +330,34 @@ impl ChiploadApp {
             .auto_shrink([false, false])
             .show(ui, |ui| {
                 let lines: Vec<ReportLine> = self.report.lines.iter().skip(1).cloned().collect();
-                for line in &lines {
-                    self.report_line(ui, line, false);
+                let (problems, notes): (Vec<ReportLine>, Vec<ReportLine>) = lines
+                    .into_iter()
+                    .partition(|l| matches!(l.tone, Tone::Warning | Tone::Error));
+                // Warnings and errors first, in a card striped in the worst one's colour.
+                if !problems.is_empty() {
+                    let worst = if problems.iter().any(|l| l.tone == Tone::Error) {
+                        Tone::Error
+                    } else {
+                        Tone::Warning
+                    };
+                    let stripe = Some(worst.color(ui.visuals()));
+                    super::forms::card_with(ui, stripe, |ui| {
+                        for line in &problems {
+                            self.report_line(ui, line, false);
+                        }
+                    });
+                }
+                if let Some(table) = self.report.estimate.clone() {
+                    super::forms::card_with(ui, None, |ui| self.estimate_table(ui, &table));
+                }
+                if !notes.is_empty() {
+                    super::forms::card_with(ui, None, |ui| {
+                        for line in &notes {
+                            self.report_line(ui, line, false);
+                        }
+                    });
                 }
                 if let Some(facts) = &self.drawing_facts {
-                    if !lines.is_empty() {
-                        ui.add_space(4.0);
-                    }
                     let mut title = RichText::new(facts.title(ui));
                     if facts.issues > 0 {
                         let tone = if facts.errors {
@@ -293,19 +367,68 @@ impl ChiploadApp {
                         };
                         title = title.color(tone.color(ui.visuals()));
                     }
-                    egui::CollapsingHeader::new(title)
-                        .id_salt("drawing-facts")
-                        .default_open(facts.issues > 0)
-                        .show(ui, |ui| {
-                            ScrollArea::horizontal()
-                                .id_salt("drawing-facts-scroll")
-                                .show(ui, |ui| {
-                                    ui.add(
-                                        egui::Label::new(RichText::new(facts.text(ui)).monospace())
-                                            .extend(),
-                                    );
-                                });
-                        });
+                    let text = facts.text(ui);
+                    let open = facts.issues > 0;
+                    super::forms::card_with(ui, None, |ui| {
+                        egui::CollapsingHeader::new(title)
+                            .id_salt("drawing-facts")
+                            .default_open(open)
+                            .show(ui, |ui| {
+                                ScrollArea::horizontal()
+                                    .id_salt("drawing-facts-scroll")
+                                    .show(ui, |ui| {
+                                        ui.add(
+                                            egui::Label::new(RichText::new(text).monospace())
+                                                .extend(),
+                                        );
+                                    });
+                            });
+                    });
+                }
+            });
+    }
+
+    /// The estimate: its total in bold, then its rows, each name beside its time, a row
+    /// about an operation opening it.
+    fn estimate_table(&mut self, ui: &mut egui::Ui, table: &EstimateTable) {
+        let units = crate::units::display(ui.ctx()).into();
+        ui.label(RichText::new(table.total.render(ui.lang(), units)).strong());
+        if table.rows.is_empty() {
+            return;
+        }
+        ui.add_space(2.0);
+        egui::Grid::new("report-estimate")
+            .num_columns(2)
+            .spacing(egui::vec2(24.0, 3.0))
+            .show(ui, |ui| {
+                for row in &table.rows {
+                    let name = row.label.shown(ui);
+                    let indent = if row.indented { 16.0 } else { 0.0 };
+                    let response = ui
+                        .horizontal(|ui| {
+                            ui.add_space(indent);
+                            let text = match row.label {
+                                RowLabel::Operation(_) => RichText::new(name),
+                                _ => RichText::new(name).strong(),
+                            };
+                            ui.add(egui::Label::new(text).sense(Sense::click()))
+                        })
+                        .inner;
+                    ui.label(row.time.render(ui.lang(), units));
+                    ui.end_row();
+                    if let Some(Target::Op(op)) = row.target {
+                        let response = response.on_hover_text(t!(
+                            ui,
+                            "report-select-operation-hover",
+                            number = op + 1
+                        ));
+                        if response.hovered() {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                        }
+                        if response.clicked() {
+                            self.focus = Focus::Op(op);
+                        }
+                    }
                 }
             });
     }

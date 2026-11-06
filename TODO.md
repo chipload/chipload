@@ -11,9 +11,11 @@ a quick workflow first.
   2026-11-06): steps 1 to 3 built: shades (top bar, chrome, panels, cards) and the brand's
   green as the accent (Generate strong, selection quiet), flat tabs; operation colours on
   the ribbon, quiet tints in the Browser, disabled clearly off; every Properties form in
-  cards, an operation's with its colour down the edge, one heading, fields lined up. Next:
-  the user looks at it; then 4 to 9 (the report, the Browser's spacing, the status bar, a
-  typeface, the light theme's review) and the guide's screenshots renewed.
+  cards, an operation's with its colour down the edge, one heading, fields lined up. Steps
+  4 to 6 too: the report (a pill, warnings first, the estimate as a table), the Browser
+  (rounded selection, count pills, the eye on hover), the status bar (key caps, chips).
+  Next: the user looks at it; the guide's screenshots renewed; later a typeface (OFL needs
+  approval) and the light theme's review.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:

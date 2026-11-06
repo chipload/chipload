@@ -18,3 +18,5 @@ report-select-operation-hover = Seleccionar la operación { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Abrir la herramienta T{ $tool }
 report-update-tools-hover = Dar a estas herramientas los valores de tu biblioteca, en un solo paso de deshacer
+report-part = Pieza { $number } · { $name }
+report-file = Archivo { $number }

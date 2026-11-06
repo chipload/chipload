@@ -1,9 +1,9 @@
 # Look and feel: shades, colour and cards
 
 Status: steps 1 to 3 asked for by the user, 2026-11-06 ("give a little more color and
-cleaner/clearer design of the ui"; "do 1-3 first, use accent from logo"). Built on the
-branch `look-and-feel`. Steps 4 to 9 of the proposal (the report, the Browser, the status
-bar, a typeface, the light theme's review) come later.
+cleaner/clearer design of the ui"; "do 1-3 first, use accent from logo"), then 4 to 6
+("do 4-6"). Built on the branch `look-and-feel`. Of the proposal, a typeface and the light
+theme's review as a whole come later.
 
 ## 1. Why
 
@@ -95,17 +95,49 @@ orange `#f29e38` (the tool, and only the tool), light `#f3f5f0`, dark `#1d2025`.
     a number with its buttons) share the value column (`share_row`).
 17. Labels stay weak and values bright, as decided 2026-11-03.
 
-## 6. Checking it
+## 6. The report, easy to scan (proposal 4)
 
-18. The contrast test (`style.rs`) covers every new pair: text on chrome, panels and cards,
+18. **The headline is a pill** in its tone: a faint fill of the tone's colour, the mark and
+    the line in bold (✔ green, ⚠ amber, ✖ red).
+19. **Warnings and errors come first,** in a card of their own with a stripe in the worst
+    one's colour; each still opens its operation.
+20. **The time estimate is a table** in a card: the total (with cutting, rapids, spindle and
+    tool changes) in bold, then a row per part, operation (under its part) and file, its
+    name beside its time; an operation's row opens it. The rows come from the pipeline as
+    data (`estimate::estimate_rows`), which `estimate_lines` also builds its sentences
+    from, so the command line and the setup sheet read as before, byte for byte.
+21. **The other notes** (the cut outline, lengths and lifts, what the estimate leaves out,
+    the work zero, facts) follow in a card, and the drawing's facts in one of their own.
+
+## 7. A tidier Browser (proposal 5)
+
+22. **The selected row is a rounded highlight** starting at the row's own indent, so the
+    guides of the folders above stay clear of it; a hovered row the same in the hover
+    shade.
+23. **Counts and tool numbers are pills** ("18", "T1"); longer notes at a row's end
+    ("drawing origin", "12 mm", "48 s · T2") stay weak text.
+24. **The eye shows on hover,** or when the layer is hidden; its place is kept, so names
+    don't move.
+25. **3 px before each of the project's main groups** (Tools, Drawing, Setups and the like).
+
+## 8. The status bar (proposal 6)
+
+26. **The hint's keys are key caps:** each language's text marks its keys or mouse actions
+    in [brackets] (`menu-status-hint`, `menu-status-simulate-hint`), so every language keeps
+    its own key names. Items are parted by " · " and left out whole when the bar is short,
+    after "…"; the whole hint is in the hover. The facts at the right (pieces, cycle time,
+    post, grid, units, active part) are chips instead of text between separators.
+
+## 9. Checking it
+
+27. The contrast test (`style.rs`) covers every new pair: text on chrome, panels and cards,
     weak text on cards, text in fields, text on both accents.
-19. Pictures before and after (the guide's screenshot set, rendered headless) in the dark
+28. Pictures before and after (the guide's screenshot set, rendered headless) in the dark
     theme; light theme pictures with `CHIPLOAD_SHOTS_THEME=light`; one narrow window and
     German, the longest language, so nothing gets cut.
-20. The guide's screenshots are renewed at the end of the branch, in one commit.
+29. The guide's screenshots are renewed at the end of the branch, in one commit.
 
-## 7. Not in this step
+## 10. Not in this step
 
-The report's layout, the Browser's spacing and pills, the status bar, a bundled typeface
-(the fonts in question are OFL, which needs the user's approval), the light theme's review
-as a whole.
+A bundled typeface (the fonts in question are OFL, which needs the user's approval) and
+the light theme's review as a whole.

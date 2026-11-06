@@ -238,6 +238,87 @@ pub enum Lengths {
     PerOperation,
 }
 
+/// One row of the estimate's breakdown, for a table (the app's report,
+/// docs/specs/look-and-feel.md §6) or a line ([`estimate_lines`]).
+#[derive(Debug, Clone, PartialEq)]
+pub struct EstimateRow {
+    pub kind: RowKind,
+    /// Its time, copies included.
+    pub seconds: f64,
+}
+
+/// What an [`EstimateRow`] is the time of.
+#[derive(Debug, Clone, PartialEq)]
+pub enum RowKind {
+    /// A part, with two parts or more: its operations follow (docs/specs/parts.md §6).
+    Part { number: usize, name: String },
+    /// An operation or a rest pass; `in_part` under a part's row.
+    Operation {
+        at: chipload_job::OpRef,
+        in_part: bool,
+    },
+    /// A file of a job written one file per tool.
+    File { number: usize },
+}
+
+/// The estimate's breakdown in order: each part (with two or more) before its operations,
+/// each operation, then each file when the job is written one file per tool.
+pub fn estimate_rows(job: &Job, estimate: &Estimate, several_files: bool) -> Vec<EstimateRow> {
+    let mut rows = Vec::new();
+    // With two parts or more, each part's time over its operations'; one part reads as
+    // before parts.
+    let several_parts = job.parts.len() > 1;
+    let mut part_shown: Option<u64> = None;
+    for &(at, seconds) in &estimate.operations {
+        let Some(op) = job.operations.get(at.operation) else {
+            continue;
+        };
+        if several_parts && part_shown != Some(op.part()) {
+            part_shown = Some(op.part());
+            if let Some((number, part)) = job
+                .parts
+                .iter()
+                .enumerate()
+                .find(|(_, p)| p.id == op.part())
+            {
+                let total: f64 = estimate
+                    .operations
+                    .iter()
+                    .filter(|(r, _)| {
+                        job.operations
+                            .get(r.operation)
+                            .is_some_and(|o| o.part() == part.id)
+                    })
+                    .map(|(_, s)| s)
+                    .sum();
+                rows.push(EstimateRow {
+                    kind: RowKind::Part {
+                        number: number + 1,
+                        name: part.name.clone(),
+                    },
+                    seconds: total,
+                });
+            }
+        }
+        rows.push(EstimateRow {
+            kind: RowKind::Operation {
+                at,
+                in_part: several_parts,
+            },
+            seconds,
+        });
+    }
+    if several_files {
+        for (i, seconds) in estimate.groups.iter().enumerate() {
+            rows.push(EstimateRow {
+                kind: RowKind::File { number: i + 1 },
+                seconds: *seconds,
+            });
+        }
+    }
+    rows
+}
+
 /// The report's lines: the total and its parts, each operation, each file of a job
 /// written one file per tool, the lengths and lifts as `lengths` says, and what the
 /// estimate leaves out.
@@ -268,68 +349,41 @@ pub fn estimate_lines(
                 .arg("y1", number(y1)),
         ));
     }
-    // With two parts or more, each part's time over its operations' (docs/specs/parts.md
-    // §6); one part reads as before parts.
-    let several_parts = job.parts.len() > 1;
-    let mut part_shown: Option<u64> = None;
-    for &(at, seconds) in &estimate.operations {
-        let index = at.operation;
-        let Some(op) = job.operations.get(index) else {
-            continue;
-        };
-        if several_parts && part_shown != Some(op.part()) {
-            part_shown = Some(op.part());
-            if let Some((number, part)) = job
-                .parts
-                .iter()
-                .enumerate()
-                .find(|(_, p)| p.id == op.part())
-            {
-                let total: f64 = estimate
-                    .operations
+    for row in estimate_rows(job, estimate, several_files) {
+        let time = duration_message(row.seconds);
+        match row.kind {
+            RowKind::Part { number, name } => lines.push(Note::job(
+                Message::new("pipeline-estimate-part")
+                    .arg("number", number)
+                    .arg("name", name)
+                    .arg("time", time),
+            )),
+            RowKind::Operation { at, in_part } => {
+                let counts = estimate
+                    .operation_counts
                     .iter()
-                    .filter(|(r, _)| {
-                        job.operations
-                            .get(r.operation)
-                            .is_some_and(|o| o.part() == part.id)
-                    })
-                    .map(|(_, s)| s)
-                    .sum();
-                lines.push(Note::job(
-                    Message::new("pipeline-estimate-part")
-                        .arg("number", number + 1)
-                        .arg("name", part.name.as_str())
-                        .arg("time", duration_message(total)),
-                ));
+                    .find(|(r, _)| *r == at)
+                    .map(|(_, c)| c)
+                    .filter(|_| lengths == Lengths::PerOperation);
+                let id = match (in_part, counts.is_some()) {
+                    (true, false) => "pipeline-estimate-part-operation",
+                    (false, false) => "pipeline-estimate-operation",
+                    (true, true) => "pipeline-estimate-part-operation-counted",
+                    (false, true) => "pipeline-estimate-operation-counted",
+                };
+                let mut line = Message::new(id)
+                    .arg("label", job.label_message(at))
+                    .arg("time", time);
+                if let Some(counts) = counts {
+                    line = line.arg("counts", counts_message(counts));
+                }
+                lines.push(Note::at(at.operation, line));
             }
-        }
-        let counts = estimate
-            .operation_counts
-            .iter()
-            .find(|(r, _)| *r == at)
-            .map(|(_, c)| c)
-            .filter(|_| lengths == Lengths::PerOperation);
-        let id = match (several_parts, counts.is_some()) {
-            (true, false) => "pipeline-estimate-part-operation",
-            (false, false) => "pipeline-estimate-operation",
-            (true, true) => "pipeline-estimate-part-operation-counted",
-            (false, true) => "pipeline-estimate-operation-counted",
-        };
-        let mut line = Message::new(id)
-            .arg("label", job.label_message(at))
-            .arg("time", duration_message(seconds));
-        if let Some(counts) = counts {
-            line = line.arg("counts", counts_message(counts));
-        }
-        lines.push(Note::at(index, line));
-    }
-    if several_files {
-        for (i, seconds) in estimate.groups.iter().enumerate() {
-            lines.push(Note::job(
+            RowKind::File { number } => lines.push(Note::job(
                 Message::new("pipeline-estimate-file")
-                    .arg("number", i + 1)
-                    .arg("time", duration_message(*seconds)),
-            ));
+                    .arg("number", number)
+                    .arg("time", time),
+            )),
         }
     }
     if lengths != Lengths::Without {

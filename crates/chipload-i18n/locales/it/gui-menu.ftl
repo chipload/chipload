@@ -136,8 +136,8 @@ menu-snapped-to = — agganciato a { $target }
 menu-generating = Calcolo…
 # $snapped: empty, or "— snapped to …" with a space before it.
 menu-dragging = Trascinamento a ({ $x }, { $y }){ $snapped } (Alt: niente aggancio; su un segmento Ctrl inserisce un punto, Shift lo curva)
-menu-status-hint = Spazio+trascina sposta la vista · un clic seleziona un disegno, immagine, testo o gruppo intero · doppio clic un contorno · Ctrl+clic aggiunge o lascia fuori · Esc annulla la selezione
-menu-status-simulate-hint = Simula: trascina per spostare (3D: ruotare) · clic sul numero di un'operazione la apre · F6 torna a Modifica
+menu-status-hint = [Spazio+trascina] sposta la vista · un [clic] seleziona un disegno, immagine, testo o gruppo intero · [doppio clic] un contorno · [Ctrl+clic] aggiunge o lascia fuori · [Esc] annulla la selezione
+menu-status-simulate-hint = Simula: [trascina] per spostare (3D: ruotare) · clic sul numero di un'operazione la apre · [F6] torna a Modifica
 menu-join-ends = Unisci estremi…
 menu-join-ends-hover = Unisci in una sola le polilinee disegnate aperte i cui estremi quasi si toccano: quelle selezionate, o tutte se nessuna è selezionata
 menu-join-ends-disabled-hover = Non ci sono forme disegnate. Le forme di un DXF si possono unire dopo averlo esploso (clic destro su di esso nel Browser).

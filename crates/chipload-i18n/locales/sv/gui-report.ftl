@@ -18,3 +18,5 @@ report-select-operation-hover = Markera operation { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Öppna verktyg T{ $tool }
 report-update-tools-hover = Ge de här verktygen bibliotekets värden, som ett ångra-steg
+report-part = Detalj { $number } · { $name }
+report-file = Fil { $number }

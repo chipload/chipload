@@ -783,40 +783,35 @@ impl ChiploadApp {
                 // A newer version, at the far right (docs/specs/update-notice.md §2).
                 self.update_notice_status(ui);
                 if let Some(name) = active {
-                    ui.weak(t!(ui, "menu-status-active-part", name = name))
+                    chip(ui, &t!(ui, "menu-status-active-part", name = name))
                         .on_hover_text(t!(ui, "menu-status-active-part-hover"));
-                    ui.separator();
                 }
                 if let Some(post) = post {
-                    ui.weak(chipload_pipeline::units::length_unit(units))
+                    chip(ui, chipload_pipeline::units::length_unit(units))
                         .on_hover_text(t!(ui, "menu-status-units-hover"));
-                    ui.separator();
                     if let Some(step) = grid {
-                        ui.weak(t!(
+                        let text = t!(
                             ui,
                             "menu-status-grid",
                             step = chipload_pipeline::units::length_text(step, units)
-                        ))
-                        .on_hover_text(t!(ui, "menu-status-grid-hover"));
-                        ui.separator();
+                        );
+                        chip(ui, &text).on_hover_text(t!(ui, "menu-status-grid-hover"));
                     }
-                    ui.weak(post)
-                        .on_hover_text(t!(ui, "menu-status-post-hover"));
-                    ui.separator();
+                    chip(ui, &post).on_hover_text(t!(ui, "menu-status-post-hover"));
                 }
                 if let Some(time) = time {
-                    ui.weak(time)
-                        .on_hover_text(t!(ui, "menu-status-time-hover"));
-                    ui.separator();
+                    chip(ui, &time).on_hover_text(t!(ui, "menu-status-time-hover"));
                 }
                 if let Some(n) = copies {
                     // With parts, what comes off the sheet (docs/specs/parts.md §8).
-                    ui.label(if several {
-                        t!(ui, "menu-status-pieces", count = n)
-                    } else {
-                        t!(ui, "menu-status-copies", count = n)
-                    });
-                    ui.separator();
+                    chip(
+                        ui,
+                        &if several {
+                            t!(ui, "menu-status-pieces", count = n)
+                        } else {
+                            t!(ui, "menu-status-copies", count = n)
+                        },
+                    );
                 }
                 if let Some((x, y)) = cursor {
                     // Drawing coordinates, and program coordinates when they differ.
@@ -929,15 +924,126 @@ impl ChiploadApp {
         } else if self.polyline_selected() {
             ui.label(RichText::new(crate::shape_form::polyline_help(ui)).weak());
         } else if self.edit.is_some() && self.display.simulate {
-            ui.label(RichText::new(t!(ui, "menu-status-simulate-hint")).weak());
+            hint_line(ui, &t!(ui, "menu-status-simulate-hint"));
         } else if self.edit.is_some() {
-            // Cut short rather than pushing the bar's other items, the whole in the hover;
             // Space + drag first (the user, 2026-11-03: never seen before).
-            let hint = t!(ui, "menu-status-hint");
-            ui.add(egui::Label::new(RichText::new(&hint).weak()).truncate())
-                .on_hover_text(hint);
+            hint_line(ui, &t!(ui, "menu-status-hint"));
         }
     }
+}
+
+/// A fact at the status bar's right, in a chip (docs/specs/look-and-feel.md §8).
+fn chip(ui: &mut egui::Ui, text: &str) -> egui::Response {
+    let fill = crate::style::palette(ui.visuals()).panel;
+    egui::Frame::new()
+        .fill(fill)
+        .corner_radius(8)
+        .inner_margin(egui::Margin::symmetric(7, 1))
+        .show(ui, |ui| {
+            ui.label(RichText::new(text).color(ui.visuals().weak_text_color()));
+        })
+        .response
+}
+
+/// A hint parted by " · ", its [keys] drawn as key caps; items that don't fit are left out
+/// whole, after "…", the whole hint in the hover (docs/specs/look-and-feel.md §8).
+fn hint_line(ui: &mut egui::Ui, text: &str) {
+    let plain = text.replace(['[', ']'], "");
+    let room = ui.available_width();
+    let gap = 6.0;
+    let shown = ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 3.0;
+        let mut used = 0.0;
+        for (i, item) in text.split(" · ").enumerate() {
+            let pieces = hint_pieces(item);
+            let width: f32 = pieces
+                .iter()
+                .map(|(text, key)| {
+                    text_width(ui, text) + if *key { 2.0 * KEY_PAD + 3.0 } else { 3.0 }
+                })
+                .sum::<f32>()
+                + if i > 0 {
+                    gap + text_width(ui, "·")
+                } else {
+                    0.0
+                };
+            if used + width > room - text_width(ui, " …") {
+                if i > 0 {
+                    ui.weak("…");
+                }
+                break;
+            }
+            used += width;
+            if i > 0 {
+                ui.add_space(gap / 2.0);
+                ui.weak("·");
+                ui.add_space(gap / 2.0);
+            }
+            for (text, key) in pieces {
+                if key {
+                    key_cap(ui, &text);
+                } else {
+                    ui.weak(text);
+                }
+            }
+        }
+    });
+    shown.response.on_hover_text(plain);
+}
+
+/// Room inside a key cap, each side, points.
+const KEY_PAD: f32 = 4.0;
+
+/// An item of a hint in pieces: (text, whether it is in [brackets]).
+fn hint_pieces(item: &str) -> Vec<(String, bool)> {
+    let mut pieces = Vec::new();
+    let mut rest = item;
+    while let Some(open) = rest.find('[') {
+        let before = rest[..open].trim();
+        if !before.is_empty() {
+            pieces.push((before.to_string(), false));
+        }
+        let after = &rest[open + 1..];
+        let Some(close) = after.find(']') else {
+            rest = after;
+            break;
+        };
+        pieces.push((after[..close].to_string(), true));
+        rest = &after[close + 1..];
+    }
+    let rest = rest.trim();
+    if !rest.is_empty() {
+        pieces.push((rest.to_string(), false));
+    }
+    pieces
+}
+
+fn text_width(ui: &egui::Ui, text: &str) -> f32 {
+    egui::WidgetText::from(text)
+        .into_galley(
+            ui,
+            Some(egui::TextWrapMode::Extend),
+            f32::INFINITY,
+            egui::TextStyle::Body,
+        )
+        .size()
+        .x
+}
+
+/// Keys or a mouse action as a key cap.
+fn key_cap(ui: &mut egui::Ui, text: &str) {
+    let visuals = ui.visuals();
+    let fill = crate::style::palette(visuals).button;
+    let stroke = egui::Stroke::new(1.0, crate::style::palette(visuals).divider);
+    let color = visuals.text_color();
+    egui::Frame::new()
+        .fill(fill)
+        .stroke(stroke)
+        .corner_radius(3)
+        .inner_margin(egui::Margin::symmetric(KEY_PAD as i8 - 1, 0))
+        .show(ui, |ui| {
+            ui.label(RichText::new(text).color(color));
+        });
 }
 
 /// What the simulation toggle does (docs/specs/simulation.md §4).
@@ -952,5 +1058,33 @@ pub(super) fn language_name(src: &impl crate::i18n::Lang, setting: &str) -> Stri
         None => t!(src, "menu-language-system"),
         Some(l) if l.reviewed() => l.native_name().to_string(),
         Some(l) => t!(src, "menu-language-review", language = l.native_name()),
+    }
+}
+
+#[cfg(test)]
+mod hint_tests {
+    use super::hint_pieces;
+
+    #[test]
+    fn a_hint_item_is_cut_into_its_key_caps_and_its_words() {
+        let piece = |t: &str, key| (t.to_string(), key);
+        assert_eq!(
+            hint_pieces("[Space+drag] moves the view"),
+            [piece("Space+drag", true), piece("moves the view", false)]
+        );
+        assert_eq!(
+            hint_pieces("un [clic] sélectionne"),
+            [
+                piece("un", false),
+                piece("clic", true),
+                piece("sélectionne", false)
+            ]
+        );
+        assert_eq!(hint_pieces("no keys"), [piece("no keys", false)]);
+        // An unclosed bracket is kept as words, never lost.
+        assert_eq!(
+            hint_pieces("odd [key"),
+            [piece("odd", false), piece("key", false)]
+        );
     }
 }

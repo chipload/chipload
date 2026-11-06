@@ -95,8 +95,17 @@ pub(in crate::app) fn set_card_stripe(ui: &egui::Ui, color: Color32) {
 /// A card: a form's section on a raised shade, with an operation's stripe down its left
 /// edge when one is set (docs/specs/look-and-feel.md §5). Its fields are one width.
 pub(in crate::app) fn card<R>(ui: &mut egui::Ui, contents: impl FnOnce(&mut egui::Ui) -> R) -> R {
-    let palette = crate::style::palette(ui.visuals());
     let stripe = ui.data(|d| d.get_temp::<Color32>(egui::Id::new(STRIPE_ID)));
+    card_with(ui, stripe, contents)
+}
+
+/// A [`card`] with this stripe, or none, whatever the form set: the report's.
+pub(in crate::app) fn card_with<R>(
+    ui: &mut egui::Ui,
+    stripe: Option<Color32>,
+    contents: impl FnOnce(&mut egui::Ui) -> R,
+) -> R {
+    let palette = crate::style::palette(ui.visuals());
     let left = 8 + if stripe.is_some() { STRIPE as i8 } else { 0 };
     let shown = egui::Frame::new()
         .fill(palette.card)

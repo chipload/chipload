@@ -18,3 +18,5 @@ report-select-operation-hover = Bearbeitung { $number } auswählen
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Werkzeug T{ $tool } öffnen
 report-update-tools-hover = Diesen Werkzeugen die Werte Ihrer Bibliothek geben, als ein Rückgängig-Schritt
+report-part = Teil { $number } · { $name }
+report-file = Datei { $number }

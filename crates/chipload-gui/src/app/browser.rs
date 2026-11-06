@@ -23,6 +23,17 @@ const GAP: f32 = 4.0;
 const PAD: f32 = 4.0;
 
 /// One row of the tree, built with its parts and shown with `show`.
+/// Room before a main group's row, points.
+const GROUP_GAP: f32 = 3.0;
+/// Room inside a count's pill, each side, points.
+const PILL_PAD: f32 = 5.0;
+
+/// Whether a row's trailing note is a count or a tool number ("3", "T2"), shown in a pill.
+fn is_pill(trailing: &str) -> bool {
+    let digits = trailing.strip_prefix('T').unwrap_or(trailing);
+    !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit())
+}
+
 pub(super) struct Row {
     id: Id,
     depth: usize,
@@ -144,6 +155,11 @@ impl Row {
     }
 
     pub(super) fn show(self, ui: &mut egui::Ui) -> RowResponse {
+        // A little room before each of the project's main groups (docs/specs/look-and-feel.md
+        // §7).
+        if self.depth == 1 && self.open.is_some() {
+            ui.add_space(GROUP_GAP);
+        }
         let width = ui.available_width();
         let (rect, _) = ui.allocate_exact_size(vec2(width, ROW_HEIGHT), Sense::hover());
         let sense = if self.drag {
@@ -159,10 +175,20 @@ impl Row {
         });
         let visuals = ui.visuals().clone();
         let painter = ui.painter_at(rect);
+        // The highlight is rounded and starts at the row's own indent, so the guides of the
+        // folders above stay clear of it.
+        let from = rect.left() + PAD + self.depth as f32 * INDENT - 2.0;
+        let mark = Rect::from_min_max(
+            egui::pos2(from, rect.top() + 1.0),
+            egui::pos2(
+                rect.right().min(ui.clip_rect().right()) - 2.0,
+                rect.bottom() - 1.0,
+            ),
+        );
         if self.selected {
-            painter.rect_filled(rect, 0.0, visuals.selection.bg_fill);
+            painter.rect_filled(mark, 4.0, visuals.selection.bg_fill);
         } else if response.hovered() {
-            painter.rect_filled(rect, 0.0, crate::style::card_hover(&visuals));
+            painter.rect_filled(mark, 4.0, crate::style::card_hover(&visuals));
         }
         let text_color = if self.selected {
             visuals.selection.stroke.color
@@ -211,12 +237,15 @@ impl Row {
                 line_color
             };
             let icon = if shown { Icon::Eye } else { Icon::EyeOff };
-            icons::paint(
-                &painter,
-                area.shrink2(vec2(0.0, (ROW_HEIGHT - ICON) / 2.0)),
-                icon,
-                color,
-            );
+            // Shown only while the row is under the mouse, or when the layer is hidden.
+            if !shown || response.hovered() || hit.hovered() {
+                icons::paint(
+                    &painter,
+                    area.shrink2(vec2(0.0, (ROW_HEIGHT - ICON) / 2.0)),
+                    icon,
+                    color,
+                );
+            }
             eye = hit.clicked();
             x += ICON + GAP;
         }
@@ -270,8 +299,26 @@ impl Row {
                 right - galley.size().x,
                 rect.center().y - galley.size().y / 2.0,
             );
-            painter.galley(at, galley.clone(), line_color);
-            right -= galley.size().x + GAP * 2.0;
+            let mut width = galley.size().x;
+            // A count or a tool number in a small pill; longer notes as weak text.
+            if is_pill(&self.trailing) {
+                let pill = Rect::from_center_size(
+                    egui::pos2(at.x + width / 2.0, rect.center().y),
+                    vec2(width + 2.0 * PILL_PAD, galley.size().y + 2.0),
+                )
+                .translate(vec2(-PILL_PAD, 0.0));
+                let fill = if self.selected {
+                    visuals.selection.stroke.color.linear_multiply(0.18)
+                } else {
+                    crate::style::palette(&visuals).button
+                };
+                painter.rect_filled(pill, 7.0, fill);
+                painter.galley(at - vec2(PILL_PAD, 0.0), galley.clone(), line_color);
+                width += 2.0 * PILL_PAD;
+            } else {
+                painter.galley(at, galley.clone(), line_color);
+            }
+            right -= width + GAP * 2.0;
         }
         let mut label = RichText::new(&self.label);
         if self.strong {

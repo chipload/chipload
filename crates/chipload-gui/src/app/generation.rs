@@ -379,12 +379,21 @@ impl ChiploadApp {
         };
         report.push(Tone::Good, done);
         let several = result.files.len() > 1;
-        for line in chipload_pipeline::estimate::estimate_lines(
+        report.estimate = Some(estimate_table(job, &result.estimate, several));
+        // The estimate's other lines (the cut outline, the lengths, what it leaves out) are
+        // notes: all but its total and its rows, which the table shows.
+        let rows = chipload_pipeline::estimate::estimate_rows(job, &result.estimate, several);
+        let lines = chipload_pipeline::estimate::estimate_lines(
             job,
             &result.estimate,
             several,
             chipload_pipeline::estimate::Lengths::Totals,
-        ) {
+        );
+        let first_row = 1 + usize::from(result.estimate.outline.is_some());
+        for (i, line) in lines.into_iter().enumerate() {
+            if i == 0 || (first_row..first_row + rows.len()).contains(&i) {
+                continue;
+            }
             report.push_message(Tone::Info, line.message, line.operation);
         }
         for note in &result.notes {
@@ -644,4 +653,52 @@ impl Default for Toolpath {
             failed: false,
         }
     }
+}
+
+/// The time estimate as the report's table: the total, then each part, operation and file
+/// (docs/specs/look-and-feel.md §6).
+fn estimate_table(
+    job: &Job,
+    estimate: &chipload_pipeline::estimate::Estimate,
+    several_files: bool,
+) -> super::report::EstimateTable {
+    use super::report::{EstimateRow, EstimateTable, RowLabel, Target};
+    use chipload_pipeline::estimate::{RowKind, duration_message, estimate_lines, estimate_rows};
+    let total = estimate_lines(
+        job,
+        estimate,
+        several_files,
+        chipload_pipeline::estimate::Lengths::Without,
+    )
+    .into_iter()
+    .next()
+    .map(|n| n.message)
+    .unwrap_or_else(|| duration_message(estimate.total));
+    let rows = estimate_rows(job, estimate, several_files)
+        .into_iter()
+        .map(|row| {
+            let time = duration_message(row.seconds);
+            match row.kind {
+                RowKind::Part { number, name } => EstimateRow {
+                    label: RowLabel::Part { number, name },
+                    time,
+                    indented: false,
+                    target: None,
+                },
+                RowKind::Operation { at, in_part } => EstimateRow {
+                    label: RowLabel::Operation(job.label_message(at)),
+                    time,
+                    indented: in_part,
+                    target: Some(Target::Op(at.operation)),
+                },
+                RowKind::File { number } => EstimateRow {
+                    label: RowLabel::File(number),
+                    time,
+                    indented: false,
+                    target: None,
+                },
+            }
+        })
+        .collect();
+    EstimateTable { total, rows }
 }
