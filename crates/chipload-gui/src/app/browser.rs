@@ -322,7 +322,7 @@ impl Row {
         }
         let mut label = RichText::new(&self.label);
         if self.strong {
-            label = label.strong();
+            label = crate::style::bold(ui, label);
         }
         let galley = egui::WidgetText::from(label).into_galley(
             ui,
@@ -380,8 +380,11 @@ pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, 
         let color = color.unwrap_or_else(|| ui.visuals().text_color());
         icons::paint(ui.painter(), rect.shrink(1.0), icon, color);
         // Ends in "…" in a narrow panel.
-        ui.add(egui::Label::new(egui::RichText::new(text).heading()).truncate())
-            .on_hover_text(text);
+        ui.add(
+            egui::Label::new(crate::style::bold(ui, egui::RichText::new(text).heading()))
+                .truncate(),
+        )
+        .on_hover_text(text);
     });
     ui.add_space(2.0);
 }

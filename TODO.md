@@ -14,8 +14,9 @@ a quick workflow first.
   cards, an operation's with its colour down the edge, one heading, fields lined up. Steps
   4 to 6 too: the report (a pill, warnings first, the estimate as a table), the Browser
   (rounded selection, count pills, the eye on hover), the status bar (key caps, chips).
-  Next: the user looks at it; the guide's screenshots renewed; later a typeface (OFL needs
-  approval) and the light theme's review.
+  Steps 8 and 9 too: Inter built in (OFL approved 2026-11-06, ADR 0008), SemiBold for
+  bold text; the light theme reviewed (cards get a soft edge). Next: the user looks at it;
+  the guide's screenshots renewed.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:

@@ -582,7 +582,7 @@ pub(super) fn font_list(
     use chipload_text::{FONTS, Style};
     let loaded = ui.ctx().fonts(|f| f.families());
     ui.data_mut(|d| d.insert_temp(egui::Id::new(super::text_fonts::FONTS_WANTED), true));
-    ui.label(RichText::new(t!(ui, "forms-font-builtin")).strong());
+    ui.label(crate::style::bold(ui, t!(ui, "forms-font-builtin")));
     for (style, heading) in [
         (Style::Plain, t!(ui, "forms-font-plain")),
         (Style::Script, t!(ui, "forms-font-script")),
@@ -599,7 +599,7 @@ pub(super) fn font_list(
         }
     }
     ui.separator();
-    ui.label(RichText::new(t!(ui, "forms-font-computer")).strong());
+    ui.label(crate::style::bold(ui, t!(ui, "forms-font-computer")));
     let Some(names) = &fonts.names else {
         ui.horizontal(|ui| {
             ui.spinner();

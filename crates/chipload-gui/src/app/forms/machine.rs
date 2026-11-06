@@ -53,7 +53,7 @@ pub(super) fn machine_section(
             if linked {
                 ui.add_space(4.0);
                 ui.end_row();
-                ui.strong(t!(ui, "forms-from-profile"));
+                ui.label(crate::style::bold(ui, t!(ui, "forms-from-profile")));
                 if ui
                     .button(t!(ui, "forms-edit-here"))
                     .on_hover_text(t!(ui, "forms-edit-here-hover"))

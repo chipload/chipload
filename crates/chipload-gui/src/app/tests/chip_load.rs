@@ -71,7 +71,8 @@ fn feeds_pictures() {
             .wgpu()
             .build_eframe(move |cc| {
                 open_sections(&cc.egui_ctx);
-                if let Ok(mut fonts) = crate::fonts::system_fonts() {
+                {
+                    let mut fonts = crate::fonts::ui_fonts();
                     crate::fonts::add_text_fonts(&mut fonts);
                     cc.egui_ctx.set_fonts(fonts);
                 }

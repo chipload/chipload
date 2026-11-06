@@ -182,7 +182,8 @@ fn screenshots() {
             .with_size(egui::vec2(width, height))
             .wgpu()
             .build_eframe(move |cc| {
-                if let Ok(mut fonts) = crate::fonts::system_fonts() {
+                {
+                    let mut fonts = crate::fonts::ui_fonts();
                     crate::fonts::add_text_fonts(&mut fonts);
                     cc.egui_ctx.set_fonts(fonts);
                 }

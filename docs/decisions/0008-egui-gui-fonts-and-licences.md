@@ -1,4 +1,4 @@
-# 0008: egui GUI: system fonts, BSL-1.0 allowed
+# 0008: egui GUI: system fonts, BSL-1.0 allowed (Inter built in since 2026-11-06)
 
 Status: accepted (2026-10-09)
 
@@ -15,6 +15,14 @@ The Rust GUI (`chipload-gui`) uses `eframe` 0.36 (MIT OR Apache-2.0) with the gl
   the GUI loads installed fonts at startup: fontconfig (`fc-match`) first, then well-known
   paths on Linux, Windows and macOS. Without a usable font it exits with a message saying
   what to install.
+- **Amended 2026-11-06: Inter is built in.** The user approved the SIL Open Font License 1.1
+  for the window's typeface (docs/specs/look-and-feel.md §9). The OFL lets fonts be bundled
+  and embedded with any software; the FSF counts it free but not GPL-compatible for merging
+  into a program's code, and a font built into the binary as data is not that. Inter 4.1,
+  Regular and SemiBold, is included unchanged (`crates/chipload-gui/fonts/`, its licence
+  beside it and in THIRD-PARTY-LICENSES.txt); it declares no Reserved Font Name. The
+  system's fonts are still loaded, as fallbacks for symbols, other scripts and monospace,
+  and a missing one no longer stops the app. egui's own default fonts stay out.
 
 ## File dialogs
 On Linux rfd uses the XDG desktop portal, falling back to `zenity`. Where neither exists

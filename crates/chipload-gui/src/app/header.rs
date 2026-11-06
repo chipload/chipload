@@ -60,7 +60,7 @@ impl ChiploadApp {
             let (rect, _) = ui.allocate_exact_size(vec2(20.0, 20.0), Sense::hover());
             icons::paint_logo(ui.painter(), rect, logo);
             ui.add_space(4.0);
-            ui.label(RichText::new("Chipload").strong());
+            ui.label(crate::style::bold(ui, "Chipload"));
             ui.add_space(14.0);
             let has_job = self.edit.is_some();
             let hover = hover_keys(&t!(ui, "header-open-hover"), Action::Open);
@@ -854,7 +854,7 @@ fn ribbon_button_width(ui: &egui::Ui, label: &str) -> f32 {
 }
 
 fn generate_label(ui: &egui::Ui, label: &str) -> std::sync::Arc<egui::Galley> {
-    egui::WidgetText::from(RichText::new(label).strong()).into_galley(
+    egui::WidgetText::from(crate::style::bold(ui, label)).into_galley(
         ui,
         Some(egui::TextWrapMode::Extend),
         f32::INFINITY,
@@ -930,7 +930,7 @@ fn tinted_ribbon_button(
         let icon_rect = Rect::from_center_size(rect.center(), vec2(RIBBON_ICON, RIBBON_ICON));
         icons::paint(painter, icon_rect, icon, icon_color);
         let name = |ui: &mut egui::Ui| {
-            ui.strong(label);
+            ui.label(crate::style::bold(ui, label));
         };
         return response.on_hover_ui(name).on_disabled_hover_ui(name);
     }

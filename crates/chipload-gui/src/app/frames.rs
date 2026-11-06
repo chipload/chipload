@@ -174,7 +174,7 @@ impl ChiploadApp {
         self.frame_outlines();
         let place = self.canvas_tools.frame_preview.place.clone();
         ui.separator();
-        ui.strong(t!(ui, "frame-title"));
+        ui.label(crate::style::bold(ui, t!(ui, "frame-title")));
         ui.label(if around {
             t!(ui, "frame-around")
         } else {

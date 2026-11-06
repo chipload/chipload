@@ -399,7 +399,7 @@ impl ChiploadApp {
                 let count = self.problems.len();
                 ui.colored_label(
                     color,
-                    RichText::new(t!(ui, "problems-count", count = count)).strong(),
+                    crate::style::bold(ui, t!(ui, "problems-count", count = count)),
                 );
                 if self.prefs.auto_generate {
                     ui.weak(t!(ui, "problems-updates-when-fixed"));

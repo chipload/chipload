@@ -398,7 +398,7 @@ fn cutting_data_rows(
     materials: &chipload_job::materials::MaterialLibrary,
 ) {
     ui.add_space(4.0);
-    ui.strong(t!(ui, "user-library-cutting-data"))
+    ui.label(crate::style::bold(ui, t!(ui, "user-library-cutting-data")))
         .on_hover_text(t!(ui, "user-library-cutting-data-hover"));
     // Any material first, then the materials as the library lists them.
     entry.cutting_data.sort_by_key(|r| match &r.material_uid {

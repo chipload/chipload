@@ -35,6 +35,10 @@ pub struct Palette {
     pub panel: Color32,
     /// A form's sections, raised above the panel.
     pub card: Color32,
+    /// A card's 1 px edge: none in the dark theme, where the shade is enough; a soft line in
+    /// the light one, where a white card on a near-white panel had none to see
+    /// (docs/specs/look-and-feel.md §10).
+    pub card_edge: Color32,
     /// A hovered card in a list: subtler than a hovered button, so weak text on it reads.
     pub card_hover: Color32,
     /// Text fields and other inset boxes.
@@ -58,6 +62,7 @@ pub const DARK: Palette = Palette {
     chrome: Color32::from_rgb(0x19, 0x1b, 0x1f),
     panel: Color32::from_rgb(0x22, 0x25, 0x2a),
     card: Color32::from_rgb(0x2b, 0x2f, 0x35),
+    card_edge: Color32::TRANSPARENT,
     card_hover: Color32::from_rgb(0x32, 0x37, 0x3e),
     field: Color32::from_rgb(0x15, 0x17, 0x1a),
     button: Color32::from_rgb(0x38, 0x3d, 0x44),
@@ -75,6 +80,7 @@ pub const LIGHT: Palette = Palette {
     chrome: Color32::from_rgb(0xe6, 0xe9, 0xe2),
     panel: Color32::from_rgb(0xf3, 0xf5, 0xf0),
     card: Color32::WHITE,
+    card_edge: Color32::from_rgb(0xdc, 0xe0, 0xd6),
     card_hover: Color32::from_rgb(0xe9, 0xed, 0xe4),
     field: Color32::WHITE,
     button: Color32::from_rgb(0xe2, 0xe6, 0xdd),
@@ -155,6 +161,18 @@ pub fn good_color(visuals: &egui::Visuals) -> Color32 {
         GOOD_DARK
     } else {
         GOOD_LIGHT
+    }
+}
+
+/// Bold text: Inter SemiBold in the strong text colour (docs/specs/look-and-feel.md §9);
+/// only the colour where the fonts have no bold (a bare context in tests).
+pub fn bold(ui: &egui::Ui, text: impl Into<egui::RichText>) -> egui::RichText {
+    let family = crate::fonts::bold_family();
+    let text = text.into().strong();
+    if ui.fonts(|f| f.definitions().families.contains_key(&family)) {
+        text.family(family)
+    } else {
+        text
     }
 }
 

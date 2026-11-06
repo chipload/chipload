@@ -392,7 +392,7 @@ impl ChiploadApp {
     /// about an operation opening it.
     fn estimate_table(&mut self, ui: &mut egui::Ui, table: &EstimateTable) {
         let units = crate::units::display(ui.ctx()).into();
-        ui.label(RichText::new(table.total.render(ui.lang(), units)).strong());
+        ui.label(crate::style::bold(ui, table.total.render(ui.lang(), units)));
         if table.rows.is_empty() {
             return;
         }
@@ -409,7 +409,7 @@ impl ChiploadApp {
                             ui.add_space(indent);
                             let text = match row.label {
                                 RowLabel::Operation(_) => RichText::new(name),
-                                _ => RichText::new(name).strong(),
+                                _ => crate::style::bold(ui, name),
                             };
                             ui.add(egui::Label::new(text).sense(Sense::click()))
                         })
@@ -438,7 +438,7 @@ impl ChiploadApp {
         let color = line.tone.color(ui.visuals());
         let mut text = RichText::new(line.shown(ui)).color(color);
         if headline {
-            text = text.strong();
+            text = crate::style::bold(ui, text);
         }
         let row = ui.horizontal_top(|ui| {
             ui.label(RichText::new(line.tone.mark()).color(color));

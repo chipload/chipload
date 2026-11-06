@@ -308,7 +308,7 @@ impl ChiploadApp {
         ui.add_space(4.0);
         // Its values are the tools' rows for it (docs/specs/cutting-data.md §7): each tool
         // with one, a click away.
-        ui.strong(t!(ui, "materials-values"));
+        ui.label(crate::style::bold(ui, t!(ui, "materials-values")));
         let with_rows: Vec<_> = tools
             .tools
             .iter()

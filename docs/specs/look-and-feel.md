@@ -2,8 +2,8 @@
 
 Status: steps 1 to 3 asked for by the user, 2026-11-06 ("give a little more color and
 cleaner/clearer design of the ui"; "do 1-3 first, use accent from logo"), then 4 to 6
-("do 4-6"). Built on the branch `look-and-feel`. Of the proposal, a typeface and the light
-theme's review as a whole come later.
+("do 4-6"), then 8 and 9 ("do 8 and 9"; Inter and the OFL approved, 2026-11-06). Built on
+the branch `look-and-feel`.
 
 ## 1. Why
 
@@ -128,16 +128,44 @@ orange `#f29e38` (the tool, and only the tool), light `#f3f5f0`, dark `#1d2025`.
     after "…"; the whole hint is in the hover. The facts at the right (pieces, cycle time,
     post, grid, units, active part) are chips instead of text between separators.
 
-## 9. Checking it
+## 9. A typeface of our own (proposal 8)
 
-27. The contrast test (`style.rs`) covers every new pair: text on chrome, panels and cards,
+27. **Inter 4.1** (rsms/inter, the static `Inter-Regular.ttf` and `Inter-SemiBold.ttf`, as
+    released) is built into the window, so it reads the same on Windows, macOS and Linux.
+    It's made for screens: open shapes, a tall x-height, clear at 12 px. It has Latin,
+    Cyrillic and Greek, so all seven languages.
+28. **SemiBold is the bold:** headings, section titles, the report's total and the like were
+    only brighter text; they are now SemiBold too (`style::bold`). Body text is Regular.
+29. **The system's fonts stay as fallbacks**, for what Inter lacks (the symbols ✔ ⚠ ✖ ▸ and
+    scripts beyond Cyrillic and Greek) and for the monospace text of reports. A computer
+    without any usable font now starts all the same.
+30. **Licence:** SIL Open Font License 1.1, approved by the user 2026-11-06 (ADR 0008
+    amended, OFL-1.1 on the CLAUDE.md list). Inter declares no Reserved Font Name; the
+    files are used unchanged, and the licence travels with them (`fonts/LICENSE-OFL.txt`,
+    THIRD-PARTY-LICENSES.txt).
+31. Not done: tabular figures. egui shapes text without OpenType features, so Inter's
+    `tnum` can't be switched on; the files would have to be changed to make it the default,
+    which isn't worth a modified font.
+
+## 10. The light theme, reviewed (proposal 9)
+
+32. Every screen of the guide's set is looked at in the light theme, and what reads weak,
+    harsh or wrong is changed in the light colours only; the dark theme stays as it is.
+    Looked at 2026-11-06, with Inter, in every picture of the set:
+    - **Cards get a soft edge** (`card_edge`, `#dce0d6`, 1 px): a white card on the
+      near-white panel had nothing to show where it ended. The dark theme has none; its
+      shade is enough, and its layout stays to the pixel.
+    - Kept as they are: the canvas's cool grey (its own colours, §2), the toolpath's dark
+      green and the selection's pink on it, the ghosted setups, the simulation's wood, the
+      ribbon's disabled icons, the accents (the contrast test covers them), the floating
+      view bar and the picture-trace window.
+
+## 11. Checking it
+
+33. The contrast test (`style.rs`) covers every new pair: text on chrome, panels and cards,
     weak text on cards, text in fields, text on both accents.
-28. Pictures before and after (the guide's screenshot set, rendered headless) in the dark
+34. Pictures before and after (the guide's screenshot set, rendered headless) in the dark
     theme; light theme pictures with `CHIPLOAD_SHOTS_THEME=light`; one narrow window and
     German, the longest language, so nothing gets cut.
-29. The guide's screenshots are renewed at the end of the branch, in one commit.
+35. The guide's screenshots are renewed at the end of the branch, in one commit.
 
-## 10. Not in this step
-
-A bundled typeface (the fonts in question are OFL, which needs the user's approval) and
-the light theme's review as a whole.

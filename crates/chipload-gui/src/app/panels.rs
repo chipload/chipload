@@ -333,7 +333,10 @@ impl ChiploadApp {
                 .inner_margin(24.0)
                 .show(ui, |ui| {
                     ui.set_max_width(START_WIDTH);
-                    ui.heading(RichText::new("Chipload").size(28.0).strong());
+                    ui.label(crate::style::bold(
+                        ui,
+                        RichText::new("Chipload").heading().size(28.0),
+                    ));
                     ui.weak(t!(ui, "panels-tagline"));
                     ui.add_space(16.0);
                     let wide = egui::vec2(START_WIDTH, 32.0);
@@ -367,7 +370,7 @@ impl ChiploadApp {
                         .collect();
                     if !recent.is_empty() {
                         ui.add_space(16.0);
-                        ui.label(RichText::new(t!(ui, "panels-recent")).strong());
+                        ui.label(crate::style::bold(ui, t!(ui, "panels-recent")));
                         for path in &recent {
                             let name = file_name(Path::new(path));
                             if ui

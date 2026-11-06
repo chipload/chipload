@@ -109,6 +109,10 @@ pub(in crate::app) fn card_with<R>(
     let left = 8 + if stripe.is_some() { STRIPE as i8 } else { 0 };
     let shown = egui::Frame::new()
         .fill(palette.card)
+        .stroke(match palette.card_edge {
+            egui::Color32::TRANSPARENT => egui::Stroke::NONE,
+            edge => egui::Stroke::new(1.0, edge),
+        })
         .corner_radius(crate::style::CARD_ROUNDING)
         .inner_margin(egui::Margin {
             left,
@@ -291,7 +295,7 @@ fn section_in_card<R>(
                 Align::Center,
             );
     }
-    RichText::new(title).strong().append_to(
+    crate::style::bold(ui, title).append_to(
         &mut header,
         &style,
         egui::FontSelection::Default,
