@@ -34,10 +34,24 @@ The numbers are for all of the part's copies, and a rest pass or floor pass has 
 After a change they are out of date: the section asks you to generate (F5), and says
 *Generating…* while the live preview runs. An operation that is off says so.
 
+## Statistics of a part
+
+A part's properties end with the same **Statistics** section: the sum of its operations'
+numbers (and their rest and floor passes'), all of its copies included, and how many
+operations were counted. It's what one part costs in time, cutting and lifts, without
+adding up its operations by hand. The moves from one operation to the next and the tool
+changes aren't in it; they are in the job's total in the report.
+
+When only the active part is previewed (*All parts* off), the other parts weren't
+planned: their section asks you to generate. A part that is off says so, and a part
+without operations says *No operations.*
+
 The report ends its time lines with the whole job's lengths and lifts (*In all: …*), the
 moves between operations included. `chipload plan` gives each operation's numbers on its
-line, and `--json` has them for each operation and the job: `cutting_mm`, `plunge_mm`,
-`rapid_mm`, `lifts`, and the seconds `cutting_s` and `rapid_s`.
+line, and each part's on its line when there are two parts or more. `--json` has them for
+each operation and the job: `cutting_mm`, `plunge_mm`, `rapid_mm`, `lifts`, and the
+seconds `cutting_s` and `rapid_s`; and in `estimate.parts`, for each part that was planned,
+with its `id`, `name`, `seconds` and `operations`.
 
 ## Chip load
 

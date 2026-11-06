@@ -41,6 +41,7 @@ pipeline-estimate = Tempo stimato: { $total } (taglio { $cutting }, rapidi { $ra
 # The lines under it start with spaces, written {"  "}: keep them, they indent the line.
 # $name is the part's name.
 pipeline-estimate-part = {"  "}Pezzo { $number } ({ $name }): { $time }
+pipeline-estimate-part-counted = {"  "}Pezzo { $number } ({ $name }): { $time }; { $counts }
 # $label is an operation's label.
 pipeline-estimate-operation = {"  "}{ $label }: { $time }
 # An operation under its part: indented deeper.

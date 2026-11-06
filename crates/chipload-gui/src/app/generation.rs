@@ -91,10 +91,48 @@ impl ChiploadApp {
         {
             Some((_, counts)) => Statistics::Counted {
                 counts: *counts,
+                operations: None,
                 copies: job
                     .and_then(|job| job.operations.get(at.operation).map(|op| (job, op)))
                     .and_then(|(job, op)| job.part_of(op))
                     .map_or(1, |p| p.count()),
+            },
+            // Not in this run: another part's preview, or another setup.
+            None => Statistics::OutOfDate,
+        }
+    }
+
+    /// What the Statistics section of part `id` shows (docs/specs/part-statistics.md §3.1):
+    /// its operations' numbers summed, or why there are none.
+    pub(super) fn part_statistics(&self, id: u64) -> forms::Statistics {
+        use forms::Statistics;
+        let Some(job) = self.edit.as_ref().map(|e| &e.job) else {
+            return Statistics::OutOfDate;
+        };
+        let ops: Vec<usize> = (0..job.operations.len())
+            .filter(|&i| job.operations[i].part() == id)
+            .collect();
+        if ops.is_empty() {
+            return Statistics::Empty;
+        }
+        if self.generating() {
+            return Statistics::Generating;
+        }
+        let Some(result) = &self.toolpath.result else {
+            return if self.toolpath.failed {
+                Statistics::Failed
+            } else {
+                Statistics::OutOfDate
+            };
+        };
+        if !ops.iter().any(|&i| job.cuts(i)) {
+            return Statistics::Off;
+        }
+        match chipload_pipeline::estimate::part_counts(job, &result.estimate, id) {
+            Some(part) => Statistics::Counted {
+                counts: part.counts,
+                operations: Some(part.operations),
+                copies: job.part(id).map_or(1, |p| p.count()),
             },
             // Not in this run: another part's preview, or another setup.
             None => Statistics::OutOfDate,

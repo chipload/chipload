@@ -276,7 +276,7 @@ pub(crate) fn run(
     }
     out.set("files", json!(files));
     if let [(_, result)] = runs.as_slice() {
-        out.set("estimate", estimate_json(&result.estimate));
+        out.set("estimate", estimate_json(&job, &result.estimate));
         out.set("sheet", sheets.first().cloned().unwrap_or(Value::Null));
     } else {
         out.set(
@@ -285,7 +285,7 @@ pub(crate) fn run(
                 runs.iter()
                     .map(|(id, r)| json!({
                         "setup": id,
-                        "estimate": estimate_json(&r.estimate),
+                        "estimate": estimate_json(&job, &r.estimate),
                     }))
                     .collect::<Vec<_>>()
             ),
@@ -451,7 +451,7 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
                 "start": s.ring.first(),
                 "stored": s.stored,
             })).collect::<Vec<_>>(),
-            "estimate": estimate_json(&estimate),
+            "estimate": estimate_json(&job, &estimate),
             "facts": plan.facts.iter().map(|n| json!({
                 "operation": n.operation,
                 "text": n.text,
@@ -536,7 +536,10 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
 }
 
 /// The cycle time estimate as `plan` and `run` print it with `--json`.
-pub(crate) fn estimate_json(estimate: &chipload_pipeline::estimate::Estimate) -> Value {
+pub(crate) fn estimate_json(
+    job: &chipload_job::Job,
+    estimate: &chipload_pipeline::estimate::Estimate,
+) -> Value {
     let mut value = json!({
         "total_s": estimate.total,
         "cutting_s": estimate.cutting,
@@ -552,6 +555,21 @@ pub(crate) fn estimate_json(estimate: &chipload_pipeline::estimate::Estimate) ->
             });
             add_counts(&mut op, c);
             op
+        }).collect::<Vec<_>>(),
+        // Each part the run planned (docs/specs/part-statistics.md §3.2).
+        "parts": job.parts.iter().filter_map(|part| {
+            let counted = chipload_pipeline::estimate::part_counts(job, estimate, part.id)?;
+            let c = &counted.counts;
+            let mut value = json!({
+                "id": part.id,
+                "name": part.name,
+                "operations": counted.operations,
+                "seconds": c.seconds(),
+                "cutting_s": c.cutting_s,
+                "rapid_s": c.rapid_s,
+            });
+            add_counts(&mut value, c);
+            Some(value)
         }).collect::<Vec<_>>(),
         "groups_s": estimate.groups,
         "tool_changes": estimate.tool_changes,

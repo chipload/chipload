@@ -224,6 +224,9 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### Not released yet
 
+- **Part statistics** (docs/specs/part-statistics.md, 2026-11-06): a part's properties end
+  with a Statistics section, its operations' time, lengths and lifts summed with its
+  copies; `plan` prints each part's numbers, `--json` has `estimate.parts`.
 - **Look and feel** (docs/specs/look-and-feel.md, 2026-11-06, merged into main): shades
   (top bar, chrome, panels, cards) and the logo's green as the accent; operation colours on
   the ribbon and quiet tints in the Browser; every Properties form in cards; the report

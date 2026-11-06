@@ -1403,6 +1403,60 @@ mod cycle_time {
 
 // -- parts (docs/specs/parts.md §6)
 
+/// A part's statistics are its operations' summed, all copies included
+/// (docs/specs/part-statistics.md §2); a part the run didn't plan has none.
+#[test]
+fn a_parts_statistics_are_its_operations_summed() {
+    use chipload_pipeline::estimate::{Lengths, estimate_lines, part_counts};
+    let mut job = load_job(&corpus_path("jobs/v22/two_parts.chipload")).unwrap();
+    let result = run(&job);
+    let e = &result.estimate;
+    for part in &job.parts {
+        let summed = part_counts(&job, e, part.id).unwrap();
+        let ops: Vec<_> = e
+            .operation_counts
+            .iter()
+            .filter(|(at, _)| job.operations[at.operation].part() == part.id)
+            .map(|(_, c)| *c)
+            .collect();
+        assert_eq!(summed.operations, ops.len());
+        let near = |a: f64, b: f64| (a - b).abs() < 1e-9;
+        assert!(near(
+            summed.counts.cutting_mm,
+            ops.iter().map(|c| c.cutting_mm).sum()
+        ));
+        assert!(near(
+            summed.counts.seconds(),
+            ops.iter().map(|c| c.seconds()).sum()
+        ));
+        assert_eq!(
+            summed.counts.lifts,
+            ops.iter().map(|c| c.lifts).sum::<usize>()
+        );
+    }
+    // Part 2 has two copies: they are in its operations' numbers, so in its own.
+    assert_eq!(job.part(2).unwrap().count(), 2);
+    // `plan`'s part line has the lengths too, the Report's doesn't.
+    let each = estimate_lines(&job, e, false, Lengths::PerOperation);
+    assert!(
+        each.iter()
+            .any(|l| l.starts_with("  Part 2 (part B): ") && l.contains("; cutting ")),
+        "{each:?}"
+    );
+    let report = estimate_lines(&job, e, false, Lengths::Totals);
+    assert!(
+        !report
+            .iter()
+            .any(|l| l.starts_with("  Part ") && l.contains("; cutting ")),
+        "{report:?}"
+    );
+    // A part that is off isn't planned: no numbers.
+    job.parts[1].enabled = false;
+    let without = run(&job);
+    assert!(part_counts(&job, &without.estimate, 2).is_none());
+    assert!(part_counts(&job, &without.estimate, 1).is_some());
+}
+
 #[test]
 fn the_report_gives_each_parts_time_over_its_operations() {
     let job = load_job(&corpus_path("jobs/v22/two_parts.chipload")).unwrap();

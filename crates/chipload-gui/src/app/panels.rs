@@ -223,7 +223,12 @@ impl ChiploadApp {
         };
         if let Some(at) = counted {
             let statistics = self.statistics_of(at);
-            forms::statistics_section(ui, &statistics);
+            forms::statistics_section(ui, "op-statistics", &statistics);
+        }
+        // A part's: its operations' summed (docs/specs/part-statistics.md §3.1).
+        if let Focus::Part(id) = focus {
+            let statistics = self.part_statistics(id);
+            forms::statistics_section(ui, "part-statistics", &statistics);
         }
         // An operation can be kept as a style (docs/specs/styles.md §3.1).
         if let Focus::Op(i) = focus

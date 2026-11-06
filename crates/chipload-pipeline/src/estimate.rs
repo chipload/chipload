@@ -261,6 +261,31 @@ pub enum RowKind {
     File { number: usize },
 }
 
+/// A part's numbers (docs/specs/part-statistics.md §2): the sum of its operations' and
+/// passes' counts, all of its copies, and how many of them were planned.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct PartCounts {
+    pub counts: Counts,
+    pub operations: usize,
+}
+
+/// Part `part`'s numbers from `estimate`, or None when the run planned none of its
+/// operations (it is off, empty, in another setup, or another part was previewed).
+pub fn part_counts(job: &Job, estimate: &Estimate, part: u64) -> Option<PartCounts> {
+    let mut sum = PartCounts::default();
+    for (at, counts) in &estimate.operation_counts {
+        if job
+            .operations
+            .get(at.operation)
+            .is_some_and(|op| op.part() == part)
+        {
+            sum.counts.add(counts);
+            sum.operations += 1;
+        }
+    }
+    (sum.operations > 0).then_some(sum)
+}
+
 /// The estimate's breakdown in order: each part (with two or more) before its operations,
 /// each operation, then each file when the job is written one file per tool.
 pub fn estimate_rows(job: &Job, estimate: &Estimate, several_files: bool) -> Vec<EstimateRow> {
@@ -352,12 +377,26 @@ pub fn estimate_lines(
     for row in estimate_rows(job, estimate, several_files) {
         let time = duration_message(row.seconds);
         match row.kind {
-            RowKind::Part { number, name } => lines.push(Note::job(
-                Message::new("pipeline-estimate-part")
+            RowKind::Part { number, name } => {
+                // With the lengths per operation, the part's too (part-statistics.md §3.2).
+                let counts = job
+                    .parts
+                    .get(number - 1)
+                    .and_then(|part| part_counts(job, estimate, part.id))
+                    .filter(|_| lengths == Lengths::PerOperation);
+                let id = match counts {
+                    Some(_) => "pipeline-estimate-part-counted",
+                    None => "pipeline-estimate-part",
+                };
+                let mut line = Message::new(id)
                     .arg("number", number)
                     .arg("name", name)
-                    .arg("time", time),
-            )),
+                    .arg("time", time);
+                if let Some(part) = counts {
+                    line = line.arg("counts", counts_message(&part.counts));
+                }
+                lines.push(Note::job(line));
+            }
             RowKind::Operation { at, in_part } => {
                 let counts = estimate
                     .operation_counts
