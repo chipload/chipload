@@ -107,10 +107,16 @@ pub(in crate::app) fn rest_pass_form(
     let pass = pocket.rest_passes.get_mut(k)?;
     let at = chipload_job::OpRef::pass(i, k);
     let mut request = None;
+    // A pass clears like a pocket: its colour (docs/specs/look-and-feel.md §4).
+    let color = crate::style::op_color(
+        chipload_pipeline::new_ops::OpKind::Pocket,
+        ui.visuals().dark_mode,
+    );
+    set_card_stripe(ui, color);
     super::browser::title_line(
         ui,
         crate::icons::Icon::Pocket,
-        None,
+        Some(color),
         &format!(
             "{} · {}",
             t!(ui, "forms-rest-pass"),
@@ -191,10 +197,16 @@ pub(in crate::app) fn floor_pass_form(
     let pass = vcarve.floor.as_mut()?;
     let at = chipload_job::OpRef::pass(i, 0);
     let mut request = None;
+    // A pass clears like a pocket: its colour (docs/specs/look-and-feel.md §4).
+    let color = crate::style::op_color(
+        chipload_pipeline::new_ops::OpKind::Pocket,
+        ui.visuals().dark_mode,
+    );
+    set_card_stripe(ui, color);
     super::browser::title_line(
         ui,
         crate::icons::Icon::Pocket,
-        None,
+        Some(color),
         &format!(
             "{} · {}",
             t!(ui, "forms-floor-pass"),

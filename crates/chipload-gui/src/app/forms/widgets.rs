@@ -66,6 +66,8 @@ const NUMBER_WIDTH: f32 = 72.0;
 const STRIPE: f32 = 3.0;
 /// A section's indent inside its card, points.
 const CARD_INDENT: f32 = 6.0;
+/// The room before a section's title, for its arrow: egui's indent.
+const HEADER_INDENT: f32 = 18.0;
 /// A card's margins left and right, with the stripe.
 const CARD_MARGINS: f32 = 8.0 + STRIPE + 8.0;
 
@@ -303,18 +305,33 @@ fn section_in_card<R>(
         overflow_character: Some('…'),
     };
     let header = ui.fonts_mut(|f| f.layout_job(header));
-    egui::CollapsingHeader::new(header)
+    // The header's arrow keeps egui's room before the title; the rows under it only the
+    // card's small indent.
+    let indent = ui.spacing().indent;
+    ui.spacing_mut().indent = HEADER_INDENT;
+    let shown = egui::CollapsingHeader::new(header)
         .id_salt(("section", key))
         .default_open(look.open)
-        .show(ui, |ui| {
+        .show_unindented(ui, |ui| {
+            ui.spacing_mut().indent = indent;
             labels_weak(ui);
-            Grid::new(("section-grid", key))
-                .num_columns(2)
-                .min_col_width(look.labels)
-                .show(ui, rows)
+            egui::Frame::new()
+                .inner_margin(egui::Margin {
+                    left: indent as i8,
+                    ..egui::Margin::ZERO
+                })
+                .show(ui, |ui| {
+                    Grid::new(("section-grid", key))
+                        .num_columns(2)
+                        .min_col_width(look.labels)
+                        .show(ui, rows)
+                        .inner
+                })
                 .inner
         })
-        .body_returned
+        .body_returned;
+    ui.spacing_mut().indent = indent;
+    shown
 }
 
 /// A form's labels in the weak colour, so its values (in their fields, the text of active
