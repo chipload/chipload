@@ -151,7 +151,9 @@ impl ChiploadApp {
             return false;
         };
         // Nothing to generate: no error, and the toolpath of operations since deleted goes.
-        if edit.job.operations.is_empty() {
+        // A setup without operations (a new one) is the same: it isn't every operation
+        // switched off (found 2026-11-06).
+        if !active_setup_has_operations(&edit.job) {
             self.invalidate();
             return false;
         }
@@ -701,4 +703,13 @@ fn estimate_table(
         })
         .collect();
     EstimateTable { total, rows }
+}
+
+/// Whether the active setup has operations, on or off: one without has nothing to plan, and
+/// the window says nothing about it (docs/specs/setups.md §7).
+pub(super) fn active_setup_has_operations(job: &chipload_job::Job) -> bool {
+    let setup = job.active_setup_id();
+    job.operations
+        .iter()
+        .any(|op| job.setup_of(op).map(|s| s.id) == setup)
 }

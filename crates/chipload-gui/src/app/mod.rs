@@ -2042,12 +2042,12 @@ impl ChiploadApp {
         self.status = Some((text, Instant::now() + Duration::from_secs(seconds)));
     }
 
-    /// A project with operations: one without has nothing to generate (the user,
-    /// 2026-11-03: "We should not generate if there are no operations").
+    /// A project with operations in its active setup: one without has nothing to generate
+    /// (the user, 2026-11-03: "We should not generate if there are no operations").
     fn can_generate(&self) -> bool {
         self.edit
             .as_ref()
-            .is_some_and(|e| !e.job.operations.is_empty())
+            .is_some_and(|e| generation::active_setup_has_operations(&e.job))
     }
 
     /// Proceed now, or ask first if unsaved changes would be lost.
