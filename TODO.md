@@ -33,7 +33,11 @@ a quick workflow first.
   Stock as its own item, folded operation sections, a default stock thickness, the Windows
   startup fix. Same G-code as 0.32; 0.32 can't open a project with tabs `along`, nor a
   `materials.json` with `default_thickness`.
-- **Releases**: the latest published is **0.33.0** (2026-11-03). Before it 0.32.0
+- **Tagged 0.34.0** (2026-11-06, draft, for the user to try and publish): the new look
+  (shades, the logo's green, cards, Inter), part statistics, a through cut's checker line
+  as a note, the empty-setup fix. Same G-code and schema (35) as 0.33.1. Two-sided work is
+  for the next release.
+- **Releases**: the latest published is **0.33.1** (2026-11-04), then 0.33.0 (2026-11-03). Before it 0.32.0
   (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
   (2026-10-29), 0.27.1, 0.25.1, 0.25.0, 0.24.0, 0.23.0, 0.22.2. Tagged but never published:
   0.22.0 (withdrawn), 0.26.0, 0.26.1, 0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on,
@@ -223,6 +227,8 @@ Smaller follow-ups noted along the way, not in the order above:
 ## Done
 
 ### Not released yet
+
+### In 0.34.0 (tagged 2026-11-06)
 
 - **Part statistics** (docs/specs/part-statistics.md, 2026-11-06): a part's properties end
   with a Statistics section, its operations' time, lengths and lifts summed with its
