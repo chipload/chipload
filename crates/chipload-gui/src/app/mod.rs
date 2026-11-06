@@ -2181,8 +2181,19 @@ impl eframe::App for ChiploadApp {
                     .inner_margin(egui::Margin::symmetric(6, 0)),
             )
             .show(ui, |ui| self.top_bar(ui));
-        Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
-        Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
+        // The ribbon and the status bar are chrome, a step below the panels
+        // (docs/specs/look-and-feel.md §3).
+        let chrome = |ui: &egui::Ui, margin: egui::Margin| {
+            egui::Frame::new()
+                .fill(crate::style::palette(ui.visuals()).chrome)
+                .inner_margin(margin)
+        };
+        Panel::top("ribbon")
+            .frame(chrome(ui, egui::Margin::symmetric(8, 2)))
+            .show(ui, |ui| self.ribbon(ui));
+        Panel::bottom("status")
+            .frame(chrome(ui, egui::Margin::symmetric(8, 2)))
+            .show(ui, |ui| self.status_bar(ui));
         CentralPanel::no_frame().show(ui, |ui| self.dock_area(ui));
         self.follow_properties();
         self.prompts(&ctx);

@@ -21,10 +21,10 @@ CHIPLOAD_CONFIG_DIR="$library" target/release/chipload machine add "Shapeoko" \
     --post grbl --safe-z 10 --travel 838,838,95 > /dev/null
 
 # The guide is English. SHOTS_LANGUAGE=de (fr, es, it, sv) shows the app in another
-# language, to check that its texts fit; SHOTS_OUT=DIR writes the pictures there instead
-# of into the guide.
+# language, to check that its texts fit; SHOTS_THEME=light shows the light theme;
+# SHOTS_OUT=DIR writes the pictures there instead of into the guide.
 CHIPLOAD_SHOTS_OUT="$out" CHIPLOAD_SHOTS_LIBRARY="$library" \
-    CHIPLOAD_SHOTS_LANGUAGE="${SHOTS_LANGUAGE:-en}" \
+    CHIPLOAD_SHOTS_LANGUAGE="${SHOTS_LANGUAGE:-en}" CHIPLOAD_SHOTS_THEME="${SHOTS_THEME:-dark}" \
     cargo test -q --release -p chipload-gui --bin chipload-gui -- --ignored --exact \
     app::tests::screenshots::screenshots --nocapture
 echo "Wrote $out/"

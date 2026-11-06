@@ -30,23 +30,25 @@ pub(in crate::app) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Op
         .count();
     let mut request = None;
     super::browser::title_line(ui, crate::icons::Icon::Dxf, None, &source.name);
-    Grid::new(("dxf-facts", id))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-file"));
-            ui.label(&source.file);
-            ui.end_row();
-            ui.label(t!(ui, "forms-units"));
-            ui.label(match source.units {
-                Units::Mm => "mm".to_string(),
-                Units::Inch => t!(ui, "forms-dxf-inch"),
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-shapes"));
-            ui.label(shapes.to_string());
-            ui.end_row();
-        });
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("dxf-facts", id))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-file"));
+                ui.label(&source.file);
+                ui.end_row();
+                ui.label(t!(ui, "forms-units"));
+                ui.label(match source.units {
+                    Units::Mm => "mm".to_string(),
+                    Units::Inch => t!(ui, "forms-dxf-inch"),
+                });
+                ui.end_row();
+                ui.label(t!(ui, "forms-shapes"));
+                ui.label(shapes.to_string());
+                ui.end_row();
+            })
+    });
     let summary = size.map_or(String::new(), |(w, h)| {
         format!("{} × {} {len_unit}", len_in(units, w), len_in(units, h))
     });
@@ -116,73 +118,76 @@ pub(in crate::app) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
         }
     };
     let mut finished = false;
-    Grid::new(("image-form", id))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            if let Some((w, h)) = pixels {
-                ui.label(t!(ui, "forms-picture"));
-                ui.label(t!(ui, "forms-picture-pixels", width = w, height = h));
-                ui.end_row();
-            }
-            ui.label(t!(ui, "forms-traced-as"));
-            ui.label(match image.trace {
-                ImageTrace::Outline => t!(ui, "forms-traced-outlines"),
-                ImageTrace::CentreLine => t!(ui, "forms-traced-centre-lines"),
-            });
-            ui.end_row();
-            // The picture's height follows from its width; its box is turned with it
-            // (docs/specs/direct-placement.md §2).
-            let aspect = pixels
-                .filter(|(w, _)| *w > 0)
-                .map_or(1.0, |(w, h)| f64::from(h) / f64::from(w));
-            let turned = |d: &ImagePlace| {
-                chipload_pipeline::images::turned_box(
-                    d.x,
-                    d.y,
-                    d.width,
-                    d.width * aspect,
-                    d.rotation,
-                )
-            };
-            let ((x0, y0), _) = turned(&draft);
-            ui.label(t!(ui, "forms-position")).on_hover_text(t!(
-                ui,
-                "units-text-picture-position-hover",
-                unit = crate::units::unit(ui.ctx())
-            ));
-            // Moving the box's corner moves the picture's own corner as much.
-            let hover = t!(ui, "forms-picture-reset-position");
-            finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
-            ui.end_row();
-            ui.label(t!(ui, "forms-rotation"))
-                .on_hover_text(t!(ui, "forms-picture-rotation-hover"));
-            // Turning keeps the picture's centre where it is: x, y stay.
-            let hover = t!(ui, "forms-picture-reset-rotation");
-            finished |= rotation_cells(ui, &mut draft.rotation, &hover);
-            ui.end_row();
-            ui.label(t!(ui, "forms-width"))
-                .on_hover_text(t!(ui, "forms-picture-width-hover"));
-            ui.horizontal(|ui| {
-                let response = ui.add(
-                    crate::units::length(&mut draft.width)
-                        .range(0.1..=10_000.0)
-                        .speed(0.5),
-                );
-                finished |= response.drag_stopped() || response.lost_focus();
-                if pixels.is_some() {
-                    let height = format!("{} {len_unit}", len_in(units, draft.width * aspect));
-                    ui.weak(t!(ui, "forms-picture-height", height = height));
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("image-form", id))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                if let Some((w, h)) = pixels {
+                    ui.label(t!(ui, "forms-picture"));
+                    ui.label(t!(ui, "forms-picture-pixels", width = w, height = h));
+                    ui.end_row();
                 }
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-layer"))
-                .on_hover_text(t!(ui, "forms-picture-layer-hover"));
-            let response = ui
-                .add(TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)));
-            finished |= response.lost_focus();
-            ui.end_row();
-        });
+                ui.label(t!(ui, "forms-traced-as"));
+                ui.label(match image.trace {
+                    ImageTrace::Outline => t!(ui, "forms-traced-outlines"),
+                    ImageTrace::CentreLine => t!(ui, "forms-traced-centre-lines"),
+                });
+                ui.end_row();
+                // The picture's height follows from its width; its box is turned with it
+                // (docs/specs/direct-placement.md §2).
+                let aspect = pixels
+                    .filter(|(w, _)| *w > 0)
+                    .map_or(1.0, |(w, h)| f64::from(h) / f64::from(w));
+                let turned = |d: &ImagePlace| {
+                    chipload_pipeline::images::turned_box(
+                        d.x,
+                        d.y,
+                        d.width,
+                        d.width * aspect,
+                        d.rotation,
+                    )
+                };
+                let ((x0, y0), _) = turned(&draft);
+                ui.label(t!(ui, "forms-position")).on_hover_text(t!(
+                    ui,
+                    "units-text-picture-position-hover",
+                    unit = crate::units::unit(ui.ctx())
+                ));
+                // Moving the box's corner moves the picture's own corner as much.
+                let hover = t!(ui, "forms-picture-reset-position");
+                finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
+                ui.end_row();
+                ui.label(t!(ui, "forms-rotation"))
+                    .on_hover_text(t!(ui, "forms-picture-rotation-hover"));
+                // Turning keeps the picture's centre where it is: x, y stay.
+                let hover = t!(ui, "forms-picture-reset-rotation");
+                finished |= rotation_cells(ui, &mut draft.rotation, &hover);
+                ui.end_row();
+                ui.label(t!(ui, "forms-width"))
+                    .on_hover_text(t!(ui, "forms-picture-width-hover"));
+                ui.horizontal(|ui| {
+                    let response = ui.add(
+                        crate::units::length(&mut draft.width)
+                            .range(0.1..=10_000.0)
+                            .speed(0.5),
+                    );
+                    finished |= response.drag_stopped() || response.lost_focus();
+                    if pixels.is_some() {
+                        let height = format!("{} {len_unit}", len_in(units, draft.width * aspect));
+                        ui.weak(t!(ui, "forms-picture-height", height = height));
+                    }
+                });
+                ui.end_row();
+                ui.label(t!(ui, "forms-layer"))
+                    .on_hover_text(t!(ui, "forms-picture-layer-hover"));
+                let response = ui.add(
+                    TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)),
+                );
+                finished |= response.lost_focus();
+                ui.end_row();
+            })
+    });
     if finished && draft != stored {
         request = Some(JobRequest::ImagePlace(id, draft.clone()));
     }
@@ -272,157 +277,160 @@ pub(in crate::app) fn text_form(
         super::text_fonts::load_sample(ui.ctx(), &fonts.finder, &stored.font);
     }
     let mut finished = false;
-    Grid::new(("text-form", id))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-text"))
-                .on_hover_text(t!(ui, "forms-text-hover"));
-            let response = ui.add_enabled(
-                letters_editable,
-                TextEdit::multiline(&mut draft.text)
-                    .desired_rows(2)
-                    .desired_width(field_width(ui, 220.0)),
-            );
-            if grab {
-                response.request_focus();
-            }
-            finished |= response.lost_focus();
-            ui.end_row();
-            ui.label(t!(ui, "forms-font"))
-                .on_hover_text(t!(ui, "forms-font-hover"));
-            let before = draft.font.clone();
-            let mut shown = RichText::new(draft.font.as_str());
-            let family = super::text_fonts::sample_family(&draft.font);
-            if ui.ctx().fonts(|f| f.families()).contains(&family) {
-                shown = shown.family(family);
-            }
-            egui::ComboBox::from_id_salt(("text-font", id))
-                .selected_text(shown)
-                .height(480.0)
-                .show_ui(ui, |ui| font_list(ui, &mut draft.font, fonts));
-            finished |= draft.font != before;
-            ui.end_row();
-            ui.label(t!(ui, "forms-height"))
-                .on_hover_text(t!(ui, "forms-text-height-hover"));
-            let response = ui.add_enabled(
-                letters_editable,
-                crate::units::length(&mut draft.height)
-                    .range(0.1..=chipload_job::TEXT_MAX_HEIGHT_MM)
-                    .speed(0.1),
-            );
-            finished |= response.drag_stopped() || response.lost_focus();
-            ui.end_row();
-            let (w, h) = size.unwrap_or((0.0, 0.0));
-            ui.label(t!(ui, "forms-anchor"))
-                .on_hover_text(t!(ui, "forms-anchor-hover"));
-            let before = draft.anchor;
-            let mut anchor = draft.anchor;
-            egui::ComboBox::from_id_salt(("text-anchor", id))
-                .selected_text(match anchor {
-                    TextAnchor::Corner => t!(ui, "forms-anchor-corner"),
-                    TextAnchor::Center => t!(ui, "forms-anchor-centre"),
-                })
-                .show_ui(ui, |ui| {
-                    let corner = t!(ui, "forms-anchor-corner");
-                    ui.selectable_value(&mut anchor, TextAnchor::Corner, corner);
-                    let centre = t!(ui, "forms-anchor-centre");
-                    ui.selectable_value(&mut anchor, TextAnchor::Center, centre);
-                });
-            if anchor != before {
-                // The text stays where it is: only what Position means changes.
-                draft = chipload_pipeline::texts::with_anchor(&draft, anchor, (w, h));
-                finished = true;
-            }
-            ui.end_row();
-            // Shown as the box's lower-left corner on the stock (after the turn), or its
-            // centre, which the turn keeps in place.
-            let shown = |d: &Text| match d.anchor {
-                TextAnchor::Center => (d.x, d.y),
-                TextAnchor::Corner => {
-                    chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation).0
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("text-form", id))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-text"))
+                    .on_hover_text(t!(ui, "forms-text-hover"));
+                let response = ui.add_enabled(
+                    letters_editable,
+                    TextEdit::multiline(&mut draft.text)
+                        .desired_rows(2)
+                        .desired_width(field_width(ui, 220.0)),
+                );
+                if grab {
+                    response.request_focus();
                 }
-            };
-            let (x0, y0) = shown(&draft);
-            ui.label(t!(ui, "forms-position"))
-                .on_hover_text(match draft.anchor {
-                    TextAnchor::Corner => t!(
-                        ui,
-                        "units-text-text-position-corner-hover",
-                        unit = crate::units::unit(ui.ctx())
-                    ),
-                    TextAnchor::Center => t!(
-                        ui,
-                        "units-text-text-position-centre-hover",
-                        unit = crate::units::unit(ui.ctx())
-                    ),
-                });
-            // Moving what is shown moves the text's own position as much.
-            let hover = t!(ui, "forms-text-reset-position");
-            finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
-            ui.end_row();
-            ui.label(t!(ui, "forms-rotation"))
-                .on_hover_text(t!(ui, "forms-text-rotation-hover"));
-            let hover = t!(ui, "forms-text-reset-rotation");
-            finished |= rotation_cells(ui, &mut draft.rotation, &hover);
-            ui.end_row();
-            ui.label(t!(ui, "forms-align"))
-                .on_hover_text(t!(ui, "forms-align-hover"));
-            let before = draft.align;
-            let align_name = |ui: &egui::Ui, align: TextAlign| match align {
-                TextAlign::Left => t!(ui, "forms-align-left"),
-                TextAlign::Center => t!(ui, "forms-align-centre"),
-                TextAlign::Right => t!(ui, "forms-align-right"),
-            };
-            ui.add_enabled_ui(letters_editable, |ui| {
-                egui::ComboBox::from_id_salt(("text-align", id))
-                    .selected_text(align_name(ui, draft.align))
-                    .show_ui(ui, |ui| {
-                        for align in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
-                            ui.selectable_value(&mut draft.align, align, align_name(ui, align));
-                        }
-                    });
-            });
-            finished |= draft.align != before;
-            ui.end_row();
-            ui.label(t!(ui, "forms-letter-spacing"))
-                .on_hover_text(t!(ui, "forms-letter-spacing-hover"));
-            let most = chipload_job::TEXT_MAX_SPACING_HEIGHTS * draft.height;
-            let response = ui.add_enabled(
-                letters_editable,
-                crate::units::length(&mut draft.spacing)
-                    .range(-most..=most)
-                    .speed(0.05),
-            );
-            finished |= response.drag_stopped() || response.lost_focus();
-            ui.end_row();
-            ui.label(t!(ui, "forms-line-spacing"))
-                .on_hover_text(t!(ui, "forms-line-spacing-hover"));
-            let response = ui.add_enabled(
-                letters_editable,
-                crate::units::number(ui, &mut draft.line_spacing)
-                    .range(0.1..=chipload_job::TEXT_MAX_LINE_SPACING)
-                    .speed(0.01)
-                    .suffix(format!(" {}", t!(ui, "forms-line-spacing-suffix"))),
-            );
-            finished |= response.drag_stopped() || response.lost_focus();
-            ui.end_row();
-            ui.label(t!(ui, "forms-layer"))
-                .on_hover_text(t!(ui, "forms-text-layer-hover"));
-            let response = ui
-                .add(TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)));
-            finished |= response.lost_focus();
-            ui.end_row();
-            if let Some((w, h)) = size {
-                ui.label(t!(ui, "forms-size"));
-                ui.weak(format!(
-                    "{} × {} {len_unit}",
-                    len_in(units, w),
-                    len_in(units, h)
-                ));
+                finished |= response.lost_focus();
                 ui.end_row();
-            }
-        });
+                ui.label(t!(ui, "forms-font"))
+                    .on_hover_text(t!(ui, "forms-font-hover"));
+                let before = draft.font.clone();
+                let mut shown = RichText::new(draft.font.as_str());
+                let family = super::text_fonts::sample_family(&draft.font);
+                if ui.ctx().fonts(|f| f.families()).contains(&family) {
+                    shown = shown.family(family);
+                }
+                egui::ComboBox::from_id_salt(("text-font", id))
+                    .selected_text(shown)
+                    .height(480.0)
+                    .show_ui(ui, |ui| font_list(ui, &mut draft.font, fonts));
+                finished |= draft.font != before;
+                ui.end_row();
+                ui.label(t!(ui, "forms-height"))
+                    .on_hover_text(t!(ui, "forms-text-height-hover"));
+                let response = ui.add_enabled(
+                    letters_editable,
+                    crate::units::length(&mut draft.height)
+                        .range(0.1..=chipload_job::TEXT_MAX_HEIGHT_MM)
+                        .speed(0.1),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                ui.end_row();
+                let (w, h) = size.unwrap_or((0.0, 0.0));
+                ui.label(t!(ui, "forms-anchor"))
+                    .on_hover_text(t!(ui, "forms-anchor-hover"));
+                let before = draft.anchor;
+                let mut anchor = draft.anchor;
+                egui::ComboBox::from_id_salt(("text-anchor", id))
+                    .selected_text(match anchor {
+                        TextAnchor::Corner => t!(ui, "forms-anchor-corner"),
+                        TextAnchor::Center => t!(ui, "forms-anchor-centre"),
+                    })
+                    .show_ui(ui, |ui| {
+                        let corner = t!(ui, "forms-anchor-corner");
+                        ui.selectable_value(&mut anchor, TextAnchor::Corner, corner);
+                        let centre = t!(ui, "forms-anchor-centre");
+                        ui.selectable_value(&mut anchor, TextAnchor::Center, centre);
+                    });
+                if anchor != before {
+                    // The text stays where it is: only what Position means changes.
+                    draft = chipload_pipeline::texts::with_anchor(&draft, anchor, (w, h));
+                    finished = true;
+                }
+                ui.end_row();
+                // Shown as the box's lower-left corner on the stock (after the turn), or its
+                // centre, which the turn keeps in place.
+                let shown = |d: &Text| match d.anchor {
+                    TextAnchor::Center => (d.x, d.y),
+                    TextAnchor::Corner => {
+                        chipload_pipeline::images::turned_box(d.x, d.y, w, h, d.rotation).0
+                    }
+                };
+                let (x0, y0) = shown(&draft);
+                ui.label(t!(ui, "forms-position"))
+                    .on_hover_text(match draft.anchor {
+                        TextAnchor::Corner => t!(
+                            ui,
+                            "units-text-text-position-corner-hover",
+                            unit = crate::units::unit(ui.ctx())
+                        ),
+                        TextAnchor::Center => t!(
+                            ui,
+                            "units-text-text-position-centre-hover",
+                            unit = crate::units::unit(ui.ctx())
+                        ),
+                    });
+                // Moving what is shown moves the text's own position as much.
+                let hover = t!(ui, "forms-text-reset-position");
+                finished |= position_cells(ui, (x0, y0), (&mut draft.x, &mut draft.y), &hover);
+                ui.end_row();
+                ui.label(t!(ui, "forms-rotation"))
+                    .on_hover_text(t!(ui, "forms-text-rotation-hover"));
+                let hover = t!(ui, "forms-text-reset-rotation");
+                finished |= rotation_cells(ui, &mut draft.rotation, &hover);
+                ui.end_row();
+                ui.label(t!(ui, "forms-align"))
+                    .on_hover_text(t!(ui, "forms-align-hover"));
+                let before = draft.align;
+                let align_name = |ui: &egui::Ui, align: TextAlign| match align {
+                    TextAlign::Left => t!(ui, "forms-align-left"),
+                    TextAlign::Center => t!(ui, "forms-align-centre"),
+                    TextAlign::Right => t!(ui, "forms-align-right"),
+                };
+                ui.add_enabled_ui(letters_editable, |ui| {
+                    egui::ComboBox::from_id_salt(("text-align", id))
+                        .selected_text(align_name(ui, draft.align))
+                        .show_ui(ui, |ui| {
+                            for align in [TextAlign::Left, TextAlign::Center, TextAlign::Right] {
+                                ui.selectable_value(&mut draft.align, align, align_name(ui, align));
+                            }
+                        });
+                });
+                finished |= draft.align != before;
+                ui.end_row();
+                ui.label(t!(ui, "forms-letter-spacing"))
+                    .on_hover_text(t!(ui, "forms-letter-spacing-hover"));
+                let most = chipload_job::TEXT_MAX_SPACING_HEIGHTS * draft.height;
+                let response = ui.add_enabled(
+                    letters_editable,
+                    crate::units::length(&mut draft.spacing)
+                        .range(-most..=most)
+                        .speed(0.05),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                ui.end_row();
+                ui.label(t!(ui, "forms-line-spacing"))
+                    .on_hover_text(t!(ui, "forms-line-spacing-hover"));
+                let response = ui.add_enabled(
+                    letters_editable,
+                    crate::units::number(ui, &mut draft.line_spacing)
+                        .range(0.1..=chipload_job::TEXT_MAX_LINE_SPACING)
+                        .speed(0.01)
+                        .suffix(format!(" {}", t!(ui, "forms-line-spacing-suffix"))),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                ui.end_row();
+                ui.label(t!(ui, "forms-layer"))
+                    .on_hover_text(t!(ui, "forms-text-layer-hover"));
+                let response = ui.add(
+                    TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)),
+                );
+                finished |= response.lost_focus();
+                ui.end_row();
+                if let Some((w, h)) = size {
+                    ui.label(t!(ui, "forms-size"));
+                    ui.weak(format!(
+                        "{} × {} {len_unit}",
+                        len_in(units, w),
+                        len_in(units, h)
+                    ));
+                    ui.end_row();
+                }
+            })
+    });
     if finished && draft != stored {
         request = Some(JobRequest::TextChange(id, Box::new(draft.clone())));
     }
@@ -462,6 +470,7 @@ pub(in crate::app) fn placement_rows(
             unit = crate::units::unit(ui.ctx())
         ));
         ui.horizontal(|ui| {
+            share_row(ui, 2, 30.0);
             if let Some(x) =
                 finished_number(ui, salt("x"), x0, |ui, v| ui.add(mm_field(v).prefix("X ")))
             {
@@ -507,6 +516,7 @@ pub(in crate::app) fn placement_rows(
     ui.label(t!(ui, "forms-rotation"))
         .on_hover_text(t!(ui, "forms-dxf-rotation-hover"));
     ui.horizontal(|ui| {
+        share_row(ui, 1, 100.0);
         let current = placement.rotation;
         if let Some(degrees) = finished_number(ui, salt("rotation"), current, |ui, v| {
             ui.add(

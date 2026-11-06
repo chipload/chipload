@@ -163,7 +163,7 @@ impl ChiploadApp {
                 sw: 0,
                 se: 0,
             },
-            visuals.panel_fill,
+            crate::style::palette(visuals).chrome,
         );
         let text_at = egui::pos2(rect.left() + 14.0, rect.center().y - galley.size().y / 2.0);
         painter.galley(text_at, galley.clone(), visuals.text_color());
@@ -414,7 +414,7 @@ impl ChiploadApp {
                             for (tool, icon, label, hint, action) in row {
                                 let active = app.sketch().is_some_and(|s| s.tool == *tool);
                                 let hint = format!("{label}: {hint}");
-                                if small_ribbon_button(ui, *icon, label, can_draw, active)
+                                if small_ribbon_button(ui, *icon, label, can_draw, active, None)
                                     .on_hover_text(hover_keys(&hint, *action))
                                     .clicked()
                                 {
@@ -426,9 +426,16 @@ impl ChiploadApp {
                                 let framing =
                                     app.modify() == Some(super::modify::ModifyTool::Frame);
                                 let hint = format!("{label}: {}", t!(ui, "header-frame-hover"));
-                                if small_ribbon_button(ui, Icon::Frame, &label, can_draw, framing)
-                                    .on_hover_text(hint)
-                                    .clicked()
+                                if small_ribbon_button(
+                                    ui,
+                                    Icon::Frame,
+                                    &label,
+                                    can_draw,
+                                    framing,
+                                    None,
+                                )
+                                .on_hover_text(hint)
+                                .clicked()
                                 {
                                     app.start_frame();
                                 }
@@ -582,7 +589,7 @@ impl ChiploadApp {
                                     None => hint,
                                 };
                                 let enabled = can_draw && app.modify_ready(*tool);
-                                if small_ribbon_button(ui, *icon, label, enabled, active)
+                                if small_ribbon_button(ui, *icon, label, enabled, active, None)
                                     .on_hover_text(hint)
                                     .clicked()
                                 {
@@ -607,6 +614,8 @@ impl ChiploadApp {
             &caption,
             |app, ui| {
                 let selected = !app.selected_ids().is_empty();
+                let dark = ui.visuals().dark_mode;
+                let tint = |kind| Some(crate::style::op_color(kind, dark));
                 let mut surface = None;
                 for (label, kind, hover) in super::browser::new_operations(ui) {
                     let icon = match kind {
@@ -626,7 +635,8 @@ impl ChiploadApp {
                         label
                     };
                     let enabled = selected || !kind.needs_selection();
-                    let response = ribbon_button(ui, icon, &short, enabled, false);
+                    let response =
+                        tinted_ribbon_button(ui, icon, &short, enabled, false, tint(kind));
                     let response = if enabled {
                         response.on_hover_text(hover)
                     } else {
@@ -645,9 +655,16 @@ impl ChiploadApp {
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
                     if let Some((label, hover)) = surface
-                        && small_ribbon_button(ui, Icon::Surface, &label, true, false)
-                            .on_hover_text(format!("{label}: {hover}"))
-                            .clicked()
+                        && small_ribbon_button(
+                            ui,
+                            Icon::Surface,
+                            &label,
+                            true,
+                            false,
+                            tint(OpKind::Surface),
+                        )
+                        .on_hover_text(format!("{label}: {hover}"))
+                        .clicked()
                     {
                         app.add_operation(OpKind::Surface);
                     }
@@ -660,8 +677,9 @@ impl ChiploadApp {
                     } else {
                         t!(ui, "styles-select-first")
                     };
-                    let response = small_ribbon_button(ui, Icon::Style, &label, enabled, false)
-                        .on_hover_text(format!("{label}: {hover}"));
+                    let response =
+                        small_ribbon_button(ui, Icon::Style, &label, enabled, false, None)
+                            .on_hover_text(format!("{label}: {hover}"));
                     let mut act = None;
                     egui::Popup::menu(&response).show(|ui| app.style_menu(ui, &mut act));
                     if let Some(act) = act {
@@ -858,6 +876,19 @@ pub(super) fn ribbon_button(
     enabled: bool,
     selected: bool,
 ) -> Response {
+    tinted_ribbon_button(ui, icon, label, enabled, selected, None)
+}
+
+/// A [`ribbon_button`] whose icon is painted in `tint` while it is enabled and not selected:
+/// an operation's colour (docs/specs/look-and-feel.md §4).
+fn tinted_ribbon_button(
+    ui: &mut egui::Ui,
+    icon: Icon,
+    label: &str,
+    enabled: bool,
+    selected: bool,
+    tint: Option<Color32>,
+) -> Response {
     let compact = ui
         .data(|d| d.get_temp::<bool>(egui::Id::new(RIBBON_COMPACT)))
         .unwrap_or(false);
@@ -888,12 +919,16 @@ pub(super) fn ribbon_button(
         if enabled {
             visuals.text_color()
         } else {
-            visuals.weak_text_color().gamma_multiply(0.7)
+            crate::style::disabled_color(visuals)
         }
+    };
+    let icon_color = match tint {
+        Some(tint) if enabled && !selected => tint,
+        _ => color,
     };
     if compact {
         let icon_rect = Rect::from_center_size(rect.center(), vec2(RIBBON_ICON, RIBBON_ICON));
-        icons::paint(painter, icon_rect, icon, color);
+        icons::paint(painter, icon_rect, icon, icon_color);
         let name = |ui: &mut egui::Ui| {
             ui.strong(label);
         };
@@ -903,7 +938,7 @@ pub(super) fn ribbon_button(
         egui::pos2(rect.center().x, rect.top() + 4.0 + RIBBON_ICON / 2.0),
         vec2(RIBBON_ICON, RIBBON_ICON),
     );
-    icons::paint(painter, icon_rect, icon, color);
+    icons::paint(painter, icon_rect, icon, icon_color);
     let at = egui::pos2(
         rect.center().x - galley.size().x / 2.0,
         rect.bottom() - 3.0 - galley.size().y,
@@ -919,6 +954,7 @@ fn small_ribbon_button(
     label: &str,
     enabled: bool,
     selected: bool,
+    tint: Option<Color32>,
 ) -> Response {
     let side = (RIBBON_BUTTON.0 - 2.0) / 2.0;
     let sense = if enabled {
@@ -941,8 +977,12 @@ fn small_ribbon_button(
         if enabled {
             visuals.text_color()
         } else {
-            visuals.weak_text_color().gamma_multiply(0.7)
+            crate::style::disabled_color(visuals)
         }
+    };
+    let color = match tint {
+        Some(tint) if enabled && !selected => tint,
+        _ => color,
     };
     let icon_rect = Rect::from_center_size(rect.center(), vec2(side - 4.0, side - 4.0));
     icons::paint(painter, icon_rect, icon, color);
@@ -963,17 +1003,19 @@ fn generate_button(ui: &mut egui::Ui, icon: Icon, label: &str, enabled: bool) ->
     let visuals = ui.visuals();
     let painter = ui.painter();
     let corner = visuals.widgets.inactive.corner_radius;
+    // The strong accent: the one filled button (docs/specs/look-and-feel.md §2).
+    let palette = crate::style::palette(visuals);
     let (fill, color) = if enabled {
         let fill = if response.hovered() {
-            visuals.selection.bg_fill.gamma_multiply(1.15)
+            palette.strong.lerp_to_gamma(palette.on_strong, 0.12)
         } else {
-            visuals.selection.bg_fill
+            palette.strong
         };
-        (fill, visuals.selection.stroke.color)
+        (fill, palette.on_strong)
     } else {
         (
             visuals.widgets.inactive.weak_bg_fill,
-            visuals.weak_text_color().gamma_multiply(0.7),
+            crate::style::disabled_color(visuals),
         )
     };
     painter.rect_filled(rect, corner, fill);
@@ -1052,7 +1094,7 @@ pub(crate) fn plain_icon_button(
         }
         visuals.text_color()
     } else {
-        visuals.weak_text_color().gamma_multiply(0.7)
+        crate::style::disabled_color(visuals)
     };
     icons::paint(ui.painter(), rect.shrink(side * 0.21), icon, color);
     response

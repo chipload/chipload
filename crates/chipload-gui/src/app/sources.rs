@@ -423,7 +423,7 @@ impl ChiploadApp {
             1,
             t!(ui, "sources-drawing"),
         )
-        .icon(Icon::Drawing)
+        .icon_tinted(Icon::Drawing, crate::style::Tint::Shapes)
         .trailing(shapes.to_string());
         let (open, folder_row) = super::browser::folder(ui, row, true);
         let mut action: Option<PanelAction> = None;
@@ -568,7 +568,7 @@ impl ChiploadApp {
             row = row.eye(!hidden);
         }
         let mut row = row
-            .icon(icon)
+            .icon_tinted(icon, crate::style::Tint::Shapes)
             .trailing(group.shapes.to_string())
             .dim(hidden)
             .selected(match (&self.selection, self.group_selection(&group.key)) {
@@ -727,7 +727,7 @@ impl ChiploadApp {
             let selection = CanvasSelection::Layer(layer.clone(), from);
             let out = Row::new(egui::Id::new(("browser-layer", &key)), 3, layer)
                 .eye(!layer_hidden)
-                .icon(Icon::Layer)
+                .icon_tinted(Icon::Layer, crate::style::Tint::Shapes)
                 .trailing(count.to_string())
                 .dim(hidden || layer_hidden)
                 .selected(self.selection == selection)
@@ -781,7 +781,7 @@ impl ChiploadApp {
                 if s.len() == ids.len() && ids.iter().all(|i| s.contains(i)));
             let out = Row::new(id, 3, layer)
                 .eye(!layer_hidden)
-                .icon(Icon::Layer)
+                .icon_tinted(Icon::Layer, crate::style::Tint::Shapes)
                 .trailing(shapes.len().to_string())
                 .dim(hidden || layer_hidden)
                 .selected(selected)
@@ -848,7 +848,7 @@ impl ChiploadApp {
             depth,
             name.unwrap_or(&label),
         )
-        .icon(icon)
+        .icon_tinted(icon, crate::style::Tint::Shapes)
         .dim(dim)
         .selected(matches!(&self.selection, CanvasSelection::Shapes(s) if s.contains(&id)));
         if name.is_some() {

@@ -249,85 +249,89 @@ pub(in crate::app) fn op_form(
             ),
         );
     }
-    labels_weak(ui);
-    Grid::new(("op-form", index))
-        .num_columns(2)
-        // Past the sections' indent, so the values line up with theirs.
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            if choice.style {
-                // A style's name is its own, its shapes the selection it is used on.
+    // Its cards have its colour down their edge (docs/specs/look-and-feel.md §5).
+    set_card_stripe(ui, color);
+    card(ui, |ui| {
+        labels_weak(ui);
+        Grid::new(("op-form", index))
+            .num_columns(2)
+            // Past the sections' indent, so the values line up with theirs.
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                if choice.style {
+                    // A style's name is its own, its shapes the selection it is used on.
+                    tool_row(ui, index, &mut *op, &choice, &mut request);
+                    if let Operation::Profile(p) = &mut *op {
+                        style_side_row(ui, index, p);
+                    }
+                    return;
+                }
+                let name = op.name_mut();
+                ui.label(t!(ui, "forms-name"));
+                ui.add(TextEdit::singleline(name).desired_width(field_width(ui, 200.0)));
+                ui.end_row();
+                ui.label(t!(ui, "forms-geometry"));
+                if surface {
+                    // docs/specs/surfacing.md §2.
+                    ui.label(t!(ui, "forms-whole-stock"))
+                        .on_hover_text(t!(ui, "forms-whole-stock-hover"));
+                    ui.end_row();
+                    tool_row(ui, index, &mut *op, &choice, &mut request);
+                    return;
+                }
+                let geometry = wrapped_cell(ui, |ui| {
+                    ui.label(&summary);
+                    let label = match choice.selected {
+                        0 => t!(ui, "forms-use-selection"),
+                        n => t!(ui, "forms-use-selection-count", count = n),
+                    };
+                    if ui
+                        .add_enabled(choice.selected > 0, egui::Button::new(label))
+                        .on_hover_text(format!(
+                            "{}\n{}",
+                            t!(ui, "forms-use-selection-hover"),
+                            choice.selection_text
+                        ))
+                        .on_disabled_hover_text(t!(ui, "forms-use-selection-disabled"))
+                        .clicked()
+                    {
+                        use_selection = true;
+                    }
+                });
+                flag(geometry.response, ui, "select");
+                ui.end_row();
                 tool_row(ui, index, &mut *op, &choice, &mut request);
                 if let Operation::Profile(p) = &mut *op {
-                    style_side_row(ui, index, p);
-                }
-                return;
-            }
-            let name = op.name_mut();
-            ui.label(t!(ui, "forms-name"));
-            ui.add(TextEdit::singleline(name).desired_width(field_width(ui, 200.0)));
-            ui.end_row();
-            ui.label(t!(ui, "forms-geometry"));
-            if surface {
-                // docs/specs/surfacing.md §2.
-                ui.label(t!(ui, "forms-whole-stock"))
-                    .on_hover_text(t!(ui, "forms-whole-stock-hover"));
-                ui.end_row();
-                tool_row(ui, index, &mut *op, &choice, &mut request);
-                return;
-            }
-            let geometry = wrapped_cell(ui, |ui| {
-                ui.label(&summary);
-                let label = match choice.selected {
-                    0 => t!(ui, "forms-use-selection"),
-                    n => t!(ui, "forms-use-selection-count", count = n),
-                };
-                if ui
-                    .add_enabled(choice.selected > 0, egui::Button::new(label))
-                    .on_hover_text(format!(
-                        "{}\n{}",
-                        t!(ui, "forms-use-selection-hover"),
-                        choice.selection_text
-                    ))
-                    .on_disabled_hover_text(t!(ui, "forms-use-selection-disabled"))
-                    .clicked()
-                {
-                    use_selection = true;
+                    ui.label(t!(ui, "forms-side"));
+                    let side_name = |ui: &egui::Ui, side: Side| match side {
+                        Side::Inside => t!(ui, "forms-side-inside"),
+                        Side::Outside => t!(ui, "forms-side-outside"),
+                        Side::On => t!(ui, "forms-side-on"),
+                    };
+                    let text = if *side_chosen {
+                        side_name(ui, p.side)
+                    } else {
+                        t!(ui, "forms-side-choose")
+                    };
+                    let side = ComboBox::from_id_salt(("side", index))
+                        .selected_text(text)
+                        .show_ui(ui, |ui| {
+                            for side in [Side::Outside, Side::Inside, Side::On] {
+                                let label = side_name(ui, side);
+                                if ui
+                                    .selectable_label(*side_chosen && p.side == side, label)
+                                    .clicked()
+                                {
+                                    p.side = side;
+                                    *side_chosen = true;
+                                }
+                            }
+                        });
+                    flag(side.response, ui, "side");
+                    ui.end_row();
                 }
             });
-            flag(geometry.response, ui, "select");
-            ui.end_row();
-            tool_row(ui, index, &mut *op, &choice, &mut request);
-            if let Operation::Profile(p) = &mut *op {
-                ui.label(t!(ui, "forms-side"));
-                let side_name = |ui: &egui::Ui, side: Side| match side {
-                    Side::Inside => t!(ui, "forms-side-inside"),
-                    Side::Outside => t!(ui, "forms-side-outside"),
-                    Side::On => t!(ui, "forms-side-on"),
-                };
-                let text = if *side_chosen {
-                    side_name(ui, p.side)
-                } else {
-                    t!(ui, "forms-side-choose")
-                };
-                let side = ComboBox::from_id_salt(("side", index))
-                    .selected_text(text)
-                    .show_ui(ui, |ui| {
-                        for side in [Side::Outside, Side::Inside, Side::On] {
-                            let label = side_name(ui, side);
-                            if ui
-                                .selectable_label(*side_chosen && p.side == side, label)
-                                .clicked()
-                            {
-                                p.side = side;
-                                *side_chosen = true;
-                            }
-                        }
-                    });
-                flag(side.response, ui, "side");
-                ui.end_row();
-            }
-        });
+    });
     match &mut *op {
         Operation::Profile(p) => {
             let cut = t!(

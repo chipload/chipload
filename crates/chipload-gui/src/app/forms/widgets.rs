@@ -3,6 +3,7 @@
 //! rotation cells, reset buttons, and how lengths and feeds are written.
 
 use super::*;
+use eframe::egui::Color32;
 
 pub(in crate::app) fn mm(value: &mut f64) -> crate::units::Field<'_> {
     crate::units::length(value)
@@ -41,8 +42,100 @@ pub(super) const FORM_WIDTH_ID: &str = "form-width";
 /// The width the Properties forms get this frame: their label columns follow it, so the
 /// panel can be made narrow (user report 2026-10-17) and every grid still lines up.
 pub(in crate::app) fn set_form_width(ui: &egui::Ui) {
-    let width = ui.available_width();
-    ui.data_mut(|d| d.insert_temp(egui::Id::new(FORM_WIDTH_ID), width));
+    // Inside a card: its margins and an operation's stripe left out, for every form, so
+    // label columns worked out before a card starts fit in it.
+    let width = ui.available_width() - CARD_MARGINS;
+    ui.data_mut(|d| {
+        d.insert_temp(egui::Id::new(FORM_WIDTH_ID), width);
+        // A new frame of the panel: no heading or stripe yet.
+        d.remove::<String>(egui::Id::new(HEADING_ID));
+        d.remove::<Color32>(egui::Id::new(STRIPE_ID));
+    });
+}
+
+/// Where the Properties panel's heading is kept this frame, so a form's first section of
+/// the same name doesn't say it again (docs/specs/look-and-feel.md decision 14).
+pub(in crate::app) const HEADING_ID: &str = "form-heading";
+/// Where an operation's colour is kept for the stripe down its cards (decision 15).
+const STRIPE_ID: &str = "form-stripe";
+/// A choice box's or text field's width in a card (decision 16), less in a narrow panel.
+const FIELD_WIDTH: f32 = 110.0;
+/// The least width of a number field in a card: wider for a longer number.
+const NUMBER_WIDTH: f32 = 72.0;
+/// The stripe down an operation's cards, points.
+const STRIPE: f32 = 3.0;
+/// A section's indent inside its card, points.
+const CARD_INDENT: f32 = 6.0;
+/// A card's margins left and right, with the stripe.
+const CARD_MARGINS: f32 = 8.0 + STRIPE + 8.0;
+
+/// Fields side by side in a card's value cell: `n` of them share its width, so they fit
+/// beside each other (decision 16). Called inside the row's `horizontal`, `extra` points
+/// left for what else is on the row.
+pub(in crate::app) fn share_row(ui: &mut egui::Ui, n: usize, extra: f32) {
+    let gap = ui.spacing().item_spacing.x;
+    let room = field_width(ui, f32::INFINITY) - extra - gap * (n.saturating_sub(1)) as f32;
+    let each = (room / n.max(1) as f32).max(40.0);
+    let spacing = ui.spacing_mut();
+    spacing.interact_size.x = spacing.interact_size.x.min(each);
+}
+
+/// The heading the panel shows this frame.
+pub(in crate::app) fn set_heading(ui: &egui::Ui, text: &str) {
+    ui.data_mut(|d| d.insert_temp(egui::Id::new(HEADING_ID), text.to_owned()));
+}
+
+/// Give the cards drawn after this, this frame, a stripe of `color`: an operation's.
+pub(in crate::app) fn set_card_stripe(ui: &egui::Ui, color: Color32) {
+    ui.data_mut(|d| d.insert_temp(egui::Id::new(STRIPE_ID), color));
+}
+
+/// A card: a form's section on a raised shade, with an operation's stripe down its left
+/// edge when one is set (docs/specs/look-and-feel.md §5). Its fields are one width.
+pub(in crate::app) fn card<R>(ui: &mut egui::Ui, contents: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    let palette = crate::style::palette(ui.visuals());
+    let stripe = ui.data(|d| d.get_temp::<Color32>(egui::Id::new(STRIPE_ID)));
+    let left = 8 + if stripe.is_some() { STRIPE as i8 } else { 0 };
+    let shown = egui::Frame::new()
+        .fill(palette.card)
+        .corner_radius(crate::style::CARD_ROUNDING)
+        .inner_margin(egui::Margin {
+            left,
+            right: 8,
+            top: 5,
+            bottom: 6,
+        })
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            // The card shows what belongs together: its rows need little indent.
+            ui.spacing_mut().indent = CARD_INDENT;
+            let width = field_width(ui, FIELD_WIDTH);
+            // Room for a button beside a number in a narrow panel.
+            let number = NUMBER_WIDTH.min(0.6 * field_width(ui, f32::INFINITY));
+            let spacing = ui.spacing_mut();
+            spacing.interact_size.x = number;
+            spacing.combo_width = width;
+            spacing.text_edit_width = width;
+            contents(ui)
+        });
+    if let Some(color) = stripe {
+        let rect = shown.response.rect;
+        let radius = f32::from(crate::style::CARD_ROUNDING);
+        let band =
+            egui::Rect::from_min_max(rect.min, egui::pos2(rect.left() + STRIPE, rect.bottom()));
+        ui.painter().rect_filled(
+            band,
+            egui::CornerRadius {
+                nw: radius as u8,
+                sw: radius as u8,
+                ne: 0,
+                se: 0,
+            },
+            color,
+        );
+    }
+    ui.add_space(6.0);
+    shown.inner
 }
 
 /// The forms' width this frame (`set_form_width`); unbounded outside the panel.
@@ -150,6 +243,31 @@ pub(super) fn section_shown<R>(
     look: SectionLook,
     rows: impl FnOnce(&mut egui::Ui) -> R,
 ) -> Option<R> {
+    card(ui, |ui| {
+        section_in_card(ui, key, title, summary, marked, look, rows)
+    })
+}
+
+/// A section's header and rows, in its card. A section named as the panel's heading shows
+/// its rows alone, always open: the heading names it (decision 14).
+fn section_in_card<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    marked: bool,
+    look: SectionLook,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
+    let heading = ui.data(|d| d.get_temp::<String>(egui::Id::new(HEADING_ID)));
+    if heading.as_deref() == Some(title) && !marked {
+        labels_weak(ui);
+        let shown = Grid::new(("section-grid", key))
+            .num_columns(2)
+            .min_col_width(look.labels + ui.spacing().indent)
+            .show(ui, rows);
+        return Some(shown.inner);
+    }
     let mut header = egui::text::LayoutJob::default();
     let style = ui.style().clone();
     if marked {
@@ -282,6 +400,7 @@ pub(super) fn position_cells(
     let (x, y) = at;
     let mut finished = false;
     ui.horizontal(|ui| {
+        share_row(ui, 2, 30.0);
         let (mut cx, mut cy) = (x0, y0);
         for (value, axis) in [(&mut cx, "X "), (&mut cy, "Y ")] {
             let response = ui.add(mm_field(value).prefix(axis));
@@ -303,6 +422,7 @@ pub(super) fn position_cells(
 pub(super) fn rotation_cells(ui: &mut egui::Ui, rotation: &mut f64, reset_hover: &str) -> bool {
     let mut finished = false;
     ui.horizontal(|ui| {
+        share_row(ui, 1, 100.0);
         let response = ui.add(
             crate::units::number(ui, rotation)
                 .speed(1.0)

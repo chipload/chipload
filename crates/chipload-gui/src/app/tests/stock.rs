@@ -38,8 +38,10 @@ fn the_browser_row_shows_the_thickness_and_opens_the_stock() {
     row.click();
     h.run_steps(3);
     assert_eq!(h.state().focus, Focus::Stock);
-    let summary = format!("{} mm", super::super::forms::len_in(Units::Mm, thickness));
-    assert!(h.query_by_label_contains(&summary).is_some(), "{summary}");
+    // The form, named by the panel's heading, shows its rows at once, the thickness first.
+    assert!(h.query_by_label("Thickness").is_some());
+    let value = format!("{thickness:.1} mm");
+    assert!(h.query_by_value(&value).is_some(), "{value}");
 }
 
 /// A click on the stock's edge, where no shape is, opens it; inside the board it doesn't.

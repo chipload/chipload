@@ -4,7 +4,8 @@
 //! packaging/docs/screenshots.sh, which sets `CHIPLOAD_SHOTS_OUT` (the folder to write to),
 //! `CHIPLOAD_SHOTS_LIBRARY` (a settings folder with a library, for `library.png` and
 //! `machine.png`) and
-//! `CHIPLOAD_SHOTS_LANGUAGE` (en unless set).
+//! `CHIPLOAD_SHOTS_LANGUAGE` (en unless set) and `CHIPLOAD_SHOTS_THEME` (dark unless
+//! `light`).
 use super::*;
 
 /// Name, project (from the repository's root), setup steps, window size.
@@ -155,6 +156,10 @@ fn screenshots() {
     let out = PathBuf::from(out);
     std::fs::create_dir_all(&out).unwrap();
     let language = std::env::var("CHIPLOAD_SHOTS_LANGUAGE").unwrap_or_else(|_| "en".into());
+    let theme = match std::env::var("CHIPLOAD_SHOTS_THEME").as_deref() {
+        Ok("light") => chipload_job::library::Theme::Light,
+        _ => chipload_job::library::Theme::Dark,
+    };
     let library = std::env::var("CHIPLOAD_SHOTS_LIBRARY")
         .ok()
         .map(PathBuf::from);
@@ -187,6 +192,7 @@ fn screenshots() {
                 // The guide's pictures show the work, not the question about new versions.
                 app.updates.bar_closed = true;
                 app.set_language(&language);
+                app.prefs.theme = theme;
                 assert!(app.open(&project), "{}", project.display());
                 app.screenshot_setup(&cc.egui_ctx, steps);
                 app

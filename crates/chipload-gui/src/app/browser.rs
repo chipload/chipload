@@ -9,6 +9,7 @@ use super::shortcuts::with_keys;
 use super::*;
 use crate::i18n::Lang;
 use crate::icons::{self, Icon};
+use crate::style::Tint;
 
 /// A row's height, points.
 pub(super) const ROW_HEIGHT: f32 = 22.0;
@@ -29,6 +30,8 @@ pub(super) struct Row {
     eye: Option<bool>,
     tick: Option<bool>,
     icon: Option<(Icon, Option<Color32>)>,
+    /// A quiet colour for the icon by what the row is (docs/specs/look-and-feel.md §4).
+    tint: Option<crate::style::Tint>,
     label: String,
     trailing: String,
     selected: bool,
@@ -59,6 +62,7 @@ impl Row {
             eye: None,
             tick: None,
             icon: None,
+            tint: None,
             label: label.into(),
             trailing: String::new(),
             selected: false,
@@ -95,6 +99,13 @@ impl Row {
 
     pub(super) fn icon(mut self, icon: Icon) -> Self {
         self.icon = Some((icon, None));
+        self
+    }
+
+    /// The icon in a quiet colour for what the row is: shapes, the board, tools.
+    pub(super) fn icon_tinted(mut self, icon: Icon, tint: crate::style::Tint) -> Self {
+        self.icon = Some((icon, None));
+        self.tint = Some(tint);
         self
     }
 
@@ -233,7 +244,8 @@ impl Row {
                 egui::pos2(x + ICON / 2.0, rect.center().y),
                 vec2(ICON, ICON),
             );
-            let color = match color {
+            let tint = self.tint.map(|t| crate::style::tint(t, visuals.dark_mode));
+            let color = match color.or(tint) {
                 Some(c) if !self.selected && !self.dim => c,
                 _ => line_color,
             };
@@ -314,6 +326,7 @@ pub(super) fn folder(ui: &mut egui::Ui, row: Row, default: bool) -> (bool, RowRe
 
 /// The Properties panel's title: an icon and what the panel shows.
 pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, text: &str) {
+    super::forms::set_heading(ui, text);
     ui.horizontal(|ui| {
         let size = ui.text_style_height(&egui::TextStyle::Heading);
         let (rect, _) = ui.allocate_exact_size(vec2(size, size), Sense::hover());
@@ -555,7 +568,7 @@ impl ChiploadApp {
         }
         let problems = self.settings_problems().count();
         let job = Row::new(Id::new("browser-job"), 1, t!(ui, "browser-job-settings"))
-            .icon(Icon::Settings)
+            .icon_tinted(Icon::Settings, Tint::Tools)
             .selected(self.focus == Focus::Job)
             .alert(problems > 0)
             .show(ui);
@@ -591,7 +604,7 @@ impl ChiploadApp {
             0
         };
         let row = Row::new(Id::new(("browser-stock", id)), 3, t!(ui, "browser-stock"))
-            .icon(Icon::Material)
+            .icon_tinted(Icon::Material, Tint::Board)
             .trailing(summary)
             .selected(active && self.focus == Focus::Stock)
             .dim(!active)
@@ -654,7 +667,7 @@ impl ChiploadApp {
         let open = folder_open(ui, open_id, false);
         let out = Row::new(id, 1, t!(ui, "browser-tools"))
             .folder(open)
-            .icon(Icon::Tools)
+            .icon_tinted(Icon::Tools, Tint::Tools)
             .trailing(tools.len().to_string())
             .selected(self.focus == Focus::Tools)
             .alert(any)
@@ -770,7 +783,7 @@ impl ChiploadApp {
         let setups = edit.job.setups.clone();
         let active_setup = edit.job.active_setup_id();
         let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
-            .icon(Icon::Rectangle)
+            .icon_tinted(Icon::Rectangle, Tint::Board)
             .trailing(setups.len().to_string());
         let (open, folder_row) = folder(ui, row, true);
         let mut setup_action: Option<SetupAction> = None;
@@ -800,7 +813,7 @@ impl ChiploadApp {
                 let several = setups.len() > 1;
                 let mut row = Row::new(id, 2, &setup.name)
                     .folder(setup_open)
-                    .icon(Icon::Rectangle)
+                    .icon_tinted(Icon::Rectangle, Tint::Board)
                     .trailing(t!(ui, "browser-setup-parts", count = mine.len()))
                     .selected(self.focus == Focus::Setup(setup.id))
                     .dim(!setup.enabled || !is_active)
@@ -1604,20 +1617,7 @@ fn tool_change(ui: &mut egui::Ui, tools: &[i64]) {
 
 /// The kind's colour: pockets and profiles told apart at a glance.
 pub(super) fn kind_color(op: &Operation, dark: bool) -> Color32 {
-    match (op, dark) {
-        (Operation::Profile(_), true) => Color32::from_rgb(0x6f, 0xc8, 0xbd),
-        (Operation::Profile(_), false) => Color32::from_rgb(0x00, 0x79, 0x6b),
-        (Operation::Pocket(_), true) => Color32::from_rgb(0xc3, 0xa6, 0xf0),
-        (Operation::Pocket(_), false) => Color32::from_rgb(0x6a, 0x3d, 0xb8),
-        (Operation::Vcarve(_), true) => Color32::from_rgb(0xf0, 0xb4, 0x6a),
-        (Operation::Vcarve(_), false) => Color32::from_rgb(0xa8, 0x55, 0x00),
-        (Operation::Path(_), true) => Color32::from_rgb(0x8f, 0xbc, 0xf5),
-        (Operation::Path(_), false) => Color32::from_rgb(0x1f, 0x5c, 0xb0),
-        (Operation::Holes(_), true) => Color32::from_rgb(0xf0, 0x9a, 0xb4),
-        (Operation::Holes(_), false) => Color32::from_rgb(0xa8, 0x1e, 0x55),
-        (Operation::Surface(_), true) => Color32::from_rgb(0xb8, 0xc4, 0x8a),
-        (Operation::Surface(_), false) => Color32::from_rgb(0x5a, 0x6b, 0x1e),
-    }
+    crate::style::op_color(chipload_pipeline::styles::kind_of(op), dark)
 }
 
 /// *Delete* in a project tool's menu, refused (with why) while an operation uses it. Whether

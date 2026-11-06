@@ -68,12 +68,14 @@ impl ChiploadApp {
         else {
             return;
         };
-        let edit = egui::Grid::new("selection-place")
-            .num_columns(2)
-            .show(ui, |ui| {
-                crate::shape_form::place_rows(ui, egui::Id::new("selection-place"), bounds)
-            })
-            .inner;
+        let edit = crate::app::forms::card(ui, |ui| {
+            egui::Grid::new("selection-place")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    crate::shape_form::place_rows(ui, egui::Id::new("selection-place"), bounds)
+                })
+                .inner
+        });
         if let Some(edit) = edit {
             let (from, to, scale, degrees) = edit.transform(bounds);
             self.transform_shapes(&ids, from, to, scale, degrees);

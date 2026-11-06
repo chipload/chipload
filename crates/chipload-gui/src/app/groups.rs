@@ -404,25 +404,28 @@ impl ChiploadApp {
         else {
             return;
         };
-        egui::Grid::new("group-section")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label(t!(ui, "groups-name"));
-                let mut name = group.name.clone();
-                let response = ui.text_edit_singleline(&mut name);
-                if response.lost_focus() && name.trim() != group.name && !name.trim().is_empty() {
-                    self.rename_group(id, &name);
-                }
-                ui.end_row();
-                ui.label(t!(ui, "groups-holds"));
-                ui.label(t!(
-                    ui,
-                    "groups-holds-what",
-                    shapes = group.shapes.len(),
-                    texts = group.texts.len()
-                ));
-                ui.end_row();
-            });
+        crate::app::forms::card(ui, |ui| {
+            egui::Grid::new("group-section")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label(t!(ui, "groups-name"));
+                    let mut name = group.name.clone();
+                    let response = ui.text_edit_singleline(&mut name);
+                    if response.lost_focus() && name.trim() != group.name && !name.trim().is_empty()
+                    {
+                        self.rename_group(id, &name);
+                    }
+                    ui.end_row();
+                    ui.label(t!(ui, "groups-holds"));
+                    ui.label(t!(
+                        ui,
+                        "groups-holds-what",
+                        shapes = group.shapes.len(),
+                        texts = group.texts.len()
+                    ));
+                    ui.end_row();
+                })
+        });
         ui.horizontal(|ui| {
             if ui
                 .button(t!(ui, "groups-ungroup"))

@@ -253,12 +253,14 @@ pub(in crate::app) fn tool_form(
     let link = tool_link_of(edit, library, index);
     let tool = &mut edit.job.tools[index];
     let mut removed = false;
-    Grid::new(("tool-form", id))
-        .num_columns(2)
-        .min_col_width(label_width(ui))
-        .show(ui, |ui| {
-            removed = tool_body(ui, tool, &at, &users, library, link, &mut request);
-        });
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("tool-form", id))
+            .num_columns(2)
+            .min_col_width(label_width(ui))
+            .show(ui, |ui| {
+                removed = tool_body(ui, tool, &at, &users, library, link, &mut request);
+            })
+    });
     if removed {
         edit.job.tools.remove(index);
         return Some(JobRequest::ToolRemoved);
@@ -482,6 +484,7 @@ pub(in crate::app) fn machine_rows(
     if let Some(t) = &mut machine.travel {
         ui.label("");
         ui.horizontal(|ui| {
+            share_row(ui, 3, 0.0);
             flag(ui.add(mm(&mut t.x)), ui, "machine.travel.x");
             flag(ui.add(mm(&mut t.y)), ui, "machine.travel.y");
             flag(ui.add(mm(&mut t.z)), ui, "machine.travel.z");
