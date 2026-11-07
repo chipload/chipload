@@ -8,6 +8,8 @@ rapids and spindle start-up, with one line per operation. With several
 With several tools, it also gives a time per file and the number of tool changes. Hovering an operation in the
 Browser shows its time, and so does the setup sheet.
 
+Hover the total to see what it leaves out:
+
 - **Feeds as programmed:** the estimate uses the programmed feeds, and moves at the full
   feed from start to end.
 - **Real time is longer:** a real machine slows down in corners and while accelerating.
@@ -47,8 +49,8 @@ When only the active part is previewed (*All parts* off), the other parts weren'
 planned: their section asks you to generate. A part that is off says so, and a part
 without operations says *No operations.*
 
-The report ends its time lines with the whole job's lengths and lifts (*In all: …*), the
-moves between operations included. `chipload plan` gives each operation's numbers on its
+`chipload run` ends its time lines with the whole job's lengths and lifts (*In all: …*),
+the moves between operations included. `chipload plan` gives each operation's numbers on its
 line, and each part's on its line when there are two parts or more. `--json` has them for
 each operation and the job: `cutting_mm`, `plunge_mm`, `rapid_mm`, `lifts`, and the
 seconds `cutting_s` (plunges included), `plunge_s` and `rapid_s`; and in `estimate.parts`, for each part that was planned,

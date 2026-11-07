@@ -21,6 +21,23 @@ fn the_report_and_the_cards_show_the_estimated_time() {
     );
     // Not again among the lines: they have the notes.
     assert!(!app.report.iter().any(|l| l.starts_with("Estimated time")));
+    // What it leaves out is the total's hover; the lengths in all are in the Statistics
+    // sections, not in the report (docs/specs/report-details.md).
+    let hover = table
+        .hover
+        .as_ref()
+        .unwrap()
+        .english()
+        .trim_start()
+        .to_string();
+    assert!(hover.starts_with("At the programmed feeds"), "{hover}");
+    assert!(
+        !app.report
+            .iter()
+            .any(|l| l.contains("At the programmed feeds"))
+    );
+    assert!(!app.report.iter().any(|l| l.starts_with("In all")));
+    assert!(app.report.iter().any(|l| l.starts_with("Work zero")));
     draw_sidebar(&mut app);
     // Out of date: the times go with the result.
     edit_feed(&mut app, 650.0);
@@ -298,4 +315,23 @@ mod copy_paste_mirror {
         assert!(!app.mirror_selected(Mirror::UpDown));
         assert!(app.status.as_ref().unwrap().0.contains("only drawn ones"));
     }
+}
+
+#[test]
+fn after_a_generate_the_notes_are_folded_under_details() {
+    use egui_kittest::kittest::Queryable;
+    // docs/specs/report-details.md: the headline, the warnings and the time table show;
+    // the rest is under a closed "Details".
+    let mut app = lower_part();
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let mut harness = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(700.0, 500.0))
+        .build_ui_state(|ui, app: &mut ChiploadApp| app.report_pane(ui), app);
+    harness.run();
+    let details = harness
+        .query_all_by_label_contains("Details (")
+        .next()
+        .is_some();
+    assert!(details, "no Details fold");
+    assert!(harness.query_by_label_contains("Work zero").is_none());
 }

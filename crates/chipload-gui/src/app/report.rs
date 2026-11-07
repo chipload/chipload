@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The report under the canvas (docs/specs/look-and-feel.md §6): the last action's result
-//! as a pill in its tone, its warnings in a card of their own, the time estimate as a
-//! table, the other notes (a line naming an operation selects it), and the drawing's facts.
+//! The report under the canvas (docs/specs/look-and-feel.md §6, report-details.md): the
+//! last action's result as a pill in its tone, its warnings in a card of their own, the
+//! time estimate as a table, and the rest (the other notes, a line naming an operation
+//! selecting it, and the drawing's facts) folded under *Details* after a generate.
 
 use chipload_core::chain::Contour;
 use chipload_dxf::{ImportReport, Severity};
@@ -89,6 +90,8 @@ pub struct Report {
 pub struct EstimateTable {
     /// "Estimated time: …", with its parts.
     pub total: Message,
+    /// What the estimate leaves out, shown when the pointer is on the total.
+    pub hover: Option<Message>,
     pub rows: Vec<EstimateRow>,
 }
 
@@ -350,40 +353,47 @@ impl ChiploadApp {
                 if let Some(table) = self.report.estimate.clone() {
                     super::forms::card_with(ui, None, |ui| self.estimate_table(ui, &table));
                 }
-                if !notes.is_empty() {
-                    super::forms::card_with(ui, None, |ui| {
-                        for line in &notes {
-                            self.report_line(ui, line, false);
-                        }
-                    });
-                }
-                if let Some(facts) = &self.drawing_facts {
-                    let mut title = RichText::new(facts.title(ui));
-                    if facts.issues > 0 {
-                        let tone = if facts.errors {
-                            Tone::Error
-                        } else {
-                            Tone::Warning
-                        };
-                        title = title.color(tone.color(ui.visuals()));
+                // The drawing's facts stand alone when its import has issues; otherwise,
+                // after a generate, they are details.
+                let facts = self.drawing_facts.clone();
+                let facts_apart = facts.as_ref().filter(|f| f.issues > 0);
+                let facts_folded = facts.as_ref().filter(|f| f.issues == 0);
+                if self.report.estimate.is_some() {
+                    let count = notes.len() + usize::from(facts_folded.is_some());
+                    if count > 0 {
+                        // Tests read the notes: they open folded sections.
+                        let open = ui.data(|d| {
+                            d.get_temp::<bool>(egui::Id::new(super::forms::OPEN_SECTIONS))
+                        }) == Some(true);
+                        let title = crate::style::bold(ui, t!(ui, "report-details", count = count));
+                        super::forms::card_with(ui, None, |ui| {
+                            egui::CollapsingHeader::new(title)
+                                .id_salt("report-details")
+                                .default_open(open)
+                                .show(ui, |ui| {
+                                    for line in &notes {
+                                        self.report_line(ui, line, false);
+                                    }
+                                    if let Some(facts) = facts_folded {
+                                        drawing_facts(ui, facts);
+                                    }
+                                });
+                        });
                     }
-                    let text = facts.text(ui);
-                    let open = facts.issues > 0;
-                    super::forms::card_with(ui, None, |ui| {
-                        egui::CollapsingHeader::new(title)
-                            .id_salt("drawing-facts")
-                            .default_open(open)
-                            .show(ui, |ui| {
-                                ScrollArea::horizontal()
-                                    .id_salt("drawing-facts-scroll")
-                                    .show(ui, |ui| {
-                                        ui.add(
-                                            egui::Label::new(RichText::new(text).monospace())
-                                                .extend(),
-                                        );
-                                    });
-                            });
-                    });
+                    if let Some(facts) = facts_apart {
+                        super::forms::card_with(ui, None, |ui| drawing_facts(ui, facts));
+                    }
+                } else {
+                    if !notes.is_empty() {
+                        super::forms::card_with(ui, None, |ui| {
+                            for line in &notes {
+                                self.report_line(ui, line, false);
+                            }
+                        });
+                    }
+                    if let Some(facts) = &facts {
+                        super::forms::card_with(ui, None, |ui| drawing_facts(ui, facts));
+                    }
                 }
             });
     }
@@ -392,7 +402,10 @@ impl ChiploadApp {
     /// about an operation opening it.
     fn estimate_table(&mut self, ui: &mut egui::Ui, table: &EstimateTable) {
         let units = crate::units::display(ui.ctx()).into();
-        ui.label(crate::style::bold(ui, table.total.render(ui.lang(), units)));
+        let total = ui.label(crate::style::bold(ui, table.total.render(ui.lang(), units)));
+        if let Some(hover) = &table.hover {
+            total.on_hover_text(hover.render(ui.lang(), units).trim_start());
+        }
         if table.rows.is_empty() {
             return;
         }
@@ -467,6 +480,30 @@ impl ChiploadApp {
             }
         }
     }
+}
+
+/// The drawing's facts under their title (its contours and issues), open when it has issues.
+fn drawing_facts(ui: &mut egui::Ui, facts: &DrawingFacts) {
+    let mut title = RichText::new(facts.title(ui));
+    if facts.issues > 0 {
+        let tone = if facts.errors {
+            Tone::Error
+        } else {
+            Tone::Warning
+        };
+        title = title.color(tone.color(ui.visuals()));
+    }
+    let text = facts.text(ui);
+    egui::CollapsingHeader::new(title)
+        .id_salt("drawing-facts")
+        .default_open(facts.issues > 0)
+        .show(ui, |ui| {
+            ScrollArea::horizontal()
+                .id_salt("drawing-facts-scroll")
+                .show(ui, |ui| {
+                    ui.add(egui::Label::new(RichText::new(text).monospace()).extend());
+                });
+        });
 }
 
 #[cfg(test)]

@@ -109,6 +109,8 @@ orange `#f29e38` (the tool, and only the tool), light `#f3f5f0`, dark `#1d2025`.
     from, so the command line and the setup sheet read as before, byte for byte.
 21. **The other notes** (the cut outline, lengths and lifts, what the estimate leaves out,
     the work zero, facts) follow in a card, and the drawing's facts in one of their own.
+    Changed 2026-11-07 (docs/specs/report-details.md): after a generate they are folded
+    under *Details*, the lengths in all left out and the caveat in the total's hover.
 
 ## 7. A tidier Browser (proposal 5)
 

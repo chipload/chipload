@@ -1,4 +1,5 @@
 report-heading = Отчёт
+report-details = Подробности ({ $count })
 report-drawing-title = Чертёж: { $contours ->
     [one] { $contours } контур
     [few] { $contours } контура

@@ -228,6 +228,16 @@ With nothing picked, Properties says how to pick something.
 
 ![Properties: a drawn polyline selected, with its points, above the project's settings](images/properties.png)
 
+## The Report
+
+The **Report** says what the last action did: its result first, green, amber or red, then
+any warnings, each opening its operation when clicked. After a generate, the time table
+follows: the total (hover it for what the estimate leaves out) and a line for each part,
+operation and file. Everything else, such as the cut outline, notes about operations,
+where the work zero is and the drawing's facts, is under **Details**, closed at first and
+kept open once you open it. A drawing whose import had issues shows its facts on their
+own, open.
+
 ## Arranging the panels
 
 The **Browser**, **Properties**, **Shapes** (the [shape library](drawings/shape-library.md))

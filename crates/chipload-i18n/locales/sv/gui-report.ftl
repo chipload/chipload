@@ -3,6 +3,7 @@
 
 # The panel's name, a noun.
 report-heading = Rapport
+report-details = Detaljer ({ $count })
 # The heading of the drawing's facts. An issue is something the import repaired or ignored.
 report-drawing-title = Ritning: { $contours ->
         [one] { $contours } kontur

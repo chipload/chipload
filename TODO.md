@@ -33,9 +33,11 @@ a quick workflow first.
   Stock as its own item, folded operation sections, a default stock thickness, the Windows
   startup fix. Same G-code as 0.32; 0.32 can't open a project with tabs `along`, nor a
   `materials.json` with `default_thickness`.
-- **Tagged 0.34.0** (2026-11-06, draft, for the user to try and publish): the new look
-  (shades, the logo's green, cards, Inter), part statistics, a through cut's checker line
-  as a note, the empty-setup fix. Same G-code and schema (35) as 0.33.1. Two-sided work is
+- **Tagged 0.34.0** (2026-11-07, again after the first draft was withdrawn; draft, for the
+  user to try and publish): the new look (shades, the logo's green, cards, Inter), part
+  statistics with a time per kind of move, a quieter report (details folded), the V-carve
+  floor left as one note per operation, a through cut's checker line as a note, the
+  empty-setup fix. Same G-code and schema (35) as 0.33.1. Two-sided work is
   for the next release.
 - **Releases**: the latest published is **0.33.1** (2026-11-04), then 0.33.0 (2026-11-03). Before it 0.32.0
   (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
@@ -228,7 +230,18 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### Not released yet
 
-### In 0.34.0 (tagged 2026-11-06)
+### In 0.34.0 (tagged 2026-11-07)
+
+- **A quieter report** (docs/specs/report-details.md, 2026-11-07): after a generate the
+  Report shows the headline, the warnings and the time table; the rest under a closed
+  *Details (n)*, the drawing's facts too unless its import had issues; the whole job's
+  lengths left out (the Statistics sections have them), the estimate's caveat in the
+  total's hover. The command line and the setup sheet unchanged.
+- **V-carve floor left, a note** (2026-11-07): without a floor pass, "the floor is left at
+  the surface" is one note per operation naming its shapes, not a warning per shape; off
+  the setup sheet's *Watch out*.
+- **Statistics, a time per kind of move** (2026-11-07): Cutting, Plunging and Rapids each
+  with its length and time; `--json` adds `plunge_s`.
 
 - **Part statistics** (docs/specs/part-statistics.md, 2026-11-06): a part's properties end
   with a Statistics section, its operations' time, lengths and lifts summed with its

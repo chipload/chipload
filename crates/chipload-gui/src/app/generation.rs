@@ -419,22 +419,12 @@ impl ChiploadApp {
         };
         report.push(Tone::Good, done);
         let several = result.files.len() > 1;
-        report.estimate = Some(estimate_table(job, &result.estimate, several));
-        // The estimate's other lines (the cut outline, the lengths, what it leaves out) are
-        // notes: all but its total and its rows, which the table shows.
-        let rows = chipload_pipeline::estimate::estimate_rows(job, &result.estimate, several);
-        let lines = chipload_pipeline::estimate::estimate_lines(
-            job,
-            &result.estimate,
-            several,
-            chipload_pipeline::estimate::Lengths::Totals,
-        );
-        let first_row = 1 + usize::from(result.estimate.outline.is_some());
-        for (i, line) in lines.into_iter().enumerate() {
-            if i == 0 || (first_row..first_row + rows.len()).contains(&i) {
-                continue;
-            }
-            report.push_message(Tone::Info, line.message, line.operation);
+        // The estimate's table, its caveat in the total's hover; the cut outline is a note.
+        // The lengths in all are in the Statistics sections (docs/specs/report-details.md).
+        let (table, outline) = estimate_table(job, &result.estimate, several);
+        report.estimate = Some(table);
+        if let Some(outline) = outline {
+            report.push_message(Tone::Info, outline, None);
         }
         for note in &result.notes {
             report.push_message(Tone::Warning, note.message.clone(), note.operation);
@@ -696,24 +686,34 @@ impl Default for Toolpath {
 }
 
 /// The time estimate as the report's table: the total, then each part, operation and file
-/// (docs/specs/look-and-feel.md §6).
+/// (docs/specs/look-and-feel.md §6), what it leaves out in the total's hover; and the cut
+/// outline's line, if any.
 fn estimate_table(
     job: &Job,
     estimate: &chipload_pipeline::estimate::Estimate,
     several_files: bool,
-) -> super::report::EstimateTable {
+) -> (super::report::EstimateTable, Option<Message>) {
     use super::report::{EstimateRow, EstimateTable, RowLabel, Target};
     use chipload_pipeline::estimate::{RowKind, duration_message, estimate_lines, estimate_rows};
-    let total = estimate_lines(
+    let mut lines: Vec<Message> = estimate_lines(
         job,
         estimate,
         several_files,
         chipload_pipeline::estimate::Lengths::Without,
     )
     .into_iter()
-    .next()
     .map(|n| n.message)
-    .unwrap_or_else(|| duration_message(estimate.total));
+    .collect();
+    // The lines: the total, the cut outline if any, the rows, and the caveat last.
+    let caveat = lines.pop();
+    let total = match lines.is_empty() {
+        true => duration_message(estimate.total),
+        false => lines.remove(0),
+    };
+    let outline = match estimate.outline {
+        Some(_) if !lines.is_empty() => Some(lines.remove(0)),
+        _ => None,
+    };
     let rows = estimate_rows(job, estimate, several_files)
         .into_iter()
         .map(|row| {
@@ -740,7 +740,12 @@ fn estimate_table(
             }
         })
         .collect();
-    EstimateTable { total, rows }
+    let table = EstimateTable {
+        total,
+        hover: caveat,
+        rows,
+    };
+    (table, outline)
 }
 
 /// Whether the active setup has operations, on or off: one without has nothing to plan, and

@@ -3,6 +3,8 @@
 
 # The panel's name, a noun.
 report-heading = Report
+# The Report's fold under the time estimate after a generate: its notes and the drawing's facts, how many.
+report-details = Details ({ $count })
 # The heading of the drawing's facts. An issue is something the import repaired or ignored.
 report-drawing-title = Drawing: { $contours ->
         [one] { $contours } contour
