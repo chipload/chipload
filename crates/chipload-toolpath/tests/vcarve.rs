@@ -359,10 +359,35 @@ fn a_stroke_wider_than_the_cap_gets_walls_and_its_floor_is_reported() {
             assert!(dist_to_outline(&shape, p) <= 2.0 + TOL, "{p:?}");
         }
     }
-    assert_eq!(plan.notes.len(), 1, "{:?}", plan.notes);
-    let note = plan.notes[0].english();
+    // The floor left is a fact of the operation, not a warning.
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+    let note = plan
+        .floor_left
+        .as_ref()
+        .expect("a floor-left note")
+        .english();
     assert!(note.contains("contours #7"), "{note}");
     assert!(note.contains("floor pass"), "{note}");
+}
+
+/// Several wide strokes without a floor pass give one note, every contour in it, in order
+/// (the user, 2026-11-07: "enough to say it once").
+#[test]
+fn several_wide_strokes_give_one_floor_note() {
+    let shape = [
+        common::rect(9, 0.0, 0.0, 40.0, 10.0),
+        common::rect(2, 0.0, 20.0, 40.0, 10.0),
+        common::rect(5, 0.0, 40.0, 40.0, 10.0),
+    ];
+    let bit = bit(90.0, 0.0);
+    let plan = carve(&shape, &bit, 2.0);
+    assert!(plan.notes.is_empty(), "{:?}", plan.notes);
+    let note = plan
+        .floor_left
+        .as_ref()
+        .expect("a floor-left note")
+        .english();
+    assert!(note.starts_with("contours #2, #5, #9: "), "{note}");
 }
 
 /// The share of the floor cleared with an end mill of `radius` (1 when nothing is left).
@@ -381,10 +406,11 @@ fn a_floor_pass_that_fits_leaves_nothing_and_one_too_wide_gets_a_hint() {
     // A 3 mm end mill fits: the V-bit cleans the corners, nothing is left.
     let fits = plan_vcarve(&refs, &bit, 2.0, (0.0, 0.0), Some(1.5), 0.0).unwrap();
     assert!(fits.floors.is_empty(), "{:?}", fits.floors);
+    assert!(fits.notes.is_empty(), "{:?}", fits.notes);
     assert!(
-        fits.notes.is_empty(),
+        fits.floor_left.is_none(),
         "no floor-left note: {:?}",
-        fits.notes
+        fits.floor_left
     );
     assert_no_gouge(&shape, &fits, &bit);
     // A 12 mm one doesn't fit: the hint is about the floor's width.
@@ -422,11 +448,11 @@ fn the_bit_limits_the_depth_too() {
     let plan = carve(&shape, &small, 10.0);
     assert!((deepest(&plan) - 3.0).abs() < 1e-9);
     assert!(
-        plan.notes[0]
-            .english()
-            .contains("reaches at most 3.000 mm deep"),
+        plan.floor_left
+            .as_ref()
+            .is_some_and(|n| n.english().contains("reaches at most 3.000 mm deep")),
         "{:?}",
-        plan.notes
+        plan.floor_left
     );
 }
 

@@ -95,8 +95,12 @@ pub struct VcarvePlan {
     /// How many of `walks` each area has, in cut order: an area (a letter, the dot of an
     /// i) gets all its passes before the next (docs/specs/v-carve.md decision 13).
     pub areas: Vec<usize>,
-    /// Warnings: strokes wider than the depth allows, strokes narrower than the tip.
+    /// Warnings: strokes narrower than the tip.
     pub notes: Vec<Message>,
+    /// Without a floor pass: the contours whose floor between the walls is left at the
+    /// surface, all of them in one note for the operation, a fact rather than a warning
+    /// (the user, 2026-11-07; docs/specs/vcarve-wide-strokes.md §6).
+    pub floor_left: Option<Message>,
     /// The deepest any path goes, mm below the carved surface.
     pub deepest: f64,
     /// With a floor pass: each wide region's floor its end mill and the V-bit don't clear
@@ -140,6 +144,7 @@ pub fn plan_vcarve(
     let mut regions: Vec<(Graph, Vec<CarvePath>)> = Vec::new();
     let mut notes = Vec::new();
     let mut floors = Vec::new();
+    let mut floor_left_ids: Vec<usize> = Vec::new();
     for region in build_region(contours)? {
         let mut walls = Vec::new();
         let ids = ids_text(&region.contour_ids);
@@ -185,17 +190,7 @@ pub fn plan_vcarve(
                 None => {
                     axis.keep_within(reach);
                     if floor.is_none() {
-                        let note = if bit.deepest() < max_depth {
-                            Message::new("toolpath-vcarve-floor-left-bit")
-                                .arg("across", fixed3(bit.diameter))
-                        } else {
-                            Message::new("toolpath-vcarve-floor-left")
-                        };
-                        notes.push(
-                            note.arg("contours", ids.as_str())
-                                .arg("cap", fixed3(cap))
-                                .arg("wide", fixed3(2.0 * cap_radius)),
-                        );
+                        floor_left_ids.extend(&region.contour_ids);
                     }
                 }
             }
@@ -214,6 +209,19 @@ pub fn plan_vcarve(
         }
         regions.push((axis, walls));
     }
+    // One note for every wide region: the cap and the width are the operation's.
+    floor_left_ids.sort_unstable();
+    floor_left_ids.dedup();
+    let floor_left = (!floor_left_ids.is_empty()).then(|| {
+        let note = if bit.deepest() < max_depth {
+            Message::new("toolpath-vcarve-floor-left-bit").arg("across", fixed3(bit.diameter))
+        } else {
+            Message::new("toolpath-vcarve-floor-left")
+        };
+        note.arg("contours", ids_text(&floor_left_ids))
+            .arg("cap", fixed3(cap))
+            .arg("wide", fixed3(2.0 * cap_radius))
+    });
     let (paths, walks, areas) = areas_in_order(regions, bit, cap, start);
     let deepest = paths
         .iter()
@@ -224,6 +232,7 @@ pub fn plan_vcarve(
         walks,
         areas,
         notes,
+        floor_left,
         deepest,
         floors,
     })

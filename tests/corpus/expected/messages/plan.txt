@@ -339,8 +339,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v19/image_vcarve.chipload
 exit 0
 --- stdout
-warning: Operation 1 (Logo): contours #1, #3: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 1 (Logo): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 1 (Logo): contours #1, #2, #3, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Estimated time: 1 min 12 s (cutting 1 min 2 s, rapids 7 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
   Operation 1 (Logo): 1 min 9 s; cutting 902 mm, plunging 88 mm, rapids 563 mm, 24 lifts
@@ -406,8 +405,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v21/two_dxfs.chipload
 exit 0
 --- stdout
-warning: Operation 4 (Logo): contours #9, #11: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 4 (Logo): contours #10, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 4 (Logo): contours #9, #10, #11, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Operation 1: a ring starts at (64.000, 35.500) (default)
 Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
@@ -439,8 +437,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v22/two_parts.chipload
 exit 0
 --- stdout
-warning: Operation 3 (Logo): contours #9, #11: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 3 (Logo): contours #10, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 3 (Logo): contours #9, #10, #11, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Operation 1: a ring starts at (64.000, 35.500) (default)
 Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
@@ -475,8 +472,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v23/turned_parts.chipload
 exit 0
 --- stdout
-warning: Operation 3 (Logo): contours #9, #11: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 3 (Logo): contours #10, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 3 (Logo): contours #9, #10, #11, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Operation 1: a ring starts at (64.000, 35.500) (default)
 Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
@@ -647,8 +643,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v29/surface.chipload
 exit 0
 --- stdout
-warning: Operation 4 (Logo): contours #9, #11: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 4 (Logo): contours #10, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 4 (Logo): contours #9, #10, #11, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Operation 2: a ring starts at (64.000, 35.500) (default)
 Operation 2: a ring starts at (82.000, 85.000) (default)
 Operation 2: a ring starts at (31.000, 103.000) (default)
@@ -747,7 +742,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v33/vcarve_floor.chipload
 exit 0
 --- stdout
-warning: Operation 1 (Sign): contours #2, #4: with the 3 mm end mill, 94 % of the floor is cleared; one of at most 1.3 mm would clear all of it
+note: Operation 1 (Sign): contours #2, #4: with the 3 mm end mill, 94 % of the floor is cleared; one of at most 1.3 mm would clear all of it
 Estimated time: 2 min 9 s (cutting 1 min 53 s, rapids 10 s, spindle 6 s), plus 1 tool change
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
   Operation 1 (Sign): 1 min 15 s; cutting 957 mm, plunging 114 mm, rapids 608 mm, 30 lifts
@@ -766,8 +761,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v34/two_setups.chipload
 exit 0
 --- stdout
-warning: Operation 3 (Logo): contours #9, #11: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 3 (Logo): contours #10, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 3 (Logo): contours #9, #10, #11, #12: wider than a carve at most 3.000 mm deep reaches (3.664 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Operation 1: a ring starts at (64.000, 35.500) (default)
 Operation 1: a ring starts at (82.000, 85.000) (default)
 Operation 1: a ring starts at (31.000, 103.000) (default)
@@ -796,8 +790,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v34/vcarve_step_down.chipload
 exit 0
 --- stdout
-warning: Operation 1 (Sign): contours #1, #3: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 1 (Sign): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 1 (Sign): contours #1, #2, #3, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Estimated time: 1 min 29 s (cutting 1 min 17 s, rapids 9 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
   Operation 1 (Sign): 1 min 26 s; cutting 1.2 m, plunging 115 mm, rapids 746 mm, 32 lifts
@@ -900,8 +893,7 @@ Planned … moves.
 $ chipload plan tests/corpus/jobs/v35/vcarve_step_down.chipload
 exit 0
 --- stdout
-warning: Operation 1 (Sign): contours #1, #3: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
-warning: Operation 1 (Sign): contours #2, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+note: Operation 1 (Sign): contours #1, #2, #3, #4: wider than a carve at most 3.500 mm deep reaches (4.241 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
 Estimated time: 1 min 28 s (cutting 1 min 16 s, rapids 9 s, spindle 3 s)
 Cut outline: 80.488 × 38.526 mm (X 5.738 … 86.226, Y 5.736 … 44.262, the tool included): the smallest stock that holds the job.
   Operation 1 (Sign): 1 min 25 s; cutting 1.2 m, plunging 98 mm, rapids 734 mm, 32 lifts
