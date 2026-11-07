@@ -5,9 +5,9 @@
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
     ARRAY_MOST, AlignTo, Combine, Corners, Cut, Edited, OffsetSide, Polar, align_shapes,
-    array_grid, array_polar, break_shape, combine_shapes, cut_shape_corners, distribute_shapes,
-    extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at, offset_shapes,
-    shape_corners, trim_preview, trim_shape,
+    arrange_units_in, array_grid, array_polar, break_shape, combine_shapes, cut_shape_corners,
+    distribute_shapes, extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at,
+    offset_shapes, shape_corners, trim_preview, trim_shape,
 };
 
 use super::*;
@@ -720,9 +720,39 @@ impl ChiploadApp {
         });
     }
 
-    /// Align or distribute the selected drawn shapes (§7), as one undo step.
+    /// The selected shapes Align and Distribute take, and how many units they make: drawn
+    /// shapes, and whole groups with their texts' letters; a contour's shapes or a group
+    /// are one unit (docs/specs/arrange-whole.md). None when the selection can't be lined up.
+    fn arrange_selection(&self) -> Option<(Vec<u64>, usize)> {
+        let job = &self.edit.as_ref()?.job;
+        let ids: Vec<u64> = match &self.selection {
+            CanvasSelection::Shapes(ids) => ids.iter().copied().collect(),
+            // A group picked whole: the shapes of its contours, less those left out.
+            CanvasSelection::Whole {
+                of: Source::Group(_),
+                ..
+            } => {
+                let picked = self.selected_ids();
+                let shapes: BTreeSet<u64> = self
+                    .contours
+                    .iter()
+                    .filter(|c| picked.contains(&c.id))
+                    .flat_map(shapes_of)
+                    .collect();
+                with_twins(shapes, &self.twins).into_iter().collect()
+            }
+            _ => return None,
+        };
+        let units = arrange_units_in(job, &self.contours, &self.twins, &ids).ok()?;
+        (!units.is_empty()).then_some((ids, units.len()))
+    }
+
+    /// Align or distribute the selected shapes (§7), as one undo step.
     pub(super) fn arrange_selected(&mut self, arrange: Arrange) -> bool {
-        let ids = self.selected_drawn();
+        let ids = self
+            .arrange_selection()
+            .map(|(ids, _)| ids)
+            .unwrap_or_default();
         let Some(job) = self.job_with_operations() else {
             return false;
         };
@@ -742,8 +772,10 @@ impl ChiploadApp {
     /// Under Selection, with drawn shapes selected: align them to each other or the
     /// stock, and distribute three or more (§7).
     pub(super) fn arrange_ui(&mut self, ui: &mut egui::Ui) {
-        let count = self.selected_drawn().len();
-        if count == 0 || !self.can_draw() {
+        let Some((_, count)) = self.arrange_selection() else {
+            return;
+        };
+        if !self.can_draw() {
             return;
         }
         let mut clicked = None;

@@ -138,7 +138,8 @@ DXF first, [Explode](several.md)).
   the box round them all, or, with *To the stock*, with the stock's (then one shape is
   enough). Distribute, with three shapes or more, evens out the gaps between their boxes
   across or up and down; the outermost two stay put. Shapes move whole and keep their
-  numbers. On the command line: `chipload shape align P 2 3 --to left|centre|right|top|
+  numbers. Pieces that join into one outline (a slot drawn as four lines and arcs) line
+  up as one, and so does a [group](groups.md) with its texts. On the command line: `chipload shape align P 2 3 --to left|centre|right|top|
   middle|bottom [--stock]`, `chipload shape distribute P 2 3 4 --horizontal` (or
   `--vertical`).
 - New shapes on a layer that an operation selects by its name are cut by that operation

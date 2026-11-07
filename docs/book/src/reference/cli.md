@@ -847,7 +847,7 @@ chipload shape array-polar <PROJECT> <IDS>... [OPTIONS]
 
 ### `chipload shape align`
 
-Line up drawn shapes: each one's box side or middle with that of the box round them all, or the stock's; they move whole and keep their ids (docs/specs/drawing-editing.md §7)
+Line up drawn shapes: each one's box side or middle with that of the box round them all, or the stock's; they move whole and keep their ids. The shapes of one contour, and a group named whole, line up as one (docs/specs/drawing-editing.md §7, arrange-whole.md)
 
 ```text
 chipload shape align <PROJECT> <IDS>... [OPTIONS]
@@ -863,7 +863,7 @@ chipload shape align <PROJECT> <IDS>... [OPTIONS]
 
 ### `chipload shape distribute`
 
-Even out the gaps between drawn shapes' boxes, the first and last staying put (docs/specs/drawing-editing.md §7)
+Even out the gaps between drawn shapes' boxes, the first and last staying put; the shapes of one contour, and a group named whole, count as one (docs/specs/drawing-editing.md §7, arrange-whole.md)
 
 ```text
 chipload shape distribute <PROJECT> <IDS>... [OPTIONS]

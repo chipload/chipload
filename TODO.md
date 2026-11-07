@@ -230,6 +230,11 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### Not released yet
 
+- **Align and distribute move whole contours and groups** (docs/specs/arrange-whole.md,
+  issue #13, 2026-11-07): the pieces of a slot that chain into one closed contour line up
+  as one instead of falling apart; a group selected whole too, with its texts (also to
+  the stock, alone).
+
 - **The canvas follows its size** (docs/specs/canvas-resize.md, 2026-11-07): on a resize a
   fitted view is fitted again, any other keeps showing the area it showed.
 
