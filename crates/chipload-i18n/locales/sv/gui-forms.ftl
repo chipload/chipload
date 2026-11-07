@@ -474,7 +474,7 @@ forms-explode-dxf-hover = Gör om denna DXF:s former till ritade former som du k
 ## The Statistics section of an operation (docs/specs/operation-statistics.md)
 forms-section-statistics = Statistik
 forms-statistics-time = Tid
-forms-statistics-time-parts = { $time } (fräsning { $cutting }, snabbförflyttningar { $rapids })
+forms-statistics-length-time = { $length }, { $time }
 forms-statistics-cutting = Fräsning
 forms-statistics-cutting-hover = Matningsrörelser åt sidan: linjer, bågar, ramper och helixar, mätta i 3D
 forms-statistics-plunging = Nedgång

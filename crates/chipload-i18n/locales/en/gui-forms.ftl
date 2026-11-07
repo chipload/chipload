@@ -474,8 +474,8 @@ forms-explode-dxf-hover = Turn this DXF's shapes into drawn shapes you can edit;
 ## The Statistics section of an operation (docs/specs/operation-statistics.md)
 forms-section-statistics = Statistics
 forms-statistics-time = Time
-# $time, $cutting and $rapids are durations ("8 min 10 s").
-forms-statistics-time-parts = { $time } (cutting { $cutting }, rapids { $rapids })
+# A length ("1.4 m", "850 mm") and the time its moves take ("5 min 5 s").
+forms-statistics-length-time = { $length }, { $time }
 forms-statistics-cutting = Cutting
 forms-statistics-cutting-hover = Feed moves that go sideways: lines, arcs, ramps and helices, measured in 3D
 forms-statistics-plunging = Plunging

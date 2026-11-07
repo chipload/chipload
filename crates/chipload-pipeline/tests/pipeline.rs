@@ -1315,6 +1315,8 @@ mod cycle_time {
             c.cutting_s,
             8.0 / 300.0 * 60.0 + 300.0 / 1200.0 * 60.0
         ));
+        // Of the cutting time, the plunge's: 8 mm down at 300 mm/min.
+        assert!(near(c.plunge_s, 8.0 / 300.0 * 60.0), "{c:?}");
         assert!(near(c.seconds(), e.operations[0].1));
         assert_eq!(e.counts, c);
     }
@@ -1348,6 +1350,8 @@ mod cycle_time {
         // Down 3 mm while going 4 mm across.
         assert!(near(c.cutting_mm, 5.0), "{c:?}");
         assert!(near(c.plunge_mm, 3.0 + 1.5 + 1.5), "{c:?}");
+        // The pecks' feeds down at 100 mm/min; the helix is cutting, not plunging.
+        assert!(near(c.plunge_s, 6.0 / 100.0 * 60.0), "{c:?}");
         assert!(near(c.rapid_mm, 6.0 + 5.5 + 7.0 + 6.5 + 8.0), "{c:?}");
         assert_eq!(c.lifts, 3);
     }

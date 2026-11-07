@@ -77,7 +77,7 @@ fn the_section_is_last_in_the_properties_and_folds_to_the_time() {
     for label in ["Time", "Cutting", "Plunging", "Rapids", "Lifts"] {
         assert!(harness.query_by_label(label).is_some(), "{label}");
     }
-    let seconds = harness
+    let counts = harness
         .state()
         .toolpath
         .result
@@ -85,14 +85,32 @@ fn the_section_is_last_in_the_properties_and_folds_to_the_time() {
         .unwrap()
         .estimate
         .operation_counts[0]
-        .1
-        .seconds();
-    let time = chipload_pipeline::estimate::duration_text(seconds);
+        .1;
+    let time = chipload_pipeline::estimate::duration_text;
+    // The total alone, then each kind of move with its length and time.
     assert!(
         harness
-            .query_by_label_contains(&format!("{time} (cutting "))
-            .is_some(),
-        "{time}"
+            .query_all_by_label(&time(counts.seconds()))
+            .next()
+            .is_some()
+    );
+    let rapids = format!(
+        "{}, {}",
+        chipload_i18n::message::distance(counts.rapid_mm, chipload_i18n::Units::Mm),
+        time(counts.rapid_s)
+    );
+    assert!(
+        harness.query_all_by_label(&rapids).next().is_some(),
+        "{rapids}"
+    );
+    let cutting = format!(
+        "{}, {}",
+        chipload_i18n::message::distance(counts.cutting_mm, chipload_i18n::Units::Mm),
+        time(counts.cutting_s - counts.plunge_s)
+    );
+    assert!(
+        harness.query_all_by_label(&cutting).next().is_some(),
+        "{cutting}"
     );
 }
 

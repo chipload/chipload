@@ -406,7 +406,7 @@ forms-explode-dxf-hover = Преобразовать геометрию DXF в �
 ## The Statistics section of an operation (docs/specs/operation-statistics.md)
 forms-section-statistics = Статистика
 forms-statistics-time = Время
-forms-statistics-time-parts = { $time } (резание { $cutting }, быстрые ходы { $rapids })
+forms-statistics-length-time = { $length }, { $time }
 forms-statistics-cutting = Резание
 forms-statistics-cutting-hover = Рабочие ходы вбок: прямые, дуги, рампы и спирали, измеренные в 3D
 forms-statistics-plunging = Врезание

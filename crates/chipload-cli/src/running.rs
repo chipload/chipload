@@ -585,6 +585,7 @@ pub(crate) fn estimate_json(
 fn add_counts(value: &mut Value, counts: &chipload_pipeline::estimate::Counts) {
     value["cutting_mm"] = json!(counts.cutting_mm);
     value["plunge_mm"] = json!(counts.plunge_mm);
+    value["plunge_s"] = json!(counts.plunge_s);
     value["rapid_mm"] = json!(counts.rapid_mm);
     value["lifts"] = json!(counts.lifts);
 }

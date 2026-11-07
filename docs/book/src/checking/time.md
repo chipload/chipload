@@ -22,11 +22,12 @@ Browser shows its time, and so does the setup sheet.
 The last section of an operation's properties, **Statistics**, says what the operation
 does, from the last run. Folded, it shows the operation's time. Open, it shows:
 
-- **Time:** split into cutting and rapids.
+- **Time:** the total.
 - **Cutting:** the length of the feed moves that go sideways: lines, arcs, ramps and
-  helices, measured along the move (a ramp counts its way down too).
-- **Plunging:** the length of the feed moves straight down or up: plunges and drilling.
-- **Rapids:** the length of the rapid moves (G0), up and down included.
+  helices, measured along the move (a ramp counts its way down too), and their time.
+- **Plunging:** the length of the feed moves straight down or up: plunges and drilling,
+  and their time.
+- **Rapids:** the length of the rapid moves (G0), up and down included, and their time.
 - **Lifts:** how many times the tool goes up at rapid: between paths, and at each peck of
   a peck drill. Many lifts in an operation can mean time spent in the air.
 
@@ -50,7 +51,7 @@ The report ends its time lines with the whole job's lengths and lifts (*In all: 
 moves between operations included. `chipload plan` gives each operation's numbers on its
 line, and each part's on its line when there are two parts or more. `--json` has them for
 each operation and the job: `cutting_mm`, `plunge_mm`, `rapid_mm`, `lifts`, and the
-seconds `cutting_s` and `rapid_s`; and in `estimate.parts`, for each part that was planned,
+seconds `cutting_s` (plunges included), `plunge_s` and `rapid_s`; and in `estimate.parts`, for each part that was planned,
 with its `id`, `name`, `seconds` and `operations`.
 
 ## Chip load

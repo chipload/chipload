@@ -474,7 +474,7 @@ forms-explode-dxf-hover = Convertir las formas de este DXF en formas dibujadas q
 ## The Statistics section of an operation (docs/specs/operation-statistics.md)
 forms-section-statistics = Estadísticas
 forms-statistics-time = Tiempo
-forms-statistics-time-parts = { $time } (corte { $cutting }, rápidos { $rapids })
+forms-statistics-length-time = { $length }, { $time }
 forms-statistics-cutting = Corte
 forms-statistics-cutting-hover = Movimientos de avance hacia un lado: rectas, arcos, rampas y hélices, medidos en 3D
 forms-statistics-plunging = Penetración

@@ -46,6 +46,8 @@ pub struct Estimate {
 pub struct Counts {
     /// Seconds of the feed moves, plunges included.
     pub cutting_s: f64,
+    /// Of `cutting_s`, the seconds of the feed moves along Z alone (`plunge_mm`).
+    pub plunge_s: f64,
     /// Seconds at rapid.
     pub rapid_s: f64,
     /// Feed moves that move in X or Y (lines, arcs, ramps, helices), in 3D, mm.
@@ -66,6 +68,7 @@ impl Counts {
 
     fn add(&mut self, other: &Counts) {
         self.cutting_s += other.cutting_s;
+        self.plunge_s += other.plunge_s;
         self.rapid_s += other.rapid_s;
         self.cutting_mm += other.cutting_mm;
         self.plunge_mm += other.plunge_mm;
@@ -111,6 +114,7 @@ fn move_counts(program: &Program, rapid_rate: f64) -> Vec<Counts> {
                 },
                 (_, Some(feed)) if feed > 0.0 => Counts {
                     cutting_s: length / feed * 60.0,
+                    plunge_s: if in_xy { 0.0 } else { length / feed * 60.0 },
                     cutting_mm: if in_xy { length } else { 0.0 },
                     plunge_mm: if in_xy { 0.0 } else { length },
                     ..Counts::default()

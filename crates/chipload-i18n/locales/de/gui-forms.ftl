@@ -475,7 +475,7 @@ forms-explode-dxf-hover = Die Formen dieser DXF in gezeichnete Formen umwandeln,
 ## The Statistics section of an operation (docs/specs/operation-statistics.md)
 forms-section-statistics = Statistik
 forms-statistics-time = Zeit
-forms-statistics-time-parts = { $time } (Fräsen { $cutting }, Eilgänge { $rapids })
+forms-statistics-length-time = { $length }, { $time }
 forms-statistics-cutting = Fräsen
 forms-statistics-cutting-hover = Vorschubbewegungen zur Seite: Geraden, Bögen, Rampen und Helixe, in 3D gemessen
 forms-statistics-plunging = Eintauchen

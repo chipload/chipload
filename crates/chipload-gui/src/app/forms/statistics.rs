@@ -79,29 +79,41 @@ fn counted_rows(ui: &mut egui::Ui, counts: &Counts, units: chipload_i18n::Units)
     let lang = ui.lang();
     let duration = |seconds: f64| duration_message(seconds).render(lang, units);
     let distance = |mm: f64| chipload_i18n::message::distance(mm, units);
+    // The total, then each kind of move with its length and its time (the user,
+    // 2026-11-06: "add the time for each category after the length").
     ui.label(t!(ui, "forms-statistics-time"));
-    wrapped_cell(ui, |ui| {
+    ui.label(duration(counts.seconds()));
+    ui.end_row();
+    let rows = [
+        (
+            t!(ui, "forms-statistics-cutting"),
+            t!(ui, "forms-statistics-cutting-hover"),
+            counts.cutting_mm,
+            counts.cutting_s - counts.plunge_s,
+        ),
+        (
+            t!(ui, "forms-statistics-plunging"),
+            t!(ui, "forms-statistics-plunging-hover"),
+            counts.plunge_mm,
+            counts.plunge_s,
+        ),
+        (
+            t!(ui, "forms-statistics-rapids"),
+            t!(ui, "forms-statistics-rapids-hover"),
+            counts.rapid_mm,
+            counts.rapid_s,
+        ),
+    ];
+    for (label, hover, mm, seconds) in rows {
+        ui.label(label).on_hover_text(hover);
         ui.label(t!(
             ui,
-            "forms-statistics-time-parts",
-            time = duration(counts.seconds()),
-            cutting = duration(counts.cutting_s),
-            rapids = duration(counts.rapid_s)
-        ))
-    });
-    ui.end_row();
-    ui.label(t!(ui, "forms-statistics-cutting"))
-        .on_hover_text(t!(ui, "forms-statistics-cutting-hover"));
-    ui.label(distance(counts.cutting_mm));
-    ui.end_row();
-    ui.label(t!(ui, "forms-statistics-plunging"))
-        .on_hover_text(t!(ui, "forms-statistics-plunging-hover"));
-    ui.label(distance(counts.plunge_mm));
-    ui.end_row();
-    ui.label(t!(ui, "forms-statistics-rapids"))
-        .on_hover_text(t!(ui, "forms-statistics-rapids-hover"));
-    ui.label(distance(counts.rapid_mm));
-    ui.end_row();
+            "forms-statistics-length-time",
+            length = distance(mm),
+            time = duration(seconds)
+        ));
+        ui.end_row();
+    }
     ui.label(t!(ui, "forms-statistics-lifts"))
         .on_hover_text(t!(ui, "forms-statistics-lifts-hover"));
     ui.label(counts.lifts.to_string());
