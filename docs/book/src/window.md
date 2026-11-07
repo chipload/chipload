@@ -158,7 +158,9 @@ colour theme: dark, or light grey.
     as you left them there. Simulate starts as Edit is, the first time.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - the mode: **Edit | Simulate** (F6 switches);
-  - how you look: **Fit** (F), **Top** (T) and **3D**;
+  - how you look: **Fit** (F), **Top** (T) and **3D**. When the canvas changes size (the
+    window, or a panel opening or folding), a fitted view is fitted again, and a view you
+    zoomed or moved keeps showing the same area;
   - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),
     **Images** and **Grid** (G);
   - with two parts or more, **All parts**: the toolpath and simulation of every part, not

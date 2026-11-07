@@ -71,6 +71,68 @@ impl ChiploadApp {
         })
     }
 
+    /// The points a pending fit shows, None without a fit or with nothing to show yet.
+    fn fit_pending_points(&self) -> Option<Vec<crate::view::Point3>> {
+        if !self.fit_pending {
+            return None;
+        }
+        let points = self
+            .fit_only
+            .clone()
+            .unwrap_or_else(|| self.scene.fit_points(self.view.top_z));
+        (!points.is_empty()).then_some(points)
+    }
+
+    /// Where a fit puts things: not under the rulers (top view only, as they are).
+    fn fit_rect(&self, rect: egui::Rect) -> egui::Rect {
+        if self.prefs.show_rulers && self.view.is_top() {
+            let ruler = super::rulers::RULER;
+            egui::Rect::from_min_max(rect.min + egui::vec2(ruler, ruler), rect.max)
+        } else {
+            rect
+        }
+    }
+
+    /// The canvas follows a change of its size (docs/specs/canvas-resize.md): a view as a fit
+    /// left it is fitted again; any other keeps showing the area it showed. What it is meant
+    /// to show is taken again whenever the view changes (a pan, a zoom, a turn, a fit).
+    fn keep_view(&mut self, rect: egui::Rect, fitted: Option<Vec<crate::view::Point3>>) {
+        if let Some(points) = fitted {
+            self.view_kept = Some(KeptView {
+                rect,
+                view: self.view,
+                aim: Aim::Fit(points),
+            });
+            return;
+        }
+        let kept = match self.view_kept.take() {
+            // Changed since the last frame (or the first): it now shows what it shows.
+            Some(kept) if kept.view == self.view => kept,
+            other => {
+                let at = other.map_or(rect, |k| k.rect);
+                KeptView {
+                    rect: at,
+                    view: self.view,
+                    aim: Aim::Area(self.view.visible_area(at)),
+                }
+            }
+        };
+        if kept.rect != rect {
+            match &kept.aim {
+                Aim::Fit(points) => {
+                    let free = self.fit_rect(rect);
+                    self.view.fit(points, free);
+                }
+                Aim::Area(area) => self.view.show_area(*area, rect),
+            }
+        }
+        self.view_kept = Some(KeptView {
+            rect,
+            view: self.view,
+            aim: kept.aim,
+        });
+    }
+
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
         self.keep_drawing_in_view();
         self.scene.hide_toolpath = !self.display.toolpath;
@@ -94,24 +156,13 @@ impl ChiploadApp {
         // The selected shape's lengths, laid out before clicks are handled so a click on one
         // opens its entry (docs/specs/drawing-input.md §6).
         let labels = self.dimension_labels(ui, &painter);
-        if self.fit_pending {
-            let points = self
-                .fit_only
-                .clone()
-                .unwrap_or_else(|| self.scene.fit_points(self.view.top_z));
-            if !points.is_empty() {
-                // Not under the rulers (top view only, as they are).
-                let free = if self.prefs.show_rulers && self.view.is_top() {
-                    let ruler = super::rulers::RULER;
-                    egui::Rect::from_min_max(rect.min + egui::vec2(ruler, ruler), rect.max)
-                } else {
-                    rect
-                };
-                self.view.fit(&points, free);
-                self.fit_pending = false;
-                self.fit_only = None;
-            }
+        let fitted = self.fit_pending_points();
+        if let Some(points) = &fitted {
+            self.view.fit(points, self.fit_rect(rect));
+            self.fit_pending = false;
+            self.fit_only = None;
         }
+        self.keep_view(rect, fitted);
         let (alt, shift, ctrl, space) = ui.input(|i| {
             (
                 i.modifiers.alt,
@@ -1344,4 +1395,23 @@ fn paint_label(ui: &egui::Ui, painter: &egui::Painter, label: &DimensionLabel) {
         label.galley.clone(),
         visuals.text_color(),
     );
+}
+
+/// What the canvas view is meant to show, kept to show it again in a canvas of another
+/// size (docs/specs/canvas-resize.md).
+#[derive(Debug, Clone)]
+pub(super) struct KeptView {
+    /// The canvas as last drawn.
+    rect: egui::Rect,
+    /// The view as last drawn: another one means it was panned, zoomed or turned since.
+    view: crate::view::View,
+    aim: Aim,
+}
+
+#[derive(Debug, Clone)]
+enum Aim {
+    /// As a fit left it: these points, fitted again.
+    Fit(Vec<crate::view::Point3>),
+    /// This area, in camera units, all of it shown.
+    Area(crate::view::Area),
 }

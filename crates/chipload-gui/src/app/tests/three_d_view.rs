@@ -124,3 +124,64 @@ fn edit_and_simulate_each_keep_their_own_view() {
     assert!(app.display.three_d && !app.display.toolpath && !app.display.images);
     assert!(!app.show_drawing());
 }
+
+/// Draw the canvas alone for one frame in a screen of `size` points.
+fn draw_canvas_sized(app: &mut ChiploadApp, size: egui::Vec2) -> egui::Rect {
+    let ctx = egui::Context::default();
+    let input = egui::RawInput {
+        screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, size)),
+        ..Default::default()
+    };
+    let mut rect = egui::Rect::NOTHING;
+    let mut output = ctx.run_ui(input, |ui| {
+        rect = ui.available_rect_before_wrap();
+        app.canvas(ui);
+    });
+    output.textures_delta.clear();
+    rect
+}
+
+/// docs/specs/canvas-resize.md: a fitted view stays fitted when the canvas changes size.
+#[test]
+fn a_fitted_view_is_fitted_again_in_a_resized_canvas() {
+    let mut app = drawn_part();
+    app.fit_pending = true;
+    draw_canvas_sized(&mut app, egui::vec2(1200.0, 800.0));
+    let big = app.view;
+    let small = draw_canvas_sized(&mut app, egui::vec2(600.0, 400.0));
+    assert!(
+        app.view.scale < big.scale * 0.6,
+        "zoomed out with the canvas"
+    );
+    for p in app.scene.fit_points(app.view.top_z) {
+        let at = app.view.to_screen3(p);
+        assert!(small.expand(1.0).contains(at), "{at:?} outside {small:?}");
+    }
+    // Back to the first size: as the fit left it.
+    draw_canvas_sized(&mut app, egui::vec2(1200.0, 800.0));
+    assert!((app.view.scale - big.scale).abs() < 1e-9);
+}
+
+/// docs/specs/canvas-resize.md: a view zoomed in by hand keeps showing its area, and a
+/// shrink and a grow back give the same view.
+#[test]
+fn a_zoomed_view_keeps_its_area_in_a_resized_canvas() {
+    let mut app = drawn_part();
+    app.fit_pending = true;
+    draw_canvas_sized(&mut app, egui::vec2(1200.0, 800.0));
+    app.view.zoom_at(egui::pos2(300.0, 300.0), 4.0);
+    draw_canvas_sized(&mut app, egui::vec2(1200.0, 800.0));
+    let zoomed = app.view;
+    let middle = zoomed.to_world(egui::pos2(600.0, 400.0));
+    // Half as wide: the same area, at half the scale, its middle in the middle.
+    draw_canvas_sized(&mut app, egui::vec2(600.0, 800.0));
+    assert!((app.view.scale - zoomed.scale / 2.0).abs() < 1e-9);
+    let now = app.view.to_world(egui::pos2(300.0, 400.0));
+    assert!((now.0 - middle.0).abs() < 1e-6 && (now.1 - middle.1).abs() < 1e-6);
+    // Not a fit: the zoom stays.
+    assert!(app.view.scale > zoomed.scale / 4.0);
+    draw_canvas_sized(&mut app, egui::vec2(1200.0, 800.0));
+    assert!((app.view.scale - zoomed.scale).abs() < 1e-9);
+    assert!((app.view.offset.0 - zoomed.offset.0).abs() < 1e-6);
+    assert!((app.view.offset.1 - zoomed.offset.1).abs() < 1e-6);
+}

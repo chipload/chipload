@@ -230,6 +230,9 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### Not released yet
 
+- **The canvas follows its size** (docs/specs/canvas-resize.md, 2026-11-07): on a resize a
+  fitted view is fitted again, any other keeps showing the area it showed.
+
 ### In 0.34.0 (tagged 2026-11-07)
 
 - **A quieter report** (docs/specs/report-details.md, 2026-11-07): after a generate the

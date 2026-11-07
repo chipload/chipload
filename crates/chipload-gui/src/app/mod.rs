@@ -348,6 +348,8 @@ pub struct ChiploadApp {
     // The canvas.
     pub scene: Scene,
     view: View,
+    /// What the view is meant to show, to show again when the canvas changes size.
+    view_kept: Option<canvas::KeptView>,
     fit_pending: bool,
     /// A new project: its thickness field takes the keyboard when the setup is drawn.
     focus_thickness: bool,
@@ -432,6 +434,7 @@ impl Default for ChiploadApp {
             problems: Vec::new(),
             scene: Scene::default(),
             view: View::default(),
+            view_kept: None,
             fit_pending: false,
             focus_thickness: false,
             fit_only: None,

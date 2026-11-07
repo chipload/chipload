@@ -182,6 +182,13 @@ pub struct View {
     pub top_z: f64,
 }
 
+/// A rectangle in camera units: (from, to) across and up.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Area {
+    pub across: (f64, f64),
+    pub up: (f64, f64),
+}
+
 impl Default for View {
     fn default() -> Self {
         View {
@@ -263,6 +270,42 @@ impl View {
         let (w, h) = (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin);
         self.scale = (f64::from(screen.width()) / w).min(f64::from(screen.height()) / h);
         let centre = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+        let c = screen.center();
+        self.offset = (
+            f64::from(c.x) - centre.0 * self.scale,
+            f64::from(c.y) + centre.1 * self.scale,
+        );
+    }
+
+    /// What `screen` shows, in camera units (mm across and up, in the current orientation).
+    pub fn visible_area(self, screen: Rect) -> Area {
+        Area {
+            across: (
+                (f64::from(screen.min.x) - self.offset.0) / self.scale,
+                (f64::from(screen.max.x) - self.offset.0) / self.scale,
+            ),
+            up: (
+                (self.offset.1 - f64::from(screen.max.y)) / self.scale,
+                (self.offset.1 - f64::from(screen.min.y)) / self.scale,
+            ),
+        }
+    }
+
+    /// Show all of `area` in `screen`, centred, as large as fits: the same area stays in
+    /// view when the canvas changes size (docs/specs/canvas-resize.md).
+    pub fn show_area(&mut self, area: Area, screen: Rect) {
+        let width = area.across.1 - area.across.0;
+        let height = area.up.1 - area.up.0;
+        if !(width > 0.0 && height > 0.0) || screen.width() <= 0.0 || screen.height() <= 0.0 {
+            return;
+        }
+        self.scale = (f64::from(screen.width()) / width)
+            .min(f64::from(screen.height()) / height)
+            .clamp(1e-4, 1e5);
+        let centre = (
+            (area.across.0 + area.across.1) / 2.0,
+            (area.up.0 + area.up.1) / 2.0,
+        );
         let c = screen.center();
         self.offset = (
             f64::from(c.x) - centre.0 * self.scale,
@@ -1562,6 +1605,31 @@ mod tests {
         view.zoom_at(anchor, 3.0);
         let after = view.to_world(anchor);
         assert!((before.0 - after.0).abs() < 1e-9 && (before.1 - after.1).abs() < 1e-9);
+    }
+
+    /// docs/specs/canvas-resize.md: an area shown is the area visible, and in a narrower
+    /// screen all of it still shows, centred.
+    #[test]
+    fn an_area_shown_is_the_area_visible() {
+        let mut view = View::default();
+        let screen = Rect::from_min_size(Pos2::new(10.0, 20.0), Vec2::new(400.0, 200.0));
+        let area = Area {
+            across: (-50.0, 150.0),
+            up: (0.0, 100.0),
+        };
+        view.show_area(area, screen);
+        let seen = view.visible_area(screen);
+        let close =
+            |a: (f64, f64), b: (f64, f64)| (a.0 - b.0).abs() < 1e-9 && (a.1 - b.1).abs() < 1e-9;
+        assert!(
+            close(seen.across, area.across) && close(seen.up, area.up),
+            "{seen:?}"
+        );
+        let narrow = Rect::from_min_size(Pos2::new(10.0, 20.0), Vec2::new(200.0, 200.0));
+        view.show_area(area, narrow);
+        let seen = view.visible_area(narrow);
+        assert!(close(seen.across, (-50.0, 150.0)), "{seen:?}");
+        assert!(close(seen.up, (-50.0, 150.0)), "{seen:?}");
     }
 
     #[test]
