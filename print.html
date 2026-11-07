@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.33.1 user guide</title>
+        <title>Chipload 0.34.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0971b70d.js";
+            window.path_to_searchindex_js = "searchindex-b43bf1a1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9a5ad1b5.js"></script>
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.33.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -736,6 +736,14 @@ DRAW ▾, and Ctrl+Shift+C).</li>
 selection</em> button counts it (“Use selection (3)”) and takes it as the operation’s geometry.
 With nothing picked, Properties says how to pick something.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"><span class="img-wrapper"><img src="images/properties.png" alt="Properties: a drawn polyline selected, with its points, above the project’s settings"></span></label></p>
+<h2 id="the-report"><a class="header" href="#the-report">The Report</a></h2>
+<p>The <strong>Report</strong> says what the last action did: its result first, green, amber or red, then
+any warnings, each opening its operation when clicked. After a generate, the time table
+follows: the total (hover it for what the estimate leaves out) and a line for each part,
+operation and file. Everything else, such as the cut outline, notes about operations,
+where the work zero is and the drawing’s facts, is under <strong>Details</strong>, closed at first and
+kept open once you open it. A drawing whose import had issues shows its facts on their
+own, open.</p>
 <h2 id="arranging-the-panels"><a class="header" href="#arranging-the-panels">Arranging the panels</a></h2>
 <p>The <strong>Browser</strong>, <strong>Properties</strong>, <strong>Shapes</strong> (the <a href="#the-shape-library">shape library</a>)
 and the <strong>Report</strong> are panels round the canvas, each with a tab. At the start, the Browser
@@ -1123,9 +1131,13 @@ part way (an inch program is read in inches and checked in mm);</li>
 </ul>
 <p><strong>What it warns about:</strong></p>
 <ul>
-<li>cuts into the spoilboard, within the allowed depth;</li>
+<li>cutting moves that end outside the stock (grown by the tool radius);</li>
 <li>travel limits that weren’t checked because the machine’s travel isn’t set.</li>
 </ul>
+<p><strong>What it says as a plain line:</strong> how many moves go into the spoilboard and how deep, when
+they stay within the allowed depth. A through cut does this on purpose, so the Report shows
+it as a note, not a warning. The operation’s own line says whether it was meant: a note for
+an operation with <strong>Through</strong> ticked, a warning for one that isn’t.</p>
 <p><strong>On any G-code:</strong> <code>chipload check part.nc --job part.chipload</code> checks a file, also one
 made by another program, against a project’s stock and machine. With several tools, add
 <code>--tool N</code> to check one file of a set.</p>
@@ -2316,6 +2328,9 @@ changes.</li>
 simulation and playback show only the active part, so a change to part 2 doesn’t plan
 part 1 again. The status bar says “part 2 of 2 · cycle …”. <strong>All parts</strong> on the canvas
 bar shows every part.</li>
+<li><strong>Statistics:</strong> the last section of a part’s properties gives its time, lengths and
+lifts, its operations’ summed with all of its copies
+(<a href="#statistics-of-a-part">Statistics of a part</a>).</li>
 <li><strong>Export writes every part</strong> that is on. When only the active part is shown, Export
 plans the whole project first, then writes it.</li>
 <li><strong>One part’s G-code:</strong> right-click a part in the Browser and choose <strong>Export G-code of
@@ -2874,8 +2889,9 @@ the end depth and follows the outline, just far enough in for its cone to touch 
 edge at the surface. The walls come out as drawn, sharp, at the bit’s angle; narrow parts
 of the same shape are still carved along their centre line, and corners are carved up into
 their tips.</p>
-<p>Without more, the floor between the walls is left standing at the surface, with a
-warning: an outline carving.</p>
+<p>Without more, the floor between the walls is left standing at the surface: an outline
+carving. The report says so in a note, once for the operation, listing the shapes it
+concerns. It isn’t a warning, since an outline carving can be just what you want.</p>
 <h3 id="the-floor-pass"><a class="header" href="#the-floor-pass">The floor pass</a></h3>
 <p>To clear the floor flat, give the V-carve a <strong>floor pass</strong>: an end mill that clears the
 floor at the end depth, kept clear of the sloped walls. It belongs to the V-carve, as a rest
@@ -2890,7 +2906,7 @@ it for its settings.</p>
 <p>If the end mill is too wide for part of the floor, the plan says how much it clears and the
 largest end mill that would clear it all, and names the end mills in your library that do
 (in the floor pass’s settings too, under its tool):</p>
-<pre><code class="language-text">warning: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
+<pre><code class="language-text">note: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
 Operation 1: end mills in your library that clear the floor: 0.8 mm flat (0.8 mm)
 </code></pre>
 <p>Specks lower than 0.2 mm, or less than 1 % of a shape’s floor, don’t count: no round end
@@ -3694,6 +3710,7 @@ rapids and spindle start-up, with one line per operation. With several
 <a href="#parts">parts</a>, each part’s time comes first, with its operations under it.
 With several tools, it also gives a time per file and the number of tool changes. Hovering an operation in the
 Browser shows its time, and so does the setup sheet.</p>
+<p>Hover the total to see what it leaves out:</p>
 <ul>
 <li><strong>Feeds as programmed:</strong> the estimate uses the programmed feeds, and moves at the full
 feed from start to end.</li>
@@ -3707,21 +3724,33 @@ estimate assumes 5 000 mm/min and says so: set the max feed for a better estimat
 <p>The last section of an operation’s properties, <strong>Statistics</strong>, says what the operation
 does, from the last run. Folded, it shows the operation’s time. Open, it shows:</p>
 <ul>
-<li><strong>Time:</strong> split into cutting and rapids.</li>
+<li><strong>Time:</strong> the total.</li>
 <li><strong>Cutting:</strong> the length of the feed moves that go sideways: lines, arcs, ramps and
-helices, measured along the move (a ramp counts its way down too).</li>
-<li><strong>Plunging:</strong> the length of the feed moves straight down or up: plunges and drilling.</li>
-<li><strong>Rapids:</strong> the length of the rapid moves (G0), up and down included.</li>
+helices, measured along the move (a ramp counts its way down too), and their time.</li>
+<li><strong>Plunging:</strong> the length of the feed moves straight down or up: plunges and drilling,
+and their time.</li>
+<li><strong>Rapids:</strong> the length of the rapid moves (G0), up and down included, and their time.</li>
 <li><strong>Lifts:</strong> how many times the tool goes up at rapid: between paths, and at each peck of
 a peck drill. Many lifts in an operation can mean time spent in the air.</li>
 </ul>
 <p>The numbers are for all of the part’s copies, and a rest pass or floor pass has its own.
 After a change they are out of date: the section asks you to generate (F5), and says
 <em>Generating…</em> while the live preview runs. An operation that is off says so.</p>
-<p>The report ends its time lines with the whole job’s lengths and lifts (<em>In all: …</em>), the
-moves between operations included. <code>chipload plan</code> gives each operation’s numbers on its
-line, and <code>--json</code> has them for each operation and the job: <code>cutting_mm</code>, <code>plunge_mm</code>,
-<code>rapid_mm</code>, <code>lifts</code>, and the seconds <code>cutting_s</code> and <code>rapid_s</code>.</p>
+<h2 id="statistics-of-a-part"><a class="header" href="#statistics-of-a-part">Statistics of a part</a></h2>
+<p>A part’s properties end with the same <strong>Statistics</strong> section: the sum of its operations’
+numbers (and their rest and floor passes’), all of its copies included, and how many
+operations were counted. It’s what one part costs in time, cutting and lifts, without
+adding up its operations by hand. The moves from one operation to the next and the tool
+changes aren’t in it; they are in the job’s total in the report.</p>
+<p>When only the active part is previewed (<em>All parts</em> off), the other parts weren’t
+planned: their section asks you to generate. A part that is off says so, and a part
+without operations says <em>No operations.</em></p>
+<p><code>chipload run</code> ends its time lines with the whole job’s lengths and lifts (<em>In all: …</em>),
+the moves between operations included. <code>chipload plan</code> gives each operation’s numbers on its
+line, and each part’s on its line when there are two parts or more. <code>--json</code> has them for
+each operation and the job: <code>cutting_mm</code>, <code>plunge_mm</code>, <code>rapid_mm</code>, <code>lifts</code>, and the
+seconds <code>cutting_s</code> (plunges included), <code>plunge_s</code> and <code>rapid_s</code>; and in <code>estimate.parts</code>, for each part that was planned,
+with its <code>id</code>, <code>name</code>, <code>seconds</code> and <code>operations</code>.</p>
 <h2 id="chip-load"><a class="header" href="#chip-load">Chip load</a></h2>
 <p>For each operation, Chipload shows the <strong>chip load</strong>: how thick a chip each cutting edge
 takes, in mm per tooth:</p>

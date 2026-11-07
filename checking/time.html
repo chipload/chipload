@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cycle time and chip load - Chipload 0.33.1 user guide</title>
+        <title>Cycle time and chip load - Chipload 0.34.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0971b70d.js";
+            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9a5ad1b5.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.33.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -184,6 +184,7 @@ rapids and spindle start-up, with one line per operation. With several
 <a href="../operations/parts.html">parts</a>, each part’s time comes first, with its operations under it.
 With several tools, it also gives a time per file and the number of tool changes. Hovering an operation in the
 Browser shows its time, and so does the setup sheet.</p>
+<p>Hover the total to see what it leaves out:</p>
 <ul>
 <li><strong>Feeds as programmed:</strong> the estimate uses the programmed feeds, and moves at the full
 feed from start to end.</li>
@@ -197,21 +198,33 @@ estimate assumes 5 000 mm/min and says so: set the max feed for a better estimat
 <p>The last section of an operation’s properties, <strong>Statistics</strong>, says what the operation
 does, from the last run. Folded, it shows the operation’s time. Open, it shows:</p>
 <ul>
-<li><strong>Time:</strong> split into cutting and rapids.</li>
+<li><strong>Time:</strong> the total.</li>
 <li><strong>Cutting:</strong> the length of the feed moves that go sideways: lines, arcs, ramps and
-helices, measured along the move (a ramp counts its way down too).</li>
-<li><strong>Plunging:</strong> the length of the feed moves straight down or up: plunges and drilling.</li>
-<li><strong>Rapids:</strong> the length of the rapid moves (G0), up and down included.</li>
+helices, measured along the move (a ramp counts its way down too), and their time.</li>
+<li><strong>Plunging:</strong> the length of the feed moves straight down or up: plunges and drilling,
+and their time.</li>
+<li><strong>Rapids:</strong> the length of the rapid moves (G0), up and down included, and their time.</li>
 <li><strong>Lifts:</strong> how many times the tool goes up at rapid: between paths, and at each peck of
 a peck drill. Many lifts in an operation can mean time spent in the air.</li>
 </ul>
 <p>The numbers are for all of the part’s copies, and a rest pass or floor pass has its own.
 After a change they are out of date: the section asks you to generate (F5), and says
 <em>Generating…</em> while the live preview runs. An operation that is off says so.</p>
-<p>The report ends its time lines with the whole job’s lengths and lifts (<em>In all: …</em>), the
-moves between operations included. <code>chipload plan</code> gives each operation’s numbers on its
-line, and <code>--json</code> has them for each operation and the job: <code>cutting_mm</code>, <code>plunge_mm</code>,
-<code>rapid_mm</code>, <code>lifts</code>, and the seconds <code>cutting_s</code> and <code>rapid_s</code>.</p>
+<h2 id="statistics-of-a-part"><a class="header" href="#statistics-of-a-part">Statistics of a part</a></h2>
+<p>A part’s properties end with the same <strong>Statistics</strong> section: the sum of its operations’
+numbers (and their rest and floor passes’), all of its copies included, and how many
+operations were counted. It’s what one part costs in time, cutting and lifts, without
+adding up its operations by hand. The moves from one operation to the next and the tool
+changes aren’t in it; they are in the job’s total in the report.</p>
+<p>When only the active part is previewed (<em>All parts</em> off), the other parts weren’t
+planned: their section asks you to generate. A part that is off says so, and a part
+without operations says <em>No operations.</em></p>
+<p><code>chipload run</code> ends its time lines with the whole job’s lengths and lifts (<em>In all: …</em>),
+the moves between operations included. <code>chipload plan</code> gives each operation’s numbers on its
+line, and each part’s on its line when there are two parts or more. <code>--json</code> has them for
+each operation and the job: <code>cutting_mm</code>, <code>plunge_mm</code>, <code>rapid_mm</code>, <code>lifts</code>, and the
+seconds <code>cutting_s</code> (plunges included), <code>plunge_s</code> and <code>rapid_s</code>; and in <code>estimate.parts</code>, for each part that was planned,
+with its <code>id</code>, <code>name</code>, <code>seconds</code> and <code>operations</code>.</p>
 <h2 id="chip-load"><a class="header" href="#chip-load">Chip load</a></h2>
 <p>For each operation, Chipload shows the <strong>chip load</strong>: how thick a chip each cutting edge
 takes, in mm per tooth:</p>

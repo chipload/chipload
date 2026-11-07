@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>V-carve - Chipload 0.33.1 user guide</title>
+        <title>V-carve - Chipload 0.34.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0971b70d.js";
+            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9a5ad1b5.js"></script>
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.33.1 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -270,8 +270,9 @@ the end depth and follows the outline, just far enough in for its cone to touch 
 edge at the surface. The walls come out as drawn, sharp, at the bit’s angle; narrow parts
 of the same shape are still carved along their centre line, and corners are carved up into
 their tips.</p>
-<p>Without more, the floor between the walls is left standing at the surface, with a
-warning: an outline carving.</p>
+<p>Without more, the floor between the walls is left standing at the surface: an outline
+carving. The report says so in a note, once for the operation, listing the shapes it
+concerns. It isn’t a warning, since an outline carving can be just what you want.</p>
 <h3 id="the-floor-pass"><a class="header" href="#the-floor-pass">The floor pass</a></h3>
 <p>To clear the floor flat, give the V-carve a <strong>floor pass</strong>: an end mill that clears the
 floor at the end depth, kept clear of the sloped walls. It belongs to the V-carve, as a rest
@@ -286,7 +287,7 @@ it for its settings.</p>
 <p>If the end mill is too wide for part of the floor, the plan says how much it clears and the
 largest end mill that would clear it all, and names the end mills in your library that do
 (in the floor pass’s settings too, under its tool):</p>
-<pre><code class="language-text">warning: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
+<pre><code class="language-text">note: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
 Operation 1: end mills in your library that clear the floor: 0.8 mm flat (0.8 mm)
 </code></pre>
 <p>Specks lower than 0.2 mm, or less than 1 % of a shape’s floor, don’t count: no round end
