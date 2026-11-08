@@ -228,7 +228,7 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### Not released yet
+### In 0.34.1 (tagged 2026-11-08)
 
 - **Align keeps the shape picked first in place** (docs/specs/align-first.md, 2026-11-08):
   the others line up with it, through any number of aligns of the same selection (it was
