@@ -263,6 +263,7 @@ forms-text-hover = Vad den säger; Enter börjar en ny rad
 forms-font = Typsnitt
 forms-text-font-missing = Typsnittet ”{ $font }” finns inte på den här datorn. Texten behåller sina bokstäver och fräses som de är; för att ändra ord eller storlek, välj ett annat typsnitt. Att flytta och vrida den fungerar fortfarande.
 forms-fonts-looking = Letar efter typsnitt…
+forms-font-recent = Senast använda
 forms-font-builtin = Inbyggda
 forms-font-computer = På den här datorn
 forms-font-computer-none = Inga andra typsnitt hittades. Installera ett, eller lägg det i mappen fonts i din inställningsmapp.

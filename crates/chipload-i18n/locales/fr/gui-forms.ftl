@@ -263,6 +263,7 @@ forms-text-hover = Ce qu'il dit ; Enter commence une nouvelle ligne
 forms-font = Police
 forms-text-font-missing = La police « { $font } » n'est pas sur cet ordinateur. Le texte garde ses lettres et est usiné tel quel ; pour changer ses mots ou sa taille, choisissez une autre police. Le déplacer et le tourner restent possibles.
 forms-fonts-looking = Recherche des polices…
+forms-font-recent = Utilisées récemment
 forms-font-builtin = Intégrées
 forms-font-computer = Sur cet ordinateur
 forms-font-computer-none = Aucune autre police trouvée. Installez-en une, ou placez-la dans le dossier fonts de votre dossier des réglages.

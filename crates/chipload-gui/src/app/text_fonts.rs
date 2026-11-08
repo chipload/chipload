@@ -13,6 +13,10 @@ use super::ChiploadApp;
 /// The ui data flag the font list sets while it is open: look for the fonts now.
 pub(super) const FONTS_WANTED: &str = "computer-fonts-wanted";
 
+/// The ui data the font list leaves when a font is picked from it: the font's name, kept
+/// at the top of the recently used fonts (docs/specs/font-list.md).
+pub(super) const FONT_PICKED: &str = "font-picked";
+
 /// The computer's fonts as the window knows them.
 #[derive(Debug, Clone)]
 pub struct TextFonts {
@@ -20,6 +24,8 @@ pub struct TextFonts {
     started: bool,
     /// Their names, once looked for.
     pub(super) names: Option<Arc<Vec<String>>>,
+    /// The fonts last picked, most recent first (the settings' `recent_fonts`).
+    pub(super) recent: Vec<String>,
 }
 
 impl TextFonts {
@@ -29,6 +35,7 @@ impl TextFonts {
             finder: Arc::new(ComputerFonts::new(folder)),
             started: false,
             names: None,
+            recent: Vec::new(),
         }
     }
 
@@ -80,6 +87,10 @@ impl ChiploadApp {
     /// Each frame: start looking for the computer's fonts when a text needs one or the font
     /// list is open (decision 6), and take their names once found.
     pub(super) fn poll_text_fonts(&mut self, ctx: &egui::Context) {
+        let picked = ctx.data_mut(|d| d.remove_temp::<String>(egui::Id::new(FONT_PICKED)));
+        if let Some(font) = picked {
+            self.remember_font(&font);
+        }
         if self.text_fonts.names.is_none() && self.text_fonts.finder.scanned() {
             self.text_fonts.names = Some(Arc::new(self.text_fonts.finder.names()));
         }
@@ -97,6 +108,15 @@ impl ChiploadApp {
         if wanted {
             self.start_font_search(ctx);
         }
+    }
+
+    /// Put `font` at the top of the recently used fonts, here and in the settings.
+    pub(super) fn remember_font(&mut self, font: &str) {
+        let recent = &mut self.text_fonts.recent;
+        recent.retain(|f| f != font);
+        recent.insert(0, font.to_string());
+        recent.truncate(chipload_job::library::RECENT_FONTS_MAX);
+        self.change_settings(|settings| settings.add_recent_font(font));
     }
 
     /// Look for the computer's fonts in the background.

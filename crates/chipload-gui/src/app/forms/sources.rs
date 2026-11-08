@@ -306,6 +306,7 @@ pub(in crate::app) fn text_form(
                 egui::ComboBox::from_id_salt(("text-font", id))
                     .selected_text(shown)
                     .height(480.0)
+                    .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
                     .show_ui(ui, |ui| font_list(ui, &mut draft.font, fonts));
                 finished |= draft.font != before;
                 ui.end_row();
@@ -569,11 +570,10 @@ pub(in crate::app) fn placement_rows(
     }
 }
 
-/// The built-in fonts by style, each name in its own face where the app loaded it
-/// (docs/specs/more-fonts.md §5).
-/// The font list (docs/specs/system-fonts.md §6): the built-in fonts by style, each in its
-/// own face, then the computer's by name with a search field; the one under the mouse
-/// shows a sample.
+/// The font list (docs/specs/font-list.md, system-fonts.md §6): a search field at the top,
+/// the recently used fonts, the built-in fonts by style, each in its own face, then the
+/// computer's by name; the computer font under the mouse shows a sample. It stays open
+/// while the search is typed and closes when a font is picked.
 pub(super) fn font_list(
     ui: &mut egui::Ui,
     chosen: &mut String,
@@ -582,57 +582,110 @@ pub(super) fn font_list(
     use chipload_text::{FONTS, Style};
     let loaded = ui.ctx().fonts(|f| f.families());
     ui.data_mut(|d| d.insert_temp(egui::Id::new(super::text_fonts::FONTS_WANTED), true));
+    let search_id = egui::Id::new("font-search");
+    let mut search: String = ui.data(|d| d.get_temp(search_id)).unwrap_or_default();
+    let field = ui.add(
+        TextEdit::singleline(&mut search)
+            .id(search_id.with("field"))
+            .hint_text(t!(ui, "forms-font-search"))
+            .desired_width(200.0),
+    );
+    // Just opened (not shown last pass): the search takes the keys at once.
+    let shown_id = egui::Id::new("font-list-shown");
+    let pass = ui.ctx().cumulative_pass_nr();
+    let last: Option<u64> = ui.data(|d| d.get_temp(shown_id));
+    if last.is_none_or(|last| last + 1 < pass) {
+        field.request_focus();
+    }
+    ui.data_mut(|d| d.insert_temp(shown_id, pass));
+    let wanted = search.trim().to_lowercase();
+    let matches = |name: &str| wanted.is_empty() || name.to_lowercase().contains(&wanted);
+    let mut picked = false;
+    let recent: Vec<&String> = fonts
+        .recent
+        .iter()
+        .filter(|f| fonts.has(f) != Some(false) && matches(f))
+        .collect();
+    if !recent.is_empty() {
+        ui.label(crate::style::bold(ui, t!(ui, "forms-font-recent")));
+        for name in recent {
+            let mut text = RichText::new(name.as_str()).size(18.0);
+            let family = if chipload_text::builtin(name).is_some() {
+                crate::fonts::text_font_family(name)
+            } else {
+                super::text_fonts::load_sample(ui.ctx(), &fonts.finder, name);
+                super::text_fonts::sample_family(name)
+            };
+            if loaded.contains(&family) {
+                text = text.family(family);
+            }
+            picked |= ui.selectable_value(chosen, name.clone(), text).clicked();
+        }
+        ui.separator();
+    }
     ui.label(crate::style::bold(ui, t!(ui, "forms-font-builtin")));
     for (style, heading) in [
         (Style::Plain, t!(ui, "forms-font-plain")),
         (Style::Script, t!(ui, "forms-font-script")),
         (Style::Display, t!(ui, "forms-font-display")),
     ] {
+        let mut builtin = FONTS
+            .iter()
+            .filter(|f| f.style == style && matches(f.name))
+            .peekable();
+        if builtin.peek().is_none() {
+            continue;
+        }
         ui.label(RichText::new(heading).small().weak());
-        for font in FONTS.iter().filter(|f| f.style == style) {
+        for font in builtin {
             let family = crate::fonts::text_font_family(font.name);
             let mut text = RichText::new(font.name).size(18.0);
             if loaded.contains(&family) {
                 text = text.family(family);
             }
-            ui.selectable_value(chosen, font.name.to_string(), text);
+            picked |= ui
+                .selectable_value(chosen, font.name.to_string(), text)
+                .clicked();
         }
     }
     ui.separator();
     ui.label(crate::style::bold(ui, t!(ui, "forms-font-computer")));
-    let Some(names) = &fonts.names else {
-        ui.horizontal(|ui| {
-            ui.spinner();
-            ui.weak(t!(ui, "forms-fonts-looking"));
-        });
-        return;
-    };
-    if names.is_empty() {
-        ui.weak(t!(ui, "forms-font-computer-none"));
-        return;
-    }
-    let search_id = egui::Id::new("font-search");
-    let mut search: String = ui.data(|d| d.get_temp(search_id)).unwrap_or_default();
-    ui.add(
-        TextEdit::singleline(&mut search)
-            .hint_text(t!(ui, "forms-font-search"))
-            .desired_width(200.0),
-    );
-    ui.data_mut(|d| d.insert_temp(search_id, search.clone()));
-    let wanted = search.to_lowercase();
-    for name in names
-        .iter()
-        .filter(|n| wanted.is_empty() || n.to_lowercase().contains(&wanted))
-    {
-        let response = ui.selectable_value(chosen, name.clone(), name.as_str());
-        if response.hovered() {
-            super::text_fonts::load_sample(ui.ctx(), &fonts.finder, name);
-            let family = super::text_fonts::sample_family(name);
-            if loaded.contains(&family) {
-                response.on_hover_ui(|ui| {
-                    ui.label(RichText::new("AaBbCc 123").family(family).size(28.0));
-                });
+    match &fonts.names {
+        None => {
+            ui.horizontal(|ui| {
+                ui.spinner();
+                ui.weak(t!(ui, "forms-fonts-looking"));
+            });
+        }
+        Some(names) if names.is_empty() => {
+            ui.weak(t!(ui, "forms-font-computer-none"));
+        }
+        Some(names) => {
+            for name in names.iter().filter(|n| matches(n)) {
+                let response = ui.selectable_value(chosen, name.clone(), name.as_str());
+                picked |= response.clicked();
+                if response.hovered() {
+                    super::text_fonts::load_sample(ui.ctx(), &fonts.finder, name);
+                    let family = super::text_fonts::sample_family(name);
+                    if loaded.contains(&family) {
+                        response.on_hover_ui(|ui| {
+                            ui.label(RichText::new("AaBbCc 123").family(family).size(28.0));
+                        });
+                    }
+                }
             }
         }
     }
+    if picked {
+        search.clear();
+        ui.data_mut(|d| {
+            d.insert_temp(
+                egui::Id::new(super::text_fonts::FONT_PICKED),
+                chosen.clone(),
+            );
+            d.remove_temp::<u64>(shown_id);
+        });
+        ui.close();
+    }
+    ui.data_mut(|d| d.insert_temp(search_id, search));
 }

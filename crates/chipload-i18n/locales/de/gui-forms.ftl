@@ -264,6 +264,7 @@ forms-text-hover = Was dasteht; Enter beginnt eine neue Zeile
 forms-font = Schrift
 forms-text-font-missing = Die Schrift „{ $font }“ ist auf diesem Computer nicht vorhanden. Der Text behält seine Buchstaben und wird so gefräst; um Wörter oder Größe zu ändern, wählen Sie eine andere Schrift. Verschieben und Drehen geht weiterhin.
 forms-fonts-looking = Schriften werden gesucht…
+forms-font-recent = Zuletzt verwendet
 forms-font-builtin = Eingebaut
 forms-font-computer = Auf diesem Computer
 forms-font-computer-none = Keine weiteren Schriften gefunden. Installieren Sie eine oder legen Sie sie in den Ordner fonts Ihres Einstellungsordners.

@@ -263,6 +263,7 @@ forms-text-hover = Lo que dice; Enter empieza una línea nueva
 forms-font = Fuente
 forms-text-font-missing = La fuente «{ $font }» no está en este ordenador. El texto conserva sus letras y se corta tal cual; para cambiar sus palabras o su tamaño, elige otra fuente. Moverlo y girarlo sigue funcionando.
 forms-fonts-looking = Buscando fuentes…
+forms-font-recent = Usadas recientemente
 forms-font-builtin = Integradas
 forms-font-computer = En este ordenador
 forms-font-computer-none = No se encontraron otras fuentes. Instala una o ponla en la carpeta fonts de tu carpeta de ajustes.

@@ -8,7 +8,9 @@ use std::path::{Path, PathBuf};
 
 use chipload_i18n::Message;
 use chipload_job::ToolChange;
-use chipload_job::library::{AppSettings, RECENT_MAX, Theme, load_settings, update_settings};
+use chipload_job::library::{
+    AppSettings, RECENT_FONTS_MAX, RECENT_MAX, Theme, load_settings, update_settings,
+};
 use chipload_job::library::{
     Cutting, CuttingRow, LibraryError, LibraryTool, MachineLibrary, MachineProfile, ToolLibrary,
     UsedTool, export, import_into, import_plan, load_machines, load_tools, read_import,
@@ -505,6 +507,31 @@ fn recent_projects_keep_order_without_duplicates_up_to_the_limit() {
         load_settings(&path).unwrap_err(),
         LibraryError::UnsupportedVersion { .. }
     ));
+}
+
+#[test]
+fn recent_fonts_keep_order_without_duplicates_up_to_the_limit() {
+    let dir = temp_dir("recent-fonts");
+    let path = dir.join("settings.json");
+    assert!(load_settings(&path).unwrap().recent_fonts.is_empty());
+    for font in ["A", "B", "C", "D", "E", "F", "C"] {
+        update_settings(&path, |s| {
+            s.add_recent_font(font);
+            Ok(())
+        })
+        .unwrap();
+    }
+    let settings = load_settings(&path).unwrap();
+    assert_eq!(settings.recent_fonts.len(), RECENT_FONTS_MAX);
+    assert_eq!(settings.recent_fonts, ["C", "F", "E", "D", "B"]);
+
+    std::fs::write(
+        &path,
+        r#"{"schema_version": 3, "recent_projects": [], "theme": "system", "auto_generate": true, "recent_fonts": ["X", "X"]}"#,
+    )
+    .unwrap();
+    let err = load_settings(&path).unwrap_err().to_string();
+    assert!(err.contains("listed twice"), "{err}");
 }
 
 /// The frozen settings of each older version (never edited; add a new one instead).

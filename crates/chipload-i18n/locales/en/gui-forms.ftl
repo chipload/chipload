@@ -263,6 +263,7 @@ forms-text-hover = What it says; Enter starts a new line
 forms-font = Font
 forms-text-font-missing = Font "{ $font }" is not on this computer. The text keeps its letters and cuts as they are; to change its words or size, choose another font. Moving and turning it still work.
 forms-fonts-looking = Looking for fonts…
+forms-font-recent = Recently used
 forms-font-builtin = Built in
 forms-font-computer = On this computer
 forms-font-computer-none = No other fonts found. Install one, or put it in the fonts folder of your settings folder.

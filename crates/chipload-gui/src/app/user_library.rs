@@ -633,6 +633,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         self.load_update_settings(&settings);
         self.prefs.recent = settings.recent_projects;
+        self.text_fonts.recent = settings.recent_fonts;
         self.prefs.theme = settings.theme;
         self.prefs.auto_generate = settings.auto_generate;
         self.prefs.setup_sheet = settings.setup_sheet;
