@@ -55,8 +55,9 @@ a quick workflow first.
     the margin that fits (16 mm for a 6 mm end mill and 8 mm pins), the checker refuses a
     back that comes within a pin, and a front cut into a made hole is noted. The sample's
     margin is 16 mm. Planning a back with nothing to cut yet no longer fails the holes.
-    Open: a back surface pass over the pins is refused (pins flush with the back face);
-    whether to allow a shallow one with the pins set lower is the user's call.
+    A back surface pass over the pins is allowed with a warning (the user, 2026-11-08):
+    the checker lets it pass over them as deep as it cuts, the sheet says to tap the pins
+    down that far.
 
   Next: **the user tries it** (2026-11-05), on the branch: what to change, then merge.
   Open: a guide page of its own if the Setups section grows too long; the per-operation

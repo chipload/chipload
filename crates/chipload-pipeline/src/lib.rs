@@ -688,6 +688,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
         &plan.program,
         &plan.op_spans,
     ));
+    notes.extend(setups::surface_over_pins_warning(job));
     notes.extend(
         copies_notes(job, &plan.program, &plan.op_spans)
             .into_iter()

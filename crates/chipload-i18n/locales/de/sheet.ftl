@@ -31,6 +31,7 @@ sheet-turn-heading = Das Brett wenden
 sheet-turn-left-right = Das Brett von links nach rechts wenden, um seine senkrechte Mittellinie: die linke Kante kommt nach rechts, und die Seite, die unten lag, liegt jetzt oben.
 sheet-turn-top-bottom = Das Brett von unten nach oben wenden, um seine waagrechte Mittellinie: die untere Kante kommt nach oben, und die Seite, die unten lag, liegt jetzt oben.
 sheet-turn-pins = Einen Stift von { $diameter } durch jede Passstiftbohrung in die Opferplatte stecken.
+sheet-turn-pins-down = Die Stifte mindestens { $depth } unter die Rückseite einschlagen: die Rückseite wird über ihnen geplant.
 sheet-turn-no-dowels = { $front } hat keine Passstiftbohrungen für die Stifte: sie vorher hinzufügen oder das Brett an einer Ecke anlegen.
 sheet-turn-corner = Das Brett in dieselbe Ecke des Anschlags schieben wie bei { $front }. Es muss genau { $width } × { $length } groß sein.
 sheet-turn-picture = Das Bild zeigt das Brett, wie es auf der Maschine liegt, Rückseite oben.

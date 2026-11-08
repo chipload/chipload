@@ -684,6 +684,7 @@ fn a_cut_into_a_dowel_pin_is_refused() {
     pinned.pins = vec![chipload_check::Pin {
         center: (100.0, 30.0),
         radius: 4.0,
+        top_depth: 0.0,
     }];
     let pin_errors = |body: &str| -> Vec<String> {
         check_gcode(&format!("{HEADER}{body}{FOOTER}"), &pinned)
@@ -721,4 +722,31 @@ fn a_cut_into_a_dowel_pin_is_refused() {
     assert!(pin_errors(over).is_empty(), "{:?}", pin_errors(over));
     let under = pin_errors("G0 X120 Y50\nG1 Z-6 F600\nG2 X80 Y50 I-20 J0 F1800\n");
     assert!(under.iter().any(|e| e.contains(into)), "{under:?}");
+}
+
+#[test]
+fn a_surface_pass_may_go_over_a_pin_set_down_and_no_deeper() {
+    // docs/specs/two-sided.md §6: the pin at (100, 30) set 1 mm below the stock's top
+    // (Z0), as the back's surface pass is deep.
+    let mut pinned = limits();
+    pinned.pins = vec![chipload_check::Pin {
+        center: (100.0, 30.0),
+        radius: 4.0,
+        top_depth: 1.0,
+    }];
+    let pin_errors = |body: &str| -> Vec<String> {
+        check_gcode(&format!("{HEADER}{body}{FOOTER}"), &pinned)
+            .errors
+            .into_iter()
+            .map(|e| e.message)
+            .collect()
+    };
+    // Straight over the pin at 1 mm deep: allowed.
+    assert!(pin_errors("G0 X50 Y30\nG1 Z-1 F600\nG1 X150 F1800\n").is_empty());
+    // Deeper: into the pin.
+    let deep = pin_errors("G0 X50 Y30\nG1 Z-1.5 F600\nG1 X150 F1800\n");
+    assert!(
+        deep.iter().any(|e| e.contains("into the dowel pin")),
+        "{deep:?}"
+    );
 }

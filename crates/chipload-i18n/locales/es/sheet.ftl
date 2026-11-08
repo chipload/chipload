@@ -31,6 +31,7 @@ sheet-turn-heading = Dar la vuelta al tablero
 sheet-turn-left-right = Da la vuelta al tablero de izquierda a derecha, sobre su eje vertical: el borde izquierdo pasa a la derecha, y la cara que estaba abajo queda arriba.
 sheet-turn-top-bottom = Da la vuelta al tablero de abajo arriba, sobre su eje horizontal: el borde de abajo pasa arriba, y la cara que estaba abajo queda arriba.
 sheet-turn-pins = Pon un pasador de { $diameter } en cada agujero de pasador, hasta el tablero de sacrificio.
+sheet-turn-pins-down = Hunde los pasadores al menos { $depth } bajo la cara del reverso: el reverso se planea por encima de ellos.
 sheet-turn-no-dowels = { $front } no tiene agujeros de pasador: añádelos antes de mecanizarla, o apoya el tablero en una esquina.
 sheet-turn-corner = Empuja el tablero contra la misma esquina del tope que para { $front }. Debe medir exactamente { $width } × { $length }.
 sheet-turn-picture = La imagen muestra el tablero tal como queda en la máquina, con el reverso arriba.

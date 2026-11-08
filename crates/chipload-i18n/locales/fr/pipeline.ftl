@@ -335,6 +335,7 @@ pipeline-setup-name-empty = un montage a besoin d'un nom
 pipeline-last-setup = un projet a besoin d'au moins un montage
 pipeline-setup-not-a-back = le montage { $id } n'est le verso d'aucun autre : indiquez d'abord --back-of
 pipeline-back-text = { $label } grave le texte { $text } au verso : il se lit à l'endroit depuis le recto, où il est dessiné, donc au verso il se lit en miroir. Pour qu'il s'y lise à l'endroit, décomposez-le (text explode) et mettez ses formes en miroir (shape mirror)
+pipeline-surface-over-pins = { $label } surface le verso au-dessus des goupilles, sur { $depth } : enfoncez les goupilles d’au moins { $depth } sous la face du verso, sinon la fraise les touche
 pipeline-dowels-there = le recto a déjà des trous de goupille : opération { $number }
 pipeline-dowels-no-shapes = il n'y a pas de forme sur la planche au-delà de laquelle placer les trous de goupille
 pipeline-dowels-no-room = entre les usinages et le bord de la planche sur l'axe de retournement il y a { $room }, et un trou de goupille demande { $needed } : agrandissez la planche ou prenez des goupilles plus petites

@@ -31,6 +31,7 @@ sheet-turn-heading = Vänd skivan
 sheet-turn-left-right = Vänd skivan från vänster till höger, kring dess lodräta mittlinje: vänsterkanten hamnar till höger, och sidan som låg nedåt är nu uppåt.
 sheet-turn-top-bottom = Vänd skivan nerifrån och upp, kring dess vågräta mittlinje: nederkanten hamnar upptill, och sidan som låg nedåt är nu uppåt.
 sheet-turn-pins = Sätt en styrpinne på { $diameter } genom varje styrhål ner i offerskivan.
+sheet-turn-pins-down = Slå ner pinnarna minst { $depth } under baksidan: baksidan planfräses över dem.
 sheet-turn-no-dowels = { $front } har inga styrhål för pinnarna: lägg till dem innan den fräses, eller lägg skivan mot ett hörn.
 sheet-turn-corner = Skjut in skivan i samma hörn av anslaget som för { $front }. Den måste vara exakt { $width } × { $length }.
 sheet-turn-picture = Bilden visar skivan som den ligger på maskinen, baksidan upp.

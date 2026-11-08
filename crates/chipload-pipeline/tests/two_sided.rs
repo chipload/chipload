@@ -719,3 +719,51 @@ impl Removed for chipload_pipeline::simulate::Simulation {
         self.numbers.removed_cm3 > other.numbers.removed_cm3 + 1.0
     }
 }
+
+#[test]
+fn a_back_surfaced_over_its_pins_is_allowed_with_a_warning() {
+    // docs/specs/two-sided.md §6 (the user, 2026-11-08: "allow surfacing above pins with a
+    // warning"): the back faced 0.5 mm over the whole board, pins and all.
+    let mut back = sample_two_sided().for_setup(2);
+    let index = chipload_pipeline::surface::add_surface(&mut back, None, Some(0.5), None).unwrap();
+    assert_eq!(back.surface_over_pins(), Some((index, 0.5)));
+    let result = chipload_pipeline::run_job(&back).unwrap();
+    let warning: Vec<_> = result
+        .notes
+        .iter()
+        .filter(|n| n.text.contains("over the dowel pins"))
+        .collect();
+    assert_eq!(warning.len(), 1, "{:?}", result.notes);
+    assert_eq!(warning[0].operation, Some(index));
+    assert!(
+        warning[0]
+            .text
+            .contains("set the pins at least 0.5 mm below the back face"),
+        "{}",
+        warning[0].text
+    );
+    // The sheet's turning step says so.
+    let info = chipload_pipeline::sheet::SheetInfo {
+        project: "two_sided".into(),
+        written_by: "chipload (test)".into(),
+        units: chipload_job::Units::Mm,
+        language: chipload_i18n::Language::En,
+        parts: Vec::new(),
+    };
+    let sheet = chipload_pipeline::sheet::setup_sheet(&back, &result, Path::new("back.nc"), &info);
+    assert!(
+        sheet.contains("Tap the pins down at least 0.5 mm below the back face"),
+        "the sheet's turning step"
+    );
+    // Without a surface pass, no warning; the front never has one about pins.
+    let plain = chipload_pipeline::run_job(&sample_two_sided().for_setup(2)).unwrap();
+    assert!(
+        plain
+            .notes
+            .iter()
+            .all(|n| !n.text.contains("over the dowel pins"))
+    );
+    let mut front = sample_two_sided().for_setup(1);
+    chipload_pipeline::surface::add_surface(&mut front, None, Some(0.5), None).unwrap();
+    assert_eq!(front.surface_over_pins(), None);
+}

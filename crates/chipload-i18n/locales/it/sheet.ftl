@@ -31,6 +31,7 @@ sheet-turn-heading = Capovolgi la tavola
 sheet-turn-left-right = Capovolgi la tavola da sinistra a destra, attorno al suo asse verticale: il bordo sinistro va a destra, e la faccia che era sotto ora è sopra.
 sheet-turn-top-bottom = Capovolgi la tavola dal basso in alto, attorno al suo asse orizzontale: il bordo in basso va in alto, e la faccia che era sotto ora è sopra.
 sheet-turn-pins = Metti una spina da { $diameter } in ogni foro per spina, fino nel piano di sacrificio.
+sheet-turn-pins-down = Affonda le spine almeno { $depth } sotto la faccia del retro: il retro viene spianato sopra di esse.
 sheet-turn-no-dowels = { $front } non ha fori per spina: aggiungili prima di lavorarlo, o appoggia la tavola in un angolo.
 sheet-turn-corner = Spingi la tavola nello stesso angolo della battuta usato per { $front }. Deve misurare esattamente { $width } × { $length }.
 sheet-turn-picture = L'immagine mostra la tavola come sta sulla macchina, con il retro in alto.

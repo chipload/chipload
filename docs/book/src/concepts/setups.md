@@ -126,6 +126,11 @@ board while its back is cut, so the checker refuses a back side's program that c
 within a pin, and a front cut made after the holes that cuts into one is noted, since the
 pin would no longer sit firmly. Move the holes along the axis, or widen the margin.
 
+**Surfacing the back** goes over the pins, edge to edge. That is allowed: a surface pass
+on the back may pass over them as deep as it cuts, and no other cut may. Its operation gets
+a warning, and the back's setup sheet says to tap the pins down at least that far below the
+back face before you start (*Tap the pins down at least 0.5 mm below the back face*).
+
 ### The setup sheets
 
 The front's sheet says that a back follows, so the board stays where it is until the front is

@@ -191,8 +191,18 @@ turn out from the stock, and refuses any move below the stock's top whose tool c
 a pin: one error for the program, on the first such line, with the count. On the front, a
 cut made after the dowel holes that cuts into one, but not wholly inside it, is noted on its
 operation (the generator's note, not the checker's: the hole is no longer round, so its pin
-won't sit firmly). A back surface pass over the pins is refused like any other cut: pins
-stand flush with the back face.
+won't sit firmly).
+
+**A back surface pass may go over the pins** (the user, 2026-11-08: "allow surfacing above
+pins with a warning"). Facing the back edge to edge can't avoid them. The pins are then set
+down below the back face, as deep as the back's deepest surface pass that is cut
+(`Job::surface_over_pins`): the checker takes each pin's top that far down, so a move over
+a pin is refused only below it; any other cut that deep over a pin is still refused, as
+only the surface passes are that shallow. The pass gets a warning on its operation ("…
+faces the back over the dowel pins, 0.5 mm deep: set the pins at least 0.5 mm below the
+back face, or the cutter hits them"), only when the front has dowel holes that are on, and
+the back's sheet adds to its turning step "Tap the pins down at least 0.5 mm below the back
+face". (Before: refused like any other cut, the pins flush with the back face.)
 
 The circles and the operation are ordinary: they can be moved along the axis, resized or
 removed. Only their role is marked (the operation's `dowels: true`), so the setup sheet can
@@ -471,3 +481,6 @@ default is the face that setup cuts. The numbers in `--json` get `through_cm2`.
     only: in Edit the board is seen from the front, where the shapes are drawn (decision
     8). The 3D view's walls are drawn only where they face the viewer, so painter's order
     stays right through holes.
+16. **A back surface pass may go over the dowel pins, with a warning;** the pins are set
+    down as deep as it cuts (§6). *The user, 2026-11-08: "allow surfacing above pins with a
+    warning".* Before: refused like any other cut, the pins flush with the back face.

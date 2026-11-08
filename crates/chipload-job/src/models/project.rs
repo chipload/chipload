@@ -383,6 +383,28 @@ impl Job {
         self.setup(id)?.back_of.map(|b| b.turn)
     }
 
+    /// For a back setup, its deepest surface pass that is cut, as (operation index, depth
+    /// below the back face, mm): the dowel pins must be set at least that far below the
+    /// back face, and over them the pass may go that deep (docs/specs/two-sided.md §6).
+    /// None for a front, or a back without a surface pass.
+    pub fn surface_over_pins(&self) -> Option<(usize, f64)> {
+        self.back_turn()?;
+        let active = self.active_setup_id()?;
+        let mut deepest: Option<(usize, f64)> = None;
+        for (i, op) in self.operations.iter().enumerate() {
+            let Operation::Surface(surface) = op else {
+                continue;
+            };
+            if !self.cuts(i) || self.setup_of(op).map(|s| s.id) != Some(active) {
+                continue;
+            }
+            if deepest.is_none_or(|(_, depth)| surface.end_depth > depth) {
+                deepest = Some((i, surface.end_depth));
+            }
+        }
+        deepest
+    }
+
     /// The spindle's turn as seen in the drawing's coordinates, which every choice of
     /// travel direction is made with (docs/specs/two-sided.md §4): the machine's, and the
     /// other way for a back setup, whose program is mirrored after planning. A path

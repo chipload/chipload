@@ -3,7 +3,7 @@
 //! between them. A setup is one board clamped once: its stock, its work zero and the parts
 //! cut from it, each run as a program of its own.
 
-use chipload_i18n::Message;
+use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{BackOf, Geometry, Job, Note, Origin, Part, Register, Setup, Turn};
 
 use crate::PipelineError;
@@ -265,6 +265,27 @@ pub fn move_part_to_setup(job: &Job, part: u64, id: u64) -> Result<Job, Pipeline
     // Its cuts through the stock go through its new board.
     job.follow_thickness();
     checked(job)
+}
+
+/// For a back setup with a surface pass: a warning on its deepest that it goes over the
+/// dowel pins, which must be set at least as deep below the back face
+/// (docs/specs/two-sided.md §6). The checker allows that pass over them, and no deeper.
+pub fn surface_over_pins_warning(job: &Job) -> Option<Note> {
+    let (i, depth) = job.surface_over_pins()?;
+    let front = job.active_setup_id().and_then(|id| job.front_of(id))?.id;
+    let pins = job.operations.iter().any(|op| {
+        op.is_dowels() && op.enabled() && job.setup_of(op).is_some_and(|s| s.id == front)
+    });
+    if !pins {
+        return None;
+    }
+    let op = job.operations.get(i)?;
+    Some(Note::at(
+        i,
+        Message::new("pipeline-surface-over-pins")
+            .arg("label", op.label_message(i))
+            .arg("depth", Value::Length(depth, Digits::Fixed(1))),
+    ))
 }
 
 /// For the active setup, when it is a back: each operation that carves a text's letters,

@@ -31,6 +31,7 @@ sheet-turn-heading = Turn the board over
 sheet-turn-left-right = Turn the board over left to right, about its vertical centre line: the left edge goes to the right, and the face that was down is now up.
 sheet-turn-top-bottom = Turn the board over top to bottom, about its horizontal centre line: the bottom edge goes to the top, and the face that was down is now up.
 sheet-turn-pins = Put the { $diameter } pins through the dowel holes into the spoilboard, one in each.
+sheet-turn-pins-down = Tap the pins down at least { $depth } below the back face: the back is surfaced over them.
 sheet-turn-no-dowels = { $front } has no dowel holes for the pins: add them before cutting it, or locate the board by a corner.
 sheet-turn-corner = Push the board into the same corner of the fence as for { $front }. Its size must be exactly { $width } × { $length }.
 sheet-turn-picture = The picture shows the board as it lies on the machine, back face up.

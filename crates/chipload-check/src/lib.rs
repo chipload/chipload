@@ -81,6 +81,9 @@ pub struct CheckLimits {
 pub struct Pin {
     pub center: (f64, f64),
     pub radius: f64,
+    /// How far below the stock's top its top stands, mm: 0 flush with the back face, or
+    /// set down as deep as the back's surface pass, which may then go over it.
+    pub top_depth: f64,
 }
 
 /// A circle a tool may cut deeper in than the max overcut: a dowel hole, in work
@@ -199,6 +202,7 @@ fn dowel_pins(job: &Job, (zx, zy): (f64, f64)) -> Vec<Pin> {
         op.enabled() && job.setup_of(op).is_some_and(|s| s.id == back.setup)
     };
     let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    let top_depth = job.surface_over_pins().map_or(0.0, |(_, depth)| depth);
     dowel_circles(job, in_front)
         .into_iter()
         .map(|((x, y), radius, _)| {
@@ -209,6 +213,7 @@ fn dowel_pins(job: &Job, (zx, zy): (f64, f64)) -> Vec<Pin> {
             Pin {
                 center: (x - zx, y - zy),
                 radius,
+                top_depth,
             }
         })
         .collect()
@@ -250,12 +255,11 @@ fn into_pin(
     arc: Option<((f64, f64), f64, bool)>,
     radius: f64,
     tol: f64,
+    reaches: impl Fn(&Pin) -> bool,
 ) -> Option<Pin> {
-    limits
-        .pins
-        .iter()
-        .copied()
-        .find(|pin| distance_to_path(pin.center, from, to, arc) < pin.radius + radius - tol)
+    limits.pins.iter().copied().find(|pin| {
+        reaches(pin) && distance_to_path(pin.center, from, to, arc) < pin.radius + radius - tol
+    })
 }
 
 /// The shortest distance from `p` to a straight path or an arc from `from` to `to`.
@@ -906,7 +910,8 @@ fn pin_check(
     ) else {
         return;
     };
-    if z0.min(z1) >= limits.stock_top_z - state.tol {
+    let lowest = z0.min(z1);
+    if lowest >= limits.stock_top_z - state.tol {
         return;
     }
     let arc = (motion == 2 || motion == 3).then(|| {
@@ -917,7 +922,9 @@ fn pin_check(
         ((x0 + i, y0 + j), i.hypot(j), motion == 2)
     });
     let radius = state.radius.unwrap_or(limits.tool_radius);
-    if let Some(pin) = into_pin(limits, (x0, y0), (x1, y1), arc, radius, state.tol) {
+    // Above a pin set down below the back face, a surface pass may go over it.
+    let below = |pin: &Pin| lowest < limits.stock_top_z - pin.top_depth - state.tol;
+    if let Some(pin) = into_pin(limits, (x0, y0), (x1, y1), arc, radius, state.tol, below) {
         state.into_pins += 1;
         state.pin_hit.get_or_insert(pin);
     }

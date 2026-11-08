@@ -346,10 +346,18 @@ fn turning(html: &mut String, job: &Job, w: Words) {
     };
     let mut lines = vec![Message::new(turn)];
     match back.register {
-        Register::Pins => lines.push(match dowel_diameter(job, front.id) {
-            Some(diameter) => Message::new("sheet-turn-pins").arg("diameter", len_u(diameter)),
-            None => Message::new("sheet-turn-no-dowels").arg("front", front.name.as_str()),
-        }),
+        Register::Pins => match dowel_diameter(job, front.id) {
+            Some(diameter) => {
+                lines.push(Message::new("sheet-turn-pins").arg("diameter", len_u(diameter)));
+                // A surface pass over them: they go in below the back face (two-sided.md §6).
+                if let Some((_, depth)) = job.surface_over_pins() {
+                    lines.push(Message::new("sheet-turn-pins-down").arg("depth", len_u(depth)));
+                }
+            }
+            None => {
+                lines.push(Message::new("sheet-turn-no-dowels").arg("front", front.name.as_str()))
+            }
+        },
         Register::Corner => lines.push(
             Message::new("sheet-turn-corner")
                 .arg("front", front.name.as_str())

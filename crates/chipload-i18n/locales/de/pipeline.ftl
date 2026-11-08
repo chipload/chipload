@@ -330,6 +330,7 @@ pipeline-setup-name-empty = eine Aufspannung braucht einen Namen
 pipeline-last-setup = ein Projekt braucht mindestens eine Aufspannung
 pipeline-setup-not-a-back = Aufspannung { $id } ist keine Rückseite einer anderen: zuerst --back-of angeben
 pipeline-back-text = { $label } fräst den Text { $text } auf der Rückseite: er liest sich von vorn richtig, wo er gezeichnet ist, und auf der Rückseite daher gespiegelt. Damit er dort richtig zu lesen ist, ihn auflösen (text explode) und seine Formen spiegeln (shape mirror)
+pipeline-surface-over-pins = { $label } plant die Rückseite über den Passstiften, { $depth } tief: die Stifte mindestens { $depth } unter die Rückseite setzen, sonst trifft der Fräser sie
 pipeline-dowels-there = die Vorderseite hat schon Passstiftbohrungen: Bearbeitung { $number }
 pipeline-dowels-no-shapes = auf dem Brett sind keine Formen, neben die Passstiftbohrungen kämen
 pipeline-dowels-no-room = zwischen den Schnitten und dem Brettrand auf der Wendeachse ist { $room } Platz, eine Passstiftbohrung braucht { $needed }: das Brett größer oder die Stifte kleiner machen
