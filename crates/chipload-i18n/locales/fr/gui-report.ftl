@@ -3,6 +3,7 @@
 
 # The panel's name, a noun.
 report-heading = Rapport
+report-details = Détails ({ $count })
 # The heading of the drawing's facts. An issue is something the import repaired or ignored.
 report-drawing-title = Dessin : { $contours ->
         [one] { $contours } contour
@@ -18,3 +19,5 @@ report-select-operation-hover = Sélectionner l'opération { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Ouvrir l'outil T{ $tool }
 report-update-tools-hover = Donner à ces outils les valeurs de votre bibliothèque, en une seule annulation
+report-part = Pièce { $number } · { $name }
+report-file = Fichier { $number }

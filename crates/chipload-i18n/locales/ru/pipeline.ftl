@@ -18,6 +18,7 @@ pipeline-estimate = Расчётное время: { $total } (резание { 
    *[other] , плюс { $changes } смен инструмента
 }
 pipeline-estimate-part = {"  "}Деталь { $number } ({ $name }): { $time }
+pipeline-estimate-part-counted = {"  "}Деталь { $number } ({ $name }): { $time }; { $counts }
 pipeline-estimate-operation = {"  "}{ $label }: { $time }
 pipeline-estimate-part-operation = {"    "}{ $label }: { $time }
 pipeline-estimate-file = {"  "}Файл { $number }: { $time }

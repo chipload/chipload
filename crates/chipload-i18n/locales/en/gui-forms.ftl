@@ -263,6 +263,7 @@ forms-text-hover = What it says; Enter starts a new line
 forms-font = Font
 forms-text-font-missing = Font "{ $font }" is not on this computer. The text keeps its letters and cuts as they are; to change its words or size, choose another font. Moving and turning it still work.
 forms-fonts-looking = Looking for fonts…
+forms-font-recent = Recently used
 forms-font-builtin = Built in
 forms-font-computer = On this computer
 forms-font-computer-none = No other fonts found. Install one, or put it in the fonts folder of your settings folder.
@@ -493,8 +494,8 @@ forms-explode-dxf-hover = Turn this DXF's shapes into drawn shapes you can edit;
 ## The Statistics section of an operation (docs/specs/operation-statistics.md)
 forms-section-statistics = Statistics
 forms-statistics-time = Time
-# $time, $cutting and $rapids are durations ("8 min 10 s").
-forms-statistics-time-parts = { $time } (cutting { $cutting }, rapids { $rapids })
+# A length ("1.4 m", "850 mm") and the time its moves take ("5 min 5 s").
+forms-statistics-length-time = { $length }, { $time }
 forms-statistics-cutting = Cutting
 forms-statistics-cutting-hover = Feed moves that go sideways: lines, arcs, ramps and helices, measured in 3D
 forms-statistics-plunging = Plunging
@@ -512,6 +513,9 @@ forms-statistics-off = Off: not cut.
 forms-statistics-out-of-date = out of date
 forms-statistics-not-generated = not generated
 forms-statistics-off-summary = off
+forms-statistics-operations-hover = The operations and their rest and floor passes counted here: those that are cut
+forms-statistics-empty = No operations.
+forms-statistics-empty-summary = no operations
 forms-slot-feed = Slot feed
 forms-slot-feed-hover = The feed of the full-width rings: the first ring at each depth, and the first of each branch. Empty: the feed
 forms-slot-step-down = Slot step down

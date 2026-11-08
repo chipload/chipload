@@ -848,7 +848,7 @@ chipload shape array-polar <PROJECT> <IDS>... [OPTIONS]
 
 ### `chipload shape align`
 
-Line up drawn shapes: each one's box side or middle with that of the box round them all, or the stock's; they move whole and keep their ids (docs/specs/drawing-editing.md §7)
+Line up drawn shapes: each one's box side or middle with that of the first shape named, which stays put, or the stock's; they move whole and keep their ids. The shapes of one contour, and a group named whole, line up as one (docs/specs/drawing-editing.md §7, arrange-whole.md, align-first.md)
 
 ```text
 chipload shape align <PROJECT> <IDS>... [OPTIONS]
@@ -857,14 +857,14 @@ chipload shape align <PROJECT> <IDS>... [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S); the first stays put. |
 | `--to <TO>` | Which side or middle lines up. One of: `left`, `centre`, `right`, `top`, `middle`, `bottom`. Required. |
 | `--stock` | Line up with the stock instead (then one shape is enough) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape distribute`
 
-Even out the gaps between drawn shapes' boxes, the first and last staying put (docs/specs/drawing-editing.md §7)
+Even out the gaps between drawn shapes' boxes, the first and last staying put; the shapes of one contour, and a group named whole, count as one (docs/specs/drawing-editing.md §7, arrange-whole.md)
 
 ```text
 chipload shape distribute <PROJECT> <IDS>... [OPTIONS]

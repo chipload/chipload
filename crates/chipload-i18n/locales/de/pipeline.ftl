@@ -39,6 +39,7 @@ pipeline-estimate = Geschätzte Zeit: { $total } (Fräsen { $cutting }, Eilgäng
 # The lines under it start with spaces, written {"  "}: keep them, they indent the line.
 # $name is the part's name.
 pipeline-estimate-part = {"  "}Teil { $number } ({ $name }): { $time }
+pipeline-estimate-part-counted = {"  "}Teil { $number } ({ $name }): { $time }; { $counts }
 # $label is an operation's label.
 pipeline-estimate-operation = {"  "}{ $label }: { $time }
 # An operation under its part: indented deeper.

@@ -25,6 +25,8 @@ Inserting a library entry of more than one shape or text makes a group named aft
   it stays where it is.
 - **Move, turn, scale:** drag any of its shapes, or the handles of its box: the texts in
   it move, turn and scale too. The box turns with the group and stays turned.
+- **Align and distribute:** a group lines up as one, with its texts: alone with *To the
+  stock*, or with other shapes (Ctrl+click them).
 - **Ungroup:** right-click > **Ungroup**, or **Ctrl+Shift+G**. **Del** deletes the group
   with its shapes and texts. Properties shows its name, which you can change, what it
   holds, and *Ungroup*.

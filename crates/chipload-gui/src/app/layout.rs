@@ -539,6 +539,39 @@ pub(super) fn dock_style(ui: &egui::Style) -> egui_dock::Style {
     // drawn behind the dock, dark in the light theme (issue #14).
     style.tab_bar.corner_radius = egui::CornerRadius::ZERO;
     style.tab.tab_body.corner_radius = egui::CornerRadius::ZERO;
+    // Shades (docs/specs/look-and-feel.md §3): the tab bar is chrome, the active tab the
+    // panel's shade so it joins its panel, the others only their names, weak; soft
+    // dividers.
+    let visuals = &ui.visuals;
+    let p = crate::style::palette(visuals);
+    let text = visuals.text_color();
+    let weak = visuals.weak_text_color();
+    style.tab_bar.bg_fill = p.chrome;
+    style.tab_bar.hline_color = p.divider;
+    style.tab.tab_body.bg_fill = p.panel;
+    let tab = |fill: egui::Color32, color: egui::Color32| egui_dock::TabInteractionStyle {
+        outline_color: egui::Color32::TRANSPARENT,
+        corner_radius: egui::CornerRadius {
+            nw: 4,
+            ne: 4,
+            sw: 0,
+            se: 0,
+        },
+        bg_fill: fill,
+        text_color: color,
+    };
+    style.tab.active = tab(p.panel, text);
+    style.tab.focused = tab(p.panel, text);
+    style.tab.active_with_kb_focus = tab(p.panel, text);
+    style.tab.focused_with_kb_focus = tab(p.panel, text);
+    style.tab.inactive = tab(p.chrome, weak);
+    style.tab.inactive_with_kb_focus = tab(p.chrome, weak);
+    style.tab.hovered = tab(p.card_hover, text);
+    style.separator.color_idle = p.divider;
+    style.separator.color_hovered = p.quiet;
+    style.separator.color_dragged = p.strong;
+    style.buttons.close_tab_color = weak;
+    style.buttons.collapse_tabs_color = weak;
     style
 }
 

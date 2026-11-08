@@ -175,3 +175,31 @@ fn a_double_click_picks_one_shape_inside() {
         "the frame alone"
     );
 }
+
+#[test]
+fn a_group_is_aligned_whole() {
+    // docs/specs/arrange-whole.md: the group picked whole aligns to the stock as one, its
+    // text with it; picked with another shape, the two line up, the group whole.
+    use super::modify::Arrange;
+    use chipload_pipeline::drawing_edit::AlignTo;
+    let mut app = grouped();
+    let shapes = |app: &ChiploadApp, ids: &[u64]| {
+        chipload_pipeline::shapes::shapes_bounds(&app.edit.as_ref().unwrap().job, ids).unwrap()
+    };
+    let (frame, letters) = (shapes(&app, &[5]), shapes(&app, &[1, 2, 3, 4]));
+    app.click(Some(contour_of(&app, 5)), false);
+    assert_eq!(app.selected_group(), Some(1));
+    app.canvas_tools.align_to_stock = true;
+    assert!(app.arrange_selected(Arrange::Align(AlignTo::Left)));
+    app.commit();
+    let (frame2, letters2) = (shapes(&app, &[5]), shapes(&app, &[1, 2, 3, 4]));
+    let moved = frame2.0.0 - frame.0.0;
+    assert!(
+        (letters2.0.0 - letters.0.0 - moved).abs() < 1e-6,
+        "the text went along"
+    );
+    assert!((frame2.0.1 - frame.0.1).abs() < 1e-9);
+    // Two of its own shapes are no longer two things to line up: the group is one.
+    app.canvas_tools.align_to_stock = false;
+    assert!(!app.arrange_selected(Arrange::Align(AlignTo::Right)));
+}

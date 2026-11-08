@@ -110,7 +110,7 @@ fn a_narrow_report_wraps_its_first_line() {
     let first = app.report.lines[0].clone();
     let ctx = egui::Context::default();
     // The fonts main.rs sets: a bare context has none to measure with.
-    let mut fonts = crate::fonts::system_fonts().unwrap();
+    let mut fonts = crate::fonts::ui_fonts();
     crate::fonts::add_text_fonts(&mut fonts);
     ctx.set_fonts(fonts);
     let input = egui::RawInput {

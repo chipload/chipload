@@ -752,6 +752,43 @@ fn the_selection_aligns_and_distributes_its_shapes() {
 }
 
 #[test]
+fn the_shape_picked_first_stays_put_through_aligns_one_after_another() {
+    // docs/specs/align-first.md, the user's report (2026-11-08): S3 (the triangle, 110,65
+    // to 140,95) picked first, then S2 (the circle at 75,80 r 12) added: left, then
+    // centre, and S3 never moves, though S2 has the lower id.
+    use super::modify::Arrange;
+    use chipload_pipeline::drawing_edit::AlignTo;
+    let mut app = drawn_part();
+    let bounds = |app: &ChiploadApp, id: u64| {
+        chipload_pipeline::shapes::shapes_bounds(&app.edit.as_ref().unwrap().job, &[id]).unwrap()
+    };
+    let triangle = bounds(&app, 3);
+    app.click(Some(contour_of(&app, 3)), false);
+    app.track_first_picked();
+    app.click(Some(contour_of(&app, 2)), true);
+    assert_eq!(app.selection, CanvasSelection::Shapes([2, 3].into()));
+    assert!(app.arrange_selected(Arrange::Align(AlignTo::Left)));
+    app.commit();
+    assert_eq!(bounds(&app, 3), triangle);
+    assert!((bounds(&app, 2).0.0 - 110.0).abs() < 1e-9);
+    assert!(app.arrange_selected(Arrange::Align(AlignTo::Centre)));
+    app.commit();
+    assert_eq!(bounds(&app, 3), triangle, "still S3 stays");
+    let circle = bounds(&app, 2);
+    assert!(((circle.0.0 + circle.1.0) / 2.0 - 125.0).abs() < 1e-9);
+    // A selection made anew all at once (as a box drag makes it) has no first: the box
+    // round them all.
+    app.selection = CanvasSelection::Nothing;
+    app.track_first_picked();
+    app.selection = CanvasSelection::Shapes([2, 3].into());
+    assert!(app.arrange_selected(Arrange::Align(AlignTo::Bottom)));
+    assert!(
+        (bounds(&app, 2).0.1 - 65.0).abs() < 1e-9,
+        "S2 down to S3's bottom"
+    );
+}
+
+#[test]
 fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
     // docs/specs/svg-import.md §7, §10.
     let mut app = ChiploadApp::default();

@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The look: a little more room, rounder widgets, larger headings and one accent colour,
-//! for both light and dark themes. Text colours are set so every kind of text reads at
-//! least 4.5:1 against the panels (WCAG AA); egui's own defaults fall short in places.
+//! The look (docs/specs/look-and-feel.md): a little more room, rounder widgets, larger
+//! headings, shades from the top bar down to raised cards, the brand's green as the one
+//! accent and a colour per operation kind, for both light and dark themes. Text colours
+//! are set so every kind of text reads at least 4.5:1 against what it is on (WCAG AA);
+//! egui's own defaults fall short in places.
 
 use eframe::egui::{self, Color32, CornerRadius, FontId, TextStyle};
 
-/// The accent (selection, the Generate button) in the dark theme and the light one.
-const ACCENT_DARK: Color32 = Color32::from_rgb(0x2a, 0x6c, 0xb0);
-const ACCENT_LIGHT: Color32 = Color32::from_rgb(0xa8, 0xcd, 0xf5);
-/// Text on the dark accent (egui's light blue reads only 3.9:1 on it).
-const ON_ACCENT_DARK: Color32 = Color32::WHITE;
 /// Dark theme: labels, button text, weak text and errors, brighter than egui's. Button
 /// text, which is also the values in fields, a step above labels (the user, 2026-11-03).
 const TEXT_DARK: Color32 = Color32::from_gray(185);
@@ -23,29 +20,138 @@ const ERROR_LIGHT: Color32 = Color32::from_rgb(0xb3, 0x26, 0x1e);
 /// Report lines that went well, in each theme (egui has no colour for them).
 const GOOD_DARK: Color32 = Color32::from_rgb(0x7f, 0xd8, 0x8f);
 const GOOD_LIGHT: Color32 = Color32::from_rgb(0x1e, 0x7e, 0x34);
-/// A hovered card in a list: subtler than a hovered button, so weak text on it still reads.
-const CARD_HOVER_DARK: Color32 = Color32::from_gray(45);
-const CARD_HOVER_LIGHT: Color32 = Color32::from_gray(232);
-/// The header's top bar.
-const TOP_BAR_DARK: Color32 = Color32::from_gray(20);
-const TOP_BAR_LIGHT: Color32 = Color32::from_gray(222);
 const ROUNDING: u8 = 4;
+/// A card's corners (docs/specs/look-and-feel.md §5).
+pub const CARD_ROUNDING: u8 = 6;
 
-/// The top bar's fill: a step darker than the panels in either theme.
+/// The window's shades and accents in one theme (docs/specs/look-and-feel.md §2, §3).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Palette {
+    /// The top bar, darkest.
+    pub top_bar: Color32,
+    /// The ribbon, the panels' tab bars and the status bar.
+    pub chrome: Color32,
+    /// The panels.
+    pub panel: Color32,
+    /// A form's sections, raised above the panel.
+    pub card: Color32,
+    /// A card's 1 px edge: none in the dark theme, where the shade is enough; a soft line in
+    /// the light one, where a white card on a near-white panel had none to see
+    /// (docs/specs/look-and-feel.md §10).
+    pub card_edge: Color32,
+    /// A hovered card in a list: subtler than a hovered button, so weak text on it reads.
+    pub card_hover: Color32,
+    /// Text fields and other inset boxes.
+    pub field: Color32,
+    /// A button's face.
+    pub button: Color32,
+    pub button_hover: Color32,
+    /// 1 px lines between panels and round fields.
+    pub divider: Color32,
+    /// The one action a screen leads to (Generate), and its text.
+    pub strong: Color32,
+    pub on_strong: Color32,
+    /// What is selected or switched on, and its text.
+    pub quiet: Color32,
+    pub on_quiet: Color32,
+}
+
+/// The dark theme, after the brand's dark `#1d2025` and green `#9ab964`.
+pub const DARK: Palette = Palette {
+    top_bar: Color32::from_rgb(0x12, 0x14, 0x16),
+    chrome: Color32::from_rgb(0x19, 0x1b, 0x1f),
+    panel: Color32::from_rgb(0x22, 0x25, 0x2a),
+    card: Color32::from_rgb(0x2b, 0x2f, 0x35),
+    card_edge: Color32::TRANSPARENT,
+    card_hover: Color32::from_rgb(0x32, 0x37, 0x3e),
+    field: Color32::from_rgb(0x15, 0x17, 0x1a),
+    button: Color32::from_rgb(0x38, 0x3d, 0x44),
+    button_hover: Color32::from_rgb(0x44, 0x4a, 0x52),
+    divider: Color32::from_rgb(0x30, 0x34, 0x3a),
+    strong: Color32::from_rgb(0x9a, 0xb9, 0x64),
+    on_strong: Color32::from_rgb(0x1d, 0x20, 0x25),
+    quiet: Color32::from_rgb(0x4d, 0x69, 0x30),
+    on_quiet: Color32::WHITE,
+};
+
+/// The light theme, after the brand's light `#f3f5f0` and deep green.
+pub const LIGHT: Palette = Palette {
+    top_bar: Color32::from_rgb(0xd9, 0xdd, 0xd4),
+    chrome: Color32::from_rgb(0xe6, 0xe9, 0xe2),
+    panel: Color32::from_rgb(0xf3, 0xf5, 0xf0),
+    card: Color32::WHITE,
+    card_edge: Color32::from_rgb(0xdc, 0xe0, 0xd6),
+    card_hover: Color32::from_rgb(0xe9, 0xed, 0xe4),
+    field: Color32::WHITE,
+    button: Color32::from_rgb(0xe2, 0xe6, 0xdd),
+    button_hover: Color32::from_rgb(0xd5, 0xdb, 0xce),
+    divider: Color32::from_rgb(0xd0, 0xd5, 0xcb),
+    strong: Color32::from_rgb(0x55, 0x73, 0x2a),
+    on_strong: Color32::WHITE,
+    quiet: Color32::from_rgb(0xd5, 0xe3, 0xbd),
+    on_quiet: Color32::from_rgb(0x1d, 0x20, 0x25),
+};
+
+/// The palette of these visuals.
+pub fn palette(visuals: &egui::Visuals) -> &'static Palette {
+    if visuals.dark_mode { &DARK } else { &LIGHT }
+}
+
+/// The top bar's fill: a step darker than the ribbon in either theme.
 pub fn top_bar_fill(visuals: &egui::Visuals) -> Color32 {
-    if visuals.dark_mode {
-        TOP_BAR_DARK
-    } else {
-        TOP_BAR_LIGHT
-    }
+    palette(visuals).top_bar
 }
 
 /// The fill of a hovered card (an operation in the list).
 pub fn card_hover(visuals: &egui::Visuals) -> Color32 {
-    if visuals.dark_mode {
-        CARD_HOVER_DARK
-    } else {
-        CARD_HOVER_LIGHT
+    palette(visuals).card_hover
+}
+
+/// A disabled button's icon and name: clearly off (docs/specs/look-and-feel.md §4).
+pub fn disabled_color(visuals: &egui::Visuals) -> Color32 {
+    visuals.weak_text_color().gamma_multiply(0.45)
+}
+
+/// An operation kind's colour, the same wherever it is shown: the Browser, the ribbon,
+/// Properties (docs/specs/look-and-feel.md §4).
+pub fn op_color(kind: chipload_pipeline::new_ops::OpKind, dark: bool) -> Color32 {
+    use chipload_pipeline::new_ops::OpKind;
+    match (kind, dark) {
+        (OpKind::Profile, true) => Color32::from_rgb(0x6f, 0xc8, 0xbd),
+        (OpKind::Profile, false) => Color32::from_rgb(0x00, 0x79, 0x6b),
+        (OpKind::Pocket, true) => Color32::from_rgb(0xc3, 0xa6, 0xf0),
+        (OpKind::Pocket, false) => Color32::from_rgb(0x6a, 0x3d, 0xb8),
+        (OpKind::Vcarve, true) => Color32::from_rgb(0xf0, 0xb4, 0x6a),
+        (OpKind::Vcarve, false) => Color32::from_rgb(0xa8, 0x55, 0x00),
+        (OpKind::Path, true) => Color32::from_rgb(0x8f, 0xbc, 0xf5),
+        (OpKind::Path, false) => Color32::from_rgb(0x1f, 0x5c, 0xb0),
+        (OpKind::Holes, true) => Color32::from_rgb(0xf0, 0x9a, 0xb4),
+        (OpKind::Holes, false) => Color32::from_rgb(0xa8, 0x1e, 0x55),
+        (OpKind::Surface, true) => Color32::from_rgb(0xb8, 0xc4, 0x8a),
+        (OpKind::Surface, false) => Color32::from_rgb(0x5a, 0x6b, 0x1e),
+    }
+}
+
+/// What a Browser row is, for its icon's quiet colour (docs/specs/look-and-feel.md §4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Tint {
+    /// Drawings, layers, groups and shapes.
+    Shapes,
+    /// Setups and stock: the board, in wood.
+    Board,
+    /// Tools and the machine: steel.
+    Tools,
+}
+
+/// A row's quiet icon colour.
+pub fn tint(tint: Tint, dark: bool) -> Color32 {
+    match (tint, dark) {
+        (Tint::Shapes, true) => Color32::from_rgb(0x9d, 0xb4, 0xcf),
+        (Tint::Shapes, false) => Color32::from_rgb(0x3a, 0x5f, 0x8c),
+        (Tint::Board, true) => Color32::from_rgb(0xcf, 0xab, 0x80),
+        (Tint::Board, false) => Color32::from_rgb(0x8a, 0x5a, 0x2b),
+        (Tint::Tools, true) => Color32::from_rgb(0xaa, 0xb4, 0xc0),
+        (Tint::Tools, false) => Color32::from_rgb(0x4f, 0x5d, 0x6e),
     }
 }
 
@@ -55,6 +161,18 @@ pub fn good_color(visuals: &egui::Visuals) -> Color32 {
         GOOD_DARK
     } else {
         GOOD_LIGHT
+    }
+}
+
+/// Bold text: Inter SemiBold in the strong text colour (docs/specs/look-and-feel.md §9);
+/// only the colour where the fonts have no bold (a bare context in tests).
+pub fn bold(ui: &egui::Ui, text: impl Into<egui::RichText>) -> egui::RichText {
+    let family = crate::fonts::bold_family();
+    let text = text.into().strong();
+    if ui.fonts(|f| f.definitions().families.contains_key(&family)) {
+        text.family(family)
+    } else {
+        text
     }
 }
 
@@ -76,15 +194,31 @@ pub fn apply(ctx: &egui::Context) {
         ] {
             widget.corner_radius = radius;
         }
+        let p = *palette(visuals);
+        visuals.panel_fill = p.panel;
+        visuals.window_fill = p.panel;
+        visuals.extreme_bg_color = p.field;
+        visuals.faint_bg_color = p.card;
+        visuals.window_stroke.color = p.divider;
+        visuals.widgets.noninteractive.bg_fill = p.panel;
+        visuals.widgets.noninteractive.weak_bg_fill = p.panel;
+        visuals.widgets.noninteractive.bg_stroke.color = p.divider;
+        visuals.widgets.inactive.bg_fill = p.button;
+        visuals.widgets.inactive.weak_bg_fill = p.button;
+        visuals.widgets.hovered.bg_fill = p.button_hover;
+        visuals.widgets.hovered.weak_bg_fill = p.button_hover;
+        visuals.widgets.open.weak_bg_fill = p.button_hover;
+        visuals.selection.bg_fill = p.quiet;
+        visuals.selection.stroke.color = p.on_quiet;
         if visuals.dark_mode {
-            visuals.selection.bg_fill = ACCENT_DARK;
-            visuals.selection.stroke.color = ON_ACCENT_DARK;
             visuals.widgets.noninteractive.fg_stroke.color = TEXT_DARK;
             visuals.widgets.inactive.fg_stroke.color = BUTTON_TEXT_DARK;
             visuals.weak_text_color = Some(WEAK_DARK);
             visuals.error_fg_color = ERROR_DARK;
         } else {
-            visuals.selection.bg_fill = ACCENT_LIGHT;
+            // A field is white on a white card: an outline shows where it is.
+            visuals.widgets.inactive.bg_stroke =
+                egui::Stroke::new(1.0, p.divider.gamma_multiply(0.9));
             visuals.weak_text_color = Some(WEAK_LIGHT);
             visuals.warn_fg_color = WARN_LIGHT;
             visuals.error_fg_color = ERROR_LIGHT;
@@ -149,6 +283,20 @@ mod tests {
                     "text in a text field",
                     v.text_color(),
                     v.text_edit_bg_color(),
+                ),
+                ("text on a card", v.text_color(), palette(v).card),
+                ("weak text on a card", v.weak_text_color(), palette(v).card),
+                ("text on the chrome", v.text_color(), palette(v).chrome),
+                (
+                    "weak text on the chrome",
+                    v.weak_text_color(),
+                    palette(v).chrome,
+                ),
+                ("text on the top bar", v.text_color(), palette(v).top_bar),
+                (
+                    "text on the strong accent",
+                    palette(v).on_strong,
+                    palette(v).strong,
                 ),
             ];
             for (what, fg, bg) in texts {

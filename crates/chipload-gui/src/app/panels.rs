@@ -68,12 +68,14 @@ impl ChiploadApp {
         else {
             return;
         };
-        let edit = egui::Grid::new("selection-place")
-            .num_columns(2)
-            .show(ui, |ui| {
-                crate::shape_form::place_rows(ui, egui::Id::new("selection-place"), bounds)
-            })
-            .inner;
+        let edit = crate::app::forms::card(ui, |ui| {
+            egui::Grid::new("selection-place")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    crate::shape_form::place_rows(ui, egui::Id::new("selection-place"), bounds)
+                })
+                .inner
+        });
         if let Some(edit) = edit {
             let (from, to, scale, degrees) = edit.transform(bounds);
             self.transform_shapes(&ids, from, to, scale, degrees);
@@ -221,7 +223,12 @@ impl ChiploadApp {
         };
         if let Some(at) = counted {
             let statistics = self.statistics_of(at);
-            forms::statistics_section(ui, &statistics);
+            forms::statistics_section(ui, "op-statistics", &statistics);
+        }
+        // A part's: its operations' summed (docs/specs/part-statistics.md §3.1).
+        if let Focus::Part(id) = focus {
+            let statistics = self.part_statistics(id);
+            forms::statistics_section(ui, "part-statistics", &statistics);
         }
         // An operation can be kept as a style (docs/specs/styles.md §3.1).
         if let Focus::Op(i) = focus
@@ -341,7 +348,10 @@ impl ChiploadApp {
                 .inner_margin(24.0)
                 .show(ui, |ui| {
                     ui.set_max_width(START_WIDTH);
-                    ui.heading(RichText::new("Chipload").size(28.0).strong());
+                    ui.label(crate::style::bold(
+                        ui,
+                        RichText::new("Chipload").heading().size(28.0),
+                    ));
                     ui.weak(t!(ui, "panels-tagline"));
                     ui.add_space(16.0);
                     let wide = egui::vec2(START_WIDTH, 32.0);
@@ -375,7 +385,7 @@ impl ChiploadApp {
                         .collect();
                     if !recent.is_empty() {
                         ui.add_space(16.0);
-                        ui.label(RichText::new(t!(ui, "panels-recent")).strong());
+                        ui.label(crate::style::bold(ui, t!(ui, "panels-recent")));
                         for path in &recent {
                             let name = file_name(Path::new(path));
                             if ui

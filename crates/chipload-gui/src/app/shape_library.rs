@@ -514,9 +514,10 @@ impl ChiploadApp {
             let (zone, dropped) = drop_zone(ui, |ui| {
                 ui.set_min_width(ui.available_width());
                 let open = !self.shape_library.folded.contains(group) || !search.is_empty();
-                let header = egui::CollapsingHeader::new(
-                    RichText::new(format!("{group}  ({})", items.len())).strong(),
-                )
+                let header = egui::CollapsingHeader::new(crate::style::bold(
+                    ui,
+                    format!("{group}  ({})", items.len()),
+                ))
                 .id_salt(("shape-group", group))
                 .open(Some(open))
                 .show(ui, |ui| self.entry_grid(ui, &items));

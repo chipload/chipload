@@ -91,10 +91,48 @@ impl ChiploadApp {
         {
             Some((_, counts)) => Statistics::Counted {
                 counts: *counts,
+                operations: None,
                 copies: job
                     .and_then(|job| job.operations.get(at.operation).map(|op| (job, op)))
                     .and_then(|(job, op)| job.part_of(op))
                     .map_or(1, |p| p.count()),
+            },
+            // Not in this run: another part's preview, or another setup.
+            None => Statistics::OutOfDate,
+        }
+    }
+
+    /// What the Statistics section of part `id` shows (docs/specs/part-statistics.md §3.1):
+    /// its operations' numbers summed, or why there are none.
+    pub(super) fn part_statistics(&self, id: u64) -> forms::Statistics {
+        use forms::Statistics;
+        let Some(job) = self.edit.as_ref().map(|e| &e.job) else {
+            return Statistics::OutOfDate;
+        };
+        let ops: Vec<usize> = (0..job.operations.len())
+            .filter(|&i| job.operations[i].part() == id)
+            .collect();
+        if ops.is_empty() {
+            return Statistics::Empty;
+        }
+        if self.generating() {
+            return Statistics::Generating;
+        }
+        let Some(result) = &self.toolpath.result else {
+            return if self.toolpath.failed {
+                Statistics::Failed
+            } else {
+                Statistics::OutOfDate
+            };
+        };
+        if !ops.iter().any(|&i| job.cuts(i)) {
+            return Statistics::Off;
+        }
+        match chipload_pipeline::estimate::part_counts(job, &result.estimate, id) {
+            Some(part) => Statistics::Counted {
+                counts: part.counts,
+                operations: Some(part.operations),
+                copies: job.part(id).map_or(1, |p| p.count()),
             },
             // Not in this run: another part's preview, or another setup.
             None => Statistics::OutOfDate,
@@ -151,7 +189,9 @@ impl ChiploadApp {
             return false;
         };
         // Nothing to generate: no error, and the toolpath of operations since deleted goes.
-        if edit.job.operations.is_empty() {
+        // A setup without operations (a new one) is the same: it isn't every operation
+        // switched off (found 2026-11-06).
+        if !active_setup_has_operations(&edit.job) {
             self.invalidate();
             return false;
         }
@@ -381,13 +421,12 @@ impl ChiploadApp {
         };
         report.push(Tone::Good, done);
         let several = result.files.len() > 1;
-        for line in chipload_pipeline::estimate::estimate_lines(
-            job,
-            &result.estimate,
-            several,
-            chipload_pipeline::estimate::Lengths::Totals,
-        ) {
-            report.push_message(Tone::Info, line.message, line.operation);
+        // The estimate's table, its caveat in the total's hover; the cut outline is a note.
+        // The lengths in all are in the Statistics sections (docs/specs/report-details.md).
+        let (table, outline) = estimate_table(job, &result.estimate, several);
+        report.estimate = Some(table);
+        if let Some(outline) = outline {
+            report.push_message(Tone::Info, outline, None);
         }
         for note in &result.notes {
             report.push_message(Tone::Warning, note.message.clone(), note.operation);
@@ -646,4 +685,76 @@ impl Default for Toolpath {
             failed: false,
         }
     }
+}
+
+/// The time estimate as the report's table: the total, then each part, operation and file
+/// (docs/specs/look-and-feel.md §6), what it leaves out in the total's hover; and the cut
+/// outline's line, if any.
+fn estimate_table(
+    job: &Job,
+    estimate: &chipload_pipeline::estimate::Estimate,
+    several_files: bool,
+) -> (super::report::EstimateTable, Option<Message>) {
+    use super::report::{EstimateRow, EstimateTable, RowLabel, Target};
+    use chipload_pipeline::estimate::{RowKind, duration_message, estimate_lines, estimate_rows};
+    let mut lines: Vec<Message> = estimate_lines(
+        job,
+        estimate,
+        several_files,
+        chipload_pipeline::estimate::Lengths::Without,
+    )
+    .into_iter()
+    .map(|n| n.message)
+    .collect();
+    // The lines: the total, the cut outline if any, the rows, and the caveat last.
+    let caveat = lines.pop();
+    let total = match lines.is_empty() {
+        true => duration_message(estimate.total),
+        false => lines.remove(0),
+    };
+    let outline = match estimate.outline {
+        Some(_) if !lines.is_empty() => Some(lines.remove(0)),
+        _ => None,
+    };
+    let rows = estimate_rows(job, estimate, several_files)
+        .into_iter()
+        .map(|row| {
+            let time = duration_message(row.seconds);
+            match row.kind {
+                RowKind::Part { number, name } => EstimateRow {
+                    label: RowLabel::Part { number, name },
+                    time,
+                    indented: false,
+                    target: None,
+                },
+                RowKind::Operation { at, in_part } => EstimateRow {
+                    label: RowLabel::Operation(job.label_message(at)),
+                    time,
+                    indented: in_part,
+                    target: Some(Target::Op(at.operation)),
+                },
+                RowKind::File { number } => EstimateRow {
+                    label: RowLabel::File(number),
+                    time,
+                    indented: false,
+                    target: None,
+                },
+            }
+        })
+        .collect();
+    let table = EstimateTable {
+        total,
+        hover: caveat,
+        rows,
+    };
+    (table, outline)
+}
+
+/// Whether the active setup has operations, on or off: one without has nothing to plan, and
+/// the window says nothing about it (docs/specs/setups.md §7).
+pub(super) fn active_setup_has_operations(job: &chipload_job::Job) -> bool {
+    let setup = job.active_setup_id();
+    job.operations
+        .iter()
+        .any(|op| job.setup_of(op).map(|s| s.id) == setup)
 }

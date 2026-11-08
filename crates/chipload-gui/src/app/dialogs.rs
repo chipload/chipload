@@ -288,7 +288,10 @@ impl ChiploadApp {
                 let mut answer: Option<Unsaved> = None;
                 let modal = egui::Modal::new(egui::Id::new("unsaved-changes")).show(ctx, |ui| {
                     ui.set_width(360.0);
-                    ui.heading(t!(ui, "dialogs-unsaved-title"));
+                    ui.label(crate::style::bold(
+                        ui,
+                        egui::RichText::new(t!(ui, "dialogs-unsaved-title")).heading(),
+                    ));
                     ui.add_space(4.0);
                     ui.label(t!(ui, "dialogs-unsaved-body"));
                     ui.add_space(8.0);
@@ -380,7 +383,11 @@ impl ChiploadApp {
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("explode-dxf")).show(ctx, |ui| {
             ui.set_width(380.0);
-            ui.heading(t!(ui, "dialogs-explode-title", name = name.as_str()));
+            ui.label(crate::style::bold(
+                ui,
+                egui::RichText::new(t!(ui, "dialogs-explode-title", name = name.as_str()))
+                    .heading(),
+            ));
             ui.add_space(4.0);
             ui.label(match of {
                 Source::Image(_) => t!(ui, "dialogs-explode-image-body"),
@@ -423,7 +430,10 @@ impl ChiploadApp {
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("join-ends")).show(ctx, |ui| {
             ui.set_width(380.0);
-            ui.heading(t!(ui, "dialogs-join-title"));
+            ui.label(crate::style::bold(
+                ui,
+                egui::RichText::new(t!(ui, "dialogs-join-title")).heading(),
+            ));
             ui.add_space(4.0);
             ui.label(if ids.is_empty() {
                 t!(ui, "dialogs-join-body-all")
@@ -465,7 +475,11 @@ impl ChiploadApp {
         let mut load: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("changed-on-disk")).show(ctx, |ui| {
             ui.set_width(380.0);
-            ui.heading(t!(ui, "dialogs-changed-title", file = name.as_str()));
+            ui.label(crate::style::bold(
+                ui,
+                egui::RichText::new(t!(ui, "dialogs-changed-title", file = name.as_str()))
+                    .heading(),
+            ));
             ui.add_space(4.0);
             ui.label(t!(ui, "dialogs-changed-body"));
             ui.add_space(8.0);

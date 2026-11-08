@@ -131,7 +131,8 @@ fn new_project_pictures() {
             .with_size(egui::vec2(1200.0, 800.0))
             .wgpu()
             .build_eframe(move |cc| {
-                if let Ok(mut fonts) = crate::fonts::system_fonts() {
+                {
+                    let mut fonts = crate::fonts::ui_fonts();
                     crate::fonts::add_text_fonts(&mut fonts);
                     cc.egui_ctx.set_fonts(fonts);
                 }
@@ -270,4 +271,28 @@ fn a_back_is_simulated_turned_over_and_edited_from_the_front() {
     one.display.simulate = true;
     one.display.turned = true;
     assert_eq!(one.shown_turn(), None);
+}
+
+/// A new setup has nothing to cut yet: it isn't planned, and no error says every operation
+/// is off (found by the user, 2026-11-06, adding a setup to a project of one).
+#[test]
+fn a_new_setup_without_operations_is_not_an_error() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v31/svg_badge.chipload")));
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    let added = app.add_setup().unwrap();
+    assert_eq!(app.edited_job().unwrap().active_setup_id(), Some(added));
+    assert!(!app.start_generation(true), "nothing to plan");
+    let disabled = t!(app, "toolpath-all-disabled");
+    assert!(
+        app.report.lines.iter().all(|l| l.text != disabled
+            && l.message
+                .as_ref()
+                .is_none_or(|m| m.id != "toolpath-all-disabled")),
+        "{:?}",
+        app.report
+    );
+    // Back on the first setup, it is planned as before.
+    app.activate_setup(1);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
 }

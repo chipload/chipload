@@ -24,16 +24,8 @@ use std::process::ExitCode;
 use eframe::egui;
 
 fn main() -> ExitCode {
-    let fonts = match fonts::system_fonts() {
-        Ok(mut fonts) => {
-            fonts::add_text_fonts(&mut fonts);
-            fonts
-        }
-        Err(message) => {
-            fatal(&message);
-            return ExitCode::FAILURE;
-        }
-    };
+    let mut fonts = fonts::ui_fonts();
+    fonts::add_text_fonts(&mut fonts);
     // A file on the command line: a .chipload project, an older .json job, or a .dxf to import.
     let file: Option<PathBuf> = std::env::args_os().nth(1).map(PathBuf::from);
 

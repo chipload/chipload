@@ -141,6 +141,12 @@ G-code changes, for the better, and the release notes say so.
   hint of §4.1 (a note, not an error).
 - The *Narrower than the tip* warning stays.
 
+Changed 2026-11-07 (the user: the floor-left warning "should not be a warning and also it
+is enough to say it once"): the floor left and the floor pass's coverage are **notes**
+(the plan's facts: an Info line in the Report, `note:` from `plan`, not on the setup
+sheet's *Watch out*), and the floor left is **one note per operation** listing every
+contour it concerns (`VcarvePlan::floor_left`). *Narrower than the tip* stays a warning.
+
 ## 7. Command line, window, guide
 
 - `chipload op add-floor part.chipload --op 3 --tool 2` adds the floor pass (feeds from the

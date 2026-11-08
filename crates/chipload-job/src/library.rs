@@ -37,6 +37,8 @@ pub const SETTINGS_FILE: &str = "settings.json";
 pub const SETTINGS_VERSION: i64 = 3;
 /// How many recent projects are kept.
 pub const RECENT_MAX: usize = 10;
+/// How many recently used fonts are kept (docs/specs/font-list.md).
+pub const RECENT_FONTS_MAX: usize = 5;
 
 /// Why a library, settings or recovery file can't be read or changed. Its text is a
 /// message (`job.ftl`), shown in the app's language; `Display` writes it in English.
@@ -877,6 +879,10 @@ pub struct AppSettings {
     /// A version the user chose to skip, e.g. "0.30.0". Missing: none.
     #[serde(default)]
     pub update_skipped: Option<String>,
+    /// The fonts last picked for a text, most recent first, at most `RECENT_FONTS_MAX`, no
+    /// duplicates (docs/specs/font-list.md). Missing (written before it existed): none.
+    #[serde(default)]
+    pub recent_fonts: Vec<String>,
 }
 
 /// The `language` that follows the system's language.
@@ -914,6 +920,7 @@ impl Default for AppSettings {
             update_check: None,
             update_checked_at: None,
             update_skipped: None,
+            recent_fonts: Vec::new(),
         }
     }
 }
@@ -930,9 +937,31 @@ impl AppSettings {
         self.recent_projects.retain(|p| p != path);
     }
 
+    /// Put a font at the top of the recently used fonts (moving it if it is there already).
+    pub fn add_recent_font(&mut self, font: &str) {
+        self.recent_fonts.retain(|f| f != font);
+        self.recent_fonts.insert(0, font.to_string());
+        self.recent_fonts.truncate(RECENT_FONTS_MAX);
+    }
+
     /// Every rule violation as "path: message".
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();
+        let fonts = &self.recent_fonts;
+        if fonts.len() > RECENT_FONTS_MAX {
+            problems.push(format!(
+                "recent_fonts: at most {RECENT_FONTS_MAX}, got {}",
+                fonts.len()
+            ));
+        }
+        for (i, font) in fonts.iter().enumerate() {
+            if font.trim().is_empty() {
+                problems.push(format!("recent_fonts.{i}: must not be empty"));
+            }
+            if fonts[..i].contains(font) {
+                problems.push(format!("recent_fonts.{i}: \"{font}\" is listed twice"));
+            }
+        }
         let recent = &self.recent_projects;
         if recent.len() > RECENT_MAX {
             problems.push(format!(

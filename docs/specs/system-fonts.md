@@ -93,6 +93,8 @@ you want to edit the text you must choose another font."
 - The chosen font's name is shown in it as now; a computer font's sample is loaded when the
   text is opened.
 - While the list is made (the first time it opens, in the background): *Looking for fonts…*.
+- Changed 2026-11-08 (docs/specs/font-list.md): the search sits at the top of the whole
+  list and filters every font; the recently used fonts come first.
 
 ## 7. The command line
 

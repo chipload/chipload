@@ -43,7 +43,7 @@ fn nav_button(
     if compact {
         let response = plain_icon_button(ui, icon, label, enabled, selected, COMPACT_SIDE);
         response.on_hover_ui(|ui| {
-            ui.strong(label);
+            ui.label(crate::style::bold(ui, label));
         })
     } else {
         ribbon_button(ui, icon, label, enabled, selected)

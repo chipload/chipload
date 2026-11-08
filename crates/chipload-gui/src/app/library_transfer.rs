@@ -53,10 +53,13 @@ pub(super) fn import_preview(
     let pending = pending.filter(|p| p.kind == kind)?;
     let mut choice = None;
     ui.separator();
-    ui.strong(t!(
+    ui.label(crate::style::bold(
         ui,
-        "library-transfer-import-from",
-        file = pending.file.display().to_string()
+        t!(
+            ui,
+            "library-transfer-import-from",
+            file = pending.file.display().to_string()
+        ),
     ));
     let units = crate::units::display(ui.ctx()).into();
     for line in pending.lines() {

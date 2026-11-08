@@ -9,6 +9,7 @@ use super::shortcuts::with_keys;
 use super::*;
 use crate::i18n::Lang;
 use crate::icons::{self, Icon};
+use crate::style::Tint;
 
 /// A row's height, points.
 pub(super) const ROW_HEIGHT: f32 = 22.0;
@@ -22,6 +23,17 @@ const GAP: f32 = 4.0;
 const PAD: f32 = 4.0;
 
 /// One row of the tree, built with its parts and shown with `show`.
+/// Room before a main group's row, points.
+const GROUP_GAP: f32 = 3.0;
+/// Room inside a count's pill, each side, points.
+const PILL_PAD: f32 = 5.0;
+
+/// Whether a row's trailing note is a count or a tool number ("3", "T2"), shown in a pill.
+fn is_pill(trailing: &str) -> bool {
+    let digits = trailing.strip_prefix('T').unwrap_or(trailing);
+    !digits.is_empty() && digits.chars().all(|c| c.is_ascii_digit())
+}
+
 pub(super) struct Row {
     id: Id,
     depth: usize,
@@ -29,6 +41,8 @@ pub(super) struct Row {
     eye: Option<bool>,
     tick: Option<bool>,
     icon: Option<(Icon, Option<Color32>)>,
+    /// A quiet colour for the icon by what the row is (docs/specs/look-and-feel.md §4).
+    tint: Option<crate::style::Tint>,
     label: String,
     trailing: String,
     selected: bool,
@@ -59,6 +73,7 @@ impl Row {
             eye: None,
             tick: None,
             icon: None,
+            tint: None,
             label: label.into(),
             trailing: String::new(),
             selected: false,
@@ -98,6 +113,13 @@ impl Row {
         self
     }
 
+    /// The icon in a quiet colour for what the row is: shapes, the board, tools.
+    pub(super) fn icon_tinted(mut self, icon: Icon, tint: crate::style::Tint) -> Self {
+        self.icon = Some((icon, None));
+        self.tint = Some(tint);
+        self
+    }
+
     pub(super) fn icon_colored(mut self, icon: Icon, color: Color32) -> Self {
         self.icon = Some((icon, Some(color)));
         self
@@ -133,6 +155,11 @@ impl Row {
     }
 
     pub(super) fn show(self, ui: &mut egui::Ui) -> RowResponse {
+        // A little room before each of the project's main groups (docs/specs/look-and-feel.md
+        // §7).
+        if self.depth == 1 && self.open.is_some() {
+            ui.add_space(GROUP_GAP);
+        }
         let width = ui.available_width();
         let (rect, _) = ui.allocate_exact_size(vec2(width, ROW_HEIGHT), Sense::hover());
         let sense = if self.drag {
@@ -148,10 +175,20 @@ impl Row {
         });
         let visuals = ui.visuals().clone();
         let painter = ui.painter_at(rect);
+        // The highlight is rounded and starts at the row's own indent, so the guides of the
+        // folders above stay clear of it.
+        let from = rect.left() + PAD + self.depth as f32 * INDENT - 2.0;
+        let mark = Rect::from_min_max(
+            egui::pos2(from, rect.top() + 1.0),
+            egui::pos2(
+                rect.right().min(ui.clip_rect().right()) - 2.0,
+                rect.bottom() - 1.0,
+            ),
+        );
         if self.selected {
-            painter.rect_filled(rect, 0.0, visuals.selection.bg_fill);
+            painter.rect_filled(mark, 4.0, visuals.selection.bg_fill);
         } else if response.hovered() {
-            painter.rect_filled(rect, 0.0, crate::style::card_hover(&visuals));
+            painter.rect_filled(mark, 4.0, crate::style::card_hover(&visuals));
         }
         let text_color = if self.selected {
             visuals.selection.stroke.color
@@ -200,12 +237,15 @@ impl Row {
                 line_color
             };
             let icon = if shown { Icon::Eye } else { Icon::EyeOff };
-            icons::paint(
-                &painter,
-                area.shrink2(vec2(0.0, (ROW_HEIGHT - ICON) / 2.0)),
-                icon,
-                color,
-            );
+            // Shown only while the row is under the mouse, or when the layer is hidden.
+            if !shown || response.hovered() || hit.hovered() {
+                icons::paint(
+                    &painter,
+                    area.shrink2(vec2(0.0, (ROW_HEIGHT - ICON) / 2.0)),
+                    icon,
+                    color,
+                );
+            }
             eye = hit.clicked();
             x += ICON + GAP;
         }
@@ -233,7 +273,8 @@ impl Row {
                 egui::pos2(x + ICON / 2.0, rect.center().y),
                 vec2(ICON, ICON),
             );
-            let color = match color {
+            let tint = self.tint.map(|t| crate::style::tint(t, visuals.dark_mode));
+            let color = match color.or(tint) {
                 Some(c) if !self.selected && !self.dim => c,
                 _ => line_color,
             };
@@ -258,12 +299,30 @@ impl Row {
                 right - galley.size().x,
                 rect.center().y - galley.size().y / 2.0,
             );
-            painter.galley(at, galley.clone(), line_color);
-            right -= galley.size().x + GAP * 2.0;
+            let mut width = galley.size().x;
+            // A count or a tool number in a small pill; longer notes as weak text.
+            if is_pill(&self.trailing) {
+                let pill = Rect::from_center_size(
+                    egui::pos2(at.x + width / 2.0, rect.center().y),
+                    vec2(width + 2.0 * PILL_PAD, galley.size().y + 2.0),
+                )
+                .translate(vec2(-PILL_PAD, 0.0));
+                let fill = if self.selected {
+                    visuals.selection.stroke.color.linear_multiply(0.18)
+                } else {
+                    crate::style::palette(&visuals).button
+                };
+                painter.rect_filled(pill, 7.0, fill);
+                painter.galley(at - vec2(PILL_PAD, 0.0), galley.clone(), line_color);
+                width += 2.0 * PILL_PAD;
+            } else {
+                painter.galley(at, galley.clone(), line_color);
+            }
+            right -= width + GAP * 2.0;
         }
         let mut label = RichText::new(&self.label);
         if self.strong {
-            label = label.strong();
+            label = crate::style::bold(ui, label);
         }
         let galley = egui::WidgetText::from(label).into_galley(
             ui,
@@ -314,14 +373,18 @@ pub(super) fn folder(ui: &mut egui::Ui, row: Row, default: bool) -> (bool, RowRe
 
 /// The Properties panel's title: an icon and what the panel shows.
 pub(super) fn title_line(ui: &mut egui::Ui, icon: Icon, color: Option<Color32>, text: &str) {
+    super::forms::set_heading(ui, text);
     ui.horizontal(|ui| {
         let size = ui.text_style_height(&egui::TextStyle::Heading);
         let (rect, _) = ui.allocate_exact_size(vec2(size, size), Sense::hover());
         let color = color.unwrap_or_else(|| ui.visuals().text_color());
         icons::paint(ui.painter(), rect.shrink(1.0), icon, color);
         // Ends in "…" in a narrow panel.
-        ui.add(egui::Label::new(egui::RichText::new(text).heading()).truncate())
-            .on_hover_text(text);
+        ui.add(
+            egui::Label::new(crate::style::bold(ui, egui::RichText::new(text).heading()))
+                .truncate(),
+        )
+        .on_hover_text(text);
     });
     ui.add_space(2.0);
 }
@@ -557,7 +620,7 @@ impl ChiploadApp {
         }
         let problems = self.settings_problems().count();
         let job = Row::new(Id::new("browser-job"), 1, t!(ui, "browser-job-settings"))
-            .icon(Icon::Settings)
+            .icon_tinted(Icon::Settings, Tint::Tools)
             .selected(self.focus == Focus::Job)
             .alert(problems > 0)
             .show(ui);
@@ -593,7 +656,7 @@ impl ChiploadApp {
             0
         };
         let row = Row::new(Id::new(("browser-stock", id)), 3, t!(ui, "browser-stock"))
-            .icon(Icon::Material)
+            .icon_tinted(Icon::Material, Tint::Board)
             .trailing(summary)
             .selected(active && self.focus == Focus::Stock)
             .dim(!active)
@@ -656,7 +719,7 @@ impl ChiploadApp {
         let open = folder_open(ui, open_id, false);
         let out = Row::new(id, 1, t!(ui, "browser-tools"))
             .folder(open)
-            .icon(Icon::Tools)
+            .icon_tinted(Icon::Tools, Tint::Tools)
             .trailing(tools.len().to_string())
             .selected(self.focus == Focus::Tools)
             .alert(any)
@@ -772,7 +835,7 @@ impl ChiploadApp {
         let setups = edit.job.setups.clone();
         let active_setup = edit.job.active_setup_id();
         let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
-            .icon(Icon::Rectangle)
+            .icon_tinted(Icon::Rectangle, Tint::Board)
             .trailing(setups.len().to_string());
         let (open, folder_row) = folder(ui, row, true);
         let mut setup_action: Option<SetupAction> = None;
@@ -812,7 +875,7 @@ impl ChiploadApp {
                         .any(|s| s.back_of.is_some_and(|b| b.setup == setup.id));
                 let mut row = Row::new(id, 2, &setup.name)
                     .folder(setup_open)
-                    .icon(Icon::Rectangle)
+                    .icon_tinted(Icon::Rectangle, Tint::Board)
                     .trailing(trailing)
                     .selected(self.focus == Focus::Setup(setup.id))
                     .dim(!setup.enabled || !is_active)
@@ -1626,20 +1689,7 @@ fn tool_change(ui: &mut egui::Ui, tools: &[i64]) {
 
 /// The kind's colour: pockets and profiles told apart at a glance.
 pub(super) fn kind_color(op: &Operation, dark: bool) -> Color32 {
-    match (op, dark) {
-        (Operation::Profile(_), true) => Color32::from_rgb(0x6f, 0xc8, 0xbd),
-        (Operation::Profile(_), false) => Color32::from_rgb(0x00, 0x79, 0x6b),
-        (Operation::Pocket(_), true) => Color32::from_rgb(0xc3, 0xa6, 0xf0),
-        (Operation::Pocket(_), false) => Color32::from_rgb(0x6a, 0x3d, 0xb8),
-        (Operation::Vcarve(_), true) => Color32::from_rgb(0xf0, 0xb4, 0x6a),
-        (Operation::Vcarve(_), false) => Color32::from_rgb(0xa8, 0x55, 0x00),
-        (Operation::Path(_), true) => Color32::from_rgb(0x8f, 0xbc, 0xf5),
-        (Operation::Path(_), false) => Color32::from_rgb(0x1f, 0x5c, 0xb0),
-        (Operation::Holes(_), true) => Color32::from_rgb(0xf0, 0x9a, 0xb4),
-        (Operation::Holes(_), false) => Color32::from_rgb(0xa8, 0x1e, 0x55),
-        (Operation::Surface(_), true) => Color32::from_rgb(0xb8, 0xc4, 0x8a),
-        (Operation::Surface(_), false) => Color32::from_rgb(0x5a, 0x6b, 0x1e),
-    }
+    crate::style::op_color(chipload_pipeline::styles::kind_of(op), dark)
 }
 
 /// *Delete* in a project tool's menu, refused (with why) while an operation uses it. Whether

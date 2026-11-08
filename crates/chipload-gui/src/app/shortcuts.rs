@@ -422,7 +422,7 @@ impl ChiploadApp {
                 ScrollArea::vertical().show(ui, |ui| {
                     for (group, rows) in shortcut_rows(ui) {
                         ui.add_space(4.0);
-                        ui.strong(group.name(ui));
+                        ui.label(crate::style::bold(ui, group.name(ui)));
                         egui::Grid::new(("shortcuts", group))
                             .num_columns(2)
                             .spacing([16.0, 2.0])

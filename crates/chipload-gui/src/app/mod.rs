@@ -348,6 +348,10 @@ pub struct ChiploadApp {
     // The canvas.
     pub scene: Scene,
     view: View,
+    /// What the view is meant to show, to show again when the canvas changes size.
+    view_kept: Option<canvas::KeptView>,
+    /// The shapes picked first, which Align keeps in place.
+    align_first: modify::FirstPicked,
     fit_pending: bool,
     /// A new project: its thickness field takes the keyboard when the setup is drawn.
     focus_thickness: bool,
@@ -432,6 +436,8 @@ impl Default for ChiploadApp {
             problems: Vec::new(),
             scene: Scene::default(),
             view: View::default(),
+            view_kept: None,
+            align_first: modify::FirstPicked::default(),
             fit_pending: false,
             focus_thickness: false,
             fit_only: None,
@@ -2042,12 +2048,12 @@ impl ChiploadApp {
         self.status = Some((text, Instant::now() + Duration::from_secs(seconds)));
     }
 
-    /// A project with operations: one without has nothing to generate (the user,
-    /// 2026-11-03: "We should not generate if there are no operations").
+    /// A project with operations in its active setup: one without has nothing to generate
+    /// (the user, 2026-11-03: "We should not generate if there are no operations").
     fn can_generate(&self) -> bool {
         self.edit
             .as_ref()
-            .is_some_and(|e| !e.job.operations.is_empty())
+            .is_some_and(|e| generation::active_setup_has_operations(&e.job))
     }
 
     /// Proceed now, or ask first if unsaved changes would be lost.
@@ -2181,8 +2187,19 @@ impl eframe::App for ChiploadApp {
                     .inner_margin(egui::Margin::symmetric(6, 0)),
             )
             .show(ui, |ui| self.top_bar(ui));
-        Panel::top("ribbon").show(ui, |ui| self.ribbon(ui));
-        Panel::bottom("status").show(ui, |ui| self.status_bar(ui));
+        // The ribbon and the status bar are chrome, a step below the panels
+        // (docs/specs/look-and-feel.md §3).
+        let chrome = |ui: &egui::Ui, margin: egui::Margin| {
+            egui::Frame::new()
+                .fill(crate::style::palette(ui.visuals()).chrome)
+                .inner_margin(margin)
+        };
+        Panel::top("ribbon")
+            .frame(chrome(ui, egui::Margin::symmetric(8, 2)))
+            .show(ui, |ui| self.ribbon(ui));
+        Panel::bottom("status")
+            .frame(chrome(ui, egui::Margin::symmetric(8, 2)))
+            .show(ui, |ui| self.status_bar(ui));
         CentralPanel::no_frame().show(ui, |ui| self.dock_area(ui));
         self.follow_properties();
         self.prompts(&ctx);
@@ -2207,6 +2224,7 @@ impl eframe::App for ChiploadApp {
         }
         self.poll_updates(&ctx);
         self.poll_text_fonts(&ctx);
+        self.track_first_picked();
         if !busy
             && self.drag.handle.is_none()
             && let Some(wait) = self.live_preview(Instant::now())

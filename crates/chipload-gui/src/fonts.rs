@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Fonts come from the system, not the binary: egui's bundled fonts carry font licences
-//! outside our allowed list (decision 2026-10-09), so we load installed ones at startup.
-//! The built-in fonts for text (chipload-text) are added only to draw their own names in
-//! the font list (docs/specs/more-fonts.md §5).
+//! The window's typeface is Inter, built in (docs/specs/look-and-feel.md §9, ADR 0008); the
+//! system's fonts fill in what it lacks, loaded at startup. egui's own bundled fonts stay
+//! out. The built-in fonts for text (chipload-text) are added only to draw their own names
+//! in the font list (docs/specs/more-fonts.md §5).
 
 use std::path::{Path, PathBuf};
 #[cfg(not(windows))]
@@ -93,7 +93,7 @@ pub fn text_font_family(name: &str) -> FontFamily {
     FontFamily::Name(format!("text:{name}").into())
 }
 
-/// Add every built-in text font as a family of its own (falling back to the sans font for
+/// Add every built-in text font as a family of its own (falling back to Inter for
 /// anything it lacks), for the font list.
 pub fn add_text_fonts(fonts: &mut FontDefinitions) {
     for font in chipload_text::FONTS {
@@ -103,47 +103,70 @@ pub fn add_text_fonts(fonts: &mut FontDefinitions) {
             .insert(key.clone(), Arc::new(FontData::from_static(font.data())));
         fonts
             .families
-            .insert(text_font_family(font.name), vec![key, "sans".into()]);
+            .insert(text_font_family(font.name), vec![key, "inter".into()]);
     }
 }
 
-/// Font definitions using installed fonts, or a message saying what to install.
-pub fn system_fonts() -> Result<FontDefinitions, String> {
-    let sans = find("sans-serif", SANS_CANDIDATES).ok_or(
-        "No usable system font found. Install a TrueType font such as DejaVu Sans \
-         (Debian/Ubuntu: sudo apt install fonts-dejavu-core).",
-    )?;
-    // A missing monospace font is not fatal: reports then use the sans font.
-    let mono = find("monospace", MONO_CANDIDATES).unwrap_or_else(|| sans.clone());
-    let read = |path: &Path| {
-        std::fs::read(path).map_err(|e| format!("Cannot read font {}: {e}", path.display()))
-    };
-    // Missing symbols are not fatal either: they show as boxes.
+/// Inter 4.1, Regular and SemiBold, unchanged: the window's typeface on every system
+/// (docs/specs/look-and-feel.md §9; SIL OFL 1.1, fonts/LICENSE-OFL.txt, ADR 0008).
+const INTER_REGULAR: &[u8] = include_bytes!("../fonts/Inter-Regular.ttf");
+const INTER_SEMIBOLD: &[u8] = include_bytes!("../fonts/Inter-SemiBold.ttf");
+
+/// The family of bold text: Inter SemiBold (`style::bold`).
+pub fn bold_family() -> FontFamily {
+    FontFamily::Name("bold".into())
+}
+
+/// The window's fonts: Inter first, then the system's sans, monospace and symbol fonts for
+/// what Inter lacks (✔ ⚠ ✖, scripts beyond Cyrillic and Greek) and for monospace text. A
+/// system font that is missing or unreadable is left out: Inter alone is enough to start.
+pub fn ui_fonts() -> FontDefinitions {
+    let read = |path: &Path| std::fs::read(path).ok();
+    let sans = find("sans-serif", SANS_CANDIDATES);
+    let mono = find("monospace", MONO_CANDIDATES).filter(|p| Some(p) != sans.as_ref());
     let symbols = find("DejaVu Sans", SYMBOL_CANDIDATES)
-        .filter(|p| *p != sans && *p != mono)
-        .and_then(|p| read(&p).ok());
+        .filter(|p| Some(p) != sans.as_ref() && Some(p) != mono.as_ref());
     let mut fonts = FontDefinitions::empty();
-    fonts
-        .font_data
-        .insert("sans".into(), Arc::new(FontData::from_owned(read(&sans)?)));
-    fonts
-        .font_data
-        .insert("mono".into(), Arc::new(FontData::from_owned(read(&mono)?)));
-    for (family, first) in [
-        (FontFamily::Proportional, "sans"),
-        (FontFamily::Monospace, "mono"),
-    ] {
-        let fallback = if first == "sans" { "mono" } else { "sans" };
-        let mut names = vec![first.to_string(), fallback.to_string()];
-        if symbols.is_some() {
-            names.push("symbols".into());
+    let mut add = |key: &str, data: Option<Vec<u8>>| {
+        data.map(|data| {
+            fonts
+                .font_data
+                .insert(key.into(), Arc::new(FontData::from_owned(data)));
+            key.to_string()
+        })
+    };
+    let sans = add("sans", sans.as_deref().and_then(read));
+    let mono = add("mono", mono.as_deref().and_then(read));
+    let symbols = add("symbols", symbols.as_deref().and_then(read));
+    fonts.font_data.insert(
+        "inter".into(),
+        Arc::new(FontData::from_static(INTER_REGULAR)),
+    );
+    fonts.font_data.insert(
+        "inter-semibold".into(),
+        Arc::new(FontData::from_static(INTER_SEMIBOLD)),
+    );
+    let fallbacks: Vec<String> = [sans, symbols].into_iter().flatten().collect();
+    let chain = |first: &[Option<String>]| -> Vec<String> {
+        let mut names: Vec<String> = first.iter().flatten().cloned().collect();
+        for name in &fallbacks {
+            if !names.contains(name) {
+                names.push(name.clone());
+            }
         }
-        fonts.families.insert(family, names);
-    }
-    if let Some(data) = symbols {
-        fonts
-            .font_data
-            .insert("symbols".into(), Arc::new(FontData::from_owned(data)));
-    }
-    Ok(fonts)
+        names
+    };
+    let inter = Some("inter".to_string());
+    let semibold = Some("inter-semibold".to_string());
+    fonts.families.insert(
+        FontFamily::Proportional,
+        chain(std::slice::from_ref(&inter)),
+    );
+    fonts
+        .families
+        .insert(FontFamily::Monospace, chain(&[mono, inter.clone()]));
+    fonts
+        .families
+        .insert(bold_family(), chain(&[semibold, inter]));
+    fonts
 }

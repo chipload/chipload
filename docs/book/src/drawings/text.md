@@ -93,8 +93,12 @@ their G-code are yours.
 ### Your computer's fonts
 
 The *Font* list also has **On this computer**: every TrueType or OpenType font installed
-there, by name ("Arial Bold"), with a search field. Hover over a name to see a sample. The
-first time the list opens, Chipload looks for them (*Looking for fonts…*).
+there, by name ("Arial Bold"). Hover over a name to see a sample. The first time the list
+opens, Chipload looks for them (*Looking for fonts…*).
+
+When the list opens you can type at once: the **search** field at its top keeps only the
+fonts whose name has what you typed, built in and on this computer. **Recently used**, at
+the top, has the last five fonts you picked, each in its own face.
 
 A font you don't want to install can go in a folder named `fonts` in your
 [settings folder](../install.md#your-settings); Chipload finds it there too.

@@ -222,3 +222,58 @@ fn a_text_without_its_font_keeps_its_letters_and_moves() {
     assert!(app.set_text(id, &other));
     assert_eq!(texts(&app)[0].font, "FreeSerif");
 }
+
+#[test]
+fn the_font_lists_search_filters_and_a_picked_font_is_kept_as_recent() {
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::{NodeT, Queryable};
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| {
+            let (mut app, id) = with_text();
+            app.focus = Focus::Text(id);
+            app
+        });
+    harness.run_steps(4);
+    let open = |harness: &mut Harness<'_, ChiploadApp>, chosen: &str| {
+        harness
+            .query_all_by_role(egui::accesskit::Role::ComboBox)
+            .find(|n| n.accesskit_node().value().as_deref() == Some(chosen))
+            .expect("the font list")
+            .click();
+        harness.run_steps(3);
+    };
+    fn search<'h>(harness: &'h Harness<'_, ChiploadApp>) -> egui_kittest::Node<'h> {
+        harness
+            .query_all_by_role(egui::accesskit::Role::TextInput)
+            .find(|n| n.accesskit_node().placeholder() == Some("Search"))
+            .expect("the search field")
+    }
+    open(&mut harness, "FreeSans");
+    assert!(harness.query_by_label("Recently used").is_none());
+    assert!(search(&harness).is_focused(), "the search takes the keys");
+    // Clicking into the search keeps the list open (it closed on any click before).
+    search(&harness).click();
+    harness.run_steps(3);
+    search(&harness).type_text("mono");
+    harness.run_steps(3);
+    assert!(harness.query_by_label("FreeMono Bold").is_some());
+    assert!(harness.query_by_label("Satisfy").is_none(), "filtered out");
+    assert!(
+        harness.query_by_label("Script").is_none(),
+        "an empty style hides"
+    );
+    harness.get_by_label("FreeMono").click();
+    harness.run_steps(4);
+    assert_eq!(texts(harness.state())[0].font, "FreeMono");
+    assert!(
+        harness.query_by_label("FreeMono Bold").is_none(),
+        "picking closes the list"
+    );
+    assert_eq!(harness.state().text_fonts.recent, ["FreeMono"]);
+    // Opened again: the search is empty and the font is at the top.
+    open(&mut harness, "FreeMono");
+    harness.get_by_label("Recently used");
+    assert_eq!(search(&harness).value().as_deref(), Some(""));
+    assert!(harness.query_by_label("Satisfy").is_some());
+}

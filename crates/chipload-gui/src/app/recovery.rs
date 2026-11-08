@@ -162,7 +162,7 @@ impl ChiploadApp {
                 ui.label(t!(ui, "recovery-intro"));
                 for (i, left) in self.recovery.leftovers.iter().enumerate() {
                     ui.separator();
-                    ui.strong(leftover_title(ui, left));
+                    ui.label(crate::style::bold(ui, leftover_title(ui, left)));
                     if let Some(path) = &left.project_path {
                         ui.label(RichText::new(path.display().to_string()).weak());
                     }

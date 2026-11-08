@@ -222,6 +222,7 @@ pub fn plan_job_cancellable(
     }
     let Gathered {
         mut moves,
+        facts: op_facts,
         tabs,
         pockets,
         op_spans,
@@ -234,6 +235,7 @@ pub fn plan_job_cancellable(
         ..
     } = gathered;
     check_parts_apart(job, &moves, &op_spans)?;
+    facts.extend(op_facts);
     let first = groups
         .first()
         .ok_or_else(|| job_error(Message::new("toolpath-all-disabled")))?;
@@ -585,6 +587,8 @@ fn lower_approaches(moves: Vec<Move>, top_z: f64, safe_z: f64) -> Vec<Move> {
 #[derive(Default)]
 struct Gathered {
     moves: Vec<Move>,
+    /// The operations' facts, each said once (a V-carve's floor left, for one).
+    facts: Vec<Note>,
     tabs: Vec<Vec<Point>>,
     pockets: Vec<PocketPiece>,
     op_spans: Vec<OpSpan>,
@@ -633,6 +637,13 @@ impl Gathered {
             let key = (at, note.english());
             if !self.seen.contains(&key) {
                 notes.push(Note::at(index, note));
+                self.seen.push(key);
+            }
+        }
+        for fact in planned.facts {
+            let key = (at, fact.english());
+            if !self.seen.contains(&key) {
+                self.facts.push(Note::at(index, fact));
                 self.seen.push(key);
             }
         }
@@ -731,6 +742,9 @@ struct Planned {
     /// A V-carve with a floor pass that leaves part of the floor: the largest end mill
     /// diameter that would clear it all, mm (docs/specs/vcarve-wide-strokes.md §4.1).
     floor_hint: Option<f64>,
+    /// Facts about the operation, not warnings: a V-carve's floor left at the surface and
+    /// how much of it a floor pass clears (vcarve-wide-strokes.md §6).
+    facts: Vec<Message>,
 }
 
 fn plan_pocket_op(
@@ -822,6 +836,7 @@ fn plan_pocket_op(
         unreached: unreached_at,
         tab_centres: Vec::new(),
         floor_hint: None,
+        facts: Vec::new(),
     };
     let cut = PocketCut {
         pass_z: ctx.pass_z,
@@ -986,6 +1001,7 @@ fn plan_path_op(
         unreached: Vec::new(),
         tab_centres: Vec::new(),
         floor_hint: None,
+        facts: Vec::new(),
     })
 }
 
@@ -1168,6 +1184,7 @@ fn plan_holes_op(
         unreached: Vec::new(),
         tab_centres: Vec::new(),
         floor_hint: None,
+        facts: Vec::new(),
     })
 }
 
@@ -1194,6 +1211,7 @@ fn plan_surface_op(op: &SurfaceOp, ctx: &Context, start: Point) -> Planned {
         unreached: Vec::new(),
         tab_centres: Vec::new(),
         floor_hint: None,
+        facts: Vec::new(),
     }
 }
 
@@ -1261,7 +1279,8 @@ fn plan_vcarve_op(
         op.ignore_kinks_deg.to_radians(),
     )
     .map_err(|err| err.with_context(ctx.label_message.clone()))?;
-    let mut notes = std::mem::take(&mut plan.notes);
+    let notes = std::mem::take(&mut plan.notes);
+    let mut facts: Vec<Message> = plan.floor_left.take().into_iter().collect();
     let floor_hint = plan.floors.iter().map(|f| f.largest).reduce(f64::min);
     if let Some(tool) = floor_tool {
         for left in &plan.floors {
@@ -1271,7 +1290,7 @@ fn plan_vcarve_op(
             } else {
                 Message::new("toolpath-vcarve-floor-cleared-none")
             };
-            notes.push(
+            facts.push(
                 note.arg("contours", left.contours.as_str())
                     .arg("diameter", Value::mm(tool.diameter))
                     .arg(
@@ -1311,6 +1330,10 @@ fn plan_vcarve_op(
         unreached: Vec::new(),
         tab_centres: Vec::new(),
         floor_hint,
+        facts: facts
+            .into_iter()
+            .map(|n| labelled_note(ctx.label_message, n))
+            .collect(),
     })
 }
 
@@ -1408,6 +1431,7 @@ fn plan_profile_op(
         unreached: unreached_at,
         tab_centres: Vec::new(),
         floor_hint: None,
+        facts: Vec::new(),
     };
     if let Some(rough) = &rough {
         out.arcs.extend(rough.arcs.clone());

@@ -107,43 +107,51 @@ pub(in crate::app) fn rest_pass_form(
     let pass = pocket.rest_passes.get_mut(k)?;
     let at = chipload_job::OpRef::pass(i, k);
     let mut request = None;
+    // A pass clears like a pocket: its colour (docs/specs/look-and-feel.md §4).
+    let color = crate::style::op_color(
+        chipload_pipeline::new_ops::OpKind::Pocket,
+        ui.visuals().dark_mode,
+    );
+    set_card_stripe(ui, color);
     super::browser::title_line(
         ui,
         crate::icons::Icon::Pocket,
-        None,
+        Some(color),
         &format!(
             "{} · {}",
             t!(ui, "forms-rest-pass"),
             t!(ui, "forms-operation-number", number = at.to_string())
         ),
     );
-    Grid::new(("rest-pass", i, k))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-rest-of"))
-                .on_hover_text(t!(ui, "forms-rest-of-hover"));
-            ui.horizontal(|ui| {
-                ui.label(&pocket_name);
-                if ui.small_button(t!(ui, "forms-open")).clicked() {
-                    request = Some(JobRequest::OpenOperation(i));
-                }
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-from-pocket"));
-            ui.weak(&facts);
-            ui.end_row();
-            ui.label(t!(ui, "forms-after-tool"))
-                .on_hover_text(t!(ui, "forms-after-tool-hover"));
-            ui.weak(format!("T{before}"));
-            ui.end_row();
-            // Smaller than the tool before it (docs/specs/rest-passes.md §2).
-            let fits = |t: &Tool| {
-                t.kind == ToolType::Endmill && before_diameter.is_some_and(|d| t.diameter < d)
-            };
-            let salt = ("rest-pass", i, k);
-            clearing_pass_rows(ui, salt, 1000 + i * 100 + k, pass, &tools, fits, |_| {});
-        });
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("rest-pass", i, k))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-rest-of"))
+                    .on_hover_text(t!(ui, "forms-rest-of-hover"));
+                ui.horizontal(|ui| {
+                    ui.label(&pocket_name);
+                    if ui.small_button(t!(ui, "forms-open")).clicked() {
+                        request = Some(JobRequest::OpenOperation(i));
+                    }
+                });
+                ui.end_row();
+                ui.label(t!(ui, "forms-from-pocket"));
+                ui.weak(&facts);
+                ui.end_row();
+                ui.label(t!(ui, "forms-after-tool"))
+                    .on_hover_text(t!(ui, "forms-after-tool-hover"));
+                ui.weak(format!("T{before}"));
+                ui.end_row();
+                // Smaller than the tool before it (docs/specs/rest-passes.md §2).
+                let fits = |t: &Tool| {
+                    t.kind == ToolType::Endmill && before_diameter.is_some_and(|d| t.diameter < d)
+                };
+                let salt = ("rest-pass", i, k);
+                clearing_pass_rows(ui, salt, 1000 + i * 100 + k, pass, &tools, fits, |_| {});
+            })
+    });
     ui.add_space(6.0);
     ui.weak(t!(ui, "forms-rest-pass-note"));
     ui.add_space(6.0);
@@ -189,61 +197,73 @@ pub(in crate::app) fn floor_pass_form(
     let pass = vcarve.floor.as_mut()?;
     let at = chipload_job::OpRef::pass(i, 0);
     let mut request = None;
+    // A pass clears like a pocket: its colour (docs/specs/look-and-feel.md §4).
+    let color = crate::style::op_color(
+        chipload_pipeline::new_ops::OpKind::Pocket,
+        ui.visuals().dark_mode,
+    );
+    set_card_stripe(ui, color);
     super::browser::title_line(
         ui,
         crate::icons::Icon::Pocket,
-        None,
+        Some(color),
         &format!(
             "{} · {}",
             t!(ui, "forms-floor-pass"),
             t!(ui, "forms-operation-number", number = at.to_string())
         ),
     );
-    Grid::new(("floor-pass", i))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-floor-of"))
-                .on_hover_text(t!(ui, "forms-floor-of-hover"));
-            ui.horizontal(|ui| {
-                ui.label(&vcarve_name);
-                if ui.small_button(t!(ui, "forms-open")).clicked() {
-                    request = Some(JobRequest::OpenOperation(i));
-                }
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-from-vcarve"));
-            ui.weak(&facts);
-            ui.end_row();
-            let fits = |t: &Tool| t.kind == ToolType::Endmill;
-            // When the end mill leaves part of the floor: the largest that clears it all.
-            let hint_rows = |ui: &mut egui::Ui| {
-                if let Some((largest, library)) = hint {
-                    ui.label("");
-                    ui.vertical(|ui| {
-                        let size = |d: f64| chipload_pipeline::units::length_text(d, units);
-                        ui.weak(t!(ui, "forms-floor-hint", largest = size(*largest)));
-                        if !library.is_empty() {
-                            let names: Vec<String> = library
-                                .iter()
-                                .map(|(name, d)| format!("{name} ({})", size(*d)))
-                                .collect();
-                            ui.weak(t!(ui, "forms-floor-hint-library", tools = names.join(", ")));
-                        }
-                    });
-                    ui.end_row();
-                }
-            };
-            clearing_pass_rows(
-                ui,
-                ("floor-pass", i, 0),
-                2000 + i,
-                pass,
-                &tools,
-                fits,
-                hint_rows,
-            );
-        });
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("floor-pass", i))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-floor-of"))
+                    .on_hover_text(t!(ui, "forms-floor-of-hover"));
+                ui.horizontal(|ui| {
+                    ui.label(&vcarve_name);
+                    if ui.small_button(t!(ui, "forms-open")).clicked() {
+                        request = Some(JobRequest::OpenOperation(i));
+                    }
+                });
+                ui.end_row();
+                ui.label(t!(ui, "forms-from-vcarve"));
+                ui.weak(&facts);
+                ui.end_row();
+                let fits = |t: &Tool| t.kind == ToolType::Endmill;
+                // When the end mill leaves part of the floor: the largest that clears it all.
+                let hint_rows = |ui: &mut egui::Ui| {
+                    if let Some((largest, library)) = hint {
+                        ui.label("");
+                        ui.vertical(|ui| {
+                            let size = |d: f64| chipload_pipeline::units::length_text(d, units);
+                            ui.weak(t!(ui, "forms-floor-hint", largest = size(*largest)));
+                            if !library.is_empty() {
+                                let names: Vec<String> = library
+                                    .iter()
+                                    .map(|(name, d)| format!("{name} ({})", size(*d)))
+                                    .collect();
+                                ui.weak(t!(
+                                    ui,
+                                    "forms-floor-hint-library",
+                                    tools = names.join(", ")
+                                ));
+                            }
+                        });
+                        ui.end_row();
+                    }
+                };
+                clearing_pass_rows(
+                    ui,
+                    ("floor-pass", i, 0),
+                    2000 + i,
+                    pass,
+                    &tools,
+                    fits,
+                    hint_rows,
+                );
+            })
+    });
     ui.add_space(6.0);
     ui.weak(t!(ui, "forms-floor-pass-note"));
     ui.add_space(6.0);

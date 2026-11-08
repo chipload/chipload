@@ -4,7 +4,7 @@
 
 use chipload_job::edit::{insert_point_after, remove_point, set_closed};
 use chipload_job::{Geometry, Shape, polyline_segment_count};
-use eframe::egui::{self, Grid, RichText, TextEdit};
+use eframe::egui::{self, Grid, TextEdit};
 
 use crate::i18n::{Lang, t};
 
@@ -67,7 +67,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         Geometry::Polyline { .. } => t!(ui, "shape-form-title-polyline", id = id),
         Geometry::Polygon { .. } => t!(ui, "shape-form-title-polygon", id = id),
     };
-    ui.label(RichText::new(title).strong());
+    ui.label(crate::style::bold(ui, title));
     Grid::new(("shape-form", draft.id))
         .num_columns(2)
         .show(ui, |ui| {

@@ -299,13 +299,14 @@ pub(crate) enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Line up drawn shapes: each one's box side or middle with that of the box round
-    /// them all, or the stock's; they move whole and keep their ids
-    /// (docs/specs/drawing-editing.md §7).
+    /// Line up drawn shapes: each one's box side or middle with that of the first shape
+    /// named, which stays put, or the stock's; they move whole and keep their ids. The
+    /// shapes of one contour, and a group named whole, line up as one
+    /// (docs/specs/drawing-editing.md §7, arrange-whole.md, align-first.md).
     Align {
         /// The project (.chipload).
         project: PathBuf,
-        /// The shape ids (as `inspect` lists them, without the S).
+        /// The shape ids (as `inspect` lists them, without the S); the first stays put.
         #[arg(required = true)]
         ids: Vec<u64>,
         /// Which side or middle lines up.
@@ -318,8 +319,9 @@ pub(crate) enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Even out the gaps between drawn shapes' boxes, the first and last staying put
-    /// (docs/specs/drawing-editing.md §7).
+    /// Even out the gaps between drawn shapes' boxes, the first and last staying put; the
+    /// shapes of one contour, and a group named whole, count as one
+    /// (docs/specs/drawing-editing.md §7, arrange-whole.md).
     Distribute {
         /// The project (.chipload).
         project: PathBuf,
@@ -786,7 +788,12 @@ pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
                 AlignToArg::Middle => AlignTo::Middle,
                 AlignToArg::Bottom => AlignTo::Bottom,
             };
-            align_shapes(&job, &ids, to, stock)
+            let with = if stock {
+                AlignWith::Stock
+            } else {
+                AlignWith::First
+            };
+            align_shapes(&job, &ids, to, with)
                 .map(|job| (job, vec![format!("Aligned shapes {}.", shape_names(&ids))]))
         }
         ShapeAction::Distribute {

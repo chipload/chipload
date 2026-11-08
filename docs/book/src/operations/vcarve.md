@@ -100,8 +100,9 @@ edge at the surface. The walls come out as drawn, sharp, at the bit's angle; nar
 of the same shape are still carved along their centre line, and corners are carved up into
 their tips.
 
-Without more, the floor between the walls is left standing at the surface, with a
-warning: an outline carving.
+Without more, the floor between the walls is left standing at the surface: an outline
+carving. The report says so in a note, once for the operation, listing the shapes it
+concerns. It isn't a warning, since an outline carving can be just what you want.
 
 ### The floor pass
 
@@ -123,7 +124,7 @@ largest end mill that would clear it all, and names the end mills in your librar
 (in the floor pass's settings too, under its tool):
 
 ```text
-warning: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
+note: Operation 1 (Logo): contours #2, #4: with the 6 mm end mill, 85 % of the floor is cleared; one of at most 0.9 mm would clear all of it
 Operation 1: end mills in your library that clear the floor: 0.8 mm flat (0.8 mm)
 ```
 

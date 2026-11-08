@@ -310,10 +310,12 @@ impl ChiploadApp {
         let mut name: String = ui
             .data_mut(|d| d.get_temp(draft_id))
             .unwrap_or_else(|| style.name.clone());
-        egui::Grid::new("style-form").num_columns(2).show(ui, |ui| {
-            ui.label(t!(ui, "styles-name"));
-            ui.text_edit_singleline(&mut name);
-            ui.end_row();
+        crate::app::forms::card(ui, |ui| {
+            egui::Grid::new("style-form").num_columns(2).show(ui, |ui| {
+                ui.label(t!(ui, "styles-name"));
+                ui.text_edit_singleline(&mut name);
+                ui.end_row();
+            })
         });
         let renamed = name.trim() != style.name && !name.trim().is_empty();
         ui.data_mut(|d| d.insert_temp(draft_id, name.clone()));

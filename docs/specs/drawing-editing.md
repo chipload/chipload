@@ -219,6 +219,11 @@ chipload shape distribute P IDS --horizontal|--vertical
   id breaks a tie); a gap may come out negative when the shapes are wider than the span,
   and is kept. In the window: icon buttons under *Selection* (six to align, a *To the
   stock* box, two to distribute), each one undo step; `--to centre` also takes `center`.
+- *Changed 2026-11-07* (docs/specs/arrange-whole.md, issue #13): the shapes of one
+  contour, and a group selected whole with its texts, line up as one.
+- *Changed 2026-11-08* (docs/specs/align-first.md): Align lines up with the shape picked
+  first (on the command line, named first), which stays put; a box selection with the box
+  round them all.
 
 ## 8. GUI placement
 

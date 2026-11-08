@@ -1785,14 +1785,18 @@ fn drawn_shapes_are_aligned_and_distributed_from_the_command_line() {
     let project = dir.join("p.chipload");
     std::fs::copy(corpus("jobs/v5/drawn_part.chipload"), &project).unwrap();
     let p = path(&project);
-    let out = chipload(&["shape", "align", p, "2", "3", "--to", "bottom"]);
+    // The first named stays put (docs/specs/align-first.md): S3 first, the circle moves
+    // down to the triangle's bottom.
+    let out = chipload(&["shape", "align", p, "3", "2", "--to", "bottom"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
-    let circle = chipload(&["get", p, "drawing.shapes.1.center"]);
-    assert!(
-        text(&circle.stdout).contains("77"),
-        "{}",
-        text(&circle.stdout)
-    );
+    let center = |p: &str| text(&chipload(&["get", p, "drawing.shapes.1.center"]).stdout);
+    assert!(center(p).contains("77"), "{}", center(p));
+    // S2 first: the circle stays, the triangle moves.
+    let out = chipload(&["shape", "align", p, "2", "3", "--to", "top"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(center(p).contains("77"), "{}", center(p));
+    let points = text(&chipload(&["get", p, "drawing.shapes.2.points"]).stdout);
+    assert!(points.contains("89"), "the triangle's top to 89: {points}");
     // One shape aligns only to the stock; distributing needs three.
     let out = chipload(&["shape", "align", p, "2", "--to", "left"]);
     assert_eq!(out.status.code(), Some(1));

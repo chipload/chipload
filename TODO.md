@@ -89,7 +89,13 @@ a quick workflow first.
   Stock as its own item, folded operation sections, a default stock thickness, the Windows
   startup fix. Same G-code as 0.32; 0.32 can't open a project with tabs `along`, nor a
   `materials.json` with `default_thickness`.
-- **Releases**: the latest published is **0.33.0** (2026-11-03). Before it 0.32.0
+- **Tagged 0.34.0** (2026-11-07, again after the first draft was withdrawn; draft, for the
+  user to try and publish): the new look (shades, the logo's green, cards, Inter), part
+  statistics with a time per kind of move, a quieter report (details folded), the V-carve
+  floor left as one note per operation, a through cut's checker line as a note, the
+  empty-setup fix. Same G-code and schema (35) as 0.33.1. Two-sided work is
+  for the next release.
+- **Releases**: the latest published is **0.33.1** (2026-11-04), then 0.33.0 (2026-11-03). Before it 0.32.0
   (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
   (2026-10-29), 0.27.1, 0.25.1, 0.25.0, 0.24.0, 0.23.0, 0.22.2. Tagged but never published:
   0.22.0 (withdrawn), 0.26.0, 0.26.1, 0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on,
@@ -278,8 +284,49 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### Not released yet
+### In 0.34.1 (tagged 2026-11-08)
 
+- **Align keeps the shape picked first in place** (docs/specs/align-first.md, 2026-11-08):
+  the others line up with it, through any number of aligns of the same selection (it was
+  the box round them all, so a second align could move the first shape); a box selection
+  still lines up with the box round them all. On the command line the first id named stays.
+
+- **The font list's search works, and recently used fonts** (docs/specs/font-list.md,
+  2026-11-08): a click into the search no longer closed the list; the search sits at the
+  top, takes the keys when the list opens and filters every font; the last five fonts
+  picked are at the top, kept in the settings (`recent_fonts`).
+
+- **Align and distribute move whole contours and groups** (docs/specs/arrange-whole.md,
+  issue #13, 2026-11-07): the pieces of a slot that chain into one closed contour line up
+  as one instead of falling apart; a group selected whole too, with its texts (also to
+  the stock, alone).
+
+- **The canvas follows its size** (docs/specs/canvas-resize.md, 2026-11-07): on a resize a
+  fitted view is fitted again, any other keeps showing the area it showed.
+
+### In 0.34.0 (tagged 2026-11-07)
+
+- **A quieter report** (docs/specs/report-details.md, 2026-11-07): after a generate the
+  Report shows the headline, the warnings and the time table; the rest under a closed
+  *Details (n)*, the drawing's facts too unless its import had issues; the whole job's
+  lengths left out (the Statistics sections have them), the estimate's caveat in the
+  total's hover. The command line and the setup sheet unchanged.
+- **V-carve floor left, a note** (2026-11-07): without a floor pass, "the floor is left at
+  the surface" is one note per operation naming its shapes, not a warning per shape; off
+  the setup sheet's *Watch out*.
+- **Statistics, a time per kind of move** (2026-11-07): Cutting, Plunging and Rapids each
+  with its length and time; `--json` adds `plunge_s`.
+
+- **Part statistics** (docs/specs/part-statistics.md, 2026-11-06): a part's properties end
+  with a Statistics section, its operations' time, lengths and lifts summed with its
+  copies; `plan` prints each part's numbers, `--json` has `estimate.parts`.
+- **Look and feel** (docs/specs/look-and-feel.md, 2026-11-06, merged into main): shades
+  (top bar, chrome, panels, cards) and the logo's green as the accent; operation colours on
+  the ribbon and quiet tints in the Browser; every Properties form in cards; the report
+  with a pill, warnings first and the estimate as a table; a tidier Browser; key caps and
+  chips in the status bar; Inter built in (OFL approved, ADR 0008), SemiBold for bold; the
+  light theme reviewed. The guide's screenshots renewed. Also: a new setup without
+  operations is no longer an error ("Every operation is disabled").
 - **A through cut's checker line is a plain note** (2026-11-04): "N moves go below the
   stock bottom … within the allowed 0.500 mm" was a warning (⚠ on the Report tab) for
   every through cut. The checker gives it as a note now (`CheckReport::notes`,

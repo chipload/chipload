@@ -19,6 +19,9 @@ boxes.
   simulation and playback show only the active part, so a change to part 2 doesn't plan
   part 1 again. The status bar says "part 2 of 2 · cycle …". **All parts** on the canvas
   bar shows every part.
+- **Statistics:** the last section of a part's properties gives its time, lengths and
+  lifts, its operations' summed with all of its copies
+  ([Statistics of a part](../checking/time.md#statistics-of-a-part)).
 - **Export writes every part** that is on. When only the active part is shown, Export
   plans the whole project first, then writes it.
 - **One part's G-code:** right-click a part in the Browser and choose **Export G-code of

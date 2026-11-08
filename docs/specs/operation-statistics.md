@@ -149,6 +149,12 @@ file: no schema change.
 
 ## 7. As built (2026-11-03)
 
+Changed 2026-11-06 (the user: "add the time for each category after the length"): the
+Time row gives the total alone, and Cutting, Plunging and Rapids each give their length
+and their time ("1.4 m, 5 min 5 s"). `Counts::plunge_s` holds the plunges' part of
+`cutting_s`; the JSON has it as `plunge_s`.
+
+
 - `chipload_pipeline::estimate`: `Counts` (`cutting_s`, `rapid_s`, `cutting_mm`,
   `plunge_mm`, `rapid_mm`, `lifts`) from one pass over the moves (`move_counts`, which the
   time also comes from); `Estimate::counts` for the job, `Estimate::operation_counts` per

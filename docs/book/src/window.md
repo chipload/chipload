@@ -158,7 +158,9 @@ colour theme: dark, or light grey.
     as you left them there. Simulate starts as Edit is, the first time.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - the mode: **Edit | Simulate** (F6 switches);
-  - how you look: **Fit** (F), **Top** (T) and **3D**;
+  - how you look: **Fit** (F), **Top** (T) and **3D**. When the canvas changes size (the
+    window, or a panel opening or folding), a fitted view is fitted again, and a view you
+    zoomed or moved keeps showing the same area;
   - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),
     **Images** and **Grid** (G);
   - with two parts or more, **All parts**: the toolpath and simulation of every part, not
@@ -227,6 +229,16 @@ selection* button counts it ("Use selection (3)") and takes it as the operation'
 With nothing picked, Properties says how to pick something.
 
 ![Properties: a drawn polyline selected, with its points, above the project's settings](images/properties.png)
+
+## The Report
+
+The **Report** says what the last action did: its result first, green, amber or red, then
+any warnings, each opening its operation when clicked. After a generate, the time table
+follows: the total (hover it for what the estimate leaves out) and a line for each part,
+operation and file. Everything else, such as the cut outline, notes about operations,
+where the work zero is and the drawing's facts, is under **Details**, closed at first and
+kept open once you open it. A drawing whose import had issues shows its facts on their
+own, open.
 
 ## Arranging the panels
 

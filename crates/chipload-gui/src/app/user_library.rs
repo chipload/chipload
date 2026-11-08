@@ -367,23 +367,25 @@ pub(super) fn tool_entry_form(
     entry: &mut LibraryTool,
     materials: &chipload_job::materials::MaterialLibrary,
 ) {
-    Grid::new("library-tool").num_columns(2).show(ui, |ui| {
-        ui.label(t!(ui, "user-library-name"));
-        ui.text_edit_singleline(&mut entry.name);
-        ui.end_row();
-        ui.label(t!(ui, "user-library-tool-number"))
-            .on_hover_text(t!(ui, "user-library-tool-number-hover"));
-        ui.add(crate::units::number(ui, &mut entry.id).range(1..=9999));
-        ui.end_row();
-        let mut tool = entry.tool(entry.id);
-        tool_rows(ui, "library", "", &mut tool);
-        entry.kind = tool.kind;
-        entry.diameter = tool.diameter;
-        entry.rpm = tool.rpm;
-        entry.center_cutting = tool.center_cutting;
-        entry.angle = tool.angle;
-        entry.tip_diameter = tool.tip_diameter;
-        entry.flutes = tool.flutes;
+    crate::app::forms::card(ui, |ui| {
+        Grid::new("library-tool").num_columns(2).show(ui, |ui| {
+            ui.label(t!(ui, "user-library-name"));
+            ui.text_edit_singleline(&mut entry.name);
+            ui.end_row();
+            ui.label(t!(ui, "user-library-tool-number"))
+                .on_hover_text(t!(ui, "user-library-tool-number-hover"));
+            ui.add(crate::units::number(ui, &mut entry.id).range(1..=9999));
+            ui.end_row();
+            let mut tool = entry.tool(entry.id);
+            tool_rows(ui, "library", "", &mut tool);
+            entry.kind = tool.kind;
+            entry.diameter = tool.diameter;
+            entry.rpm = tool.rpm;
+            entry.center_cutting = tool.center_cutting;
+            entry.angle = tool.angle;
+            entry.tip_diameter = tool.tip_diameter;
+            entry.flutes = tool.flutes;
+        })
     });
     cutting_data_rows(ui, entry, materials);
 }
@@ -396,7 +398,7 @@ fn cutting_data_rows(
     materials: &chipload_job::materials::MaterialLibrary,
 ) {
     ui.add_space(4.0);
-    ui.strong(t!(ui, "user-library-cutting-data"))
+    ui.label(crate::style::bold(ui, t!(ui, "user-library-cutting-data")))
         .on_hover_text(t!(ui, "user-library-cutting-data-hover"));
     // Any material first, then the materials as the library lists them.
     entry.cutting_data.sort_by_key(|r| match &r.material_uid {
@@ -536,23 +538,25 @@ pub(super) fn machine_entry_form(
     profile: &mut MachineProfile,
     library: &Library,
 ) {
-    Grid::new("library-machine").num_columns(2).show(ui, |ui| {
-        ui.label(t!(ui, "user-library-name"));
-        ui.text_edit_singleline(&mut profile.name);
-        ui.end_row();
-        let mut machine = profile.machine();
-        // A profile only names its post; it is copied into a project when used.
-        if let Some(post) = machine_rows(ui, "library", &mut machine, Some(library), None) {
-            machine.post = post;
-        }
-        let safe_z = t!(ui, "user-library-safe-z");
-        safe_z_row(ui, &safe_z, &mut machine);
-        work_zero_rows(ui, "library", &mut profile.work_zero, (0.0, 0.0));
-        take_machine_values(profile, machine);
-        ui.label(t!(ui, "user-library-max-overcut"))
-            .on_hover_text(t!(ui, "user-library-max-overcut-hover"));
-        ui.add(mm(&mut profile.max_overcut));
-        ui.end_row();
+    crate::app::forms::card(ui, |ui| {
+        Grid::new("library-machine").num_columns(2).show(ui, |ui| {
+            ui.label(t!(ui, "user-library-name"));
+            ui.text_edit_singleline(&mut profile.name);
+            ui.end_row();
+            let mut machine = profile.machine();
+            // A profile only names its post; it is copied into a project when used.
+            if let Some(post) = machine_rows(ui, "library", &mut machine, Some(library), None) {
+                machine.post = post;
+            }
+            let safe_z = t!(ui, "user-library-safe-z");
+            safe_z_row(ui, &safe_z, &mut machine);
+            work_zero_rows(ui, "library", &mut profile.work_zero, (0.0, 0.0));
+            take_machine_values(profile, machine);
+            ui.label(t!(ui, "user-library-max-overcut"))
+                .on_hover_text(t!(ui, "user-library-max-overcut-hover"));
+            ui.add(mm(&mut profile.max_overcut));
+            ui.end_row();
+        })
     });
 }
 
@@ -629,6 +633,7 @@ impl ChiploadApp {
             .unwrap_or_default();
         self.load_update_settings(&settings);
         self.prefs.recent = settings.recent_projects;
+        self.text_fonts.recent = settings.recent_fonts;
         self.prefs.theme = settings.theme;
         self.prefs.auto_generate = settings.auto_generate;
         self.prefs.setup_sheet = settings.setup_sheet;

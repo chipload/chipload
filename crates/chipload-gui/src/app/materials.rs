@@ -296,17 +296,19 @@ impl ChiploadApp {
         ui.weak(t!(ui, "materials-entry-about"));
         ui.add_space(4.0);
         let tools = self.user.library.tools.clone();
-        egui::Grid::new("material-form")
-            .num_columns(2)
-            .show(ui, |ui| {
-                ui.label(t!(ui, "materials-name"));
-                ui.text_edit_singleline(&mut draft.name);
-                ui.end_row();
-            });
+        crate::app::forms::card(ui, |ui| {
+            egui::Grid::new("material-form")
+                .num_columns(2)
+                .show(ui, |ui| {
+                    ui.label(t!(ui, "materials-name"));
+                    ui.text_edit_singleline(&mut draft.name);
+                    ui.end_row();
+                })
+        });
         ui.add_space(4.0);
         // Its values are the tools' rows for it (docs/specs/cutting-data.md §7): each tool
         // with one, a click away.
-        ui.strong(t!(ui, "materials-values"));
+        ui.label(crate::style::bold(ui, t!(ui, "materials-values")));
         let with_rows: Vec<_> = tools
             .tools
             .iter()

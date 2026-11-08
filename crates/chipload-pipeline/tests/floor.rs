@@ -4,7 +4,7 @@
 
 use std::path::Path;
 
-use chipload_job::{Job, OpRef, Operation, Tool, ToolType, load_job};
+use chipload_job::{Job, Note, OpRef, Operation, Tool, ToolType, load_job};
 use chipload_pipeline::{add_floor_pass, fitting_end_mills, job_problems, run_job};
 
 /// A traced logo (a ring and a framed hole) V-carved 3.5 mm deep with a 60° bit: too wide,
@@ -70,17 +70,39 @@ fn a_run_with_a_floor_pass_is_checked_and_cleans_up_after_it() {
     assert_eq!(after.groups[0].tool.id, 2);
     assert_eq!(after.groups[0].operations, [OpRef::pass(0, 0)]);
     assert_eq!(after.groups[1].operations, [OpRef::op(0)]);
-    // No floor-left note any more; the framed hole's narrow floor gets a hint.
-    let notes: Vec<String> = after.notes.iter().map(|n| n.text.clone()).collect();
+    // No floor-left note any more; the framed hole's narrow floor gets a hint, as a fact
+    // (not a warning).
+    let notes: Vec<String> = after
+        .notes
+        .iter()
+        .chain(&after.facts)
+        .map(|n| n.text.clone())
+        .collect();
     assert!(
         notes.iter().all(|n| !n.contains("Add a floor pass")),
         "{notes:?}"
     );
+    let facts: Vec<String> = after.facts.iter().map(|n| n.text.clone()).collect();
     assert!(
-        notes
+        facts
             .iter()
             .any(|n| n.contains("of the floor is cleared; one of at most")),
-        "{notes:?}"
+        "{facts:?}"
+    );
+    // Before the floor pass, the floor left is a fact too, and said once.
+    let left: Vec<&Note> = before
+        .facts
+        .iter()
+        .filter(|n| n.text.contains("Add a floor pass"))
+        .collect();
+    assert_eq!(left.len(), 1, "{:?}", before.facts);
+    assert!(
+        before
+            .notes
+            .iter()
+            .all(|n| !n.text.contains("Add a floor pass")),
+        "{:?}",
+        before.notes
     );
     assert_eq!(after.floor_hints.len(), 1);
     assert!(after.floor_hints[0].1 < 3.0);

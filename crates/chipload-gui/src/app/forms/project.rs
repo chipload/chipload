@@ -266,6 +266,7 @@ pub(super) fn stock_section(
                 ui.label("");
                 ui.horizontal(|ui| {
                     ui.add_space(ui.spacing().indent);
+                    share_row(ui, 2, ui.spacing().indent + 20.0);
                     flag(ui.add(mm(&mut job.stock_mut().x)), ui, "stock.x");
                     ui.label("×");
                     flag(ui.add(mm(&mut job.stock_mut().y)), ui, "stock.y");
@@ -349,55 +350,57 @@ pub(in crate::app) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) -> O
     let job = &mut edit.job;
     let chosen = job.work_zero();
     let mut zero = chosen;
-    Grid::new("work-zero-form")
-        .num_columns(2)
-        .min_col_width(label_width(ui))
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-zero-on-stock"))
-                .on_hover_text(t!(ui, "forms-zero-on-stock-hover"));
-            if let Some(corner) = stock_corner_picker(ui, (x1 - x0, y1 - y0), chosen) {
-                zero = WorkZero::Stock { corner };
-            }
-            ui.end_row();
-            ui.label("");
-            let origin = matches!(chosen, WorkZero::DrawingOrigin {});
-            if ui
-                .selectable_label(origin, t!(ui, "forms-zero-drawing-origin-button"))
-                .on_hover_text(t!(ui, "forms-zero-drawing-origin-hover"))
-                .clicked()
-            {
-                zero = WorkZero::DrawingOrigin {};
-            }
-            ui.end_row();
-            ui.label(t!(ui, "forms-zero-at"))
-                .on_hover_text(t!(ui, "forms-zero-at-hover"));
-            let (mut px, mut py) = (x, y);
-            let typed = ui.horizontal(|ui| {
-                let a = flag(
-                    ui.add(crate::units::length(&mut px).prefix("X ").speed(0.1)),
-                    ui,
-                    "work_zero",
-                );
-                let b = ui.add(crate::units::length(&mut py).prefix("Y ").speed(0.1));
-                a.changed() || b.changed()
-            });
-            if typed.inner {
-                zero = WorkZero::Point { x: px, y: py };
-            }
-            ui.end_row();
-            ui.label("");
-            ui.weak(work_zero_name(ui, &chosen));
-            ui.end_row();
-            ui.label(t!(ui, "forms-z-zero"));
-            ComboBox::from_id_salt("z_zero")
-                .selected_text(z_zero_name(ui, job.stock().z_zero))
-                .show_ui(ui, |ui| {
-                    for z in [ZZero::Top, ZZero::Bottom] {
-                        ui.selectable_value(&mut job.stock_mut().z_zero, z, z_zero_name(ui, z));
-                    }
+    crate::app::forms::card(ui, |ui| {
+        Grid::new("work-zero-form")
+            .num_columns(2)
+            .min_col_width(label_width(ui))
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-zero-on-stock"))
+                    .on_hover_text(t!(ui, "forms-zero-on-stock-hover"));
+                if let Some(corner) = stock_corner_picker(ui, (x1 - x0, y1 - y0), chosen) {
+                    zero = WorkZero::Stock { corner };
+                }
+                ui.end_row();
+                ui.label("");
+                let origin = matches!(chosen, WorkZero::DrawingOrigin {});
+                if ui
+                    .selectable_label(origin, t!(ui, "forms-zero-drawing-origin-button"))
+                    .on_hover_text(t!(ui, "forms-zero-drawing-origin-hover"))
+                    .clicked()
+                {
+                    zero = WorkZero::DrawingOrigin {};
+                }
+                ui.end_row();
+                ui.label(t!(ui, "forms-zero-at"))
+                    .on_hover_text(t!(ui, "forms-zero-at-hover"));
+                let (mut px, mut py) = (x, y);
+                let typed = ui.horizontal(|ui| {
+                    let a = flag(
+                        ui.add(crate::units::length(&mut px).prefix("X ").speed(0.1)),
+                        ui,
+                        "work_zero",
+                    );
+                    let b = ui.add(crate::units::length(&mut py).prefix("Y ").speed(0.1));
+                    a.changed() || b.changed()
                 });
-            ui.end_row();
-        });
+                if typed.inner {
+                    zero = WorkZero::Point { x: px, y: py };
+                }
+                ui.end_row();
+                ui.label("");
+                ui.weak(work_zero_name(ui, &chosen));
+                ui.end_row();
+                ui.label(t!(ui, "forms-z-zero"));
+                ComboBox::from_id_salt("z_zero")
+                    .selected_text(z_zero_name(ui, job.stock().z_zero))
+                    .show_ui(ui, |ui| {
+                        for z in [ZZero::Top, ZZero::Bottom] {
+                            ui.selectable_value(&mut job.stock_mut().z_zero, z, z_zero_name(ui, z));
+                        }
+                    });
+                ui.end_row();
+            })
+    });
     ui.add_space(4.0);
     ui.add(egui::Label::new(egui::RichText::new(t!(ui, "forms-zero-note")).weak()).wrap());
     *job.work_zero_mut() = zero;
@@ -830,29 +833,32 @@ fn setup_name_rows(
     labels: f32,
 ) {
     let at = |field: &str| format!("setups.{index}.{field}");
-    Grid::new(("setup-form", id))
-        .num_columns(2)
-        .min_col_width(labels + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-name"));
-            let response =
-                ui.add(TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)));
-            flag(response, ui, &at("name"));
-            ui.end_row();
-            if several {
-                ui.label(t!(ui, "forms-setup-cut"))
-                    .on_hover_text(t!(ui, "forms-setup-cut-hover"));
-                ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("setup-form", id))
+            .num_columns(2)
+            .min_col_width(labels + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-name"));
+                let response = ui.add(
+                    TextEdit::singleline(&mut setup.name).desired_width(field_width(ui, 200.0)),
+                );
+                flag(response, ui, &at("name"));
                 ui.end_row();
-            }
-            ui.label(t!(ui, "forms-setup-parts"));
-            ui.label(if parts.is_empty() {
-                t!(ui, "forms-operations-none")
-            } else {
-                parts.join(", ")
-            });
-            ui.end_row();
-        });
+                if several {
+                    ui.label(t!(ui, "forms-setup-cut"))
+                        .on_hover_text(t!(ui, "forms-setup-cut-hover"));
+                    ui.checkbox(&mut setup.enabled, t!(ui, "forms-setup-cut-check"));
+                    ui.end_row();
+                }
+                ui.label(t!(ui, "forms-setup-parts"));
+                ui.label(if parts.is_empty() {
+                    t!(ui, "forms-operations-none")
+                } else {
+                    parts.join(", ")
+                });
+                ui.end_row();
+            })
+    });
 }
 
 pub(in crate::app) fn part_form(
@@ -880,35 +886,38 @@ pub(in crate::app) fn part_form(
         ),
     );
     let at = |field: &str| format!("parts.{index}.{field}");
-    Grid::new(("part-form", id))
-        .num_columns(2)
-        .min_col_width(label_width(ui) + ui.spacing().indent)
-        .show(ui, |ui| {
-            ui.label(t!(ui, "forms-name"));
-            let response =
-                ui.add(TextEdit::singleline(&mut part.name).desired_width(field_width(ui, 200.0)));
-            flag(response, ui, &at("name"));
-            ui.end_row();
-            ui.label(t!(ui, "forms-part-cut"))
-                .on_hover_text(t!(ui, "forms-part-cut-hover"));
-            ui.checkbox(&mut part.enabled, t!(ui, "forms-part-cut-check"));
-            ui.end_row();
-            ui.label(t!(ui, "forms-active"))
-                .on_hover_text(t!(ui, "forms-active-hover"));
-            if active {
-                ui.label(t!(ui, "forms-active-yes"));
-            } else if ui.button(t!(ui, "forms-activate")).clicked() {
-                request = Some(JobRequest::Activate(id));
-            }
-            ui.end_row();
-            ui.label(t!(ui, "forms-operations"));
-            ui.label(if numbers.is_empty() {
-                t!(ui, "forms-operations-none")
-            } else {
-                numbers.join(", ")
-            });
-            ui.end_row();
-        });
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("part-form", id))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-name"));
+                let response = ui.add(
+                    TextEdit::singleline(&mut part.name).desired_width(field_width(ui, 200.0)),
+                );
+                flag(response, ui, &at("name"));
+                ui.end_row();
+                ui.label(t!(ui, "forms-part-cut"))
+                    .on_hover_text(t!(ui, "forms-part-cut-hover"));
+                ui.checkbox(&mut part.enabled, t!(ui, "forms-part-cut-check"));
+                ui.end_row();
+                ui.label(t!(ui, "forms-active"))
+                    .on_hover_text(t!(ui, "forms-active-hover"));
+                if active {
+                    ui.label(t!(ui, "forms-active-yes"));
+                } else if ui.button(t!(ui, "forms-activate")).clicked() {
+                    request = Some(JobRequest::Activate(id));
+                }
+                ui.end_row();
+                ui.label(t!(ui, "forms-operations"));
+                ui.label(if numbers.is_empty() {
+                    t!(ui, "forms-operations-none")
+                } else {
+                    numbers.join(", ")
+                });
+                ui.end_row();
+            })
+    });
     let copies = part.copies.map_or(t!(ui, "forms-copies-one"), |c| {
         format!("{} × {} = {}", c.columns, c.rows, c.count())
     });

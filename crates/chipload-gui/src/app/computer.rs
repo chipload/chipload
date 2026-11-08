@@ -100,60 +100,74 @@ impl ChiploadApp {
         let mut theme = self.prefs.theme;
         let mut units = self.prefs.units;
         let mut language = self.prefs.language_setting.clone();
-        Grid::new("preferences")
-            .num_columns(2)
-            .spacing([12.0, 6.0])
-            .show(ui, |ui| {
-                ui.label(t!(ui, "computer-settings-folder"));
-                match &self.user.settings_dir {
-                    Some(dir) => ui.label(dir.display().to_string()),
-                    None => ui.colored_label(
-                        ui.visuals().warn_fg_color,
-                        t!(
-                            ui,
-                            "computer-settings-folder-none",
-                            var = chipload_pipeline::library::CONFIG_DIR_VAR
+        crate::app::forms::card(ui, |ui| {
+            Grid::new("preferences")
+                .num_columns(2)
+                .spacing([12.0, 6.0])
+                .show(ui, |ui| {
+                    ui.label(t!(ui, "computer-settings-folder"));
+                    match &self.user.settings_dir {
+                        Some(dir) => ui.label(dir.display().to_string()),
+                        None => ui.colored_label(
+                            ui.visuals().warn_fg_color,
+                            t!(
+                                ui,
+                                "computer-settings-folder-none",
+                                var = chipload_pipeline::library::CONFIG_DIR_VAR
+                            ),
                         ),
-                    ),
-                };
-                ui.end_row();
-                ui.label(t!(ui, "computer-setup-sheet"))
-                    .on_hover_text(t!(ui, "computer-setup-sheet-hover"));
-                ui.checkbox(&mut sheet, t!(ui, "computer-setup-sheet-write"));
-                ui.end_row();
-                ui.label(t!(ui, "computer-toolpath"));
-                ui.checkbox(&mut auto, t!(ui, "computer-toolpath-auto"))
-                    .on_hover_text(t!(ui, "computer-toolpath-auto-hover"));
-                ui.end_row();
-                ui.label(t!(ui, "computer-units"))
-                    .on_hover_text(t!(ui, "computer-units-hover"));
-                ui.horizontal(|ui| {
-                    ui.selectable_value(&mut units, Units::Mm, "mm");
-                    ui.selectable_value(&mut units, Units::Inch, t!(ui, "menu-units-inch"));
-                });
-                ui.end_row();
-                ui.label(t!(ui, "computer-theme"));
-                ui.horizontal(|ui| {
-                    ui.selectable_value(&mut theme, Theme::System, t!(ui, "computer-theme-system"));
-                    ui.selectable_value(&mut theme, Theme::Light, t!(ui, "computer-theme-light"));
-                    ui.selectable_value(&mut theme, Theme::Dark, t!(ui, "computer-theme-dark"));
-                });
-                ui.end_row();
-                ui.label(t!(ui, "menu-language"));
-                let system = chipload_job::library::SYSTEM_LANGUAGE;
-                ComboBox::from_id_salt("language")
-                    .selected_text(language_name(ui, &language))
-                    .show_ui(ui, |ui| {
-                        let label = language_name(ui, system);
-                        ui.selectable_value(&mut language, system.to_string(), label);
-                        for choice in crate::i18n::Language::ALL {
-                            let label = language_name(ui, choice.code());
-                            ui.selectable_value(&mut language, choice.code().to_string(), label);
-                        }
+                    };
+                    ui.end_row();
+                    ui.label(t!(ui, "computer-setup-sheet"))
+                        .on_hover_text(t!(ui, "computer-setup-sheet-hover"));
+                    ui.checkbox(&mut sheet, t!(ui, "computer-setup-sheet-write"));
+                    ui.end_row();
+                    ui.label(t!(ui, "computer-toolpath"));
+                    ui.checkbox(&mut auto, t!(ui, "computer-toolpath-auto"))
+                        .on_hover_text(t!(ui, "computer-toolpath-auto-hover"));
+                    ui.end_row();
+                    ui.label(t!(ui, "computer-units"))
+                        .on_hover_text(t!(ui, "computer-units-hover"));
+                    ui.horizontal(|ui| {
+                        ui.selectable_value(&mut units, Units::Mm, "mm");
+                        ui.selectable_value(&mut units, Units::Inch, t!(ui, "menu-units-inch"));
                     });
-                ui.end_row();
-                self.update_setting_row(ui);
-            });
+                    ui.end_row();
+                    ui.label(t!(ui, "computer-theme"));
+                    ui.horizontal(|ui| {
+                        ui.selectable_value(
+                            &mut theme,
+                            Theme::System,
+                            t!(ui, "computer-theme-system"),
+                        );
+                        ui.selectable_value(
+                            &mut theme,
+                            Theme::Light,
+                            t!(ui, "computer-theme-light"),
+                        );
+                        ui.selectable_value(&mut theme, Theme::Dark, t!(ui, "computer-theme-dark"));
+                    });
+                    ui.end_row();
+                    ui.label(t!(ui, "menu-language"));
+                    let system = chipload_job::library::SYSTEM_LANGUAGE;
+                    ComboBox::from_id_salt("language")
+                        .selected_text(language_name(ui, &language))
+                        .show_ui(ui, |ui| {
+                            let label = language_name(ui, system);
+                            ui.selectable_value(&mut language, system.to_string(), label);
+                            for choice in crate::i18n::Language::ALL {
+                                let label = language_name(ui, choice.code());
+                                ui.selectable_value(
+                                    &mut language,
+                                    choice.code().to_string(),
+                                    label,
+                                );
+                            }
+                        });
+                    ui.end_row();
+                    self.update_setting_row(ui);
+                })
+        });
         if sheet != self.prefs.setup_sheet {
             self.set_setup_sheet(sheet);
         }
