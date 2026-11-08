@@ -230,6 +230,11 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### Not released yet
 
+- **Align keeps the shape picked first in place** (docs/specs/align-first.md, 2026-11-08):
+  the others line up with it, through any number of aligns of the same selection (it was
+  the box round them all, so a second align could move the first shape); a box selection
+  still lines up with the box round them all. On the command line the first id named stays.
+
 - **The font list's search works, and recently used fonts** (docs/specs/font-list.md,
   2026-11-08): a click into the search no longer closed the list; the search sits at the
   top, takes the keys when the list opens and filters every font; the last five fonts

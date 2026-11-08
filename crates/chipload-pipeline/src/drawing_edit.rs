@@ -964,6 +964,17 @@ pub enum AlignTo {
     Bottom,
 }
 
+/// What the shapes line up with (docs/specs/align-first.md).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AlignWith {
+    /// The first shape named, which stays put: the others line up with its box.
+    First,
+    /// The box round them all (a box selection, where no shape came first).
+    All,
+    /// The stock's box; one shape is enough.
+    Stock,
+}
+
 type Bounds = ((f64, f64), (f64, f64));
 
 /// What moves as one when shapes are lined up or spaced out (docs/specs/arrange-whole.md):
@@ -1114,28 +1125,29 @@ fn shift(job: Job, unit: &ArrangeUnit, by: (f64, f64)) -> Result<Job, PipelineEr
     crate::shapes::transform_shapes(&out, &free, (0.0, 0.0), by, 1.0, 0.0)
 }
 
-/// Line up shapes `ids`: each unit's box side or middle `to` that of the box round them
-/// all, or with `stock` the stock's. A unit is a contour's shapes or a whole group
-/// ([`arrange_units`]); it moves whole and its shapes keep their ids. Without the stock,
-/// two units or more.
+/// Line up shapes `ids`: each unit's box side or middle `to` that of the reference
+/// `with`: the first unit's (which stays put), the box round them all, or the stock's. A
+/// unit is a contour's shapes or a whole group ([`arrange_units`]), in the order first
+/// named; it moves whole and its shapes keep their ids. Without the stock, two units or
+/// more.
 pub fn align_shapes(
     job: &Job,
     ids: &[u64],
     to: AlignTo,
-    stock: bool,
+    with: AlignWith,
 ) -> Result<Job, PipelineError> {
     let units = arrange_units(job, ids)?;
-    if units.is_empty() || (units.len() < 2 && !stock) {
+    if units.is_empty() || (units.len() < 2 && with != AlignWith::Stock) {
         return Err(refused(Message::new("pipeline-align-two")));
     }
     let boxes: Vec<Bounds> = units
         .iter()
         .map(|u| unit_box(job, u))
         .collect::<Result<_, _>>()?;
-    let target = if stock {
-        job.stock_bounds()
-    } else {
-        boxes
+    let target = match with {
+        AlignWith::Stock => job.stock_bounds(),
+        AlignWith::First => boxes.first().copied().unwrap_or_default(),
+        AlignWith::All => boxes
             .iter()
             .copied()
             .reduce(|(lo, hi), (a, b)| {
@@ -1144,7 +1156,7 @@ pub fn align_shapes(
                     (hi.0.max(b.0), hi.1.max(b.1)),
                 )
             })
-            .unwrap_or_default()
+            .unwrap_or_default(),
     };
     let mut out = job.clone();
     for (unit, (lo, hi)) in units.iter().zip(boxes) {
@@ -1601,18 +1613,18 @@ mod tests {
     fn shapes_align_to_their_box_or_the_stock() {
         // S2 a circle at 75,80 r 12; S3 a triangle from 110,65 to 140,95.
         let job = drawn_part();
-        let left = align_shapes(&job, &[2, 3], AlignTo::Left, false).unwrap();
+        let left = align_shapes(&job, &[2, 3], AlignTo::Left, AlignWith::All).unwrap();
         assert!(near(bounds_of(&left, 3).0.0, 63.0));
         assert!(near(bounds_of(&left, 2).0.0, 63.0));
-        let top = align_shapes(&job, &[2, 3], AlignTo::Top, false).unwrap();
+        let top = align_shapes(&job, &[2, 3], AlignTo::Top, AlignWith::All).unwrap();
         assert!(near(bounds_of(&top, 2).1.1, 95.0));
         let stock = job.stock_bounds();
-        let middle = align_shapes(&job, &[2], AlignTo::Centre, true).unwrap();
+        let middle = align_shapes(&job, &[2], AlignTo::Centre, AlignWith::Stock).unwrap();
         assert!(near(
             (bounds_of(&middle, 2).0.0 + bounds_of(&middle, 2).1.0) / 2.0,
             (stock.0.0 + stock.1.0) / 2.0
         ));
-        assert!(align_shapes(&job, &[2], AlignTo::Left, false).is_err());
+        assert!(align_shapes(&job, &[2], AlignTo::Left, AlignWith::All).is_err());
     }
 
     #[test]

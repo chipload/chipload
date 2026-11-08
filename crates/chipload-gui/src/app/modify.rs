@@ -4,7 +4,7 @@
 
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
-    ARRAY_MOST, AlignTo, Combine, Corners, Cut, Edited, OffsetSide, Polar, align_shapes,
+    ARRAY_MOST, AlignTo, AlignWith, Combine, Corners, Cut, Edited, OffsetSide, Polar, align_shapes,
     arrange_units_in, array_grid, array_polar, break_shape, combine_shapes, cut_shape_corners,
     distribute_shapes, extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at,
     offset_shapes, shape_corners, trim_preview, trim_shape,
@@ -720,13 +720,11 @@ impl ChiploadApp {
         });
     }
 
-    /// The selected shapes Align and Distribute take, and how many units they make: drawn
-    /// shapes, and whole groups with their texts' letters; a contour's shapes or a group
-    /// are one unit (docs/specs/arrange-whole.md). None when the selection can't be lined up.
-    fn arrange_selection(&self) -> Option<(Vec<u64>, usize)> {
-        let job = &self.edit.as_ref()?.job;
-        let ids: Vec<u64> = match &self.selection {
-            CanvasSelection::Shapes(ids) => ids.iter().copied().collect(),
+    /// The selected shapes Align and Distribute take: drawn shapes, and whole groups with
+    /// their texts' letters. None when the selection can't be lined up.
+    fn arrange_ids(&self) -> Option<Vec<u64>> {
+        match &self.selection {
+            CanvasSelection::Shapes(ids) => Some(ids.iter().copied().collect()),
             // A group picked whole: the shapes of its contours, less those left out.
             CanvasSelection::Whole {
                 of: Source::Group(_),
@@ -739,25 +737,77 @@ impl ChiploadApp {
                     .filter(|c| picked.contains(&c.id))
                     .flat_map(shapes_of)
                     .collect();
-                with_twins(shapes, &self.twins).into_iter().collect()
+                Some(with_twins(shapes, &self.twins).into_iter().collect())
             }
-            _ => return None,
-        };
+            _ => None,
+        }
+    }
+
+    /// The selected shapes Align and Distribute take, the first picked first when it is
+    /// one unit, and how many units they make; a contour's shapes or a group are one unit
+    /// (docs/specs/arrange-whole.md). Also whether the first unit is the one picked first
+    /// (docs/specs/align-first.md). None when the selection can't be lined up.
+    fn arrange_selection(&self) -> Option<ArrangeSelection> {
+        let job = &self.edit.as_ref()?.job;
+        let mut ids = self.arrange_ids()?;
         let units = arrange_units_in(job, &self.contours, &self.twins, &ids).ok()?;
-        (!units.is_empty()).then_some((ids, units.len()))
+        if units.is_empty() {
+            return None;
+        }
+        let first = self.align_first.first.as_ref().and_then(|first| {
+            let holds = |u: &chipload_pipeline::drawing_edit::ArrangeUnit| {
+                first.iter().any(|s| u.shapes.contains(s))
+            };
+            let mut holding = units.iter().filter(|u| holds(u));
+            let unit = holding.next()?;
+            holding.next().is_none().then(|| unit.shapes.clone())
+        });
+        let first_picked = first.is_some();
+        if let Some(first) = first {
+            ids.sort_by_key(|id| !first.contains(id));
+        }
+        Some(ArrangeSelection {
+            ids,
+            units: units.len(),
+            first_picked,
+        })
+    }
+
+    /// Each frame: note which shapes were picked first (docs/specs/align-first.md §3). A
+    /// selection made anew is first as a whole; shapes added to it come after; when the
+    /// first are taken out of it, none is first.
+    pub(super) fn track_first_picked(&mut self) {
+        let current: BTreeSet<u64> = self.arrange_ids().unwrap_or_default().into_iter().collect();
+        let track = &mut self.align_first;
+        if current.is_empty() {
+            track.first = None;
+        } else if track.seen.is_disjoint(&current) {
+            track.first = Some(current.clone());
+        } else if track.first.as_ref().is_some_and(|f| !f.is_subset(&current)) {
+            track.first = None;
+        }
+        track.seen = current;
     }
 
     /// Align or distribute the selected shapes (§7), as one undo step.
     pub(super) fn arrange_selected(&mut self, arrange: Arrange) -> bool {
-        let ids = self
-            .arrange_selection()
-            .map(|(ids, _)| ids)
-            .unwrap_or_default();
+        self.track_first_picked();
+        let Some(selection) = self.arrange_selection() else {
+            return false;
+        };
+        let ids = selection.ids;
         let Some(job) = self.job_with_operations() else {
             return false;
         };
+        let with = if self.canvas_tools.align_to_stock {
+            AlignWith::Stock
+        } else if selection.first_picked {
+            AlignWith::First
+        } else {
+            AlignWith::All
+        };
         let result = match arrange {
-            Arrange::Align(to) => align_shapes(&job, &ids, to, self.canvas_tools.align_to_stock),
+            Arrange::Align(to) => align_shapes(&job, &ids, to, with),
             Arrange::Distribute(horizontal) => distribute_shapes(&job, &ids, horizontal),
         }
         .map(|job| Edited {
@@ -772,7 +822,12 @@ impl ChiploadApp {
     /// Under Selection, with drawn shapes selected: align them to each other or the
     /// stock, and distribute three or more (§7).
     pub(super) fn arrange_ui(&mut self, ui: &mut egui::Ui) {
-        let Some((_, count)) = self.arrange_selection() else {
+        let Some(ArrangeSelection {
+            units: count,
+            first_picked,
+            ..
+        }) = self.arrange_selection()
+        else {
             return;
         };
         if !self.can_draw() {
@@ -783,7 +838,14 @@ impl ChiploadApp {
         egui::Grid::new("selection-arrange")
             .num_columns(2)
             .show(ui, |ui| {
-                ui.label(t!(ui, "arrange-align"));
+                let reference = if self.canvas_tools.align_to_stock {
+                    t!(ui, "arrange-stock-hover")
+                } else if first_picked {
+                    t!(ui, "arrange-first-hover")
+                } else {
+                    t!(ui, "arrange-all-hover")
+                };
+                ui.label(t!(ui, "arrange-align")).on_hover_text(reference);
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing.x = 2.0;
                     let enabled = count >= 2 || self.canvas_tools.align_to_stock;
@@ -1014,4 +1076,23 @@ fn side_word(lang: &impl crate::i18n::Lang, side: OffsetSide) -> String {
         OffsetSide::Left => t!(lang, "modify-side-left"),
         OffsetSide::Right => t!(lang, "modify-side-right"),
     }
+}
+
+/// The selection as Align and Distribute take it.
+struct ArrangeSelection {
+    /// Its shapes, the first picked first.
+    ids: Vec<u64>,
+    /// How many units they make.
+    units: usize,
+    /// Whether the first unit is the one picked first: the others line up with it.
+    first_picked: bool,
+}
+
+/// Which shapes were picked first, for Align (docs/specs/align-first.md).
+#[derive(Debug, Default)]
+pub(super) struct FirstPicked {
+    /// The shapes selected at the last look.
+    seen: BTreeSet<u64>,
+    /// Those that came into the selection first; None when no shape came first.
+    first: Option<BTreeSet<u64>>,
 }

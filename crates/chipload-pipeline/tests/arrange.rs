@@ -5,7 +5,9 @@
 use std::path::{Path, PathBuf};
 
 use chipload_job::{Geometry, Job};
-use chipload_pipeline::drawing_edit::{AlignTo, align_shapes, arrange_units, distribute_shapes};
+use chipload_pipeline::drawing_edit::{
+    AlignTo, AlignWith, align_shapes, arrange_units, distribute_shapes,
+};
 use chipload_pipeline::explode::explode_dxf;
 use chipload_pipeline::fonts::BuiltinOnly;
 use chipload_pipeline::groups::{Members, group, group_box};
@@ -59,7 +61,7 @@ fn a_slot_of_four_pieces_is_aligned_whole() {
     let units = arrange_units(&job, &[12, 13, 14, 15, 47]).unwrap();
     assert_eq!(units.len(), 2);
     assert_eq!(units[0].shapes, slot);
-    let out = align_shapes(&job, &[12, 13, 14, 15, 47], AlignTo::Centre, false).unwrap();
+    let out = align_shapes(&job, &[12, 13, 14, 15, 47], AlignTo::Centre, AlignWith::All).unwrap();
     assert_eq!(closed_of(&out, &slot), 1, "still one closed contour");
     let (s, r) = (
         shapes_bounds(&out, &slot).unwrap(),
@@ -67,10 +69,10 @@ fn a_slot_of_four_pieces_is_aligned_whole() {
     );
     assert!(near(centre_x(s), centre_x(r)), "{s:?} {r:?}");
     // The slot alone to the stock's middle, whole.
-    let stock = align_shapes(&job, &slot, AlignTo::Middle, true).unwrap();
+    let stock = align_shapes(&job, &slot, AlignTo::Middle, AlignWith::Stock).unwrap();
     assert_eq!(closed_of(&stock, &slot), 1);
     // The slot alone is one thing: nothing to line it up with.
-    assert!(align_shapes(&job, &slot, AlignTo::Left, false).is_err());
+    assert!(align_shapes(&job, &slot, AlignTo::Left, AlignWith::All).is_err());
 }
 
 /// A plate: a circle S1, a rectangle S2 and the text "HI", S2 and the text grouped.
@@ -121,7 +123,7 @@ fn a_group_is_aligned_whole_with_its_text() {
     let mut ids = vec![1];
     ids.extend(&members);
     assert_eq!(arrange_units(&job, &ids).unwrap().len(), 2);
-    let out = align_shapes(&job, &ids, AlignTo::Left, false).unwrap();
+    let out = align_shapes(&job, &ids, AlignTo::Left, AlignWith::All).unwrap();
     // The group's box starts where the circle's does; the frame and its text moved alike.
     let group_after = group_box(&out, id).unwrap();
     assert!(near(group_after.0.0, 5.0), "{group_after:?}");
@@ -130,7 +132,7 @@ fn a_group_is_aligned_whole_with_its_text() {
     assert!(near(text_after.0.0 - text_before.0.0, dx));
     assert!(near(out.drawing.texts[0].x - job.drawing.texts[0].x, dx));
     // The group alone, to the stock: whole.
-    let stock = align_shapes(&job, &members, AlignTo::Centre, true).unwrap();
+    let stock = align_shapes(&job, &members, AlignTo::Centre, AlignWith::Stock).unwrap();
     let frame = shapes_bounds(&stock, &[2]).unwrap();
     let text = shapes_bounds(&stock, &letters).unwrap();
     assert!(near(
@@ -138,13 +140,13 @@ fn a_group_is_aligned_whole_with_its_text() {
         text_before.0.0 - frame_before.0.0
     ));
     // One shape of the group picked alone moves alone; one letter alone is refused.
-    let alone = align_shapes(&job, &[1, 2], AlignTo::Left, false).unwrap();
+    let alone = align_shapes(&job, &[1, 2], AlignTo::Left, AlignWith::All).unwrap();
     assert!(near(shapes_bounds(&alone, &[2]).unwrap().0.0, 5.0));
     assert!(near(
         shapes_bounds(&alone, &letters).unwrap().0.0,
         text_before.0.0
     ));
-    assert!(align_shapes(&job, &[1, letters[0]], AlignTo::Left, false).is_err());
+    assert!(align_shapes(&job, &[1, letters[0]], AlignTo::Left, AlignWith::All).is_err());
 }
 
 #[test]
@@ -156,4 +158,56 @@ fn distributing_spaces_out_whole_contours() {
     let out = distribute_shapes(&job, &ids, false).unwrap();
     assert_eq!(closed_of(&out, &[12, 13, 14, 15]), 1);
     assert!(distribute_shapes(&job, &[12, 13, 14, 15, 47], true).is_err());
+}
+
+/// A small circle S1 and a wide rectangle S2.
+fn circle_and_rectangle() -> Job {
+    let job = empty_project();
+    let (job, _) = add_shape(
+        &job,
+        "a",
+        Geometry::Circle {
+            center: [10.0, 10.0],
+            radius: 5.0,
+        },
+    )
+    .unwrap();
+    add_shape(
+        &job,
+        "a",
+        Geometry::Rectangle {
+            center: [100.0, 60.0],
+            length: 80.0,
+            width: 40.0,
+            angle: 0.0,
+            corner_radius: 0.0,
+        },
+    )
+    .unwrap()
+    .0
+}
+
+#[test]
+fn the_first_shape_named_stays_put_through_aligns_one_after_another() {
+    // The user's report (2026-11-08): left, then centre, with the same selection.
+    let job = circle_and_rectangle();
+    let circle = shapes_bounds(&job, &[1]).unwrap();
+    let left = align_shapes(&job, &[1, 2], AlignTo::Left, AlignWith::First).unwrap();
+    assert_eq!(shapes_bounds(&left, &[1]).unwrap(), circle, "S1 stays");
+    assert!(near(shapes_bounds(&left, &[2]).unwrap().0.0, 5.0));
+    let centre = align_shapes(&left, &[1, 2], AlignTo::Centre, AlignWith::First).unwrap();
+    assert_eq!(
+        shapes_bounds(&centre, &[1]).unwrap(),
+        circle,
+        "S1 stays again"
+    );
+    assert!(near(centre_x(shapes_bounds(&centre, &[2]).unwrap()), 10.0));
+    // Named the other way round, the rectangle stays and the circle moves.
+    let rect = shapes_bounds(&job, &[2]).unwrap();
+    let other = align_shapes(&job, &[2, 1], AlignTo::Top, AlignWith::First).unwrap();
+    assert_eq!(shapes_bounds(&other, &[2]).unwrap(), rect);
+    assert!(near(shapes_bounds(&other, &[1]).unwrap().1.1, 80.0));
+    // The box round them all: the circle moves to the middle of both.
+    let all = align_shapes(&left, &[1, 2], AlignTo::Centre, AlignWith::All).unwrap();
+    assert!(near(centre_x(shapes_bounds(&all, &[1]).unwrap()), 45.0));
 }

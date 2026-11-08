@@ -135,11 +135,13 @@ DXF first, [Explode](several.md)).
   [--angle-deg 180] [--no-rotate]`.
 - **Align** and **Distribute** sit under *Selection* when drawn shapes are selected.
   Align lines up each shape's box (its left or right side, top or bottom, or middle) with
-  the box round them all, or, with *To the stock*, with the stock's (then one shape is
-  enough). Distribute, with three shapes or more, evens out the gaps between their boxes
+  that of the shape you picked **first**, which stays put, however many times you align
+  the same selection. Shapes picked all at once with a box have no first: they line up
+  with the box round them all. With *To the stock* they line up with the stock's box
+  (then one shape is enough). Hover over *Align* to see which applies. Distribute, with three shapes or more, evens out the gaps between their boxes
   across or up and down; the outermost two stay put. Shapes move whole and keep their
   numbers. Pieces that join into one outline (a slot drawn as four lines and arcs) line
-  up as one, and so does a [group](groups.md) with its texts. On the command line: `chipload shape align P 2 3 --to left|centre|right|top|
+  up as one, and so does a [group](groups.md) with its texts. On the command line, the first shape named stays put: `chipload shape align P 2 3 --to left|centre|right|top|
   middle|bottom [--stock]`, `chipload shape distribute P 2 3 4 --horizontal` (or
   `--vertical`).
 - New shapes on a layer that an operation selects by its name are cut by that operation

@@ -350,6 +350,8 @@ pub struct ChiploadApp {
     view: View,
     /// What the view is meant to show, to show again when the canvas changes size.
     view_kept: Option<canvas::KeptView>,
+    /// The shapes picked first, which Align keeps in place.
+    align_first: modify::FirstPicked,
     fit_pending: bool,
     /// A new project: its thickness field takes the keyboard when the setup is drawn.
     focus_thickness: bool,
@@ -435,6 +437,7 @@ impl Default for ChiploadApp {
             scene: Scene::default(),
             view: View::default(),
             view_kept: None,
+            align_first: modify::FirstPicked::default(),
             fit_pending: false,
             focus_thickness: false,
             fit_only: None,
@@ -2221,6 +2224,7 @@ impl eframe::App for ChiploadApp {
         }
         self.poll_updates(&ctx);
         self.poll_text_fonts(&ctx);
+        self.track_first_picked();
         if !busy
             && self.drag.handle.is_none()
             && let Some(wait) = self.live_preview(Instant::now())
