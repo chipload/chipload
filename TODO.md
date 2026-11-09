@@ -145,9 +145,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    outline, V-carved to fit: the pocket at its depth, the plug mirrored, cut with a start
    depth and a glue gap, so the two press together and the plug's back is planed off.
    Among the most made maker jobs on a hobby router. Builds on V-carve (the medial axis,
-   flat-floor passes); after the review (5). Spec first: the fields (gap, start depth, plug
-   as a mirrored copy or its own setup), what the checker and the simulation show, a golden
-   pair.
+   flat-floor passes). **Spec drafted 2026-11-09** (docs/specs/vcarve-inlay.md, branch
+   `signs`, for review): two V-carves, the plug with a `plug` start depth in a setup of its
+   own, mirrored when planning, `op add-inlay`; decisions 1-7.
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
