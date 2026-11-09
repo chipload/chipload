@@ -96,3 +96,46 @@ fn with_nothing_selected_a_frame_is_drawn_to_a_size() {
     assert!(!app.create_frame());
     assert_eq!(shapes(&app).len(), 1);
 }
+
+fn outline_width(app: &ChiploadApp, id: u64) -> f64 {
+    match &shapes(app).iter().find(|s| s.id == id).unwrap().geometry {
+        Geometry::Rectangle { length, .. } => *length,
+        other => panic!("{other:?}"),
+    }
+}
+
+/// docs/specs/sign-maker.md §4: new words draw the frame again round them, in the same
+/// undo step; a frame moved alone is let go of.
+#[test]
+fn a_frame_follows_its_text_in_the_same_undo_step() {
+    let mut app = ChiploadApp::default();
+    app.new_project();
+    app.start_text();
+    let id = app.place_text_at((20.0, 30.0)).unwrap();
+    app.start_frame();
+    app.canvas_tools.frame.kind = chipload_pipeline::frames::FrameKind::Rounded;
+    app.canvas_tools.frame.borders = 1;
+    assert!(app.create_frame());
+    app.commit();
+    let job = &app.edit.as_ref().unwrap().job;
+    let frame = job.drawing.frames[0].clone();
+    let before = outline_width(&app, frame.outline);
+
+    let mut text = job.drawing.texts[0].clone();
+    text.text = format!("{} AND MORE WORDS", text.text);
+    assert!(app.set_text(id, &text));
+    let after = outline_width(&app, frame.outline);
+    assert!(after > before + 20.0, "{before} → {after}");
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing.frames.len(), 1);
+    // Its values under Selection when the frame is selected.
+    app.selection = CanvasSelection::Shapes([frame.outline].into_iter().collect());
+    app.focus = Focus::Selection;
+    draw_properties(&mut app);
+    app.undo();
+    assert!((outline_width(&app, frame.outline) - before).abs() < 1e-9);
+
+    // Moved alone: plain shapes from then on.
+    app.transform_shapes(&[frame.outline], (0.0, 0.0), (5.0, 0.0), 1.0, 0.0);
+    app.commit();
+    assert!(app.edit.as_ref().unwrap().job.drawing.frames.is_empty());
+}

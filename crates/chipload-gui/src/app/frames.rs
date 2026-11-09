@@ -5,7 +5,8 @@
 
 use chipload_core::Point;
 use chipload_pipeline::frames::{
-    BORDER_LAYER, FRAME_LAYER, FrameKind, FrameSize, MOST_BORDERS, NewFrame, add_frame, place_frame,
+    BORDER_LAYER, FRAME_LAYER, FrameChange, FrameKind, FrameSize, MOST_BORDERS, NewFrame,
+    add_frame, detach_frame, kind_of, place_frame, set_frame,
 };
 
 use super::modify::ModifyTool;
@@ -180,7 +181,7 @@ impl ChiploadApp {
         } else {
             t!(ui, "frame-to-size")
         });
-        self.frame_kinds(ui);
+        kind_pictures(ui, &mut self.canvas_tools.frame.kind);
         let units = self.prefs.units;
         let f = &mut self.canvas_tools.frame;
         egui::Grid::new("frame-form").num_columns(2).show(ui, |ui| {
@@ -265,37 +266,149 @@ impl ChiploadApp {
         });
     }
 
-    /// The frames as small pictures to pick from, the chosen one marked.
-    fn frame_kinds(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal_wrapped(|ui| {
-            for kind in FrameKind::ALL {
-                let size = egui::vec2(44.0, 30.0);
-                let selected = self.canvas_tools.frame.kind == kind;
-                let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
-                let visuals = ui.style().interact_selectable(&response, selected);
-                let painter = ui.painter();
-                if selected || response.hovered() {
-                    painter.rect_filled(rect, 3.0, visuals.weak_bg_fill);
-                }
-                let stroke = egui::Stroke::new(1.5, visuals.fg_stroke.color);
-                let inner = rect.shrink(6.0);
-                let (w, h) = (f64::from(inner.width()), f64::from(inner.height()));
-                // Twice the default corner: the kinds tell apart at this size.
-                let r = kind.default_r(w, h) * 2.0;
-                if let Ok(chain) = chipload_draw::frames::outline(kind, (0.0, 0.0), w, h, r) {
-                    let points: Vec<egui::Pos2> = chain
-                        .prims
-                        .iter()
-                        .flat_map(|p| p.points())
-                        .map(|(x, y)| inner.center() + egui::vec2(x as f32, -y as f32))
-                        .collect();
-                    painter.add(egui::Shape::closed_line(points, stroke));
-                }
-                let response = response.on_hover_text(kind_name(ui, kind));
-                if response.clicked() {
-                    self.canvas_tools.frame.kind = kind;
-                }
-            }
-        });
+    /// The live frame one of the selected shapes belongs to.
+    fn selected_live_frame(&self) -> Option<chipload_job::Frame> {
+        let edit = self.edit.as_ref()?;
+        self.framed_shape_ids()
+            .into_iter()
+            .find_map(|id| edit.job.drawing.frame_of(id).cloned())
     }
+
+    /// Under Selection, for a frame that follows what it goes round: its values, changed in
+    /// place, and Detach (docs/specs/sign-maker.md §4).
+    pub(super) fn live_frame_ui(&mut self, ui: &mut egui::Ui) {
+        if self.modify() == Some(ModifyTool::Frame) {
+            return;
+        }
+        let Some(frame) = self.selected_live_frame() else {
+            return;
+        };
+        let units = self.prefs.units;
+        let mut kind = kind_of(frame.kind);
+        let mut corner = frame.corner;
+        let mut margin = frame.margin;
+        let mut borders = u32::try_from(frame.borders.len()).unwrap_or(0);
+        let mut gap = frame.gap;
+        let mut width = frame.width;
+        let mut height = frame.height;
+        let mut detach = false;
+        let enabled = self.can_draw();
+        crate::app::forms::card(ui, |ui| {
+            ui.add_enabled_ui(enabled, |ui| {
+                ui.label(crate::style::bold(ui, t!(ui, "frame-live-title")));
+                ui.weak(match &frame.around {
+                    Some(around) => t!(
+                        ui,
+                        "frame-live-follows",
+                        texts = around.texts.len(),
+                        others = around.images.len() + around.shapes.len()
+                    ),
+                    None => t!(ui, "frame-live-fixed"),
+                });
+                kind_pictures(ui, &mut kind);
+                egui::Grid::new("live-frame").num_columns(2).show(ui, |ui| {
+                    if frame.around.is_some() {
+                        ui.label(t!(ui, "frame-margin"));
+                        ui.add(crate::units::length(&mut margin))
+                            .on_hover_text(t!(ui, "frame-margin-hover"));
+                        ui.end_row();
+                    } else {
+                        ui.label(t!(ui, "frame-width"));
+                        ui.add(crate::units::length(&mut width));
+                        ui.end_row();
+                        ui.label(t!(ui, "frame-height"));
+                        ui.add(crate::units::length(&mut height));
+                        ui.end_row();
+                    }
+                    if kind.uses_r() {
+                        ui.label(t!(ui, "frame-corner"));
+                        ui.add(crate::units::length(&mut corner))
+                            .on_hover_text(t!(ui, "frame-corner-hover"));
+                        ui.end_row();
+                    }
+                    ui.label(t!(ui, "frame-borders"));
+                    ui.add(egui::DragValue::new(&mut borders).range(0..=MOST_BORDERS));
+                    ui.end_row();
+                    if borders > 0 {
+                        ui.label(t!(ui, "frame-gap"));
+                        ui.add(crate::units::length(&mut gap))
+                            .on_hover_text(t!(ui, "frame-gap-hover"));
+                        ui.end_row();
+                    }
+                });
+                if frame.around.is_some() {
+                    ui.weak(t!(
+                        ui,
+                        "frame-size",
+                        width = chipload_pipeline::units::length_text(frame.width, units),
+                        height = chipload_pipeline::units::length_text(frame.height, units)
+                    ));
+                }
+                detach = ui
+                    .button(t!(ui, "frame-detach"))
+                    .on_hover_text(t!(ui, "frame-detach-hover"))
+                    .clicked();
+            });
+        });
+        let Some(job) = self.job_with_operations() else {
+            return;
+        };
+        if detach {
+            if let Ok(out) = detach_frame(&job, frame.outline) {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.job.drawing = out.drawing;
+                }
+                self.commit();
+            }
+            return;
+        }
+        let change = FrameChange {
+            kind: (kind != kind_of(frame.kind)).then_some(kind),
+            corner: (corner != frame.corner).then_some(corner),
+            margin: (margin != frame.margin).then_some(margin),
+            borders: (borders as usize != frame.borders.len()).then_some(borders),
+            gap: (gap != frame.gap).then_some(gap),
+            width: (width != frame.width).then_some(width),
+            height: (height != frame.height).then_some(height),
+        };
+        if change != FrameChange::default() {
+            let keep: Vec<u64> = frame.shapes().collect();
+            let result = set_frame(&job, frame.outline, &change);
+            self.take_edit(result, &keep);
+        }
+    }
+}
+
+/// The frames as small pictures to pick from, `chosen` marked; a click picks one.
+fn kind_pictures(ui: &mut egui::Ui, chosen: &mut FrameKind) {
+    ui.horizontal_wrapped(|ui| {
+        for kind in FrameKind::ALL {
+            let size = egui::vec2(44.0, 30.0);
+            let selected = *chosen == kind;
+            let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
+            let visuals = ui.style().interact_selectable(&response, selected);
+            let painter = ui.painter();
+            if selected || response.hovered() {
+                painter.rect_filled(rect, 3.0, visuals.weak_bg_fill);
+            }
+            let stroke = egui::Stroke::new(1.5, visuals.fg_stroke.color);
+            let inner = rect.shrink(6.0);
+            let (w, h) = (f64::from(inner.width()), f64::from(inner.height()));
+            // Twice the default corner: the kinds tell apart at this size.
+            let r = kind.default_r(w, h) * 2.0;
+            if let Ok(chain) = chipload_draw::frames::outline(kind, (0.0, 0.0), w, h, r) {
+                let points: Vec<egui::Pos2> = chain
+                    .prims
+                    .iter()
+                    .flat_map(|p| p.points())
+                    .map(|(x, y)| inner.center() + egui::vec2(x as f32, -y as f32))
+                    .collect();
+                painter.add(egui::Shape::closed_line(points, stroke));
+            }
+            let response = response.on_hover_text(kind_name(ui, kind));
+            if response.clicked() {
+                *chosen = kind;
+            }
+        }
+    });
 }

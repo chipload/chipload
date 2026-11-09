@@ -132,3 +132,17 @@ frame-kind-chamfered = Chamfered
 frame-kind-oval = Oval
 frame-kind-arched = Arched top
 frame-kind-plaque = Plaque: the short sides bulge out
+# A frame that follows what it goes round (docs/specs/sign-maker.md §4), under Selection.
+frame-live-title = Frame
+# $texts: how many texts it goes round; $others: how many pictures and other shapes.
+frame-live-follows = { $texts ->
+    [0] Follows { $others ->
+        [one] one shape
+       *[other] { $others } shapes
+    }: drawn again when it changes.
+    [one] Follows its text: drawn again when the words, font or size change.
+   *[other] Follows { $texts } texts: drawn again when they change.
+}
+frame-live-fixed = Drawn to a size.
+frame-detach = Detach
+frame-detach-hover = Make the frame plain shapes that follow nothing. Editing one of its shapes by hand does the same.

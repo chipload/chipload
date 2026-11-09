@@ -32,6 +32,12 @@ pub struct Drawing {
     // Spec: docs/specs/shape-groups.md §4.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub groups: Vec<ShapeGroup>,
+    /// Frames for signs that are drawn again round what they go round when it changes.
+    /// Left out of the file when there are none, so projects without them open in older
+    /// versions.
+    // Spec: docs/specs/sign-maker.md §4.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub frames: Vec<Frame>,
     /// Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,
     /// `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`,
     /// `drawn:polyline`.
@@ -62,6 +68,113 @@ pub struct ShapeGroup {
     /// new group.
     #[serde(default)]
     pub rotation: f64,
+}
+
+/// A frame for a sign that follows what it goes round (docs/specs/sign-maker.md §4): its
+/// outline and border lines are ordinary drawn shapes, drawn again from these values when
+/// the texts or shapes it goes round change. Editing its shapes by hand ends that: the
+/// record goes and they stay as they are.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Frame {
+    /// Its outline, by shape id; the frame is named by it.
+    pub outline: u64,
+    /// Its border lines inside the outline, outside in, by shape id.
+    #[serde(default)]
+    pub borders: Vec<u64>,
+    /// The outline's shape.
+    pub kind: FrameShape,
+    /// The corner size, mm: what it is depends on the kind (`chipload frame kinds`).
+    pub corner: f64,
+    /// From the outline to the first border, and between borders, mm.
+    pub gap: f64,
+    /// What it goes round. None: drawn to a size, following nothing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub around: Option<FrameAround>,
+    /// From the box of what it goes round to its innermost line, mm.
+    pub margin: f64,
+    /// Where it was last drawn: the outline's centre, mm.
+    pub center: [f64; 2],
+    /// The outline's width as last drawn, mm.
+    pub width: f64,
+    /// The outline's height as last drawn, mm.
+    pub height: f64,
+}
+
+/// What a frame goes round: texts with all their letters, pictures with all their traced
+/// shapes, and other shapes, by id.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct FrameAround {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub texts: Vec<u64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub images: Vec<u64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub shapes: Vec<u64>,
+}
+
+/// A frame's outline (docs/specs/shape-library.md §3.1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum FrameShape {
+    Rectangle,
+    Rounded,
+    Notched,
+    Chamfered,
+    Oval,
+    Arched,
+    Plaque,
+}
+
+impl Frame {
+    /// Its shapes: the outline, then the borders.
+    pub fn shapes(&self) -> impl Iterator<Item = u64> + '_ {
+        std::iter::once(self.outline).chain(self.borders.iter().copied())
+    }
+
+    /// The rules its numbers must meet. Shapes and texts it names that are gone are not
+    /// a problem here: the frame is let go of when they go (the pipeline's
+    /// `follow_frames`).
+    fn problems(&self, i: usize) -> Vec<Problem> {
+        let at = |field: &str| format!("drawing.frames.{i}.{field}");
+        let mut problems = Vec::new();
+        let number = |v: f64| Value::Number(v, Digits::Shortest);
+        for (field, value, positive) in [
+            ("width", self.width, true),
+            ("height", self.height, true),
+            ("corner", self.corner, false),
+            ("margin", self.margin, false),
+            ("gap", self.gap, !self.borders.is_empty()),
+        ] {
+            let bad = if positive {
+                !(value.is_finite() && value > 0.0)
+            } else {
+                !(value.is_finite() && value >= 0.0)
+            };
+            if bad {
+                let id = if positive {
+                    "job-must-be-positive-number"
+                } else {
+                    "job-must-be-0-or-more"
+                };
+                problems.push(Problem::at(
+                    at(field),
+                    Message::new(id).arg("got", number(value)),
+                ));
+            }
+        }
+        if !self.center.iter().all(|v| v.is_finite()) {
+            problems.push(Problem::at(
+                at("center"),
+                Message::new("job-must-be-finite"),
+            ));
+        }
+        problems
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -511,6 +624,30 @@ impl Drawing {
             }
         }
         problems.extend(self.group_problems());
+        problems.extend(self.frame_problems());
         problems
+    }
+
+    /// Each frame's numbers, and no shape in two frames.
+    fn frame_problems(&self) -> Vec<Problem> {
+        let mut problems = Vec::new();
+        let mut taken = std::collections::BTreeSet::new();
+        for (i, frame) in self.frames.iter().enumerate() {
+            problems.extend(frame.problems(i));
+            for id in frame.shapes() {
+                if !taken.insert(id) {
+                    problems.push(Problem::at(
+                        format!("drawing.frames.{i}.outline"),
+                        Message::new("job-frame-shape-twice").arg("id", id),
+                    ));
+                }
+            }
+        }
+        problems
+    }
+
+    /// The live frame whose outline or border shape `id` is.
+    pub fn frame_of(&self, id: u64) -> Option<&Frame> {
+        self.frames.iter().find(|f| f.shapes().any(|s| s == id))
     }
 }

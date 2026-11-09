@@ -13,7 +13,7 @@ use chipload_job::library::{
     write_export,
 };
 use chipload_job::materials::MaterialLibrary;
-use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero, save_job};
+use chipload_job::{Spindle, StockCorner, ToolChange, ToolType, Travel, WorkZero};
 use chipload_pipeline::library::{
     CONFIG_DIR_VAR, copy_profile_post, machines_path, settings_dir, tools_path, unknown_posts,
 };
@@ -450,7 +450,7 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                 t.name = Some(entry.name.clone());
                 t.library_uid = Some(entry.uid.clone());
             }
-            if let Err(err) = save_job(&job, &project) {
+            if let Err(err) = crate::save_project(out, &job, &project) {
                 return out.fail(err);
             }
             out.wrote(&project, "");
@@ -532,7 +532,7 @@ fn update_tools_in_project(
         return ExitCode::SUCCESS;
     }
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&job, target) {
+    if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
     out.wrote(target, "");
@@ -832,7 +832,7 @@ fn use_library_tool(
     };
     let used = use_tool(&mut job, entry);
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&job, target) {
+    if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
     out.line(format!("\"{}\": {}", entry.name, used.describe(entry.id)));
@@ -958,7 +958,7 @@ pub fn machine(out: &mut Out, action: MachineAction) -> ExitCode {
             };
             job.machine.name = Some(profile.name.clone());
             job.machine.library_uid = Some(profile.uid.clone());
-            if let Err(err) = save_job(&job, &project) {
+            if let Err(err) = crate::save_project(out, &job, &project) {
                 return out.fail(err);
             }
             out.wrote(&project, "");
@@ -1134,7 +1134,7 @@ fn use_machine(
     let mut changes = profile.update_machine_values(&mut job);
     changes.extend(copy_profile_post(&mut job, Some(posts)));
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&job, target) {
+    if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
     out.line(format!("Machine \"{}\":", profile.name));
@@ -1240,7 +1240,7 @@ pub fn post(out: &mut Out, action: PostAction) -> ExitCode {
                 return out.fail(err);
             }
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             match (&job.machine.custom_post, was == post, before) {

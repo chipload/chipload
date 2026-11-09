@@ -143,7 +143,7 @@ pub(crate) fn copies(
         return out.fail(chipload_pipeline::joined(&problems));
     }
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&job, target) {
+    if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
     match job.parts[at].copies.as_ref().map(grid_text) {
@@ -288,7 +288,7 @@ pub(crate) fn place(
         }
     }
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&placed, target) {
+    if let Err(err) = crate::save_project(out, &placed, target) {
         return out.fail(err);
     }
     for line in &lines {

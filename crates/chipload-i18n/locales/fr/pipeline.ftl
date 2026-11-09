@@ -604,6 +604,12 @@ pipeline-frame-borders-fit = { $count ->
     [one] une bordure à { $gap } à l'intérieur ne tient pas dans ce cadre
    *[other] { $count } bordures espacées de { $gap } ne tiennent pas dans ce cadre
 }
+pipeline-frame-edited = Le cadre S{ $id } a été modifié à la main : il ne suit plus ce qu'il entoure.
+pipeline-frame-lost = Le cadre S{ $id } a perdu sa forme S{ $shape } : il ne suit plus ce qu'il entoure.
+pipeline-frame-follows-nothing = Ce qu'entourait le cadre S{ $id } a disparu ; il reste en place et ne suit plus rien.
+pipeline-frame-follows-not = Le cadre S{ $id } ne peut pas être redessiné autour de ce qu'il entoure ({ $why }) ; il reste tel quel et ne suit plus rien.
+pipeline-frame-not-live = la forme { $id } ne fait pas partie d'un cadre qui suit ce qu'il entoure
+pipeline-frame-size-follows = le cadre S{ $id } tient sa taille de ce qu'il entoure : changez plutôt sa marge
 pipeline-library-converted = Votre bibliothèque a été mise à jour : les valeurs des matériaux sont maintenant dans les données de coupe des outils (les anciens fichiers sont gardés en .bak).
 
 # Names of new operations, numbered per kind; the user can rename them. A profile cuts

@@ -2352,7 +2352,11 @@ fn the_golden_sign_is_framed_with_frame_add() {
     let drawing = |path: &Path| {
         let json: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
-        json["drawing"].clone()
+        let mut drawing = json["drawing"].clone();
+        // The frame follows its text now (docs/specs/sign-maker.md §4): its record is the
+        // only difference.
+        drawing.as_object_mut().unwrap().remove("frames");
+        drawing
     };
     assert_near(
         &drawing(&project),
@@ -2403,6 +2407,74 @@ fn the_golden_sign_is_framed_with_frame_add() {
     let out = chipload(&["frame", "kinds", "--json"]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
     assert_eq!(json["kinds"].as_array().unwrap().len(), 7);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_frame_follows_its_text_and_is_set_and_let_go_of_from_the_command_line() {
+    // docs/specs/sign-maker.md §4, §7.
+    let dir = temp_dir("live-frame");
+    let project = dir.join("sign.chipload");
+    let p = path(&project);
+    for step in [
+        &["new", "-o", p][..],
+        &[
+            "text", "add", p, "OPEN", "--height", "30", "--at", "150,80", "--anchor", "center",
+        ],
+        &[
+            "frame",
+            "add",
+            p,
+            "--kind",
+            "rounded",
+            "--around-text",
+            "1",
+            "--borders",
+            "1",
+        ],
+    ] {
+        let out = chipload(step);
+        assert!(out.status.success(), "{step:?}: {}", text(&out.stderr));
+    }
+    let frames = |p: &str| {
+        let out = chipload(&["frame", "list", p, "--json"]);
+        let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        json["frames"].clone()
+    };
+    let width = frames(p)[0]["width"].as_f64().unwrap();
+    assert_eq!(frames(p)[0]["around"]["texts"], serde_json::json!([1]));
+    let out = chipload(&["text", "set", p, "1", "--text", "OPEN ALL DAY"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let wider = frames(p)[0]["width"].as_f64().unwrap();
+    assert!(wider > width + 50.0, "{width} → {wider}");
+    // Set: two borders, another kind; the new border's id in --json.
+    let outline = frames(p)[0]["outline"].as_u64().unwrap().to_string();
+    let out = chipload(&[
+        "frame",
+        "set",
+        p,
+        &outline,
+        "--borders",
+        "2",
+        "--kind",
+        "chamfered",
+        "--json",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["ids"].as_array().unwrap().len(), 1, "{json}");
+    assert_eq!(frames(p)[0]["kind"], "chamfered");
+    assert_eq!(frames(p)[0]["borders"].as_array().unwrap().len(), 2);
+    // Moved alone: let go of, with a note.
+    let out = chipload(&["shape", "move", p, &outline, "--dx", "5", "--dy", "0"]);
+    assert!(
+        text(&out.stdout).contains("changed by hand"),
+        "{}",
+        text(&out.stdout)
+    );
+    assert_eq!(frames(p), serde_json::json!([]));
+    let out = chipload(&["frame", "detach", p, &outline]);
+    assert_eq!(out.status.code(), Some(1));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

@@ -1590,6 +1590,7 @@ impl ChiploadApp {
                 self.group_section(ui);
                 self.array_form(ui);
                 self.frame_form(ui);
+                self.live_frame_ui(ui);
                 self.selected_shape_ui(ui);
                 self.selected_shapes_place_ui(ui);
                 self.arrange_ui(ui);

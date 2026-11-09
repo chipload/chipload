@@ -9,7 +9,7 @@ use chipload_job::library::{
     LibraryError, export, import_into, load_tools, read_import, update_library, write_export,
 };
 use chipload_job::styles::{Style, StyleLibrary, StyleSide, load_styles, style_of};
-use chipload_job::{Operation, Side, save_job};
+use chipload_job::{Operation, Side};
 use chipload_pipeline::library::{styles_path, tools_path};
 use clap::Subcommand;
 use serde_json::json;
@@ -434,7 +434,7 @@ fn use_style(
     let unsided = made.made.ops.iter().any(|n| !n.side_chosen);
     let first = chipload_pipeline::styles::insert(&mut job, made);
     let target = output.as_deref().unwrap_or(project);
-    if let Err(err) = save_job(&job, target) {
+    if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
     for line in added {

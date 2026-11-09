@@ -5,9 +5,10 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use chipload_job::{Job, save_job};
+use chipload_job::Job;
 use chipload_pipeline::frames::{
-    BORDER_LAYER, FRAME_LAYER, FrameKind, FrameSize, MOST_BORDERS, NewFrame, add_frame, place_frame,
+    BORDER_LAYER, FRAME_LAYER, FrameChange, FrameKind, FrameSize, MOST_BORDERS, NewFrame,
+    add_frame, detach_frame, kind_of, place_frame, set_frame,
 };
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::json;
@@ -22,6 +23,57 @@ pub enum FrameAction {
     /// Draw a frame round shapes (--around, --around-text) or to a size (--width and
     /// --height), with border lines inside it; prints the new shapes' ids.
     Add(Box<AddFrame>),
+    /// The frames that follow what they go round: their shapes and values.
+    List {
+        /// The project (.chipload).
+        project: PathBuf,
+    },
+    /// Change a frame's values (ID: its outline's or a border's shape id); it is drawn
+    /// again with them.
+    Set(Box<SetFrame>),
+    /// Let a frame go: its shapes stay as they are and follow nothing from now on.
+    Detach {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Its outline's or a border's shape id.
+        id: u64,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+}
+
+/// `frame set`'s options.
+#[derive(Args)]
+pub struct SetFrame {
+    /// The project (.chipload).
+    project: PathBuf,
+    /// Its outline's or a border's shape id.
+    id: u64,
+    /// Another frame kind (`frame kinds`).
+    #[arg(long, value_enum)]
+    kind: Option<KindArg>,
+    /// The corner size, mm.
+    #[arg(value_parser = crate::lengths::length, long)]
+    corner: Option<f64>,
+    /// From what it goes round to the innermost line, mm.
+    #[arg(value_parser = crate::lengths::length, long)]
+    margin: Option<f64>,
+    /// Border lines inside the outline, 0 to 3.
+    #[arg(long)]
+    borders: Option<u32>,
+    /// From the outline to the first border and between borders, mm.
+    #[arg(value_parser = crate::lengths::length, long)]
+    gap: Option<f64>,
+    /// A frame drawn to a size: its outline's width, mm.
+    #[arg(value_parser = crate::lengths::length, long)]
+    width: Option<f64>,
+    /// A frame drawn to a size: its outline's height, mm.
+    #[arg(value_parser = crate::lengths::length, long)]
+    height: Option<f64>,
+    /// Where to write the result; default: the project itself.
+    #[arg(short, long)]
+    output: Option<PathBuf>,
 }
 
 /// `frame add`'s options.
@@ -170,7 +222,7 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&edited.job, target) {
+            if let Err(err) = crate::save_project(out, &edited.job, target) {
                 return out.fail(err);
             }
             let names: Vec<String> = edited.new_ids.iter().map(|id| format!("S{id}")).collect();
@@ -196,7 +248,129 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
             out.set("corner", json!(place.r));
             ExitCode::SUCCESS
         }
+        FrameAction::List { project } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            list(out, &job);
+            ExitCode::SUCCESS
+        }
+        FrameAction::Set(set) => {
+            let SetFrame {
+                project,
+                id,
+                kind,
+                corner,
+                margin,
+                borders,
+                gap,
+                width,
+                height,
+                output,
+            } = *set;
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let change = FrameChange {
+                kind: kind.map(Into::into),
+                corner,
+                margin,
+                borders,
+                gap,
+                width,
+                height,
+            };
+            let edited = match set_frame(&job, id, &change) {
+                Ok(edited) => edited,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &edited.job, target) {
+                return out.fail(err);
+            }
+            if let Some(frame) = edited.job.drawing.frame_of(id).or_else(|| {
+                // Its border went: the frame is still named by its outline.
+                job.drawing
+                    .frame_of(id)
+                    .and_then(|f| edited.job.drawing.frame_of(f.outline))
+            }) {
+                out.line(format!(
+                    "Frame S{} is now {}, {} × {} mm.",
+                    frame.outline,
+                    kind_of(frame.kind).name(),
+                    mm(frame.width),
+                    mm(frame.height)
+                ));
+                out.set("outline", json!(frame.outline));
+                out.set("borders", json!(frame.borders));
+                out.set("width", json!(frame.width));
+                out.set("height", json!(frame.height));
+            }
+            for note in &edited.notes {
+                out.line(note.english());
+            }
+            out.wrote(target, "");
+            out.set("ids", json!(edited.new_ids));
+            ExitCode::SUCCESS
+        }
+        FrameAction::Detach {
+            project,
+            id,
+            output,
+        } => {
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let detached = match detach_frame(&job, id) {
+                Ok(job) => job,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &detached, target) {
+                return out.fail(err);
+            }
+            out.line(format!(
+                "The frame with shape S{id} is plain shapes now and follows nothing."
+            ));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
     }
+}
+
+/// `frame list`: one line per live frame, and the records under `frames`.
+fn list(out: &mut Out, job: &Job) {
+    if job.drawing.frames.is_empty() {
+        out.line("No frames follow what they go round.");
+    }
+    for frame in &job.drawing.frames {
+        let borders: Vec<String> = frame.borders.iter().map(|b| format!("S{b}")).collect();
+        let around = match &frame.around {
+            Some(a) => {
+                let mut parts: Vec<String> = Vec::new();
+                parts.extend(a.texts.iter().map(|t| format!("text {t}")));
+                parts.extend(a.images.iter().map(|i| format!("picture {i}")));
+                parts.extend(a.shapes.iter().map(|s| format!("S{s}")));
+                format!("round {}, margin {} mm", parts.join(", "), mm(frame.margin))
+            }
+            None => "to a size".to_string(),
+        };
+        out.line(format!(
+            "S{} {} {} × {} mm, corner {} mm, borders [{}] gap {} mm, {}",
+            frame.outline,
+            kind_of(frame.kind).name(),
+            mm(frame.width),
+            mm(frame.height),
+            mm(frame.corner),
+            borders.join(", "),
+            mm(frame.gap),
+            around
+        ));
+    }
+    out.set("frames", json!(job.drawing.frames));
 }
 
 /// A length for a line of output: two decimals at most.

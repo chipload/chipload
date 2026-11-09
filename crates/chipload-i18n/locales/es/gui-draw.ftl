@@ -131,3 +131,15 @@ frame-kind-chamfered = Achaflanado
 frame-kind-oval = Óvalo
 frame-kind-arched = Arco arriba
 frame-kind-plaque = Placa: los lados cortos abombados hacia fuera
+frame-live-title = Marco
+frame-live-follows = { $texts ->
+    [0] Sigue { $others ->
+        [one] una forma
+       *[other] { $others } formas
+    }: se vuelve a dibujar cuando cambian.
+    [one] Sigue su texto: se vuelve a dibujar cuando cambian las palabras, la fuente o el tamaño.
+   *[other] Sigue { $texts } textos: se vuelve a dibujar cuando cambian.
+}
+frame-live-fixed = Dibujado a un tamaño.
+frame-detach = Separar
+frame-detach-hover = Convierte el marco en formas simples que no siguen nada. Cambiar a mano una de sus formas hace lo mismo.

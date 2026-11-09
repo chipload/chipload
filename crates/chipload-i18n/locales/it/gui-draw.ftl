@@ -131,3 +131,15 @@ frame-kind-chamfered = Smussata
 frame-kind-oval = Ovale
 frame-kind-arched = Ad arco in alto
 frame-kind-plaque = Targa: i lati corti bombati verso l'esterno
+frame-live-title = Cornice
+frame-live-follows = { $texts ->
+    [0] Segue { $others ->
+        [one] una forma
+       *[other] { $others } forme
+    }: ridisegnata quando cambiano.
+    [one] Segue il suo testo: ridisegnata quando cambiano le parole, il carattere o l'altezza.
+   *[other] Segue { $texts } testi: ridisegnata quando cambiano.
+}
+frame-live-fixed = Disegnata a una misura.
+frame-detach = Stacca
+frame-detach-hover = Rende la cornice forme semplici che non seguono nulla. Modificare a mano una delle sue forme fa lo stesso.

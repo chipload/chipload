@@ -5,7 +5,6 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use chipload_job::save_job;
 use chipload_pipeline::shape_library::{
     InsertSize, ItemKind, add_group, entry_from, find, insert, list, move_to, read, remove,
     remove_group, rename, rename_group, save, shapes_dir,
@@ -196,7 +195,7 @@ fn insert_shapes(out: &mut Out, args: InsertShapes) -> ExitCode {
         Err(err) => return out.fail(err),
     };
     let target = args.output.as_deref().unwrap_or(&args.project);
-    if let Err(err) = save_job(&done.job, target) {
+    if let Err(err) = crate::save_project(out, &done.job, target) {
         return out.fail(err);
     }
     let names: Vec<String> = done.shapes.iter().map(|id| format!("S{id}")).collect();

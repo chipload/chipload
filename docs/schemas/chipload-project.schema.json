@@ -330,6 +330,13 @@
           },
           "type": "array"
         },
+        "frames": {
+          "description": "Frames for signs that are drawn again round what they go round when it changes.\nLeft out of the file when there are none, so projects without them open in older\nversions.",
+          "items": {
+            "$ref": "#/$defs/Frame"
+          },
+          "type": "array"
+        },
         "groups": {
           "description": "Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the\nfile when there are none, so projects without groups open in older versions.",
           "items": {
@@ -565,6 +572,133 @@
         "stock"
       ],
       "type": "object"
+    },
+    "Frame": {
+      "additionalProperties": false,
+      "description": "A frame for a sign that follows what it goes round (docs/specs/sign-maker.md §4): its\noutline and border lines are ordinary drawn shapes, drawn again from these values when\nthe texts or shapes it goes round change. Editing its shapes by hand ends that: the\nrecord goes and they stay as they are.",
+      "properties": {
+        "around": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FrameAround"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "What it goes round. None: drawn to a size, following nothing."
+        },
+        "borders": {
+          "default": [],
+          "description": "Its border lines inside the outline, outside in, by shape id.",
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "center": {
+          "description": "Where it was last drawn: the outline's centre, mm.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "corner": {
+          "description": "The corner size, mm: what it is depends on the kind (`chipload frame kinds`).",
+          "format": "double",
+          "type": "number"
+        },
+        "gap": {
+          "description": "From the outline to the first border, and between borders, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "height": {
+          "description": "The outline's height as last drawn, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "kind": {
+          "$ref": "#/$defs/FrameShape",
+          "description": "The outline's shape."
+        },
+        "margin": {
+          "description": "From the box of what it goes round to its innermost line, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "outline": {
+          "description": "Its outline, by shape id; the frame is named by it.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "description": "The outline's width as last drawn, mm.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "outline",
+        "kind",
+        "corner",
+        "gap",
+        "margin",
+        "center",
+        "width",
+        "height"
+      ],
+      "type": "object"
+    },
+    "FrameAround": {
+      "additionalProperties": false,
+      "description": "What a frame goes round: texts with all their letters, pictures with all their traced\nshapes, and other shapes, by id.",
+      "properties": {
+        "images": {
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "shapes": {
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "texts": {
+          "items": {
+            "format": "uint64",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "FrameShape": {
+      "description": "A frame's outline (docs/specs/shape-library.md §3.1).",
+      "enum": [
+        "rectangle",
+        "rounded",
+        "notched",
+        "chamfered",
+        "oval",
+        "arched",
+        "plaque"
+      ],
+      "type": "string"
     },
     "HoleMethod": {
       "description": "How a Holes operation cuts.",

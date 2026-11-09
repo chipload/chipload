@@ -599,6 +599,12 @@ pipeline-frame-borders-fit = { $count ->
     [one] eine Randlinie { $gap } innen passt nicht in diesen Rahmen
    *[other] { $count } Randlinien im Abstand { $gap } passen nicht in diesen Rahmen
 }
+pipeline-frame-edited = Rahmen S{ $id } wurde von Hand geändert und folgt nicht mehr dem, was er umgibt.
+pipeline-frame-lost = Rahmen S{ $id } hat seine Form S{ $shape } verloren und folgt nicht mehr dem, was er umgibt.
+pipeline-frame-follows-nothing = Was Rahmen S{ $id } umgab, ist weg; er bleibt, wo er ist, und folgt nichts mehr.
+pipeline-frame-follows-not = Rahmen S{ $id } lässt sich nicht neu um seinen Inhalt zeichnen ({ $why }); er bleibt, wie er war, und folgt nichts mehr.
+pipeline-frame-not-live = Form { $id } gehört zu keinem Rahmen, der seinem Inhalt folgt
+pipeline-frame-size-follows = Rahmen S{ $id } nimmt seine Größe von seinem Inhalt: ändern Sie stattdessen den Abstand
 pipeline-library-converted = Ihre Bibliothek wurde aktualisiert: die Werte der Materialien stehen jetzt in den Schnittdaten der Werkzeuge (die alten Dateien bleiben als .bak).
 
 # Names of new operations, numbered per kind; the user can rename them. A profile cuts

@@ -203,7 +203,7 @@ pub fn offset_at(job: &Job, ids: &[u64], at: (f64, f64)) -> Option<(f64, OffsetS
 }
 
 /// One shape offset by `d`: its own kind where that is exact, else polylines.
-fn offset_geometry(
+pub(crate) fn offset_geometry(
     shape: &Shape,
     d: f64,
     side: OffsetSide,

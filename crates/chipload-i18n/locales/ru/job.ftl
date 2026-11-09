@@ -37,6 +37,7 @@ job-must-be-number = должно быть числом, получено { $got
 job-must-be-numbers = должны быть числами, получено ({ $x }, { $y })
 job-xy-must-be-numbers = x и y должны быть числами, получено ({ $x }, { $y })
 job-id-twice = { $id } используется дважды
+job-frame-shape-twice = фигура { $id } входит в две рамки
 job-more-than-0-at-most = должно быть больше 0 и не больше { $most }, получено { $got }
 job-rotation-range = должно быть не меньше 0 и меньше 360 градусов, получено { $got }
 job-angle-below-180 = должно быть больше 0 и меньше 180 градусов, получено { $got } градусов

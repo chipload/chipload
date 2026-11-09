@@ -5,7 +5,7 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use chipload_job::{Job, save_job};
+use chipload_job::Job;
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::groups::{
     Members, add_to_group, delete_group, group, group_box, remove_from_group, rename_group,
@@ -228,7 +228,7 @@ pub fn group_command(out: &mut Out, action: GroupAction) -> ExitCode {
     match done {
         Ok((job, line)) => {
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(line);

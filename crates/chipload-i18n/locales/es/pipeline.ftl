@@ -604,6 +604,12 @@ pipeline-frame-borders-fit = { $count ->
     [one] un borde a { $gap } hacia dentro no cabe en este marco
    *[other] { $count } bordes separados { $gap } no caben en este marco
 }
+pipeline-frame-edited = El marco S{ $id } se cambió a mano, así que ya no sigue lo que rodea.
+pipeline-frame-lost = El marco S{ $id } perdió su forma S{ $shape }, así que ya no sigue lo que rodea.
+pipeline-frame-follows-nothing = Lo que rodeaba el marco S{ $id } ya no está; se queda donde está y no sigue nada.
+pipeline-frame-follows-not = El marco S{ $id } no se puede volver a dibujar alrededor de lo que rodea ({ $why }); se queda como estaba y no sigue nada.
+pipeline-frame-not-live = la forma { $id } no es parte de un marco que siga lo que rodea
+pipeline-frame-size-follows = el marco S{ $id } toma su tamaño de lo que rodea: cambie su margen en su lugar
 pipeline-library-converted = Tu biblioteca se actualizó: los valores de los materiales están ahora en los datos de corte de las herramientas (los archivos antiguos se guardan como .bak).
 
 # Names of new operations, numbered per kind; the user can rename them. A profile cuts

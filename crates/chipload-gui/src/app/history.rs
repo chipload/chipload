@@ -17,6 +17,7 @@ impl ChiploadApp {
     /// once the user has finished an edit (no drag or text entry in progress).
     pub fn commit(&mut self) {
         if self.edit != self.history.committed {
+            self.follow_frames();
             self.history.undo.push(self.history.committed.take());
             self.history.redo.clear();
             self.history.committed.clone_from(&self.edit);
@@ -28,6 +29,31 @@ impl ChiploadApp {
             } else {
                 self.toolpath_out_of_date();
             }
+        }
+    }
+
+    /// Frames that follow what they go round drawn again round it, as part of the edit
+    /// being recorded (docs/specs/sign-maker.md §4); a note for each one let go of.
+    fn follow_frames(&mut self) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        if edit.job.drawing.frames.is_empty() {
+            return;
+        }
+        let (job, notes) = chipload_pipeline::frames::follow_frames(edit.job.clone());
+        if job.drawing != edit.job.drawing {
+            // Only the drawing changes: the operations and their marks stay.
+            edit.job.drawing = job.drawing;
+            self.refresh_drawing();
+        }
+        if !notes.is_empty() {
+            let units = self.prefs.units.into();
+            let text: Vec<String> = notes
+                .iter()
+                .map(|n| n.render(self.prefs.language, units))
+                .collect();
+            self.set_status(text.join(" "), STATUS_SECONDS);
         }
     }
 

@@ -62,6 +62,7 @@ job-must-be-numbers = måste vara tal, fick ({ $x }, { $y })
 job-xy-must-be-numbers = x och y måste vara tal, fick ({ $x }, { $y })
 # $id is a number given to two things of the same kind.
 job-id-twice = { $id } används två gånger
+job-frame-shape-twice = form { $id } hör till två ramar
 # Unitless numbers.
 job-more-than-0-at-most = måste vara mer än 0 och högst { $most }, fick { $got }
 job-rotation-range = måste vara minst 0 och mindre än 360 grader, fick { $got }

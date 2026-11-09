@@ -969,6 +969,7 @@ pub fn empty_project() -> Job {
             images: Vec::new(),
             texts: Vec::new(),
             groups: Vec::new(),
+            frames: Vec::new(),
             hidden: Vec::new(),
         },
         setups: vec![chipload_job::Setup {
@@ -1084,6 +1085,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         images: Vec::new(),
         texts: Vec::new(),
         groups: Vec::new(),
+        frames: Vec::new(),
         hidden: Vec::new(),
     };
     job.stock_mut().x = x.max(1.0);

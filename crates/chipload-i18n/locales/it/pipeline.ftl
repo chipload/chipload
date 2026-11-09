@@ -601,6 +601,12 @@ pipeline-frame-borders-fit = { $count ->
     [one] un bordo a { $gap } verso l'interno non sta in questa cornice
    *[other] { $count } bordi distanti { $gap } non stanno in questa cornice
 }
+pipeline-frame-edited = La cornice S{ $id } è stata modificata a mano, quindi non segue più ciò che circonda.
+pipeline-frame-lost = La cornice S{ $id } ha perso la sua forma S{ $shape }, quindi non segue più ciò che circonda.
+pipeline-frame-follows-nothing = Ciò che la cornice S{ $id } circondava non c'è più; resta dov'è e non segue nulla.
+pipeline-frame-follows-not = La cornice S{ $id } non si può ridisegnare attorno a ciò che circonda ({ $why }); resta com'era e non segue nulla.
+pipeline-frame-not-live = la forma { $id } non fa parte di una cornice che segue ciò che circonda
+pipeline-frame-size-follows = la cornice S{ $id } prende la sua misura da ciò che circonda: cambia invece il suo margine
 pipeline-library-converted = La tua libreria è stata aggiornata: i valori dei materiali sono ora nei dati di taglio degli utensili (i vecchi file restano come .bak).
 
 # Names of new operations, numbered per kind; the user can rename them. A profile cuts

@@ -131,3 +131,15 @@ frame-kind-chamfered = Fasad
 frame-kind-oval = Oval
 frame-kind-arched = Bågformad topp
 frame-kind-plaque = Plakett: kortsidorna buktar utåt
+frame-live-title = Ram
+frame-live-follows = { $texts ->
+    [0] Följer { $others ->
+        [one] en form
+       *[other] { $others } former
+    }: ritas om när de ändras.
+    [one] Följer sin text: ritas om när orden, typsnittet eller storleken ändras.
+   *[other] Följer { $texts } texter: ritas om när de ändras.
+}
+frame-live-fixed = Ritad till en storlek.
+frame-detach = Koppla loss
+frame-detach-hover = Gör ramen till vanliga former som inte följer något. Att ändra en av dess former för hand gör detsamma.

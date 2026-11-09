@@ -62,6 +62,7 @@ job-must-be-numbers = müssen Zahlen sein, sind ({ $x }, { $y })
 job-xy-must-be-numbers = x und y müssen Zahlen sein, sind ({ $x }, { $y })
 # $id is a number given to two things of the same kind.
 job-id-twice = { $id } wird zweimal verwendet
+job-frame-shape-twice = Form { $id } gehört zu zwei Rahmen
 # Unitless numbers.
 job-more-than-0-at-most = muss mehr als 0 und höchstens { $most } sein, ist { $got }
 job-rotation-range = muss mindestens 0 und kleiner als 360 Grad sein, ist { $got }

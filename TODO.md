@@ -173,8 +173,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    inlay. **Review and draft spec 2026-11-09** (docs/specs/sign-maker.md): *New sign…*
    (words, frame, style engraved/raised/inlay, edge, tools → drawing and operations in one
    step), frames that follow their text (an optional `frame` record), five new frame kinds,
-   corner styles, borders by groove width, a V-bit edge chamfer; decisions 1-8 for the
-   user.
+   corner styles, borders by groove width, a V-bit edge chamfer. **Approved 2026-11-09**,
+   all as recommended ("we build it and iterate if needed"). Step 1, live frames, built
+   (see *In main, not released yet*); next step 2, the new frames, corner styles and
+   borders (§5); then step 3, *New sign…* with the edge chamfer (§3, §6).
 13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
@@ -236,6 +238,14 @@ Smaller follow-ups noted along the way, not in the order above:
 ## Done
 
 ### In main, not released yet
+
+- **Frames that follow their text** (docs/specs/sign-maker.md §4, step 1, branch `signs`,
+  not merged yet): a frame remembers what it goes round (`drawing.frames`, optional, no
+  schema bump) and is drawn again round it when the words, font, height or place change,
+  in the same undo step, its shapes keeping their ids; editing its shapes by hand, losing
+  them or everything it went round lets it go, with a note. The selected frame's values in
+  a *Frame* card under Selection, with *Detach*; `frame list`/`set`/`detach`. Every
+  command line save follows the frames (one `save_project`).
 
 - **V-carve inlays** (docs/specs/vcarve-inlay.md, branch `signs`, not merged yet):
   a V-carve's optional `plug` (start depth D) carves the rest of its board, grown past the

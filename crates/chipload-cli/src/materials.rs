@@ -11,7 +11,6 @@ use chipload_job::library::{
     update_library, update_tools, write_export,
 };
 use chipload_job::materials::{Material, MaterialLibrary};
-use chipload_job::save_job;
 use chipload_pipeline::library::{materials_path, tools_path};
 use chipload_pipeline::materials::{use_material, use_material_for_op, values_to_save};
 use clap::Subcommand;
@@ -323,7 +322,7 @@ fn use_in_project(
         },
     };
     let target = output.unwrap_or_else(|| project.to_path_buf());
-    if let Err(err) = save_job(&job, &target) {
+    if let Err(err) = crate::save_project(out, &job, &target) {
         return out.fail(err);
     }
     let lines: Vec<String> = messages.iter().map(|m| m.english()).collect();

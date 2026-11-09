@@ -131,3 +131,15 @@ frame-kind-chamfered = Gefast
 frame-kind-oval = Oval
 frame-kind-arched = Bogen oben
 frame-kind-plaque = Plakette: die kurzen Seiten nach außen gewölbt
+frame-live-title = Rahmen
+frame-live-follows = { $texts ->
+    [0] Folgt { $others ->
+        [one] einer Form
+       *[other] { $others } Formen
+    }: wird neu gezeichnet, wenn sie sich ändern.
+    [one] Folgt seinem Text: wird neu gezeichnet, wenn sich Wörter, Schrift oder Größe ändern.
+   *[other] Folgt { $texts } Texten: wird neu gezeichnet, wenn sie sich ändern.
+}
+frame-live-fixed = Auf eine Größe gezeichnet.
+frame-detach = Lösen
+frame-detach-hover = Macht den Rahmen zu einfachen Formen, die nichts folgen. Eine seiner Formen von Hand zu ändern, tut dasselbe.

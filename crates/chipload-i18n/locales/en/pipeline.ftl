@@ -595,6 +595,14 @@ pipeline-frame-borders-fit = { $count ->
     [one] a border { $gap } inside doesn't fit in this frame
    *[other] { $count } borders { $gap } apart don't fit in this frame
 }
+# Frames that follow what they go round (docs/specs/sign-maker.md §4). $id is the frame's
+# outline shape; "let go" means it stays as it is and follows nothing from then on.
+pipeline-frame-edited = Frame S{ $id } was changed by hand, so it no longer follows what it goes round.
+pipeline-frame-lost = Frame S{ $id } lost its shape S{ $shape }, so it no longer follows what it goes round.
+pipeline-frame-follows-nothing = What frame S{ $id } went round is gone; it stays where it is and follows nothing.
+pipeline-frame-follows-not = Frame S{ $id } can't be drawn again round what it goes round ({ $why }); it stays as it was and follows nothing.
+pipeline-frame-not-live = shape { $id } isn't part of a frame that follows what it goes round
+pipeline-frame-size-follows = frame S{ $id } takes its size from what it goes round: change its margin instead
 pipeline-library-converted = Your library was updated: the materials' values are now in the tools' cutting data (the old files are kept as .bak).
 
 # Names of new operations, numbered per kind; the user can rename them. A profile cuts

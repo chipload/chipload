@@ -146,6 +146,7 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `dxfs` | list of [DrawingSource](#drawingsource) | no | The DXFs the imported shapes came from, each as at its last import or update, with its own placement. |
+| `frames` | list of [Frame](#frame) | no | Frames for signs that are drawn again round what they go round when it changes. Left out of the file when there are none, so projects without them open in older versions. |
 | `groups` | list of [ShapeGroup](#shapegroup) | no | Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions. |
 | `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
 | `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
@@ -211,6 +212,39 @@ A finishing pass on a profile.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `stock` | number | yes | Left on the wall by the roughing passes, mm: more than 0, less than the tool radius. |
+
+## Frame
+
+A frame for a sign that follows what it goes round (docs/specs/sign-maker.md §4): its outline and border lines are ordinary drawn shapes, drawn again from these values when the texts or shapes it goes round change. Editing its shapes by hand ends that: the record goes and they stay as they are.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `around` | [FrameAround](#framearound) or null | no | What it goes round. None: drawn to a size, following nothing. |
+| `borders` | list of integer | no | Its border lines inside the outline, outside in, by shape id. |
+| `center` | 2 × number | yes | Where it was last drawn: the outline's centre, mm. |
+| `corner` | number | yes | The corner size, mm: what it is depends on the kind (`chipload frame kinds`). |
+| `gap` | number | yes | From the outline to the first border, and between borders, mm. |
+| `height` | number | yes | The outline's height as last drawn, mm. |
+| `kind` | [FrameShape](#frameshape) | yes | The outline's shape. |
+| `margin` | number | yes | From the box of what it goes round to its innermost line, mm. |
+| `outline` | integer | yes | Its outline, by shape id; the frame is named by it. |
+| `width` | number | yes | The outline's width as last drawn, mm. |
+
+## FrameAround
+
+What a frame goes round: texts with all their letters, pictures with all their traced shapes, and other shapes, by id.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `images` | list of integer | no |  |
+| `shapes` | list of integer | no |  |
+| `texts` | list of integer | no |  |
+
+## FrameShape
+
+A frame's outline (docs/specs/shape-library.md §3.1).
+
+One of: `"rectangle"`, `"rounded"`, `"notched"`, `"chamfered"`, `"oval"`, `"arched"`, `"plaque"`.
 
 ## HoleMethod
 

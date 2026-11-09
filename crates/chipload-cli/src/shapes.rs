@@ -859,7 +859,7 @@ pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         Err(err) => return out.fail(err),
     };
     let target = output.as_deref().unwrap_or(&project);
-    if let Err(err) = save_job(&job, target) {
+    if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
     for line in lines {

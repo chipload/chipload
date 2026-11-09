@@ -596,6 +596,12 @@ pipeline-frame-borders-fit = { $count ->
     [one] en kantlinje { $gap } innanför får inte plats i den här ramen
    *[other] { $count } kantlinjer { $gap } isär får inte plats i den här ramen
 }
+pipeline-frame-edited = Ramen S{ $id } ändrades för hand och följer inte längre det den går runt.
+pipeline-frame-lost = Ramen S{ $id } förlorade sin form S{ $shape } och följer inte längre det den går runt.
+pipeline-frame-follows-nothing = Det ramen S{ $id } gick runt finns inte längre; den stannar där den är och följer ingenting.
+pipeline-frame-follows-not = Ramen S{ $id } kan inte ritas om runt det den går runt ({ $why }); den stannar som den var och följer ingenting.
+pipeline-frame-not-live = form { $id } hör inte till en ram som följer det den går runt
+pipeline-frame-size-follows = ramen S{ $id } får sin storlek av det den går runt: ändra dess marginal i stället
 pipeline-library-converted = Ditt bibliotek uppdaterades: materialens värden finns nu i verktygens skärdata (de gamla filerna sparas som .bak).
 
 # Names of new operations, numbered per kind; the user can rename them. A profile cuts

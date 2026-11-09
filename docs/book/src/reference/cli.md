@@ -1306,6 +1306,53 @@ chipload frame add <PROJECT> [OPTIONS]
 | `--border-layer <BORDER_LAYER>` | The borders' layer. Default: `border`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload frame list`
+
+The frames that follow what they go round: their shapes and values
+
+```text
+chipload frame list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload frame set`
+
+Change a frame's values (ID: its outline's or a border's shape id); it is drawn again with them
+
+```text
+chipload frame set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | Its outline's or a border's shape id. |
+| `--kind <KIND>` | Another frame kind (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `oval`, `arched`, `plaque`. |
+| `--corner <CORNER>` | The corner size, mm. |
+| `--margin <MARGIN>` | From what it goes round to the innermost line, mm. |
+| `--borders <BORDERS>` | Border lines inside the outline, 0 to 3. |
+| `--gap <GAP>` | From the outline to the first border and between borders, mm. |
+| `--width <WIDTH>` | A frame drawn to a size: its outline's width, mm. |
+| `--height <HEIGHT>` | A frame drawn to a size: its outline's height, mm. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload frame detach`
+
+Let a frame go: its shapes stay as they are and follow nothing from now on
+
+```text
+chipload frame detach <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | Its outline's or a border's shape id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload dxf`
 
 A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)

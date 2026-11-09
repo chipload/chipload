@@ -1,6 +1,8 @@
 # Spec: refined sign frames, and a sign in one step
 
-Status: **draft 2026-11-09, for review.** Nothing built. Branch `signs`.
+Status: **approved 2026-11-09** (all eight decisions as recommended: "we build it and
+iterate if needed"). Building on branch `signs`, in the order of decision 8: step 1, live
+frames (§4), built; step 2, frames and borders (§5); step 3, *New sign…* (§3, §6).
 
 The user (2026-11-09), after the V-carve inlay: "After that i want more refined sign frames
 and a reworked workflow around that if necessary". This spec reviews how a sign is made
@@ -87,12 +89,14 @@ operations. *New sign…* is a shortcut, like `op add-inlay`.
 
 ## 4. A frame that follows its text (decision 3)
 
-Today a frame becomes plain shapes and nothing about it is stored. Proposed: the frame's
-outline keeps a small record, an optional field on the drawn shape (no schema bump):
+Today a frame becomes plain shapes and nothing about it is stored. Proposed: a small record
+of each frame, an optional list `drawing.frames` (no schema bump; see §10 for why a list and
+not a field on the outline):
 
 ```json
-"frame": { "kind": "rounded", "r": 8.0, "borders": 1, "gap": 5.0,
-           "around": { "text": 1 }, "margin": 12.0 }
+"frames": [{ "outline": 7, "borders": [8], "kind": "rounded", "corner": 8.0, "gap": 5.0,
+             "around": { "texts": [1] }, "margin": 12.0,
+             "center": [150.0, 80.0], "width": 160.0, "height": 63.0 }]
 ```
 
 - When what it goes round changes (the text's words, font, height or place; or shapes it
@@ -103,8 +107,8 @@ outline keeps a small record, an optional field on the drawn shape (no schema bu
 - A frame drawn to a fixed size records its size instead and follows nothing.
 - `frame set ID --margin … --corner …` changes a frame's values; the window shows them in
   the frame's properties, where *Frame…* asked for them.
-- An older Chipload doesn't drop the record silently: shapes refuse unknown fields, so it
-  refuses a project with a live frame and says so (as for every optional field so far).
+- An older Chipload doesn't drop the record silently: the drawing refuses unknown fields, so
+  it refuses a project with a live frame and says so (as for every optional field so far).
 
 ## 5. More frames, corner styles and borders (decision 4)
 
@@ -198,3 +202,28 @@ chipload frame kinds                                            # with the corne
 8. **Order:** live frames (§4) first, as they help the frames that exist; then the new
    frames and borders (§5); then *New sign…* (§3) with the edge (§6). *Recommended.*
    Alternative: *New sign…* first, for the quickest visible change.
+
+## 10. Settled while building
+
+Step 1 (live frames), 2026-11-09:
+- **A list, not a field on the shape.** The records are `drawing.frames`, beside
+  `drawing.texts`, each naming its outline and borders by shape id. Shapes are written flat
+  (`id`, `layer`, `kind`, the kind's fields); a nested record there would be the only one.
+  A frame is named by its outline's id everywhere (`frame set ID` takes a border's too).
+- **What it goes round** is kept by text and picture id (`around.texts`, `around.images`),
+  since their letters and traced shapes get new ids when they are made again, and by shape
+  id for other shapes.
+- **One pure function follows every frame**, `follow_frames(job)`, after any edit: the
+  window calls it when it records an undo step, so the frame changes in the same step; the
+  command line in the one function every command saves through (and after `--set`). It
+  compares each frame's shapes with what its record says it last drew (`center`, `width`,
+  `height`): the same, it draws the frame where it now goes; already there (moved with what
+  it goes round), it keeps following; otherwise it was edited by hand and is let go of.
+  A frame whose shapes are deleted, or whose texts and shapes are all gone, is let go of
+  too. Each time a note says so.
+- **Validation** checks a record's numbers and that no shape is in two frames. It doesn't
+  refuse a record naming shapes or texts that are gone: the edit that removed them is
+  checked before frames are followed, and following lets such a frame go.
+- **A turned frame** isn't followed: turning a frame with its text gives a turned outline,
+  which isn't what the record would draw, so the frame is let go of. Turning frames with
+  their text can come later if wanted.

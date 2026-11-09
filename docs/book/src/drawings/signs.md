@@ -47,8 +47,31 @@ The values:
   each can be cut by its own operation.
 
 A frame is ordinary drawn shapes: a rounded or plain rectangle, a circle for a round oval,
-otherwise a polyline of lines and arcs. Change it like any drawn shape, or draw it again:
-delete it, change the text, and *Draw > Frame…* again with the same values.
+otherwise a polyline of lines and arcs. Operations cut it like any other shape.
+
+## The frame follows its text
+
+A frame remembers what it goes round. Change the words, the font or the height of the text,
+or move it, and the frame is drawn again round it, with its borders, in the same undo step.
+Its shapes keep their ids, so the operations that cut them go on cutting them. A frame round
+a picture follows it when it is traced again; one round other shapes follows them when they
+move.
+
+Select the frame (its outline or a border) and its values show under *Selection*, in a
+**Frame** card: the kind, margin, corner, borders and gap. Change them there and the frame is
+drawn again. A frame drawn to a size shows its width and height instead, and follows
+nothing.
+
+The frame lets go, and becomes plain shapes that follow nothing, when:
+- you edit one of its shapes by hand: move it alone, drag a corner, change its values in its
+  own form (moving the frame *with* its text keeps it following);
+- one of its shapes is deleted, or everything it went round is;
+- **Detach** in its card, on purpose.
+
+A note on the status bar says so each time. Undo brings the frame back as it was.
+
+An older Chipload refuses to open a project with a frame that follows something, and says
+why; detach the frame first to open the project there.
 
 ## A frame to a size
 
@@ -79,9 +102,15 @@ chipload text add sign.chipload "SIGN" --height 30 --at 150,80 --anchor center
 chipload frame add sign.chipload --kind rounded --around-text 1 --borders 1 --corner 8 --margin 12
 chipload frame add blank.chipload --kind oval --width 300 --height 150 --borders 2
 chipload frame kinds
+chipload frame list sign.chipload                              # the frames that follow, with their values
+chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again
+chipload frame detach sign.chipload 7                          # plain shapes from now on
 ```
 
 `--around` takes shape ids, `--around-text` text ids (`chipload text list`); without
 either, `--width` and `--height` give the outline's size and `--at` its centre (the stock's
 centre by default). The new shapes' ids are printed, the outline's first; `--json` gives
-them with the frame's size and corner.
+them with the frame's size and corner. `frame set` and `frame detach` take the id of the
+frame's outline or of one of its borders. Every command that changes a text or a shape draws
+the frames that follow it again before it saves, and prints a line for any frame it let go
+of.

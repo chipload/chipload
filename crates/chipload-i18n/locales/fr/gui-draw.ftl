@@ -131,3 +131,15 @@ frame-kind-chamfered = Chanfreiné
 frame-kind-oval = Ovale
 frame-kind-arched = Haut en arche
 frame-kind-plaque = Plaque : les petits côtés bombés vers l'extérieur
+frame-live-title = Cadre
+frame-live-follows = { $texts ->
+    [0] Suit { $others ->
+        [one] une forme
+       *[other] { $others } formes
+    } : redessiné quand elles changent.
+    [one] Suit son texte : redessiné quand les mots, la police ou la taille changent.
+   *[other] Suit { $texts } textes : redessiné quand ils changent.
+}
+frame-live-fixed = Dessiné à une taille.
+frame-detach = Détacher
+frame-detach-hover = Fait du cadre des formes simples qui ne suivent rien. Modifier une de ses formes à la main fait de même.

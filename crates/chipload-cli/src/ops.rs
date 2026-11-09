@@ -423,7 +423,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             // (docs/specs/materials.md §2).
             let followed = materials::follow_op_material(&mut job, op - 1);
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(format!("Operation {op} now cuts with tool {tool}."));
@@ -480,7 +480,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 ));
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(format!(
@@ -544,7 +544,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             let unsided = made.ops.iter().any(|n| !n.side_chosen);
             let first = chipload_pipeline::new_ops::insert(&mut job, made);
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             for (offset, op) in job.operations[first..first + count].iter().enumerate() {
@@ -605,7 +605,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             let op = &job.operations[index];
@@ -651,7 +651,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             let from = if cutting.is_some() {
@@ -692,7 +692,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             let from = if cutting.is_some() {
@@ -755,7 +755,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             let mm = chipload_core::text::mm;
@@ -800,7 +800,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 return out.fail(format!("operation {op} has no floor pass"));
             }
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(format!("Removed the floor pass of operation {op}."));
@@ -826,7 +826,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                     Err(err) => return out.fail(err),
                 };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(format!(
@@ -863,7 +863,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                     AxisArg::Y => chipload_job::Axis::Y,
                 });
                 let target = output.as_deref().unwrap_or(&project);
-                if let Err(err) = save_job(&job, target) {
+                if let Err(err) = crate::save_project(out, &job, target) {
                     return out.fail(err);
                 }
                 out.line(match along {
@@ -943,7 +943,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(line);
@@ -1054,7 +1054,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             out.line(line);
@@ -1076,7 +1076,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 return out.fail(err);
             }
             let target = output.as_deref().unwrap_or(&project);
-            if let Err(err) = save_job(&job, target) {
+            if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
             match after_tool {

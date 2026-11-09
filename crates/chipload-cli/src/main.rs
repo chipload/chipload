@@ -997,7 +997,7 @@ fn create(
         Ok(notes) => notes,
         Err(err) => return out.fail(err.english()),
     };
-    if let Err(err) = save_job(&job, output) {
+    if let Err(err) = crate::save_project(out, &job, output) {
         return out.fail(err);
     }
     out.line(line.to_string());
@@ -1037,7 +1037,7 @@ fn update(
         Err(err) => return out.fail(err),
     };
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&updated, target) {
+    if let Err(err) = crate::save_project(out, &updated, target) {
         return out.fail(err);
     }
     for line in &report.lines {
@@ -1060,9 +1060,24 @@ fn update(
     }
 }
 
+/// Save `job` to `target`, its live frames drawn again round what they go round first
+/// (docs/specs/sign-maker.md §4), with a line for each one let go of. Every command that
+/// writes a project saves through here.
+pub(crate) fn save_project(
+    out: &mut Out,
+    job: &Job,
+    target: &Path,
+) -> Result<(), chipload_job::JobError> {
+    let (job, notes) = chipload_pipeline::frames::follow_frames(job.clone());
+    for note in notes {
+        out.line(note.english());
+    }
+    save_job(&job, target)
+}
+
 /// Save `job` to `target` and say so, or fail with why it couldn't be saved.
 fn write_project(out: &mut Out, job: &Job, target: &Path) -> ExitCode {
-    if let Err(err) = save_job(job, target) {
+    if let Err(err) = crate::save_project(out, job, target) {
         return out.fail(err);
     }
     out.wrote(target, "");
@@ -1099,7 +1114,12 @@ fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitC
     {
         out.line(line.clone());
     }
-    Ok(written)
+    // Frames round a changed text drawn again (docs/specs/sign-maker.md §4).
+    let (followed, notes) = chipload_pipeline::frames::follow_frames(written);
+    for note in notes {
+        out.line(note.english());
+    }
+    Ok(followed)
 }
 
 /// `load_set`, then only the parts `parts` cut when any are given
@@ -1214,7 +1234,7 @@ fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) 
             Err(err) => return out.fail(err),
         };
     let target = output.unwrap_or(project);
-    if let Err(err) = save_job(&changed, target) {
+    if let Err(err) = crate::save_project(out, &changed, target) {
         return out.fail(err);
     }
     for (path, value) in &assignments {
