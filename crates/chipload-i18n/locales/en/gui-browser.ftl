@@ -64,6 +64,7 @@ browser-new-part = New part
 # At a part row's right end: the part new operations go into.
 browser-part-active = active
 browser-part-active-hover = The active part: new operations go here. Click for its copies; right-click for more
+browser-part-mirrored = mirrored
 browser-part-hover = Click for its copies; double-click to make it the active part; right-click for more
 # A verb: make this the active part.
 browser-activate = Activate

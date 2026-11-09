@@ -13,6 +13,7 @@ view-legend-operation = contornos de la operación
 view-legend-stock = material en bruto
 # Copies of the part laid out in a grid.
 view-legend-copies = copias
+view-legend-mirrored = pieza reflejada, tal como se corta
 view-legend-cutting = movimiento de corte
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = rápido, por encima del material

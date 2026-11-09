@@ -901,6 +901,7 @@ pub(in crate::app) fn part_form(
                     .on_hover_text(t!(ui, "forms-part-cut-hover"));
                 ui.checkbox(&mut part.enabled, t!(ui, "forms-part-cut-check"));
                 ui.end_row();
+                mirror_row(ui, &mut part.mirror, id);
                 ui.label(t!(ui, "forms-active"))
                     .on_hover_text(t!(ui, "forms-active-hover"));
                 if active {
@@ -929,6 +930,27 @@ pub(in crate::app) fn part_form(
         ui.weak(t!(ui, "forms-parts-note"));
     }
     request
+}
+
+/// A part cut mirrored about its box's centre line, or as drawn
+/// (docs/specs/mirror-part.md §5).
+fn mirror_row(ui: &mut egui::Ui, mirror: &mut Option<chipload_job::Mirror>, part: u64) {
+    use chipload_job::Mirror;
+    let name = |ui: &egui::Ui, mirror: Option<Mirror>| match mirror {
+        None => t!(ui, "forms-part-mirror-none"),
+        Some(Mirror::LeftRight) => t!(ui, "forms-setup-turn-left-right"),
+        Some(Mirror::TopBottom) => t!(ui, "forms-setup-turn-top-bottom"),
+    };
+    ui.label(t!(ui, "forms-part-mirror"))
+        .on_hover_text(t!(ui, "forms-part-mirror-hover"));
+    ComboBox::from_id_salt(("part-mirror", part))
+        .selected_text(name(ui, *mirror))
+        .show_ui(ui, |ui| {
+            for choice in [None, Some(Mirror::LeftRight), Some(Mirror::TopBottom)] {
+                ui.selectable_value(mirror, choice, name(ui, choice));
+            }
+        });
+    ui.end_row();
 }
 
 /// A part cut several times in a grid (docs/specs/copies-grid.md); `at` is the copies'

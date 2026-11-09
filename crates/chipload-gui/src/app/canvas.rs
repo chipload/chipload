@@ -64,6 +64,16 @@ impl ChiploadApp {
             .collect()
     }
 
+    /// Mirrored parts where they are cut, faded (docs/specs/mirror-part.md §5).
+    fn mirrored_outlines(&self) -> Vec<Vec<Point>> {
+        match &self.edit {
+            Some(edit) if edit.job.parts.iter().any(|p| p.mirror.is_some()) => {
+                chipload_pipeline::parts::mirrored_outlines(&edit.job, &self.contours)
+            }
+            _ => Vec::new(),
+        }
+    }
+
     /// What the 3D view turns around: the stock's centre, else the drawing origin.
     pub(super) fn orbit_pivot(&self) -> Point {
         self.scene.stock.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
@@ -144,6 +154,7 @@ impl ChiploadApp {
         // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
         // its operations cut; copy 1 is the drawing.
         self.scene.copies = self.copy_shifts();
+        self.scene.mirrored = self.mirrored_outlines();
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md). A
         // back is shown on its front's board, in its heights, and a turned board with its
         // other face up (docs/specs/two-sided.md §10.2).

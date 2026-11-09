@@ -1015,6 +1015,9 @@ pub struct Scene {
     /// The copies (copy 1 excluded): a contour's id and a shift, one for each copy of each
     /// part that cuts it. Drawn faded, never picked (docs/specs/copies-grid.md, parts.md).
     pub copies: Vec<(usize, Point)>,
+    /// Mirrored parts' contours where they are cut (docs/specs/mirror-part.md §5): drawn
+    /// faded, never picked; the shapes as drawn stay to edit.
+    pub mirrored: Vec<Vec<Point>>,
     /// The material-removal simulation, when shown (docs/specs/simulation.md §4).
     pub sim: Option<SimLayer>,
     /// The project's pictures, when shown (docs/specs/image-trace.md §6).
@@ -1418,6 +1421,15 @@ impl Scene {
                 let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
                 painter.add(Shape::line(screen(&moved), Stroke::new(1.0, pal.ghost)));
             }
+        }
+        for outline in &self.mirrored {
+            let stroke = Stroke::new(1.0, pal.ghost);
+            painter.extend(Shape::dashed_line(
+                &screen(outline),
+                stroke,
+                DASH_PX,
+                GAP_PX,
+            ));
         }
         for c in &self.contours {
             let pts = screen(&c.points);
@@ -2195,6 +2207,9 @@ pub fn legend(scene: &Scene, lang: &impl Lang) -> Vec<(Swatch, String)> {
     ];
     if !scene.copies.is_empty() {
         items.push((Swatch::Line(pal.ghost, 1.0), t!(lang, "view-legend-copies")));
+    }
+    if !scene.mirrored.is_empty() {
+        items.push((Swatch::Dashed(pal.ghost), t!(lang, "view-legend-mirrored")));
     }
     if !scene.corner_markers.is_empty() {
         items.push((Swatch::Corner, t!(lang, "view-legend-corner")));

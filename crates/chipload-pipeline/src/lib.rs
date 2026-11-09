@@ -714,6 +714,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
             .facts
             .into_iter()
             .chain(setups::back_text_notes(job))
+            .chain(setups::mirrored_text_notes(job))
             .collect(),
         check_warnings: checked.warnings,
         check_notes: checked.notes,
@@ -1022,6 +1023,7 @@ pub fn empty_project() -> Job {
             enabled: true,
             copies: None,
             setup: 1,
+            mirror: None,
         }],
         active_part: Some(1),
         operations: Vec::new(),

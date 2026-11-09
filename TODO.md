@@ -145,13 +145,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    outline, V-carved to fit: the pocket at its depth, the plug mirrored, cut with a start
    depth and a glue gap, so the two press together and the plug's back is planed off.
    Among the most made maker jobs on a hobby router. Builds on V-carve (the medial axis,
-   flat-floor passes). **Spec drafted 2026-11-09** (docs/specs/vcarve-inlay.md, branch
-   `signs`, for review): two V-carves, the plug with a `plug` start depth in a setup of its
-   own, its part mirrored, `op add-inlay`; decisions 1-7. Needs the mirrored part first.
-7b. **Mirrored parts** (the user, 2026-11-09: "a general mirror part functionality"):
-   **spec drafted 2026-11-09** (docs/specs/mirror-part.md, branch `signs`, for review): a
-   part cut mirrored about its box's centre, left to right or top to bottom, planned with
-   the cutting sense flipped as a back setup is. Needs `two-sided` in main first.
+   flat-floor passes). **Spec approved 2026-11-09** (docs/specs/vcarve-inlay.md, branch
+   `signs`): two V-carves, the plug with a `plug` start depth in a setup of its own, its
+   part mirrored, `op add-inlay`; decisions 1-7 as recommended. **Next**, on the mirrored
+   part.
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
@@ -232,6 +229,16 @@ Smaller follow-ups noted along the way, not in the order above:
 ## Done
 
 ### In main, not released yet
+
+- **Mirrored parts** (the user, 2026-11-09: "a general mirror part functionality";
+  docs/specs/mirror-part.md, approved and built on branch `signs`, not merged yet): a part
+  cut mirrored about its box's centre line, left to right or top to bottom, the drawing as
+  drawn; planned with the cutting sense turned, so inside stays inside and climb stays
+  climb (tested move by move against shapes mirrored by hand, with copies and on a back);
+  surface passes and dowel holes not mirrored; `part set --mirror`, the part form's
+  *Mirror*, *mirrored* in the Browser, its outlines dashed where it is cut, a note for its
+  text, a line on the setup sheet; golden `v36_mirrored_part`. Optional field, no schema
+  bump.
 
 - **Two-sided work** (docs/specs/two-sided.md, approved 2026-11-09 and merged into main from
   the local branch `two-sided`). All 8 steps built:

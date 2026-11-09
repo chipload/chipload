@@ -316,6 +316,14 @@ A library material, as a project names it.
 | `library_uid` | string | yes | The library material's uid. |
 | `name` | string | yes | Its name when chosen, shown when the library no longer has it. |
 
+## Mirror
+
+How a part is cut mirrored: about the vertical or the horizontal centre line of its box.
+
+- `"left_right"`: About the vertical centre line: left and right change places, X is mirrored.
+
+- `"top_bottom"`: About the horizontal centre line: top and bottom change places, Y is mirrored.
+
 ## Operation
 
 ### `"type": "profile"`
@@ -462,6 +470,7 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 | `copies` | [Copies](#copies) or null | no | Cut the part several times in a grid. Null: once. |
 | `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what operations name it by. |
+| `mirror` | [Mirror](#mirror) or null | no | Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as drawn. Left out when missing. |
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
 | `setup` | integer | yes | The id of the setup it is cut in (`setups`). Since schema 34. |
 

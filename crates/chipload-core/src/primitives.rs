@@ -84,6 +84,35 @@ impl Primitive {
         }
     }
 
+    /// The primitive mirrored about the line X = at (`across_x`, left to right) or Y = at
+    /// (top to bottom). An arc keeps its start and end but runs the other way round: an
+    /// angle t becomes pi - t (X) or -t (Y), and its sweep changes sign.
+    pub fn mirrored(&self, across_x: bool, at: f64) -> Primitive {
+        let flip = |p: Point| {
+            if across_x {
+                (2.0 * at - p.0, p.1)
+            } else {
+                (p.0, 2.0 * at - p.1)
+            }
+        };
+        match *self {
+            Primitive::Line(l) => Primitive::Line(Line {
+                start: flip(l.start),
+                end: flip(l.end),
+            }),
+            Primitive::Arc(a) => Primitive::Arc(Arc {
+                center: flip(a.center),
+                start_angle: if across_x {
+                    PI - a.start_angle
+                } else {
+                    -a.start_angle
+                },
+                sweep: -a.sweep,
+                ..a
+            }),
+        }
+    }
+
     pub fn start(&self) -> Point {
         match self {
             Primitive::Line(l) => l.start,
@@ -207,6 +236,36 @@ pub fn signed_area(ring: &[Point]) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_mirrored_arc_keeps_its_ends_mirrored_and_turns_the_other_way() {
+        let arc = Primitive::Arc(Arc {
+            center: (10.0, 5.0),
+            radius: 3.0,
+            start_angle: 0.3,
+            sweep: 1.2,
+        });
+        for across_x in [true, false] {
+            let at = 7.5;
+            let flip = |p: Point| {
+                if across_x {
+                    (2.0 * at - p.0, p.1)
+                } else {
+                    (p.0, 2.0 * at - p.1)
+                }
+            };
+            let m = arc.mirrored(across_x, at);
+            let near = |a: Point, b: Point| (a.0 - b.0).hypot(a.1 - b.1) < 1e-12;
+            assert!(near(m.start(), flip(arc.start())), "{across_x}");
+            assert!(near(m.end(), flip(arc.end())), "{across_x}");
+            assert!(near(m.midpoint(), flip(arc.midpoint())), "{across_x}");
+            let Primitive::Arc(a) = m else { panic!() };
+            assert!(a.sweep < 0.0);
+            // Mirrored twice: as it was.
+            let (back, was) = (m.mirrored(across_x, at).bounds(), arc.bounds());
+            assert!(near(back.0, was.0) && near(back.1, was.1));
+        }
+    }
+
     #[test]
     fn bounds_are_exact_for_arcs() {
         let circle = Primitive::Arc(Arc {

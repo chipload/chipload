@@ -59,3 +59,31 @@ for a new one. Drag an operation onto a part to move it there.
 
 ![Two parts in the Browser: part B is active, cut twice, and its properties are
 open](../images/parts.png)
+
+## Mirrored parts
+
+A part can be cut **mirrored**, left to right or top to bottom, while the drawing stays as
+you drew it. Set **Mirror** in the part's properties, or `chipload part set --mirror`. Use it
+for left- and right-hand pieces from one drawing, the plug of an inlay, a stamp or branding
+iron whose text must read backwards, or a sign cut from the back of clear acrylic.
+
+- **About its own centre:** the part is mirrored about the centre line of the shapes its
+  operations cut, so it stays where it is on the board and a board that fits its parts
+  still fits. To cut a mirrored twin somewhere else, mirror a copy of its shapes in the
+  drawing instead (`shape mirror`).
+- **Settings mean what they say:** inside stays inside, climb stays climb. Chipload plans
+  the part as drawn with the cutting direction turned, then mirrors it, so a climb cut
+  is still a climb cut on the mirrored part. Tabs placed by hand, dogbone corners and ring
+  starts stay on their feature.
+- **On the canvas:** the toolpath and the simulation show the part as it is cut, and its
+  shapes are drawn there dashed and faded. You still edit the shapes as drawn; the start
+  and tab markers stay on them. The Browser marks the part *mirrored*.
+- **What isn't mirrored:** a surface pass and dowel holes belong to the board, not the part.
+- **Copies:** each copy is the mirrored part.
+- **Text:** a mirrored part's text reads backwards on the board, and the report says so.
+  On the [back of a board](../concepts/setups.md) the two mirrors cancel and it reads right.
+- **The setup sheet** says which parts are cut mirrored.
+
+```sh
+chipload part set part.chipload 1 --mirror left-right   # also top-bottom; none: as drawn
+```

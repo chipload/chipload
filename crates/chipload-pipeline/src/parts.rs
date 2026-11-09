@@ -3,8 +3,11 @@
 //! between them. Every change keeps the operations grouped by part, in the parts' order,
 //! so the list's order stays the cutting order.
 
+use chipload_core::Point;
+use chipload_core::chain::Contour;
 use chipload_i18n::Message;
-use chipload_job::{Job, Part};
+use chipload_job::{Job, Mirror, Operation, Part};
+use chipload_toolpath::select::{select_contours, select_paths};
 
 use crate::PipelineError;
 
@@ -76,6 +79,7 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
         enabled: true,
         copies: None,
         setup,
+        mirror: None,
     });
     job.active_part = Some(id);
     Ok((checked(job)?, id))
@@ -99,6 +103,59 @@ pub fn set_part(
         job.parts[at].enabled = enabled;
     }
     checked(job)
+}
+
+/// The project with part `id` cut mirrored, or as drawn with None
+/// (docs/specs/mirror-part.md §6).
+pub fn set_part_mirror(
+    job: &Job,
+    id: u64,
+    mirror: Option<chipload_job::Mirror>,
+) -> Result<Job, PipelineError> {
+    let mut job = job.clone();
+    let at = index_of(&job, id)?;
+    job.parts[at].mirror = mirror;
+    checked(job)
+}
+
+/// Where mirrored parts are cut (docs/specs/mirror-part.md §5): the contours each mirrored
+/// part's operations cut, mirrored about its box's centre line, at every copy. For drawing
+/// them faded where the cut is; the drawing stays as drawn.
+pub fn mirrored_outlines(job: &Job, contours: &[Contour]) -> Vec<Vec<Point>> {
+    let mut out = Vec::new();
+    for part in job.parts.iter().filter(|p| p.mirror.is_some()) {
+        let mut ids: Vec<usize> = Vec::new();
+        let mut line = None;
+        for op in job.operations.iter().filter(|op| op.part() == part.id) {
+            let Some(mirror) = job.mirror_of(op) else {
+                continue;
+            };
+            line = Some(mirror);
+            let select = op.select().resolved(&job.drawing);
+            let label = op.label_message(0);
+            let picked = match op {
+                Operation::Path(_) | Operation::Holes(_) => select_paths(contours, &select, &label),
+                _ => select_contours(contours, &select, &label),
+            };
+            if let Ok(selection) = picked {
+                ids.extend(selection.contours.iter().map(|c| c.id));
+            }
+        }
+        let Some((mirror, at)) = line else {
+            continue;
+        };
+        let flip = |p: Point| match mirror {
+            Mirror::LeftRight => (2.0 * at - p.0, p.1),
+            Mirror::TopBottom => (p.0, 2.0 * at - p.1),
+        };
+        for contour in contours.iter().filter(|c| ids.contains(&c.id)) {
+            let points: Vec<Point> = contour.points().into_iter().map(flip).collect();
+            for (_, (dx, dy)) in part.in_cut_order() {
+                out.push(points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect());
+            }
+        }
+    }
+    out
 }
 
 /// The project with only the parts `ids` cut, every other one switched off: what exporting

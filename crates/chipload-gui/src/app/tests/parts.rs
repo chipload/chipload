@@ -87,3 +87,35 @@ fn a_parts_properties_edit_its_copies_and_the_browser_draws_the_parts() {
     draw_properties(&mut app);
     draw_sidebar(&mut app);
 }
+
+/// A mirrored part (docs/specs/mirror-part.md §5): set on its form, marked in the Browser,
+/// cut where its mirrored outlines are drawn, the shapes as drawn left to edit.
+#[test]
+fn a_mirrored_part_is_drawn_where_it_is_cut() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v35/op_add.chipload")));
+    app.focus = Focus::Part(1);
+    draw_properties(&mut app);
+    app.edit.as_mut().unwrap().job.parts[0].mirror = Some(chipload_job::Mirror::LeftRight);
+    app.commit();
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+    draw_canvas(&mut app);
+    let outlines = app.scene.mirrored.clone();
+    assert!(!outlines.is_empty());
+    // Mirrored about the part's centre line: the outlines' box is the drawing's.
+    let job = app.edited_job().unwrap();
+    let ((x0, _), (x1, _)) = job.part_box(1).unwrap();
+    let xs = outlines.iter().flatten().map(|p| p.0);
+    let (lo, hi) = xs.fold((f64::MAX, f64::MIN), |(lo, hi), x| (lo.min(x), hi.max(x)));
+    assert!(
+        (lo - x0).abs() < 0.05 && (hi - x1).abs() < 0.05,
+        "{lo} {hi}"
+    );
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    // As drawn again: nothing mirrored to draw.
+    app.edit.as_mut().unwrap().job.parts[0].mirror = None;
+    app.commit();
+    draw_canvas(&mut app);
+    assert!(app.scene.mirrored.is_empty());
+}

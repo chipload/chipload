@@ -274,6 +274,23 @@ fn setup(html: &mut String, job: &Job, w: Words) {
     for line in copies::parts_messages(job, w.units) {
         fact(html, &w.text(&Message::new("sheet-part")), &w.text(&line));
     }
+    // Mirrored parts: cut as the drawing's mirror image (docs/specs/mirror-part.md §5).
+    for part in job
+        .parts
+        .iter()
+        .filter(|p| p.enabled && Some(p.setup) == job.active_setup_id())
+    {
+        let id = match part.mirror {
+            Some(chipload_job::Mirror::LeftRight) => "sheet-mirrored-left-right",
+            Some(chipload_job::Mirror::TopBottom) => "sheet-mirrored-top-bottom",
+            None => continue,
+        };
+        fact(
+            html,
+            &w.text(&Message::new("sheet-mirrored")),
+            &w.text(&Message::new(id).arg("part", part.name.as_str())),
+        );
+    }
     // Several drawings: each with where it was put (docs/specs/drawing-sources.md §7).
     let d = &job.drawing;
     if d.dxfs.len() + d.images.len() + d.texts.len() > 1 {

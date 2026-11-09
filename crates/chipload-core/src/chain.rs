@@ -86,6 +86,16 @@ impl Contour {
         out
     }
 
+    /// The same contour mirrored about X = at (`across_x`) or Y = at, its parts in the same
+    /// order: it runs the other way round (a mirrored part, docs/specs/mirror-part.md).
+    pub fn mirrored(&self, across_x: bool, at: f64) -> Contour {
+        let mut out = self.clone();
+        for part in &mut out.parts {
+            part.segment.prim = part.segment.prim.mirrored(across_x, at);
+        }
+        out
+    }
+
     pub fn start(&self) -> Point {
         self.parts.first().map_or((0.0, 0.0), |p| p.points()[0])
     }

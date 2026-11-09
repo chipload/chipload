@@ -2031,6 +2031,7 @@ chipload part set <PROJECT> <ID> [OPTIONS]
 | `--name <NAME>` | Its new name. |
 | `--off` | Leave the part and its operations out of the program. |
 | `--on` | Cut the part again. |
+| `--mirror <MIRROR>` | Cut the part mirrored about the centre line of its box, the drawing as drawn: left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part activate`

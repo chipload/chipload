@@ -1074,6 +1074,9 @@ impl ChiploadApp {
         if part.count() > 1 {
             trailing.push(format!("×{}", part.count()));
         }
+        if part.mirror.is_some() {
+            trailing.push(t!(ui, "browser-part-mirrored"));
+        }
         let id = Id::new(("browser-part", part.id));
         let open_id = id.with("folder-open");
         let open = folder_open(ui, open_id, true);

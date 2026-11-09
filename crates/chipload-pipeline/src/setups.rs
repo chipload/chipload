@@ -66,6 +66,7 @@ pub fn add_setup(
         enabled: true,
         copies: None,
         setup: id,
+        mirror: None,
     });
     job.active_setup = Some(id);
     job.active_part = Some(part);
@@ -291,36 +292,18 @@ pub fn surface_over_pins_warning(job: &Job) -> Option<Note> {
 /// For the active setup, when it is a back: each operation that carves a text's letters,
 /// once per text (docs/specs/two-sided.md §4, decision 9). The text reads right from the
 /// front, where it is drawn, so on the back face it reads mirrored. That may be meant (a
-/// stamp), so it is a plain note, and nothing is mirrored for the user.
+/// stamp), so it is a plain note, and nothing is mirrored for the user. A mirrored part's
+/// text reads right on the back: the two mirrors cancel (docs/specs/mirror-part.md §4).
 pub fn back_text_notes(job: &Job) -> Vec<Note> {
     if job.back_turn().is_none() {
         return Vec::new();
     }
     let mut notes = Vec::new();
     for (i, op) in job.operations.iter().enumerate() {
-        if !job.cuts(i) || !op.selects_shapes() {
+        if !job.cuts(i) || !op.selects_shapes() || job.mirror_of(op).is_some() {
             continue;
         }
-        let select = op.select().resolved(&job.drawing);
-        let mut texts: Vec<u64> = job
-            .drawing
-            .shapes
-            .iter()
-            .filter(|shape| select.may_pick(shape))
-            .filter_map(|shape| match &shape.geometry {
-                Geometry::Path {
-                    origin: Some(Origin::Text(id)),
-                    ..
-                } => Some(*id),
-                _ => None,
-            })
-            .collect();
-        texts.sort_unstable();
-        texts.dedup();
-        for id in texts {
-            let Some(text) = job.drawing.texts.iter().find(|t| t.id == id) else {
-                continue;
-            };
+        for text in texts_carved(job, op) {
             notes.push(Note::at(
                 i,
                 Message::new("pipeline-back-text")
@@ -330,4 +313,59 @@ pub fn back_text_notes(job: &Job) -> Vec<Note> {
         }
     }
     notes
+}
+
+/// For each mirrored part on a front, its first operation that carves a text's letters,
+/// once per text (docs/specs/mirror-part.md §4): the text reads backwards on the board.
+/// Often meant (a plug, a stamp), so a plain note.
+pub fn mirrored_text_notes(job: &Job) -> Vec<Note> {
+    if job.back_turn().is_some() {
+        return Vec::new();
+    }
+    let mut notes = Vec::new();
+    let mut said: Vec<(u64, u64)> = Vec::new();
+    for (i, op) in job.operations.iter().enumerate() {
+        if !job.cuts(i) || job.mirror_of(op).is_none() {
+            continue;
+        }
+        let Some(part) = job.part_of(op) else {
+            continue;
+        };
+        for text in texts_carved(job, op) {
+            if said.contains(&(part.id, text.id)) {
+                continue;
+            }
+            said.push((part.id, text.id));
+            notes.push(Note::at(
+                i,
+                Message::new("pipeline-mirrored-text")
+                    .arg("part", part.name.as_str())
+                    .arg("text", crate::texts::text_label(text)),
+            ));
+        }
+    }
+    notes
+}
+
+/// The texts whose letters operation `op` may carve, by id.
+fn texts_carved<'a>(job: &'a Job, op: &chipload_job::Operation) -> Vec<&'a chipload_job::Text> {
+    let select = op.select().resolved(&job.drawing);
+    let mut ids: Vec<u64> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|shape| select.may_pick(shape))
+        .filter_map(|shape| match &shape.geometry {
+            Geometry::Path {
+                origin: Some(Origin::Text(id)),
+                ..
+            } => Some(*id),
+            _ => None,
+        })
+        .collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ids.iter()
+        .filter_map(|id| job.drawing.texts.iter().find(|t| t.id == *id))
+        .collect()
 }

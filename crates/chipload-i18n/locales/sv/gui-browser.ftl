@@ -64,6 +64,7 @@ browser-new-part = Ny detalj
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv
 browser-part-active-hover = Den aktiva detaljen: nya operationer hamnar här. Klicka för dess kopior; högerklicka för mer
+browser-part-mirrored = spegelvänd
 browser-part-hover = Klicka för dess kopior; dubbelklicka för att göra den aktiv; högerklicka för mer
 # A verb: make this the active part.
 browser-activate = Aktivera

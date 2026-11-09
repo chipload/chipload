@@ -335,6 +335,7 @@ pipeline-setup-name-empty = una sujeción necesita un nombre
 pipeline-last-setup = un proyecto necesita al menos una sujeción
 pipeline-setup-not-a-back = la sujeción { $id } no es el reverso de otra: indica primero --back-of
 pipeline-back-text = { $label } talla el texto { $text } en el reverso: se lee bien desde el anverso, donde está dibujado, así que en el reverso se lee en espejo. Para que se lea bien allí, descomponlo (text explode) y refleja sus formas (shape mirror)
+pipeline-mirrored-text = La pieza { $part } está reflejada: su texto { $text } se lee al revés en el tablero, y bien cuando la pieza se da la vuelta boca abajo
 pipeline-surface-over-pins = { $label } planea el reverso por encima de los pasadores, { $depth } de profundidad: hunde los pasadores al menos { $depth } bajo la cara del reverso, o la fresa los golpea
 pipeline-dowels-there = el anverso ya tiene agujeros de pasador: operación { $number }
 pipeline-dowels-no-shapes = no hay formas en el tablero junto a las que poner los agujeros de pasador

@@ -51,6 +51,7 @@ browser-export-setup-hover = Программа и карта наладки с 
 browser-new-part = Новая деталь
 browser-part-active = активна
 browser-part-active-hover = Активная деталь: новые операции добавляются сюда. Нажмите для настройки копий; правая кнопка — дополнительные действия
+browser-part-mirrored = отражена
 browser-part-hover = Нажмите для настройки копий; двойной щелчок — сделать активной; правая кнопка — дополнительные действия
 browser-activate = Активировать
 browser-activate-hover = Новые операции добавляются в активную деталь

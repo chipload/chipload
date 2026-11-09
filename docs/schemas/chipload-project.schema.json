@@ -907,6 +907,21 @@
       ],
       "type": "object"
     },
+    "Mirror": {
+      "description": "How a part is cut mirrored: about the vertical or the horizontal centre line of its box.",
+      "oneOf": [
+        {
+          "const": "left_right",
+          "description": "About the vertical centre line: left and right change places, X is mirrored.",
+          "type": "string"
+        },
+        {
+          "const": "top_bottom",
+          "description": "About the horizontal centre line: top and bottom change places, Y is mirrored.",
+          "type": "string"
+        }
+      ]
+    },
     "Operation": {
       "oneOf": [
         {
@@ -1706,6 +1721,17 @@
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
+        },
+        "mirror": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Mirror"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as\ndrawn. Left out when missing."
         },
         "name": {
           "description": "Its name, unique in the project, shown in the Browser, the report and the sheet.",

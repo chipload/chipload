@@ -410,6 +410,7 @@ impl EditJob {
             enabled: true,
             copies: None,
             setup: self.job.active_setup_id().unwrap_or(1),
+            mirror: None,
         });
         self.job.active_part = Some(id);
         id

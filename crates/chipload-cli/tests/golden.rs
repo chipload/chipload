@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 60] = [
+const GOLDEN: [(&str, &str); 61] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -188,6 +188,10 @@ const GOLDEN: [(&str, &str); 60] = [
     // the board's centre line (X 150), so climb stays climb on the back face. Made with
     // `op add-surface`, `setup add --back-of 1`, `op add pocket --shapes 3`, `op part`.
     ("v36_two_sided", "jobs/v36/two_sided.chipload"),
+    // A mirrored part (docs/specs/mirror-part.md): v35_op_add's part cut mirrored left to
+    // right about its box's centre line, planned with the cutting sense turned so the
+    // pocket stays conventional and the profiles climb. Made with `part set --mirror`.
+    ("v36_mirrored_part", "jobs/v36/mirrored_part.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

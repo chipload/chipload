@@ -13,6 +13,7 @@ view-legend-operation = Konturen der Bearbeitung
 view-legend-stock = Rohteil
 # Copies of the part laid out in a grid.
 view-legend-copies = Kopien
+view-legend-mirrored = gespiegeltes Teil, wie gefräst
 view-legend-cutting = Schnittbewegung
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = Eilgang, über dem Rohteil

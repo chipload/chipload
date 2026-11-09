@@ -1,6 +1,33 @@
 # Spec: mirrored parts
 
-Status: **draft, for review** (2026-11-09). Branch `signs`.
+Status: **approved 2026-11-09**, all decisions as recommended (the user: "Go ahead"). Built
+2026-11-09 on branch `signs` as described, with these details settled while building:
+- the form's **Mirror** is a drop-down (as Turn over is for a back setup), not three
+  buttons with pictures;
+- the mirrored outlines are drawn dashed and faded; the markers the user moves (ring
+  starts, tab centres, unreached corners) stay on the shapes as drawn, where they are
+  stored;
+- the planner mirrors each step's moves, arcs, tabs and pocket pieces about the copy's
+  centre line, and plans from the tool's real position mirrored back;
+- a back setup's text note is left out for a mirrored part (the two mirrors cancel), and
+  a mirrored part's note is said once per part and text;
+- golden `v36_mirrored_part`; the direction tests share their helpers with two-sided
+  (`crates/chipload-pipeline/tests/common`).
+
+Reviewed again the same day (the user: "rethink if the mirror strategy is sound"). Planning
+as drawn with the sense turned, then mirroring, holds: the checker judges the real G-code,
+and everything that compares positions across the board (parts and copies kept apart, the
+board's fit, the simulation, dowel placement) works on the mirrored moves. Two things did
+not hold, fixed with a test each:
+- **The box** counted only operations that are on, so switching the outline off to cut a
+  pocket again moved the mirror line and the pocket. It now counts every mirrored
+  operation of the part, on or off: it changes only when the part's shapes change.
+- **Dogbone legs** are checked against what every operation cuts (dogbones.md §6). Other
+  parts were seen where they are drawn, not where they lie relative to the mirrored part.
+  Their contours are now mirrored into the part's planning frame (`Contour::mirrored`).
+Known limits, kept: the start, tab and corner markers stay on the shapes as drawn (where
+they are stored) while the toolpath is drawn where it is cut; moving the part's shapes
+moves its mirror line with them, as moving them moves an unmirrored part.
 
 Builds on docs/specs/parts.md (a part: operations cut together, with copies),
 docs/specs/two-sided.md §4 (planning with the cutting sense flipped, then mirroring the
@@ -25,7 +52,7 @@ hands, and an edit to the artwork reaches both.
 
 A part gets a **mirror**: none (the default), **left to right** (X negated) or **top to
 bottom** (Y negated), about the centre line of the part's **box**: the bounding box of the
-shapes its enabled operations select. Mirrored about its own centre, the part keeps its box,
+shapes its operations select, on or off (a surface pass and dowel holes aside). Mirrored about its own centre, the part keeps its box,
 so it stays where it is on the board, and a board that fits its parts fits it unchanged.
 
 Every operation of the part is cut mirrored. Its settings mean what they say on the

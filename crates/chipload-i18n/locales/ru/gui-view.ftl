@@ -5,6 +5,7 @@ view-legend-selected = выделение
 view-legend-operation = контуры операции
 view-legend-stock = заготовка
 view-legend-copies = копии
+view-legend-mirrored = отражённая деталь, как обрабатывается
 view-legend-cutting = рабочий ход
 view-legend-rapid = быстрый ход над заготовкой
 view-legend-plunge = место заглубления инструмента

@@ -138,6 +138,31 @@ pub struct Part {
     /// The id of the setup it is cut in (`setups`). Since schema 34.
     // Spec: docs/specs/setups.md.
     pub setup: u64,
+    /// Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as
+    /// drawn. Left out when missing.
+    // Spec: docs/specs/mirror-part.md (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mirror: Option<Mirror>,
+}
+
+/// How a part is cut mirrored: about the vertical or the horizontal centre line of its box.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Mirror {
+    /// About the vertical centre line: left and right change places, X is mirrored.
+    LeftRight,
+    /// About the horizontal centre line: top and bottom change places, Y is mirrored.
+    TopBottom,
+}
+
+impl Mirror {
+    pub fn name(self) -> &'static str {
+        match self {
+            Mirror::LeftRight => "left-right",
+            Mirror::TopBottom => "top-bottom",
+        }
+    }
 }
 
 impl Part {
@@ -413,6 +438,52 @@ impl Job {
     pub fn cutting_sense(&self) -> Spindle {
         match (self.back_turn(), self.machine.spindle) {
             (None, spindle) => spindle,
+            (Some(_), Spindle::Cw) => Spindle::Ccw,
+            (Some(_), Spindle::Ccw) => Spindle::Cw,
+        }
+    }
+
+    /// The box a mirrored part is mirrored in (docs/specs/mirror-part.md §2): round the
+    /// shapes its mirrored operations select, on or off, so switching one off to cut the
+    /// rest again doesn't move the others. None when it selects none.
+    pub fn part_box(&self, id: u64) -> Option<((f64, f64), (f64, f64))> {
+        let selectors: Vec<Selector> = self
+            .operations
+            .iter()
+            .filter(|op| op.part() == id && Self::mirrors(op))
+            .map(|op| op.select().resolved(&self.drawing))
+            .collect();
+        self.drawing
+            .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
+    }
+
+    /// Whether an operation goes with its part's mirror: everything but what belongs to the
+    /// board, a surface pass and dowel holes (docs/specs/mirror-part.md §2).
+    fn mirrors(op: &Operation) -> bool {
+        op.selects_shapes() && !op.is_dowels()
+    }
+
+    /// How operation `op` is cut mirrored (docs/specs/mirror-part.md §3): its part's mirror
+    /// and the line it mirrors about, X = at for left to right, Y = at for top to bottom,
+    /// the centre line of the part's box. None: as drawn.
+    pub fn mirror_of(&self, op: &Operation) -> Option<(Mirror, f64)> {
+        let mirror = self.part_of(op)?.mirror?;
+        if !Self::mirrors(op) {
+            return None;
+        }
+        let ((x0, y0), (x1, y1)) = self.part_box(op.part())?;
+        Some(match mirror {
+            Mirror::LeftRight => (mirror, (x0 + x1) / 2.0),
+            Mirror::TopBottom => (mirror, (y0 + y1) / 2.0),
+        })
+    }
+
+    /// The cutting sense operation `op` is planned with: [`Job::cutting_sense`], the other
+    /// way when its part is mirrored, whose toolpath is mirrored after planning
+    /// (docs/specs/mirror-part.md §3). In a back setup the two turns cancel.
+    pub fn cutting_sense_of(&self, op: &Operation) -> Spindle {
+        match (self.mirror_of(op), self.cutting_sense()) {
+            (None, sense) => sense,
             (Some(_), Spindle::Cw) => Spindle::Ccw,
             (Some(_), Spindle::Ccw) => Spindle::Cw,
         }

@@ -53,6 +53,24 @@ impl ArcTable {
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    /// The table with every chord's ends and every circle's centre moved by `f`, a
+    /// mirror or a move: the keys of the moves `f` gives (docs/specs/mirror-part.md §3).
+    pub fn mapped(&self, f: impl Fn(Point) -> Point) -> ArcTable {
+        let point = |k: Key| (f64::from_bits(k.0), f64::from_bits(k.1));
+        ArcTable(
+            self.0
+                .iter()
+                .map(|(&(a, b), circle)| {
+                    let circle = Circle {
+                        center: f(circle.center),
+                        radius: circle.radius,
+                    };
+                    ((key(f(point(a))), key(f(point(b)))), circle)
+                })
+                .collect(),
+        )
+    }
 }
 
 /// The point of the arc halfway between the chord's ends (the chord is less than a half

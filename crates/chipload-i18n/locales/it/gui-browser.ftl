@@ -64,6 +64,7 @@ browser-new-part = Nuovo pezzo
 # At a part row's right end: the part new operations go into.
 browser-part-active = attivo
 browser-part-active-hover = Il pezzo attivo: qui vanno le nuove lavorazioni. Clic per le sue copie; clic destro per altro
+browser-part-mirrored = specchiato
 browser-part-hover = Clic per le sue copie; doppio clic per renderlo il pezzo attivo; clic destro per altro
 # A verb: make this the active part.
 browser-activate = Attiva

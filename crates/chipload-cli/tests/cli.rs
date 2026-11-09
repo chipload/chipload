@@ -631,6 +631,19 @@ fn parts_are_added_changed_and_removed_from_the_command_line() {
     let (code, out, _) = run(&["part", "list", p]);
     assert_eq!(code, Some(0));
     assert!(out.contains("2 box (active): one; operations 2"), "{out}");
+    // Mirrored, and back as drawn (docs/specs/mirror-part.md §6).
+    let (code, _, _) = run(&["part", "set", p, "2", "--mirror", "top-bottom"]);
+    assert_eq!(code, Some(0));
+    assert_eq!(parts()["parts"][1]["mirror"], "top_bottom");
+    let (_, out, _) = run(&["part", "list", p]);
+    assert!(
+        out.contains("2 box (active), mirrored top-bottom: one; operations 2"),
+        "{out}"
+    );
+    let (code, _, err) = run(&["part", "set", p, "2", "--mirror", "sideways"]);
+    assert_eq!(code, Some(2), "{err}");
+    run(&["part", "set", p, "2", "--mirror", "none"]);
+    assert!(parts()["parts"][1].get("mirror").is_none());
     run(&["part", "activate", p, "1"]);
     assert_eq!(parts()["active_part"], 1);
     let (code, _, _) = run(&["part", "remove", p, "2", "--with-operations"]);

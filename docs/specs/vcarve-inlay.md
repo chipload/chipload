@@ -1,6 +1,7 @@
 # Spec: V-carve inlays
 
-Status: **draft, for review** (2026-11-09). Branch `signs`.
+Status: **approved 2026-11-09**, all decisions as recommended (the user: "Go ahead").
+Branch `signs`; built after the mirrored part (docs/specs/mirror-part.md).
 
 Builds on docs/specs/v-carve.md (the medial axis, depth(p)), docs/specs/vcarve-wide-strokes.md
 (walls and the floor pass), docs/specs/setups.md (a second board with its own program) and

@@ -904,6 +904,31 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/mirrored_part.chipload
+exit 0
+--- stdout
+warning: Operation 3: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+note: Operation 2 (Profile 1 (holes)): cuts through, 0.500 mm into the spoilboard
+note: Operation 3 (Profile 2 (outline)): cuts through, 0.500 mm into the spoilboard
+Operation 1: a ring starts at (100.168, 103.627) (default)
+Operation 2: a ring starts at (90.000, 98.000) (default)
+Operation 2: a ring starts at (140.000, 83.000) (default)
+Operation 2: a ring starts at (153.000, 123.000) (default)
+Operation 3: a ring starts at (60.000, 47.000) (default)
+Estimated time: 8 min 22 s (cutting 8 min 16 s, rapids 4 s, spindle 3 s)
+Cut outline: 212.000 × 132.000 mm (X 44.000 … 256.000, Y 44.000 … 176.000, the tool included): the smallest stock that holds the job.
+  Operation 1 (Pocket 1): 34 s; cutting 831 mm, plunging 3 mm, rapids 12 mm, 1 lift
+  Operation 2 (Profile 1 (holes)): 3 min 0 s; cutting 4.4 m, plunging 3 mm, rapids 136 mm, 3 lifts
+  Operation 3 (Profile 2 (outline)): 4 min 46 s; cutting 7.1 m, plunging 1 mm, rapids 146 mm, 1 lift
+  In all: cutting 12.4 m, plunging 7 mm, rapids 293 mm, 5 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Pocket 1): set the tool's flutes to see the chip load
+  Operation 2 (Profile 1 (holes)): set the tool's flutes to see the chip load
+  Operation 3 (Profile 2 (outline)): set the tool's flutes to see the chip load
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/two_sided.chipload
 exit 0
 --- stdout

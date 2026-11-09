@@ -6,8 +6,9 @@
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
+use chipload_job::Mirror;
 use chipload_pipeline::copies::grid_text;
-use chipload_pipeline::parts::{activate_part, add_part, remove_part, set_part};
+use chipload_pipeline::parts::{activate_part, add_part, remove_part, set_part, set_part_mirror};
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -47,6 +48,10 @@ pub enum PartAction {
         /// Cut the part again.
         #[arg(long)]
         on: bool,
+        /// Cut the part mirrored about the centre line of its box, the drawing as drawn:
+        /// left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb.
+        #[arg(long, value_parser = mirror)]
+        mirror: Option<MirrorChoice>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -104,14 +109,22 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
             job
         }),
         PartAction::Set {
-            id, name, off, on, ..
+            id,
+            name,
+            off,
+            on,
+            mirror,
+            ..
         } => {
             let enabled = match (off, on) {
                 (true, _) => Some(false),
                 (_, true) => Some(true),
                 _ => None,
             };
-            set_part(&job, id, name.as_deref(), enabled)
+            set_part(&job, id, name.as_deref(), enabled).and_then(|job| match mirror {
+                Some(MirrorChoice(mirror)) => set_part_mirror(&job, id, mirror),
+                None => Ok(job),
+            })
         }
         PartAction::Activate { id, .. } => activate_part(&job, id),
         PartAction::Remove {
@@ -153,7 +166,9 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             } else {
                 ""
             },
-            if part.enabled { "" } else { ", off" },
+            part.mirror
+                .map_or(String::new(), |m| format!(", mirrored {}", m.name()))
+                + if part.enabled { "" } else { ", off" },
             if numbers.is_empty() {
                 "none".to_string()
             } else {
@@ -166,10 +181,25 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "enabled": part.enabled,
             "active": Some(part.id) == active,
             "copies": part.copies,
+            "mirror": part.mirror,
             "count": part.count(),
             "operations": operations,
         }));
     }
     out.set("parts", Value::Array(rows));
     ExitCode::SUCCESS
+}
+
+/// A part's mirror as `--mirror` sets it: None for none.
+#[derive(Clone, Copy)]
+pub struct MirrorChoice(Option<Mirror>);
+
+/// A part's mirror as the command line writes it.
+fn mirror(text: &str) -> Result<MirrorChoice, String> {
+    match text {
+        "left-right" => Ok(MirrorChoice(Some(Mirror::LeftRight))),
+        "top-bottom" => Ok(MirrorChoice(Some(Mirror::TopBottom))),
+        "none" => Ok(MirrorChoice(None)),
+        _ => Err("left-right, top-bottom or none".into()),
+    }
 }

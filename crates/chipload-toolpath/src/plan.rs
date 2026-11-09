@@ -2,7 +2,7 @@
 //! Job + imported contours -> Program: the toolpath half of `chipload_pipeline::run_job`,
 //! which then posts and independently checks it.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
@@ -10,8 +10,8 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Note,
-    OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Spindle,
+    ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Mirror,
+    Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Spindle,
     SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
@@ -167,11 +167,22 @@ pub fn plan_job_cancellable(
         .filter(|c| !c.is_construction())
         .cloned()
         .collect();
-    // Every contour some operation cuts (docs/specs/dogbones.md §6).
+    // Every contour some operation cuts (docs/specs/dogbones.md §6), and by which part.
     let cut_ids: BTreeSet<usize> = chosen
         .iter()
         .flat_map(|c| c.selection.contours.iter().map(|k| k.id))
         .collect();
+    let mut cut_by_part: BTreeMap<u64, BTreeSet<usize>> = BTreeMap::new();
+    for c in &chosen {
+        cut_by_part
+            .entry(c.op.part())
+            .or_default()
+            .extend(c.selection.contours.iter().map(|k| k.id));
+    }
+    let cut = CutContours {
+        ids: &cut_ids,
+        by_part: &cut_by_part,
+    };
     let (steps, mut groups) = cut_order(job, &chosen)?;
     let mut gathered = Gathered::default();
     let mut facts = Vec::new();
@@ -214,7 +225,7 @@ pub fn plan_job_cancellable(
             &chosen[step.chosen],
             step,
             position,
-            &cut_ids,
+            &cut,
         )?;
         position = planned.end;
         gathered.add(job, step, *at, tool.diameter / 2.0, planned, &mut notes);
@@ -340,6 +351,12 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
     Ok(chosen)
 }
 
+/// The contours some operation cuts, and which part's operations cut each.
+struct CutContours<'a> {
+    ids: &'a BTreeSet<usize>,
+    by_part: &'a BTreeMap<u64, BTreeSet<usize>>,
+}
+
 /// One step of the cut order: an operation planned for one copy of its part.
 struct Step {
     /// Index in the chosen operations.
@@ -460,7 +477,7 @@ fn plan_step(
     chosen: &Chosen,
     step: &Step,
     position: Point,
-    cut_ids: &BTreeSet<usize>,
+    cut: &CutContours,
 ) -> Result<Planned, ToolpathError> {
     let index = chosen.at.operation;
     let op = &chosen.op;
@@ -469,13 +486,31 @@ fn plan_step(
     let pass_z = pass_heights(op, top_z).map_err(|err| err.at(index))?;
     let (start_depth, _) = op.depths();
     let shift = step.shift;
+    // A mirrored part is planned as drawn with the cutting sense turned, then mirrored about
+    // its copy's centre line (docs/specs/mirror-part.md §3).
+    let mirror = job.mirror_of(op).map(|(mirror, at)| match mirror {
+        Mirror::LeftRight => (mirror, at + shift.0),
+        Mirror::TopBottom => (mirror, at + shift.1),
+    });
+    let position = mirror.map_or(position, |m| mirrored_point(m, position));
     // A bone's leg minds only what is cut (docs/specs/dogbones.md §6): a line no operation
-    // cuts leaves no web to break.
+    // cuts leaves no web to break. A mirrored part is planned as drawn, so what other parts
+    // cut is seen mirrored into its frame, where it lies relative to the part once the part
+    // is mirrored (docs/specs/mirror-part.md §3).
+    let own = cut.by_part.get(&op.part());
     let cut_contours: Vec<Contour> = if op.has_bones() {
         contours
             .iter()
-            .filter(|c| cut_ids.contains(&c.id))
-            .map(|c| c.translated(shift))
+            .filter(|c| cut.ids.contains(&c.id))
+            .map(|c| {
+                let moved = c.translated(shift);
+                match mirror {
+                    Some((m, at)) if !own.is_some_and(|ids| ids.contains(&c.id)) => {
+                        moved.mirrored(m == Mirror::LeftRight, at)
+                    }
+                    _ => moved,
+                }
+            })
             .collect()
     } else {
         Vec::new()
@@ -509,7 +544,7 @@ fn plan_step(
         cut_contours: &cut_contours,
         cancel,
         floor_pass: job.is_floor_pass(chosen.at),
-        sense: job.cutting_sense(),
+        sense: job.cutting_sense_of(op),
     };
     let moved: Vec<Contour> = chosen
         .selection
@@ -536,6 +571,10 @@ fn plan_step(
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
         Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
     };
+    let planned = planned.map(|planned| match mirror {
+        Some(mirror) => mirrored_planned(planned, mirror),
+        None => planned,
+    });
     planned.map_err(|err| {
         let part = job.part_of(op);
         let several = part.is_some_and(|p| p.count() > 1);
@@ -553,6 +592,60 @@ fn plan_step(
         };
         err.at(index)
     })
+}
+
+/// `p` mirrored about X = at (left to right) or Y = at (top to bottom).
+fn mirrored_point((mirror, at): (Mirror, f64), p: Point) -> Point {
+    match mirror {
+        Mirror::LeftRight => (2.0 * at - p.0, p.1),
+        Mirror::TopBottom => (p.0, 2.0 * at - p.1),
+    }
+}
+
+/// One step's plan as cut on a mirrored part (docs/specs/mirror-part.md §3): the moves,
+/// their arcs, the tabs and pocket pieces shown with them, and where the tool ends,
+/// mirrored. Arcs turn the other way, and so does a helix. The markers the user moves (ring
+/// starts, tab centres, unreached corners) stay on the shapes as drawn, where they are
+/// stored.
+fn mirrored_planned(mut planned: Planned, mirror: (Mirror, f64)) -> Planned {
+    let flip = |p: Point| mirrored_point(mirror, p);
+    for m in &mut planned.moves {
+        match mirror.0 {
+            Mirror::LeftRight => m.x = m.x.map(|x| 2.0 * mirror.1 - x),
+            Mirror::TopBottom => m.y = m.y.map(|y| 2.0 * mirror.1 - y),
+        }
+        if let Some(circle) = &mut m.circle {
+            circle.center = flip(circle.center);
+        }
+        m.kind = match m.kind {
+            MoveKind::ArcCw => MoveKind::ArcCcw,
+            MoveKind::ArcCcw => MoveKind::ArcCw,
+            kind => kind,
+        };
+    }
+    planned.arcs = planned.arcs.mapped(flip);
+    for tab in &mut planned.tabs {
+        for p in tab.iter_mut() {
+            *p = flip(*p);
+        }
+    }
+    for piece in &mut planned.pockets {
+        for ring in &mut piece.rings {
+            for p in &mut ring.points {
+                *p = flip(*p);
+            }
+            for p in ring.unstepped.iter_mut().flatten() {
+                *p = flip(*p);
+            }
+        }
+        if let Some(helix) = &mut piece.helix {
+            helix.circle.center = flip(helix.circle.center);
+            helix.start = flip(helix.start);
+            helix.clockwise = !helix.clockwise;
+        }
+    }
+    planned.end = flip(planned.end);
+    planned
 }
 
 /// Every plunge from safe Z gets a rapid down to the approach height first

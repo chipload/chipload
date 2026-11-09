@@ -535,6 +535,7 @@ fn two_parts(b_at: f64, a_copies: Value, b_copies: Value) -> (Job, Vec<Contour>)
         enabled: true,
         copies: serde_json::from_value(b_copies).unwrap(),
         setup: 1,
+        mirror: None,
     });
     job.operations[1].set_part(2);
     assert!(job.validate().is_empty(), "{:?}", job.validate());
