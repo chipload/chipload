@@ -3,7 +3,8 @@
 Status: **draft, for review** (2026-11-09). Branch `signs`.
 
 Builds on docs/specs/v-carve.md (the medial axis, depth(p)), docs/specs/vcarve-wide-strokes.md
-(walls and the floor pass) and docs/specs/setups.md (a second board with its own program).
+(walls and the floor pass), docs/specs/setups.md (a second board with its own program) and
+docs/specs/mirror-part.md (the plug's part is mirrored).
 
 ## 1. Why
 
@@ -44,7 +45,7 @@ narrow for depth z the shrunk region is empty there: the pocket is shallower, a 
 
 ### 2.2 The plug
 
-The plug board carries S′, S mirrored left to right (§5). Its carving is a V-carve of the
+The plug board carries S′, S mirrored left to right: the plug's part is mirrored (§5). Its carving is a V-carve of the
 **rest of the board**, C = (the board grown by the bit's radius) minus S′, with one change:
 the outline is taken **D below the surface** (the **plug start depth**), not at it. So the tip
 at an axis point p of C goes to
@@ -129,7 +130,7 @@ One command makes the pair from the selection (decision 2):
 - the pocket: a V-carve of the selection in the active part, `end_depth` = the pocket depth;
 - a new setup "Inlay plug" (name translated), with a part of its own: its board fits the
   artwork (the stock fit, `StockOrigin::Drawing`) with a margin of 10 mm, `--plug-thickness`
-  thick, work zero as the base's; and in it the plug;
+  thick, work zero as the base's; the part mirrored left to right; and in it the plug;
 - with `--floor-tool`, both get a floor pass with that end mill (the plug's channel is mostly
   floor, so it matters there most);
 - one undo step in the window.
@@ -142,13 +143,14 @@ both are ordinary operations with their own forms; the plug's form has a *Plug* 
 
 ## 5. Mirroring (decision 4)
 
-The plug is cut mirrored **left to right about the vertical line through the middle of the
-artwork's bounding box**. Mirrored there, the artwork keeps its bounding box, so the plug
-board's fit, its zero and everything placed by the box work unchanged.
+The plug's part is a **mirrored part**, left to right (docs/specs/mirror-part.md): cut
+mirrored about the vertical line through the middle of its box, the drawing untouched. The
+plug's carving (§2.2) is planned on S as drawn, and the part's mirror makes it S′. Mirrored
+there, the artwork keeps its bounding box, so the plug board's fit and its zero work
+unchanged. The preview and the simulation show the plug as cut.
 
-The mirroring is done when planning (the plug's contours, mirrored, in the pipeline); the
-drawing is not copied. In the window, with the plug's setup active, the toolpath, the
-preview and the simulation show it mirrored, as cut; the shapes as drawn are dimmed.
+The `plug` setting itself mirrors nothing. A plug in a part that isn't mirrored gets a
+warning (§6).
 
 ## 6. Checks and warnings
 
@@ -158,6 +160,7 @@ On the plug, as warnings (none makes a program unsafe; the checker keeps its own
   same angle: "Inlay plug: no pocket for it (a V-carve of the same shapes with a 60° bit)."
 - **Won't seat:** the pocket's depth P is not more than D: the plug's face would hit the
   pocket floor before the walls meet.
+- **Not mirrored:** its part has no mirror: the plug would go in the wrong way round.
 - **Glue gap small:** g < 0.5 mm: the plug's back may meet the base before the walls do.
 - **Thin back:** the plug board leaves less than 2 mm under the channel floor.
 - **Kinks ignored:** its pocket has `ignore_kinks_deg` > 0 (§2.4).
@@ -217,9 +220,9 @@ what the checker allows (tool centre within a tool radius of the stock).
    a 10 mm margin, so nothing stands proud and nothing has to be sawn out before gluing.
    *Recommended.* Alternative: clear only within a margin of the artwork and saw the plug
    out along it (less cutting, one more step by hand, a lip to get wrong).
-4. **Mirrored left to right about the artwork's centre, when planning** (§5), no copied
-   shapes. *Recommended.* Alternative: a mirrored copy in the drawing (edits to the artwork
-   wouldn't reach it).
+4. **Mirrored by its part** (§5, docs/specs/mirror-part.md), left to right about the
+   artwork's centre, no copied shapes. *Recommended.* Alternative: a mirrored copy in the
+   drawing (edits to the artwork wouldn't reach it).
 5. **Defaults:** pocket depth 5 mm, plug start depth 3 mm (2 mm under the face), glue gap
    1.5 mm, plug board 10 mm thick (5.5 mm of back left), floor end mill the project's
    smallest. *Recommended*, from general practice in hobby inlay work; the user may know
@@ -228,4 +231,4 @@ what the checker allows (tool centre within a tool radius of the stock).
    tenth of a millimetre or two at corners, which glue and the press take up); a plug never
    ignores kinks, the pocket made by `add-inlay` doesn't either, and a pocket that does is
    warned about. *Recommended.* Alternative: refuse flat tips for inlays.
-7. **Steps as §8**, CLI first. *Recommended.*
+7. **Steps as §8**, CLI first, after the mirrored part. *Recommended.*

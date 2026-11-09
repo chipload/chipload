@@ -147,7 +147,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    Among the most made maker jobs on a hobby router. Builds on V-carve (the medial axis,
    flat-floor passes). **Spec drafted 2026-11-09** (docs/specs/vcarve-inlay.md, branch
    `signs`, for review): two V-carves, the plug with a `plug` start depth in a setup of its
-   own, mirrored when planning, `op add-inlay`; decisions 1-7.
+   own, its part mirrored, `op add-inlay`; decisions 1-7. Needs the mirrored part first.
+7b. **Mirrored parts** (the user, 2026-11-09: "a general mirror part functionality"):
+   **spec drafted 2026-11-09** (docs/specs/mirror-part.md, branch `signs`, for review): a
+   part cut mirrored about its box's centre, left to right or top to bottom, planned with
+   the cutting sense flipped as a back setup is. Needs `two-sided` in main first.
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
