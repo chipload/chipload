@@ -486,6 +486,30 @@ pub(in crate::app) fn op_form(
                 );
                 ui.end_row();
             });
+            // An inlay's plug (docs/specs/vcarve-inlay.md §4): its start depth and its glue
+            // gap, the end depth less the start depth; setting the gap moves the end depth.
+            if let Some(plug) = v.plug.as_mut() {
+                let mut gap = v.end_depth - plug.start_depth;
+                let summary = t!(
+                    ui,
+                    "forms-plug-summary",
+                    start = format!("{} {len_unit}", len_in(units, plug.start_depth)),
+                    gap = format!("{} {len_unit}", len_in(units, gap))
+                );
+                let title = t!(ui, "forms-section-plug");
+                folded_section(ui, "op-plug", &title, &summary, |ui| {
+                    ui.label(t!(ui, "forms-plug-start"))
+                        .on_hover_text(t!(ui, "forms-plug-start-hover"));
+                    flag(ui.add(mm(&mut plug.start_depth)), ui, "plug.start_depth");
+                    ui.end_row();
+                    ui.label(t!(ui, "forms-plug-gap"))
+                        .on_hover_text(t!(ui, "forms-plug-gap-hover"));
+                    if ui.add(mm(&mut gap)).changed() {
+                        v.end_depth = plug.start_depth + gap;
+                    }
+                    ui.end_row();
+                });
+            }
             feeds_section(ui, &mut v.feed, &mut v.plunge_feed, op_tool);
         }
         Operation::Path(p) => {

@@ -59,6 +59,7 @@ mod groups;
 pub(crate) mod header;
 mod history;
 mod images;
+mod inlay;
 mod layout;
 mod library_transfer;
 mod library_view;
@@ -253,6 +254,8 @@ enum Prompt {
         ids: Vec<u64>,
         gap: f64,
     },
+    /// *Inlay…*: the inlay's values so far (docs/specs/vcarve-inlay.md §4).
+    Inlay(inlay::InlaySettings),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame

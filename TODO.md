@@ -147,9 +147,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    Among the most made maker jobs on a hobby router. Builds on V-carve (the medial axis,
    flat-floor passes). **Spec approved 2026-11-09** (docs/specs/vcarve-inlay.md, branch
    `signs`): two V-carves, the plug with a `plug` start depth in a setup of its own, its
-   part mirrored, `op add-inlay`; decisions 1-7 as recommended. **Step 1 built
-   2026-11-09** on `signs` (see *In main, not released yet*). **Next:** step 2, the window
-   (*Inlay…*, the plug's *Plug* section); step 3, the plug's sheet steps.
+   part mirrored, `op add-inlay`; decisions 1-7 as recommended. **Built 2026-11-09** on
+   `signs`, all three steps (see *In main, not released yet*).
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
@@ -236,7 +235,7 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
-- **V-carve inlays, step 1** (docs/specs/vcarve-inlay.md, branch `signs`, not merged yet):
+- **V-carve inlays** (docs/specs/vcarve-inlay.md, branch `signs`, not merged yet):
   a V-carve's optional `plug` (start depth D) carves the rest of its board, grown past the
   edges, with the outline D down; `op add-inlay` makes the pocket and, in a setup of its
   own with a mirrored part, the plug, with floor passes; the plug's checks (no pocket,
@@ -247,7 +246,10 @@ Smaller follow-ups noted along the way, not in the order above:
   Tested by simulating both boards and fitting the turned plug into the pocket (a serif
   "AO" and random polygons, proptest); golden `v36_inlay`. `--text`/`--image` on `op add`
   and the other selections. The drawing-outside-the-stock warning now compares a setup's
-  own shapes with its board. Optional field, no schema bump.
+  own shapes with its board. In the window: *Inlay…* (ribbon, Operation) with a dialog and
+  a drawing of the two cuts, one undo step; the plug's *Plug* section. The plug's setup
+  sheet lists the steps after cutting; golden sheets `v36_inlay_pocket`, `v36_inlay_plug`.
+  Optional field, no schema bump.
 
 - **Mirrored parts** (the user, 2026-11-09: "a general mirror part functionality";
   docs/specs/mirror-part.md, approved and built on branch `signs`, not merged yet): a part

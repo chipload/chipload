@@ -97,6 +97,12 @@ forms-depth-passes-equal-load = Lika last
 forms-vcarve-step-down-hover = Hur djupt varje skär går som mest. Stegen är lika, det sista på slutdjupet
 forms-ignore-kinks = Ignorera knyckar
 forms-ignore-kinks-hover = Hörn där konturen viker av mindre än så får ingen gren av mittlinjen, så att V-fräsen inte går upp i varje knyck i en kurva. Vid 20° blir högst några hundradels millimeter kvar i en knyck; 0° graverar varje hörn
+forms-section-plug = Plugg
+forms-plug-summary = kontur { $start } ned, limspalt { $gap }
+forms-plug-start = Pluggens startdjup
+forms-plug-start-hover = Hur djupt pluggens kontur ligger i sin skiva: så djupt ligger dess framsida i fickan. Mer än startdjupet, mindre än slutdjupet
+forms-plug-gap = Limspalt
+forms-plug-gap-hover = Hur mycket djupare än konturen skivan fräses: slutdjupet minus pluggens startdjup. Så högt står pluggens baksida över grundskivan
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Verktyg

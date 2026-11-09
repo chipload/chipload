@@ -97,6 +97,12 @@ forms-depth-passes-equal-load = Carico uguale
 forms-vcarve-step-down-hover = Quanto scende al massimo ogni passata. Le passate sono uguali, l'ultima alla profondità finale
 forms-ignore-kinks = Ignora le pieghe
 forms-ignore-kinks-hover = Gli angoli dove il contorno gira meno di questo angolo non hanno un ramo della linea mediana, così la fresa a V non risale in ogni piega di una curva. A 20° una piega lascia al massimo pochi centesimi di millimetro; 0° incide ogni angolo
+forms-section-plug = Tassello
+forms-plug-summary = contorno a { $start }, spazio per la colla { $gap }
+forms-plug-start = Profondità iniziale del tassello
+forms-plug-start-hover = A che profondità sta il contorno del tassello nella sua tavola: la sua faccia sta così in fondo nella tasca. Più della profondità iniziale, meno di quella finale
+forms-plug-gap = Spazio per la colla
+forms-plug-gap-hover = Quanto più a fondo del contorno si intaglia la tavola: la profondità finale meno quella iniziale del tassello. Il retro del tassello sporge tanto sopra la base
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Utensile

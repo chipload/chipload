@@ -668,6 +668,27 @@ impl ChiploadApp {
                     {
                         app.add_operation(OpKind::Surface);
                     }
+                    // A V-carve inlay of the selection (docs/specs/vcarve-inlay.md §4).
+                    let label = t!(ui, "inlay-ribbon");
+                    let enabled = app.can_inlay();
+                    let hover = if enabled {
+                        t!(ui, "inlay-ribbon-hover")
+                    } else {
+                        t!(ui, "header-select-shapes-first")
+                    };
+                    if small_ribbon_button(
+                        ui,
+                        Icon::Vcarve,
+                        &label,
+                        enabled,
+                        false,
+                        tint(OpKind::Vcarve),
+                    )
+                    .on_hover_text(format!("{label}: {hover}"))
+                    .clicked()
+                    {
+                        app.start_inlay();
+                    }
                     let label = t!(ui, "styles-ribbon");
                     let enabled = app.can_apply_style();
                     let hover = if app.user.library.styles.styles.is_empty() {
@@ -701,6 +722,14 @@ impl ChiploadApp {
                     {
                         app.add_operation(kind);
                     }
+                }
+                if ui
+                    .add_enabled(app.can_inlay(), egui::Button::new(t!(ui, "inlay-menu")))
+                    .on_hover_text(t!(ui, "inlay-ribbon-hover"))
+                    .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
+                    .clicked()
+                {
+                    app.start_inlay();
                 }
                 submenu(ui, t!(ui, "styles-apply-menu"), |ui| {
                     let mut act = None;

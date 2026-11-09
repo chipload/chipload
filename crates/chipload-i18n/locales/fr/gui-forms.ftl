@@ -97,6 +97,12 @@ forms-depth-passes-equal-load = Charge égale
 forms-vcarve-step-down-hover = La profondeur maximale de chaque passe. Les passes sont égales, la dernière à la profondeur finale
 forms-ignore-kinks = Ignorer les cassures
 forms-ignore-kinks-hover = Les coins où le contour tourne de moins que cet angle n'ont pas de branche de la ligne médiane : la fraise en V ne remonte pas dans chaque cassure d'une courbe. À 20°, une cassure garde au plus quelques centièmes de millimètre ; 0° grave chaque coin
+forms-section-plug = Bouchon
+forms-plug-summary = contour à { $start }, jeu de colle { $gap }
+forms-plug-start = Profondeur de départ du bouchon
+forms-plug-start-hover = La profondeur du contour du bouchon dans sa planche : sa face se trouve à cette profondeur dans la poche. Plus que la profondeur de départ, moins que la profondeur finale
+forms-plug-gap = Jeu de colle
+forms-plug-gap-hover = De combien la planche est gravée plus bas que son contour : la profondeur finale moins celle de départ du bouchon. Le dos du bouchon dépasse d’autant la base
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Outil

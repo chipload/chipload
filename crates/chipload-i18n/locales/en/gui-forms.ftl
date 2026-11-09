@@ -97,6 +97,12 @@ forms-depth-passes-equal-load = Equal load
 forms-vcarve-step-down-hover = The deepest each pass goes. The passes are equal, the last at the end depth
 forms-ignore-kinks = Ignore kinks
 forms-ignore-kinks-hover = Corners where the outline bends less than this get no branch of the centre line, so the bit doesn't rise into every kink of a curve. At 20° a kink keeps at most a few hundredths of a millimetre; 0° carves every corner
+forms-section-plug = Plug
+forms-plug-summary = outline { $start } down, glue gap { $gap }
+forms-plug-start = Plug start depth
+forms-plug-start-hover = How deep the plug's outline lies in its board: its face lies this deep in the pocket. More than the start depth, less than the end depth
+forms-plug-gap = Glue gap
+forms-plug-gap-hover = How much deeper than its outline the board is carved: the end depth less the plug start depth. The plug's back stands this far above the base
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Tool

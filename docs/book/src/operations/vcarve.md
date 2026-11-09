@@ -174,12 +174,20 @@ chipload op add-inlay sign.chipload --text 1 --tool 3 --floor-tool 2   # also --
 chipload op add-inlay sign.chipload --layer WORD --tool 3 --depth 5 --plug-start 3 --gap 1.5 --plug-thickness 10
 ```
 
-`op add-inlay` makes the pair: the pocket in the active part, and a new
-[setup](../concepts/setups.md), *Inlay plug board*, whose board fits the artwork with a
-10 mm margin, holding a part of its own, [mirrored](parts.md#mirrored-parts) left to right,
-with the plug. With `--floor-tool`, both get a floor pass. Give the plug one: its channel is
-mostly floor. Afterwards both are ordinary V-carves: change their depths, feeds and passes
-as for any other. Both select the same shapes, so editing the artwork changes both.
+In the app, select the artwork and click **Inlay…** (ribbon, OPERATION, under Surface), or
+*New inlay…* in the group's menu. The dialog asks for the V-bit, the four numbers and the
+floor end mill, with the project's first V-bit and smallest end mill chosen, and draws the
+two cuts with the numbers marked. **Make inlay** makes the pair as one undo step. On the
+command line, `op add-inlay` does the same.
+
+Both make the pocket in the active part, and a new [setup](../concepts/setups.md), *Inlay
+plug board*, whose board fits the artwork with a 10 mm margin, holding a part of its own,
+[mirrored](parts.md#mirrored-parts) left to right, with the plug. With a floor end mill, both
+get a floor pass. Give the plug one: its channel is mostly floor. Afterwards both are
+ordinary V-carves: change their depths, feeds and passes as for any other. The plug's
+properties have a **Plug** section with its start depth and glue gap; changing the gap moves
+its end depth. Both select the same shapes, so editing the artwork changes both. The plug's
+[setup sheet](../checking/sheet.md) says it is mirrored and lists the steps below.
 
 The plug's checks warn when:
 

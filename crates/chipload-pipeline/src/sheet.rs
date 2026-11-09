@@ -291,6 +291,27 @@ fn setup(html: &mut String, job: &Job, w: Words) {
             &w.text(&Message::new(id).arg("part", part.name.as_str())),
         );
     }
+    // An inlay's plug: what to do with it once cut (docs/specs/vcarve-inlay.md §7).
+    for op in job.operations.iter().filter(|op| {
+        op.enabled()
+            && job
+                .part_of(op)
+                .is_some_and(|p| p.enabled && Some(p.setup) == job.active_setup_id())
+    }) {
+        let chipload_job::Operation::Vcarve(plug) = op else {
+            continue;
+        };
+        if plug.plug.is_none() {
+            continue;
+        }
+        let steps = match crate::inlay::pocket_setup(job, plug) {
+            Some(setup) => Message::new("sheet-inlay-steps")
+                .arg("setup", setup.id)
+                .arg("name", setup.name.as_str()),
+            None => Message::new("sheet-inlay-steps-no-pocket"),
+        };
+        fact(html, &w.text(&Message::new("sheet-inlay")), &w.text(&steps));
+    }
     // Several drawings: each with where it was put (docs/specs/drawing-sources.md §7).
     let d = &job.drawing;
     if d.dxfs.len() + d.images.len() + d.texts.len() > 1 {

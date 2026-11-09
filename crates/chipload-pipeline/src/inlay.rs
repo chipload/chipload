@@ -5,7 +5,9 @@
 use chipload_core::chain::Contour;
 use chipload_i18n::{Language, Message, Units};
 use chipload_job::library::ToolLibrary;
-use chipload_job::{Job, Mirror, Operation, Plug, Selector, StockOrigin, ToolType};
+use chipload_job::{
+    Job, Mirror, Operation, Plug, Selector, Setup, StockOrigin, ToolType, VcarveOp,
+};
 
 use crate::PipelineError;
 use crate::new_ops::{NewRequest, OpKind, new_operations, tool_cutting};
@@ -62,8 +64,8 @@ fn refused(message: Message) -> PipelineError {
 /// mirrored left to right, the plug (docs/specs/vcarve-inlay.md §4). The plug board fits the
 /// artwork with a margin of [`PLUG_BOARD_MARGIN_MM`], `plug_thickness` thick, its work zero
 /// as the base's. Feeds come from the library as for any new V-carve. The active setup and
-/// part stay as they were. Refused for a tool that isn't a V-bit with an angle, and for
-/// anything the project's checks refuse.
+/// part stay as they were. Refused for a tool that isn't a V-bit with an angle, and for a
+/// problem the project's checks find with the pair or the new setup (not with the rest).
 pub fn add_inlay(
     job: &Job,
     request: &InlayRequest,
@@ -143,7 +145,18 @@ pub fn add_inlay(
     job.operations.insert(plug_at, Operation::Vcarve(plug));
     job.active_setup = setup_before;
     job.active_part = part_before;
-    if let Some(problem) = job.validate().into_iter().next() {
+    // Refused for a problem with what it made; the rest of the project is the user's.
+    let setup_at = job.setups.iter().position(|s| s.id == setup).unwrap_or(0);
+    let ours = |path: &str| {
+        [
+            format!("operations.{at}"),
+            format!("operations.{plug_at}"),
+            format!("setups.{setup_at}"),
+        ]
+        .iter()
+        .any(|own| path == own || path.starts_with(&format!("{own}.")))
+    };
+    if let Some(problem) = job.validate().into_iter().find(|p| ours(&p.path)) {
         return Err(refused(problem.text_message));
     }
     Ok((
@@ -155,4 +168,28 @@ pub fn add_inlay(
             part,
         },
     ))
+}
+
+/// The setup a plug's pocket is cut in: a V-carve without a `plug` of the same shapes with a
+/// bit of the same angle, on, in another setup that is on (docs/specs/vcarve-inlay.md §6,
+/// §7). The pocket's part may be off: a setup's program and sheet are made with the other
+/// setups' parts off (`Job::for_setup`). None without one.
+pub fn pocket_setup<'a>(job: &'a Job, plug: &VcarveOp) -> Option<&'a Setup> {
+    let angle = job.tool(plug.tool)?.angle?;
+    let own = job.part(plug.part).map(|p| p.setup);
+    job.operations
+        .iter()
+        .filter(|op| op.enabled())
+        .filter_map(|op| match op {
+            Operation::Vcarve(v) if v.plug.is_none() && v.select == plug.select => Some(v),
+            _ => None,
+        })
+        .filter(|v| {
+            job.tool(v.tool)
+                .and_then(|t| t.angle)
+                .is_some_and(|a| (a - angle).abs() <= chipload_core::tolerances::ANGLE_TOL_RAD)
+        })
+        .filter_map(|v| job.part(v.part).map(|p| p.setup))
+        .filter(|&setup| Some(setup) != own)
+        .find_map(|id| job.setups.iter().find(|s| s.id == id && s.enabled))
 }

@@ -97,6 +97,12 @@ forms-depth-passes-equal-load = Carga igual
 forms-vcarve-step-down-hover = Lo más que baja cada pasada. Las pasadas son iguales, la última en la profundidad final
 forms-ignore-kinks = Ignorar quiebros
 forms-ignore-kinks-hover = Las esquinas donde el contorno gira menos que este ángulo no tienen rama de la línea central, así la fresa en V no sube a cada quiebro de una curva. A 20° un quiebro deja como mucho unas centésimas de milímetro; 0° talla cada esquina
+forms-section-plug = Tapón
+forms-plug-summary = contorno a { $start }, holgura de cola { $gap }
+forms-plug-start = Profundidad inicial del tapón
+forms-plug-start-hover = A qué profundidad está el contorno del tapón en su tablero: su cara queda así de honda en el cajeado. Mayor que la profundidad inicial, menor que la final
+forms-plug-gap = Holgura de cola
+forms-plug-gap-hover = Cuánto más hondo que su contorno se talla el tablero: la profundidad final menos la inicial del tapón. El dorso del tapón queda así de alto sobre la base
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Herramienta

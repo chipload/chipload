@@ -1,9 +1,8 @@
 # Spec: V-carve inlays
 
 Status: **approved 2026-11-09**, all decisions as recommended (the user: "Go ahead").
-Branch `signs`; built after the mirrored part (docs/specs/mirror-part.md). Step 1 of §8
-(model, carving, checks, `op add-inlay`, tests, golden, guide) built 2026-11-09; what
-building it settled is in §12.
+Branch `signs`; built after the mirrored part (docs/specs/mirror-part.md). Built
+2026-11-09, all three steps of §8; what building it settled is in §12.
 
 Builds on docs/specs/v-carve.md (the medial axis, depth(p)), docs/specs/vcarve-wide-strokes.md
 (walls and the floor pass), docs/specs/setups.md (a second board with its own program) and
@@ -283,3 +282,15 @@ what the checker allows (tool centre within a tool radius of the stock).
   hole, bits of 45° to 100°, plug start depths, glue gaps and pocket depths: six cases each
   run, 80 checked once, with the two cases that found the floor problem kept as seeds;
   cases whose pocket or plug gets one of the warnings above are skipped.
+- **The window** (§8 step 2): *Inlay…* is a small ribbon button under *Surface* in the
+  Operation group, and *New inlay…* in that group's menu, on while shapes are selected. Its
+  dialog chooses the project's first V-bit with an angle and its smallest end mill, and
+  draws the two cuts as a cross-section with the back, the surface, the plug's face and the
+  pocket's floor marked. The pair is one undo step; the base stays the active setup. A
+  plug's form has a *Plug* section: its start depth, and the glue gap, which moves the end
+  depth. Without a V-bit in the project, *Make inlay* is off and says so.
+- **The sheet** (§8 step 3): the plug's setup sheet has an *Inlay* row with the steps,
+  naming the setup its pocket is cut in (`inlay::pocket_setup`), after the *Mirrored* row
+  its part already gets.
+- **Refusal.** `add_inlay` refuses only for a problem with the pair or the new setup; the
+  rest of the project is the user's to finish.

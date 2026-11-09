@@ -408,3 +408,37 @@ fn a_two_sided_boards_sheets_say_how_to_turn_it() {
         }
     }
 }
+
+#[test]
+fn an_inlay_plugs_sheet_says_what_to_do_with_it() {
+    // docs/specs/vcarve-inlay.md §7: the plug's sheet says it is mirrored, and how to glue
+    // it into the pocket of the base's setup and take its back off.
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    let project = "jobs/v36/inlay.chipload";
+    let job = load_job(&corpus(project)).unwrap();
+    for (setup, name) in [(1, "v36_inlay_pocket"), (2, "v36_inlay_plug")] {
+        let one = job.for_setup(setup);
+        let result = run_job(&one).unwrap();
+        let sheet = setup_sheet(&one, &result, Path::new("sign.nc"), &info(project));
+        assert!(sheet.is_ascii(), "{name}: not ASCII");
+        let golden = corpus(&format!("expected/sheets/{name}.html"));
+        if update {
+            std::fs::write(&golden, &sheet).unwrap();
+        } else {
+            let expected = std::fs::read_to_string(&golden)
+                .unwrap_or_else(|e| panic!("{}: {e}", golden.display()));
+            assert!(
+                sheet == expected,
+                "{name}: differs from {}",
+                golden.display()
+            );
+        }
+        let steps = "glue the plug face down into the pocket of setup 1 (Setup 1)";
+        assert_eq!(sheet.contains(steps), setup == 2, "{name}");
+        assert_eq!(
+            sheet.contains("Inlay plug is cut mirrored left to right"),
+            setup == 2,
+            "{name}"
+        );
+    }
+}

@@ -97,6 +97,12 @@ forms-depth-passes-equal-load = Gleiche Last
 forms-vcarve-step-down-hover = Wie tief jeder Durchgang höchstens geht. Die Durchgänge sind gleich, der letzte auf der Endtiefe
 forms-ignore-kinks = Knicke ignorieren
 forms-ignore-kinks-hover = Ecken, an denen der Umriss weniger als diesen Winkel abknickt, bekommen keinen Ast der Mittellinie, so fährt der V-Fräser nicht in jeden Knick einer Kurve hoch. Bei 20° bleibt in einem Knick höchstens wenige hundertstel Millimeter stehen; 0° graviert jede Ecke
+forms-section-plug = Stopfen
+forms-plug-summary = Umriss { $start } tief, Leimspalt { $gap }
+forms-plug-start = Stopfen-Starttiefe
+forms-plug-start-hover = Wie tief der Umriss des Stopfens in seinem Brett liegt: so tief sitzt seine Stirnseite in der Tasche. Größer als die Starttiefe, kleiner als die Endtiefe
+forms-plug-gap = Leimspalt
+forms-plug-gap-hover = Wie viel tiefer als sein Umriss das Brett gefräst wird: die Endtiefe weniger die Stopfen-Starttiefe. So weit steht die Rückseite des Stopfens über dem Grundbrett
 
 # The operation's tool. "T3" is tool number 3.
 forms-tool = Werkzeug
