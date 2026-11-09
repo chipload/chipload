@@ -2603,6 +2603,60 @@ fn a_sign_is_made_in_one_step_from_the_command_line() {
         "{}",
         text(&out.stderr)
     );
+    // Round a traced picture: a frame with --around-image, and a sign round it (no words).
+    let traced = dir.join("traced.chipload");
+    std::fs::copy(corpus("jobs/v19/image_vcarve.chipload"), &traced).unwrap();
+    let t = path(&traced);
+    let out = chipload(&["set", t, "operations=[]", tools]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["frame", "add", t, "--kind", "oval", "--around-image", "1"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["frame", "list", t, "--json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(
+        json["frames"][0]["around"]["images"],
+        serde_json::json!([1])
+    );
+    let out = chipload(&["frame", "add", t, "--kind", "oval", "--around-image", "9"]);
+    assert!(
+        text(&out.stderr).contains("no picture 9"),
+        "{}",
+        text(&out.stderr)
+    );
+    let out = chipload(&[
+        "sign",
+        "add",
+        t,
+        "--around-image",
+        "1",
+        "--frame",
+        "shield",
+        "--vbit",
+        "2",
+        "--end-mill",
+        "1",
+        "--json",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["text"], serde_json::Value::Null);
+    let out = chipload(&[
+        "sign",
+        "add",
+        t,
+        "WORDS",
+        "--around-image",
+        "1",
+        "--vbit",
+        "2",
+        "--end-mill",
+        "1",
+    ]);
+    assert!(
+        text(&out.stderr).contains("not both"),
+        "{}",
+        text(&out.stderr)
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

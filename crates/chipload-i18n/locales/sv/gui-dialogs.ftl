@@ -116,6 +116,13 @@ sign-title = Ny skylt
 sign-body = Orden, en ram runt dem som följer dem, och varje operation som skär skylten, i en egen del. Allt går att ändra efteråt.
 sign-words = Ord
 sign-words-hint = Vad skylten säger; Enter börjar en ny rad
+sign-around = Runt markeringen
+sign-around-body = { $count ->
+    [one] Skylten går runt den markerade formen, som snidas med V-fräsen. Ramen följer den, även en bild som spåras om.
+   *[other] Skylten går runt de { $count } markerade formerna, som snidas med V-fräsen. Ramen följer dem, även en bild som spåras om.
+}
+sign-around-words = Skriv ord i stället
+sign-around-words-hover = Gör skylten runt nya ord, som utan markering
 sign-font = Typsnitt
 sign-height = Höjd
 sign-style = Stil

@@ -284,3 +284,18 @@ Step 3 (*New sign…*), 2026-11-09:
 - **Not in the first version:** the height *fit* (as large as a frame of a fixed size
   allows) and a sign to a fixed size; the start page's button. Words with a fixed height
   and the frame round them cover the common case.
+
+Round existing shapes, 2026-11-09 (the user: "Could the frame work on an existing shape,
+say a traced image?" then "Add both of those"):
+- `frame add --around-image ID` (as `--around-text`).
+- **A sign round the selection:** *New sign…* with shapes selected, and `sign add` with
+  `--around`, `--around-text` or `--around-image` instead of words. The shapes stay where
+  they are; they are carved with the V-bit (*Carving*), selected as their picture, text or
+  DXF when they are all of one, the shapes not chosen left out (a traced picture's shapes
+  can't be chosen by id, and the picture may be traced again), else by id. The part is
+  named after the picture's file, the text's words or the DXF, else *Sign*.
+- **A raised sign round a picture's or a DXF's shapes is refused:** its pocket selects the
+  sign's group, and a group takes only drawn shapes and texts.
+- **Fixed:** a frame round only some of a text's letters or a picture's shapes recorded the
+  whole text or picture and would have grown round all of it at the next edit; it now
+  records a text or picture only when all of its shapes are framed, the rest by id.

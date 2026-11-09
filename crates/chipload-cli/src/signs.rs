@@ -31,8 +31,19 @@ pub enum SignAction {
 pub struct AddSign {
     /// The project (.chipload).
     project: PathBuf,
-    /// What it says; "\n" starts a new line.
-    words: String,
+    /// What it says; "\n" starts a new line. Leave it out to make the sign round shapes
+    /// already drawn (--around, --around-text, --around-image).
+    words: Option<String>,
+    /// Round these shapes instead of new words (ids as `inspect` lists them).
+    #[arg(long, num_args = 1.., value_delimiter = ',')]
+    around: Vec<u64>,
+    /// Round these texts' letters.
+    #[arg(long, num_args = 1.., value_delimiter = ',')]
+    around_text: Vec<u64>,
+    /// Round these traced pictures (ids as `image list` shows them): carved as the
+    /// picture, the frame following it when it is traced again.
+    #[arg(long, num_args = 1.., value_delimiter = ',')]
+    around_image: Vec<u64>,
     /// The font (`chipload text fonts`).
     #[arg(long)]
     font: Option<String>,
@@ -159,7 +170,27 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
             ));
         }
     };
-    let mut request = SignRequest::new(&add.words, add.vbit, add.end_mill);
+    let around = match crate::frames::around_ids(
+        &job,
+        add.around.clone(),
+        &add.around_text,
+        &add.around_image,
+    ) {
+        Ok(ids) => ids,
+        Err(err) => return out.fail(err),
+    };
+    let words = match (&add.words, around.is_empty()) {
+        (Some(words), true) => words.clone(),
+        (None, false) => String::new(),
+        _ => {
+            return out.fail(
+                "give the words, or --around, --around-text or --around-image: not both, \
+                 nor neither",
+            );
+        }
+    };
+    let mut request = SignRequest::new(&words, add.vbit, add.end_mill);
+    request.around = around;
     if let Some(font) = add.font {
         request.font = font;
     }
@@ -200,10 +231,12 @@ fn add_one(out: &mut Out, add: AddSign) -> ExitCode {
         return out.fail(err);
     }
     let part = job.part(made.part).map_or("", |p| p.name.as_str());
+    let what = made
+        .text
+        .map_or_else(|| "the shapes".to_string(), |t| format!("text {t}"));
     out.line(format!(
-        "Made the sign \"{part}\" ({}), text {} in a {} frame S{}, in part {}:",
+        "Made the sign \"{part}\" ({}), {what} in a {} frame S{}, in part {}:",
         request.style.name(),
-        made.text,
         kind.name(),
         made.outline,
         made.part

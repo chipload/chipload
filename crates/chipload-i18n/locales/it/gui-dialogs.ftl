@@ -116,6 +116,13 @@ sign-title = Nuova insegna
 sign-body = Le parole, una cornice attorno che le segue e ogni operazione che taglia l'insegna, in un pezzo a sé. Tutto si può cambiare dopo.
 sign-words = Parole
 sign-words-hint = Cosa dice l'insegna; Invio inizia una nuova riga
+sign-around = Attorno alla selezione
+sign-around-body = { $count ->
+    [one] L'insegna va attorno alla forma selezionata, scolpita con la fresa a V. La cornice la segue, anche un'immagine ricalcata.
+   *[other] L'insegna va attorno alle { $count } forme selezionate, scolpite con la fresa a V. La cornice le segue, anche un'immagine ricalcata.
+}
+sign-around-words = Scrivi invece delle parole
+sign-around-words-hover = Fai l'insegna attorno a parole nuove, come senza selezione
 sign-font = Carattere
 sign-height = Altezza
 sign-style = Stile

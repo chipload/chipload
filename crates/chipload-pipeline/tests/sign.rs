@@ -58,7 +58,10 @@ fn an_engraved_sign_is_letters_borders_edge_and_cut_out_in_that_order() {
     let Operation::Vcarve(letters) = ops[0] else {
         panic!("{:?}", ops[0]);
     };
-    assert_eq!(letters.select.source, Some(Source::Text(sign.text)));
+    assert_eq!(
+        letters.select.source,
+        Some(Source::Text(sign.text.unwrap()))
+    );
     let vbit = job.tool(2).unwrap().clone();
     let Operation::Path(borders) = ops[1] else {
         panic!();
@@ -83,7 +86,7 @@ fn an_engraved_sign_is_letters_borders_edge_and_cut_out_in_that_order() {
     assert_eq!(stock.fit, Some(15.0));
     assert_eq!(stock.thickness, 18.0);
     let group = &job.drawing.groups[0];
-    assert_eq!(group.texts, vec![sign.text]);
+    assert_eq!(group.texts, vec![sign.text.unwrap()]);
     assert!(group.shapes.contains(&sign.outline));
     assert_eq!(job.drawing.frames[0].outline, sign.outline);
     // It cuts: every program passes the checker.
@@ -97,7 +100,7 @@ fn new_words_keep_every_operation_cutting_the_sign() {
     let mut changed = job.clone();
     changed.drawing.texts[0].text = "OPEN ALL DAY".into();
     let (changed, _) =
-        chipload_pipeline::texts::remake(&job, &changed, sign.text, &BuiltinOnly).unwrap();
+        chipload_pipeline::texts::remake(&job, &changed, sign.text.unwrap(), &BuiltinOnly).unwrap();
     let (changed, notes) = follow_frames(changed);
     assert!(notes.is_empty(), "{notes:?}");
     assert!(changed.drawing.frames[0].width > job.drawing.frames[0].width + 50.0);
@@ -229,4 +232,80 @@ fn a_sign_in_a_project_with_a_drawing_can_leave_the_board_as_it_is() {
     assert_ne!(first.part, second.part);
     assert_eq!(job.parts.len(), 2);
     assert_eq!(job.drawing.frames.len(), 2);
+}
+
+/// The corpus's traced logo (picture 1, shapes 1-4) with the sign tools.
+fn traced() -> Job {
+    let mut job =
+        chipload_job::parse_job(corpus_value("jobs/v19/image_vcarve.chipload"), "test").unwrap();
+    job.operations.clear();
+    job.tools = project().tools;
+    job
+}
+
+#[test]
+fn a_sign_round_a_traced_picture_follows_it_and_carves_it_as_the_picture() {
+    let job = traced();
+    let mut request = SignRequest::new("", 2, 1);
+    request.around = vec![1, 2, 3, 4];
+    request.edge = Some(1.5);
+    let (made_job, sign) = add_sign(&job, &request, &BuiltinOnly, None, Language::En).unwrap();
+    assert_eq!(sign.text, None);
+    assert!(
+        made_job.drawing.texts.len() == job.drawing.texts.len(),
+        "no words added"
+    );
+    assert_eq!(
+        names(&made_job, &sign.operations),
+        ["Carving", "Borders", "Edge chamfer", "Cut out"]
+    );
+    let Operation::Vcarve(carve) = &made_job.operations[sign.operations[0]] else {
+        panic!();
+    };
+    // Cut as the picture, so it still is when traced again.
+    assert_eq!(carve.select.source, Some(Source::Image(1)));
+    assert_eq!(made_job.part(sign.part).unwrap().name, "logo");
+    let frame = &made_job.drawing.frames[0];
+    assert_eq!(frame.around.as_ref().unwrap().images, vec![1]);
+    // The group holds the frame only: a picture's shapes can't be grouped.
+    let group = &made_job.drawing.groups[0];
+    assert!(group.texts.is_empty() && group.shapes.contains(&sign.outline));
+    run_setups(&made_job, None).unwrap();
+
+    // Raised round a picture: refused, with why.
+    request.style = SignStyle::Raised;
+    let err = add_sign(&job, &request, &BuiltinOnly, None, Language::En).unwrap_err();
+    assert!(err.to_string().contains("picture"), "{err}");
+}
+
+#[test]
+fn a_sign_round_some_of_a_pictures_shapes_leaves_the_others_out_and_a_missing_shape_is_refused() {
+    let job = traced();
+    let mut request = SignRequest::new("", 2, 1);
+    request.around = vec![1, 2];
+    let (made_job, sign) = add_sign(&job, &request, &BuiltinOnly, None, Language::En).unwrap();
+    let Operation::Vcarve(carve) = &made_job.operations[sign.operations[0]] else {
+        panic!();
+    };
+    assert_eq!(carve.select.source, Some(Source::Image(1)));
+    assert_eq!(carve.select.exclude, vec![3, 4]);
+    request.around = vec![99];
+    assert!(add_sign(&job, &request, &BuiltinOnly, None, Language::En).is_err());
+}
+
+#[test]
+fn a_raised_sign_round_drawn_shapes_groups_them() {
+    let job = project();
+    let geometry = chipload_job::Geometry::Circle {
+        center: [100.0, 100.0],
+        radius: 20.0,
+    };
+    let (job, circle) = chipload_pipeline::shapes::add_shape(&job, "art", geometry).unwrap();
+    let mut request = SignRequest::new("", 2, 1);
+    request.around = vec![circle];
+    request.style = SignStyle::Raised;
+    let (made_job, sign) = add_sign(&job, &request, &BuiltinOnly, None, Language::En).unwrap();
+    assert!(made_job.drawing.groups[0].shapes.contains(&circle));
+    assert_eq!(made_job.part(sign.part).unwrap().name, "Sign");
+    run_setups(&made_job, None).unwrap();
 }

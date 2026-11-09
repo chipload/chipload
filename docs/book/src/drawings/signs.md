@@ -15,7 +15,13 @@ it). The dialog draws the sign as it will be and lists the operations it adds. (
 
 ![New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds](../images/new-sign.png)
 
-- **Words**, **Font**, **Height**: the text, centred on the board.
+- **Words**, **Font**, **Height**: the text, centred on the board. With shapes selected
+  when you open it (a traced picture, a text, drawn shapes or a DXF's), the sign goes
+  **round the selection** instead: those shapes are carved with the V-bit (an operation
+  named *Carving*) and the frame follows them, a picture traced again too. *Write words
+  instead* goes back to new words. A raised sign round a picture's or a DXF's shapes can't
+  be made yet (its background pocket needs them grouped with the frame, and a group takes
+  only drawn shapes and texts).
 - **Frame**: as for *Frame…* below: the kind, margin, corner, borders and their groove
   width. The frame follows the words afterwards.
 - **Style**:
@@ -44,8 +50,8 @@ operations afterwards.
 
 ## A frame round a text
 
-1. Write the text ([Text](text.md)) and leave it selected, or select any shapes: the frame
-   goes round all of them.
+1. Write the text ([Text](text.md)) and leave it selected, or select any shapes, a traced
+   [picture](images.md) for instance: the frame goes round all of them.
 2. **Frame**: the small button after the shape tools in the ribbon's *DRAW* group (a
    rounded frame with a line inside), or *DRAW ▾ > Frame…*. Its values open under
    *Selection*, and the frame shows on the canvas as you change them.
@@ -110,8 +116,9 @@ otherwise a polyline of lines and arcs. Operations cut it like any other shape.
 A frame remembers what it goes round. Change the words, the font or the height of the text,
 or move it, and the frame is drawn again round it, with its borders, in the same undo step.
 Its shapes keep their ids, so the operations that cut them go on cutting them. A frame round
-a picture follows it when it is traced again; one round other shapes follows them when they
-move.
+a picture follows it when it is traced again, at another size or place; one round other
+shapes follows them when they move. A frame round only some of a text's letters or a
+picture's shapes keeps those shapes by id, and lets go when they are made again.
 
 Select the frame (its outline or a border) and its values show under *Selection*, in a
 **Frame** card: the kind, margin, corner, borders and gap. Change them there and the frame is
@@ -168,7 +175,8 @@ chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: dr
 chipload frame detach sign.chipload 7                          # plain shapes from now on
 ```
 
-`sign add` takes the frame's options as `frame add` does (`--frame` for the kind), and
+`sign add` takes the words, or instead `--around`, `--around-text` or `--around-image` to
+make the sign round what is drawn; it takes the frame's options as `frame add` does (`--frame` for the kind), and
 `--style engraved|raised|inlay`, `--relief`, `--edge none|chamfer:WIDTH`, `--vbit`,
 `--end-mill` (project tool ids), `--thickness` and `--board-margin` (or `--keep-stock`);
 `--json` gives the new part, text, outline, borders, group and operations.
@@ -177,7 +185,8 @@ chipload frame detach sign.chipload 7                          # plain shapes fr
 `step`) picks a rectangle's corners, and the older names `rounded`, `notched`, `chamfered`
 and `stepped` still work as kinds. `--border-corners`, `--double` and `--border-width` set
 the borders; `frame set` takes the same, and `--border-corners-off` to make the borders
-follow the outline again. `--around` takes shape ids, `--around-text` text ids (`chipload text list`); without
+follow the outline again. `--around` takes shape ids, `--around-text` text ids (`chipload text list`),
+`--around-image` picture ids (`chipload image list`); without
 either, `--width` and `--height` give the outline's size and `--at` its centre (the stock's
 centre by default). The new shapes' ids are printed, the outline's first; `--json` gives
 them with the frame's size and corner. `frame set` and `frame detach` take the id of the

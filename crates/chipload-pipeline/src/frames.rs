@@ -358,20 +358,30 @@ fn frame_geometries(
 }
 
 /// What a frame round shapes `ids` goes round, kept by text and picture so that it still
-/// does when their letters and traced shapes are made again.
+/// does when their letters and traced shapes are made again: a text or picture all of whose
+/// shapes are among `ids`. Some of them only, and other shapes, by id.
 fn around_of(job: &Job, ids: &[u64]) -> FrameAround {
+    let whole = |from: chipload_core::chain::ShapeFrom| {
+        job.drawing
+            .shapes
+            .iter()
+            .filter(|s| s.source() == Some(from))
+            .all(|s| ids.contains(&s.id))
+    };
     let mut around = FrameAround::default();
     for shape in job.drawing.shapes.iter().filter(|s| ids.contains(&s.id)) {
-        if let Some(text) = shape.text() {
-            if !around.texts.contains(&text) {
-                around.texts.push(text);
+        match (shape.text(), shape.image(), shape.source()) {
+            (Some(text), _, Some(from)) if whole(from) => {
+                if !around.texts.contains(&text) {
+                    around.texts.push(text);
+                }
             }
-        } else if let Some(image) = shape.image() {
-            if !around.images.contains(&image) {
-                around.images.push(image);
+            (_, Some(image), Some(from)) if whole(from) => {
+                if !around.images.contains(&image) {
+                    around.images.push(image);
+                }
             }
-        } else {
-            around.shapes.push(shape.id);
+            _ => around.shapes.push(shape.id),
         }
     }
     around
@@ -1305,5 +1315,26 @@ mod tests {
             assert_eq!(followed.drawing.frames[0].kind, shape_of(kind));
             assert!(followed.drawing.frames[0].width > edited.job.drawing.frames[0].width);
         }
+    }
+
+    #[test]
+    fn a_frame_round_some_of_a_texts_letters_keeps_them_by_id() {
+        let (job, letters) = project_with_text();
+        let some = letters[..2].to_vec();
+        let frame = NewFrame::new(
+            FrameKind::Rectangle,
+            FrameSize::Around {
+                ids: some.clone(),
+                margin: 5.0,
+            },
+        );
+        let edited = add_frame(&job, &frame).unwrap();
+        let around = edited.job.drawing.frames[0].around.clone().unwrap();
+        assert!(around.texts.is_empty());
+        assert_eq!(around.shapes, some);
+        // Followed: it stays round those two.
+        let (same, notes) = follow_frames(edited.job.clone());
+        assert_eq!(same, edited.job);
+        assert!(notes.is_empty());
     }
 }

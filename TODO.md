@@ -253,6 +253,8 @@ Smaller follow-ups noted along the way, not in the order above:
   in cutting order (letters or background or the inlay's pocket, borders as deep as their
   groove width, edge chamfer, cut out with tabs), one undo step; `chipload sign add`.
   Tested by generating each style, simulating a raised sign, and changing the words.
+  Also round the selection (a traced picture, drawn shapes) instead of words, and
+  `frame add --around-image`; a raised sign round a picture's shapes is refused for now.
 - **More frames, corners and borders** (sign-maker.md §5, step 2, branch `signs`): gable,
   arched top and bottom, shield, banner and octagon; a rectangle's corners (sharp, round,
   notch, chamfer, and the new step) chosen under one *Rectangle* picture, `--corners`;

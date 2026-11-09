@@ -116,6 +116,13 @@ sign-title = Nuevo letrero
 sign-body = Las palabras, un marco alrededor que las sigue y cada operación que corta el letrero, en una pieza propia. Después se puede cambiar todo.
 sign-words = Palabras
 sign-words-hint = Lo que dice el letrero; Intro empieza una línea nueva
+sign-around = Alrededor de la selección
+sign-around-body = { $count ->
+    [one] El letrero rodea la forma seleccionada, que se talla con la fresa en V. El marco la sigue, también una imagen vuelta a trazar.
+   *[other] El letrero rodea las { $count } formas seleccionadas, que se tallan con la fresa en V. El marco las sigue, también una imagen vuelta a trazar.
+}
+sign-around-words = Escribir palabras en su lugar
+sign-around-words-hover = Hacer el letrero alrededor de palabras nuevas, como sin selección
 sign-font = Fuente
 sign-height = Altura
 sign-style = Estilo

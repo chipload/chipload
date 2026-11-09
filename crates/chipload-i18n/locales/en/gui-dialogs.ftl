@@ -117,6 +117,13 @@ sign-title = New sign
 sign-body = The words, a frame round them that follows them, and every operation that cuts the sign, in a part of its own. Change any of it afterwards.
 sign-words = Words
 sign-words-hint = What the sign says; Enter starts a new line
+sign-around = Round the selection
+sign-around-body = { $count ->
+    [one] The sign goes round the selected shape, which is carved with the V-bit. The frame follows it, and a picture traced again.
+   *[other] The sign goes round the { $count } selected shapes, which are carved with the V-bit. The frame follows them, and a picture traced again.
+}
+sign-around-words = Write words instead
+sign-around-words-hover = Make the sign round new words, as with nothing selected
 sign-font = Font
 sign-height = Height
 sign-style = Style

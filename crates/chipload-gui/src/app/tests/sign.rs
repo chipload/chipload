@@ -74,3 +74,40 @@ fn new_sign_makes_the_whole_sign_as_one_undo_step() {
     let job = &harness.state().edit.as_ref().unwrap().job;
     assert!(job.operations.is_empty() && job.drawing.shapes.is_empty());
 }
+
+#[test]
+fn new_sign_with_a_picture_selected_goes_round_it() {
+    let project = corpus("jobs/v19/image_vcarve.chipload");
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1400.0, 1000.0))
+        .build_eframe(move |_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&project));
+            let tools = chipload_job::load_job(&corpus("jobs/v27/text.chipload"))
+                .unwrap()
+                .tools;
+            let edit = app.edit.as_mut().unwrap();
+            edit.job.operations.clear();
+            edit.job.tools = tools;
+            app.commit();
+            app
+        });
+    harness.run_steps(4);
+    harness.state_mut().selection =
+        CanvasSelection::whole(chipload_core::chain::ShapeFrom::Image(1));
+    harness.state_mut().start_sign();
+    harness.run_steps(3);
+    let Some(Prompt::Sign(settings)) = harness.state().dialogs.prompt.clone() else {
+        panic!("the dialog");
+    };
+    assert_eq!(settings.around, vec![1, 2, 3, 4]);
+    assert!(harness.get_all_by_label("Round the selection").count() > 0);
+    click(&mut harness, "Make sign");
+    let job = &harness.state().edit.as_ref().unwrap().job;
+    let names: Vec<&str> = job.operations.iter().map(|op| op.name()).collect();
+    assert_eq!(names, ["Carving", "Borders", "Cut out"]);
+    assert_eq!(
+        job.drawing.frames[0].around.as_ref().unwrap().images,
+        vec![1]
+    );
+}

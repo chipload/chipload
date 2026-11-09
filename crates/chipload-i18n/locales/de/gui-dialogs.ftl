@@ -116,6 +116,13 @@ sign-title = Neues Schild
 sign-body = Die Wörter, ein Rahmen um sie, der ihnen folgt, und jede Operation, die das Schild schneidet, in einem eigenen Teil. Alles lässt sich danach ändern.
 sign-words = Wörter
 sign-words-hint = Was auf dem Schild steht; Enter beginnt eine neue Zeile
+sign-around = Um die Auswahl
+sign-around-body = { $count ->
+    [one] Das Schild geht um die ausgewählte Form, die mit dem V-Fräser geschnitzt wird. Der Rahmen folgt ihr, auch einem neu nachgezeichneten Bild.
+   *[other] Das Schild geht um die { $count } ausgewählten Formen, die mit dem V-Fräser geschnitzt werden. Der Rahmen folgt ihnen, auch einem neu nachgezeichneten Bild.
+}
+sign-around-words = Stattdessen Wörter schreiben
+sign-around-words-hover = Das Schild um neue Wörter machen, wie ohne Auswahl
 sign-font = Schrift
 sign-height = Höhe
 sign-style = Stil

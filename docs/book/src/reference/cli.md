@@ -1295,6 +1295,7 @@ chipload frame add <PROJECT> [OPTIONS]
 | `--kind <KIND>` | Which frame (`frame kinds`); default rectangle, with --corners. One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. |
 | `--around <AROUND>` | Round these shapes (ids as `inspect` lists them, without the S): the frame is centred on their box, --margin from it to the innermost line. Repeatable. |
 | `--around-text <AROUND_TEXT>` | Round these texts' letters (ids as `text list` shows them) Repeatable. |
+| `--around-image <AROUND_IMAGE>` | Round these traced pictures' shapes (ids as `image list` shows them); the frame follows a picture traced again. Repeatable. |
 | `--margin <MARGIN>` | From the shapes' box to the innermost line, mm (default 10) |
 | `--width <WIDTH>` | The outline's width, mm, when not round shapes. |
 | `--height <HEIGHT>` | The outline's height, mm, when not round shapes. |
@@ -1377,7 +1378,10 @@ chipload sign add <PROJECT> <WORDS> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<WORDS>` | What it says; "\n" starts a new line. |
+| `<WORDS>` | What it says; "\n" starts a new line. Leave it out to make the sign round shapes already drawn (--around, --around-text, --around-image) |
+| `--around <AROUND>` | Round these shapes instead of new words (ids as `inspect` lists them) Repeatable. |
+| `--around-text <AROUND_TEXT>` | Round these texts' letters. Repeatable. |
+| `--around-image <AROUND_IMAGE>` | Round these traced pictures (ids as `image list` shows them): carved as the picture, the frame following it when it is traced again. Repeatable. |
 | `--font <FONT>` | The font (`chipload text fonts`) |
 | `--height <HEIGHT>` | The capital height, mm. Default: `30`. |
 | `--frame <FRAME>` | The frame (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. Default: `rounded`. |

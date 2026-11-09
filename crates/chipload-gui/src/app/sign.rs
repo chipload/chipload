@@ -17,6 +17,9 @@ use super::*;
 /// What the sign dialog holds while it is open.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct SignSettings {
+    /// The selection when the dialog opened: the sign goes round these shapes instead of
+    /// new words. Empty: the words.
+    pub around: Vec<u64>,
     pub words: String,
     pub font: String,
     pub height: f64,
@@ -55,6 +58,7 @@ impl SignSettings {
             .filter(|t| t.kind == ToolType::Endmill)
             .max_by(|a, b| a.diameter.total_cmp(&b.diameter));
         Self {
+            around: Vec::new(),
             words: String::new(),
             font: chipload_pipeline::texts::DEFAULT_FONT.to_string(),
             height: 30.0,
@@ -86,6 +90,7 @@ impl SignSettings {
     /// The pipeline's request; None without both tools.
     fn request(&self) -> Option<SignRequest> {
         let mut request = SignRequest::new(&self.words, self.vbit?, self.end_mill?);
+        request.around.clone_from(&self.around);
         request.font.clone_from(&self.font);
         request.height = self.height;
         request.kind = self.kind;
@@ -138,12 +143,14 @@ fn style_name(ui: &egui::Ui, style: SignStyle) -> String {
 }
 
 impl ChiploadApp {
-    /// *New sign…*: the dialog.
+    /// *New sign…*: the dialog; round the selection when there is one.
     pub fn start_sign(&mut self) {
+        let around = self.framed_shape_ids();
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        let settings = SignSettings::for_job(&edit.job);
+        let mut settings = SignSettings::for_job(&edit.job);
+        settings.around = around;
         self.dialogs.prompt = Some(Prompt::Sign(Box::new(settings)));
     }
 
@@ -174,7 +181,7 @@ impl ChiploadApp {
                     .drawing
                     .shapes
                     .iter()
-                    .filter(|s| !before.contains(&s.id))
+                    .filter(|s| !before.contains(&s.id) || settings.around.contains(&s.id))
                     .flat_map(|s| crate::draw::outline(&s.geometry))
                     .collect(),
                 adds: Ok(sign
@@ -213,9 +220,10 @@ impl ChiploadApp {
                     .drawing
                     .shapes
                     .iter()
-                    .filter(|s| s.text() == Some(made.text))
+                    .filter(|s| made.text.is_some() && s.text() == made.text)
                     .map(|s| s.id)
                     .collect();
+                ids.extend(&settings.around);
                 ids.push(made.outline);
                 ids.extend(&made.borders);
                 if let Some(edit) = self.edit.as_mut() {
@@ -303,6 +311,24 @@ impl ChiploadApp {
 
 /// The dialog's values: words, frame, style and edge, tools, board.
 fn sign_fields(ui: &mut egui::Ui, s: &mut SignSettings, tools: &[Tool], units: Units) {
+    if s.around.is_empty() {
+        word_fields(ui, s);
+    } else {
+        ui.label(crate::style::bold(ui, t!(ui, "sign-around")));
+        ui.label(t!(ui, "sign-around-body", count = s.around.len()));
+        if ui
+            .button(t!(ui, "sign-around-words"))
+            .on_hover_text(t!(ui, "sign-around-words-hover"))
+            .clicked()
+        {
+            s.around.clear();
+        }
+    }
+    frame_and_cut_fields(ui, s, tools, units);
+}
+
+/// The words, their font and height.
+fn word_fields(ui: &mut egui::Ui, s: &mut SignSettings) {
     ui.label(crate::style::bold(ui, t!(ui, "sign-words")));
     ui.add(
         egui::TextEdit::multiline(&mut s.words)
@@ -327,6 +353,10 @@ fn sign_fields(ui: &mut egui::Ui, s: &mut SignSettings, tools: &[Tool], units: U
             ui.add(crate::units::length(&mut s.height).range(1.0..=1000.0));
             ui.end_row();
         });
+}
+
+/// The frame, the style, the edge, the tools and the board.
+fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, tools: &[Tool], units: Units) {
     ui.separator();
     ui.label(crate::style::bold(ui, t!(ui, "frame-title")));
     super::frames::kind_choice(ui, "sign", &mut s.kind);

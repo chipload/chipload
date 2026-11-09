@@ -106,6 +106,10 @@ pub struct AddFrame {
     /// Round these texts' letters (ids as `text list` shows them).
     #[arg(long, num_args = 1.., value_delimiter = ',')]
     around_text: Vec<u64>,
+    /// Round these traced pictures' shapes (ids as `image list` shows them); the frame
+    /// follows a picture traced again.
+    #[arg(long, num_args = 1.., value_delimiter = ',')]
+    around_image: Vec<u64>,
     /// From the shapes' box to the innermost line, mm (default 10).
     #[arg(value_parser = crate::lengths::length, long)]
     margin: Option<f64>,
@@ -277,6 +281,7 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 kind,
                 around,
                 around_text,
+                around_image,
                 margin,
                 width,
                 height,
@@ -300,7 +305,16 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 Ok(job) => job,
                 Err(code) => return code,
             };
-            let size = match frame_size(&job, around, &around_text, margin, width, height, at) {
+            let size = match frame_size(
+                &job,
+                around,
+                &around_text,
+                &around_image,
+                margin,
+                width,
+                height,
+                at,
+            ) {
                 Ok(size) => size,
                 Err(err) => return out.fail(err),
             };
@@ -503,27 +517,18 @@ fn mm(value: f64) -> String {
 }
 
 /// Round shapes or to a size, never both.
+#[allow(clippy::too_many_arguments)]
 fn frame_size(
     job: &Job,
-    mut around: Vec<u64>,
+    around: Vec<u64>,
     around_text: &[u64],
+    around_image: &[u64],
     margin: Option<f64>,
     width: Option<f64>,
     height: Option<f64>,
     at: Option<(f64, f64)>,
 ) -> Result<FrameSize, String> {
-    for &id in around_text {
-        if !job.drawing.texts.iter().any(|t| t.id == id) {
-            return Err(format!("there is no text {id}"));
-        }
-        around.extend(
-            job.drawing
-                .shapes
-                .iter()
-                .filter(|s| s.text() == Some(id))
-                .map(|s| s.id),
-        );
-    }
+    let around = around_ids(job, around, around_text, around_image)?;
     match (around.is_empty(), width, height) {
         (false, None, None) if at.is_none() => Ok(FrameSize::Around {
             ids: around,
@@ -535,9 +540,44 @@ fn frame_size(
             center: at,
         }),
         _ => Err(
-            "give either --around or --around-text (with --margin), or --width and \
-             --height (with --at)"
+            "give either --around, --around-text or --around-image (with --margin), or \
+             --width and --height (with --at)"
                 .to_string(),
         ),
     }
+}
+
+/// Shapes `ids`, with the letters of texts `texts` and the traced shapes of pictures
+/// `images`; a text or picture that isn't there is refused.
+pub(crate) fn around_ids(
+    job: &Job,
+    mut ids: Vec<u64>,
+    texts: &[u64],
+    images: &[u64],
+) -> Result<Vec<u64>, String> {
+    for &id in texts {
+        if !job.drawing.texts.iter().any(|t| t.id == id) {
+            return Err(format!("there is no text {id}"));
+        }
+        ids.extend(
+            job.drawing
+                .shapes
+                .iter()
+                .filter(|s| s.text() == Some(id))
+                .map(|s| s.id),
+        );
+    }
+    for &id in images {
+        if !job.drawing.images.iter().any(|i| i.id == id) {
+            return Err(format!("there is no picture {id}"));
+        }
+        ids.extend(
+            job.drawing
+                .shapes
+                .iter()
+                .filter(|s| s.image() == Some(id))
+                .map(|s| s.id),
+        );
+    }
+    Ok(ids)
 }

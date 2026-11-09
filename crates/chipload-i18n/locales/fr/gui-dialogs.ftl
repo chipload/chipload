@@ -116,6 +116,13 @@ sign-title = Nouvelle enseigne
 sign-body = Les mots, un cadre autour qui les suit, et chaque opération qui taille l'enseigne, dans une pièce à part. Tout reste modifiable ensuite.
 sign-words = Mots
 sign-words-hint = Ce que dit l'enseigne ; Entrée commence une nouvelle ligne
+sign-around = Autour de la sélection
+sign-around-body = { $count ->
+    [one] L'enseigne entoure la forme sélectionnée, sculptée avec la fraise en V. Le cadre la suit, y compris une image retracée.
+   *[other] L'enseigne entoure les { $count } formes sélectionnées, sculptées avec la fraise en V. Le cadre les suit, y compris une image retracée.
+}
+sign-around-words = Écrire des mots à la place
+sign-around-words-hover = Faire l'enseigne autour de nouveaux mots, comme sans sélection
 sign-font = Police
 sign-height = Hauteur
 sign-style = Style

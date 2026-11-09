@@ -68,6 +68,9 @@ pub struct SignBoard {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SignRequest {
     pub words: String,
+    /// Existing shapes to make the sign round (a traced picture, a text, drawn or DXF
+    /// shapes), by id, instead of new words; empty: the words.
+    pub around: Vec<u64>,
     pub font: String,
     /// The capital height, mm.
     pub height: f64,
@@ -99,6 +102,7 @@ impl SignRequest {
     pub fn new(words: &str, vbit: i64, end_mill: i64) -> SignRequest {
         SignRequest {
             words: words.to_string(),
+            around: Vec::new(),
             font: crate::texts::DEFAULT_FONT.to_string(),
             height: 30.0,
             kind: FrameKind::Rounded,
@@ -122,12 +126,134 @@ impl SignRequest {
     }
 }
 
+/// What a sign goes round: its shapes, the selector its letters' operation cuts them
+/// with, the group members they make, and the sign's name.
+#[derive(Debug, Clone)]
+struct Artwork {
+    ids: Vec<u64>,
+    select: Selector,
+    members: Members,
+    /// Every shape can be in the sign's group (texts and drawn shapes; a picture's or a
+    /// DXF's can't).
+    groupable: bool,
+    name: String,
+}
+
+impl Artwork {
+    /// Text `text`'s letters.
+    fn of_text(job: &Job, text: u64, name: &str) -> Artwork {
+        Artwork {
+            ids: job
+                .drawing
+                .shapes
+                .iter()
+                .filter(|s| s.text() == Some(text))
+                .map(|s| s.id)
+                .collect(),
+            select: Selector::of(Source::Text(text)),
+            members: Members {
+                shapes: Vec::new(),
+                texts: vec![text],
+            },
+            groupable: true,
+            name: name.to_string(),
+        }
+    }
+
+    /// Shapes `ids`, which must be in the drawing.
+    fn of(job: &Job, ids: &[u64], lang: Language) -> Result<Artwork, PipelineError> {
+        let shapes: Vec<&chipload_job::Shape> = ids
+            .iter()
+            .map(|id| {
+                job.drawing
+                    .shapes
+                    .iter()
+                    .find(|s| s.id == *id)
+                    .ok_or_else(|| crate::shapes::no_shape(*id))
+            })
+            .collect::<Result<_, _>>()?;
+        // All of one picture, text or DXF: cut as that source, the shapes not chosen left
+        // out (a traced picture's shapes can't be chosen by id, and it may be traced
+        // again); otherwise by id.
+        let first = shapes.first().and_then(|s| s.source());
+        let one_source = first.filter(|from| shapes.iter().all(|s| s.source() == Some(*from)));
+        let select = match one_source {
+            Some(from) => Selector {
+                source: Some(Source::from(from)),
+                exclude: job
+                    .drawing
+                    .shapes
+                    .iter()
+                    .filter(|s| s.source() == Some(from) && !ids.contains(&s.id))
+                    .map(|s| s.id)
+                    .collect(),
+                ..Selector::default()
+            },
+            None => Selector {
+                shapes: Some(ids.to_vec()),
+                ..Selector::default()
+            },
+        };
+        let mut members = Members::default();
+        let mut groupable = true;
+        for shape in &shapes {
+            if let Some(text) = shape.text() {
+                if !members.texts.contains(&text) {
+                    members.texts.push(text);
+                }
+            } else if shape.is_drawn() {
+                members.shapes.push(shape.id);
+            } else {
+                groupable = false;
+            }
+        }
+        let name = match one_source {
+            Some(chipload_core::chain::ShapeFrom::Image(id)) => job
+                .drawing
+                .images
+                .iter()
+                .find(|i| i.id == id)
+                .map(|i| file_stem(&i.file)),
+            Some(chipload_core::chain::ShapeFrom::Text(id)) => job
+                .drawing
+                .texts
+                .iter()
+                .find(|t| t.id == id)
+                .map(|t| sign_name(&t.text)),
+            Some(chipload_core::chain::ShapeFrom::Dxf(id)) => job
+                .drawing
+                .dxfs
+                .iter()
+                .find(|d| d.id == id)
+                .map(|d| d.name.clone()),
+            _ => None,
+        }
+        .filter(|n| !n.trim().is_empty())
+        .unwrap_or_else(|| Message::new("pipeline-name-sign").render(lang, Units::Mm));
+        Ok(Artwork {
+            ids: ids.to_vec(),
+            select,
+            members,
+            groupable,
+            name,
+        })
+    }
+}
+
+/// A file's name without its folders and extension.
+fn file_stem(file: &str) -> String {
+    std::path::Path::new(file)
+        .file_stem()
+        .map_or_else(|| file.to_string(), |s| s.to_string_lossy().into_owned())
+}
+
 /// What *New sign…* made.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SignMade {
     /// The sign's part, now the active one.
     pub part: u64,
-    pub text: u64,
+    /// The words' text; None for a sign round existing shapes.
+    pub text: Option<u64>,
     /// The frame's outline (the frame is named by it), and its border lines.
     pub outline: u64,
     pub borders: Vec<u64>,
@@ -176,7 +302,7 @@ fn check_tools(job: &Job, request: &SignRequest) -> Result<(), PipelineError> {
 
 /// What else must hold before anything is made.
 fn check_values(request: &SignRequest) -> Result<(), PipelineError> {
-    if sign_name(&request.words).is_empty() {
+    if request.around.is_empty() && sign_name(&request.words).is_empty() {
         return Err(refused(Message::new("pipeline-sign-words")));
     }
     if request.borders > 0 && !(request.border_width.is_finite() && request.border_width > 0.0) {
@@ -228,7 +354,17 @@ pub fn add_sign(
 ) -> Result<(Job, SignMade), PipelineError> {
     check_values(request)?;
     check_tools(job, request)?;
-    let name = sign_name(&request.words);
+    let art = match request.around.is_empty() {
+        true => None,
+        false => Some(Artwork::of(job, &request.around, lang)?),
+    };
+    if request.style == SignStyle::Raised && art.as_ref().is_some_and(|a| !a.groupable) {
+        return Err(refused(Message::new("pipeline-sign-raised-imported")));
+    }
+    let name = match &art {
+        Some(art) => art.name.clone(),
+        None => sign_name(&request.words),
+    };
     let ((x0, y0), (x1, y1)) = job.stock_bounds();
     let center = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
     // An empty active part (a new project's) becomes the sign's; otherwise a new one.
@@ -253,24 +389,25 @@ pub fn add_sign(
         stock.origin = StockOrigin::Drawing;
         stock.fit = Some(board.margin);
     }
-    let mut new = NewText::new(&request.words, request.height);
-    new.font = &request.font;
-    (new.x, new.y) = center;
-    new.anchor = TextAnchor::Center;
-    new.align = TextAlign::Center;
-    let (job, _) = add_text(&job, new, fonts)?;
-    let text = job.drawing.texts.iter().map(|t| t.id).max().unwrap_or(0);
-    let letters: Vec<u64> = job
-        .drawing
-        .shapes
-        .iter()
-        .filter(|s| s.text() == Some(text))
-        .map(|s| s.id)
-        .collect();
+    // The words, centred on the stock; or the shapes already there.
+    let (job, text, art) = match art {
+        Some(art) => (job, None, art),
+        None => {
+            let mut new = NewText::new(&request.words, request.height);
+            new.font = &request.font;
+            (new.x, new.y) = center;
+            new.anchor = TextAnchor::Center;
+            new.align = TextAlign::Center;
+            let (job, _) = add_text(&job, new, fonts)?;
+            let text = job.drawing.texts.iter().map(|t| t.id).max().unwrap_or(0);
+            let art = Artwork::of_text(&job, text, &name);
+            (job, Some(text), art)
+        }
+    };
     let mut frame = NewFrame::new(
         request.kind,
         FrameSize::Around {
-            ids: letters,
+            ids: art.ids.clone(),
             margin: request.margin,
         },
     );
@@ -283,10 +420,8 @@ pub fn add_sign(
     let framed = add_frame(&job, &frame)?;
     let outline = framed.new_ids[0];
     let borders = framed.new_ids[1..].to_vec();
-    let members = Members {
-        shapes: framed.new_ids.clone(),
-        texts: vec![text],
-    };
+    let mut members = art.members.clone();
+    members.shapes.extend(framed.new_ids.iter().copied());
     let (mut job, group_id) = group(&framed.job, &members, Some(&name))?;
     let contours = crate::load_drawing(&job)?.contours;
     let mut operations = Vec::new();
@@ -300,13 +435,12 @@ pub fn add_sign(
     };
     match request.style {
         SignStyle::Engraved => {
-            let mut op = ctx.make(
-                &job,
-                OpKind::Vcarve,
-                Selector::of(Source::Text(text)),
-                request.vbit,
-            )?;
-            *op.name_mut() = op_name("pipeline-name-sign-letters");
+            let mut op = ctx.make(&job, OpKind::Vcarve, art.select.clone(), request.vbit)?;
+            *op.name_mut() = op_name(if text.is_some() {
+                "pipeline-name-sign-letters"
+            } else {
+                "pipeline-name-sign-carving"
+            });
             operations.push(ctx.append(&mut job, op));
         }
         SignStyle::Raised => {
@@ -335,7 +469,7 @@ pub fn add_sign(
         }
         SignStyle::Inlay => {
             let inlay = InlayRequest {
-                select: Selector::of(Source::Text(text)),
+                select: art.select.clone(),
                 tool: request.vbit,
                 depth: inlay::DEFAULT_POCKET_DEPTH_MM,
                 plug_start: inlay::DEFAULT_PLUG_START_MM,
