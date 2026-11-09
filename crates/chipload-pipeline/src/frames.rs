@@ -761,6 +761,12 @@ pub fn set_frame(job: &Job, id: u64, change: &FrameChange) -> Result<Edited, Pip
             new_ids.push(id);
         }
     }
+    // New border lines join the frame's group, so a grouped sign stays whole.
+    if let Some(group) = out.drawing.group_of(old.outline)
+        && let Some(g) = out.drawing.groups.iter_mut().find(|g| g.id == group)
+    {
+        g.shapes.extend(new_ids.iter().copied());
+    }
     frame.outline = ids[0];
     frame.borders = ids[1..].to_vec();
     frame.center = [place.center.0, place.center.1];

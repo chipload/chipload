@@ -439,6 +439,21 @@ impl ChiploadApp {
                                 {
                                     app.start_frame();
                                 }
+                                let label = t!(ui, "header-sign");
+                                let hint = format!("{label}: {}", t!(ui, "header-sign-hover"));
+                                if small_ribbon_button(
+                                    ui,
+                                    Icon::Text,
+                                    &label,
+                                    can_draw,
+                                    false,
+                                    None,
+                                )
+                                .on_hover_text(hint)
+                                .clicked()
+                                {
+                                    app.start_sign();
+                                }
                             }
                         });
                     }

@@ -15,6 +15,7 @@ mod materials;
 mod parts;
 mod setups;
 mod shape_library;
+mod signs;
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -332,6 +333,12 @@ enum Command {
     Frame {
         #[command(subcommand)]
         action: frames::FrameAction,
+    },
+    /// A sign in one step: words, a frame that follows them, and every operation that
+    /// cuts it (docs/specs/sign-maker.md).
+    Sign {
+        #[command(subcommand)]
+        action: signs::SignAction,
     },
     /// A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md).
     Dxf {
@@ -754,6 +761,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Image { action } => images::image(out, action),
         Command::Text { action } => texts::text(out, action),
         Command::Frame { action } => frames::frame(out, action),
+        Command::Sign { action } => signs::sign(out, action),
         Command::Group { action } => groups::group_command(out, action),
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),

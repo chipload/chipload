@@ -1362,6 +1362,43 @@ chipload frame detach <PROJECT> <ID> [OPTIONS]
 | `<ID>` | Its outline's or a border's shape id. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload sign`
+
+A sign in one step: words, a frame that follows them, and every operation that cuts it (docs/specs/sign-maker.md)
+
+### `chipload sign add`
+
+Make a sign: the words centred on the board, a frame round them that follows them, the sign grouped in a part of its own, and its operations: the letters, the borders' grooves, the edge chamfer, and the profile that cuts it out
+
+```text
+chipload sign add <PROJECT> <WORDS> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<WORDS>` | What it says; "\n" starts a new line. |
+| `--font <FONT>` | The font (`chipload text fonts`) |
+| `--height <HEIGHT>` | The capital height, mm. Default: `30`. |
+| `--frame <FRAME>` | The frame (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. Default: `rounded`. |
+| `--corners <CORNERS>` | A rectangular frame's corners: sharp, round, notch, chamfer or step. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
+| `--corner <CORNER>` | The frame's corner size, mm (default: a tenth of its shorter side) |
+| `--margin <MARGIN>` | From the words to the inner edge of the innermost border's groove, mm. Default: `10`. |
+| `--borders <BORDERS>` | Border lines inside the outline, 0 to 3. Default: `1`. |
+| `--gap <GAP>` | From the outline to the first border and between borders, mm. Default: `5`. |
+| `--border-corners <BORDER_CORNERS>` | The borders' own corners, inside a rectangular frame. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
+| `--double` | Each border two grooves. |
+| `--border-width <BORDER_WIDTH>` | The borders' groove width at the surface, mm: their depth comes from the V-bit. |
+| `--style <STYLE>` | engraved (V-carved letters), raised (the background cleared round them) or inlay. One of: `engraved`, `raised`, `inlay`. Default: `engraved`. |
+| `--relief <RELIEF>` | A raised sign's background depth, mm. |
+| `--edge <EDGE>` | The outline's edge: `none`, or `chamfer:WIDTH` (mm) cut with the V-bit. Default: `none`. |
+| `--vbit <VBIT>` | The V-bit for the letters and grooves (a project tool id) Required. |
+| `--end-mill <END_MILL>` | The end mill that cuts the sign out (and clears a raised background) Required. |
+| `--thickness <THICKNESS>` | The board's thickness, mm; the board is fitted round the sign. |
+| `--board-margin <BOARD_MARGIN>` | From the sign's outline to the board's edges, mm. |
+| `--keep-stock` | Leave the stock as it is instead of fitting it round the sign. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload dxf`
 
 A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)

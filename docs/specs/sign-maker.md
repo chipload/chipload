@@ -3,7 +3,7 @@
 Status: **approved 2026-11-09** (all eight decisions as recommended: "we build it and
 iterate if needed"). Building on branch `signs`, in the order of decision 8: step 1, live
 frames (§4), built; step 2, frames and borders (§5), built; step 3, *New sign…* (§3,
-§6).
+§6), built. All three steps done; next, the user tries it and we iterate.
 
 The user (2026-11-09), after the V-carve inlay: "After that i want more refined sign frames
 and a reworked workflow around that if necessary". This spec reviews how a sign is made
@@ -255,3 +255,32 @@ Step 2 (frames and borders), 2026-11-09:
 - **The follow path's depth from a width:** a follow path with a V-bit has a *Groove width*
   row that sets its end depth (`Tool::vbit_depth_for`). That is how a border's width
   reaches its cut, in the window as in *New sign…* later.
+
+Step 3 (*New sign…*), 2026-11-09:
+- **One group.** The words and the frame's shapes are grouped, named after the words: a
+  click selects the sign, a drag moves it, and the frame keeps following (moved with its
+  text). The raised style needs it: its pocket selects the group without the outline and
+  the outer border lines (`exclude`), which is the innermost line and the letters, and
+  stays right when the words change. Border lines that `frame set` adds join the group.
+  Changing a raised sign's number of borders afterwards leaves the pocket's selection as
+  it was: choose its shapes again.
+- **Selectors.** Letters by their text, borders and outline by shape id (their ids stay
+  when the frame is drawn again), so every operation keeps cutting the sign when the
+  words change (tested: a sign's words changed, then generated).
+- **A raised sign needs a border** (the background is cleared inside the innermost one);
+  without one it is refused. The innermost border's groove, cut after the background,
+  chamfers the background's edge.
+- **The edge chamfer** is a follow path on the outline, as deep as a groove twice the
+  chamfer's width needs (`vbit_depth_for(2c)`): half of it is outside the sign. Refused
+  when the V-bit can't cut that wide.
+- **The part.** A new project's empty active part becomes the sign's (renamed) rather than
+  leaving an empty *Part 1*; otherwise a new part.
+- **Where it goes:** centred on the stock. A second sign in the same project lands on the
+  first; move it (one drag, it is a group). Placing it beside what is drawn could come
+  later.
+- **The board** is fitted round the drawing (`stock.fit`) only when asked: on by default
+  in the window when nothing is drawn yet, on by default on the command line
+  (`--keep-stock` to leave it).
+- **Not in the first version:** the height *fit* (as large as a frame of a fixed size
+  allows) and a sign to a fixed size; the start page's button. Words with a fixed height
+  and the frame round them cover the common case.

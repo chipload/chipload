@@ -101,6 +101,8 @@ menu-draw-text = Text
 menu-draw-text-hover = Write a text, then click where it starts
 menu-draw-frame = Frame…
 menu-draw-frame-hover = A frame for a sign: round the selection, or to a size, with border lines
+menu-draw-sign = New sign…
+menu-draw-sign-hover = A whole sign in one step: the words, a frame that follows them, and every operation that cuts it
 
 # Help menu.
 menu-user-guide = User guide

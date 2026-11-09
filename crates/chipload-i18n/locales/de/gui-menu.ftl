@@ -101,6 +101,8 @@ menu-draw-text = Text
 menu-draw-text-hover = Einen Text schreiben, dann klicken, wo er beginnt
 menu-draw-frame = Rahmen…
 menu-draw-frame-hover = Ein Rahmen für ein Schild: um die Auswahl oder in einer Größe, mit Randlinien
+menu-draw-sign = Neues Schild…
+menu-draw-sign-hover = Ein ganzes Schild in einem Schritt: die Wörter, ein Rahmen, der ihnen folgt, und jede Operation, die es schneidet
 
 # Help menu.
 menu-user-guide = Benutzerhandbuch

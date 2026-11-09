@@ -28,6 +28,7 @@ pub mod setups;
 pub mod shape_library;
 pub mod shapes;
 pub mod sheet;
+pub mod sign;
 pub mod simulate;
 pub mod styles;
 pub mod surface;

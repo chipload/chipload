@@ -39,6 +39,7 @@ mod screenshots;
 mod select_drag;
 mod setups;
 mod shape_library;
+mod sign;
 mod statistics;
 mod stock;
 mod styles;

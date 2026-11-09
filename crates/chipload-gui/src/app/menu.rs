@@ -625,6 +625,14 @@ impl ChiploadApp {
             self.start_frame();
             ui.close();
         }
+        if ui
+            .add_enabled(can_draw, egui::Button::new(t!(ui, "menu-draw-sign")))
+            .on_hover_text(t!(ui, "menu-draw-sign-hover"))
+            .clicked()
+        {
+            self.start_sign();
+            ui.close();
+        }
     }
 
     /// The Modify menu's items: the editing tools (docs/specs/drawing-editing.md §8).

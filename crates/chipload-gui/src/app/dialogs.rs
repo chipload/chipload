@@ -224,6 +224,7 @@ impl ChiploadApp {
             }
             Prompt::ExportDxf => self.export_dxf_prompt(ctx),
             Prompt::Inlay(settings) => self.inlay_prompt(ctx, settings),
+            Prompt::Sign(settings) => self.sign_prompt(ctx, settings),
             Prompt::PxPerInch(path, purpose, mut typed) => {
                 let mut chosen = None;
                 egui::Window::new(t!(ctx, "dialogs-px-title"))

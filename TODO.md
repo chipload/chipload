@@ -174,9 +174,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    (words, frame, style engraved/raised/inlay, edge, tools → drawing and operations in one
    step), frames that follow their text (an optional `frame` record), five new frame kinds,
    corner styles, borders by groove width, a V-bit edge chamfer. **Approved 2026-11-09**,
-   all as recommended ("we build it and iterate if needed"). Steps 1 (live frames) and 2
-   (frames, corners, borders) built (see *In main, not released yet*); next step 3, *New
-   sign…* with the edge chamfer (§3, §6).
+   all as recommended ("we build it and iterate if needed"). All three steps built
+   (see *In main, not released yet*); next the user tries them and we iterate. Left for
+   later (§8, §10): a sign to a fixed size with the height fitted, placing a second sign
+   beside the first, *New sign…* on the start page.
 13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
@@ -246,6 +247,12 @@ Smaller follow-ups noted along the way, not in the order above:
   them or everything it went round lets it go, with a note. The selected frame's values in
   a *Frame* card under Selection, with *Detach*; `frame list`/`set`/`detach`. Every
   command line save follows the frames (one `save_project`).
+- **New sign…** (sign-maker.md §3, §6, step 3, branch `signs`): words, frame, style
+  (engraved, raised, inlay), edge chamfer, tools and board in one dialog with the sign
+  drawn and the operations it adds; the sign grouped in a part of its own, its operations
+  in cutting order (letters or background or the inlay's pocket, borders as deep as their
+  groove width, edge chamfer, cut out with tabs), one undo step; `chipload sign add`.
+  Tested by generating each style, simulating a raised sign, and changing the words.
 - **More frames, corners and borders** (sign-maker.md §5, step 2, branch `signs`): gable,
   arched top and bottom, shield, banner and octagon; a rectangle's corners (sharp, round,
   notch, chamfer, and the new step) chosen under one *Rectangle* picture, `--corners`;

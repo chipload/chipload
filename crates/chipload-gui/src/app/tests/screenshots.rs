@@ -113,6 +113,13 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "frame",
         (1200.0, 800.0),
     ),
+    // Signs: New sign… filled in (docs/specs/sign-maker.md §3).
+    (
+        "new-sign",
+        "tests/corpus/jobs/v27/text.chipload",
+        "new-sign,noreport",
+        (1200.0, 1000.0),
+    ),
     // Signs: the golden sign (framed letters V-carved, the border grooved, cut out),
     // simulated.
     (

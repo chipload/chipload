@@ -50,6 +50,8 @@ pub struct CanvasTools {
     /// Draw > Frame…'s values, kept for the session, and its preview.
     pub frame: frames::FrameSettings,
     pub(super) frame_preview: frames::FramePreview,
+    /// *New sign…*'s sign as last drawn in its dialog.
+    pub(super) sign_preview: super::sign::SignPreview,
 }
 
 impl Default for CanvasTools {
@@ -70,6 +72,7 @@ impl Default for CanvasTools {
             array_preview: modify::ArrayPreview::default(),
             frame: frames::FrameSettings::default(),
             frame_preview: frames::FramePreview::default(),
+            sign_preview: super::sign::SignPreview::default(),
         }
     }
 }

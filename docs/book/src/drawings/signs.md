@@ -5,6 +5,41 @@ Frame…** draws the frame for you: round the text you have written, centred on 
 border lines inside it, or to a size as a blank. A sign you will make again can be kept in the
 [shape library](shape-library.md). (Design: `docs/specs/shape-library.md`.)
 
+## A sign in one step
+
+**New sign…** (the small *Sign* button beside *Frame* in the ribbon's *DRAW* group, or *DRAW
+▾ > New sign…*) makes a whole sign: the words, a frame round them, and every operation that
+cuts it, in a part of its own named after the words (a new project's empty part becomes
+it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
+`docs/specs/sign-maker.md`.)
+
+![New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds](../images/new-sign.png)
+
+- **Words**, **Font**, **Height**: the text, centred on the board.
+- **Frame**: as for *Frame…* below: the kind, margin, corner, borders and their groove
+  width. The frame follows the words afterwards.
+- **Style**:
+  - *Engraved*: the letters V-carved;
+  - *Raised*: the background inside the innermost border cut down round the letters with
+    the end mill (**Background depth**, 3 mm by default), the letters and the border left
+    standing; it needs a border. Inside corners round the letters keep the end mill's
+    radius;
+  - *Inlay*: the letters as a [V-carve inlay](../operations/vcarve.md#inlays), the plug in a
+    board of its own.
+- **Edge**: a **Chamfer** of that width round the outline, cut with the V-bit centred on the
+  outline before the sign is cut out (the other half of the groove is in the waste).
+- **V-bit**, **End mill**: from the project's tools. The V-bit carves the letters and the
+  grooves, the end mill cuts the sign out (and clears a raised background).
+- **Board**: *Fit round the sign* (on in an empty project) fits the stock round the drawing
+  with the margin, at the thickness.
+
+It adds, in cutting order: *Letters* (or *Background*, or the inlay's pocket), *Borders*
+(a follow path on the border lines as deep as the groove width needs), *Edge chamfer*,
+and *Cut out* (a profile outside the outline, through, with tabs). Feeds come from the
+tools' cutting data. The words and the frame are one group: a click selects the sign, a drag
+moves it. All of it is one undo step, and every part of it is ordinary shapes and
+operations afterwards.
+
 ![A text selected, Draw > Frame… open under Selection, a rounded frame with one border previewed round the text](../images/frame.png)
 
 ## A frame round a text
@@ -125,12 +160,18 @@ chipload frame add sign.chipload --kind rounded --around-text 1 --borders 1 --co
 chipload frame add blank.chipload --kind oval --width 300 --height 150 --borders 2
 chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --double --border-width 2
 chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
+chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectangle --corners notch \
+    --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
 chipload frame kinds
 chipload frame list sign.chipload                              # the frames that follow, with their values
 chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again
 chipload frame detach sign.chipload 7                          # plain shapes from now on
 ```
 
+`sign add` takes the frame's options as `frame add` does (`--frame` for the kind), and
+`--style engraved|raised|inlay`, `--relief`, `--edge none|chamfer:WIDTH`, `--vbit`,
+`--end-mill` (project tool ids), `--thickness` and `--board-margin` (or `--keep-stock`);
+`--json` gives the new part, text, outline, borders, group and operations.
 `--kind` is one of the frames above (`rectangle`, `oval`, `arched`, `double-arch`, `gable`,
 `shield`, `plaque`, `banner`, `octagon`); `--corners` (`sharp`, `round`, `notch`, `chamfer`,
 `step`) picks a rectangle's corners, and the older names `rounded`, `notched`, `chamfered`

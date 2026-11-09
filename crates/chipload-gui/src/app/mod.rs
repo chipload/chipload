@@ -79,6 +79,7 @@ mod select_drag;
 mod setups;
 mod shape_library;
 mod shortcuts;
+mod sign;
 mod simulation;
 mod sources;
 mod styles;
@@ -256,6 +257,8 @@ enum Prompt {
     },
     /// *Inlay…*: the inlay's values so far (docs/specs/vcarve-inlay.md §4).
     Inlay(inlay::InlaySettings),
+    /// *New sign…*: the sign's values so far (docs/specs/sign-maker.md §3).
+    Sign(Box<sign::SignSettings>),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame

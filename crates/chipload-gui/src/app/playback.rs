@@ -435,6 +435,18 @@ impl ChiploadApp {
             self.start_frame();
             self.canvas_tools.frame.borders = 1;
         }
+        // New sign… filled in: its values, the sign drawn and what it adds
+        // (docs/specs/sign-maker.md §3).
+        if steps.contains(&"new-sign") {
+            self.start_sign();
+            if let Some(Prompt::Sign(settings)) = self.dialogs.prompt.as_mut() {
+                settings.words = "THE NÄSLUNDS".into();
+                settings.font = "FreeSerif".into();
+                settings.kind = chipload_pipeline::frames::FrameKind::Notched;
+                settings.double = true;
+                settings.edge = true;
+            }
+        }
         // The shape library's tab with a few entries: the sign itself, and frames in a
         // group (docs/specs/shape-library.md §5.1).
         if steps.contains(&"shapes") {

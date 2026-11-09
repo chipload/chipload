@@ -620,6 +620,22 @@ pipeline-name-holes = Holes { $number }
 pipeline-name-surface = Surface { $number }
 pipeline-name-inlay-pocket = Inlay pocket
 pipeline-name-inlay-plug = Inlay plug
+# New sign… (docs/specs/sign-maker.md §3): the operations' names, and why a sign can't be made.
+pipeline-name-sign-letters = Letters
+pipeline-name-sign-background = Background
+pipeline-name-sign-borders = Borders
+pipeline-name-sign-edge = Edge chamfer
+pipeline-name-sign-cut-out = Cut out
+pipeline-sign-words = a sign needs some words
+pipeline-sign-vbit = tool { $tool } isn't a V-bit with its angle: a sign's letters and grooves are cut with one
+pipeline-sign-end-mill = tool { $tool } isn't an end mill: a sign is cut out with one
+pipeline-sign-border-width = a sign's borders need their groove width, more than 0, got { $got }
+pipeline-sign-raised-border = a raised sign needs a border: the background is cleared inside the innermost one
+pipeline-sign-relief = the background's depth must be more than 0, got { $got }
+pipeline-sign-edge = the edge chamfer's width must be more than 0, got { $got }
+pipeline-sign-board = the board's thickness must be more than 0 and its margin 0 or more
+pipeline-sign-groove-wide = a groove { $width } wide is wider than V-bit { $tool } can cut
+pipeline-sign-edge-wide = a chamfer { $width } wide is more than V-bit { $tool } can cut (it cuts a groove twice as wide, centred on the outline)
 pipeline-setup-inlay-plug = Inlay plug board
 pipeline-inlay-vbit = an inlay is V-carved: tool { $tool } must be a V-bit with an angle
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then

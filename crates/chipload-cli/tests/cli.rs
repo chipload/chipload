@@ -2527,6 +2527,86 @@ fn a_frame_follows_its_text_and_is_set_and_let_go_of_from_the_command_line() {
 }
 
 #[test]
+fn a_sign_is_made_in_one_step_from_the_command_line() {
+    // docs/specs/sign-maker.md §3, §7.
+    let dir = temp_dir("sign-add");
+    let project = dir.join("sign.chipload");
+    let p = path(&project);
+    let tools = r#"tools=[{"id":1,"type":"endmill","diameter":6.0,"rpm":18000.0},{"id":2,"type":"vbit","diameter":12.7,"angle":1.0471975511965976,"tip_diameter":0.2,"rpm":18000.0}]"#;
+    for step in [&["new", "-o", p][..], &["set", p, tools]] {
+        let out = chipload(step);
+        assert!(out.status.success(), "{step:?}: {}", text(&out.stderr));
+    }
+    let out = chipload(&[
+        "sign",
+        "add",
+        p,
+        "WELCOME",
+        "--frame",
+        "rectangle",
+        "--corners",
+        "notch",
+        "--double",
+        "--edge",
+        "chamfer:3",
+        "--vbit",
+        "2",
+        "--end-mill",
+        "1",
+        "--json",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(
+        json["operations"],
+        serde_json::json!([1, 2, 3, 4]),
+        "{json}"
+    );
+    assert_eq!(json["borders"].as_array().unwrap().len(), 2);
+    let out = chipload(&["run", p, "-o", path(&dir.join("out.nc")), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    // A raised sign without a border, and an edge that isn't a chamfer: refused.
+    let out = chipload(&[
+        "sign",
+        "add",
+        p,
+        "NO",
+        "--style",
+        "raised",
+        "--borders",
+        "0",
+        "--vbit",
+        "2",
+        "--end-mill",
+        "1",
+    ]);
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        text(&out.stderr).contains("needs a border"),
+        "{}",
+        text(&out.stderr)
+    );
+    let out = chipload(&[
+        "sign",
+        "add",
+        p,
+        "NO",
+        "--edge",
+        "round:3",
+        "--vbit",
+        "2",
+        "--end-mill",
+        "1",
+    ]);
+    assert!(
+        text(&out.stderr).contains("round-over bit"),
+        "{}",
+        text(&out.stderr)
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn svgs_are_imported_inspected_and_added_from_the_command_line() {
     // docs/specs/svg-import.md §10.
     let dir = temp_dir("svg");

@@ -101,6 +101,8 @@ menu-draw-text = Text
 menu-draw-text-hover = Skriv en text och klicka sedan där den börjar
 menu-draw-frame = Ram…
 menu-draw-frame-hover = En ram för en skylt: runt markeringen eller i en storlek, med kantlinjer
+menu-draw-sign = Ny skylt…
+menu-draw-sign-hover = En hel skylt i ett steg: orden, en ram som följer dem och varje operation som skär den
 
 # Help menu.
 menu-user-guide = Användarhandbok

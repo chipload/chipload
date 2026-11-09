@@ -99,16 +99,16 @@ fn corners_name(ui: &egui::Ui, style: CornerStyle) -> String {
 
 /// The rows for a frame's borders after the count: gap, their corners (a rectangular
 /// frame), double lines and the groove width (docs/specs/sign-maker.md §5).
-struct BorderValues<'a> {
-    kind: FrameKind,
-    borders: u32,
-    gap: &'a mut f64,
-    corners: &'a mut Option<CornerStyle>,
-    double: &'a mut bool,
-    width: &'a mut f64,
+pub(super) struct BorderValues<'a> {
+    pub kind: FrameKind,
+    pub borders: u32,
+    pub gap: &'a mut f64,
+    pub corners: &'a mut Option<CornerStyle>,
+    pub double: &'a mut bool,
+    pub width: &'a mut f64,
 }
 
-fn border_rows(ui: &mut egui::Ui, id: &str, v: BorderValues<'_>) {
+pub(super) fn border_rows(ui: &mut egui::Ui, id: &str, v: BorderValues<'_>) {
     if v.borders == 0 {
         return;
     }
@@ -478,7 +478,7 @@ impl ChiploadApp {
 
 /// The frames as small pictures to pick from, `chosen` marked; a click picks one. The
 /// rectangular frames are one picture, with their corners chosen under it (§5).
-fn kind_choice(ui: &mut egui::Ui, id: &str, chosen: &mut FrameKind) {
+pub(super) fn kind_choice(ui: &mut egui::Ui, id: &str, chosen: &mut FrameKind) {
     ui.horizontal_wrapped(|ui| {
         for kind in FrameKind::SHAPES {
             let rectangular = kind.corner_style().is_some();
