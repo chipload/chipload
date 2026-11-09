@@ -170,9 +170,11 @@ to a program you trust. It was about four per operation; with the defaults and s
     alternative is a basic laser post and mode with its own spec. The user decides.
 12. **Sign frames, refined, and the workflow round them** (the user, 2026-11-09: "more
    refined sign frames and a reworked workflow around that if necessary"), after the
-   inlay. Review first: today's frames (*Draw > Frame…*, `frame add`, the shape library),
-   what a sign maker does from blank board to cut sign, and where the steps are slow;
-   then a spec with numbered decisions.
+   inlay. **Review and draft spec 2026-11-09** (docs/specs/sign-maker.md): *New sign…*
+   (words, frame, style engraved/raised/inlay, edge, tools → drawing and operations in one
+   step), frames that follow their text (an optional `frame` record), five new frame kinds,
+   corner styles, borders by groove width, a V-bit edge chamfer; decisions 1-8 for the
+   user.
 13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
