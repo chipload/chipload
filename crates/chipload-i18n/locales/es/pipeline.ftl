@@ -604,6 +604,9 @@ pipeline-frame-borders-fit = { $count ->
     [one] un borde a { $gap } hacia dentro no cabe en este marco
    *[other] { $count } bordes separados { $gap } no caben en este marco
 }
+pipeline-frame-border-width = el ancho de ranura de un borde debe ser 0 o más, es { $got }
+pipeline-frame-double-width = un borde doble necesita su ancho de ranura: sus dos líneas quedan al doble de esa distancia
+pipeline-frame-border-corners = solo los bordes de un marco rectangular pueden tener esquinas propias
 pipeline-frame-edited = El marco S{ $id } se cambió a mano, así que ya no sigue lo que rodea.
 pipeline-frame-lost = El marco S{ $id } perdió su forma S{ $shape }, así que ya no sigue lo que rodea.
 pipeline-frame-follows-nothing = Lo que rodeaba el marco S{ $id } ya no está; se queda donde está y no sigue nada.

@@ -220,10 +220,13 @@ A frame for a sign that follows what it goes round (docs/specs/sign-maker.md §4
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `around` | [FrameAround](#framearound) or null | no | What it goes round. None: drawn to a size, following nothing. |
+| `border_corners` | [FrameCorners](#framecorners) or null | no | The borders' own corner style, for a rectangular frame; None: they follow the outline's shape, each `gap` further in (docs/specs/sign-maker.md §5). |
+| `border_width` | number | no | The width of a border's groove at the surface, mm: the margin is measured to its inner edge, and a double border's lines are twice it apart. 0: lines as drawn. |
 | `borders` | list of integer | no | Its border lines inside the outline, outside in, by shape id. |
 | `center` | 2 × number | yes | Where it was last drawn: the outline's centre, mm. |
 | `corner` | number | yes | The corner size, mm: what it is depends on the kind (`chipload frame kinds`). |
-| `gap` | number | yes | From the outline to the first border, and between borders, mm. |
+| `double` | boolean | no | Each border two lines, twice `border_width` apart, which leaves a ridge as wide as a groove between them. |
+| `gap` | number | yes | From the outline to the first border, and from one border to the next (from its inner line, for double borders), mm. |
 | `height` | number | yes | The outline's height as last drawn, mm. |
 | `kind` | [FrameShape](#frameshape) | yes | The outline's shape. |
 | `margin` | number | yes | From the box of what it goes round to its innermost line, mm. |
@@ -240,11 +243,17 @@ What a frame goes round: texts with all their letters, pictures with all their t
 | `shapes` | list of integer | no |  |
 | `texts` | list of integer | no |  |
 
+## FrameCorners
+
+The corner style of a rectangular frame's borders (docs/specs/sign-maker.md §5).
+
+One of: `"sharp"`, `"round"`, `"notch"`, `"chamfer"`, `"step"`.
+
 ## FrameShape
 
 A frame's outline (docs/specs/shape-library.md §3.1).
 
-One of: `"rectangle"`, `"rounded"`, `"notched"`, `"chamfered"`, `"oval"`, `"arched"`, `"plaque"`.
+One of: `"rectangle"`, `"rounded"`, `"notched"`, `"chamfered"`, `"oval"`, `"arched"`, `"plaque"`, `"stepped"`, `"gable"`, `"double_arch"`, `"shield"`, `"banner"`, `"octagon"`.
 
 ## HoleMethod
 

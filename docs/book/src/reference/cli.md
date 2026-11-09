@@ -1292,7 +1292,7 @@ chipload frame add <PROJECT> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `--kind <KIND>` | Which frame (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `oval`, `arched`, `plaque`. Required. |
+| `--kind <KIND>` | Which frame (`frame kinds`); default rectangle, with --corners. One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. |
 | `--around <AROUND>` | Round these shapes (ids as `inspect` lists them, without the S): the frame is centred on their box, --margin from it to the innermost line. Repeatable. |
 | `--around-text <AROUND_TEXT>` | Round these texts' letters (ids as `text list` shows them) Repeatable. |
 | `--margin <MARGIN>` | From the shapes' box to the innermost line, mm (default 10) |
@@ -1302,6 +1302,10 @@ chipload frame add <PROJECT> [OPTIONS]
 | `--corner <CORNER>` | The corner size, mm (default: a tenth of the shorter side; `frame kinds` says what it is for each frame) |
 | `--borders <BORDERS>` | Border lines inside the outline, 0 to 3. Default: `0`. |
 | `--gap <GAP>` | From the outline to the first border and between borders, mm. Default: `5`. |
+| `--corners <CORNERS>` | A rectangular frame's corners: sharp, round, notch, chamfer or step (with --kind rectangle, or instead of it) One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
+| `--border-corners <BORDER_CORNERS>` | The borders' own corners, inside a rectangular frame (default: the outline's shape) One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
+| `--double` | Each border two lines, twice --border-width apart. |
+| `--border-width <BORDER_WIDTH>` | A border's groove width at the surface, mm: the margin is measured to its inner edge (default 0: lines) Default: `0`. |
 | `--layer <LAYER>` | The outline's layer. Default: `frame`. |
 | `--border-layer <BORDER_LAYER>` | The borders' layer. Default: `border`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
@@ -1330,11 +1334,16 @@ chipload frame set <PROJECT> <ID> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<ID>` | Its outline's or a border's shape id. |
-| `--kind <KIND>` | Another frame kind (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `oval`, `arched`, `plaque`. |
+| `--kind <KIND>` | Another frame kind (`frame kinds`) One of: `rectangle`, `rounded`, `notched`, `chamfered`, `stepped`, `oval`, `arched`, `double-arch`, `gable`, `shield`, `plaque`, `banner`, `octagon`. |
 | `--corner <CORNER>` | The corner size, mm. |
 | `--margin <MARGIN>` | From what it goes round to the innermost line, mm. |
 | `--borders <BORDERS>` | Border lines inside the outline, 0 to 3. |
 | `--gap <GAP>` | From the outline to the first border and between borders, mm. |
+| `--corners <CORNERS>` | A rectangular frame's corners: sharp, round, notch, chamfer or step. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
+| `--border-corners <BORDER_CORNERS>` | The borders' own corners, inside a rectangular frame. One of: `sharp`, `round`, `notch`, `chamfer`, `step`. |
+| `--border-corners-off` | The borders follow the outline's shape again. |
+| `--double <DOUBLE>` | Each border two lines (true) or one (false) One of: `true`, `false`. |
+| `--border-width <BORDER_WIDTH>` | A border's groove width at the surface, mm. |
 | `--width <WIDTH>` | A frame drawn to a size: its outline's width, mm. |
 | `--height <HEIGHT>` | A frame drawn to a size: its outline's height, mm. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |

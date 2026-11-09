@@ -599,6 +599,9 @@ pipeline-frame-borders-fit = { $count ->
     [one] eine Randlinie { $gap } innen passt nicht in diesen Rahmen
    *[other] { $count } Randlinien im Abstand { $gap } passen nicht in diesen Rahmen
 }
+pipeline-frame-border-width = die Rillenbreite eines Randes muss 0 oder mehr sein, ist { $got }
+pipeline-frame-double-width = ein doppelter Rand braucht seine Rillenbreite: seine zwei Linien liegen doppelt so weit auseinander
+pipeline-frame-border-corners = nur die Ränder eines rechteckigen Rahmens können eigene Ecken haben
 pipeline-frame-edited = Rahmen S{ $id } wurde von Hand geändert und folgt nicht mehr dem, was er umgibt.
 pipeline-frame-lost = Rahmen S{ $id } hat seine Form S{ $shape } verloren und folgt nicht mehr dem, was er umgibt.
 pipeline-frame-follows-nothing = Was Rahmen S{ $id } umgab, ist weg; er bleibt, wo er ist, und folgt nichts mehr.

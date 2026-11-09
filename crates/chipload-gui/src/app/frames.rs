@@ -5,8 +5,8 @@
 
 use chipload_core::Point;
 use chipload_pipeline::frames::{
-    BORDER_LAYER, FRAME_LAYER, FrameChange, FrameKind, FrameSize, MOST_BORDERS, NewFrame,
-    add_frame, detach_frame, kind_of, place_frame, set_frame,
+    BORDER_LAYER, CornerStyle, FRAME_LAYER, FrameChange, FrameKind, FrameSize, MOST_BORDERS,
+    NewFrame, add_frame, detach_frame, kind_of, place_frame, set_frame, style_of,
 };
 
 use super::modify::ModifyTool;
@@ -24,6 +24,11 @@ pub struct FrameSettings {
     pub borders: u32,
     /// Outline to first border, and between borders, mm.
     pub gap: f64,
+    /// The borders' own corners, in a rectangular frame; None: the outline's shape.
+    pub border_corners: Option<CornerStyle>,
+    pub double: bool,
+    /// A border's groove width at the surface, mm.
+    pub border_width: f64,
     /// Round the selection: from its box to the innermost line, mm.
     pub margin: f64,
     /// With nothing selected: the outline's size, mm.
@@ -41,6 +46,9 @@ impl Default for FrameSettings {
             corner: 10.0,
             borders: 1,
             gap: 5.0,
+            border_corners: None,
+            double: false,
+            border_width: 0.0,
             margin: 10.0,
             width: 300.0,
             height: 150.0,
@@ -69,7 +77,71 @@ fn kind_name(ui: &egui::Ui, kind: FrameKind) -> String {
         FrameKind::Oval => t!(ui, "frame-kind-oval"),
         FrameKind::Arched => t!(ui, "frame-kind-arched"),
         FrameKind::Plaque => t!(ui, "frame-kind-plaque"),
+        FrameKind::Stepped => t!(ui, "frame-kind-stepped"),
+        FrameKind::DoubleArch => t!(ui, "frame-kind-double-arch"),
+        FrameKind::Gable => t!(ui, "frame-kind-gable"),
+        FrameKind::Shield => t!(ui, "frame-kind-shield"),
+        FrameKind::Banner => t!(ui, "frame-kind-banner"),
+        FrameKind::Octagon => t!(ui, "frame-kind-octagon"),
     }
+}
+
+/// A rectangular frame's corner style in the window's language.
+fn corners_name(ui: &egui::Ui, style: CornerStyle) -> String {
+    match style {
+        CornerStyle::Sharp => t!(ui, "frame-corners-sharp"),
+        CornerStyle::Round => t!(ui, "frame-corners-round"),
+        CornerStyle::Notch => t!(ui, "frame-corners-notch"),
+        CornerStyle::Chamfer => t!(ui, "frame-corners-chamfer"),
+        CornerStyle::Step => t!(ui, "frame-corners-step"),
+    }
+}
+
+/// The rows for a frame's borders after the count: gap, their corners (a rectangular
+/// frame), double lines and the groove width (docs/specs/sign-maker.md §5).
+struct BorderValues<'a> {
+    kind: FrameKind,
+    borders: u32,
+    gap: &'a mut f64,
+    corners: &'a mut Option<CornerStyle>,
+    double: &'a mut bool,
+    width: &'a mut f64,
+}
+
+fn border_rows(ui: &mut egui::Ui, id: &str, v: BorderValues<'_>) {
+    if v.borders == 0 {
+        return;
+    }
+    ui.label(t!(ui, "frame-gap"));
+    ui.add(crate::units::length(v.gap))
+        .on_hover_text(t!(ui, "frame-gap-hover"));
+    ui.end_row();
+    if v.kind.corner_style().is_some() {
+        ui.label(t!(ui, "frame-border-corners"));
+        let shown = match *v.corners {
+            Some(style) => corners_name(ui, style),
+            None => t!(ui, "frame-border-corners-same"),
+        };
+        egui::ComboBox::from_id_salt(format!("{id}-border-corners"))
+            .selected_text(shown)
+            .show_ui(ui, |ui| {
+                ui.selectable_value(v.corners, None, t!(ui, "frame-border-corners-same"));
+                for style in CornerStyle::ALL {
+                    ui.selectable_value(v.corners, Some(style), corners_name(ui, style));
+                }
+            })
+            .response
+            .on_hover_text(t!(ui, "frame-border-corners-hover"));
+        ui.end_row();
+    }
+    ui.label(t!(ui, "frame-border-width"));
+    ui.add(crate::units::length(v.width))
+        .on_hover_text(t!(ui, "frame-border-width-hover"));
+    ui.end_row();
+    ui.label("");
+    ui.checkbox(v.double, t!(ui, "frame-double"))
+        .on_hover_text(t!(ui, "frame-double-hover"));
+    ui.end_row();
 }
 
 impl ChiploadApp {
@@ -111,6 +183,9 @@ impl ChiploadApp {
             r: f.corner_set.then_some(f.corner),
             borders: f.borders,
             gap: f.gap,
+            border_corners: f.border_corners.filter(|_| f.kind.corner_style().is_some()),
+            double: f.double,
+            border_width: f.border_width,
             size,
             layer: f.layer.clone(),
             border_layer: f.border_layer.clone(),
@@ -181,7 +256,7 @@ impl ChiploadApp {
         } else {
             t!(ui, "frame-to-size")
         });
-        kind_pictures(ui, &mut self.canvas_tools.frame.kind);
+        kind_choice(ui, "frame", &mut self.canvas_tools.frame.kind);
         let units = self.prefs.units;
         let f = &mut self.canvas_tools.frame;
         egui::Grid::new("frame-form").num_columns(2).show(ui, |ui| {
@@ -220,12 +295,18 @@ impl ChiploadApp {
             ui.label(t!(ui, "frame-borders"));
             ui.add(egui::DragValue::new(&mut f.borders).range(0..=MOST_BORDERS));
             ui.end_row();
-            if f.borders > 0 {
-                ui.label(t!(ui, "frame-gap"));
-                ui.add(crate::units::length(&mut f.gap))
-                    .on_hover_text(t!(ui, "frame-gap-hover"));
-                ui.end_row();
-            }
+            border_rows(
+                ui,
+                "frame",
+                BorderValues {
+                    kind: f.kind,
+                    borders: f.borders,
+                    gap: &mut f.gap,
+                    corners: &mut f.border_corners,
+                    double: &mut f.double,
+                    width: &mut f.border_width,
+                },
+            );
             ui.label(t!(ui, "frame-layer"));
             ui.add(egui::TextEdit::singleline(&mut f.layer).desired_width(100.0));
             ui.end_row();
@@ -289,6 +370,12 @@ impl ChiploadApp {
         let mut margin = frame.margin;
         let mut borders = u32::try_from(frame.borders.len()).unwrap_or(0);
         let mut gap = frame.gap;
+        let mut border_corners = frame.border_corners.map(style_of);
+        let mut double = frame.double;
+        let mut border_width = frame.border_width;
+        let lines_per = if frame.double { 2 } else { 1 };
+        borders /= lines_per;
+        let old_borders = borders;
         let mut width = frame.width;
         let mut height = frame.height;
         let mut detach = false;
@@ -305,7 +392,7 @@ impl ChiploadApp {
                     ),
                     None => t!(ui, "frame-live-fixed"),
                 });
-                kind_pictures(ui, &mut kind);
+                kind_choice(ui, "live-frame", &mut kind);
                 egui::Grid::new("live-frame").num_columns(2).show(ui, |ui| {
                     if frame.around.is_some() {
                         ui.label(t!(ui, "frame-margin"));
@@ -329,12 +416,18 @@ impl ChiploadApp {
                     ui.label(t!(ui, "frame-borders"));
                     ui.add(egui::DragValue::new(&mut borders).range(0..=MOST_BORDERS));
                     ui.end_row();
-                    if borders > 0 {
-                        ui.label(t!(ui, "frame-gap"));
-                        ui.add(crate::units::length(&mut gap))
-                            .on_hover_text(t!(ui, "frame-gap-hover"));
-                        ui.end_row();
-                    }
+                    border_rows(
+                        ui,
+                        "live-frame",
+                        BorderValues {
+                            kind,
+                            borders,
+                            gap: &mut gap,
+                            corners: &mut border_corners,
+                            double: &mut double,
+                            width: &mut border_width,
+                        },
+                    );
                 });
                 if frame.around.is_some() {
                     ui.weak(t!(
@@ -366,8 +459,12 @@ impl ChiploadApp {
             kind: (kind != kind_of(frame.kind)).then_some(kind),
             corner: (corner != frame.corner).then_some(corner),
             margin: (margin != frame.margin).then_some(margin),
-            borders: (borders as usize != frame.borders.len()).then_some(borders),
+            borders: (borders != old_borders).then_some(borders),
             gap: (gap != frame.gap).then_some(gap),
+            border_corners: (border_corners != frame.border_corners.map(style_of))
+                .then_some(border_corners),
+            double: (double != frame.double).then_some(double),
+            border_width: (border_width != frame.border_width).then_some(border_width),
             width: (width != frame.width).then_some(width),
             height: (height != frame.height).then_some(height),
         };
@@ -379,12 +476,18 @@ impl ChiploadApp {
     }
 }
 
-/// The frames as small pictures to pick from, `chosen` marked; a click picks one.
-fn kind_pictures(ui: &mut egui::Ui, chosen: &mut FrameKind) {
+/// The frames as small pictures to pick from, `chosen` marked; a click picks one. The
+/// rectangular frames are one picture, with their corners chosen under it (§5).
+fn kind_choice(ui: &mut egui::Ui, id: &str, chosen: &mut FrameKind) {
     ui.horizontal_wrapped(|ui| {
-        for kind in FrameKind::ALL {
+        for kind in FrameKind::SHAPES {
+            let rectangular = kind.corner_style().is_some();
             let size = egui::vec2(44.0, 30.0);
-            let selected = *chosen == kind;
+            let selected = if rectangular {
+                chosen.corner_style().is_some()
+            } else {
+                *chosen == kind
+            };
             let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
             let visuals = ui.style().interact_selectable(&response, selected);
             let painter = ui.painter();
@@ -394,9 +497,15 @@ fn kind_pictures(ui: &mut egui::Ui, chosen: &mut FrameKind) {
             let stroke = egui::Stroke::new(1.5, visuals.fg_stroke.color);
             let inner = rect.shrink(6.0);
             let (w, h) = (f64::from(inner.width()), f64::from(inner.height()));
-            // Twice the default corner: the kinds tell apart at this size.
-            let r = kind.default_r(w, h) * 2.0;
-            if let Ok(chain) = chipload_draw::frames::outline(kind, (0.0, 0.0), w, h, r) {
+            // The rectangle in the corners chosen; twice the default corner, so that the
+            // kinds tell apart at this size.
+            let drawn = if rectangular && selected {
+                *chosen
+            } else {
+                kind
+            };
+            let r = (drawn.default_r(w, h) * 2.0).min(drawn.largest_r(w, h));
+            if let Ok(chain) = chipload_draw::frames::outline(drawn, (0.0, 0.0), w, h, r) {
                 let points: Vec<egui::Pos2> = chain
                     .prims
                     .iter()
@@ -405,10 +514,28 @@ fn kind_pictures(ui: &mut egui::Ui, chosen: &mut FrameKind) {
                     .collect();
                 painter.add(egui::Shape::closed_line(points, stroke));
             }
-            let response = response.on_hover_text(kind_name(ui, kind));
-            if response.clicked() {
+            let name = if rectangular {
+                t!(ui, "frame-kind-rectangle")
+            } else {
+                kind_name(ui, kind)
+            };
+            let response = response.on_hover_text(name);
+            if response.clicked() && !selected {
                 *chosen = kind;
             }
         }
     });
+    if let Some(mut style) = chosen.corner_style() {
+        ui.horizontal(|ui| {
+            ui.label(t!(ui, "frame-corners"));
+            egui::ComboBox::from_id_salt(format!("{id}-corners"))
+                .selected_text(corners_name(ui, style))
+                .show_ui(ui, |ui| {
+                    for s in CornerStyle::ALL {
+                        ui.selectable_value(&mut style, s, corners_name(ui, s));
+                    }
+                });
+        });
+        *chosen = style.kind();
+    }
 }

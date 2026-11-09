@@ -596,6 +596,9 @@ pipeline-frame-borders-fit = { $count ->
     [one] en kantlinje { $gap } innanför får inte plats i den här ramen
    *[other] { $count } kantlinjer { $gap } isär får inte plats i den här ramen
 }
+pipeline-frame-border-width = en kants spårbredd måste vara 0 eller mer, fick { $got }
+pipeline-frame-double-width = en dubbel kant behöver sin spårbredd: dess två linjer ligger dubbelt så långt isär
+pipeline-frame-border-corners = bara en rektangulär rams kanter kan ha egna hörn
 pipeline-frame-edited = Ramen S{ $id } ändrades för hand och följer inte längre det den går runt.
 pipeline-frame-lost = Ramen S{ $id } förlorade sin form S{ $shape } och följer inte längre det den går runt.
 pipeline-frame-follows-nothing = Det ramen S{ $id } gick runt finns inte längre; den stannar där den är och följer ingenting.

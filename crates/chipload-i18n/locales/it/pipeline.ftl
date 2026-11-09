@@ -601,6 +601,9 @@ pipeline-frame-borders-fit = { $count ->
     [one] un bordo a { $gap } verso l'interno non sta in questa cornice
    *[other] { $count } bordi distanti { $gap } non stanno in questa cornice
 }
+pipeline-frame-border-width = la larghezza della scanalatura di un bordo deve essere 0 o più, trovato { $got }
+pipeline-frame-double-width = un bordo doppio ha bisogno della larghezza della scanalatura: le sue due linee distano il doppio
+pipeline-frame-border-corners = solo i bordi di una cornice rettangolare possono avere angoli propri
 pipeline-frame-edited = La cornice S{ $id } è stata modificata a mano, quindi non segue più ciò che circonda.
 pipeline-frame-lost = La cornice S{ $id } ha perso la sua forma S{ $shape }, quindi non segue più ciò che circonda.
 pipeline-frame-follows-nothing = Ciò che la cornice S{ $id } circondava non c'è più; resta dov'è e non segue nulla.

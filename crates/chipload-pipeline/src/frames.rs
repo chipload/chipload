@@ -6,14 +6,14 @@
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_draw::frames::{self, FrameError};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Frame, FrameAround, FrameShape, Geometry, Job, Shape};
+use chipload_job::{Frame, FrameAround, FrameCorners, FrameShape, Geometry, Job, Shape};
 
 use crate::PipelineError;
 use crate::drawing_edit::{
     Corners, Edited, OffsetSide, layer_cutters, offset_geometry, polyline_of,
 };
 use crate::shapes::{add_shape, shapes_bounds};
-pub use chipload_draw::frames::FrameKind;
+pub use chipload_draw::frames::{CornerStyle, FrameKind};
 
 /// The most border lines a frame has.
 pub const MOST_BORDERS: u32 = 3;
@@ -45,6 +45,12 @@ pub struct NewFrame {
     pub borders: u32,
     /// Between the outline and the first border, and between borders (mm).
     pub gap: f64,
+    /// The borders' own corner style, for a rectangular frame; None: the outline's shape.
+    pub border_corners: Option<CornerStyle>,
+    /// Each border two lines, twice `border_width` apart.
+    pub double: bool,
+    /// A border's groove width at the surface (mm); 0: lines as drawn.
+    pub border_width: f64,
     pub size: FrameSize,
     pub layer: String,
     pub border_layer: String,
@@ -59,6 +65,9 @@ impl NewFrame {
             r: None,
             borders: 0,
             gap: 5.0,
+            border_corners: None,
+            double: false,
+            border_width: 0.0,
             size,
             layer: FRAME_LAYER.to_string(),
             border_layer: BORDER_LAYER.to_string(),
@@ -76,6 +85,117 @@ pub struct FramePlace {
     pub r: f64,
 }
 
+/// A frame's border lines: how many borders, how far apart, their corners, single or
+/// double, and their grooves' width (docs/specs/sign-maker.md §5).
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct BorderLines {
+    count: u32,
+    gap: f64,
+    corners: Option<CornerStyle>,
+    double: bool,
+    width: f64,
+}
+
+impl BorderLines {
+    fn of_new(frame: &NewFrame) -> BorderLines {
+        BorderLines {
+            count: frame.borders,
+            gap: frame.gap,
+            corners: frame.border_corners,
+            double: frame.double,
+            width: frame.border_width,
+        }
+    }
+
+    fn of_record(frame: &Frame) -> BorderLines {
+        let per = if frame.double { 2 } else { 1 };
+        BorderLines {
+            count: u32::try_from(frame.borders.len() / per).unwrap_or(u32::MAX),
+            gap: frame.gap,
+            corners: frame.border_corners.map(style_of),
+            double: frame.double,
+            width: frame.border_width,
+        }
+    }
+
+    /// From a double border's first line to its second.
+    fn pair(&self) -> f64 {
+        if self.double { 2.0 * self.width } else { 0.0 }
+    }
+
+    /// How far in from the outline each line is, outside in.
+    fn lines(&self) -> Vec<f64> {
+        let mut out = Vec::new();
+        for k in 1..=self.count {
+            let d = f64::from(k) * self.gap + f64::from(k - 1) * self.pair();
+            out.push(d);
+            if self.double {
+                out.push(d + self.pair());
+            }
+        }
+        out
+    }
+
+    /// From the outline to the inner edge of the innermost groove: where the margin is
+    /// measured from.
+    fn inset(&self) -> f64 {
+        match self.lines().last() {
+            Some(d) => d + self.width / 2.0,
+            None => 0.0,
+        }
+    }
+
+    /// Why these borders can't be, for a `kind` frame.
+    fn problem(&self, kind: FrameKind) -> Option<Message> {
+        if self.count > MOST_BORDERS {
+            return Some(
+                Message::new("pipeline-frame-borders")
+                    .arg("most", MOST_BORDERS)
+                    .arg("got", self.count),
+            );
+        }
+        if self.count == 0 {
+            return None;
+        }
+        if !(self.gap.is_finite() && self.gap > 0.0) {
+            return Some(Message::new("pipeline-frame-gap").arg("got", length(self.gap)));
+        }
+        if !(self.width.is_finite() && self.width >= 0.0) {
+            return Some(
+                Message::new("pipeline-frame-border-width").arg("got", length(self.width)),
+            );
+        }
+        if self.double && self.width <= 0.0 {
+            return Some(Message::new("pipeline-frame-double-width"));
+        }
+        if self.corners.is_some() && kind.corner_style().is_none() {
+            return Some(Message::new("pipeline-frame-border-corners"));
+        }
+        None
+    }
+}
+
+/// A corner style as the record keeps it, and back.
+pub fn style_of(corners: FrameCorners) -> CornerStyle {
+    match corners {
+        FrameCorners::Sharp => CornerStyle::Sharp,
+        FrameCorners::Round => CornerStyle::Round,
+        FrameCorners::Notch => CornerStyle::Notch,
+        FrameCorners::Chamfer => CornerStyle::Chamfer,
+        FrameCorners::Step => CornerStyle::Step,
+    }
+}
+
+pub fn corners_of(style: CornerStyle) -> FrameCorners {
+    match style {
+        CornerStyle::Sharp => FrameCorners::Sharp,
+        CornerStyle::Round => FrameCorners::Round,
+        CornerStyle::Notch => FrameCorners::Notch,
+        CornerStyle::Chamfer => FrameCorners::Chamfer,
+        CornerStyle::Step => FrameCorners::Step,
+    }
+}
+
 fn refused(message: Message) -> PipelineError {
     PipelineError::Job(message)
 }
@@ -86,20 +206,12 @@ fn length(mm: f64) -> Value {
 
 /// The frame's centre, size and corner size.
 pub fn place_frame(job: &Job, frame: &NewFrame) -> Result<FramePlace, PipelineError> {
-    if frame.borders > MOST_BORDERS {
-        return Err(refused(
-            Message::new("pipeline-frame-borders")
-                .arg("most", MOST_BORDERS)
-                .arg("got", frame.borders),
-        ));
-    }
-    if frame.borders > 0 && !(frame.gap.is_finite() && frame.gap > 0.0) {
-        return Err(refused(
-            Message::new("pipeline-frame-gap").arg("got", length(frame.gap)),
-        ));
-    }
-    let inset = f64::from(frame.borders) * frame.gap;
     let kind = frame.kind;
+    let borders = BorderLines::of_new(frame);
+    if let Some(problem) = borders.problem(kind) {
+        return Err(refused(problem));
+    }
+    let inset = borders.inset();
     let place = match &frame.size {
         FrameSize::Around { ids, margin } => place_round(job, kind, ids, *margin, inset, frame.r)?,
         FrameSize::Fixed {
@@ -199,12 +311,12 @@ fn borders_fit(count: u32, gap: f64) -> PipelineError {
     )
 }
 
-/// The frame's outline, then its `borders` border lines `gap` apart, outside in.
+/// The frame's outline, then its border lines, outside in: offsets of the outline, or
+/// rectangles of their own corner style.
 fn frame_geometries(
     kind: FrameKind,
     place: &FramePlace,
-    borders: u32,
-    gap: f64,
+    borders: &BorderLines,
 ) -> Result<Vec<Geometry>, PipelineError> {
     let outline = outline_geometry(kind, place)?;
     let shape = Shape {
@@ -214,13 +326,32 @@ fn frame_geometries(
         geometry: outline.clone(),
         construction: false,
     };
+    let fit = || borders_fit(borders.count, borders.gap);
     let mut out = vec![outline];
-    for k in 1..=borders {
-        let d = gap * f64::from(k);
-        let lines = offset_geometry(&shape, d, OffsetSide::Inside, Corners::Round)
-            .map_err(|_| borders_fit(borders, gap))?;
-        // An inward offset across a waist gives more than one line: not a border.
-        let [line] = <[Geometry; 1]>::try_from(lines).map_err(|_| borders_fit(borders, gap))?;
+    for d in borders.lines() {
+        let line = match borders.corners {
+            Some(style) => {
+                let (width, height) = (place.width - 2.0 * d, place.height - 2.0 * d);
+                if width <= CHAIN_TOL_MM || height <= CHAIN_TOL_MM {
+                    return Err(fit());
+                }
+                let inner = style.kind();
+                let inner_place = FramePlace {
+                    center: place.center,
+                    width,
+                    height,
+                    r: place.r.min(inner.largest_r(width, height)),
+                };
+                outline_geometry(inner, &inner_place).map_err(|_| fit())?
+            }
+            None => {
+                let lines = offset_geometry(&shape, d, OffsetSide::Inside, Corners::Round)
+                    .map_err(|_| fit())?;
+                // An inward offset across a waist gives more than one line: not a border.
+                let [line] = <[Geometry; 1]>::try_from(lines).map_err(|_| fit())?;
+                line
+            }
+        };
         out.push(line);
     }
     Ok(out)
@@ -271,6 +402,12 @@ pub fn kind_of(shape: FrameShape) -> FrameKind {
         FrameShape::Oval => FrameKind::Oval,
         FrameShape::Arched => FrameKind::Arched,
         FrameShape::Plaque => FrameKind::Plaque,
+        FrameShape::Stepped => FrameKind::Stepped,
+        FrameShape::Gable => FrameKind::Gable,
+        FrameShape::DoubleArch => FrameKind::DoubleArch,
+        FrameShape::Shield => FrameKind::Shield,
+        FrameShape::Banner => FrameKind::Banner,
+        FrameShape::Octagon => FrameKind::Octagon,
     }
 }
 
@@ -283,6 +420,12 @@ pub fn shape_of(kind: FrameKind) -> FrameShape {
         FrameKind::Oval => FrameShape::Oval,
         FrameKind::Arched => FrameShape::Arched,
         FrameKind::Plaque => FrameShape::Plaque,
+        FrameKind::Stepped => FrameShape::Stepped,
+        FrameKind::Gable => FrameShape::Gable,
+        FrameKind::DoubleArch => FrameShape::DoubleArch,
+        FrameKind::Shield => FrameShape::Shield,
+        FrameKind::Banner => FrameShape::Banner,
+        FrameKind::Octagon => FrameShape::Octagon,
     }
 }
 
@@ -291,7 +434,7 @@ pub fn shape_of(kind: FrameKind) -> FrameShape {
 /// `new_ids` holds the outline's id first.
 pub fn add_frame(job: &Job, frame: &NewFrame) -> Result<Edited, PipelineError> {
     let place = place_frame(job, frame)?;
-    let geometries = frame_geometries(frame.kind, &place, frame.borders, frame.gap)?;
+    let geometries = frame_geometries(frame.kind, &place, &BorderLines::of_new(frame))?;
     let mut out = job.clone();
     let mut new_ids = Vec::new();
     for (i, geometry) in geometries.into_iter().enumerate() {
@@ -314,6 +457,9 @@ pub fn add_frame(job: &Job, frame: &NewFrame) -> Result<Edited, PipelineError> {
         kind: shape_of(frame.kind),
         corner: place.r,
         gap: frame.gap,
+        border_corners: frame.border_corners.map(corners_of),
+        double: frame.double,
+        border_width: frame.border_width,
         around,
         margin,
         center: [place.center.0, place.center.1],
@@ -323,12 +469,8 @@ pub fn add_frame(job: &Job, frame: &NewFrame) -> Result<Edited, PipelineError> {
     crate::refuse_problems(&out.drawing.validate())?;
     let mut notes = Vec::new();
     notes.extend(layer_cutters(&out, &frame.layer, 1));
-    if frame.borders > 0 {
-        notes.extend(layer_cutters(
-            &out,
-            &frame.border_layer,
-            frame.borders as usize,
-        ));
+    if new_ids.len() > 1 {
+        notes.extend(layer_cutters(&out, &frame.border_layer, new_ids.len() - 1));
     }
     Ok(Edited {
         job: out,
@@ -350,10 +492,6 @@ fn last_place(frame: &Frame) -> FramePlace {
     }
 }
 
-fn borders_of(frame: &Frame) -> u32 {
-    u32::try_from(frame.borders.len()).unwrap_or(u32::MAX)
-}
-
 /// Where a frame goes now: round what it goes round, or where it is.
 fn wanted_place(job: &Job, frame: &Frame) -> Result<FramePlace, Message> {
     let Some(around) = &frame.around else {
@@ -363,7 +501,7 @@ fn wanted_place(job: &Job, frame: &Frame) -> Result<FramePlace, Message> {
     if ids.is_empty() {
         return Err(Message::new("pipeline-frame-follows-nothing").arg("id", frame.outline));
     }
-    let inset = f64::from(borders_of(frame)) * frame.gap;
+    let inset = BorderLines::of_record(frame).inset();
     place_round(
         job,
         kind_of(frame.kind),
@@ -479,15 +617,14 @@ fn follow(job: &mut Job, mut frame: Frame) -> Result<Frame, Message> {
         }
     }
     let kind = kind_of(frame.kind);
-    let borders = borders_of(&frame);
+    let borders = BorderLines::of_record(&frame);
     let edited = || Message::new("pipeline-frame-edited").arg("id", frame.outline);
-    let last =
-        frame_geometries(kind, &last_place(&frame), borders, frame.gap).map_err(|_| edited())?;
+    let last = frame_geometries(kind, &last_place(&frame), &borders).map_err(|_| edited())?;
     let place = wanted_place(job, &frame)?;
     let fresh = if same_place(&place, &last_place(&frame)) {
         last.clone()
     } else {
-        frame_geometries(kind, &place, borders, frame.gap).map_err(|e| {
+        frame_geometries(kind, &place, &borders).map_err(|e| {
             Message::new("pipeline-frame-follows-not")
                 .arg("id", frame.outline)
                 .arg("why", e.message())
@@ -520,6 +657,10 @@ pub struct FrameChange {
     pub margin: Option<f64>,
     pub borders: Option<u32>,
     pub gap: Option<f64>,
+    /// The borders' own corner style; Some(None): the outline's shape again.
+    pub border_corners: Option<Option<CornerStyle>>,
+    pub double: Option<bool>,
+    pub border_width: Option<f64>,
     /// A frame drawn to a size: its new width and height.
     pub width: Option<f64>,
     pub height: Option<f64>,
@@ -549,12 +690,24 @@ pub fn set_frame(job: &Job, id: u64, change: &FrameChange) -> Result<Edited, Pip
     if let Some(gap) = change.gap {
         frame.gap = gap;
     }
+    match change.border_corners {
+        Some(corners) => frame.border_corners = corners.map(corners_of),
+        // Another kind that isn't rectangular: its borders follow its shape.
+        None if kind.corner_style().is_none() => frame.border_corners = None,
+        None => {}
+    }
+    if let Some(double) = change.double {
+        frame.double = double;
+    }
+    if let Some(width) = change.border_width {
+        frame.border_width = width;
+    }
     if frame.around.is_some() && (change.width.is_some() || change.height.is_some()) {
         return Err(refused(
             Message::new("pipeline-frame-size-follows").arg("id", old.outline),
         ));
     }
-    let borders = change.borders.unwrap_or(borders_of(&old));
+    let borders = change.borders.unwrap_or(BorderLines::of_record(&old).count);
     // As a new frame would be, checked the same way.
     let size = match &frame.around {
         Some(around) => FrameSize::Around {
@@ -572,12 +725,15 @@ pub fn set_frame(job: &Job, id: u64, change: &FrameChange) -> Result<Edited, Pip
         r: Some(frame.corner),
         borders,
         gap: frame.gap,
+        border_corners: frame.border_corners.map(style_of),
+        double: frame.double,
+        border_width: frame.border_width,
         size,
         layer: FRAME_LAYER.to_string(),
         border_layer: BORDER_LAYER.to_string(),
     };
     let place = place_frame(job, &new)?;
-    let geometries = frame_geometries(kind, &place, borders, frame.gap)?;
+    let geometries = frame_geometries(kind, &place, &BorderLines::of_new(&new))?;
     let mut out = job.clone();
     let border_layer = old
         .borders
@@ -1025,5 +1181,123 @@ mod tests {
         let (same, notes) = follow_frames(wider.clone());
         assert_eq!(same, wider);
         assert!(notes.is_empty());
+    }
+
+    // -- borders (docs/specs/sign-maker.md §5)
+
+    #[test]
+    fn double_borders_and_groove_width_set_the_lines_and_the_margin() {
+        let (job, letters) = project_with_text();
+        let ((x0, _), (x1, _)) = shapes_bounds(&job, &letters).unwrap();
+        let mut frame = NewFrame::new(
+            FrameKind::Rectangle,
+            FrameSize::Around {
+                ids: letters,
+                margin: 10.0,
+            },
+        );
+        frame.borders = 2;
+        frame.gap = 6.0;
+        frame.double = true;
+        frame.border_width = 2.0;
+        let edited = add_frame(&job, &frame).unwrap();
+        // Two borders of two lines each: 6, 10 (6 + 2·2), then 16, 20 in from the outline.
+        assert_eq!(edited.new_ids.len(), 5);
+        let widths: Vec<f64> = edited
+            .new_ids
+            .iter()
+            .map(|&id| match geometry(&edited.job, id) {
+                Geometry::Rectangle { length, .. } => length,
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        let outer = widths[0];
+        let ins: Vec<f64> = widths[1..].iter().map(|w| (outer - w) / 2.0).collect();
+        for (got, want) in ins.iter().zip([6.0, 10.0, 16.0, 20.0]) {
+            assert!((got - want).abs() < 1e-9, "{ins:?}");
+        }
+        // The margin to the innermost groove's inner edge: 10 + 20 + 1 from the text.
+        assert!((outer - (x1 - x0 + 2.0 * 31.0)).abs() < 1e-9, "{outer}");
+        let record = &edited.job.drawing.frames[0];
+        assert!(record.double);
+        assert_eq!(record.border_width, 2.0);
+        // Followed: nothing changes, and the record counts two borders.
+        let (same, notes) = follow_frames(edited.job.clone());
+        assert_eq!(same, edited.job);
+        assert!(notes.is_empty());
+
+        frame.border_width = 0.0;
+        let err = add_frame(&job, &frame).unwrap_err();
+        assert!(err.to_string().contains("double border"), "{err}");
+    }
+
+    #[test]
+    fn borders_with_corners_of_their_own_inside_a_rectangular_frame() {
+        let job = empty_project();
+        let mut frame = NewFrame::new(
+            FrameKind::Rounded,
+            FrameSize::Fixed {
+                width: 200.0,
+                height: 100.0,
+                center: Some((0.0, 0.0)),
+            },
+        );
+        frame.r = Some(10.0);
+        frame.borders = 1;
+        frame.border_corners = Some(CornerStyle::Notch);
+        let edited = add_frame(&job, &frame).unwrap();
+        let Geometry::Polyline { points, .. } = geometry(&edited.job, edited.new_ids[1]) else {
+            panic!();
+        };
+        // A notched rectangle 190 × 90 with 10 mm notches: its bottom side starts 10 in.
+        assert!(
+            points
+                .iter()
+                .any(|p| (p[0] + 85.0).abs() < 1e-9 && (p[1] + 45.0).abs() < 1e-9)
+        );
+        assert_eq!(
+            edited.job.drawing.frames[0].border_corners,
+            Some(FrameCorners::Notch)
+        );
+        // Another frame that isn't rectangular: its borders follow it again.
+        let change = FrameChange {
+            kind: Some(FrameKind::Oval),
+            ..FrameChange::default()
+        };
+        let oval = set_frame(&edited.job, edited.new_ids[0], &change).unwrap();
+        assert_eq!(oval.job.drawing.frames[0].border_corners, None);
+        // Asked for on an oval: refused.
+        let mut round = frame.clone();
+        round.kind = FrameKind::Oval;
+        let err = add_frame(&job, &round).unwrap_err();
+        assert!(err.to_string().contains("rectangular"), "{err}");
+    }
+
+    #[test]
+    fn every_new_kind_is_framed_round_a_text_and_followed() {
+        for kind in [
+            FrameKind::Stepped,
+            FrameKind::Gable,
+            FrameKind::DoubleArch,
+            FrameKind::Shield,
+            FrameKind::Banner,
+            FrameKind::Octagon,
+        ] {
+            let (job, letters) = project_with_text();
+            let mut frame = NewFrame::new(
+                kind,
+                FrameSize::Around {
+                    ids: letters,
+                    margin: 8.0,
+                },
+            );
+            frame.borders = 1;
+            let edited = add_frame(&job, &frame).unwrap();
+            assert_eq!(edited.new_ids.len(), 2, "{kind:?}");
+            let (followed, notes) = follow_frames(retext(&edited.job, "SIGNS AGAIN"));
+            assert!(notes.is_empty(), "{kind:?}: {notes:?}");
+            assert_eq!(followed.drawing.frames[0].kind, shape_of(kind));
+            assert!(followed.drawing.frames[0].width > edited.job.drawing.frames[0].width);
+        }
     }
 }

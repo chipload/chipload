@@ -374,3 +374,61 @@ pub struct Tool {
     #[serde(default)]
     pub tip_diameter: Option<f64>,
 }
+
+impl Tool {
+    /// A V-bit's width at `depth` below its tip's end, mm: its tip and twice the depth's
+    /// run along the flanks, at most its diameter. None for other tools and a V-bit
+    /// without its angle.
+    pub fn vbit_width_at(&self, depth: f64) -> Option<f64> {
+        let half = self.vbit_half_angle()?;
+        let tip = self.tip_diameter.unwrap_or(0.0);
+        Some((tip + 2.0 * depth.max(0.0) * half.tan()).min(self.diameter))
+    }
+
+    /// How deep a V-bit goes to be `width` wide, mm (docs/specs/sign-maker.md §5): 0 for a
+    /// width within its tip. None for other tools, a V-bit without its angle, and a width
+    /// wider than the bit.
+    pub fn vbit_depth_for(&self, width: f64) -> Option<f64> {
+        let half = self.vbit_half_angle()?;
+        if !(width.is_finite() && width <= self.diameter) {
+            return None;
+        }
+        let tip = self.tip_diameter.unwrap_or(0.0);
+        Some(((width - tip) / 2.0 / half.tan()).max(0.0))
+    }
+
+    fn vbit_half_angle(&self) -> Option<f64> {
+        let angle = self.angle.filter(|a| a.is_finite() && *a > 0.0)?;
+        (self.kind == ToolType::Vbit).then_some(angle / 2.0)
+    }
+}
+
+#[cfg(test)]
+mod vbit_tests {
+    #![allow(clippy::unwrap_used)]
+
+    use super::*;
+
+    fn vbit(angle_deg: f64, tip: Option<f64>) -> Tool {
+        let mut tool: Tool = serde_json::from_value(serde_json::json!({
+            "id": 1, "type": "vbit", "diameter": 12.7, "angle": angle_deg.to_radians(),
+            "tip_diameter": tip
+        }))
+        .unwrap();
+        tool.name = None;
+        tool
+    }
+
+    #[test]
+    fn a_vbits_width_and_depth_undo_each_other() {
+        let v90 = vbit(90.0, None);
+        assert!((v90.vbit_width_at(1.5).unwrap() - 3.0).abs() < 1e-12);
+        assert!((v90.vbit_depth_for(3.0).unwrap() - 1.5).abs() < 1e-12);
+        let flat = vbit(60.0, Some(0.2));
+        let d = flat.vbit_depth_for(2.0).unwrap();
+        assert!((flat.vbit_width_at(d).unwrap() - 2.0).abs() < 1e-12);
+        assert_eq!(flat.vbit_depth_for(0.1), Some(0.0));
+        assert_eq!(flat.vbit_depth_for(20.0), None);
+        assert_eq!(flat.vbit_width_at(100.0), Some(12.7));
+    }
+}

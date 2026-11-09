@@ -174,9 +174,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    (words, frame, style engraved/raised/inlay, edge, tools → drawing and operations in one
    step), frames that follow their text (an optional `frame` record), five new frame kinds,
    corner styles, borders by groove width, a V-bit edge chamfer. **Approved 2026-11-09**,
-   all as recommended ("we build it and iterate if needed"). Step 1, live frames, built
-   (see *In main, not released yet*); next step 2, the new frames, corner styles and
-   borders (§5); then step 3, *New sign…* with the edge chamfer (§3, §6).
+   all as recommended ("we build it and iterate if needed"). Steps 1 (live frames) and 2
+   (frames, corners, borders) built (see *In main, not released yet*); next step 3, *New
+   sign…* with the edge chamfer (§3, §6).
 13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
@@ -246,6 +246,12 @@ Smaller follow-ups noted along the way, not in the order above:
   them or everything it went round lets it go, with a note. The selected frame's values in
   a *Frame* card under Selection, with *Detach*; `frame list`/`set`/`detach`. Every
   command line save follows the frames (one `save_project`).
+- **More frames, corners and borders** (sign-maker.md §5, step 2, branch `signs`): gable,
+  arched top and bottom, shield, banner and octagon; a rectangle's corners (sharp, round,
+  notch, chamfer, and the new step) chosen under one *Rectangle* picture, `--corners`;
+  borders with corners of their own, double lines and a groove width (the margin measured
+  to the groove's inner edge); a follow path with a V-bit takes a *Groove width* that sets
+  its end depth.
 
 - **V-carve inlays** (docs/specs/vcarve-inlay.md, branch `signs`, not merged yet):
   a V-carve's optional `plug` (start depth D) carves the rest of its board, grown past the

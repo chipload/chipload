@@ -2406,7 +2406,55 @@ fn the_golden_sign_is_framed_with_frame_add() {
     );
     let out = chipload(&["frame", "kinds", "--json"]);
     let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(json["kinds"].as_array().unwrap().len(), 7);
+    assert_eq!(json["kinds"].as_array().unwrap().len(), 13);
+    assert_eq!(json["corners"].as_array().unwrap().len(), 5);
+    // docs/specs/sign-maker.md §5: corners, double borders with a groove width, borders
+    // with corners of their own.
+    let out = chipload(&[
+        "frame",
+        "add",
+        p,
+        "--corners",
+        "step",
+        "--width",
+        "240",
+        "--height",
+        "120",
+        "--corner",
+        "12",
+        "--borders",
+        "1",
+        "--double",
+        "--border-width",
+        "2",
+        "--border-corners",
+        "round",
+        "--json",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(json["borders"].as_array().unwrap().len(), 2, "{json}");
+    let outline = json["outline"].as_u64().unwrap().to_string();
+    let out = chipload(&["frame", "list", p, "--json"]);
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let frame = json["frames"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|f| f["outline"].as_u64().unwrap().to_string() == outline)
+        .unwrap()
+        .clone();
+    assert_eq!(frame["kind"], "stepped");
+    assert_eq!(frame["border_corners"], "round");
+    assert_eq!(frame["double"], true);
+    let out = chipload(&["frame", "set", p, &outline, "--kind", "banner"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = chipload(&["frame", "set", p, &outline, "--corners", "round"]);
+    assert!(
+        text(&out.stderr).contains("--corners is for the rectangular frames"),
+        "{}",
+        text(&out.stderr)
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

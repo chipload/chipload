@@ -604,6 +604,9 @@ pipeline-frame-borders-fit = { $count ->
     [one] une bordure à { $gap } à l'intérieur ne tient pas dans ce cadre
    *[other] { $count } bordures espacées de { $gap } ne tiennent pas dans ce cadre
 }
+pipeline-frame-border-width = la largeur de rainure d'une bordure doit être 0 ou plus, reçu { $got }
+pipeline-frame-double-width = une bordure double a besoin de sa largeur de rainure : ses deux lignes sont deux fois plus écartées
+pipeline-frame-border-corners = seules les bordures d'un cadre rectangulaire peuvent avoir leurs propres coins
 pipeline-frame-edited = Le cadre S{ $id } a été modifié à la main : il ne suit plus ce qu'il entoure.
 pipeline-frame-lost = Le cadre S{ $id } a perdu sa forme S{ $shape } : il ne suit plus ce qu'il entoure.
 pipeline-frame-follows-nothing = Ce qu'entourait le cadre S{ $id } a disparu ; il reste en place et ne suit plus rien.

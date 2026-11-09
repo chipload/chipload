@@ -139,3 +139,46 @@ fn a_frame_follows_its_text_in_the_same_undo_step() {
     app.commit();
     assert!(app.edit.as_ref().unwrap().job.drawing.frames.is_empty());
 }
+
+/// docs/specs/sign-maker.md §5: a stepped frame with a double border of its own corners;
+/// changed under Selection afterwards.
+#[test]
+fn a_frame_with_corners_and_double_borders_from_the_window() {
+    use chipload_pipeline::frames::{CornerStyle, FrameKind};
+    let mut app = ChiploadApp::default();
+    app.new_project();
+    app.start_frame();
+    let f = &mut app.canvas_tools.frame;
+    f.kind = FrameKind::Stepped;
+    (f.width, f.height) = (240.0, 120.0);
+    f.borders = 1;
+    f.double = true;
+    f.border_width = 2.0;
+    f.border_corners = Some(CornerStyle::Round);
+    draw_properties(&mut app);
+    assert!(app.create_frame());
+    app.commit();
+    let frame = app.edit.as_ref().unwrap().job.drawing.frames[0].clone();
+    assert_eq!(frame.kind, chipload_job::FrameShape::Stepped);
+    assert_eq!(frame.borders.len(), 2);
+    assert_eq!(
+        frame.border_corners,
+        Some(chipload_job::FrameCorners::Round)
+    );
+    // Its card shows under Selection.
+    app.selection = CanvasSelection::Shapes([frame.outline].into_iter().collect());
+    app.focus = Focus::Selection;
+    draw_properties(&mut app);
+    // Another frame that isn't rectangular: its borders follow its shape again.
+    app.canvas_tools.frame.kind = FrameKind::Shield;
+    let change = chipload_pipeline::frames::FrameChange {
+        kind: Some(FrameKind::Shield),
+        ..Default::default()
+    };
+    let job = app.edit.as_ref().unwrap().job.clone();
+    let result = chipload_pipeline::frames::set_frame(&job, frame.outline, &change);
+    assert!(app.take_edit(result, &[]));
+    app.commit();
+    let frame = &app.edit.as_ref().unwrap().job.drawing.frames[0];
+    assert_eq!(frame.border_corners, None);
+}

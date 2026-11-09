@@ -2,7 +2,8 @@
 
 Status: **approved 2026-11-09** (all eight decisions as recommended: "we build it and
 iterate if needed"). Building on branch `signs`, in the order of decision 8: step 1, live
-frames (§4), built; step 2, frames and borders (§5); step 3, *New sign…* (§3, §6).
+frames (§4), built; step 2, frames and borders (§5), built; step 3, *New sign…* (§3,
+§6).
 
 The user (2026-11-09), after the V-carve inlay: "After that i want more refined sign frames
 and a reworked workflow around that if necessary". This spec reviews how a sign is made
@@ -227,3 +228,30 @@ Step 1 (live frames), 2026-11-09:
 - **A turned frame** isn't followed: turning a frame with its text gives a turned outline,
   which isn't what the record would draw, so the frame is let go of. Turning frames with
   their text can come later if wanted.
+
+Step 2 (frames and borders), 2026-11-09:
+- **One Rectangle in the window, kinds in the file.** The picture row shows the rectangular
+  frames as one *Rectangle* with a *Corners* choice under it (sharp, round, notch, chamfer,
+  step). The file and the command line keep one kind per corner style (`rectangle`,
+  `rounded`, `notched`, `chamfered`, and the new `stepped`), so nothing already written
+  changes; `--corners` picks among them.
+- **Limits:** a step at most a third of the shorter side (two steps meeting on a side
+  would leave a sliver); a banner's V at most 0.4 of its long side (the tips stay apart).
+- **The shield** curves into a point with arcs tangent to its sides when the point is at
+  least half the width below them. Shallower, such an arc would dip below the point, so
+  the bottom is one arc through the middle instead (round, not pointed).
+- **The octagon** of a frame that isn't square has its cut sides as long as its shorter
+  sides; the longer sides are longer.
+- **Fitting round a box** now also checks that no point of the outline comes nearer the
+  box than the inset, since the banner's V and the steps reach in between the box's
+  corners.
+- **Groove width** (`border_width`) is the width of a border's groove at the surface. The
+  margin is measured to the inner edge of the innermost groove. A **double** border is two
+  lines twice the width apart (a ridge as wide as a groove between them), and the gap is
+  then measured from one border's inner line to the next border.
+- **Borders with corners of their own** are rectangles of that style, the gap further in,
+  with the outline's corner size (no larger than fits), not offsets of the outline. Only a
+  rectangular frame takes them; changing such a frame to another kind drops them.
+- **The follow path's depth from a width:** a follow path with a V-bit has a *Groove width*
+  row that sets its end depth (`Tool::vbit_depth_for`). That is how a border's width
+  reaches its cut, in the window as in *New sign…* later.

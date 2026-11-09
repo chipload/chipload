@@ -528,6 +528,7 @@ pub(in crate::app) fn op_form(
                 ui.end_row();
                 let hover = t!(ui, "forms-end-depth-hover");
                 end_depth_rows(ui, &mut p.end_depth, &mut p.through, stock, hover);
+                groove_width_row(ui, op_tool, &mut p.end_depth, p.through.is_some());
                 ui.label(t!(ui, "forms-step-down"));
                 flag(ui.add(mm(&mut p.step_down)), ui, "step_down");
                 ui.end_row();
@@ -1568,4 +1569,25 @@ pub(super) fn vcarve_pass_rows(
         );
         ui.end_row();
     }
+}
+
+/// With a V-bit: the groove's width at the surface, which sets the end depth when changed
+/// (docs/specs/sign-maker.md §5: a border is a groove of a width). Shown only, through the
+/// stock.
+fn groove_width_row(ui: &mut egui::Ui, tool: Option<&Tool>, end_depth: &mut f64, through: bool) {
+    let Some(tool) = tool else {
+        return;
+    };
+    let Some(mut width) = tool.vbit_width_at(*end_depth) else {
+        return;
+    };
+    ui.label(t!(ui, "forms-groove-width"))
+        .on_hover_text(t!(ui, "forms-groove-width-hover"));
+    let field = ui.add_enabled(!through, crate::units::length(&mut width));
+    if field.changed()
+        && let Some(depth) = tool.vbit_depth_for(width.min(tool.diameter))
+    {
+        *end_depth = depth;
+    }
+    ui.end_row();
 }

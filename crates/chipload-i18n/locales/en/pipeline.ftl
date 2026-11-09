@@ -595,6 +595,9 @@ pipeline-frame-borders-fit = { $count ->
     [one] a border { $gap } inside doesn't fit in this frame
    *[other] { $count } borders { $gap } apart don't fit in this frame
 }
+pipeline-frame-border-width = a border's groove width must be 0 or more, got { $got }
+pipeline-frame-double-width = a double border needs its groove width: its two lines are twice that apart
+pipeline-frame-border-corners = only a rectangular frame's borders can have corners of their own
 # Frames that follow what they go round (docs/specs/sign-maker.md §4). $id is the frame's
 # outline shape; "let go" means it stays as it is and follows nothing from then on.
 pipeline-frame-edited = Frame S{ $id } was changed by hand, so it no longer follows what it goes round.

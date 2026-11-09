@@ -7,8 +7,8 @@ use std::process::ExitCode;
 
 use chipload_job::Job;
 use chipload_pipeline::frames::{
-    BORDER_LAYER, FRAME_LAYER, FrameChange, FrameKind, FrameSize, MOST_BORDERS, NewFrame,
-    add_frame, detach_frame, kind_of, place_frame, set_frame,
+    BORDER_LAYER, CornerStyle, FRAME_LAYER, FrameChange, FrameKind, FrameSize, MOST_BORDERS,
+    NewFrame, add_frame, detach_frame, kind_of, place_frame, set_frame,
 };
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::json;
@@ -65,6 +65,21 @@ pub struct SetFrame {
     /// From the outline to the first border and between borders, mm.
     #[arg(value_parser = crate::lengths::length, long)]
     gap: Option<f64>,
+    /// A rectangular frame's corners: sharp, round, notch, chamfer or step.
+    #[arg(long, value_enum)]
+    corners: Option<CornersArg>,
+    /// The borders' own corners, inside a rectangular frame.
+    #[arg(long, value_enum)]
+    border_corners: Option<CornersArg>,
+    /// The borders follow the outline's shape again.
+    #[arg(long, conflicts_with = "border_corners")]
+    border_corners_off: bool,
+    /// Each border two lines (true) or one (false).
+    #[arg(long)]
+    double: Option<bool>,
+    /// A border's groove width at the surface, mm.
+    #[arg(value_parser = crate::lengths::length, long)]
+    border_width: Option<f64>,
     /// A frame drawn to a size: its outline's width, mm.
     #[arg(value_parser = crate::lengths::length, long)]
     width: Option<f64>,
@@ -81,9 +96,9 @@ pub struct SetFrame {
 pub struct AddFrame {
     /// The project (.chipload).
     project: PathBuf,
-    /// Which frame (`frame kinds`).
+    /// Which frame (`frame kinds`); default rectangle, with --corners.
     #[arg(long, value_enum)]
-    kind: KindArg,
+    kind: Option<KindArg>,
     /// Round these shapes (ids as `inspect` lists them, without the S): the frame is
     /// centred on their box, --margin from it to the innermost line.
     #[arg(long, num_args = 1.., value_delimiter = ',')]
@@ -113,6 +128,21 @@ pub struct AddFrame {
     /// From the outline to the first border and between borders, mm.
     #[arg(value_parser = crate::lengths::length, long, default_value = "5")]
     gap: f64,
+    /// A rectangular frame's corners: sharp, round, notch, chamfer or step (with
+    /// --kind rectangle, or instead of it).
+    #[arg(long, value_enum)]
+    corners: Option<CornersArg>,
+    /// The borders' own corners, inside a rectangular frame (default: the outline's
+    /// shape).
+    #[arg(long, value_enum)]
+    border_corners: Option<CornersArg>,
+    /// Each border two lines, twice --border-width apart.
+    #[arg(long)]
+    double: bool,
+    /// A border's groove width at the surface, mm: the margin is measured to its inner
+    /// edge (default 0: lines).
+    #[arg(value_parser = crate::lengths::length, long, default_value = "0")]
+    border_width: f64,
     /// The outline's layer.
     #[arg(long, default_value = FRAME_LAYER)]
     layer: String,
@@ -130,9 +160,49 @@ pub enum KindArg {
     Rounded,
     Notched,
     Chamfered,
+    Stepped,
     Oval,
     Arched,
+    DoubleArch,
+    Gable,
+    Shield,
     Plaque,
+    Banner,
+    Octagon,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum CornersArg {
+    Sharp,
+    Round,
+    Notch,
+    Chamfer,
+    Step,
+}
+
+impl From<CornersArg> for CornerStyle {
+    fn from(c: CornersArg) -> Self {
+        match c {
+            CornersArg::Sharp => CornerStyle::Sharp,
+            CornersArg::Round => CornerStyle::Round,
+            CornersArg::Notch => CornerStyle::Notch,
+            CornersArg::Chamfer => CornerStyle::Chamfer,
+            CornersArg::Step => CornerStyle::Step,
+        }
+    }
+}
+
+/// The frame `kind` with rectangular corners `corners`: refused for a kind that isn't
+/// rectangular.
+fn with_corners(kind: FrameKind, corners: Option<CornersArg>) -> Result<FrameKind, String> {
+    match corners {
+        None => Ok(kind),
+        Some(c) if kind.corner_style().is_some() => Ok(CornerStyle::from(c).kind()),
+        Some(_) => Err(format!(
+            "--corners is for the rectangular frames, not {}",
+            kind.name()
+        )),
+    }
 }
 
 impl From<KindArg> for FrameKind {
@@ -145,6 +215,12 @@ impl From<KindArg> for FrameKind {
             KindArg::Oval => FrameKind::Oval,
             KindArg::Arched => FrameKind::Arched,
             KindArg::Plaque => FrameKind::Plaque,
+            KindArg::Stepped => FrameKind::Stepped,
+            KindArg::DoubleArch => FrameKind::DoubleArch,
+            KindArg::Gable => FrameKind::Gable,
+            KindArg::Shield => FrameKind::Shield,
+            KindArg::Banner => FrameKind::Banner,
+            KindArg::Octagon => FrameKind::Octagon,
         }
     }
 }
@@ -163,6 +239,14 @@ fn corner_meaning(kind: FrameKind) -> &'static str {
         FrameKind::Oval => "an ellipse touching the four sides (no corner size)",
         FrameKind::Arched => "the top an arc rising the corner size above the top corners",
         FrameKind::Plaque => "the short sides bulging out by the corner size",
+        FrameKind::Stepped => "corners cut in by squares of the corner size",
+        FrameKind::Gable => "a pointed top rising the corner size above the top corners",
+        FrameKind::DoubleArch => "top and bottom arcs rising the corner size beyond the corners",
+        FrameKind::Shield => {
+            "a straight top, the sides curving into a point the corner size below them"
+        }
+        FrameKind::Banner => "the short ends cut in as a V the corner size deep",
+        FrameKind::Octagon => "corners cut off at 45° to sides as long as the shorter ones",
     }
 }
 
@@ -175,6 +259,14 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
             out.set(
                 "kinds",
                 json!(FrameKind::ALL.iter().map(|k| k.name()).collect::<Vec<_>>()),
+            );
+            out.line(format!(
+                "corners (--corners, --border-corners): {}",
+                CornerStyle::ALL.map(CornerStyle::name).join(", ")
+            ));
+            out.set(
+                "corners",
+                json!(CornerStyle::ALL.map(CornerStyle::name).to_vec()),
             );
             out.set("most_borders", json!(MOST_BORDERS));
             ExitCode::SUCCESS
@@ -192,10 +284,18 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 corner,
                 borders,
                 gap,
+                corners,
+                border_corners,
+                double,
+                border_width,
                 layer,
                 border_layer,
                 output,
             } = *add;
+            let kind = match with_corners(kind.map_or(FrameKind::Rectangle, Into::into), corners) {
+                Ok(kind) => kind,
+                Err(err) => return out.fail(err),
+            };
             let job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
@@ -205,10 +305,13 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 Err(err) => return out.fail(err),
             };
             let frame = NewFrame {
-                kind: kind.into(),
+                kind,
                 r: corner,
                 borders,
                 gap,
+                border_corners: border_corners.map(Into::into),
+                double,
+                border_width,
                 size,
                 layer,
                 border_layer,
@@ -265,6 +368,11 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 margin,
                 borders,
                 gap,
+                corners,
+                border_corners,
+                border_corners_off,
+                double,
+                border_width,
                 width,
                 height,
                 output,
@@ -273,12 +381,27 @@ pub fn frame(out: &mut Out, action: FrameAction) -> ExitCode {
                 Ok(job) => job,
                 Err(code) => return code,
             };
+            let now = job.drawing.frame_of(id).map(|f| kind_of(f.kind));
+            let kind = match (kind.map(FrameKind::from).or(now), corners) {
+                (Some(k), c) => match with_corners(k, c) {
+                    Ok(k) => Some(k),
+                    Err(err) => return out.fail(err),
+                },
+                (None, _) => None,
+            };
             let change = FrameChange {
-                kind: kind.map(Into::into),
+                kind,
                 corner,
                 margin,
                 borders,
                 gap,
+                border_corners: if border_corners_off {
+                    Some(None)
+                } else {
+                    border_corners.map(|c| Some(c.into()))
+                },
+                double,
+                border_width,
                 width,
                 height,
             };

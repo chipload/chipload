@@ -87,10 +87,23 @@ pub struct Frame {
     pub kind: FrameShape,
     /// The corner size, mm: what it is depends on the kind (`chipload frame kinds`).
     pub corner: f64,
-    /// From the outline to the first border, and between borders, mm.
+    /// From the outline to the first border, and from one border to the next (from its
+    /// inner line, for double borders), mm.
     pub gap: f64,
+    /// The borders' own corner style, for a rectangular frame; None: they follow the
+    /// outline's shape, each `gap` further in (docs/specs/sign-maker.md §5).
+    #[serde(default)]
+    pub border_corners: Option<FrameCorners>,
+    /// Each border two lines, twice `border_width` apart, which leaves a ridge as wide as
+    /// a groove between them.
+    #[serde(default)]
+    pub double: bool,
+    /// The width of a border's groove at the surface, mm: the margin is measured to its
+    /// inner edge, and a double border's lines are twice it apart. 0: lines as drawn.
+    #[serde(default)]
+    pub border_width: f64,
     /// What it goes round. None: drawn to a size, following nothing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub around: Option<FrameAround>,
     /// From the box of what it goes round to its innermost line, mm.
     pub margin: f64,
@@ -108,11 +121,11 @@ pub struct Frame {
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct FrameAround {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub texts: Vec<u64>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub images: Vec<u64>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub shapes: Vec<u64>,
 }
 
@@ -128,6 +141,24 @@ pub enum FrameShape {
     Oval,
     Arched,
     Plaque,
+    Stepped,
+    Gable,
+    DoubleArch,
+    Shield,
+    Banner,
+    Octagon,
+}
+
+/// The corner style of a rectangular frame's borders (docs/specs/sign-maker.md §5).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum FrameCorners {
+    Sharp,
+    Round,
+    Notch,
+    Chamfer,
+    Step,
 }
 
 impl Frame {
@@ -149,6 +180,7 @@ impl Frame {
             ("corner", self.corner, false),
             ("margin", self.margin, false),
             ("gap", self.gap, !self.borders.is_empty()),
+            ("border_width", self.border_width, self.double),
         ] {
             let bad = if positive {
                 !(value.is_finite() && value > 0.0)

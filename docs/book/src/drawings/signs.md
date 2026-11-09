@@ -25,13 +25,25 @@ The frames:
 
 | Frame | Its corner size is |
 |---|---|
-| **Rectangle** | (sharp corners) |
-| **Rounded** | the corners' radius |
-| **Notched** | the radius of the quarter circles cut into each corner |
-| **Chamfered** | how far each corner is cut off at 45°, along each side |
+| **Rectangle** | depends on its **Corners** (below) |
 | **Oval** | (an ellipse touching the four sides) |
 | **Arched top** | how far the top arc rises above the top corners |
+| **Arched top and bottom** | how far each arc rises beyond the corners |
+| **Gable** | how far the pointed top rises above the top corners |
+| **Shield** | how far below the straight sides the point is; from half the width down, the sides curve into a point, shallower the bottom is one arc |
 | **Plaque** | how far the short sides bulge out |
+| **Banner** | how deep the V cut into each short end is (forked ends) |
+| **Octagon** | (the corners cut off at 45°, the cut sides as long as the shorter sides) |
+
+A rectangle's **Corners**:
+
+| Corners | Its corner size is |
+|---|---|
+| **Sharp** | (none) |
+| **Round** | the corners' radius |
+| **Notch** | the radius of the quarter circles cut into each corner |
+| **Chamfer** | how far each corner is cut off at 45°, along each side |
+| **Step** | the side of the square cut out of each corner (at most a third of the shorter side) |
 
 The values:
 - **Margin:** from the box round what is selected to the **innermost** line, so the words
@@ -43,6 +55,15 @@ The values:
   largest that fits.
 - **Borders:** 0 to 3 lines inside the outline, each **Gap** further in (5 mm by default).
   They follow the outline's shape: a notched frame's borders are notched too.
+- **Border corners** (a rectangle with borders): the borders' own corners, at the same
+  gap, such as a round sign with a notched line inside. *As the outline* follows its shape.
+- **Groove width:** how wide a border's groove will be at the surface: the V-bit's width at
+  the depth it cuts. The margin is then measured to the inner edge of the innermost groove,
+  so the words keep their distance from the cut, not from the line. 0 (the default)
+  measures to the line.
+- **Double lines:** each border two grooves, twice the groove width apart, which leaves a
+  ridge as wide as a groove between them. It needs the groove width. The gap is then from
+  one border's inner line to the next border.
 - **Layer**, **Border layer:** the outline goes on `frame`, the borders on `border`, so that
   each can be cut by its own operation.
 
@@ -84,8 +105,9 @@ plaque to write on afterwards.
 A sign is usually three operations, in this order:
 1. a **[V-carve](../operations/vcarve.md)** on the text's layer, with a V-bit;
 2. a **[Follow path](../operations/path.md)** on the `border` layer with the same V-bit: a
-   groove along each border line, as wide as the V-bit is at that depth. (A V-carve of a
-   border would carve the whole area inside it.);
+   groove along each border line, as wide as the V-bit is at that depth. Set its **Groove
+   width** to the frame's, and its end depth follows. (A V-carve of a border would carve
+   the whole area inside it.);
 3. a **[Profile](../operations/profile.md)** outside the `frame` layer with an end mill, to
    cut the sign out, with tabs.
 
@@ -101,13 +123,20 @@ sign.
 chipload text add sign.chipload "SIGN" --height 30 --at 150,80 --anchor center
 chipload frame add sign.chipload --kind rounded --around-text 1 --borders 1 --corner 8 --margin 12
 chipload frame add blank.chipload --kind oval --width 300 --height 150 --borders 2
+chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --double --border-width 2
+chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
 chipload frame kinds
 chipload frame list sign.chipload                              # the frames that follow, with their values
 chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again
 chipload frame detach sign.chipload 7                          # plain shapes from now on
 ```
 
-`--around` takes shape ids, `--around-text` text ids (`chipload text list`); without
+`--kind` is one of the frames above (`rectangle`, `oval`, `arched`, `double-arch`, `gable`,
+`shield`, `plaque`, `banner`, `octagon`); `--corners` (`sharp`, `round`, `notch`, `chamfer`,
+`step`) picks a rectangle's corners, and the older names `rounded`, `notched`, `chamfered`
+and `stepped` still work as kinds. `--border-corners`, `--double` and `--border-width` set
+the borders; `frame set` takes the same, and `--border-corners-off` to make the borders
+follow the outline again. `--around` takes shape ids, `--around-text` text ids (`chipload text list`); without
 either, `--width` and `--height` give the outline's size and `--at` its centre (the stock's
 centre by default). The new shapes' ids are printed, the outline's first; `--json` gives
 them with the frame's size and corner. `frame set` and `frame detach` take the id of the

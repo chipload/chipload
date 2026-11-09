@@ -17,6 +17,7 @@ cut that layer's centre lines.
 | Setting | |
 |---|---|
 | **Start depth**, **End depth**, **Step down** | as on every operation |
+| **Groove width** | with a V-bit only: how wide the groove is at the surface. Change it and the end depth is set to give that width (a border of a [sign](../drawings/signs.md) is set this way). Greyed when the path cuts through. |
 | **Entry** | *plunge*, or *ramp* along the path. A pointed V-bit counts as centre-cutting. A tool marked not centre-cutting ramps only along a path at least its diameter long. |
 | **Feed**, **Plunge feed** | mm/min |
 

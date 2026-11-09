@@ -586,7 +586,26 @@
               "type": "null"
             }
           ],
+          "default": null,
           "description": "What it goes round. None: drawn to a size, following nothing."
+        },
+        "border_corners": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FrameCorners"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The borders' own corner style, for a rectangular frame; None: they follow the\noutline's shape, each `gap` further in (docs/specs/sign-maker.md §5)."
+        },
+        "border_width": {
+          "default": 0.0,
+          "description": "The width of a border's groove at the surface, mm: the margin is measured to its\ninner edge, and a double border's lines are twice it apart. 0: lines as drawn.",
+          "format": "double",
+          "type": "number"
         },
         "borders": {
           "default": [],
@@ -613,8 +632,13 @@
           "format": "double",
           "type": "number"
         },
+        "double": {
+          "default": false,
+          "description": "Each border two lines, twice `border_width` apart, which leaves a ridge as wide as\na groove between them.",
+          "type": "boolean"
+        },
         "gap": {
-          "description": "From the outline to the first border, and between borders, mm.",
+          "description": "From the outline to the first border, and from one border to the next (from its\ninner line, for double borders), mm.",
           "format": "double",
           "type": "number"
         },
@@ -661,6 +685,7 @@
       "description": "What a frame goes round: texts with all their letters, pictures with all their traced\nshapes, and other shapes, by id.",
       "properties": {
         "images": {
+          "default": [],
           "items": {
             "format": "uint64",
             "minimum": 0,
@@ -669,6 +694,7 @@
           "type": "array"
         },
         "shapes": {
+          "default": [],
           "items": {
             "format": "uint64",
             "minimum": 0,
@@ -677,6 +703,7 @@
           "type": "array"
         },
         "texts": {
+          "default": [],
           "items": {
             "format": "uint64",
             "minimum": 0,
@@ -687,6 +714,17 @@
       },
       "type": "object"
     },
+    "FrameCorners": {
+      "description": "The corner style of a rectangular frame's borders (docs/specs/sign-maker.md §5).",
+      "enum": [
+        "sharp",
+        "round",
+        "notch",
+        "chamfer",
+        "step"
+      ],
+      "type": "string"
+    },
     "FrameShape": {
       "description": "A frame's outline (docs/specs/shape-library.md §3.1).",
       "enum": [
@@ -696,7 +734,13 @@
         "chamfered",
         "oval",
         "arched",
-        "plaque"
+        "plaque",
+        "stepped",
+        "gable",
+        "double_arch",
+        "shield",
+        "banner",
+        "octagon"
       ],
       "type": "string"
     },

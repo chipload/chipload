@@ -115,7 +115,7 @@ frame-margin-hover = From the selection's box to the innermost line
 frame-width = Width
 frame-height = Height
 frame-corner = Corner
-frame-corner-hover = The corner size: the rounding, notch or chamfer, the arch's rise, the plaque's bulge
+frame-corner-hover = The corner size: the rounding, notch, step or chamfer, how far the top or the bottom rises, the plaque's bulge, the banner's V
 frame-corner-auto = auto ({ $size })
 frame-corner-auto-hover = Set it yourself; off: a tenth of the shorter side
 frame-borders = Borders
@@ -132,6 +132,26 @@ frame-kind-chamfered = Chamfered
 frame-kind-oval = Oval
 frame-kind-arched = Arched top
 frame-kind-plaque = Plaque: the short sides bulge out
+frame-kind-stepped = Stepped: corners cut in by squares
+frame-kind-double-arch = Arched top and bottom
+frame-kind-gable = Gable: a pointed top
+frame-kind-shield = Shield
+frame-kind-banner = Banner: forked ends
+frame-kind-octagon = Octagon
+# The rectangular frames' corners (docs/specs/sign-maker.md §5).
+frame-corners = Corners
+frame-corners-sharp = Sharp
+frame-corners-round = Round
+frame-corners-notch = Notch
+frame-corners-chamfer = Chamfer
+frame-corners-step = Step
+frame-border-corners = Border corners
+frame-border-corners-same = As the outline
+frame-border-corners-hover = The border lines' own corners, at the same gap; as the outline: they follow its shape
+frame-double = Double lines
+frame-double-hover = Each border two grooves, with a ridge as wide as a groove between them
+frame-border-width = Groove width
+frame-border-width-hover = How wide a border's groove is at the surface (the V-bit's width at the depth it cuts). The margin is measured to its inner edge; 0: to the line.
 # A frame that follows what it goes round (docs/specs/sign-maker.md §4), under Selection.
 frame-live-title = Frame
 # $texts: how many texts it goes round; $others: how many pictures and other shapes.
