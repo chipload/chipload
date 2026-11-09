@@ -7,63 +7,6 @@ a quick workflow first.
 
 ## In progress
 
-- **Two-sided work** (docs/specs/two-sided.md, on the local branch `two-sided`; not pushed
-  until the user has tried it and likes it, 2026-11-05). All 8 steps built:
-  - step 1: the model (`back_of`, schema 36), the back following its front's board and
-    zero, a board fitting both sides, validation, `setup add --back-of`, `setup set
-    --back-of/--own-board/--turn/--register`;
-  - step 2: the planner chooses every direction with the cutting sense
-    (`Job::cutting_sense`, the spindle turned for a back), the program is mirrored about
-    the board's centre line before the post (`on_the_board`), the back is as thick as the
-    front's surfacing leaves it. Tests: climb stays climb for every operation with a
-    direction, both turns, against shapes mirrored by hand; no `machine.spindle` read
-    but the program's; golden `v36_two_sided`.
-
-  - step 3: dowel holes (`setup dowels`, `dowels: true` on a holes operation, its pin
-    depth in `through`): two circles on the turn axis in the margin, the front's zero at
-    pin 1 with `--zero`, the depth allowed only inside them by the planner and the checker
-    (which reads them from the project), refused off the axis or without a back. 8 mm pins
-    by default (a 6 mm end mill can't bore 6 mm).
-
-  - step 4: a note for text carved on the back (it reads mirrored there), the sheets: the
-    front's "Back side" row, the back's "Turn the board over" (turn, pins or corner) and its
-    picture as the board lies, back face up. "Sides that meet" moves to the simulation
-    (step 6), which knows exactly where both sides cut through.
-
-  - step 5: the window: *Add the back side* on a setup's menu (right after its front, ⟲ in
-    the Browser), the setup form's Board, Turn over, Put back by and Add dowel holes, a
-    back's Stock and Work zero read only (with the thickness the front's surfacing leaves),
-    the zero's handle fixed on a back. Fixed: a margin exactly as wide as a dowel hole
-    needs (the default 10 mm for 8 mm pins) was refused by a float hair.
-
-  - step 6: the simulation of both sides: a floor per cell, a back cut from below on its
-    front's result (planned and simulated first), its history as floor raises, the area cut
-    through and "the two sides meet" (only where neither alone goes through), `simulate
-    --face back` (`Simulation::turned_over`). One-sided results and hashes unchanged.
-
-  - step 7: the 3D view's solid (cut-through cells left out, walls facing the viewer at
-    the board's edges and round holes), **Turn over** in Simulate (the camera mirrors and
-    turns every point: `View::turned`), a back's toolpath and tool shown on the front's
-    board from below (`shown_on_board`). No tilt past side-on (decision 15 as built).
-
-  - step 8: the guide's screenshots renewed (3D simulations gain walls, the report says
-    schema 36); the libraries still build for the browser.
-
-  - from the user's first try (2026-11-05): the dowel holes sat under the outline's
-    outside profile, which on the back would cut into the pin. They now go beyond where
-    both sides cut (the plans, tool width included), a too narrow margin is refused with
-    the margin that fits (16 mm for a 6 mm end mill and 8 mm pins), the checker refuses a
-    back that comes within a pin, and a front cut into a made hole is noted. The sample's
-    margin is 16 mm. Planning a back with nothing to cut yet no longer fails the holes.
-    A back surface pass over the pins is allowed with a warning (the user, 2026-11-08):
-    the checker lets it pass over them as deep as it cuts, the sheet says to tap the pins
-    down that far.
-
-  Next: **the user tries it** (2026-11-05), on the branch: what to change, then merge.
-  Open: a guide page of its own if the Setups section grows too long; the per-operation
-  "sides that meet" (today one area for the board).
-  Found on the way and fixed: moving an operation or a part into
-  a setup of another thickness was refused, because its through depth didn't follow first.
 - **Translations** (docs/specs/translations.md, ADR 0022): the app, its messages and the
   setup sheet in English, German, French, Spanish, Italian and Swedish since 0.24.0
   (machine-made from `crates/chipload-i18n/GLOSSARY.md`), and Russian since PR #11. Left:
@@ -208,9 +151,8 @@ to a program you trust. It was about four per operation; with the defaults and s
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
-   pocket, cutting boards). Spec drafted 2026-11-04, **for review**: docs/specs/two-sided.md
-   (the user's decisions 1, 3, 5, 6, 8 and 13 in; 2, 4, 7, 9-12, 14, 15 recommended, awaiting
-   approval).
+   pocket, cutting boards). **Done**, merged into main 2026-11-09 (docs/specs/two-sided.md;
+   see *Done*).
 9. **Pockets: a finishing pass** (the gap review of 2026-11-03): a light last cut of the
    walls and of the floor, for fits (inlays, lids, recesses) and clean floors. Spec first:
    the allowance left by the roughing, the wall lap's direction, the floor's stepover,
@@ -284,6 +226,66 @@ Smaller follow-ups noted along the way, not in the order above:
   distance queries (user request 2026-10-11).
 
 ## Done
+
+### In main, not released yet
+
+- **Two-sided work** (docs/specs/two-sided.md, approved 2026-11-09 and merged into main from
+  the local branch `two-sided`). All 8 steps built:
+  - step 1: the model (`back_of`, schema 36), the back following its front's board and
+    zero, a board fitting both sides, validation, `setup add --back-of`, `setup set
+    --back-of/--own-board/--turn/--register`;
+  - step 2: the planner chooses every direction with the cutting sense
+    (`Job::cutting_sense`, the spindle turned for a back), the program is mirrored about
+    the board's centre line before the post (`on_the_board`), the back is as thick as the
+    front's surfacing leaves it. Tests: climb stays climb for every operation with a
+    direction, both turns, against shapes mirrored by hand; no `machine.spindle` read
+    but the program's; golden `v36_two_sided`.
+
+  - step 3: dowel holes (`setup dowels`, `dowels: true` on a holes operation, its pin
+    depth in `through`): two circles on the turn axis in the margin, the front's zero at
+    pin 1 with `--zero`, the depth allowed only inside them by the planner and the checker
+    (which reads them from the project), refused off the axis or without a back. 8 mm pins
+    by default (a 6 mm end mill can't bore 6 mm).
+
+  - step 4: a note for text carved on the back (it reads mirrored there), the sheets: the
+    front's "Back side" row, the back's "Turn the board over" (turn, pins or corner) and its
+    picture as the board lies, back face up. "Sides that meet" moves to the simulation
+    (step 6), which knows exactly where both sides cut through.
+
+  - step 5: the window: *Add the back side* on a setup's menu (right after its front, ⟲ in
+    the Browser), the setup form's Board, Turn over, Put back by and Add dowel holes, a
+    back's Stock and Work zero read only (with the thickness the front's surfacing leaves),
+    the zero's handle fixed on a back. Fixed: a margin exactly as wide as a dowel hole
+    needs (the default 10 mm for 8 mm pins) was refused by a float hair.
+
+  - step 6: the simulation of both sides: a floor per cell, a back cut from below on its
+    front's result (planned and simulated first), its history as floor raises, the area cut
+    through and "the two sides meet" (only where neither alone goes through), `simulate
+    --face back` (`Simulation::turned_over`). One-sided results and hashes unchanged.
+
+  - step 7: the 3D view's solid (cut-through cells left out, walls facing the viewer at
+    the board's edges and round holes), **Turn over** in Simulate (the camera mirrors and
+    turns every point: `View::turned`), a back's toolpath and tool shown on the front's
+    board from below (`shown_on_board`). No tilt past side-on (decision 15 as built).
+
+  - step 8: the guide's screenshots renewed (3D simulations gain walls, the report says
+    schema 36); the libraries still build for the browser.
+
+  - from the user's first try (2026-11-05): the dowel holes sat under the outline's
+    outside profile, which on the back would cut into the pin. They now go beyond where
+    both sides cut (the plans, tool width included), a too narrow margin is refused with
+    the margin that fits (16 mm for a 6 mm end mill and 8 mm pins), the checker refuses a
+    back that comes within a pin, and a front cut into a made hole is noted. The sample's
+    margin is 16 mm. Planning a back with nothing to cut yet no longer fails the holes.
+    A back surface pass over the pins is allowed with a warning (the user, 2026-11-08):
+    the checker lets it pass over them as deep as it cuts, the sheet says to tap the pins
+    down that far.
+
+  The release notes must say that 0.34 can't open a project with a back setup (schema 36).
+  Open: a guide page of its own if the Setups section grows too long; the per-operation
+  "sides that meet" (today one area for the board).
+  Found on the way and fixed: moving an operation or a part into
+  a setup of another thickness was refused, because its through depth didn't follow first.
 
 ### In 0.34.1 (tagged 2026-11-08)
 

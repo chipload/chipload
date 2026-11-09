@@ -1,14 +1,15 @@
 # Spec: two-sided work, turning the board over
 
-Status: **draft, for review.** The user's decisions:
+Status: **approved 2026-11-09, built** (the user: the rest of the decisions as recommended,
+and merged into main). The user's decisions:
 - 2026-11-04: 1, the back drawn as seen from the front; 3, dowel pins with a corner as the
   fallback; 6, sides that meet give at most a note; 8, the view stays the front's.
 - 2026-11-05: 5, the back planned with the cutting direction flipped, not with mirrored
   geometry; 13, the simulation shows both sides in the first version.
 
 The way setups link (§3) follows the user's question "is it in the properties panel for
-setup 2 we say that it is the backside of setup 1?". It is built on a local branch and not
-pushed until the user likes it (decision 12). Follows
+setup 2 we say that it is the backside of setup 1?". It was built on a local branch and
+merged into main when the user approved it, 2026-11-09 (decision 12). Follows
 docs/specs/setups.md §9.
 
 ## 1. Why
