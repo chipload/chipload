@@ -397,6 +397,7 @@ V-carve: a V-bit follows the centre line of closed shapes, as deep as makes the 
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `passes` | integer | yes | How many depth passes, 1 to [`MAX_VCARVE_PASSES`]: each removes the same cross-section, the last at the end depth (docs/specs/v-carve.md decision 12). |
+| `plug` | [Plug](#plug) or null | no | The plug of a V-carve inlay: the rest of the board is carved, its outline taken `plug.start_depth` below the surface, so the shapes stand as a tapered plug that fits the pocket a V-carve of the same shapes cuts. Missing: an ordinary V-carve. Left out when missing. |
 | `plunge_feed` | number | yes | The feed for moves steeper than 45°, mm/min. |
 | `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. |
 | `start_depth` | number | yes | The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut. |
@@ -490,6 +491,14 @@ Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (d
 | `dy` | number | yes | Then moved along Y, mm. |
 | `rotation` | number | yes | Turned counter-clockwise about the DXF's origin, degrees, at least 0 and less than 360, after the scale. Multiples of 90 are exact. |
 | `scale` | number | yes | Scaled about the DXF's origin by this factor, 0.001 to 1000; 1: as drawn. |
+
+## Plug
+
+A V-carve inlay's plug (docs/specs/vcarve-inlay.md §2.2).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `start_depth` | number | yes | Where the outline is taken, mm down from the stock top: more than the operation's start depth, less than its end depth. The end depth less this is the glue gap. |
 
 ## Register
 

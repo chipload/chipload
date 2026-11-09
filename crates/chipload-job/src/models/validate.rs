@@ -464,6 +464,30 @@ impl Job {
                                 .arg("got", Value::Number(v.ignore_kinks_deg, Digits::Shortest)),
                         ));
                     }
+                    // An inlay's plug (docs/specs/vcarve-inlay.md §3).
+                    if let Some(plug) = v.plug {
+                        let start = plug.start_depth;
+                        if !(start > v.start_depth + DEPTH_TOL_MM
+                            && start < v.end_depth - DEPTH_TOL_MM)
+                        {
+                            counts.push(Problem::at(
+                                format!("operations.{i}.plug.start_depth"),
+                                Message::new("job-vcarve-plug-start")
+                                    .arg("start", Value::Length(v.start_depth, Digits::Shortest))
+                                    .arg("end", Value::Length(v.end_depth, Digits::Shortest))
+                                    .arg("got", Value::Length(start, Digits::Shortest)),
+                            ));
+                        }
+                        if v.ignore_kinks_deg > 0.0 {
+                            counts.push(Problem::at(
+                                at("ignore_kinks_deg"),
+                                Message::new("job-vcarve-plug-kinks").arg(
+                                    "got",
+                                    Value::Number(v.ignore_kinks_deg, Digits::Shortest),
+                                ),
+                            ));
+                        }
+                    }
                     positive(at("feed"), v.feed);
                     positive(at("plunge_feed"), v.plunge_feed);
                     if let Some(floor) = &v.floor {

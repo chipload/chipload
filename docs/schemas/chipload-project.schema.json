@@ -1370,6 +1370,17 @@
               "minimum": 0,
               "type": "integer"
             },
+            "plug": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Plug"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The plug of a V-carve inlay: the rest of the board is carved, its outline taken\n`plug.start_depth` below the surface, so the shapes stand as a tapered plug that fits\nthe pocket a V-carve of the same shapes cuts. Missing: an ordinary V-carve. Left out\nwhen missing."
+            },
             "plunge_feed": {
               "description": "The feed for moves steeper than 45°, mm/min.",
               "format": "double",
@@ -1810,6 +1821,21 @@
         "rotation",
         "dx",
         "dy"
+      ],
+      "type": "object"
+    },
+    "Plug": {
+      "additionalProperties": false,
+      "description": "A V-carve inlay's plug (docs/specs/vcarve-inlay.md §2.2).",
+      "properties": {
+        "start_depth": {
+          "description": "Where the outline is taken, mm down from the stock top: more than the operation's\nstart depth, less than its end depth. The end depth less this is the glue gap.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start_depth"
       ],
       "type": "object"
     },

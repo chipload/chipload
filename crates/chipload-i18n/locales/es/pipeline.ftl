@@ -616,6 +616,10 @@ pipeline-name-vcarve = Tallado en V { $number }
 pipeline-name-path = Seguir trayectoria { $number }
 pipeline-name-holes = Taladros { $number }
 pipeline-name-surface = Planeado { $number }
+pipeline-name-inlay-pocket = Cajeado de incrustación
+pipeline-name-inlay-plug = Tapón de incrustación
+pipeline-setup-inlay-plug = Tablero del tapón
+pipeline-inlay-vbit = una incrustación se talla en V: la herramienta { $tool } debe ser una fresa en V con ángulo
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
 # the outlines outside. $name is the numbered name above.
 pipeline-name-holes-of = { $name } (agujeros)

@@ -11,12 +11,12 @@
 //! leaves it about its distance from the cut's edge ÷ the slope high.
 
 use chipload_core::Point;
-use chipload_core::primitives::{Line, Primitive};
+use chipload_core::primitives::{Line, Primitive, distance};
 use chipload_core::tolerances::{FLOOR_LEFT_MM, FLOOR_LEFT_SHARE};
 
 use crate::ToolpathError;
 use crate::cavalier::Area;
-use crate::geom::PrimIndex;
+use crate::geom::{PrimIndex, closest_on_segment};
 
 /// The most samples a floor is measured at: a grid this fine over its box.
 const MAX_SAMPLES: f64 = 40_000.0;
@@ -137,6 +137,53 @@ impl Floor {
             })
             .count();
         left as f64 / self.samples.len() as f64
+    }
+
+    /// How high the floor stands where the end mill doesn't reach, at its highest, mm above
+    /// the floor (`floor` deep below the outline), at most `most` (the floor's depth below
+    /// the carved surface: up to it, the cone's flank bounds what stands). Each such sample
+    /// is cut by the V-bit from the nearest of: the floor's edge, where the walls meet it,
+    /// leaving its distance ÷ the slope; and each carved chord of the centre line, `(a, b,
+    /// r)` with r the smaller cut radius at its ends, its tip as deep as r makes it, at most
+    /// the floor's depth, leaving floor + (distance − r) ÷ the slope. 0 when it is all
+    /// cleared (docs/specs/vcarve-inlay.md §12).
+    pub(crate) fn highest_left(
+        &self,
+        reach: &Reach,
+        carved: &[(Point, Point, f64)],
+        floor: f64,
+        most: f64,
+    ) -> f64 {
+        let deepest_radius = self.tip_radius + floor * self.slope;
+        let lines: Vec<Primitive> = carved
+            .iter()
+            .map(|&(start, end, _)| Primitive::Line(Line { start, end }))
+            .collect();
+        let index = (!lines.is_empty()).then(|| PrimIndex::new(lines, 1.0));
+        // Farther than this, nothing a cut leaves can be lower than `most`.
+        let far = most * self.slope + deepest_radius;
+        self.samples
+            .iter()
+            .filter(|&&p| !reach.reaches(p))
+            .map(|&p| {
+                let wall = self
+                    .edges
+                    .distance_within(p, far)
+                    .map_or(most, |d| d / self.slope);
+                let chords = index.as_ref().map_or(most, |index| {
+                    index
+                        .near(p, p, far)
+                        .into_iter()
+                        .map(|k| {
+                            let (a, b, r) = carved[k];
+                            let d = distance(p, closest_on_segment(p, a, b));
+                            floor + (d - r.min(deepest_radius)) / self.slope
+                        })
+                        .fold(most, f64::min)
+                });
+                wall.min(chords).clamp(0.0, most)
+            })
+            .fold(0.0, f64::max)
     }
 
     /// The largest end mill radius, at most `radius`, that leaves no more than

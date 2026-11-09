@@ -611,6 +611,10 @@ pipeline-name-vcarve = V-Gravur { $number }
 pipeline-name-path = Pfad folgen { $number }
 pipeline-name-holes = Bohrungen { $number }
 pipeline-name-surface = Planfräsen { $number }
+pipeline-name-inlay-pocket = Intarsien-Tasche
+pipeline-name-inlay-plug = Intarsien-Stopfen
+pipeline-setup-inlay-plug = Brett für den Intarsien-Stopfen
+pipeline-inlay-vbit = eine Intarsie wird V-graviert: Werkzeug { $tool } muss ein V-Fräser mit Winkel sein
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
 # the outlines outside. $name is the numbered name above.
 pipeline-name-holes-of = { $name } (Löcher)

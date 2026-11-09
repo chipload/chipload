@@ -14,6 +14,7 @@ pub mod fonts;
 pub mod frames;
 pub mod groups;
 pub mod images;
+pub mod inlay;
 pub mod library;
 pub mod materials;
 pub mod new_ops;
@@ -1263,7 +1264,14 @@ pub fn cut_inputs(job: &Job) -> Option<CutInputs> {
 }
 
 fn extent_notes(job: &Job, report: &ImportReport) -> Vec<Message> {
-    let Some(((x0, y0), (x1, y1))) = report.bbox else {
+    // With several setups, a board holds only its own setup's shapes
+    // (docs/specs/setups.md §3): an inlay's plug board isn't the base's.
+    let extents = if job.setups.len() > 1 {
+        job.board_extents()
+    } else {
+        report.bbox
+    };
+    let Some(((x0, y0), (x1, y1))) = extents else {
         return Vec::new();
     };
     let (lo, hi) = job.stock_bounds();

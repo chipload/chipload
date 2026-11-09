@@ -185,6 +185,8 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
 | `--group <GROUP>` | All of this group. |
+| `--text <TEXT>` | All of this text (an id from `text list`) |
+| `--image <IMAGE>` | All of this traced picture (an id from `image list`) |
 | `--tool <TOOL>` | The tool's id in the project; default: the one the app would take. |
 | `--depth <DEPTH>` | End depth instead of the default (not with --through) |
 | `--through` | Cut through the stock, below it by the setup's max overcut. |
@@ -233,6 +235,31 @@ chipload op add-floor <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--op <OP>` | The V-carve's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
 | `--tool <TOOL>` | The end mill's id in the project. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op add-inlay`
+
+Make a V-carve inlay of closed shapes (docs/specs/vcarve-inlay.md): a pocket V-carved in the active part, and in a new setup, the plug board, the plug: the rest of that board carved, mirrored left to right, so the shapes stand as a tapered plug that is glued face down into the pocket
+
+```text
+chipload op add-inlay <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
+| `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
+| `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
+| `--group <GROUP>` | All of this group. |
+| `--text <TEXT>` | All of this text (an id from `text list`) |
+| `--image <IMAGE>` | All of this traced picture (an id from `image list`) |
+| `--tool <TOOL>` | The V-bit's id in the project; both are carved with it. Required. |
+| `--depth <DEPTH>` | The pocket's depth; default 5 mm. |
+| `--plug-start <PLUG_START>` | How deep below the plug board's surface its outline is taken: the plug's face lies that deep in the pocket, the rest of the pocket's depth left for glue; default 3 mm. |
+| `--gap <GAP>` | The glue gap: how much farther the plug board is carved, so its back stands above the base; default 1.5 mm. |
+| `--floor-tool <FLOOR_TOOL>` | An end mill's id for the floor passes of both (the plug's channel is mostly floor) |
+| `--plug-thickness <PLUG_THICKNESS>` | The plug board's thickness; default 10 mm. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op remove-floor`
@@ -1736,6 +1763,8 @@ chipload style use <PROJECT> <NAME> [OPTIONS]
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
 | `--group <GROUP>` | All of this group. |
+| `--text <TEXT>` | All of this text (an id from `text list`) |
+| `--image <IMAGE>` | All of this traced picture (an id from `image list`) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload style rename`

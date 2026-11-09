@@ -15,7 +15,7 @@ use chipload_job::{
     SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
-use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
 
 use crate::ToolpathError;
 use crate::arcs::{ArcTable, tag_moves};
@@ -43,7 +43,7 @@ use crate::surface::{SurfaceCut, surface_moves};
 use crate::tabs::{
     TabLayout, along_tabs, arc_position, place_tabs, point_at_arc, tab_polylines, tabs_at,
 };
-use crate::vcarve::{VBit, carve_levels, plan_vcarve, vcarve_moves};
+use crate::vcarve::{VBit, carve_levels, plan_vcarve_at, vcarve_moves};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Plan {
@@ -546,12 +546,15 @@ fn plan_step(
         floor_pass: job.is_floor_pass(chosen.at),
         sense: job.cutting_sense_of(op),
     };
-    let moved: Vec<Contour> = chosen
+    let mut moved: Vec<Contour> = chosen
         .selection
         .contours
         .iter()
         .map(|c| c.translated(shift))
         .collect();
+    // An inlay plug carves the rest of the board: its outline round the artwork
+    // (docs/specs/vcarve-inlay.md §2.2), for the V-carve and its floor pass alike.
+    moved.extend(plug_board(job, chosen.at.operation, mirror));
     let shifted = Selection {
         contours: moved.iter().collect(),
         notes: Vec::new(),
@@ -592,6 +595,95 @@ fn plan_step(
         };
         err.at(index)
     })
+}
+
+/// The board an inlay plug at operation `index` carves, as a contour round the artwork in
+/// the frame the part is planned in (mirrored back for a mirrored part): the stock grown by
+/// as much as keeps every wall and the floor pass's end mill clear of its edges, with round
+/// corners (docs/specs/vcarve-inlay.md §2.2). Grown by the glue gap's width, g·tan(α/2),
+/// the V-bit's walls meet the channel floor at the board's edge; by the end mill's radius
+/// more, that floor reaches the edge too, corners included. None for anything but a plug.
+fn plug_board(job: &Job, index: usize, mirror: Option<(Mirror, f64)>) -> Option<Contour> {
+    let Some(Operation::Vcarve(vcarve)) = job.operations.get(index) else {
+        return None;
+    };
+    let plug = vcarve.plug?;
+    let slope = (job.tool(vcarve.tool)?.angle? / 2.0).tan();
+    let floor = vcarve
+        .floor
+        .filter(|f| f.enabled)
+        .and_then(|f| job.tool(f.tool))
+        .map_or(0.0, |t| t.diameter / 2.0);
+    let grow = (vcarve.end_depth - plug.start_depth).max(0.0) * slope + floor;
+    let (low, high) = job.stock_bounds();
+    let (a, b) = match mirror {
+        Some(m) => (mirrored_point(m, low), mirrored_point(m, high)),
+        None => (low, high),
+    };
+    let (x0, y0, x1, y1) = (a.0.min(b.0), a.1.min(b.1), a.0.max(b.0), a.1.max(b.1));
+    Some(rounded_rectangle((x0, y0), (x1, y1), grow))
+}
+
+/// The rectangle (`low`, `high`) grown by `grow` all round, its corners quarter circles,
+/// counter-clockwise, as a closed contour of no shape (id 0).
+fn rounded_rectangle(low: Point, high: Point, grow: f64) -> Contour {
+    use chipload_core::chain::{OrientedSegment, Segment};
+    use chipload_core::primitives::{Arc, Line, Primitive};
+    use std::f64::consts::FRAC_PI_2;
+    let (x0, y0, x1, y1) = (low.0, low.1, high.0, high.1);
+    let g = grow;
+    let mut prims = vec![
+        Primitive::Line(Line {
+            start: (x0, y0 - g),
+            end: (x1, y0 - g),
+        }),
+        Primitive::Line(Line {
+            start: (x1 + g, y0),
+            end: (x1 + g, y1),
+        }),
+        Primitive::Line(Line {
+            start: (x1, y1 + g),
+            end: (x0, y1 + g),
+        }),
+        Primitive::Line(Line {
+            start: (x0 - g, y1),
+            end: (x0 - g, y0),
+        }),
+    ];
+    if g > 0.0 {
+        let corners = [(x1, y0), (x1, y1), (x0, y1), (x0, y0)];
+        for (k, &center) in corners.iter().enumerate() {
+            let arc = Primitive::Arc(Arc {
+                center,
+                radius: g,
+                start_angle: -FRAC_PI_2 + k as f64 * FRAC_PI_2,
+                sweep: FRAC_PI_2,
+            });
+            prims.insert(2 * k + 1, arc);
+        }
+    }
+    let parts = prims
+        .into_iter()
+        .map(|prim| OrientedSegment {
+            segment: Segment {
+                prim,
+                layer: String::new(),
+                handle: String::new(),
+                source_type: String::new(),
+                shape: None,
+                from: None,
+                construction: false,
+            },
+            reversed: false,
+        })
+        .collect();
+    Contour {
+        id: 0,
+        parts,
+        closed: true,
+        invalid_reason: None,
+        nesting_depth: Some(0),
+    }
 }
 
 /// `p` mirrored about X = at (left to right) or Y = at (top to bottom).
@@ -1363,16 +1455,55 @@ fn plan_vcarve_op(
         .filter(|f| f.enabled)
         .and_then(|f| ctx.job.tool(f.tool))
         .filter(|t| t.kind == ToolType::Endmill);
-    let mut plan = plan_vcarve(
+    // A plug's outline lies below the surface: carved from there, every depth that much
+    // deeper (docs/specs/vcarve-inlay.md §2.2).
+    let outline = op.outline_depth() - op.start_depth;
+    let mut plan = plan_vcarve_at(
         &selection.contours,
         &bit,
-        op.end_depth - op.start_depth,
+        op.end_depth - op.outline_depth(),
         start,
         floor_tool.map(|t| t.diameter / 2.0),
         op.ignore_kinks_deg.to_radians(),
+        outline,
     )
     .map_err(|err| err.with_context(ctx.label_message.clone()))?;
-    let notes = std::mem::take(&mut plan.notes);
+    if let Some(plug) = op.plug {
+        // Where the board between two shapes is narrower than the tip, the plug's cone cuts
+        // it from above its outline, as wide as it is: nothing is left narrow.
+        plan.notes.clear();
+        // What its floor pass leaves above the outline level stands into the base once the
+        // plug is turned over (docs/specs/vcarve-inlay.md §12); a speck lower than
+        // FLOOR_LEFT_MM doesn't count, as for any floor. Without a floor pass, the plug's
+        // checks say so.
+        if plan.floor_left.is_none()
+            && let Some(top) = plan.floor_top.map(|top| op.start_depth + top)
+            && top < plug.start_depth - FLOOR_LEFT_MM
+        {
+            plan.notes.push(
+                Message::new("toolpath-plug-floor-left")
+                    .arg("top", Value::Length(top, Digits::Fixed(2)))
+                    .arg("outline", Value::mm(plug.start_depth)),
+            );
+        }
+    }
+    let mut notes = std::mem::take(&mut plan.notes);
+    // An inlay's pocket: a floor left standing above the plug's face holds the plug up
+    // before its walls meet (docs/specs/vcarve-inlay.md §12); a speck lower than
+    // FLOOR_LEFT_MM doesn't count.
+    if op.plug.is_none()
+        && let Some(face) = plug_face(ctx.job, op, angle)
+        && let Some(top) = plan.floor_top.map(|top| op.start_depth + top)
+        && top < face - FLOOR_LEFT_MM
+    {
+        notes.push(if plan.floor_left.is_some() {
+            Message::new("toolpath-inlay-pocket-no-floor")
+        } else {
+            Message::new("toolpath-inlay-pocket-floor")
+                .arg("top", Value::Length(top, Digits::Fixed(2)))
+                .arg("face", Value::mm(face))
+        });
+    }
     let mut facts: Vec<Message> = plan.floor_left.take().into_iter().collect();
     let floor_hint = plan.floors.iter().map(|f| f.largest).reduce(f64::min);
     if let Some(tool) = floor_tool {
@@ -2270,6 +2401,14 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             problems.extend(more_problems);
             notes.extend(more_notes);
         }
+        if let Operation::Vcarve(vcarve) = op
+            && let Some(plug) = vcarve.plug
+        {
+            let (more_problems, more_notes) =
+                plug_checks(job, index, vcarve, plug, tool, &label_message);
+            problems.extend(more_problems);
+            notes.extend(more_notes);
+        }
         if let Some(max_feed) = job.machine.max_feed {
             for (name, value) in [("feed", feed), ("plunge_feed", plunge_feed)] {
                 if value > max_feed {
@@ -2590,6 +2729,189 @@ fn rest_pass_checks(job: &Job, index: usize, pocket: &PocketOp) -> (Vec<Problem>
                 ),
             ));
         }
+    }
+    (problems, notes)
+}
+
+/// Whether V-carves `a` and `b` are an inlay's pocket and plug as far as their carving
+/// goes: the same shapes, and V-bits of the same angle (docs/specs/vcarve-inlay.md
+/// decision 1). `angle` is `a`'s bit's.
+fn pairs(job: &Job, a: &VcarveOp, angle: f64, b: &VcarveOp) -> bool {
+    a.select == b.select
+        && job
+            .tool(b.tool)
+            .and_then(|t| t.angle)
+            .is_some_and(|other| (other - angle).abs() <= ANGLE_TOL_RAD)
+}
+
+/// How deep the face of the ordinary V-carve `pocket`'s plug lies in it, mm down from the
+/// stock top (the shallowest, with several): a V-carve with a `plug` that pairs with it, on,
+/// in another setup that is on, its start depth less its own start. None without one.
+/// Planned as its own setup, the job has the other setups' parts off (`Job::for_setup`),
+/// so their switch isn't asked.
+fn plug_face(job: &Job, pocket: &VcarveOp, angle: f64) -> Option<f64> {
+    let setup = job.part(pocket.part).map(|p| p.setup);
+    job.operations
+        .iter()
+        .filter(|op| {
+            op.enabled()
+                && job
+                    .setup_of(op)
+                    .is_some_and(|s| s.enabled && Some(s.id) != setup)
+        })
+        .filter_map(|op| match op {
+            Operation::Vcarve(v) if pairs(job, pocket, angle, v) => {
+                v.plug.map(|plug| plug.start_depth - v.start_depth)
+            }
+            _ => None,
+        })
+        .reduce(f64::min)
+}
+
+/// The glue gap below which a plug's back may meet the base before its walls do, mm
+/// (docs/specs/vcarve-inlay.md §6).
+const PLUG_GAP_MIN_MM: f64 = 0.5;
+
+/// The least a plug board keeps under its channel floor, mm (docs/specs/vcarve-inlay.md §6).
+const PLUG_BACK_MIN_MM: f64 = 2.0;
+
+/// An inlay plug's checks (docs/specs/vcarve-inlay.md §6). Problems: deeper than its V-bit
+/// cuts, copies (each copy would carve the others away), a floor pass's end mill that would
+/// stray off the board. Warnings: no pocket for it, a pocket it wouldn't seat in, its part
+/// not mirrored, a small glue gap, a thin back, a pocket that ignores kinks, no floor pass,
+/// and a flat tip's shortfall at sharp corners.
+fn plug_checks(
+    job: &Job,
+    index: usize,
+    vcarve: &VcarveOp,
+    plug: chipload_job::Plug,
+    bit: &Tool,
+    label: &Message,
+) -> (Vec<Problem>, Vec<Note>) {
+    let (mut problems, mut notes) = (Vec::new(), Vec::new());
+    let at = |field: &str| format!("operations.{index}.{field}");
+    let note = |message: Message| Note::at(index, labelled_note(label, message));
+    let Some(angle) = bit.angle else {
+        return (problems, notes); // reported with the V-bit's checks
+    };
+    let tip = bit.tip_diameter.unwrap_or(0.0);
+    let deepest = (bit.diameter - tip) / 2.0 / (angle / 2.0).tan();
+    let depth = vcarve.end_depth - vcarve.start_depth;
+    if depth > deepest + DEPTH_TOL_MM {
+        problems.push(labelled(
+            at("end_depth"),
+            label,
+            Message::new("toolpath-plug-too-deep")
+                .arg("tool", bit.id)
+                .arg("deepest", Value::Length(deepest, Digits::Fixed(3)))
+                .arg("got", length(depth)),
+        ));
+    }
+    if job
+        .part_of(&job.operations[index])
+        .is_some_and(|p| p.count() > 1)
+    {
+        problems.push(labelled(
+            at("part"),
+            label,
+            Message::new("toolpath-plug-copies"),
+        ));
+    }
+    let floor = vcarve.floor.filter(|f| f.enabled);
+    match floor.and_then(|f| job.tool(f.tool)) {
+        Some(mill) if mill.diameter / 2.0 > bit.diameter / 2.0 + tip / 2.0 + DEPTH_TOL_MM => {
+            problems.push(labelled(
+                at("floor.tool"),
+                label,
+                Message::new("toolpath-plug-floor-wide")
+                    .arg("tool", mill.id)
+                    .arg("bit", bit.id),
+            ));
+        }
+        Some(_) => {}
+        None => notes.push(note(Message::new("toolpath-plug-no-floor"))),
+    }
+    // Its pocket: a V-carve of the same shapes with a bit of the same angle, in another
+    // setup (docs/specs/vcarve-inlay.md decision 1). Planned as its own setup, the job has
+    // the other setups' parts off (`Job::for_setup`): an operation that is on, in a setup
+    // that is on, counts.
+    let setup = job.setup_of(&job.operations[index]).map(|s| s.id);
+    let pockets: Vec<&VcarveOp> = job
+        .operations
+        .iter()
+        .filter(|op| op.enabled() && job.setup_of(op).is_some_and(|s| s.enabled))
+        .filter_map(|op| match op {
+            Operation::Vcarve(v) => Some((op, v)),
+            _ => None,
+        })
+        .filter(|(op, v)| {
+            v.plug.is_none()
+                && job.setup_of(op).map(|s| s.id) != setup
+                && pairs(job, vcarve, angle, v)
+        })
+        .map(|(_, v)| v)
+        .collect();
+    // Degrees to a tenth: the angle is stored in radians.
+    let degrees = Value::Number((angle.to_degrees() * 10.0).round() / 10.0, Digits::Shortest);
+    if pockets.is_empty() {
+        notes.push(note(
+            Message::new("toolpath-plug-no-pocket").arg("angle", degrees),
+        ));
+    }
+    // One pocket that fits is enough: a project may carve the same shapes more than once.
+    let face = plug.start_depth - vcarve.start_depth;
+    let seats = |p: &&VcarveOp| p.end_depth - p.start_depth > face + DEPTH_TOL_MM;
+    let fits = pockets
+        .iter()
+        .any(|p| seats(p) && p.ignore_kinks_deg <= 0.0);
+    if !fits && !pockets.is_empty() {
+        let deepest = pockets
+            .iter()
+            .map(|p| p.end_depth - p.start_depth)
+            .fold(0.0, f64::max);
+        if let Some(kinks) = pockets.iter().find(|p| seats(p)) {
+            notes.push(note(Message::new("toolpath-plug-pocket-kinks").arg(
+                "degrees",
+                Value::Number(kinks.ignore_kinks_deg, Digits::Shortest),
+            )));
+        } else {
+            notes.push(note(
+                Message::new("toolpath-plug-wont-seat")
+                    .arg("pocket", length(deepest))
+                    .arg("face", length(face)),
+            ));
+        }
+    }
+    if job.mirror_of(&job.operations[index]).is_none() {
+        notes.push(note(Message::new("toolpath-plug-not-mirrored")));
+    }
+    let gap = vcarve.end_depth - plug.start_depth;
+    if gap < PLUG_GAP_MIN_MM - DEPTH_TOL_MM {
+        notes.push(note(
+            Message::new("toolpath-plug-gap")
+                .arg("gap", length(gap))
+                .arg("least", length(PLUG_GAP_MIN_MM)),
+        ));
+    }
+    let stock = job
+        .setup_of(&job.operations[index])
+        .map_or(job.stock(), |s| &s.stock);
+    let back = stock.thickness - vcarve.end_depth;
+    if back < PLUG_BACK_MIN_MM - DEPTH_TOL_MM {
+        notes.push(note(
+            Message::new("toolpath-plug-thin-back")
+                .arg("back", length(back))
+                .arg("least", length(PLUG_BACK_MIN_MM)),
+        ));
+    }
+    if tip > 0.0 {
+        // How far from a right-angled corner the fit falls short: w/2 ÷ sin(45°).
+        let short = tip / 2.0 / std::f64::consts::FRAC_PI_4.sin();
+        notes.push(note(
+            Message::new("toolpath-plug-flat-tip")
+                .arg("tip", length(tip))
+                .arg("short", Value::Length(short, Digits::Fixed(2))),
+        ));
     }
     (problems, notes)
 }

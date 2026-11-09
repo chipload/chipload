@@ -655,6 +655,71 @@ fn parts_are_added_changed_and_removed_from_the_command_line() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+#[test]
+fn an_inlay_is_made_from_the_command_line() {
+    // docs/specs/vcarve-inlay.md §4
+    let dir = temp_dir("inlay");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v27/text.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let job = || -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap()
+    };
+    // Tool 1 is an end mill: refused.
+    let (code, _, err) = run(&["op", "add-inlay", p, "--text", "2", "--tool", "1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("must be a V-bit"), "{err}");
+    let (code, out, err) = run(&[
+        "op",
+        "add-inlay",
+        p,
+        "--text",
+        "2",
+        "--tool",
+        "2",
+        "--floor-tool",
+        "1",
+        "--gap",
+        "1",
+        "--plug-thickness",
+        "12",
+    ]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(
+        out.contains("Added operation 3: the inlay's pocket, 5 mm deep."),
+        "{out}"
+    );
+    assert!(
+        out.contains("with part 2 mirrored left to right and operation 4: the plug"),
+        "{out}"
+    );
+    let job = job();
+    let pocket = &job["operations"][2];
+    let plug = &job["operations"][3];
+    assert_eq!(pocket["select"]["text"], 2);
+    assert_eq!(pocket["end_depth"], 5.0);
+    assert_eq!(pocket["floor"]["tool"], 1);
+    assert_eq!(plug["plug"]["start_depth"], 3.0);
+    assert_eq!(plug["end_depth"], 4.0);
+    assert_eq!(plug["floor"]["tool"], 1);
+    assert_eq!(plug["part"], 2);
+    assert_eq!(job["parts"][1]["mirror"], "left_right");
+    assert_eq!(job["parts"][1]["setup"], 2);
+    assert_eq!(job["setups"][1]["stock"]["thickness"], 12.0);
+    assert_eq!(job["setups"][1]["stock"]["fit"], 10.0);
+    // Both programs pass the checker; the plug's check finds its pocket.
+    let out_file = dir.join("inlay.nc");
+    let (code, out, err) = run(&["run", p, "-o", path(&out_file)]);
+    assert_eq!(code, Some(0), "{out}{err}");
+    assert!(!out.contains("no pocket for it"), "{out}");
+    assert!(out.contains("Setup 2 (Inlay plug board)"), "{out}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
 fn ok_inspect(project: &str) -> String {
     let out = chipload(&["inspect", project]);
     assert!(out.status.success());

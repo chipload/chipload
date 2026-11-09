@@ -608,6 +608,10 @@ pipeline-name-vcarve = V-gravyr { $number }
 pipeline-name-path = Följ bana { $number }
 pipeline-name-holes = Hål { $number }
 pipeline-name-surface = Planfräsning { $number }
+pipeline-name-inlay-pocket = Inläggningsficka
+pipeline-name-inlay-plug = Inläggningsplugg
+pipeline-setup-inlay-plug = Skiva för inläggningspluggen
+pipeline-inlay-vbit = en inläggning V-graveras: verktyg { $tool } måste vara en V-fräs med vinkel
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
 # the outlines outside. $name is the numbered name above.
 pipeline-name-holes-of = { $name } (hål)

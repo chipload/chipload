@@ -1082,9 +1082,32 @@ pub struct VcarveOp {
     // Spec: docs/specs/vcarve-wide-strokes.md §4 (optional, no schema bump).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub floor: Option<ClearingPass>,
+    /// The plug of a V-carve inlay: the rest of the board is carved, its outline taken
+    /// `plug.start_depth` below the surface, so the shapes stand as a tapered plug that fits
+    /// the pocket a V-carve of the same shapes cuts. Missing: an ordinary V-carve. Left out
+    /// when missing.
+    // Spec: docs/specs/vcarve-inlay.md §3 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub plug: Option<Plug>,
+}
+
+/// A V-carve inlay's plug (docs/specs/vcarve-inlay.md §2.2).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Plug {
+    /// Where the outline is taken, mm down from the stock top: more than the operation's
+    /// start depth, less than its end depth. The end depth less this is the glue gap.
+    pub start_depth: f64,
 }
 
 impl VcarveOp {
+    /// The depth the carving's outline lies at, mm down from the stock top: the plug's start
+    /// depth for a plug, otherwise the start depth.
+    pub fn outline_depth(&self) -> f64 {
+        self.plug.map_or(self.start_depth, |p| p.start_depth)
+    }
+
     /// How far inside the outline the floor of a stroke too wide to carve begins: where the
     /// V-bit `bit`'s walls meet the floor, at its deepest (the end depth, or as deep as its
     /// cone reaches). None for a bit without an angle.
@@ -1093,7 +1116,9 @@ impl VcarveOp {
         let slope = (bit.angle? / 2.0).tan();
         let tip = bit.tip_diameter.unwrap_or(0.0);
         let deepest = (bit.diameter - tip) / 2.0 / slope;
-        let depth = (self.end_depth - self.start_depth).min(deepest);
+        // A plug's walls are V-carved from its outline depth down (vcarve-inlay.md §2.2).
+        let above = self.outline_depth() - self.start_depth;
+        let depth = (self.end_depth - self.outline_depth()).min(deepest - above);
         Some(depth * slope)
     }
 }

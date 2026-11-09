@@ -616,6 +616,10 @@ pipeline-name-vcarve = Gravure en V { $number }
 pipeline-name-path = Suivi de tracé { $number }
 pipeline-name-holes = Perçages { $number }
 pipeline-name-surface = Surfaçage { $number }
+pipeline-name-inlay-pocket = Poche de marqueterie
+pipeline-name-inlay-plug = Bouchon de marqueterie
+pipeline-setup-inlay-plug = Planche du bouchon
+pipeline-inlay-vbit = une marqueterie se grave en V : l’outil { $tool } doit être une fraise en V avec un angle
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
 # the outlines outside. $name is the numbered name above.
 pipeline-name-holes-of = { $name } (trous)

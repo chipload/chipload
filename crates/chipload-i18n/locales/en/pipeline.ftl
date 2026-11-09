@@ -607,6 +607,10 @@ pipeline-name-vcarve = V-carve { $number }
 pipeline-name-path = Follow path { $number }
 pipeline-name-holes = Holes { $number }
 pipeline-name-surface = Surface { $number }
+pipeline-name-inlay-pocket = Inlay pocket
+pipeline-name-inlay-plug = Inlay plug
+pipeline-setup-inlay-plug = Inlay plug board
+pipeline-inlay-vbit = an inlay is V-carved: tool { $tool } must be a V-bit with an angle
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
 # the outlines outside. $name is the numbered name above.
 pipeline-name-holes-of = { $name } (holes)

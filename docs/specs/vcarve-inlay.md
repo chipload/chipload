@@ -1,7 +1,9 @@
 # Spec: V-carve inlays
 
 Status: **approved 2026-11-09**, all decisions as recommended (the user: "Go ahead").
-Branch `signs`; built after the mirrored part (docs/specs/mirror-part.md).
+Branch `signs`; built after the mirrored part (docs/specs/mirror-part.md). Step 1 of §8
+(model, carving, checks, `op add-inlay`, tests, golden, guide) built 2026-11-09; what
+building it settled is in §12.
 
 Builds on docs/specs/v-carve.md (the medial axis, depth(p)), docs/specs/vcarve-wide-strokes.md
 (walls and the floor pass), docs/specs/setups.md (a second board with its own program) and
@@ -47,7 +49,7 @@ narrow for depth z the shrunk region is empty there: the pocket is shallower, a 
 ### 2.2 The plug
 
 The plug board carries S′, S mirrored left to right: the plug's part is mirrored (§5). Its carving is a V-carve of the
-**rest of the board**, C = (the board grown by the bit's radius) minus S′, with one change:
+**rest of the board**, C = (the board grown, §12) minus S′, with one change:
 the outline is taken **D below the surface** (the **plug start depth**), not at it. So the tip
 at an axis point p of C goes to
 
@@ -78,7 +80,7 @@ the plug, left standing in the base). Then:
 - the plug's back (the channel floor) stands **g above the base's surface**: room for glue
   squeeze-out, and for the plug to sink a little further if the wood gives;
 - nothing of the plug board stands proud outside the channel (§2.2: C reaches past the
-  board's edges by the bit's radius, so no lip is left at the edges).
+  board's edges far enough that its walls and floor reach them, so no lip is left, §12).
 
 These are what the tests check (§9): pocket and turned plug, as height maps, touch along the
 walls within `VCARVE_TOL_MM`, overlap nowhere by more than it, and leave the two gaps.
@@ -233,3 +235,51 @@ what the checker allows (tool centre within a tool radius of the stock).
    ignores kinks, the pocket made by `add-inlay` doesn't either, and a pocket that does is
    warned about. *Recommended.* Alternative: refuse flat tips for inlays.
 7. **Steps as §8**, CLI first, after the mirrored part. *Recommended.*
+
+## 12. Settled while building (2026-11-09)
+
+- **How far the board is grown.** Not by the V-bit's radius: by g·tan(α/2), the glue gap's
+  width at the outline level, plus the floor end mill's radius, with round corners (the
+  board offset outward). The V-bit's walls then meet the channel floor at the board's edge,
+  and the floor pass's end mill, whose centres stay on the board, reaches the edge and the
+  corners. The tool centres stay within a tool radius of the board, as the checker wants.
+- **Planning.** The plug is an ordinary V-carve of C with its outline at D: planned as one
+  with its carved surface at D and its end depth g, then every depth lowered by D
+  (`VcarvePlan::lower`). The passes run from the surface (`carve_levels` of D + g), so the
+  first takes the taper above D too. Where C is narrower than the tip, the tip stays above
+  D and the cone is exactly as wide as C at D: the narrow-stroke note doesn't apply to a
+  plug. The floor pass pockets the same C, kept g·tan(α/2) in.
+- **More refusals** (§6 named warnings only): copies of the plug's part (each copy would
+  carve the others away), and a floor end mill wider than the V-bit's radius plus half its
+  tip (round the board's edges it would cut beyond what the checker allows). A plug without
+  a floor pass is warned about: the board between the walls stays standing.
+- **Pairing.** The pocket is looked for among the operations that are on, in setups that are
+  on, whatever their part's switch (planning one setup switches the others' parts off). One
+  pocket that fits is enough: a project may carve the same shapes twice.
+- **The plug's part** is named "Inlay plug" (then "Inlay plug 2", …); its setup "Inlay plug
+  board". The active setup and part stay as they were.
+- **The drawing outside the stock** warning compares, with several setups, the setup's own
+  shapes with its board (it compared the whole drawing, so a plug board always warned).
+- **Selection.** `op add`, `op add-inlay` and `style use` take `--text ID` and `--image ID`
+  too.
+- **Floors left standing** (found by the property test). §2.3 holds for a pocket and a
+  plug cleared all through; a floor pass whose end mill doesn't reach everywhere leaves part
+  of a wide floor standing (the V-carve's floor note already says how much). For an inlay
+  that matters where it rises above the plug's face (in the pocket) or above the outline
+  level (in the plug's channel): the plug rests on it, or it stands into the base. The
+  V-carve now measures how high its floor stands where the end mill doesn't reach (each
+  sample's distance from the nearest V cut, the floor's edge or a carved chord of the centre
+  line at its own depth, ÷ the slope: `VcarvePlan::floor_top`; it agrees with the
+  simulation within 0.03 mm), and warns, for an inlay's pocket and for a plug, when that
+  rises above the face or the outline level by more than `FLOOR_LEFT_MM` (0.2 mm: lower
+  specks don't count, as for any floor). A pocket without a floor pass whose strokes are
+  too wide is warned about too.
+- **Fit test** (§9): the two simulated height maps, closed with a disk of 0.1 mm (twice
+  `REST_TOL_MM`: a pocket's uncut check leaves needles that thin between its rings on
+  purpose, and they snap off; a closing removes them and leaves straight walls in place),
+  overlap nowhere by more than the V-carve tolerance plus a cell of position as height, and
+  touch along the walls within that plus the closing's disk (it lowers a sharp ridge). For
+  "AO" in a serif font: overlap 0.03 mm at most. Random star polygons, with and without a
+  hole, bits of 45° to 100°, plug start depths, glue gaps and pocket depths: six cases each
+  run, 80 checked once, with the two cases that found the floor problem kept as seeds;
+  cases whose pocket or plug gets one of the warnings above are skipped.

@@ -471,6 +471,7 @@ impl Start {
                 passes: 1,
                 step_down: None,
                 ignore_kinks_deg: chipload_job::DEFAULT_IGNORE_KINKS_DEG,
+                plug: None,
                 feed: self.feed,
                 plunge_feed: self.plunge_feed,
                 floor: None,

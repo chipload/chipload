@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc c856a28fe4e3324e2e668e9b33a18f79bbe9e3f8a67b3bebc599ebfdbc7dbb13 # shrinks to radii = [6.0, 18.406727325016895, 13.17406678001309, 6.0, 16.590320511176646, 11.564045601600979], turn = 0.15312722649063787, hole = false, angle = 87.90397937903725, outline = 2.508685358472131, gap = 1.7916248975000093, under = 0.9121441939181348
+cc 9861dc64bc0a24147dda8c9bb97483157c7361840f82b33277ff8ec834520e5e # shrinks to radii = [6.0, 21.916137918662866, 7.232779384988033, 20.316063406601845, 8.442711266691532, 19.069036311912672], turn = 0.8069408977470659, hole = false, angle = 72.50602626927956, outline = 1.9753861373408914, gap = 1.898542538249049, under = 1.0900038873239928
+cc 83710c67e59e5008a9d31825cbe7037e77785ca1f70419fb24cde163b1cc387a # shrinks to radii = [6.0, 6.0, 6.0, 20.072333740878523, 6.0], turn = 0.0, hole = true, angle = 45.0, outline = 1.0, gap = 0.5, under = 0.5
+cc 6beb67f99bc5115ff64c8cfc8aa5bd3bad984b8c8aa1efdcd91ebdb78469bf9d # shrinks to radii = [6.0, 6.0, 6.0, 10.166189715411647, 6.0], turn = 0.0, hole = true, angle = 98.65191002898037, outline = 1.0, gap = 0.5, under = 1.6375200455933183

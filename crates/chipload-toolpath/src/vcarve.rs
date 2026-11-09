@@ -106,6 +106,10 @@ pub struct VcarvePlan {
     /// With a floor pass: each wide region's floor its end mill and the V-bit don't clear
     /// (docs/specs/vcarve-wide-strokes.md §4.1).
     pub floors: Vec<FloorLeft>,
+    /// How deep the highest of the floor left standing is, mm below the carved surface: 0
+    /// for a wide stroke without a floor pass, the floor's depth less the highest leftover
+    /// with one. None when every floor is cleared (docs/specs/vcarve-inlay.md §12).
+    pub floor_top: Option<f64>,
 }
 
 /// A region's floor that its floor pass leaves partly standing.
@@ -132,6 +136,23 @@ pub fn plan_vcarve(
     floor: Option<f64>,
     ignore_kinks: f64,
 ) -> Result<VcarvePlan, ToolpathError> {
+    plan_vcarve_at(contours, bit, max_depth, start, floor, ignore_kinks, 0.0)
+}
+
+/// [`plan_vcarve`] with the outline `below` the carved surface instead of at it: an
+/// inlay's plug (docs/specs/vcarve-inlay.md §2.2). `max_depth` is below the outline;
+/// every depth in the plan is below the carved surface, `below` deeper
+/// ([`VcarvePlan::lower`]), and so is how high the floor left stands, which above the
+/// outline the cone's flank still bounds.
+pub fn plan_vcarve_at(
+    contours: &[&Contour],
+    bit: &VBit,
+    max_depth: f64,
+    start: Point,
+    floor: Option<f64>,
+    ignore_kinks: f64,
+    below: f64,
+) -> Result<VcarvePlan, ToolpathError> {
     if !(bit.angle > 0.0 && bit.angle < std::f64::consts::PI) {
         return Err(geometry(Message::new("toolpath-error-vbit-angle").arg(
             "got",
@@ -145,6 +166,8 @@ pub fn plan_vcarve(
     let mut notes = Vec::new();
     let mut floors = Vec::new();
     let mut floor_left_ids: Vec<usize> = Vec::new();
+    let mut floor_top: Option<f64> = None;
+    let mut standing = |top: f64| floor_top = Some(floor_top.map_or(top, |t: f64| t.min(top)));
     for region in build_region(contours)? {
         let mut walls = Vec::new();
         let ids = ids_text(&region.contour_ids);
@@ -178,7 +201,13 @@ pub fn plan_vcarve(
                     axis.keep_where(|p, r| r <= reach || !reached.reaches(p));
                     let cleanup =
                         |at: &crate::floor::Reach| full.chords_where(reach, |p| !at.reaches(p));
-                    let left = floor.left_share(&reached, &cleanup(&reached));
+                    let cleaned = cleanup(&reached);
+                    let high =
+                        floor.highest_left(&reached, &axis.radius_chords(), cap, cap + below);
+                    if high > DEPTH_TOL_MM {
+                        standing(cap - high);
+                    }
+                    let left = floor.left_share(&reached, &cleaned);
                     if left > FLOOR_LEFT_SHARE {
                         floors.push(FloorLeft {
                             contours: ids.clone(),
@@ -191,6 +220,7 @@ pub fn plan_vcarve(
                     axis.keep_within(reach);
                     if floor.is_none() {
                         floor_left_ids.extend(&region.contour_ids);
+                        standing(0.0);
                     }
                 }
             }
@@ -227,7 +257,7 @@ pub fn plan_vcarve(
         .iter()
         .flat_map(|p| p.depths.iter().copied())
         .fold(0.0, f64::max);
-    Ok(VcarvePlan {
+    let mut plan = VcarvePlan {
         paths,
         walks,
         areas,
@@ -235,7 +265,12 @@ pub fn plan_vcarve(
         floor_left,
         deepest,
         floors,
-    })
+        floor_top,
+    };
+    if below > 0.0 {
+        plan.lower(below);
+    }
+    Ok(plan)
 }
 
 /// The areas' cuts and walks in cut order, and how many walks each area has: the area
@@ -310,6 +345,20 @@ fn area_gap(graph: &Graph, walls: &[CarvePath], at: Point) -> f64 {
 }
 
 impl VcarvePlan {
+    /// Every depth `by` deeper: the carving of an outline that lies `by` below the carved
+    /// surface (an inlay's plug, docs/specs/vcarve-inlay.md §2.2). Where a walk was too
+    /// narrow for the tip, its depth may now be above the outline and still below the
+    /// surface: it is cut there, the cone as wide as the outline is.
+    pub fn lower(&mut self, by: f64) {
+        for path in self.paths.iter_mut().chain(self.walks.iter_mut()) {
+            for d in &mut path.depths {
+                *d += by;
+            }
+        }
+        self.deepest += by;
+        self.floor_top = self.floor_top.map(|top| top + by);
+    }
+
     /// The walks, area by area (`areas`).
     pub fn area_walks(&self) -> Vec<&[CarvePath]> {
         let mut rest = self.walks.as_slice();

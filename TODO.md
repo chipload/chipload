@@ -147,8 +147,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    Among the most made maker jobs on a hobby router. Builds on V-carve (the medial axis,
    flat-floor passes). **Spec approved 2026-11-09** (docs/specs/vcarve-inlay.md, branch
    `signs`): two V-carves, the plug with a `plug` start depth in a setup of its own, its
-   part mirrored, `op add-inlay`; decisions 1-7 as recommended. **Next**, on the mirrored
-   part.
+   part mirrored, `op add-inlay`; decisions 1-7 as recommended. **Step 1 built
+   2026-11-09** on `signs` (see *In main, not released yet*). **Next:** step 2, the window
+   (*Inlay…*, the plug's *Plug* section); step 3, the plug's sheet steps.
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
@@ -168,7 +169,12 @@ to a program you trust. It was about four per operation; with the defaults and s
     (power instead of RPM, M4 dynamic power, no Z), no plasma kerf or pierce delay.
     *Recommended:* narrow the claim to routers and mills until a user asks; the
     alternative is a basic laser post and mode with its own spec. The user decides.
-12. **Small follow-ups:**
+12. **Sign frames, refined, and the workflow round them** (the user, 2026-11-09: "more
+   refined sign frames and a reworked workflow around that if necessary"), after the
+   inlay. Review first: today's frames (*Draw > Frame…*, `frame add`, the shape library),
+   what a sign maker does from blank board to cut sign, and where the steps are slow;
+   then a spec with numbered decisions.
+13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
     - Materials: import and export in the window (the command line has `material
@@ -181,7 +187,7 @@ to a program you trust. It was about four per operation; with the defaults and s
     - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
       find which pictures are slow (centre lines on noise?) and whether a user could hit it.
     - A JSON Schema for `styles.json` (`chipload schema`), as the other library files have.
-13. **Later, the user's ideas for when the above is done**, each with its own spec:
+14. **Later, the user's ideas for when the above is done**, each with its own spec:
     - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
       decision 2's alternative): each setup with its own coordinates, its parts placed onto
       its board, setups side by side like PrusaSlicer's plates, the active in colour, the
@@ -229,6 +235,19 @@ Smaller follow-ups noted along the way, not in the order above:
 ## Done
 
 ### In main, not released yet
+
+- **V-carve inlays, step 1** (docs/specs/vcarve-inlay.md, branch `signs`, not merged yet):
+  a V-carve's optional `plug` (start depth D) carves the rest of its board, grown past the
+  edges, with the outline D down; `op add-inlay` makes the pocket and, in a setup of its
+  own with a mirrored part, the plug, with floor passes; the plug's checks (no pocket,
+  won't seat, not mirrored, glue gap, thin back, kinks, no floor pass, flat tip, and a
+  floor pass leaving floor above the plug's face or the plug's channel above its outline,
+  measured from the V cuts; refused: too deep for the bit, copies, a floor end mill wider
+  than the bit, kinks ignored).
+  Tested by simulating both boards and fitting the turned plug into the pocket (a serif
+  "AO" and random polygons, proptest); golden `v36_inlay`. `--text`/`--image` on `op add`
+  and the other selections. The drawing-outside-the-stock warning now compares a setup's
+  own shapes with its board. Optional field, no schema bump.
 
 - **Mirrored parts** (the user, 2026-11-09: "a general mirror part functionality";
   docs/specs/mirror-part.md, approved and built on branch `signs`, not merged yet): a part

@@ -613,6 +613,10 @@ pipeline-name-vcarve = Incisione a V { $number }
 pipeline-name-path = Segui percorso { $number }
 pipeline-name-holes = Fori { $number }
 pipeline-name-surface = Spianatura { $number }
+pipeline-name-inlay-pocket = Tasca d’intarsio
+pipeline-name-inlay-plug = Tassello d’intarsio
+pipeline-setup-inlay-plug = Tavola del tassello
+pipeline-inlay-vbit = un intarsio si intaglia a V: l’utensile { $tool } deve essere una fresa a V con un angolo
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
 # the outlines outside. $name is the numbered name above.
 pipeline-name-holes-of = { $name } (fori)

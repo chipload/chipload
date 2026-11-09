@@ -82,6 +82,41 @@ pub(crate) enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Make a V-carve inlay of closed shapes (docs/specs/vcarve-inlay.md): a pocket
+    /// V-carved in the active part, and in a new setup, the plug board, the plug: the rest
+    /// of that board carved, mirrored left to right, so the shapes stand as a tapered plug
+    /// that is glued face down into the pocket.
+    AddInlay {
+        /// The project (.chipload).
+        project: PathBuf,
+        #[command(flatten)]
+        what: Shapes,
+        /// The V-bit's id in the project; both are carved with it.
+        #[arg(long)]
+        tool: i64,
+        /// The pocket's depth; default 5 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        depth: Option<f64>,
+        /// How deep below the plug board's surface its outline is taken: the plug's face
+        /// lies that deep in the pocket, the rest of the pocket's depth left for glue;
+        /// default 3 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        plug_start: Option<f64>,
+        /// The glue gap: how much farther the plug board is carved, so its back stands
+        /// above the base; default 1.5 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        gap: Option<f64>,
+        /// An end mill's id for the floor passes of both (the plug's channel is mostly
+        /// floor).
+        #[arg(long)]
+        floor_tool: Option<i64>,
+        /// The plug board's thickness; default 10 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        plug_thickness: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Take a V-carve's floor pass away (docs/specs/vcarve-wide-strokes.md §4).
     RemoveFloor {
         /// The project (.chipload).
@@ -280,7 +315,8 @@ pub(crate) enum OpAction {
     },
 }
 
-/// What to cut, for `op add` and `style use`: a layer, shapes, a DXF or a group.
+/// What to cut, for `op add`, `op add-inlay` and `style use`: a layer, shapes, a DXF, a
+/// group, a text or a picture.
 #[derive(Args)]
 pub(crate) struct Shapes {
     /// Every shape on this layer (with --dxf: on that DXF's layer).
@@ -290,11 +326,17 @@ pub(crate) struct Shapes {
     #[arg(long, num_args = 1.., value_delimiter = ',')]
     shapes: Option<Vec<u64>>,
     /// All of this DXF or SVG (an id from `dxf list`).
-    #[arg(long, conflicts_with = "group")]
+    #[arg(long, conflicts_with_all = ["group", "text", "image"])]
     dxf: Option<u64>,
     /// All of this group.
-    #[arg(long)]
+    #[arg(long, conflicts_with_all = ["text", "image"])]
     group: Option<u64>,
+    /// All of this text (an id from `text list`).
+    #[arg(long, conflicts_with = "image")]
+    text: Option<u64>,
+    /// All of this traced picture (an id from `image list`).
+    #[arg(long)]
+    image: Option<u64>,
 }
 
 impl Shapes {
@@ -303,7 +345,9 @@ impl Shapes {
         let source = self
             .dxf
             .map(chipload_job::Source::Dxf)
-            .or(self.group.map(chipload_job::Source::Group));
+            .or(self.group.map(chipload_job::Source::Group))
+            .or(self.text.map(chipload_job::Source::Text))
+            .or(self.image.map(chipload_job::Source::Image));
         let select = chipload_job::Selector {
             layer: self.layer,
             shapes: self.shapes,
@@ -311,7 +355,7 @@ impl Shapes {
             exclude: Vec::new(),
         };
         if select.is_empty() {
-            return Err("say what to cut: --layer, --shapes, --dxf or --group");
+            return Err("say what to cut: --layer, --shapes, --dxf, --group, --text or --image");
         }
         Ok(select)
     }
@@ -661,6 +705,80 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ));
             out.set("operation", json!(at.operation));
             out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::AddInlay {
+            project,
+            what,
+            tool,
+            depth,
+            plug_start,
+            gap,
+            floor_tool,
+            plug_thickness,
+            output,
+        } => {
+            use chipload_pipeline::inlay;
+            let job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let select = match what.selector() {
+                Ok(select) => select,
+                Err(why) => return out.fail(why),
+            };
+            let drawing = match chipload_pipeline::load_drawing(&job) {
+                Ok(drawing) => drawing,
+                Err(err) => return out.fail(err),
+            };
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let request = inlay::InlayRequest {
+                select,
+                tool,
+                depth: depth.unwrap_or(inlay::DEFAULT_POCKET_DEPTH_MM),
+                plug_start: plug_start.unwrap_or(inlay::DEFAULT_PLUG_START_MM),
+                gap: gap.unwrap_or(inlay::DEFAULT_GLUE_GAP_MM),
+                floor_tool,
+                plug_thickness: plug_thickness.unwrap_or(inlay::DEFAULT_PLUG_THICKNESS_MM),
+            };
+            let (job, made) = match inlay::add_inlay(
+                &job,
+                &request,
+                &drawing.contours,
+                Some(&library.tools),
+                chipload_i18n::Language::En,
+            ) {
+                Ok(done) => done,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = save_job(&job, target) {
+                return out.fail(err);
+            }
+            let mm = chipload_core::text::mm;
+            out.line(format!(
+                "Added operation {}: the inlay's pocket, {} mm deep.",
+                made.pocket + 1,
+                mm(request.depth)
+            ));
+            out.line(format!(
+                "Added setup {} for the plug board ({} mm thick, fitted round the artwork), \
+                 with part {} mirrored left to right and operation {}: the plug, its outline \
+                 {} mm down, carved {} mm deeper for the glue.",
+                made.setup,
+                mm(request.plug_thickness),
+                made.part,
+                made.plug + 1,
+                mm(request.plug_start),
+                mm(request.gap)
+            ));
+            out.set("pocket", json!(made.pocket));
+            out.set("plug", json!(made.plug));
+            out.set("setup", json!(made.setup));
+            out.set("part", json!(made.part));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }

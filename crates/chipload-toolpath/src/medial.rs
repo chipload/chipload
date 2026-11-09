@@ -415,6 +415,19 @@ impl Graph {
     }
 
     /// The axis's chords whose ends both have a radius over `limit` and pass `keep`.
+    /// Every chord of the alive edges with the smaller cut radius at its ends: what the
+    /// V-bit carves along it (docs/specs/vcarve-inlay.md §12).
+    pub(crate) fn radius_chords(&self) -> Vec<(Point, Point, f64)> {
+        let mut chords = Vec::new();
+        for edge in self.edges.iter().filter(|e| e.alive) {
+            for k in 1..edge.points.len() {
+                let r = edge.radii[k - 1].min(edge.radii[k]);
+                chords.push((edge.points[k - 1], edge.points[k], r));
+            }
+        }
+        chords
+    }
+
     pub(crate) fn chords_where(
         &self,
         limit: f64,

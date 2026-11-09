@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 61] = [
+const GOLDEN: [(&str, &str); 62] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -192,6 +192,13 @@ const GOLDEN: [(&str, &str); 61] = [
     // right about its box's centre line, planned with the cutting sense turned so the
     // pocket stays conventional and the profiles climb. Made with `part set --mirror`.
     ("v36_mirrored_part", "jobs/v36/mirrored_part.chipload"),
+    // A V-carve inlay (docs/specs/vcarve-inlay.md): "AO" in FreeSerif 30 mm high, a pocket
+    // 5 mm deep in the base, and in setup 2 the plug board, 10 mm thick and fitted round the
+    // artwork, carved with its outline 3 mm down and a 1.5 mm glue gap; the plug's part is
+    // mirrored left to right. Both with a floor pass of the 3 mm end mill. Made with
+    // `new`, `text add "AO" --font FreeSerif --height 30`, the text corpus's tools and a
+    // 3 mm end mill, `op add-inlay --text 1 --tool 2 --floor-tool 3`.
+    ("v36_inlay", "jobs/v36/inlay.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

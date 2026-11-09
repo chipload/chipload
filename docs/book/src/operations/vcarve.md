@@ -136,6 +136,80 @@ chipload op add-floor sign.chipload --op 1 --tool 2   # the floor pass with proj
 chipload op remove-floor sign.chipload --op 1
 ```
 
+## Inlays
+
+An **inlay** sets one wood into another: a dark word flush in a light board, without paint.
+The artwork is V-carved twice, with the same V-bit:
+
+- a **pocket** in the base board, an ordinary V-carve;
+- a **plug** in a second board: the rest of that board is carved away, so the artwork stands
+  up as a tapered plug, mirrored. It is glued face down into the pocket, and when the glue
+  has set, its back is sawn or planed off down to the base's surface.
+
+The pocket's walls and the plug's walls slope at the bit's angle, so they wedge together
+and centre themselves, sharp inside corners included. No dowels or corners are needed to
+line them up.
+
+```text
+          plug board's back, g above the base
+        ┌───────────────────────────┐
+        └──────┐             ┌──────┘   ← the base's surface
+   ────────────\    plug     /──────────
+                \___________/            ← the plug's face, D deep
+                 glue space               ← the pocket's floor, P deep
+   ────────────────────────────────────
+```
+
+Four numbers set it up:
+
+| Number | What it does | Default |
+|---|---|---|
+| Pocket depth P | how deep the pocket is | 5 mm |
+| Plug start depth D | the plug's outline is taken this deep in its board: its face lies D deep in the pocket, leaving P − D under it for glue | 3 mm |
+| Glue gap g | the plug board is carved g deeper than D, so its back stands g above the base and squeezed-out glue has room | 1.5 mm |
+| Plug board thickness | what is left under the plug's channel holds it together until it is planed off | 10 mm |
+
+```sh
+chipload op add-inlay sign.chipload --text 1 --tool 3 --floor-tool 2   # also --layer, --shapes, --group
+chipload op add-inlay sign.chipload --layer WORD --tool 3 --depth 5 --plug-start 3 --gap 1.5 --plug-thickness 10
+```
+
+`op add-inlay` makes the pair: the pocket in the active part, and a new
+[setup](../concepts/setups.md), *Inlay plug board*, whose board fits the artwork with a
+10 mm margin, holding a part of its own, [mirrored](parts.md#mirrored-parts) left to right,
+with the plug. With `--floor-tool`, both get a floor pass. Give the plug one: its channel is
+mostly floor. Afterwards both are ordinary V-carves: change their depths, feeds and passes
+as for any other. Both select the same shapes, so editing the artwork changes both.
+
+The plug's checks warn when:
+
+- no V-carve of the same shapes with a bit of the same angle is in another setup;
+- the pocket isn't deeper than D (the plug would sit on the pocket's floor);
+- the plug's part isn't mirrored;
+- the glue gap is under 0.5 mm, or less than 2 mm of board is left under the channel;
+- the pocket ignores kinks;
+- there is no floor pass;
+- a floor pass's end mill doesn't reach all of the floor, and what it leaves stands more
+  than 0.2 mm above the plug's face (in the pocket) or above the outline level (in the
+  plug's channel). A smaller end mill for the floor pass clears it. The pocket gets this
+  warning too.
+
+A flat-tipped V-bit is fine. A note says how far from a sharp corner plug and pocket fall
+short of meeting: 0.14 mm for a 0.2 mm tip at a right angle, which the glue and the clamp
+take up. Refused:
+
+- a plug deeper than its V-bit cuts with its cone;
+- a plug that ignores kinks;
+- copies of the plug's part (the plug carves its whole board);
+- a floor end mill wider than the V-bit (it would cut off the board's edges).
+
+**Steps:**
+
+1. Cut the pocket in the base board.
+2. Clamp the plug board on the machine (setup 2) and cut the plug.
+3. Glue it face down into the pocket and clamp or press until it seats on its walls.
+4. Let the glue set. Saw or plane the plug board's back off down to the base's surface.
+
 ## Limits
 
 - **A flat tip:** it can't reach into the last bit of a sharp corner, and strokes narrower
@@ -164,3 +238,4 @@ in mm, feeds in mm/min, angles in radians.
 | `feed` | Feed |
 | `plunge_feed` | Plunge feed |
 | `floor` | the floor pass, left out when there is none: `tool` (an end mill), `feed`, `plunge_feed`, `step_down`, `stepover` (a fraction of the end mill's diameter), `entry` and `enabled` |
+| `plug` | an inlay's plug, left out for an ordinary V-carve: `start_depth`, where its outline is taken (D). Its end depth is D plus the glue gap |
