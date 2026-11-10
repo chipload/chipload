@@ -65,6 +65,11 @@ from:
   drawing's files, pictures and texts; a shape that changes a fitting board's size (a zero
   on its corner moves every coordinate); a shape off the stock.
 
+The contours are those of the active setup's operations, and, for a back setup, its
+front's too: a back is simulated on the front's result and checked against its dowel pins
+(two-sided.md §6, §10). Fixed 2026-11-10 (the user: moving the dowel circles with the back
+active left the simulation's holes where they were).
+
 A run finishing after such an edit is kept too, not dropped. Exporting always regenerates
 first when anything that can change the cut changed (as before).
 

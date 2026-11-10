@@ -849,3 +849,48 @@ fn dowel_holes_are_placed_again_only_when_asked() {
     let none = chipload_pipeline::dowels::remove_dowels(&job, 2).unwrap();
     assert!(place_dowels_again(&none, 2).is_err());
 }
+
+/// The user, 2026-11-10: with the back active, moving the front's dowel circles left the
+/// window's run as it was, so the back's simulation kept the front's old holes. A back's
+/// run reads its front's selections (docs/specs/edit-and-simulate.md §5).
+#[test]
+fn a_back_runs_again_when_its_fronts_cuts_change() {
+    use chipload_job::Geometry;
+    use chipload_pipeline::cut_inputs;
+    let job = chipload_pipeline::setups::activate_setup(&sample_two_sided(), 2).unwrap();
+    let before = cut_inputs(&job).unwrap();
+    let mut moved = job.clone();
+    for shape in moved
+        .drawing
+        .shapes
+        .iter_mut()
+        .filter(|s| s.layer == "dowels")
+    {
+        if let Geometry::Circle { center, .. } = &mut shape.geometry {
+            center[1] += 1.0;
+        }
+    }
+    assert_ne!(
+        cut_inputs(&moved).unwrap(),
+        before,
+        "the front's holes moved"
+    );
+    // A shape no operation of either side selects still needs no new run.
+    let mut drawn = job.clone();
+    let mut extra = drawn
+        .drawing
+        .shapes
+        .iter()
+        .find(|s| s.layer == "dowels")
+        .unwrap()
+        .clone();
+    extra.id = drawn.drawing.next_shape_id;
+    extra.layer = "nothing cuts this".into();
+    extra.geometry = Geometry::Circle {
+        center: [400.0, 400.0],
+        radius: 4.0,
+    };
+    drawn.drawing.next_shape_id += 1;
+    drawn.drawing.shapes.push(extra);
+    assert_eq!(cut_inputs(&drawn).unwrap(), before);
+}

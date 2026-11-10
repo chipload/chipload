@@ -288,10 +288,25 @@ struct Chosen<'a> {
 /// The contours each cut operation and rest pass of the active setup selects, in cut order:
 /// all that planning reads of the drawing (the contours some operation cuts are these
 /// together). For telling whether a change to the drawing can change a plan
-/// (docs/specs/edit-and-simulate.md §5).
+/// (docs/specs/edit-and-simulate.md §5). A back setup's run reads its front's too: it is
+/// simulated on the front's result and checked against its dowel pins
+/// (docs/specs/two-sided.md §6, §10), so a front's selections follow the back's.
 pub fn selections(job: &Job, contours: &[Contour]) -> Result<Vec<Vec<Contour>>, ToolpathError> {
-    let one = job.active_setup_id().map(|id| job.for_setup(id));
-    let job = one.as_ref().unwrap_or(job);
+    let Some(active) = job.active_setup_id() else {
+        return selections_of(job, contours);
+    };
+    let mut all = selections_of(&job.for_setup(active), contours)?;
+    let front = job
+        .setup(active)
+        .and_then(|s| s.back_of)
+        .and(job.front_of(active));
+    if let Some(front) = front {
+        all.extend(selections_of(&job.for_setup(front.id), contours)?);
+    }
+    Ok(all)
+}
+
+fn selections_of(job: &Job, contours: &[Contour]) -> Result<Vec<Vec<Contour>>, ToolpathError> {
     Ok(select_all(job, contours)?
         .into_iter()
         .map(|chosen| chosen.selection.contours.into_iter().cloned().collect())
