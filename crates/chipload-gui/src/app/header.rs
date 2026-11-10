@@ -406,10 +406,10 @@ impl ChiploadApp {
                 ];
                 ui.vertical(|ui| {
                     ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                    // Four a row, the frame last (docs/specs/shape-library.md §5): a small
-                    // button, so the ribbon keeps its names at the default width.
-                    let rows = tools.chunks(4).count();
-                    for (k, row) in tools.chunks(4).enumerate() {
+                    // Four a row of small buttons, so the ribbon keeps its names at the
+                    // default width. A frame alone is Draw > Frame… and the canvas'
+                    // right-click; WIZARDS > Sign makes a whole sign (the user, 2026-11-10).
+                    for row in tools.chunks(4) {
                         ui.horizontal(|ui| {
                             for (tool, icon, label, hint, action) in row {
                                 let active = app.sketch().is_some_and(|s| s.tool == *tool);
@@ -419,25 +419,6 @@ impl ChiploadApp {
                                     .clicked()
                                 {
                                     app.start_drawing(*tool);
-                                }
-                            }
-                            if k + 1 == rows {
-                                let label = t!(ui, "header-frame");
-                                let framing =
-                                    app.modify() == Some(super::modify::ModifyTool::Frame);
-                                let hint = format!("{label}: {}", t!(ui, "header-frame-hover"));
-                                if small_ribbon_button(
-                                    ui,
-                                    Icon::Frame,
-                                    &label,
-                                    can_draw,
-                                    framing,
-                                    None,
-                                )
-                                .on_hover_text(hint)
-                                .clicked()
-                                {
-                                    app.start_frame();
                                 }
                             }
                         });

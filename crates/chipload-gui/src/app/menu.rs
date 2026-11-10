@@ -298,6 +298,17 @@ impl ChiploadApp {
         }
         if !self.framed_shape_ids().is_empty() {
             self.selection_menu(ui);
+            if ui
+                .add_enabled(
+                    self.can_draw(),
+                    egui::Button::new(t!(ui, "menu-frame-selection")),
+                )
+                .on_hover_text(t!(ui, "menu-frame-selection-hover"))
+                .clicked()
+            {
+                self.start_frame();
+                ui.close();
+            }
             ui.separator();
         }
         if ui

@@ -177,7 +177,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    all as recommended ("we build it and iterate if needed"). All three steps built
    (see *In main, not released yet*), then signs round existing shapes. First feedback
    (2026-11-10) done: the text tool's font list in the dialog, a WIZARDS ribbon group,
-   a group's texts listed in it in the Browser. Next the user tries them again. Left for
+   a group's texts listed in it in the Browser; the ribbon's Frame button moved to the
+   canvas' right-click (*Frame round the selection…*). Next the user tries them again. Left for
    later (§8, §10): a sign to a fixed size with the height fitted, placing a second sign
    beside the first, *New sign…* on the start page.
 12b. **Two-sided made easier** (the user, 2026-11-10: dowels "not so intuitive"; the order
@@ -190,6 +191,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
       `checking()` right after starting the background check, which can already be done.
+    - The ignored picture test `materials::material_pictures` fails (seen 2026-11-10,
+      before the Frame move too): it looks for a label containing "safe Z" that the
+      machine form no longer shows.
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
     - Materials: import and export in the window (the command line has `material

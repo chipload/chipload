@@ -182,3 +182,21 @@ fn a_frame_with_corners_and_double_borders_from_the_window() {
     let frame = &app.edit.as_ref().unwrap().job.drawing.frames[0];
     assert_eq!(frame.border_corners, None);
 }
+
+/// The ribbon's Frame button went (the user, 2026-11-10: WIZARDS > Sign makes a sign); a
+/// frame alone is the canvas' right-click on a selection, or Draw > Frame….
+#[test]
+fn right_click_on_a_selection_offers_a_frame_round_it() {
+    use egui_kittest::kittest::Queryable;
+    let mut app = ChiploadApp::default();
+    app.new_project();
+    app.start_text();
+    app.place_text_at((20.0, 30.0)).unwrap();
+    let mut harness = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(400.0, 600.0))
+        .build_ui_state(|ui, app: &mut ChiploadApp| app.shape_menu(ui), app);
+    harness.run();
+    harness.get_by_label("Frame round the selection…").click();
+    harness.run();
+    assert_eq!(harness.state().modify(), Some(ModifyTool::Frame));
+}

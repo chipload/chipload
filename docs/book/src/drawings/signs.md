@@ -1,8 +1,9 @@
 # Signs and frames
 
-An engraved sign is a few words with a frame round them, cut out of a board. **Draw >
-Frame…** draws the frame for you: round the text you have written, centred on it, with
-border lines inside it, or to a size as a blank. A sign you will make again can be kept in the
+An engraved sign is a few words with a frame round them, cut out of a board. **New sign…**
+(below) makes the whole sign, its operations too. **Draw > Frame…** only draws a frame: round
+the text or shapes you have selected, centred on them, with border lines inside it, or to a
+size as a blank, for a frame you cut with operations of your own. A sign you will make again can be kept in the
 [shape library](shape-library.md). (Design: `docs/specs/shape-library.md`.)
 
 ## A sign in one step
@@ -56,8 +57,8 @@ operations afterwards.
 
 1. Write the text ([Text](text.md)) and leave it selected, or select any shapes, a traced
    [picture](images.md) for instance: the frame goes round all of them.
-2. **Frame**: the small button after the shape tools in the ribbon's *DRAW* group (a
-   rounded frame with a line inside), or *DRAW ▾ > Frame…*. Its values open under
+2. Right-click the selection and choose **Frame round the selection…**, or *DRAW ▾ >
+   Frame…* (the way to a frame to a size, with nothing selected). Its values open under
    *Selection*, and the frame shows on the canvas as you change them.
 3. Pick a frame from the row of pictures, set the values, and click **Add**. The frame is
    added as one undo step, and its shapes are selected.

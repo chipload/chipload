@@ -319,3 +319,8 @@ After trying it, 2026-11-10 (the user):
   library's tools the same way (app/wizard_tools.rs, shared by both dialogs); the floor
   end mill stays *None* by default when the project has none, as the floor passes are a
   choice.
+
+2026-11-10 (the user: "the frame button under draw … is perhaps replaced by the sign wizard
+now"): the ribbon's small *Frame* button in DRAW went. A frame alone, drawn only, is *Frame
+round the selection…* on the canvas' right-click and *DRAW ▾ > Frame…* (a frame to a size);
+*WIZARDS > Sign* makes a whole sign.
