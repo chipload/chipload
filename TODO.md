@@ -236,6 +236,14 @@ Smaller follow-ups noted along the way, not in the order above:
   panel with the current line during playback.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A bug-report bundle.**
+- **A fixed pin station for two-sided batch work** (the user, 2026-11-10, envisioned, no
+  station of their own yet). Today the router drills fresh dowel holes per job, centred in
+  the margin. A station on the table would need, in the machine profile, the pin diameter,
+  the spacing and the pins' direction; in *Two-sided…*, *drilled for this job* or *the
+  machine's station*; holes at the station's spacing with pin 1 at the zero, drilled only
+  through the board; no *Place again* (move the drawing instead); the sheet saying when to
+  pull and push the pins. Spec when someone works that way: pins in during the front or
+  not, a fixed G54 or zeroed each time, two pins or a row.
 - **Touchpad scrolling** (offered 2026-11-03, not asked for): a preference, off by default,
   where a two-finger scroll moves the view and a pinch or Ctrl + scroll zooms; a mouse
   wheel keeps zooming. Today Space + drag pans, which the status bar now says.
