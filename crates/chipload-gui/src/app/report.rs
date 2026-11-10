@@ -64,6 +64,8 @@ pub enum Target {
     Tool(i64),
     /// *Update all from library*: a click updates the project's tools.
     UpdateTools,
+    /// Place back setup `id`'s dowel holes again (docs/specs/two-sided-wizard.md §5).
+    PlaceDowels(u64),
 }
 
 impl ReportLine {
@@ -465,6 +467,7 @@ impl ChiploadApp {
             Target::Op(op) => t!(ui, "report-select-operation-hover", number = op + 1),
             Target::Tool(id) => t!(ui, "report-select-tool-hover", tool = id),
             Target::UpdateTools => t!(ui, "report-update-tools-hover"),
+            Target::PlaceDowels(_) => t!(ui, "report-place-dowels-hover"),
         };
         let response = response.on_hover_text(hover);
         if response.hovered() {
@@ -477,6 +480,7 @@ impl ChiploadApp {
                 Target::UpdateTools => {
                     self.update_tools_from_library(None);
                 }
+                Target::PlaceDowels(back) => self.place_dowels_again(back),
             }
         }
     }

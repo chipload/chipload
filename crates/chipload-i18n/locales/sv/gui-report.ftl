@@ -19,5 +19,7 @@ report-select-operation-hover = Markera operation { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Öppna verktyg T{ $tool }
 report-update-tools-hover = Ge de här verktygen bibliotekets värden, som ett ångra-steg
+report-place-dowels = Placera styrhålen igen
+report-place-dowels-hover = Flytta de två styrhålscirklarna dit de hör nu, fria från båda sidornas skär, som ett ångra-steg. Inte när framsidan redan är fräst: dess hål är borrade
 report-part = Detalj { $number } · { $name }
 report-file = Fil { $number }

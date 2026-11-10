@@ -2265,6 +2265,7 @@ chipload setup dowels <PROJECT> [OPTIONS]
 | `--zero` | Set the front's work zero to the first pin's centre, which the back shares. |
 | `--tool <TOOL>` | The project tool that cuts them; default: a drill of their size, else the largest end mill that bores them. |
 | `--remove` | Remove the dowel holes instead: the front's operation and its circles. |
+| `--place` | Place the dowel holes there are again, clear of both sides' cuts as they are now; a work zero at the first pin moves with it. Not once the front is cut: its holes are drilled. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload setup activate`

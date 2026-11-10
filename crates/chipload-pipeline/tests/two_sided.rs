@@ -794,3 +794,58 @@ fn pins_too_wide_for_the_margin_name_the_margin_and_widen_it_when_asked() {
 fn remove_dowels_of(job: &Job) -> Job {
     chipload_pipeline::dowels::remove_dowels(job, 2).unwrap()
 }
+
+#[test]
+fn dowel_holes_are_placed_again_only_when_asked() {
+    use chipload_job::Geometry;
+    use chipload_pipeline::dowels::{dowel_centres, place_dowels_again};
+    // docs/specs/two-sided-wizard.md §5, decision 10
+    let job = sample_two_sided();
+    let centres = |job: &Job| -> Vec<[f64; 2]> {
+        job.drawing
+            .shapes
+            .iter()
+            .filter(|s| s.layer == "dowels")
+            .map(|s| match s.geometry {
+                Geometry::Circle { center, .. } => center,
+                _ => panic!("{s:?}"),
+            })
+            .collect()
+    };
+    assert_eq!(centres(&job), [[150.0, 39.0], [150.0, 181.0]]);
+    // A wider margin: the board grows, the holes stay where they were.
+    let mut wider = job.clone();
+    wider.setups[0].stock.fit = Some(30.0);
+    wider.follow_thickness();
+    assert_eq!(centres(&wider), centres(&job));
+    // Placed again: centred in the new margin, the zero at the first pin with them, the
+    // operation as it was.
+    let placed = place_dowels_again(&wider, 2).unwrap();
+    let now = dowel_centres(&wider, 2, 8.0).unwrap();
+    assert_eq!(
+        centres(&placed),
+        [[now[0].0, now[0].1], [now[1].0, now[1].1]]
+    );
+    assert_ne!(centres(&placed), centres(&job));
+    assert_eq!(
+        placed.setup(1).unwrap().work_zero,
+        WorkZero::Point {
+            x: now[0].0,
+            y: now[0].1
+        }
+    );
+    let at = job.dowels_of(1).unwrap();
+    assert_eq!(placed.operations[at], wider.operations[at]);
+    // A zero elsewhere stays where it is.
+    let mut elsewhere = wider.clone();
+    elsewhere.setups[0].work_zero = WorkZero::Point { x: 1.0, y: 2.0 };
+    elsewhere.follow_thickness();
+    let placed = place_dowels_again(&elsewhere, 2).unwrap();
+    assert_eq!(
+        placed.setup(1).unwrap().work_zero,
+        WorkZero::Point { x: 1.0, y: 2.0 }
+    );
+    // Without dowel holes there is nothing to place.
+    let none = chipload_pipeline::dowels::remove_dowels(&job, 2).unwrap();
+    assert!(place_dowels_again(&none, 2).is_err());
+}

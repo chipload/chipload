@@ -42,6 +42,7 @@ app-part-needed = Ein Projekt braucht mindestens ein Teil
 app-could-not-add-rest-pass = Restdurchgang konnte nicht hinzugefügt werden: { $error }
 app-could-not-add-floor-pass = Bodendurchgang konnte nicht hinzugefügt werden: { $error }
 app-setup-refused = Die Aufspannungen konnten nicht geändert werden: { $error }
+app-dowels-placed = Passstiftbohrungen neu platziert, frei von den Schnitten beider Seiten. Der Nullpunkt ist mit dem ersten Stift mitgegangen, wenn er dort lag.
 app-setup-has-operations = Die Aufspannung hat Teile mit Bearbeitungen: verschieben Sie sie zuerst in eine andere Aufspannung oder löschen Sie sie.
 app-exported-setup = Nur Aufspannung „{ $name }“: machen Sie eine andere Aufspannung aktiv und exportieren Sie auch sie.
 app-floor-no-endmill = Kein Schaftfräser im Projekt oder in Ihrer Werkzeugbibliothek

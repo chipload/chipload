@@ -110,7 +110,15 @@ surface pass). It cuts them through the board and on into the spoilboard for the
 chipload setup dowels sign.chipload --setup 2 --zero        # 8 mm pins, 8 mm deep
 chipload setup dowels sign.chipload --setup 2 --diameter 6 --depth 10
 chipload setup dowels sign.chipload --setup 2 --remove      # the operation and its circles
+chipload setup dowels sign.chipload --setup 2 --place       # place them again, where they go now
 ```
+
+The holes stay where they are made: once the front is cut they are drilled, so nothing
+moves them by itself. When the board, its margin or the cuts change before then, **Place
+again** in the back's form (`--place`) moves the two circles to where they would go now,
+clear of both sides' cuts. The operation stays as it is, and a work zero at the first pin
+moves with it. When *Generate* is refused because the back cuts into a pin, the report
+offers the same: **Place the dowel holes again**.
 
 A back put back by pins whose front has no dowel holes (none, or all switched off) is
 warned about, but never stopped: ⚠ beside it in the Browser, *None yet* in its form and in
@@ -177,8 +185,9 @@ in the Browser. Its form has:
 - **Board:** *Its own board*, or *Back of …* any setup that has no back yet;
 - **Turn over:** *Left to right* or *Top to bottom*;
 - **Put back by:** *Dowel pins* or *A fence corner*;
-- **Dowel holes:** with pins, **Add dowel holes**, or the operation that cuts them as a
-  link, with **Remove** beside it (the operation and its two circles, one undo step).
+- **Dowel holes:** with pins, **Add dowel holes** (it opens *Two-sided…*), or the
+  operation that cuts them as a link, with **Place again** and **Remove** beside it (the
+  operation and its two circles, one undo step).
 
 The front's form has a **Back side** row: *None* with **Add the back side**, or the back as
 a link, with its dowel holes.

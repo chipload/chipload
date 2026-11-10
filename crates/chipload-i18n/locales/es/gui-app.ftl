@@ -42,6 +42,7 @@ app-part-needed = Un proyecto necesita al menos una pieza
 app-could-not-add-rest-pass = No se pudo añadir una pasada de restos: { $error }
 app-could-not-add-floor-pass = No se pudo añadir una pasada de fondo: { $error }
 app-setup-refused = No se pudieron cambiar las sujeciones: { $error }
+app-dowels-placed = Agujeros de pasador recolocados, lejos de los cortes de ambas caras. El cero se movió con el primer pasador si estaba allí.
 app-setup-has-operations = La sujeción tiene piezas con operaciones: muévelas antes a otra sujeción o elimínalas.
 app-exported-setup = Solo la sujeción «{ $name }»: activa otra sujeción y expórtala también.
 app-floor-no-endmill = No hay ninguna fresa plana en el proyecto ni en tu biblioteca de herramientas

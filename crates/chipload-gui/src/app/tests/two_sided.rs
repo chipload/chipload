@@ -172,3 +172,50 @@ fn click_contains(harness: &mut Harness<'_, ChiploadApp>, text: &str) {
         .unwrap_or_default();
     click(harness, &label);
 }
+
+#[test]
+fn a_cut_into_a_pin_offers_to_place_the_dowel_holes_again() {
+    // docs/specs/two-sided-wizard.md §5: the pins never move by themselves; Generate,
+    // refused for the back cutting into one, offers to place them again.
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/two_sided.chipload")));
+    // The first pin moved along the axis onto the outline, which the back cuts round.
+    let edit = app.edit.as_mut().unwrap();
+    let pin = edit
+        .job
+        .drawing
+        .shapes
+        .iter_mut()
+        .find(|s| s.layer == "dowels")
+        .unwrap();
+    pin.geometry = chipload_job::Geometry::Circle {
+        center: [150.0, 50.0],
+        radius: 4.0,
+    };
+    app.commit();
+    app.activate_setup(2);
+    assert!(!app.generate_and_wait());
+    let offer = app
+        .report
+        .lines
+        .iter()
+        .find(|l| l.text.contains("Place the dowel holes again"))
+        .unwrap_or_else(|| panic!("{:?}", app.report));
+    assert_eq!(
+        offer.target,
+        Some(super::super::report::Target::PlaceDowels(2))
+    );
+    // Taken: back in the margin, and the back generates.
+    app.place_dowels_again(2);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
+    // One undo puts the pin back where it was moved to.
+    app.undo();
+    let job = app.edited_job().unwrap();
+    assert!(job.drawing.shapes.iter().any(|s| matches!(
+        s.geometry,
+        chipload_job::Geometry::Circle {
+            center: [150.0, 50.0],
+            ..
+        }
+    )));
+}

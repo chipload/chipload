@@ -129,6 +129,27 @@ impl ChiploadApp {
         }
     }
 
+    /// Place back setup `id`'s dowel holes again where they go now, one undo step
+    /// (docs/specs/two-sided-wizard.md §5).
+    pub fn place_dowels_again(&mut self, id: u64) {
+        let Some(job) = self.edited_job() else {
+            return;
+        };
+        match chipload_pipeline::dowels::place_dowels_again(&job, id) {
+            Ok(changed) => {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.job = changed;
+                }
+                self.commit();
+                self.refresh_drawing();
+                self.set_report(super::Report::info([t!(self, "app-dowels-placed")]));
+            }
+            Err(err) => {
+                self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]);
+            }
+        }
+    }
+
     /// Make setup `id` the one shown, simulated and previewed. A back is simulated turned
     /// over, back face up; a front face up (docs/specs/two-sided.md §10.2).
     pub fn activate_setup(&mut self, id: u64) {

@@ -55,6 +55,8 @@ pub(super) enum JobRequest {
     /// (docs/specs/two-sided-wizard.md §3).
     AddDowels(u64),
     RemoveDowels(u64),
+    /// Place back setup `id`'s dowel holes again (docs/specs/two-sided-wizard.md §5).
+    PlaceDowels(u64),
     /// A back side for front setup `id`; open setup `id`'s form.
     AddBack(u64),
     OpenSetup(u64),

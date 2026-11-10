@@ -334,6 +334,7 @@ pipeline-mirrored-text = Teil { $part } ist gespiegelt: sein Text { $text } lies
 pipeline-surface-over-pins = { $label } plant die Rückseite über den Passstiften, { $depth } tief: die Stifte mindestens { $depth } unter die Rückseite setzen, sonst trifft der Fräser sie
 pipeline-dowels-there = die Vorderseite hat schon Passstiftbohrungen: Bearbeitung { $number }
 pipeline-dowels-none = die Vorderseite hat keine Passstiftbohrungen zum Entfernen
+pipeline-dowels-not-two = die Bearbeitung der Passstiftbohrungen schneidet { $count } Kreise, und neu platzieren braucht ihre zwei: entfernen und neu hinzufügen
 pipeline-dowels-missing = { $back } wird mit Stiften wieder angelegt, und { $front } hat keine Passstiftbohrungen dafür: fügen Sie sie hinzu oder legen Sie das Brett an eine Anschlagecke
 pipeline-two-sided-not-fitted = der Rand lässt sich nur bei einem um die Zeichnung angepassten Brett verbreitern: das Brett selbst größer machen
 pipeline-dowels-no-shapes = auf dem Brett sind keine Formen, neben die Passstiftbohrungen kämen

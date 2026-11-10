@@ -477,6 +477,73 @@ pub fn remove_dowels(job: &Job, back: u64) -> Result<Job, PipelineError> {
     }
 }
 
+/// Place back setup `back`'s dowel holes again, where they would go now: clear of both
+/// sides' cuts, centred in the margin on the turn axis (docs/specs/two-sided-wizard.md §5).
+/// Only the two circles move, the operation keeps its tool, depth and feeds; a front work
+/// zero at the first pin moves with it. Never done by itself: once the front is cut, its
+/// holes are drilled. Refused when there are none, or when there is no room.
+pub fn place_dowels_again(job: &Job, back: u64) -> Result<Job, PipelineError> {
+    let front = layout_front(job, back)?;
+    let Some(at) = job.dowels_of(front) else {
+        return Err(refused(Message::new("pipeline-dowels-none")));
+    };
+    let select = job.operations[at].select().resolved(&job.drawing);
+    let mut circles: Vec<(u64, Point, f64)> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.layer == DOWEL_LAYER && select.may_pick(s))
+        .filter_map(|s| match s.geometry {
+            Geometry::Circle { center, radius } => Some((s.id, (center[0], center[1]), radius)),
+            _ => None,
+        })
+        .collect();
+    if circles.len() != 2 {
+        return Err(refused(
+            Message::new("pipeline-dowels-not-two").arg("count", circles.len()),
+        ));
+    }
+    let turn = job
+        .setup(back)
+        .and_then(|s| s.back_of)
+        .map_or(Turn::LeftRight, |b| b.turn);
+    // The first pin is the lower one (left to right) or the left one (top to bottom), as
+    // the holes are made.
+    let along = |p: Point| match turn {
+        Turn::LeftRight => p.1,
+        Turn::TopBottom => p.0,
+    };
+    circles.sort_by(|a, b| along(a.1).total_cmp(&along(b.1)));
+    let diameter = 2.0 * circles[0].2.max(circles[1].2);
+    let centres = dowel_centres(job, back, diameter)?;
+    let mut out = job.clone();
+    let zero_at_pin = match out.setup(front).map(|s| s.work_zero) {
+        Some(WorkZero::Point { x, y }) => {
+            (x - circles[0].1.0).abs() <= CHAIN_TOL_MM && (y - circles[0].1.1).abs() <= CHAIN_TOL_MM
+        }
+        _ => false,
+    };
+    for ((id, _, radius), (x, y)) in circles.iter().zip(centres) {
+        if let Some(shape) = out.drawing.shapes.iter_mut().find(|s| s.id == *id) {
+            shape.geometry = Geometry::Circle {
+                center: [x, y],
+                radius: *radius,
+            };
+        }
+    }
+    if zero_at_pin {
+        let (x, y) = centres[0];
+        if let Some(setup) = out.setups.iter_mut().find(|s| s.id == front) {
+            setup.work_zero = WorkZero::Point { x, y };
+        }
+    }
+    out.follow_thickness();
+    match out.validate().into_iter().next() {
+        Some(problem) => Err(refused(problem.text_message)),
+        None => Ok(out),
+    }
+}
+
 /// For the active setup, a back put back by pins or the front of one: a warning when its
 /// front has no dowel holes for them (docs/specs/two-sided-wizard.md §3).
 pub fn missing_dowels_warning(job: &Job) -> Option<Note> {

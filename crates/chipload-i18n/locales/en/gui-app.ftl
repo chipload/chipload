@@ -42,6 +42,7 @@ app-part-needed = A project needs at least one part
 app-could-not-add-rest-pass = Could not add a rest pass: { $error }
 app-could-not-add-floor-pass = Could not add a floor pass: { $error }
 app-setup-refused = Could not change the setups: { $error }
+app-dowels-placed = Placed the dowel holes again, clear of both sides' cuts. The work zero moved with the first pin if it was there.
 app-setup-has-operations = The setup has parts with operations: move them to another setup, or delete them, first.
 app-exported-setup = Setup “{ $name }” only: make another setup active and export it too.
 app-floor-no-endmill = No end mill in the project or your tool library

@@ -9,7 +9,7 @@ use std::process::ExitCode;
 use chipload_i18n::Language;
 use chipload_job::{Register, Turn};
 use chipload_pipeline::dowels::{
-    DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, Dowels, add_dowels, remove_dowels,
+    DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, Dowels, add_dowels, place_dowels_again, remove_dowels,
 };
 use chipload_pipeline::setups::{
     BoardChange, activate_setup, add_back_side, add_setup, move_part_to_setup, remove_setup,
@@ -123,8 +123,13 @@ pub enum SetupAction {
         #[arg(long)]
         tool: Option<i64>,
         /// Remove the dowel holes instead: the front's operation and its circles.
-        #[arg(long, conflicts_with_all = ["diameter", "depth", "zero", "tool"])]
+        #[arg(long, conflicts_with_all = ["diameter", "depth", "zero", "tool", "place"])]
         remove: bool,
+        /// Place the dowel holes there are again, clear of both sides' cuts as they are
+        /// now; a work zero at the first pin moves with it. Not once the front is cut: its
+        /// holes are drilled.
+        #[arg(long, conflicts_with_all = ["diameter", "depth", "zero", "tool"])]
+        place: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -309,6 +314,9 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             remove: true,
             ..
         } => remove_dowels(&job, setup).inspect(|_| out.line("Removed the dowel holes")),
+        SetupAction::Dowels {
+            setup, place: true, ..
+        } => place_dowels_again(&job, setup).inspect(|_| out.line("Placed the dowel holes again")),
         SetupAction::Dowels {
             setup,
             diameter,

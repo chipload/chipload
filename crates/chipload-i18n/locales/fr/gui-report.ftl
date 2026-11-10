@@ -19,5 +19,7 @@ report-select-operation-hover = Sélectionner l'opération { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Ouvrir l'outil T{ $tool }
 report-update-tools-hover = Donner à ces outils les valeurs de votre bibliothèque, en une seule annulation
+report-place-dowels = Replacer les trous de goupille
+report-place-dowels-hover = Déplacer les deux cercles là où ils vont maintenant, à l'écart des usinages des deux faces, en une seule annulation. Pas une fois le recto usiné : ses trous sont percés
 report-part = Pièce { $number } · { $name }
 report-file = Fichier { $number }

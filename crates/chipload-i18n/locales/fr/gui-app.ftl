@@ -42,6 +42,7 @@ app-part-needed = Un projet doit avoir au moins une pièce
 app-could-not-add-rest-pass = Impossible d'ajouter une passe de reprise : { $error }
 app-could-not-add-floor-pass = Impossible d'ajouter une passe de fond : { $error }
 app-setup-refused = Impossible de modifier les montages : { $error }
+app-dowels-placed = Trous de goupille replacés, à l'écart des usinages des deux faces. Le zéro a suivi la première goupille s'il y était.
 app-setup-has-operations = Le montage a des pièces avec des opérations : déplacez-les d'abord vers un autre montage, ou supprimez-les.
 app-exported-setup = Montage « { $name } » seulement : rendez un autre montage actif et exportez-le aussi.
 app-floor-no-endmill = Aucune fraise droite dans le projet ni dans votre bibliothèque d'outils

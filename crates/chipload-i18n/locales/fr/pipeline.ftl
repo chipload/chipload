@@ -339,6 +339,7 @@ pipeline-mirrored-text = La pièce { $part } est en miroir : son texte { $text }
 pipeline-surface-over-pins = { $label } surface le verso au-dessus des goupilles, sur { $depth } : enfoncez les goupilles d’au moins { $depth } sous la face du verso, sinon la fraise les touche
 pipeline-dowels-there = le recto a déjà des trous de goupille : opération { $number }
 pipeline-dowels-none = le recto n'a pas de trous de goupille à retirer
+pipeline-dowels-not-two = l'opération des trous de goupille perce { $count } cercles, et les replacer demande ses deux : retirez-les et ajoutez-les à nouveau
 pipeline-dowels-missing = { $back } est remis en place par des goupilles, et { $front } n'a pas de trous de goupille pour elles : ajoutez-les, ou calez la planche dans un coin de butée
 pipeline-two-sided-not-fitted = la marge ne peut être élargie que pour une planche ajustée autour du dessin : agrandissez la planche elle-même
 pipeline-dowels-no-shapes = il n'y a pas de forme sur la planche au-delà de laquelle placer les trous de goupille

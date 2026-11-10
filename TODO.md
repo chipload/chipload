@@ -183,9 +183,13 @@ to a program you trust. It was about four per operation; with the defaults and s
 12b. **Two-sided made easier** (the user, 2026-11-10: dowels "not so intuitive"; the order
    of suggestions approved). Spec docs/specs/two-sided-wizard.md **approved 2026-11-10**;
    step 1 built (turn axis, warnings, Back side row, Remove dowels), step 2 built (the
-   *Two-sided…* wizard in WIZARDS, `setup add --pins`). Next step 3, dowel pins that
-   follow the board and shapes.
+   *Two-sided…* wizard in WIZARDS, `setup add --pins`), step 3 built as the user chose
+   (decision 10): dowel holes placed again on request (*Place again*, the report's offer,
+   `setup dowels --place`), never by themselves. Next: the user tries it.
 13. **Small follow-ups:**
+    - Flaky test (seen twice 2026-11-10, under the full parallel run only):
+      `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
+      `checking()` right after starting the background check, which can already be done.
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
     - Materials: import and export in the window (the command line has `material

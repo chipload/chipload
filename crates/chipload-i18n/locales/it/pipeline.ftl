@@ -336,6 +336,7 @@ pipeline-mirrored-text = Il pezzo { $part } è specchiato: il suo testo { $text 
 pipeline-surface-over-pins = { $label } spiana il retro sopra le spine, profondo { $depth }: affonda le spine almeno { $depth } sotto la faccia del retro, o la fresa le colpisce
 pipeline-dowels-there = il fronte ha già fori per spina: lavorazione { $number }
 pipeline-dowels-none = il fronte non ha fori per spina da togliere
+pipeline-dowels-not-two = la lavorazione dei fori per spina taglia { $count } cerchi, e riposizionarli richiede i suoi due: toglili e aggiungili di nuovo
 pipeline-dowels-missing = { $back } viene rimesso a posto con spine, e { $front } non ha fori per spina: aggiungili, o appoggia la tavola in un angolo di battuta
 pipeline-two-sided-not-fitted = il margine si può allargare solo per una tavola adattata al disegno: ingrandisci la tavola stessa
 pipeline-dowels-no-shapes = sulla tavola non ci sono forme oltre cui mettere i fori per spina

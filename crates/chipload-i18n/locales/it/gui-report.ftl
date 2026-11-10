@@ -19,5 +19,7 @@ report-select-operation-hover = Seleziona lavorazione { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Apri l'utensile T{ $tool }
 report-update-tools-hover = Dai a questi utensili i valori della tua libreria, in un solo passo di annullamento
+report-place-dowels = Riposiziona i fori per spina
+report-place-dowels-hover = Sposta i due cerchi dove vanno ora, lontano dai tagli delle due facce, come un passo di annullamento. Non una volta lavorato il fronte: i suoi fori sono fatti
 report-part = Pezzo { $number } · { $name }
 report-file = File { $number }

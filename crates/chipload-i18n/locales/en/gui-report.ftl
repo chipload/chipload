@@ -20,6 +20,8 @@ report-select-operation-hover = Select operation { $number }
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Open tool T{ $tool }
 report-update-tools-hover = Give these tools your library's values, as one undo step
+report-place-dowels = Place the dowel holes again
+report-place-dowels-hover = Move the two dowel circles to where they go now, clear of both sides' cuts, as one undo step. Not once the front is cut: its holes are drilled
 # The estimate as a table in the report (docs/specs/look-and-feel.md §6): a part's row,
 # and a file's when the job is written one file per tool.
 report-part = Part { $number } · { $name }

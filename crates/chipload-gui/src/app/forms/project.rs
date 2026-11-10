@@ -877,13 +877,21 @@ fn dowels_cell(
             {
                 request = Some(JobRequest::OpenOperation(i));
             }
-            if with_remove
-                && ui
+            if with_remove {
+                if ui
+                    .button(t!(ui, "forms-setup-place-dowels"))
+                    .on_hover_text(t!(ui, "forms-setup-place-dowels-hover"))
+                    .clicked()
+                {
+                    request = Some(JobRequest::PlaceDowels(back));
+                }
+                if ui
                     .button(t!(ui, "common-remove"))
                     .on_hover_text(t!(ui, "forms-setup-remove-dowels-hover"))
                     .clicked()
-            {
-                request = Some(JobRequest::RemoveDowels(back));
+                {
+                    request = Some(JobRequest::RemoveDowels(back));
+                }
             }
         }
         None => {

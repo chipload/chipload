@@ -328,6 +328,7 @@ pipeline-mirrored-text = Part { $part } is mirrored: its text { $text } reads ba
 pipeline-surface-over-pins = { $label } faces the back over the dowel pins, { $depth } deep: set the pins at least { $depth } below the back face, or the cutter hits them
 pipeline-dowels-there = the front has dowel holes already: operation { $number }
 pipeline-dowels-none = the front has no dowel holes to remove
+pipeline-dowels-not-two = the dowel holes operation cuts { $count } dowel circles, and placing them again needs its two: remove them and add them again
 pipeline-dowels-missing = { $back } is put back by dowel pins, and { $front } has no dowel holes for them: add them, or put it back by a fence corner
 pipeline-two-sided-not-fitted = the margin can only be widened for a board fitted round the drawing: make the board itself larger
 pipeline-dowels-no-shapes = there are no shapes on the board to place dowel holes beyond

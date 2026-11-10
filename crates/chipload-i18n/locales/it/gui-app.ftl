@@ -42,6 +42,7 @@ app-part-needed = Un progetto richiede almeno un pezzo
 app-could-not-add-rest-pass = Impossibile aggiungere una passata di ripresa: { $error }
 app-could-not-add-floor-pass = Impossibile aggiungere una passata di fondo: { $error }
 app-setup-refused = Impossibile modificare i piazzamenti: { $error }
+app-dowels-placed = Fori per spina riposizionati, lontano dai tagli delle due facce. Lo zero si è spostato con la prima spina se era lì.
 app-setup-has-operations = Il piazzamento ha pezzi con lavorazioni: spostali prima in un altro piazzamento, o eliminali.
 app-exported-setup = Solo il piazzamento «{ $name }»: rendi attivo un altro piazzamento ed esporta anche quello.
 app-floor-no-endmill = Nessuna fresa piatta nel progetto o nella tua libreria utensili

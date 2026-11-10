@@ -328,8 +328,12 @@ impl ChiploadApp {
                 self.toolpath.failed = true;
                 self.scene.toolpath = Some(ToolpathShape::new(&program, true, &[]));
                 let mut report = Report::error([t!(self, "generation-check-failed")]);
+                let into_pin = messages.iter().any(|m| mentions(m, "check-into-dowel-pin"));
                 for message in messages {
                     report.push_message(Tone::Error, message, None);
+                }
+                if into_pin {
+                    self.offer_place_dowels(&job, &mut report);
                 }
                 self.fail_with(report, loud);
                 false
@@ -430,6 +434,14 @@ impl ChiploadApp {
         }
         for note in &result.notes {
             report.push_message(Tone::Warning, note.message.clone(), note.operation);
+        }
+        // A front cut into its dowel holes: offer to place them again.
+        if result
+            .notes
+            .iter()
+            .any(|n| mentions(&n.message, "pipeline-dowels-broken"))
+        {
+            self.offer_place_dowels(job, &mut report);
         }
         for fact in &result.facts {
             report.push_message(Tone::Info, fact.message.clone(), fact.operation);
@@ -757,4 +769,35 @@ pub(super) fn active_setup_has_operations(job: &chipload_job::Job) -> bool {
     job.operations
         .iter()
         .any(|op| job.setup_of(op).map(|s| s.id) == setup)
+}
+
+/// Whether `message` is `id`, or carries it among its arguments (a checker's message
+/// wrapped with its line).
+fn mentions(message: &Message, id: &str) -> bool {
+    message.id == id
+        || message.args.iter().any(|(_, value)| match value {
+            chipload_i18n::Value::Message(inner) => mentions(inner, id),
+            _ => false,
+        })
+}
+
+impl ChiploadApp {
+    /// A report line offering to place the dowel holes of the active board's back again
+    /// (docs/specs/two-sided-wizard.md §5).
+    fn offer_place_dowels(&self, job: &chipload_job::Job, report: &mut Report) {
+        let Some(active) = job.active_setup_id() else {
+            return;
+        };
+        let back = match job.setup(active).and_then(|s| s.back_of) {
+            Some(_) => Some(active),
+            None => job.back_of(active).map(|s| s.id),
+        };
+        if let Some(back) = back {
+            report.push_target(
+                Tone::Info,
+                t!(self, "report-place-dowels"),
+                super::report::Target::PlaceDowels(back),
+            );
+        }
+    }
 }

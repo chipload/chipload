@@ -279,6 +279,7 @@ impl ChiploadApp {
                 }
             }
             Some(JobRequest::RemoveDowels(id)) => self.remove_dowels(id),
+            Some(JobRequest::PlaceDowels(id)) => self.place_dowels_again(id),
             Some(JobRequest::AddBack(front)) => self.start_two_sided_for(front),
             Some(JobRequest::OpenSetup(id)) => self.focus = Focus::Setup(id),
             Some(JobRequest::FrontStock(front)) => {

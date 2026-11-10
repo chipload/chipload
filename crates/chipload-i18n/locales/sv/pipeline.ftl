@@ -331,6 +331,7 @@ pipeline-mirrored-text = Delen { $part } är spegelvänd: dess text { $text } l�
 pipeline-surface-over-pins = { $label } planfräser baksidan över styrpinnarna, { $depth } djupt: sätt pinnarna minst { $depth } under baksidan, annars träffar fräsen dem
 pipeline-dowels-there = framsidan har redan styrhål: operation { $number }
 pipeline-dowels-none = framsidan har inga styrhål att ta bort
+pipeline-dowels-not-two = styrhålsoperationen skär { $count } styrhålscirklar, och att placera dem igen kräver dess två: ta bort dem och lägg till dem igen
 pipeline-dowels-missing = { $back } läggs tillbaka med styrpinnar, och { $front } har inga styrhål för dem: lägg till dem, eller lägg tillbaka mot ett anslagshörn
 pipeline-two-sided-not-fitted = marginalen kan bara breddas för en skiva anpassad runt ritningen: gör själva skivan större
 pipeline-dowels-no-shapes = det finns inga former på skivan att lägga styrhålen utanför

@@ -339,6 +339,7 @@ pipeline-mirrored-text = La pieza { $part } está reflejada: su texto { $text } 
 pipeline-surface-over-pins = { $label } planea el reverso por encima de los pasadores, { $depth } de profundidad: hunde los pasadores al menos { $depth } bajo la cara del reverso, o la fresa los golpea
 pipeline-dowels-there = el anverso ya tiene agujeros de pasador: operación { $number }
 pipeline-dowels-none = el anverso no tiene agujeros de pasador que quitar
+pipeline-dowels-not-two = la operación de agujeros de pasador corta { $count } círculos, y recolocarlos necesita sus dos: quítalos y añádelos de nuevo
 pipeline-dowels-missing = { $back } se recoloca con pasadores, y { $front } no tiene agujeros de pasador para ellos: añádelos, o apoya el tablero en una esquina de tope
 pipeline-two-sided-not-fitted = el margen solo se puede ampliar en un tablero ajustado al dibujo: agranda el propio tablero
 pipeline-dowels-no-shapes = no hay formas en el tablero junto a las que poner los agujeros de pasador

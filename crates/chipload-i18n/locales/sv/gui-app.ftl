@@ -42,6 +42,7 @@ app-part-needed = Ett projekt behöver minst en detalj
 app-could-not-add-rest-pass = Kunde inte lägga till restbearbetning: { $error }
 app-could-not-add-floor-pass = Kunde inte lägga till ett bottenpass: { $error }
 app-setup-refused = Kunde inte ändra uppspänningarna: { $error }
+app-dowels-placed = Placerade styrhålen igen, fria från båda sidornas skär. Nollpunkten följde med första pinnen om den låg där.
 app-setup-has-operations = Uppspänningen har detaljer med operationer: flytta dem till en annan uppspänning eller radera dem först.
 app-exported-setup = Bara uppspänning ”{ $name }”: gör en annan uppspänning aktiv och exportera den också.
 app-floor-no-endmill = Ingen pinnfräs i projektet eller i ditt verktygsbibliotek

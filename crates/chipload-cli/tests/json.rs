@@ -620,3 +620,38 @@ fn setup_add_with_pins_makes_the_back_and_its_dowel_holes() {
     assert_ne!(both.code, Some(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn setup_dowels_place_moves_them_where_they_go_now() {
+    // docs/specs/two-sided-wizard.md §5, §6
+    let dir = temp_dir("dowels-place");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v36/two_sided.chipload"), &project).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    run(&["set", p, "setups.0.stock.fit=30", "--json"]);
+    let before = run(&["get", p, "setups.0.work_zero", "--json"]);
+    run(&["setup", "dowels", p, "--setup", "2", "--place", "--json"]);
+    let after = run(&["get", p, "setups.0.work_zero", "--json"]);
+    assert_eq!(after["value"]["at"], json!("point"), "{after}");
+    assert_ne!(
+        before["value"]["y"], after["value"]["y"],
+        "{before} {after}"
+    );
+    // --place with a size makes no sense: refused.
+    let both = chipload(
+        &dir,
+        &[
+            "setup",
+            "dowels",
+            p,
+            "--setup",
+            "2",
+            "--place",
+            "--diameter",
+            "6",
+        ],
+    );
+    assert_ne!(both.code, Some(0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

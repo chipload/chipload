@@ -19,5 +19,7 @@ report-select-operation-hover = Bearbeitung { $number } auswählen
 report-indented = {"  "}{ $line }
 report-select-tool-hover = Werkzeug T{ $tool } öffnen
 report-update-tools-hover = Diesen Werkzeugen die Werte Ihrer Bibliothek geben, als ein Rückgängig-Schritt
+report-place-dowels = Passstiftbohrungen neu platzieren
+report-place-dowels-hover = Die zwei Kreise dorthin verschieben, wo sie jetzt hingehören, frei von den Schnitten beider Seiten, als ein Rückgängig-Schritt. Nicht, wenn die Vorderseite schon bearbeitet ist: ihre Löcher sind gebohrt
 report-part = Teil { $number } · { $name }
 report-file = Datei { $number }
