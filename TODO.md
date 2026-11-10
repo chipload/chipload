@@ -180,6 +180,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    a group's texts listed in it in the Browser. Next the user tries them again. Left for
    later (§8, §10): a sign to a fixed size with the height fitted, placing a second sign
    beside the first, *New sign…* on the start page.
+12b. **Two-sided made easier** (the user, 2026-11-10: dowels "not so intuitive"; the order
+   of suggestions approved). **Draft spec** docs/specs/two-sided-wizard.md, for review: the
+   turn axis drawn and missing-dowel warnings, then a *Two-sided…* wizard in WIZARDS, then
+   dowel pins that follow the board and shapes.
 13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
