@@ -51,8 +51,13 @@ pub(super) enum JobRequest {
     /// Make setup `id` the back of another, or give it its own board; how it turns and is
     /// located (docs/specs/two-sided.md §3).
     SetBoard(u64, chipload_pipeline::setups::BoardChange),
-    /// Dowel holes for back setup `id` (docs/specs/two-sided.md §6).
+    /// Dowel holes for back setup `id` (docs/specs/two-sided.md §6); remove them
+    /// (docs/specs/two-sided-wizard.md §3).
     AddDowels(u64),
+    RemoveDowels(u64),
+    /// A back side for front setup `id`; open setup `id`'s form.
+    AddBack(u64),
+    OpenSetup(u64),
     /// A back's board and zero are its front's: open the front setup's Stock, or its Work
     /// zero.
     FrontStock(u64),

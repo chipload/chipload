@@ -8,7 +8,9 @@ use std::process::ExitCode;
 
 use chipload_i18n::Language;
 use chipload_job::{Register, Turn};
-use chipload_pipeline::dowels::{DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, Dowels, add_dowels};
+use chipload_pipeline::dowels::{
+    DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, Dowels, add_dowels, remove_dowels,
+};
 use chipload_pipeline::setups::{
     BoardChange, activate_setup, add_back_side, add_setup, move_part_to_setup, remove_setup,
     set_board, set_setup,
@@ -97,6 +99,9 @@ pub enum SetupAction {
         /// Set the front's work zero to the first pin's centre, which the back shares.
         #[arg(long)]
         zero: bool,
+        /// Remove the dowel holes instead: the front's operation and its circles.
+        #[arg(long, conflicts_with_all = ["diameter", "depth", "zero"])]
+        remove: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -233,6 +238,11 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
         SetupAction::Activate { id, .. } => activate_setup(&job, id),
         SetupAction::Dowels {
             setup,
+            remove: true,
+            ..
+        } => remove_dowels(&job, setup).inspect(|_| out.line("Removed the dowel holes")),
+        SetupAction::Dowels {
+            setup,
             diameter,
             depth,
             zero,
@@ -283,9 +293,21 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .collect();
         let numbers: Vec<String> = parts.iter().map(u64::to_string).collect();
         let mm = chipload_core::text::mm;
+        // A back put back by pins: its front's dowel holes, or a warning that there are none.
+        let dowels = setup
+            .back_of
+            .filter(|b| b.register == chipload_job::Register::Pins)
+            .map(|b| job.dowels_of(b.setup));
         let link = setup.back_of.map_or(String::new(), |b| {
+            let holes = match dowels {
+                Some(Some(i)) if !job.missing_dowels(setup.id) => {
+                    format!(", dowel holes: operation {}", i + 1)
+                }
+                Some(_) => ", no dowel holes (warning)".to_string(),
+                None => String::new(),
+            };
             format!(
-                ", back of {}, {}, {}",
+                ", back of {}, {}, {}{holes}",
                 b.setup,
                 b.turn.name(),
                 b.register.name()
@@ -319,6 +341,8 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "board": [x, y, setup.stock.thickness],
             "work_zero": setup.work_zero,
             "back_of": setup.back_of,
+            "dowels": dowels.flatten().map(|i| i + 1),
+            "missing_dowels": job.missing_dowels(setup.id),
             "parts": parts,
         }));
     }

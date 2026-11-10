@@ -103,6 +103,26 @@ impl ChiploadApp {
         }
     }
 
+    /// Remove back setup `id`'s dowel holes: the front's operation and its circles, one
+    /// undo step (docs/specs/two-sided-wizard.md §3).
+    pub fn remove_dowels(&mut self, id: u64) {
+        let Some(job) = self.edited_job() else {
+            return;
+        };
+        match chipload_pipeline::dowels::remove_dowels(&job, id) {
+            Ok(changed) => {
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.job = changed;
+                }
+                self.commit();
+                self.refresh_drawing();
+            }
+            Err(err) => {
+                self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]);
+            }
+        }
+    }
+
     /// Make setup `id` the one shown, simulated and previewed. A back is simulated turned
     /// over, back face up; a front face up (docs/specs/two-sided.md §10.2).
     pub fn activate_setup(&mut self, id: u64) {

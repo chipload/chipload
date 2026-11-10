@@ -3,6 +3,7 @@
 # The right-click menu. A ring's start: where a profile or pocket lap begins.
 canvas-reset-start = Ripristina inizio
 canvas-reset-start-disabled-hover = Questo anello inizia dove ha scelto Chipload
+canvas-turn-axis = ⟲ Asse di capovolgimento
 # $id: the contour's number.
 canvas-select-contour = Seleziona #{ $id }
 canvas-select-layer = Seleziona layer { $layer }

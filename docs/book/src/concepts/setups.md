@@ -108,7 +108,13 @@ surface pass). It cuts them through the board and on into the spoilboard for the
 ```sh
 chipload setup dowels sign.chipload --setup 2 --zero        # 8 mm pins, 8 mm deep
 chipload setup dowels sign.chipload --setup 2 --diameter 6 --depth 10
+chipload setup dowels sign.chipload --setup 2 --remove      # the operation and its circles
 ```
+
+A back put back by pins whose front has no dowel holes (none, or all switched off) is
+warned about, but never stopped: ⚠ beside it in the Browser, *None yet* in its form and in
+its front's, a line in the report after generating, and *no dowel holes (warning)* in
+`setup list`.
 
 `--zero` puts the front's work zero at the first pin's centre (the bottom one, or the left
 one when the board turns top to bottom): a pin lands on itself when the board is turned, so
@@ -150,7 +156,15 @@ part of its own, marked ⟲ in the Browser. Its form has:
 - **Board:** *Its own board*, or *Back of …* any setup that has no back yet;
 - **Turn over:** *Left to right* or *Top to bottom*;
 - **Put back by:** *Dowel pins* or *A fence corner*;
-- **Dowel holes:** with pins, **Add dowel holes**, or the operation that cuts them.
+- **Dowel holes:** with pins, **Add dowel holes**, or the operation that cuts them as a
+  link, with **Remove** beside it (the operation and its two circles, one undo step).
+
+The front's form has a **Back side** row: *None* with **Add the back side**, or the back as
+a link, with its dowel holes.
+
+While a two-sided board is shown, the canvas draws its **turn axis**: a long dashed line
+across the board, marked *⟲ Turn axis*, on the line the board turns about, where the dowel
+holes go. *View > Show turn axis* hides it.
 
 A back's **Stock** and **Work zero** are its front's: their forms say so, with a button to
 open the front's, and how thick the board is after the front's surfacing. You pick and edit

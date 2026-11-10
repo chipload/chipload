@@ -526,3 +526,43 @@ fn a_back_side_is_added_listed_changed_and_unlinked() {
     assert_eq!(own["value"], Value::Null, "{own}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn setup_list_says_when_dowel_holes_are_missing_and_dowels_remove() {
+    // docs/specs/two-sided-wizard.md §3, §6
+    let dir = temp_dir("dowels-remove");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v36/two_sided.chipload"), &project).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    let listed = run(&["setup", "list", p, "--json"]);
+    assert_eq!(
+        listed["setups"][1]["missing_dowels"],
+        json!(false),
+        "{listed}"
+    );
+    assert!(listed["setups"][1]["dowels"].is_u64(), "{listed}");
+    run(&["setup", "dowels", p, "--setup", "2", "--remove", "--json"]);
+    let listed = run(&["setup", "list", p, "--json"]);
+    assert_eq!(
+        listed["setups"][1]["missing_dowels"],
+        json!(true),
+        "{listed}"
+    );
+    assert_eq!(listed["setups"][1]["dowels"], Value::Null);
+    let text = chipload(&dir, &["setup", "list", p]);
+    assert!(
+        text.stdout.contains("no dowel holes (warning)"),
+        "{}",
+        text.stdout
+    );
+    // And back again.
+    run(&["setup", "dowels", p, "--setup", "2", "--json"]);
+    let listed = run(&["setup", "list", p, "--json"]);
+    assert_eq!(
+        listed["setups"][1]["missing_dowels"],
+        json!(false),
+        "{listed}"
+    );
+    std::fs::remove_dir_all(&dir).unwrap();
+}

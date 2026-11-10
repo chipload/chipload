@@ -143,6 +143,28 @@ impl ChiploadApp {
         });
     }
 
+    /// The line a two-sided board turns about, across its board, with its label; None for a
+    /// board with one side or with *Show the turn axis* off (two-sided-wizard.md §2).
+    fn turn_axis_line(&self, ui: &egui::Ui) -> Option<(Point, Point, String)> {
+        if !self.display.turn_axis {
+            return None;
+        }
+        let job = &self.edit.as_ref()?.job;
+        let turn = super::simulation::board_turn(job)?;
+        let ((x0, y0), (x1, y1)) = job.stock_bounds();
+        let (a, b) = match turn {
+            chipload_job::Turn::LeftRight => {
+                let x = (x0 + x1) / 2.0;
+                ((x, y0), (x, y1))
+            }
+            chipload_job::Turn::TopBottom => {
+                let y = (y0 + y1) / 2.0;
+                ((x0, y), (x1, y))
+            }
+        };
+        Some((a, b, t!(ui, "canvas-turn-axis")))
+    }
+
     pub(super) fn canvas(&mut self, ui: &mut egui::Ui) {
         self.keep_drawing_in_view();
         self.scene.hide_toolpath = !self.display.toolpath;
@@ -151,6 +173,7 @@ impl ChiploadApp {
         self.scene.inch_grid = self.prefs.units == chipload_job::Units::Inch;
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self.shown_zero_xy();
+        self.scene.turn_axis = self.turn_axis_line(ui);
         // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
         // its operations cut; copy 1 is the drawing.
         self.scene.copies = self.copy_shifts();

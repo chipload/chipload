@@ -20,6 +20,9 @@ pub struct Display {
     /// The board is shown turned over, back face up (docs/specs/two-sided.md §10.2); only
     /// for a setup with a back or that is one.
     pub turned: bool,
+    /// View > Show the turn axis: the line a two-sided board turns about
+    /// (docs/specs/two-sided-wizard.md §2).
+    pub turn_axis: bool,
     /// The other mode's view, put back when it is switched to (the user, 2026-11-03: "the
     /// view settings to be remembered between Edit mode and Simulation mode"). None until
     /// the mode is first left: the other mode then starts from this one's.
@@ -44,6 +47,7 @@ impl Default for Display {
             images: true,
             toolpath: true,
             turned: false,
+            turn_axis: true,
             all_parts: false,
             legend_open: true,
             other: None,

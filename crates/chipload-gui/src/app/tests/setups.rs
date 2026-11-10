@@ -296,3 +296,78 @@ fn a_new_setup_without_operations_is_not_an_error() {
     app.activate_setup(1);
     assert!(app.generate_and_wait(), "{:?}", app.report);
 }
+
+#[test]
+fn the_turn_axis_shows_and_missing_dowels_are_warned_in_both_forms() {
+    // docs/specs/two-sided-wizard.md §2, §3.
+    use egui_kittest::Harness;
+    use egui_kittest::kittest::{NodeT, Queryable};
+    let project = corpus("jobs/v36/two_sided.chipload");
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1400.0, 900.0))
+        .build_eframe(move |_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&project));
+            app
+        });
+    harness.run_steps(4);
+    // The turn axis, across the board's middle (the sample turns left to right).
+    let job = harness.state().edited_job().unwrap();
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    let mid = (x0 + x1) / 2.0;
+    let axis = harness
+        .state()
+        .scene
+        .turn_axis
+        .clone()
+        .expect("the turn axis");
+    assert_eq!((axis.0, axis.1), ((mid, y0), (mid, y1)));
+    assert!(axis.2.contains("Turn axis"));
+    harness.state_mut().display.turn_axis = false;
+    harness.run_steps(2);
+    assert!(harness.state().scene.turn_axis.is_none());
+    // The front's form: its back side, and the dowel holes as a link.
+    harness.state_mut().focus = Focus::Setup(1);
+    harness.run_steps(3);
+    assert!(harness.query_by_label("Back side").is_some());
+    let back_name = job.setup(2).unwrap().name.clone();
+    assert!(harness.query_by_label(&back_name).is_some());
+    // Without dowel holes: None yet, in both forms.
+    harness.state_mut().remove_dowels(2);
+    harness.run_steps(3);
+    assert!(
+        !harness
+            .state()
+            .edited_job()
+            .unwrap()
+            .operations
+            .iter()
+            .any(|op| op.is_dowels())
+    );
+    assert!(harness.query_by_label("None yet").is_some());
+    // A link: found by its text among the window's labels; it opens the back's form.
+    let warned = format!("{back_name} ⚠");
+    harness
+        .get_all_by_role(egui::accesskit::Role::Label)
+        .find(|n| n.accesskit_node().label().as_deref() == Some(warned.as_str()))
+        .expect("the back's link, warned")
+        .click();
+    harness.run_steps(3);
+    assert_eq!(harness.state().focus, Focus::Setup(2));
+    harness.state_mut().focus = Focus::Setup(2);
+    harness.run_steps(3);
+    assert!(harness.query_by_label("None yet").is_some());
+    assert!(harness.query_by_label("Add dowel holes").is_some());
+    // One undo brings them back.
+    harness.state_mut().undo();
+    harness.run_steps(2);
+    assert!(
+        harness
+            .state()
+            .edited_job()
+            .unwrap()
+            .operations
+            .iter()
+            .any(|op| op.is_dowels())
+    );
+}

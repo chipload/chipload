@@ -51,6 +51,7 @@ browser-add-setup = Añadir una sujeción
 browser-add-setup-hover = Otro tablero: su material, su cero y sus piezas, cortado como un programa propio
 browser-add-back-side = Añadir el reverso
 browser-add-back-side-hover = Una nueva sujeción: este tablero dado la vuelta, con una pieza propia. Dibuja el reverso visto desde el anverso, a través del tablero: sus cortes se reflejan
+browser-setup-no-dowels-hover = Se recoloca con pasadores, y el anverso aún no tiene agujeros de pasador: añádelos en su formulario
 browser-setup-parts = { $count ->
     [one] { $count } pieza
    *[other] { $count } piezas

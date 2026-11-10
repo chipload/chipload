@@ -431,6 +431,8 @@ impl ChiploadApp {
             self.set_show_rulers(rulers);
         }
         ui.checkbox(&mut self.display.legend_open, t!(ui, "menu-show-legend"));
+        ui.checkbox(&mut self.display.turn_axis, t!(ui, "menu-show-turn-axis"))
+            .on_hover_text(t!(ui, "menu-show-turn-axis-hover"));
         // The panels: each opened or closed, every one hidden with P, the default layout
         // back (docs/specs/dockable-panels.md §1).
         super::header::submenu(ui, t!(ui, "menu-panels"), |ui| {

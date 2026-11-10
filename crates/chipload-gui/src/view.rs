@@ -151,6 +151,8 @@ pub const PICK_TOLERANCE_PX: f32 = 6.0;
 const OP_LABEL_RADIUS: f32 = 5.0;
 const OP_LABEL_TEXT_OFFSET: Vec2 = Vec2::new(7.0, -19.0);
 const DASH_PX: f32 = 6.0;
+/// How far the turn axis runs past the board at each end, points.
+const TURN_AXIS_OVERHANG_PX: f32 = 14.0;
 const GAP_PX: f32 = 4.0;
 /// Construction geometry's dots, screen pixels (docs/specs/dxf-export.md §B3).
 const CONSTRUCTION_DASH_PX: f32 = 2.0;
@@ -1007,6 +1009,9 @@ pub struct Scene {
     pub measure: Option<(Point, Point, String)>,
     /// The G-code's X0 Y0, in drawing coordinates: where the axes are drawn.
     pub work_zero: Point,
+    /// The line a two-sided board turns about, across the board, and its label
+    /// (docs/specs/two-sided-wizard.md §2).
+    pub turn_axis: Option<(Point, Point, String)>,
     /// The work zero's handle and whether the zero is selected (top view only;
     /// docs/specs/work-zero-marker.md §3).
     pub zero_handle: Option<(Point, bool)>,
@@ -1358,6 +1363,9 @@ impl Scene {
                 }
             }
         }
+        if let Some((a, b, label)) = &self.turn_axis {
+            paint_turn_axis(painter, view, (*a, *b), label, pal);
+        }
         // The drawing origin as ghost axes once the work zero is elsewhere, so it can still
         // be found (docs/specs/work-zero-marker.md §3).
         let (zx, zy) = self.work_zero;
@@ -1680,6 +1688,52 @@ fn shade(color: Color32, depth: f32, toward: Color32) -> Color32 {
 }
 
 /// The background gradient, from `background_top` down to `background`.
+/// The turn axis: a long-dashed line from `a` to `b`, a little past the board at each end,
+/// and its label beyond `b`, in the stock's colour.
+fn paint_turn_axis(
+    painter: &Painter,
+    view: &View,
+    (a, b): (Point, Point),
+    label: &str,
+    pal: &Palette,
+) {
+    let (sa, sb) = (view.to_screen(a), view.to_screen(b));
+    let along = (sb - sa).normalized();
+    if !along.x.is_finite() || !along.y.is_finite() {
+        return;
+    }
+    let (from, to) = (
+        sa - along * TURN_AXIS_OVERHANG_PX,
+        sb + along * TURN_AXIS_OVERHANG_PX,
+    );
+    let stroke = Stroke::new(1.5, pal.stock);
+    painter.extend(Shape::dashed_line(
+        &[from, to],
+        stroke,
+        3.0 * DASH_PX,
+        GAP_PX,
+    ));
+    // The label past the end, away from the board.
+    let anchor = if along.y.abs() > along.x.abs() {
+        if along.y < 0.0 {
+            eframe::egui::Align2::CENTER_BOTTOM
+        } else {
+            eframe::egui::Align2::CENTER_TOP
+        }
+    } else if along.x > 0.0 {
+        eframe::egui::Align2::LEFT_CENTER
+    } else {
+        eframe::egui::Align2::RIGHT_CENTER
+    };
+    painter.text(
+        to + along * 4.0,
+        anchor,
+        label,
+        eframe::egui::FontId::proportional(12.0),
+        pal.stock,
+    );
+}
+
 fn paint_background(painter: &Painter, pal: &Palette) {
     let rect = painter.clip_rect();
     let mut mesh = Mesh::default();

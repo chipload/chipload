@@ -121,6 +121,17 @@ fn pictures() {
     harness.run_steps(4);
     let image = harness.render().unwrap();
     image.save(dir.join("window-en-selection.png")).unwrap();
+    // A two-sided board: the turn axis, the front's form with its back side.
+    let mut harness = app_harness(Harness::builder().with_size(WINDOW).wgpu(), "en");
+    assert!(
+        harness
+            .state_mut()
+            .open(&corpus("jobs/v36/two_sided.chipload"))
+    );
+    harness.state_mut().focus = Focus::Setup(1);
+    harness.run_steps(6);
+    let image = harness.render().unwrap();
+    image.save(dir.join("window-en-two-sided.png")).unwrap();
 }
 
 /// One thing at a time (the user, 2026-10-28): a drawn shape's row in the Browser shows the

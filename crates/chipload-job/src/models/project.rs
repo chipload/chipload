@@ -369,6 +369,27 @@ impl Job {
         self.setup(back.setup)
     }
 
+    /// The index of the front setup `front`'s dowel holes operation, if it has one.
+    pub fn dowels_of(&self, front: u64) -> Option<usize> {
+        self.operations
+            .iter()
+            .position(|op| op.is_dowels() && self.setup_of(op).is_some_and(|s| s.id == front))
+    }
+
+    /// Whether back setup `back` is put back by dowel pins and its front has no dowel holes
+    /// to fit them, none or none that is on (docs/specs/two-sided-wizard.md §3).
+    pub fn missing_dowels(&self, back: u64) -> bool {
+        let Some(link) = self.setup(back).and_then(|s| s.back_of) else {
+            return false;
+        };
+        link.register == Register::Pins
+            && !self.operations.iter().any(|op| {
+                op.is_dowels()
+                    && op.enabled()
+                    && self.setup_of(op).is_some_and(|s| s.id == link.setup)
+            })
+    }
+
     /// The back setup of setup `id`, if it has one.
     pub fn back_of(&self, id: u64) -> Option<&Setup> {
         self.setups

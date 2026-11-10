@@ -1,6 +1,7 @@
 # Spec: two-sided work made easier: the turn axis, warnings, a wizard, pins that follow
 
-Status: **draft, for review** (2026-11-10). The user asked for suggestions ("the workflow
+Status: **approved 2026-11-10** ("Go ahead": decisions 1-8 as recommended); step 1 built.
+The user asked for suggestions ("the workflow
 with adding dowels for two sided … is not so intuitive"), then approved the suggested order
 and asked for this spec. It builds on docs/specs/two-sided.md (§3 the link, §6 dowel holes),
 whose rules for the holes, the checker and the sheet stay as they are.
@@ -41,9 +42,9 @@ While the active setup has a back, or is one, the canvas draws the **turn axis**
   and horizontal for *top to bottom*;
 - with a small turn arrow and the words *Turn axis* at one end, outside the board.
 
-It is drawn in the view's marker colour (the work zero marker's), under the shapes. The dowel
-circles are ordinary drawn shapes and show as they do today. *View > Show the turn axis*
-turns it off and on (on by default), as the other markers do.
+It is drawn in the stock outline's colour, with longer dashes, under the shapes. The dowel
+circles are ordinary drawn shapes and show as they do today. *View > Show turn axis* turns
+it off and on (on by default, for the session, as *Show legend*).
 
 The axis is only drawn. It isn't a shape, isn't selected and isn't snapped to (decision 1).
 
@@ -227,3 +228,12 @@ One commit each, with tests, the guide and TODO.md.
    `--zero` is given.
 9. **The order of building** (§9): the axis and warnings, then the wizard, then pins that
    follow. *Approved by the user, 2026-11-10.*
+
+## 11. Settled while building
+
+Step 1, 2026-11-10:
+- `setup dowels --remove` came with step 1, as the window's *Remove* did (the command line
+  first); `setup list` says *dowel holes: operation N* or *no dowel holes (warning)* for a
+  back with pins, and `--json` gives `dowels` and `missing_dowels`.
+- The axis label is *⟲ Turn axis*, past the board's top (left to right) or right end (top
+  to bottom).

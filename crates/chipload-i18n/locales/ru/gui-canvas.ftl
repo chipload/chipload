@@ -1,5 +1,6 @@
 canvas-reset-start = Сбросить начало
 canvas-reset-start-disabled-hover = Начало этого витка выбрано Chipload
+canvas-turn-axis = ⟲ Ось переворота
 canvas-select-contour = Выделить №{ $id }
 canvas-select-layer = Выделить слой { $layer }
 canvas-right-click-hint = Щёлкните контур правой кнопкой, чтобы выделить его слой.

@@ -614,3 +614,42 @@ fn a_back_surfaced_over_its_pins_is_allowed_with_a_warning() {
     chipload_pipeline::surface::add_surface(&mut front, None, Some(0.5), None).unwrap();
     assert_eq!(front.surface_over_pins(), None);
 }
+
+#[test]
+fn missing_dowel_holes_are_a_warning_and_remove_takes_them_out() {
+    use chipload_pipeline::dowels::{missing_dowels_warning, remove_dowels};
+    // docs/specs/two-sided-wizard.md §3
+    let job = sample_two_sided();
+    let at = job.dowels_of(1).expect("the sample has dowels");
+    assert!(!job.missing_dowels(2));
+    assert!(missing_dowels_warning(&job).is_none());
+    let circles = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.layer == "dowels")
+        .count();
+    assert_eq!(circles, 2);
+    let removed = remove_dowels(&job, 2).unwrap();
+    assert_eq!(removed.operations.len(), job.operations.len() - 1);
+    assert!(removed.operations.iter().all(|op| !op.is_dowels()));
+    assert!(removed.drawing.shapes.iter().all(|s| s.layer != "dowels"));
+    assert!(removed.missing_dowels(2));
+    // The warning, whichever side is active, and in a run's notes.
+    for active in [1, 2] {
+        let mut one = removed.clone();
+        one.active_setup = Some(active);
+        let note = missing_dowels_warning(&one).expect("the warning");
+        assert!(note.text.contains("has no dowel holes"), "{}", note.text);
+    }
+    // Removing again is refused; switched off counts as missing too.
+    assert!(remove_dowels(&removed, 2).is_err());
+    let mut off = job.clone();
+    off.operations[at].set_enabled(false);
+    assert!(off.missing_dowels(2));
+    // A fence corner needs no holes.
+    let mut corner = removed.clone();
+    corner.setups[1].back_of.as_mut().unwrap().register = Register::Corner;
+    assert!(!corner.missing_dowels(2));
+    assert!(missing_dowels_warning(&corner).is_none());
+}

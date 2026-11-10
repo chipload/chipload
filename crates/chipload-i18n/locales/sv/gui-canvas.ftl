@@ -3,6 +3,7 @@
 # The right-click menu. A ring's start: where a profile or pocket lap begins.
 canvas-reset-start = Återställ start
 canvas-reset-start-disabled-hover = Slingan börjar där Chipload valde
+canvas-turn-axis = ⟲ Vändaxel
 # $id: the contour's number.
 canvas-select-contour = Markera #{ $id }
 canvas-select-layer = Markera lager { $layer }

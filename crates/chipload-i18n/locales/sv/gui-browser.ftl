@@ -51,6 +51,7 @@ browser-add-setup = Lägg till en uppspänning
 browser-add-setup-hover = En skiva till: eget ämne, egen nollpunkt och egna detaljer, fräst som ett eget program
 browser-add-back-side = Lägg till baksidan
 browser-add-back-side-hover = En ny uppspänning: den här skivan vänd, med en egen detalj. Rita baksidan sedd framifrån, genom skivan: dess skär speglas
+browser-setup-no-dowels-hover = Läggs tillbaka med styrpinnar, och framsidan har inga styrhål för dem än: lägg till dem i dess formulär
 browser-setup-parts = { $count ->
     [one] { $count } detalj
    *[other] { $count } detaljer

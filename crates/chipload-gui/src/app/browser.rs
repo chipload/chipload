@@ -833,6 +833,12 @@ impl ChiploadApp {
         // Setups, each with its zero and its parts as leaves (docs/specs/setups.md §7): the
         // active one in full colour, the others as ghosts.
         let setups = edit.job.setups.clone();
+        // Backs put back by pins whose front has no dowel holes (two-sided-wizard.md §3).
+        let missing_dowels: Vec<u64> = setups
+            .iter()
+            .filter(|s| edit.job.missing_dowels(s.id))
+            .map(|s| s.id)
+            .collect();
         let active_setup = edit.job.active_setup_id();
         let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
             .icon_tinted(Icon::Rectangle, Tint::Board)
@@ -865,7 +871,9 @@ impl ChiploadApp {
                 let several = setups.len() > 1;
                 // A back is marked as the board turned over (docs/specs/two-sided.md §3).
                 let parts_text = t!(ui, "browser-setup-parts", count = mine.len());
+                let missing = missing_dowels.contains(&setup.id);
                 let trailing = match setup.back_of {
+                    Some(_) if missing => format!("⚠ ⟲ {parts_text}"),
                     Some(_) => format!("⟲ {parts_text}"),
                     None => parts_text,
                 };
@@ -892,11 +900,14 @@ impl ChiploadApp {
                 } else if out.response.clicked() {
                     setup_action = Some(SetupAction::Open(setup.id));
                 }
-                let hover = if is_active {
+                let mut hover = if is_active {
                     t!(ui, "browser-setup-active-hover")
                 } else {
                     t!(ui, "browser-setup-hover")
                 };
+                if missing {
+                    hover = format!("⚠ {}\n\n{hover}", t!(ui, "browser-setup-no-dowels-hover"));
+                }
                 out.response.on_hover_text(hover).context_menu(|ui| {
                     if ui
                         .button(t!(ui, "browser-export-setup"))

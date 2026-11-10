@@ -51,6 +51,7 @@ browser-add-setup = Aggiungi un piazzamento
 browser-add-setup-hover = Un altro pannello: il suo grezzo, il suo zero e i suoi pezzi, lavorato come programma a sé
 browser-add-back-side = Aggiungi il retro
 browser-add-back-side-hover = Un nuovo piazzamento: questa tavola capovolta, con un pezzo proprio. Disegna il retro visto dal fronte, attraverso la tavola: i suoi tagli sono specchiati
+browser-setup-no-dowels-hover = Rimesso a posto con spine, e il fronte non ha ancora fori per spina: aggiungili nel suo modulo
 browser-setup-parts = { $count ->
     [one] { $count } pezzo
    *[other] { $count } pezzi

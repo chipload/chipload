@@ -51,6 +51,7 @@ browser-add-setup = Add a setup
 browser-add-setup-hover = Another board: its own stock, work zero and parts, cut as a program of its own
 browser-add-back-side = Add the back side
 browser-add-back-side-hover = A new setup that is this board turned over, with a part of its own. Draw the back as seen from the front, through the board: its cuts are mirrored
+browser-setup-no-dowels-hover = Put back by dowel pins, and its front has no dowel holes for them yet: add them in its form
 browser-setup-parts = { $count ->
     [one] { $count } part
    *[other] { $count } parts

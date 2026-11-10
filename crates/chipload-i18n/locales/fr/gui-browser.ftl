@@ -51,6 +51,7 @@ browser-add-setup = Ajouter un montage
 browser-add-setup-hover = Un autre panneau : son brut, son zéro et ses pièces, usiné comme un programme à lui
 browser-add-back-side = Ajouter le verso
 browser-add-back-side-hover = Un nouveau montage : cette planche retournée, avec sa propre pièce. Dessinez le verso vu du recto, à travers la planche : ses usinages sont mis en miroir
+browser-setup-no-dowels-hover = Remis en place par des goupilles, et le recto n'a pas encore de trous de goupille : ajoutez-les dans son formulaire
 browser-setup-parts = { $count ->
     [one] { $count } pièce
    *[other] { $count } pièces

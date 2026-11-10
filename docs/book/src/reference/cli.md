@@ -2258,6 +2258,7 @@ chipload setup dowels <PROJECT> [OPTIONS]
 | `--diameter <DIAMETER>` | The pins' diameter; default 8 mm (a 6 mm end mill bores it) |
 | `--depth <DEPTH>` | How far the holes go into the spoilboard; default 8 mm. |
 | `--zero` | Set the front's work zero to the first pin's centre, which the back shares. |
+| `--remove` | Remove the dowel holes instead: the front's operation and its circles. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload setup activate`

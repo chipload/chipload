@@ -341,6 +341,69 @@ pub fn broken_hole_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<
 /// through the board and
 /// `depth` into the spoilboard (a drill of the size when the project has one, else a bore).
 /// Refused when the front has dowel holes already. Returns the operation's index.
+/// Remove back setup `back`'s dowel holes: the front's holes operation and the dowel
+/// circles it cuts, as one change (docs/specs/two-sided-wizard.md §3).
+pub fn remove_dowels(job: &Job, back: u64) -> Result<Job, PipelineError> {
+    let front = job
+        .setup(back)
+        .and_then(|s| s.back_of)
+        .map(|b| b.setup)
+        .ok_or_else(|| refused(Message::new("pipeline-no-setup").arg("id", back)))?;
+    let Some(at) = job.dowels_of(front) else {
+        return Err(refused(Message::new("pipeline-dowels-none")));
+    };
+    let mut out = job.clone();
+    let op = out.operations.remove(at);
+    let select = op.select().resolved(&job.drawing);
+    let circles: Vec<u64> = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| {
+            s.layer == DOWEL_LAYER
+                && matches!(s.geometry, Geometry::Circle { .. })
+                && select.may_pick(s)
+        })
+        .map(|s| s.id)
+        .collect();
+    // Another operation may cut a circle too: it stays then.
+    let used = |id: u64| {
+        out.operations.iter().any(|op| {
+            let select = op.select().resolved(&out.drawing);
+            out.drawing
+                .shapes
+                .iter()
+                .any(|s| s.id == id && select.may_pick(s))
+        })
+    };
+    let gone: Vec<u64> = circles.into_iter().filter(|&id| !used(id)).collect();
+    out.drawing.shapes.retain(|s| !gone.contains(&s.id));
+    match out.validate().into_iter().next() {
+        Some(problem) => Err(refused(problem.text_message)),
+        None => Ok(out),
+    }
+}
+
+/// For the active setup, a back put back by pins or the front of one: a warning when its
+/// front has no dowel holes for them (docs/specs/two-sided-wizard.md §3).
+pub fn missing_dowels_warning(job: &Job) -> Option<Note> {
+    let active = job.active_setup_id()?;
+    let back = match job.setup(active)?.back_of {
+        Some(_) => active,
+        None => job.back_of(active)?.id,
+    };
+    if !job.missing_dowels(back) {
+        return None;
+    }
+    let front = job.front_of(back)?;
+    let name = job.setup(back)?.name.as_str();
+    Some(Note::job(
+        Message::new("pipeline-dowels-missing")
+            .arg("back", name)
+            .arg("front", front.name.as_str()),
+    ))
+}
+
 pub fn add_dowels(
     job: &Job,
     back: u64,

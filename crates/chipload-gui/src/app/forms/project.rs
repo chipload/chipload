@@ -743,6 +743,10 @@ fn board_rows(
                 });
             ui.end_row();
             let Some(b) = back else {
+                // A front: its back side and the dowel holes for it (two-sided-wizard.md §3).
+                if let Some(asked) = back_side_row(ui, job, id) {
+                    request = Some(asked);
+                }
                 return;
             };
             ui.label(t!(ui, "forms-setup-turn"))
@@ -795,30 +799,116 @@ fn board_rows(
             ui.end_row();
             if b.register == Register::Pins {
                 ui.label(t!(ui, "forms-setup-dowels"));
-                let dowels = job.operations.iter().position(|op| {
-                    op.is_dowels() && job.setup_of(op).is_some_and(|s| s.id == b.setup)
-                });
-                match dowels {
-                    Some(i) => {
-                        ui.label(t!(ui, "forms-setup-dowels-there", number = i + 1));
-                    }
-                    None => {
-                        if ui
-                            .button(t!(ui, "forms-setup-add-dowels"))
-                            .on_hover_text(t!(
-                                ui,
-                                "forms-setup-add-dowels-hover",
-                                front = name_of(b.setup).as_str()
-                            ))
-                            .clicked()
-                        {
-                            request = Some(JobRequest::AddDowels(id));
-                        }
-                    }
+                if let Some(asked) = dowels_cell(ui, job, id, b.setup, true) {
+                    request = Some(asked);
                 }
                 ui.end_row();
             }
         });
+    request
+}
+
+/// A front setup's *Back side* row: *None* with *Add the back side*, or its back as a link
+/// with the state of its dowel holes.
+fn back_side_row(ui: &mut egui::Ui, job: &chipload_job::Job, front: u64) -> Option<JobRequest> {
+    let mut request = None;
+    ui.label(t!(ui, "forms-setup-back-side"))
+        .on_hover_text(t!(ui, "forms-setup-back-side-hover"));
+    match job.back_of(front) {
+        None => {
+            ui.horizontal(|ui| {
+                ui.label(t!(ui, "forms-setup-back-none"));
+                if ui
+                    .button(t!(ui, "forms-setup-add-back"))
+                    .on_hover_text(t!(ui, "forms-setup-add-back-hover"))
+                    .clicked()
+                {
+                    request = Some(JobRequest::AddBack(front));
+                }
+            });
+            ui.end_row();
+        }
+        Some(back) => {
+            let mut name = back.name.clone();
+            if job.missing_dowels(back.id) {
+                name.push_str(" ⚠");
+            }
+            if ui.link(name).clicked() {
+                request = Some(JobRequest::OpenSetup(back.id));
+            }
+            ui.end_row();
+            if back
+                .back_of
+                .is_some_and(|b| b.register == chipload_job::Register::Pins)
+            {
+                ui.label(t!(ui, "forms-setup-dowels"));
+                if let Some(asked) = dowels_cell(ui, job, back.id, front, false) {
+                    request = Some(asked);
+                }
+                ui.end_row();
+            }
+        }
+    }
+    request
+}
+
+/// The dowel holes of back `back`, whose front is `front`: the operation as a link (with
+/// *Remove* in the back's own form), or *None yet* in the warning colour with *Add dowel
+/// holes* (docs/specs/two-sided-wizard.md §3).
+fn dowels_cell(
+    ui: &mut egui::Ui,
+    job: &chipload_job::Job,
+    back: u64,
+    front: u64,
+    with_remove: bool,
+) -> Option<JobRequest> {
+    let mut request = None;
+    let front_name = job.setup(front).map_or(String::new(), |s| s.name.clone());
+    ui.horizontal(|ui| match job.dowels_of(front) {
+        Some(i) => {
+            let mut text = t!(ui, "forms-setup-dowels-there", number = i + 1);
+            if job.missing_dowels(back) {
+                text.push_str(" ⚠");
+            }
+            if ui
+                .link(text)
+                .on_hover_text(t!(ui, "forms-setup-dowels-open-hover"))
+                .clicked()
+            {
+                request = Some(JobRequest::OpenOperation(i));
+            }
+            if with_remove
+                && ui
+                    .button(t!(ui, "common-remove"))
+                    .on_hover_text(t!(ui, "forms-setup-remove-dowels-hover"))
+                    .clicked()
+            {
+                request = Some(JobRequest::RemoveDowels(back));
+            }
+        }
+        None => {
+            ui.colored_label(
+                ui.visuals().warn_fg_color,
+                t!(ui, "forms-setup-dowels-none"),
+            )
+            .on_hover_text(t!(
+                ui,
+                "forms-setup-dowels-none-hover",
+                front = front_name.as_str()
+            ));
+            if ui
+                .button(t!(ui, "forms-setup-add-dowels"))
+                .on_hover_text(t!(
+                    ui,
+                    "forms-setup-add-dowels-hover",
+                    front = front_name.as_str()
+                ))
+                .clicked()
+            {
+                request = Some(JobRequest::AddDowels(back));
+            }
+        }
+    });
     request
 }
 

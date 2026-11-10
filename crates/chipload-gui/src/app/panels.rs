@@ -268,6 +268,11 @@ impl ChiploadApp {
             Some(JobRequest::RemoveSetup(id)) => self.remove_setup(id),
             Some(JobRequest::SetBoard(id, change)) => self.set_board(id, change),
             Some(JobRequest::AddDowels(id)) => self.add_dowels(id),
+            Some(JobRequest::RemoveDowels(id)) => self.remove_dowels(id),
+            Some(JobRequest::AddBack(front)) => {
+                self.add_back_side(front);
+            }
+            Some(JobRequest::OpenSetup(id)) => self.focus = Focus::Setup(id),
             Some(JobRequest::FrontStock(front)) => {
                 self.activate_setup(front);
                 self.focus = Focus::Stock;

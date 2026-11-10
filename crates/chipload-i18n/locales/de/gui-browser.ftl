@@ -51,6 +51,7 @@ browser-add-setup = Aufspannung hinzufügen
 browser-add-setup-hover = Eine weitere Platte: eigenes Rohteil, eigener Nullpunkt und eigene Teile, als eigenes Programm gefräst
 browser-add-back-side = Rückseite hinzufügen
 browser-add-back-side-hover = Eine neue Aufspannung: dieses Brett gewendet, mit einem eigenen Teil. Die Rückseite so zeichnen, wie man sie von vorn durch das Brett sieht: ihre Schnitte werden gespiegelt
+browser-setup-no-dowels-hover = Wird mit Stiften wieder angelegt, und die Vorderseite hat noch keine Passstiftbohrungen dafür: im Formular hinzufügen
 browser-setup-parts = { $count ->
     [one] { $count } Teil
    *[other] { $count } Teile
