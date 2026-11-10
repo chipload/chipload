@@ -197,7 +197,9 @@ across the board, marked *⟲ Turn axis*, on the line the board turns about, whe
 holes go. *View > Show turn axis* hides it.
 
 A back's **Stock** and **Work zero** are its front's: their forms say so, with a button to
-open the front's, and how thick the board is after the front's surfacing. You pick and edit
+open the front's, and how thick the board is after the front's surfacing. On the command
+line, `chipload set` refuses a back's `stock` or `work_zero` and names the front's path to
+set instead. You pick and edit
 the back's shapes in the same view as the front's, where you drew them; only its G-code and
 its setup sheet are turned over.
 

@@ -133,13 +133,46 @@ pub fn set_all(job: &Job, assignments: &[(String, Value)]) -> Result<Job, String
         }
     }
     let shown: Vec<&str> = assignments.iter().map(|(p, _)| p.as_str()).collect();
-    parse_job(value, "").map_err(|e| match e {
+    let changed = parse_job(value, "").map_err(|e| match e {
         JobError::Invalid { reason, .. } => Message::new("job-set-would-not-load")
             .arg("paths", shown.join(", "))
             .arg("reason", reason)
             .english(),
         other => other.to_string(),
-    })
+    })?;
+    for (path, _) in assignments {
+        if let Some(refused) = shared_with_front(&changed, path) {
+            return Err(refused);
+        }
+    }
+    Ok(changed)
+}
+
+/// Why `path` can't be set, when it is a back setup's board or work zero: loading copies
+/// them from its front again (docs/specs/two-sided.md §3), so the value set would be lost.
+fn shared_with_front(job: &Job, path: &str) -> Option<String> {
+    let mut keys = path.splitn(4, '.');
+    if keys.next() != Some("setups") {
+        return None;
+    }
+    let index: usize = keys.next()?.parse().ok()?;
+    let field = keys.next()?;
+    if field != "stock" && field != "work_zero" {
+        return None;
+    }
+    let back = job.setups.get(index)?;
+    back.back_of?;
+    let front = job.front_of(back.id)?;
+    let front_index = job.setups.iter().position(|s| s.id == front.id)?;
+    let rest = keys.next().map_or(String::new(), |r| format!(".{r}"));
+    Some(
+        Message::new("job-set-back-follows-front")
+            .arg("path", path)
+            .arg("back", back.name.clone())
+            .arg("front", front.name.clone())
+            .arg("instead", format!("setups.{front_index}.{field}{rest}"))
+            .english(),
+    )
 }
 
 #[cfg(test)]

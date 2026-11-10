@@ -213,6 +213,7 @@ job-error-cannot-write = kan inte skriva: { $error }
 job-error-no-backup = kan inte behålla den tidigare versionen som .bak: { $error }
 # On the command line, after `set`: $paths are the values set, as paths in the project file.
 job-set-would-not-load = projektet skulle inte gå att läsa in efter att { $paths } satts: { $reason }
+job-set-back-follows-front = { $path } kan inte ändras: { $back } är { $front } vänt och delar dess skiva och arbetsnollpunkt. Ändra { $instead } i stället.
 
 ## The tool library and machine profiles
 

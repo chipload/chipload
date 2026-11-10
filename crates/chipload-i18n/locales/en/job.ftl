@@ -213,6 +213,8 @@ job-error-cannot-write = cannot write: { $error }
 job-error-no-backup = cannot keep the previous version as .bak: { $error }
 # On the command line, after `set`: $paths are the values set, as paths in the project file.
 job-set-would-not-load = the project wouldn't load after setting { $paths }: { $reason }
+# On the command line, after `set`: $path is a back setup's stock or work zero; $back and $front are setup names; $instead the front's path.
+job-set-back-follows-front = { $path } can't be set: { $back } is { $front } turned over and shares its board and work zero. Set { $instead } instead.
 
 ## The tool library and machine profiles
 

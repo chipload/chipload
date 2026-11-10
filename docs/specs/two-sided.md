@@ -274,7 +274,7 @@ axis is left out: the words and the turned picture say it.
 A back setup has `back_of`. *As built: it keeps a `stock` and a `work_zero`, copies of
 its front's that every read and change makes again (`Job::follow_fronts`), so planning,
 the checker and the view read a back's board as any setup's; editing them on the back
-changes nothing.* A holes operation may have `dowels: true`, its pin depth in `through`. The field is optional, but the version **is bumped**: an
+changes nothing; `chipload set` refuses them and names the front's path (2026-11-10).* A holes operation may have `dowels: true`, its pin depth in `through`. The field is optional, but the version **is bumped**: an
 older Chipload reading a back setup would cut it unmirrored, which ruins the part. The
 migration 35 → 36 changes nothing, since no older file has a back. There's a frozen v35
 sample and the usual golden test.

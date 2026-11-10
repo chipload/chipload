@@ -528,6 +528,52 @@ fn a_back_side_is_added_listed_changed_and_unlinked() {
 }
 
 #[test]
+fn set_refuses_a_back_sides_board_and_zero_and_names_the_fronts() {
+    // docs/specs/two-sided.md §3: a back shares its front's board and work zero; a value
+    // set on the back would be copied over on loading, so `set` refuses it.
+    let dir = temp_dir("back-zero");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v22/two_parts.chipload"), &project).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    run(&["setup", "add", p, "--back-of", "1", "--json"]);
+    let before = std::fs::read(&project).unwrap();
+    for path in [
+        r#"setups.1.work_zero={"at":"point","x":5,"y":5}"#,
+        "setups.1.stock.thickness=30",
+    ] {
+        let refused = chipload(&dir, &["set", p, path, "--json"]);
+        assert_eq!(refused.code, Some(1), "{}", refused.stdout);
+        assert!(
+            refused
+                .stdout
+                .contains("Setup 1 back is Setup 1 turned over"),
+            "{}",
+            refused.stdout
+        );
+        assert_eq!(std::fs::read(&project).unwrap(), before, "{path}");
+    }
+    let refused = chipload(&dir, &["set", p, "setups.1.stock.thickness=30"]);
+    assert!(
+        refused
+            .stderr
+            .contains("Set setups.0.stock.thickness instead"),
+        "{}",
+        refused.stderr
+    );
+    // The front's is set, and the back follows.
+    run(&[
+        "set",
+        p,
+        r#"setups.0.work_zero={"at":"point","x":5,"y":5}"#,
+        "--json",
+    ]);
+    let back = run(&["get", p, "setups.1.work_zero", "--json"]);
+    assert_eq!(back["value"]["at"], json!("point"), "{back}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn setup_list_says_when_dowel_holes_are_missing_and_dowels_remove() {
     // docs/specs/two-sided-wizard.md §3, §6
     let dir = temp_dir("dowels-remove");

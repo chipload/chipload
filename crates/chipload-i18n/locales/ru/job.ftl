@@ -129,6 +129,7 @@ job-error-not-object = должен содержать объект JSON
 job-error-cannot-write = невозможно записать: { $error }
 job-error-no-backup = невозможно сохранить предыдущую версию как .bak: { $error }
 job-set-would-not-load = проект не загрузится после задания { $paths }: { $reason }
+job-set-back-follows-front = { $path } нельзя изменить: { $back } — это { $front }, перевёрнутая, с общей заготовкой и нулём детали. Измените { $instead }.
 job-library-error-version = { $path }: schema_version { $found } не поддерживается: эта версия Chipload читает { $current }. Обновите Chipload или проверьте файл.
 job-library-error-unreadable = Не удалось прочитать { $path }: { $reason }
 job-library-error-invalid = Некорректный файл { $path }: { $reason }
