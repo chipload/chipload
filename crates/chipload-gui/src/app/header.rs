@@ -750,11 +750,9 @@ impl ChiploadApp {
             ui,
             &caption,
             |app, ui| {
-                // A small button, so the ribbon keeps its names at the default width.
                 let label = t!(ui, "header-sign");
-                let hint = format!("{label}: {}", t!(ui, "header-sign-hover"));
-                if small_ribbon_button(ui, Icon::Sign, &label, app.can_draw(), false, None)
-                    .on_hover_text(hint)
+                if ribbon_button(ui, Icon::Sign, &label, app.can_draw(), false)
+                    .on_hover_text(t!(ui, "header-sign-hover"))
                     .clicked()
                 {
                     app.start_sign();
