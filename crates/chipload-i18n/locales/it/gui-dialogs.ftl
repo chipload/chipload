@@ -137,6 +137,7 @@ sign-edge-chamfer = Smusso
 sign-edge-hover = Uno smusso di questa larghezza attorno al contorno, tagliato con la fresa a V prima di ritagliare l'insegna
 sign-vbit = Fresa a V
 sign-end-mill = Fresa cilindrica
+sign-library-tool-hover = Dalla tua libreria utensili: copiato nel progetto quando crei l'insegna
 sign-board = Tavola
 sign-fit-board = Adatta attorno all'insegna
 sign-fit-board-hover = Il grezzo adattato attorno al disegno con questo margine, di questo spessore. Spento: il grezzo resta com'è.

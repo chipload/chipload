@@ -137,6 +137,7 @@ sign-edge-chamfer = Fas
 sign-edge-hover = En så bred fas runt ytterlinjen, skuren med V-fräsen innan skylten skärs ut
 sign-vbit = V-fräs
 sign-end-mill = Pinnfräs
+sign-library-tool-hover = Från ditt verktygsbibliotek: kopieras in i projektet när du gör skylten
 sign-board = Bräda
 sign-fit-board = Anpassa runt skylten
 sign-fit-board-hover = Ämnet anpassat runt ritningen med den här marginalen, så här tjockt. Av: ämnet är som det är.

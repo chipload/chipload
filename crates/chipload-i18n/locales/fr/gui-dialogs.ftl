@@ -137,6 +137,7 @@ sign-edge-chamfer = Chanfrein
 sign-edge-hover = Un chanfrein de cette largeur autour du contour, taillé avec la fraise en V avant la découpe de l'enseigne
 sign-vbit = Fraise en V
 sign-end-mill = Fraise droite
+sign-library-tool-hover = De votre bibliothèque d'outils : copié dans le projet quand vous créez l'enseigne
 sign-board = Planche
 sign-fit-board = Ajuster autour de l'enseigne
 sign-fit-board-hover = Le brut ajusté autour du dessin avec cette marge, de cette épaisseur. Désactivé : le brut reste tel quel.

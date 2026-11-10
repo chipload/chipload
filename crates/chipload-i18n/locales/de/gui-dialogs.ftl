@@ -137,6 +137,7 @@ sign-edge-chamfer = Fase
 sign-edge-hover = Eine so breite Fase um die Außenlinie, mit dem V-Fräser geschnitten, bevor das Schild ausgeschnitten wird
 sign-vbit = V-Fräser
 sign-end-mill = Schaftfräser
+sign-library-tool-hover = Aus Ihrer Werkzeugbibliothek: wird ins Projekt kopiert, wenn Sie das Schild erstellen
 sign-board = Brett
 sign-fit-board = Um das Schild anpassen
 sign-fit-board-hover = Das Rohteil um die Zeichnung mit diesem Rand und dieser Dicke. Aus: das Rohteil bleibt, wie es ist.

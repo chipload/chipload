@@ -35,8 +35,11 @@ it). The dialog draws the sign as it will be and lists the operations it adds. (
     board of its own.
 - **Edge**: a **Chamfer** of that width round the outline, cut with the V-bit centred on the
   outline before the sign is cut out (the other half of the groove is in the waste).
-- **V-bit**, **End mill**: from the project's tools. The V-bit carves the letters and the
-  grooves, the end mill cuts the sign out (and clears a raised background).
+- **V-bit**, **End mill**: the project's tools, then under *From your library:* your tool
+  library's (marked **+**). A library tool is copied into the project when you click *Make
+  sign*, not before. A project without such a tool starts on the library's. The V-bit
+  carves the letters and the grooves, the end mill cuts the sign out (and clears a raised
+  background).
 - **Board**: *Fit round the sign* (on in an empty project) fits the stock round the drawing
   with the margin, at the thickness.
 

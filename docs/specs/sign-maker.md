@@ -310,3 +310,8 @@ After trying it, 2026-11-10 (the user):
 - **Browser:** a group lists its texts under it, beside its drawn shapes, and a grouped
   text isn't listed again under *Drawing* (a sign's words showed outside its group). The
   group's drawn shapes sit straight under it, without the empty layer row they had.
+- **Tools from the library:** the V-bit and end mill lists offer the library's tools of
+  that kind not in the project yet, under *From your library:*; one chosen is copied into
+  the project (`use_tool`, linked by uid) when the sign is made, in the same undo step, and
+  never by the preview or *Cancel*. A project without a V-bit or end mill starts on the
+  library's first. `sign add` takes project tool numbers as before.

@@ -138,6 +138,7 @@ sign-edge-chamfer = Chamfer
 sign-edge-hover = A chamfer this wide round the outline, cut with the V-bit before the sign is cut out
 sign-vbit = V-bit
 sign-end-mill = End mill
+sign-library-tool-hover = From your tool library: copied into the project when you make the sign
 sign-board = Board
 sign-fit-board = Fit round the sign
 sign-fit-board-hover = The stock fitted round the drawing with this margin, this thick. Off: the stock stays as it is.

@@ -137,6 +137,7 @@ sign-edge-chamfer = Chaflán
 sign-edge-hover = Un chaflán de este ancho alrededor del contorno, cortado con la fresa en V antes de recortar el letrero
 sign-vbit = Fresa en V
 sign-end-mill = Fresa plana
+sign-library-tool-hover = De tu biblioteca de herramientas: se copia al proyecto cuando haces el letrero
 sign-board = Tablero
 sign-fit-board = Ajustar alrededor del letrero
 sign-fit-board-hover = El material ajustado alrededor del dibujo con este margen, con este grosor. Desactivado: el material queda como está.
