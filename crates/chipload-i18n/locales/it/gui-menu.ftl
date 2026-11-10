@@ -101,8 +101,8 @@ menu-draw-text = Testo
 menu-draw-text-hover = Scrivi un testo, poi fai clic dove inizia
 menu-draw-frame = Cornice…
 menu-draw-frame-hover = Una cornice per un'insegna: attorno alla selezione o di una misura, con bordi
-menu-draw-sign = Nuova insegna…
-menu-draw-sign-hover = Un'insegna intera in un passo: le parole, una cornice che le segue e ogni operazione che la taglia
+menu-wizard-sign = Nuova insegna…
+menu-wizard-sign-hover = Un'insegna intera in un passo: le parole, una cornice che le segue e ogni operazione che la taglia
 
 # Help menu.
 menu-user-guide = Guida utente

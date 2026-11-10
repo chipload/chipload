@@ -156,7 +156,7 @@ chipload frame detach sign.chipload 12                          # plain shapes f
 chipload frame kinds                                            # with the corner styles
 ```
 
-- **Window:** *New sign…* in the ribbon's DRAW group beside *Frame*, and on an empty
+- **Window:** *New sign…* in the ribbon's WIZARDS group (moved there from DRAW, §10), and on an empty
   project's start page. The dialog shows the sign as it will look (frame, text, borders)
   and a one-line list of what it will add. The frame's properties panel shows its values
   while it is live.
@@ -299,3 +299,14 @@ say a traced image?" then "Add both of those"):
 - **Fixed:** a frame round only some of a text's letters or a picture's shapes recorded the
   whole text or picture and would have grown round all of it at the next edit; it now
   records a text or picture only when all of its shapes are framed, the rest by id.
+
+After trying it, 2026-11-10 (the user):
+- **Fonts:** the dialog's font list is the text tool's (docs/specs/font-list.md): the
+  recently used fonts, the built-in ones and the computer's; the font last picked is
+  chosen at first. A font picked here joins the recent list.
+- **Wizards:** a sign does much more than drawing, so *New sign…* left the DRAW group for
+  a group of its own, **WIZARDS** (a large *Sign* button; its menu *New sign…*), after
+  OPERATION. Later one-dialog makers go there too.
+- **Browser:** a group lists its texts under it, beside its drawn shapes, and a grouped
+  text isn't listed again under *Drawing* (a sign's words showed outside its group). The
+  group's drawn shapes sit straight under it, without the empty layer row they had.

@@ -102,6 +102,7 @@ header-slot-hover = Disegna un'asola: i centri delle estremità, poi la larghezz
 header-polygon = Poligono
 header-polygon-hover = Disegna un poligono regolare: il centro, poi un vertice (il numero di lati nella barra di stato)
 header-group-modify = Modifica
+header-group-wizards = Procedure guidate
 header-offset = Offset
 header-offset-hover = Una forma a distanza da quelle selezionate: spostati dal lato voluto, clicca o digita la distanza
 header-fillet = Raccordo

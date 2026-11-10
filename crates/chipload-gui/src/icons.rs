@@ -92,6 +92,8 @@ pub enum Icon {
     Edit,
     /// A board with an arrow over it: turn the board over (docs/specs/two-sided.md §10.2).
     TurnOver,
+    /// A board hanging from two chains, a line of words on it: a sign.
+    Sign,
 }
 
 /// Line width of the icons, points.
@@ -170,6 +172,12 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         Icon::Text => {
             pen.poly(&[(0.18, 0.86), (0.5, 0.14), (0.82, 0.86)]);
             pen.poly(&[(0.31, 0.6), (0.69, 0.6)]);
+        }
+        Icon::Sign => {
+            pen.line([(0.3, 0.1), (0.3, 0.3)]);
+            pen.line([(0.7, 0.1), (0.7, 0.3)]);
+            pen.closed(&[(0.1, 0.3), (0.9, 0.3), (0.9, 0.78), (0.1, 0.78)]);
+            pen.line([(0.25, 0.54), (0.75, 0.54)]);
         }
         Icon::Frame => {
             pen.rounded((0.5, 0.5), 0.42, 0.12);

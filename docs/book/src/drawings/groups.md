@@ -18,10 +18,11 @@ Inserting a library entry of more than one shape or text makes a group named aft
   or **Ctrl+G**. With one group among them, the rest join it; with several, they become
   one. Right-click > **Add to group ▸** adds the selection to a group you pick.
 - **Select:** a click on any shape or letter of a group selects all of it, and so does its
-  row in the Browser (under *Drawing*, with its shapes under it). **Ctrl+click** on shapes
+  row in the Browser (under *Drawing*, with its texts and shapes under it; a grouped text
+  or shape isn't listed again elsewhere). **Ctrl+click** on shapes
   of the selected group leaves them out of the selection and back in.
-- **One shape inside:** **double-click** it on the canvas, or click its row under the
-  group in the Browser. Then right-click > **Remove from group** takes it out of the group;
+- **One shape or text inside:** **double-click** it on the canvas, or click its row under
+  the group in the Browser. Then right-click > **Remove from group** takes it out of the group;
   it stays where it is.
 - **Move, turn, scale:** drag any of its shapes, or the handles of its box: the texts in
   it move, turn and scale too. The box turns with the group and stays turned.

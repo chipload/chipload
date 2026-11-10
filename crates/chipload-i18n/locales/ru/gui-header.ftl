@@ -76,6 +76,7 @@ header-slot-hover = Начертить паз: центры концов, зат
 header-polygon = Многоугольник
 header-polygon-hover = Начертить правильный многоугольник: центр, затем вершина (число сторон — в строке состояния)
 header-group-modify = Изменение
+header-group-wizards = Мастера
 header-offset = Смещение
 header-offset-hover = Геометрия на расстоянии от выделенной: укажите сторону, щёлкните или введите расстояние
 header-fillet = Скругление

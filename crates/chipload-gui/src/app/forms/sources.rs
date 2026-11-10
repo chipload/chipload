@@ -574,7 +574,7 @@ pub(in crate::app) fn placement_rows(
 /// the recently used fonts, the built-in fonts by style, each in its own face, then the
 /// computer's by name; the computer font under the mouse shows a sample. It stays open
 /// while the search is typed and closes when a font is picked.
-pub(super) fn font_list(
+pub(in crate::app) fn font_list(
     ui: &mut egui::Ui,
     chosen: &mut String,
     fonts: &super::text_fonts::TextFonts,

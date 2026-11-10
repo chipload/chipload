@@ -625,9 +625,17 @@ impl ChiploadApp {
             self.start_frame();
             ui.close();
         }
+    }
+
+    /// The Wizards menu's items: the things made in one dialog, drawing and operations
+    /// together (docs/specs/sign-maker.md §3).
+    pub(super) fn wizards_menu(&mut self, ui: &mut egui::Ui) {
         if ui
-            .add_enabled(can_draw, egui::Button::new(t!(ui, "menu-draw-sign")))
-            .on_hover_text(t!(ui, "menu-draw-sign-hover"))
+            .add_enabled(
+                self.can_draw(),
+                egui::Button::new(t!(ui, "menu-wizard-sign")),
+            )
+            .on_hover_text(t!(ui, "menu-wizard-sign-hover"))
             .clicked()
         {
             self.start_sign();

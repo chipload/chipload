@@ -151,6 +151,15 @@ impl ChiploadApp {
         };
         let mut settings = SignSettings::for_job(&edit.job);
         settings.around = around;
+        // The font last picked, the text tool's list's first (docs/specs/font-list.md).
+        if let Some(font) = self
+            .text_fonts
+            .recent
+            .iter()
+            .find(|f| self.text_fonts.has(f) != Some(false))
+        {
+            settings.font.clone_from(font);
+        }
         self.dialogs.prompt = Some(Prompt::Sign(Box::new(settings)));
     }
 
@@ -269,7 +278,7 @@ impl ChiploadApp {
             egui::ScrollArea::vertical()
                 .max_height(ui.ctx().content_rect().height() * 0.6)
                 .show(ui, |ui| {
-                    sign_fields(ui, &mut settings, &tools, units);
+                    sign_fields(ui, &mut settings, &tools, units, &self.text_fonts);
                 });
             ui.add_space(6.0);
             sign_picture(ui, &preview.lines);
@@ -310,9 +319,15 @@ impl ChiploadApp {
 }
 
 /// The dialog's values: words, frame, style and edge, tools, board.
-fn sign_fields(ui: &mut egui::Ui, s: &mut SignSettings, tools: &[Tool], units: Units) {
+fn sign_fields(
+    ui: &mut egui::Ui,
+    s: &mut SignSettings,
+    tools: &[Tool],
+    units: Units,
+    fonts: &super::text_fonts::TextFonts,
+) {
     if s.around.is_empty() {
-        word_fields(ui, s);
+        word_fields(ui, s, fonts);
     } else {
         ui.label(crate::style::bold(ui, t!(ui, "sign-around")));
         ui.label(t!(ui, "sign-around-body", count = s.around.len()));
@@ -327,8 +342,9 @@ fn sign_fields(ui: &mut egui::Ui, s: &mut SignSettings, tools: &[Tool], units: U
     frame_and_cut_fields(ui, s, tools, units);
 }
 
-/// The words, their font and height.
-fn word_fields(ui: &mut egui::Ui, s: &mut SignSettings) {
+/// The words, their font (the text tool's font list: recently used, built-in, the
+/// computer's) and height.
+fn word_fields(ui: &mut egui::Ui, s: &mut SignSettings, fonts: &super::text_fonts::TextFonts) {
     ui.label(crate::style::bold(ui, t!(ui, "sign-words")));
     ui.add(
         egui::TextEdit::multiline(&mut s.words)
@@ -341,13 +357,20 @@ fn word_fields(ui: &mut egui::Ui, s: &mut SignSettings) {
         .spacing([12.0, 6.0])
         .show(ui, |ui| {
             ui.label(t!(ui, "sign-font"));
+            let mut shown = egui::RichText::new(s.font.as_str());
+            let family = if chipload_text::builtin(&s.font).is_some() {
+                crate::fonts::text_font_family(&s.font)
+            } else {
+                super::text_fonts::sample_family(&s.font)
+            };
+            if ui.ctx().fonts(|f| f.families()).contains(&family) {
+                shown = shown.family(family);
+            }
             egui::ComboBox::from_id_salt("sign-font")
-                .selected_text(s.font.clone())
-                .show_ui(ui, |ui| {
-                    for name in chipload_pipeline::texts::font_names() {
-                        ui.selectable_value(&mut s.font, name.to_string(), name);
-                    }
-                });
+                .selected_text(shown)
+                .height(480.0)
+                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                .show_ui(ui, |ui| super::forms::font_list(ui, &mut s.font, fonts));
             ui.end_row();
             ui.label(t!(ui, "sign-height"));
             ui.add(crate::units::length(&mut s.height).range(1.0..=1000.0));

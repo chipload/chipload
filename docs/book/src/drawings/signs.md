@@ -7,15 +7,16 @@ border lines inside it, or to a size as a blank. A sign you will make again can 
 
 ## A sign in one step
 
-**New sign…** (the small *Sign* button beside *Frame* in the ribbon's *DRAW* group, or *DRAW
-▾ > New sign…*) makes a whole sign: the words, a frame round them, and every operation that
+**New sign…** (**Sign** in the ribbon's *WIZARDS* group, or *WIZARDS ▾ > New sign…*) makes a whole sign: the words, a frame round them, and every operation that
 cuts it, in a part of its own named after the words (a new project's empty part becomes
 it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
 `docs/specs/sign-maker.md`.)
 
 ![New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds](../images/new-sign.png)
 
-- **Words**, **Font**, **Height**: the text, centred on the board. With shapes selected
+- **Words**, **Font**, **Height**: the text, centred on the board. The font list is the
+  text tool's: your recently used fonts first (the last one picked is chosen), then the
+  built-in fonts and your computer's ([Text](text.md)). With shapes selected
   when you open it (a traced picture, a text, drawn shapes or a DXF's), the sign goes
   **round the selection** instead: those shapes are carved with the V-bit (an operation
   named *Carving*) and the frame follows them, a picture traced again too. *Write words

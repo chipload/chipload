@@ -29,7 +29,9 @@ fn main() -> ExitCode {
     // A file on the command line: a .chipload project, an older .json job, or a .dxf to import.
     let file: Option<PathBuf> = std::env::args_os().nth(1).map(PathBuf::from);
 
-    let size = [1200.0, 800.0];
+    // Wide enough for the ribbon with its names in English (1200 until the WIZARDS group,
+    // 2026-11-10).
+    let size = [1280.0, 800.0];
     let options = eframe::NativeOptions {
         viewport: window_icon(
             egui::ViewportBuilder::default()

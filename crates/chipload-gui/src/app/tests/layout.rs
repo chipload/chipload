@@ -13,7 +13,7 @@ use egui_kittest::{Harness, HarnessBuilder};
 use super::*;
 
 /// The default window, as main.rs opens it.
-const WINDOW: egui::Vec2 = egui::vec2(1200.0, 800.0);
+const WINDOW: egui::Vec2 = egui::vec2(1280.0, 800.0);
 
 /// The supported languages, by their setting.
 const LANGUAGES: [&str; 7] = ["en", "de", "fr", "es", "it", "sv", "ru"];

@@ -25,10 +25,24 @@ pub(super) struct Group {
     /// Drawn shapes only: per layer, each shape's id and name, in the drawing's order
     /// (docs/specs/drawn-shapes-box.md §4).
     pub members: Vec<(String, Vec<Member>)>,
+    /// A group of drawn shapes and texts only: its texts, each a group of its own, listed
+    /// in it and not again under Drawing.
+    pub texts: Vec<Group>,
 }
 
 /// A drawn shape in a group: its id and name.
 pub(super) type Member = (u64, Option<String>);
+
+/// A drawn shape's icon, by its kind.
+fn kind_icon(shape: &chipload_job::Shape) -> Icon {
+    match shape.geometry {
+        chipload_job::Geometry::Circle { .. } => Icon::Circle,
+        chipload_job::Geometry::Rectangle { .. } => Icon::Rectangle,
+        chipload_job::Geometry::Polyline { .. } => Icon::Polyline,
+        chipload_job::Geometry::Polygon { .. } => Icon::Polygon,
+        chipload_job::Geometry::Path { .. } => Icon::Paths,
+    }
+}
 
 /// Groups with more shapes than this start closed.
 const OPEN_GROUP_MOST: usize = 20;
@@ -123,6 +137,7 @@ impl ChiploadApp {
                 shapes,
                 layers,
                 members,
+                texts: Vec::new(),
             });
         };
         for dxf in &drawing.dxfs {
@@ -167,7 +182,8 @@ impl ChiploadApp {
         ] {
             push(key.into(), title, GroupKind::Drawn);
         }
-        // The groups of drawn shapes and texts, after the shapes by kind.
+        // The groups of drawn shapes and texts, after the shapes by kind; a grouped text is
+        // listed in its group, as its drawn shapes are.
         let mut shape_groups = Vec::new();
         for g in &drawing.groups {
             let shapes: Vec<Member> = drawing
@@ -176,17 +192,23 @@ impl ChiploadApp {
                 .filter(|s| g.shapes.contains(&s.id))
                 .map(|s| (s.id, s.name.clone()))
                 .collect();
+            let (texts, rest): (Vec<Group>, Vec<Group>) = groups
+                .into_iter()
+                .partition(|t| matches!(t.kind, GroupKind::Text(id) if g.texts.contains(&id)));
+            groups = rest;
+            let letters: usize = texts.iter().map(|t| t.shapes).sum();
             shape_groups.push(Group {
                 key: format!("group:{}", g.id),
                 title: g.name.clone(),
                 kind: GroupKind::Shapes(g.id),
-                shapes: shapes.len() + g.texts.len(),
+                shapes: shapes.len() + letters,
                 layers: Vec::new(),
                 members: if shapes.is_empty() {
                     Vec::new()
                 } else {
                     vec![(String::new(), shapes)]
                 },
+                texts,
             });
         }
         groups.extend(shape_groups);
@@ -463,7 +485,7 @@ impl ChiploadApp {
                 });
             }
             for group in &groups {
-                self.group_rows(ui, group, &mut action);
+                self.group_rows(ui, group, 2, &mut action);
             }
         }
         let add = ui.input(|i| i.modifiers.command);
@@ -542,8 +564,15 @@ impl ChiploadApp {
         }
     }
 
-    /// One group's row, and a DXF's layers under it when it is open.
-    fn group_rows(&self, ui: &mut egui::Ui, group: &Group, action: &mut Option<PanelAction>) {
+    /// One group's row at `depth`, and a DXF's layers under it when it is open; a group of
+    /// shapes and texts opens to its texts and shapes.
+    fn group_rows(
+        &self,
+        ui: &mut egui::Ui,
+        group: &Group,
+        depth: usize,
+        action: &mut Option<PanelAction>,
+    ) {
         let hidden = self.is_hidden_key(&group.key);
         let icon = match (group.kind, group.key.as_str()) {
             (GroupKind::Dxf(_), _) => Icon::Dxf,
@@ -558,11 +587,12 @@ impl ChiploadApp {
         };
         let id = egui::Id::new(("browser-group", &group.key));
         let open_id = id.with("folder-open");
-        let has_layers = !group.layers.is_empty() || !group.members.is_empty();
+        let has_layers =
+            !group.layers.is_empty() || !group.members.is_empty() || !group.texts.is_empty();
         let open_first = group.members.is_empty() || group.shapes <= OPEN_GROUP_MOST;
         let open = has_layers && super::browser::folder_open(ui, open_id, open_first);
         let shape_group = matches!(group.kind, GroupKind::Shapes(_));
-        let mut row = Row::new(id, 2, &group.title);
+        let mut row = Row::new(id, depth, &group.title);
         // A group has no eye of its own: its shapes show and hide by their layers.
         if !shape_group {
             row = row.eye(!hidden);
@@ -711,6 +741,25 @@ impl ChiploadApp {
         if !open {
             return;
         }
+        if shape_group {
+            for text in &group.texts {
+                self.group_rows(ui, text, depth + 1, action);
+            }
+            // Its drawn shapes straight under it: a group has no layers of its own.
+            for (_, shapes) in &group.members {
+                for (id, name) in shapes {
+                    let shape = self.shape(*id);
+                    let icon = shape.map_or(Icon::Paths, kind_icon);
+                    let dim = shape.is_some_and(|s| {
+                        self.edit
+                            .as_ref()
+                            .is_some_and(|e| e.job.drawing.is_hidden(s))
+                    });
+                    self.shape_row(ui, depth + 1, *id, name.as_deref(), icon, dim, action);
+                }
+            }
+            return;
+        }
         if !group.members.is_empty() {
             self.drawn_member_rows(ui, group, icon, hidden, action);
             return;
@@ -725,7 +774,7 @@ impl ChiploadApp {
             let key = Drawing::layer_key(&group.key, layer);
             let layer_hidden = self.is_hidden_key(&key);
             let selection = CanvasSelection::Layer(layer.clone(), from);
-            let out = Row::new(egui::Id::new(("browser-layer", &key)), 3, layer)
+            let out = Row::new(egui::Id::new(("browser-layer", &key)), depth + 1, layer)
                 .eye(!layer_hidden)
                 .icon_tinted(Icon::Layer, crate::style::Tint::Shapes)
                 .trailing(count.to_string())

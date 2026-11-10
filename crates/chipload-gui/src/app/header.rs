@@ -439,21 +439,6 @@ impl ChiploadApp {
                                 {
                                     app.start_frame();
                                 }
-                                let label = t!(ui, "header-sign");
-                                let hint = format!("{label}: {}", t!(ui, "header-sign-hover"));
-                                if small_ribbon_button(
-                                    ui,
-                                    Icon::Text,
-                                    &label,
-                                    can_draw,
-                                    false,
-                                    None,
-                                )
-                                .on_hover_text(hint)
-                                .clicked()
-                                {
-                                    app.start_sign();
-                                }
                             }
                         });
                     }
@@ -756,6 +741,26 @@ impl ChiploadApp {
                 ui.separator();
                 app.job_menu(ui);
             },
+        );
+        ui.separator();
+        // Wizards: a whole thing in one dialog, its drawing and its operations (the user,
+        // 2026-11-10).
+        let caption = t!(ui, "header-group-wizards");
+        self.group(
+            ui,
+            &caption,
+            |app, ui| {
+                // A small button, so the ribbon keeps its names at the default width.
+                let label = t!(ui, "header-sign");
+                let hint = format!("{label}: {}", t!(ui, "header-sign-hover"));
+                if small_ribbon_button(ui, Icon::Sign, &label, app.can_draw(), false, None)
+                    .on_hover_text(hint)
+                    .clicked()
+                {
+                    app.start_sign();
+                }
+            },
+            |app, ui| app.wizards_menu(ui),
         );
         ui.separator();
         let caption = t!(ui, "header-group-library");

@@ -111,3 +111,39 @@ fn new_sign_with_a_picture_selected_goes_round_it() {
         vec![1]
     );
 }
+
+#[test]
+fn the_sign_takes_the_font_last_picked_and_its_group_lists_the_words() {
+    let mut harness = window();
+    harness.state_mut().text_fonts.recent = vec!["FreeMono".into()];
+    harness.state_mut().start_sign();
+    harness.run_steps(2);
+    let Some(Prompt::Sign(mut settings)) = harness.state().dialogs.prompt.clone() else {
+        panic!("the dialog");
+    };
+    // The text tool's font list: the recently used fonts first (the user, 2026-11-10).
+    assert_eq!(settings.font, "FreeMono");
+    settings.words = "OPEN".into();
+    harness.state_mut().dialogs.prompt = Some(Prompt::Sign(settings));
+    harness.run_steps(3);
+    click(&mut harness, "Make sign");
+    let app = harness.state();
+    let job = &app.edit.as_ref().unwrap().job;
+    assert_eq!(job.drawing.texts[0].font, "FreeMono");
+    // The Browser lists the words in the sign's group, beside the frame, and not again
+    // under Drawing.
+    let groups = app.drawing_groups();
+    assert!(groups.iter().all(|g| !g.key.starts_with("text:")));
+    let sign = groups
+        .iter()
+        .find(|g| g.key.starts_with("group:"))
+        .expect("the sign's group");
+    assert_eq!(sign.texts.len(), 1);
+    assert_eq!(
+        sign.texts[0].key,
+        format!("text:{}", job.drawing.texts[0].id)
+    );
+    let framed: usize = sign.members.iter().map(|(_, m)| m.len()).sum();
+    assert_eq!(framed, job.drawing.frames[0].shapes().count());
+    assert_eq!(sign.shapes, framed + sign.texts[0].shapes);
+}

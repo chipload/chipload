@@ -102,6 +102,7 @@ header-slot-hover = Dibujar una ranura: los centros de sus extremos y luego su a
 header-polygon = Polígono
 header-polygon-hover = Dibujar un polígono regular: el centro y luego un vértice (el número de lados en la barra de estado)
 header-group-modify = Modificar
+header-group-wizards = Asistentes
 header-offset = Desfase
 header-offset-hover = Una forma a distancia de las seleccionadas: vaya al lado deseado, haga clic o escriba la distancia
 header-fillet = Redondeo

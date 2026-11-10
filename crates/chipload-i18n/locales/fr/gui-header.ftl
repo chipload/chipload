@@ -102,6 +102,7 @@ header-slot-hover = Dessiner une rainure : les centres de ses extrémités, puis
 header-polygon = Polygone
 header-polygon-hover = Dessiner un polygone régulier : le centre, puis un sommet (le nombre de côtés dans la barre d'état)
 header-group-modify = Modifier
+header-group-wizards = Assistants
 header-offset = Décaler
 header-offset-hover = Une forme à distance des formes sélectionnées : placez-vous du côté voulu, cliquez ou tapez la distance
 header-fillet = Congé

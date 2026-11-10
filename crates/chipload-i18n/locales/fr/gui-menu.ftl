@@ -101,8 +101,8 @@ menu-draw-text = Texte
 menu-draw-text-hover = Écrire un texte, puis cliquer là où il commence
 menu-draw-frame = Cadre…
 menu-draw-frame-hover = Un cadre pour une enseigne : autour de la sélection ou à une taille, avec bordures
-menu-draw-sign = Nouvelle enseigne…
-menu-draw-sign-hover = Une enseigne entière en une étape : les mots, un cadre qui les suit et chaque opération qui la taille
+menu-wizard-sign = Nouvelle enseigne…
+menu-wizard-sign-hover = Une enseigne entière en une étape : les mots, un cadre qui les suit et chaque opération qui la taille
 
 # Help menu.
 menu-user-guide = Guide de l'utilisateur

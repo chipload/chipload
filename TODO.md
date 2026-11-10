@@ -175,7 +175,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    step), frames that follow their text (an optional `frame` record), five new frame kinds,
    corner styles, borders by groove width, a V-bit edge chamfer. **Approved 2026-11-09**,
    all as recommended ("we build it and iterate if needed"). All three steps built
-   (see *In main, not released yet*); next the user tries them and we iterate. Left for
+   (see *In main, not released yet*), then signs round existing shapes. First feedback
+   (2026-11-10) done: the text tool's font list in the dialog, a WIZARDS ribbon group,
+   a group's texts listed in it in the Browser. Next the user tries them again. Left for
    later (§8, §10): a sign to a fixed size with the height fitted, placing a second sign
    beside the first, *New sign…* on the start page.
 13. **Small follow-ups:**

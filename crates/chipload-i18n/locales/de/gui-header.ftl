@@ -102,6 +102,7 @@ header-slot-hover = Ein Langloch zeichnen: die Mittelpunkte der Enden, dann die 
 header-polygon = Vieleck
 header-polygon-hover = Ein regelmäßiges Vieleck zeichnen: Mittelpunkt, dann eine Ecke (die Seitenzahl in der Statusleiste)
 header-group-modify = Ändern
+header-group-wizards = Assistenten
 header-offset = Versatz
 header-offset-hover = Eine Form im Abstand zu den ausgewählten: auf die Seite fahren, klicken oder den Abstand eingeben
 header-fillet = Abrunden

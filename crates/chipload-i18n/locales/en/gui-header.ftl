@@ -102,6 +102,7 @@ header-slot-hover = Draw a slot: the centres of its ends, then its width
 header-polygon = Polygon
 header-polygon-hover = Draw a regular polygon: the centre, then a corner (the number of sides on the status bar)
 header-group-modify = Modify
+header-group-wizards = Wizards
 header-offset = Offset
 header-offset-hover = A shape at a distance from the selected ones: move to the side, click or type the distance
 header-fillet = Fillet

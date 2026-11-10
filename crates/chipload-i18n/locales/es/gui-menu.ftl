@@ -101,8 +101,8 @@ menu-draw-text = Texto
 menu-draw-text-hover = Escribe un texto y luego haz clic donde empieza
 menu-draw-frame = Marco…
 menu-draw-frame-hover = Un marco para un letrero: alrededor de la selección o a un tamaño, con bordes
-menu-draw-sign = Nuevo letrero…
-menu-draw-sign-hover = Un letrero entero en un paso: las palabras, un marco que las sigue y cada operación que lo corta
+menu-wizard-sign = Nuevo letrero…
+menu-wizard-sign-hover = Un letrero entero en un paso: las palabras, un marco que las sigue y cada operación que lo corta
 
 # Help menu.
 menu-user-guide = Guía del usuario

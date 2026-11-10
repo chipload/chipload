@@ -102,6 +102,7 @@ header-slot-hover = Rita ett spår: mittpunkterna i ändarna, sedan bredden
 header-polygon = Polygon
 header-polygon-hover = Rita en regelbunden polygon: centrum, sedan ett hörn (antalet sidor i statusraden)
 header-group-modify = Ändra
+header-group-wizards = Guider
 header-offset = Förskjut
 header-offset-hover = En form på avstånd från de markerade: gå till den sida du vill, klicka eller skriv avståndet
 header-fillet = Avrunda
