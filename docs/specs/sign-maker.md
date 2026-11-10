@@ -315,3 +315,7 @@ After trying it, 2026-11-10 (the user):
   the project (`use_tool`, linked by uid) when the sign is made, in the same undo step, and
   never by the preview or *Cancel*. A project without a V-bit or end mill starts on the
   library's first. `sign add` takes project tool numbers as before.
+- **Inlay… too** (the user, 2026-11-10): its V-bit and floor end mill lists offer the
+  library's tools the same way (app/wizard_tools.rs, shared by both dialogs); the floor
+  end mill stays *None* by default when the project has none, as the floor passes are a
+  choice.

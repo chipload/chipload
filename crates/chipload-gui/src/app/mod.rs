@@ -90,6 +90,7 @@ mod text_fonts;
 mod texts;
 mod update_notice;
 mod user_library;
+mod wizard_tools;
 mod zero_drag;
 
 use forms::{job_form, op_form};

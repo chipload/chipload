@@ -3,21 +3,23 @@
 //! depths, glue gap, floor end mill and plug board asked in a dialog with a drawing of the
 //! two cuts. The pair itself is `chipload_pipeline::inlay`'s.
 
-use chipload_job::{Tool, ToolType};
+use chipload_job::Tool;
+use chipload_job::library::ToolLibrary;
 use chipload_pipeline::inlay::{
     DEFAULT_GLUE_GAP_MM, DEFAULT_PLUG_START_MM, DEFAULT_PLUG_THICKNESS_MM, DEFAULT_POCKET_DEPTH_MM,
     InlayRequest, add_inlay,
 };
 use egui::{Color32, Stroke, pos2, vec2};
 
-use super::forms::tool_label;
+use super::wizard_tools::{ToolKind, ToolOffer, WizardTool, library_choices, tool_combo};
 use super::*;
 
 /// What the inlay dialog holds while it is open.
 #[derive(Debug, Clone, PartialEq)]
 pub(super) struct InlaySettings {
-    /// The V-bit both are carved with: a project tool's id.
-    pub tool: Option<i64>,
+    /// The V-bit both are carved with: a project tool, or a library tool copied in when the
+    /// inlay is made.
+    pub tool: Option<WizardTool>,
     /// The pocket's depth P, mm.
     pub depth: f64,
     /// The plug's start depth D, mm.
@@ -25,28 +27,35 @@ pub(super) struct InlaySettings {
     /// The glue gap g, mm.
     pub gap: f64,
     /// The end mill of both floor passes, if any.
-    pub floor: Option<i64>,
+    pub floor: Option<WizardTool>,
     /// The plug board's thickness, mm.
     pub thickness: f64,
 }
 
 impl InlaySettings {
-    /// The defaults of decision 5: the project's first V-bit, and its smallest end mill for
-    /// the floor passes.
-    fn for_tools(tools: &[Tool]) -> Self {
+    /// The defaults of decision 5: the project's first V-bit (else the library's), and its
+    /// smallest end mill for the floor passes (none when the project has none: the floor
+    /// passes are a choice).
+    fn for_tools(tools: &[Tool], library: Option<&ToolLibrary>) -> Self {
         let vbit = tools
             .iter()
-            .find(|t| t.kind == ToolType::Vbit && t.angle.is_some());
+            .find(|t| ToolKind::Vbit.fits(t.kind, t.angle))
+            .map(|t| WizardTool::Project(t.id))
+            .or_else(|| {
+                library
+                    .and_then(|l| library_choices(tools, l, ToolKind::Vbit).into_iter().next())
+                    .map(|t| WizardTool::Library(t.uid.clone()))
+            });
         let floor = tools
             .iter()
-            .filter(|t| t.kind == ToolType::Endmill)
+            .filter(|t| ToolKind::EndMill.fits(t.kind, t.angle))
             .min_by(|a, b| a.diameter.total_cmp(&b.diameter));
         Self {
-            tool: vbit.map(|t| t.id),
+            tool: vbit,
             depth: DEFAULT_POCKET_DEPTH_MM,
             plug_start: DEFAULT_PLUG_START_MM,
             gap: DEFAULT_GLUE_GAP_MM,
-            floor: floor.map(|t| t.id),
+            floor: floor.map(|t| WizardTool::Project(t.id)),
             thickness: DEFAULT_PLUG_THICKNESS_MM,
         }
     }
@@ -58,7 +67,7 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
-        let settings = InlaySettings::for_tools(&edit.job.tools);
+        let settings = InlaySettings::for_tools(&edit.job.tools, self.library().map(|l| &l.tools));
         self.dialogs.prompt = Some(Prompt::Inlay(settings));
     }
 
@@ -72,15 +81,32 @@ impl ChiploadApp {
     /// report, when it is refused.
     pub(super) fn make_inlay(&mut self, settings: &InlaySettings) -> bool {
         self.commit();
-        let Some(tool) = settings.tool else {
-            self.error(vec![t!(self, "inlay-no-vbit")]);
-            return false;
-        };
+        self.reload_library();
         let selection = self.op_selection();
         let library = self.library().map(|l| l.tools.clone());
         let lang = self.prefs.language;
         let Some(edit) = self.edit.as_ref() else {
             return false;
+        };
+        // The library tools chosen join the project in the same undo step as the inlay.
+        let mut job = edit.job.clone();
+        let Some(vbit) = &settings.tool else {
+            self.error(vec![t!(self, "inlay-no-vbit")]);
+            return false;
+        };
+        let Some(tool) = vbit.take(&mut job, library.as_ref()) else {
+            self.error(vec![t!(self, "wizard-library-tool-gone")]);
+            return false;
+        };
+        let floor_tool = match &settings.floor {
+            Some(floor) => {
+                let Some(id) = floor.take(&mut job, library.as_ref()) else {
+                    self.error(vec![t!(self, "wizard-library-tool-gone")]);
+                    return false;
+                };
+                Some(id)
+            }
+            None => None,
         };
         let request = InlayRequest {
             select: selection.selector(&self.contours, false),
@@ -88,10 +114,10 @@ impl ChiploadApp {
             depth: settings.depth,
             plug_start: settings.plug_start,
             gap: settings.gap,
-            floor_tool: settings.floor,
+            floor_tool,
             plug_thickness: settings.thickness,
         };
-        match add_inlay(&edit.job, &request, &self.contours, library.as_ref(), lang) {
+        match add_inlay(&job, &request, &self.contours, library.as_ref(), lang) {
             Ok((job, made)) => {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.adopt(job);
@@ -123,6 +149,12 @@ impl ChiploadApp {
             .map(|e| e.job.tools.clone())
             .unwrap_or_default();
         let units = self.prefs.units;
+        let library = self.library().map(|l| l.tools.clone());
+        let offer = ToolOffer {
+            tools: &tools,
+            library: library.as_ref(),
+            units,
+        };
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("inlay")).show(ctx, |ui| {
             ui.set_width(420.0);
@@ -138,25 +170,14 @@ impl ChiploadApp {
                 .spacing([12.0, 6.0])
                 .show(ui, |ui| {
                     ui.label(t!(ui, "inlay-vbit"));
-                    let none = t!(ui, "inlay-none");
-                    let labels: Vec<(i64, String)> = tools
-                        .iter()
-                        .map(|t| (t.id, tool_label(ui, t, units)))
-                        .collect();
-                    let label_of = |id: i64| {
-                        labels
-                            .iter()
-                            .find(|(k, _)| *k == id)
-                            .map_or_else(String::new, |(_, l)| l.clone())
-                    };
-                    let shown = |id: Option<i64>| id.map_or_else(|| none.clone(), label_of);
-                    egui::ComboBox::from_id_salt("inlay-vbit")
-                        .selected_text(shown(settings.tool))
-                        .show_ui(ui, |ui| {
-                            for t in tools.iter().filter(|t| t.kind == ToolType::Vbit) {
-                                ui.selectable_value(&mut settings.tool, Some(t.id), label_of(t.id));
-                            }
-                        });
+                    tool_combo(
+                        ui,
+                        "inlay-vbit",
+                        &mut settings.tool,
+                        &offer,
+                        ToolKind::Vbit,
+                        false,
+                    );
                     ui.end_row();
                     ui.label(t!(ui, "inlay-depth"))
                         .on_hover_text(t!(ui, "inlay-depth-hover"));
@@ -172,18 +193,14 @@ impl ChiploadApp {
                     ui.end_row();
                     ui.label(t!(ui, "inlay-floor"))
                         .on_hover_text(t!(ui, "inlay-floor-hover"));
-                    egui::ComboBox::from_id_salt("inlay-floor")
-                        .selected_text(shown(settings.floor))
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut settings.floor, None, none.clone());
-                            for t in tools.iter().filter(|t| t.kind == ToolType::Endmill) {
-                                ui.selectable_value(
-                                    &mut settings.floor,
-                                    Some(t.id),
-                                    label_of(t.id),
-                                );
-                            }
-                        });
+                    tool_combo(
+                        ui,
+                        "inlay-floor",
+                        &mut settings.floor,
+                        &offer,
+                        ToolKind::EndMill,
+                        true,
+                    );
                     ui.end_row();
                     ui.label(t!(ui, "inlay-thickness"))
                         .on_hover_text(t!(ui, "inlay-thickness-hover"));

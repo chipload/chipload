@@ -177,7 +177,10 @@ chipload op add-inlay sign.chipload --layer WORD --tool 3 --depth 5 --plug-start
 In the app, select the artwork and click **Inlay…** (ribbon, OPERATION, under Surface), or
 *New inlay…* in the group's menu. The dialog asks for the V-bit, the four numbers and the
 floor end mill, with the project's first V-bit and smallest end mill chosen, and draws the
-two cuts with the numbers marked. **Make inlay** makes the pair as one undo step. On the
+two cuts with the numbers marked. Both tool lists also offer your tool library's tools
+under *From your library:* (marked **+**); one chosen is copied into the project when you
+click *Make inlay*, not before. A project without a V-bit starts on the library's.
+**Make inlay** makes the pair as one undo step. On the
 command line, `op add-inlay` does the same.
 
 Both make the pocket in the active part, and a new [setup](../concepts/setups.md), *Inlay

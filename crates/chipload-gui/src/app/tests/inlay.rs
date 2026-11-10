@@ -7,6 +7,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 
 use super::*;
+use crate::app::wizard_tools::WizardTool;
 
 fn window() -> Harness<'static, ChiploadApp> {
     let project = corpus("jobs/v27/text.chipload");
@@ -61,8 +62,8 @@ fn inlay_makes_the_pair_from_the_selection_as_one_undo_step() {
     let Some(Prompt::Inlay(settings)) = harness.state().dialogs.prompt.clone() else {
         panic!("the inlay dialog is open");
     };
-    assert_eq!(settings.tool, Some(2));
-    assert_eq!(settings.floor, Some(1));
+    assert_eq!(settings.tool, Some(WizardTool::Project(2)));
+    assert_eq!(settings.floor, Some(WizardTool::Project(1)));
     assert!(harness.query_by_label("Glue gap").is_some());
     click(&mut harness, "Make inlay");
     assert!(harness.state().dialogs.prompt.is_none());
@@ -91,4 +92,69 @@ fn inlay_makes_the_pair_from_the_selection_as_one_undo_step() {
     harness.run_steps(2);
     assert_eq!(job(&harness).operations.len(), before);
     assert_eq!(job(&harness).setups.len(), 1);
+}
+
+#[test]
+fn inlay_takes_a_v_bit_from_the_library_when_it_is_made() {
+    use chipload_job::library::{LibraryTool, ToolLibrary, save_tools, uid_for_name};
+    let dir = temp_dir("inlay-library");
+    let library = ToolLibrary {
+        tools: vec![LibraryTool {
+            name: "V 60".into(),
+            uid: uid_for_name("V 60"),
+            id: 5,
+            kind: ToolType::Vbit,
+            diameter: 12.7,
+            flutes: Some(2),
+            center_cutting: Some(true),
+            rpm: Some(18000.0),
+            cutting_data: Vec::new(),
+            angle: Some(60f64.to_radians()),
+            tip_diameter: None,
+        }],
+        ..ToolLibrary::default()
+    };
+    save_tools(&library, &chipload_pipeline::library::tools_path(&dir)).unwrap();
+    let mut harness = window();
+    harness.state_mut().set_settings_dir(Some(dir));
+    // The project keeps its end mill only: the V-bit comes from the library.
+    let edit = harness.state_mut().edit.as_mut().unwrap();
+    edit.job.tools.retain(|t| t.kind != ToolType::Vbit);
+    edit.job.operations.clear();
+    harness.state_mut().commit();
+    harness.state_mut().selection = CanvasSelection::whole(ShapeFrom::Text(2));
+    harness.run_steps(2);
+    click(&mut harness, "Inlay…");
+    let Some(Prompt::Inlay(settings)) = harness.state().dialogs.prompt.clone() else {
+        panic!("the inlay dialog is open");
+    };
+    assert_eq!(
+        settings.tool,
+        Some(WizardTool::Library(uid_for_name("V 60")))
+    );
+    assert_eq!(settings.floor, Some(WizardTool::Project(1)));
+    let tools_before = job(&harness).tools.len();
+    click(&mut harness, "Make inlay");
+    assert!(
+        harness.state().dialogs.prompt.is_none(),
+        "{:?}",
+        harness.state().report
+    );
+    let after = job(&harness);
+    assert_eq!(after.tools.len(), tools_before + 1);
+    let vbit = after
+        .tools
+        .iter()
+        .find(|t| t.kind == ToolType::Vbit)
+        .unwrap();
+    assert_eq!(
+        vbit.library_uid.as_deref(),
+        Some(uid_for_name("V 60").as_str())
+    );
+    assert!(after.operations.iter().all(|op| match op {
+        Operation::Vcarve(v) => v.tool == vbit.id,
+        _ => true,
+    }));
+    harness.state_mut().undo();
+    assert_eq!(job(&harness).tools.len(), tools_before);
 }

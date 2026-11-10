@@ -4,25 +4,16 @@
 //! operations it adds. The sign itself is `chipload_pipeline::sign`'s.
 
 use chipload_core::Point;
+use chipload_job::Tool;
 use chipload_job::library::ToolLibrary;
-use chipload_job::{Tool, ToolType};
 use chipload_pipeline::frames::{CornerStyle, FrameKind, MOST_BORDERS};
 use chipload_pipeline::sign::{
     DEFAULT_BOARD_MARGIN_MM, DEFAULT_BOARD_THICKNESS_MM, DEFAULT_BORDER_WIDTH_MM,
     DEFAULT_RELIEF_MM, SignBoard, SignRequest, SignStyle, add_sign,
 };
 
-use super::forms::tool_label;
+use super::wizard_tools::{ToolKind, ToolOffer, WizardTool, library_choices, tool_combo};
 use super::*;
-
-/// A tool the sign is cut with: one of the project's, or one of the library's, copied into
-/// the project only when the sign is made (the user, 2026-11-10).
-#[derive(Debug, Clone, PartialEq)]
-pub(super) enum SignTool {
-    Project(i64),
-    /// A library tool by its uid.
-    Library(String),
-}
 
 /// What the sign dialog holds while it is open.
 #[derive(Debug, Clone, PartialEq)]
@@ -46,8 +37,8 @@ pub(super) struct SignSettings {
     pub relief: f64,
     pub edge: bool,
     pub edge_width: f64,
-    pub vbit: Option<SignTool>,
-    pub end_mill: Option<SignTool>,
+    pub vbit: Option<WizardTool>,
+    pub end_mill: Option<WizardTool>,
     /// Fit the stock round the sign.
     pub fit_board: bool,
     pub thickness: f64,
@@ -61,20 +52,20 @@ impl SignSettings {
         let from_library = |kind| {
             library
                 .and_then(|l| library_choices(&job.tools, l, kind).into_iter().next())
-                .map(|t| SignTool::Library(t.uid.clone()))
+                .map(|t| WizardTool::Library(t.uid.clone()))
         };
         let vbit = job
             .tools
             .iter()
-            .find(|t| is_kind(t.kind, t.angle, ToolKind::Vbit))
-            .map(|t| SignTool::Project(t.id))
+            .find(|t| ToolKind::Vbit.fits(t.kind, t.angle))
+            .map(|t| WizardTool::Project(t.id))
             .or_else(|| from_library(ToolKind::Vbit));
         let mill = job
             .tools
             .iter()
-            .filter(|t| is_kind(t.kind, t.angle, ToolKind::EndMill))
+            .filter(|t| ToolKind::EndMill.fits(t.kind, t.angle))
             .max_by(|a, b| a.diameter.total_cmp(&b.diameter))
-            .map(|t| SignTool::Project(t.id))
+            .map(|t| WizardTool::Project(t.id))
             .or_else(|| from_library(ToolKind::EndMill));
         Self {
             around: Vec::new(),
@@ -114,15 +105,8 @@ impl SignSettings {
         library: Option<&ToolLibrary>,
     ) -> Option<(chipload_job::Job, SignRequest)> {
         let mut job = job.clone();
-        let mut take = |tool: &SignTool| match tool {
-            SignTool::Project(id) => Some(*id),
-            SignTool::Library(uid) => {
-                let entry = library?.tools.iter().find(|t| t.uid == *uid)?;
-                Some(chipload_job::library::use_tool(&mut job, entry).id)
-            }
-        };
-        let vbit = take(self.vbit.as_ref()?)?;
-        let end_mill = take(self.end_mill.as_ref()?)?;
+        let vbit = self.vbit.as_ref()?.take(&mut job, library)?;
+        let end_mill = self.end_mill.as_ref()?.take(&mut job, library)?;
         let mut request = SignRequest::new(&self.words, vbit, end_mill);
         request.around.clone_from(&self.around);
         request.font.clone_from(&self.font);
@@ -146,41 +130,6 @@ impl SignSettings {
         });
         Some((job, request))
     }
-}
-
-/// The two tools a sign is cut with.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ToolKind {
-    /// A V-bit with its angle: the letters, the grooves, the edge.
-    Vbit,
-    /// An end mill: the background and the cut-out.
-    EndMill,
-}
-
-fn is_kind(kind: ToolType, angle: Option<f64>, want: ToolKind) -> bool {
-    match want {
-        ToolKind::Vbit => kind == ToolType::Vbit && angle.is_some(),
-        ToolKind::EndMill => kind == ToolType::Endmill,
-    }
-}
-
-/// The library's tools of kind `want` not in the project yet (a project tool linked to one
-/// is listed as the project's).
-fn library_choices<'a>(
-    tools: &[Tool],
-    library: &'a ToolLibrary,
-    want: ToolKind,
-) -> Vec<&'a chipload_job::library::LibraryTool> {
-    library
-        .tools
-        .iter()
-        .filter(|t| is_kind(t.kind, t.angle, want))
-        .filter(|t| {
-            !tools
-                .iter()
-                .any(|p| p.library_uid.as_deref() == Some(t.uid.as_str()))
-        })
-        .collect()
 }
 
 /// The sign the dialog shows, kept until its values or the project change.
@@ -530,7 +479,7 @@ fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, offer: &ToolOff
             .on_hover_text(t!(ui, "sign-edge-hover"));
             ui.end_row();
             ui.label(t!(ui, "sign-vbit"));
-            tool_combo(ui, "sign-vbit", &mut s.vbit, offer, ToolKind::Vbit);
+            tool_combo(ui, "sign-vbit", &mut s.vbit, offer, ToolKind::Vbit, false);
             ui.end_row();
             ui.label(t!(ui, "sign-end-mill"));
             tool_combo(
@@ -539,6 +488,7 @@ fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, offer: &ToolOff
                 &mut s.end_mill,
                 offer,
                 ToolKind::EndMill,
+                false,
             );
             ui.end_row();
             ui.label(t!(ui, "sign-board"));
@@ -589,60 +539,4 @@ fn sign_picture(ui: &mut egui::Ui, lines: &[Vec<Point>]) {
         let points: Vec<egui::Pos2> = line.iter().map(|&p| to_screen(p)).collect();
         painter.add(egui::Shape::line(points, stroke));
     }
-}
-
-/// The tools the dialog offers: the project's, then the library's not in it yet.
-struct ToolOffer<'a> {
-    tools: &'a [Tool],
-    library: Option<&'a ToolLibrary>,
-    units: Units,
-}
-
-/// A tool's list: the project's tools of kind `want`, then under *From your library:* the
-/// library's (copied into the project when the sign is made).
-fn tool_combo(
-    ui: &mut egui::Ui,
-    salt: &str,
-    chosen: &mut Option<SignTool>,
-    offer: &ToolOffer<'_>,
-    want: ToolKind,
-) {
-    let choices = offer
-        .library
-        .map(|l| library_choices(offer.tools, l, want))
-        .unwrap_or_default();
-    let shown = match chosen {
-        Some(SignTool::Project(id)) => offer
-            .tools
-            .iter()
-            .find(|t| t.id == *id)
-            .map(|t| tool_label(ui, t, offer.units)),
-        Some(SignTool::Library(uid)) => choices
-            .iter()
-            .find(|t| t.uid == *uid)
-            .map(|t| format!("+ {}", t.name)),
-        None => None,
-    }
-    .unwrap_or_else(|| t!(ui, "inlay-none"));
-    egui::ComboBox::from_id_salt(salt)
-        .selected_text(shown)
-        .show_ui(ui, |ui| {
-            for t in offer
-                .tools
-                .iter()
-                .filter(|t| is_kind(t.kind, t.angle, want))
-            {
-                let label = tool_label(ui, t, offer.units);
-                ui.selectable_value(chosen, Some(SignTool::Project(t.id)), label);
-            }
-            if !choices.is_empty() {
-                ui.separator();
-                ui.weak(t!(ui, "forms-from-library"));
-                for t in &choices {
-                    let pick = Some(SignTool::Library(t.uid.clone()));
-                    ui.selectable_value(chosen, pick, format!("+ {}", t.name))
-                        .on_hover_text(t!(ui, "sign-library-tool-hover"));
-                }
-            }
-        });
 }

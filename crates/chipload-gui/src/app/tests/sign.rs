@@ -6,7 +6,7 @@ use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;
 
 use super::*;
-use crate::app::sign::SignTool;
+use crate::app::wizard_tools::WizardTool;
 
 /// The corpus's tools (1 an end mill, 2 a V-bit) in an empty project.
 fn window() -> Harness<'static, ChiploadApp> {
@@ -56,8 +56,8 @@ fn new_sign_makes_the_whole_sign_as_one_undo_step() {
         panic!("the dialog");
     };
     // The project's V-bit and end mill are chosen; the board is fitted (nothing drawn).
-    assert_eq!(settings.vbit, Some(SignTool::Project(2)));
-    assert_eq!(settings.end_mill, Some(SignTool::Project(1)));
+    assert_eq!(settings.vbit, Some(WizardTool::Project(2)));
+    assert_eq!(settings.end_mill, Some(WizardTool::Project(1)));
     assert!(settings.fit_board);
     let mut settings = settings;
     settings.words = "OPEN".into();
@@ -184,10 +184,13 @@ fn a_library_tool_is_copied_in_only_when_the_sign_is_made() {
     let Some(Prompt::Sign(mut settings)) = harness.state().dialogs.prompt.clone() else {
         panic!("the dialog");
     };
-    assert_eq!(settings.vbit, Some(SignTool::Library(uid_for_name("V 60"))));
+    assert_eq!(
+        settings.vbit,
+        Some(WizardTool::Library(uid_for_name("V 60")))
+    );
     assert_eq!(
         settings.end_mill,
-        Some(SignTool::Library(uid_for_name("6 mm upcut")))
+        Some(WizardTool::Library(uid_for_name("6 mm upcut")))
     );
     settings.words = "OPEN".into();
     harness.state_mut().dialogs.prompt = Some(Prompt::Sign(settings.clone()));
