@@ -15,6 +15,7 @@ use chipload_pipeline::setups::{
     BoardChange, activate_setup, add_back_side, add_setup, move_part_to_setup, remove_setup,
     set_board, set_setup,
 };
+use chipload_pipeline::two_sided::{PinsRequest, TwoSidedRequest, make_two_sided};
 use clap::Subcommand;
 use serde_json::{Value, json};
 
@@ -46,6 +47,24 @@ pub enum SetupAction {
         /// How the board is turned over: left-right (default) or top-bottom.
         #[arg(long, value_parser = turn, requires = "back_of")]
         turn: Option<Turn>,
+        /// How the turned board is put back: pins (default) or corner.
+        #[arg(long, value_parser = register, requires = "back_of")]
+        register: Option<Register>,
+        /// Dowel holes for pins of this diameter too (8 mm without a value), in the same
+        /// step (docs/specs/two-sided-wizard.md §6).
+        #[arg(long, value_parser = crate::lengths::length, num_args = 0..=1,
+            default_missing_value = "8", requires = "back_of", conflicts_with = "register")]
+        pins: Option<f64>,
+        /// How far the dowel holes go into the spoilboard; default 8 mm.
+        #[arg(long, value_parser = crate::lengths::length, requires = "pins")]
+        pin_depth: Option<f64>,
+        /// Set the front's work zero to the first pin's centre, which the back shares.
+        #[arg(long, requires = "pins")]
+        zero: bool,
+        /// The project tool that cuts the dowel holes; default: a drill of their size, else
+        /// the largest end mill that bores them.
+        #[arg(long, requires = "pins")]
+        pin_tool: Option<i64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -99,8 +118,12 @@ pub enum SetupAction {
         /// Set the front's work zero to the first pin's centre, which the back shares.
         #[arg(long)]
         zero: bool,
+        /// The project tool that cuts them; default: a drill of their size, else the largest
+        /// end mill that bores them.
+        #[arg(long)]
+        tool: Option<i64>,
         /// Remove the dowel holes instead: the front's operation and its circles.
-        #[arg(long, conflicts_with_all = ["diameter", "depth", "zero"])]
+        #[arg(long, conflicts_with_all = ["diameter", "depth", "zero", "tool"])]
         remove: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
@@ -173,9 +196,43 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
     let changed = match action {
         SetupAction::List { .. } => return ExitCode::SUCCESS,
         SetupAction::Add {
+            back_of: Some(front),
+            turn,
+            pins: Some(diameter),
+            pin_depth,
+            zero,
+            pin_tool,
+            ..
+        } => {
+            let request = TwoSidedRequest {
+                front,
+                turn: turn.unwrap_or(Turn::LeftRight),
+                register: Register::Pins,
+                pins: Some(PinsRequest {
+                    diameter,
+                    depth: pin_depth.unwrap_or(DEFAULT_PIN_DEPTH),
+                    zero,
+                    tool: pin_tool,
+                }),
+                margin: None,
+            };
+            make_two_sided(&job, &request, Language::En).map(|(job, made)| {
+                let at = made.dowels.map_or(0, |i| i + 1);
+                out.line(format!(
+                    "Added setup {}, the back of setup {front}, and operation {at}: dowel \
+                     holes; now the active setup",
+                    made.back
+                ));
+                out.set("setup", json!(made.back));
+                out.set("operation", json!(at));
+                job
+            })
+        }
+        SetupAction::Add {
             name,
             back_of: Some(front),
             turn,
+            register,
             ..
         } => add_back_side(
             &job,
@@ -183,14 +240,25 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             turn.unwrap_or(Turn::LeftRight),
             name.as_deref(),
         )
-        .map(|(job, id, part)| {
+        .and_then(|(job, id, part)| {
+            let job = match register {
+                Some(register) => set_board(
+                    &job,
+                    id,
+                    BoardChange {
+                        register: Some(register),
+                        ..BoardChange::default()
+                    },
+                )?,
+                None => job,
+            };
             out.line(format!(
                 "Added setup {id}, the back of setup {front}, with part {part}, now the \
                      active setup and part"
             ));
             out.set("setup", json!(id));
             out.set("part", json!(part));
-            job
+            Ok(job)
         }),
         SetupAction::Add {
             name, thickness, ..
@@ -246,12 +314,14 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             diameter,
             depth,
             zero,
+            tool,
             ..
         } => {
             let dowels = Dowels {
                 diameter: diameter.unwrap_or(DEFAULT_PIN_DIAMETER),
                 depth: depth.unwrap_or(DEFAULT_PIN_DEPTH),
                 zero,
+                tool,
             };
             add_dowels(&job, setup, dowels, Language::En).map(|(job, at)| {
                 out.line(format!("Added operation {}: dowel holes", at + 1));

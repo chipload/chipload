@@ -340,6 +340,7 @@ pipeline-surface-over-pins = { $label } surface le verso au-dessus des goupilles
 pipeline-dowels-there = le recto a déjà des trous de goupille : opération { $number }
 pipeline-dowels-none = le recto n'a pas de trous de goupille à retirer
 pipeline-dowels-missing = { $back } est remis en place par des goupilles, et { $front } n'a pas de trous de goupille pour elles : ajoutez-les, ou calez la planche dans un coin de butée
+pipeline-two-sided-not-fitted = la marge ne peut être élargie que pour une planche ajustée autour du dessin : agrandissez la planche elle-même
 pipeline-dowels-no-shapes = il n'y a pas de forme sur la planche au-delà de laquelle placer les trous de goupille
 pipeline-dowels-no-room = entre les usinages et le bord de la planche sur l'axe de retournement il y a { $room }, et un trou de goupille demande { $needed } : agrandissez la planche ou prenez des goupilles plus petites
 pipeline-dowels-no-room-margin = entre les usinages et le bord de la planche sur l'axe de retournement il y a { $room }, et un trou de goupille demande { $needed } : portez la marge de la planche à { $margin } ou plus, ou prenez des goupilles plus petites

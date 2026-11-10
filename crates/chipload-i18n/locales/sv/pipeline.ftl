@@ -332,6 +332,7 @@ pipeline-surface-over-pins = { $label } planfräser baksidan över styrpinnarna,
 pipeline-dowels-there = framsidan har redan styrhål: operation { $number }
 pipeline-dowels-none = framsidan har inga styrhål att ta bort
 pipeline-dowels-missing = { $back } läggs tillbaka med styrpinnar, och { $front } har inga styrhål för dem: lägg till dem, eller lägg tillbaka mot ett anslagshörn
+pipeline-two-sided-not-fitted = marginalen kan bara breddas för en skiva anpassad runt ritningen: gör själva skivan större
 pipeline-dowels-no-shapes = det finns inga former på skivan att lägga styrhålen utanför
 pipeline-dowels-no-room = mellan fräsningarna och skivans kant på vändaxeln finns { $room }, och ett styrhål behöver { $needed }: gör skivan större eller styrpinnarna mindre
 pipeline-dowels-no-room-margin = mellan fräsningarna och skivans kant på vändaxeln finns { $room }, och ett styrhål behöver { $needed }: sätt skivans marginal till { $margin } eller mer, eller gör styrpinnarna mindre

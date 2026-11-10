@@ -76,6 +76,7 @@ back follows. A board that fits fits the shapes of both sides.
 
 ```sh
 chipload setup add sign.chipload --back-of 1 --turn left-right   # "Setup 1 back", with a part
+chipload setup add sign.chipload --back-of 1 --pins --zero       # with its dowel holes, 8 mm pins
 chipload setup set sign.chipload 2 --turn top-bottom --register corner
 chipload setup set sign.chipload 2 --own-board    # a board of its own again, as it is now
 ```
@@ -150,8 +151,28 @@ explode`) and mirror its shapes (`shape mirror`).
 
 ### In the window
 
-Right-click a setup for **Add the back side**: a new setup right after it, "… back", with a
-part of its own, marked ⟲ in the Browser. Its form has:
+**Two-sided** in the ribbon's WIZARDS group (*WIZARDS ▾ > Two-sided…*) makes the back side
+of the active setup in one dialog. So do **Add the back side…** on a setup's right-click,
+and *Add the back side* and *Add dowel holes* in a front's form. It asks:
+
+- **Front:** the setup cut first;
+- **Turn over:** *Left to right* or *Top to bottom*;
+- **Put back by:** *Dowel pins* or *A fence corner*;
+- with pins, **Pin diameter** (8 mm), **Into the spoilboard** (8 mm), **Cut with** (a drill
+  of the pins' size, else the largest end mill that bores them, or any tool of the project
+  or your library, a library tool copied in when you click *Make*) and **Work zero: At the
+  first pin** (on).
+
+A picture draws the board, the area both sides cut, the turn axis and the pins. When the
+margin can't hold them, it says how much room there is and how much a hole needs. For a
+board fitted round the drawing, **Widen the margin to …** changes the margin, but only when
+you click *Make*, and the dialog says how much longer the board gets. **Make the back side**
+adds the back setup with its part and the dowel holes, as one undo step, and opens the
+back's form. Opened on a setup that has a back, it **changes** that back instead: its turn,
+how it is put back, and its dowel holes, made again.
+
+The back is a new setup right after its front, "… back", with a part of its own, marked ⟲
+in the Browser. Its form has:
 
 - **Board:** *Its own board*, or *Back of …* any setup that has no back yet;
 - **Turn over:** *Left to right* or *Top to bottom*;

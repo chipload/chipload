@@ -479,7 +479,7 @@ fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, offer: &ToolOff
             .on_hover_text(t!(ui, "sign-edge-hover"));
             ui.end_row();
             ui.label(t!(ui, "sign-vbit"));
-            tool_combo(ui, "sign-vbit", &mut s.vbit, offer, ToolKind::Vbit, false);
+            tool_combo(ui, "sign-vbit", &mut s.vbit, offer, ToolKind::Vbit, None);
             ui.end_row();
             ui.label(t!(ui, "sign-end-mill"));
             tool_combo(
@@ -488,7 +488,7 @@ fn frame_and_cut_fields(ui: &mut egui::Ui, s: &mut SignSettings, offer: &ToolOff
                 &mut s.end_mill,
                 offer,
                 ToolKind::EndMill,
-                false,
+                None,
             );
             ui.end_row();
             ui.label(t!(ui, "sign-board"));

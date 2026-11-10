@@ -337,6 +337,7 @@ pipeline-surface-over-pins = { $label } spiana il retro sopra le spine, profondo
 pipeline-dowels-there = il fronte ha già fori per spina: lavorazione { $number }
 pipeline-dowels-none = il fronte non ha fori per spina da togliere
 pipeline-dowels-missing = { $back } viene rimesso a posto con spine, e { $front } non ha fori per spina: aggiungili, o appoggia la tavola in un angolo di battuta
+pipeline-two-sided-not-fitted = il margine si può allargare solo per una tavola adattata al disegno: ingrandisci la tavola stessa
 pipeline-dowels-no-shapes = sulla tavola non ci sono forme oltre cui mettere i fori per spina
 pipeline-dowels-no-room = tra i tagli e il bordo della tavola sull'asse di capovolgimento ci sono { $room }, e un foro per spina ne richiede { $needed }: allarga la tavola o usa spine più piccole
 pipeline-dowels-no-room-margin = tra i tagli e il bordo della tavola sull'asse di capovolgimento ci sono { $room }, e un foro per spina ne richiede { $needed }: porta il margine della tavola a { $margin } o più, o usa spine più piccole

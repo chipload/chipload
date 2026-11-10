@@ -23,7 +23,7 @@ Under it, the **ribbon** groups the buttons:
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame ([a frame for a sign](drawings/signs.md)), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | *Apply style ▸*, Generate |
-| WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations | New sign… |
+| WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window) | New sign…, Two-sided… |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme |
 

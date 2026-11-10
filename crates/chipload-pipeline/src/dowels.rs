@@ -22,6 +22,10 @@ use crate::shapes::add_shape;
 pub const DEFAULT_PIN_DIAMETER: f64 = 8.0;
 pub const DEFAULT_PIN_DEPTH: f64 = 8.0;
 
+/// A bore needs a hole at least this many times its tool's diameter (docs/specs/holes.md:
+/// the smallest bore is 1.2 × D).
+const BORE_HOLE_PER_TOOL: f64 = 1.2;
+
 /// Room left beside a hole in the margin, each side, mm.
 const PIN_ROOM: f64 = 1.0;
 
@@ -36,6 +40,8 @@ pub struct Dowels {
     pub depth: f64,
     /// Set the front's work zero to the first pin's centre, which the back shares.
     pub zero: bool,
+    /// The project tool that cuts them; None: [`pin_tool`]'s choice.
+    pub tool: Option<i64>,
 }
 
 impl Default for Dowels {
@@ -44,7 +50,54 @@ impl Default for Dowels {
             diameter: DEFAULT_PIN_DIAMETER,
             depth: DEFAULT_PIN_DEPTH,
             zero: false,
+            tool: None,
         }
+    }
+}
+
+/// The project tool that cuts pins of `diameter` best: a drill of that size, else the
+/// largest end mill that can bore it (a bore needs a hole 1.2 times the tool), else None
+/// (docs/specs/two-sided-wizard.md §4).
+pub fn pin_tool(job: &Job, diameter: f64) -> Option<i64> {
+    let drill = job.tools.iter().find(|t| {
+        t.kind == chipload_job::ToolType::Drill && (t.diameter - diameter).abs() <= CHAIN_TOL_MM
+    });
+    if let Some(drill) = drill {
+        return Some(drill.id);
+    }
+    job.tools
+        .iter()
+        .filter(|t| {
+            t.kind == chipload_job::ToolType::Endmill
+                && BORE_HOLE_PER_TOOL * t.diameter <= diameter + CHAIN_TOL_MM
+        })
+        .max_by(|a, b| a.diameter.total_cmp(&b.diameter))
+        .map(|t| t.id)
+}
+
+/// Where dowel holes go for a back, and what they keep clear of
+/// (docs/specs/two-sided-wizard.md §4): what the wizard draws.
+#[derive(Debug, Clone, PartialEq)]
+pub struct DowelLayout {
+    /// The board, in the drawing's coordinates.
+    pub board: Box2,
+    /// Where both sides cut, and their shapes.
+    pub reach: Box2,
+    /// The turn axis across the board.
+    pub axis: (Point, Point),
+    /// The two holes' centres, centred in the margin on the axis.
+    pub centres: [Point; 2],
+    /// The narrowest room on the axis, and the room a hole needs.
+    pub room: f64,
+    pub needed: f64,
+    /// For a board fitted round the drawing that can't hold them, the margin that would.
+    pub margin: Option<f64>,
+}
+
+impl DowelLayout {
+    /// Whether the holes fit in the margin.
+    pub fn fits(&self) -> bool {
+        self.room + CHAIN_TOL_MM >= self.needed
     }
 }
 
@@ -57,6 +110,27 @@ fn refused(message: Message) -> PipelineError {
 /// lower (left-right) or the left (top-bottom) first. Refused when the margin can't hold the
 /// hole, saying how wide it needs to be.
 pub fn dowel_centres(job: &Job, back: u64, diameter: f64) -> Result<[Point; 2], PipelineError> {
+    let layout = dowel_layout(job, back, diameter)?;
+    if !layout.fits() {
+        let front = layout_front(job, back)?;
+        return Err(refused(no_room(
+            &job.for_setup(front),
+            layout.room,
+            layout.needed,
+        )));
+    }
+    Ok(layout.centres)
+}
+
+fn layout_front(job: &Job, back: u64) -> Result<u64, PipelineError> {
+    job.setup(back)
+        .and_then(|s| s.back_of)
+        .map(|b| b.setup)
+        .ok_or_else(|| refused(Message::new("pipeline-setup-not-a-back").arg("id", back)))
+}
+
+/// Where the holes of pins of `diameter` go for back setup `back`, whether they fit or not.
+pub fn dowel_layout(job: &Job, back: u64, diameter: f64) -> Result<DowelLayout, PipelineError> {
     let Some((front, turn)) = job
         .setup(back)
         .and_then(|s| s.back_of)
@@ -67,7 +141,8 @@ pub fn dowel_centres(job: &Job, back: u64, diameter: f64) -> Result<[Point; 2], 
         ));
     };
     let one = job.for_setup(front);
-    let ((x0, y0), (x1, y1)) = one.stock_bounds();
+    let board = one.stock_bounds();
+    let ((x0, y0), (x1, y1)) = board;
     let Some(shapes) = one.board_extents() else {
         return Err(refused(Message::new("pipeline-dowels-no-shapes")));
     };
@@ -78,12 +153,13 @@ pub fn dowel_centres(job: &Job, back: u64, diameter: f64) -> Result<[Point; 2], 
         }
     }
     let ((px0, py0), (px1, py1)) = reach;
-    let (gaps, centres) = match turn {
+    let (gaps, centres, axis) = match turn {
         Turn::LeftRight => {
             let x = (x0 + x1) / 2.0;
             (
                 [py0 - y0, y1 - py1],
                 [(x, (y0 + py0) / 2.0), (x, (py1 + y1) / 2.0)],
+                ((x, y0), (x, y1)),
             )
         }
         Turn::TopBottom => {
@@ -91,16 +167,36 @@ pub fn dowel_centres(job: &Job, back: u64, diameter: f64) -> Result<[Point; 2], 
             (
                 [px0 - x0, x1 - px1],
                 [((x0 + px0) / 2.0, y), ((px1 + x1) / 2.0, y)],
+                ((x0, y), (x1, y)),
             )
         }
     };
     let needed = diameter + 2.0 * PIN_ROOM;
-    let narrowest = gaps[0].min(gaps[1]);
-    // A margin exactly as wide as needed holds the hole.
-    if narrowest + CHAIN_TOL_MM < needed {
-        return Err(refused(no_room(&one, narrowest, needed)));
+    let room = gaps[0].min(gaps[1]);
+    let mut layout = DowelLayout {
+        board,
+        reach,
+        axis,
+        centres,
+        room,
+        needed,
+        margin: None,
+    };
+    if !layout.fits() {
+        layout.margin = wider_margin(&one, room, needed);
     }
-    Ok(centres)
+    Ok(layout)
+}
+
+/// For a board fitted round the drawing, the margin that holds a hole needing `needed` where
+/// there is `room`, rounded up to 0.1 mm (the margin grows the room on both ends alike).
+fn wider_margin(front: &Job, room: f64, needed: f64) -> Option<f64> {
+    match (front.stock().origin, front.stock().fit) {
+        (StockOrigin::Drawing, Some(margin)) => {
+            Some(((margin + needed - room) * 10.0 - CHAIN_TOL_MM).ceil() / 10.0)
+        }
+        _ => None,
+    }
 }
 
 /// Why the holes don't fit: the room there is and the room a hole needs, and for a board
@@ -113,17 +209,14 @@ fn no_room(front: &Job, room: f64, needed: f64) -> Message {
             .arg("room", length(room.max(0.0)))
             .arg("needed", length(needed))
     };
-    match (front.stock().origin, front.stock().fit) {
-        (StockOrigin::Drawing, Some(margin)) => {
-            let wider = ((margin + needed - room) * 10.0 - CHAIN_TOL_MM).ceil() / 10.0;
-            message("pipeline-dowels-no-room-margin").arg("margin", length(wider))
-        }
-        _ => message("pipeline-dowels-no-room"),
+    match wider_margin(front, room, needed) {
+        Some(wider) => message("pipeline-dowels-no-room-margin").arg("margin", length(wider)),
+        None => message("pipeline-dowels-no-room"),
     }
 }
 
 /// A (min, max) box in the drawing's coordinates.
-type Box2 = ((f64, f64), (f64, f64));
+pub type Box2 = ((f64, f64), (f64, f64));
 
 fn union(a: Box2, b: Box2) -> Box2 {
     (
@@ -451,7 +544,7 @@ pub fn add_dowels(
             shapes: Some(ids),
             ..Selector::default()
         },
-        tool: None,
+        tool: dowels.tool.or_else(|| pin_tool(job, dowels.diameter)),
     };
     let made = new_operations(&there, &request, &contours, None, lang);
     let Some(mut op) = made.ops.into_iter().next().map(|n| n.op) else {

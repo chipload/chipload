@@ -34,6 +34,7 @@ pub mod styles;
 pub mod surface;
 pub mod tabs;
 pub mod texts;
+pub mod two_sided;
 pub mod units;
 
 use std::path::{Path, PathBuf};

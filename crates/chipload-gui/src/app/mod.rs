@@ -88,6 +88,7 @@ mod tab_markers;
 mod tests;
 mod text_fonts;
 mod texts;
+mod two_sided;
 mod update_notice;
 mod user_library;
 mod wizard_tools;
@@ -260,6 +261,8 @@ enum Prompt {
     Inlay(inlay::InlaySettings),
     /// *New sign…*: the sign's values so far (docs/specs/sign-maker.md §3).
     Sign(Box<sign::SignSettings>),
+    /// *Two-sided…* (docs/specs/two-sided-wizard.md §4).
+    TwoSided(Box<two_sided::TwoSidedSettings>),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame

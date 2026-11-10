@@ -340,6 +340,7 @@ pipeline-surface-over-pins = { $label } planea el reverso por encima de los pasa
 pipeline-dowels-there = el anverso ya tiene agujeros de pasador: operación { $number }
 pipeline-dowels-none = el anverso no tiene agujeros de pasador que quitar
 pipeline-dowels-missing = { $back } se recoloca con pasadores, y { $front } no tiene agujeros de pasador para ellos: añádelos, o apoya el tablero en una esquina de tope
+pipeline-two-sided-not-fitted = el margen solo se puede ampliar en un tablero ajustado al dibujo: agranda el propio tablero
 pipeline-dowels-no-shapes = no hay formas en el tablero junto a las que poner los agujeros de pasador
 pipeline-dowels-no-room = entre los cortes y el borde del tablero en el eje de giro hay { $room }, y un agujero de pasador necesita { $needed }: agranda el tablero o usa pasadores más pequeños
 pipeline-dowels-no-room-margin = entre los cortes y el borde del tablero en el eje de giro hay { $room }, y un agujero de pasador necesita { $needed }: pon el margen del tablero en { $margin } o más, o usa pasadores más pequeños

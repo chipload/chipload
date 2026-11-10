@@ -48,6 +48,7 @@ mod texts;
 mod three_d_view;
 mod tool_library;
 mod trim_select;
+mod two_sided;
 mod units;
 mod update_notice;
 mod vcarve_form;

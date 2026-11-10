@@ -1,6 +1,6 @@
 # Spec: two-sided work made easier: the turn axis, warnings, a wizard, pins that follow
 
-Status: **approved 2026-11-10** ("Go ahead": decisions 1-8 as recommended); step 1 built.
+Status: **approved 2026-11-10** ("Go ahead": decisions 1-8 as recommended); steps 1 and 2 built.
 The user asked for suggestions ("the workflow
 with adding dowels for two sided … is not so intuitive"), then approved the suggested order
 and asked for this spec. It builds on docs/specs/two-sided.md (§3 the link, §6 dowel holes),
@@ -237,3 +237,16 @@ Step 1, 2026-11-10:
   back with pins, and `--json` gives `dowels` and `missing_dowels`.
 - The axis label is *⟲ Turn axis*, past the board's top (left to right) or right end (top
   to bottom).
+
+Step 2, 2026-11-10:
+- **The tool by default** is a drill of the pins' size, else the **largest** end mill that
+  bores them (the draft said the smallest: the largest bores quickest, and both fit), else
+  *Chosen for the holes* (the holes operation's own choice). `setup dowels` without
+  `--tool` takes the same (`dowels::pin_tool`), so the window and the command line agree.
+- **Add dowel holes** (in a back's or a front's form) opens the wizard too, so the window
+  always asks for the size, depth, tool and zero. The one-click versions stay only for
+  tests.
+- **Changing the turn** of a back with dowel holes takes them out first: on the new axis
+  they would be refused. With *A fence corner* and the same turn, holes there are kept.
+- The picture draws the drawing's shapes faintly too, so you see what the board holds.
+

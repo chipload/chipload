@@ -267,11 +267,19 @@ impl ChiploadApp {
             Some(JobRequest::ActivateSetup(id)) => self.activate_setup(id),
             Some(JobRequest::RemoveSetup(id)) => self.remove_setup(id),
             Some(JobRequest::SetBoard(id, change)) => self.set_board(id, change),
-            Some(JobRequest::AddDowels(id)) => self.add_dowels(id),
-            Some(JobRequest::RemoveDowels(id)) => self.remove_dowels(id),
-            Some(JobRequest::AddBack(front)) => {
-                self.add_back_side(front);
+            // The wizard, for the back's front: the pins' size, depth, tool and zero.
+            Some(JobRequest::AddDowels(id)) => {
+                let front = self
+                    .edit
+                    .as_ref()
+                    .and_then(|e| e.job.front_of(id))
+                    .map(|s| s.id);
+                if let Some(front) = front {
+                    self.start_two_sided_for(front);
+                }
             }
+            Some(JobRequest::RemoveDowels(id)) => self.remove_dowels(id),
+            Some(JobRequest::AddBack(front)) => self.start_two_sided_for(front),
             Some(JobRequest::OpenSetup(id)) => self.focus = Focus::Setup(id),
             Some(JobRequest::FrontStock(front)) => {
                 self.activate_setup(front);

@@ -132,6 +132,13 @@ fn pictures() {
     harness.run_steps(6);
     let image = harness.render().unwrap();
     image.save(dir.join("window-en-two-sided.png")).unwrap();
+    // The Two-sided… dialog over it.
+    harness.state_mut().start_two_sided();
+    harness.run_steps(6);
+    let image = harness.render().unwrap();
+    image
+        .save(dir.join("window-en-two-sided-dialog.png"))
+        .unwrap();
 }
 
 /// One thing at a time (the user, 2026-10-28): a drawn shape's row in the Browser shows the

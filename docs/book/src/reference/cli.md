@@ -2220,6 +2220,11 @@ chipload setup add <PROJECT> [OPTIONS]
 | `--thickness <THICKNESS>` | Its board's thickness; default: the active setup's. |
 | `--back-of <BACK_OF>` | The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to "<that setup> back". |
 | `--turn <TURN>` | How the board is turned over: left-right (default) or top-bottom. |
+| `--register <REGISTER>` | How the turned board is put back: pins (default) or corner. |
+| `--pins <PINS>` | Dowel holes for pins of this diameter too (8 mm without a value), in the same step (docs/specs/two-sided-wizard.md §6) |
+| `--pin-depth <PIN_DEPTH>` | How far the dowel holes go into the spoilboard; default 8 mm. |
+| `--zero` | Set the front's work zero to the first pin's centre, which the back shares. |
+| `--pin-tool <PIN_TOOL>` | The project tool that cuts the dowel holes; default: a drill of their size, else the largest end mill that bores them. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload setup set`
@@ -2258,6 +2263,7 @@ chipload setup dowels <PROJECT> [OPTIONS]
 | `--diameter <DIAMETER>` | The pins' diameter; default 8 mm (a 6 mm end mill bores it) |
 | `--depth <DEPTH>` | How far the holes go into the spoilboard; default 8 mm. |
 | `--zero` | Set the front's work zero to the first pin's centre, which the back shares. |
+| `--tool <TOOL>` | The project tool that cuts them; default: a drill of their size, else the largest end mill that bores them. |
 | `--remove` | Remove the dowel holes instead: the front's operation and its circles. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 

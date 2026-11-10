@@ -329,6 +329,7 @@ pipeline-surface-over-pins = { $label } faces the back over the dowel pins, { $d
 pipeline-dowels-there = the front has dowel holes already: operation { $number }
 pipeline-dowels-none = the front has no dowel holes to remove
 pipeline-dowels-missing = { $back } is put back by dowel pins, and { $front } has no dowel holes for them: add them, or put it back by a fence corner
+pipeline-two-sided-not-fitted = the margin can only be widened for a board fitted round the drawing: make the board itself larger
 pipeline-dowels-no-shapes = there are no shapes on the board to place dowel holes beyond
 pipeline-dowels-no-room = between the cuts and the board's edge on the turn axis there is { $room }, and a dowel hole needs { $needed }: make the board larger, or the pins smaller
 pipeline-dowels-no-room-margin = between the cuts and the board's edge on the turn axis there is { $room }, and a dowel hole needs { $needed }: make the board's fit margin { $margin } or more, or the pins smaller

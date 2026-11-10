@@ -757,6 +757,13 @@ impl ChiploadApp {
                 {
                     app.start_sign();
                 }
+                let label = t!(ui, "header-two-sided");
+                if ribbon_button(ui, Icon::TurnOver, &label, app.edit.is_some(), false)
+                    .on_hover_text(t!(ui, "header-two-sided-hover"))
+                    .clicked()
+                {
+                    app.start_two_sided();
+                }
             },
             |app, ui| app.wizards_menu(ui),
         );

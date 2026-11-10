@@ -182,9 +182,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    beside the first, *New sign…* on the start page.
 12b. **Two-sided made easier** (the user, 2026-11-10: dowels "not so intuitive"; the order
    of suggestions approved). Spec docs/specs/two-sided-wizard.md **approved 2026-11-10**;
-   step 1 built (turn axis, warnings, Back side row, Remove dowels). Next step 2, the
-   *Two-sided…* wizard in WIZARDS, then step 3, dowel pins that follow the board and
-   shapes.
+   step 1 built (turn axis, warnings, Back side row, Remove dowels), step 2 built (the
+   *Two-sided…* wizard in WIZARDS, `setup add --pins`). Next step 3, dowel pins that
+   follow the board and shapes.
 13. **Small follow-ups:**
     - A pasted shape loses its construction flag: the clipboard carries layer and geometry
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).

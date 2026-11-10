@@ -335,6 +335,7 @@ pipeline-surface-over-pins = { $label } plant die Rückseite über den Passstift
 pipeline-dowels-there = die Vorderseite hat schon Passstiftbohrungen: Bearbeitung { $number }
 pipeline-dowels-none = die Vorderseite hat keine Passstiftbohrungen zum Entfernen
 pipeline-dowels-missing = { $back } wird mit Stiften wieder angelegt, und { $front } hat keine Passstiftbohrungen dafür: fügen Sie sie hinzu oder legen Sie das Brett an eine Anschlagecke
+pipeline-two-sided-not-fitted = der Rand lässt sich nur bei einem um die Zeichnung angepassten Brett verbreitern: das Brett selbst größer machen
 pipeline-dowels-no-shapes = auf dem Brett sind keine Formen, neben die Passstiftbohrungen kämen
 pipeline-dowels-no-room = zwischen den Schnitten und dem Brettrand auf der Wendeachse ist { $room } Platz, eine Passstiftbohrung braucht { $needed }: das Brett größer oder die Stifte kleiner machen
 pipeline-dowels-no-room-margin = zwischen den Schnitten und dem Brettrand auf der Wendeachse ist { $room } Platz, eine Passstiftbohrung braucht { $needed }: den Rand des Bretts auf { $margin } oder mehr setzen oder die Stifte kleiner machen

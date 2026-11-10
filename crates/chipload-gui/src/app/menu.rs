@@ -643,6 +643,17 @@ impl ChiploadApp {
             self.start_sign();
             ui.close();
         }
+        if ui
+            .add_enabled(
+                self.edit.is_some(),
+                egui::Button::new(t!(ui, "menu-wizard-two-sided")),
+            )
+            .on_hover_text(t!(ui, "menu-wizard-two-sided-hover"))
+            .clicked()
+        {
+            self.start_two_sided();
+            ui.close();
+        }
     }
 
     /// The Modify menu's items: the editing tools (docs/specs/drawing-editing.md §8).

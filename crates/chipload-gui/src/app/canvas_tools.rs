@@ -52,6 +52,7 @@ pub struct CanvasTools {
     pub(super) frame_preview: frames::FramePreview,
     /// *New sign…*'s sign as last drawn in its dialog.
     pub(super) sign_preview: super::sign::SignPreview,
+    pub(super) two_sided_preview: super::two_sided::TwoSidedPreview,
 }
 
 impl Default for CanvasTools {
@@ -73,6 +74,7 @@ impl Default for CanvasTools {
             frame: frames::FrameSettings::default(),
             frame_preview: frames::FramePreview::default(),
             sign_preview: super::sign::SignPreview::default(),
+            two_sided_preview: super::two_sided::TwoSidedPreview::default(),
         }
     }
 }

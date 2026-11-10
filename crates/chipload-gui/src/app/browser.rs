@@ -971,9 +971,7 @@ impl ChiploadApp {
             Some(SetupAction::Add) => {
                 self.add_setup();
             }
-            Some(SetupAction::AddBack(id)) => {
-                self.add_back_side(id);
-            }
+            Some(SetupAction::AddBack(id)) => self.start_two_sided_for(id),
             Some(SetupAction::Toggle(id)) => self.toggle_setup(id),
             Some(SetupAction::Open(id)) => {
                 self.activate_setup(id);

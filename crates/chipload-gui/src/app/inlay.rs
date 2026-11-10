@@ -176,7 +176,7 @@ impl ChiploadApp {
                         &mut settings.tool,
                         &offer,
                         ToolKind::Vbit,
-                        false,
+                        None,
                     );
                     ui.end_row();
                     ui.label(t!(ui, "inlay-depth"))
@@ -193,13 +193,14 @@ impl ChiploadApp {
                     ui.end_row();
                     ui.label(t!(ui, "inlay-floor"))
                         .on_hover_text(t!(ui, "inlay-floor-hover"));
+                    let none_label = t!(ui, "inlay-none");
                     tool_combo(
                         ui,
                         "inlay-floor",
                         &mut settings.floor,
                         &offer,
                         ToolKind::EndMill,
-                        true,
+                        Some(&none_label),
                     );
                     ui.end_row();
                     ui.label(t!(ui, "inlay-thickness"))

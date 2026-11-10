@@ -7,7 +7,9 @@ use chipload_job::Job;
 use chipload_pipeline::PipelineError;
 
 use super::{ChiploadApp, Focus};
-use crate::i18n::{Lang, t};
+#[cfg(test)]
+use crate::i18n::Lang;
+use crate::i18n::t;
 
 impl ChiploadApp {
     /// Apply `change` to the edited project; on success its setups, parts and active ones
@@ -52,6 +54,8 @@ impl ChiploadApp {
 
     /// A new setup that is the back of setup `front`, the same board turned over left to
     /// right (docs/specs/two-sided.md §3); it and its part become active, its form opens.
+    /// The window asks with *Two-sided…* (two-sided-wizard.md §4); tests add one directly.
+    #[cfg(test)]
     pub fn add_back_side(&mut self, front: u64) -> Option<u64> {
         let mut added = None;
         self.change_setups(|job| {
@@ -83,7 +87,9 @@ impl ChiploadApp {
     }
 
     /// Dowel holes for back setup `id`: two circles drawn on the turn axis and a holes
-    /// operation first in the front (docs/specs/two-sided.md §6), one undo step.
+    /// operation first in the front (docs/specs/two-sided.md §6), one undo step. The window
+    /// asks with *Two-sided…*; tests add them directly.
+    #[cfg(test)]
     pub fn add_dowels(&mut self, id: u64) {
         let Some(job) = self.edited_job() else {
             return;

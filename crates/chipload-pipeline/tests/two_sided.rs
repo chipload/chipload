@@ -653,3 +653,144 @@ fn missing_dowel_holes_are_a_warning_and_remove_takes_them_out() {
     assert!(!corner.missing_dowels(2));
     assert!(missing_dowels_warning(&corner).is_none());
 }
+
+#[test]
+fn a_back_side_with_its_pins_is_made_and_changed_in_one_step() {
+    use chipload_job::{Geometry, Operation, ToolType};
+    use chipload_pipeline::dowels::pin_tool;
+    use chipload_pipeline::two_sided::{
+        PinsRequest, TwoSidedRequest, make_two_sided, two_sided_layout,
+    };
+    // docs/specs/two-sided-wizard.md §4, §6
+    let lang = chipload_i18n::Language::En;
+    let sample = sample_two_sided();
+    let pins = PinsRequest {
+        diameter: 8.0,
+        depth: 8.0,
+        zero: true,
+        tool: None,
+    };
+    // A front without a back: the back, its dowel holes and the zero at the first pin.
+    let (single, _) = remove_setup(&remove_dowels_of(&sample), 2, true).unwrap();
+    assert!(single.back_of(1).is_none());
+    let request = TwoSidedRequest {
+        front: 1,
+        turn: Turn::LeftRight,
+        register: Register::Pins,
+        pins: Some(pins),
+        margin: None,
+    };
+    let (made, what) = make_two_sided(&single, &request, lang).unwrap();
+    assert!(what.added);
+    assert_eq!(made.active_setup_id(), Some(what.back));
+    assert_eq!(made.front_of(what.back).unwrap().id, 1);
+    let at = what.dowels.unwrap();
+    assert!(made.operations[at].is_dowels());
+    assert!(!made.missing_dowels(what.back));
+    assert!(matches!(
+        made.setup(1).unwrap().work_zero,
+        chipload_job::WorkZero::Point { .. }
+    ));
+    // The tool: the project's end mill bores 8 mm pins (no drill of that size).
+    let mill = pin_tool(&made, 8.0).unwrap();
+    assert_eq!(
+        made.tools.iter().find(|t| t.id == mill).unwrap().kind,
+        ToolType::Endmill
+    );
+    assert_eq!(made.operations[at].tool(), mill);
+    // Changed: turned top to bottom, 6 mm pins; the holes are made again, not doubled.
+    let request = TwoSidedRequest {
+        turn: Turn::TopBottom,
+        pins: Some(PinsRequest {
+            diameter: 6.0,
+            ..pins
+        }),
+        ..request
+    };
+    let layout = two_sided_layout(&made, &request).unwrap();
+    assert!(layout.fits(), "{layout:?}");
+    let (changed, what) = make_two_sided(&made, &request, lang).unwrap();
+    assert!(!what.added);
+    let link = changed.setup(what.back).unwrap().back_of.unwrap();
+    assert_eq!(link.turn, Turn::TopBottom);
+    assert_eq!(
+        changed
+            .operations
+            .iter()
+            .filter(|op| op.is_dowels())
+            .count(),
+        1
+    );
+    let radii: Vec<f64> = changed
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.layer == "dowels")
+        .map(|s| match s.geometry {
+            Geometry::Circle { radius, .. } => radius,
+            _ => panic!("{s:?}"),
+        })
+        .collect();
+    assert_eq!(radii, [3.0, 3.0]);
+    // On the turn axis, now horizontal.
+    let y_mid = (layout.board.0.1 + layout.board.1.1) / 2.0;
+    assert!(layout.centres.iter().all(|c| (c.1 - y_mid).abs() < 1e-9));
+    // A 6 mm drill is chosen over the end mill when there is one.
+    let mut drilled = changed.clone();
+    let mut drill = drilled.tools[0].clone();
+    drill.id = 9;
+    drill.kind = ToolType::Drill;
+    drill.diameter = 6.0;
+    drilled.tools.push(drill);
+    assert_eq!(pin_tool(&drilled, 6.0), Some(9));
+    let Operation::Holes(_) = &changed.operations[what.dowels.unwrap()] else {
+        panic!("a holes operation");
+    };
+}
+
+#[test]
+fn pins_too_wide_for_the_margin_name_the_margin_and_widen_it_when_asked() {
+    use chipload_pipeline::two_sided::{
+        PinsRequest, TwoSidedRequest, make_two_sided, two_sided_layout,
+    };
+    // docs/specs/two-sided-wizard.md §4, decision 5
+    let lang = chipload_i18n::Language::En;
+    let job = sample_two_sided();
+    let wide = TwoSidedRequest {
+        front: 1,
+        turn: Turn::LeftRight,
+        register: Register::Pins,
+        pins: Some(PinsRequest {
+            diameter: 20.0,
+            depth: 8.0,
+            zero: false,
+            tool: None,
+        }),
+        margin: None,
+    };
+    let layout = two_sided_layout(&job, &wide).unwrap();
+    assert!(!layout.fits());
+    let margin = layout
+        .margin
+        .expect("a fitted board: the margin that holds them");
+    assert!(margin > job.setup(1).unwrap().stock.fit.unwrap());
+    assert!(make_two_sided(&job, &wide, lang).is_err());
+    // Widened, only when asked: then the board grows and they fit.
+    let widened = TwoSidedRequest {
+        margin: Some(margin),
+        ..wide
+    };
+    assert!(two_sided_layout(&job, &widened).unwrap().fits());
+    let (made, _) = make_two_sided(&job, &widened, lang).unwrap();
+    assert_eq!(made.setup(1).unwrap().stock.fit, Some(margin));
+    // A board of its own size can't be widened.
+    let mut own = job.clone();
+    own.setups[0].stock.origin = StockOrigin::BottomLeft;
+    own.follow_thickness();
+    assert!(make_two_sided(&own, &widened, lang).is_err());
+}
+
+/// The sample without its dowel holes.
+fn remove_dowels_of(job: &Job) -> Job {
+    chipload_pipeline::dowels::remove_dowels(job, 2).unwrap()
+}

@@ -566,3 +566,57 @@ fn setup_list_says_when_dowel_holes_are_missing_and_dowels_remove() {
     );
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn setup_add_with_pins_makes_the_back_and_its_dowel_holes() {
+    // docs/specs/two-sided-wizard.md §6
+    let dir = temp_dir("back-with-pins");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v36/two_sided.chipload"), &project).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    // Take the sample's back side away, then make it again with its pins.
+    run(&["setup", "dowels", p, "--setup", "2", "--remove", "--json"]);
+    run(&["setup", "remove", p, "2", "--with-parts", "--json"]);
+    let added = run(&[
+        "setup",
+        "add",
+        p,
+        "--back-of",
+        "1",
+        "--pins",
+        "6",
+        "--zero",
+        "--json",
+    ]);
+    let back = added["setup"].as_u64().unwrap();
+    assert!(added["operation"].as_u64().unwrap() >= 1, "{added}");
+    let listed = run(&["setup", "list", p, "--json"]);
+    let row = listed["setups"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["id"] == json!(back))
+        .unwrap()
+        .clone();
+    assert_eq!(row["missing_dowels"], json!(false), "{row}");
+    let zero = run(&["get", p, "setups.0.work_zero", "--json"]);
+    // The front's zero is now the first pin's centre.
+    assert_eq!(zero["value"]["at"], json!("point"), "{zero}");
+    // --pins with --register corner makes no sense: refused.
+    let both = chipload(
+        &dir,
+        &[
+            "setup",
+            "add",
+            p,
+            "--back-of",
+            "1",
+            "--pins",
+            "--register",
+            "corner",
+        ],
+    );
+    assert_ne!(both.code, Some(0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

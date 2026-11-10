@@ -38,6 +38,8 @@ pub(super) enum ToolKind {
     /// A V-bit with its angle.
     Vbit,
     EndMill,
+    /// What cuts a hole: a drill, or an end mill that bores it.
+    Hole,
 }
 
 impl ToolKind {
@@ -45,6 +47,7 @@ impl ToolKind {
         match self {
             ToolKind::Vbit => kind == ToolType::Vbit && angle.is_some(),
             ToolKind::EndMill => kind == ToolType::Endmill,
+            ToolKind::Hole => matches!(kind, ToolType::Drill | ToolType::Endmill),
         }
     }
 }
@@ -75,15 +78,15 @@ pub(super) struct ToolOffer<'a> {
     pub units: Units,
 }
 
-/// A tool's list: *None* first when `optional`, the project's tools of kind `want`, then
-/// under *From your library:* the library's (marked +).
+/// A tool's list: `none` first when given (*None*, *Chosen for it*…), the project's tools
+/// of kind `want`, then under *From your library:* the library's (marked +).
 pub(super) fn tool_combo(
     ui: &mut egui::Ui,
     salt: &str,
     chosen: &mut Option<WizardTool>,
     offer: &ToolOffer<'_>,
     want: ToolKind,
-    optional: bool,
+    none: Option<&str>,
 ) {
     let choices = offer
         .library
@@ -99,14 +102,14 @@ pub(super) fn tool_combo(
             .iter()
             .find(|t| t.uid == *uid)
             .map(|t| format!("+ {}", t.name)),
-        None => None,
+        None => none.map(str::to_string),
     }
     .unwrap_or_else(|| t!(ui, "inlay-none"));
     egui::ComboBox::from_id_salt(salt)
         .selected_text(shown)
         .show_ui(ui, |ui| {
-            if optional {
-                ui.selectable_value(chosen, None, t!(ui, "inlay-none"));
+            if let Some(none) = none {
+                ui.selectable_value(chosen, None, none);
             }
             for t in offer.tools.iter().filter(|t| want.fits(t.kind, t.angle)) {
                 let label = tool_label(ui, t, offer.units);
