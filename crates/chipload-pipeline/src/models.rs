@@ -137,6 +137,64 @@ pub fn placed_mesh(job: &Job, id: u64) -> Result<Mesh, PipelineError> {
     chipload_toolpath::relief::placed_mesh(find(job, id)?).map_err(relief_error)
 }
 
+pub use chipload_mesh::TopHeights;
+
+/// How much steeper a model's shading takes its slopes than they are (`top_shades`).
+const SHADE_STEEPEN: f64 = 4.0;
+
+/// The height over the width of `model`'s footprint before it is turned: its box on the
+/// canvas (spec §9).
+pub fn footprint_aspect(model: &Model) -> Result<f64, PipelineError> {
+    let mesh = chipload_toolpath::relief::turned_mesh(model).map_err(relief_error)?;
+    let p = chipload_toolpath::relief::placement(model, &mesh).map_err(relief_error)?;
+    Ok(p.height / p.width)
+}
+
+/// Model `id`'s top surface as placed, about `along` cells along its longer side, Z from
+/// the stock top (0) down: what the window shows of it in 3D (spec §9).
+pub fn top_surface(job: &Job, id: u64, along: usize) -> Result<Option<TopHeights>, PipelineError> {
+    Ok(placed_mesh(job, id)?.top_heights(along))
+}
+
+/// How bright each cell of a model's top looks, 0 to 1, lit low from the upper left: the
+/// surface's slope from its neighbours, steepened [`SHADE_STEEPEN`] times so a flat relief
+/// still shows its shape (spec §9). Cells with nothing over them are 1.
+pub fn top_shades(grid: &TopHeights) -> Vec<f32> {
+    let (columns, rows) = (grid.columns, grid.rows);
+    let at = |i: usize, j: usize| grid.heights[j * columns + i];
+    // The light's direction, toward the light: up and to the upper left.
+    let light = {
+        let (x, y, z) = (-1.0f64, 1.0, 1.0);
+        let n = (x * x + y * y + z * z).sqrt();
+        (x / n, y / n, z / n)
+    };
+    let mut shades = Vec::with_capacity(columns * rows);
+    for j in 0..rows {
+        for i in 0..columns {
+            let Some(h) = at(i, j) else {
+                shades.push(1.0);
+                continue;
+            };
+            // The slope by the neighbours that have a surface, this cell where not.
+            let side = |a: Option<f64>| a.unwrap_or(h);
+            let (left, right) = (
+                side(i.checked_sub(1).and_then(|i| at(i, j))),
+                side((i + 1 < columns).then(|| at(i + 1, j)).flatten()),
+            );
+            let (down, up) = (
+                side(j.checked_sub(1).and_then(|j| at(i, j))),
+                side((j + 1 < rows).then(|| at(i, j + 1)).flatten()),
+            );
+            let dx = SHADE_STEEPEN * (right - left) / (2.0 * grid.cell);
+            let dy = SHADE_STEEPEN * (up - down) / (2.0 * grid.cell);
+            let n = (dx * dx + dy * dy + 1.0).sqrt();
+            let lit = (-dx * light.0 - dy * light.1 + light.2) / n;
+            shades.push(lit.clamp(0.0, 1.0) as f32);
+        }
+    }
+    shades
+}
+
 /// Add a model and draw its footprint outline. Returns the project and what was read.
 pub fn add_model(job: &Job, new: NewModel) -> Result<(Job, ModelReport), PipelineError> {
     let (_, read_report) = read(new.bytes)?;

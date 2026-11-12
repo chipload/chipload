@@ -436,6 +436,8 @@ pub struct ChiploadApp {
     pub(super) drawing_hidden: Option<CanvasSelection>,
     /// The pictures' textures, for the images they were made from.
     picture_textures: images::PictureTextures,
+    /// The models' faint surfaces in 3D, and what they were made from.
+    model_surfaces: models::ModelSurfaces,
 }
 
 impl Default for ChiploadApp {
@@ -493,6 +495,7 @@ impl Default for ChiploadApp {
             hidden_contours: BTreeSet::new(),
             drawing_hidden: None,
             picture_textures: images::PictureTextures::default(),
+            model_surfaces: models::ModelSurfaces::default(),
         }
     }
 }
@@ -2231,6 +2234,7 @@ impl eframe::App for ChiploadApp {
         self.next_drop();
         self.image_window(&ctx);
         self.sync_pictures(&ctx);
+        self.sync_models(ui.visuals().dark_mode);
         self.recovery_window(&ctx);
         // One undo step per finished edit: not while dragging a value or typing.
         let busy = ctx.egui_is_using_pointer() || ctx.egui_wants_keyboard_input();

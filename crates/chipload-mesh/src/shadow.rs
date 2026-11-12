@@ -2,6 +2,8 @@
 //! The shadow a mesh casts seen from above (spec §4): a grid of cells, each covered or not,
 //! from which the model's footprint outline is traced.
 
+use chipload_core::tolerances::MESH_DEGENERATE_SHARE;
+
 use crate::Mesh;
 
 /// Covered cells of a square grid. Row 0 is the lowest; a ring of empty cells surrounds the
@@ -84,6 +86,88 @@ impl Mesh {
     }
 }
 
+/// The top of a mesh seen from above: the highest point of its surface over each cell's
+/// centre, None where no triangle lies over it. Row 0 is the lowest.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TopHeights {
+    /// The lower-left corner of cell (0, 0).
+    pub origin: (f64, f64),
+    pub cell: f64,
+    pub columns: usize,
+    pub rows: usize,
+    /// Row by row from the lowest, `columns` each.
+    pub heights: Vec<Option<f64>>,
+}
+
+impl Mesh {
+    /// The top surface over a grid of square cells across the mesh's bounds, about `along`
+    /// cells along its longer side, for showing the model (docs/specs/stl-relief.md §9).
+    /// None for no triangles or `along` 0.
+    pub fn top_heights(&self, along: usize) -> Option<TopHeights> {
+        let (lo, hi) = self.bounds()?;
+        let longer = (hi[0] - lo[0]).max(hi[1] - lo[1]);
+        if along == 0 || !(longer.is_finite() && longer > 0.0) {
+            return None;
+        }
+        let cell = longer / along as f64;
+        let columns = ((hi[0] - lo[0]) / cell).ceil().max(1.0) as usize;
+        let rows = ((hi[1] - lo[1]) / cell).ceil().max(1.0) as usize;
+        let origin = (lo[0], lo[1]);
+        let mut heights: Vec<Option<f64>> = vec![None; columns * rows];
+        let index =
+            |v: f64, o: f64, n: usize| ((v - o) / cell).floor().clamp(0.0, (n - 1) as f64) as usize;
+        for t in &self.triangles {
+            let p = [(t[0][0], t[0][1]), (t[1][0], t[1][1]), (t[2][0], t[2][1])];
+            let (i0, i1) = (
+                index(p[0].0.min(p[1].0).min(p[2].0), origin.0, columns),
+                index(p[0].0.max(p[1].0).max(p[2].0), origin.0, columns),
+            );
+            let (j0, j1) = (
+                index(p[0].1.min(p[1].1).min(p[2].1), origin.1, rows),
+                index(p[0].1.max(p[1].1).max(p[2].1), origin.1, rows),
+            );
+            for j in j0..=j1 {
+                for i in i0..=i1 {
+                    let q = (
+                        origin.0 + (i as f64 + 0.5) * cell,
+                        origin.1 + (j as f64 + 0.5) * cell,
+                    );
+                    if let Some(z) = height_in(t, q) {
+                        let at = &mut heights[j * columns + i];
+                        *at = Some(at.map_or(z, |h: f64| h.max(z)));
+                    }
+                }
+            }
+        }
+        Some(TopHeights {
+            origin,
+            cell,
+            columns,
+            rows,
+            heights,
+        })
+    }
+}
+
+/// The height of triangle `t` over `q`, when `q` lies in it seen from above; None for a
+/// triangle seen edge on.
+fn height_in(t: &[[f64; 3]; 3], q: (f64, f64)) -> Option<f64> {
+    let (a, b, c) = (t[0], t[1], t[2]);
+    // Twice the area seen from above; a wall seen edge on has none to speak of.
+    let det = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+    let longest = [(a, b), (b, c), (c, a)]
+        .iter()
+        .map(|(p, q)| (q[0] - p[0]).hypot(q[1] - p[1]))
+        .fold(0.0, f64::max);
+    if det.abs() <= (MESH_DEGENERATE_SHARE * longest).powi(2) || longest == 0.0 {
+        return None;
+    }
+    let u = ((b[1] - c[1]) * (q.0 - c[0]) + (c[0] - b[0]) * (q.1 - c[1])) / det;
+    let v = ((c[1] - a[1]) * (q.0 - c[0]) + (a[0] - c[0]) * (q.1 - c[1])) / det;
+    let w = 1.0 - u - v;
+    (u >= 0.0 && v >= 0.0 && w >= 0.0).then(|| u * a[2] + v * b[2] + w * c[2])
+}
+
 /// Whether `q` lies in the triangle `p` seen from above, its edges included, whichever way
 /// round its corners go. A triangle seen edge on (a wall) covers nothing by its centre
 /// test; its corners still mark their cells.
@@ -114,5 +198,26 @@ mod tests {
             assert!(!s.at(k, 0) && !s.at(k, s.rows - 1) && !s.at(0, k) && !s.at(s.columns - 1, k));
         }
         assert!(square.shadow(0.001, 10_000).is_none(), "too many cells");
+    }
+
+    #[test]
+    fn the_top_is_the_highest_surface_over_each_cell() {
+        // A slope from z 0 at x 0 to z 10 at x 10, and below it a floor at z -5.
+        let mesh = Mesh {
+            triangles: vec![
+                [[0.0, 0.0, 0.0], [10.0, 0.0, 10.0], [10.0, 10.0, 10.0]],
+                [[0.0, 0.0, 0.0], [10.0, 10.0, 10.0], [0.0, 10.0, 0.0]],
+                [[0.0, 0.0, -5.0], [10.0, 0.0, -5.0], [10.0, 10.0, -5.0]],
+            ],
+        };
+        let top = mesh.top_heights(10).unwrap();
+        assert_eq!((top.columns, top.rows, top.cell), (10, 10, 1.0));
+        for j in 0..10 {
+            for i in 0..10 {
+                let z = top.heights[j * 10 + i].unwrap();
+                assert!((z - (i as f64 + 0.5)).abs() < 1e-9, "{i} {j}: {z}");
+            }
+        }
+        assert!(mesh.top_heights(0).is_none());
     }
 }

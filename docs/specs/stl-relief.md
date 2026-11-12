@@ -377,4 +377,11 @@ Step 4, the window, 2026-11-12:
   with the project's and the library's end mills and plain ball noses; the pass is a leaf
   under the relief, as a floor pass is, with its own form (tool, step down, stepover,
   allowance, feeds) and *Remove roughing pass*.
+- **4c, seeing it:** in 3D, with no simulation shown, each model is drawn faintly as its
+  top surface on a grid of about 160 cells along its longer side
+  (`Mesh::top_heights`), lit low from the upper left with its slopes steepened four times
+  so a flat relief still shows its shape (`models::top_shades`), its sides down to its
+  lowest point. A selected model has a picture's handles (move, turn, size), its box
+  its footprint before the turn. The playback tool is drawn by its cutter's profile, so a
+  ball nose shows its round end and a tapered one its taper.
 

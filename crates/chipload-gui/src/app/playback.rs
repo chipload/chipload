@@ -17,9 +17,6 @@ use crate::view::{Point3, Progress, ToolLook};
 /// The play speeds, × the estimated time (decision 7).
 pub(super) const SPEEDS: [f64; 3] = [1.0, 10.0, 100.0];
 
-/// A drill's point, as the simulation takes it (docs/specs/simulation.md decision 3).
-const DRILL_POINT_RAD: f64 = chipload_pipeline::simulate::DRILL_POINT_RAD;
-
 /// Where playback is in the last generated program.
 pub struct Playback {
     /// When each move ends, seconds from the program's start.
@@ -220,27 +217,26 @@ impl Playback {
     pub fn tool_look(&self) -> ToolLook {
         let k = self.current();
         let tool = self.tools.iter().find(|(moves, _)| moves.contains(&k));
+        use chipload_core::cutter::Cutter;
         let Some((_, tool)) = tool else {
             return ToolLook {
-                radius: 1.0,
-                cone: None,
+                cutter: Cutter::Flat { radius: 1.0 },
                 from_below: self.from_below,
             };
         };
         let radius = tool.diameter / 2.0;
-        let cone = |angle: f64, tip: f64| Some((tip.min(radius), 1.0 / (angle / 2.0).tan()));
-        ToolLook {
-            radius,
-            from_below: self.from_below,
-            cone: match tool.kind {
-                // Drawn as an end mill until the window step (docs/specs/stl-relief.md §12).
-                ToolType::Endmill | ToolType::Ballnose => None,
-                ToolType::Drill => cone(DRILL_POINT_RAD, 0.0),
-                ToolType::Vbit => cone(
-                    tool.angle.unwrap_or(std::f64::consts::FRAC_PI_2),
-                    tool.tip_diameter.unwrap_or(0.0) / 2.0,
-                ),
+        // A V-bit without its angle drawn at 90°.
+        let fallback = match tool.kind {
+            ToolType::Vbit => Cutter::Cone {
+                radius,
+                tip: 0.0,
+                half_angle: std::f64::consts::FRAC_PI_4,
             },
+            _ => Cutter::Flat { radius },
+        };
+        ToolLook {
+            cutter: tool.cutter().unwrap_or(fallback),
+            from_below: self.from_below,
         }
     }
 

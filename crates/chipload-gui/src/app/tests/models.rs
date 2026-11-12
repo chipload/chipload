@@ -141,6 +141,25 @@ fn model_pictures() {
     harness.run_steps(6);
     let image = harness.render().unwrap();
     image.save(dir.join("roughing-en.png")).unwrap();
+    // The model in 3D, faintly, with its outline.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1280.0, 800.0))
+        .wgpu()
+        .build_eframe(move |cc| {
+            {
+                let mut fonts = crate::fonts::ui_fonts();
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+            }
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            app.open(&corpus("jobs/v36/relief_dome.chipload"));
+            app.view_3d();
+            app
+        });
+    harness.run_steps(8);
+    let image = harness.render().unwrap();
+    image.save(dir.join("model-3d.png")).unwrap();
 }
 
 #[test]
@@ -186,4 +205,37 @@ fn a_relief_needs_a_model_and_can_be_roughed_first() {
     assert_eq!(app.focus, Focus::Op(0));
     app.undo();
     assert!(rough(&app).is_some());
+}
+
+#[test]
+fn a_models_handles_move_turn_and_size_it() {
+    use chipload_pipeline::box_handles::BoxHandle;
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    app.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Model(1));
+    let handles = app.box_handle_points();
+    assert_eq!(handles.len(), 6);
+    let model = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.models[0].clone();
+    let before = model(&app);
+    // Moved by its centre: 5 mm right.
+    let (_, center) = handles[0];
+    app.start_box_drag(BoxHandle::Move);
+    app.drag_box_to((center.0 + 5.0, center.1), false);
+    app.end_box_drag();
+    let moved = model(&app);
+    assert!((moved.x - (before.x + 5.0)).abs() < 1e-6, "{moved:?}");
+    assert_eq!(moved.width, before.width);
+    // Turned: 80° stepped to 75°, about its centre.
+    let center = app.box_handle_points()[0].1;
+    app.start_box_drag(BoxHandle::Turn);
+    let a = 80f64.to_radians();
+    app.drag_box_to(
+        (center.0 + 30.0 * a.cos(), center.1 + 30.0 * a.sin()),
+        false,
+    );
+    app.end_box_drag();
+    assert_eq!(model(&app).rotation, 75.0);
+    // Its outline went with it, and each drag was one undo step.
+    app.undo();
+    assert_eq!(model(&app).rotation, before.rotation);
 }

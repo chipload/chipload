@@ -8,7 +8,8 @@ use chipload_core::Point;
 use chipload_core::chain::ShapeFrom;
 use chipload_job::Text;
 use chipload_pipeline::box_handles::{
-    BoxHandle, PlacedBox, box_handles, drag_box, image_box, image_in_box, text_box, text_in_box,
+    BoxHandle, PlacedBox, box_handles, drag_box, image_box, image_in_box, model_box, text_box,
+    text_in_box,
 };
 
 use super::*;
@@ -35,6 +36,8 @@ enum SizeKey {
     Image(u64, String),
     /// A text as it is: its letters' box, mm.
     Text(Box<Text>),
+    /// A model by id, contents, unit and up: its footprint's width and height, as a share.
+    Model(u64, String, chipload_job::Units, chipload_job::ModelUp),
 }
 
 /// The last box size worked out (decoding a picture or lettering a text every frame would
@@ -126,9 +129,17 @@ impl ChiploadApp {
                     self.turned_box_of(|f, _| f == Some(ShapeFrom::Dxf(id)), rotation, pad)?;
                 Some((BoxOf::Whole(from.into()), placed))
             }
-            // A model is placed by its own values (docs/specs/stl-relief.md §9: handles come
-            // with the window step).
-            ShapeFrom::Model(_) => None,
+            // Placed as a picture is (docs/specs/stl-relief.md §9).
+            ShapeFrom::Model(id) => {
+                let model = drawing.models.iter().find(|m| m.id == id)?.clone();
+                let key = SizeKey::Model(id, model.sha256.clone(), model.units, model.up);
+                let (_, aspect) = self.box_size.get(key, || {
+                    chipload_pipeline::models::footprint_aspect(&model)
+                        .ok()
+                        .map(|a| (1.0, a))
+                })?;
+                Some((BoxOf::Whole(from.into()), model_box(&model, aspect)))
+            }
         }
     }
 
@@ -405,7 +416,15 @@ impl ChiploadApp {
                 let moved = text_in_box(&text, drag.start.size, &drag.now, drag.free);
                 self.set_text(id, &moved);
             }
-            Source::Dxf(_) | Source::Group(_) | Source::Model(_) => {}
+            Source::Model(id) => {
+                let Some(mut model) = drawing.models.iter().find(|m| m.id == id).cloned() else {
+                    return;
+                };
+                (model.x, model.y, model.width, model.rotation) =
+                    image_in_box(&drag.now, drag.free);
+                self.set_model(id, &model);
+            }
+            Source::Dxf(_) | Source::Group(_) => {}
         }
     }
 

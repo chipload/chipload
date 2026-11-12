@@ -15,7 +15,7 @@ mod shadow;
 use chipload_i18n::Message;
 
 pub use read::read_stl;
-pub use shadow::Shadow;
+pub use shadow::{Shadow, TopHeights};
 
 /// More triangles than this is refused (spec §2).
 pub const MAX_TRIANGLES: usize = 5_000_000;

@@ -208,8 +208,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    the window (step 4), including the roughing pass's row and form in the Browser. 4a done:
    File > Add 3D model…, models in the Browser with their properties, STL drops. 4b done: Relief in
    the Operation menu and New operation (not the ribbon: 10 px short at 1280, asked the
-   user), its form, the roughing pass's row and form. Next 4c (3D view, handles, the
-   ball nose's look), 4d (guide).
+   user), its form, the roughing pass's row and form. 4c done: the model faint in
+   3D, its handles, the playback tool by its profile. Next 4d (guide, screenshots).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

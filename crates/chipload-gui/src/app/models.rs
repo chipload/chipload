@@ -9,6 +9,20 @@ use chipload_pipeline::new_ops::OpKind;
 
 use super::*;
 
+/// The darkest a model's surface is shaded, as a share of its colour.
+const MODEL_SHADE_LOW: f32 = 0.35;
+
+/// The models' surfaces in 3D are about this many cells along their longer side.
+const SURFACE_CELLS: usize = 160;
+
+/// The models' faint surfaces in the 3D view (spec §9), kept until a model, the board's
+/// top or the theme changes.
+#[derive(Default)]
+pub(super) struct ModelSurfaces {
+    key: Option<(Vec<Model>, u64, bool)>,
+    surfaces: Vec<crate::view::SimSurface>,
+}
+
 /// A new model's depth is at most this share of the board's thickness when its own
 /// proportion would carve deeper (spec §14 step 4).
 const NEW_MODEL_MOST_DEPTH_SHARE: f64 = 0.5;
@@ -282,5 +296,67 @@ impl ChiploadApp {
             pass.enabled = !pass.enabled;
             self.commit();
         }
+    }
+
+    /// Keep the 3D view's model surfaces in step with the project's models.
+    pub(super) fn sync_models(&mut self, dark: bool) {
+        let models: Vec<Model> = self
+            .edit
+            .as_ref()
+            .map(|e| e.job.drawing.models.clone())
+            .unwrap_or_default();
+        let top = self.scene.stock_z.map_or(0.0, |(top, _)| top);
+        let key = Some((models.clone(), top.to_bits(), dark));
+        if key != self.model_surfaces.key {
+            let color = crate::style::op_color(OpKind::Relief, dark);
+            let surfaces = match self.edit.as_ref() {
+                Some(edit) => models
+                    .iter()
+                    .filter_map(|m| {
+                        chipload_pipeline::models::top_surface(&edit.job, m.id, SURFACE_CELLS)
+                            .ok()
+                            .flatten()
+                    })
+                    .map(|grid| model_surface(&grid, top, color))
+                    .collect(),
+                None => Vec::new(),
+            };
+            self.model_surfaces = ModelSurfaces { key, surfaces };
+        }
+        self.scene.models.clone_from(&self.model_surfaces.surfaces);
+    }
+}
+
+/// A model's top as a surface on the board whose top is at `top`: its sides go down to
+/// its lowest point, cells with nothing over them are left out.
+fn model_surface(
+    grid: &chipload_pipeline::models::TopHeights,
+    top: f64,
+    color: egui::Color32,
+) -> crate::view::SimSurface {
+    let lowest = grid.heights.iter().flatten().copied().fold(0.0, f64::min);
+    let bottom = (top + lowest) as f32;
+    // A cell with nothing over it has its floor at its height: left out.
+    let heights: Vec<f32> = grid
+        .heights
+        .iter()
+        .map(|h| h.map_or(bottom, |h| (top + h) as f32))
+        .collect();
+    let floors = vec![bottom; heights.len()];
+    // Lit from the upper left, as the simulation is, so its shape shows.
+    let colors = chipload_pipeline::models::top_shades(grid)
+        .into_iter()
+        .map(|shade| color.gamma_multiply(MODEL_SHADE_LOW + (1.0 - MODEL_SHADE_LOW) * shade))
+        .collect();
+    crate::view::SimSurface {
+        origin: grid.origin,
+        cell: grid.cell,
+        columns: grid.columns,
+        rows: grid.rows,
+        colors,
+        heights,
+        floors,
+        wall: color.gamma_multiply(0.7),
+        raw: false,
     }
 }

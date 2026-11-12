@@ -777,7 +777,7 @@ fn playback_steps_through_the_program_and_shows_the_stock_so_far() {
     app.sync_playback(&ctx);
     let progress = app.scene.progress.clone().unwrap();
     assert!(progress.tool_at.is_some());
-    assert_eq!(progress.tool.radius, 3.0);
+    assert_eq!(progress.tool.cutter.radius(), 3.0);
     assert!(
         app.playback
             .as_ref()

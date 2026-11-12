@@ -664,13 +664,15 @@ pub struct Progress {
 /// The tool's outline for the playback marker.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ToolLook {
-    pub radius: f64,
-    /// A cone's flat tip radius and how much it rises per mm out; None: a flat end.
-    pub cone: Option<(f64, f64)>,
+    /// The cutting end's shape, out to the tool's radius.
+    pub cutter: chipload_core::cutter::Cutter,
     /// A back setup's tool: it cuts the board from below, its shank down
     /// (docs/specs/two-sided.md §10.2).
     pub from_below: bool,
 }
+
+/// Points along the drawn tool's profile, from its axis out.
+const TOOL_PROFILE_STEPS: usize = 8;
 
 /// How faint the moves still to come are drawn.
 const TO_COME_FADE: f32 = 0.3;
@@ -719,7 +721,7 @@ impl Progress {
     /// A circle of the tool's size at its point; in 3D also its outline: a cylinder, or a
     /// cone on a cylinder.
     fn paint_tool(&self, painter: &Painter, view: &View, (x, y, z): Point3, mark: Color32) {
-        let r = self.tool.radius;
+        let r = self.tool.cutter.radius();
         let stroke = Stroke::new(2.0, mark);
         let ring = |z: f64, radius: f64| -> Vec<Pos2> {
             (0..=32)
@@ -734,22 +736,39 @@ impl Progress {
             painter.circle_filled(view.to_screen3((x, y, z)), 2.5, mark);
             return;
         }
-        // The cutting end: flat, or a cone up to the full radius.
-        let (tip, rise) = match self.tool.cone {
-            Some((tip, slope)) => (tip, slope * (r - tip)),
-            None => (r, 0.0),
-        };
+        // The cutting end as its profile: the height above the tip at each distance out
+        // (flat, a cone, a ball or a tapered ball), then the shank.
         let up = if self.tool.from_below { -1.0 } else { 1.0 };
+        let cutter = self.tool.cutter;
+        let profile: Vec<(f64, f64)> = (0..=TOOL_PROFILE_STEPS)
+            .map(|k| {
+                let d = r * k as f64 / TOOL_PROFILE_STEPS as f64;
+                (d, cutter.height_at(d).unwrap_or(0.0))
+            })
+            .collect();
+        // Where the end is flat: its rim is drawn as a ring.
+        let tip = profile
+            .iter()
+            .take_while(|(_, h)| *h <= chipload_core::tolerances::Z_NOISE_MM)
+            .last()
+            .map_or(0.0, |(d, _)| *d);
+        let rise = profile.last().map_or(0.0, |(_, h)| *h);
         let shank = (z + up * rise, z + up * (rise + 3.0 * r));
-        painter.add(Shape::line(ring(z, tip), stroke));
+        if tip > 0.0 {
+            painter.add(Shape::line(ring(z, tip), stroke));
+        }
         painter.add(Shape::line(ring(shank.0, r), stroke));
         painter.add(Shape::line(ring(shank.1, r), stroke));
         for k in 0..4 {
             let a = k as f64 * std::f64::consts::FRAC_PI_2 + view.turn;
             let (c, s) = (a.cos(), a.sin());
             let at = |radius: f64, z: f64| view.to_screen3((x + radius * c, y + radius * s, z));
-            painter.line_segment([at(tip, z), at(r, shank.0)], stroke);
-            painter.line_segment([at(r, shank.0), at(r, shank.1)], stroke);
+            let side: Vec<Pos2> = profile
+                .iter()
+                .map(|&(d, h)| at(d, z + up * h))
+                .chain(std::iter::once(at(r, shank.1)))
+                .collect();
+            painter.add(Shape::line(side, stroke));
         }
     }
 }
@@ -1029,6 +1048,9 @@ pub struct Scene {
     pub sim: Option<SimLayer>,
     /// The project's pictures, when shown (docs/specs/image-trace.md §6).
     pub pictures: Vec<PictureLayer>,
+    /// The project's 3D models, drawn faintly in 3D when no simulation is shown
+    /// (docs/specs/stl-relief.md §9).
+    pub models: Vec<SimSurface>,
     /// Playback away from the end (docs/specs/playback.md); None at the end.
     pub progress: Option<Progress>,
     /// Where each ring of the last generated toolpath starts (docs/specs/helix-and-leads.md
@@ -1406,6 +1428,11 @@ impl Scene {
         if let Some(sim) = &self.sim {
             let fade = self.toolpath.as_ref().is_some_and(|t| t.stale);
             sim.paint(painter, view, fade);
+        }
+        if !flat && self.sim.is_none() {
+            for model in &self.models {
+                painter.add(Shape::mesh(model.mesh(view, true)));
+            }
         }
         // Over the stock, so the trace can be compared with the cut.
         for picture in &self.pictures {

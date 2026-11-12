@@ -210,6 +210,16 @@ pub fn image_in_box(b: &PlacedBox, free: bool) -> (f64, f64, f64, f64) {
     (cx - width / 2.0, cy - height / 2.0, width, b.rotation)
 }
 
+/// A 3D model's box: its footprint's, `aspect` its height over its width
+/// (`models::footprint_aspect`). Placed as a picture is, so `image_in_box` reads it back.
+pub fn model_box(model: &chipload_job::Model, aspect: f64) -> PlacedBox {
+    PlacedBox {
+        corner: (model.x, model.y),
+        size: (model.width, model.width * aspect),
+        rotation: model.rotation,
+    }
+}
+
 /// A text's box, `size` being its letters' box (`texts::text_size`).
 pub fn text_box(text: &Text, size: (f64, f64)) -> PlacedBox {
     PlacedBox {
