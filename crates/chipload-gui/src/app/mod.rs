@@ -66,6 +66,7 @@ mod library_view;
 mod materials;
 mod measure;
 mod menu;
+mod models;
 mod modify;
 mod navigation;
 mod panels;
@@ -145,6 +146,8 @@ pub enum Focus {
     Tool(i64),
     Dxf(u64),
     Image(u64),
+    /// A 3D model, by id (docs/specs/stl-relief.md §9).
+    Model(u64),
     /// A text, by id (docs/specs/text.md §5).
     Text(u64),
     /// The user's library in the Browser (docs/specs/library-in-browser.md §4): its tools
@@ -207,6 +210,8 @@ enum PathPurpose {
     Image,
     /// Another DXF for the project (File > Add DXF from path…).
     AddDxf,
+    /// An STL model for the project (File > Add 3D model from path…).
+    Model,
     /// A new version of the project's DXF with this id (the Browser's Update…).
     UpdateDxf(u64),
     /// The drawing as a DXF (File > Export drawing as DXF).

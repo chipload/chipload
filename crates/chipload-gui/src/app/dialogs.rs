@@ -558,6 +558,10 @@ impl ChiploadApp {
                 t!(ctx, "dialogs-path-add-dxf-title"),
                 t!(ctx, "dialogs-path-add-dxf"),
             ),
+            PathPurpose::Model => (
+                t!(ctx, "dialogs-path-model-title"),
+                t!(ctx, "dialogs-path-model"),
+            ),
             PathPurpose::UpdateDxf(_) => (
                 t!(ctx, "dialogs-path-update-dxf-title"),
                 t!(ctx, "dialogs-path-update-dxf"),
@@ -605,6 +609,9 @@ impl ChiploadApp {
             }
             PathPurpose::AddDxf => {
                 self.add_dxf_from(&path, None);
+            }
+            PathPurpose::Model => {
+                self.add_model_from(&path);
             }
             PathPurpose::UpdateDxf(id) => {
                 self.update_dxf_from(Some(id), &path, None);

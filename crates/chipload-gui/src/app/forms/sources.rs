@@ -689,3 +689,144 @@ pub(in crate::app) fn font_list(
     }
     ui.data_mut(|d| d.insert_temp(search_id, search));
 }
+
+/// A 3D model's properties (docs/specs/stl-relief.md §3, §9): its size on the board, its
+/// place, turn, width and depth, which way is up, its layer. Each change applies when the
+/// edit is finished, as one undo step, and draws its outline again.
+pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Option<JobRequest> {
+    use chipload_job::{Model, ModelUp};
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let model = edit.job.drawing.models.iter().find(|m| m.id == id)?;
+    let mut request = None;
+    super::browser::title_line(ui, crate::icons::Icon::Model, None, &model.name);
+    // The fields edit a copy kept between frames; it is sent once the edit is finished.
+    let key = egui::Id::new(("model-draft", id));
+    let stored = model.clone();
+    let mut draft: Model = ui
+        .data(|d| d.get_temp::<(Model, Model)>(key))
+        .filter(|(from, _)| *from == stored)
+        .map_or_else(|| stored.clone(), |(_, draft)| draft);
+    // Its size on the board, worked out once per version of the model.
+    let size_key = egui::Id::new(("model-size", id));
+    let size = match ui
+        .data(|d| d.get_temp::<(Model, Option<[f64; 3]>)>(size_key))
+        .filter(|(m, _)| *m == stored)
+    {
+        Some((_, size)) => size,
+        None => {
+            let size = chipload_pipeline::models::placed_mesh(&edit.job, id)
+                .ok()
+                .and_then(|mesh| mesh.bounds())
+                .map(|(lo, hi)| [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]]);
+            ui.data_mut(|d| d.insert_temp(size_key, (stored.clone(), size)));
+            size
+        }
+    };
+    let mut finished = false;
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("model-form", id))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-model-file"));
+                ui.label(&model.file);
+                ui.end_row();
+                if let Some([w, h, d]) = size {
+                    ui.label(t!(ui, "forms-model-size"))
+                        .on_hover_text(t!(ui, "forms-model-size-hover"));
+                    ui.label(format!(
+                        "{} × {} × {} {len_unit}",
+                        len_in(units, w),
+                        len_in(units, h),
+                        len_in(units, d)
+                    ));
+                    ui.end_row();
+                }
+                ui.label(t!(ui, "forms-position"))
+                    .on_hover_text(t!(ui, "forms-model-position-hover"));
+                let hover = t!(ui, "forms-model-reset-position");
+                let shown = (draft.x, draft.y);
+                finished |= position_cells(ui, shown, (&mut draft.x, &mut draft.y), &hover);
+                ui.end_row();
+                ui.label(t!(ui, "forms-rotation"))
+                    .on_hover_text(t!(ui, "forms-model-rotation-hover"));
+                let hover = t!(ui, "forms-model-reset-rotation");
+                finished |= rotation_cells(ui, &mut draft.rotation, &hover);
+                ui.end_row();
+                ui.label(t!(ui, "forms-width"))
+                    .on_hover_text(t!(ui, "forms-model-width-hover"));
+                let response = ui.add(
+                    crate::units::length(&mut draft.width)
+                        .range(0.1..=10_000.0)
+                        .speed(0.5),
+                );
+                finished |= response.drag_stopped() || response.lost_focus();
+                ui.end_row();
+                ui.label(t!(ui, "forms-model-depth"))
+                    .on_hover_text(t!(ui, "forms-model-depth-hover"));
+                ui.horizontal(|ui| {
+                    let response = ui.add_enabled(
+                        !draft.proportional,
+                        crate::units::length(&mut draft.depth)
+                            .range(0.01..=1_000.0)
+                            .speed(0.1),
+                    );
+                    finished |= response.drag_stopped() || response.lost_focus();
+                    finished |= ui
+                        .checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
+                        .on_hover_text(t!(ui, "forms-model-proportional-hover"))
+                        .changed();
+                });
+                ui.end_row();
+                ui.label(t!(ui, "forms-model-up"))
+                    .on_hover_text(t!(ui, "forms-model-up-hover"));
+                let before = draft.up;
+                egui::ComboBox::from_id_salt(("model-up", id))
+                    .selected_text(draft.up.name().to_uppercase())
+                    .show_ui(ui, |ui| {
+                        for up in [
+                            ModelUp::Z,
+                            ModelUp::Y,
+                            ModelUp::X,
+                            ModelUp::MinusZ,
+                            ModelUp::MinusY,
+                            ModelUp::MinusX,
+                        ] {
+                            ui.selectable_value(&mut draft.up, up, up.name().to_uppercase());
+                        }
+                    });
+                finished |= draft.up != before;
+                ui.end_row();
+                ui.label(t!(ui, "forms-layer"))
+                    .on_hover_text(t!(ui, "forms-model-layer-hover"));
+                let response = ui.add(
+                    TextEdit::singleline(&mut draft.layer).desired_width(field_width(ui, 160.0)),
+                );
+                finished |= response.lost_focus();
+                ui.end_row();
+            })
+    });
+    if finished && draft != stored {
+        request = Some(JobRequest::ModelChange(id, Box::new(draft.clone())));
+    }
+    ui.data_mut(|d| d.insert_temp(key, (stored, draft)));
+    ui.add_space(4.0);
+    ui.horizontal(|ui| {
+        if ui
+            .button(t!(ui, "forms-model-new-relief"))
+            .on_hover_text(t!(ui, "forms-model-new-relief-hover"))
+            .clicked()
+        {
+            request = Some(JobRequest::NewRelief(id));
+        }
+        if ui
+            .button(t!(ui, "forms-remove"))
+            .on_hover_text(t!(ui, "forms-remove-model-hover"))
+            .clicked()
+        {
+            request = Some(JobRequest::RemoveModel(id));
+        }
+    });
+    request
+}

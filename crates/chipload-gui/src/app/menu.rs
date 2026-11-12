@@ -122,11 +122,21 @@ impl ChiploadApp {
         {
             self.import_image_dialog();
         }
+        if ui
+            .button(t!(ui, "menu-add-model"))
+            .on_hover_text(t!(ui, "menu-add-model-hover"))
+            .clicked()
+        {
+            self.add_model_dialog();
+        }
         if ui.button(t!(ui, "menu-open-path")).clicked() {
             self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Open, String::new()));
         }
         if ui.button(t!(ui, "menu-import-image-path")).clicked() {
             self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Image, String::new()));
+        }
+        if ui.button(t!(ui, "menu-add-model-path")).clicked() {
+            self.dialogs.prompt = Some(Prompt::Path(PathPurpose::Model, String::new()));
         }
         ui.separator();
         let (update, update_path) = self.update_labels();

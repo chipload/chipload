@@ -29,6 +29,7 @@ mod leave_out_shapes;
 mod live_problems;
 mod materials;
 mod menu_bar;
+mod models;
 mod narrow_panel;
 mod part_export;
 mod parts;

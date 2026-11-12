@@ -172,6 +172,7 @@ impl ChiploadApp {
             Focus::Tool(id) => request = forms::tool_form(ui, edit, library, id),
             Focus::Dxf(id) => request = forms::dxf_form(ui, edit, id),
             Focus::Image(id) => request = forms::image_form(ui, edit, id),
+            Focus::Model(id) => request = forms::model_form(ui, edit, id),
             Focus::Text(id) => {
                 request = forms::text_form(ui, edit, id, grab, &self.text_fonts);
             }
@@ -328,6 +329,13 @@ impl ChiploadApp {
             Some(JobRequest::RemoveText(id)) => {
                 self.remove_text(id);
             }
+            Some(JobRequest::ModelChange(id, model)) => {
+                self.set_model(id, &model);
+            }
+            Some(JobRequest::RemoveModel(id)) => {
+                self.remove_model(id);
+            }
+            Some(JobRequest::NewRelief(id)) => self.new_relief(id),
             Some(JobRequest::RemoveDxf(_) | JobRequest::RemoveImage(_)) | None => {}
         }
     }

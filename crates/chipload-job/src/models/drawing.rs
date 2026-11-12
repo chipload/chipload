@@ -528,6 +528,9 @@ impl Drawing {
         if let Some(text) = shape.text() {
             return format!("text:{text}");
         }
+        if let Some(model) = shape.model() {
+            return format!("model:{model}");
+        }
         match shape.geometry {
             Geometry::Circle { .. } => "drawn:circle".into(),
             Geometry::Rectangle { .. } => "drawn:rectangle".into(),

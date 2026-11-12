@@ -205,7 +205,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    add-roughing/remove-roughing`): levels with the raster, the tool grown by the allowance,
    its area kept within the finish's reach, joined along the next line; a warning for a
    relief deeper than its tool is wide without one; goldens v36_relief_dome_rough. Next:
-   the window (step 4), including the roughing pass's row and form in the Browser.
+   the window (step 4), including the roughing pass's row and form in the Browser. 4a done:
+   File > Add 3D model…, models in the Browser with their properties, STL drops. Next 4b
+   (the Relief button and form, the roughing row and form), 4c (3D view, handles, the
+   ball nose's look), 4d (guide).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

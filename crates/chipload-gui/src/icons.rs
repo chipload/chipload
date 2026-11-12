@@ -18,6 +18,8 @@ pub enum Icon {
     Vbit,
     Ballnose,
     Relief,
+    /// A 3D model: a box seen from a corner.
+    Model,
     Drawing,
     Dxf,
     Layer,
@@ -163,6 +165,18 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 std::f32::consts::TAU,
             );
             pen.poly(&hill);
+        }
+        Icon::Model => {
+            pen.closed(&[
+                (0.5, 0.12),
+                (0.86, 0.3),
+                (0.86, 0.7),
+                (0.5, 0.88),
+                (0.14, 0.7),
+                (0.14, 0.3),
+            ]);
+            pen.poly(&[(0.14, 0.3), (0.5, 0.48), (0.86, 0.3)]);
+            pen.line([(0.5, 0.48), (0.5, 0.88)]);
         }
         Icon::Drawing | Icon::Dxf => {
             pen.sheet();

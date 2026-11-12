@@ -89,6 +89,11 @@ pub(super) enum JobRequest {
     /// Text `id` as its properties left it, or removed (docs/specs/text.md §5).
     TextChange(u64, Box<chipload_job::Text>),
     RemoveText(u64),
+    /// Model `id` as its properties left it, removed, or carved by a new relief
+    /// (docs/specs/stl-relief.md §9).
+    ModelChange(u64, Box<chipload_job::Model>),
+    RemoveModel(u64),
+    NewRelief(u64),
     /// Move DXF `id` (docs/specs/drawing-placement.md, drawing-sources.md §2).
     Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:

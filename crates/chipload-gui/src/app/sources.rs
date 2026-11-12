@@ -52,6 +52,8 @@ pub(super) enum GroupKind {
     Dxf(u64),
     Image(u64),
     Text(u64),
+    /// A 3D model's outline (docs/specs/stl-relief.md §9).
+    Model(u64),
     Drawn,
     /// A group of drawn shapes and texts, by id (docs/specs/shape-groups.md §5).
     Shapes(u64),
@@ -75,6 +77,10 @@ enum PanelAction {
     Explode(Source),
     EditImage(u64),
     RemoveImage(u64),
+    OpenModel(u64),
+    RemoveModel(u64),
+    NewRelief(u64),
+    AddModel,
     RemoveText(u64),
     /// A drawn shape's row: select it (or the shapes of a layer), rename, copy, delete it.
     SelectShapes(Vec<u64>),
@@ -157,6 +163,18 @@ impl ChiploadApp {
                     id = image.id
                 ),
                 GroupKind::Image(image.id),
+            );
+        }
+        for model in &drawing.models {
+            push(
+                format!("model:{}", model.id),
+                t!(
+                    self,
+                    "sources-model-title",
+                    name = model.name.as_str(),
+                    id = model.id
+                ),
+                GroupKind::Model(model.id),
             );
         }
         for text in &drawing.texts {
@@ -403,6 +421,11 @@ impl ChiploadApp {
                 key.strip_prefix("text:")
                     .and_then(|id| id.parse().ok())
                     .map(ShapeFrom::Text)
+            })
+            .or_else(|| {
+                key.strip_prefix("model:")
+                    .and_then(|id| id.parse().ok())
+                    .map(ShapeFrom::Model)
             });
         if let Some(source) = source {
             return CanvasSelection::whole(source);
@@ -471,6 +494,13 @@ impl ChiploadApp {
                     action = Some(PanelAction::AddImage);
                 }
                 if ui
+                    .button(t!(ui, "sources-add-model"))
+                    .on_hover_text(t!(ui, "sources-add-model-hover"))
+                    .clicked()
+                {
+                    action = Some(PanelAction::AddModel);
+                }
+                if ui
                     .button(t!(ui, "sources-add-text"))
                     .on_hover_text(t!(ui, "sources-add-text-hover"))
                     .clicked()
@@ -527,6 +557,12 @@ impl ChiploadApp {
             Some(PanelAction::RemoveImage(image)) => {
                 self.remove_image(image);
             }
+            Some(PanelAction::OpenModel(model)) => self.focus = Focus::Model(model),
+            Some(PanelAction::RemoveModel(model)) => {
+                self.remove_model(model);
+            }
+            Some(PanelAction::NewRelief(model)) => self.new_relief(model),
+            Some(PanelAction::AddModel) => self.add_model_dialog(),
             Some(PanelAction::RemoveText(text)) => {
                 self.remove_text(text);
             }
@@ -579,6 +615,7 @@ impl ChiploadApp {
             (GroupKind::Dxf(_), _) => Icon::Dxf,
             (GroupKind::Image(_), _) => Icon::Image,
             (GroupKind::Text(_), _) => Icon::Text,
+            (GroupKind::Model(_), _) => Icon::Model,
             (GroupKind::Drawn, "drawn:circle") => Icon::Circle,
             (GroupKind::Drawn, "drawn:rectangle") => Icon::Rectangle,
             (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
@@ -622,6 +659,7 @@ impl ChiploadApp {
             match group.kind {
                 GroupKind::Dxf(dxf) => *action = Some(PanelAction::Place(dxf)),
                 GroupKind::Image(image) => *action = Some(PanelAction::EditImage(image)),
+                GroupKind::Model(model) => *action = Some(PanelAction::OpenModel(model)),
                 GroupKind::Text(_) | GroupKind::Drawn | GroupKind::Shapes(_) => {}
             }
         } else if out.response.clicked() {
@@ -631,6 +669,7 @@ impl ChiploadApp {
             GroupKind::Dxf(_) => t!(ui, "sources-dxf-hover"),
             GroupKind::Image(_) => t!(ui, "sources-image-hover"),
             GroupKind::Text(_) => t!(ui, "sources-text-hover"),
+            GroupKind::Model(_) => t!(ui, "sources-model-hover"),
             GroupKind::Drawn => t!(ui, "sources-drawn-hover"),
             GroupKind::Shapes(_) => t!(ui, "groups-row-hover"),
         };
@@ -691,6 +730,27 @@ impl ChiploadApp {
                         .clicked()
                     {
                         *action = Some(PanelAction::RemoveDxf(dxf));
+                    }
+                }
+                GroupKind::Model(model) => {
+                    ui.separator();
+                    if ui
+                        .button(t!(ui, "sources-model-new-relief"))
+                        .on_hover_text(t!(ui, "sources-model-new-relief-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::NewRelief(model));
+                    }
+                    if ui.button(t!(ui, "sources-model-properties")).clicked() {
+                        *action = Some(PanelAction::OpenModel(model));
+                    }
+                    ui.separator();
+                    if ui
+                        .button(t!(ui, "common-remove"))
+                        .on_hover_text(t!(ui, "sources-remove-model-hover"))
+                        .clicked()
+                    {
+                        *action = Some(PanelAction::RemoveModel(model));
                     }
                 }
                 GroupKind::Image(image) => {
@@ -769,6 +829,7 @@ impl ChiploadApp {
             GroupKind::Dxf(dxf) => Some(ShapeFrom::Dxf(dxf)),
             GroupKind::Image(image) => Some(ShapeFrom::Image(image)),
             GroupKind::Text(text) => Some(ShapeFrom::Text(text)),
+            GroupKind::Model(model) => Some(ShapeFrom::Model(model)),
             GroupKind::Drawn | GroupKind::Shapes(_) => None,
         };
         for (layer, count) in &group.layers {
@@ -935,6 +996,9 @@ fn source_focus(key: &str) -> Option<Focus> {
     }
     if let Some(id) = key.strip_prefix("image:").and_then(|id| id.parse().ok()) {
         return Some(Focus::Image(id));
+    }
+    if let Some(id) = key.strip_prefix("model:").and_then(|id| id.parse().ok()) {
+        return Some(Focus::Model(id));
     }
     key.strip_prefix("text:")
         .and_then(|id| id.parse().ok())

@@ -38,3 +38,13 @@ dropping-new-both = Neues Projekt mit { $dxfs ->
         [one] { $pictures } Bild
        *[other] { $pictures } Bildern
     }
+
+# Files dropped with an STL model among them, counted together.
+dropping-add-files = { $files ->
+    [one] Die Datei zum Projekt hinzufügen
+   *[other] { $files } Dateien zum Projekt hinzufügen
+}
+dropping-new-files = { $files ->
+    [one] Neues Projekt mit der Datei
+   *[other] Neues Projekt mit { $files } Dateien
+}

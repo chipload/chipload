@@ -11,6 +11,8 @@ pub(super) enum Dropped {
     Project,
     Dxf,
     Picture,
+    /// An STL model (docs/specs/stl-relief.md §9).
+    Model,
 }
 
 pub(super) fn dropped_kind(path: &Path) -> Option<Dropped> {
@@ -21,6 +23,7 @@ pub(super) fn dropped_kind(path: &Path) -> Option<Dropped> {
     match extension.as_str() {
         "dxf" | "svg" | "svgz" => Some(Dropped::Dxf),
         "png" | "jpg" | "jpeg" | "bmp" => Some(Dropped::Picture),
+        "stl" => Some(Dropped::Model),
         e if e == PROJECT_EXTENSION || e == "json" => Some(Dropped::Project),
         _ => None,
     }
@@ -43,6 +46,15 @@ pub(super) fn drop_meaning(
         } else {
             Err(t!(lang, "dropping-one-project"))
         };
+    }
+    // With a model among them, the files are counted together.
+    if kinds.contains(&Dropped::Model) {
+        let files = kinds.len();
+        return Ok(if open {
+            t!(lang, "dropping-add-files", files = files)
+        } else {
+            t!(lang, "dropping-new-files", files = files)
+        });
     }
     let dxfs = kinds.iter().filter(|&&k| k == Dropped::Dxf).count();
     let pictures = kinds.len() - dxfs;
@@ -94,6 +106,9 @@ impl ChiploadApp {
                 }
                 Some(Dropped::Picture) => {
                     self.import_image(&path);
+                }
+                Some(Dropped::Model) => {
+                    self.add_model_from(&path);
                 }
                 Some(Dropped::Project) | None => {}
             }

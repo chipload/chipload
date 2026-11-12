@@ -1,0 +1,39 @@
+# 3D models in the window: File > Add 3D model…, their rows in the Browser and their
+# properties (crates/chipload-gui/src/app/models.rs, sources.rs, forms/sources.rs).
+
+models-stl-filter = Modelli STL
+models-cannot-read = Impossibile leggere { $path }: { $error }
+models-cannot-add = Impossibile aggiungere { $path }:
+models-cannot-place = Impossibile posizionare il modello così:
+models-removed = Modello { $id } rimosso
+dialogs-path-model-title = Aggiungi modello 3D
+dialogs-path-model = Un file STL (binario o di testo):
+menu-add-model = Aggiungi modello 3D…
+menu-add-model-hover = Un file STL, scolpito nella tavola dall'alto come rilievo
+menu-add-model-path = Aggiungi modello 3D da percorso…
+sources-model-title = { $name } (modello { $id })
+sources-add-model = Aggiungi modello 3D…
+sources-add-model-hover = Un file STL, scolpito nella tavola dall'alto come rilievo
+sources-model-hover = Un modello 3D: il suo contorno sulla tavola. Doppio clic per posizione, dimensione e profondità
+sources-model-new-relief = Nuovo rilievo
+sources-model-new-relief-hover = Scolpisci questo modello: una lavorazione Rilievo dentro il suo contorno, nel pezzo attivo
+sources-model-properties = Proprietà
+sources-remove-model-hover = Rimuovi il modello e il suo contorno; i suoi rilievi restano, ciascuno con un problema finché non ha un altro modello
+forms-model-file = File
+forms-model-size = Sulla tavola
+forms-model-size-hover = Larghezza × altezza × profondità del modello posizionato
+forms-model-position-hover = L'angolo in basso a sinistra del contorno del modello, prima della rotazione
+forms-model-reset-position = Torna all'origine del disegno
+forms-model-rotation-hover = Ruotato in senso antiorario attorno al centro del contorno
+forms-model-reset-rotation = Non ruotato
+forms-model-width-hover = La larghezza del modello sulla tavola; l'altezza segue
+forms-model-depth = Profondità
+forms-model-depth-hover = Quanto scende il rilievo, dalla cima del modello al suo punto più basso. I rilievi sono di solito più piatti del modello
+forms-model-proportional = Mantieni proporzioni
+forms-model-proportional-hover = La profondità segue la larghezza, nella proporzione del modello
+forms-model-up = Su
+forms-model-up-hover = Quale asse del modello punta in su dalla tavola. Molti file sono modellati con Y in su
+forms-model-layer-hover = Il livello su cui è disegnato il contorno del modello
+forms-model-new-relief = Nuovo rilievo
+forms-model-new-relief-hover = Scolpisci questo modello: una lavorazione Rilievo dentro il suo contorno, nel pezzo attivo
+forms-remove-model-hover = Rimuovi il modello e il suo contorno; i suoi rilievi restano, ciascuno con un problema finché non ha un altro modello

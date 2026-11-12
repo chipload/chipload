@@ -356,3 +356,15 @@ Step 3, 2026-11-12:
   the area, else a lift to the next stretch in line order. A finishing line's link to the
   next line now also has to stay inside the area, or the tool lifts (a concave outline).
 
+Step 4, the window, 2026-11-12:
+- **4a, models in the window:** *File > Add 3D model…* (and *… from path…*, the Drawing
+  folder's right-click, or an STL dropped on the window) adds the model half the board
+  wide at the drawing's origin, as a picture starts, and as deep as its own proportion
+  gives but at most half the board's thickness (then *Keep proportions* is off): reliefs
+  are nearly always flatter than the model. It is a group of the Browser's Drawing folder
+  (its outline's key is `model:N`, so it hides and shows as one), with *New relief*,
+  *Properties* and *Remove* on its right-click. Its properties: the file, its size on the
+  board, position, rotation, width, depth with *Keep proportions*, up and layer, each
+  change one undo step that draws the outline again; *New relief* and *Remove* below.
+  Removing a model leaves its reliefs, each with a problem, as removing a picture leaves
+  its V-carves.
