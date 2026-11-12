@@ -75,6 +75,16 @@ impl ChiploadApp {
     }
 
     /// What the 3D view turns around: the stock's centre, else the drawing origin.
+    /// Orbit by a drag in 3D; a left-right drag the other way with View > Reverse
+    /// left-right orbit (issue #16).
+    pub(super) fn orbit_by(&mut self, mut delta: egui::Vec2) {
+        if self.prefs.reverse_orbit {
+            delta.x = -delta.x;
+        }
+        let pivot = self.orbit_pivot();
+        self.view.orbit(delta, pivot);
+    }
+
     pub(super) fn orbit_pivot(&self) -> Point {
         self.scene.stock.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
             ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
@@ -400,7 +410,7 @@ impl ChiploadApp {
             if pan {
                 self.view.pan(response.drag_delta());
             } else {
-                self.view.orbit(response.drag_delta(), self.orbit_pivot());
+                self.orbit_by(response.drag_delta());
             }
         }
         if let Some(pos) = response.hover_pos() {

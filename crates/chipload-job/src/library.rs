@@ -860,6 +860,11 @@ pub struct AppSettings {
     /// (written before it existed): on.
     #[serde(default = "show_grid_default")]
     pub show_rulers: bool,
+    /// In 3D, a left-right drag turns the model the other way: with the mouse, as many CAD
+    /// programs do (docs/specs/3d-view.md §3; issue #16). Missing (written before it
+    /// existed): off.
+    #[serde(default)]
+    pub reverse_orbit: bool,
     /// The units the app shows and takes lengths and feeds in; the project stays in mm
     /// (docs/specs/inch-units.md §5). Missing (written before it existed): mm.
     #[serde(default = "display_units_default")]
@@ -915,6 +920,7 @@ impl Default for AppSettings {
             setup_sheet: true,
             show_grid: true,
             show_rulers: true,
+            reverse_orbit: false,
             units: Units::Mm,
             language: language_default(),
             update_check: None,

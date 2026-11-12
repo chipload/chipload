@@ -14,6 +14,8 @@ pub struct Prefs {
     pub show_grid: bool,
     /// Rulers along the canvas's edges in top view (docs/specs/rulers.md).
     pub show_rulers: bool,
+    /// View > Reverse left-right orbit (docs/specs/3d-view.md §3), kept in the app settings.
+    pub reverse_orbit: bool,
     /// Settings > Colour theme, kept in the app settings.
     pub theme: Theme,
     /// Settings > Units: what lengths and feeds are shown and typed in
@@ -37,6 +39,7 @@ impl Default for Prefs {
             setup_sheet: true,
             show_grid: true,
             show_rulers: true,
+            reverse_orbit: false,
             units: chipload_job::Units::Mm,
             language_setting: chipload_job::library::SYSTEM_LANGUAGE.to_string(),
             language: crate::i18n::Language::En,

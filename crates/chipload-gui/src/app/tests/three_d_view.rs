@@ -185,3 +185,27 @@ fn a_zoomed_view_keeps_its_area_in_a_resized_canvas() {
     assert!((app.view.offset.0 - zoomed.offset.0).abs() < 1e-6);
     assert!((app.view.offset.1 - zoomed.offset.1).abs() < 1e-6);
 }
+
+/// Issue #16: View > Reverse left-right orbit turns the model the other way on a
+/// left-right drag, up-down unchanged.
+#[test]
+fn a_left_right_drag_orbits_the_other_way_when_reversed() {
+    let drag = |reverse: bool| {
+        let mut app = drawn_part();
+        app.view_3d();
+        app.prefs.reverse_orbit = reverse;
+        let (turn, tilt) = (app.view.turn, app.view.tilt);
+        app.orbit_by(egui::vec2(20.0, 10.0));
+        (app.view.turn - turn, app.view.tilt - tilt)
+    };
+    let (plain, plain_tilt) = drag(false);
+    let (reversed, reversed_tilt) = drag(true);
+    assert!(plain != 0.0);
+    // Turns are kept in 0..2π: compare the change as an angle.
+    let sum = (plain + reversed).rem_euclid(std::f64::consts::TAU);
+    assert!(
+        sum < 1e-9 || std::f64::consts::TAU - sum < 1e-9,
+        "{plain} {reversed}"
+    );
+    assert_eq!(plain_tilt, reversed_tilt);
+}

@@ -607,6 +607,11 @@ impl ChiploadApp {
         self.change_settings(|settings| settings.show_rulers = on);
     }
 
+    pub fn set_reverse_orbit(&mut self, on: bool) {
+        self.prefs.reverse_orbit = on;
+        self.change_settings(|settings| settings.reverse_orbit = on);
+    }
+
     pub fn set_setup_sheet(&mut self, on: bool) {
         self.prefs.setup_sheet = on;
         self.change_settings(|settings| settings.setup_sheet = on);

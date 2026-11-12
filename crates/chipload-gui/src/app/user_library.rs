@@ -639,6 +639,7 @@ impl ChiploadApp {
         self.prefs.setup_sheet = settings.setup_sheet;
         self.prefs.show_grid = settings.show_grid;
         self.prefs.show_rulers = settings.show_rulers;
+        self.prefs.reverse_orbit = settings.reverse_orbit;
         self.prefs.units = settings.units;
         self.show_in(crate::i18n::resolve(&settings.language));
         self.prefs.language_setting = settings.language;

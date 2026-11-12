@@ -422,6 +422,14 @@ impl ChiploadApp {
                 ui.radio_value(&mut self.view.z_scale, factor, format!("× {factor}"));
             }
         });
+        let mut reverse = self.prefs.reverse_orbit;
+        if ui
+            .checkbox(&mut reverse, t!(ui, "menu-reverse-orbit"))
+            .on_hover_text(t!(ui, "menu-reverse-orbit-hover"))
+            .changed()
+        {
+            self.set_reverse_orbit(reverse);
+        }
         let mut grid = self.prefs.show_grid;
         if ui
             .checkbox(
