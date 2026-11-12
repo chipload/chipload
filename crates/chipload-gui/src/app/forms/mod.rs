@@ -68,6 +68,8 @@ pub(super) enum JobRequest {
     RemoveRestPass(usize, usize),
     /// Remove V-carve i's floor pass.
     RemoveFloorPass(usize),
+    /// Remove relief i's roughing pass.
+    RemoveRoughingPass(usize),
     /// Set part `id`'s pitch so this many mm are left between its copies' cuts
     /// (docs/specs/copies-grid.md decision 2).
     CopiesGap(u64, f64),

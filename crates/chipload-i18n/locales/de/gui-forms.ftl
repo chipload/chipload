@@ -547,3 +547,20 @@ forms-slot-step-down = Zustellung Nut
 forms-slot-step-down-hover = Die Ringe über die volle Breite gehen in Schritten von höchstens dieser Tiefe bis zu jeder Tiefe, bevor die anderen Ringe die ganze Zustellung auf einmal schneiden
 forms-pocket-step-down-hover = Die größte Tiefe jedes Durchgangs; die Ringe mit seitlicher Zustellung schneiden sie auf einmal
 forms-material-speed-differs = Die Werte von { $name } gelten für { $rpm } rpm; das Werkzeug läuft mit { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Tiefe
+forms-relief-depth-hover = Wie tief das Relief geht: die Tiefe des Modells, in den Eigenschaften des Modells eingestellt
+forms-relief-stepover-hover = Der Abstand der Bahnen als Anteil des Werkzeugdurchmessers: kleiner ist glatter und langsamer
+forms-relief-angle-hover = Die Richtung der Bahnen ab X. Bahnen schräg zu den langen Kanten des Modells hinterlassen weniger Spuren
+forms-relief-zigzag-hover = Hin und her entlang der Bahnen, oder jede Bahn in dieselbe Richtung, mit Abheben dazwischen
+forms-roughing-pass = Schruppdurchgang
+forms-roughing-of = Schruppen von
+forms-roughing-of-hover = Das Relief, das dieser Durchgang vor dem Schlichten schruppt
+forms-from-relief = Vom Relief
+forms-roughing-facts = { $start }–{ $end } { $unit }, Bahnen unter { $angle }°
+forms-roughing-step-down-hover = Der Abstand der Ebenen: das Material wird Ebene für Ebene abgetragen
+forms-roughing-allowance = Aufmaß
+forms-roughing-allowance-hover = Was für das Schlichten auf dem Modell stehen bleibt, ringsum: auch an steilen Flanken
+forms-roughing-note = Direkt vor dem Relief gefräst. Er schneidet nie breiter, als die Schlichtbahn reicht, und das Programm wird geprüft, damit das Aufmaß am Modell bleibt.
+forms-remove-roughing = Schruppdurchgang entfernen

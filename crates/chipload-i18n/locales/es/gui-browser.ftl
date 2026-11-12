@@ -29,6 +29,8 @@ browser-holes = Taladros
 browser-holes-hover = Los círculos seleccionados: taladrados con una broca, o mandrinados en hélice con una fresa
 browser-surface = Planeado
 browser-relief = Relieve
+browser-relief-hover = Un modelo 3D tallado desde arriba en líneas paralelas, cada punto tan bajo como la herramienta puede llegar sin cortar el modelo. Dentro del contorno del modelo seleccionado, o del primero
+browser-relief-needs-model = Añade primero un modelo 3D (Archivo > Añadir modelo 3D…)
 browser-surface-hover = Todo el material en bruto rebajado en plano con una fresa ancha: aplanar el tablero de sacrificio o planear el material. No necesita selección
 
 # Job settings and Tools.
@@ -128,3 +130,9 @@ browser-copy-as-selector-hover = La selección como JSON, para una operación en
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.
 browser-tool-change = cambio de herramienta → T{ $tool }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+browser-add-roughing = Añadir pasada de desbaste
+browser-add-roughing-hover = Una fresa plana o de punta esférica simple que primero quita el material por niveles, dejando sobrematerial para el relieve
+browser-roughing = Desbaste
+browser-roughing-hover = Una pasada de desbaste: el material quitado por niveles antes del relieve, con sobrematerial sobre el modelo

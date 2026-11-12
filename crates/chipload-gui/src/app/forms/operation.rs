@@ -578,7 +578,7 @@ pub(in crate::app) fn op_form(
             });
             feeds_section(ui, &mut f.feed, &mut f.plunge_feed, op_tool);
         }
-        // docs/specs/stl-relief.md §5; the full form comes with the window step (§12).
+        // docs/specs/stl-relief.md §5, §9.
         Operation::Relief(r) => {
             let cut = t!(
                 ui,
@@ -594,7 +594,16 @@ pub(in crate::app) fn op_form(
                     .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut r.start_depth)), ui, "start_depth");
                 ui.end_row();
-                ui.label(t!(ui, "forms-stepover"));
+                // The model's depth, set in its own properties.
+                ui.label(t!(ui, "forms-relief-depth"))
+                    .on_hover_text(t!(ui, "forms-relief-depth-hover"));
+                ui.weak(format!(
+                    "{} {len_unit}",
+                    len_in(units, r.end_depth - r.start_depth)
+                ));
+                ui.end_row();
+                ui.label(t!(ui, "forms-stepover"))
+                    .on_hover_text(t!(ui, "forms-relief-stepover-hover"));
                 let stepover = ui.add(
                     crate::units::number(ui, &mut r.stepover)
                         .speed(0.01)
@@ -603,7 +612,8 @@ pub(in crate::app) fn op_form(
                 );
                 flag(stepover, ui, "stepover");
                 ui.end_row();
-                ui.label(t!(ui, "forms-relief-angle"));
+                ui.label(t!(ui, "forms-relief-angle"))
+                    .on_hover_text(t!(ui, "forms-relief-angle-hover"));
                 let mut degrees = r.angle.to_degrees();
                 if ui
                     .add(
@@ -618,7 +628,8 @@ pub(in crate::app) fn op_form(
                 }
                 ui.end_row();
                 ui.label("");
-                ui.checkbox(&mut r.zigzag, t!(ui, "forms-relief-zigzag"));
+                ui.checkbox(&mut r.zigzag, t!(ui, "forms-relief-zigzag"))
+                    .on_hover_text(t!(ui, "forms-relief-zigzag-hover"));
                 ui.end_row();
             });
             feeds_section(ui, &mut r.feed, &mut r.plunge_feed, op_tool);

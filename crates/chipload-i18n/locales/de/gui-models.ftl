@@ -37,3 +37,7 @@ forms-model-layer-hover = Die Ebene, auf der der Umriss des Modells gezeichnet w
 forms-model-new-relief = Neues Relief
 forms-model-new-relief-hover = Dieses Modell fräsen: eine Relief-Bearbeitung in seinem Umriss, im aktiven Teil
 forms-remove-model-hover = Modell und Umriss entfernen; seine Reliefs bleiben, jedes mit einem Problem, bis es ein anderes Modell bekommt
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = Der Schruppdurchgang konnte nicht hinzugefügt werden: { $error }
+models-no-roughing-tool = Kein Schaftfräser und kein einfacher Kugelfräser im Projekt oder in Ihrer Bibliothek

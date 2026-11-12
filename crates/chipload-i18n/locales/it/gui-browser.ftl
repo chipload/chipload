@@ -29,6 +29,8 @@ browser-holes = Fori
 browser-holes-hover = I cerchi selezionati: forati con una punta, o con foratura elicoidale con una fresa
 browser-surface = Spianatura
 browser-relief = Rilievo
+browser-relief-hover = Un modello 3D scolpito dall'alto in linee parallele, ogni punto basso quanto l'utensile può scendere senza intaccare il modello. Dentro il contorno del modello selezionato, o del primo
+browser-relief-needs-model = Aggiungi prima un modello 3D (File > Aggiungi modello 3D…)
 browser-surface-hover = Tutto il grezzo abbassato in piano con una fresa larga: spiana il piano di sacrificio o il grezzo. Non serve selezione
 
 # Job settings and Tools.
@@ -128,3 +130,9 @@ browser-copy-as-selector-hover = La selezione come JSON, per una lavorazione in 
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.
 browser-tool-change = cambio utensile → T{ $tool }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+browser-add-roughing = Aggiungi passata di sgrossatura
+browser-add-roughing-hover = Una fresa piatta o sferica semplice che prima toglie il materiale a livelli, lasciando sovrametallo per il rilievo
+browser-roughing = Sgrossatura
+browser-roughing-hover = Una passata di sgrossatura: il materiale tolto a livelli prima del rilievo, con sovrametallo sul modello

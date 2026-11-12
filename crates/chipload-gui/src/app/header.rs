@@ -173,14 +173,15 @@ impl ChiploadApp {
     /// The Operation menu: a new operation for the selection, an inlay, a style, Generate.
     pub(super) fn operation_menu(&mut self, ui: &mut egui::Ui) {
         let selected = !self.selected_ids().is_empty();
+        let models = self.has_models();
         for (_, kind, hover) in super::browser::new_operations(ui) {
             if ui
                 .add_enabled(
-                    selected || !kind.needs_selection(),
+                    super::browser::can_add(kind, selected, models),
                     egui::Button::new(new_operation(ui, kind)),
                 )
                 .on_hover_text(hover)
-                .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
+                .on_disabled_hover_text(super::browser::cannot_add(ui, kind))
                 .clicked()
             {
                 self.add_operation(kind);
@@ -657,8 +658,9 @@ impl ChiploadApp {
                         surface = Some((label, hover));
                         continue;
                     }
-                    // Made from a model (docs/specs/stl-relief.md §9: its button comes with
-                    // the window step).
+                    // Not on the ribbon: at the default width it would lose its names
+                    // (docs/specs/stl-relief.md §14 step 4). The Operation menu, the
+                    // Browser and a model's New relief make one.
                     OpKind::Relief => continue,
                 };
                 let short = if kind == OpKind::Path {
@@ -666,7 +668,7 @@ impl ChiploadApp {
                 } else {
                     label
                 };
-                let enabled = selected || !kind.needs_selection();
+                let enabled = super::browser::can_add(kind, selected, app.has_models());
                 let response = tinted_ribbon_button(ui, icon, &short, enabled, false, tint(kind));
                 let response = if enabled {
                     response.on_hover_text(hover)

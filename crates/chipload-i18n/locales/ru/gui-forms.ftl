@@ -481,3 +481,20 @@ forms-slot-step-down = Глубина в пазу
 forms-slot-step-down-hover = Кольца на всю ширину опускаются до каждой глубины шагами не глубже этого, прежде чем остальные кольца снимут всю глубину за раз
 forms-pocket-step-down-hover = Наибольшая глубина каждого прохода; кольца с боковым шагом снимают её за раз
 forms-material-speed-differs = Значения { $name } даны для { $rpm } об/мин; инструмент работает на { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Глубина
+forms-relief-depth-hover = Насколько глубоко идёт рельеф: глубина модели, задаётся в её свойствах
+forms-relief-stepover-hover = Расстояние между проходами в долях диаметра инструмента: меньше — глаже и медленнее
+forms-relief-angle-hover = Направление проходов от оси X. Проходы под углом к длинным краям модели оставляют меньше следов
+forms-relief-zigzag-hover = Вперёд и назад по проходам, или каждый проход в одну сторону с подъёмом между ними
+forms-roughing-pass = Черновой проход
+forms-roughing-of = Черновая обработка
+forms-roughing-of-hover = Рельеф, который этот проход обрабатывает начерно перед чистовой
+forms-from-relief = Из рельефа
+forms-roughing-facts = { $start }–{ $end } { $unit }, проходы под { $angle }°
+forms-roughing-step-down-hover = Расстояние между уровнями: материал снимается по одному уровню
+forms-roughing-allowance = Припуск
+forms-roughing-allowance-hover = Что остаётся на модели для чистовой, со всех сторон: и на крутых склонах
+forms-roughing-note = Выполняется сразу перед рельефом. Он никогда не режет шире, чем достаёт чистовая, а программа проверяется, чтобы припуск оставался на модели.
+forms-remove-roughing = Удалить черновой проход

@@ -37,3 +37,7 @@ forms-model-layer-hover = Слой, на котором рисуется кон�
 forms-model-new-relief = Новый рельеф
 forms-model-new-relief-hover = Вырезать эту модель: операция «Рельеф» внутри её контура, в активной детали
 forms-remove-model-hover = Удалить модель и её контур; её рельефы остаются, каждый с проблемой, пока не получит другую модель
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = Не удалось добавить черновой проход: { $error }
+models-no-roughing-tool = В проекте и вашей библиотеке нет концевой или обычной сферической фрезы

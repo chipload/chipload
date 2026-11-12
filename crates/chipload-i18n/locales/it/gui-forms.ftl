@@ -546,3 +546,20 @@ forms-slot-step-down = Prof. di passata cava
 forms-slot-step-down-hover = Gli anelli a piena larghezza scendono a ogni profondità a passi non più profondi di questo, prima che gli altri anelli taglino tutta la passata in una volta
 forms-pocket-step-down-hover = La profondità massima di ogni passata; gli anelli al passo laterale la tagliano in una volta
 forms-material-speed-differs = I valori di { $name } sono per { $rpm } rpm; l'utensile gira a { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Profondità
+forms-relief-depth-hover = Quanto scende il rilievo: la profondità del modello, impostata nelle sue proprietà
+forms-relief-stepover-hover = La distanza tra le linee, come parte del diametro dell'utensile: più piccola è più liscia e più lenta
+forms-relief-angle-hover = La direzione delle linee da X. Linee inclinate rispetto ai lati lunghi del modello lasciano meno segni
+forms-relief-zigzag-hover = Avanti e indietro lungo le linee, o ogni linea nello stesso verso, sollevando tra l'una e l'altra
+forms-roughing-pass = Passata di sgrossatura
+forms-roughing-of = Sgrossatura di
+forms-roughing-of-hover = Il rilievo che questa passata sgrossa prima della finitura
+forms-from-relief = Dal rilievo
+forms-roughing-facts = { $start }–{ $end } { $unit }, linee a { $angle }°
+forms-roughing-step-down-hover = La distanza tra i livelli: il materiale si toglie un livello alla volta
+forms-roughing-allowance = Sovrametallo
+forms-roughing-allowance-hover = Ciò che resta sul modello per la finitura, tutto intorno: anche sui fianchi ripidi
+forms-roughing-note = Tagliata subito prima del rilievo. Non taglia mai più largo di dove arriva la finitura, e il programma è controllato per lasciare il sovrametallo sul modello.
+forms-remove-roughing = Rimuovi passata di sgrossatura

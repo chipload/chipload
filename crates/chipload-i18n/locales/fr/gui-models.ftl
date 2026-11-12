@@ -37,3 +37,7 @@ forms-model-layer-hover = Le calque sur lequel le contour du modèle est dessin�
 forms-model-new-relief = Nouveau relief
 forms-model-new-relief-hover = Usiner ce modèle : une opération Relief dans son contour, dans la pièce active
 forms-remove-model-hover = Supprimer le modèle et son contour ; ses reliefs restent, chacun avec un problème jusqu'à ce qu'il ait un autre modèle
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = Impossible d'ajouter la passe d'ébauche : { $error }
+models-no-roughing-tool = Aucune fraise droite ni hémisphérique simple dans le projet ou votre bibliothèque

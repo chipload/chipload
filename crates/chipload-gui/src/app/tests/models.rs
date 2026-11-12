@@ -121,4 +121,69 @@ fn model_pictures() {
         let image = harness.render().unwrap();
         image.save(dir.join(format!("{name}.png"))).unwrap();
     }
+    // A relief with its roughing pass open.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1280.0, 800.0))
+        .wgpu()
+        .build_eframe(move |cc| {
+            open_sections(&cc.egui_ctx);
+            {
+                let mut fonts = crate::fonts::ui_fonts();
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+            }
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            app.open(&corpus("jobs/v36/relief_dome.chipload"));
+            app.add_roughing(0, 1);
+            app
+        });
+    harness.run_steps(6);
+    let image = harness.render().unwrap();
+    image.save(dir.join("roughing-en.png")).unwrap();
+}
+
+#[test]
+fn a_relief_needs_a_model_and_can_be_roughed_first() {
+    use chipload_pipeline::new_ops::OpKind;
+    let mut app = ChiploadApp::default();
+    app.new_project();
+    assert!(!crate::app::browser::can_add(
+        OpKind::Relief,
+        true,
+        app.has_models()
+    ));
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    assert!(crate::app::browser::can_add(
+        OpKind::Relief,
+        false,
+        app.has_models()
+    ));
+    // The 6 mm end mill is offered, the ball nose too (a plain one).
+    match app.roughing_menu(0) {
+        Some(RestMenu::Tools { project, .. }) => {
+            assert_eq!(
+                project.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+                vec![1, 2]
+            );
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(app.add_roughing(0, 1));
+    assert_eq!(app.focus, Focus::RoughingPass(0));
+    let rough = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
+        chipload_job::Operation::Relief(r) => r.roughing,
+        _ => None,
+    };
+    assert_eq!(rough(&app).map(|r| (r.tool, r.allowance)), Some((1, 0.5)));
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+    app.toggle_roughing(0);
+    assert_eq!(rough(&app).map(|r| r.enabled), Some(false));
+    app.remove_roughing(0);
+    assert_eq!(rough(&app), None);
+    assert_eq!(app.focus, Focus::Op(0));
+    app.undo();
+    assert!(rough(&app).is_some());
 }

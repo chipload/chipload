@@ -546,3 +546,20 @@ forms-slot-step-down = Prof. de pasada ranura
 forms-slot-step-down-hover = Los anillos a todo el ancho bajan a cada profundidad en pasos no más profundos que esto, antes de que los otros anillos corten toda la pasada de una vez
 forms-pocket-step-down-hover = Lo más profundo que baja cada pasada; los anillos con paso lateral la cortan de una vez
 forms-material-speed-differs = Los valores de { $name } son para { $rpm } rpm; la herramienta gira a { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Profundidad
+forms-relief-depth-hover = Cuánto baja el relieve: la profundidad del modelo, ajustada en sus propiedades
+forms-relief-stepover-hover = La distancia entre líneas, como parte del diámetro de la herramienta: menor es más liso y más lento
+forms-relief-angle-hover = La dirección de las líneas desde X. Líneas en ángulo con los bordes largos del modelo dejan menos marcas
+forms-relief-zigzag-hover = Ida y vuelta por las líneas, o cada línea en el mismo sentido, subiendo entre ellas
+forms-roughing-pass = Pasada de desbaste
+forms-roughing-of = Desbaste de
+forms-roughing-of-hover = El relieve que esta pasada desbasta antes del acabado
+forms-from-relief = Del relieve
+forms-roughing-facts = { $start }–{ $end } { $unit }, líneas a { $angle }°
+forms-roughing-step-down-hover = La distancia entre niveles: el material se quita un nivel cada vez
+forms-roughing-allowance = Sobrematerial
+forms-roughing-allowance-hover = Lo que queda sobre el modelo para el acabado, alrededor: también en los lados empinados
+forms-roughing-note = Se corta justo antes del relieve. Nunca corta más ancho de lo que alcanza el acabado, y el programa se comprueba para mantener el sobrematerial sobre el modelo.
+forms-remove-roughing = Quitar pasada de desbaste

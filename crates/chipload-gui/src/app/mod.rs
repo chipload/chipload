@@ -136,6 +136,8 @@ pub enum Focus {
     RestPass(usize, usize),
     /// V-carve `0`'s floor pass (docs/specs/vcarve-wide-strokes.md §7).
     FloorPass(usize),
+    /// Relief `0`'s roughing pass (docs/specs/stl-relief.md §14).
+    RoughingPass(usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
     /// A setup, by id (docs/specs/setups.md §7).
@@ -1932,8 +1934,10 @@ impl ChiploadApp {
     // -- internals
 
     fn focused_contours(&self) -> BTreeSet<usize> {
-        let (Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i), Some(edit)) =
-            (self.focus, &self.edit)
+        let (
+            Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) | Focus::RoughingPass(i),
+            Some(edit),
+        ) = (self.focus, &self.edit)
         else {
             return BTreeSet::new();
         };

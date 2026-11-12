@@ -37,3 +37,7 @@ forms-model-layer-hover = La capa en la que se dibuja el contorno del modelo
 forms-model-new-relief = Nuevo relieve
 forms-model-new-relief-hover = Tallar este modelo: una operación Relieve dentro de su contorno, en la pieza activa
 forms-remove-model-hover = Eliminar el modelo y su contorno; sus relieves quedan, cada uno con un problema hasta que tenga otro modelo
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = No se pudo añadir la pasada de desbaste: { $error }
+models-no-roughing-tool = Ninguna fresa plana ni de punta esférica simple en el proyecto o tu biblioteca

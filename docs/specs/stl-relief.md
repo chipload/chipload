@@ -368,3 +368,13 @@ Step 4, the window, 2026-11-12:
   change one undo step that draws the outline again; *New relief* and *Remove* below.
   Removing a model leaves its reliefs, each with a problem, as removing a picture leaves
   its V-carves.
+- **4b, the relief and its roughing in the window:** *Relief* is in the Operation menu and
+  the Browser's *New operation*, on when the project has a model (its hover says to add one
+  first). **Not on the ribbon** for now: at the default 1280-pixel width a Relief button,
+  even a small one beside Surface, leaves the ribbon 10 pixels short, and every button
+  loses its name; the user decides. The relief's form shows its depth (the model's) as a
+  fact, with hovers for its lines. A relief's right-click offers *Add roughing pass ▸*
+  with the project's and the library's end mills and plain ball noses; the pass is a leaf
+  under the relief, as a floor pass is, with its own form (tool, step down, stepover,
+  allowance, feeds) and *Remove roughing pass*.
+

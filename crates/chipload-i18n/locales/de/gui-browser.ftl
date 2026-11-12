@@ -29,6 +29,8 @@ browser-holes = Bohrungen
 browser-holes-hover = Die ausgewählten Kreise: mit einem Bohrer gebohrt oder mit einem Schaftfräser per Helix gebohrt
 browser-surface = Planfräsen
 browser-relief = Relief
+browser-relief-hover = Ein 3D-Modell, von oben in parallelen Bahnen gefräst, jeder Punkt so tief, wie das Werkzeug gehen kann, ohne ins Modell zu schneiden. Im Umriss des gewählten Modells, sonst des ersten
+browser-relief-needs-model = Zuerst ein 3D-Modell hinzufügen (Datei > 3D-Modell hinzufügen…)
 browser-surface-hover = Das ganze Rohteil mit einem breiten Schaftfräser plan abgetragen: die Opferplatte planen oder das Rohteil planfräsen. Braucht keine Auswahl
 
 # Job settings and Tools.
@@ -128,3 +130,9 @@ browser-copy-as-selector-hover = Die Auswahl als JSON, für eine Bearbeitung in 
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.
 browser-tool-change = Werkzeugwechsel → T{ $tool }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+browser-add-roughing = Schruppdurchgang hinzufügen
+browser-add-roughing-hover = Ein Schaftfräser oder einfacher Kugelfräser, der das Material zuerst in Ebenen abträgt und ein Aufmaß für das Relief lässt
+browser-roughing = Schruppen
+browser-roughing-hover = Ein Schruppdurchgang: das Material vor dem Relief in Ebenen abgetragen, ein Aufmaß am Modell gelassen

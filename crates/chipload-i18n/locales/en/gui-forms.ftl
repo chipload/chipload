@@ -548,3 +548,20 @@ forms-slot-step-down = Slot step down
 forms-slot-step-down-hover = The full-width rings go down in steps no deeper than this to each depth, before the other rings cut the whole step down at once
 forms-pocket-step-down-hover = The deepest each depth pass goes; the rings at the stepover cut it at once
 forms-material-speed-differs = { $name }'s values are for { $rpm } rpm; the tool runs at { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Depth
+forms-relief-depth-hover = How deep the relief goes: the model's depth, set in the model's properties
+forms-relief-stepover-hover = The distance between lines, as a share of the tool's diameter: smaller is smoother and slower
+forms-relief-angle-hover = The lines' direction from X. Lines at an angle to the model's long edges leave fewer marks
+forms-relief-zigzag-hover = Back and forth along the lines, or every line the same way, lifting between them
+forms-roughing-pass = Roughing pass
+forms-roughing-of = Roughing of
+forms-roughing-of-hover = The relief this pass roughs before it is finished
+forms-from-relief = From the relief
+forms-roughing-facts = { $start }–{ $end } { $unit }, lines at { $angle }°
+forms-roughing-step-down-hover = The distance between levels: the material is taken down one level at a time
+forms-roughing-allowance = Allowance
+forms-roughing-allowance-hover = What is left on the model for the finish, all round: on steep sides too
+forms-roughing-note = Cut just before the relief. It never cuts wider than the finish reaches, and the program is checked to keep the allowance off the model.
+forms-remove-roughing = Remove roughing pass

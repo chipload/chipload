@@ -206,8 +206,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    its area kept within the finish's reach, joined along the next line; a warning for a
    relief deeper than its tool is wide without one; goldens v36_relief_dome_rough. Next:
    the window (step 4), including the roughing pass's row and form in the Browser. 4a done:
-   File > Add 3D model…, models in the Browser with their properties, STL drops. Next 4b
-   (the Relief button and form, the roughing row and form), 4c (3D view, handles, the
+   File > Add 3D model…, models in the Browser with their properties, STL drops. 4b done: Relief in
+   the Operation menu and New operation (not the ribbon: 10 px short at 1280, asked the
+   user), its form, the roughing pass's row and form. Next 4c (3D view, handles, the
    ball nose's look), 4d (guide).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):

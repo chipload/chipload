@@ -29,6 +29,8 @@ browser-holes = Holes
 browser-holes-hover = The selected circles: drilled with a drill, or bored with a helix with an endmill
 browser-surface = Surface
 browser-relief = Relief
+browser-relief-hover = A 3D model carved from the top in parallel lines, each point as low as the tool can go without cutting into it. Within the selected model's outline, or the first model's
+browser-relief-needs-model = Add a 3D model first (File > Add 3D model…)
 browser-surface-hover = The whole stock taken down flat with a wide endmill: flatten the spoilboard or face the stock. Needs no selection
 
 # Job settings and Tools.
@@ -128,3 +130,9 @@ browser-copy-as-selector-hover = The selection as JSON, for an operation in a pr
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.
 browser-tool-change = tool change → T{ $tool }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+browser-add-roughing = Add roughing pass
+browser-add-roughing-hover = An end mill or a plain ball nose that takes the material down in levels first, leaving an allowance for the relief
+browser-roughing = Roughing
+browser-roughing-hover = A roughing pass: the material taken down in levels before the relief, an allowance left on the model

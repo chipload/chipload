@@ -546,3 +546,20 @@ forms-slot-step-down = Skärdjup spår
 forms-slot-step-down-hover = Ringarna med hela bredden går ner till varje djup i steg som inte är djupare än detta, innan de andra ringarna fräser hela skärdjupet på en gång
 forms-pocket-step-down-hover = Det djupaste varje djuppass går; ringarna med sidosteg fräser det på en gång
 forms-material-speed-differs = Värdena för { $name } gäller { $rpm } rpm; verktyget går på { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Djup
+forms-relief-depth-hover = Hur djupt reliefen går: modellens djup, inställt i modellens egenskaper
+forms-relief-stepover-hover = Avståndet mellan banorna som andel av verktygets diameter: mindre blir slätare och långsammare
+forms-relief-angle-hover = Banornas riktning från X. Banor snett mot modellens långa kanter lämnar färre spår
+forms-relief-zigzag-hover = Fram och tillbaka längs banorna, eller varje bana åt samma håll med lyft emellan
+forms-roughing-pass = Grovpass
+forms-roughing-of = Grovbearbetning av
+forms-roughing-of-hover = Reliefen som det här passet grovbearbetar före finbearbetningen
+forms-from-relief = Från reliefen
+forms-roughing-facts = { $start }–{ $end } { $unit }, banor i { $angle }°
+forms-roughing-step-down-hover = Avståndet mellan nivåerna: materialet tas ner en nivå i taget
+forms-roughing-allowance = Tillägg
+forms-roughing-allowance-hover = Det som lämnas på modellen till finbearbetningen, runt om: även på branta sidor
+forms-roughing-note = Fräses precis före reliefen. Det skär aldrig bredare än finbearbetningen når, och programmet kontrolleras så att tillägget lämnas på modellen.
+forms-remove-roughing = Ta bort grovpass

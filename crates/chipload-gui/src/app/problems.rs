@@ -297,7 +297,7 @@ impl ChiploadApp {
         let settings = self.edit.as_ref().map(|e| &e.job);
         let index_of = |list: Option<usize>, what: &str| list.map(|k| format!("{what}.{k}."));
         let pick: Box<dyn Iterator<Item = &Problem>> = match focus {
-            Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) => {
+            Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) | Focus::RoughingPass(i) => {
                 Box::new(self.op_problems(i))
             }
             Focus::Job => Box::new(self.settings_problems()),
@@ -363,6 +363,7 @@ impl ChiploadApp {
         let prefix = match focus {
             Focus::RestPass(_, k) => Some(format!("rest_passes.{k}.")),
             Focus::FloorPass(_) => Some("floor.".to_string()),
+            Focus::RoughingPass(_) => Some("roughing.".to_string()),
             _ => None,
         };
         if let Some(prefix) = prefix {

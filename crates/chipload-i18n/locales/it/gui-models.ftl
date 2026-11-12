@@ -37,3 +37,7 @@ forms-model-layer-hover = Il livello su cui è disegnato il contorno del modello
 forms-model-new-relief = Nuovo rilievo
 forms-model-new-relief-hover = Scolpisci questo modello: una lavorazione Rilievo dentro il suo contorno, nel pezzo attivo
 forms-remove-model-hover = Rimuovi il modello e il suo contorno; i suoi rilievi restano, ciascuno con un problema finché non ha un altro modello
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = Impossibile aggiungere la passata di sgrossatura: { $error }
+models-no-roughing-tool = Nessuna fresa piatta o sferica semplice nel progetto o nella tua libreria

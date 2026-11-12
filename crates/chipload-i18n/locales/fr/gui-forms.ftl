@@ -546,3 +546,20 @@ forms-slot-step-down = Profondeur rainure
 forms-slot-step-down-hover = Les anneaux sur toute la largeur descendent à chaque profondeur par pas au plus de cette profondeur, avant que les autres anneaux coupent toute la passe d'un coup
 forms-pocket-step-down-hover = La profondeur maximale de chaque passe ; les anneaux au pas latéral la coupent d'un coup
 forms-material-speed-differs = Les valeurs de { $name } sont pour { $rpm } rpm ; l'outil tourne à { $runs }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+forms-relief-depth = Profondeur
+forms-relief-depth-hover = La profondeur du relief : celle du modèle, réglée dans ses propriétés
+forms-relief-stepover-hover = L'écart entre les lignes, en part du diamètre de l'outil : plus petit est plus lisse et plus lent
+forms-relief-angle-hover = La direction des lignes depuis X. Des lignes en biais par rapport aux grands bords du modèle laissent moins de marques
+forms-relief-zigzag-hover = Aller-retour le long des lignes, ou chaque ligne dans le même sens, en remontant entre elles
+forms-roughing-pass = Passe d'ébauche
+forms-roughing-of = Ébauche de
+forms-roughing-of-hover = Le relief que cette passe ébauche avant la finition
+forms-from-relief = Du relief
+forms-roughing-facts = { $start }–{ $end } { $unit }, lignes à { $angle }°
+forms-roughing-step-down-hover = L'écart entre les niveaux : la matière est enlevée un niveau à la fois
+forms-roughing-allowance = Surépaisseur
+forms-roughing-allowance-hover = Ce qui reste sur le modèle pour la finition, tout autour : sur les flancs raides aussi
+forms-roughing-note = Usinée juste avant le relief. Elle ne coupe jamais plus large que la finition, et le programme est vérifié pour garder la surépaisseur sur le modèle.
+forms-remove-roughing = Supprimer la passe d'ébauche

@@ -461,6 +461,13 @@ enum OpAction {
     FloorFocus(usize),
     FloorToggle(usize),
     FloorRemove(usize),
+    /// A roughing pass for relief i with this tool, or a library tool by name
+    /// (docs/specs/stl-relief.md §14); its roughing pass: open, on or off, remove.
+    AddRoughing(usize, i64),
+    AddRoughingFromLibrary(usize, String),
+    RoughingFocus(usize),
+    RoughingToggle(usize),
+    RoughingRemove(usize),
     /// Into part `id`, at the end of its operations (dropped on the part's row).
     ToPart(usize, u64),
     PartFocus(u64),
@@ -554,8 +561,15 @@ fn tool_menu(
     pick
 }
 
+/// A pass cut before its operation, shown as a leaf under it.
+#[derive(Clone, Copy)]
+enum Leaf {
+    Floor,
+    Roughing,
+}
+
 /// The kinds of new operation: label, kind and what it does.
-pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 6] {
+pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 7] {
     [
         (
             t!(src, "browser-profile"),
@@ -587,7 +601,29 @@ pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, 
             OpKind::Surface,
             t!(src, "browser-surface-hover"),
         ),
+        (
+            t!(src, "browser-relief"),
+            OpKind::Relief,
+            t!(src, "browser-relief-hover"),
+        ),
     ]
+}
+
+/// Whether a new operation of `kind` can be made: most need shapes selected, a surface
+/// nothing, a relief a model in the project (docs/specs/stl-relief.md §9).
+pub(super) fn can_add(kind: OpKind, selected: bool, models: bool) -> bool {
+    match kind {
+        OpKind::Relief => models,
+        _ => selected || !kind.needs_selection(),
+    }
+}
+
+/// Why a new operation of `kind` can't be made yet, for its hover.
+pub(super) fn cannot_add(src: &impl crate::i18n::Lang, kind: OpKind) -> String {
+    match kind {
+        OpKind::Relief => t!(src, "browser-relief-needs-model"),
+        _ => t!(src, "header-select-shapes-first"),
+    }
 }
 
 impl ChiploadApp {
@@ -1032,6 +1068,15 @@ impl ChiploadApp {
             Some(OpAction::FloorFocus(i)) => self.focus = Focus::FloorPass(i),
             Some(OpAction::FloorToggle(i)) => self.toggle_floor_pass(i),
             Some(OpAction::FloorRemove(i)) => self.remove_floor_pass(i),
+            Some(OpAction::AddRoughing(i, tool)) => {
+                self.add_roughing(i, tool);
+            }
+            Some(OpAction::AddRoughingFromLibrary(i, name)) => {
+                self.add_roughing_from_library(i, &name);
+            }
+            Some(OpAction::RoughingFocus(i)) => self.focus = Focus::RoughingPass(i),
+            Some(OpAction::RoughingToggle(i)) => self.toggle_roughing(i),
+            Some(OpAction::RoughingRemove(i)) => self.remove_roughing(i),
             Some(OpAction::ToPart(from, id)) => self.move_operation_to_part(from, id),
             Some(OpAction::PartFocus(id)) => self.focus = Focus::Part(id),
             Some(OpAction::PartActivate(id)) => self.activate_part(id),
@@ -1123,6 +1168,7 @@ impl ChiploadApp {
             );
         }
         let selected = !self.selected_ids().is_empty();
+        let models = self.has_models();
         let hover = if is_active {
             t!(ui, "browser-part-active-hover")
         } else {
@@ -1157,13 +1203,14 @@ impl ChiploadApp {
             }
             super::header::submenu(ui, t!(ui, "browser-new-operation"), |ui| {
                 for (label, kind, hover) in new_operations(ui) {
+                    let why = match kind {
+                        OpKind::Relief => cannot_add(ui, kind),
+                        _ => t!(ui, "browser-select-shapes-first"),
+                    };
                     if ui
-                        .add_enabled(
-                            selected || !kind.needs_selection(),
-                            egui::Button::new(label),
-                        )
+                        .add_enabled(can_add(kind, selected, models), egui::Button::new(label))
                         .on_hover_text(hover)
-                        .on_disabled_hover_text(t!(ui, "browser-select-shapes-first"))
+                        .on_disabled_hover_text(why)
                         .clicked()
                     {
                         action = Some(OpAction::NewIn(kind, part.id));
@@ -1260,6 +1307,15 @@ impl ChiploadApp {
         };
         let floor_menu = match floor {
             None => self.floor_menu(i),
+            Some(_) => None,
+        };
+        // A relief's roughing pass, or what it can be cut with (docs/specs/stl-relief.md §14).
+        let roughing = match op {
+            Operation::Relief(r) => r.roughing,
+            _ => None,
+        };
+        let roughing_menu = match roughing {
+            None => self.roughing_menu(i),
             Some(_) => None,
         };
         let name = match op.name() {
@@ -1366,6 +1422,17 @@ impl ChiploadApp {
                     None => {}
                 }
             }
+            if let Some(menu) = &roughing_menu {
+                let label = t!(ui, "browser-add-roughing");
+                let hover = t!(ui, "browser-add-roughing-hover");
+                match tool_menu(ui, &label, &hover, menu, units) {
+                    Some(ToolPick::Project(tool)) => action = Some(OpAction::AddRoughing(i, tool)),
+                    Some(ToolPick::Library(name)) => {
+                        action = Some(OpAction::AddRoughingFromLibrary(i, name));
+                    }
+                    None => {}
+                }
+            }
             if let Some(parent) = parent
                 && ui
                     .button(t!(
@@ -1389,28 +1456,61 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
+        // Cut before the operation: a floor pass, or a roughing pass.
         if let Some(pass) = &floor
-            && let Some(a) = self.floor_pass_row(ui, i, pass, is_cut, color)
+            && let Some(a) =
+                self.pass_leaf(ui, i, Leaf::Floor, (pass.enabled, pass.tool), is_cut, color)
+        {
+            action = Some(a);
+        }
+        if let Some(pass) = &roughing
+            && let Some(a) = self.pass_leaf(
+                ui,
+                i,
+                Leaf::Roughing,
+                (pass.enabled, pass.tool),
+                is_cut,
+                color,
+            )
         {
             action = Some(a);
         }
         action
     }
 
-    /// V-carve `i`'s floor pass, a leaf under it (docs/specs/vcarve-wide-strokes.md §7).
-    fn floor_pass_row(
+    /// Operation `i`'s one pass cut before it, a leaf under it: a V-carve's floor pass
+    /// (docs/specs/vcarve-wide-strokes.md §7) or a relief's roughing pass
+    /// (docs/specs/stl-relief.md §14). `pass`: whether it is on, and its tool.
+    fn pass_leaf(
         &self,
         ui: &mut egui::Ui,
         i: usize,
-        pass: &chipload_job::ClearingPass,
-        vcarve_cut: bool,
+        leaf: Leaf,
+        (enabled, tool): (bool, i64),
+        op_cut: bool,
         color: Color32,
     ) -> Option<OpAction> {
         let at = chipload_job::OpRef::pass(i, 0);
+        let (field, focus, icon, name, hover) = match leaf {
+            Leaf::Floor => (
+                "floor",
+                Focus::FloorPass(i),
+                Icon::Pocket,
+                t!(ui, "browser-floor"),
+                t!(ui, "browser-floor-pass-hover"),
+            ),
+            Leaf::Roughing => (
+                "roughing",
+                Focus::RoughingPass(i),
+                Icon::Relief,
+                t!(ui, "browser-roughing"),
+                t!(ui, "browser-roughing-hover"),
+            ),
+        };
         let flagged = self
             .problems
             .iter()
-            .any(|p| p.operation() == Some(i) && p.field().starts_with("floor"));
+            .any(|p| p.operation() == Some(i) && p.field().starts_with(field));
         let time = self
             .toolpath
             .result
@@ -1420,31 +1520,37 @@ impl ChiploadApp {
                 let time = chipload_pipeline::estimate::duration_message(*s);
                 format!("{} · ", time.render(ui.lang(), self.prefs.units.into()))
             });
-        let row = Row::new(
-            Id::new(("browser-floor", i)),
-            5,
-            format!("{at}  {}", t!(ui, "browser-floor")),
-        )
-        .tick(pass.enabled)
-        .icon_colored(Icon::Pocket, color)
-        .trailing(format!("{time}T{}", pass.tool))
-        .selected(self.focus == Focus::FloorPass(i))
-        .dim(!(vcarve_cut && pass.enabled))
-        .alert(flagged)
-        .show(ui);
+        let row = Row::new(Id::new(("browser-", field, i)), 5, format!("{at}  {name}"))
+            .tick(enabled)
+            .icon_colored(icon, color)
+            .trailing(format!("{time}T{tool}"))
+            .selected(self.focus == focus)
+            .dim(!(op_cut && enabled))
+            .alert(flagged)
+            .show(ui);
+        let (toggle, open, remove) = match leaf {
+            Leaf::Floor => (
+                OpAction::FloorToggle(i),
+                OpAction::FloorFocus(i),
+                OpAction::FloorRemove(i),
+            ),
+            Leaf::Roughing => (
+                OpAction::RoughingToggle(i),
+                OpAction::RoughingFocus(i),
+                OpAction::RoughingRemove(i),
+            ),
+        };
         let mut action = None;
         if row.tick {
-            action = Some(OpAction::FloorToggle(i));
+            action = Some(toggle);
         } else if row.response.clicked() {
-            action = Some(OpAction::FloorFocus(i));
+            action = Some(open);
         }
-        row.response
-            .on_hover_text(t!(ui, "browser-floor-pass-hover"))
-            .context_menu(|ui| {
-                if ui.button(t!(ui, "browser-remove")).clicked() {
-                    action = Some(OpAction::FloorRemove(i));
-                }
-            });
+        row.response.on_hover_text(hover).context_menu(|ui| {
+            if ui.button(t!(ui, "browser-remove")).clicked() {
+                action = Some(remove);
+            }
+        });
         action
     }
 

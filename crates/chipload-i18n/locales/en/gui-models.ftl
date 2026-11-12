@@ -37,3 +37,7 @@ forms-model-layer-hover = The layer the model's outline is drawn on
 forms-model-new-relief = New relief
 forms-model-new-relief-hover = Carve this model: a Relief operation within its outline, in the active part
 forms-remove-model-hover = Remove the model and its outline; its reliefs stay, each with a problem until it gets another model
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = Could not add the roughing pass: { $error }
+models-no-roughing-tool = No end mill or plain ball nose in the project or your library

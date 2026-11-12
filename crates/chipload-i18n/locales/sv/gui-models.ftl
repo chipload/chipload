@@ -37,3 +37,7 @@ forms-model-layer-hover = Lagret som modellens kontur ritas på
 forms-model-new-relief = Ny relief
 forms-model-new-relief-hover = Fräs den här modellen: en Relief-operation inom dess kontur, i den aktiva delen
 forms-remove-model-hover = Ta bort modellen och dess kontur; dess reliefer finns kvar, var och en med ett problem tills den får en annan modell
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+models-could-not-add-roughing = Grovpasset kunde inte läggas till: { $error }
+models-no-roughing-tool = Ingen pinnfräs eller vanlig kulfräs i projektet eller ditt bibliotek

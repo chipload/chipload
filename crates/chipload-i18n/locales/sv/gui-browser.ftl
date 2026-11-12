@@ -29,6 +29,8 @@ browser-holes = Hål
 browser-holes-hover = De markerade cirklarna: borrade med borr, eller helixborrade med pinnfräs
 browser-surface = Planfräsning
 browser-relief = Relief
+browser-relief-hover = En 3D-modell fräst uppifrån i parallella banor, varje punkt så lågt som verktyget kan gå utan att skära i modellen. Inom den markerade modellens kontur, annars den första
+browser-relief-needs-model = Lägg först till en 3D-modell (Arkiv > Lägg till 3D-modell…)
 browser-surface-hover = Hela ämnet planfräst med en bred pinnfräs: plana offerskivan eller planfräs ämnet. Kräver ingen markering
 
 # Job settings and Tools.
@@ -128,3 +130,9 @@ browser-copy-as-selector-hover = Markeringen som JSON, för en operation i en pr
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.
 browser-tool-change = verktygsbyte → T{ $tool }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+browser-add-roughing = Lägg till grovpass
+browser-add-roughing-hover = En pinnfräs eller vanlig kulfräs som först tar ner materialet i nivåer och lämnar ett tillägg för reliefen
+browser-roughing = Grovpass
+browser-roughing-hover = Ett grovpass: materialet nertaget i nivåer före reliefen, ett tillägg lämnat på modellen

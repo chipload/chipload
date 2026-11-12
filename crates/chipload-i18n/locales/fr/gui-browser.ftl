@@ -29,6 +29,8 @@ browser-holes = Perçages
 browser-holes-hover = Les cercles sélectionnés : percés avec un foret, ou alésés en hélice avec une fraise
 browser-surface = Surfaçage
 browser-relief = Relief
+browser-relief-hover = Un modèle 3D usiné par le dessus en lignes parallèles, chaque point aussi bas que l'outil peut aller sans entamer le modèle. Dans le contour du modèle sélectionné, ou du premier
+browser-relief-needs-model = Ajoutez d'abord un modèle 3D (Fichier > Ajouter un modèle 3D…)
 browser-surface-hover = Tout le brut dressé à plat avec une large fraise : surfacer le martyr ou dresser le brut. Aucune sélection requise
 
 # Job settings and Tools.
@@ -131,3 +133,9 @@ browser-copy-as-selector-hover = La sélection en JSON, pour une opération dans
 
 # A thin line between operation rows where the tool changes; $tool the new tool's number.
 browser-tool-change = changement d'outil → T{ $tool }
+
+# Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
+browser-add-roughing = Ajouter une passe d'ébauche
+browser-add-roughing-hover = Une fraise droite ou hémisphérique simple qui enlève d'abord la matière par niveaux, en laissant une surépaisseur pour le relief
+browser-roughing = Ébauche
+browser-roughing-hover = Une passe d'ébauche : la matière enlevée par niveaux avant le relief, une surépaisseur laissée sur le modèle
