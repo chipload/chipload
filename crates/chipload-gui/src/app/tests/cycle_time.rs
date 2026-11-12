@@ -82,9 +82,16 @@ mod keyboard_shortcuts {
             let others = others(&crate::i18n::Language::En);
             assert!(others.iter().any(|(_, k, _)| k == keys), "{keys}");
         }
+        // On a Mac the same keys are pressed with Cmd, and the menus say so
+        // (docs/specs/menu-bar.md §5).
+        let undo = if cfg!(target_os = "macos") {
+            "Undo  (Cmd+Z)"
+        } else {
+            "Undo  (Ctrl+Z)"
+        };
         assert_eq!(
             with_keys("Undo", super::super::shortcuts::Action::Undo),
-            "Undo  (Ctrl+Z)"
+            undo
         );
     }
 

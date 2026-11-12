@@ -385,7 +385,11 @@ impl ChiploadApp {
                     }
                     if ui
                         .add(egui::Button::new(t!(ui, "panels-open-project")).min_size(wide))
-                        .on_hover_text("Ctrl+O")
+                        .on_hover_text(
+                            super::shortcuts::binding(super::shortcuts::Action::Open)
+                                .map(|b| super::shortcuts::keys_text(&b.keys))
+                                .unwrap_or_default(),
+                        )
                         .clicked()
                     {
                         self.ask_open();
