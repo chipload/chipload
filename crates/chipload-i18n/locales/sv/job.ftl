@@ -24,6 +24,8 @@ job-operation-label-rest = Operation { $number } (restbearbetning)
 job-operation-label-named-rest = Operation { $number } ({ $name }, restbearbetning)
 job-operation-label-floor = Operation { $number } (botten)
 job-operation-label-named-floor = Operation { $number } ({ $name }, botten)
+job-operation-label-roughing = Operation { $number } (grovbearbetning)
+job-operation-label-named-roughing = Operation { $number } ({ $name }, grovbearbetning)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] borr
@@ -104,6 +106,7 @@ job-shape-id-range = måste vara mellan 1 och next_shape_id - 1 ({ $most }), fic
 job-no-image = ingen bild { $id } i drawing.images
 job-no-model = ingen modell { $id } i drawing.models
 job-relief-stepover = får vara högst { $most } av verktyget, är { $got }
+job-relief-allowance = måste vara 0 eller mer, är { $got }
 job-no-dxf = ingen DXF { $id } i drawing.dxfs
 job-no-text = ingen text { $id } i drawing.texts
 job-no-group = ingen grupp { $id } i drawing.groups

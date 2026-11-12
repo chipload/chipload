@@ -388,3 +388,6 @@ toolpath-relief-drill = verktyg { $tool } är ett borr: en relief behöver en ku
 toolpath-relief-shape = formen på verktyg { $tool } är inte känd: en V-fräs behöver sin vinkel, en konisk kulfräs vinkel och kula
 toolpath-relief-no-area = en relief behöver slutna former som område: modellens kontur eller andra
 toolpath-relief-gouge = reliefens bana skulle skära { $depth } in i modellen vid ({ $x }, { $y }); inget görs
+toolpath-relief-roughing-tool = verktyg { $tool } kan inte grovbearbeta en relief: det kräver en pinnfräs eller en vanlig kulfräs
+toolpath-relief-roughing-room = grovverktyget { $tool } får inte plats i reliefens område, som hålls inom finbearbetningens räckvidd
+toolpath-relief-deep = skär { $depth } djupt med enbart verktyg { $tool }; ett grovpass (op add-roughing) tar det mesta först

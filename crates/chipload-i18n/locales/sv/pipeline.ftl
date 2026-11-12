@@ -345,6 +345,7 @@ pipeline-operation-refused = operation { $number }: { $reason }
 pipeline-rest-dogbones = den har dogbones, och dogbones och restbearbetning kan inte kombineras än; dogbone-hörn behöver ingen restbearbetning
 pipeline-rest-not-endmill = verktyg { $tool } är inte en pinnfräs
 pipeline-not-a-vcarve = operation { $number } är inte en V-gravyr; bara V-gravyrer har ett bottenpass
+pipeline-not-a-relief = operation { $number } är inte en relief; bara reliefer har ett grovpass
 pipeline-floor-not-endmill = verktyg { $tool } är inte en pinnfräs; ett bottenpass fräser med en
 pipeline-rest-before-not-endmill = verktyg { $tool } före den är inte en pinnfräs
 pipeline-rest-not-smaller = verktyg { $tool } ({ $diameter }) är inte mindre än verktyg { $before } ({ $before_diameter }) före den

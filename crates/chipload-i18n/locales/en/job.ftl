@@ -24,6 +24,8 @@ job-operation-label-rest = Operation { $number } (rest)
 job-operation-label-named-rest = Operation { $number } ({ $name }, rest)
 job-operation-label-floor = Operation { $number } (floor)
 job-operation-label-named-floor = Operation { $number } ({ $name }, floor)
+job-operation-label-roughing = Operation { $number } (roughing)
+job-operation-label-named-roughing = Operation { $number } ({ $name }, roughing)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] drill
@@ -104,6 +106,7 @@ job-shape-id-range = must be between 1 and next_shape_id - 1 ({ $most }), got { 
 job-no-image = no image { $id } in drawing.images
 job-no-model = no model { $id } in drawing.models
 job-relief-stepover = must be at most { $most } of the tool, got { $got }
+job-relief-allowance = must be 0 or more, got { $got }
 job-no-dxf = no DXF { $id } in drawing.dxfs
 job-no-text = no text { $id } in drawing.texts
 job-no-group = no group { $id } in drawing.groups

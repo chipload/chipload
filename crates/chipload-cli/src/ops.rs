@@ -117,6 +117,37 @@ pub(crate) enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Give a relief a roughing pass (docs/specs/stl-relief.md §14): an end mill or a plain
+    /// ball nose that takes the material down in levels before the relief, leaving an
+    /// allowance on the model. Replaces the roughing pass it had.
+    AddRoughing {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The relief's number as the app lists it (1 = first; `get` and `set` paths count
+        /// from 0).
+        #[arg(long)]
+        op: usize,
+        /// The roughing tool's id in the project.
+        #[arg(long)]
+        tool: i64,
+        /// What is left on the model for the finish; default 0.5 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        allowance: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Take a relief's roughing pass away.
+    RemoveRoughing {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The relief's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Take a V-carve's floor pass away (docs/specs/vcarve-wide-strokes.md §4).
     RemoveFloor {
         /// The project (.chipload).
@@ -790,6 +821,81 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             out.set("plug", json!(made.plug));
             out.set("setup", json!(made.setup));
             out.set("part", json!(made.part));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::AddRoughing {
+            project,
+            op,
+            tool,
+            allowance,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            // The library's cutting values for the tool, as for a new operation.
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let material = chipload_pipeline::materials::project_material(&job, &library.materials)
+                .map(|m| m.uid.clone());
+            let cutting = job.tools.iter().find(|t| t.id == tool).and_then(|t| {
+                chipload_job::library::linked_cutting(&library.tools, t, material.as_deref())
+            });
+            let allowance = allowance.unwrap_or(chipload_pipeline::DEFAULT_ROUGHING_ALLOWANCE_MM);
+            let at = match chipload_pipeline::add_roughing_pass(
+                &mut job,
+                op,
+                tool,
+                allowance,
+                cutting.as_ref(),
+            ) {
+                Ok(at) => at,
+                Err(err) => return out.fail(err),
+            };
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &job, target) {
+                return out.fail(err);
+            }
+            let from = if cutting.is_some() {
+                "the library's cutting values for the tool"
+            } else {
+                "the relief's feeds; check them for the roughing tool"
+            };
+            out.line(format!(
+                "Added roughing pass {at} to operation {op}, tool {tool}, leaving {} mm, with \
+                 {from}.",
+                chipload_core::text::mm(allowance)
+            ));
+            out.set("operation", json!(at.operation));
+            out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::RemoveRoughing {
+            project,
+            op,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(chipload_job::Operation::Relief(relief)) =
+                op.checked_sub(1).and_then(|i| job.operations.get_mut(i))
+            else {
+                return out.fail(format!("operation {op} is not a relief"));
+            };
+            if relief.roughing.take().is_none() {
+                return out.fail(format!("operation {op} has no roughing pass"));
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &job, target) {
+                return out.fail(err);
+            }
+            out.line(format!("Removed the roughing pass of operation {op}."));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }

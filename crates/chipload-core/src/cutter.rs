@@ -42,6 +42,23 @@ impl Cutter {
         }
     }
 
+    /// A cutter that holds this one at least `allowance` off whatever it stays clear of,
+    /// when its tip is raised by `allowance` (a relief's roughing, docs/specs/stl-relief.md
+    /// §14): the flat end mill or ball nose wider by the allowance. A flat end mill grown by
+    /// a ball of the allowance fits inside the wider cylinder raised by it, and a ball grown
+    /// so is the wider ball. None for a V-bit or a tapered ball nose.
+    pub fn grown(self, allowance: f64) -> Option<Cutter> {
+        match self {
+            Cutter::Flat { radius } => Some(Cutter::Flat {
+                radius: radius + allowance,
+            }),
+            Cutter::Ball { radius } => Some(Cutter::Ball {
+                radius: radius + allowance,
+            }),
+            Cutter::Cone { .. } | Cutter::TaperedBall { .. } => None,
+        }
+    }
+
     /// Where a tapered ball's sphere meets its cone: the radius and height there.
     fn tangent(ball: f64, half_angle: f64) -> (f64, f64) {
         let (sin, cos) = half_angle.sin_cos();

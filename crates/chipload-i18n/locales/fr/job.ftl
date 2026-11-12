@@ -24,6 +24,8 @@ job-operation-label-rest = Opération { $number } (reprise)
 job-operation-label-named-rest = Opération { $number } ({ $name }, reprise)
 job-operation-label-floor = Opération { $number } (fond)
 job-operation-label-named-floor = Opération { $number } ({ $name }, fond)
+job-operation-label-roughing = Opération { $number } (ébauche)
+job-operation-label-named-roughing = Opération { $number } ({ $name }, ébauche)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] foret
@@ -104,6 +106,7 @@ job-shape-id-range = doit être entre 1 et next_shape_id - 1 ({ $most }), reçu 
 job-no-image = aucune image { $id } dans drawing.images
 job-no-model = aucun modèle { $id } dans drawing.models
 job-relief-stepover = doit valoir au plus { $most } de l'outil, vaut { $got }
+job-relief-allowance = doit valoir 0 ou plus, vaut { $got }
 job-no-dxf = aucun DXF { $id } dans drawing.dxfs
 job-no-text = aucun texte { $id } dans drawing.texts
 job-no-group = pas de groupe { $id } dans drawing.groups

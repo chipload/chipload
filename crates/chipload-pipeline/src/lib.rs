@@ -482,6 +482,89 @@ pub fn add_floor_pass(
     Ok(chipload_job::OpRef::pass(index, 0))
 }
 
+/// What a relief's roughing leaves on the model when not told, mm
+/// (docs/specs/stl-relief.md §14 step 3).
+pub const DEFAULT_ROUGHING_ALLOWANCE_MM: f64 = 0.5;
+/// A roughing pass's stepover, and its step down as a share of the tool, when the library
+/// has no values for its tool.
+const ROUGHING_STEPOVER: f64 = 0.4;
+const ROUGHING_STEP_DOWN_SHARE: f64 = 0.5;
+
+/// A roughing pass for `relief` with project tool `tool` (docs/specs/stl-relief.md §14 step
+/// 3), leaving `allowance`. The feeds, step down and stepover are `cutting`'s (the library's
+/// values for the tool) when given, the stepover at most the relief's largest; else the
+/// relief's feeds, half the tool's diameter and 0.4. Refused, with the reason, for a tool
+/// that isn't an end mill or a plain ball nose.
+pub fn roughing_of(
+    relief: &chipload_job::ReliefOp,
+    tools: &[Tool],
+    tool: i64,
+    allowance: f64,
+    cutting: Option<&Cutting>,
+) -> Result<chipload_job::ReliefRoughing, Message> {
+    let mill =
+        find_tool(tools, tool).ok_or_else(|| Message::new("pipeline-no-tool").arg("tool", tool))?;
+    let fits = matches!(mill.kind, ToolType::Endmill | ToolType::Ballnose)
+        && mill.cutter().and_then(|c| c.grown(allowance)).is_some();
+    if !fits {
+        return Err(Message::new("toolpath-relief-roughing-tool").arg("tool", tool));
+    }
+    let (feed, plunge_feed, step_down, stepover) = match cutting {
+        Some(c) => (
+            c.feed,
+            c.plunge_feed,
+            c.step_down,
+            c.stepover.min(chipload_job::RELIEF_MAX_STEPOVER),
+        ),
+        None => (
+            relief.feed,
+            relief.plunge_feed,
+            mill.diameter * ROUGHING_STEP_DOWN_SHARE,
+            ROUGHING_STEPOVER,
+        ),
+    };
+    Ok(chipload_job::ReliefRoughing {
+        tool,
+        feed,
+        plunge_feed,
+        step_down,
+        stepover,
+        allowance,
+        enabled: true,
+    })
+}
+
+/// Give relief `number` (1-based) a roughing pass with tool `tool`, in place of any it had
+/// (docs/specs/stl-relief.md §14 step 3). Returns the pass.
+pub fn add_roughing_pass(
+    job: &mut Job,
+    number: usize,
+    tool: i64,
+    allowance: f64,
+    cutting: Option<&Cutting>,
+) -> Result<chipload_job::OpRef, PipelineError> {
+    let count = job.operations.len();
+    let index = number
+        .checked_sub(1)
+        .filter(|&i| i < count)
+        .ok_or_else(|| no_operation(number, count))?;
+    let tools = job.tools.clone();
+    let Operation::Relief(relief) = &mut job.operations[index] else {
+        return Err(PipelineError::Job(
+            Message::new("pipeline-not-a-relief").arg("number", number),
+        ));
+    };
+    let pass = roughing_of(relief, &tools, tool, allowance, cutting).map_err(|e| {
+        PipelineError::Job(
+            Message::new("pipeline-operation-refused")
+                .arg("number", number)
+                .arg("reason", e),
+        )
+    })?;
+    relief.roughing = Some(pass);
+    Ok(chipload_job::OpRef::pass(index, 0))
+}
+
 /// The depths a V-carve's passes go to, mm down from the stock top, the last its end depth:
 /// equal loads (docs/specs/v-carve.md decision 12) or an ordinary step down
 /// (vcarve-step-down.md). For the window to show under its *Passes* or *Step down*.

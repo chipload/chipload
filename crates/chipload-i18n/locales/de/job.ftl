@@ -24,6 +24,8 @@ job-operation-label-rest = Bearbeitung { $number } (Rest)
 job-operation-label-named-rest = Bearbeitung { $number } ({ $name }, Rest)
 job-operation-label-floor = Bearbeitung { $number } (Boden)
 job-operation-label-named-floor = Bearbeitung { $number } ({ $name }, Boden)
+job-operation-label-roughing = Bearbeitung { $number } (Schruppen)
+job-operation-label-named-roughing = Bearbeitung { $number } ({ $name }, Schruppen)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] Bohrer
@@ -104,6 +106,7 @@ job-shape-id-range = muss zwischen 1 und next_shape_id - 1 ({ $most }) liegen, i
 job-no-image = kein Bild { $id } in drawing.images
 job-no-model = kein Modell { $id } in drawing.models
 job-relief-stepover = darf höchstens { $most } des Werkzeugs sein, ist { $got }
+job-relief-allowance = muss 0 oder mehr sein, ist { $got }
 job-no-dxf = keine DXF { $id } in drawing.dxfs
 job-no-text = kein Text { $id } in drawing.texts
 job-no-group = keine Gruppe { $id } in drawing.groups

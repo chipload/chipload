@@ -5,8 +5,8 @@ sign with raised, rounded letters, a rosette, a coin, a landscape. The model lie
 board like a picture, seen from above, and is carved in three axes; nothing under an
 overhang is reached. (Design: `docs/specs/stl-relief.md`.)
 
-*Relief carving is being built in steps: adding and placing a model, and carving it with a
-finishing pass, work from the command line. Roughing and the window's forms come next.*
+*Relief carving is being built in steps: adding and placing a model, roughing it and
+carving it with a finishing pass work from the command line. The window's forms come next.*
 
 ## Adding a model
 
@@ -93,4 +93,37 @@ Along each line the tool stays within 0.01 mm of where the model needs it: more 
 added where the surface bends. When the program is made, the path is checked against the
 model once more by a simpler test of its own; if anything would cut into the model, nothing
 is made and the report says where.
+
+## Roughing first
+
+A finishing ball nose is small, and a relief can be deeper than it should cut in one go
+(the plan warns when the relief is deeper than the tool is wide). A **roughing pass** takes
+most of the material first with a larger tool:
+
+```sh
+chipload op add-roughing sign.chipload --op 1 --tool 1 --allowance 0.5mm
+chipload set sign.chipload operations.0.roughing.step_down=2.5
+chipload op remove-roughing sign.chipload --op 1
+```
+
+- **The tool:** an end mill or a plain ball nose (not a V-bit or a tapered ball nose). Its
+  feeds, step down and stepover come from the tool library's cutting data, or else from the
+  relief, half the tool's diameter and 0.4.
+- **Levels:** it goes down one `step_down` at a time from the stock top to the relief's
+  lowest point, along the relief's lines (`stepover` apart, at the relief's angle), and
+  cuts only where material is left above each level.
+- **`allowance`:** what it leaves on the model for the finish, 0.5 mm by default, all
+  round, not only above: on steep sides too.
+- **Never wider than the finish:** its area is the relief's, shrunk so its edge stays
+  where the finishing tool reaches. The finish takes the narrow ring left inside the
+  outline itself.
+
+It is cut just before the relief, as pass *Operation 1.1 (Relief 1, roughing)*, with its
+own tool; the program is checked to keep the allowance off the model. In the project file
+it is the relief's `roughing`:
+
+```json
+"roughing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "step_down": 3.0,
+  "stepover": 0.4, "allowance": 0.5, "enabled": true }
+```
 

@@ -560,6 +560,10 @@ fn plan_step(
         cut_contours: &cut_contours,
         cancel,
         floor_pass: job.is_floor_pass(chosen.at),
+        finish_tool: job
+            .is_roughing_pass(chosen.at)
+            .then(|| job.tool(job.operations[chosen.at.operation].tool()))
+            .flatten(),
         sense: job.cutting_sense_of(op),
     };
     let mut moved: Vec<Contour> = chosen
@@ -922,6 +926,9 @@ struct Context<'a> {
     cancel: &'a Cancel,
     /// A V-carve's floor pass, planned as a pocket (docs/specs/vcarve-wide-strokes.md §4).
     floor_pass: bool,
+    /// For a relief's roughing pass, the relief's own (finishing) tool
+    /// (docs/specs/stl-relief.md §14 step 3); None otherwise.
+    finish_tool: Option<&'a Tool>,
     /// The spindle's turn in the drawing's coordinates, which every travel direction is
     /// chosen with: the other way for a back setup ([`Job::cutting_sense`]).
     sense: Spindle,
@@ -2419,6 +2426,30 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             problems.extend(more_problems);
             notes.extend(more_notes);
         }
+        if let Operation::Relief(chipload_job::ReliefOp {
+            roughing: Some(rough),
+            ..
+        }) = op
+            && rough.enabled
+        {
+            let (more_problems, more_notes) = roughing_checks(job, index, rough);
+            problems.extend(more_problems);
+            notes.extend(more_notes);
+        } else if let Operation::Relief(relief) = op
+            && relief.end_depth > tool.diameter + DEPTH_TOL_MM
+        {
+            // Deeper than the tool is wide in one go: a roughing pass takes most of it
+            // (docs/specs/stl-relief.md §14 step 3).
+            notes.push(Note::at(
+                index,
+                labelled_note(
+                    &label_message,
+                    Message::new("toolpath-relief-deep")
+                        .arg("depth", length(relief.end_depth))
+                        .arg("tool", tool.id),
+                ),
+            ));
+        }
         if let Operation::Vcarve(vcarve) = op
             && let Some(plug) = vcarve.plug
         {
@@ -2636,6 +2667,12 @@ fn plan_relief_op(
         .cutter()
         .ok_or_else(|| job_error(Message::new("toolpath-relief-shape").arg("tool", ctx.tool.id)))?;
     let mesh = crate::relief::placed_mesh(model).map_err(|e| job_error(e.message()))?;
+    if sel.contours.iter().all(|c| !c.closed) {
+        return Err(job_error(Message::new("toolpath-relief-no-area")));
+    }
+    if let (Some(finish), Some(rough)) = (ctx.finish_tool, op.roughing) {
+        return plan_relief_roughing(op, ctx, sel, start, shift, &mesh, cutter, finish, rough);
+    }
     let index = crate::drop::DropMesh::new(&mesh, ctx.tool.diameter);
     let area: Vec<Vec<Point>> = sel
         .contours
@@ -2643,9 +2680,6 @@ fn plan_relief_op(
         .filter(|c| c.closed)
         .map(|c| c.points())
         .collect();
-    if area.is_empty() {
-        return Err(job_error(Message::new("toolpath-relief-no-area")));
-    }
     let (start_depth, end_depth) = (op.start_depth, op.end_depth);
     let cut = crate::relief::ReliefCut {
         mesh: &index,
@@ -2683,6 +2717,160 @@ fn plan_relief_op(
         floor_hint: None,
         facts: Vec::new(),
     })
+}
+
+/// A relief's roughing pass (docs/specs/stl-relief.md §14 step 3): the tool grown by the
+/// allowance, its area shrunk so it never cuts wider than the finish, level by level, and
+/// the path checked to keep the allowance.
+#[allow(clippy::too_many_arguments)]
+fn plan_relief_roughing(
+    op: &chipload_job::ReliefOp,
+    ctx: &Context,
+    sel: &Selection,
+    start: Point,
+    shift: Point,
+    mesh: &chipload_mesh::Mesh,
+    cutter: chipload_core::cutter::Cutter,
+    finish: &Tool,
+    rough: chipload_job::ReliefRoughing,
+) -> Result<Planned, ToolpathError> {
+    let allowance = rough.allowance;
+    let grown = cutter.grown(allowance).ok_or_else(|| {
+        job_error(Message::new("toolpath-relief-roughing-tool").arg("tool", ctx.tool.id))
+    })?;
+    let index = crate::drop::DropMesh::new(mesh, 2.0 * grown.radius());
+    let inset = cutter.radius() + allowance - finish.diameter / 2.0;
+    let area = roughing_area(&sel.contours, inset)?;
+    if area.is_empty() {
+        return Err(job_error(
+            Message::new("toolpath-relief-roughing-room").arg("tool", ctx.tool.id),
+        ));
+    }
+    let cut = crate::relief::ReliefCut {
+        mesh: &index,
+        cutter: grown,
+        top: ctx.top_z + allowance,
+        floor: ctx.top_z - (op.end_depth - op.start_depth) + allowance,
+        area: &area,
+        step: rough.stepover * ctx.tool.diameter,
+        angle: op.angle,
+        zigzag: op.zigzag,
+        safe_z: ctx.job.machine.safe_z,
+        feed: rough.feed,
+        plunge_feed: rough.plunge_feed,
+        shift,
+    };
+    let stock_top = ctx.top_z + op.start_depth;
+    let (moves, end) = crate::relief::rough_moves(&cut, stock_top, rough.step_down, start);
+    if let Some((depth, at)) =
+        crate::relief::verify(&moves, mesh, grown, ctx.top_z + allowance, shift)
+    {
+        return Err(job_error(
+            Message::new("toolpath-relief-gouge")
+                .arg("depth", Value::mm(depth))
+                .arg("x", Value::mm(at.0))
+                .arg("y", Value::mm(at.1)),
+        ));
+    }
+    Ok(Planned {
+        moves,
+        notes: Vec::new(),
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs: ArcTable::default(),
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts: Vec::new(),
+    })
+}
+
+/// A relief's area for its roughing tool: the closed contours moved `inset` into the area
+/// (holes, inside an odd number of others, grown), as loops of points. Unchanged when
+/// `inset` is not more than 0. Empty when the tool has no room.
+fn roughing_area(contours: &[&Contour], inset: f64) -> Result<Vec<Vec<Point>>, ToolpathError> {
+    let closed: Vec<&Contour> = contours.iter().copied().filter(|c| c.closed).collect();
+    if inset <= DEPTH_TOL_MM {
+        return Ok(closed.iter().map(|c| c.points()).collect());
+    }
+    let mut area = Vec::new();
+    for (i, c) in closed.iter().enumerate() {
+        let Some(&p) = c.points().first() else {
+            continue;
+        };
+        let around = closed
+            .iter()
+            .enumerate()
+            .filter(|&(j, other)| j != i && crate::relief::encloses(&other.points(), p))
+            .count();
+        let side = if around % 2 == 1 {
+            Side::Outside
+        } else {
+            Side::Inside
+        };
+        match crate::offset::offset_rings(c, side, inset) {
+            Ok(rings) => area.extend(rings),
+            // An outline the tool doesn't fit leaves nothing of itself to rough.
+            Err(_) if side == Side::Inside => {}
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(area)
+}
+
+/// A relief's roughing pass (docs/specs/stl-relief.md §14 step 3): it cuts with a project
+/// end mill or plain ball nose with a spindle speed.
+fn roughing_checks(
+    job: &Job,
+    index: usize,
+    rough: &chipload_job::ReliefRoughing,
+) -> (Vec<Problem>, Vec<Note>) {
+    let (mut problems, mut notes) = (Vec::new(), Vec::new());
+    let label_message = job.label_message(OpRef::pass(index, 0));
+    let at = |field: &str| format!("operations.{index}.roughing.{field}");
+    let Some(tool) = job.tool(rough.tool) else {
+        problems.push(labelled(
+            at("tool"),
+            &label_message,
+            Message::new("toolpath-rest-pass-no-tool").arg("tool", rough.tool),
+        ));
+        return (problems, notes);
+    };
+    if tool
+        .cutter()
+        .and_then(|c| c.grown(rough.allowance))
+        .is_none()
+        || !matches!(tool.kind, ToolType::Endmill | ToolType::Ballnose)
+    {
+        problems.push(labelled(
+            at("tool"),
+            &label_message,
+            Message::new("toolpath-relief-roughing-tool").arg("tool", tool.id),
+        ));
+    }
+    if tool.rpm.is_none_or(|rpm| rpm <= 0.0) {
+        problems.push(labelled(
+            at("tool"),
+            &label_message,
+            Message::new("toolpath-rest-pass-no-rpm").arg("tool", tool.id),
+        ));
+    }
+    if tool.kind == ToolType::Endmill {
+        match plunge_unknown(tool, Entry::Plunge {}) {
+            Ok(true) => notes.push(Note::at(
+                index,
+                labelled_note(
+                    &label_message,
+                    Message::new("toolpath-rest-pass-plunge").arg("tool", tool.id),
+                ),
+            )),
+            Ok(false) => {}
+            Err(short) => problems.push(labelled(at("tool"), &label_message, short)),
+        }
+    }
+    (problems, notes)
 }
 
 /// A surface needs an endmill (docs/specs/surfacing.md §4). It never plunges into

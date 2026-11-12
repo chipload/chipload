@@ -391,3 +391,6 @@ toolpath-relief-drill = l'outil { $tool } est un foret : un relief demande une f
 toolpath-relief-shape = la forme de l'outil { $tool } n'est pas connue : une fraise en V demande son angle, une fraise boule conique son angle et sa boule
 toolpath-relief-no-area = un relief demande des formes fermées pour sa zone : le contour de son modèle, ou d'autres
 toolpath-relief-gouge = la trajectoire du relief entamerait le modèle de { $depth } en ({ $x }, { $y }) ; rien n'est produit
+toolpath-relief-roughing-tool = l'outil { $tool } ne peut pas ébaucher un relief : il faut une fraise droite ou une fraise hémisphérique simple
+toolpath-relief-roughing-room = l'outil d'ébauche { $tool } n'a pas de place dans la zone du relief, limitée à la portée de la finition
+toolpath-relief-deep = coupe { $depth } de profondeur avec le seul outil { $tool } ; une passe d'ébauche (op add-roughing) en enlève d'abord l'essentiel

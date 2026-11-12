@@ -570,6 +570,7 @@ impl Start {
                     zigzag: true,
                     feed: self.feed,
                     plunge_feed: self.plunge_feed,
+                    roughing: None,
                 })
             }
             OpKind::Surface => {

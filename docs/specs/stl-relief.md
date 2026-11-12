@@ -331,3 +331,28 @@ Step 2, 2026-11-12:
   a ball nose is taken when the project has one; the stepover defaults to 0.1.
 - **No roughing yet** (step 3).
 
+Step 3, 2026-11-12:
+- **Roughing is a pass of the relief** (`roughing`), as a V-carve's floor pass is: its own
+  tool, feeds, step down, stepover and allowance, cut just before the relief as pass "N.1"
+  (*Operation 3.1 (Rose, roughing)*). `op add-roughing --op N --tool T [--allowance 0.5mm]`
+  adds it with the library's cutting values for the tool, `op remove-roughing --op N` takes
+  it away, and `set operations.N.roughing.FIELD=…` changes it.
+- **The tool:** an end mill or a plain ball nose. A V-bit or a tapered ball nose is refused:
+  their points wear and leave little room for the allowance.
+- **The allowance** is kept in every direction, not only upward: the drop cutter runs with
+  the tool grown by the allowance (radius + allowance) and the tip raised by it, which holds
+  the real tool at least the allowance off the model. The path check tests the same.
+- **Levels** go from the stock top (the relief's start depth may lie below it) one step down
+  at a time to the floor plus the allowance, the last level at that depth.
+- **Only where material is left:** along each line, a level cuts where the grown tool's
+  height lies below the level before; points next to such a stretch are kept, so the tool
+  comes down onto it along the surface. Each line's heights are found once and used for
+  every level.
+- **The rougher never cuts wider than the finish:** its area is the relief's shrunk by the
+  difference of the two tools' radii plus the allowance (holes grown by it), so no ledge is
+  left outside the finishing groove. The finish takes that narrow ring itself.
+- **Order:** level by level; within a level, from the end of a stretch to a stretch on the
+  next line whose nearer end is within two stepovers and joined by a straight move inside
+  the area, else a lift to the next stretch in line order. A finishing line's link to the
+  next line now also has to stay inside the area, or the tool lifts (a concave outline).
+

@@ -7,6 +7,8 @@ job-operation-label-rest = Операция { $number } (доработка ос
 job-operation-label-named-rest = Операция { $number } ({ $name }, доработка остатка)
 job-operation-label-floor = Операция { $number } (дно)
 job-operation-label-named-floor = Операция { $number } ({ $name }, дно)
+job-operation-label-roughing = Операция { $number } (черновая)
+job-operation-label-named-roughing = Операция { $number } ({ $name }, черновая)
 job-tool-type = { $type ->
     [drill] сверло
     [ballnose] сферическая фреза
@@ -61,6 +63,7 @@ job-shape-id-range = должно быть от 1 до next_shape_id - 1 ({ $mos
 job-no-image = нет изображения { $id } в drawing.images
 job-no-model = нет модели { $id } в drawing.models
 job-relief-stepover = должно быть не больше { $most } инструмента, а не { $got }
+job-relief-allowance = должно быть 0 или больше, а не { $got }
 job-no-dxf = нет DXF { $id } в drawing.dxfs
 job-no-text = нет текста { $id } в drawing.texts
 job-no-group = нет группы { $id } в drawing.groups

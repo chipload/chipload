@@ -353,6 +353,7 @@ pipeline-operation-refused = opération { $number } : { $reason }
 pipeline-rest-dogbones = elle a des dogbones, et les dogbones et la reprise des restes ne peuvent pas encore être combinés ; les coins en dogbone n'ont pas besoin de reprise
 pipeline-rest-not-endmill = l'outil { $tool } n'est pas une fraise
 pipeline-not-a-vcarve = l'opération { $number } n'est pas une gravure en V ; seules les gravures en V ont une passe de fond
+pipeline-not-a-relief = l'opération { $number } n'est pas un relief ; seuls les reliefs ont une passe d'ébauche
 pipeline-floor-not-endmill = l'outil { $tool } n'est pas une fraise ; une passe de fond usine avec une fraise
 pipeline-rest-before-not-endmill = l'outil { $tool } qui la précède n'est pas une fraise
 pipeline-rest-not-smaller = l'outil { $tool } ({ $diameter }) n'est pas plus petit que l'outil { $before } ({ $before_diameter }) qui le précède

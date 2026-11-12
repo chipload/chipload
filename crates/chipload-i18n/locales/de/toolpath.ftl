@@ -392,3 +392,6 @@ toolpath-relief-drill = Werkzeug { $tool } ist ein Bohrer: ein Relief braucht ei
 toolpath-relief-shape = die Form von Werkzeug { $tool } ist nicht bekannt: ein V-Fräser braucht seinen Winkel, ein konischer Kugelfräser Winkel und Kugel
 toolpath-relief-no-area = ein Relief braucht geschlossene Formen als Bereich: den Umriss seines Modells oder andere
 toolpath-relief-gouge = die Bahn des Reliefs würde bei ({ $x }, { $y }) { $depth } ins Modell schneiden; es wird nichts erzeugt
+toolpath-relief-roughing-tool = Werkzeug { $tool } kann kein Relief schruppen: dafür braucht es einen Schaftfräser oder einen einfachen Kugelfräser
+toolpath-relief-roughing-room = das Schruppwerkzeug { $tool } hat im Bereich des Reliefs keinen Platz, der in Reichweite der Schlichtbahn bleibt
+toolpath-relief-deep = schneidet { $depth } tief allein mit Werkzeug { $tool }; ein Schruppdurchgang (op add-roughing) nimmt vorher das meiste weg

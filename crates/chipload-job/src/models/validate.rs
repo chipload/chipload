@@ -533,6 +533,13 @@ impl Job {
                     positive(at("feed"), r.feed);
                     positive(at("plunge_feed"), r.plunge_feed);
                     positive(at("stepover"), r.stepover);
+                    if let Some(rough) = &r.roughing {
+                        let at = |field: &str| format!("operations.{i}.roughing.{field}");
+                        positive(at("feed"), rough.feed);
+                        positive(at("plunge_feed"), rough.plunge_feed);
+                        positive(at("stepover"), rough.stepover);
+                        positive(at("step_down"), rough.step_down);
+                    }
                 }
                 Operation::Holes(h) => {
                     positive(at("end_depth"), h.end_depth);
@@ -621,6 +628,23 @@ impl Job {
                             .arg("most", Value::Number(RELIEF_MAX_STEPOVER, Digits::Shortest))
                             .arg("got", Value::Number(r.stepover, Digits::Shortest)),
                     ));
+                }
+                if let Some(rough) = &r.roughing {
+                    if rough.stepover > RELIEF_MAX_STEPOVER {
+                        problems.push(Problem::at(
+                            format!("operations.{i}.roughing.stepover"),
+                            Message::new("job-relief-stepover")
+                                .arg("most", Value::Number(RELIEF_MAX_STEPOVER, Digits::Shortest))
+                                .arg("got", Value::Number(rough.stepover, Digits::Shortest)),
+                        ));
+                    }
+                    if !(rough.allowance.is_finite() && rough.allowance >= 0.0) {
+                        problems.push(Problem::at(
+                            format!("operations.{i}.roughing.allowance"),
+                            Message::new("job-relief-allowance")
+                                .arg("got", Value::Length(rough.allowance, Digits::Shortest)),
+                        ));
+                    }
                 }
                 if !r.angle.is_finite() {
                     problems.push(Problem::at(

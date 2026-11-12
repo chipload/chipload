@@ -353,6 +353,7 @@ pipeline-operation-refused = operación { $number }: { $reason }
 pipeline-rest-dogbones = tiene dogbones, y los dogbones y el mecanizado de restos aún no se pueden combinar; las esquinas dogbone no necesitan restos
 pipeline-rest-not-endmill = la herramienta { $tool } no es una fresa
 pipeline-not-a-vcarve = la operación { $number } no es un tallado en V; solo los tallados en V tienen pasada de fondo
+pipeline-not-a-relief = la operación { $number } no es un relieve; solo los relieves tienen pasada de desbaste
 pipeline-floor-not-endmill = la herramienta { $tool } no es una fresa; una pasada de fondo corta con una fresa
 pipeline-rest-before-not-endmill = la herramienta { $tool } anterior no es una fresa
 pipeline-rest-not-smaller = la herramienta { $tool } ({ $diameter }) no es más pequeña que la herramienta { $before } ({ $before_diameter }) anterior

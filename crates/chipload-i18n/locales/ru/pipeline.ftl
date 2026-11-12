@@ -245,6 +245,7 @@ pipeline-operation-refused = операция { $number }: { $reason }
 pipeline-rest-dogbones = есть разгрузки dogbone, пока несовместимые с доработкой остатка; углы с dogbone не требуют доработки
 pipeline-rest-not-endmill = инструмент { $tool } не является концевой фрезой
 pipeline-not-a-vcarve = операция { $number } не является V-гравировкой; обработка дна есть только у V-гравировки
+pipeline-not-a-relief = операция { $number } не является рельефом; черновой проход есть только у рельефа
 pipeline-floor-not-endmill = инструмент { $tool } не является концевой фрезой, необходимой для обработки дна
 pipeline-rest-before-not-endmill = предыдущий инструмент { $tool } не является концевой фрезой
 pipeline-rest-not-smaller = инструмент { $tool } ({ $diameter }) не меньше предыдущего инструмента { $before } ({ $before_diameter })

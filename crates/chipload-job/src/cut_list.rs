@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! What is cut, in the order it is cut: the operations, their pockets' rest passes after
 //! the run of pockets they belong to (docs/specs/rest-passes.md §3), and V-carves' floor
-//! passes before the run of V-carves they belong to (docs/specs/vcarve-wide-strokes.md §4).
+//! passes before the run of V-carves they belong to (docs/specs/vcarve-wide-strokes.md §4),
+//! and a relief's roughing pass just before it (docs/specs/stl-relief.md §14).
 //! An operation keeps its number in the list; a rest pass is "N.k", k counting from 1, and
-//! a floor pass "N.1".
+//! a floor or roughing pass "N.1".
 
 use std::fmt;
 
 use chipload_i18n::Message;
 
 use crate::models::{
-    Direction, Job, Operation, PocketOp, Rest, VcarveOp, operation_label, operation_label_message,
+    Direction, Job, Operation, PocketOp, ReliefOp, Rest, VcarveOp, operation_label,
+    operation_label_message,
 };
 
 /// An operation, or one of its pocket's rest passes.
@@ -18,8 +20,8 @@ use crate::models::{
 pub struct OpRef {
     /// Index in `job.operations`.
     pub operation: usize,
-    /// Index in the pocket's `rest_passes`, or 0 for a V-carve's floor pass; None: the
-    /// operation itself.
+    /// Index in the pocket's `rest_passes`, or 0 for a V-carve's floor pass or a relief's
+    /// roughing pass; None: the operation itself.
     pub pass: Option<usize>,
 }
 
@@ -76,6 +78,14 @@ impl Job {
                     list.extend(carves.drain(..).map(OpRef::op));
                 }
                 continue;
+            }
+            if let Operation::Relief(ReliefOp {
+                roughing: Some(rough),
+                ..
+            }) = &self.operations[i]
+                && rough.enabled
+            {
+                list.push(OpRef::pass(i, 0));
             }
             list.push(OpRef::op(i));
             if matches!(self.operations[i], Operation::Pocket(_)) {
@@ -137,6 +147,9 @@ impl Job {
         };
         if let Operation::Vcarve(vcarve) = op {
             return self.floor_pocket(vcarve, k).map(Operation::Pocket);
+        }
+        if let Operation::Relief(relief) = op {
+            return roughing_relief(relief, k).map(Operation::Relief);
         }
         let Operation::Pocket(pocket) = op else {
             return None;
@@ -209,15 +222,28 @@ impl Job {
         r.pass.is_some() && matches!(self.operations.get(r.operation), Some(Operation::Vcarve(_)))
     }
 
-    /// "Operation 3 (Mortise)", "Operation 3.1 (Mortise, rest)" for a rest pass, or
-    /// "Operation 2.1 (Sign, floor)" for a floor pass.
-    pub fn label(&self, r: OpRef) -> String {
-        let name = self.operations.get(r.operation).map_or("", |op| op.name());
-        let kind = if self.is_floor_pass(r) {
+    /// Whether `r` is a relief's roughing pass.
+    pub fn is_roughing_pass(&self, r: OpRef) -> bool {
+        r.pass.is_some() && matches!(self.operations.get(r.operation), Some(Operation::Relief(_)))
+    }
+
+    /// The kind of pass `r` is, as its label says it: "floor", "roughing" or "rest".
+    fn pass_kind(&self, r: OpRef) -> &'static str {
+        if self.is_floor_pass(r) {
             "floor"
+        } else if self.is_roughing_pass(r) {
+            "roughing"
         } else {
             "rest"
-        };
+        }
+    }
+
+    /// "Operation 3 (Mortise)", "Operation 3.1 (Mortise, rest)" for a rest pass,
+    /// "Operation 2.1 (Sign, floor)" for a floor pass, or "Operation 4.1 (Rose, roughing)"
+    /// for a roughing pass.
+    pub fn label(&self, r: OpRef) -> String {
+        let name = self.operations.get(r.operation).map_or("", |op| op.name());
+        let kind = self.pass_kind(r);
         match r.pass {
             None => operation_label(r.operation, name),
             Some(_) => match name {
@@ -230,13 +256,16 @@ impl Job {
     /// [`Job::label`] as a message, for problems shown in the reader's language.
     pub fn label_message(&self, r: OpRef) -> Message {
         let name = self.operations.get(r.operation).map_or("", |op| op.name());
-        let (bare, named) = if self.is_floor_pass(r) {
-            (
+        let (bare, named) = match self.pass_kind(r) {
+            "floor" => (
                 "job-operation-label-floor",
                 "job-operation-label-named-floor",
-            )
-        } else {
-            ("job-operation-label-rest", "job-operation-label-named-rest")
+            ),
+            "roughing" => (
+                "job-operation-label-roughing",
+                "job-operation-label-named-roughing",
+            ),
+            _ => ("job-operation-label-rest", "job-operation-label-named-rest"),
         };
         match (r.pass, name) {
             (None, name) => operation_label_message(r.operation, name),
@@ -253,6 +282,32 @@ fn rest_pass_name(pocket: &str) -> String {
     match pocket {
         "" => "rest".into(),
         name => format!("{name}, rest"),
+    }
+}
+
+/// A relief's roughing pass as a relief (docs/specs/stl-relief.md §14): its model, area,
+/// depths, angle and direction, with the pass's tool, feeds and stepover, and the pass
+/// itself kept so the planner knows its step down and allowance. None for another pass
+/// than 0 or no roughing.
+fn roughing_relief(relief: &ReliefOp, k: usize) -> Option<ReliefOp> {
+    let rough = relief.roughing.filter(|_| k == 0)?;
+    Some(ReliefOp {
+        name: roughing_name(&relief.name),
+        enabled: rough.enabled,
+        material: None,
+        tool: rough.tool,
+        stepover: rough.stepover,
+        feed: rough.feed,
+        plunge_feed: rough.plunge_feed,
+        ..relief.clone()
+    })
+}
+
+/// A roughing pass's name, as the planner's resolved relief carries it.
+fn roughing_name(relief: &str) -> String {
+    match relief {
+        "" => "roughing".into(),
+        name => format!("{name}, roughing"),
     }
 }
 

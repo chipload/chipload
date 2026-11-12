@@ -410,7 +410,7 @@ impl Operation {
     }
 
     /// Every project tool it cuts with or names, each once: its own first, then a rest
-    /// pocket's larger tool, its rest passes' and floor pass's.
+    /// pocket's larger tool, its rest passes', floor pass's and roughing pass's.
     pub fn tool_ids(&self) -> Vec<i64> {
         let mut ids = vec![self.tool()];
         let mut push = |id: i64| {
@@ -432,11 +432,15 @@ impl Operation {
                     push(pass.tool);
                 }
             }
+            Operation::Relief(r) => {
+                if let Some(pass) = &r.roughing {
+                    push(pass.tool);
+                }
+            }
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_)
-            | Operation::Relief(_) => {}
+            | Operation::Surface(_) => {}
         }
         ids
     }
@@ -460,11 +464,15 @@ impl Operation {
                     pass.tool = new(pass.tool);
                 }
             }
+            Operation::Relief(r) => {
+                if let Some(pass) = &mut r.roughing {
+                    pass.tool = new(pass.tool);
+                }
+            }
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_)
-            | Operation::Relief(_) => {}
+            | Operation::Surface(_) => {}
         }
     }
 
@@ -1336,6 +1344,35 @@ pub struct ReliefOp {
     pub feed: f64,
     /// The feed going down to each line's first point, mm/min.
     pub plunge_feed: f64,
+    /// A roughing pass, cut just before: levels one step down apart, the tool kept the
+    /// allowance off the model. Missing: none. Left out when missing.
+    // Spec: docs/specs/stl-relief.md §5, §14 step 3 (optional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub roughing: Option<ReliefRoughing>,
+}
+
+/// A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels
+/// with the raster, an allowance left on the model for the finish.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ReliefRoughing {
+    /// The id of the project tool it cuts with (`tools`): an end mill or a plain ball nose.
+    pub tool: i64,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down to each stretch's first point, mm/min.
+    pub plunge_feed: f64,
+    /// The distance between levels, mm.
+    pub step_down: f64,
+    /// The distance between lines, as a fraction of the tool diameter: more than 0, at most
+    /// 0.9.
+    pub stepover: f64,
+    /// What is left on the model for the finish, mm, in every direction: 0 or more.
+    pub allowance: f64,
+    /// False: kept, but not cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
 }
 
 /// The smallest and largest stepover of a surface, as a fraction of the tool diameter

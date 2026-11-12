@@ -264,6 +264,36 @@ chipload op add-inlay <PROJECT> [OPTIONS]
 | `--plug-thickness <PLUG_THICKNESS>` | The plug board's thickness; default 10 mm. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op add-roughing`
+
+Give a relief a roughing pass (docs/specs/stl-relief.md §14): an end mill or a plain ball nose that takes the material down in levels before the relief, leaving an allowance on the model. Replaces the roughing pass it had
+
+```text
+chipload op add-roughing <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The relief's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
+| `--tool <TOOL>` | The roughing tool's id in the project. Required. |
+| `--allowance <ALLOWANCE>` | What is left on the model for the finish; default 0.5 mm. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op remove-roughing`
+
+Take a relief's roughing pass away
+
+```text
+chipload op remove-roughing <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The relief's number as the app lists it (1 = first) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op remove-floor`
 
 Take a V-carve's floor pass away (docs/specs/vcarve-wide-strokes.md §4)

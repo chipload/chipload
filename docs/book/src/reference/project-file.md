@@ -548,6 +548,7 @@ Relief: a 3D model carved from the top with the drop cutter, in parallel lines.
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down to each line's first point, mm/min. |
+| `roughing` | [ReliefRoughing](#reliefroughing) or null | no | A roughing pass, cut just before: levels one step down apart, the tool kept the allowance off the model. Missing: none. Left out when missing. |
 | `select` | [Selector](#selector) | yes | The area the tool's centre stays in: closed shapes, by default the model's outline. |
 | `start_depth` | number | yes | Where the model's top lies, mm down from the stock top: 0 for the top. |
 | `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
@@ -599,6 +600,20 @@ How a turned board is located again.
 - `"pins"`: Dowel pins through holes on the turn axis, drilled with the front.
 
 - `"corner"`: Pushed into the same corner of a fence: the board's size must be exact.
+
+## ReliefRoughing
+
+A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels with the raster, an allowance left on the model for the finish.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `allowance` | number | yes | What is left on the model for the finish, mm, in every direction: 0 or more. |
+| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `plunge_feed` | number | yes | The feed going down to each stretch's first point, mm/min. |
+| `step_down` | number | yes | The distance between levels, mm. |
+| `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill or a plain ball nose. |
 
 ## Rest
 

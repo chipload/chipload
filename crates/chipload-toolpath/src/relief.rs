@@ -7,7 +7,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chipload_core::Point;
 use chipload_core::cutter::Cutter;
-use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
+use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Message, Value};
 use chipload_job::{Model, ModelUp};
 use chipload_mesh::{Mesh, Up};
@@ -204,8 +204,10 @@ pub fn relief_moves(cut: &ReliefCut, start: Point) -> (Vec<Move>, Point) {
             continue;
         };
         match at {
-            // The next line's start is near: along the surface to it.
-            Some(from) if near(from.0, first.0, cut.step) => {
+            // The next line's start is near: along the surface to it, inside the area.
+            Some(from)
+                if near(from.0, first.0, cut.step) && inside_link(cut.area, from.0, first.0) =>
+            {
                 for (p, z) in follow(cut, from.0, first.0).into_iter().skip(1) {
                     moves.push(Move::feed_xyz(p, z, cut.feed));
                 }
@@ -238,6 +240,16 @@ fn near(a: Point, b: Point, step: f64) -> bool {
 /// The finishing lines across the area, each cut into the runs that lie inside it, in
 /// cutting order: back and forth, or all the same way.
 fn runs(cut: &ReliefCut) -> Vec<Run> {
+    lines(cut)
+        .into_iter()
+        .flatten()
+        .map(|(a, b)| follow(cut, a, b))
+        .collect()
+}
+
+/// The lines across the area, one stepover apart, each as the stretches (start, end) that
+/// lie inside it, in cutting order: back and forth, or all the same way.
+fn lines(cut: &ReliefCut) -> Vec<Vec<(Point, Point)>> {
     let (sin, cos) = cut.angle.sin_cos();
     // (u, v): u along the lines, v across them.
     let to_uv = |p: Point| (p.0 * cos + p.1 * sin, -p.0 * sin + p.1 * cos);
@@ -266,10 +278,15 @@ fn runs(cut: &ReliefCut) -> Vec<Run> {
         if backwards {
             spans.reverse();
         }
-        for (a, b) in spans {
-            let (from, to) = if backwards { (b, a) } else { (a, b) };
-            out.push(follow(cut, from_uv(from, v), from_uv(to, v)));
-        }
+        out.push(
+            spans
+                .into_iter()
+                .map(|(a, b)| {
+                    let (from, to) = if backwards { (b, a) } else { (a, b) };
+                    (from_uv(from, v), from_uv(to, v))
+                })
+                .collect(),
+        );
     }
     out
 }
@@ -302,6 +319,11 @@ fn spans(loops: &[Vec<Point>], v: f64) -> Vec<(f64, f64)> {
 /// of them than the straight move gives, then joined where they lie on one line within the
 /// arc tolerance (spec §5).
 fn follow(cut: &ReliefCut, a: Point, b: Point) -> Run {
+    simplified(sampled(cut, a, b))
+}
+
+/// [`follow`]'s points before they are joined.
+fn sampled(cut: &ReliefCut, a: Point, b: Point) -> Run {
     let length = (b.0 - a.0).hypot(b.1 - a.1);
     let pieces = (length / FIRST_SPACING_MM.min(cut.step)).ceil().max(1.0) as usize;
     let at = |t: f64| (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
@@ -315,7 +337,225 @@ fn follow(cut: &ReliefCut, a: Point, b: Point) -> Run {
         points.push(next);
         prev = next;
     }
-    simplified(points)
+    points
+}
+
+/// The levels a roughing goes down to (spec §14 step 3): one step down apart from
+/// `stock_top`, the last at `bottom`. None when the stock top is not above it.
+pub fn levels(stock_top: f64, bottom: f64, step_down: f64) -> Vec<f64> {
+    let depth = stock_top - bottom;
+    if depth <= DEPTH_TOL_MM || step_down <= 0.0 {
+        return Vec::new();
+    }
+    let count = ((depth - DEPTH_TOL_MM) / step_down).ceil().max(1.0) as usize;
+    (1..=count)
+        .map(|k| (stock_top - k as f64 * step_down).max(bottom))
+        .collect()
+}
+
+/// A relief's roughing (spec §14 step 3), from above `start`: `cut` is made with the tool
+/// grown by the allowance and its top and floor raised by it, so its heights keep the
+/// allowance. Level by level from `stock_top`, each line cut where material is left above
+/// the level, stretches joined along the next line when near. The moves and where the
+/// tool ends up.
+pub fn rough_moves(
+    cut: &ReliefCut,
+    stock_top: f64,
+    step_down: f64,
+    start: Point,
+) -> (Vec<Move>, Point) {
+    // Each line's heights, found once for every level.
+    let lines: Vec<Vec<Run>> = lines(cut)
+        .into_iter()
+        .map(|line| line.into_iter().map(|(a, b)| sampled(cut, a, b)).collect())
+        .collect();
+    let mut moves = vec![Move::rapid_z(cut.safe_z)];
+    let mut end = start;
+    let mut down = false;
+    let mut above = stock_top;
+    for level in levels(stock_top, cut.floor, step_down) {
+        let mut left: Vec<Vec<Option<Run>>> = lines
+            .iter()
+            .map(|line| {
+                line.iter()
+                    .flat_map(|run| stretches(run, above, level))
+                    .map(Some)
+                    .collect()
+            })
+            .collect();
+        let mut at: Option<(Point, usize)> = None;
+        while let Some((line, k, reversed, linked)) = next_stretch(cut, &left, at) {
+            let Some(mut run) = left[line][k].take() else {
+                break;
+            };
+            if reversed {
+                run.reverse();
+            }
+            let Some(&first) = run.first() else {
+                continue;
+            };
+            match (linked, at) {
+                (true, Some((from, _))) => {
+                    let link: Run = sampled(cut, from, first.0)
+                        .into_iter()
+                        .map(|(p, z)| (p, z.max(level)))
+                        .collect();
+                    for (p, z) in simplified(link).into_iter().skip(1) {
+                        moves.push(Move::feed_xyz(p, z, cut.feed));
+                    }
+                }
+                _ => {
+                    if down {
+                        moves.push(Move::rapid_z(cut.safe_z));
+                    }
+                    moves.push(Move::rapid_xy(first.0));
+                    moves.push(Move::feed_z(first.1, cut.plunge_feed));
+                    down = true;
+                }
+            }
+            for &(p, z) in &run[1..] {
+                moves.push(Move::feed_xyz(p, z, cut.feed));
+            }
+            let last = run[run.len() - 1].0;
+            at = Some((last, line));
+            end = last;
+        }
+        above = level;
+    }
+    moves.push(Move::rapid_z(cut.safe_z));
+    (moves, end)
+}
+
+/// The next stretch to cut: on the line after the last one, its nearer end close to where
+/// the tool is and joined to it by a straight move inside the area (reversed when that end
+/// is its last, back and forth only); otherwise the first one left, in line order. The
+/// line, its index there, whether it is reversed, and whether it is joined.
+fn next_stretch(
+    cut: &ReliefCut,
+    left: &[Vec<Option<Run>>],
+    at: Option<(Point, usize)>,
+) -> Option<(usize, usize, bool, bool)> {
+    if let Some((p, line)) = at
+        && let Some(next) = left.get(line + 1)
+    {
+        for (k, run) in next.iter().enumerate() {
+            let Some(run) = run else {
+                continue;
+            };
+            let ends = [(run.first(), false), (run.last(), true)];
+            for (end, reversed) in ends {
+                let Some(&(q, _)) = end else {
+                    continue;
+                };
+                if (cut.zigzag || !reversed) && near(p, q, cut.step) && inside_link(cut.area, p, q)
+                {
+                    return Some((line + 1, k, reversed, true));
+                }
+            }
+        }
+    }
+    left.iter().enumerate().find_map(|(line, runs)| {
+        runs.iter()
+            .position(Option::is_some)
+            .map(|k| (line, k, false, false))
+    })
+}
+
+/// The stretches of a line's points `run` that a level at `level` cuts: where material is
+/// left above it (the height before, `above`, higher than the surface's), with the points
+/// on each side so the tool comes onto them along the surface, at the level or the surface,
+/// whichever is higher, then joined.
+fn stretches(run: &Run, above: f64, level: f64) -> Vec<Run> {
+    let cuts: Vec<bool> = run
+        .iter()
+        .map(|&(_, z)| above - z > ARC_APPROX_TOL_MM)
+        .collect();
+    let keep =
+        |i: usize| cuts[i] || (i > 0 && cuts[i - 1]) || cuts.get(i + 1).copied().unwrap_or(false);
+    let mut out = Vec::new();
+    let mut current: Run = Vec::new();
+    for (i, &(p, z)) in run.iter().enumerate() {
+        if keep(i) {
+            current.push((p, z.max(level)));
+        } else if !current.is_empty() {
+            out.push(simplified(std::mem::take(&mut current)));
+        }
+    }
+    if !current.is_empty() {
+        out.push(simplified(current));
+    }
+    out
+}
+
+/// Whether the straight move from `a` to `b` stays inside the area: it crosses none of its
+/// edges and its middle and quarter points lie inside (even-odd) or on an edge. `a` and `b`
+/// may lie on the edges, and the move may run along one.
+fn inside_link(area: &[Vec<Point>], a: Point, b: Point) -> bool {
+    let at = |t: f64| (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
+    let within = |p: Point| contains(area, p) || on_edge(area, p);
+    if ![0.25, 0.5, 0.75].iter().all(|&t| within(at(t))) {
+        return false;
+    }
+    !area
+        .iter()
+        .any(|l| (0..l.len()).any(|k| crosses(a, b, l[k], l[(k + 1) % l.len()])))
+}
+
+/// Whether `p` lies inside the loop `l`.
+pub fn encloses(l: &[Point], p: Point) -> bool {
+    let mut inside = false;
+    for k in 0..l.len() {
+        let (a, b) = (l[k], l[(k + 1) % l.len()]);
+        if (a.1 <= p.1) != (b.1 <= p.1) {
+            let x = a.0 + (p.1 - a.1) / (b.1 - a.1) * (b.0 - a.0);
+            if x > p.0 {
+                inside = !inside;
+            }
+        }
+    }
+    inside
+}
+
+/// Whether `p` lies on an edge of the loops, within the chaining tolerance.
+fn on_edge(area: &[Vec<Point>], p: Point) -> bool {
+    area.iter().any(|l| {
+        (0..l.len()).any(|k| {
+            let (a, b) = (l[k], l[(k + 1) % l.len()]);
+            let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+            let length2 = dx * dx + dy * dy;
+            let t = if length2 > 0.0 {
+                (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / length2).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            (a.0 + t * dx - p.0).hypot(a.1 + t * dy - p.1) <= CHAIN_TOL_MM
+        })
+    })
+}
+
+/// Whether `p` lies inside the loops by the even-odd rule.
+fn contains(area: &[Vec<Point>], p: Point) -> bool {
+    area.iter().filter(|l| encloses(l, p)).count() % 2 == 1
+}
+
+/// Whether the segments `ab` and `cd` cross each other, each end of one lying clearly on
+/// its own side of the other (more than the chaining tolerance): touching does not count.
+fn crosses(a: Point, b: Point, c: Point, d: Point) -> bool {
+    // The signed distance of `p` from the line through `s` and `e`; 0 when within the
+    // tolerance.
+    let side = |s: Point, e: Point, p: Point| {
+        let length = (e.0 - s.0).hypot(e.1 - s.1);
+        if length <= CHAIN_TOL_MM {
+            return 0.0;
+        }
+        let d = ((e.0 - s.0) * (p.1 - s.1) - (e.1 - s.1) * (p.0 - s.0)) / length;
+        if d.abs() <= CHAIN_TOL_MM {
+            0.0
+        } else {
+            d.signum()
+        }
+    };
+    side(a, b, c) * side(a, b, d) < 0.0 && side(c, d, a) * side(c, d, b) < 0.0
 }
 
 /// Points between `a` and `b` where the tool must stand higher than the straight move from
@@ -554,6 +794,89 @@ mod tests {
         ];
         let found = verify(&into, &mesh, Cutter::Ball { radius: 1.5 }, 0.0, (0.0, 0.0));
         assert!(found.is_some_and(|(depth, _)| depth > 1.0), "{found:?}");
+    }
+
+    #[test]
+    fn a_dome_is_roughed_keeping_the_allowance() {
+        let mesh = dome();
+        let area = square(22.0);
+        let allowance = 0.5;
+        for tool in [Cutter::Flat { radius: 3.0 }, Cutter::Ball { radius: 3.0 }] {
+            let grown = tool.grown(allowance).unwrap();
+            let index = DropMesh::new(&mesh, 2.0 * grown.radius());
+            let cut = ReliefCut {
+                mesh: &index,
+                cutter: grown,
+                top: allowance,
+                floor: -20.0 + allowance,
+                area: &area,
+                step: 2.4,
+                angle: 0.0,
+                zigzag: true,
+                safe_z: 5.0,
+                feed: 1500.0,
+                plunge_feed: 500.0,
+                shift: (0.0, 0.0),
+            };
+            let (moves, _) = rough_moves(&cut, 0.0, 6.0, (0.0, 0.0));
+            // The allowance is kept: the grown tool, raised by it, stays off the model.
+            assert_eq!(
+                verify(&moves, &mesh, grown, allowance, (0.0, 0.0)),
+                None,
+                "{tool:?}"
+            );
+            let zs: Vec<f64> = moves
+                .iter()
+                .filter(|m| m.kind == MoveKind::Feed)
+                .filter_map(|m| m.z)
+                .collect();
+            let lowest = zs.iter().copied().fold(f64::INFINITY, f64::min);
+            // Down to the floor plus the allowance round the dome, never below it.
+            assert!((lowest - (-19.5)).abs() < 1e-6, "{tool:?}: {lowest}");
+            // Each level is cut: some moves at -6, -12 and -18 (the flat floors round the
+            // dome's sides).
+            for level in [-6.0, -12.0, -18.0] {
+                assert!(
+                    zs.iter().any(|z| (z - level).abs() < 1e-9),
+                    "{tool:?}: no moves at {level}"
+                );
+            }
+            // Down level by level: the tool lifts between them, fewer times than lines.
+            let lifts = moves
+                .iter()
+                .filter(|m| m.kind == MoveKind::Rapid && m.z == Some(5.0))
+                .count();
+            assert!(lifts < 40, "{tool:?}: {lifts} lifts");
+        }
+    }
+
+    #[test]
+    fn levels_go_one_step_down_apart_to_the_bottom() {
+        assert_eq!(levels(0.0, -10.0, 4.0), vec![-4.0, -8.0, -10.0]);
+        assert_eq!(levels(0.0, -8.0, 4.0), vec![-4.0, -8.0]);
+        assert_eq!(levels(2.0, -1.0, 5.0), vec![-1.0]);
+        assert!(levels(0.0, 0.0, 4.0).is_empty());
+        assert!(levels(0.0, 1.0, 4.0).is_empty());
+    }
+
+    #[test]
+    fn a_link_must_stay_inside_the_area() {
+        // An L: the notch's corner at (5, 5).
+        let l = vec![vec![
+            (0.0, 0.0),
+            (10.0, 0.0),
+            (10.0, 5.0),
+            (5.0, 5.0),
+            (5.0, 10.0),
+            (0.0, 10.0),
+        ]];
+        assert!(inside_link(&l, (1.0, 1.0), (9.0, 4.0)));
+        // Along an edge's ends.
+        assert!(inside_link(&l, (10.0, 1.0), (10.0, 4.0)));
+        // Across the notch.
+        assert!(!inside_link(&l, (9.0, 4.0), (4.0, 9.0)));
+        // Outside, between two ends on the boundary.
+        assert!(!inside_link(&l, (10.0, 5.0), (5.0, 10.0)));
     }
 
     #[test]

@@ -348,6 +348,7 @@ pipeline-operation-refused = Bearbeitung { $number }: { $reason }
 pipeline-rest-dogbones = sie hat Dogbones, und Dogbones und Restbearbeitung lassen sich noch nicht kombinieren; Dogbone-Ecken brauchen keinen Rest
 pipeline-rest-not-endmill = Werkzeug { $tool } ist kein Schaftfräser
 pipeline-not-a-vcarve = Bearbeitung { $number } ist keine V-Gravur; nur V-Gravuren haben einen Bodendurchgang
+pipeline-not-a-relief = Bearbeitung { $number } ist kein Relief; nur Reliefs haben einen Schruppdurchgang
 pipeline-floor-not-endmill = Werkzeug { $tool } ist kein Schaftfräser; ein Bodendurchgang fräst mit einem
 pipeline-rest-before-not-endmill = Werkzeug { $tool } davor ist kein Schaftfräser
 pipeline-rest-not-smaller = Werkzeug { $tool } ({ $diameter }) ist nicht kleiner als Werkzeug { $before } ({ $before_diameter }) davor

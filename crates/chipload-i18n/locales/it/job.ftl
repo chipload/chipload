@@ -24,6 +24,8 @@ job-operation-label-rest = Lavorazione { $number } (ripresa)
 job-operation-label-named-rest = Lavorazione { $number } ({ $name }, ripresa)
 job-operation-label-floor = Lavorazione { $number } (fondo)
 job-operation-label-named-floor = Lavorazione { $number } ({ $name }, fondo)
+job-operation-label-roughing = Lavorazione { $number } (sgrossatura)
+job-operation-label-named-roughing = Lavorazione { $number } ({ $name }, sgrossatura)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] punta
@@ -104,6 +106,7 @@ job-shape-id-range = deve essere tra 1 e next_shape_id - 1 ({ $most }), trovato 
 job-no-image = nessuna immagine { $id } in drawing.images
 job-no-model = nessun modello { $id } in drawing.models
 job-relief-stepover = deve essere al massimo { $most } dell'utensile, è { $got }
+job-relief-allowance = deve essere 0 o più, è { $got }
 job-no-dxf = nessun DXF { $id } in drawing.dxfs
 job-no-text = nessun testo { $id } in drawing.texts
 job-no-group = nessun gruppo { $id } in drawing.groups
