@@ -20,6 +20,7 @@ flowchart TB
     pipeline --> toolpath & dxf & image & text & mesh
     post["chipload-post<br/>TOML + Jinja per controller"] --> toolpath
     toolpath["chipload-toolpath<br/>operations into moves"] --> job
+    toolpath --> mesh
     dxf["chipload-dxf<br/>DXF import"] --> job
     image["chipload-image<br/>picture tracing"] --> core
     dxf --> svg
@@ -107,7 +108,7 @@ and names the files `-S1…`, `-S2…` when there are several.
 | `chipload-mesh` | STL files (binary and text) into triangles, written from the format's public description, with limits against hostile input; a model turned so a chosen axis points up, and the shadow it casts seen from above (docs/specs/stl-relief.md, ADR 0031). No I/O. | core, i18n |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts, or in a font file's bytes (the computer's fonts, found by the pipeline). | core, i18n; ttf-parser |
 | `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); offsets of drawn shapes, and the other editing operations to come (docs/specs/drawing-editing.md); the frames for signs (docs/specs/shape-library.md). No I/O, no project model. | core; cavalier_contours |
-| `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |
+| `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, the drop cutter for reliefs (docs/specs/stl-relief.md), merging overlapping letters, job planning. | core, job, mesh, i18n; cavalier_contours, boostvoronoi |
 | `chipload-post` | Post-processors as data: a TOML config and a Jinja template each for GRBL, LinuxCNC and Mach3, plus users' own. | job, toolpath, i18n, check; minijinja |
 | `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job, i18n |
 | `chipload-pipeline` | The services: run and plan, the report and setup sheet, time and chip-load estimates, the height-map simulation, messages in the display units, licence notices, the computer's fonts for texts (fontdb, not in the browser build; ADR 0027). | every library crate |

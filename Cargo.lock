@@ -965,6 +965,7 @@ dependencies = [
  "chipload-core",
  "chipload-i18n",
  "chipload-job",
+ "chipload-mesh",
  "getrandom 0.3.4",
  "proptest",
  "serde_json",
