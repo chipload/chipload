@@ -379,6 +379,17 @@ impl ChiploadApp {
         if steps.contains(&"floor") {
             self.focus = Focus::FloorPass(0);
         }
+        // The first 3D model selected, its properties open (docs/specs/stl-relief.md §9).
+        if steps.contains(&"model")
+            && let Some(id) = self
+                .edit
+                .as_ref()
+                .and_then(|e| e.job.drawing.models.first())
+                .map(|m| m.id)
+        {
+            self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Model(id));
+            self.focus = Focus::Model(id);
+        }
         // The pictures under traced shapes left out, so the cut shows (the README's picture).
         if steps.contains(&"noimages") {
             self.display.images = false;

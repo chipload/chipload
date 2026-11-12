@@ -19,10 +19,10 @@ Under it, the **ribbon** groups the buttons:
 
 | Group | Buttons | Its menu also has |
 |---|---|---|
-| FILE | New, Open, Import (a DXF as a new project), Save | open recent, add a picture or a DXF/SVG, save as, update drawing, export, the *…from path* items, quit |
+| FILE | New, Open, Import (a DXF as a new project), Save | open recent, add a picture, a DXF/SVG or a [3D model](drawings/models.md), save as, update drawing, export, the *…from path* items, quit |
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)) |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
-| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | *Apply style ▸*, Generate |
+| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | New Relief (of a [3D model](drawings/models.md)), *Apply style ▸*, Generate |
 | WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window) | New sign…, Two-sided… |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
 | VIEW | Measure | fit, top and 3D view, Z scale, reverse left-right orbit, what is shown, legend, the panels (open, hide, reset), update automatically |
@@ -87,12 +87,14 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **A picture:** *Trace settings…* and *Remove*.
   - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*,
     *Save as style…* (a [style](library/styles.md)), for a pocket *Add rest pass ▸* (a
-    [rest pass](operations/rest.md) shows under it), and *Delete*.
+    [rest pass](operations/rest.md) shows under it), for a relief *Add roughing pass ▸*
+    ([roughing](drawings/models.md#roughing-first)), and *Delete*.
   - **A style:** *Apply to the selection* and *Delete*.
   - **A rest pass:** *Remove*.
   - **A project tool:** *Delete*, greyed while an operation or a rest or floor pass cuts
     with it (its hover says which).
-  - **The Drawing folder:** *Add DXF or SVG…* and *Import image…*.
+  - **The Drawing folder:** *Add DXF or SVG…*, *Import image…* and *Add 3D model…*.
+  - **A 3D model:** *Select*, *Hide* or *Show*, *New relief*, *Properties* and *Remove*.
   - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
     down*, *Move to setup ▸* and *Delete part* (with its operations).
   - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a

@@ -5,10 +5,15 @@ sign with raised, rounded letters, a rosette, a coin, a landscape. The model lie
 board like a picture, seen from above, and is carved in three axes; nothing under an
 overhang is reached. (Design: `docs/specs/stl-relief.md`.)
 
-*Relief carving is being built in steps: adding and placing a model, roughing it and
-carving it with a finishing pass work from the command line. The window's forms come next.*
 
 ## Adding a model
+
+In the window: **File > Add 3D model…**, *Add 3D model…* on the Browser's Drawing folder,
+or drop an STL file on the window. The model starts half the board wide at the drawing's
+origin, as deep as its own proportion gives but no deeper than half the board (then
+*Keep proportions* is off), and its properties open.
+
+From the command line:
 
 ```sh
 chipload model add sign.chipload rose.stl --width 120 --depth 6 --at 20,20
@@ -42,6 +47,17 @@ the board, or for a pocket that clears round it.
 
 ## Changing and removing
 
+In the window the model is a row of the Browser's Drawing folder; a click selects its
+outline and shows its **properties**: the file, its size on the board, *Position* (the
+lower-left corner before the turn), *Rotation*, *Width*, *Depth* with *Keep proportions*,
+*Up* and *Layer*. Each change draws the outline again, as one undo step. Selected on the
+canvas it has a picture's **handles**: drag the middle to move it, the round handle to
+turn it, a corner to size it. In the **3D view** it shows faintly as its surface, until a
+simulation is shown. *Remove* (in its properties or on its row) takes the model and its
+outline; a relief of it stays, with a problem, until it carves another model.
+
+![A 3D model in the 3D view, its properties open](../images/model.png)
+
 ```sh
 chipload model set sign.chipload 1 --rotate 15 --depth 4
 chipload model set sign.chipload 1 --proportional     # the depth follows the width again
@@ -53,6 +69,12 @@ chipload model remove sign.chipload 1                 # the model and its outlin
 again.
 
 ## Carving it: the Relief operation
+
+In the window: **New relief** in the model's properties or on its row, or *Operation >
+New Relief*, which carves the selected model, or the first. A relief is made in the
+active part, with a ball nose when the project has one.
+
+From the command line:
 
 ```sh
 chipload tool add "Ball 3" --type ballnose --diameter 3     # then `tool use` it in the project
@@ -98,7 +120,9 @@ is made and the report says where.
 
 A finishing ball nose is small, and a relief can be deeper than it should cut in one go
 (the plan warns when the relief is deeper than the tool is wide). A **roughing pass** takes
-most of the material first with a larger tool:
+most of the material first with a larger tool. In the window: *Add roughing pass ▸* on the
+relief's row in the Browser, with your project's and library's end mills and plain ball
+noses; the pass shows under the relief, with its own properties. From the command line:
 
 ```sh
 chipload op add-roughing sign.chipload --op 1 --tool 1 --allowance 0.5mm

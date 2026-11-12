@@ -46,6 +46,13 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "generate,select",
         (1200.0, 800.0),
     ),
+    // A 3D model in the 3D view, its properties open (docs/book/src/drawings/models.md).
+    (
+        "model",
+        "tests/corpus/jobs/v36/relief_dome.chipload",
+        "model,3d",
+        (1200.0, 800.0),
+    ),
     (
         "parts",
         "tests/corpus/jobs/v22/two_parts.chipload",

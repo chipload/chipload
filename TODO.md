@@ -209,7 +209,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    File > Add 3D model…, models in the Browser with their properties, STL drops. 4b done: Relief in
    the Operation menu and New operation (not the ribbon: 10 px short at 1280, asked the
    user), its form, the roughing pass's row and form. 4c done: the model faint in
-   3D, its handles, the playback tool by its profile. Next 4d (guide, screenshots).
+   3D, its handles, the playback tool by its profile. 4d done: the guide's 3D models page covers the
+   window, screenshot model.png. Next: the user tries the branch; open question: a Relief
+   ribbon button (10 px short at 1280).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

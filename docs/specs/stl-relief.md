@@ -384,4 +384,7 @@ Step 4, the window, 2026-11-12:
   lowest point. A selected model has a picture's handles (move, turn, size), its box
   its footprint before the turn. The playback tool is drawn by its cutter's profile, so a
   ball nose shows its round end and a tapered one its taper.
+- **4d, the guide:** *3D models* covers the window (adding, properties, handles, 3D,
+  New relief, roughing), with a screenshot `model.png` (the dome in 3D, its properties
+  open); *The window* lists the new menu items and right-clicks.
 
