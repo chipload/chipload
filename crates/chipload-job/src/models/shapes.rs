@@ -24,7 +24,7 @@ pub struct Shape {
 }
 
 /// Where a path comes from (docs/specs/source-model.md §2.1). Written flat in the file:
-/// `dxf`, `dxf_handle`, `dxf_type`, `image`, `text`.
+/// `dxf`, `dxf_handle`, `dxf_type`, `image`, `text`, `model`.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Origin {
     /// Read from a DXF or SVG: its id in `drawing.dxfs`, the handle of the entity it came
@@ -39,6 +39,8 @@ pub enum Origin {
     Image(u64),
     /// A letter of the text with this id (docs/specs/text.md §3).
     Text(u64),
+    /// The footprint outline of the 3D model with this id (docs/specs/stl-relief.md §4).
+    Model(u64),
 }
 
 impl Origin {
@@ -48,6 +50,7 @@ impl Origin {
             Origin::Dxf { id, .. } => ShapeFrom::Dxf(*id),
             Origin::Image(id) => ShapeFrom::Image(*id),
             Origin::Text(id) => ShapeFrom::Text(*id),
+            Origin::Model(id) => ShapeFrom::Model(*id),
         }
     }
 }
@@ -145,6 +148,14 @@ impl Shape {
     pub fn dxf(&self) -> Option<u64> {
         match self.origin() {
             Some(Origin::Dxf { id, .. }) => Some(*id),
+            _ => None,
+        }
+    }
+
+    /// The 3D model this shape is the footprint outline of.
+    pub fn model(&self) -> Option<u64> {
+        match self.origin() {
+            Some(Origin::Model(id)) => Some(*id),
             _ => None,
         }
     }
@@ -380,6 +391,9 @@ pub(super) struct RawShape {
     /// path: the text it is a letter of (its id in `drawing.texts`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     text: Option<u64>,
+    /// path: the 3D model it is the footprint outline of (its id in `drawing.models`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    model: Option<u64>,
     /// path, polyline: whether it ends where it starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     closed: Option<bool>,
@@ -430,6 +444,7 @@ impl RawShape {
             image: None,
             dxf: None,
             text: None,
+            model: None,
             closed: None,
             segments: None,
             center: None,
@@ -454,6 +469,7 @@ impl RawShape {
             ("image", self.image.is_some()),
             ("dxf", self.dxf.is_some()),
             ("text", self.text.is_some()),
+            ("model", self.model.is_some()),
             ("closed", self.closed.is_some()),
             ("segments", self.segments.is_some()),
             ("center", self.center.is_some()),
@@ -501,6 +517,7 @@ impl From<Shape> for RawShape {
                     }
                     Some(Origin::Image(id)) => raw.image = Some(id),
                     Some(Origin::Text(id)) => raw.text = Some(id),
+                    Some(Origin::Model(id)) => raw.model = Some(id),
                     None => {}
                 }
                 raw.closed = Some(closed);
@@ -560,6 +577,7 @@ impl TryFrom<RawShape> for Shape {
                 "image",
                 "dxf",
                 "text",
+                "model",
                 "closed",
                 "segments",
             ],
@@ -640,18 +658,19 @@ impl RawShape {
         let handle = self.dxf_handle.clone().flatten();
         let entity = self.dxf_type.clone().flatten();
         let refused = |what: &str| Err(format!("shape {}: {what}", self.id));
-        match (self.dxf, self.image, self.text) {
-            (Some(id), None, None) => match (handle, entity) {
+        match (self.dxf, self.image, self.text, self.model) {
+            (Some(id), None, None, None) => match (handle, entity) {
                 (Some(handle), Some(entity)) => Ok(Some(Origin::Dxf { id, handle, entity })),
                 _ => refused("a path from a DXF needs `dxf_handle` and `dxf_type`"),
             },
-            (None, _, _) if handle.is_some() || entity.is_some() => {
+            (None, _, _, _) if handle.is_some() || entity.is_some() => {
                 refused("`dxf_handle` and `dxf_type` belong to a path from a DXF (`dxf`)")
             }
-            (None, Some(id), None) => Ok(Some(Origin::Image(id))),
-            (None, None, Some(id)) => Ok(Some(Origin::Text(id))),
-            (None, None, None) => Ok(None),
-            _ => refused("a path comes from one DXF, image or text, not more"),
+            (None, Some(id), None, None) => Ok(Some(Origin::Image(id))),
+            (None, None, Some(id), None) => Ok(Some(Origin::Text(id))),
+            (None, None, None, Some(id)) => Ok(Some(Origin::Model(id))),
+            (None, None, None, None) => Ok(None),
+            _ => refused("a path comes from one DXF, image, text or model, not more"),
         }
     }
 

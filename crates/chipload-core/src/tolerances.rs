@@ -57,3 +57,7 @@ pub const VORONOI_GRID_MM: f64 = 0.0001;
 /// How far a V-carve may stray from the outline: no gouge beyond it, and every part of the
 /// shape reached within it (docs/specs/v-carve.md §1).
 pub const VCARVE_TOL_MM: f64 = ARC_APPROX_TOL_MM;
+/// A mesh triangle whose area is below this share of its longest edge squared has no area
+/// to speak of (its corners lie on one line, or two are the same): it is dropped on reading
+/// (docs/specs/stl-relief.md §2). A share, so it holds whatever unit the file is in.
+pub const MESH_DEGENERATE_SHARE: f64 = 1e-12;

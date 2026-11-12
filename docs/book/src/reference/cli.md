@@ -1170,6 +1170,78 @@ chipload image explode <PROJECT> <ID> [OPTIONS]
 | `<ID>` | The picture's id (as `image list` shows it); not needed when the project has one. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload model`
+
+3D models (STL) carved as reliefs from the top: add, change, list, remove (docs/specs/stl-relief.md)
+
+### `chipload model add`
+
+Add an STL model, placed on the board; its footprint outline goes on its own layer
+
+```text
+chipload model add <PROJECT> <MODEL> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<MODEL>` | The STL file (binary or text) |
+| `--units <UNITS>` | The unit the file is in, for its own size: mm (default) or inch. The model is placed by `--width` anyway. |
+| `--layer <LAYER>` | The layer for its outline; default: the file's name. |
+| `--at <AT>` | Where the footprint's lower-left corner goes: X,Y in mm (default 0,0) |
+| `--width <WIDTH>` | The footprint's width on the board, mm (default: the model's own); X and Y scale alike. |
+| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
+| `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
+| `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload model set`
+
+Change a model's place, size, depth or up axis; its outline is drawn again
+
+```text
+chipload model set <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The model's id (as `model list` shows it) |
+| `--layer <LAYER>` | The layer for its outline. |
+| `--proportional` | Make the depth follow the width again, in proportion. |
+| `--at <AT>` | Where the footprint's lower-left corner goes: X,Y in mm (default 0,0) |
+| `--width <WIDTH>` | The footprint's width on the board, mm (default: the model's own); X and Y scale alike. |
+| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
+| `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
+| `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload model list`
+
+The project's models: file, triangles, place and size on the board
+
+```text
+chipload model list <PROJECT>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+
+### `chipload model remove`
+
+Remove a model and its outline
+
+```text
+chipload model remove <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The model's id. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ## `chipload text`
 
 Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)

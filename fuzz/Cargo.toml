@@ -1,4 +1,4 @@
-# Fuzzing the DXF and SVG importers and the image tracer (cargo-fuzz, needs a nightly toolchain): see fuzz/README.md.
+# Fuzzing the DXF and SVG importers, the image tracer and the STL reader (cargo-fuzz, needs a nightly toolchain): see fuzz/README.md.
 # Not part of the workspace and never shipped.
 [package]
 name = "chipload-fuzz"
@@ -15,6 +15,7 @@ libfuzzer-sys = "0.4"
 chipload-dxf = { path = "../crates/chipload-dxf" }
 chipload-job = { path = "../crates/chipload-job" }
 chipload-image = { path = "../crates/chipload-image" }
+chipload-mesh = { path = "../crates/chipload-mesh" }
 chipload-core = { path = "../crates/chipload-core" }
 chipload-toolpath = { path = "../crates/chipload-toolpath" }
 
@@ -41,3 +42,10 @@ bench = false
 
 # Its own workspace: the main one doesn't build it.
 [workspace]
+
+[[bin]]
+name = "stl_read"
+path = "fuzz_targets/stl_read.rs"
+test = false
+doc = false
+bench = false

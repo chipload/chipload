@@ -372,13 +372,15 @@ impl ChiploadApp {
         }
         // A whole DXF, picture or text: explode it (explode-pictures-and-texts.md §6).
         if let CanvasSelection::Whole { of, .. } = &self.selection
-            && !matches!(of, Source::Group(_))
+            && !matches!(of, Source::Group(_) | Source::Model(_))
         {
             let of = *of;
             let hover = match of {
                 Source::Image(_) => t!(ui, "sources-explode-image-hover"),
                 Source::Text(_) => t!(ui, "sources-explode-text-hover"),
-                Source::Dxf(_) | Source::Group(_) => t!(ui, "sources-explode-hover"),
+                Source::Dxf(_) | Source::Group(_) | Source::Model(_) => {
+                    t!(ui, "sources-explode-hover")
+                }
             };
             if ui
                 .button(t!(ui, "sources-explode"))

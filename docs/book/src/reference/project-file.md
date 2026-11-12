@@ -150,6 +150,7 @@ The project's drawing: shapes in millimetres, or (only for jobs from before v4) 
 | `groups` | list of [ShapeGroup](#shapegroup) | no | Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions. |
 | `hidden` | list of string | no | Groups and layers not drawn on the canvas (they are still cut): `dxf:1`, `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`, `drawn:polyline`. |
 | `images` | list of [Image](#image) | no | Pictures traced into shapes, for V-carving. |
+| `models` | list of [Model](#model) | no | 3D models carved as reliefs from the top. Left out of the file when there are none, so projects without them open in older versions, which refuse one with them. |
 | `next_shape_id` | integer | yes | The id the next new shape gets. Ids are never reused. |
 | `shapes` | list of [Shape](#shape) | yes | The shapes, imported and drawn. |
 | `texts` | list of [Text](#text) | no | Texts written into shapes, for V-carving, pocketing or profiling. Left out of the file when there are none, so projects without text open in older versions. |
@@ -367,6 +368,32 @@ How a part is cut mirrored: about the vertical or the horizontal centre line of 
 
 - `"top_bottom"`: About the horizontal centre line: top and bottom change places, Y is mirrored.
 
+## Model
+
+A 3D model (an STL file) carved as a relief from the top: the file itself, which way is up, and where it lies on the board. Its footprint outline is a `path` shape on its layer that names it in `model`.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `data` | string | yes | The STL file itself, base64-encoded. |
+| `depth` | number or null | no | How deep the relief goes, from the model's top to its lowest point, mm; None: in proportion to the width (decision 4). |
+| `file` | string | yes | The STL file's name. |
+| `id` | integer | yes | The model's id, which its outline and reliefs name. |
+| `layer` | string | yes | The layer its footprint outline goes on. |
+| `name` | string | yes | Its name in the Browser and messages: the file's name without its extension at first. |
+| `rotation` | number | yes | Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less than 360. |
+| `sha256` | string | yes | The STL file's SHA-256. |
+| `units` | [Units](#units) | yes | The unit the file was read in, for its size on import only: the model is placed by `width` (decision 2). |
+| `up` | [ModelUp](#modelup) | yes | Which of the model's axes points up on the board. |
+| `width` | number | yes | The footprint's width on the board, mm: it scales X and Y alike. |
+| `x` | number | yes | X of the footprint's lower-left corner on the board, mm, before the turn. |
+| `y` | number | yes | Y of the footprint's lower-left corner on the board, mm, before the turn. |
+
+## ModelUp
+
+Which of a model's axes points up on the board.
+
+One of: `"z"`, `"y"`, `"x"`, `"-z"`, `"-y"`, `"-x"`.
+
 ## Operation
 
 ### `"type": "profile"`
@@ -568,6 +595,7 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 | `group` | integer or null | no | The shapes and texts' letters of this group (an id in `drawing.groups`), as they are at each run. |
 | `image` | integer or null | no | Only shapes traced from this image (an id in `drawing.images`). |
 | `layer` | string or null | no | Every shape on this layer (upper or lower case don't matter). |
+| `model` | integer or null | no | The footprint outline of this 3D model (an id in `drawing.models`). |
 | `shapes` | list of integer or null | no | These shapes, by id. |
 | `text` | integer or null | no | Only the letters of this text (an id in `drawing.texts`). |
 
@@ -604,6 +632,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `kind` | [ShapeKind](#shapekind) | yes | `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`, `polyline`. |
 | `layer` | string | yes | Its layer. |
 | `length` | number or null | no | rectangle: its size along its own X axis, mm. |
+| `model` | integer or null | no | path: the 3D model it is the footprint outline of (its id in `drawing.models`). |
 | `name` | string or null | no | circle, rectangle, polyline: its name in the Browser; left out when it has none. |
 | `points` | list of 2 × number or null | no | polyline: its points, mm. |
 | `radius` | number or null | no | circle: the radius, mm; polygon: the radius to its corners, mm. |

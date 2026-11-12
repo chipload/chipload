@@ -9,6 +9,7 @@ editor-summary-whole-stock = das ganze Rohteil
 # Where the shapes come from: a DXF file, a traced picture or a text, by number.
 editor-summary-dxf = Zeichnung { $id }
 editor-summary-image = Bild { $id }
+editor-summary-model = Modell { $id }
 editor-summary-text = Text { $id }
 editor-summary-group = Gruppe { $id }
 # A drawing layer (user's name); the source is one of the three texts above.

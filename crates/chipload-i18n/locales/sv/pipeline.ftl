@@ -650,3 +650,15 @@ pipeline-new-by-shapes = { $holes } och { $outline } väljer sina former en och 
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = stilen ”{ $style }” fräser med ”{ $tool }”, som inte finns i ditt bibliotek: välj ett annat verktyg för stilen
 pipeline-style-tool-unknown = stilen nämner verktyg { $tool }, som varken finns i ditt bibliotek eller bland dess egna verktyg
+
+pipeline-no-model = ingen modell { $id } i projektet
+pipeline-model-unreadable = modellen går inte att läsa
+pipeline-model-unreadable-data = filen för modell { $id } går inte att läsa ur projektet: { $error }
+pipeline-model-no-width = modell { $id } har ingen bredd med den här axeln uppåt: välj en annan axel
+pipeline-model-no-outline = modellens kontur går inte att rita
+pipeline-model-read-binary = Modell { $id }: { $count } trianglar (binär STL), { $x } × { $y } × { $z } läst i { $units }
+pipeline-model-read-text = Modell { $id }: { $count } trianglar (text-STL), { $x } × { $y } × { $z } läst i { $units }
+pipeline-model-dropped = { $count } trianglar utan yta utelämnades
+pipeline-model-open = ytan har { $count } öppna kanter: verktyget faller genom varje glipa till reliefens botten
+pipeline-model-large = modellen är { $bytes } byte och sparas i projektet: projektet blir lika mycket större
+pipeline-model-placed = Modell { $id } på skivan: { $x } × { $y }, { $z } djup; kontur i { $outlines } former

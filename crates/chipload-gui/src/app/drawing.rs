@@ -469,7 +469,7 @@ impl ChiploadApp {
                 self.remove_dxf(id);
                 return;
             }
-            Some(Source::Group(_)) | None => {}
+            Some(Source::Group(_) | Source::Model(_)) | None => {}
         }
         let (ids, texts, imported) = self.deletion();
         if ids.is_empty() && texts.is_empty() {

@@ -57,6 +57,7 @@ app-selected = Выделено: { $count } ({ $what }): { $list }
 app-selection-layer = слой { $layer }
 app-selection-dxf = чертёж { $id }
 app-selection-image = изображение { $id }
+app-selection-model = модель { $id }
 app-selection-text = текст { $id }
 app-selection-left-out = { $source }, исключено: { $count }
 app-selection-contours = контуры

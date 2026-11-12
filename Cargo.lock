@@ -891,6 +891,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "chipload-mesh"
+version = "0.35.0"
+dependencies = [
+ "chipload-core",
+ "chipload-i18n",
+ "proptest",
+]
+
+[[package]]
 name = "chipload-pipeline"
 version = "0.35.0"
 dependencies = [
@@ -902,6 +911,7 @@ dependencies = [
  "chipload-i18n",
  "chipload-image",
  "chipload-job",
+ "chipload-mesh",
  "chipload-post",
  "chipload-text",
  "chipload-toolpath",

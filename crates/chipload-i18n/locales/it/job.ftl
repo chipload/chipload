@@ -87,6 +87,7 @@ job-image-range-length = deve essere da { $low } a { $high }, trovato { $got }
 # "auto" is written in the project file as it is.
 job-image-threshold = deve essere da 1 a 254 o "auto", trovato { $got }
 job-image-missing = l'immagine manca
+job-model-missing = manca il file del modello
 job-text-empty = è vuoto: scrivi qualcosa da tagliare
 job-text-height = deve essere più di 0 e al massimo { $most }, trovato { $got }
 # $heights is a number of text heights, $most that as a length.
@@ -99,6 +100,7 @@ job-shape-id-range = deve essere tra 1 e next_shape_id - 1 ({ $most }), trovato 
 # drawing.images, drawing.dxfs and drawing.texts are places in the project file; $id is
 # a number.
 job-no-image = nessuna immagine { $id } in drawing.images
+job-no-model = nessun modello { $id } in drawing.models
 job-no-dxf = nessun DXF { $id } in drawing.dxfs
 job-no-text = nessun testo { $id } in drawing.texts
 job-no-group = nessun gruppo { $id } in drawing.groups

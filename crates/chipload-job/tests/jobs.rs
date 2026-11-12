@@ -403,7 +403,8 @@ fn a_path_has_one_origin() {
             .to_string();
         assert!(err.contains(what), "{extra}: {err}");
     };
-    let one = "one DXF, image or text, not more";
+    let one = "one DXF, image, text or model, not more";
+    refused(json!({"image": 1, "model": 2}), one);
     refused(json!({"image": 1, "text": 2}), one);
     refused(
         json!({"dxf": 1, "image": 2, "dxf_handle": "A", "dxf_type": "LINE"}),

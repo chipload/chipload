@@ -125,7 +125,7 @@ the SIL Open Font License, Version 1.1:
 - Apache License 2.0 (Apache-2.0): 293 crate(s)
 - MIT License (MIT): 90 crate(s)
 - ISC License (ISC): 19 crate(s)
-- GNU General Public License v3.0 or later (GPL-3.0-or-later): 14 crate(s)
+- GNU General Public License v3.0 or later (GPL-3.0-or-later): 15 crate(s)
 - BSD 3-Clause "New" or "Revised" License (BSD-3-Clause): 6 crate(s)
 - Boost Software License 1.0 (BSL-1.0): 3 crate(s)
 - Unicode License v3 (Unicode-3.0): 2 crate(s)
@@ -8869,6 +8869,7 @@ Used by:
   chipload-i18n 0.35.0
   chipload-image 0.35.0
   chipload-job 0.35.0
+  chipload-mesh 0.35.0
   chipload-pipeline 0.35.0
   chipload-post 0.35.0
   chipload-svg 0.35.0

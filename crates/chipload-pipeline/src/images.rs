@@ -288,6 +288,7 @@ pub(crate) fn comes_from(shape: &Shape, from: ShapeFrom) -> bool {
         ShapeFrom::Dxf(id) => shape.dxf() == Some(id),
         ShapeFrom::Image(id) => shape.image() == Some(id),
         ShapeFrom::Text(id) => shape.text() == Some(id),
+        ShapeFrom::Model(id) => shape.model() == Some(id),
     }
 }
 
@@ -598,6 +599,11 @@ pub fn turned_box(x: f64, y: f64, width: f64, height: f64, rotation: f64) -> (Po
 }
 
 /// Lines and arcs moved by (x, y), as path segments.
+/// Pieces as they are, as path segments (a model's outline, already in place).
+pub(crate) fn segments_of(pieces: &[Primitive]) -> Vec<PathSegment> {
+    segments(pieces, 0.0, 0.0)
+}
+
 fn segments(pieces: &[Primitive], x: f64, y: f64) -> Vec<PathSegment> {
     pieces
         .iter()

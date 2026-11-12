@@ -178,6 +178,128 @@ impl Image {
     }
 }
 
+/// A 3D model (an STL file) carved as a relief from the top: the file itself, which way is
+/// up, and where it lies on the board. Its footprint outline is a `path` shape on its layer
+/// that names it in `model`.
+// Spec: docs/specs/stl-relief.md §2, §3.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Model {
+    /// The model's id, which its outline and reliefs name.
+    pub id: u64,
+    /// Its name in the Browser and messages: the file's name without its extension at
+    /// first.
+    pub name: String,
+    /// The STL file's name.
+    pub file: String,
+    /// The STL file's SHA-256.
+    pub sha256: String,
+    /// The STL file itself, base64-encoded.
+    pub data: String,
+    /// The unit the file was read in, for its size on import only: the model is placed by
+    /// `width` (decision 2).
+    pub units: Units,
+    /// Which of the model's axes points up on the board.
+    pub up: ModelUp,
+    /// The layer its footprint outline goes on.
+    pub layer: String,
+    /// X of the footprint's lower-left corner on the board, mm, before the turn.
+    pub x: f64,
+    /// Y of the footprint's lower-left corner on the board, mm, before the turn.
+    pub y: f64,
+    /// The footprint's width on the board, mm: it scales X and Y alike.
+    pub width: f64,
+    /// Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less
+    /// than 360.
+    pub rotation: f64,
+    /// How deep the relief goes, from the model's top to its lowest point, mm; None: in
+    /// proportion to the width (decision 4).
+    pub depth: Option<f64>,
+}
+
+/// Which of a model's axes points up on the board.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+pub enum ModelUp {
+    #[default]
+    #[serde(rename = "z")]
+    Z,
+    #[serde(rename = "y")]
+    Y,
+    #[serde(rename = "x")]
+    X,
+    #[serde(rename = "-z")]
+    MinusZ,
+    #[serde(rename = "-y")]
+    MinusY,
+    #[serde(rename = "-x")]
+    MinusX,
+}
+
+impl ModelUp {
+    /// As written in the file and on the command line: `z`, `-y` and so on.
+    pub fn name(self) -> &'static str {
+        match self {
+            ModelUp::Z => "z",
+            ModelUp::Y => "y",
+            ModelUp::X => "x",
+            ModelUp::MinusZ => "-z",
+            ModelUp::MinusY => "-y",
+            ModelUp::MinusX => "-x",
+        }
+    }
+}
+
+impl Model {
+    /// What is wrong with the model's values, as "drawing.models.N.field: message".
+    pub fn problems(&self, index: usize) -> Vec<Problem> {
+        let at = format!("drawing.models.{index}");
+        let mut problems = Vec::new();
+        let positive = |field: &str, value: f64, problems: &mut Vec<Problem>| {
+            if !(value.is_finite() && value > 0.0) {
+                problems.push(Problem::at(
+                    format!("{at}.{field}"),
+                    Message::new("job-must-be-positive")
+                        .arg("got", Value::Length(value, Digits::Shortest)),
+                ));
+            }
+        };
+        positive("width", self.width, &mut problems);
+        if let Some(depth) = self.depth {
+            positive("depth", depth, &mut problems);
+        }
+        if !rotation_in_range(self.rotation) {
+            problems.push(Problem::at(
+                format!("{at}.rotation"),
+                Message::new("job-rotation-range")
+                    .arg("got", Value::Number(self.rotation, Digits::Shortest)),
+            ));
+        }
+        if !(self.x.is_finite() && self.y.is_finite()) {
+            problems.push(Problem::at(
+                &at,
+                Message::new("job-xy-must-be-numbers")
+                    .arg("x", Value::LengthNumber(self.x, Digits::Shortest))
+                    .arg("y", Value::LengthNumber(self.y, Digits::Shortest)),
+            ));
+        }
+        if self.layer.trim().is_empty() {
+            problems.push(Problem::at(
+                format!("{at}.layer"),
+                Message::new("job-must-not-be-empty"),
+            ));
+        }
+        if self.data.is_empty() {
+            problems.push(Problem::at(
+                format!("{at}.data"),
+                Message::new("job-model-missing"),
+            ));
+        }
+        problems
+    }
+}
+
 /// A text written into shapes: what it says, its font and size, and where it goes. Its
 /// letters are `path` shapes on its layer that name it in `text`, made again when it
 /// changes; the font is needed only for that, not to cut them.

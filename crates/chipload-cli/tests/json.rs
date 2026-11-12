@@ -703,3 +703,77 @@ fn setup_dowels_place_moves_them_where_they_go_now() {
     assert_ne!(both.code, Some(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// A binary STL of a box `x` × `y` × `z` with its corner at the origin.
+fn box_stl(x: f32, y: f32, z: f32) -> Vec<u8> {
+    let c = |i: usize| -> [f32; 3] {
+        [
+            if i & 1 == 1 { x } else { 0.0 },
+            if i & 2 == 2 { y } else { 0.0 },
+            if i & 4 == 4 { z } else { 0.0 },
+        ]
+    };
+    let faces = [
+        [0, 2, 3, 1],
+        [4, 5, 7, 6],
+        [0, 1, 5, 4],
+        [2, 6, 7, 3],
+        [0, 4, 6, 2],
+        [1, 3, 7, 5],
+    ];
+    let mut out = vec![0u8; 80];
+    out.extend(12u32.to_le_bytes());
+    for f in faces {
+        for t in [[f[0], f[1], f[2]], [f[0], f[2], f[3]]] {
+            out.extend([0u8; 12]);
+            for i in t {
+                for v in c(i) {
+                    out.extend(v.to_le_bytes());
+                }
+            }
+            out.extend([0u8; 2]);
+        }
+    }
+    out
+}
+
+#[test]
+fn a_model_is_added_placed_changed_listed_and_removed() {
+    // docs/specs/stl-relief.md §2, §3, §9
+    let dir = temp_dir("models");
+    let project = dir.join("p.chipload");
+    std::fs::write(dir.join("box.stl"), box_stl(40.0, 20.0, 10.0)).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    run(&["new", "-o", p, "--json"]);
+    let added = run(&[
+        "model", "add", p, "box.stl", "--width", "80", "--depth", "4", "--at", "5,7", "--json",
+    ]);
+    assert_eq!(added["model"], json!(1), "{added}");
+    assert_eq!(added["size"], json!([40.0, 20.0, 10.0]));
+    assert_eq!(added["placed"], json!([80.0, 40.0, 4.0]));
+    let set = run(&[
+        "model",
+        "set",
+        p,
+        "1",
+        "--proportional",
+        "--up",
+        "-y",
+        "--json",
+    ]);
+    assert_eq!(set["placed"][0], json!(80.0), "{set}");
+    let listed = run(&["model", "list", p, "--json"]);
+    assert_eq!(listed["models"][0]["up"], json!("-y"), "{listed}");
+    assert_eq!(listed["models"][0]["depth"], Value::Null);
+    assert_eq!(listed["models"][0]["shapes"].as_array().unwrap().len(), 1);
+    // Not an STL: refused, the project left alone.
+    std::fs::write(dir.join("bad.stl"), b"not a model").unwrap();
+    let bad = chipload(&dir, &["model", "add", p, "bad.stl", "--json"]);
+    assert_eq!(bad.code, Some(1), "{}", bad.stdout);
+    assert!(bad.stdout.contains("not an STL file"), "{}", bad.stdout);
+    run(&["model", "remove", p, "1", "--json"]);
+    let listed = run(&["model", "list", p, "--json"]);
+    assert_eq!(listed["models"], json!([]));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

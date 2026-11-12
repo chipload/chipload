@@ -195,8 +195,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    drop cutter"). Spec docs/specs/stl-relief.md and ADR 0031 (an exception to ADR 0017's
    "out: 3D surface machining") drafted 2026-11-12, for review: a model placed like a
    picture, a Relief operation with a drop-cutter raster (flat, ball nose, tapered ball
-   nose, V-bit) and roughing by levels, schema 37, an STL reader of our own. Next: the
-   user's decisions, then step 1 (the reader and the model).
+   nose, V-bit) and roughing by levels, an STL reader of our own. **Approved 2026-11-12**
+   (decisions 1-10 as recommended; ADR 0031 accepted). Step 1 built on branch `relief`:
+   `chipload-mesh`, `drawing.models` (no schema bump, §14), `model add/set/list/remove`,
+   the footprint outline. Next: step 2, the drop cutter and finishing.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

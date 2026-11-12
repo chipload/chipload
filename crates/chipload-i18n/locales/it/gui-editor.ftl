@@ -9,6 +9,7 @@ editor-summary-whole-stock = tutto il grezzo
 # Where the shapes come from: a DXF file, a traced picture or a text, by number.
 editor-summary-dxf = disegno { $id }
 editor-summary-image = immagine { $id }
+editor-summary-model = modello { $id }
 editor-summary-text = testo { $id }
 editor-summary-group = gruppo { $id }
 # A drawing layer (user's name); the source is one of the three texts above.

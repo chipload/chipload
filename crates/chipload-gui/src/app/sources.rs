@@ -323,7 +323,8 @@ impl ChiploadApp {
             Source::Text(id) => {
                 self.changed_job(|job| chipload_pipeline::explode::explode_text(job, id))
             }
-            Source::Group(_) => return false,
+            // A model's outline stays tied to its model.
+            Source::Group(_) | Source::Model(_) => return false,
         };
         let failed = t!(self, "sources-explode-failed");
         let exploded = self.after_shapes_change(done, failed);

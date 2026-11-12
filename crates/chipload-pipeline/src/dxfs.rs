@@ -430,7 +430,11 @@ pub fn update_drawing_file(
         } else if let Some(layer) = &select.layer
             && match select.source {
                 Some(chipload_job::Source::Dxf(d)) => d == id,
-                Some(chipload_job::Source::Image(_) | chipload_job::Source::Text(_)) => false,
+                Some(
+                    chipload_job::Source::Image(_)
+                    | chipload_job::Source::Text(_)
+                    | chipload_job::Source::Model(_),
+                ) => false,
                 Some(chipload_job::Source::Group(_)) | None => true,
             }
         {

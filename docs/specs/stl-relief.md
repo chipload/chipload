@@ -1,6 +1,6 @@
 # Spec: relief carving from an STL model (drop cutter)
 
-Status: **draft 2026-11-12**, for review. The user asked: "we start on the next features, stl
+Status: **approved 2026-11-12** ("Go ahead!": decisions 1-10 as recommended); step 1 built. The user asked: "we start on the next features, stl
 3d model engraving. drop cutter i think it is called", then "Yes go ahead" for this spec and
 its ADR (docs/decisions/0031-relief-carving-from-stl.md, which takes this in as an exception to
 ADR 0017).
@@ -214,7 +214,7 @@ chipload tool add "Taper 1/32" --type ballnose --diameter 6.35 --angle 3.6 --tip
 
 ## 10. Schema
 
-**Version 37:**
+*Settled while building (§14): no bump; the draft said:* **Version 37:**
 - the tool type `ballnose`;
 - `drawing.models`;
 - the operation kind `relief`.
@@ -288,3 +288,24 @@ One commit each, with tests, the guide and TODO.md.
    Alternative: the plain ball nose first, the tapered one later.
 10. **The order of building** (§12): the reader and the model first, then finishing, then
     roughing, then the window. *Recommended:* each step can be tried from the command line.
+
+## 14. Settled while building
+
+Step 1, 2026-11-12:
+- **No schema bump** (§10 changed). `drawing.models` is left out of the file when empty,
+  as texts, groups and frames are, and an older Chipload refuses a project that has one
+  (an unknown field) instead of misreading it. The same holds for the ball nose and the
+  relief operation in step 2: an unknown tool type or operation kind is refused on
+  loading. Projects without models open in 0.35 as before.
+- **The footprint outline** is the placed model's shadow on a grid of at most 1000 cells
+  along its longer side (and cells of at least 0.05 mm), traced with the picture tracer
+  (`chipload-image`), lines and arcs within half a cell. A cell is covered when its centre
+  lies under a triangle or a corner falls in it. The outline is a `path` shape with
+  `model` as its origin, drawn again on every change, never exploded.
+- **Placing** (`models::placed_mesh`): the mesh turned up, scaled by width over its own
+  width, its footprint's lower-left corner at (x, y), turned about the footprint's
+  centre, its top at Z 0 and its lowest point at −depth.
+- `--units` sets only the size read on import (mm by default); `--proportional` puts
+  the depth back in proportion.
+- The window shows the outline as a shape; the model's own place in the Browser, its form
+  and handles come with step 4.

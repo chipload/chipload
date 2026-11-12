@@ -205,6 +205,7 @@ fn describe(selector: &Selector) -> Value {
         Some(Source::Dxf(id)) => Message::new("toolpath-error-selector-dxf").arg("id", id),
         Some(Source::Image(id)) => Message::new("toolpath-error-selector-image").arg("id", id),
         Some(Source::Text(id)) => Message::new("toolpath-error-selector-text").arg("id", id),
+        Some(Source::Model(id)) => Message::new("toolpath-error-selector-model").arg("id", id),
         Some(Source::Group(_)) | None => {
             return text.map_or_else(|| Value::Text(String::new()), Value::from);
         }

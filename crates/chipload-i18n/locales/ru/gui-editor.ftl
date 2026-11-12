@@ -2,6 +2,7 @@ editor-name-copy = { $name } (копия)
 editor-summary-whole-stock = вся заготовка
 editor-summary-dxf = чертёж { $id }
 editor-summary-image = изображение { $id }
+editor-summary-model = модель { $id }
 editor-summary-text = текст { $id }
 editor-summary-group = группа { $id }
 editor-summary-layer = слой { $layer }

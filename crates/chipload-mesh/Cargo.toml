@@ -1,0 +1,17 @@
+[package]
+name = "chipload-mesh"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+chipload-core = { version = "0.35.0", path = "../chipload-core" }
+chipload-i18n = { version = "0.35.0", path = "../chipload-i18n" }
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+proptest = "1"

@@ -156,6 +156,7 @@ toolpath-error-selector-and = { $first } и { $second }
 toolpath-error-selector-dxf = DXF { $id }
 toolpath-error-selector-image = изображение { $id }
 toolpath-error-selector-text = текст { $id }
+toolpath-error-selector-model = модель { $id }
 toolpath-error-selector-but = { $source }, кроме { $shapes }
 toolpath-error-selector-of = { $what } из { $source }
 toolpath-error-same-shape = контуры №{ $a } и №{ $b } совпадают; выберите только один

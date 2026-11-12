@@ -1,6 +1,6 @@
 # 0031: Scope: relief carving from an STL model
 
-Status: **proposed** (2026-11-12), for the user's review with docs/specs/stl-relief.md.
+Status: **accepted** (2026-11-12, the user: "Go ahead!").
 
 ## Context
 
@@ -40,7 +40,9 @@ ADR 0017's "out: 3D surface machining":
 
 ## Consequences
 
-- A schema bump: a new tool type (ball nose), the model in the project, a new operation.
+- New data in the project: a tool type (ball nose), the model, a new operation. Older
+  versions refuse such a project rather than misread it; no schema bump was needed
+  (docs/specs/stl-relief.md §14).
 - The checker stays independent. It checks 3D moves as it checks any G1 (limits, rapids,
   feed, depth below the stock). The new cuts get the verification every generated path
   gets: the pipeline tests the finished path against the mesh with a check of its own,

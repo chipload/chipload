@@ -495,3 +495,15 @@ pipeline-name-outline-of = { $name } (внешний контур)
 pipeline-new-by-shapes = { $holes } и { $outline } выбирают свои фигуры по одной: фигуры, добавленные в чертёж позже, ими не обрабатываются
 pipeline-style-tool-missing = стиль «{ $style }» режет инструментом «{ $tool }», которого нет в вашей библиотеке: выберите для стиля другой инструмент
 pipeline-style-tool-unknown = стиль указывает инструмент { $tool }, которого нет ни в вашей библиотеке, ни среди его собственных инструментов
+
+pipeline-no-model = в проекте нет модели { $id }
+pipeline-model-unreadable = модель не читается
+pipeline-model-unreadable-data = файл модели { $id } не читается из проекта: { $error }
+pipeline-model-no-width = у модели { $id } нет ширины при этой оси вверх: выберите другую ось
+pipeline-model-no-outline = контур модели не удаётся построить
+pipeline-model-read-binary = Модель { $id }: { $count } треугольников (двоичный STL), { $x } × { $y } × { $z }, прочитано в { $units }
+pipeline-model-read-text = Модель { $id }: { $count } треугольников (текстовый STL), { $x } × { $y } × { $z }, прочитано в { $units }
+pipeline-model-dropped = пропущено { $count } треугольников без площади
+pipeline-model-open = у поверхности { $count } открытых рёбер: инструмент проваливается в каждый разрыв до дна рельефа
+pipeline-model-large = модель занимает { $bytes } байт и хранится в проекте: проект становится настолько же больше
+pipeline-model-placed = Модель { $id } на заготовке: { $x } × { $y }, глубина { $z }; контур из { $outlines } фигур

@@ -17,6 +17,7 @@ pub mod images;
 pub mod inlay;
 pub mod library;
 pub mod materials;
+pub mod models;
 pub mod new_ops;
 pub mod notices;
 pub mod parts;
@@ -973,6 +974,7 @@ pub fn empty_project() -> Job {
             texts: Vec::new(),
             groups: Vec::new(),
             frames: Vec::new(),
+            models: Vec::new(),
             hidden: Vec::new(),
         },
         setups: vec![chipload_job::Setup {
@@ -1089,6 +1091,7 @@ pub fn new_project(imported: ImportedShapes) -> Job {
         texts: Vec::new(),
         groups: Vec::new(),
         frames: Vec::new(),
+        models: Vec::new(),
         hidden: Vec::new(),
     };
     job.stock_mut().x = x.max(1.0);

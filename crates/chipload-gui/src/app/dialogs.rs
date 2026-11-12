@@ -379,6 +379,11 @@ impl ChiploadApp {
                         .iter()
                         .find(|t| t.id == id)
                         .map(chipload_pipeline::texts::text_label),
+                    Source::Model(id) => drawing
+                        .models
+                        .iter()
+                        .find(|m| m.id == id)
+                        .map(|m| m.name.clone()),
                     Source::Group(_) => None,
                 }
             })
@@ -395,7 +400,9 @@ impl ChiploadApp {
             ui.label(match of {
                 Source::Image(_) => t!(ui, "dialogs-explode-image-body"),
                 Source::Text(_) => t!(ui, "dialogs-explode-text-body"),
-                Source::Dxf(_) | Source::Group(_) => t!(ui, "dialogs-explode-body"),
+                Source::Dxf(_) | Source::Group(_) | Source::Model(_) => {
+                    t!(ui, "dialogs-explode-body")
+                }
             });
             ui.add_space(8.0);
             // Traced outlines and letters are closed already (spec decision 4).

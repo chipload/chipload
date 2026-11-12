@@ -126,6 +126,9 @@ impl ChiploadApp {
                     self.turned_box_of(|f, _| f == Some(ShapeFrom::Dxf(id)), rotation, pad)?;
                 Some((BoxOf::Whole(from.into()), placed))
             }
+            // A model is placed by its own values (docs/specs/stl-relief.md §9: handles come
+            // with the window step).
+            ShapeFrom::Model(_) => None,
         }
     }
 
@@ -402,7 +405,7 @@ impl ChiploadApp {
                 let moved = text_in_box(&text, drag.start.size, &drag.now, drag.free);
                 self.set_text(id, &moved);
             }
-            Source::Dxf(_) | Source::Group(_) => {}
+            Source::Dxf(_) | Source::Group(_) | Source::Model(_) => {}
         }
     }
 

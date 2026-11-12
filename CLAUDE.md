@@ -15,6 +15,7 @@ The original Python implementation was the reference during the port and has bee
 v32 drawn shapes can be `construction` geometry, never cut; since v33 the stock can sit centred on the drawing and fit it; since v34 setups, each with its stock and work zero, parts in a setup; since v35 a V-carve has a number of passes of equal load instead of a step down; since v36 a setup can be the back of another, the same board turned over), migrations, load/save; the user's tool library and machine profiles (`library`, copied into projects, ADR 0014), the shape library's entries (`shape_library`, `.chipload-shapes`, one file each in the settings folder's `shapes/`), the user's styles (`styles`, `styles.json`: operations saved by name, read through the project migrations; docs/specs/styles.md), the window's panel layout (`layout`, `layout.json`), app settings, recovery notes; `save_job` keeps the previous file as `.bak` |
 | `chipload-dxf` | DXF import into shapes, SVGs through `chipload-svg` as drawing files too (`shapes_from_file`), shapes into contours, the `ImportReport` |
 | `chipload-image` | pictures (PNG, JPEG, BMP) into black and white and traced loops for V-carving, with arcs (docs/specs/image-trace.md, image-arcs-centrelines.md); core only, no file I/O |
+| `chipload-mesh` | STL models (binary and text) into triangles, turned up, and their shadow from above, for relief carving (docs/specs/stl-relief.md, ADR 0031); its own reader, hostile-input limits; core only, no file I/O |
 | `chipload-text` | text into closed outlines with arcs, in 17 built-in fonts: GNU FreeFont and ten Apache-2.0 fonts (docs/specs/text.md, more-fonts.md, ADR 0020, 0021); core only, no file I/O |
 | `chipload-svg` | SVG into shapes of lines and arcs in mm, through `usvg` without text or system fonts: Inkscape layers or stroke colours as layers, curves fitted, text, pictures and clips counted, hostile-input limits (docs/specs/svg-import.md, ADR 0024); core only, no file I/O |
 | `chipload-draw` | drawing geometry on core's lines and arcs: intersections, snapping (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); later editing drawn shapes (docs/specs/drawing-roadmap.md, drawing-input.md, ADR 0023); core only, no I/O |
@@ -115,7 +116,7 @@ cargo test -p chipload-cli --test messages                # the English messages
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
 cargo deny check licenses bans sources                    # GPL-3.0 compatibility of every crate
-cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-text -p chipload-draw -p chipload-i18n -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
+cargo check --target wasm32-unknown-unknown -p chipload-core -p chipload-job -p chipload-dxf -p chipload-image -p chipload-mesh -p chipload-text -p chipload-draw -p chipload-i18n -p chipload-toolpath -p chipload-post -p chipload-check -p chipload-pipeline   # the libraries still compile for the browser (docs/specs/web.md)
 
 cargo run -p chipload-cli -- import part.dxf -o part.chipload       # new project from a DXF
 cargo run -p chipload-cli -- new -o part.chipload                   # empty project (DXF later via update)
@@ -143,6 +144,7 @@ cargo run -p chipload-cli -- dxf export part.chipload -o part.dxf   # the drawin
 cargo run -p chipload-cli -- import logo.svg -o logo.chipload   # an SVG works as a DXF does (also dxf add, update, inspect; --px-per-inch 96 for a file in plain pixels)
 cargo run -p chipload-cli -- dxf explode part.chipload --join 0.05mm   # its shapes become drawn shapes, the DXF goes (also shape join --gap)
 cargo run -p chipload-cli -- image add part.chipload logo.png --width 120   # trace a picture into shapes on layer "logo" (also image set/list/preview/remove; --trace centre-line, --arcs false)
+cargo run -p chipload-cli -- model add part.chipload rose.stl --width 120 --depth 6 --at 20,20   # a 3D model for a relief (also model set/list/remove; --up y, --units inch)
 cargo run -p chipload-cli -- text add part.chipload "MAKER\nSPACE" --height 20 --at 40,30   # text in a built-in font (also text set/list/remove/fonts, place --text)
 cargo run -p chipload-cli -- shape save part.chipload 5 6 --texts 1 --name "Signs/Welcome"   # the shape library (also shape insert NAME --at/--around/--width, shape library)
 cargo run -p chipload-cli -- set part.chipload machine.gcode_units=inch   # G-code in inches (G20); the project stays mm (docs/specs/inch-units.md)

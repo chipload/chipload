@@ -77,6 +77,7 @@ app-selected = { $count } selezionati ({ $what }): { $list }
 app-selection-layer = layer { $layer }
 app-selection-dxf = disegno { $id }
 app-selection-image = immagine { $id }
+app-selection-model = modello { $id }
 app-selection-text = testo { $id }
 # $source: one of the three texts above.
 app-selection-left-out = { $source }, { $count } esclusi

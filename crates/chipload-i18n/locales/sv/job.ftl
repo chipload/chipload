@@ -87,6 +87,7 @@ job-image-range-length = måste vara { $low } till { $high }, fick { $got }
 # "auto" is written in the project file as it is.
 job-image-threshold = måste vara 1 till 254 eller "auto", fick { $got }
 job-image-missing = bilden saknas
+job-model-missing = modellfilen saknas
 job-text-empty = är tom: skriv något att fräsa
 job-text-height = måste vara mer än 0 och högst { $most }, fick { $got }
 # $heights is a number of text heights, $most that as a length.
@@ -99,6 +100,7 @@ job-shape-id-range = måste vara mellan 1 och next_shape_id - 1 ({ $most }), fic
 # drawing.images, drawing.dxfs and drawing.texts are places in the project file; $id is
 # a number.
 job-no-image = ingen bild { $id } i drawing.images
+job-no-model = ingen modell { $id } i drawing.models
 job-no-dxf = ingen DXF { $id } i drawing.dxfs
 job-no-text = ingen text { $id } i drawing.texts
 job-no-group = ingen grupp { $id } i drawing.groups

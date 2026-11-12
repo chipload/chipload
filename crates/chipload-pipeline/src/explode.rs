@@ -211,6 +211,8 @@ fn explode(
     match from {
         ShapeFrom::Dxf(id) => out.drawing.dxfs.retain(|d| d.id != id),
         ShapeFrom::Image(id) => out.drawing.images.retain(|i| i.id != id),
+        // A model's outline isn't exploded: the model stays, and makes it again.
+        ShapeFrom::Model(_) => {}
         ShapeFrom::Text(id) => {
             out.drawing.texts.retain(|t| t.id != id);
             // A group holding the text holds its letters instead.

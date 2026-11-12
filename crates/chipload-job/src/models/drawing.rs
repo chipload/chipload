@@ -38,6 +38,11 @@ pub struct Drawing {
     // Spec: docs/specs/sign-maker.md §4.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub frames: Vec<Frame>,
+    /// 3D models carved as reliefs from the top. Left out of the file when there are none,
+    /// so projects without them open in older versions, which refuse one with them.
+    // Spec: docs/specs/stl-relief.md §2.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub models: Vec<Model>,
     /// Groups and layers not drawn on the canvas (they are still cut): `dxf:1`,
     /// `dxf:1/layer:Cut`, `image:1`, `text:1`, `drawn:circle`, `drawn:rectangle`,
     /// `drawn:polyline`.

@@ -1918,6 +1918,9 @@ impl ChiploadApp {
                 t!(self, "app-selection-image", id = id)
             }
             chipload_core::chain::ShapeFrom::Text(id) => t!(self, "app-selection-text", id = id),
+            chipload_core::chain::ShapeFrom::Model(id) => {
+                t!(self, "app-selection-model", id = id)
+            }
         }
     }
 

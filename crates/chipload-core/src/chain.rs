@@ -42,6 +42,8 @@ pub enum ShapeFrom {
     Image(u64),
     /// The text with this id (docs/specs/text.md).
     Text(u64),
+    /// The 3D model with this id: its footprint outline (docs/specs/stl-relief.md §4).
+    Model(u64),
 }
 
 #[derive(Debug, Clone, PartialEq)]

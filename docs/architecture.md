@@ -17,7 +17,7 @@ flowchart TB
     gui["chipload-gui<br/>egui desktop app"] --> pipeline
     cli["chipload-cli<br/>commands, --json, MCP"] --> pipeline
     pipeline["chipload-pipeline<br/>plan → post → check, reports"] --> post
-    pipeline --> toolpath & dxf & image & text
+    pipeline --> toolpath & dxf & image & text & mesh
     post["chipload-post<br/>TOML + Jinja per controller"] --> toolpath
     toolpath["chipload-toolpath<br/>operations into moves"] --> job
     dxf["chipload-dxf<br/>DXF import"] --> job
@@ -25,6 +25,7 @@ flowchart TB
     dxf --> svg
     svg["chipload-svg<br/>SVG reading"] --> core
     text["chipload-text<br/>fonts to outlines"] --> core
+    mesh["chipload-mesh<br/>STL reading"] --> core
     draw["chipload-draw<br/>drawing geometry, snapping"] --> core
     gui --> draw
     pipeline --> draw
@@ -38,6 +39,7 @@ flowchart TB
     dxf --> i18n
     image --> i18n
     text --> i18n
+    mesh --> i18n
     post --> i18n
     pipeline --> i18n
 
@@ -53,7 +55,7 @@ flowchart TB
 | Front ends | `chipload-gui`, `chipload-cli` |
 | Services | `chipload-pipeline` |
 | Output | `chipload-post` |
-| Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-svg`, `chipload-image`, `chipload-text` |
+| Generators | `chipload-toolpath`, `chipload-dxf`, `chipload-svg`, `chipload-image`, `chipload-text`, `chipload-mesh` |
 | Drawing | `chipload-draw`: drawing geometry for the shapes drawn in Chipload (ADR 0023) |
 | Model | `chipload-job` |
 | Geometry | `chipload-core` |
@@ -102,6 +104,7 @@ and names the files `-S1…`, `-S2…` when there are several.
 | `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. SVGs too, read by `chipload-svg`, as drawing files of their own format. Also the way out: shapes written as a DXF (R12 layout, its own writer) and read back. | core, job, i18n, svg; dxf |
 | `chipload-svg` | SVG into shapes of lines and arcs in mm: usvg resolves styles, `use`, transforms and units into paths; curves fitted with lines and arcs; layers from Inkscape layers or stroke colours; text, pictures and clips counted, not imported (ADR 0024). `chipload-dxf` makes its shapes a drawing file (docs/specs/svg-import.md). | core, i18n; usvg, flate2 |
 | `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core, i18n; image |
+| `chipload-mesh` | STL files (binary and text) into triangles, written from the format's public description, with limits against hostile input; a model turned so a chosen axis points up, and the shadow it casts seen from above (docs/specs/stl-relief.md, ADR 0031). No I/O. | core, i18n |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts, or in a font file's bytes (the computer's fonts, found by the pipeline). | core, i18n; ttf-parser |
 | `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); offsets of drawn shapes, and the other editing operations to come (docs/specs/drawing-editing.md); the frames for signs (docs/specs/shape-library.md). No I/O, no project model. | core; cavalier_contours |
 | `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, merging overlapping letters, job planning. | core, job, i18n; cavalier_contours, boostvoronoi |

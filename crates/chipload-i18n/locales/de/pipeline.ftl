@@ -653,3 +653,15 @@ pipeline-new-by-shapes = { $holes } und { $outline } wählen ihre Formen einzeln
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = Stil „{ $style }“ fräst mit „{ $tool }“, das nicht in Ihrer Bibliothek ist: wählen Sie ein anderes Werkzeug für den Stil
 pipeline-style-tool-unknown = der Stil nennt Werkzeug { $tool }, das weder in Ihrer Bibliothek noch unter seinen eigenen Werkzeugen ist
+
+pipeline-no-model = kein Modell { $id } im Projekt
+pipeline-model-unreadable = das Modell lässt sich nicht lesen
+pipeline-model-unreadable-data = die Datei von Modell { $id } lässt sich nicht aus dem Projekt lesen: { $error }
+pipeline-model-no-width = Modell { $id } hat mit dieser Achse nach oben keine Breite: wähle eine andere Achse
+pipeline-model-no-outline = der Umriss des Modells lässt sich nicht zeichnen
+pipeline-model-read-binary = Modell { $id }: { $count } Dreiecke (binäre STL), { $x } × { $y } × { $z } gelesen in { $units }
+pipeline-model-read-text = Modell { $id }: { $count } Dreiecke (Text-STL), { $x } × { $y } × { $z } gelesen in { $units }
+pipeline-model-dropped = { $count } Dreiecke ohne Fläche wurden weggelassen
+pipeline-model-open = die Oberfläche hat { $count } offene Kanten: das Werkzeug fällt durch jede Lücke bis zum Boden des Reliefs
+pipeline-model-large = das Modell hat { $bytes } Bytes und wird im Projekt gespeichert: das Projekt wird entsprechend groß
+pipeline-model-placed = Modell { $id } auf dem Rohteil: { $x } × { $y }, { $z } tief; Umriss in { $outlines } Formen

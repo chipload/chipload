@@ -12,6 +12,7 @@ mod images;
 mod lengths;
 mod library;
 mod materials;
+mod models;
 mod parts;
 mod setups;
 mod shape_library;
@@ -321,6 +322,12 @@ enum Command {
     Image {
         #[command(subcommand)]
         action: images::ImageAction,
+    },
+    /// 3D models (STL) carved as reliefs from the top: add, change, list, remove
+    /// (docs/specs/stl-relief.md).
+    Model {
+        #[command(subcommand)]
+        action: models::ModelAction,
     },
     /// Text written into shapes for V-carving, pocketing or profiling: add, change, list,
     /// remove, and the built-in fonts (docs/specs/text.md).
@@ -759,6 +766,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Op { action } => op(out, action),
         Command::Shape { action } => shape(out, action),
         Command::Image { action } => images::image(out, action),
+        Command::Model { action } => models::model(out, action),
         Command::Text { action } => texts::text(out, action),
         Command::Frame { action } => frames::frame(out, action),
         Command::Sign { action } => signs::sign(out, action),
@@ -1122,6 +1130,8 @@ fn load_set(out: &mut Out, project: &Path, sets: &[String]) -> Result<Job, ExitC
     {
         out.line(line.clone());
     }
+    // A changed model's outline drawn again (docs/specs/stl-relief.md §4).
+    let written = models::remake_changed(out, &job, written)?;
     // Frames round a changed text drawn again (docs/specs/sign-maker.md §4).
     let (followed, notes) = chipload_pipeline::frames::follow_frames(written);
     for note in notes {
@@ -1241,6 +1251,10 @@ fn set(out: &mut Out, project: &Path, values: &[String], output: Option<&Path>) 
             Ok(written) => written,
             Err(err) => return out.fail(err),
         };
+    let changed = match models::remake_changed(out, &job, changed) {
+        Ok(changed) => changed,
+        Err(code) => return code,
+    };
     let target = output.unwrap_or(project);
     if let Err(err) = crate::save_project(out, &changed, target) {
         return out.fail(err);

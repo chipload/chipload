@@ -30,6 +30,7 @@
 - [Exporting the drawing](drawings/export.md)
 - [Images](drawings/images.md)
 - [Text](drawings/text.md)
+- [3D models](drawings/models.md)
 - [Signs and frames](drawings/signs.md)
 - [The shape library](drawings/shape-library.md)
 - [Groups](drawings/groups.md)

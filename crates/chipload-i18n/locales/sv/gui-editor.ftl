@@ -9,6 +9,7 @@ editor-summary-whole-stock = hela ämnet
 # Where the shapes come from: a DXF file, a traced picture or a text, by number.
 editor-summary-dxf = ritning { $id }
 editor-summary-image = bild { $id }
+editor-summary-model = modell { $id }
 editor-summary-text = text { $id }
 editor-summary-group = grupp { $id }
 # A drawing layer (user's name); the source is one of the three texts above.

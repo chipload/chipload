@@ -239,6 +239,7 @@ toolpath-error-selector-and = { $first } y { $second }
 toolpath-error-selector-dxf = DXF { $id }
 toolpath-error-selector-image = imagen { $id }
 toolpath-error-selector-text = texto { $id }
+toolpath-error-selector-model = modelo { $id }
 # $shapes are the shapes left out ("S3, S5").
 toolpath-error-selector-but = { $source } excepto { $shapes }
 toolpath-error-selector-of = { $what } de { $source }

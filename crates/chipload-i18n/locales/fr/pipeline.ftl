@@ -658,3 +658,15 @@ pipeline-new-by-shapes = { $holes } et { $outline } sélectionnent leurs formes 
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = le style « { $style } » usine avec « { $tool } », qui n'est pas dans votre bibliothèque : choisissez un autre outil pour le style
 pipeline-style-tool-unknown = le style nomme l'outil { $tool }, qui n'est ni dans votre bibliothèque ni parmi ses propres outils
+
+pipeline-no-model = aucun modèle { $id } dans le projet
+pipeline-model-unreadable = le modèle ne peut pas être lu
+pipeline-model-unreadable-data = le fichier du modèle { $id } ne peut pas être lu depuis le projet : { $error }
+pipeline-model-no-width = le modèle { $id } n'a pas de largeur avec cet axe vers le haut : choisissez un autre axe
+pipeline-model-no-outline = le contour du modèle ne peut pas être dessiné
+pipeline-model-read-binary = Modèle { $id } : { $count } triangles (STL binaire), { $x } × { $y } × { $z } lu en { $units }
+pipeline-model-read-text = Modèle { $id } : { $count } triangles (STL texte), { $x } × { $y } × { $z } lu en { $units }
+pipeline-model-dropped = { $count } triangles sans surface ont été écartés
+pipeline-model-open = la surface a { $count } arêtes ouvertes : l'outil tombe par chaque trou jusqu'au fond du relief
+pipeline-model-large = le modèle fait { $bytes } octets et est gardé dans le projet : le projet grossit d'autant
+pipeline-model-placed = Modèle { $id } sur le brut : { $x } × { $y }, { $z } de profondeur ; contour en { $outlines } formes

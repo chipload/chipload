@@ -652,3 +652,23 @@ pipeline-new-by-shapes = { $holes } and { $outline } select their shapes one by 
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = style "{ $style }" cuts with "{ $tool }", which isn't in your library: choose another tool for the style
 pipeline-style-tool-unknown = the style names tool { $tool }, which is neither in your library nor among its own tools
+
+## 3D models (docs/specs/stl-relief.md)
+pipeline-no-model = no model { $id } in the project
+pipeline-model-unreadable = the model can't be read
+# $error is the base64 decoder's own words.
+pipeline-model-unreadable-data = model { $id }'s file can't be read from the project: { $error }
+pipeline-model-no-width = model { $id } has no width with this axis up: choose another up axis
+pipeline-model-no-outline = the model's outline can't be drawn
+# $units is mm or inch: the unit the file was read in. $x, $y, $z are its size.
+pipeline-model-read-binary = Model { $id }: { $count } triangles (binary STL), { $x } × { $y } × { $z } read in { $units }
+pipeline-model-read-text = Model { $id }: { $count } triangles (text STL), { $x } × { $y } × { $z } read in { $units }
+pipeline-model-dropped = { $count } triangles without an area were left out
+pipeline-model-open = the surface has { $count } open edges: the tool falls through any gap to the relief's floor
+# $bytes is the file's size.
+pipeline-model-large = the model is { $bytes } bytes, and is kept in the project: the project gets as large
+# $x, $y are its width and height on the board, $z the relief's depth.
+pipeline-model-placed = Model { $id } on the board: { $x } × { $y }, { $z } deep; its outline { $outlines ->
+    [one] is one shape
+   *[other] is { $outlines } shapes
+}

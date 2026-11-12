@@ -321,6 +321,9 @@ impl Job {
     pub fn validate(&self) -> Vec<Problem> {
         let mut problems = self.drawing.validate();
         problems.extend(self.machine.problems("machine"));
+        for (k, model) in self.drawing.models.iter().enumerate() {
+            problems.extend(model.problems(k));
+        }
         for (i, source) in self.drawing.dxfs.iter().enumerate() {
             let at = format!("drawing.dxfs.{i}.placement");
             let Placement {
@@ -622,6 +625,10 @@ impl Job {
                     Source::Group(id) => (
                         self.drawing.groups.iter().any(|g| g.id == id),
                         "job-no-group",
+                    ),
+                    Source::Model(id) => (
+                        self.drawing.models.iter().any(|m| m.id == id),
+                        "job-no-model",
                     ),
                 };
                 if !exists {

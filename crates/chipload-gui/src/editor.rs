@@ -547,6 +547,7 @@ pub fn geometry_summary(op: &Operation, contours: &[Contour], lang: &impl Lang) 
         Source::Image(id) => t!(lang, "editor-summary-image", id = id),
         Source::Text(id) => t!(lang, "editor-summary-text", id = id),
         Source::Group(id) => t!(lang, "editor-summary-group", id = id),
+        Source::Model(id) => t!(lang, "editor-summary-model", id = id),
     });
     if let Some(layer) = &select.layer {
         return match source {

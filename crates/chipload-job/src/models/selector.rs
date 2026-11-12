@@ -16,12 +16,18 @@ pub enum Source {
     Text(u64),
     /// An id in `drawing.groups`.
     Group(u64),
+    /// An id in `drawing.models`: its footprint outline (docs/specs/stl-relief.md §4).
+    Model(u64),
 }
 
 impl Source {
     pub fn id(self) -> u64 {
         match self {
-            Source::Dxf(id) | Source::Image(id) | Source::Text(id) | Source::Group(id) => id,
+            Source::Dxf(id)
+            | Source::Image(id)
+            | Source::Text(id)
+            | Source::Group(id)
+            | Source::Model(id) => id,
         }
     }
 
@@ -32,6 +38,7 @@ impl Source {
             Source::Image(_) => "image",
             Source::Text(_) => "text",
             Source::Group(_) => "group",
+            Source::Model(_) => "model",
         }
     }
 
@@ -42,6 +49,7 @@ impl Source {
             Source::Dxf(id) => Some(ShapeFrom::Dxf(id)),
             Source::Image(id) => Some(ShapeFrom::Image(id)),
             Source::Text(id) => Some(ShapeFrom::Text(id)),
+            Source::Model(id) => Some(ShapeFrom::Model(id)),
             Source::Group(_) => None,
         }
     }
@@ -53,6 +61,7 @@ impl From<ShapeFrom> for Source {
             ShapeFrom::Dxf(id) => Source::Dxf(id),
             ShapeFrom::Image(id) => Source::Image(id),
             ShapeFrom::Text(id) => Source::Text(id),
+            ShapeFrom::Model(id) => Source::Model(id),
         }
     }
 }
@@ -103,6 +112,9 @@ pub struct RawSelector {
     /// are at each run.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub group: Option<u64>,
+    /// The footprint outline of this 3D model (an id in `drawing.models`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<u64>,
     /// Shapes of that DXF, image, text or group left out (ids); with `dxf`, `image`,
     /// `text` or `group` only. A contour with any of them isn't cut. A traced image's, or a text's, are found
     /// again when it is made again.
@@ -119,6 +131,7 @@ impl TryFrom<RawSelector> for Selector {
             raw.image.map(Source::Image),
             raw.text.map(Source::Text),
             raw.group.map(Source::Group),
+            raw.model.map(Source::Model),
         ]
         .into_iter()
         .flatten()
@@ -155,6 +168,7 @@ impl From<Selector> for RawSelector {
             image: of(Source::Image),
             text: of(Source::Text),
             group: of(Source::Group),
+            model: of(Source::Model),
             exclude: (!selector.exclude.is_empty()).then_some(selector.exclude),
             layer: selector.layer,
             shapes: selector.shapes,

@@ -77,6 +77,7 @@ app-selected = { $count } markerade ({ $what }): { $list }
 app-selection-layer = lager { $layer }
 app-selection-dxf = ritning { $id }
 app-selection-image = bild { $id }
+app-selection-model = modell { $id }
 app-selection-text = text { $id }
 # $source: one of the three texts above.
 app-selection-left-out = { $source }, { $count } utelämnade

@@ -81,6 +81,7 @@ fn checker_is_independent_of_the_generator() {
         "chipload-image",
         "chipload-text",
         "chipload-svg",
+        "chipload-mesh",
         "chipload-pipeline",
     ] {
         assert!(
@@ -134,6 +135,18 @@ fn svg_reading_sits_beside_the_dxf_reader() {
         .filter(|d| d.starts_with("chipload-") && *d != "chipload-core" && *d != "chipload-i18n")
         .collect();
     assert!(bad.is_empty(), "chipload-svg depends on {bad:?}");
+}
+
+#[test]
+fn stl_reading_sits_beside_the_dxf_reader() {
+    // docs/specs/stl-relief.md §2, ADR 0031: STL bytes in, triangles out, on chipload-core
+    // alone (and the texts of its errors).
+    let deps = &runtime_closure()["chipload-mesh"];
+    let bad: Vec<&String> = deps
+        .iter()
+        .filter(|d| d.starts_with("chipload-") && *d != "chipload-core" && *d != "chipload-i18n")
+        .collect();
+    assert!(bad.is_empty(), "chipload-mesh depends on {bad:?}");
 }
 
 #[test]

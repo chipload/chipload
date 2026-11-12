@@ -360,6 +360,13 @@
           },
           "type": "array"
         },
+        "models": {
+          "description": "3D models carved as reliefs from the top. Left out of the file when there are none,\nso projects without them open in older versions, which refuse one with them.",
+          "items": {
+            "$ref": "#/$defs/Model"
+          },
+          "type": "array"
+        },
         "next_shape_id": {
           "description": "The id the next new shape gets. Ids are never reused.",
           "format": "uint64",
@@ -1099,6 +1106,101 @@
           "type": "string"
         }
       ]
+    },
+    "Model": {
+      "additionalProperties": false,
+      "description": "A 3D model (an STL file) carved as a relief from the top: the file itself, which way is\nup, and where it lies on the board. Its footprint outline is a `path` shape on its layer\nthat names it in `model`.",
+      "properties": {
+        "data": {
+          "description": "The STL file itself, base64-encoded.",
+          "type": "string"
+        },
+        "depth": {
+          "description": "How deep the relief goes, from the model's top to its lowest point, mm; None: in\nproportion to the width (decision 4).",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "file": {
+          "description": "The STL file's name.",
+          "type": "string"
+        },
+        "id": {
+          "description": "The model's id, which its outline and reliefs name.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "layer": {
+          "description": "The layer its footprint outline goes on.",
+          "type": "string"
+        },
+        "name": {
+          "description": "Its name in the Browser and messages: the file's name without its extension at\nfirst.",
+          "type": "string"
+        },
+        "rotation": {
+          "description": "Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less\nthan 360.",
+          "format": "double",
+          "type": "number"
+        },
+        "sha256": {
+          "description": "The STL file's SHA-256.",
+          "type": "string"
+        },
+        "units": {
+          "$ref": "#/$defs/Units",
+          "description": "The unit the file was read in, for its size on import only: the model is placed by\n`width` (decision 2)."
+        },
+        "up": {
+          "$ref": "#/$defs/ModelUp",
+          "description": "Which of the model's axes points up on the board."
+        },
+        "width": {
+          "description": "The footprint's width on the board, mm: it scales X and Y alike.",
+          "format": "double",
+          "type": "number"
+        },
+        "x": {
+          "description": "X of the footprint's lower-left corner on the board, mm, before the turn.",
+          "format": "double",
+          "type": "number"
+        },
+        "y": {
+          "description": "Y of the footprint's lower-left corner on the board, mm, before the turn.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "file",
+        "sha256",
+        "data",
+        "units",
+        "up",
+        "layer",
+        "x",
+        "y",
+        "width",
+        "rotation"
+      ],
+      "type": "object"
+    },
+    "ModelUp": {
+      "description": "Which of a model's axes points up on the board.",
+      "enum": [
+        "z",
+        "y",
+        "x",
+        "-z",
+        "-y",
+        "-x"
+      ],
+      "type": "string"
     },
     "Operation": {
       "oneOf": [
@@ -2097,6 +2199,15 @@
             "null"
           ]
         },
+        "model": {
+          "description": "The footprint outline of this 3D model (an id in `drawing.models`).",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "shapes": {
           "default": null,
           "description": "These shapes, by id.",
@@ -2278,6 +2389,15 @@
           "format": "double",
           "type": [
             "number",
+            "null"
+          ]
+        },
+        "model": {
+          "description": "path: the 3D model it is the footprint outline of (its id in `drawing.models`).",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
             "null"
           ]
         },

@@ -655,3 +655,15 @@ pipeline-new-by-shapes = { $holes } e { $outline } selezionano le loro forme una
 # A style names a library tool the library no longer has (an import from another computer).
 pipeline-style-tool-missing = lo stile «{ $style }» lavora con «{ $tool }», che non è nella tua libreria: scegli un altro utensile per lo stile
 pipeline-style-tool-unknown = lo stile nomina l'utensile { $tool }, che non è né nella tua libreria né tra i suoi utensili
+
+pipeline-no-model = nessun modello { $id } nel progetto
+pipeline-model-unreadable = il modello non si può leggere
+pipeline-model-unreadable-data = il file del modello { $id } non si può leggere dal progetto: { $error }
+pipeline-model-no-width = il modello { $id } non ha larghezza con questo asse in alto: scegli un altro asse
+pipeline-model-no-outline = il contorno del modello non si può disegnare
+pipeline-model-read-binary = Modello { $id }: { $count } triangoli (STL binario), { $x } × { $y } × { $z } letto in { $units }
+pipeline-model-read-text = Modello { $id }: { $count } triangoli (STL di testo), { $x } × { $y } × { $z } letto in { $units }
+pipeline-model-dropped = { $count } triangoli senza area sono stati tralasciati
+pipeline-model-open = la superficie ha { $count } spigoli aperti: l'utensile cade da ogni buco fino al fondo del rilievo
+pipeline-model-large = il modello è di { $bytes } byte ed è conservato nel progetto: il progetto cresce di altrettanto
+pipeline-model-placed = Modello { $id } sul grezzo: { $x } × { $y }, profondo { $z }; contorno in { $outlines } forme
