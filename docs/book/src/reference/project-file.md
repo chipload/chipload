@@ -375,11 +375,12 @@ A 3D model (an STL file) carved as a relief from the top: the file itself, which
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `data` | string | yes | The STL file itself, base64-encoded. |
-| `depth` | number or null | no | How deep the relief goes, from the model's top to its lowest point, mm; None: in proportion to the width (decision 4). |
+| `depth` | number | yes | How deep the relief goes, from the model's top to its lowest point, mm. |
 | `file` | string | yes | The STL file's name. |
 | `id` | integer | yes | The model's id, which its outline and reliefs name. |
 | `layer` | string | yes | The layer its footprint outline goes on. |
 | `name` | string | yes | Its name in the Browser and messages: the file's name without its extension at first. |
+| `proportional` | boolean | yes | The depth follows the width, in the model's own proportion: made again whenever the model changes (decision 4). |
 | `rotation` | number | yes | Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less than 360. |
 | `sha256` | string | yes | The STL file's SHA-256. |
 | `units` | [Units](#units) | yes | The unit the file was read in, for its size on import only: the model is placed by `width` (decision 2). |
@@ -531,6 +532,27 @@ Surface: the whole stock top taken down flat, in straight passes back and forth.
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
 | `stepover` | number | yes | The distance between passes, as a fraction of the tool diameter: at least 0.1, at most 0.9. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an endmill. |
+
+### `"type": "relief"`
+
+Relief: a 3D model carved from the top with the drop cutter, in parallel lines.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `angle` | number | yes | The lines' direction, radians counter-clockwise from X. |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | The model's lowest point, mm down from the stock top: the start depth plus the model's depth, made again from the model whenever the project is read or changed. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
+| `model` | integer | yes | The id of the model it carves (`drawing.models`). |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `plunge_feed` | number | yes | The feed going down to each line's first point, mm/min. |
+| `select` | [Selector](#selector) | yes | The area the tool's centre stays in: closed shapes, by default the model's outline. |
+| `start_depth` | number | yes | Where the model's top lies, mm down from the stock top: 0 for the top. |
+| `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a ball nose, an endmill or a V-bit. |
+| `zigzag` | boolean | yes | Back and forth (true), or every line the same way, lifting between them. |
 
 ## Part
 

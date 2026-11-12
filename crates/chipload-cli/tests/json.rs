@@ -765,13 +765,30 @@ fn a_model_is_added_placed_changed_listed_and_removed() {
     assert_eq!(set["placed"][0], json!(80.0), "{set}");
     let listed = run(&["model", "list", p, "--json"]);
     assert_eq!(listed["models"][0]["up"], json!("-y"), "{listed}");
-    assert_eq!(listed["models"][0]["depth"], Value::Null);
+    assert_eq!(listed["models"][0]["proportional"], json!(true));
     assert_eq!(listed["models"][0]["shapes"].as_array().unwrap().len(), 1);
+    // A relief of it, 4 mm deep, with a ball nose: made, planned and checked.
+    run(&["model", "set", p, "1", "--depth", "4", "--json"]);
+    run(&[
+        "set",
+        p,
+        r#"tools.1={"id":2,"type":"ballnose","diameter":3,"rpm":18000}"#,
+        "--json",
+    ]);
+    let relief = run(&["op", "add", p, "relief", "--model", "1", "--json"]);
+    assert_eq!(relief["operations"], json!([0]), "{relief}");
+    let got = run(&["get", p, "operations.0", "--json"]);
+    assert_eq!(got["value"]["type"], json!("relief"), "{got}");
+    assert_eq!(got["value"]["tool"], json!(2), "a ball nose by default");
+    assert_eq!(got["value"]["select"]["model"], json!(1));
+    let ran = run(&["run", p, "-o", "out.nc", "--json"]);
+    assert_eq!(ran["ok"], json!(true), "{ran}");
     // Not an STL: refused, the project left alone.
     std::fs::write(dir.join("bad.stl"), b"not a model").unwrap();
     let bad = chipload(&dir, &["model", "add", p, "bad.stl", "--json"]);
     assert_eq!(bad.code, Some(1), "{}", bad.stdout);
     assert!(bad.stdout.contains("not an STL file"), "{}", bad.stdout);
+    run(&["set", p, "operations=[]", "--json"]);
     run(&["model", "remove", p, "1", "--json"]);
     let listed = run(&["model", "list", p, "--json"]);
     assert_eq!(listed["models"], json!([]));

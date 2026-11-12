@@ -409,6 +409,7 @@ pub(super) fn op_icon(op: &Operation) -> Icon {
         Operation::Path(_) => Icon::FollowPath,
         Operation::Holes(_) => Icon::Holes,
         Operation::Surface(_) => Icon::Surface,
+        Operation::Relief(_) => Icon::Relief,
     }
 }
 
@@ -1512,6 +1513,7 @@ impl ChiploadApp {
             Operation::Path(_) => t!(self, "browser-follow-path"),
             Operation::Holes(_) => t!(self, "browser-holes"),
             Operation::Surface(_) => t!(self, "browser-surface"),
+            Operation::Relief(_) => t!(self, "browser-relief"),
         };
         let summary = geometry_summary(op, &self.contours, self);
         let (start, end) = op.depths();

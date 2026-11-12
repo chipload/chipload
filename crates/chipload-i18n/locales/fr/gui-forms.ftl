@@ -49,6 +49,7 @@ forms-kind-vcarve = Gravure en V
 forms-kind-path = Suivi de tracé
 forms-kind-holes = Perçages
 forms-kind-surface = Surfaçage
+forms-kind-relief = Relief
 forms-operation-number = Opération { $number }
 
 forms-name = Nom
@@ -73,6 +74,9 @@ forms-profile-cut-summary = { $start }–{ $end } { $unit }, passes de { $step }
 forms-pocket-cut-summary = { $start }–{ $end } { $unit }, passes de { $step } { $unit }, { $direction }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, passes de { $step } { $unit }, sur la ligne
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, passes de { $step } { $unit }, pas latéral { $stepover } × D
+forms-relief-cut-summary = { $start }–{ $end } { $unit }, lignes à { $angle }°, pas latéral { $stepover } × D
+forms-relief-angle = Lignes à
+forms-relief-zigzag = Aller-retour
 forms-vcarve-cut-one-pass = depuis { $start }, au plus { $end } de profondeur, une passe
 forms-vcarve-cut-passes = depuis { $start }, au plus { $end } de profondeur, { $count } passes
 

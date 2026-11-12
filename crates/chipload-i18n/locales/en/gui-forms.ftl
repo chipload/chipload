@@ -49,6 +49,7 @@ forms-kind-vcarve = V-carve
 forms-kind-path = Follow path
 forms-kind-holes = Holes
 forms-kind-surface = Surface
+forms-kind-relief = Relief
 forms-operation-number = Operation { $number }
 
 forms-name = Name
@@ -73,6 +74,9 @@ forms-profile-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } 
 forms-pocket-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } { $unit }, { $direction }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } { $unit }, on the line
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, steps of { $step } { $unit }, stepover { $stepover } × D
+forms-relief-cut-summary = { $start }–{ $end } { $unit }, lines at { $angle }°, stepover { $stepover } × D
+forms-relief-angle = Lines at
+forms-relief-zigzag = Back and forth
 forms-vcarve-cut-one-pass = from { $start }, at most { $end } deep, one pass
 forms-vcarve-cut-passes = from { $start }, at most { $end } deep, { $count } passes
 

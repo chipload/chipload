@@ -128,6 +128,8 @@ sheet-kind-holes-bored = Hål, helixborrning
 sheet-kind-surface = Planfräsning, hela ämnet, fram och tillbaka (med- och motfräsning), sidosteg { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; går { $distance } förbi ämnets kanter: håll fästen ur vägen
+sheet-kind-relief-zigzag = Relief av modell { $model }, banor i { $angle }° fram och tillbaka, sidosteg { $percent } %
+sheet-kind-relief-one-way = Relief av modell { $model }, banor i { $angle }° alla åt samma håll, sidosteg { $percent } %
 sheet-cuts-past = fräser { $distance } förbi linjen
 sheet-leaves = lämnar { $distance }
 sheet-rest-after = rest efter T{ $tool }

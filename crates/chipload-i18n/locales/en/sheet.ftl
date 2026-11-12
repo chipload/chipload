@@ -128,6 +128,8 @@ sheet-kind-holes-bored = Holes, helical bore
 sheet-kind-surface = Surface, the whole stock, back and forth (climb and conventional), stepover { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; runs { $distance } past the stock ends: keep clamps clear
+sheet-kind-relief-zigzag = Relief of model { $model }, lines at { $angle }° back and forth, stepover { $percent } %
+sheet-kind-relief-one-way = Relief of model { $model }, lines at { $angle }° all one way, stepover { $percent } %
 sheet-cuts-past = cuts { $distance } past the line
 sheet-leaves = leaves { $distance }
 sheet-rest-after = rest after T{ $tool }

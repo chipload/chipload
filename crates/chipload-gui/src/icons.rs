@@ -17,6 +17,7 @@ pub enum Icon {
     Drill,
     Vbit,
     Ballnose,
+    Relief,
     Drawing,
     Dxf,
     Layer,
@@ -151,6 +152,17 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
             pen.closed(&outline);
             pen.line([(0.37, 0.45), (0.63, 0.33)]);
             pen.line([(0.37, 0.63), (0.63, 0.51)]);
+        }
+        Icon::Relief => {
+            // A mound on a board.
+            pen.line([(0.1, 0.8), (0.9, 0.8)]);
+            let hill = pen.arc(
+                (0.5, 0.8),
+                0.32,
+                std::f32::consts::PI,
+                std::f32::consts::TAU,
+            );
+            pen.poly(&hill);
         }
         Icon::Drawing | Icon::Dxf => {
             pen.sheet();

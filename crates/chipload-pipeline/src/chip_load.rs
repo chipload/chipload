@@ -77,6 +77,7 @@ pub fn cutting_feed(op: &Operation) -> f64 {
             HoleMethod::Bore { .. } => h.feed,
         },
         Operation::Surface(f) => f.feed,
+        Operation::Relief(r) => r.feed,
     }
 }
 

@@ -69,6 +69,7 @@ header-new-vcarve = Ny V-gravyr
 header-new-follow-path = Ny Följ bana
 header-new-holes = Nya hål
 header-new-surface = Ny planfräsning
+header-new-relief = Ny relief
 
 # LIBRARY
 header-tools = Verktyg

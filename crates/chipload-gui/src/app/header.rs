@@ -657,6 +657,9 @@ impl ChiploadApp {
                         surface = Some((label, hover));
                         continue;
                     }
+                    // Made from a model (docs/specs/stl-relief.md §9: its button comes with
+                    // the window step).
+                    OpKind::Relief => continue,
                 };
                 let short = if kind == OpKind::Path {
                     t!(ui, "header-follow")
@@ -857,6 +860,7 @@ fn new_operation(ui: &egui::Ui, kind: OpKind) -> String {
         OpKind::Path => t!(ui, "header-new-follow-path"),
         OpKind::Holes => t!(ui, "header-new-holes"),
         OpKind::Surface => t!(ui, "header-new-surface"),
+        OpKind::Relief => t!(ui, "header-new-relief"),
     }
 }
 

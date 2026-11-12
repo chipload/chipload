@@ -180,13 +180,14 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `holes`. |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
 | `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
 | `--group <GROUP>` | All of this group. |
 | `--text <TEXT>` | All of this text (an id from `text list`) |
 | `--image <IMAGE>` | All of this traced picture (an id from `image list`) |
+| `--model <MODEL>` | The outline of this 3D model (an id from `model list`): a relief of it carves within it (docs/specs/stl-relief.md §4) |
 | `--tool <TOOL>` | The tool's id in the project; default: the one the app would take. |
 | `--depth <DEPTH>` | End depth instead of the default (not with --through) |
 | `--through` | Cut through the stock, below it by the setup's max overcut. |
@@ -254,6 +255,7 @@ chipload op add-inlay <PROJECT> [OPTIONS]
 | `--group <GROUP>` | All of this group. |
 | `--text <TEXT>` | All of this text (an id from `text list`) |
 | `--image <IMAGE>` | All of this traced picture (an id from `image list`) |
+| `--model <MODEL>` | The outline of this 3D model (an id from `model list`): a relief of it carves within it (docs/specs/stl-relief.md §4) |
 | `--tool <TOOL>` | The V-bit's id in the project; both are carved with it. Required. |
 | `--depth <DEPTH>` | The pocket's depth; default 5 mm. |
 | `--plug-start <PLUG_START>` | How deep below the plug board's surface its outline is taken: the plug's face lies that deep in the pocket, the rest of the pocket's depth left for glue; default 3 mm. |
@@ -1934,6 +1936,7 @@ chipload style use <PROJECT> <NAME> [OPTIONS]
 | `--group <GROUP>` | All of this group. |
 | `--text <TEXT>` | All of this text (an id from `text list`) |
 | `--image <IMAGE>` | All of this traced picture (an id from `image list`) |
+| `--model <MODEL>` | The outline of this 3D model (an id from `model list`): a relief of it carves within it (docs/specs/stl-relief.md §4) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload style rename`

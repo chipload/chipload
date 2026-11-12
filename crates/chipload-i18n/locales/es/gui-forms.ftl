@@ -49,6 +49,7 @@ forms-kind-vcarve = Tallado en V
 forms-kind-path = Seguir trayectoria
 forms-kind-holes = Taladros
 forms-kind-surface = Planeado
+forms-kind-relief = Relieve
 forms-operation-number = Operación { $number }
 
 forms-name = Nombre
@@ -73,6 +74,9 @@ forms-profile-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step 
 forms-pocket-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step } { $unit }, { $direction }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step } { $unit }, sobre la línea
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, pasadas de { $step } { $unit }, paso lateral { $stepover } × D
+forms-relief-cut-summary = { $start }–{ $end } { $unit }, líneas a { $angle }°, paso lateral { $stepover } × D
+forms-relief-angle = Líneas a
+forms-relief-zigzag = Ida y vuelta
 forms-vcarve-cut-one-pass = desde { $start }, como máximo { $end } de profundidad, una pasada
 forms-vcarve-cut-passes = desde { $start }, como máximo { $end } de profundidad, { $count } pasadas
 

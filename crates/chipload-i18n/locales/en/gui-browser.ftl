@@ -28,6 +28,7 @@ browser-follow-path-hover = The tool on the line of the selected shapes, open or
 browser-holes = Holes
 browser-holes-hover = The selected circles: drilled with a drill, or bored with a helix with an endmill
 browser-surface = Surface
+browser-relief = Relief
 browser-surface-hover = The whole stock taken down flat with a wide endmill: flatten the spoilboard or face the stock. Needs no selection
 
 # Job settings and Tools.

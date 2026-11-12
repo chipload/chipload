@@ -23,7 +23,7 @@ use std::path::Path;
 
 use cavalier_contours::polyline::{PlineSource, PlineSourceMut, Polyline};
 use chipload_core::Point;
-use chipload_core::chain::{Contour, Segment, ShapeFrom, chain_segments};
+use chipload_core::chain::{Contour, Segment, chain_segments};
 use chipload_core::fold::fold_point;
 use chipload_core::nesting;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM};
@@ -381,11 +381,13 @@ pub fn contours_from_shapes(shapes: &[Shape], sources: &[DrawingSource]) -> Impo
             let source_type = shape
                 .dxf_type()
                 .map_or_else(|| shape.kind_name().to_uppercase(), str::to_string);
-            let from = match (shape.dxf(), shape.image(), shape.text()) {
-                (Some(dxf), _, _) => Some(ShapeFrom::Dxf(dxf)),
-                (None, Some(image), _) => Some(ShapeFrom::Image(image)),
-                (None, None, Some(text)) => Some(ShapeFrom::Text(text)),
-                (None, None, None) => None,
+            // Where it comes from, as its origin says (a path's only).
+            let from = match shape.geometry {
+                chipload_job::Geometry::Path {
+                    origin: Some(ref origin),
+                    ..
+                } => Some(origin.source()),
+                _ => None,
             };
             shape.segments().into_iter().map(move |seg| Segment {
                 construction: shape.construction,

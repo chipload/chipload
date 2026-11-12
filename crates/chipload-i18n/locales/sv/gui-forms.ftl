@@ -49,6 +49,7 @@ forms-kind-vcarve = V-gravyr
 forms-kind-path = Följ bana
 forms-kind-holes = Hål
 forms-kind-surface = Planfräsning
+forms-kind-relief = Relief
 forms-operation-number = Operation { $number }
 
 forms-name = Namn
@@ -73,6 +74,9 @@ forms-profile-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } {
 forms-pocket-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } { $unit }, { $direction }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } { $unit }, på linjen
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, steg om { $step } { $unit }, sidosteg { $stepover } × D
+forms-relief-cut-summary = { $start }–{ $end } { $unit }, banor i { $angle }°, sidosteg { $stepover } × D
+forms-relief-angle = Banor i
+forms-relief-zigzag = Fram och tillbaka
 forms-vcarve-cut-one-pass = från { $start }, högst { $end } djupt, ett skär
 forms-vcarve-cut-passes = från { $start }, högst { $end } djupt, { $count } skär
 

@@ -89,6 +89,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-carve
     [path] follow path
     [holes] holes
+    [relief] relief
    *[surface] surface
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
@@ -381,3 +382,12 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] Subtracting an island
    *[offset] Offset
 }
+
+## Reliefs (docs/specs/stl-relief.md)
+# $error is the base64 decoder's words.
+toolpath-model-unreadable = model { $id } can't be read from the project: { $error }
+toolpath-relief-drill = tool { $tool } is a drill: a relief needs a ball nose, an endmill or a V-bit
+toolpath-relief-shape = tool { $tool }'s shape isn't known: a V-bit needs its angle, a tapered ball nose its angle and ball
+toolpath-relief-no-area = a relief needs closed shapes for its area: its model's outline, or others
+# $depth is how far the path cut into the model, at ($x, $y).
+toolpath-relief-gouge = the relief's path would cut { $depth } into the model at ({ $x }, { $y }); nothing is made

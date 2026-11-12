@@ -49,6 +49,7 @@ forms-kind-vcarve = Incisione a V
 forms-kind-path = Segui percorso
 forms-kind-holes = Fori
 forms-kind-surface = Spianatura
+forms-kind-relief = Rilievo
 forms-operation-number = Lavorazione { $number }
 
 forms-name = Nome
@@ -73,6 +74,9 @@ forms-profile-cut-summary = { $start }–{ $end } { $unit }, passate di { $step 
 forms-pocket-cut-summary = { $start }–{ $end } { $unit }, passate di { $step } { $unit }, { $direction }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, passate di { $step } { $unit }, sulla linea
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, passate di { $step } { $unit }, passo laterale { $stepover } × D
+forms-relief-cut-summary = { $start }–{ $end } { $unit }, linee a { $angle }°, passo laterale { $stepover } × D
+forms-relief-angle = Linee a
+forms-relief-zigzag = Avanti e indietro
 forms-vcarve-cut-one-pass = da { $start }, al massimo { $end } di profondità, una passata
 forms-vcarve-cut-passes = da { $start }, al massimo { $end } di profondità, { $count } passate
 

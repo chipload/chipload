@@ -69,6 +69,7 @@ header-new-vcarve = Nuevo tallado en V
 header-new-follow-path = Nuevo seguir trayectoria
 header-new-holes = Nuevos taladros
 header-new-surface = Nuevo planeado
+header-new-relief = Nuevo relieve
 
 # LIBRARY
 header-tools = Herramientas

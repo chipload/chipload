@@ -1116,12 +1116,9 @@
           "type": "string"
         },
         "depth": {
-          "description": "How deep the relief goes, from the model's top to its lowest point, mm; None: in\nproportion to the width (decision 4).",
+          "description": "How deep the relief goes, from the model's top to its lowest point, mm.",
           "format": "double",
-          "type": [
-            "number",
-            "null"
-          ]
+          "type": "number"
         },
         "file": {
           "description": "The STL file's name.",
@@ -1140,6 +1137,10 @@
         "name": {
           "description": "Its name in the Browser and messages: the file's name without its extension at\nfirst.",
           "type": "string"
+        },
+        "proportional": {
+          "description": "The depth follows the width, in the model's own proportion: made again whenever the\nmodel changes (decision 4).",
+          "type": "boolean"
         },
         "rotation": {
           "description": "Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less\nthan 360.",
@@ -1186,7 +1187,9 @@
         "x",
         "y",
         "width",
-        "rotation"
+        "rotation",
+        "depth",
+        "proportional"
       ],
       "type": "object"
     },
@@ -1981,6 +1984,108 @@
             "end_depth",
             "step_down",
             "stepover",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Relief: a 3D model carved from the top with the drop cutter, in parallel lines.",
+          "properties": {
+            "angle": {
+              "description": "The lines' direction, radians counter-clockwise from X.",
+              "format": "double",
+              "type": "number"
+            },
+            "enabled": {
+              "default": true,
+              "description": "False: the operation stays in the project but isn't cut. Missing: true.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "description": "The model's lowest point, mm down from the stock top: the start depth plus the\nmodel's depth, made again from the model whenever the project is read or changed.",
+              "format": "double",
+              "type": "number"
+            },
+            "feed": {
+              "description": "The cutting feed, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "material": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MaterialRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The library material its feeds come from. Null: its own values."
+            },
+            "model": {
+              "description": "The id of the model it carves (`drawing.models`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "name": {
+              "default": "",
+              "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
+              "type": "string"
+            },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plunge_feed": {
+              "description": "The feed going down to each line's first point, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "The area the tool's centre stays in: closed shapes, by default the model's outline."
+            },
+            "start_depth": {
+              "description": "Where the model's top lies, mm down from the stock top: 0 for the top.",
+              "format": "double",
+              "type": "number"
+            },
+            "stepover": {
+              "description": "The distance between lines, as a fraction of the tool diameter: more than 0, at most\n0.9.",
+              "format": "double",
+              "type": "number"
+            },
+            "tool": {
+              "description": "The id of the project tool it cuts with (`tools`): a ball nose, an endmill or a\nV-bit.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "relief",
+              "type": "string"
+            },
+            "zigzag": {
+              "description": "Back and forth (true), or every line the same way, lifting between them.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "type",
+            "part",
+            "model",
+            "select",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "stepover",
+            "angle",
+            "zigzag",
             "feed",
             "plunge_feed"
           ],

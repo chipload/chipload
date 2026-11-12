@@ -129,6 +129,8 @@ pub fn op_color(kind: chipload_pipeline::new_ops::OpKind, dark: bool) -> Color32
         (OpKind::Holes, false) => Color32::from_rgb(0xa8, 0x1e, 0x55),
         (OpKind::Surface, true) => Color32::from_rgb(0xb8, 0xc4, 0x8a),
         (OpKind::Surface, false) => Color32::from_rgb(0x5a, 0x6b, 0x1e),
+        (OpKind::Relief, true) => Color32::from_rgb(0xd8, 0xb8, 0x96),
+        (OpKind::Relief, false) => Color32::from_rgb(0x7a, 0x52, 0x2e),
     }
 }
 

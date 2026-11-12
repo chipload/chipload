@@ -468,6 +468,7 @@ pipeline-name-vcarve = V-гравировка { $number }
 pipeline-name-path = Вдоль линии { $number }
 pipeline-name-holes = Отверстия { $number }
 pipeline-name-surface = Торцевание { $number }
+pipeline-name-relief = Рельеф { $number }
 pipeline-name-inlay-pocket = Карман инкрустации
 pipeline-name-inlay-plug = Вставка инкрустации
 pipeline-name-sign-letters = Буквы

@@ -309,3 +309,25 @@ Step 1, 2026-11-12:
   the depth back in proportion.
 - The window shows the outline as a shape; the model's own place in the Browser, its form
   and handles come with step 4.
+
+Step 2, 2026-11-12:
+- **The model's depth is always a number** (`depth`), with `proportional` set when it follows
+  the width; the relief's `end_depth` is made again from its model on every read and change
+  (`Job::follow_thickness`), as a back setup's stock is from its front. So the usual depth
+  checks (max depth below stock) hold for reliefs too.
+- **The area keeps the tool's centre inside it**; the drop cutter keeps the tool off the
+  model, so a groove the tool's width is left round the outline.
+- **Points along a line:** at most 0.5 mm (or the stepover) apart, halved up to 8 times where
+  the tool must stand higher at the middle than the straight move gives; then joined where the
+  straight move stays within the tolerance. Each step may leave 0.4 of the 0.01 mm arc
+  tolerance below the surface, so together they stay within it, which the path check holds.
+- **Joining lines:** back and forth, the tool goes along the surface to the next line's start
+  when it is within two stepovers; otherwise it lifts to the safe height.
+- **The path check** (`relief::verify`): at up to 2000 tool positions (fewer for very large
+  meshes), every triangle's corners, edge middles and centre against the tool, brute force.
+- **The outline** is simplified within two of its cells (the shadow's stair steps gone): a
+  16-sided dome gives 16 lines.
+- **`op add relief`** (with `--model` for the model's outline) instead of `op add-relief`;
+  a ball nose is taken when the project has one; the stepover defaults to 0.1.
+- **No roughing yet** (step 3).
+

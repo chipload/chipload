@@ -620,6 +620,7 @@ pipeline-name-vcarve = V-carve { $number }
 pipeline-name-path = Follow path { $number }
 pipeline-name-holes = Holes { $number }
 pipeline-name-surface = Surface { $number }
+pipeline-name-relief = Relief { $number }
 pipeline-name-inlay-pocket = Inlay pocket
 pipeline-name-inlay-plug = Inlay plug
 # New sign… (docs/specs/sign-maker.md §3): the operations' names, and why a sign can't be made.

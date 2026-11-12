@@ -49,6 +49,7 @@ forms-kind-vcarve = V-Gravur
 forms-kind-path = Pfad folgen
 forms-kind-holes = Bohrungen
 forms-kind-surface = Planfräsen
+forms-kind-relief = Relief
 forms-operation-number = Bearbeitung { $number }
 
 forms-name = Name
@@ -73,6 +74,9 @@ forms-profile-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step 
 forms-pocket-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step } { $unit }, { $direction }
 forms-path-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step } { $unit }, auf der Linie
 forms-surface-cut-summary = { $start }–{ $end } { $unit }, Zustellung { $step } { $unit }, seitl. Zustellung { $stepover } × D
+forms-relief-cut-summary = { $start }–{ $end } { $unit }, Bahnen unter { $angle }°, Zustellung { $stepover } × D
+forms-relief-angle = Bahnen unter
+forms-relief-zigzag = Hin und her
 forms-vcarve-cut-one-pass = ab { $start }, höchstens { $end } tief, ein Durchgang
 forms-vcarve-cut-passes = ab { $start }, höchstens { $end } tief, { $count } Durchgänge
 

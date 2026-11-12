@@ -367,6 +367,7 @@ impl EditJob {
             Operation::Vcarve(v) => v.select = select,
             Operation::Path(p) => p.select = select,
             Operation::Holes(h) => h.select = select,
+            Operation::Relief(r) => r.select = select,
             // The whole stock: no shapes to set.
             Operation::Surface(_) => {}
         }

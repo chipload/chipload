@@ -622,6 +622,7 @@ pipeline-name-vcarve = V-Gravur { $number }
 pipeline-name-path = Pfad folgen { $number }
 pipeline-name-holes = Bohrungen { $number }
 pipeline-name-surface = Planfräsen { $number }
+pipeline-name-relief = Relief { $number }
 pipeline-name-inlay-pocket = Intarsien-Tasche
 pipeline-name-inlay-plug = Intarsien-Stopfen
 pipeline-name-sign-letters = Buchstaben

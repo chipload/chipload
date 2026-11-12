@@ -69,6 +69,7 @@ header-new-vcarve = New V-carve
 header-new-follow-path = New Follow path
 header-new-holes = New Holes
 header-new-surface = New Surface
+header-new-relief = New Relief
 
 # LIBRARY
 header-tools = Tools

@@ -619,6 +619,7 @@ pipeline-name-vcarve = V-gravyr { $number }
 pipeline-name-path = Följ bana { $number }
 pipeline-name-holes = Hål { $number }
 pipeline-name-surface = Planfräsning { $number }
+pipeline-name-relief = Relief { $number }
 pipeline-name-inlay-pocket = Inläggningsficka
 pipeline-name-inlay-plug = Inläggningsplugg
 pipeline-name-sign-letters = Bokstäver

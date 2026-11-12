@@ -11,8 +11,13 @@ use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, ProfileOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, ToolType, VcarveOp,
+    PocketOp, ProfileOp, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, ToolType,
+    VcarveOp,
 };
+
+/// A new relief's lines, as a fraction of the tool: fine enough for a ball nose's finish
+/// (docs/specs/stl-relief.md §5).
+pub const DEFAULT_RELIEF_STEPOVER: f64 = 0.1;
 
 use crate::chip_load::{default_feed, default_plunge_feed};
 use crate::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
@@ -35,6 +40,8 @@ pub enum OpKind {
     Holes,
     /// Surface: the whole stock (docs/specs/surfacing.md).
     Surface,
+    /// Relief: a 3D model carved from the top (docs/specs/stl-relief.md §5).
+    Relief,
 }
 
 impl OpKind {
@@ -53,6 +60,7 @@ impl OpKind {
                 | (Operation::Path(_), OpKind::Path)
                 | (Operation::Holes(_), OpKind::Holes)
                 | (Operation::Surface(_), OpKind::Surface)
+                | (Operation::Relief(_), OpKind::Relief)
         )
     }
 
@@ -64,6 +72,7 @@ impl OpKind {
             OpKind::Path => "pipeline-name-path",
             OpKind::Holes => "pipeline-name-holes",
             OpKind::Surface => "pipeline-name-surface",
+            OpKind::Relief => "pipeline-name-relief",
         }
     }
 }
@@ -115,6 +124,12 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
         && let Some(widest) = crate::surface::surface_tool(job)
     {
         return widest;
+    }
+    // A relief takes a ball nose when there is one (docs/specs/stl-relief.md §5).
+    if kind == OpKind::Relief
+        && let Some(ball) = job.tools.iter().find(|t| t.kind == ToolType::Ballnose)
+    {
+        return ball.id;
     }
     let suits = |id: i64| {
         job.tools
@@ -324,6 +339,8 @@ struct Start {
     below: f64,
     /// The depth of the last operation of each kind, with its `through`.
     last: Vec<(OpKind, f64, Option<f64>)>,
+    /// The project's models and their depths: what a relief carves.
+    models: Vec<(u64, f64)>,
 }
 
 impl Start {
@@ -373,6 +390,7 @@ impl Start {
             thickness: job.stock().thickness,
             below: job.stock().max_overcut,
             last,
+            models: job.drawing.models.iter().map(|m| (m.id, m.depth)).collect(),
         }
     }
 
@@ -527,6 +545,33 @@ impl Start {
                     dowels: false,
                 })
             }
+            // The model whose outline is selected, else the project's first, within the
+            // selection (docs/specs/stl-relief.md §4).
+            OpKind::Relief => {
+                let model = match select.source {
+                    Some(chipload_job::Source::Model(id)) => Some(id),
+                    _ => self.models.first().map(|(id, _)| *id),
+                };
+                let depth = model
+                    .and_then(|id| self.models.iter().find(|(m, _)| *m == id))
+                    .map_or(0.0, |(_, d)| *d);
+                Operation::Relief(ReliefOp {
+                    material: None,
+                    name,
+                    enabled: true,
+                    part: self.part,
+                    model: model.unwrap_or(0),
+                    select,
+                    tool: self.tool,
+                    start_depth: 0.0,
+                    end_depth: depth,
+                    stepover: DEFAULT_RELIEF_STEPOVER,
+                    angle: 0.0,
+                    zigzag: true,
+                    feed: self.feed,
+                    plunge_feed: self.plunge_feed,
+                })
+            }
             OpKind::Surface => {
                 let (lo, hi) = SURFACE_STEPOVER;
                 Operation::Surface(SurfaceOp {
@@ -563,7 +608,9 @@ fn op_step_down(op: &Operation) -> f64 {
         Operation::Pocket(p) => p.step_down,
         Operation::Path(p) => p.step_down,
         Operation::Surface(f) => f.step_down,
-        Operation::Vcarve(_) | Operation::Holes(_) => crate::DEFAULT_STEP_DOWN,
+        Operation::Vcarve(_) | Operation::Holes(_) | Operation::Relief(_) => {
+            crate::DEFAULT_STEP_DOWN
+        }
     }
 }
 
@@ -575,6 +622,7 @@ fn op_feed(op: &Operation) -> f64 {
         Operation::Path(p) => p.feed,
         Operation::Holes(h) => h.feed,
         Operation::Surface(f) => f.feed,
+        Operation::Relief(r) => r.feed,
     }
 }
 
@@ -586,6 +634,7 @@ fn op_plunge(op: &Operation) -> f64 {
         Operation::Path(p) => p.plunge_feed,
         Operation::Holes(h) => h.plunge_feed,
         Operation::Surface(f) => f.plunge_feed,
+        Operation::Relief(r) => r.plunge_feed,
     }
 }
 

@@ -89,6 +89,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] gravure en V
     [path] suivi de tracé
     [holes] perçages
+    [relief] relief
    *[surface] surfaçage
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
@@ -384,3 +385,9 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] La soustraction d'un îlot
    *[offset] Le décalage
 }
+
+toolpath-model-unreadable = le modèle { $id } ne peut pas être lu depuis le projet : { $error }
+toolpath-relief-drill = l'outil { $tool } est un foret : un relief demande une fraise boule, une fraise droite ou une fraise en V
+toolpath-relief-shape = la forme de l'outil { $tool } n'est pas connue : une fraise en V demande son angle, une fraise boule conique son angle et sa boule
+toolpath-relief-no-area = un relief demande des formes fermées pour sa zone : le contour de son modèle, ou d'autres
+toolpath-relief-gouge = la trajectoire du relief entamerait le modèle de { $depth } en ({ $x }, { $y }) ; rien n'est produit

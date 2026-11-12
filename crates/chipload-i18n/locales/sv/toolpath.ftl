@@ -89,6 +89,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-gravyr
     [path] följ bana
     [holes] hål
+    [relief] relief
    *[surface] planfräsning
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
@@ -381,3 +382,9 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] Subtraktionen av en ö
    *[offset] Offseten
 }
+
+toolpath-model-unreadable = modell { $id } går inte att läsa ur projektet: { $error }
+toolpath-relief-drill = verktyg { $tool } är ett borr: en relief behöver en kulfräs, en pinnfräs eller en V-fräs
+toolpath-relief-shape = formen på verktyg { $tool } är inte känd: en V-fräs behöver sin vinkel, en konisk kulfräs vinkel och kula
+toolpath-relief-no-area = en relief behöver slutna former som område: modellens kontur eller andra
+toolpath-relief-gouge = reliefens bana skulle skära { $depth } in i modellen vid ({ $x }, { $y }); inget görs

@@ -131,6 +131,8 @@ sheet-kind-holes-bored = Fori, foratura elicoidale
 sheet-kind-surface = Spianatura, tutto il grezzo, avanti e indietro (concorde e discorde), passo laterale { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; esce di { $distance } oltre i bordi del grezzo: tieni lontani i bloccaggi
+sheet-kind-relief-zigzag = Rilievo del modello { $model }, linee a { $angle }° avanti e indietro, passo laterale { $percent } %
+sheet-kind-relief-one-way = Rilievo del modello { $model }, linee a { $angle }° tutte in un verso, passo laterale { $percent } %
 sheet-cuts-past = taglia { $distance } oltre la linea
 sheet-leaves = lascia { $distance }
 sheet-rest-after = ripresa dopo T{ $tool }

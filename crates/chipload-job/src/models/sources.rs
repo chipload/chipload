@@ -213,9 +213,11 @@ pub struct Model {
     /// Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less
     /// than 360.
     pub rotation: f64,
-    /// How deep the relief goes, from the model's top to its lowest point, mm; None: in
-    /// proportion to the width (decision 4).
-    pub depth: Option<f64>,
+    /// How deep the relief goes, from the model's top to its lowest point, mm.
+    pub depth: f64,
+    /// The depth follows the width, in the model's own proportion: made again whenever the
+    /// model changes (decision 4).
+    pub proportional: bool,
 }
 
 /// Which of a model's axes points up on the board.
@@ -266,9 +268,7 @@ impl Model {
             }
         };
         positive("width", self.width, &mut problems);
-        if let Some(depth) = self.depth {
-            positive("depth", depth, &mut problems);
-        }
+        positive("depth", self.depth, &mut problems);
         if !rotation_in_range(self.rotation) {
             problems.push(Problem::at(
                 format!("{at}.rotation"),

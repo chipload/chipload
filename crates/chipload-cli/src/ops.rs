@@ -316,7 +316,7 @@ pub(crate) enum OpAction {
 }
 
 /// What to cut, for `op add`, `op add-inlay` and `style use`: a layer, shapes, a DXF, a
-/// group, a text or a picture.
+/// group, a text, a picture or a 3D model's outline.
 #[derive(Args)]
 pub(crate) struct Shapes {
     /// Every shape on this layer (with --dxf: on that DXF's layer).
@@ -335,8 +335,12 @@ pub(crate) struct Shapes {
     #[arg(long, conflicts_with = "image")]
     text: Option<u64>,
     /// All of this traced picture (an id from `image list`).
-    #[arg(long)]
+    #[arg(long, conflicts_with = "model")]
     image: Option<u64>,
+    /// The outline of this 3D model (an id from `model list`): a relief of it carves within
+    /// it (docs/specs/stl-relief.md §4).
+    #[arg(long)]
+    model: Option<u64>,
 }
 
 impl Shapes {
@@ -347,7 +351,8 @@ impl Shapes {
             .map(chipload_job::Source::Dxf)
             .or(self.group.map(chipload_job::Source::Group))
             .or(self.text.map(chipload_job::Source::Text))
-            .or(self.image.map(chipload_job::Source::Image));
+            .or(self.image.map(chipload_job::Source::Image))
+            .or(self.model.map(chipload_job::Source::Model));
         let select = chipload_job::Selector {
             layer: self.layer,
             shapes: self.shapes,
@@ -355,7 +360,9 @@ impl Shapes {
             exclude: Vec::new(),
         };
         if select.is_empty() {
-            return Err("say what to cut: --layer, --shapes, --dxf, --group, --text or --image");
+            return Err(
+                "say what to cut: --layer, --shapes, --dxf, --group, --text, --image or --model",
+            );
         }
         Ok(select)
     }
@@ -376,6 +383,9 @@ pub(crate) enum KindArg {
     Vcarve,
     Path,
     Holes,
+    /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
+    /// model within its outline.
+    Relief,
 }
 
 impl KindArg {
@@ -387,6 +397,7 @@ impl KindArg {
             KindArg::Vcarve => OpKind::Vcarve,
             KindArg::Path => OpKind::Path,
             KindArg::Holes => OpKind::Holes,
+            KindArg::Relief => OpKind::Relief,
         }
     }
 }
@@ -1218,6 +1229,10 @@ pub(crate) fn rest_passes_json(refs: &[chipload_job::OpRef]) -> Value {
 
 /// `op add`'s --depth and --through over the defaults.
 fn set_depth(job: &Job, op: &mut Operation, depth: Option<f64>, through: bool) {
+    // A relief's depth is its model's (docs/specs/stl-relief.md §3): `model set --depth`.
+    if let Operation::Relief(_) = op {
+        return;
+    }
     if through {
         if let Some(t) = op.through_mut() {
             *t = Some(job.stock().max_overcut);

@@ -950,6 +950,19 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/relief_dome.chipload
+exit 0
+--- stdout
+Estimated time: 2 min 17 s (cutting 2 min 12 s, rapids 1 s, spindle 3 s)
+Cut outline: 43.095 × 42.943 mm (X 8.447 … 51.542, Y 8.522 … 51.465, the tool included): the smallest stock that holds the job.
+  Operation 1 (Relief 1): 2 min 14 s; cutting 1.6 m, plunging 39 mm, rapids 119 mm, 8 lifts
+  In all: cutting 1.6 m, plunging 39 mm, rapids 119 mm, 8 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Relief 1): 0.022 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/two_sided.chipload
 exit 0
 --- stdout

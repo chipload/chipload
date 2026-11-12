@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 62] = [
+const GOLDEN: [(&str, &str); 63] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -199,6 +199,11 @@ const GOLDEN: [(&str, &str); 62] = [
     // `new`, `text add "AO" --font FreeSerif --height 30`, the text corpus's tools and a
     // 3 mm end mill, `op add-inlay --text 1 --tool 2 --floor-tool 3`.
     ("v36_inlay", "jobs/v36/inlay.chipload"),
+    // A relief (docs/specs/stl-relief.md): a 16-sided dome 40 mm wide carved 5 mm deep at
+    // (10, 10) with a 3.175 mm ball nose, lines at 30°, a quarter of the tool apart, back and
+    // forth. Made with `new`, `model add dome.stl --width 40 --depth 5 --at 10,10`, the ball
+    // nose set as tools.1, `op add relief --model 1`, stepover 0.25 and angle 30° set.
+    ("v36_relief_dome", "jobs/v36/relief_dome.chipload"),
 ];
 
 fn corpus(rel: &str) -> PathBuf {

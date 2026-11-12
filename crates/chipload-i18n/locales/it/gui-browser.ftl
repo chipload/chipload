@@ -28,6 +28,7 @@ browser-follow-path-hover = L'utensile sulla linea delle forme selezionate, aper
 browser-holes = Fori
 browser-holes-hover = I cerchi selezionati: forati con una punta, o con foratura elicoidale con una fresa
 browser-surface = Spianatura
+browser-relief = Rilievo
 browser-surface-hover = Tutto il grezzo abbassato in piano con una fresa larga: spiana il piano di sacrificio o il grezzo. Non serve selezione
 
 # Job settings and Tools.

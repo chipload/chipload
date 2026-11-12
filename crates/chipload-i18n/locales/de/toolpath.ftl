@@ -89,6 +89,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-Gravur
     [path] Pfad folgen
     [holes] Bohrungen
+    [relief] Relief
    *[surface] Planfräsen
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
@@ -385,3 +386,9 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] Abziehen einer Insel
    *[offset] Offset
 }
+
+toolpath-model-unreadable = Modell { $id } lässt sich nicht aus dem Projekt lesen: { $error }
+toolpath-relief-drill = Werkzeug { $tool } ist ein Bohrer: ein Relief braucht einen Kugelfräser, einen Schaftfräser oder einen V-Fräser
+toolpath-relief-shape = die Form von Werkzeug { $tool } ist nicht bekannt: ein V-Fräser braucht seinen Winkel, ein konischer Kugelfräser Winkel und Kugel
+toolpath-relief-no-area = ein Relief braucht geschlossene Formen als Bereich: den Umriss seines Modells oder andere
+toolpath-relief-gouge = die Bahn des Reliefs würde bei ({ $x }, { $y }) { $depth } ins Modell schneiden; es wird nichts erzeugt

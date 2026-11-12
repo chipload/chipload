@@ -131,6 +131,8 @@ sheet-kind-holes-bored = Bohrungen, Helixbohren
 sheet-kind-surface = Planfräsen, das ganze Rohteil, hin und her (Gleichlauf und Gegenlauf), seitliche Zustellung { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; fährt { $distance } über die Rohteilenden hinaus: Spannmittel freihalten
+sheet-kind-relief-zigzag = Relief von Modell { $model }, Bahnen unter { $angle }° hin und her, Zustellung { $percent } %
+sheet-kind-relief-one-way = Relief von Modell { $model }, Bahnen unter { $angle }° alle in einer Richtung, Zustellung { $percent } %
 sheet-cuts-past = fräst { $distance } über die Linie hinaus
 sheet-leaves = lässt { $distance } stehen
 sheet-rest-after = Rest nach T{ $tool }

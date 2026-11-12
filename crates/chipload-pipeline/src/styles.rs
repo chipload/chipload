@@ -31,6 +31,7 @@ pub fn kind_of(op: &Operation) -> OpKind {
         Operation::Path(_) => OpKind::Path,
         Operation::Holes(_) => OpKind::Holes,
         Operation::Surface(_) => OpKind::Surface,
+        Operation::Relief(_) => OpKind::Relief,
     }
 }
 

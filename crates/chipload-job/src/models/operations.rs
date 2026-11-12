@@ -117,6 +117,9 @@ pub enum Operation {
     /// Surface: the whole stock top taken down flat, in straight passes back and forth.
     // Spec: docs/specs/surfacing.md.
     Surface(SurfaceOp),
+    /// Relief: a 3D model carved from the top with the drop cutter, in parallel lines.
+    // Spec: docs/specs/stl-relief.md §5.
+    Relief(ReliefOp),
 }
 
 /// The selector of an operation that selects nothing (a surface faces the whole stock).
@@ -197,6 +200,9 @@ impl Operation {
             Operation::Surface(f) => {
                 (f.feed, f.plunge_feed, f.step_down) = (c.feed, c.plunge_feed, c.step_down);
             }
+            Operation::Relief(r) => {
+                (r.feed, r.plunge_feed) = (c.feed, c.plunge_feed);
+            }
         }
     }
 
@@ -234,6 +240,9 @@ impl Operation {
             Operation::Surface(f) => {
                 (c.feed, c.plunge_feed, c.step_down) = (f.feed, f.plunge_feed, f.step_down);
             }
+            Operation::Relief(r) => {
+                (c.feed, c.plunge_feed) = (r.feed, r.plunge_feed);
+            }
         }
         c
     }
@@ -256,6 +265,7 @@ impl Operation {
             Operation::Path(op) => &op.name,
             Operation::Holes(op) => &op.name,
             Operation::Surface(op) => &op.name,
+            Operation::Relief(op) => &op.name,
         }
     }
 
@@ -267,6 +277,7 @@ impl Operation {
             Operation::Path(op) => &mut op.name,
             Operation::Holes(op) => &mut op.name,
             Operation::Surface(op) => &mut op.name,
+            Operation::Relief(op) => &mut op.name,
         }
     }
 
@@ -278,6 +289,7 @@ impl Operation {
             Operation::Path(op) => op.enabled = enabled,
             Operation::Holes(op) => op.enabled = enabled,
             Operation::Surface(op) => op.enabled = enabled,
+            Operation::Relief(op) => op.enabled = enabled,
         }
     }
 
@@ -289,6 +301,7 @@ impl Operation {
             Operation::Path(op) => op.enabled,
             Operation::Holes(op) => op.enabled,
             Operation::Surface(op) => op.enabled,
+            Operation::Relief(op) => op.enabled,
         }
     }
 
@@ -301,6 +314,7 @@ impl Operation {
             Operation::Path(op) => op.part,
             Operation::Holes(op) => op.part,
             Operation::Surface(op) => op.part,
+            Operation::Relief(op) => op.part,
         }
     }
 
@@ -312,6 +326,7 @@ impl Operation {
             Operation::Path(op) => op.part = part,
             Operation::Holes(op) => op.part = part,
             Operation::Surface(op) => op.part = part,
+            Operation::Relief(op) => op.part = part,
         }
     }
 
@@ -324,6 +339,7 @@ impl Operation {
             Operation::Path(op) => op.material.as_ref(),
             Operation::Holes(op) => op.material.as_ref(),
             Operation::Surface(op) => op.material.as_ref(),
+            Operation::Relief(op) => op.material.as_ref(),
         }
     }
 
@@ -335,6 +351,7 @@ impl Operation {
             Operation::Path(op) => op.material = material,
             Operation::Holes(op) => op.material = material,
             Operation::Surface(op) => op.material = material,
+            Operation::Relief(op) => op.material = material,
         }
     }
 
@@ -346,6 +363,7 @@ impl Operation {
             Operation::Path(op) => op.tool,
             Operation::Holes(op) => op.tool,
             Operation::Surface(op) => op.tool,
+            Operation::Relief(op) => op.tool,
         }
     }
 
@@ -357,6 +375,7 @@ impl Operation {
             Operation::Path(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
             Operation::Surface(op) => op.tool = tool,
+            Operation::Relief(op) => op.tool = tool,
         }
     }
 
@@ -385,7 +404,8 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_) => {}
+            | Operation::Surface(_)
+            | Operation::Relief(_) => {}
         }
     }
 
@@ -415,7 +435,8 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_) => {}
+            | Operation::Surface(_)
+            | Operation::Relief(_) => {}
         }
         ids
     }
@@ -442,7 +463,8 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_) => {}
+            | Operation::Surface(_)
+            | Operation::Relief(_) => {}
         }
     }
 
@@ -455,6 +477,7 @@ impl Operation {
             Operation::Path(op) => op.end_depth = depth,
             Operation::Holes(op) => op.end_depth = depth,
             Operation::Surface(op) => op.end_depth = depth,
+            Operation::Relief(op) => op.end_depth = depth,
         }
     }
 
@@ -467,6 +490,7 @@ impl Operation {
             Operation::Path(op) => (op.start_depth, op.end_depth),
             Operation::Holes(op) => (op.start_depth, op.end_depth),
             Operation::Surface(op) => (op.start_depth, op.end_depth),
+            Operation::Relief(op) => (op.start_depth, op.end_depth),
         }
     }
 
@@ -478,7 +502,7 @@ impl Operation {
             Operation::Pocket(op) => op.through,
             Operation::Path(op) => op.through,
             Operation::Holes(op) => op.through,
-            Operation::Vcarve(_) | Operation::Surface(_) => None,
+            Operation::Vcarve(_) | Operation::Surface(_) | Operation::Relief(_) => None,
         }
     }
 
@@ -505,7 +529,7 @@ impl Operation {
             Operation::Pocket(op) => Some(&mut op.through),
             Operation::Path(op) => Some(&mut op.through),
             Operation::Holes(op) => Some(&mut op.through),
-            Operation::Vcarve(_) | Operation::Surface(_) => None,
+            Operation::Vcarve(_) | Operation::Surface(_) | Operation::Relief(_) => None,
         }
     }
 
@@ -518,7 +542,7 @@ impl Operation {
             Operation::Pocket(op) => op.through.map(|t| (&mut op.end_depth, t)),
             Operation::Path(op) => op.through.map(|t| (&mut op.end_depth, t)),
             Operation::Holes(op) => op.through.map(|t| (&mut op.end_depth, t)),
-            Operation::Vcarve(_) | Operation::Surface(_) => None,
+            Operation::Vcarve(_) | Operation::Surface(_) | Operation::Relief(_) => None,
         };
         if let Some((end_depth, below)) = end {
             *end_depth = thickness + below + point;
@@ -539,6 +563,8 @@ impl Operation {
             Operation::Holes(_) => Entry::Plunge {},
             // Each depth starts beside the stock, in the air (docs/specs/surfacing.md §3).
             Operation::Surface(_) => Entry::Plunge {},
+            // Each line starts at its first point (docs/specs/stl-relief.md §5).
+            Operation::Relief(_) => Entry::Plunge {},
         }
     }
 
@@ -547,7 +573,10 @@ impl Operation {
             Operation::Profile(p) => &p.starts,
             Operation::Pocket(p) => &p.starts,
             Operation::Vcarve(_) => &[],
-            Operation::Path(_) | Operation::Holes(_) | Operation::Surface(_) => &[],
+            Operation::Path(_)
+            | Operation::Holes(_)
+            | Operation::Surface(_)
+            | Operation::Relief(_) => &[],
         }
     }
 
@@ -560,7 +589,8 @@ impl Operation {
             Operation::Vcarve(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_) => None,
+            | Operation::Surface(_)
+            | Operation::Relief(_) => None,
         }
     }
 
@@ -591,7 +621,8 @@ impl Operation {
             Operation::Vcarve(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_) => None,
+            | Operation::Surface(_)
+            | Operation::Relief(_) => None,
         }
     }
 
@@ -619,7 +650,8 @@ impl Operation {
             | Operation::Vcarve(_)
             | Operation::Path(_)
             | Operation::Holes(_)
-            | Operation::Surface(_) => None,
+            | Operation::Surface(_)
+            | Operation::Relief(_) => None,
         }
     }
 
@@ -635,6 +667,8 @@ impl Operation {
             Operation::Holes(_) => 0.0,
             // The whole stock: no wall to clear.
             Operation::Surface(_) => 0.0,
+            // The tool's centre within the area; the drop cutter keeps it off the model.
+            Operation::Relief(_) => 0.0,
         }
     }
 
@@ -646,6 +680,7 @@ impl Operation {
             Operation::Path(op) => &op.select,
             Operation::Holes(op) => &op.select,
             Operation::Surface(_) => &NO_SELECTOR,
+            Operation::Relief(op) => &op.select,
         }
     }
 
@@ -657,6 +692,7 @@ impl Operation {
             Operation::Vcarve(op) => Some(&mut op.select),
             Operation::Path(op) => Some(&mut op.select),
             Operation::Holes(op) => Some(&mut op.select),
+            Operation::Relief(op) => Some(&mut op.select),
             Operation::Surface(_) => None,
         }
     }
@@ -1255,6 +1291,50 @@ pub struct SurfaceOp {
     /// The cutting feed, mm/min.
     pub feed: f64,
     /// The feed going down beside the stock to each depth, mm/min.
+    pub plunge_feed: f64,
+}
+
+/// Relief: a 3D model (`drawing.models`) carved from the top in parallel lines, each point
+/// as low as the drop cutter lets the tool go without cutting into the model, within the
+/// area it selects (by default the model's footprint outline).
+// Spec: docs/specs/stl-relief.md §5.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ReliefOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
+    #[serde(default)]
+    pub name: String,
+    /// False: the operation stays in the project but isn't cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
+    /// The id of the model it carves (`drawing.models`).
+    pub model: u64,
+    /// The area the tool's centre stays in: closed shapes, by default the model's outline.
+    pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`): a ball nose, an endmill or a
+    /// V-bit.
+    pub tool: i64,
+    /// Where the model's top lies, mm down from the stock top: 0 for the top.
+    pub start_depth: f64,
+    /// The model's lowest point, mm down from the stock top: the start depth plus the
+    /// model's depth, made again from the model whenever the project is read or changed.
+    pub end_depth: f64,
+    /// The distance between lines, as a fraction of the tool diameter: more than 0, at most
+    /// 0.9.
+    pub stepover: f64,
+    /// The lines' direction, radians counter-clockwise from X.
+    pub angle: f64,
+    /// Back and forth (true), or every line the same way, lifting between them.
+    pub zigzag: bool,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down to each line's first point, mm/min.
     pub plunge_feed: f64,
 }
 

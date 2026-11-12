@@ -60,6 +60,7 @@ job-text-spacing = должно быть не больше { $heights } высо
 job-shape-id-range = должно быть от 1 до next_shape_id - 1 ({ $most }), получено { $got }
 job-no-image = нет изображения { $id } в drawing.images
 job-no-model = нет модели { $id } в drawing.models
+job-relief-stepover = должно быть не больше { $most } инструмента, а не { $got }
 job-no-dxf = нет DXF { $id } в drawing.dxfs
 job-no-text = нет текста { $id } в drawing.texts
 job-no-group = нет группы { $id } в drawing.groups

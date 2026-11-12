@@ -28,6 +28,7 @@ browser-follow-path-hover = Verktyget på linjen av de markerade formerna, öppn
 browser-holes = Hål
 browser-holes-hover = De markerade cirklarna: borrade med borr, eller helixborrade med pinnfräs
 browser-surface = Planfräsning
+browser-relief = Relief
 browser-surface-hover = Hela ämnet planfräst med en bred pinnfräs: plana offerskivan eller planfräs ämnet. Kräver ingen markering
 
 # Job settings and Tools.

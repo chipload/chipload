@@ -28,6 +28,7 @@ browser-follow-path-hover = La herramienta sobre la línea de las formas selecci
 browser-holes = Taladros
 browser-holes-hover = Los círculos seleccionados: taladrados con una broca, o mandrinados en hélice con una fresa
 browser-surface = Planeado
+browser-relief = Relieve
 browser-surface-hover = Todo el material en bruto rebajado en plano con una fresa ancha: aplanar el tablero de sacrificio o planear el material. No necesita selección
 
 # Job settings and Tools.

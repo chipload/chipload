@@ -89,6 +89,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] incisione a V
     [path] segui percorso
     [holes] fori
+    [relief] rilievo
    *[surface] spianatura
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
@@ -381,3 +382,9 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] Sottrazione di un'isola
    *[offset] Offset
 }
+
+toolpath-model-unreadable = il modello { $id } non si può leggere dal progetto: { $error }
+toolpath-relief-drill = l'utensile { $tool } è una punta: un rilievo richiede una fresa sferica, una fresa a candela o una fresa a V
+toolpath-relief-shape = la forma dell'utensile { $tool } non è nota: una fresa a V richiede il suo angolo, una fresa sferica conica angolo e sfera
+toolpath-relief-no-area = un rilievo richiede forme chiuse come area: il contorno del suo modello o altre
+toolpath-relief-gouge = il percorso del rilievo taglierebbe { $depth } nel modello in ({ $x }, { $y }); non viene generato nulla

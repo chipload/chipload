@@ -235,6 +235,7 @@ pub(in crate::app) fn op_form(
         Operation::Path(_) => t!(ui, "forms-kind-path"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
+        Operation::Relief(_) => t!(ui, "forms-kind-relief"),
     };
     let surface = !op.selects_shapes();
     let color = super::browser::kind_color(&*op, ui.visuals().dark_mode);
@@ -576,6 +577,51 @@ pub(in crate::app) fn op_form(
                 ui.end_row();
             });
             feeds_section(ui, &mut f.feed, &mut f.plunge_feed, op_tool);
+        }
+        // docs/specs/stl-relief.md §5; the full form comes with the window step (§12).
+        Operation::Relief(r) => {
+            let cut = t!(
+                ui,
+                "forms-relief-cut-summary",
+                start = len_in(units, r.start_depth),
+                end = len_in(units, r.end_depth),
+                unit = len_unit,
+                stepover = format!("{:.2}", r.stepover),
+                angle = format!("{:.0}", r.angle.to_degrees())
+            );
+            folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+                ui.label(t!(ui, "forms-start-depth"))
+                    .on_hover_text(t!(ui, "forms-start-depth-hover"));
+                flag(ui.add(mm(&mut r.start_depth)), ui, "start_depth");
+                ui.end_row();
+                ui.label(t!(ui, "forms-stepover"));
+                let stepover = ui.add(
+                    crate::units::number(ui, &mut r.stepover)
+                        .speed(0.01)
+                        .range(0.01..=chipload_job::RELIEF_MAX_STEPOVER)
+                        .suffix(" × D"),
+                );
+                flag(stepover, ui, "stepover");
+                ui.end_row();
+                ui.label(t!(ui, "forms-relief-angle"));
+                let mut degrees = r.angle.to_degrees();
+                if ui
+                    .add(
+                        crate::units::number(ui, &mut degrees)
+                            .speed(1.0)
+                            .range(-180.0..=180.0)
+                            .suffix("°"),
+                    )
+                    .changed()
+                {
+                    r.angle = degrees.to_radians();
+                }
+                ui.end_row();
+                ui.label("");
+                ui.checkbox(&mut r.zigzag, t!(ui, "forms-relief-zigzag"));
+                ui.end_row();
+            });
+            feeds_section(ui, &mut r.feed, &mut r.plunge_feed, op_tool);
         }
     }
     request.use_selection = use_selection;

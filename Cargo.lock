@@ -960,6 +960,7 @@ dependencies = [
 name = "chipload-toolpath"
 version = "0.35.0"
 dependencies = [
+ "base64 0.22.1",
  "boostvoronoi",
  "cavalier_contours",
  "chipload-core",

@@ -89,6 +89,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] tallado en V
     [path] seguir trayectoria
     [holes] taladros
+    [relief] relieve
    *[surface] planeado
 })
 # $layers is the contour's layer names, $from and $to its two ends ("(10.000, 5.000) mm").
@@ -384,3 +385,9 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] Resta de una isla
    *[offset] Equidistante
 }
+
+toolpath-model-unreadable = el modelo { $id } no se puede leer del proyecto: { $error }
+toolpath-relief-drill = la herramienta { $tool } es una broca: un relieve necesita una fresa de bola, una fresa recta o una fresa en V
+toolpath-relief-shape = la forma de la herramienta { $tool } no se conoce: una fresa en V necesita su ángulo, una fresa de bola cónica su ángulo y su bola
+toolpath-relief-no-area = un relieve necesita formas cerradas para su zona: el contorno de su modelo u otras
+toolpath-relief-gouge = la trayectoria del relieve cortaría { $depth } en el modelo en ({ $x }, { $y }); no se genera nada

@@ -103,6 +103,7 @@ job-shape-id-range = måste vara mellan 1 och next_shape_id - 1 ({ $most }), fic
 # a number.
 job-no-image = ingen bild { $id } i drawing.images
 job-no-model = ingen modell { $id } i drawing.models
+job-relief-stepover = får vara högst { $most } av verktyget, är { $got }
 job-no-dxf = ingen DXF { $id } i drawing.dxfs
 job-no-text = ingen text { $id } i drawing.texts
 job-no-group = ingen grupp { $id } i drawing.groups

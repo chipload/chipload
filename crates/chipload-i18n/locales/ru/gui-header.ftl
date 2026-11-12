@@ -52,6 +52,7 @@ header-new-vcarve = Новая V-гравировка
 header-new-follow-path = Новая обработка вдоль линии
 header-new-holes = Новая обработка отверстий
 header-new-surface = Новое торцевание
+header-new-relief = Новый рельеф
 header-tools = Инструменты
 header-tools-hover = Библиотека инструментов в разделе «Этот компьютер» дерева проекта
 header-machines = Станки

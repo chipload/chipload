@@ -87,6 +87,9 @@ impl Machine {
     }
 }
 
+/// A relief's lines at most this share of the tool apart (docs/specs/stl-relief.md §5).
+pub const RELIEF_MAX_STEPOVER: f64 = 0.9;
+
 impl Tool {
     /// Value rules of a tool, each at "<at>.field"; shared by projects and the tool
     /// library.
@@ -526,6 +529,11 @@ impl Job {
                     positive(at("feed"), f.feed);
                     positive(at("plunge_feed"), f.plunge_feed);
                 }
+                Operation::Relief(r) => {
+                    positive(at("feed"), r.feed);
+                    positive(at("plunge_feed"), r.plunge_feed);
+                    positive(at("stepover"), r.stepover);
+                }
                 Operation::Holes(h) => {
                     positive(at("end_depth"), h.end_depth);
                     positive(at("feed"), h.feed);
@@ -596,6 +604,31 @@ impl Job {
             if let Operation::Surface(f) = op {
                 let thickness = self.setup_of(op).map_or(0.0, |s| s.stock.thickness);
                 problems.extend(surface_problems(i, f, thickness));
+            }
+            // A relief carves a model of the project, in lines no wider apart than 0.9 of
+            // the tool (docs/specs/stl-relief.md §5).
+            if let Operation::Relief(r) = op {
+                if !self.drawing.models.iter().any(|m| m.id == r.model) {
+                    problems.push(Problem::at(
+                        format!("operations.{i}.model"),
+                        Message::new("job-no-model").arg("id", r.model),
+                    ));
+                }
+                if r.stepover > RELIEF_MAX_STEPOVER {
+                    problems.push(Problem::at(
+                        format!("operations.{i}.stepover"),
+                        Message::new("job-relief-stepover")
+                            .arg("most", Value::Number(RELIEF_MAX_STEPOVER, Digits::Shortest))
+                            .arg("got", Value::Number(r.stepover, Digits::Shortest)),
+                    ));
+                }
+                if !r.angle.is_finite() {
+                    problems.push(Problem::at(
+                        format!("operations.{i}.angle"),
+                        Message::new("job-must-be-number")
+                            .arg("got", Value::Number(r.angle, Digits::Shortest)),
+                    ));
+                }
             }
             if let Operation::Profile(p) = op
                 && p.side == Side::On

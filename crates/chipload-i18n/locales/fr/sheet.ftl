@@ -131,6 +131,8 @@ sheet-kind-holes-bored = Perçages, alésage hélicoïdal
 sheet-kind-surface = Surfaçage, tout le brut, en allers-retours (en avalant et en opposition), pas latéral { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface } ; dépasse de { $distance } les bords du brut : écarter les brides
+sheet-kind-relief-zigzag = Relief du modèle { $model }, lignes à { $angle }° en aller-retour, pas latéral { $percent } %
+sheet-kind-relief-one-way = Relief du modèle { $model }, lignes à { $angle }° toutes dans le même sens, pas latéral { $percent } %
 sheet-cuts-past = usine { $distance } au-delà de la ligne
 sheet-leaves = laisse { $distance }
 sheet-rest-after = reprise après T{ $tool }

@@ -69,6 +69,7 @@ header-new-vcarve = Nouvelle gravure en V
 header-new-follow-path = Nouveau suivi de tracé
 header-new-holes = Nouveaux perçages
 header-new-surface = Nouveau surfaçage
+header-new-relief = Nouveau relief
 
 # LIBRARY
 header-tools = Outils

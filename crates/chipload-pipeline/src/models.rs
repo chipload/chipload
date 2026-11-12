@@ -8,7 +8,7 @@ use base64::engine::general_purpose::STANDARD;
 use chipload_core::primitives::Primitive;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Job, Model, ModelUp, Shape, Units};
-use chipload_mesh::{Format, Mesh, MeshError, Up};
+use chipload_mesh::{Format, Mesh, MeshError};
 use sha2::{Digest, Sha256};
 
 use crate::PipelineError;
@@ -18,6 +18,8 @@ use crate::PipelineError;
 const OUTLINE_CELLS: f64 = 1000.0;
 /// ... and never in cells smaller than this, mm.
 const OUTLINE_MIN_CELL_MM: f64 = 0.05;
+/// How far the outline may be simplified from the traced shadow, in cells.
+const OUTLINE_SMOOTHING_CELLS: f64 = 2.0;
 /// The trace's settings: no blur, the edge midway between a covered cell and an empty one.
 const OUTLINE_LEVEL: u8 = 128;
 /// Over this much STL, adding a model warns that the project gets large (decision 3).
@@ -94,25 +96,6 @@ fn read(bytes: &[u8]) -> Result<(Mesh, chipload_mesh::ReadReport), PipelineError
     }
 }
 
-fn up(up: ModelUp) -> Up {
-    match up {
-        ModelUp::Z => Up::Z,
-        ModelUp::Y => Up::Y,
-        ModelUp::X => Up::X,
-        ModelUp::MinusZ => Up::MinusZ,
-        ModelUp::MinusY => Up::MinusY,
-        ModelUp::MinusX => Up::MinusX,
-    }
-}
-
-/// Millimetres per unit of the file.
-fn mm_per_unit(units: Units) -> f64 {
-    match units {
-        Units::Mm => 1.0,
-        Units::Inch => 25.4,
-    }
-}
-
 /// Model `id`.
 pub fn find(job: &Job, id: u64) -> Result<&Model, PipelineError> {
     job.drawing
@@ -133,76 +116,25 @@ pub fn model_bytes(model: &Model) -> Result<Vec<u8>, PipelineError> {
     })
 }
 
+fn relief_error(e: chipload_toolpath::relief::ReliefError) -> PipelineError {
+    PipelineError::Job(e.message())
+}
+
 /// The mesh turned up, in mm as its unit reads, with its bounds.
 fn turned(model: &Model) -> Result<(Mesh, [f64; 3], [f64; 3]), PipelineError> {
-    let (mesh, _) = read(&model_bytes(model)?)?;
-    let k = mm_per_unit(model.units);
-    let mesh = mesh
-        .turned(up(model.up))
-        .mapped(|v| [v[0] * k, v[1] * k, v[2] * k]);
+    let mesh = chipload_toolpath::relief::turned_mesh(model).map_err(relief_error)?;
     let (lo, hi) = mesh
         .bounds()
         .ok_or_else(|| PipelineError::Job(Message::new("mesh-error-empty")))?;
     Ok((mesh, lo, hi))
 }
 
-/// How a model lies on the board: its scale in X and Y, in Z, and its size there.
-struct Placement {
-    lo: [f64; 3],
-    hi: [f64; 3],
-    scale: f64,
-    z_scale: f64,
-    width: f64,
-    height: f64,
-    depth: f64,
-}
-
-fn placement(model: &Model, lo: [f64; 3], hi: [f64; 3]) -> Result<Placement, PipelineError> {
-    let own_width = hi[0] - lo[0];
-    if own_width <= 0.0 {
-        return Err(PipelineError::Job(
-            Message::new("pipeline-model-no-width").arg("id", model.id),
-        ));
-    }
-    let scale = model.width / own_width;
-    let tall = hi[2] - lo[2];
-    let depth = model.depth.unwrap_or(tall * scale);
-    Ok(Placement {
-        lo,
-        hi,
-        scale,
-        z_scale: if tall > 0.0 { depth / tall } else { 0.0 },
-        width: model.width,
-        height: (hi[1] - lo[1]) * scale,
-        depth,
-    })
-}
-
 /// Model `id` as it lies on the board, in the drawing's coordinates, mm: scaled, its
 /// footprint's lower-left corner at (x, y), turned about the footprint's centre, its top
 /// at Z 0 (the stock top) and its lowest point at −depth (spec §3). What the drop cutter
-/// cuts.
+/// cuts; the placement itself is the toolpath's, so planning and this agree.
 pub fn placed_mesh(job: &Job, id: u64) -> Result<Mesh, PipelineError> {
-    let model = find(job, id)?;
-    let (mesh, lo, hi) = turned(model)?;
-    let p = placement(model, lo, hi)?;
-    Ok(place(&mesh, model, &p))
-}
-
-fn place(mesh: &Mesh, model: &Model, p: &Placement) -> Mesh {
-    let (cx, cy) = (p.width / 2.0, p.height / 2.0);
-    let (sin, cos) = model.rotation.to_radians().sin_cos();
-    mesh.mapped(|v| {
-        let (u, w) = (
-            (v[0] - p.lo[0]) * p.scale - cx,
-            (v[1] - p.lo[1]) * p.scale - cy,
-        );
-        [
-            model.x + cx + u * cos - w * sin,
-            model.y + cy + u * sin + w * cos,
-            (v[2] - p.hi[2]) * p.z_scale,
-        ]
-    })
+    chipload_toolpath::relief::placed_mesh(find(job, id)?).map_err(relief_error)
 }
 
 /// Add a model and draw its footprint outline. Returns the project and what was read.
@@ -226,7 +158,8 @@ pub fn add_model(job: &Job, new: NewModel) -> Result<(Job, ModelReport), Pipelin
         y: new.y,
         width: 1.0,
         rotation: new.rotation,
-        depth: new.depth,
+        depth: new.depth.unwrap_or(1.0),
+        proportional: new.depth.is_none(),
     };
     let (_, lo, hi) = turned(&model)?;
     model.width = new.width.unwrap_or(hi[0] - lo[0]);
@@ -293,14 +226,24 @@ fn default_layer(job: &Job, name: &str) -> String {
 pub fn remake(job: &Job, id: u64) -> Result<(Job, ModelReport), PipelineError> {
     let k = job.drawing.models.iter().position(|m| m.id == id);
     let model = find(job, id)?;
-    if let Some(problem) = k.and_then(|k| model.problems(k).into_iter().next()) {
+    // A depth in proportion isn't known yet: any positive value passes the check.
+    let mut checked = model.clone();
+    if checked.proportional {
+        checked.depth = 1.0;
+    }
+    if let Some(problem) = k.and_then(|k| checked.problems(k).into_iter().next()) {
         return Err(PipelineError::Job(problem.text_message));
     }
     let (mesh, lo, hi) = turned(model)?;
-    let p = placement(model, lo, hi)?;
-    let placed = place(&mesh, model, &p);
+    let p = chipload_toolpath::relief::placement(model, &mesh).map_err(relief_error)?;
+    let placed = chipload_toolpath::relief::placed(model, &mesh, &p);
     let outlines = footprint(&placed)?;
     let mut out = job.clone();
+    // A depth in proportion is made again from the width.
+    if let Some(m) = out.drawing.models.iter_mut().find(|m| m.id == id) {
+        m.depth = p.depth;
+    }
+    out.follow_thickness();
     out.drawing.shapes.retain(|s| s.model() != Some(id));
     let mut ids = Vec::with_capacity(outlines.len());
     for pieces in &outlines {
@@ -372,7 +315,9 @@ fn footprint(placed: &Mesh) -> Result<Vec<Vec<Primitive>>, PipelineError> {
         invert: false,
         blur: 0.0,
         min_area: (4.0 * cell * cell).min(chipload_image::MAX_MIN_AREA_MM2),
-        smoothing: (cell / 2.0).clamp(
+        // Within two cells: the grid's stair steps smoothed away, the outline still within
+        // a fraction of a millimetre of the shadow.
+        smoothing: (OUTLINE_SMOOTHING_CELLS * cell).clamp(
             chipload_image::MIN_SMOOTHING_MM,
             chipload_image::MAX_SMOOTHING_MM,
         ),

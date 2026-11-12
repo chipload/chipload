@@ -624,6 +624,7 @@ pipeline-name-vcarve = Incisione a V { $number }
 pipeline-name-path = Segui percorso { $number }
 pipeline-name-holes = Fori { $number }
 pipeline-name-surface = Spianatura { $number }
+pipeline-name-relief = Rilievo { $number }
 pipeline-name-inlay-pocket = Tasca d’intarsio
 pipeline-name-inlay-plug = Tassello d’intarsio
 pipeline-name-sign-letters = Lettere

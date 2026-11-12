@@ -28,6 +28,7 @@ browser-follow-path-hover = Das Werkzeug auf der Linie der ausgewählten Formen,
 browser-holes = Bohrungen
 browser-holes-hover = Die ausgewählten Kreise: mit einem Bohrer gebohrt oder mit einem Schaftfräser per Helix gebohrt
 browser-surface = Planfräsen
+browser-relief = Relief
 browser-surface-hover = Das ganze Rohteil mit einem breiten Schaftfräser plan abgetragen: die Opferplatte planen oder das Rohteil planfräsen. Braucht keine Auswahl
 
 # Job settings and Tools.

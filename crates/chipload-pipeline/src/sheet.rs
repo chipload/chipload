@@ -734,6 +734,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Path(p) => (p.feed, p.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
         Operation::Surface(f) => (f.feed, f.plunge_feed),
+        Operation::Relief(r) => (r.feed, r.plunge_feed),
     }
 }
 
@@ -784,6 +785,17 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                 None => kind,
             }]
         }
+        // docs/specs/stl-relief.md §5.
+        Operation::Relief(r) => vec![
+            Message::new(if r.zigzag {
+                "sheet-kind-relief-zigzag"
+            } else {
+                "sheet-kind-relief-one-way"
+            })
+            .arg("model", r.model)
+            .arg("angle", num(r.angle.to_degrees()))
+            .arg("percent", num(r.stepover * 100.0)),
+        ],
     };
     // Positive clearance cuts into the material that is kept, negative leaves some
     // (docs/specs/depths-and-clearance.md §3).
@@ -831,6 +843,8 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         Operation::Path(p) => Some(p.step_down),
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
+        // In one pass along the model (docs/specs/stl-relief.md §5).
+        Operation::Relief(_) => None,
     };
     let depths = |id: &'static str| {
         Message::new(id)

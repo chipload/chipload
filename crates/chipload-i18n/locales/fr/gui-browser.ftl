@@ -28,6 +28,7 @@ browser-follow-path-hover = L'outil sur la ligne des formes sélectionnées, ouv
 browser-holes = Perçages
 browser-holes-hover = Les cercles sélectionnés : percés avec un foret, ou alésés en hélice avec une fraise
 browser-surface = Surfaçage
+browser-relief = Relief
 browser-surface-hover = Tout le brut dressé à plat avec une large fraise : surfacer le martyr ou dresser le brut. Aucune sélection requise
 
 # Job settings and Tools.

@@ -468,8 +468,9 @@ fn pass_heights(op: &Operation, top_z: f64) -> Result<Vec<f64>, ToolpathError> {
         | Operation::Surface(SurfaceOp { step_down, .. }) => {
             heights(pass_depths(start_depth, end_depth, *step_down)?)
         }
-        // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3).
-        Operation::Vcarve(_) => Vec::new(),
+        // A V-carve sets its own passes from how deep it goes (docs/specs/v-carve.md §3); a
+        // relief follows its model in one pass (docs/specs/stl-relief.md §5).
+        Operation::Vcarve(_) | Operation::Relief(_) => Vec::new(),
         // A drill's pecks (docs/specs/holes.md §3); a bore goes to the end in one helix.
         Operation::Holes(HolesOp {
             method: HoleMethod::Drill { peck },
@@ -588,6 +589,7 @@ fn plan_step(
         Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
         Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
+        Operation::Relief(relief) => plan_relief_op(relief, &context, &shifted, position, shift),
     };
     let planned = planned.map(|planned| match mirror {
         Some(mirror) => mirrored_planned(planned, mirror),
@@ -2307,6 +2309,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Path(p) => (p.feed, p.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
             Operation::Surface(f) => (f.feed, f.plunge_feed),
+            Operation::Relief(r) => (r.feed, r.plunge_feed),
         };
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
@@ -2507,6 +2510,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .into_iter()
                     .collect(),
             ),
+            Operation::Relief(_) => (
+                relief_tool_rule(tool).map_err(|e| (at("tool"), numbered.clone(), e)),
+                Vec::new(),
+            ),
             Operation::Vcarve(_) => match vcarve_tool_notes(&label_message, tool) {
                 Ok(found) => (Ok(false), found),
                 Err(e) => {
@@ -2569,6 +2576,7 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Path(_) => "path",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
+        Operation::Relief(_) => "relief",
     }
 }
 
@@ -2591,6 +2599,89 @@ fn and_list(mut items: Vec<Message>) -> Option<Message> {
             .arg("list", list)
             .arg("last", last),
         None => last,
+    })
+}
+
+/// A relief takes a ball nose, an endmill or a V-bit whose shape is known
+/// (docs/specs/stl-relief.md §8); an endmill of unknown centre-cutting plunges to each line.
+fn relief_tool_rule(tool: &Tool) -> Result<bool, Message> {
+    match tool.kind {
+        ToolType::Drill => Err(Message::new("toolpath-relief-drill").arg("tool", tool.id)),
+        _ if tool.cutter().is_none() => {
+            Err(Message::new("toolpath-relief-shape").arg("tool", tool.id))
+        }
+        ToolType::Endmill => plunge_unknown(tool, Entry::Plunge {}),
+        ToolType::Vbit | ToolType::Ballnose => Ok(false),
+    }
+}
+
+/// A relief (docs/specs/stl-relief.md §5, §7): its model placed and indexed, finishing lines
+/// across the area, and the path checked against the model.
+fn plan_relief_op(
+    op: &chipload_job::ReliefOp,
+    ctx: &Context,
+    sel: &Selection,
+    start: Point,
+    shift: Point,
+) -> Result<Planned, ToolpathError> {
+    let model = ctx
+        .job
+        .drawing
+        .models
+        .iter()
+        .find(|m| m.id == op.model)
+        .ok_or_else(|| job_error(Message::new("job-no-model").arg("id", op.model)))?;
+    let cutter = ctx
+        .tool
+        .cutter()
+        .ok_or_else(|| job_error(Message::new("toolpath-relief-shape").arg("tool", ctx.tool.id)))?;
+    let mesh = crate::relief::placed_mesh(model).map_err(|e| job_error(e.message()))?;
+    let index = crate::drop::DropMesh::new(&mesh, ctx.tool.diameter);
+    let area: Vec<Vec<Point>> = sel
+        .contours
+        .iter()
+        .filter(|c| c.closed)
+        .map(|c| c.points())
+        .collect();
+    if area.is_empty() {
+        return Err(job_error(Message::new("toolpath-relief-no-area")));
+    }
+    let (start_depth, end_depth) = (op.start_depth, op.end_depth);
+    let cut = crate::relief::ReliefCut {
+        mesh: &index,
+        cutter,
+        top: ctx.top_z,
+        floor: ctx.top_z - (end_depth - start_depth),
+        area: &area,
+        step: op.stepover * ctx.tool.diameter,
+        angle: op.angle,
+        zigzag: op.zigzag,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+        shift,
+    };
+    let (moves, end) = crate::relief::relief_moves(&cut, start);
+    if let Some((depth, at)) = crate::relief::verify(&moves, &mesh, cutter, ctx.top_z, shift) {
+        return Err(job_error(
+            Message::new("toolpath-relief-gouge")
+                .arg("depth", Value::mm(depth))
+                .arg("x", Value::mm(at.0))
+                .arg("y", Value::mm(at.1)),
+        ));
+    }
+    Ok(Planned {
+        moves,
+        notes: Vec::new(),
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs: ArcTable::default(),
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts: Vec::new(),
     })
 }
 

@@ -48,6 +48,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-гравировка
     [path] вдоль линии
     [holes] отверстия
+    [relief] рельеф
    *[surface] торцевание
 })
 toolpath-skipped-open = пропущен разомкнутый контур №{ $contour } на { $layers }, от { $from } до { $to }
@@ -256,3 +257,9 @@ toolpath-error-step = { $step ->
     [subtracting-an-island] Вычитание острова
    *[offset] Смещение
 }
+
+toolpath-model-unreadable = модель { $id } не читается из проекта: { $error }
+toolpath-relief-drill = инструмент { $tool } — сверло: для рельефа нужна сферическая, концевая или V-образная фреза
+toolpath-relief-shape = форма инструмента { $tool } неизвестна: V-образной фрезе нужен угол, конической сферической — угол и шарик
+toolpath-relief-no-area = рельефу нужны замкнутые фигуры как область: контур его модели или другие
+toolpath-relief-gouge = траектория рельефа врезалась бы в модель на { $depth } в точке ({ $x }, { $y }); ничего не создаётся

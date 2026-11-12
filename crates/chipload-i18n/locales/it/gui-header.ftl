@@ -69,6 +69,7 @@ header-new-vcarve = Nuova incisione a V
 header-new-follow-path = Nuovo segui percorso
 header-new-holes = Nuovi fori
 header-new-surface = Nuova spianatura
+header-new-relief = Nuovo rilievo
 
 # LIBRARY
 header-tools = Utensili

@@ -199,8 +199,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    (decisions 1-10 as recommended; ADR 0031 accepted). Step 1 built on branch `relief`:
    `chipload-mesh`, `drawing.models` (no schema bump, §14), `model add/set/list/remove`,
    the footprint outline. Step 2a: the ball nose tool (plain and tapered, `Tool::cutter`,
-   `chipload_core::cutter`), the simulation's round shape. Next: 2b the drop cutter, 2c
-   the Relief operation.
+   `chipload_core::cutter`), the simulation's round shape; 2b the drop cutter; 2c the
+   Relief operation (finishing, `op add relief --model`, the path check, goldens
+   v36_relief_dome). Next: step 3 roughing, then the window (step 4).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

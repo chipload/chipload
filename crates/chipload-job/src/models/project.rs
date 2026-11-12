@@ -334,6 +334,20 @@ impl Job {
         for (op, (thickness, point)) in self.operations.iter_mut().zip(depths) {
             op.follow_thickness(thickness, point);
         }
+        // A relief ends at its model's lowest point (docs/specs/stl-relief.md §5).
+        let models: Vec<(u64, f64)> = self
+            .drawing
+            .models
+            .iter()
+            .map(|m| (m.id, m.depth))
+            .collect();
+        for op in &mut self.operations {
+            if let Operation::Relief(r) = op
+                && let Some((_, depth)) = models.iter().find(|(id, _)| *id == r.model)
+            {
+                r.end_depth = r.start_depth + depth;
+            }
+        }
     }
 
     /// How far below its full diameter `op`'s cut reaches: a drilled hole's drill point

@@ -170,10 +170,11 @@ pub fn model(out: &mut Out, action: ModelAction) -> ExitCode {
                     model.width = width;
                 }
                 if let Some(depth) = place.depth {
-                    model.depth = Some(depth);
+                    model.depth = depth;
+                    model.proportional = false;
                 }
                 if proportional {
-                    model.depth = None;
+                    model.proportional = true;
                 }
                 if let Some(degrees) = place.rotate {
                     model.rotation = turned(degrees)?;
@@ -282,9 +283,11 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
     }
     let mut rows = Vec::new();
     for model in &job.drawing.models {
-        let depth = model
-            .depth
-            .map_or_else(|| "in proportion".to_string(), |d| format!("{d} mm deep"));
+        let depth = if model.proportional {
+            format!("{} mm deep, in proportion", model.depth)
+        } else {
+            format!("{} mm deep", model.depth)
+        };
         out.line(format!(
             "Model {}: {} ({}), {} up, layer {:?}, at {}, {} wide, {}, turned {}°",
             model.id,
@@ -315,6 +318,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "y": model.y,
             "width": model.width,
             "depth": model.depth,
+            "proportional": model.proportional,
             "rotation": model.rotation,
             "shapes": shapes,
         }));
