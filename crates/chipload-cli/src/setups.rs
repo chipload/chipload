@@ -219,9 +219,9 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
                     zero,
                     tool: pin_tool,
                 }),
-                margin: None,
             };
             make_two_sided(&job, &request, Language::En).map(|(job, made)| {
+                tight_warning(out, &job, made.back, diameter);
                 let at = made.dowels.map_or(0, |i| i + 1);
                 out.line(format!(
                     "Added setup {}, the back of setup {front}, and operation {at}: dowel \
@@ -316,7 +316,19 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
         } => remove_dowels(&job, setup).inspect(|_| out.line("Removed the dowel holes")),
         SetupAction::Dowels {
             setup, place: true, ..
-        } => place_dowels_again(&job, setup).inspect(|_| out.line("Placed the dowel holes again")),
+        } => place_dowels_again(&job, setup).inspect(|job| {
+            out.line("Placed the dowel holes again");
+            let diameter = job
+                .dowels_of(
+                    job.setup(setup)
+                        .and_then(|s| s.back_of)
+                        .map_or(0, |b| b.setup),
+                )
+                .and_then(|at| dowel_diameter(job, at));
+            if let Some(diameter) = diameter {
+                tight_warning(out, job, setup, diameter);
+            }
+        }),
         SetupAction::Dowels {
             setup,
             diameter,
@@ -332,6 +344,7 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
                 tool,
             };
             add_dowels(&job, setup, dowels, Language::En).map(|(job, at)| {
+                tight_warning(out, &job, setup, dowels.diameter);
                 out.line(format!("Added operation {}: dowel holes", at + 1));
                 out.set("operation", json!(at + 1));
                 job
@@ -351,6 +364,26 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
         Ok(job) => write_project(out, &job, output.as_deref().unwrap_or(&project)),
         Err(err) => out.fail(err),
     }
+}
+
+/// Dowel holes on a board of its own size without their room: made, with a warning
+/// (docs/specs/two-sided.md §6). A board fitted round the drawing grows round them.
+fn tight_warning(out: &mut Out, job: &chipload_job::Job, back: u64, diameter: f64) {
+    let tight = chipload_pipeline::dowels::dowel_layout(job, back, diameter)
+        .ok()
+        .and_then(|layout| layout.tight());
+    if let Some(message) = tight {
+        out.line(format!("warning: {}", message.english()));
+    }
+}
+
+/// The diameter of operation `at`'s dowel circles.
+fn dowel_diameter(job: &chipload_job::Job, at: usize) -> Option<f64> {
+    let select = job.operations.get(at)?.select().resolved(&job.drawing);
+    job.drawing.shapes.iter().find_map(|s| match s.geometry {
+        chipload_job::Geometry::Circle { radius, .. } if select.may_pick(s) => Some(2.0 * radius),
+        _ => None,
+    })
 }
 
 fn list(out: &mut Out, project: &Path) -> ExitCode {

@@ -85,19 +85,32 @@ pub struct DowelLayout {
     pub reach: Box2,
     /// The turn axis across the board.
     pub axis: (Point, Point),
-    /// The two holes' centres, centred in the margin on the axis.
+    /// The two holes' centres on the axis.
     pub centres: [Point; 2],
     /// The narrowest room on the axis, and the room a hole needs.
     pub room: f64,
     pub needed: f64,
-    /// For a board fitted round the drawing that can't hold them, the margin that would.
-    pub margin: Option<f64>,
+    /// How much longer a board fitted round the drawing grows to hold the pins, mm: 0 when
+    /// they are inside it already, or on a board of its own size.
+    pub grows: f64,
 }
 
 impl DowelLayout {
-    /// Whether the holes fit in the margin.
+    /// Whether the holes have their room: always on a board fitted round the drawing,
+    /// which grows round them. Without it they are still made, with a warning
+    /// ([`DowelLayout::tight`]): how the pins are used is the operator's choice.
     pub fn fits(&self) -> bool {
         self.room + CHAIN_TOL_MM >= self.needed
+    }
+
+    /// The warning for holes without their room, on a board of its own size.
+    pub fn tight(&self) -> Option<Message> {
+        let length = |v: f64| Value::Length(v, Digits::Fixed(1));
+        (!self.fits()).then(|| {
+            Message::new("pipeline-dowels-tight")
+                .arg("room", length(self.room.max(0.0)))
+                .arg("needed", length(self.needed))
+        })
     }
 }
 
@@ -105,21 +118,10 @@ fn refused(message: Message) -> PipelineError {
     PipelineError::Job(message)
 }
 
-/// The centres of the two holes for the back setup `back`: on its turn axis, each centred
-/// in the margin between where both sides cut (and their shapes) and the board's edge, the
-/// lower (left-right) or the left (top-bottom) first. Refused when the margin can't hold the
-/// hole, saying how wide it needs to be.
+/// The centres of the two holes for the back setup `back`, on its turn axis, the lower
+/// (left-right) or the left (top-bottom) first ([`dowel_layout`]).
 pub fn dowel_centres(job: &Job, back: u64, diameter: f64) -> Result<[Point; 2], PipelineError> {
-    let layout = dowel_layout(job, back, diameter)?;
-    if !layout.fits() {
-        let front = layout_front(job, back)?;
-        return Err(refused(no_room(
-            &job.for_setup(front),
-            layout.room,
-            layout.needed,
-        )));
-    }
-    Ok(layout.centres)
+    Ok(dowel_layout(job, back, diameter)?.centres)
 }
 
 fn layout_front(job: &Job, back: u64) -> Result<u64, PipelineError> {
@@ -129,7 +131,14 @@ fn layout_front(job: &Job, back: u64) -> Result<u64, PipelineError> {
         .ok_or_else(|| refused(Message::new("pipeline-setup-not-a-back").arg("id", back)))
 }
 
-/// Where the holes of pins of `diameter` go for back setup `back`, whether they fit or not.
+/// Where the holes of pins of `diameter` go for back setup `back` (docs/specs/two-sided.md
+/// §6): on the turn axis, beyond where both sides cut and their shapes.
+/// - On a board fitted round the drawing, just beyond, `PIN_ROOM` clear of the cuts: the
+///   board grows round them (its fit counts the dowel circles), so they always have room.
+/// - On a board of its own size, centred between the cuts and the board's edge, room or
+///   not ([`DowelLayout::tight`]).
+///
+/// Dowel holes already there are left out, so placing them again doesn't follow them.
 pub fn dowel_layout(job: &Job, back: u64, diameter: f64) -> Result<DowelLayout, PipelineError> {
     let Some((front, turn)) = job
         .setup(back)
@@ -140,18 +149,25 @@ pub fn dowel_layout(job: &Job, back: u64, diameter: f64) -> Result<DowelLayout, 
             Message::new("pipeline-setup-not-a-back").arg("id", back),
         ));
     };
-    let one = job.for_setup(front);
-    let board = one.stock_bounds();
-    let ((x0, y0), (x1, y1)) = board;
+    let mut base = job.clone();
+    base.operations.retain(|op| !op.is_dowels());
+    let one = base.for_setup(front);
     let Some(shapes) = one.board_extents() else {
         return Err(refused(Message::new("pipeline-dowels-no-shapes")));
     };
     let mut reach = shapes;
     for side in [front, back] {
-        if let Some(cut) = cut_extents(&job.for_setup(side))? {
+        if let Some(cut) = cut_extents(&base.for_setup(side))? {
             reach = union(reach, cut);
         }
     }
+    let needed = diameter + 2.0 * PIN_ROOM;
+    let fitted = one.stock().origin == StockOrigin::Drawing && one.stock().fit.is_some();
+    if fitted {
+        return Ok(fitted_layout(&one, reach, turn, diameter, needed));
+    }
+    let board = one.stock_bounds();
+    let ((x0, y0), (x1, y1)) = board;
     let ((px0, py0), (px1, py1)) = reach;
     let (gaps, centres, axis) = match turn {
         Turn::LeftRight => {
@@ -171,47 +187,60 @@ pub fn dowel_layout(job: &Job, back: u64, diameter: f64) -> Result<DowelLayout, 
             )
         }
     };
-    let needed = diameter + 2.0 * PIN_ROOM;
-    let room = gaps[0].min(gaps[1]);
-    let mut layout = DowelLayout {
+    Ok(DowelLayout {
         board,
         reach,
         axis,
         centres,
-        room,
+        room: gaps[0].min(gaps[1]),
         needed,
-        margin: None,
-    };
-    if !layout.fits() {
-        layout.margin = wider_margin(&one, room, needed);
-    }
-    Ok(layout)
+        grows: 0.0,
+    })
 }
 
-/// For a board fitted round the drawing, the margin that holds a hole needing `needed` where
-/// there is `room`, rounded up to 0.1 mm (the margin grows the room on both ends alike).
-fn wider_margin(front: &Job, room: f64, needed: f64) -> Option<f64> {
-    match (front.stock().origin, front.stock().fit) {
-        (StockOrigin::Drawing, Some(margin)) => {
-            Some(((margin + needed - room) * 10.0 - CHAIN_TOL_MM).ceil() / 10.0)
+/// [`dowel_layout`] on a board fitted round the drawing: the holes `PIN_ROOM` beyond the
+/// cuts, and the board as it grows round them. The pins lie on the board's centre line,
+/// which they don't move: they add to its length along the axis only.
+fn fitted_layout(one: &Job, reach: Box2, turn: Turn, diameter: f64, needed: f64) -> DowelLayout {
+    let ((x0, y0), (x1, y1)) = one.stock_bounds();
+    let ((px0, py0), (px1, py1)) = reach;
+    let out = PIN_ROOM + diameter / 2.0;
+    let centres = match turn {
+        Turn::LeftRight => {
+            let x = (x0 + x1) / 2.0;
+            [(x, py0 - out), (x, py1 + out)]
         }
-        _ => None,
-    }
-}
-
-/// Why the holes don't fit: the room there is and the room a hole needs, and for a board
-/// fitted round the drawing the margin that would hold them, rounded up to 0.1 mm (the
-/// margin grows the room on both ends alike).
-fn no_room(front: &Job, room: f64, needed: f64) -> Message {
-    let length = |v: f64| Value::Length(v, Digits::Fixed(1));
-    let message = |id: &'static str| {
-        Message::new(id)
-            .arg("room", length(room.max(0.0)))
-            .arg("needed", length(needed))
+        Turn::TopBottom => {
+            let y = (y0 + y1) / 2.0;
+            [(px0 - out, y), (px1 + out, y)]
+        }
     };
-    match wider_margin(front, room, needed) {
-        Some(wider) => message("pipeline-dowels-no-room-margin").arg("margin", length(wider)),
-        None => message("pipeline-dowels-no-room"),
+    let r = diameter / 2.0;
+    let pins = centres
+        .iter()
+        .map(|&(x, y)| ((x - r, y - r), (x + r, y + r)))
+        .fold(one.board_extents(), |e, pin| {
+            Some(e.map_or(pin, |e| union(e, pin)))
+        });
+    let board = one.stock_bounds_around(pins);
+    let ((bx0, by0), (bx1, by1)) = board;
+    let ((ox0, oy0), (ox1, oy1)) = one.stock_bounds();
+    let grows = match turn {
+        Turn::LeftRight => (by1 - by0) - (oy1 - oy0),
+        Turn::TopBottom => (bx1 - bx0) - (ox1 - ox0),
+    };
+    let axis = match turn {
+        Turn::LeftRight => ((centres[0].0, by0), (centres[0].0, by1)),
+        Turn::TopBottom => ((bx0, centres[0].1), (bx1, centres[0].1)),
+    };
+    DowelLayout {
+        board,
+        reach,
+        axis,
+        centres,
+        room: needed,
+        needed,
+        grows: grows.max(0.0),
     }
 }
 

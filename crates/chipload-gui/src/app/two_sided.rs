@@ -4,6 +4,7 @@
 //! makes is `chipload_pipeline::two_sided`'s.
 
 use chipload_core::Point;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_job::library::ToolLibrary;
 use chipload_job::{Job, Register, Turn};
 use chipload_pipeline::dowels::{DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, DowelLayout, pin_tool};
@@ -25,8 +26,6 @@ pub(super) struct TwoSidedSettings {
     /// The tool that cuts the holes; None: chosen for them.
     pub tool: Option<WizardTool>,
     pub zero: bool,
-    /// The front's fit margin widened to this, when asked (decision 5).
-    pub margin: Option<f64>,
 }
 
 impl TwoSidedSettings {
@@ -66,7 +65,6 @@ impl TwoSidedSettings {
             depth,
             tool,
             zero: true,
-            margin: None,
         }
     }
 
@@ -89,7 +87,6 @@ impl TwoSidedSettings {
             turn: self.turn,
             register: self.register,
             pins,
-            margin: self.margin,
         };
         Some((job, request))
     }
@@ -216,6 +213,24 @@ impl ChiploadApp {
     }
 
     /// The dialog: the front, how it turns and is put back, the pins, the picture, *Make*.
+    /// Under the picture: how much a fitted board grows round the pins, or, on a board of
+    /// its own size, that they have less room than they need (made anyway: the operator's
+    /// choice, docs/specs/two-sided.md §6).
+    fn pins_note(&self, ui: &mut egui::Ui, layout: &DowelLayout) {
+        if let Some(tight) = layout.tight() {
+            ui.colored_label(ui.visuals().warn_fg_color, self.say(&tight));
+            return;
+        }
+        let grows = layout.grows;
+        if grows > CHAIN_TOL_MM {
+            ui.weak(t!(
+                ui,
+                "two-sided-board-grows",
+                grows = crate::units::text(ui.ctx(), grows).as_str()
+            ));
+        }
+    }
+
     pub(super) fn two_sided_prompt(
         &mut self,
         ctx: &egui::Context,
@@ -251,8 +266,8 @@ impl ChiploadApp {
             match layout {
                 Some(Ok(layout)) => {
                     two_sided_picture(ui, layout, &preview.lines, pins, settings.zero);
-                    if pins && !layout.fits() {
-                        no_room_row(ui, &mut settings, layout);
+                    if pins {
+                        self.pins_note(ui, layout);
                     }
                 }
                 Some(Err(why)) => {
@@ -260,26 +275,8 @@ impl ChiploadApp {
                 }
                 None => {}
             }
-            if let Some(margin) = settings.margin {
-                let old = job
-                    .setup(settings.front)
-                    .and_then(|s| s.stock.fit)
-                    .unwrap_or(0.0);
-                let grows = 2.0 * (margin - old);
-                ui.colored_label(
-                    ui.visuals().warn_fg_color,
-                    t!(
-                        ui,
-                        "two-sided-board-grows",
-                        grows = crate::units::text(ui.ctx(), grows).as_str()
-                    ),
-                );
-            }
             ui.add_space(6.0);
-            let ready = match layout {
-                Some(Ok(layout)) => !pins || layout.fits(),
-                _ => false,
-            };
+            let ready = matches!(layout, Some(Ok(_)));
             ui.horizontal(|ui| {
                 let make = if changing {
                     t!(ui, "two-sided-change")
@@ -394,35 +391,6 @@ fn two_sided_fields(ui: &mut egui::Ui, s: &mut TwoSidedSettings, job: &Job, offe
                 .on_hover_text(t!(ui, "two-sided-zero-hover"));
             ui.end_row();
         });
-}
-
-/// No room for the pins: the room needed, and for a fitted board *Widen the margin to …*.
-fn no_room_row(ui: &mut egui::Ui, s: &mut TwoSidedSettings, layout: &DowelLayout) {
-    let ctx = ui.ctx().clone();
-    let len = |mm: f64| crate::units::text(&ctx, mm);
-    ui.colored_label(
-        ui.visuals().warn_fg_color,
-        t!(
-            ui,
-            "two-sided-no-room",
-            room = len(layout.room.max(0.0)).as_str(),
-            needed = len(layout.needed).as_str()
-        ),
-    );
-    match layout.margin {
-        Some(margin) => {
-            if ui
-                .button(t!(ui, "two-sided-widen", margin = len(margin).as_str()))
-                .on_hover_text(t!(ui, "two-sided-widen-hover"))
-                .clicked()
-            {
-                s.margin = Some(margin);
-            }
-        }
-        None => {
-            ui.weak(t!(ui, "two-sided-no-room-own-board"));
-        }
-    }
 }
 
 /// The board to scale: its outline, the drawing faintly, where both sides cut shaded, the

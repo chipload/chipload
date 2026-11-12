@@ -1,5 +1,5 @@
-Simulation: 81.5 cm³ removed, cells 0.1 mm (2320 × 1520)
+Simulation: 85.0 cm³ removed, cells 0.2 mm (1160 × 910)
   Deepest cut: Z-18.000 mm (18.000 mm below the stock top)
   Cuts 8.000 mm below the stock bottom (into the spoilboard)
   Cut through: 58.8 cm²
-Heights hash: be2cd312b562c45d
+Heights hash: 87db50fabd7fdc37

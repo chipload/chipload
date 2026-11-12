@@ -239,3 +239,8 @@ Step 2, 2026-11-10:
   they would be refused. With *A fence corner* and the same turn, holes there are kept.
 - The picture draws the drawing's shapes faintly too, so you see what the board holds.
 
+2026-11-12 (the user: "we should not be so strict about it"): **no more "no room"**. A board
+fitted round the drawing grows round the pins (its fit counts the dowel circles); a board of
+its own size gets a warning and the holes are made anyway (two-sided.md §6). The *Widen the
+margin* button and the request's `margin` went: decision 5 is moot. The dialog says how much
+longer a fitted board gets.

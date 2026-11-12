@@ -102,8 +102,8 @@ corner of the turned board in that place, so push the board against the same sto
 ### Dowel holes
 
 Pins put the turned board back exactly where it was. `setup dowels` draws two circles on the
-layer *dowels*, on the line the board turns about, one at each end in the margin beyond
-where both sides cut (an outside profile reaches a tool's width past its outline), and adds a holes operation **Dowel holes** first in the front (after a
+layer *dowels*, on the line the board turns about, one at each end just beyond where both
+sides cut (an outside profile reaches a tool's width past its outline), and adds a holes operation **Dowel holes** first in the front (after a
 surface pass). It cuts them through the board and on into the spoilboard for the pins:
 
 ```sh
@@ -134,12 +134,14 @@ The holes may go deeper than *Max depth below stock*, but only they, and only in
 circles: the checker knows them from the project and refuses any other cut that deep. A
 dowel hole moved off the turn axis is refused, as it would miss its pin on the turned board.
 
-The room between the cuts and the board's edge must hold a hole and a millimetre each side.
-With a 6 mm end mill cutting an outside profile and 8 mm pins, that is a fit margin of
-16 mm; when it doesn't fit, `setup dowels` says what margin would. The pins stand in the
-board while its back is cut, so the checker refuses a back side's program that comes
+A board fitted round the drawing grows round the holes, its margin beyond each pin, along
+the turn axis only: saw it to the size the setup sheet gives. On a board of its own size
+the holes are centred between the cuts and the board's edge; when there is less room than
+a hole and a millimetre each side, they are made anyway, with a warning, and where to put
+them is yours to decide: move them along the axis by hand, or make the board larger. The
+pins stand in the board while its back is cut, so the checker refuses a back side's program that comes
 within a pin, and a front cut made after the holes that cuts into one is noted, since the
-pin would no longer sit firmly. Move the holes along the axis, or widen the margin.
+pin would no longer sit firmly. Move the holes along the axis, or place them again.
 
 **Surfacing the back** goes over the pins, edge to edge. That is allowed: a surface pass
 on the back may pass over them as deep as it cuts, and no other cut may. Its operation gets
@@ -171,10 +173,10 @@ and *Add the back side* and *Add dowel holes* in a front's form. It asks:
   or your library, a library tool copied in when you click *Make*) and **Work zero: At the
   first pin** (on).
 
-A picture draws the board, the area both sides cut, the turn axis and the pins. When the
-margin can't hold them, it says how much room there is and how much a hole needs. For a
-board fitted round the drawing, **Widen the margin to …** changes the margin, but only when
-you click *Make*, and the dialog says how much longer the board gets. **Make the back side**
+A picture draws the board, the area both sides cut, the turn axis and the pins. Under it,
+for a board fitted round the drawing, the dialog says how much longer the board gets to
+hold the pins; for a board of its own size with less room than they need, it warns, and
+*Make* still makes them. **Make the back side**
 adds the back setup with its part and the dowel holes, as one undo step, and opens the
 back's form. Opened on a setup that has a back, it **changes** that back instead: its turn,
 how it is put back, and its dowel holes, made again.

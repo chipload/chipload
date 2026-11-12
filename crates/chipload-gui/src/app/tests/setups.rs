@@ -195,16 +195,19 @@ fn a_back_side_is_added_turned_given_dowels_and_shares_its_board() {
     app.focus = Focus::WorkZero;
     draw_properties(&mut app);
     assert!(!app.start_zero_drag());
-    // The board leaves no room beyond the cuts for dowel holes: refused, saying so.
+    // The board of its own size leaves no room beyond the cuts for dowel holes: made
+    // anyway, the operator's choice (the user, 2026-11-12), then taken back.
     app.add_dowels(back);
     assert!(
-        app.report
-            .lines
+        app.edited_job()
+            .unwrap()
+            .operations
             .iter()
-            .any(|l| l.text.contains("and a dowel hole needs 10.0 mm")),
+            .any(|op| op.is_dowels()),
         "{:?}",
         app.report
     );
+    app.undo();
     // On a board fitted round the parts with room for them: dowel holes, first in the
     // front, one undo step.
     let edit = app.edit.as_mut().unwrap();

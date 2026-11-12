@@ -641,11 +641,9 @@ impl Job {
             .operations
             .iter()
             .filter(|op| {
-                // Dowel holes sit in the margin, outside what the board fits
-                // (docs/specs/two-sided.md §6).
-                op.selects_shapes()
-                    && !op.is_dowels()
-                    && self.part_of(op).is_some_and(|p| board.contains(&p.setup))
+                // Dowel holes count too: a board fitted round the drawing grows round its
+                // pins (docs/specs/two-sided.md §6, as changed 2026-11-12).
+                op.selects_shapes() && self.part_of(op).is_some_and(|p| board.contains(&p.setup))
             })
             .map(|op| op.select().resolved(&self.drawing))
             .collect();

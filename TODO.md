@@ -186,7 +186,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    step 1 built (turn axis, warnings, Back side row, Remove dowels), step 2 built (the
    *Two-sided…* wizard in WIZARDS, `setup add --pins`), step 3 built as the user chose
    (decision 10): dowel holes placed again on request (*Place again*, the report's offer,
-   `setup dowels --place`), never by themselves. Next: the user tries it.
+   `setup dowels --place`), never by themselves. Then (2026-11-12) looser: a fitted board
+   grows round the pins, a board of its own size only warns. Next: the user tries it.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

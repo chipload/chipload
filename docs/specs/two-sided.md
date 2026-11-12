@@ -160,8 +160,8 @@ checker's stock is the same rectangle for both sides.
 **Add dowel holes**, in the back setup's form, or `setup dowels` on the command line:
 
 - draws two circles of the pin diameter as drawn shapes, on a layer "dowels" (made if
-  missing), on the turn axis, one at each end, centred in the board's margin beyond
-  where both sides cut: every cutting move below the stock's top of both sides' plans,
+  missing), on the turn axis, one at each end, beyond where both sides cut (*changed
+  2026-11-12*, below): every cutting move below the stock's top of both sides' plans,
   the tool's radius included, and their shapes. Dowel holes and surface passes don't
   count: a surface pass faces the board edge to edge, shallowly, before the holes. *Changed
   2026-11-05, the user's test: centred beyond the shapes only, a hole sat under the
@@ -181,10 +181,20 @@ gets the stock, never from the toolpath, so it stays independent. A move deeper 
 max depth below stock is refused unless it lies inside a dowel circle (grown by the
 position tolerance), and there it may go to the pin depth.
 
-If the room beyond the cuts on the axis is narrower than the pin diameter plus 2 mm, the
-holes are refused with the room there is and the room needed, and, for a board fitted round
-the drawing, the fit margin that would hold them (rounded up to 0.1 mm). The margin is
-never widened silently: it changes the board to saw (the user, 2026-11-05).
+**Where the holes go, and room** (*changed 2026-11-12*, the user: "it is more up to the
+operator how he/she wants to place and use them, we should not be so strict about it"):
+- **On a board fitted round the drawing** each hole goes 1 mm beyond the cuts, and the
+  board's fit counts the dowel circles: the board grows round them, its margin beyond each
+  pin, along the turn axis only (the pins sit on its centre line, which they don't move).
+  There is always room. The wizard says how much longer the board gets, to saw it so.
+- **On a board of its own size** each hole is centred between the cuts and the board's
+  edge. When that room is narrower than the pin diameter plus 2 mm, the holes are made
+  anyway, with a warning naming the room there is and the room needed: how the pins are
+  used is the operator's choice.
+- Before, the holes were refused when the margin couldn't hold them, and the wizard
+  offered to widen the margin. With the default 10 mm margin and an outside profile that
+  happened nearly always.
+- The checker is unchanged: no cut may come within a pin.
 
 **The pins stand in the board while its back is cut.** The checker gets the front's dowel
 circles from the project for a back setup, mirrors them with the board as it works the
@@ -209,7 +219,7 @@ The circles and the operation are ordinary: they can be moved along the axis, re
 removed. Only their role is marked (the operation's `dowels: true`), so the setup sheet can
 name them and the checker can allow their depth. The pin depth is the operation's
 `through`, as for any hole cut through the stock: no field of its own. The board's fit
-leaves the dowel circles out, so they stay in its margin.
+counts the dowel circles (since 2026-11-12, above).
 
 The checker allows a move below the max depth below stock when the whole tool stays inside
 a dowel circle and goes no deeper than its depth: both ends of a straight move inside the

@@ -4,7 +4,7 @@
 //! only when asked.
 
 use egui_kittest::Harness;
-use egui_kittest::kittest::{NodeT, Queryable};
+use egui_kittest::kittest::Queryable;
 
 use super::*;
 use crate::app::wizard_tools::WizardTool;
@@ -102,75 +102,39 @@ fn two_sided_makes_the_back_and_its_pins_as_one_undo_step() {
     assert!(harness.state().edited_job().unwrap().back_of(1).is_none());
 }
 
+/// The user, 2026-11-12: a fitted board grows round the pins; the dialog says so and Make
+/// stays on (docs/specs/two-sided.md §6).
 #[test]
-fn pins_too_wide_offer_to_widen_the_margin_and_only_then_the_board_grows() {
+fn wide_pins_grow_the_fitted_board_when_the_back_is_made() {
     let mut harness = window();
-    let fit = harness
-        .state()
-        .edited_job()
-        .unwrap()
-        .setup(1)
-        .unwrap()
-        .stock
-        .fit;
+    let board =
+        |h: &Harness<'_, ChiploadApp>| h.state().edited_job().unwrap().for_setup(1).stock_bounds();
+    let before = board(&harness);
     harness.state_mut().start_two_sided();
     harness.run_steps(2);
     let mut s = settings(&harness);
     s.diameter = 20.0;
     harness.state_mut().dialogs.prompt = Some(Prompt::TwoSided(Box::new(s)));
     harness.run_steps(3);
-    // No room: Make is off, the margin that holds them is offered.
-    assert!(
-        harness
-            .query_by_label_contains("No room for the pins")
-            .is_some()
-    );
-    assert_eq!(
-        harness
-            .state()
-            .edited_job()
-            .unwrap()
-            .setup(1)
-            .unwrap()
-            .stock
-            .fit,
-        fit
-    );
-    click_contains(&mut harness, "Widen the margin to");
-    let s = settings(&harness);
-    let margin = s.margin.expect("widened in the dialog");
-    // Not yet on the board: only when the back is made.
-    assert_eq!(
-        harness
-            .state()
-            .edited_job()
-            .unwrap()
-            .setup(1)
-            .unwrap()
-            .stock
-            .fit,
-        fit
-    );
     assert!(
         harness
             .query_by_label_contains("saw it to the new size")
             .is_some()
     );
+    assert_eq!(board(&harness), before, "not before Make");
     click(&mut harness, "Make the back side");
+    // The pins inside the board, its fit margin beyond them.
     let job = harness.state().edited_job().unwrap();
-    assert_eq!(job.setup(1).unwrap().stock.fit, Some(margin));
     assert!(job.back_of(1).is_some());
-}
-
-fn click_contains(harness: &mut Harness<'_, ChiploadApp>, text: &str) {
-    let label = harness
-        .get_all_by_label_contains(text)
-        .next()
-        .unwrap_or_else(|| panic!("{text}"))
-        .accesskit_node()
-        .label()
-        .unwrap_or_default();
-    click(harness, &label);
+    let ((_, y0), (_, y1)) = job.for_setup(1).stock_bounds();
+    let margin = job.setup(1).unwrap().stock.fit.unwrap();
+    for shape in job.drawing.shapes.iter().filter(|s| s.layer == "dowels") {
+        let chipload_job::Geometry::Circle { center, radius } = shape.geometry else {
+            panic!("a circle");
+        };
+        assert!(center[1] - radius - margin >= y0 - 1e-6, "{center:?} {y0}");
+        assert!(center[1] + radius + margin <= y1 + 1e-6, "{center:?} {y1}");
+    }
 }
 
 #[test]

@@ -332,10 +332,13 @@ fn dowel_holes_sit_on_the_turn_axis_in_the_margin() {
         ),
         (pin, pin)
     );
-    // The board doesn't grow round them.
+    // The fitted board grows round them, its margin beyond each (the user, 2026-11-12).
+    let ((_, y0), (_, y1)) = with.for_setup(1).stock_bounds();
+    assert_eq!((y0, y1), (39.0 - 4.0 - 16.0, 181.0 + 4.0 + 16.0));
     assert_eq!(
-        with.for_setup(1).stock_bounds(),
-        job.for_setup(1).stock_bounds()
+        with.for_setup(1).stock_bounds().0.0,
+        job.for_setup(1).stock_bounds().0.0,
+        "across the axis: as it was"
     );
     // The front passes the checker, its holes 8 mm into the spoilboard and nothing else.
     let front = chipload_pipeline::run_job(&with.for_setup(1)).unwrap();
@@ -349,18 +352,15 @@ fn dowel_holes_sit_on_the_turn_axis_in_the_margin() {
     // Only one pair per board.
     assert!(add_dowels(&with, 2, dowels, chipload_i18n::Language::En).is_err());
     // The 10 mm margin a board fits with by default: the profile leaves 4 mm of it, and
-    // the message says what margin would hold the holes.
+    // the board grows round the holes instead of refusing them (the user, 2026-11-12).
     let mut narrow = job.clone();
     for setup in &mut narrow.setups {
         setup.stock.fit = Some(10.0);
     }
     narrow.follow_thickness();
-    let err = add_dowels(&narrow, 2, dowels, chipload_i18n::Language::En).unwrap_err();
-    assert!(
-        err.to_string()
-            .contains("there is 4.0 mm, and a dowel hole needs 10.0 mm: make the board's fit margin 16.0 mm or more"),
-        "{err}"
-    );
+    let (made, _) = add_dowels(&narrow, 2, dowels, chipload_i18n::Language::En).unwrap();
+    let ((_, y0), (_, y1)) = made.for_setup(1).stock_bounds();
+    assert_eq!((y0, y1), (39.0 - 4.0 - 10.0, 181.0 + 4.0 + 10.0));
 }
 
 /// The sample with its dowel circles moved to (150, y) and (150, 220 − y).
@@ -678,7 +678,6 @@ fn a_back_side_with_its_pins_is_made_and_changed_in_one_step() {
         turn: Turn::LeftRight,
         register: Register::Pins,
         pins: Some(pins),
-        margin: None,
     };
     let (made, what) = make_two_sided(&single, &request, lang).unwrap();
     assert!(what.added);
@@ -748,14 +747,17 @@ fn a_back_side_with_its_pins_is_made_and_changed_in_one_step() {
     };
 }
 
+/// The user, 2026-11-12: "we should not be so strict" about the pins. A fitted board grows
+/// round them; on a board of its own size they are made anyway, with a warning
+/// (docs/specs/two-sided.md §6).
 #[test]
-fn pins_too_wide_for_the_margin_name_the_margin_and_widen_it_when_asked() {
+fn wide_pins_grow_a_fitted_board_and_only_warn_on_one_of_its_own_size() {
+    use chipload_pipeline::dowels::{dowel_layout, remove_dowels};
     use chipload_pipeline::two_sided::{
         PinsRequest, TwoSidedRequest, make_two_sided, two_sided_layout,
     };
-    // docs/specs/two-sided-wizard.md §4, decision 5
     let lang = chipload_i18n::Language::En;
-    let job = sample_two_sided();
+    let job = remove_dowels(&sample_two_sided(), 2).unwrap();
     let wide = TwoSidedRequest {
         front: 1,
         turn: Turn::LeftRight,
@@ -766,28 +768,56 @@ fn pins_too_wide_for_the_margin_name_the_margin_and_widen_it_when_asked() {
             zero: false,
             tool: None,
         }),
-        margin: None,
     };
     let layout = two_sided_layout(&job, &wide).unwrap();
-    assert!(!layout.fits());
-    let margin = layout
-        .margin
-        .expect("a fitted board: the margin that holds them");
-    assert!(margin > job.setup(1).unwrap().stock.fit.unwrap());
-    assert!(make_two_sided(&job, &wide, lang).is_err());
-    // Widened, only when asked: then the board grows and they fit.
-    let widened = TwoSidedRequest {
-        margin: Some(margin),
-        ..wide
-    };
-    assert!(two_sided_layout(&job, &widened).unwrap().fits());
-    let (made, _) = make_two_sided(&job, &widened, lang).unwrap();
-    assert_eq!(made.setup(1).unwrap().stock.fit, Some(margin));
-    // A board of its own size can't be widened.
+    assert!(layout.fits() && layout.tight().is_none());
+    let (made, _) = make_two_sided(&job, &wide, lang).unwrap();
+    // The board grew round the pins, keeping its margin beyond them, along the axis only.
+    let before = job.for_setup(1).stock_bounds();
+    let ((x0, y0), (x1, y1)) = made.for_setup(1).stock_bounds();
+    assert_eq!(
+        (x0, x1),
+        (before.0.0, before.1.0),
+        "across the axis: as it was"
+    );
+    let margin = job.setup(1).unwrap().stock.fit.unwrap();
+    let pins: Vec<(f64, f64)> = made
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.layer == "dowels")
+        .filter_map(|s| match s.geometry {
+            chipload_job::Geometry::Circle { center, radius } => Some((center[1], radius)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(pins.len(), 2);
+    for (y, r) in pins {
+        assert!(
+            y - r - margin >= y0 - 1e-9 && y + r + margin <= y1 + 1e-9,
+            "{y} in {y0}..{y1}"
+        );
+    }
+    assert_eq!(
+        dowel_layout(&made, 2, 20.0).unwrap().board,
+        ((x0, y0), (x1, y1))
+    );
+    // A board of its own size: made where they go, with a warning, not refused.
     let mut own = job.clone();
-    own.setups[0].stock.origin = StockOrigin::BottomLeft;
+    for setup in &mut own.setups {
+        setup.stock.fit = None;
+    }
     own.follow_thickness();
-    assert!(make_two_sided(&own, &widened, lang).is_err());
+    let layout = two_sided_layout(&own, &wide).unwrap();
+    assert!(!layout.fits());
+    assert!(
+        layout
+            .tight()
+            .unwrap()
+            .english()
+            .contains("made there anyway")
+    );
+    assert!(make_two_sided(&own, &wide, lang).is_ok());
 }
 
 /// The sample without its dowel holes.
@@ -813,13 +843,16 @@ fn dowel_holes_are_placed_again_only_when_asked() {
             .collect()
     };
     assert_eq!(centres(&job), [[150.0, 39.0], [150.0, 181.0]]);
-    // A wider margin: the board grows, the holes stay where they were.
+    // The outline cut on its line: the cuts reach less far, the holes stay where they were.
     let mut wider = job.clone();
-    wider.setups[0].stock.fit = Some(30.0);
+    let outline = wider.operations.len() - 1;
+    if let chipload_job::Operation::Profile(p) = &mut wider.operations[outline] {
+        p.side = chipload_job::Side::On;
+    }
     wider.follow_thickness();
     assert_eq!(centres(&wider), centres(&job));
-    // Placed again: centred in the new margin, the zero at the first pin with them, the
-    // operation as it was.
+    // Placed again: just beyond the cuts as they are now, the zero at the first pin with
+    // them, the operation as it was.
     let placed = place_dowels_again(&wider, 2).unwrap();
     let now = dowel_centres(&wider, 2, 8.0).unwrap();
     assert_eq!(

@@ -2,8 +2,8 @@
 //! A back side with its dowel pins in one step (docs/specs/two-sided-wizard.md §4): what
 //! *Two-sided…* and `setup add --back-of … --pins` make, and the picture the wizard draws.
 
-use chipload_i18n::{Language, Message};
-use chipload_job::{Job, Register, StockOrigin, Turn};
+use chipload_i18n::Language;
+use chipload_job::{Job, Register, Turn};
 
 use crate::PipelineError;
 use crate::dowels::{DowelLayout, Dowels, add_dowels, dowel_layout, remove_dowels};
@@ -29,9 +29,6 @@ pub struct TwoSidedRequest {
     pub register: Register,
     /// With `Register::Pins`: the dowel holes, made again if there are some.
     pub pins: Option<PinsRequest>,
-    /// The front's fit margin widened to this, mm (a board fitted round the drawing only):
-    /// only when asked (decision 5).
-    pub margin: Option<f64>,
 }
 
 /// What [`make_two_sided`] made.
@@ -45,26 +42,10 @@ pub struct TwoSidedMade {
     pub dowels: Option<usize>,
 }
 
-fn refused(message: Message) -> PipelineError {
-    PipelineError::Job(message)
-}
-
 /// The project with `request`'s board, back and way of putting it back, before its pins:
 /// the back's id and whether it is new.
 fn with_back(job: &Job, request: &TwoSidedRequest) -> Result<(Job, u64, bool), PipelineError> {
     let mut job = job.clone();
-    if let Some(margin) = request.margin {
-        let front = job
-            .setups
-            .iter_mut()
-            .find(|s| s.id == request.front)
-            .ok_or_else(|| refused(Message::new("pipeline-no-setup").arg("id", request.front)))?;
-        if front.stock.origin != StockOrigin::Drawing || front.stock.fit.is_none() {
-            return Err(refused(Message::new("pipeline-two-sided-not-fitted")));
-        }
-        front.stock.fit = Some(margin);
-        job.follow_thickness();
-    }
     let change = BoardChange {
         turn: Some(request.turn),
         register: Some(request.register),

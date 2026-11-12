@@ -675,7 +675,9 @@ fn setup_dowels_place_moves_them_where_they_go_now() {
     std::fs::copy(corpus("jobs/v36/two_sided.chipload"), &project).unwrap();
     let p = project.to_str().unwrap();
     let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
-    run(&["set", p, "setups.0.stock.fit=30", "--json"]);
+    // The outline cut on its line, not outside it: the cuts reach less far, so the pins
+    // go nearer (on a fitted board they sit just beyond the cuts).
+    run(&["set", p, "operations.5.side=on", "--json"]);
     let before = run(&["get", p, "setups.0.work_zero", "--json"]);
     run(&["setup", "dowels", p, "--setup", "2", "--place", "--json"]);
     let after = run(&["get", p, "setups.0.work_zero", "--json"]);
