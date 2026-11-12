@@ -191,6 +191,12 @@ to a program you trust. It was about four per operation; with the defaults and s
    (decision 10): dowel holes placed again on request (*Place again*, the report's offer,
    `setup dowels --place`), never by themselves. Then (2026-11-12) looser: a fitted board
    grows round the pins, a board of its own size only warns. Next: the user tries it.
+12c. **Relief carving from an STL model** (the user, 2026-11-12: "stl 3d model engraving.
+   drop cutter"). Spec docs/specs/stl-relief.md and ADR 0031 (an exception to ADR 0017's
+   "out: 3D surface machining") drafted 2026-11-12, for review: a model placed like a
+   picture, a Relief operation with a drop-cutter raster (flat, ball nose, tapered ball
+   nose, V-bit) and roughing by levels, schema 37, an STL reader of our own. Next: the
+   user's decisions, then step 1 (the reader and the model).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

@@ -31,6 +31,8 @@ the project file are first-class) as well as in the GUI.
 ## Out of scope (another tool does it better)
 - **Nesting** parts on a sheet: dedicated nesters (Deepnest and the like) or CAD.
 - **3D surface machining**: real 3D CAM.
+  - 2026-11-12, proposed: **relief carving from an STL model**, top down in 3 axes, as a
+    bounded exception (ADR 0031, docs/specs/stl-relief.md). The rest of 3D CAM stays out.
 - **Machine control**, sending G-code, jogging, probing: senders (UGS, CNCjs, gSender) and
   the controller's own software.
 - **CAD** beyond the few shapes Chipload draws (circle, rectangle, polyline): any CAD
