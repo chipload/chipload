@@ -100,6 +100,7 @@ impl ChiploadApp {
         let mut theme = self.prefs.theme;
         let mut units = self.prefs.units;
         let mut language = self.prefs.language_setting.clone();
+        let mut orbit = self.prefs.reverse_orbit;
         crate::app::forms::card(ui, |ui| {
             Grid::new("preferences")
                 .num_columns(2)
@@ -165,6 +166,10 @@ impl ChiploadApp {
                             }
                         });
                     ui.end_row();
+                    ui.label(t!(ui, "computer-orbit"));
+                    ui.checkbox(&mut orbit, t!(ui, "menu-reverse-orbit"))
+                        .on_hover_text(t!(ui, "menu-reverse-orbit-hover"));
+                    ui.end_row();
                     self.update_setting_row(ui);
                 })
         });
@@ -179,6 +184,9 @@ impl ChiploadApp {
         }
         if units != self.prefs.units {
             self.set_units(units);
+        }
+        if orbit != self.prefs.reverse_orbit {
+            self.set_reverse_orbit(orbit);
         }
         if language != self.prefs.language_setting {
             self.set_language(&language);

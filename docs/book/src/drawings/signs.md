@@ -8,7 +8,7 @@ size as a blank, for a frame you cut with operations of your own. A sign you wil
 
 ## A sign in one step
 
-**New sign…** (**Sign** in the ribbon's *WIZARDS* group, or *WIZARDS ▾ > New sign…*) makes a whole sign: the words, a frame round them, and every operation that
+**New sign…** (**Sign** in the ribbon's *WIZARDS* group, or *Wizards > New sign…*) makes a whole sign: the words, a frame round them, and every operation that
 cuts it, in a part of its own named after the words (a new project's empty part becomes
 it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
 `docs/specs/sign-maker.md`.)
@@ -57,7 +57,7 @@ operations afterwards.
 
 1. Write the text ([Text](text.md)) and leave it selected, or select any shapes, a traced
    [picture](images.md) for instance: the frame goes round all of them.
-2. Right-click the selection and choose **Frame round the selection…**, or *DRAW ▾ >
+2. Right-click the selection and choose **Frame round the selection…**, or *Draw >
    Frame…* (the way to a frame to a size, with nothing selected). Its values open under
    *Selection*, and the frame shows on the canvas as you change them.
 3. Pick a frame from the row of pictures, set the values, and click **Add**. The frame is

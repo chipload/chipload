@@ -2,10 +2,7 @@
 
 menu-language = Langue
 menu-language-system = Système
-menu-language-system-hover = La langue du système d'exploitation si Chipload l'a, sinon l'anglais
 menu-language-review = { $language } (relecture souhaitée)
-menu-language-review-hover = Traduit, pas encore relu par un locuteur natif qui usine. Les corrections sont les bienvenues : voir le guide de l'utilisateur, Languages.
-
 # File menu.
 menu-new-project = Nouveau projet
 menu-open = Ouvrir…
@@ -84,19 +81,8 @@ menu-show-images-hover = Les images vectorisées en formes, en transparence sur 
 # The stock: the material being cut, as the simulation shows it.
 menu-simulate = Simuler
 menu-simulation-hint = Afficher le brut tel que le programme le laisse : chaque mouvement usiné avec la forme de l'outil (plus foncé = plus profond ; rouge = sous le brut). Affichage seulement.
-menu-units = Unités
-menu-units-mm-hover = Longueurs en mm, avances en mm/min
 # The unit's name, as a choice next to "mm".
 menu-units-inch = pouce
-menu-units-inch-hover = Longueurs en pouces, avances en in/min ; les projets restent en mm
-menu-theme = Thème de couleurs
-menu-theme-system = Système
-menu-theme-system-hover = Clair ou sombre, selon le réglage du système d'exploitation
-menu-theme-light = Clair
-menu-theme-light-hover = Panneaux et canevas clairs
-menu-theme-dark = Sombre
-menu-theme-dark-hover = Panneaux et canevas sombres
-
 # Draw menu.
 menu-draw-circle = Cercle
 menu-draw-rectangle = Rectangle
@@ -166,3 +152,15 @@ menu-modify-subtract = Soustraire
 menu-modify-intersect = Intersection
 menu-modify-array = Réseau
 menu-modify-polar-array = Réseau circulaire
+
+menu-bar-file = Fichier
+menu-bar-edit = Édition
+menu-bar-view = Vue
+menu-bar-draw = Dessiner
+menu-bar-modify = Modifier
+menu-bar-operation = Opération
+menu-bar-wizards = Assistants
+menu-bar-library = Bibliothèque
+menu-bar-help = Aide
+menu-preferences = Préférences…
+menu-preferences-hover = Cet ordinateur > Préférences dans le Navigateur : unités, langue, thème de couleurs, fiche de réglage, mise à jour automatique

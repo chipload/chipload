@@ -2,10 +2,7 @@
 
 menu-language = Idioma
 menu-language-system = Sistema
-menu-language-system-hover = El idioma del sistema operativo si Chipload lo tiene; si no, inglés
 menu-language-review = { $language } (falta revisión)
-menu-language-review-hover = Traducido, pero aún no lo ha leído un hablante nativo que mecanice. Las correcciones son bienvenidas: consulta la guía del usuario, Idiomas.
-
 # File menu.
 menu-new-project = Proyecto nuevo
 menu-open = Abrir…
@@ -84,19 +81,8 @@ menu-show-images-hover = Las imágenes vectorizadas en formas, tenues sobre el m
 # The stock: the material being cut, as the simulation shows it.
 menu-simulate = Simular
 menu-simulation-hint = Muestra el material como lo deja el programa: cada movimiento cortado con la forma de la herramienta (más oscuro es más profundo; rojo es por debajo del material). Solo visualización.
-menu-units = Unidades
-menu-units-mm-hover = Longitudes en mm, avances en mm/min
 # The unit's name, as a choice next to "mm".
 menu-units-inch = pulgadas
-menu-units-inch-hover = Longitudes en pulgadas, avances en in/min; los proyectos siguen en mm
-menu-theme = Tema de color
-menu-theme-system = Sistema
-menu-theme-system-hover = Claro u oscuro, según el sistema operativo
-menu-theme-light = Claro
-menu-theme-light-hover = Paneles y lienzo claros
-menu-theme-dark = Oscuro
-menu-theme-dark-hover = Paneles y lienzo oscuros
-
 # Draw menu.
 menu-draw-circle = Círculo
 menu-draw-rectangle = Rectángulo
@@ -166,3 +152,15 @@ menu-modify-subtract = Restar
 menu-modify-intersect = Intersecar
 menu-modify-array = Matriz
 menu-modify-polar-array = Matriz polar
+
+menu-bar-file = Archivo
+menu-bar-edit = Editar
+menu-bar-view = Vista
+menu-bar-draw = Dibujar
+menu-bar-modify = Modificar
+menu-bar-operation = Operación
+menu-bar-wizards = Asistentes
+menu-bar-library = Biblioteca
+menu-bar-help = Ayuda
+menu-preferences = Preferencias…
+menu-preferences-hover = Este equipo > Preferencias en el Navegador: unidades, idioma, tema de color, hoja de preparación, actualizar automáticamente

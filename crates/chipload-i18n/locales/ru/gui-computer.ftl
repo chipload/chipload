@@ -33,3 +33,4 @@ computer-post-use-hover = Назначить постпроцессором пр
 computer-post-use-copy-hover = Назначить постпроцессором проекта: копия будет сохранена в проекте
 computer-post-in-use = Используется в проекте
 computer-post-no-project = Сначала откройте проект
+computer-orbit = 3D-вид

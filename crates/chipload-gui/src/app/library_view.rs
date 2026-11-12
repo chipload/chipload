@@ -72,6 +72,9 @@ fn folder_menu(ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
 impl ChiploadApp {
     /// The "This computer" root of the Browser (docs/specs/this-computer.md §2).
     pub(super) fn library_tree(&mut self, ui: &mut egui::Ui) {
+        if std::mem::take(&mut self.user.library_state.reveal_computer) {
+            ui.data_mut(|d| d.insert_persisted(Id::new(ROOT).with("folder-open"), true));
+        }
         if let Some(kind) = self.user.library_state.reveal.take() {
             let sub = match kind {
                 LibraryKind::Tools => TOOLS,

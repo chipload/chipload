@@ -2,10 +2,7 @@
 
 menu-language = Sprache
 menu-language-system = System
-menu-language-system-hover = Die Sprache des Betriebssystems, wenn Chipload sie hat, sonst Englisch
 menu-language-review = { $language } (Prüfung erwünscht)
-menu-language-review-hover = Übersetzt, aber noch nicht von einem Muttersprachler aus der Zerspanung gelesen. Korrekturen sind willkommen: siehe Benutzerhandbuch, Sprachen.
-
 # File menu.
 menu-new-project = Neues Projekt
 menu-open = Öffnen…
@@ -84,19 +81,8 @@ menu-show-images-hover = Die in Formen nachgezeichneten Bilder, blass über dem 
 # The stock: the material being cut, as the simulation shows it.
 menu-simulate = Simulieren
 menu-simulation-hint = Das Rohteil zeigen, wie das Programm es hinterlässt: jede Bewegung mit der Form des Werkzeugs gefräst (dunkler ist tiefer; rot ist unterhalb des Rohteils). Nur Anzeige.
-menu-units = Einheiten
-menu-units-mm-hover = Längen in mm, Vorschübe in mm/min
 # The unit's name, as a choice next to "mm".
 menu-units-inch = Zoll
-menu-units-inch-hover = Längen in Zoll, Vorschübe in in/min; Projekte bleiben in mm
-menu-theme = Farbschema
-menu-theme-system = System
-menu-theme-system-hover = Hell oder dunkel, wie im Betriebssystem eingestellt
-menu-theme-light = Hell
-menu-theme-light-hover = Helle Bereiche und Zeichenfläche
-menu-theme-dark = Dunkel
-menu-theme-dark-hover = Dunkle Bereiche und Zeichenfläche
-
 # Draw menu.
 menu-draw-circle = Kreis
 menu-draw-rectangle = Rechteck
@@ -166,3 +152,15 @@ menu-modify-subtract = Abziehen
 menu-modify-intersect = Schneiden
 menu-modify-array = Anordnung
 menu-modify-polar-array = Kreisanordnung
+
+menu-bar-file = Datei
+menu-bar-edit = Bearbeiten
+menu-bar-view = Ansicht
+menu-bar-draw = Zeichnen
+menu-bar-modify = Ändern
+menu-bar-operation = Bearbeitung
+menu-bar-wizards = Assistenten
+menu-bar-library = Bibliothek
+menu-bar-help = Hilfe
+menu-preferences = Einstellungen…
+menu-preferences-hover = Dieser Computer > Einstellungen im Browser: Einheiten, Sprache, Farbschema, Einrichteblatt, automatisch aktualisieren

@@ -41,3 +41,4 @@ computer-post-use-hover = En faire le post-processeur du projet
 computer-post-use-copy-hover = En faire le post-processeur du projet : une copie va dans le projet
 computer-post-in-use = Le projet l'utilise
 computer-post-no-project = Ouvrez d'abord un projet
+computer-orbit = Vue 3D

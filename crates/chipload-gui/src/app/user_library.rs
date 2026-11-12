@@ -308,6 +308,8 @@ pub(super) struct LibraryState {
     pub(super) import: Option<PendingImport>,
     /// A Library folder to open in the Browser on its next frame.
     pub(super) reveal: Option<LibraryKind>,
+    /// Open the This computer folder at the next frame (Edit > Preferences…).
+    pub(super) reveal_computer: bool,
     /// The facts of the post shown in Properties, by name (docs/specs/this-computer.md §4).
     pub(super) post_facts: Option<(String, Result<Vec<String>, String>)>,
 }
@@ -800,6 +802,13 @@ impl ChiploadApp {
 
     /// Open the Library in the Browser at `kind`, and show the entry `uid` (or the folder)
     /// in Properties (docs/specs/library-in-browser.md §6).
+    /// This computer > Preferences in the Browser, opened (docs/specs/menu-bar.md §3).
+    pub fn show_preferences(&mut self) {
+        self.reload_library();
+        self.user.library_state.reveal_computer = true;
+        self.focus = Focus::Preferences;
+    }
+
     pub fn show_library(&mut self, kind: LibraryKind, uid: Option<&str>) {
         self.reload_library();
         self.user.library_state.reveal = Some(kind);

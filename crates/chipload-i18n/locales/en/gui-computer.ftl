@@ -41,3 +41,4 @@ computer-post-use-hover = Make it the project's post-processor
 computer-post-use-copy-hover = Make it the project's post-processor: a copy goes into the project
 computer-post-in-use = The project uses it
 computer-post-no-project = Open a project first
+computer-orbit = 3D view

@@ -6,8 +6,8 @@ The app speaks English, German (Deutsch), French (Français), Spanish (Español)
 ## Choosing the language
 
 At the start the app follows your computer's language, and English when it isn't one of
-these. To choose another, use *View > Language* or *This computer > Preferences* in the
-Browser. The change is immediate, and the app keeps it for next time.
+these. To choose another, use *Edit > Preferences…*, which opens *This computer >
+Preferences* in the Browser. The change is immediate, and the app keeps it for next time.
 
 Problems, the report, the checker's findings, error messages and the
 [setup sheet](checking/sheet.md) follow the language too. What stays in English, whatever
@@ -26,7 +26,7 @@ Swedish and Russian a field also takes a decimal comma (`6,5`); in English a com
 
 ## Helping with a translation
 
-German, French, Spanish, Italian and Russian are marked *(review wanted)* in the language menu: they
+German, French, Spanish, Italian and Russian are marked *(review wanted)* in the list of languages: they
 haven't yet been read by someone who speaks the language and runs a CNC machine. A wrong
 word in a CAM program can mislead (climb or conventional, inside or outside), so your
 corrections matter.

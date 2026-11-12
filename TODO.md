@@ -263,6 +263,10 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **A standard menu bar** (docs/specs/menu-bar.md, 2026-11-12, branch `signs`): File, Edit,
+  View, Draw, Modify, Operation, Wizards, Library and Help in the top bar; the ribbon's
+  captions plain labels; Edit > Preferences… opens This computer > Preferences; Cmd shown
+  on a Mac. Later: the native macOS menu bar (`muda`, its own ADR, tried on a Mac).
 - **View > Reverse left-right orbit in 3D** (issue #16, 2026-11-12, branch `signs`): a
   left-right drag turns the model with the mouse, as many CAD programs do; off by default,
   kept in the app settings (`reverse_orbit`, optional, no bump). Close #16 with the release.

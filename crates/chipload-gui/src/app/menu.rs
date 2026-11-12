@@ -230,6 +230,23 @@ impl ChiploadApp {
     }
 
     /// Undo and redo.
+    /// The Edit menu (docs/specs/menu-bar.md §3): undo and redo, the selection's items as on
+    /// the canvas' right-click, and Preferences….
+    pub(super) fn edit_menu(&mut self, ui: &mut egui::Ui) {
+        self.undo_menu(ui);
+        ui.separator();
+        self.shape_menu(ui);
+        ui.separator();
+        if ui
+            .button(t!(ui, "menu-preferences"))
+            .on_hover_text(t!(ui, "menu-preferences-hover"))
+            .clicked()
+        {
+            self.show_preferences();
+            ui.close();
+        }
+    }
+
     pub(super) fn undo_menu(&mut self, ui: &mut egui::Ui) {
         if ui
             .add_enabled(
@@ -523,83 +540,6 @@ impl ChiploadApp {
             .changed()
         {
             self.set_show_simulation(sim);
-        }
-        ui.separator();
-        ui.label(t!(ui, "menu-units"));
-        for (choice, label, hover) in [
-            (
-                chipload_job::Units::Mm,
-                "mm".to_string(),
-                t!(ui, "menu-units-mm-hover"),
-            ),
-            (
-                chipload_job::Units::Inch,
-                t!(ui, "menu-units-inch"),
-                t!(ui, "menu-units-inch-hover"),
-            ),
-        ] {
-            if ui
-                .radio(self.prefs.units == choice, label)
-                .on_hover_text(hover)
-                .clicked()
-            {
-                self.set_units(choice);
-            }
-        }
-        ui.separator();
-        ui.label(t!(ui, "menu-theme"));
-        for (choice, label, hover) in [
-            (
-                Theme::System,
-                t!(ui, "menu-theme-system"),
-                t!(ui, "menu-theme-system-hover"),
-            ),
-            (
-                Theme::Light,
-                t!(ui, "menu-theme-light"),
-                t!(ui, "menu-theme-light-hover"),
-            ),
-            (
-                Theme::Dark,
-                t!(ui, "menu-theme-dark"),
-                t!(ui, "menu-theme-dark-hover"),
-            ),
-        ] {
-            if ui
-                .radio(self.prefs.theme == choice, label)
-                .on_hover_text(hover)
-                .clicked()
-            {
-                self.set_theme(choice);
-            }
-        }
-        ui.separator();
-        self.language_menu(ui);
-    }
-
-    /// View > Language: the system's, or one of ours, each named in itself; those not yet
-    /// read by a native speaker ask for a review (docs/specs/translations.md).
-    fn language_menu(&mut self, ui: &mut egui::Ui) {
-        ui.label(t!(ui, "menu-language"));
-        let system = chipload_job::library::SYSTEM_LANGUAGE;
-        let mut choice = None;
-        let codes = std::iter::once(system).chain(crate::i18n::Language::ALL.map(|l| l.code()));
-        for code in codes {
-            let mut response =
-                ui.radio(self.prefs.language_setting == code, language_name(ui, code));
-            response = match crate::i18n::Language::from_tag(code) {
-                None => response.on_hover_text(t!(ui, "menu-language-system-hover")),
-                Some(l) if !l.reviewed() => {
-                    response.on_hover_text(t!(ui, "menu-language-review-hover"))
-                }
-                Some(_) => response,
-            };
-            if response.clicked() {
-                choice = Some(code);
-            }
-        }
-        if let Some(setting) = choice {
-            self.set_language(setting);
         }
     }
 

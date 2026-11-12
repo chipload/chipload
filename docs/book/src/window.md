@@ -3,7 +3,8 @@
 ## The header
 
 At the top, a slim **top bar**:
-- **Left:** Open, Save, Undo and Redo.
+- **Left:** Open, Save, Undo and Redo, then the **menus**: *File*, *Edit*, *View*, *Draw*,
+  *Modify*, *Operation*, *Wizards*, *Library* and *Help*.
 - **Middle:** the project's name on a tab. A dot on it means unsaved changes.
   Closing, opening or starting a project with unsaved changes asks first, in the middle of
   the window: **Save** (then go on), **Don't save** or **Cancel**.
@@ -12,28 +13,30 @@ At the top, a slim **top bar**:
   seconds and says so in the report. **Ctrl+Z** goes back to what you had. If you have
   unsaved changes, it asks first: **Load it** (your changes stay one Ctrl+Z away) or **Keep
   mine** (your next Save overwrites the file).
-- **Right:** the **colour theme** (a click goes System → Light → Dark), **? Help** (user
-  guide, keyboard shortcuts, about) and the version.
+- **Right:** the **colour theme** (a click goes System → Light → Dark) and the version.
 
 Under it, the **ribbon** groups the buttons:
 
-| Group | Buttons | Its caption's menu also has |
+| Group | Buttons | Its menu also has |
 |---|---|---|
-| FILE | New, Open, Import (a DXF as a new project), Save | open recent, save as, update drawing, export, the *…from path* items, undo, redo, quit |
-| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)); copy, paste, mirror and delete drawn shapes; copy as selector |
+| FILE | New, Open, Import (a DXF as a new project), Save | open recent, add a picture or a DXF/SVG, save as, update drawing, export, the *…from path* items, quit |
+| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)) |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | *Apply style ▸*, Generate |
 | WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window) | New sign…, Two-sided… |
 | LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
-| VIEW | Measure | fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme |
+| VIEW | Measure | fit, top and 3D view, Z scale, reverse left-right orbit, what is shown, legend, the panels (open, hide, reset), update automatically |
 
 **Generate** (F5) and **Export** sit at the right end; Generate is greyed out until the
 project has an operation. When the buttons with their names
 don't fit, in a longer language or a narrow window, the large buttons show their icons
 alone; hover over one for its name. Narrower still, the groups scroll sideways.
 
-Each group's caption (**FILE ▾** …) opens its whole menu. This guide writes those menus as
-*File > …*, *Draw > …* and *View > …*. *Help > …* is the question mark in the top bar.
+Each group has the menu of its name in the top bar. Two menus have no group: **Edit**
+(undo, redo; copy, paste, mirror, join, delete and group the selected shapes, copy as
+selector; **Preferences…**, which opens *This computer > Preferences* in the Browser:
+units, language, colour theme, the setup sheet) and **Help** (the user guide, keyboard
+shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.
 
 The **status bar** at the bottom gives hints on the left. On the right it shows the
 cursor's position, the number of copies, the cycle time once generated, the
@@ -224,7 +227,7 @@ Browser, a shape just drawn) shows the **Selection**:
 - a drawn shape's exact values, to edit, and the tools for the selection (align, arrays,
   construction);
 - *Copy as selector*, which copies the selection as JSON for a project file (also under
-  DRAW ▾, and Ctrl+Shift+C).
+  *Edit*, and Ctrl+Shift+C).
 
 The selection stays on the canvas when you open something else. An operation's *Use
 selection* button counts it ("Use selection (3)") and takes it as the operation's geometry.

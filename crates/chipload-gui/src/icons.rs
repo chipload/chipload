@@ -63,7 +63,6 @@ pub enum Icon {
     Import,
     Undo,
     Redo,
-    Help,
     Generate,
     Stop,
     Export,
@@ -390,13 +389,6 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 .collect();
             pen.poly(&arc);
             pen.poly(&[flip((0.06, 0.5)), flip((0.2, 0.66)), flip((0.34, 0.5))]);
-        }
-        Icon::Help => {
-            pen.circle((0.5, 0.5), 0.4);
-            let hook = pen.arc((0.5, 0.4), 0.14, -PI, FRAC_PI_2);
-            pen.poly(&hook);
-            pen.line([(0.5, 0.54), (0.5, 0.62)]);
-            pen.dot((0.5, 0.74), 0.05);
         }
         Icon::Generate => {
             let points = vec![

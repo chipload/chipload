@@ -2,10 +2,7 @@
 
 menu-language = Language
 menu-language-system = System
-menu-language-system-hover = The operating system's language when Chipload has it, else English
 menu-language-review = { $language } (review wanted)
-menu-language-review-hover = Translated, not yet read by a native speaker who machines. Corrections are welcome: see the user guide, Languages.
-
 # File menu.
 menu-new-project = New project
 menu-open = Open…
@@ -84,19 +81,8 @@ menu-show-images-hover = The pictures traced into shapes, faintly over the stock
 # The stock: the material being cut, as the simulation shows it.
 menu-simulate = Simulate
 menu-simulation-hint = Show the stock as the program leaves it: every move cut with the tool's shape (darker is deeper; red is below the stock). Display only.
-menu-units = Units
-menu-units-mm-hover = Lengths in mm, feeds in mm/min
 # The unit's name, as a choice next to "mm".
 menu-units-inch = inch
-menu-units-inch-hover = Lengths in inches, feeds in in/min; projects stay in mm
-menu-theme = Colour theme
-menu-theme-system = System
-menu-theme-system-hover = Light or dark, as the operating system is set
-menu-theme-light = Light
-menu-theme-light-hover = Light panels and canvas
-menu-theme-dark = Dark
-menu-theme-dark-hover = Dark panels and canvas
-
 # Draw menu.
 menu-draw-circle = Circle
 menu-draw-rectangle = Rectangle
@@ -168,3 +154,16 @@ menu-modify-subtract = Subtract
 menu-modify-intersect = Intersect
 menu-modify-array = Array
 menu-modify-polar-array = Polar array
+
+## The menu bar in the top bar (docs/specs/menu-bar.md)
+menu-bar-file = File
+menu-bar-edit = Edit
+menu-bar-view = View
+menu-bar-draw = Draw
+menu-bar-modify = Modify
+menu-bar-operation = Operation
+menu-bar-wizards = Wizards
+menu-bar-library = Library
+menu-bar-help = Help
+menu-preferences = Preferences…
+menu-preferences-hover = This computer > Preferences in the Browser: units, language, colour theme, the setup sheet, updating automatically

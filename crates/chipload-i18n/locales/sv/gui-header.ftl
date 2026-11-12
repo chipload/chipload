@@ -13,7 +13,6 @@ header-open-hover = Öppna ett projekt
 header-save-hover = Spara projektet
 header-undo = Ångra
 header-redo = Gör om
-header-help = Hjälp
 # The colour theme button: what is set now, a click goes on to the next.
 header-theme-system-hover = Färgtema: som systemet. Klicka för nästa.
 header-theme-light-hover = Färgtema: ljust. Klicka för nästa.
@@ -32,8 +31,6 @@ header-group-draw = Rita
 header-group-operation = Operation
 header-group-library = Bibliotek
 header-group-view = Visa
-header-group-hover = Allt under { $group }
-
 # FILE: short words under icons.
 header-new = Nytt
 header-new-hover = Nytt projekt
@@ -61,9 +58,6 @@ header-add-dxf = DXF/SVG
 header-add-dxf-hover = En DXF eller SVG i det här projektet, bredvid det som finns: placeras och uppdateras för sig
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importera en DXF eller SVG först (ARKIV > Importera)
-header-import-image-menu = Importera bild…
-header-add-dxf-menu = Lägg till DXF eller SVG i projektet…
-
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Följ
 # $operation is what the operation does (a hover text of its own).

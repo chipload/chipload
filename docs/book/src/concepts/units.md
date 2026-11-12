@@ -22,7 +22,7 @@ The canvas shows the cursor's position in drawing coordinates and in work coordi
 
 ## mm or inches on screen
 
-*Units* (Preferences, or the VIEW menu) says what the app shows and takes lengths in:
+*Units* (*Edit > Preferences…*) says what the app shows and takes lengths in:
 **mm**, or **inch**. It is a setting of this computer, not of the project: a project is
 always stored in mm, so it opens the same for someone who works in the other units.
 

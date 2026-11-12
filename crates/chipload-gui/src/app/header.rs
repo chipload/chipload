@@ -22,6 +22,8 @@ pub(super) const RIBBON_COMPACT_WIDTH: f32 = 32.0;
 const RIBBON_ICON: f32 = 20.0;
 /// A top bar icon button, points.
 const QUICK_BUTTON: f32 = 24.0;
+/// Room each side of a menu title in the top bar.
+const MENU_TITLE_PADDING: f32 = 6.0;
 
 impl ChiploadApp {
     /// What Export writes: every part that is cut, which the preview may not show
@@ -79,6 +81,8 @@ impl ChiploadApp {
             if quick_button(ui, Icon::Redo, &hover, !self.history.redo.is_empty()).clicked() {
                 self.redo();
             }
+            ui.add_space(10.0);
+            self.menu_bar(ui);
             let left_end = ui.min_rect().right();
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = 2.0;
@@ -89,9 +93,6 @@ impl ChiploadApp {
                         .weak(),
                 );
                 ui.add_space(6.0);
-                let label = t!(ui, "header-help");
-                let help = quick_button(ui, Icon::Help, &label, true);
-                egui::Popup::menu(&help).show(|ui| self.help_menu(ui));
                 // The colour theme: a click goes on to the next (docs/specs/
                 // view-and-settings.md §3).
                 let (icon, hover, next) = match self.prefs.theme {
@@ -118,6 +119,100 @@ impl ChiploadApp {
                 self.project_tab(ui, full, left_end, right_start);
             });
         });
+    }
+
+    /// The menu bar, in the top bar after the quick icons (docs/specs/menu-bar.md §2). egui's
+    /// menu bar takes all the width it is given, so it gets its titles' width.
+    fn menu_bar(&mut self, ui: &mut egui::Ui) {
+        type Menu = fn(&mut ChiploadApp, &mut egui::Ui);
+        let menus: [(String, Menu); 9] = [
+            (t!(ui, "menu-bar-file"), |app, ui| app.file_menu(ui)),
+            (t!(ui, "menu-bar-edit"), |app, ui| app.edit_menu(ui)),
+            (t!(ui, "menu-bar-view"), |app, ui| app.view_menu(ui)),
+            (t!(ui, "menu-bar-draw"), |app, ui| app.draw_menu(ui)),
+            (t!(ui, "menu-bar-modify"), |app, ui| app.modify_menu(ui)),
+            (t!(ui, "menu-bar-operation"), |app, ui| {
+                app.operation_menu(ui)
+            }),
+            (t!(ui, "menu-bar-wizards"), |app, ui| app.wizards_menu(ui)),
+            (t!(ui, "menu-bar-library"), |app, ui| app.library_menu(ui)),
+            (t!(ui, "menu-bar-help"), |app, ui| app.help_menu(ui)),
+        ];
+        let padding = 2.0 * MENU_TITLE_PADDING;
+        let width: f32 = menus
+            .iter()
+            .map(|(title, _)| {
+                egui::WidgetText::from(title.as_str())
+                    .into_galley(
+                        ui,
+                        Some(egui::TextWrapMode::Extend),
+                        f32::INFINITY,
+                        egui::TextStyle::Button,
+                    )
+                    .size()
+                    .x
+                    + padding
+            })
+            .sum::<f32>()
+            + ui.spacing().item_spacing.x * (menus.len() as f32 - 1.0);
+        let height = ui.spacing().interact_size.y;
+        ui.allocate_ui(vec2(width.ceil() + 1.0, height), |ui| {
+            egui::MenuBar::new()
+                .style(|style: &mut egui::Style| {
+                    egui::menu::menu_style(style);
+                    style.spacing.button_padding = vec2(MENU_TITLE_PADDING, 0.0);
+                })
+                .ui(ui, |ui| {
+                    for (title, menu) in menus {
+                        ui.menu_button(title, |ui| menu(self, ui));
+                    }
+                });
+        });
+    }
+
+    /// The Operation menu: a new operation for the selection, an inlay, a style, Generate.
+    pub(super) fn operation_menu(&mut self, ui: &mut egui::Ui) {
+        let selected = !self.selected_ids().is_empty();
+        for (_, kind, hover) in super::browser::new_operations(ui) {
+            if ui
+                .add_enabled(
+                    selected || !kind.needs_selection(),
+                    egui::Button::new(new_operation(ui, kind)),
+                )
+                .on_hover_text(hover)
+                .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
+                .clicked()
+            {
+                self.add_operation(kind);
+            }
+        }
+        if ui
+            .add_enabled(self.can_inlay(), egui::Button::new(t!(ui, "inlay-menu")))
+            .on_hover_text(t!(ui, "inlay-ribbon-hover"))
+            .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
+            .clicked()
+        {
+            self.start_inlay();
+        }
+        submenu(ui, t!(ui, "styles-apply-menu"), |ui| {
+            let mut act = None;
+            self.style_menu(ui, &mut act);
+            if let Some(act) = act {
+                self.style_act(act);
+            }
+        });
+        ui.separator();
+        self.job_menu(ui);
+    }
+
+    /// The Library menu: the tool library and the machines.
+    pub(super) fn library_menu(&mut self, ui: &mut egui::Ui) {
+        if ui.button(t!(ui, "header-tool-library")).clicked() {
+            self.show_library(LibraryKind::Tools, None);
+        }
+        if ui.button(t!(ui, "header-machines")).clicked() {
+            self.show_library(LibraryKind::Machines, None);
+        }
     }
 
     /// The open project's name on a tab in the middle of the top bar; a dot while it has
@@ -184,19 +279,18 @@ impl ChiploadApp {
             .on_hover_text(hover);
     }
 
-    /// A ribbon group: its buttons in a row, and under them its caption, which opens
-    /// `menu`.
+    /// A ribbon group: its buttons in a row, and under them its caption, a plain label:
+    /// the menus are in the top bar (docs/specs/menu-bar.md §4).
     fn group(
         &mut self,
         ui: &mut egui::Ui,
         caption: &str,
         buttons: impl FnOnce(&mut Self, &mut egui::Ui),
-        menu: impl FnOnce(&mut Self, &mut egui::Ui),
     ) {
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing.y = 0.0;
             let row = ui.horizontal(|ui| buttons(self, ui)).response;
-            let text = RichText::new(format!("{} ▾", caption.to_uppercase()))
+            let text = RichText::new(caption.to_uppercase())
                 .small()
                 .color(ui.visuals().weak_text_color());
             // A caption wider than its buttons (a one-button group in a longer language)
@@ -214,14 +308,7 @@ impl ChiploadApp {
                 vec2(row.rect.width().max(caption_width + 8.0), 18.0),
                 Layout::top_down(Align::Center),
                 |ui| {
-                    let response = ui
-                        .add(
-                            egui::Button::new(text)
-                                .frame(false)
-                                .wrap_mode(egui::TextWrapMode::Extend),
-                        )
-                        .on_hover_text(t!(ui, "header-group-hover", group = caption));
-                    egui::Popup::menu(&response).show(|ui| menu(self, ui));
+                    ui.add(egui::Label::new(text).wrap_mode(egui::TextWrapMode::Extend));
                 },
             );
         });
@@ -312,488 +399,391 @@ impl ChiploadApp {
         ui.spacing_mut().item_spacing.x = 2.0;
         let has_job = self.edit.is_some();
         let caption = t!(ui, "header-group-file");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let label = t!(ui, "header-new");
-                if ribbon_button(ui, Icon::New, &label, true, false)
-                    .on_hover_text(hover_keys(&t!(ui, "header-new-hover"), Action::New))
-                    .clicked()
-                {
-                    app.ask_new();
-                }
-                let label = t!(ui, "header-open");
-                if ribbon_button(ui, Icon::Open, &label, true, false)
-                    .on_hover_text(hover_keys(&t!(ui, "header-open-hover"), Action::Open))
-                    .clicked()
-                {
-                    app.ask_open();
-                }
-                let label = t!(ui, "header-import");
-                if ribbon_button(ui, Icon::Import, &label, true, false)
-                    .on_hover_text(hover_keys(&t!(ui, "header-import-hover"), Action::Import))
-                    .clicked()
-                {
-                    app.ask_import();
-                }
-                let label = t!(ui, "header-save");
-                if ribbon_button(ui, Icon::Save, &label, has_job, false)
-                    .on_hover_text(hover_keys(&t!(ui, "header-save-hover"), Action::Save))
-                    .clicked()
-                {
-                    app.ask_save(false);
-                }
-            },
-            |app, ui| {
-                app.file_menu(ui);
-                ui.separator();
-                app.undo_menu(ui);
-            },
-        );
+        self.group(ui, &caption, |app, ui| {
+            let label = t!(ui, "header-new");
+            if ribbon_button(ui, Icon::New, &label, true, false)
+                .on_hover_text(hover_keys(&t!(ui, "header-new-hover"), Action::New))
+                .clicked()
+            {
+                app.ask_new();
+            }
+            let label = t!(ui, "header-open");
+            if ribbon_button(ui, Icon::Open, &label, true, false)
+                .on_hover_text(hover_keys(&t!(ui, "header-open-hover"), Action::Open))
+                .clicked()
+            {
+                app.ask_open();
+            }
+            let label = t!(ui, "header-import");
+            if ribbon_button(ui, Icon::Import, &label, true, false)
+                .on_hover_text(hover_keys(&t!(ui, "header-import-hover"), Action::Import))
+                .clicked()
+            {
+                app.ask_import();
+            }
+            let label = t!(ui, "header-save");
+            if ribbon_button(ui, Icon::Save, &label, has_job, false)
+                .on_hover_text(hover_keys(&t!(ui, "header-save-hover"), Action::Save))
+                .clicked()
+            {
+                app.ask_save(false);
+            }
+        });
         ui.separator();
         let caption = t!(ui, "header-group-draw");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let can_draw = app.can_draw();
-                // The shape tools as small icon buttons, three to a row, each named with
-                // its key on hover (docs/specs/drawing-input.md §2).
-                let tools = [
-                    (
-                        Tool::Circle,
-                        Icon::Circle,
-                        t!(ui, "header-circle"),
-                        t!(ui, "header-circle-hover"),
-                        Action::DrawCircle,
-                    ),
-                    (
-                        Tool::Rectangle,
-                        Icon::Rectangle,
-                        t!(ui, "header-rectangle"),
-                        t!(ui, "header-rectangle-hover"),
-                        Action::DrawRectangle,
-                    ),
-                    (
-                        Tool::Polyline,
-                        Icon::Polyline,
-                        t!(ui, "header-polyline"),
-                        t!(ui, "header-polyline-hover"),
-                        Action::DrawPolyline,
-                    ),
-                    (
-                        Tool::Arc,
-                        Icon::Arc,
-                        t!(ui, "header-arc"),
-                        t!(ui, "header-arc-hover"),
-                        Action::DrawArc,
-                    ),
-                    (
-                        Tool::Slot,
-                        Icon::Slot,
-                        t!(ui, "header-slot"),
-                        t!(ui, "header-slot-hover"),
-                        Action::DrawSlot,
-                    ),
-                    (
-                        Tool::Polygon,
-                        Icon::Polygon,
-                        t!(ui, "header-polygon"),
-                        t!(ui, "header-polygon-hover"),
-                        Action::DrawPolygon,
-                    ),
-                ];
-                ui.vertical(|ui| {
-                    ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                    // Four a row of small buttons, so the ribbon keeps its names at the
-                    // default width. A frame alone is Draw > Frame… and the canvas'
-                    // right-click; WIZARDS > Sign makes a whole sign (the user, 2026-11-10).
-                    for row in tools.chunks(4) {
-                        ui.horizontal(|ui| {
-                            for (tool, icon, label, hint, action) in row {
-                                let active = app.sketch().is_some_and(|s| s.tool == *tool);
-                                let hint = format!("{label}: {hint}");
-                                if small_ribbon_button(ui, *icon, label, can_draw, active, None)
-                                    .on_hover_text(hover_keys(&hint, *action))
-                                    .clicked()
-                                {
-                                    app.start_drawing(*tool);
-                                }
+        self.group(ui, &caption, |app, ui| {
+            let can_draw = app.can_draw();
+            // The shape tools as small icon buttons, three to a row, each named with
+            // its key on hover (docs/specs/drawing-input.md §2).
+            let tools = [
+                (
+                    Tool::Circle,
+                    Icon::Circle,
+                    t!(ui, "header-circle"),
+                    t!(ui, "header-circle-hover"),
+                    Action::DrawCircle,
+                ),
+                (
+                    Tool::Rectangle,
+                    Icon::Rectangle,
+                    t!(ui, "header-rectangle"),
+                    t!(ui, "header-rectangle-hover"),
+                    Action::DrawRectangle,
+                ),
+                (
+                    Tool::Polyline,
+                    Icon::Polyline,
+                    t!(ui, "header-polyline"),
+                    t!(ui, "header-polyline-hover"),
+                    Action::DrawPolyline,
+                ),
+                (
+                    Tool::Arc,
+                    Icon::Arc,
+                    t!(ui, "header-arc"),
+                    t!(ui, "header-arc-hover"),
+                    Action::DrawArc,
+                ),
+                (
+                    Tool::Slot,
+                    Icon::Slot,
+                    t!(ui, "header-slot"),
+                    t!(ui, "header-slot-hover"),
+                    Action::DrawSlot,
+                ),
+                (
+                    Tool::Polygon,
+                    Icon::Polygon,
+                    t!(ui, "header-polygon"),
+                    t!(ui, "header-polygon-hover"),
+                    Action::DrawPolygon,
+                ),
+            ];
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                // Four a row of small buttons, so the ribbon keeps its names at the
+                // default width. A frame alone is Draw > Frame… and the canvas'
+                // right-click; WIZARDS > Sign makes a whole sign (the user, 2026-11-10).
+                for row in tools.chunks(4) {
+                    ui.horizontal(|ui| {
+                        for (tool, icon, label, hint, action) in row {
+                            let active = app.sketch().is_some_and(|s| s.tool == *tool);
+                            let hint = format!("{label}: {hint}");
+                            if small_ribbon_button(ui, *icon, label, can_draw, active, None)
+                                .on_hover_text(hover_keys(&hint, *action))
+                                .clicked()
+                            {
+                                app.start_drawing(*tool);
                             }
-                        });
-                    }
-                });
-                let label = t!(ui, "header-text");
-                if ribbon_button(ui, Icon::Text, &label, can_draw, app.placing_text())
-                    .on_hover_text(t!(ui, "header-text-hover"))
-                    .clicked()
-                {
-                    app.start_text();
+                        }
+                    });
                 }
-                let label = t!(ui, "header-image");
-                if ribbon_button(ui, Icon::Image, &label, true, false)
-                    .on_hover_text(t!(ui, "header-image-hover"))
-                    .clicked()
-                {
-                    app.import_image_dialog();
-                }
-                // Any project takes a drawing file, its first too (the user, 2026-10-28).
-                let adding = has_job;
-                let label = t!(ui, "header-add-dxf");
-                if ribbon_button(ui, Icon::Dxf, &label, adding, false)
-                    .on_hover_text(if adding {
-                        t!(ui, "header-add-dxf-hover")
-                    } else {
-                        t!(ui, "header-add-dxf-first-hover")
-                    })
-                    .clicked()
-                {
-                    app.ask_add_dxf();
-                }
-            },
-            |app, ui| {
-                app.draw_menu(ui);
-                ui.separator();
-                if ui.button(t!(ui, "header-import-image-menu")).clicked() {
-                    app.import_image_dialog();
-                }
-                if ui
-                    .add_enabled(
-                        app.edit.is_some(),
-                        egui::Button::new(t!(ui, "header-add-dxf-menu")),
-                    )
-                    .clicked()
-                {
-                    app.ask_add_dxf();
-                }
-                ui.separator();
-                app.shape_menu(ui);
-            },
-        );
+            });
+            let label = t!(ui, "header-text");
+            if ribbon_button(ui, Icon::Text, &label, can_draw, app.placing_text())
+                .on_hover_text(t!(ui, "header-text-hover"))
+                .clicked()
+            {
+                app.start_text();
+            }
+            let label = t!(ui, "header-image");
+            if ribbon_button(ui, Icon::Image, &label, true, false)
+                .on_hover_text(t!(ui, "header-image-hover"))
+                .clicked()
+            {
+                app.import_image_dialog();
+            }
+            // Any project takes a drawing file, its first too (the user, 2026-10-28).
+            let adding = has_job;
+            let label = t!(ui, "header-add-dxf");
+            if ribbon_button(ui, Icon::Dxf, &label, adding, false)
+                .on_hover_text(if adding {
+                    t!(ui, "header-add-dxf-hover")
+                } else {
+                    t!(ui, "header-add-dxf-first-hover")
+                })
+                .clicked()
+            {
+                app.ask_add_dxf();
+            }
+        });
         ui.separator();
         // Editing drawn shapes (docs/specs/drawing-editing.md §8): small buttons in two rows.
         let caption = t!(ui, "header-group-modify");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let can_draw = app.can_draw();
-                let tools = [
-                    (
-                        super::modify::ModifyTool::Offset,
-                        Icon::Offset,
-                        t!(ui, "header-offset"),
-                        t!(ui, "header-offset-hover"),
-                        Some(Action::Offset),
-                    ),
-                    (
-                        super::modify::ModifyTool::Fillet,
-                        Icon::Fillet,
-                        t!(ui, "header-fillet"),
-                        t!(ui, "header-fillet-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Chamfer,
-                        Icon::Chamfer,
-                        t!(ui, "header-chamfer"),
-                        t!(ui, "header-chamfer-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Trim,
-                        Icon::Trim,
-                        t!(ui, "header-trim"),
-                        t!(ui, "header-trim-hover"),
-                        Some(Action::Trim),
-                    ),
-                    (
-                        super::modify::ModifyTool::Extend,
-                        Icon::Extend,
-                        t!(ui, "header-extend"),
-                        t!(ui, "header-extend-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Break,
-                        Icon::Break,
-                        t!(ui, "header-break"),
-                        t!(ui, "header-break-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Union,
-                        Icon::Union,
-                        t!(ui, "header-union"),
-                        t!(ui, "header-union-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Subtract,
-                        Icon::Subtract,
-                        t!(ui, "header-subtract"),
-                        t!(ui, "header-subtract-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Intersect,
-                        Icon::Intersect,
-                        t!(ui, "header-intersect"),
-                        t!(ui, "header-intersect-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::Array,
-                        Icon::Array,
-                        t!(ui, "header-array"),
-                        t!(ui, "header-array-hover"),
-                        None,
-                    ),
-                    (
-                        super::modify::ModifyTool::PolarArray,
-                        Icon::PolarArray,
-                        t!(ui, "header-polar-array"),
-                        t!(ui, "header-polar-array-hover"),
-                        None,
-                    ),
-                ];
-                ui.vertical(|ui| {
-                    ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                    for row in tools.chunks(tools.len().div_ceil(2)) {
-                        ui.horizontal(|ui| {
-                            for (tool, icon, label, hint, action) in row {
-                                let active = app.modify() == Some(*tool);
-                                let hint = format!("{label}: {hint}");
-                                let hint = match action {
-                                    Some(action) => hover_keys(&hint, *action),
-                                    None => hint,
-                                };
-                                let enabled = can_draw && app.modify_ready(*tool);
-                                if small_ribbon_button(ui, *icon, label, enabled, active, None)
-                                    .on_hover_text(hint)
-                                    .clicked()
-                                {
-                                    // The active tool's button ends it again.
-                                    if active {
-                                        app.cancel_modify();
-                                    } else {
-                                        app.start_modify(*tool);
-                                    }
+        self.group(ui, &caption, |app, ui| {
+            let can_draw = app.can_draw();
+            let tools = [
+                (
+                    super::modify::ModifyTool::Offset,
+                    Icon::Offset,
+                    t!(ui, "header-offset"),
+                    t!(ui, "header-offset-hover"),
+                    Some(Action::Offset),
+                ),
+                (
+                    super::modify::ModifyTool::Fillet,
+                    Icon::Fillet,
+                    t!(ui, "header-fillet"),
+                    t!(ui, "header-fillet-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Chamfer,
+                    Icon::Chamfer,
+                    t!(ui, "header-chamfer"),
+                    t!(ui, "header-chamfer-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Trim,
+                    Icon::Trim,
+                    t!(ui, "header-trim"),
+                    t!(ui, "header-trim-hover"),
+                    Some(Action::Trim),
+                ),
+                (
+                    super::modify::ModifyTool::Extend,
+                    Icon::Extend,
+                    t!(ui, "header-extend"),
+                    t!(ui, "header-extend-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Break,
+                    Icon::Break,
+                    t!(ui, "header-break"),
+                    t!(ui, "header-break-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Union,
+                    Icon::Union,
+                    t!(ui, "header-union"),
+                    t!(ui, "header-union-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Subtract,
+                    Icon::Subtract,
+                    t!(ui, "header-subtract"),
+                    t!(ui, "header-subtract-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Intersect,
+                    Icon::Intersect,
+                    t!(ui, "header-intersect"),
+                    t!(ui, "header-intersect-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::Array,
+                    Icon::Array,
+                    t!(ui, "header-array"),
+                    t!(ui, "header-array-hover"),
+                    None,
+                ),
+                (
+                    super::modify::ModifyTool::PolarArray,
+                    Icon::PolarArray,
+                    t!(ui, "header-polar-array"),
+                    t!(ui, "header-polar-array-hover"),
+                    None,
+                ),
+            ];
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                for row in tools.chunks(tools.len().div_ceil(2)) {
+                    ui.horizontal(|ui| {
+                        for (tool, icon, label, hint, action) in row {
+                            let active = app.modify() == Some(*tool);
+                            let hint = format!("{label}: {hint}");
+                            let hint = match action {
+                                Some(action) => hover_keys(&hint, *action),
+                                None => hint,
+                            };
+                            let enabled = can_draw && app.modify_ready(*tool);
+                            if small_ribbon_button(ui, *icon, label, enabled, active, None)
+                                .on_hover_text(hint)
+                                .clicked()
+                            {
+                                // The active tool's button ends it again.
+                                if active {
+                                    app.cancel_modify();
+                                } else {
+                                    app.start_modify(*tool);
                                 }
                             }
-                        });
-                    }
-                });
-            },
-            |app, ui| app.modify_menu(ui),
-        );
+                        }
+                    });
+                }
+            });
+        });
         ui.separator();
         let caption = t!(ui, "header-group-operation");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let selected = !app.selected_ids().is_empty();
-                let dark = ui.visuals().dark_mode;
-                let tint = |kind| Some(crate::style::op_color(kind, dark));
-                let mut surface = None;
-                for (label, kind, hover) in super::browser::new_operations(ui) {
-                    let icon = match kind {
-                        OpKind::Profile => Icon::Profile,
-                        OpKind::Pocket => Icon::Pocket,
-                        OpKind::Vcarve => Icon::Vcarve,
-                        OpKind::Path => Icon::FollowPath,
-                        OpKind::Holes => Icon::Holes,
-                        OpKind::Surface => {
-                            surface = Some((label, hover));
-                            continue;
-                        }
-                    };
-                    let short = if kind == OpKind::Path {
-                        t!(ui, "header-follow")
-                    } else {
-                        label
-                    };
-                    let enabled = selected || !kind.needs_selection();
-                    let response =
-                        tinted_ribbon_button(ui, icon, &short, enabled, false, tint(kind));
-                    let response = if enabled {
-                        response.on_hover_text(hover)
-                    } else {
-                        response.on_hover_text(t!(
-                            ui,
-                            "header-needs-selection-hover",
-                            operation = hover
-                        ))
-                    };
-                    if response.clicked() {
-                        app.add_operation(kind);
+        self.group(ui, &caption, |app, ui| {
+            let selected = !app.selected_ids().is_empty();
+            let dark = ui.visuals().dark_mode;
+            let tint = |kind| Some(crate::style::op_color(kind, dark));
+            let mut surface = None;
+            for (label, kind, hover) in super::browser::new_operations(ui) {
+                let icon = match kind {
+                    OpKind::Profile => Icon::Profile,
+                    OpKind::Pocket => Icon::Pocket,
+                    OpKind::Vcarve => Icon::Vcarve,
+                    OpKind::Path => Icon::FollowPath,
+                    OpKind::Holes => Icon::Holes,
+                    OpKind::Surface => {
+                        surface = Some((label, hover));
+                        continue;
                     }
-                }
-                // Surface and your styles (docs/specs/styles.md §3.2) as small buttons, so
-                // the ribbon keeps its names at the default width.
-                ui.vertical(|ui| {
-                    ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                    if let Some((label, hover)) = surface
-                        && small_ribbon_button(
-                            ui,
-                            Icon::Surface,
-                            &label,
-                            true,
-                            false,
-                            tint(OpKind::Surface),
-                        )
-                        .on_hover_text(format!("{label}: {hover}"))
-                        .clicked()
-                    {
-                        app.add_operation(OpKind::Surface);
-                    }
-                    // A V-carve inlay of the selection (docs/specs/vcarve-inlay.md §4).
-                    let label = t!(ui, "inlay-ribbon");
-                    let enabled = app.can_inlay();
-                    let hover = if enabled {
-                        t!(ui, "inlay-ribbon-hover")
-                    } else {
-                        t!(ui, "header-select-shapes-first")
-                    };
-                    if small_ribbon_button(
+                };
+                let short = if kind == OpKind::Path {
+                    t!(ui, "header-follow")
+                } else {
+                    label
+                };
+                let enabled = selected || !kind.needs_selection();
+                let response = tinted_ribbon_button(ui, icon, &short, enabled, false, tint(kind));
+                let response = if enabled {
+                    response.on_hover_text(hover)
+                } else {
+                    response.on_hover_text(t!(
                         ui,
-                        Icon::Vcarve,
+                        "header-needs-selection-hover",
+                        operation = hover
+                    ))
+                };
+                if response.clicked() {
+                    app.add_operation(kind);
+                }
+            }
+            // Surface and your styles (docs/specs/styles.md §3.2) as small buttons, so
+            // the ribbon keeps its names at the default width.
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                if let Some((label, hover)) = surface
+                    && small_ribbon_button(
+                        ui,
+                        Icon::Surface,
                         &label,
-                        enabled,
+                        true,
                         false,
-                        tint(OpKind::Vcarve),
+                        tint(OpKind::Surface),
                     )
                     .on_hover_text(format!("{label}: {hover}"))
                     .clicked()
-                    {
-                        app.start_inlay();
-                    }
-                    let label = t!(ui, "styles-ribbon");
-                    let enabled = app.can_apply_style();
-                    let hover = if app.user.library.styles.styles.is_empty() {
-                        t!(ui, "styles-ribbon-none-hover")
-                    } else if enabled {
-                        t!(ui, "styles-ribbon-hover")
-                    } else {
-                        t!(ui, "styles-select-first")
-                    };
-                    let response =
-                        small_ribbon_button(ui, Icon::Style, &label, enabled, false, None)
-                            .on_hover_text(format!("{label}: {hover}"));
-                    let mut act = None;
-                    egui::Popup::menu(&response).show(|ui| app.style_menu(ui, &mut act));
-                    if let Some(act) = act {
-                        app.style_act(act);
-                    }
-                });
-            },
-            |app, ui| {
-                let selected = !app.selected_ids().is_empty();
-                for (_, kind, hover) in super::browser::new_operations(ui) {
-                    if ui
-                        .add_enabled(
-                            selected || !kind.needs_selection(),
-                            egui::Button::new(new_operation(ui, kind)),
-                        )
-                        .on_hover_text(hover)
-                        .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
-                        .clicked()
-                    {
-                        app.add_operation(kind);
-                    }
+                {
+                    app.add_operation(OpKind::Surface);
                 }
-                if ui
-                    .add_enabled(app.can_inlay(), egui::Button::new(t!(ui, "inlay-menu")))
-                    .on_hover_text(t!(ui, "inlay-ribbon-hover"))
-                    .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
-                    .clicked()
+                // A V-carve inlay of the selection (docs/specs/vcarve-inlay.md §4).
+                let label = t!(ui, "inlay-ribbon");
+                let enabled = app.can_inlay();
+                let hover = if enabled {
+                    t!(ui, "inlay-ribbon-hover")
+                } else {
+                    t!(ui, "header-select-shapes-first")
+                };
+                if small_ribbon_button(
+                    ui,
+                    Icon::Vcarve,
+                    &label,
+                    enabled,
+                    false,
+                    tint(OpKind::Vcarve),
+                )
+                .on_hover_text(format!("{label}: {hover}"))
+                .clicked()
                 {
                     app.start_inlay();
                 }
-                submenu(ui, t!(ui, "styles-apply-menu"), |ui| {
-                    let mut act = None;
-                    app.style_menu(ui, &mut act);
-                    if let Some(act) = act {
-                        app.style_act(act);
-                    }
-                });
-                ui.separator();
-                app.job_menu(ui);
-            },
-        );
+                let label = t!(ui, "styles-ribbon");
+                let enabled = app.can_apply_style();
+                let hover = if app.user.library.styles.styles.is_empty() {
+                    t!(ui, "styles-ribbon-none-hover")
+                } else if enabled {
+                    t!(ui, "styles-ribbon-hover")
+                } else {
+                    t!(ui, "styles-select-first")
+                };
+                let response = small_ribbon_button(ui, Icon::Style, &label, enabled, false, None)
+                    .on_hover_text(format!("{label}: {hover}"));
+                let mut act = None;
+                egui::Popup::menu(&response).show(|ui| app.style_menu(ui, &mut act));
+                if let Some(act) = act {
+                    app.style_act(act);
+                }
+            });
+        });
         ui.separator();
         // Wizards: a whole thing in one dialog, its drawing and its operations (the user,
         // 2026-11-10).
         let caption = t!(ui, "header-group-wizards");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let label = t!(ui, "header-sign");
-                if ribbon_button(ui, Icon::Sign, &label, app.can_draw(), false)
-                    .on_hover_text(t!(ui, "header-sign-hover"))
-                    .clicked()
-                {
-                    app.start_sign();
-                }
-                let label = t!(ui, "header-two-sided");
-                if ribbon_button(ui, Icon::TurnOver, &label, app.edit.is_some(), false)
-                    .on_hover_text(t!(ui, "header-two-sided-hover"))
-                    .clicked()
-                {
-                    app.start_two_sided();
-                }
-            },
-            |app, ui| app.wizards_menu(ui),
-        );
+        self.group(ui, &caption, |app, ui| {
+            let label = t!(ui, "header-sign");
+            if ribbon_button(ui, Icon::Sign, &label, app.can_draw(), false)
+                .on_hover_text(t!(ui, "header-sign-hover"))
+                .clicked()
+            {
+                app.start_sign();
+            }
+            let label = t!(ui, "header-two-sided");
+            if ribbon_button(ui, Icon::TurnOver, &label, app.edit.is_some(), false)
+                .on_hover_text(t!(ui, "header-two-sided-hover"))
+                .clicked()
+            {
+                app.start_two_sided();
+            }
+        });
         ui.separator();
         let caption = t!(ui, "header-group-library");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let label = t!(ui, "header-tools");
-                if ribbon_button(ui, Icon::Tools, &label, true, false)
-                    .on_hover_text(t!(ui, "header-tools-hover"))
-                    .clicked()
-                {
-                    app.show_library(LibraryKind::Tools, None);
-                }
-                let label = t!(ui, "header-machines");
-                if ribbon_button(ui, Icon::Machine, &label, true, false)
-                    .on_hover_text(t!(ui, "header-machines-hover"))
-                    .clicked()
-                {
-                    app.show_library(LibraryKind::Machines, None);
-                }
-            },
-            |app, ui| {
-                if ui.button(t!(ui, "header-tool-library")).clicked() {
-                    app.show_library(LibraryKind::Tools, None);
-                }
-                if ui.button(t!(ui, "header-machines")).clicked() {
-                    app.show_library(LibraryKind::Machines, None);
-                }
-            },
-        );
+        self.group(ui, &caption, |app, ui| {
+            let label = t!(ui, "header-tools");
+            if ribbon_button(ui, Icon::Tools, &label, true, false)
+                .on_hover_text(t!(ui, "header-tools-hover"))
+                .clicked()
+            {
+                app.show_library(LibraryKind::Tools, None);
+            }
+            let label = t!(ui, "header-machines");
+            if ribbon_button(ui, Icon::Machine, &label, true, false)
+                .on_hover_text(t!(ui, "header-machines-hover"))
+                .clicked()
+            {
+                app.show_library(LibraryKind::Machines, None);
+            }
+        });
         ui.separator();
         let caption = t!(ui, "header-group-view");
-        self.group(
-            ui,
-            &caption,
-            |app, ui| {
-                let label = t!(ui, "header-measure");
-                if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure().is_some())
-                    .on_hover_text(hover_keys(&t!(ui, "header-measure-hover"), Action::Measure))
-                    .clicked()
-                {
-                    app.toggle_measure();
-                }
-            },
-            |app, ui| app.view_menu(ui),
-        );
+        self.group(ui, &caption, |app, ui| {
+            let label = t!(ui, "header-measure");
+            if ribbon_button(ui, Icon::Measure, &label, has_job, app.measure().is_some())
+                .on_hover_text(hover_keys(&t!(ui, "header-measure-hover"), Action::Measure))
+                .clicked()
+            {
+                app.toggle_measure();
+            }
+        });
     }
 }
 

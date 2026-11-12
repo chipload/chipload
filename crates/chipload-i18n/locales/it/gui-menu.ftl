@@ -2,10 +2,7 @@
 
 menu-language = Lingua
 menu-language-system = Sistema
-menu-language-system-hover = La lingua del sistema operativo se Chipload la ha, altrimenti l'inglese
 menu-language-review = { $language } (revisione cercata)
-menu-language-review-hover = Tradotto, non ancora letto da un madrelingua che fa lavorazioni meccaniche. Le correzioni sono benvenute: vedi la guida utente, Lingue.
-
 # File menu.
 menu-new-project = Nuovo progetto
 menu-open = Apri…
@@ -84,19 +81,8 @@ menu-show-images-hover = Le immagini vettorizzate in forme, tenui sopra il grezz
 # The stock: the material being cut, as the simulation shows it.
 menu-simulate = Simula
 menu-simulation-hint = Mostra il grezzo come lo lascia il programma: ogni movimento tagliato con la forma dell'utensile (più scuro è più profondo; rosso è sotto il grezzo). Solo visualizzazione.
-menu-units = Unità
-menu-units-mm-hover = Lunghezze in mm, avanzamenti in mm/min
 # The unit's name, as a choice next to "mm".
 menu-units-inch = pollici
-menu-units-inch-hover = Lunghezze in pollici, avanzamenti in in/min; i progetti restano in mm
-menu-theme = Tema colori
-menu-theme-system = Sistema
-menu-theme-system-hover = Chiaro o scuro, come è impostato il sistema operativo
-menu-theme-light = Chiaro
-menu-theme-light-hover = Pannelli e area di disegno chiari
-menu-theme-dark = Scuro
-menu-theme-dark-hover = Pannelli e area di disegno scuri
-
 # Draw menu.
 menu-draw-circle = Cerchio
 menu-draw-rectangle = Rettangolo
@@ -166,3 +152,15 @@ menu-modify-subtract = Sottrai
 menu-modify-intersect = Interseca
 menu-modify-array = Serie
 menu-modify-polar-array = Serie polare
+
+menu-bar-file = File
+menu-bar-edit = Modifica
+menu-bar-view = Vista
+menu-bar-draw = Disegna
+menu-bar-modify = Trasforma
+menu-bar-operation = Lavorazione
+menu-bar-wizards = Procedure guidate
+menu-bar-library = Libreria
+menu-bar-help = Aiuto
+menu-preferences = Preferenze…
+menu-preferences-hover = Questo computer > Preferenze nel Browser: unità, lingua, tema colori, scheda di preparazione, aggiornamento automatico

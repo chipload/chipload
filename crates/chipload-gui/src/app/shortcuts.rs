@@ -323,9 +323,10 @@ pub(super) fn binding(action: Action) -> Option<&'static Binding> {
     BINDINGS.iter().find(|b| b.action == action)
 }
 
-/// "Ctrl+Shift+Z".
+/// "Ctrl+Shift+Z"; on a Mac, where the same keys are pressed with Cmd, "Shift+Cmd+Z"
+/// (docs/specs/menu-bar.md §5).
 pub(super) fn keys_text(keys: &KeyboardShortcut) -> String {
-    keys.format(&ModifierNames::NAMES, false)
+    keys.format(&ModifierNames::NAMES, cfg!(target_os = "macos"))
 }
 
 /// A menu item's label with its shortcut: "Undo  (Ctrl+Z)".

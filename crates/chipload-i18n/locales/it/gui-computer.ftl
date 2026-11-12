@@ -41,3 +41,4 @@ computer-post-use-hover = Rendilo il post-processore del progetto
 computer-post-use-copy-hover = Rendilo il post-processore del progetto: una copia va nel progetto
 computer-post-in-use = Il progetto lo usa
 computer-post-no-project = Apri prima un progetto
+computer-orbit = Vista 3D

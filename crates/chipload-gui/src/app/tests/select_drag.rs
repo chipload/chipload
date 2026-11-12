@@ -180,10 +180,17 @@ mod modes {
             h.state().display.simulate,
             "Simulate's own half keeps Simulate"
         );
-        h.get_by_label("Edit").click();
+        // "Edit" is also the menu bar's Edit menu: the switch is the lower one.
+        let switch = |h: &Harness<'_, ChiploadApp>| {
+            h.get_all_by_label("Edit")
+                .max_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
+                .unwrap()
+                .click();
+        };
+        switch(&h);
         h.run_steps(2);
         assert!(!h.state().display.simulate);
-        h.get_by_label("Edit").click();
+        switch(&h);
         h.run_steps(2);
         assert!(!h.state().display.simulate, "Edit's own half keeps Edit");
     }

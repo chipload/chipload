@@ -41,3 +41,4 @@ computer-post-use-hover = Gör den till projektets postprocessor
 computer-post-use-copy-hover = Gör den till projektets postprocessor: en kopia läggs i projektet
 computer-post-in-use = Projektet använder den
 computer-post-no-project = Öppna ett projekt först
+computer-orbit = 3D-vy

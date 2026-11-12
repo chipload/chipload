@@ -2,10 +2,7 @@
 
 menu-language = Språk
 menu-language-system = System
-menu-language-system-hover = Operativsystemets språk om Chipload har det, annars engelska
 menu-language-review = { $language } (granskning önskas)
-menu-language-review-hover = Översatt, ännu inte läst av någon med språket som modersmål som bearbetar själv. Rättelser är välkomna: se användarhandboken, Språk.
-
 # File menu.
 menu-new-project = Nytt projekt
 menu-open = Öppna…
@@ -84,19 +81,8 @@ menu-show-images-hover = Bilderna som spårats till former, svagt över ämnet
 # The stock: the material being cut, as the simulation shows it.
 menu-simulate = Simulera
 menu-simulation-hint = Visa ämnet som programmet lämnar det: varje rörelse fräst med verktygets form (mörkare är djupare; rött är under ämnet). Endast visning.
-menu-units = Enheter
-menu-units-mm-hover = Längder i mm, matning i mm/min
 # The unit's name, as a choice next to "mm".
 menu-units-inch = tum
-menu-units-inch-hover = Längder i tum, matning i in/min; projekt förblir i mm
-menu-theme = Färgtema
-menu-theme-system = System
-menu-theme-system-hover = Ljust eller mörkt, som operativsystemet är inställt
-menu-theme-light = Ljust
-menu-theme-light-hover = Ljusa paneler och rityta
-menu-theme-dark = Mörkt
-menu-theme-dark-hover = Mörka paneler och rityta
-
 # Draw menu.
 menu-draw-circle = Cirkel
 menu-draw-rectangle = Rektangel
@@ -166,3 +152,15 @@ menu-modify-subtract = Subtrahera
 menu-modify-intersect = Snitt
 menu-modify-array = Matris
 menu-modify-polar-array = Polär matris
+
+menu-bar-file = Arkiv
+menu-bar-edit = Redigera
+menu-bar-view = Visa
+menu-bar-draw = Rita
+menu-bar-modify = Ändra
+menu-bar-operation = Operation
+menu-bar-wizards = Guider
+menu-bar-library = Bibliotek
+menu-bar-help = Hjälp
+menu-preferences = Inställningar…
+menu-preferences-hover = Den här datorn > Inställningar i Bläddraren: enheter, språk, färgtema, riggblad, uppdatera automatiskt

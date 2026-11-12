@@ -159,7 +159,7 @@ explode`) and mirror its shapes (`shape mirror`).
 
 ### In the window
 
-**Two-sided** in the ribbon's WIZARDS group (*WIZARDS ▾ > Two-sided…*) makes the back side
+**Two-sided** in the ribbon's WIZARDS group (*Wizards > Two-sided…*) makes the back side
 of the active setup in one dialog. So do **Add the back side…** on a setup's right-click,
 and *Add the back side* and *Add dowel holes* in a front's form. It asks:
 

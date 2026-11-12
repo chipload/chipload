@@ -13,7 +13,6 @@ header-open-hover = Apri un progetto
 header-save-hover = Salva il progetto
 header-undo = Annulla
 header-redo = Ripeti
-header-help = Aiuto
 # The colour theme button: what is set now, a click goes on to the next.
 header-theme-system-hover = Tema colori: come il sistema. Clic per il successivo.
 header-theme-light-hover = Tema colori: chiaro. Clic per il successivo.
@@ -32,8 +31,6 @@ header-group-draw = Disegna
 header-group-operation = Lavorazione
 header-group-library = Libreria
 header-group-view = Vista
-header-group-hover = Tutto in { $group }
-
 # FILE: short words under icons.
 header-new = Nuovo
 header-new-hover = Nuovo progetto
@@ -61,9 +58,6 @@ header-add-dxf = DXF/SVG
 header-add-dxf-hover = Un DXF o SVG in questo progetto, accanto a ciò che c'è: posizionato e aggiornato per conto suo
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importa prima un DXF o SVG (FILE > Importa)
-header-import-image-menu = Importa immagine…
-header-add-dxf-menu = Aggiungi DXF o SVG al progetto…
-
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Segui
 # $operation is what the operation does (a hover text of its own).
@@ -101,7 +95,7 @@ header-slot = Asola
 header-slot-hover = Disegna un'asola: i centri delle estremità, poi la larghezza
 header-polygon = Poligono
 header-polygon-hover = Disegna un poligono regolare: il centro, poi un vertice (il numero di lati nella barra di stato)
-header-group-modify = Modifica
+header-group-modify = Trasforma
 header-group-wizards = Procedure guidate
 header-offset = Offset
 header-offset-hover = Una forma a distanza da quelle selezionate: spostati dal lato voluto, clicca o digita la distanza

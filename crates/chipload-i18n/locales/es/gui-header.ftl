@@ -13,7 +13,6 @@ header-open-hover = Abrir un proyecto
 header-save-hover = Guardar el proyecto
 header-undo = Deshacer
 header-redo = Rehacer
-header-help = Ayuda
 # The colour theme button: what is set now, a click goes on to the next.
 header-theme-system-hover = Tema de color: según el sistema. Haz clic para el siguiente.
 header-theme-light-hover = Tema de color: claro. Haz clic para el siguiente.
@@ -32,8 +31,6 @@ header-group-draw = Dibujar
 header-group-operation = Operación
 header-group-library = Biblioteca
 header-group-view = Vista
-header-group-hover = Todo lo de { $group }
-
 # FILE: short words under icons.
 header-new = Nuevo
 header-new-hover = Proyecto nuevo
@@ -61,9 +58,6 @@ header-add-dxf = DXF/SVG
 header-add-dxf-hover = Un DXF o SVG en este proyecto, junto a lo que ya hay: colocado y actualizado por separado
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Primero importa un DXF o SVG (ARCHIVO > Importar)
-header-import-image-menu = Importar imagen…
-header-add-dxf-menu = Añadir DXF o SVG al proyecto…
-
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Seguir
 # $operation is what the operation does (a hover text of its own).
