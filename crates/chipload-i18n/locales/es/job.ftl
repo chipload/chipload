@@ -27,11 +27,13 @@ job-operation-label-named-floor = Operación { $number } ({ $name }, fondo)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] broca
+    [ballnose] fresa de bola
     [vbit] fresa en V
    *[endmill] fresa
 }
 job-tool-type-article = { $type ->
     [drill] una broca
+    [ballnose] una fresa de bola
     [vbit] una fresa en V
    *[endmill] una fresa
 }
@@ -128,6 +130,7 @@ job-bulge-range = debe estar entre -1 y 1 (como máximo media circunferencia), e
 # Two lengths without their unit.
 job-work-zero-not-finite = x e y deben ser finitos, son { $x }, { $y }
 job-tip-diameter = debe ser 0 o más y menor que el diámetro ({ $diameter }), es { $got }
+job-tapered-ball-needs-tip = una fresa de bola cónica necesita el diámetro de su bola en la punta (tip_diameter)
 
 ## Parts
 

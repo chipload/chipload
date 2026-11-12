@@ -8,11 +8,11 @@ which is the tool number in the G-code, and:
 
 | Setting | |
 |---|---|
-| **Type** | endmill, drill or V-bit |
+| **Type** | endmill, drill, V-bit or ball nose |
 | **Diameter** | mm |
 | **Spindle speed** | rpm. Required: a program can't start the spindle without it. |
 | **Centre cutting** | whether the endmill can plunge straight down. Profiles spiral down with any endmill. New pockets go down round a helix and new follow paths ramp unless it is marked centre-cutting; when it can't plunge, sloped tabs may be no steeper than the ramp angle. |
-| **Angle**, **Tip** | V-bits: the included angle and the flat tip's diameter |
+| **Angle**, **Tip** | V-bits: the included angle and the flat tip's diameter. Tapered ball noses: the taper's included angle and the ball's diameter at the tip; a plain ball nose has neither |
 
 Each operation names its tool: pick it in the operation's form, or on the command line
 `chipload op tool part.chipload --op 2 --tool 3` (the tool must be in the project). Changing
@@ -38,3 +38,7 @@ line at each change.
 
 The command line can override it for one run: `chipload run part.chipload -o part.nc
 --tool-change program`. The setup sheet lists the tools in the order they're used.
+
+A **ball nose** carves [3D reliefs](../drawings/models.md) and can follow a path; the
+other operations need a flat bottom and refuse it. `chipload tool add "Ball 3" --type
+ballnose --diameter 3` adds a plain one, and `--angle 7.2 --tip 1` a tapered one.

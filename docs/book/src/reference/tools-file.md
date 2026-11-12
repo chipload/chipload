@@ -58,5 +58,7 @@ One tool of the library: a project tool with a name and optional cutting values.
 
 ## ToolType
 
-One of: `"endmill"`, `"drill"`, `"vbit"`.
+- `"endmill"`, `"drill"`, `"vbit"`: 
+
+- `"ballnose"`: A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow paths only.
 

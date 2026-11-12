@@ -134,10 +134,11 @@ pub struct ToolValues {
     center_cutting: Option<YesNo>,
     #[arg(long)]
     rpm: Option<f64>,
-    /// V-bits: the included angle, degrees.
+    /// V-bits: the included angle, degrees. Tapered ball noses: the taper's.
     #[arg(long)]
     angle: Option<f64>,
-    /// V-bits: the diameter of the flat tip, mm (0: pointed).
+    /// V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the
+    /// ball's diameter at the tip.
     #[arg(value_parser = crate::lengths::length, long)]
     tip: Option<f64>,
     /// The id it gets in a project where that id is free (default 1).
@@ -174,6 +175,8 @@ enum TypeArg {
     Endmill,
     Drill,
     Vbit,
+    /// A ball nose; with --angle and --tip, a tapered one.
+    Ballnose,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -564,6 +567,7 @@ fn set_tool_values(entry: &mut LibraryTool, values: &ToolValues) -> Result<(), L
             TypeArg::Endmill => ToolType::Endmill,
             TypeArg::Drill => ToolType::Drill,
             TypeArg::Vbit => ToolType::Vbit,
+            TypeArg::Ballnose => ToolType::Ballnose,
         };
     }
     if let Some(d) = values.diameter {

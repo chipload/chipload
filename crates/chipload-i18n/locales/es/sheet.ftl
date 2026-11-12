@@ -89,6 +89,9 @@ sheet-drill = broca de { $diameter }
 sheet-vbit-angle = fresa en V de { $angle }°, { $diameter }
 sheet-vbit = fresa en V, { $diameter }
 sheet-tip = punta { $diameter }
+sheet-ball-nose = fresa de bola de { $diameter }
+sheet-tapered-ball = fresa de bola cónica de { $angle }°, { $diameter }
+sheet-ball = bola { $diameter }
 sheet-flutes = { $count ->
     [one] { $count } filo
    *[other] { $count } filos

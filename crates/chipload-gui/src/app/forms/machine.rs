@@ -238,6 +238,7 @@ pub(in crate::app) fn tool_form(
         ToolType::Endmill => crate::icons::Icon::Endmill,
         ToolType::Drill => crate::icons::Icon::Drill,
         ToolType::Vbit => crate::icons::Icon::Vbit,
+        ToolType::Ballnose => crate::icons::Icon::Ballnose,
     };
     super::browser::title_line(
         ui,
@@ -324,6 +325,7 @@ pub(in crate::app) fn tool_kind_name(lang: &impl crate::i18n::Lang, kind: ToolTy
         ToolType::Endmill => t!(lang, "names-tool-endmill"),
         ToolType::Drill => t!(lang, "names-tool-drill"),
         ToolType::Vbit => t!(lang, "names-tool-vbit"),
+        ToolType::Ballnose => t!(lang, "names-tool-ballnose"),
     }
 }
 
@@ -633,7 +635,12 @@ pub(in crate::app) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &
     ComboBox::from_id_salt((salt, "tool-type"))
         .selected_text(tool_kind_name(ui, tool.kind))
         .show_ui(ui, |ui| {
-            for kind in [ToolType::Endmill, ToolType::Drill, ToolType::Vbit] {
+            for kind in [
+                ToolType::Endmill,
+                ToolType::Drill,
+                ToolType::Vbit,
+                ToolType::Ballnose,
+            ] {
                 let name = tool_kind_name(ui, kind);
                 ui.selectable_value(&mut tool.kind, kind, name);
             }
@@ -690,7 +697,9 @@ pub(in crate::app) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &
             }
         });
     ui.end_row();
-    if tool.kind == ToolType::Vbit {
+    // A tapered ball nose has a taper angle and a ball at its tip, kept as a V-bit's
+    // angle and tip (docs/specs/stl-relief.md §8).
+    if matches!(tool.kind, ToolType::Vbit | ToolType::Ballnose) {
         vbit_rows(ui, at, tool);
     }
 }

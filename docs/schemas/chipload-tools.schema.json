@@ -165,12 +165,21 @@
       "type": "object"
     },
     "ToolType": {
-      "enum": [
-        "endmill",
-        "drill",
-        "vbit"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "endmill",
+            "drill",
+            "vbit"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "ballnose",
+          "description": "A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow\npaths only.",
+          "type": "string"
+        }
+      ]
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",

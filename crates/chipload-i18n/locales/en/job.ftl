@@ -27,11 +27,13 @@ job-operation-label-named-floor = Operation { $number } ({ $name }, floor)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] drill
+    [ballnose] ball nose
     [vbit] V-bit
    *[endmill] endmill
 }
 job-tool-type-article = { $type ->
     [drill] a drill
+    [ballnose] a ball nose
     [vbit] a V-bit
    *[endmill] an endmill
 }
@@ -128,6 +130,7 @@ job-bulge-range = must be between -1 and 1 (at most a half circle), got { $got }
 # Two lengths without their unit.
 job-work-zero-not-finite = x and y must be finite, got { $x }, { $y }
 job-tip-diameter = must be 0 or more and less than the diameter ({ $diameter }), got { $got }
+job-tapered-ball-needs-tip = a tapered ball nose needs its ball's diameter at the tip (tip_diameter)
 
 ## Parts
 

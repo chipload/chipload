@@ -2845,7 +2845,7 @@
       "properties": {
         "angle": {
           "default": null,
-          "description": "V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool.",
+          "description": "V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool.\nBall noses: the taper's included angle; null: a plain ball nose.",
           "format": "double",
           "type": [
             "number",
@@ -2906,7 +2906,7 @@
         },
         "tip_diameter": {
           "default": null,
-          "description": "V-bits: the flat tip's diameter, mm. Null: pointed.",
+          "description": "V-bits: the flat tip's diameter, mm. Null: pointed. Tapered ball noses: the ball's\ndiameter at the tip.",
           "format": "double",
           "type": [
             "number",
@@ -2916,7 +2916,7 @@
         "type": {
           "$ref": "#/$defs/ToolType",
           "default": "endmill",
-          "description": "`endmill`, `drill` or `vbit`."
+          "description": "`endmill`, `drill`, `vbit` or `ballnose`."
         }
       },
       "required": [
@@ -2941,12 +2941,21 @@
       ]
     },
     "ToolType": {
-      "enum": [
-        "endmill",
-        "drill",
-        "vbit"
-      ],
-      "type": "string"
+      "oneOf": [
+        {
+          "enum": [
+            "endmill",
+            "drill",
+            "vbit"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "ballnose",
+          "description": "A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow\npaths only.",
+          "type": "string"
+        }
+      ]
     },
     "Travel": {
       "additionalProperties": false,

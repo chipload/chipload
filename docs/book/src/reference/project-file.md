@@ -756,7 +756,7 @@ What a text's position is (docs/specs/text.md §3).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. |
+| `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. Ball noses: the taper's included angle; null: a plain ball nose. |
 | `center_cutting` | boolean or null | no | Whether it can plunge straight down. False: profiles ramp in and pockets go down round a helix. Null: unknown. |
 | `diameter` | number | yes | Diameter, mm. For a V-bit, its widest cutting diameter. |
 | `flutes` | integer or null | no | Number of flutes, for the chip load. Null: unknown. |
@@ -764,8 +764,8 @@ What a text's position is (docs/specs/text.md §3).
 | `library_uid` | string or null | no | The `uid` of the library tool it came from, for reference; nothing that cuts reads it. Null: not from the library. |
 | `name` | string or null | no | The library tool it came from, for reference. |
 | `rpm` | number or null | no | Spindle speed, rpm. Needed to generate. |
-| `tip_diameter` | number or null | no | V-bits: the flat tip's diameter, mm. Null: pointed. |
-| `type` | [ToolType](#tooltype) | no | `endmill`, `drill` or `vbit`. |
+| `tip_diameter` | number or null | no | V-bits: the flat tip's diameter, mm. Null: pointed. Tapered ball noses: the ball's diameter at the tip. |
+| `type` | [ToolType](#tooltype) | no | `endmill`, `drill`, `vbit` or `ballnose`. |
 
 ## ToolChange
 
@@ -777,7 +777,9 @@ How a job with several tools is written.
 
 ## ToolType
 
-One of: `"endmill"`, `"drill"`, `"vbit"`.
+- `"endmill"`, `"drill"`, `"vbit"`: 
+
+- `"ballnose"`: A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow paths only.
 
 ## Travel
 

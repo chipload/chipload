@@ -89,6 +89,9 @@ sheet-drill = { $diameter } borr
 sheet-vbit-angle = { $angle }° V-fräs, { $diameter }
 sheet-vbit = V-fräs, { $diameter }
 sheet-tip = spets { $diameter }
+sheet-ball-nose = { $diameter } kulfräs
+sheet-tapered-ball = { $angle }° konisk kulfräs, { $diameter }
+sheet-ball = kula { $diameter }
 sheet-flutes = { $count } skär
 
 ## The table of operations

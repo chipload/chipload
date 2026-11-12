@@ -3,6 +3,7 @@
 //! the planned moves with each tool's shape. Display and report only: it never changes or
 //! checks a program.
 
+use chipload_core::cutter::Cutter;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Tool, ToolType};
@@ -79,12 +80,15 @@ enum Shape {
     Flat { radius: f64 },
     /// A cone rising `slope` mm per mm from a flat tip of radius `tip`, out to `radius`.
     Cone { radius: f64, tip: f64, slope: f64 },
+    /// A ball nose, plain or tapered (docs/specs/stl-relief.md §7).
+    Round(Cutter),
 }
 
 impl Shape {
     fn radius(self) -> f64 {
         match self {
             Shape::Flat { radius } | Shape::Cone { radius, .. } => radius,
+            Shape::Round(cutter) => cutter.radius(),
         }
     }
 }
@@ -109,6 +113,8 @@ fn shape_of(tool: &Tool, numbers: &mut Numbers) -> Shape {
             });
             cone(angle, tool.tip_diameter.unwrap_or(0.0) / 2.0)
         }
+        // A tapered ball nose without its ball can't be loaded (job-tapered-ball-needs-tip).
+        ToolType::Ballnose => Shape::Round(tool.cutter().unwrap_or(Cutter::Ball { radius })),
     }
 }
 
@@ -642,9 +648,7 @@ impl Grid {
     /// Lower every cell the tool reaches on its way from `a` to `b` (§2), in pieces of at
     /// most two tool diameters so each looks only at the cells near it.
     fn cut(&mut self, a: (f64, f64, f64), b: (f64, f64, f64), shape: Shape) {
-        let radius = match shape {
-            Shape::Flat { radius } | Shape::Cone { radius, .. } => radius,
-        };
+        let radius = shape.radius();
         let length = (b.0 - a.0).hypot(b.1 - a.1);
         let piece = (4.0 * radius).max(self.cell);
         // A small positive whole number: moves are bounded by the machine's travel.
@@ -770,6 +774,7 @@ fn lowest_over(p: (f64, f64), a: (f64, f64, f64), b: (f64, f64, f64), shape: Sha
     let (radius, tip, slope) = match shape {
         Shape::Flat { radius } => (radius, radius, 0.0),
         Shape::Cone { radius, tip, slope } => (radius, tip, slope),
+        Shape::Round(cutter) => return lowest_round(p, a, b, cutter),
     };
     let d = (b.0 - a.0, b.1 - a.1);
     let w = (a.0 - p.0, a.1 - p.1);
@@ -819,6 +824,58 @@ fn lowest_over(p: (f64, f64), a: (f64, f64, f64), b: (f64, f64, f64), shape: Sha
         .into_iter()
         .filter(|t| (t0..=t1).contains(t))
         .map(height)
+        .reduce(f64::min)
+}
+
+/// [`lowest_over`] for a round tool: the tool's height over `p` along the move, `z(s) +
+/// h(√(p² + s²))` with `s` along the move from the foot of the perpendicular, is convex (a
+/// linear Z plus a convex shape), so its lowest point is among the interval's ends, the
+/// foot, the shape's kinks and its level points (docs/specs/stl-relief.md §7).
+fn lowest_round(
+    p: (f64, f64),
+    a: (f64, f64, f64),
+    b: (f64, f64, f64),
+    cutter: Cutter,
+) -> Option<f64> {
+    let radius = cutter.radius();
+    let d = (b.0 - a.0, b.1 - a.1);
+    let length = d.0.hypot(d.1);
+    if length <= CHAIN_TOL_MM {
+        let dist = (a.0 - p.0).hypot(a.1 - p.1);
+        return cutter.height_at(dist).map(|h| a.2.min(b.2) + h);
+    }
+    let u = (d.0 / length, d.1 / length);
+    let w = (p.0 - a.0, p.1 - a.1);
+    let foot = w.0 * u.0 + w.1 * u.1;
+    let off = (w.0 * u.1 - w.1 * u.0).abs();
+    if off > radius {
+        return None;
+    }
+    let reach = (radius * radius - off * off).sqrt();
+    let (s0, s1) = ((-foot).max(-reach), (length - foot).min(reach));
+    if s0 > s1 {
+        return None;
+    }
+    let m = (b.2 - a.2) / length;
+    let height = |s: f64| {
+        let dist = off.hypot(s);
+        cutter
+            .height_at(dist.min(radius))
+            .map(|h| a.2 + m * (s + foot) + h)
+    };
+    let mut candidates = vec![s0, s1, 0.0];
+    for k in cutter.kinks() {
+        if k > off {
+            let s = (k * k - off * off).sqrt();
+            candidates.extend([s, -s]);
+        }
+    }
+    // Level where −m·s − h is level: the drop cutter's level points for a line rising −m.
+    candidates.extend(cutter.level_along(-m, off));
+    candidates
+        .into_iter()
+        .filter(|s| (s0..=s1).contains(s))
+        .filter_map(height)
         .reduce(f64::min)
 }
 
@@ -1075,17 +1132,20 @@ mod tests {
 
     /// A sampled reference for [`lowest_over`].
     fn sampled(p: (f64, f64), a: (f64, f64, f64), b: (f64, f64, f64), shape: Shape) -> Option<f64> {
-        let (radius, tip, slope) = match shape {
-            Shape::Flat { radius } => (radius, radius, 0.0),
-            Shape::Cone { radius, tip, slope } => (radius, tip, slope),
-        };
         let n = 200_000;
         (0..=n)
             .filter_map(|k| {
                 let t = k as f64 / n as f64;
                 let c = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
                 let d = (c.0 - p.0).hypot(c.1 - p.1);
-                (d <= radius).then(|| a.2 + (b.2 - a.2) * t + slope * (d - tip).max(0.0))
+                let h = match shape {
+                    Shape::Flat { radius } => (d <= radius).then_some(0.0),
+                    Shape::Cone { radius, tip, slope } => {
+                        (d <= radius).then(|| slope * (d - tip).max(0.0))
+                    }
+                    Shape::Round(cutter) => cutter.height_at(d),
+                }?;
+                Some(a.2 + (b.2 - a.2) * t + h)
             })
             .reduce(f64::min)
     }
@@ -1109,6 +1169,12 @@ mod tests {
                 tip: 0.0,
                 slope: 1.0 / (59.0f64.to_radians()).tan(),
             },
+            Shape::Round(Cutter::Ball { radius: 3.0 }),
+            Shape::Round(Cutter::TaperedBall {
+                radius: 3.175,
+                ball: 0.5,
+                half_angle: 7.5f64.to_radians(),
+            }),
         ];
         // A deterministic spread of moves and points.
         let mut seed = 12345u64;

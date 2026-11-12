@@ -4,3 +4,4 @@
 names-tool-endmill = Schaftfräser
 names-tool-drill = Bohrer
 names-tool-vbit = V-Fräser
+names-tool-ballnose = Kugelfräser

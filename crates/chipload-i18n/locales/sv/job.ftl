@@ -27,11 +27,13 @@ job-operation-label-named-floor = Operation { $number } ({ $name }, botten)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] borr
+    [ballnose] kulfräs
     [vbit] V-fräs
    *[endmill] pinnfräs
 }
 job-tool-type-article = { $type ->
     [drill] ett borr
+    [ballnose] en kulfräs
     [vbit] en V-fräs
    *[endmill] en pinnfräs
 }
@@ -128,6 +130,7 @@ job-bulge-range = måste vara mellan -1 och 1 (högst en halvcirkel), fick { $go
 # Two lengths without their unit.
 job-work-zero-not-finite = x och y måste vara ändliga, fick { $x }, { $y }
 job-tip-diameter = måste vara 0 eller mer och mindre än diametern ({ $diameter }), fick { $got }
+job-tapered-ball-needs-tip = en konisk kulfräs behöver kulans diameter i spetsen (tip_diameter)
 
 ## Parts
 

@@ -89,6 +89,9 @@ sheet-drill = foret { $diameter }
 sheet-vbit-angle = fraise à graver en V { $angle }°, { $diameter }
 sheet-vbit = fraise à graver en V, { $diameter }
 sheet-tip = pointe { $diameter }
+sheet-ball-nose = fraise boule { $diameter }
+sheet-tapered-ball = fraise boule conique { $angle }°, { $diameter }
+sheet-ball = boule { $diameter }
 sheet-flutes = { $count ->
     [one] { $count } dent
    *[other] { $count } dents

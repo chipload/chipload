@@ -62,6 +62,9 @@ sheet-drill = сверло { $diameter }
 sheet-vbit-angle = V-образная фреза { $angle }°, { $diameter }
 sheet-vbit = V-образная фреза, { $diameter }
 sheet-tip = вершина { $diameter }
+sheet-ball-nose = сферическая фреза { $diameter }
+sheet-tapered-ball = коническая сферическая фреза { $angle }°, { $diameter }
+sheet-ball = шарик { $diameter }
 sheet-flutes = { $count ->
     [one] { $count } зуб
     [few] { $count } зуба

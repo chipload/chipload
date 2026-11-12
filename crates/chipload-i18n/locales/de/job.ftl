@@ -27,11 +27,13 @@ job-operation-label-named-floor = Bearbeitung { $number } ({ $name }, Boden)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] Bohrer
+    [ballnose] Kugelfräser
     [vbit] V-Fräser
    *[endmill] Schaftfräser
 }
 job-tool-type-article = { $type ->
     [drill] ein Bohrer
+    [ballnose] ein Kugelfräser
     [vbit] ein V-Fräser
    *[endmill] ein Schaftfräser
 }
@@ -128,6 +130,7 @@ job-bulge-range = muss zwischen -1 und 1 liegen (höchstens ein Halbkreis), ist 
 # Two lengths without their unit.
 job-work-zero-not-finite = x und y müssen endlich sein, sind { $x }, { $y }
 job-tip-diameter = muss 0 oder mehr und kleiner als der Durchmesser ({ $diameter }) sein, ist { $got }
+job-tapered-ball-needs-tip = ein konischer Kugelfräser braucht den Durchmesser seiner Kugel an der Spitze (tip_diameter)
 
 ## Parts
 

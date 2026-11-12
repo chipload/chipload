@@ -1604,13 +1604,13 @@ chipload tool add <NAME> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--type <KIND>` | One of: `endmill`, `drill`, `vbit`. |
+| `--type <KIND>` | One of: `endmill`, `drill`, `vbit`, `ballnose` (A ball nose; with --angle and --tip, a tapered one). |
 | `--diameter <DIAMETER>` |  |
 | `--flutes <FLUTES>` |  |
 | `--center-cutting <CENTER_CUTTING>` | One of: `yes`, `no`. |
 | `--rpm <RPM>` |  |
-| `--angle <ANGLE>` | V-bits: the included angle, degrees. |
-| `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed) |
+| `--angle <ANGLE>` | V-bits: the included angle, degrees. Tapered ball noses: the taper's. |
+| `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball's diameter at the tip. |
 | `--id <ID>` | The id it gets in a project where that id is free (default 1) |
 
 ### `chipload tool set`
@@ -1624,13 +1624,13 @@ chipload tool set <NAME> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--type <KIND>` | One of: `endmill`, `drill`, `vbit`. |
+| `--type <KIND>` | One of: `endmill`, `drill`, `vbit`, `ballnose` (A ball nose; with --angle and --tip, a tapered one). |
 | `--diameter <DIAMETER>` |  |
 | `--flutes <FLUTES>` |  |
 | `--center-cutting <CENTER_CUTTING>` | One of: `yes`, `no`. |
 | `--rpm <RPM>` |  |
-| `--angle <ANGLE>` | V-bits: the included angle, degrees. |
-| `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed) |
+| `--angle <ANGLE>` | V-bits: the included angle, degrees. Tapered ball noses: the taper's. |
+| `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball's diameter at the tip. |
 | `--id <ID>` | The id it gets in a project where that id is free (default 1) |
 | `--rename <RENAME>` | A new name. |
 

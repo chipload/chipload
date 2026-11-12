@@ -89,6 +89,9 @@ sheet-drill = { $diameter } drill
 sheet-vbit-angle = { $angle }° V-bit, { $diameter }
 sheet-vbit = V-bit, { $diameter }
 sheet-tip = tip { $diameter }
+sheet-ball-nose = { $diameter } ball nose
+sheet-tapered-ball = { $angle }° tapered ball nose, { $diameter }
+sheet-ball = ball { $diameter }
 sheet-flutes = { $count ->
     [one] { $count } flute
    *[other] { $count } flutes

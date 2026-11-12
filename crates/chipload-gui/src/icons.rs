@@ -16,6 +16,7 @@ pub enum Icon {
     Endmill,
     Drill,
     Vbit,
+    Ballnose,
     Drawing,
     Dxf,
     Layer,
@@ -142,6 +143,14 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 (0.75, 0.45),
             ]);
             pen.poly(&[(0.75, 0.45), (0.6, 0.45), (0.6, 0.1)]);
+        }
+        Icon::Ballnose => {
+            // An end mill whose end is a half circle.
+            let mut outline = vec![(0.63, 0.1), (0.37, 0.1)];
+            outline.extend(pen.arc((0.5, 0.77), 0.13, std::f32::consts::PI, 0.0));
+            pen.closed(&outline);
+            pen.line([(0.37, 0.45), (0.63, 0.33)]);
+            pen.line([(0.37, 0.63), (0.63, 0.51)]);
         }
         Icon::Drawing | Icon::Dxf => {
             pen.sheet();

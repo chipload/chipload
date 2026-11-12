@@ -3069,12 +3069,13 @@ fn pocket_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, Message> {
     plunge_unknown(tool, entry)
 }
 
-/// A follow path takes an endmill (which must be centre-cutting to plunge) or a V-bit
-/// (centre-cutting by its shape); a drill can't follow a path (docs/specs/follow-path.md §5).
+/// A follow path takes an endmill (which must be centre-cutting to plunge), a V-bit or a
+/// ball nose (centre-cutting by their shape); a drill can't follow a path
+/// (docs/specs/follow-path.md §5, stl-relief.md decision 7).
 fn path_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, Message> {
     match tool.kind {
         ToolType::Drill => Err(Message::new("toolpath-path-drill").arg("tool", tool.id)),
-        ToolType::Vbit => Ok(false),
+        ToolType::Vbit | ToolType::Ballnose => Ok(false),
         ToolType::Endmill => plunge_unknown(tool, entry),
     }
 }

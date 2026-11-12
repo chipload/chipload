@@ -89,6 +89,9 @@ sheet-drill = punta da { $diameter }
 sheet-vbit-angle = fresa a V da { $angle }°, { $diameter }
 sheet-vbit = fresa a V, { $diameter }
 sheet-tip = punta { $diameter }
+sheet-ball-nose = fresa sferica da { $diameter }
+sheet-tapered-ball = fresa sferica conica da { $angle }°, { $diameter }
+sheet-ball = sfera { $diameter }
 sheet-flutes = { $count ->
     [one] { $count } tagliente
    *[other] { $count } taglienti

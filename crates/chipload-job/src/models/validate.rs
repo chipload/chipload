@@ -113,6 +113,13 @@ impl Tool {
                     .arg("got", Value::Length(tip, Digits::Shortest)),
             ));
         }
+        // A tapered ball nose: its ball at the tip (docs/specs/stl-relief.md §8).
+        if self.kind == ToolType::Ballnose && self.angle.is_some() && self.tip_diameter.is_none() {
+            problems.push(Problem::at(
+                format!("{at}.tip_diameter"),
+                Message::new("job-tapered-ball-needs-tip"),
+            ));
+        }
         problems
     }
 }

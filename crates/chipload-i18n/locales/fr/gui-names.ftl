@@ -4,3 +4,4 @@
 names-tool-endmill = fraise
 names-tool-drill = foret
 names-tool-vbit = fraise à graver en V
+names-tool-ballnose = fraise boule

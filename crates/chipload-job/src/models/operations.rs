@@ -1318,7 +1318,7 @@ pub enum HoleMethod {
 
 impl HoleMethod {
     /// The method a tool of `kind` and `diameter` takes, with its defaults
-    /// (docs/specs/holes.md §7); None for a V-bit.
+    /// (docs/specs/holes.md §7); None for a V-bit or a ball nose.
     pub fn default_for(kind: ToolType, diameter: f64) -> Option<HoleMethod> {
         match kind {
             ToolType::Drill => Some(HoleMethod::Drill { peck: None }),
@@ -1327,7 +1327,7 @@ impl HoleMethod {
                 ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
                 direction: Direction::Climb,
             }),
-            ToolType::Vbit => None,
+            ToolType::Vbit | ToolType::Ballnose => None,
         }
     }
 

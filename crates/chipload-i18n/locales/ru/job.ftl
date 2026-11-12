@@ -9,11 +9,13 @@ job-operation-label-floor = Операция { $number } (дно)
 job-operation-label-named-floor = Операция { $number } ({ $name }, дно)
 job-tool-type = { $type ->
     [drill] сверло
+    [ballnose] сферическая фреза
     [vbit] V-образная фреза
    *[endmill] концевая фреза
 }
 job-tool-type-article = { $type ->
     [drill] сверло
+    [ballnose] сферическая фреза
     [vbit] V-образная фреза
    *[endmill] концевая фреза
 }
@@ -79,6 +81,7 @@ job-bulges-count = по одному на сегмент, для этой пол
 job-bulge-range = должно быть от -1 до 1 (не больше полуокружности), получено { $got }
 job-work-zero-not-finite = x и y должны быть конечными числами, получено { $x }, { $y }
 job-tip-diameter = должно быть не меньше 0 и меньше диаметра ({ $diameter }), получено { $got }
+job-tapered-ball-needs-tip = конической сферической фрезе нужен диаметр шарика на кончике (tip_diameter)
 job-no-parts = в проекте должна быть хотя бы одна деталь
 job-no-setups = в проекте нет установа; нужен хотя бы один
 job-setup-twice = идентификатор установа { $id } используется дважды

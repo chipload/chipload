@@ -4,3 +4,4 @@
 names-tool-endmill = endmill
 names-tool-drill = drill
 names-tool-vbit = V-bit
+names-tool-ballnose = ball nose

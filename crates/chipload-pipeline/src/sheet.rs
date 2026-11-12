@@ -596,6 +596,15 @@ fn tool_text(tool: &Tool, w: Words) -> String {
     let mut parts = match tool.kind {
         ToolType::Endmill => vec![Message::new("sheet-end-mill").arg("diameter", diameter)],
         ToolType::Drill => vec![Message::new("sheet-drill").arg("diameter", diameter)],
+        ToolType::Ballnose => match (tool.angle, tool.tip_diameter) {
+            (Some(angle), Some(ball)) => vec![
+                Message::new("sheet-tapered-ball")
+                    .arg("angle", num(angle.to_degrees()))
+                    .arg("diameter", diameter),
+                Message::new("sheet-ball").arg("diameter", len_u(ball)),
+            ],
+            _ => vec![Message::new("sheet-ball-nose").arg("diameter", diameter)],
+        },
         ToolType::Vbit => {
             let mut parts = vec![match tool.angle {
                 Some(angle) => Message::new("sheet-vbit-angle")

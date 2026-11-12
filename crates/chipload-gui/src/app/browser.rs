@@ -418,6 +418,7 @@ pub(super) fn tool_icon(kind: ToolType) -> Icon {
         ToolType::Endmill => Icon::Endmill,
         ToolType::Drill => Icon::Drill,
         ToolType::Vbit => Icon::Vbit,
+        ToolType::Ballnose => Icon::Ballnose,
     }
 }
 

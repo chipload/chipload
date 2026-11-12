@@ -4,3 +4,4 @@
 names-tool-endmill = fresa
 names-tool-drill = broca
 names-tool-vbit = fresa en V
+names-tool-ballnose = fresa de bola

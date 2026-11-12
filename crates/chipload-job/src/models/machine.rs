@@ -295,24 +295,29 @@ pub enum ToolType {
     Endmill,
     Drill,
     Vbit,
+    /// A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow
+    /// paths only.
+    Ballnose,
 }
 
 impl ToolType {
-    /// The kind as messages and lists name it: `endmill`, `drill`, `V-bit`.
+    /// The kind as messages and lists name it: `endmill`, `drill`, `V-bit`, `ball nose`.
     pub fn name(self) -> &'static str {
         match self {
             ToolType::Endmill => "endmill",
             ToolType::Drill => "drill",
             ToolType::Vbit => "V-bit",
+            ToolType::Ballnose => "ball nose",
         }
     }
 
-    /// The name with its article: `an endmill`, `a drill`, `a V-bit`.
+    /// The name with its article: `an endmill`, `a drill`, `a V-bit`, `a ball nose`.
     pub fn with_article(self) -> &'static str {
         match self {
             ToolType::Endmill => "an endmill",
             ToolType::Drill => "a drill",
             ToolType::Vbit => "a V-bit",
+            ToolType::Ballnose => "a ball nose",
         }
     }
 
@@ -332,6 +337,7 @@ impl ToolType {
             ToolType::Endmill => "endmill",
             ToolType::Drill => "drill",
             ToolType::Vbit => "vbit",
+            ToolType::Ballnose => "ballnose",
         }
     }
 }
@@ -351,7 +357,7 @@ pub struct Tool {
     // Spec: docs/specs/library-in-browser.md §2.
     #[serde(default)]
     pub library_uid: Option<String>,
-    /// `endmill`, `drill` or `vbit`.
+    /// `endmill`, `drill`, `vbit` or `ballnose`.
     #[serde(default, rename = "type")]
     pub kind: ToolType,
     /// Diameter, mm. For a V-bit, its widest cutting diameter.
@@ -367,15 +373,52 @@ pub struct Tool {
     #[serde(default)]
     pub rpm: Option<f64>,
     /// V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool.
-    // Spec: docs/specs/v-carve.md §2.
+    /// Ball noses: the taper's included angle; null: a plain ball nose.
+    // Spec: docs/specs/v-carve.md §2, stl-relief.md §8.
     #[serde(default)]
     pub angle: Option<f64>,
-    /// V-bits: the flat tip's diameter, mm. Null: pointed.
+    /// V-bits: the flat tip's diameter, mm. Null: pointed. Tapered ball noses: the ball's
+    /// diameter at the tip.
     #[serde(default)]
     pub tip_diameter: Option<f64>,
 }
 
+/// A drill's point, taken as 118° (docs/specs/simulation.md decision 3).
+pub const DRILL_POINT_RAD: f64 = 118.0 * std::f64::consts::PI / 180.0;
+
 impl Tool {
+    /// The shape of its cutting end (docs/specs/stl-relief.md §6). None for a V-bit or a
+    /// tapered ball nose without its angle, or a tapered ball nose without its ball.
+    pub fn cutter(&self) -> Option<chipload_core::cutter::Cutter> {
+        use chipload_core::cutter::Cutter;
+        let radius = self.diameter / 2.0;
+        let half = self
+            .angle
+            .filter(|a| a.is_finite() && *a > 0.0)
+            .map(|a| a / 2.0);
+        Some(match self.kind {
+            ToolType::Endmill => Cutter::Flat { radius },
+            ToolType::Drill => Cutter::Cone {
+                radius,
+                tip: 0.0,
+                half_angle: DRILL_POINT_RAD / 2.0,
+            },
+            ToolType::Vbit => Cutter::Cone {
+                radius,
+                tip: (self.tip_diameter.unwrap_or(0.0) / 2.0).clamp(0.0, radius),
+                half_angle: half?,
+            },
+            ToolType::Ballnose => match self.angle {
+                None => Cutter::Ball { radius },
+                Some(_) => Cutter::TaperedBall {
+                    radius,
+                    ball: self.tip_diameter? / 2.0,
+                    half_angle: half?,
+                },
+            },
+        })
+    }
+
     /// A V-bit's width at `depth` below its tip's end, mm: its tip and twice the depth's
     /// run along the flanks, at most its diameter. None for other tools and a V-bit
     /// without its angle.

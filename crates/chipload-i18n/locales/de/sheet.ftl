@@ -89,6 +89,9 @@ sheet-drill = { $diameter } Bohrer
 sheet-vbit-angle = { $angle }° V-Fräser, { $diameter }
 sheet-vbit = V-Fräser, { $diameter }
 sheet-tip = Spitze { $diameter }
+sheet-ball-nose = { $diameter } Kugelfräser
+sheet-tapered-ball = { $angle }° konischer Kugelfräser, { $diameter }
+sheet-ball = Kugel { $diameter }
 sheet-flutes = { $count ->
     [one] { $count } Schneide
    *[other] { $count } Schneiden

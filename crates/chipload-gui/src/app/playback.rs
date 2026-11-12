@@ -233,7 +233,8 @@ impl Playback {
             radius,
             from_below: self.from_below,
             cone: match tool.kind {
-                ToolType::Endmill => None,
+                // Drawn as an end mill until the window step (docs/specs/stl-relief.md §12).
+                ToolType::Endmill | ToolType::Ballnose => None,
                 ToolType::Drill => cone(DRILL_POINT_RAD, 0.0),
                 ToolType::Vbit => cone(
                     tool.angle.unwrap_or(std::f64::consts::FRAC_PI_2),

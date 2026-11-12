@@ -4,3 +4,4 @@
 names-tool-endmill = pinnfräs
 names-tool-drill = borr
 names-tool-vbit = V-fräs
+names-tool-ballnose = kulfräs
