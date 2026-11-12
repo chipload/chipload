@@ -37,8 +37,11 @@ a quick workflow first.
   user to try and publish): the new look (shades, the logo's green, cards, Inter), part
   statistics with a time per kind of move, a quieter report (details folded), the V-carve
   floor left as one note per operation, a through cut's checker line as a note, the
-  empty-setup fix. Same G-code and schema (35) as 0.33.1. Two-sided work is
-  for the next release.
+  empty-setup fix. Same G-code and schema (35) as 0.33.1.
+- **Tagged 0.35.0** (2026-11-12, the user: "we need to get this to users to get real
+  feedback"; draft, for the user to try and publish): two-sided work (schema 36) with its
+  wizard, mirrored parts, V-carve inlays, the sign maker and frames, a standard menu bar,
+  the 3D view turning the model with the mouse (issue #16). Branch `signs` merged into main.
 - **Releases**: the latest published is **0.33.1** (2026-11-04), then 0.33.0 (2026-11-03). Before it 0.32.0
   (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
   (2026-10-29), 0.27.1, 0.25.1, 0.25.0, 0.24.0, 0.23.0, 0.22.2. Tagged but never published:
@@ -148,7 +151,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    flat-floor passes). **Spec approved 2026-11-09** (docs/specs/vcarve-inlay.md, branch
    `signs`): two V-carves, the plug with a `plug` start depth in a setup of its own, its
    part mirrored, `op add-inlay`; decisions 1-7 as recommended. **Built 2026-11-09** on
-   `signs`, all three steps (see *In main, not released yet*).
+   `signs`, all three steps (see *In 0.35.0*).
 8. **Turning the board over** (the gap review of 2026-11-03; docs/specs/setups.md §9): a
    setup that is the same board turned over, its drawing mirrored about an axis, located
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
@@ -264,22 +267,26 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
-- **A standard menu bar** (docs/specs/menu-bar.md, 2026-11-12, branch `signs`): File, Edit,
+(nothing yet)
+
+### In 0.35.0 (tagged 2026-11-12)
+
+- **A standard menu bar** (docs/specs/menu-bar.md, 2026-11-12): File, Edit,
   View, Draw, Modify, Operation, Wizards, Library and Help in the top bar; the ribbon's
   captions plain labels; Edit > Preferences… opens This computer > Preferences; Cmd shown
   on a Mac. Later: the native macOS menu bar (`muda`, its own ADR, tried on a Mac).
-- **3D: the model turns with the mouse** (issue #16, 2026-11-12, branch `signs`): a
+- **3D: the model turns with the mouse** (issue #16, 2026-11-12): a
   left-right drag turned it the other way; *View > Reverse left-right orbit in 3D* brings
   the old way back (app settings `reverse_orbit`, optional, no bump). Close #16 with the
   release.
-- **Frames that follow their text** (docs/specs/sign-maker.md §4, step 1, branch `signs`,
+- **Frames that follow their text** (docs/specs/sign-maker.md §4, step 1,
   not merged yet): a frame remembers what it goes round (`drawing.frames`, optional, no
   schema bump) and is drawn again round it when the words, font, height or place change,
   in the same undo step, its shapes keeping their ids; editing its shapes by hand, losing
   them or everything it went round lets it go, with a note. The selected frame's values in
   a *Frame* card under Selection, with *Detach*; `frame list`/`set`/`detach`. Every
   command line save follows the frames (one `save_project`).
-- **New sign…** (sign-maker.md §3, §6, step 3, branch `signs`): words, frame, style
+- **New sign…** (sign-maker.md §3, §6, step 3): words, frame, style
   (engraved, raised, inlay), edge chamfer, tools and board in one dialog with the sign
   drawn and the operations it adds; the sign grouped in a part of its own, its operations
   in cutting order (letters or background or the inlay's pocket, borders as deep as their
@@ -287,14 +294,14 @@ Smaller follow-ups noted along the way, not in the order above:
   Tested by generating each style, simulating a raised sign, and changing the words.
   Also round the selection (a traced picture, drawn shapes) instead of words, and
   `frame add --around-image`; a raised sign round a picture's shapes is refused for now.
-- **More frames, corners and borders** (sign-maker.md §5, step 2, branch `signs`): gable,
+- **More frames, corners and borders** (sign-maker.md §5, step 2): gable,
   arched top and bottom, shield, banner and octagon; a rectangle's corners (sharp, round,
   notch, chamfer, and the new step) chosen under one *Rectangle* picture, `--corners`;
   borders with corners of their own, double lines and a groove width (the margin measured
   to the groove's inner edge); a follow path with a V-bit takes a *Groove width* that sets
   its end depth.
 
-- **V-carve inlays** (docs/specs/vcarve-inlay.md, branch `signs`, not merged yet):
+- **V-carve inlays** (docs/specs/vcarve-inlay.md):
   a V-carve's optional `plug` (start depth D) carves the rest of its board, grown past the
   edges, with the outline D down; `op add-inlay` makes the pocket and, in a setup of its
   own with a mirrored part, the plug, with floor passes; the plug's checks (no pocket,
@@ -311,7 +318,7 @@ Smaller follow-ups noted along the way, not in the order above:
   Optional field, no schema bump.
 
 - **Mirrored parts** (the user, 2026-11-09: "a general mirror part functionality";
-  docs/specs/mirror-part.md, approved and built on branch `signs`, not merged yet): a part
+  docs/specs/mirror-part.md, approved and built on not merged yet): a part
   cut mirrored about its box's centre line, left to right or top to bottom, the drawing as
   drawn; planned with the cutting sense turned, so inside stays inside and climb stays
   climb (tested move by move against shapes mirrored by hand, with copies and on a back);
