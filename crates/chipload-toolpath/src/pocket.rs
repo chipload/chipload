@@ -424,6 +424,8 @@ fn ring_tree(
 
 /// Rounds of the uncut check, each halving the radii of the rings near material left.
 const ROUNDING_ROUNDS: usize = 12;
+/// The uncut-material check looks at the cancel flag after this many cells.
+const UNCUT_CELLS_PER_CHECK: usize = 256;
 
 /// The largest corner radius of a rounded ring, in stepovers (docs/specs/pocket-round-corners.md
 /// as built 2026-10-15): enough to take the stop out of every corner, small enough that the
@@ -600,8 +602,9 @@ fn rounded_rings(
             c.spindle,
             &mut ArcTable::default(),
         );
-        let (note, missed) = uncut_material(region, &level0, &rings, &[], c.tool_radius, ids);
-        note.map(|_| missed)
+        let (note, missed) =
+            uncut_material(region, &level0, &rings, &[], c.tool_radius, ids, c.cancel)?;
+        Ok::<_, ToolpathError>(note.map(|_| missed))
     };
     let sharp: Vec<Area> = nodes.iter().map(|n| n.area.clone()).collect();
     // Rings this far from material left are the ones that could have cut it.
@@ -616,7 +619,7 @@ fn rounded_rings(
             MAX_ROUNDING_STEPOVERS * stepover,
             &scales,
         );
-        let Some(left) = missed(nodes) else {
+        let Some(left) = missed(nodes)? else {
             return Ok(());
         };
         // The uncut check and the search below are most of a big pocket's time: a cancel is
@@ -651,7 +654,7 @@ fn rounded_rings(
         node.area = area.clone();
     }
     cancel::check(c.cancel)?;
-    if missed(nodes).is_none() {
+    if missed(nodes)?.is_none() {
         notes.push(Message::new("toolpath-corners-not-rounded").arg("contours", ids_text(ids)));
     }
     Ok(())
@@ -1150,7 +1153,8 @@ fn uncut_material(
     links: &[bool],
     radius: f64,
     ids: &[usize],
-) -> (Option<Message>, Vec<Missed>) {
+    cancel: Option<&Cancel>,
+) -> Result<(Option<Message>, Vec<Missed>), ToolpathError> {
     let eps = REST_TOL_MM;
     let thin = ARC_APPROX_TOL_MM;
     let cell_size = radius.max(1.0);
@@ -1167,7 +1171,7 @@ fn uncut_material(
     );
 
     let Some(extents) = region.outer.extents() else {
-        return (None, Vec::new());
+        return Ok((None, Vec::new()));
     };
     let side = (extents.max_x - extents.min_x).max(extents.max_y - extents.min_y);
     let mut todo = vec![Cell {
@@ -1179,7 +1183,14 @@ fn uncut_material(
     }];
     // (cell, whether it holds a deep point)
     let mut leftover: Vec<(Cell, bool)> = Vec::new();
+    let mut looked = 0usize;
     while let Some(cell) = todo.pop() {
+        // A big pocket's check can take a while: a cancel is seen within it too
+        // (docs/specs/background-generation.md).
+        looked += 1;
+        if looked.is_multiple_of(UNCUT_CELLS_PER_CHECK) {
+            cancel::check(cancel)?;
+        }
         let spread = cell.half * SQRT_2; // farthest any point of the cell is from its centre
         if paths.any_within(cell.centre, radius + thin - spread) {
             continue; // a path passes close enough to sweep the whole cell
@@ -1221,7 +1232,7 @@ fn uncut_material(
         .filter(|piece| piece.iter().any(|&i| leftover[i].1))
         .collect();
     if spots.is_empty() {
-        return (None, Vec::new());
+        return Ok((None, Vec::new()));
     }
     let missed: Vec<Missed> = spots
         .iter()
@@ -1254,7 +1265,7 @@ fn uncut_material(
         (Ordered(area(spot)), Ordered(-b.1), Ordered(-b.0))
     });
     let Some(largest) = largest else {
-        return (None, missed);
+        return Ok((None, missed));
     };
     let (x0, y0, x1, y1) = bounds(largest);
     // A point inside the piece: the centre of its biggest cell.
@@ -1263,7 +1274,7 @@ fn uncut_material(
         .map(|&i| cells[i])
         .max_by_key(|c| Ordered(c.half));
     let Some(inside) = inside else {
-        return (None, missed);
+        return Ok((None, missed));
     };
     let note = Message::new("toolpath-uncut")
         .arg("contours", ids_text(ids))
@@ -1274,7 +1285,7 @@ fn uncut_material(
             "near",
             Value::Point(inside.centre.0, inside.centre.1, Digits::Fixed(1)),
         );
-    (Some(note), missed)
+    Ok((Some(note), missed))
 }
 
 /// A spot of missed material: the squares it is made of.
@@ -1609,7 +1620,8 @@ pub fn plan_pocket(request: &PocketRequest) -> Result<PocketPlan, ToolpathError>
                 })
                 .collect();
             verify(&region, &walls, rings, &links, offset, &ids, &arcs)?;
-            let (uncut, _) = uncut_material(&region, &level0, rings, &links, tool_radius, &ids);
+            let (uncut, _) =
+                uncut_material(&region, &level0, rings, &links, tool_radius, &ids, cancel)?;
             Ok((links, uncut))
         };
         let (mut links, mut uncut) = linked(&rings)?;
