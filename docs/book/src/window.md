@@ -185,8 +185,8 @@ colour theme: dark, or light grey.
   it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
   shape [moves it](drawings/shapes.md#editing). To pan, drag with the right or middle
   button, or hold Space and drag (the way on a touchpad; the status bar's hint starts with
-  it). In 3D, a left drag orbits; if it turns the model the opposite way from what you are
-used to, tick *View > Reverse left-right orbit in 3D*. In Simulate a left drag pans (in 3D it orbits). On a
+  it). In 3D, a left drag orbits: the model turns with the mouse. To have a left-right
+drag move the view round the model instead, tick *View > Reverse left-right orbit in 3D*. In Simulate a left drag pans (in 3D it orbits). On a
   touchpad, a two-finger scroll or a pinch zooms.
 
 ![The canvas in 3D: the simulated stock on the grid, the cube in the corner and the

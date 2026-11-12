@@ -267,9 +267,10 @@ Smaller follow-ups noted along the way, not in the order above:
   View, Draw, Modify, Operation, Wizards, Library and Help in the top bar; the ribbon's
   captions plain labels; Edit > Preferences… opens This computer > Preferences; Cmd shown
   on a Mac. Later: the native macOS menu bar (`muda`, its own ADR, tried on a Mac).
-- **View > Reverse left-right orbit in 3D** (issue #16, 2026-11-12, branch `signs`): a
-  left-right drag turns the model with the mouse, as many CAD programs do; off by default,
-  kept in the app settings (`reverse_orbit`, optional, no bump). Close #16 with the release.
+- **3D: the model turns with the mouse** (issue #16, 2026-11-12, branch `signs`): a
+  left-right drag turned it the other way; *View > Reverse left-right orbit in 3D* brings
+  the old way back (app settings `reverse_orbit`, optional, no bump). Close #16 with the
+  release.
 - **Frames that follow their text** (docs/specs/sign-maker.md §4, step 1, branch `signs`,
   not merged yet): a frame remembers what it goes round (`drawing.frames`, optional, no
   schema bump) and is drawn again round it when the words, font, height or place change,

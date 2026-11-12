@@ -45,9 +45,11 @@ All in drawing coordinates (mm), with Z as the program uses it (stock top at Z 0
 | Wheel | zoom at the cursor | zoom at the cursor |
 | Click | select a contour | select a contour (picked on the stock top) |
 
-- **View > Reverse left-right orbit in 3D** (issue #16, 2026-11-12): a left-right drag
-  turns the model with the mouse, as many CAD programs do, instead of moving the view round
-  it; up-down is unchanged. Off by default, kept in the app settings (`reverse_orbit`).
+- **A drag turns the model with the mouse** (issue #16, 2026-11-12), as many CAD programs
+  do: a drag to the right brings the model's front to the right, a drag down tips its top
+  towards you. Until then a left-right drag moved the view round the model, the other way.
+  **View > Reverse left-right orbit in 3D** brings that back; up-down is unchanged. Off by
+  default, kept in the app settings (`reverse_orbit`) and in Preferences.
 - Toolbar and View menu: **3D** (switches on, keeping the zoom and starting from a
   three-quarter view) and **Top view** (back to straight down, as before). Keys: `T` top
   view; *Fit* (`F`) fits in either view.

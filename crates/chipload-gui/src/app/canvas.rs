@@ -75,8 +75,8 @@ impl ChiploadApp {
     }
 
     /// What the 3D view turns around: the stock's centre, else the drawing origin.
-    /// Orbit by a drag in 3D; a left-right drag the other way with View > Reverse
-    /// left-right orbit (issue #16).
+    /// Orbit by a drag in 3D; with View > Reverse left-right orbit, a left-right drag moves
+    /// the view round the model instead, as before issue #16.
     pub(super) fn orbit_by(&mut self, mut delta: egui::Vec2) {
         if self.prefs.reverse_orbit {
             delta.x = -delta.x;

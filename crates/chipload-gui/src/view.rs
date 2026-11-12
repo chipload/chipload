@@ -386,11 +386,13 @@ impl View {
         self.offset.1 += f64::from(delta.y);
     }
 
-    /// Turn and tilt by a mouse drag (pixels), keeping `pivot` where it is on screen.
+    /// Turn and tilt by a mouse drag (pixels), keeping `pivot` where it is on screen: the
+    /// model turns with the mouse, as in many CAD programs (issue #16): a drag to the right
+    /// brings its front to the right, a drag down tips its top towards you.
     pub fn orbit(&mut self, delta: Vec2, pivot: Point) {
         let at = self.to_screen(pivot);
         let per_pixel = 0.01;
-        self.turn = (self.turn - f64::from(delta.x) * per_pixel).rem_euclid(std::f64::consts::TAU);
+        self.turn = (self.turn + f64::from(delta.x) * per_pixel).rem_euclid(std::f64::consts::TAU);
         self.tilt = (self.tilt - f64::from(delta.y) * per_pixel).clamp(0.0, MAX_TILT_RAD);
         self.keep_at(pivot, at);
     }
@@ -2024,6 +2026,26 @@ mod tests {
         view.orbit(Vec2::new(-10_000.0, 1000.0), pivot);
         assert_eq!(view.tilt, 0.0);
         assert!((0.0..std::f64::consts::TAU).contains(&view.turn));
+    }
+
+    /// Issue #16: the model turns with the mouse, as in many CAD programs.
+    #[test]
+    fn a_drag_turns_the_model_with_the_mouse() {
+        let mut view = tilted();
+        let pivot = (50.0, 50.0);
+        let front = (50.0, 0.0); // the model's front, towards the viewer
+        let before = view.to_screen(front);
+        view.orbit(Vec2::new(10.0, 0.0), pivot);
+        assert!(
+            view.to_screen(front).x > before.x,
+            "right: the front goes right"
+        );
+        let tilt = view.tilt;
+        view.orbit(Vec2::new(0.0, 10.0), pivot);
+        assert!(
+            view.tilt < tilt,
+            "down: the top tips towards you, nearer the top view"
+        );
     }
 
     #[test]
