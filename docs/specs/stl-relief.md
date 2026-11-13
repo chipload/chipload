@@ -496,3 +496,56 @@ the model, and the small ball nose takes the rest.
   isn't a problem: a narrow flat may be wanted, and nothing is cut wrong.
 - A relief made otherwise (`op add relief`, roughing added later) keeps its rim as it is;
   the note tells.
+
+## 17. A smoothing pass
+
+Asked by the user 2026-11-13 ("the roughing of the ramp leaves quite large steps that a
+small ball mill probably can't cut"), decisions 1–4 as recommended ("Go ahead").
+
+**Why the steps:** along its lines the roughing end mill follows the surface (the level or
+the surface, whichever is higher). Between lines, on ground rising across them, its flat
+bottom stands on the surface at its uphill edge, so it leaves a stair: treads one stepover
+`s` wide, risers `s·tan(slope)` tall (40 % of 6 mm on a 45° ramp: 2.4 mm). The step down
+plays no part, so smaller step-downs don't help. Ground rising along the lines comes out
+clean.
+
+**The pass** (`smoothing` on the relief, optional; decision 1): after the roughing pass and
+before the finish, the surface followed once, no levels, the allowance kept: the roughing's
+drop-cutter raster with its tool grown by the allowance, the ramp and floor raised by it,
+the area shrunk as the roughing's (§14 step 3, §16). Cut as the relief's pass "N.2"
+(`OpRef::pass(i, 1)`, labelled *smoothing*), the roughing staying "N.1"; the cut list is
+roughing, smoothing, relief.
+
+| Field | Meaning |
+|---|---|
+| `tool` | a project end mill or plain ball nose |
+| `feed`, `plunge_feed` | mm/min |
+| `stepover` | fraction of the tool's diameter, > 0, at most 0.9 |
+| `angle` | its lines' direction, radians counter-clockwise from X |
+| `allowance` | what it leaves for the finish, mm, ≥ 0 |
+| `enabled` | missing: true |
+
+**Defaults** (decisions 2, 3): the roughing pass's tool (no tool change), feeds and
+allowance; lines at 90° to the relief's (the roughing's), so a box rim's four ramps all come
+out clean: each is clean along one of the two directions. Stepover: an end mill 15 %
+(ridges `0.15·D·tan(slope)` on slopes rising across both passes' lines at once, none on
+flat ground); a ball nose the widest leaving 0.1 mm ridges on flat ground, whole percent,
+5–40 % (`relief_stepover` with that ridge).
+
+**Rules:**
+- Only after a roughing pass: a smoothing pass needs the relief's roughing pass, present
+  and cut (`job-relief-smoothing-alone` on `smoothing.enabled` otherwise), as it follows the
+  surface in one go and would otherwise cut the whole depth at once.
+- The tool rules and checks are the roughing's (`toolpath-relief-roughing-tool`, a spindle
+  speed, the plunge note for an end mill not marked centre-cutting). The path check is the
+  roughing's: the grown tool against the model, and the ramp.
+- What it cuts: at most what the roughing left, the stair's risers; on steep ground they
+  are tall but thin (a stepover across), taken with the tool's side.
+
+**Where:** `op add-smoothing FILE --op N [--tool T] [--allowance A]` and `op
+remove-smoothing`; in the window an *Add smoothing pass* button on the roughing pass's form,
+and the pass as a row under the relief with its own form (tool, stepover, angle,
+allowance, feeds), on or off, removed. The wizard (decision 4): *Smooth the steps* under
+*Rough first*, ticked whenever roughing is, with the roughing tool.
+
+**Schema:** an optional field, no version bump.

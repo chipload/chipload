@@ -137,7 +137,39 @@ pub(crate) enum OpAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Take a relief's roughing pass away.
+    /// Give a relief a smoothing pass (docs/specs/stl-relief.md §17), after its roughing
+    /// pass: the surface followed once, lines across the roughing's, taking the steps the
+    /// roughing leaves on slopes. Replaces the smoothing pass it had.
+    AddSmoothing {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The relief's number as the app lists it (1 = first; `get` and `set` paths count
+        /// from 0).
+        #[arg(long)]
+        op: usize,
+        /// The smoothing tool's id in the project, an end mill or a plain ball nose; default
+        /// the roughing tool.
+        #[arg(long)]
+        tool: Option<i64>,
+        /// What is left on the model for the finish; default the roughing's.
+        #[arg(long, value_parser = crate::lengths::length)]
+        allowance: Option<f64>,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Take a relief's smoothing pass away.
+    RemoveSmoothing {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The relief's number as the app lists it (1 = first).
+        #[arg(long)]
+        op: usize,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+    /// Take a relief's roughing pass away, and its smoothing pass with it.
     RemoveRoughing {
         /// The project (.chipload).
         project: PathBuf,
@@ -891,11 +923,99 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             if relief.roughing.take().is_none() {
                 return out.fail(format!("operation {op} has no roughing pass"));
             }
+            // A smoothing pass goes only after a roughing pass (stl-relief.md §17).
+            let smoothed = relief.smoothing.take().is_some();
             let target = output.as_deref().unwrap_or(&project);
             if let Err(err) = crate::save_project(out, &job, target) {
                 return out.fail(err);
             }
-            out.line(format!("Removed the roughing pass of operation {op}."));
+            if smoothed {
+                out.line(format!(
+                    "Removed the roughing and smoothing passes of operation {op}."
+                ));
+            } else {
+                out.line(format!("Removed the roughing pass of operation {op}."));
+            }
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::AddSmoothing {
+            project,
+            op,
+            tool,
+            allowance,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            // The library's cutting values for another tool than the roughing's.
+            let library = settings_dir()
+                .map(|dir| Library::load(&dir))
+                .unwrap_or_default();
+            let material = chipload_pipeline::materials::project_material(&job, &library.materials)
+                .map(|m| m.uid.clone());
+            let cutting = tool
+                .and_then(|tool| job.tools.iter().find(|t| t.id == tool))
+                .and_then(|t| {
+                    chipload_job::library::linked_cutting(&library.tools, t, material.as_deref())
+                });
+            let at =
+                match chipload_pipeline::add_smoothing_pass(&mut job, op, tool, cutting.as_ref()) {
+                    Ok(at) => at,
+                    Err(err) => return out.fail(err),
+                };
+            let Some(chipload_job::Operation::Relief(chipload_job::ReliefOp {
+                smoothing: Some(pass),
+                ..
+            })) = job.operations.get_mut(at.operation)
+            else {
+                return out.fail(format!("operation {op} is not a relief"));
+            };
+            if let Some(allowance) = allowance {
+                pass.allowance = allowance;
+            }
+            let pass = *pass;
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &job, target) {
+                return out.fail(err);
+            }
+            out.line(format!(
+                "Added smoothing pass {at} to operation {op}, tool {}, leaving {} mm, lines at \
+                 {}°, stepover {} %.",
+                pass.tool,
+                chipload_core::text::mm(pass.allowance),
+                chipload_core::text::mm(pass.angle.to_degrees()),
+                chipload_core::text::mm(pass.stepover * 100.0),
+            ));
+            out.set("operation", json!(at.operation));
+            out.set("pass", json!(at.pass));
+            out.wrote(target, "");
+            ExitCode::SUCCESS
+        }
+        OpAction::RemoveSmoothing {
+            project,
+            op,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            let Some(chipload_job::Operation::Relief(relief)) =
+                op.checked_sub(1).and_then(|i| job.operations.get_mut(i))
+            else {
+                return out.fail(format!("operation {op} is not a relief"));
+            };
+            if relief.smoothing.take().is_none() {
+                return out.fail(format!("operation {op} has no smoothing pass"));
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &job, target) {
+                return out.fail(err);
+            }
+            out.line(format!("Removed the smoothing pass of operation {op}."));
             out.wrote(target, "");
             ExitCode::SUCCESS
         }

@@ -552,6 +552,7 @@ Relief: a 3D model carved from the top with the drop cutter, in parallel lines.
 | `rim` | [ReliefRim](#reliefrim) or null | no | A flat round the model at the floor and a ramp up from it to the stock top. Missing: none, the tool's centre stays within the area. Left out when missing. |
 | `roughing` | [ReliefRoughing](#reliefroughing) or null | no | A roughing pass, cut just before: levels one step down apart, the tool kept the allowance off the model. Missing: none. Left out when missing. |
 | `select` | [Selector](#selector) | yes | The area: closed shapes, by default the model's outline. The tool's centre stays in it, or with a rim, within the rim's reach round it. |
+| `smoothing` | [ReliefSmoothing](#reliefsmoothing) or null | no | A smoothing pass, cut after the roughing pass and before the finish: the surface followed once, the allowance kept, taking the steps the roughing leaves. Only with a roughing pass. Missing: none. Left out when missing. |
 | `start_depth` | number | yes | Where the model's top lies, mm down from the stock top: 0 for the top. |
 | `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a ball nose, an endmill or a V-bit. |
@@ -625,6 +626,20 @@ A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down
 | `feed` | number | yes | The cutting feed, mm/min. |
 | `plunge_feed` | number | yes | The feed going down to each stretch's first point, mm/min. |
 | `step_down` | number | yes | The distance between levels, mm. |
+| `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill or a plain ball nose. |
+
+## ReliefSmoothing
+
+A relief's smoothing pass (docs/specs/stl-relief.md §17): after the roughing, the surface followed once with the raster, an allowance left on the model for the finish.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `allowance` | number | yes | What is left on the model for the finish, mm, in every direction: 0 or more. |
+| `angle` | number | yes | The lines' direction, radians counter-clockwise from X: across the roughing's by default. |
+| `enabled` | boolean | no | False: kept, but not cut. Missing: true. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `plunge_feed` | number | yes | The feed going down to each line's first point, mm/min. |
 | `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill or a plain ball nose. |
 

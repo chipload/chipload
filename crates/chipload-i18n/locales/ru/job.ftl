@@ -9,6 +9,8 @@ job-operation-label-floor = Операция { $number } (дно)
 job-operation-label-named-floor = Операция { $number } ({ $name }, дно)
 job-operation-label-roughing = Операция { $number } (черновая)
 job-operation-label-named-roughing = Операция { $number } ({ $name }, черновая)
+job-operation-label-smoothing = Операция { $number } (сглаживание)
+job-operation-label-named-smoothing = Операция { $number } ({ $name }, сглаживание)
 job-tool-type = { $type ->
     [drill] сверло
     [ballnose] сферическая фреза
@@ -65,6 +67,7 @@ job-no-image = нет изображения { $id } в drawing.images
 job-no-model = нет модели { $id } в drawing.models
 job-relief-stepover = должно быть не больше { $most } инструмента, а не { $got }
 job-relief-allowance = должно быть 0 или больше, а не { $got }
+job-relief-smoothing-alone = проход сглаживания идёт по поверхности за один раз, поэтому перед ним нужен включённый черновой проход рельефа; добавьте или включите черновой проход либо выключите сглаживание
 job-relief-ramp = должен быть от { $least }° до 90°, а не { $got }°
 job-relief-rim-corner = должен быть от 0 до ширины бортика ({ $width }), а не { $got }
 job-no-dxf = нет DXF { $id } в drawing.dxfs

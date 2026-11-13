@@ -562,7 +562,7 @@ fn plan_step(
         cancel,
         floor_pass: job.is_floor_pass(chosen.at),
         finish_tool: job
-            .is_roughing_pass(chosen.at)
+            .is_relief_pass(chosen.at)
             .then(|| job.tool(job.operations[chosen.at.operation].tool()))
             .flatten(),
         sense: job.cutting_sense_of(op),
@@ -2433,9 +2433,25 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         }) = op
             && rough.enabled
         {
-            let (more_problems, more_notes) = roughing_checks(job, index, rough);
+            let (more_problems, more_notes) =
+                relief_pass_checks(job, index, (0, "roughing"), (rough.tool, rough.allowance));
             problems.extend(more_problems);
             notes.extend(more_notes);
+            if let Operation::Relief(chipload_job::ReliefOp {
+                smoothing: Some(smooth),
+                ..
+            }) = op
+                && smooth.enabled
+            {
+                let (more_problems, more_notes) = relief_pass_checks(
+                    job,
+                    index,
+                    (1, "smoothing"),
+                    (smooth.tool, smooth.allowance),
+                );
+                problems.extend(more_problems);
+                notes.extend(more_notes);
+            }
         } else if let Operation::Relief(relief) = op
             && relief.end_depth > tool.diameter + DEPTH_TOL_MM
         {
@@ -2671,8 +2687,22 @@ fn plan_relief_op(
     if sel.contours.iter().all(|c| !c.closed) {
         return Err(job_error(Message::new("toolpath-relief-no-area")));
     }
-    if let (Some(finish), Some(rough)) = (ctx.finish_tool, op.roughing) {
-        return plan_relief_roughing(op, ctx, sel, start, shift, &mesh, cutter, finish, rough);
+    // A pass of the relief: its smoothing pass (no levels) or its roughing pass; the
+    // resolved pass carries only its own.
+    if let Some(finish) = ctx.finish_tool {
+        let pass = match (op.smoothing, op.roughing) {
+            (Some(smooth), _) => Some((smooth.allowance, None)),
+            (None, Some(rough)) => Some((rough.allowance, Some(rough.step_down))),
+            (None, None) => None,
+        };
+        if let Some((allowance, step_down)) = pass {
+            let pass = ReliefPass {
+                finish,
+                allowance,
+                step_down,
+            };
+            return plan_relief_pass(op, ctx, sel, start, shift, &mesh, cutter, pass);
+        }
     }
     let index = crate::drop::DropMesh::new(&mesh, ctx.tool.diameter);
     let (start_depth, end_depth) = (op.start_depth, op.end_depth);
@@ -2720,11 +2750,22 @@ fn plan_relief_op(
     })
 }
 
-/// A relief's roughing pass (docs/specs/stl-relief.md §14 step 3): the tool grown by the
-/// allowance, its area shrunk so it never cuts wider than the finish, level by level, and
-/// the path checked to keep the allowance.
+/// What a relief's pass leaves and how it goes down: the finish's tool, the allowance, and
+/// the step down between levels for a roughing pass (None: the surface followed once, a
+/// smoothing pass).
+#[derive(Clone, Copy)]
+struct ReliefPass<'a> {
+    finish: &'a Tool,
+    allowance: f64,
+    step_down: Option<f64>,
+}
+
+/// A relief's roughing pass (docs/specs/stl-relief.md §14 step 3) or smoothing pass (§17):
+/// the tool grown by the allowance, its area shrunk so it never cuts wider than the finish,
+/// level by level or the surface followed once, and the path checked to keep the
+/// allowance.
 #[allow(clippy::too_many_arguments)]
-fn plan_relief_roughing(
+fn plan_relief_pass(
     op: &chipload_job::ReliefOp,
     ctx: &Context,
     sel: &Selection,
@@ -2732,10 +2773,9 @@ fn plan_relief_roughing(
     shift: Point,
     mesh: &chipload_mesh::Mesh,
     cutter: chipload_core::cutter::Cutter,
-    finish: &Tool,
-    rough: chipload_job::ReliefRoughing,
+    pass: ReliefPass,
 ) -> Result<Planned, ToolpathError> {
-    let allowance = rough.allowance;
+    let (finish, allowance) = (pass.finish, pass.allowance);
     let grown = cutter.grown(allowance).ok_or_else(|| {
         job_error(Message::new("toolpath-relief-roughing-tool").arg("tool", ctx.tool.id))
     })?;
@@ -2770,15 +2810,18 @@ fn plan_relief_roughing(
         floor,
         area: &area,
         ramp: ramp.as_ref(),
-        step: rough.stepover * ctx.tool.diameter,
+        step: op.stepover * ctx.tool.diameter,
         angle: op.angle,
         zigzag: op.zigzag,
         safe_z: ctx.job.machine.safe_z,
-        feed: rough.feed,
-        plunge_feed: rough.plunge_feed,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
         shift,
     };
-    let (moves, end) = crate::relief::rough_moves(&cut, stock_top, rough.step_down, start);
+    let (moves, end) = match pass.step_down {
+        Some(step_down) => crate::relief::rough_moves(&cut, stock_top, step_down, start),
+        None => crate::relief::relief_moves(&cut, start),
+    };
     if let Some((depth, at)) =
         crate::relief::verify(&moves, mesh, grown, ctx.top_z + allowance, shift)
     {
@@ -2790,9 +2833,11 @@ fn plan_relief_roughing(
         ));
     }
     ramp_checked(&moves, ramp.as_ref(), grown)?;
+    // Said once, of the roughing pass: a smoothing pass usually has the same tool.
     let notes = op
         .rim
         .as_ref()
+        .filter(|_| pass.step_down.is_some())
         .and_then(|rim| rim_too_narrow(ctx, rim, grown))
         .into_iter()
         .collect();
@@ -2962,28 +3007,27 @@ fn roughing_area(contours: &[&Contour], inset: f64) -> Result<Vec<Vec<Point>>, T
     Ok(area)
 }
 
-/// A relief's roughing pass (docs/specs/stl-relief.md §14 step 3): it cuts with a project
-/// end mill or plain ball nose with a spindle speed.
-fn roughing_checks(
+/// A relief's roughing pass (docs/specs/stl-relief.md §14 step 3) or smoothing pass (§17),
+/// pass `k` in `field`: it cuts with a project end mill or plain ball nose with a spindle
+/// speed.
+fn relief_pass_checks(
     job: &Job,
     index: usize,
-    rough: &chipload_job::ReliefRoughing,
+    (k, field): (usize, &str),
+    (tool_id, allowance): (i64, f64),
 ) -> (Vec<Problem>, Vec<Note>) {
     let (mut problems, mut notes) = (Vec::new(), Vec::new());
-    let label_message = job.label_message(OpRef::pass(index, 0));
-    let at = |field: &str| format!("operations.{index}.roughing.{field}");
-    let Some(tool) = job.tool(rough.tool) else {
+    let label_message = job.label_message(OpRef::pass(index, k));
+    let at = |name: &str| format!("operations.{index}.{field}.{name}");
+    let Some(tool) = job.tool(tool_id) else {
         problems.push(labelled(
             at("tool"),
             &label_message,
-            Message::new("toolpath-rest-pass-no-tool").arg("tool", rough.tool),
+            Message::new("toolpath-rest-pass-no-tool").arg("tool", tool_id),
         ));
         return (problems, notes);
     };
-    if tool
-        .cutter()
-        .and_then(|c| c.grown(rough.allowance))
-        .is_none()
+    if tool.cutter().and_then(|c| c.grown(allowance)).is_none()
         || !matches!(tool.kind, ToolType::Endmill | ToolType::Ballnose)
     {
         problems.push(labelled(

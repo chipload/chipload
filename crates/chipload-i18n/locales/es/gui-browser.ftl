@@ -136,3 +136,5 @@ browser-add-roughing = Añadir pasada de desbaste
 browser-add-roughing-hover = Una fresa plana o de punta esférica simple que primero quita el material por niveles, dejando sobrematerial para el relieve
 browser-roughing = Desbaste
 browser-roughing-hover = Una pasada de desbaste: el material quitado por niveles antes del relieve, con sobrematerial sobre el modelo
+browser-smoothing = Alisado
+browser-smoothing-hover = Una pasada de alisado: tras el desbaste, la superficie seguida una vez, quita los escalones que el desbaste deja en las pendientes

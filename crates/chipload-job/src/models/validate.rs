@@ -540,6 +540,12 @@ impl Job {
                         positive(at("stepover"), rough.stepover);
                         positive(at("step_down"), rough.step_down);
                     }
+                    if let Some(smooth) = &r.smoothing {
+                        let at = |field: &str| format!("operations.{i}.smoothing.{field}");
+                        positive(at("feed"), smooth.feed);
+                        positive(at("plunge_feed"), smooth.plunge_feed);
+                        positive(at("stepover"), smooth.stepover);
+                    }
                 }
                 Operation::Holes(h) => {
                     positive(at("end_depth"), h.end_depth);
@@ -645,6 +651,9 @@ impl Job {
                                 .arg("got", Value::Length(rough.allowance, Digits::Shortest)),
                         ));
                     }
+                }
+                if let Some(smooth) = &r.smoothing {
+                    problems.extend(smoothing_problems(i, r, smooth));
                 }
                 if let Some(rim) = &r.rim {
                     problems.extend(rim_problems(i, rim));
@@ -978,6 +987,43 @@ pub(super) fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
             Message::new("job-skin-above-tabs")
                 .arg("height", Value::LengthNumber(tabs.height, Digits::Shortest))
                 .arg("got", Value::LengthNumber(t, Digits::Shortest)),
+        ));
+    }
+    problems
+}
+
+/// A relief's smoothing pass (docs/specs/stl-relief.md §17): its stepover and allowance
+/// as the roughing's, a direction, and cut only after a roughing pass that is cut.
+fn smoothing_problems(i: usize, relief: &ReliefOp, smooth: &ReliefSmoothing) -> Vec<Problem> {
+    let mut problems = Vec::new();
+    let at = |field: &str| format!("operations.{i}.smoothing.{field}");
+    if smooth.stepover > RELIEF_MAX_STEPOVER {
+        problems.push(Problem::at(
+            at("stepover"),
+            Message::new("job-relief-stepover")
+                .arg("most", Value::Number(RELIEF_MAX_STEPOVER, Digits::Shortest))
+                .arg("got", Value::Number(smooth.stepover, Digits::Shortest)),
+        ));
+    }
+    if !(smooth.allowance.is_finite() && smooth.allowance >= 0.0) {
+        problems.push(Problem::at(
+            at("allowance"),
+            Message::new("job-relief-allowance")
+                .arg("got", Value::Length(smooth.allowance, Digits::Shortest)),
+        ));
+    }
+    if !smooth.angle.is_finite() {
+        problems.push(Problem::at(
+            at("angle"),
+            Message::new("job-must-be-number")
+                .arg("got", Value::Number(smooth.angle, Digits::Shortest)),
+        ));
+    }
+    let roughed = relief.roughing.is_some_and(|r| r.enabled);
+    if smooth.enabled && !roughed {
+        problems.push(Problem::at(
+            at("enabled"),
+            Message::new("job-relief-smoothing-alone"),
         ));
     }
     problems

@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = Die Platte wächst, damit Rand und Rampe dar
 relief-wizard-back = Zurück
 relief-wizard-next = Weiter
 relief-wizard-make = Relief erstellen
+models-could-not-add-smoothing = Der Glättdurchgang konnte nicht hinzugefügt werden: { $error }
+relief-wizard-smooth = Stufen glätten
+relief-wizard-smooth-hover = Der Schruppfräser folgt der Oberfläche noch einmal, quer zu seinen ersten Bahnen, und nimmt die Stufen an Hängen weg, sodass der Kugelfräser nur eine gleichmäßige Haut abnimmt
+relief-wizard-summary-smooth = Glätten mit demselben Werkzeug

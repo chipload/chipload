@@ -26,6 +26,8 @@ job-operation-label-floor = Bearbeitung { $number } (Boden)
 job-operation-label-named-floor = Bearbeitung { $number } ({ $name }, Boden)
 job-operation-label-roughing = Bearbeitung { $number } (Schruppen)
 job-operation-label-named-roughing = Bearbeitung { $number } ({ $name }, Schruppen)
+job-operation-label-smoothing = Bearbeitung { $number } (Glätten)
+job-operation-label-named-smoothing = Bearbeitung { $number } ({ $name }, Glätten)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] Bohrer
@@ -108,6 +110,7 @@ job-no-image = kein Bild { $id } in drawing.images
 job-no-model = kein Modell { $id } in drawing.models
 job-relief-stepover = darf höchstens { $most } des Werkzeugs sein, ist { $got }
 job-relief-allowance = muss 0 oder mehr sein, ist { $got }
+job-relief-smoothing-alone = ein Glättdurchgang folgt der Oberfläche in einem Zug und braucht daher vorher den Schruppdurchgang des Reliefs, eingeschaltet; füge ihn hinzu oder schalte ihn ein, oder schalte das Glätten aus
 job-relief-ramp = muss zwischen { $least }° und 90° liegen, ist { $got }°
 job-relief-rim-corner = muss zwischen 0 und der Breite des Rands ({ $width }) liegen, ist { $got }
 job-no-dxf = keine DXF { $id } in drawing.dxfs

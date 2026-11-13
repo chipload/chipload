@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = Le panneau s'agrandit pour contenir le bord 
 relief-wizard-back = Retour
 relief-wizard-next = Suivant
 relief-wizard-make = Créer le relief
+models-could-not-add-smoothing = Impossible d'ajouter la passe de lissage : { $error }
+relief-wizard-smooth = Lisser les marches
+relief-wizard-smooth-hover = La fraise d'ébauche suit encore une fois la surface, ses lignes en travers des premières, et enlève les marches laissées sur les pentes : la fraise hémisphérique n'enlève plus qu'une peau régulière
+relief-wizard-summary-smooth = Lissage avec le même outil

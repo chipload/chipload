@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 68] = [
+const GOLDEN: [(&str, &str); 69] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -217,6 +217,13 @@ const GOLDEN: [(&str, &str); 68] = [
     // A box rim, roughed: relief_dome_rough with `set operations.0.rim={"shape":"box",
     // "width":6,"ramp":1.047…,"corner_radius":3}` (60°).
     ("v36_relief_box_rough", "jobs/v36/relief_box_rough.chipload"),
+    // The same, smoothed (docs/specs/stl-relief.md §17): relief_box_rough with `op
+    // add-smoothing --op 1`, the roughing end mill again, lines at 120° (across the
+    // relief's 30°), 15 %, 0.5 mm left.
+    (
+        "v36_relief_box_smooth",
+        "jobs/v36/relief_box_smooth.chipload",
+    ),
     // The same relief roughed first (docs/specs/stl-relief.md §14 step 3): the 6 mm end
     // mill in levels 3 mm apart, 0.4 of the tool between lines, 0.5 mm left on the dome.
     // Made from relief_dome with `op add-roughing --op 1 --tool 1`.

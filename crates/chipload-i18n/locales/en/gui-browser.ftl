@@ -136,3 +136,5 @@ browser-add-roughing = Add roughing pass
 browser-add-roughing-hover = An end mill or a plain ball nose that takes the material down in levels first, leaving an allowance for the relief
 browser-roughing = Roughing
 browser-roughing-hover = A roughing pass: the material taken down in levels before the relief, an allowance left on the model
+browser-smoothing = Smoothing
+browser-smoothing-hover = A smoothing pass: after the roughing, the surface followed once, taking off the steps the roughing leaves on slopes

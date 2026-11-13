@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = Заготовка увеличиваетс�
 relief-wizard-back = Назад
 relief-wizard-next = Далее
 relief-wizard-make = Создать рельеф
+models-could-not-add-smoothing = Не удалось добавить проход сглаживания: { $error }
+relief-wizard-smooth = Сгладить ступени
+relief-wizard-smooth-hover = Черновая фреза ещё раз проходит по поверхности поперёк своих первых линий и снимает ступени на склонах, чтобы сферической фрезе остался ровный слой
+relief-wizard-summary-smooth = Сглаживание тем же инструментом

@@ -2,9 +2,9 @@
 //! What is cut, in the order it is cut: the operations, their pockets' rest passes after
 //! the run of pockets they belong to (docs/specs/rest-passes.md §3), and V-carves' floor
 //! passes before the run of V-carves they belong to (docs/specs/vcarve-wide-strokes.md §4),
-//! and a relief's roughing pass just before it (docs/specs/stl-relief.md §14).
-//! An operation keeps its number in the list; a rest pass is "N.k", k counting from 1, and
-//! a floor or roughing pass "N.1".
+//! and a relief's roughing and smoothing passes just before it (docs/specs/stl-relief.md
+//! §14, §17). An operation keeps its number in the list; a rest pass is "N.k", k counting
+//! from 1, a floor or roughing pass "N.1" and a smoothing pass "N.2".
 
 use std::fmt;
 
@@ -20,8 +20,8 @@ use crate::models::{
 pub struct OpRef {
     /// Index in `job.operations`.
     pub operation: usize,
-    /// Index in the pocket's `rest_passes`, or 0 for a V-carve's floor pass or a relief's
-    /// roughing pass; None: the operation itself.
+    /// Index in the pocket's `rest_passes`, 0 for a V-carve's floor pass or a relief's
+    /// roughing pass, 1 for a relief's smoothing pass; None: the operation itself.
     pub pass: Option<usize>,
 }
 
@@ -87,6 +87,14 @@ impl Job {
             {
                 list.push(OpRef::pass(i, 0));
             }
+            if let Operation::Relief(ReliefOp {
+                smoothing: Some(smooth),
+                ..
+            }) = &self.operations[i]
+                && smooth.enabled
+            {
+                list.push(OpRef::pass(i, 1));
+            }
             list.push(OpRef::op(i));
             if matches!(self.operations[i], Operation::Pocket(_)) {
                 run.push(i);
@@ -149,7 +157,11 @@ impl Job {
             return self.floor_pocket(vcarve, k).map(Operation::Pocket);
         }
         if let Operation::Relief(relief) = op {
-            return roughing_relief(relief, k).map(Operation::Relief);
+            return match k {
+                0 => roughing_relief(relief),
+                _ => smoothing_relief(relief, k),
+            }
+            .map(Operation::Relief);
         }
         let Operation::Pocket(pocket) = op else {
             return None;
@@ -222,17 +234,30 @@ impl Job {
         r.pass.is_some() && matches!(self.operations.get(r.operation), Some(Operation::Vcarve(_)))
     }
 
-    /// Whether `r` is a relief's roughing pass.
-    pub fn is_roughing_pass(&self, r: OpRef) -> bool {
+    /// Whether `r` is one of a relief's passes: its roughing or its smoothing pass.
+    pub fn is_relief_pass(&self, r: OpRef) -> bool {
         r.pass.is_some() && matches!(self.operations.get(r.operation), Some(Operation::Relief(_)))
     }
 
-    /// The kind of pass `r` is, as its label says it: "floor", "roughing" or "rest".
+    /// Whether `r` is a relief's roughing pass.
+    pub fn is_roughing_pass(&self, r: OpRef) -> bool {
+        r.pass == Some(0) && self.is_relief_pass(r)
+    }
+
+    /// Whether `r` is a relief's smoothing pass (docs/specs/stl-relief.md §17).
+    pub fn is_smoothing_pass(&self, r: OpRef) -> bool {
+        r.pass == Some(1) && self.is_relief_pass(r)
+    }
+
+    /// The kind of pass `r` is, as its label says it: "floor", "roughing", "smoothing" or
+    /// "rest".
     fn pass_kind(&self, r: OpRef) -> &'static str {
         if self.is_floor_pass(r) {
             "floor"
         } else if self.is_roughing_pass(r) {
             "roughing"
+        } else if self.is_smoothing_pass(r) {
+            "smoothing"
         } else {
             "rest"
         }
@@ -265,6 +290,10 @@ impl Job {
                 "job-operation-label-roughing",
                 "job-operation-label-named-roughing",
             ),
+            "smoothing" => (
+                "job-operation-label-smoothing",
+                "job-operation-label-named-smoothing",
+            ),
             _ => ("job-operation-label-rest", "job-operation-label-named-rest"),
         };
         match (r.pass, name) {
@@ -287,27 +316,49 @@ fn rest_pass_name(pocket: &str) -> String {
 
 /// A relief's roughing pass as a relief (docs/specs/stl-relief.md §14): its model, area,
 /// depths, angle and direction, with the pass's tool, feeds and stepover, and the pass
-/// itself kept so the planner knows its step down and allowance. None for another pass
-/// than 0 or no roughing.
-fn roughing_relief(relief: &ReliefOp, k: usize) -> Option<ReliefOp> {
-    let rough = relief.roughing.filter(|_| k == 0)?;
+/// itself kept so the planner knows its step down and allowance; no smoothing pass. None
+/// without roughing.
+fn roughing_relief(relief: &ReliefOp) -> Option<ReliefOp> {
+    let rough = relief.roughing?;
     Some(ReliefOp {
-        name: roughing_name(&relief.name),
+        name: pass_name(&relief.name, "roughing"),
         enabled: rough.enabled,
         material: None,
         tool: rough.tool,
         stepover: rough.stepover,
         feed: rough.feed,
         plunge_feed: rough.plunge_feed,
+        smoothing: None,
         ..relief.clone()
     })
 }
 
-/// A roughing pass's name, as the planner's resolved relief carries it.
-fn roughing_name(relief: &str) -> String {
+/// A relief's smoothing pass as a relief (docs/specs/stl-relief.md §17): its model, area,
+/// depths and direction, with the pass's tool, feeds, stepover and angle, and the pass
+/// itself kept so the planner knows its allowance; no roughing pass. None for another pass
+/// than 1 or no smoothing.
+fn smoothing_relief(relief: &ReliefOp, k: usize) -> Option<ReliefOp> {
+    let smooth = relief.smoothing.filter(|_| k == 1)?;
+    Some(ReliefOp {
+        name: pass_name(&relief.name, "smoothing"),
+        enabled: smooth.enabled,
+        material: None,
+        tool: smooth.tool,
+        stepover: smooth.stepover,
+        angle: smooth.angle,
+        feed: smooth.feed,
+        plunge_feed: smooth.plunge_feed,
+        roughing: None,
+        ..relief.clone()
+    })
+}
+
+/// A relief pass's name, as the planner's resolved relief carries it: "roughing" or
+/// "smoothing", after the relief's own.
+fn pass_name(relief: &str, kind: &str) -> String {
     match relief {
-        "" => "roughing".into(),
-        name => format!("{name}, roughing"),
+        "" => kind.into(),
+        name => format!("{name}, {kind}"),
     }
 }
 

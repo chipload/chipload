@@ -20,23 +20,24 @@ question at a time, each needing only the ones before it:
    round a box, rounded corners if you like: a flat at the relief's depth, then a ramp up
    to the surface; or the relief cut out through the board with tabs.
 5. **Tools:** the ball nose that finishes it; an end mill to rough it first, ticked when the
-   relief is deeper than the ball nose is wide; for a cut-out, its end mill, by default the
-   roughing one, so one tool does both.
+   relief is deeper than the ball nose is wide, and *Smooth the steps* after it (a
+   [smoothing pass](#smoothing-the-steps), ticked); for a cut-out, its end mill, by default
+   the roughing one, so one tool does both.
 6. **Check and make:** what will be made, in cutting order, with the tools and tool changes.
 
 From step 3 on, a picture of the board beside the questions shows the relief where it will
 lie, and the rim or cut-out round it. **Make** adds it all as one undo step, in a part of
-its own: the model, the relief with its rim and roughing pass, the cut-out. A board fitted
+its own: the model, the relief with its rim, roughing and smoothing passes, the cut-out. A board fitted
 to the drawing grows to hold the rim. Afterwards they are ordinary shapes and operations.
 
 From the command line, the same answers in the same order:
 
 ```sh
 chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
-    --around box --margin 10 --ramp 45 --tool 2 --rough-tool 1
+    --around box --margin 10 --ramp 45 --tool 2 --rough-tool 1 --smooth
 ```
 
-`--around` is `rim` (the default), `box` or `cut-out`. `--model ID` uses a model already in
+`--around` is `rim` (the default), `box` or `cut-out`; `--smooth` adds the smoothing pass. `--model ID` uses a model already in
 the project; `--up`, `--rotate`, `--at X,Y`, `--corner`, `--allowance` and `--end-mill`
 answer the rest. The tools are project tool
 numbers.
@@ -267,5 +268,44 @@ it is the relief's `roughing`:
 ```json
 "roughing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "step_down": 3.0,
   "stepover": 0.4, "allowance": 0.5, "enabled": true }
+```
+
+## Smoothing the steps
+
+Along its lines the roughing end mill follows the surface, but between them, on ground
+that rises across the lines, its flat bottom leaves a stair: steps one stepover wide and
+as tall as the slope makes them, 2.4 mm on a 45° ramp at 40 % of a 6 mm end mill. Smaller
+step-downs don't change them. A small ball nose would take each step in one bite.
+
+A **smoothing pass** takes them off: after the roughing, the roughing end mill follows the
+surface once more, no levels, with its lines across the roughing's, and leaves the same
+allowance. Ground that rises along either set of lines comes out clean, so a box rim's four
+ramps do; on curved ground the steps shrink to the smoothing's stepover times the slope. A
+larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
+change.
+
+In the window: *Add smoothing pass* on the roughing pass's properties; it shows under the
+relief after the roughing, with its own properties (tool, stepover, the lines' angle,
+allowance, feeds). From the command line:
+
+```sh
+chipload op add-smoothing sign.chipload --op 1                 # the roughing tool
+chipload op add-smoothing sign.chipload --op 1 --tool 3 --allowance 0.3mm
+chipload op remove-smoothing sign.chipload --op 1
+```
+
+- **Defaults:** the roughing pass's tool, feeds and allowance; lines a quarter turn from
+  the relief's; stepover 15 % with an end mill, or with a ball nose the widest that leaves
+  0.1 mm ridges on flat ground.
+- **Only after roughing:** it follows the surface in one go, so it needs the roughing pass,
+  ticked, before it; removing the roughing pass removes it too.
+
+It is cut between the roughing and the relief, as *Operation 1.2 (Relief 1, smoothing)*;
+the program is checked to keep the allowance off the model. In the project file it is the
+relief's `smoothing`:
+
+```json
+"smoothing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "stepover": 0.15,
+  "angle": 1.5708, "allowance": 0.5, "enabled": true }
 ```
 

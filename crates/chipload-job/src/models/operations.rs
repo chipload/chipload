@@ -410,7 +410,7 @@ impl Operation {
     }
 
     /// Every project tool it cuts with or names, each once: its own first, then a rest
-    /// pocket's larger tool, its rest passes', floor pass's and roughing pass's.
+    /// pocket's larger tool, its rest passes', floor pass's, roughing and smoothing passes'.
     pub fn tool_ids(&self) -> Vec<i64> {
         let mut ids = vec![self.tool()];
         let mut push = |id: i64| {
@@ -434,6 +434,9 @@ impl Operation {
             }
             Operation::Relief(r) => {
                 if let Some(pass) = &r.roughing {
+                    push(pass.tool);
+                }
+                if let Some(pass) = &r.smoothing {
                     push(pass.tool);
                 }
             }
@@ -466,6 +469,9 @@ impl Operation {
             }
             Operation::Relief(r) => {
                 if let Some(pass) = &mut r.roughing {
+                    pass.tool = new(pass.tool);
+                }
+                if let Some(pass) = &mut r.smoothing {
                     pass.tool = new(pass.tool);
                 }
             }
@@ -1355,6 +1361,37 @@ pub struct ReliefOp {
     // Spec: docs/specs/stl-relief.md §16 (optional).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rim: Option<ReliefRim>,
+    /// A smoothing pass, cut after the roughing pass and before the finish: the surface
+    /// followed once, the allowance kept, taking the steps the roughing leaves. Only with a
+    /// roughing pass. Missing: none. Left out when missing.
+    // Spec: docs/specs/stl-relief.md §17 (optional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub smoothing: Option<ReliefSmoothing>,
+}
+
+/// A relief's smoothing pass (docs/specs/stl-relief.md §17): after the roughing, the surface
+/// followed once with the raster, an allowance left on the model for the finish.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ReliefSmoothing {
+    /// The id of the project tool it cuts with (`tools`): an end mill or a plain ball nose.
+    pub tool: i64,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down to each line's first point, mm/min.
+    pub plunge_feed: f64,
+    /// The distance between lines, as a fraction of the tool diameter: more than 0, at most
+    /// 0.9.
+    pub stepover: f64,
+    /// The lines' direction, radians counter-clockwise from X: across the roughing's by
+    /// default.
+    pub angle: f64,
+    /// What is left on the model for the finish, mm, in every direction: 0 or more.
+    pub allowance: f64,
+    /// False: kept, but not cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
 }
 
 /// What a relief's rim follows (docs/specs/stl-relief.md §16).

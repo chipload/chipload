@@ -136,3 +136,5 @@ browser-add-roughing = Lägg till grovpass
 browser-add-roughing-hover = En pinnfräs eller vanlig kulfräs som först tar ner materialet i nivåer och lämnar ett tillägg för reliefen
 browser-roughing = Grovpass
 browser-roughing-hover = Ett grovpass: materialet nertaget i nivåer före reliefen, ett tillägg lämnat på modellen
+browser-smoothing = Utjämning
+browser-smoothing-hover = En utjämningspass: efter grovpassen följs ytan en gång och stegen som grovpassen lämnar i sluttningar tas bort

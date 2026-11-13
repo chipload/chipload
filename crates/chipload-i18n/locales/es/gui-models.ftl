@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = El tablero crece para que quepan el borde y 
 relief-wizard-back = Atrás
 relief-wizard-next = Siguiente
 relief-wizard-make = Crear relieve
+models-could-not-add-smoothing = No se pudo añadir la pasada de alisado: { $error }
+relief-wizard-smooth = Alisar los escalones
+relief-wizard-smooth-hover = La fresa de desbaste sigue la superficie una vez más, con sus líneas cruzando las primeras, y quita los escalones que dejó en las pendientes, para que la fresa esférica solo quite una capa uniforme
+relief-wizard-summary-smooth = Alisado con la misma herramienta

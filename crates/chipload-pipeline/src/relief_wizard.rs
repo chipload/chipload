@@ -99,6 +99,8 @@ pub struct ReliefRequest {
     /// mill for the cut-out (None: the roughing one).
     pub tool: i64,
     pub rough: Option<(i64, f64)>,
+    /// A smoothing pass after the roughing, with its tool (docs/specs/stl-relief.md §17).
+    pub smooth: bool,
     pub end_mill: Option<i64>,
 }
 
@@ -119,6 +121,7 @@ impl ReliefRequest {
             ramp: DEFAULT_RIM.ramp,
             tool,
             rough: None,
+            smooth: false,
             end_mill: None,
         }
     }
@@ -343,6 +346,9 @@ pub fn add_relief(
     if let Some((tool, allowance)) = request.rough {
         let cutting = crate::new_ops::tool_cutting(&job, library, tool);
         crate::add_roughing_pass(&mut job, relief + 1, tool, allowance, cutting.as_ref())?;
+        if request.smooth {
+            crate::add_smoothing_pass(&mut job, relief + 1, None, None)?;
+        }
     }
     // The cut-out last: outside the outline, through, with tabs.
     if let (Around::CutOut, Some(mill)) = (request.around, request.around_mill()) {
@@ -393,6 +399,7 @@ mod tests {
         request.corner = 4.0;
         request.ramp = 60f64.to_radians();
         request.rough = Some((1, 0.5));
+        request.smooth = true;
         request.keep = 0.6;
         request.depth = Some(6.0);
         let (out, made) = made(&job, &request);
@@ -410,6 +417,24 @@ mod tests {
         assert_eq!(
             relief.roughing.map(|r| (r.tool, r.allowance)),
             Some((1, 0.5))
+        );
+        // Smoothed with the roughing end mill, across its lines, 15 %, the same allowance.
+        let smooth = relief.smoothing.unwrap();
+        assert_eq!(
+            (smooth.tool, smooth.allowance, smooth.stepover),
+            (1, 0.5, 0.15)
+        );
+        assert!((smooth.angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
+        assert_eq!(
+            out.cut_list()
+                .into_iter()
+                .filter(|r| r.operation == made.relief)
+                .map(|r| r.to_string())
+                .collect::<Vec<_>>(),
+            [1, 2, 0].map(|k| match k {
+                0 => format!("{}", made.relief + 1),
+                k => format!("{}.{k}", made.relief + 1),
+            })
         );
         assert_eq!(
             relief.rim,
@@ -495,6 +520,80 @@ mod tests {
                 .any(|n| n.contains("narrower than the roughing tool")),
             "{wide:?}"
         );
+    }
+
+    /// The stock left by the end mill's passes alone (the relief's roughing, and smoothing
+    /// if any), and by the whole program, on the same grid.
+    fn before_and_after_the_finish(
+        job: &Job,
+        relief: usize,
+    ) -> (crate::simulate::Simulation, crate::simulate::Simulation) {
+        let result = crate::run_job(job).unwrap();
+        let finish = chipload_job::OpRef::op(relief);
+        let cancel = crate::Cancel::new();
+        let all =
+            crate::simulate::simulate(job, &result.program, &result.groups, Some(0.25), &cancel)
+                .unwrap();
+        let (mut program, groups) = (result.program.clone(), result.groups.clone());
+        let at = groups
+            .iter()
+            .find(|g| g.operations.contains(&finish))
+            .unwrap()
+            .moves
+            .start;
+        program.moves.truncate(at);
+        let before: Vec<_> = groups.into_iter().filter(|g| g.moves.end <= at).collect();
+        let rough = crate::simulate::simulate(job, &program, &before, Some(0.25), &cancel).unwrap();
+        (rough, all)
+    }
+
+    /// How much the end mill leaves above the finished surface on the rim's ramp, mm.
+    fn left_on_the_ramp(job: &Job, relief: usize) -> f64 {
+        let (rough, done) = before_and_after_the_finish(job, relief);
+        let (lo, hi) = crate::models::placed_mesh(job, 1)
+            .unwrap()
+            .bounds()
+            .unwrap();
+        let mut most: f64 = 0.0;
+        for j in 0..done.rows {
+            for i in 0..done.columns {
+                let x = done.origin.0 + (i as f64 + 0.5) * done.cell;
+                let y = done.origin.1 + (j as f64 + 0.5) * done.cell;
+                let h = done.height(i, j);
+                // The ramp's four straight sides: off the flat round the model's box (8 mm),
+                // beside the box, not at the top or the floor. Its corners are cones a
+                // flat end mill can't reach into at all.
+                let off = (lo[0] - 8.0 - x)
+                    .max(x - hi[0] - 8.0)
+                    .max(lo[1] - 8.0 - y)
+                    .max(y - hi[1] - 8.0);
+                let beside = (lo[0]..=hi[0]).contains(&x) || (lo[1]..=hi[1]).contains(&y);
+                if beside && off > 0.5 && h < done.top - 0.5 && h > done.top - 5.5 {
+                    most = most.max(rough.height(i, j) - h);
+                }
+            }
+        }
+        most
+    }
+
+    #[test]
+    fn a_smoothing_pass_takes_the_roughing_steps_off_a_box_ramp() {
+        let job = dome();
+        let mut request = ReliefRequest::new(30.0, 2);
+        request.around = Around::Box;
+        request.margin = 8.0;
+        request.rough = Some((1, 0.2));
+        request.depth = Some(6.0);
+        let (roughed, made_one) = made(&job, &request);
+        request.smooth = true;
+        let (smoothed, made_two) = made(&job, &request);
+        let steps = left_on_the_ramp(&roughed, made_one.relief);
+        let smooth = left_on_the_ramp(&smoothed, made_two.relief);
+        // 40 % of 6 mm across a 45° ramp: steps up to 2.4 mm, and the allowance (0.28 mm
+        // upright on 45°); smoothed along them, the allowance and the 0.25 mm grid's own
+        // error on the slope.
+        assert!(steps > 2.2, "{steps}");
+        assert!(smooth < 0.8, "{smooth}");
     }
 
     #[test]

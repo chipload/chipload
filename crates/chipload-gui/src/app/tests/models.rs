@@ -225,6 +225,36 @@ fn a_relief_needs_a_model_and_can_be_roughed_first() {
 }
 
 #[test]
+fn a_roughed_relief_can_be_smoothed_and_loses_it_with_its_roughing() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    let smooth = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
+        chipload_job::Operation::Relief(r) => r.smoothing,
+        _ => None,
+    };
+    // Not without a roughing pass first: the reason is shown.
+    assert!(!app.add_smoothing(0));
+    assert!(app.add_roughing(0, 1));
+    assert!(app.add_smoothing(0));
+    assert_eq!(app.focus, Focus::SmoothingPass(0));
+    let pass = smooth(&app).unwrap();
+    assert_eq!((pass.tool, pass.allowance, pass.stepover), (1, 0.5, 0.15));
+    draw_properties(&mut app);
+    draw_sidebar(&mut app);
+    app.toggle_smoothing(0);
+    assert_eq!(smooth(&app).map(|s| s.enabled), Some(false));
+    app.remove_smoothing(0);
+    assert_eq!(smooth(&app), None);
+    assert_eq!(app.focus, Focus::RoughingPass(0));
+    draw_properties(&mut app);
+    // Back again, then gone with the roughing pass it follows.
+    app.undo();
+    assert!(smooth(&app).is_some());
+    app.remove_roughing(0);
+    assert_eq!(smooth(&app), None);
+}
+
+#[test]
 fn a_models_handles_move_turn_and_size_it() {
     use chipload_pipeline::box_handles::BoxHandle;
     let mut app = ChiploadApp::default();

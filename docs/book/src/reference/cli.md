@@ -280,9 +280,39 @@ chipload op add-roughing <PROJECT> [OPTIONS]
 | `--allowance <ALLOWANCE>` | What is left on the model for the finish; default 0.5 mm. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload op add-smoothing`
+
+Give a relief a smoothing pass (docs/specs/stl-relief.md §17), after its roughing pass: the surface followed once, lines across the roughing's, taking the steps the roughing leaves on slopes. Replaces the smoothing pass it had
+
+```text
+chipload op add-smoothing <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The relief's number as the app lists it (1 = first; `get` and `set` paths count from 0) Required. |
+| `--tool <TOOL>` | The smoothing tool's id in the project, an end mill or a plain ball nose; default the roughing tool. |
+| `--allowance <ALLOWANCE>` | What is left on the model for the finish; default the roughing's. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload op remove-smoothing`
+
+Take a relief's smoothing pass away
+
+```text
+chipload op remove-smoothing <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--op <OP>` | The relief's number as the app lists it (1 = first) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload op remove-roughing`
 
-Take a relief's roughing pass away
+Take a relief's roughing pass away, and its smoothing pass with it
 
 ```text
 chipload op remove-roughing <PROJECT> [OPTIONS]
@@ -1540,6 +1570,7 @@ chipload relief add <PROJECT> <FILE> [OPTIONS]
 | `--tool <TOOL>` | The ball nose that finishes it (a project tool id) Required. |
 | `--rough-tool <ROUGH_TOOL>` | An end mill for a roughing pass first (a project tool id) |
 | `--allowance <ALLOWANCE>` | What the roughing pass leaves for the finish, mm. |
+| `--smooth` | A smoothing pass after the roughing, with the roughing tool, its lines across the roughing's: it takes the steps the roughing leaves on slopes. |
 | `--end-mill <END_MILL>` | The end mill for the cut-out (default: the roughing one) |
 | `-o, --output <OUTPUT>` | Write here instead of over the project. |
 

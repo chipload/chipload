@@ -136,3 +136,5 @@ browser-add-roughing = Aggiungi passata di sgrossatura
 browser-add-roughing-hover = Una fresa piatta o sferica semplice che prima toglie il materiale a livelli, lasciando sovrametallo per il rilievo
 browser-roughing = Sgrossatura
 browser-roughing-hover = Una passata di sgrossatura: il materiale tolto a livelli prima del rilievo, con sovrametallo sul modello
+browser-smoothing = Lisciatura
+browser-smoothing-hover = Una passata di lisciatura: dopo la sgrossatura, la superficie seguita una volta, toglie i gradini che la sgrossatura lascia sui pendii

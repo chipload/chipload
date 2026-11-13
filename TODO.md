@@ -229,8 +229,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    rim, box or cut-out (no background pocket); the deep-relief advice in the form. Not now:
    an end mill pass to finish a wide flat. §16.6 done: the wizard's flat by default fits
    the roughing tool (its diameter and allowance both sides, whole mm, at least 5), and a
-   plan note when a flat is narrower. Open, asked of the user: the steps the roughing end
-   mill leaves on slopes across its lines (a smoothing pass).
+   plan note when a flat is narrower. §17 done (the user, 2026-11-13: "Go ahead"): a
+   relief's smoothing pass "N.2" after its roughing (the surface followed once, lines
+   across, the roughing tool by default, 15 %), `op add-smoothing`, `relief add --smooth`,
+   the wizard's *Smooth the steps*, its Browser row and form; golden v36_relief_box_smooth.
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

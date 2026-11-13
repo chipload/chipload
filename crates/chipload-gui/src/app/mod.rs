@@ -140,6 +140,8 @@ pub enum Focus {
     FloorPass(usize),
     /// Relief `0`'s roughing pass (docs/specs/stl-relief.md §14).
     RoughingPass(usize),
+    /// Relief `0`'s smoothing pass (docs/specs/stl-relief.md §17).
+    SmoothingPass(usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
     /// A setup, by id (docs/specs/setups.md §7).
@@ -1951,7 +1953,11 @@ impl ChiploadApp {
 
     fn focused_contours(&self) -> BTreeSet<usize> {
         let (
-            Focus::Op(i) | Focus::RestPass(i, _) | Focus::FloorPass(i) | Focus::RoughingPass(i),
+            Focus::Op(i)
+            | Focus::RestPass(i, _)
+            | Focus::FloorPass(i)
+            | Focus::RoughingPass(i)
+            | Focus::SmoothingPass(i),
             Some(edit),
         ) = (self.focus, &self.edit)
         else {

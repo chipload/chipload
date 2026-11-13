@@ -403,13 +403,71 @@ impl ChiploadApp {
         }
     }
 
-    /// Remove relief `i`'s roughing pass; the relief opens.
+    /// Remove relief `i`'s roughing pass, and its smoothing pass with it, which goes only
+    /// after one (docs/specs/stl-relief.md §17); the relief opens.
     pub fn remove_roughing(&mut self, i: usize) {
         if let Some(Some(Operation::Relief(r))) =
             self.edit.as_mut().map(|e| e.job.operations.get_mut(i))
             && r.roughing.take().is_some()
         {
+            r.smoothing = None;
             self.focus = Focus::Op(i);
+            self.commit();
+        }
+    }
+
+    /// Give relief `i` a smoothing pass with its roughing tool (docs/specs/stl-relief.md
+    /// §17), in place of any it had, and open it. False, with the reason shown, when it
+    /// can't.
+    pub fn add_smoothing(&mut self, i: usize) -> bool {
+        let Some(edit) = self.edit.as_mut() else {
+            return false;
+        };
+        let tools = edit.job.tools.clone();
+        let Some(Operation::Relief(relief)) = edit.job.operations.get_mut(i) else {
+            return false;
+        };
+        match chipload_pipeline::smoothing_of(relief, &tools, None, None) {
+            Ok(pass) => {
+                relief.smoothing = Some(pass);
+                self.focus = Focus::SmoothingPass(i);
+                self.commit();
+                true
+            }
+            Err(err) => {
+                self.error(vec![t!(
+                    self,
+                    "models-could-not-add-smoothing",
+                    error = self.say(&err)
+                )]);
+                false
+            }
+        }
+    }
+
+    /// Relief `i`'s smoothing pass, to change.
+    pub(super) fn smoothing_mut(&mut self, i: usize) -> Option<&mut chipload_job::ReliefSmoothing> {
+        match self.edit.as_mut()?.job.operations.get_mut(i) {
+            Some(Operation::Relief(r)) => r.smoothing.as_mut(),
+            _ => None,
+        }
+    }
+
+    /// Remove relief `i`'s smoothing pass; its roughing pass opens.
+    pub fn remove_smoothing(&mut self, i: usize) {
+        if let Some(Some(Operation::Relief(r))) =
+            self.edit.as_mut().map(|e| e.job.operations.get_mut(i))
+            && r.smoothing.take().is_some()
+        {
+            self.focus = Focus::RoughingPass(i);
+            self.commit();
+        }
+    }
+
+    /// Turn relief `i`'s smoothing pass on or off.
+    pub fn toggle_smoothing(&mut self, i: usize) {
+        if let Some(pass) = self.smoothing_mut(i) {
+            pass.enabled = !pass.enabled;
             self.commit();
         }
     }

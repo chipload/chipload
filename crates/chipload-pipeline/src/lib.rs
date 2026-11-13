@@ -535,6 +535,94 @@ pub fn roughing_of(
     })
 }
 
+/// The ridges a smoothing pass's ball nose leaves on flat ground, mm: the finish takes them
+/// (docs/specs/stl-relief.md §17).
+pub const SMOOTHING_RIDGE_MM: f64 = 0.1;
+
+/// A smoothing pass's stepover with an end mill, as a fraction of its diameter (§17).
+pub const SMOOTHING_END_MILL_STEPOVER: f64 = 0.15;
+
+/// A smoothing pass for `relief` (docs/specs/stl-relief.md §17), after its roughing pass:
+/// with project tool `tool`, by default the roughing's. Its allowance is the roughing's;
+/// its lines go across the relief's; its stepover is 15 % with an end mill, or for a ball
+/// nose the widest leaving [`SMOOTHING_RIDGE_MM`]. Its feeds are the roughing's with the
+/// roughing tool, else `cutting`'s (the library's for the tool), else the relief's. Refused,
+/// with the reason, without a roughing pass or for a tool that isn't an end mill or a plain
+/// ball nose.
+pub fn smoothing_of(
+    relief: &chipload_job::ReliefOp,
+    tools: &[Tool],
+    tool: Option<i64>,
+    cutting: Option<&Cutting>,
+) -> Result<chipload_job::ReliefSmoothing, Message> {
+    let rough = relief
+        .roughing
+        .ok_or_else(|| Message::new("job-relief-smoothing-alone"))?;
+    let tool = tool.unwrap_or(rough.tool);
+    let mill =
+        find_tool(tools, tool).ok_or_else(|| Message::new("pipeline-no-tool").arg("tool", tool))?;
+    let fits = matches!(mill.kind, ToolType::Endmill | ToolType::Ballnose)
+        && mill
+            .cutter()
+            .and_then(|c| c.grown(rough.allowance))
+            .is_some();
+    if !fits {
+        return Err(Message::new("toolpath-relief-roughing-tool").arg("tool", tool));
+    }
+    let (feed, plunge_feed) = match cutting {
+        _ if tool == rough.tool => (rough.feed, rough.plunge_feed),
+        Some(c) => (c.feed, c.plunge_feed),
+        None => (relief.feed, relief.plunge_feed),
+    };
+    let stepover = crate::new_ops::ridge_stepover(Some(mill), SMOOTHING_RIDGE_MM)
+        .unwrap_or(SMOOTHING_END_MILL_STEPOVER);
+    Ok(chipload_job::ReliefSmoothing {
+        tool,
+        feed,
+        plunge_feed,
+        stepover,
+        angle: across(relief.angle),
+        allowance: rough.allowance,
+        enabled: true,
+    })
+}
+
+/// The direction across `angle`, radians: a quarter turn on, kept below a half turn, as
+/// raster lines go both ways.
+fn across(angle: f64) -> f64 {
+    (angle + std::f64::consts::FRAC_PI_2).rem_euclid(std::f64::consts::PI)
+}
+
+/// Give relief `number` (1-based) a smoothing pass with tool `tool` (None: its roughing
+/// tool), in place of any it had (docs/specs/stl-relief.md §17). Returns the pass.
+pub fn add_smoothing_pass(
+    job: &mut Job,
+    number: usize,
+    tool: Option<i64>,
+    cutting: Option<&Cutting>,
+) -> Result<chipload_job::OpRef, PipelineError> {
+    let count = job.operations.len();
+    let index = number
+        .checked_sub(1)
+        .filter(|&i| i < count)
+        .ok_or_else(|| no_operation(number, count))?;
+    let tools = job.tools.clone();
+    let Operation::Relief(relief) = &mut job.operations[index] else {
+        return Err(PipelineError::Job(
+            Message::new("pipeline-not-a-relief").arg("number", number),
+        ));
+    };
+    let pass = smoothing_of(relief, &tools, tool, cutting).map_err(|e| {
+        PipelineError::Job(
+            Message::new("pipeline-operation-refused")
+                .arg("number", number)
+                .arg("reason", e),
+        )
+    })?;
+    relief.smoothing = Some(pass);
+    Ok(chipload_job::OpRef::pass(index, 1))
+}
+
 /// Give relief `number` (1-based) a roughing pass with tool `tool`, in place of any it had
 /// (docs/specs/stl-relief.md §14 step 3). Returns the pass.
 pub fn add_roughing_pass(

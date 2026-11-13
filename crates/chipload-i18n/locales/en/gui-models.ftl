@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = The board grows to hold the rim and its ramp
 relief-wizard-back = Back
 relief-wizard-next = Next
 relief-wizard-make = Make relief
+models-could-not-add-smoothing = Could not add the smoothing pass: { $error }
+relief-wizard-smooth = Smooth the steps
+relief-wizard-smooth-hover = The roughing end mill follows the surface once more, its lines across its first ones, and takes off the steps it left on slopes, so the ball nose only takes an even skin
+relief-wizard-summary-smooth = Smoothing with the same tool

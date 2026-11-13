@@ -299,6 +299,7 @@ pub(in crate::app) fn roughing_pass_form(
         unit = len_unit,
         angle = format!("{:.0}", relief.angle.to_degrees())
     );
+    let smoothed = relief.smoothing.is_some();
     let pass = relief.roughing.as_mut()?;
     let at = chipload_job::OpRef::pass(i, 0);
     let mut request = None;
@@ -389,8 +390,149 @@ pub(in crate::app) fn roughing_pass_form(
     ui.add_space(6.0);
     ui.weak(t!(ui, "forms-roughing-note"));
     ui.add_space(6.0);
-    if ui.button(t!(ui, "forms-remove-roughing")).clicked() {
-        request = Some(JobRequest::RemoveRoughingPass(i));
+    ui.horizontal_wrapped(|ui| {
+        if !smoothed
+            && ui
+                .button(t!(ui, "forms-add-smoothing"))
+                .on_hover_text(t!(ui, "forms-add-smoothing-hover"))
+                .clicked()
+        {
+            request = Some(JobRequest::AddSmoothingPass(i));
+        }
+        if ui.button(t!(ui, "forms-remove-roughing")).clicked() {
+            request = Some(JobRequest::RemoveRoughingPass(i));
+        }
+    });
+    request
+}
+
+/// Relief `i`'s smoothing pass (docs/specs/stl-relief.md §17): its tool, lines, allowance
+/// and feeds; the relief's model, area and depths as facts. None when there is no such pass
+/// (after an undo).
+pub(in crate::app) fn smoothing_pass_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    i: usize,
+) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let tools = edit.job.tools.clone();
+    let Some(Operation::Relief(relief)) = edit.job.operations.get_mut(i) else {
+        return None;
+    };
+    let relief_name = match relief.name.as_str() {
+        "" => t!(ui, "forms-rest-pass-of", number = i + 1),
+        name => t!(ui, "forms-rest-pass-of-named", number = i + 1, name = name),
+    };
+    let facts = t!(
+        ui,
+        "forms-smoothing-facts",
+        start = len_in(units, relief.start_depth),
+        end = len_in(units, relief.end_depth),
+        unit = len_unit
+    );
+    let pass = relief.smoothing.as_mut()?;
+    let at = chipload_job::OpRef::pass(i, 1);
+    let mut request = None;
+    let color = crate::style::op_color(
+        chipload_pipeline::new_ops::OpKind::Relief,
+        ui.visuals().dark_mode,
+    );
+    set_card_stripe(ui, color);
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Relief,
+        Some(color),
+        &format!(
+            "{} · {}",
+            t!(ui, "forms-smoothing-pass"),
+            t!(ui, "forms-operation-number", number = at.to_string())
+        ),
+    );
+    // Tools a smoothing takes, as a roughing: an end mill or a plain ball nose.
+    let fits = |t: &Tool| {
+        t.kind == ToolType::Endmill || (t.kind == ToolType::Ballnose && t.angle.is_none())
+    };
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("smoothing-pass", i))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-smoothing-of"))
+                    .on_hover_text(t!(ui, "forms-smoothing-of-hover"));
+                ui.horizontal(|ui| {
+                    ui.label(&relief_name);
+                    if ui.small_button(t!(ui, "forms-open")).clicked() {
+                        request = Some(JobRequest::OpenOperation(i));
+                    }
+                });
+                ui.end_row();
+                ui.label(t!(ui, "forms-from-relief"));
+                ui.weak(&facts);
+                ui.end_row();
+                ui.label(t!(ui, "forms-cut-it"));
+                ui.checkbox(&mut pass.enabled, "")
+                    .on_hover_text(t!(ui, "forms-cut-it-hover"));
+                ui.end_row();
+                ui.label(t!(ui, "forms-tool"));
+                let lang = ui.lang();
+                let label = |id: i64| {
+                    tools
+                        .iter()
+                        .find(|t| t.id == id)
+                        .map_or(t!(lang, "forms-tool-not-in-project", tool = id), |t| {
+                            tool_label(ui, t, units)
+                        })
+                };
+                let combo = ComboBox::from_id_salt(("smoothing-pass", i, "tool"))
+                    .selected_text(label(pass.tool))
+                    .show_ui(ui, |ui| {
+                        for t in tools.iter().filter(|t| fits(t)) {
+                            ui.selectable_value(&mut pass.tool, t.id, tool_label(ui, t, units));
+                        }
+                    });
+                flag(combo.response, ui, "tool");
+                ui.end_row();
+                ui.label(t!(ui, "forms-stepover"));
+                let stepover = ui.add(
+                    crate::units::number(ui, &mut pass.stepover)
+                        .speed(0.01)
+                        .range(0.01..=chipload_job::RELIEF_MAX_STEPOVER)
+                        .suffix(" × D"),
+                );
+                flag(stepover, ui, "stepover");
+                ui.end_row();
+                ui.label(t!(ui, "forms-smoothing-angle"))
+                    .on_hover_text(t!(ui, "forms-smoothing-angle-hover"));
+                let mut degrees = pass.angle.to_degrees();
+                let angle = ui.add(
+                    crate::units::number(ui, &mut degrees)
+                        .speed(1.0)
+                        .range(-360.0..=360.0)
+                        .suffix("°"),
+                );
+                if angle.changed() {
+                    pass.angle = degrees.to_radians();
+                }
+                flag(angle, ui, "angle");
+                ui.end_row();
+                ui.label(t!(ui, "forms-roughing-allowance"))
+                    .on_hover_text(t!(ui, "forms-smoothing-allowance-hover"));
+                flag(ui.add(mm(&mut pass.allowance)), ui, "allowance");
+                ui.end_row();
+                ui.label(t!(ui, "forms-feed"));
+                flag(ui.add(feed(&mut pass.feed)), ui, "feed");
+                ui.end_row();
+                ui.label(t!(ui, "forms-plunge-feed"));
+                flag(ui.add(feed(&mut pass.plunge_feed)), ui, "plunge_feed");
+                ui.end_row();
+            })
+    });
+    ui.add_space(6.0);
+    ui.weak(t!(ui, "forms-smoothing-note"));
+    ui.add_space(6.0);
+    if ui.button(t!(ui, "forms-remove-smoothing")).clicked() {
+        request = Some(JobRequest::RemoveSmoothingPass(i));
     }
     request
 }

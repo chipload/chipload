@@ -26,6 +26,8 @@ job-operation-label-floor = Operation { $number } (botten)
 job-operation-label-named-floor = Operation { $number } ({ $name }, botten)
 job-operation-label-roughing = Operation { $number } (grovbearbetning)
 job-operation-label-named-roughing = Operation { $number } ({ $name }, grovbearbetning)
+job-operation-label-smoothing = Operation { $number } (utjämning)
+job-operation-label-named-smoothing = Operation { $number } ({ $name }, utjämning)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] borr
@@ -108,6 +110,7 @@ job-no-image = ingen bild { $id } i drawing.images
 job-no-model = ingen modell { $id } i drawing.models
 job-relief-stepover = får vara högst { $most } av verktyget, är { $got }
 job-relief-allowance = måste vara 0 eller mer, är { $got }
+job-relief-smoothing-alone = en utjämningspass följer ytan i ett svep och behöver därför reliefens grovpass, påslagen, före sig; lägg till eller slå på grovpassen, eller slå av utjämningen
 job-relief-ramp = måste vara mellan { $least }° och 90°, är { $got }°
 job-relief-rim-corner = måste vara mellan 0 och kantens bredd ({ $width }), är { $got }
 job-no-dxf = ingen DXF { $id } i drawing.dxfs

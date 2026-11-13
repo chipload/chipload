@@ -26,6 +26,8 @@ job-operation-label-floor = Operation { $number } (floor)
 job-operation-label-named-floor = Operation { $number } ({ $name }, floor)
 job-operation-label-roughing = Operation { $number } (roughing)
 job-operation-label-named-roughing = Operation { $number } ({ $name }, roughing)
+job-operation-label-smoothing = Operation { $number } (smoothing)
+job-operation-label-named-smoothing = Operation { $number } ({ $name }, smoothing)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] drill
@@ -108,6 +110,7 @@ job-no-image = no image { $id } in drawing.images
 job-no-model = no model { $id } in drawing.models
 job-relief-stepover = must be at most { $most } of the tool, got { $got }
 job-relief-allowance = must be 0 or more, got { $got }
+job-relief-smoothing-alone = a smoothing pass follows the surface in one go, so it needs the relief's roughing pass, cut, before it; add or turn on the roughing pass, or turn the smoothing off
 job-relief-ramp = must be from { $least }° to 90°, got { $got }°
 job-relief-rim-corner = must be from 0 to the rim's width ({ $width }), got { $got }
 job-no-dxf = no DXF { $id } in drawing.dxfs

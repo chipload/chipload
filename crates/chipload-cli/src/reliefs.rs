@@ -100,6 +100,10 @@ pub struct AddRelief {
     /// What the roughing pass leaves for the finish, mm.
     #[arg(value_parser = crate::lengths::length, long, requires = "rough_tool")]
     allowance: Option<f64>,
+    /// A smoothing pass after the roughing, with the roughing tool, its lines across the
+    /// roughing's: it takes the steps the roughing leaves on slopes.
+    #[arg(long, requires = "rough_tool")]
+    smooth: bool,
     /// The end mill for the cut-out (default: the roughing one).
     #[arg(long)]
     end_mill: Option<i64>,
@@ -146,6 +150,7 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
         )
     });
     request.margin = add.margin.unwrap_or_else(|| rim_width(&job, request.rough));
+    request.smooth = add.smooth;
     request.end_mill = add.end_mill;
     let library = settings_dir()
         .map(|dir| Library::load(&dir))

@@ -44,20 +44,24 @@ pub fn relief_ridge(tool: &Tool, stepover: f64) -> Option<f64> {
 /// [`RELIEF_RIDGE_MM`], to the nearest whole percent and within [`RELIEF_STEPOVER_RANGE`];
 /// otherwise [`DEFAULT_RELIEF_STEPOVER`].
 pub fn relief_stepover(tool: Option<&Tool>) -> f64 {
-    let Some(tool) = tool.filter(|t| t.kind == ToolType::Ballnose && t.diameter > 0.0) else {
-        return DEFAULT_RELIEF_STEPOVER;
-    };
+    ridge_stepover(tool, RELIEF_RIDGE_MM).unwrap_or(DEFAULT_RELIEF_STEPOVER)
+}
+
+/// With a ball nose, the widest stepover that leaves ridges of `ridge` mm on flat ground, to
+/// the nearest whole percent and within [`RELIEF_STEPOVER_RANGE`]; None for another tool.
+pub fn ridge_stepover(tool: Option<&Tool>, ridge: f64) -> Option<f64> {
+    let tool = tool.filter(|t| t.kind == ToolType::Ballnose && t.diameter > 0.0)?;
     let (lo, hi) = RELIEF_STEPOVER_RANGE;
     // The ridge grows with the stepover: halve towards the widest within the target.
     let (mut below, mut above) = (0.0, 1.0);
     for _ in 0..RIDGE_HALVINGS {
         let mid = (below + above) / 2.0;
         match relief_ridge(tool, mid) {
-            Some(h) if h <= RELIEF_RIDGE_MM => below = mid,
+            Some(h) if h <= ridge => below = mid,
             _ => above = mid,
         }
     }
-    ((below * 100.0).round() / 100.0).clamp(lo, hi)
+    Some(((below * 100.0).round() / 100.0).clamp(lo, hi))
 }
 
 use crate::chip_load::{default_feed, default_plunge_feed};
@@ -616,6 +620,7 @@ impl Start {
                     plunge_feed: self.plunge_feed,
                     roughing: None,
                     rim: Some(chipload_job::DEFAULT_RIM),
+                    smoothing: None,
                 })
             }
             OpKind::Surface => {

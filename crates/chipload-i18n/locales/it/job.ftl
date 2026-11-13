@@ -26,6 +26,8 @@ job-operation-label-floor = Lavorazione { $number } (fondo)
 job-operation-label-named-floor = Lavorazione { $number } ({ $name }, fondo)
 job-operation-label-roughing = Lavorazione { $number } (sgrossatura)
 job-operation-label-named-roughing = Lavorazione { $number } ({ $name }, sgrossatura)
+job-operation-label-smoothing = Lavorazione { $number } (lisciatura)
+job-operation-label-named-smoothing = Lavorazione { $number } ({ $name }, lisciatura)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] punta
@@ -108,6 +110,7 @@ job-no-image = nessuna immagine { $id } in drawing.images
 job-no-model = nessun modello { $id } in drawing.models
 job-relief-stepover = deve essere al massimo { $most } dell'utensile, è { $got }
 job-relief-allowance = deve essere 0 o più, è { $got }
+job-relief-smoothing-alone = una passata di lisciatura segue la superficie in una volta, quindi le serve prima la passata di sgrossatura del rilievo, attiva; aggiungi o attiva la sgrossatura, oppure disattiva la lisciatura
 job-relief-ramp = deve essere tra { $least }° e 90°, è { $got }°
 job-relief-rim-corner = deve essere tra 0 e la larghezza del bordo ({ $width }), è { $got }
 job-no-dxf = nessun DXF { $id } in drawing.dxfs

@@ -60,6 +60,8 @@ pub(super) struct ReliefWizard {
     finish: Option<WizardTool>,
     rough_on: bool,
     rough: Option<WizardTool>,
+    /// A smoothing pass after the roughing, with its tool (docs/specs/stl-relief.md §17).
+    smooth: bool,
     allowance: f64,
     end_mill: Option<WizardTool>,
 }
@@ -138,6 +140,7 @@ impl ReliefWizard {
             finish: first_tool(job, library, ToolKind::BallNose),
             rough_on: false,
             rough: first_tool(job, library, ToolKind::EndMill),
+            smooth: true,
             allowance: chipload_pipeline::DEFAULT_ROUGHING_ALLOWANCE_MM,
             end_mill: None,
         }
@@ -306,6 +309,7 @@ impl ChiploadApp {
         request.margin = w.margin;
         request.corner = w.corner;
         request.ramp = w.ramp;
+        request.smooth = w.smooth && rough.is_some();
         request.rough = rough;
         request.end_mill = end_mill;
         let made = match &w.source {
@@ -706,6 +710,10 @@ fn step_tools(ui: &mut egui::Ui, w: &mut ReliefWizard, offer: &ToolOffer<'_>) {
             });
             ui.end_row();
             if w.rough_on {
+                ui.label("");
+                ui.checkbox(&mut w.smooth, t!(ui, "relief-wizard-smooth"))
+                    .on_hover_text(t!(ui, "relief-wizard-smooth-hover"));
+                ui.end_row();
                 ui.label(t!(ui, "relief-wizard-allowance"));
                 ui.add(
                     crate::units::length(&mut w.allowance)
@@ -751,6 +759,9 @@ fn step_check(
             tool = name(rough),
             allowance = text(w.allowance).as_str()
         ));
+        if w.smooth {
+            lines.push(t!(ui, "relief-wizard-summary-smooth"));
+        }
         tools.push(rough.clone());
     }
     if let Some(finish) = &w.finish {

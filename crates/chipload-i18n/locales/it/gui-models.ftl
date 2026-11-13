@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = La tavola si allarga per contenere il bordo 
 relief-wizard-back = Indietro
 relief-wizard-next = Avanti
 relief-wizard-make = Crea rilievo
+models-could-not-add-smoothing = Impossibile aggiungere la passata di lisciatura: { $error }
+relief-wizard-smooth = Lisciare i gradini
+relief-wizard-smooth-hover = La fresa di sgrossatura segue ancora una volta la superficie, con le linee di traverso alle prime, e toglie i gradini lasciati sui pendii, così la fresa sferica asporta solo uno strato uniforme
+relief-wizard-summary-smooth = Lisciatura con lo stesso utensile

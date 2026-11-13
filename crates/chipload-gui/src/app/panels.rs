@@ -181,6 +181,7 @@ impl ChiploadApp {
                 request = forms::floor_pass_form(ui, edit, i, floor_hint.as_ref());
             }
             Focus::RoughingPass(i) => request = forms::roughing_pass_form(ui, edit, i),
+            Focus::SmoothingPass(i) => request = forms::smoothing_pass_form(ui, edit, i),
             // Drawn by `library_properties` above.
             Focus::LibraryTools
             | Focus::LibraryTool(_)
@@ -221,6 +222,7 @@ impl ChiploadApp {
             Focus::Op(i) => Some(chipload_job::OpRef::op(i)),
             Focus::RestPass(i, k) => Some(chipload_job::OpRef::pass(i, k)),
             Focus::FloorPass(i) | Focus::RoughingPass(i) => Some(chipload_job::OpRef::pass(i, 0)),
+            Focus::SmoothingPass(i) => Some(chipload_job::OpRef::pass(i, 1)),
             _ => None,
         };
         if let Some(at) = counted {
@@ -295,6 +297,10 @@ impl ChiploadApp {
             Some(JobRequest::RemoveRestPass(i, k)) => self.remove_rest_pass(i, k),
             Some(JobRequest::RemoveFloorPass(i)) => self.remove_floor_pass(i),
             Some(JobRequest::RemoveRoughingPass(i)) => self.remove_roughing(i),
+            Some(JobRequest::AddSmoothingPass(i)) => {
+                self.add_smoothing(i);
+            }
+            Some(JobRequest::RemoveSmoothingPass(i)) => self.remove_smoothing(i),
             Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
             Some(JobRequest::Activate(part)) => self.activate_part(part),
             Some(JobRequest::Post(name)) => {

@@ -26,6 +26,8 @@ job-operation-label-floor = Opération { $number } (fond)
 job-operation-label-named-floor = Opération { $number } ({ $name }, fond)
 job-operation-label-roughing = Opération { $number } (ébauche)
 job-operation-label-named-roughing = Opération { $number } ({ $name }, ébauche)
+job-operation-label-smoothing = Opération { $number } (lissage)
+job-operation-label-named-smoothing = Opération { $number } ({ $name }, lissage)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] foret
@@ -108,6 +110,7 @@ job-no-image = aucune image { $id } dans drawing.images
 job-no-model = aucun modèle { $id } dans drawing.models
 job-relief-stepover = doit valoir au plus { $most } de l'outil, vaut { $got }
 job-relief-allowance = doit valoir 0 ou plus, vaut { $got }
+job-relief-smoothing-alone = une passe de lissage suit la surface en une fois : il lui faut avant elle la passe d'ébauche du relief, activée ; ajoutez ou activez l'ébauche, ou désactivez le lissage
 job-relief-ramp = doit être entre { $least }° et 90°, vaut { $got }°
 job-relief-rim-corner = doit être entre 0 et la largeur du bord ({ $width }), vaut { $got }
 job-no-dxf = aucun DXF { $id } dans drawing.dxfs

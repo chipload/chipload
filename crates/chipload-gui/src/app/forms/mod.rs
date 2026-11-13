@@ -70,6 +70,10 @@ pub(super) enum JobRequest {
     RemoveFloorPass(usize),
     /// Remove relief i's roughing pass.
     RemoveRoughingPass(usize),
+    /// Give relief i a smoothing pass with its roughing tool (docs/specs/stl-relief.md §17).
+    AddSmoothingPass(usize),
+    /// Remove relief i's smoothing pass.
+    RemoveSmoothingPass(usize),
     /// Set part `id`'s pitch so this many mm are left between its copies' cuts
     /// (docs/specs/copies-grid.md decision 2).
     CopiesGap(u64, f64),

@@ -2079,6 +2079,17 @@
               "$ref": "#/$defs/Selector",
               "description": "The area: closed shapes, by default the model's outline. The tool's centre stays in\nit, or with a rim, within the rim's reach round it."
             },
+            "smoothing": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ReliefSmoothing"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A smoothing pass, cut after the roughing pass and before the finish: the surface\nfollowed once, the allowance kept, taking the steps the roughing leaves. Only with a\nroughing pass. Missing: none. Left out when missing."
+            },
             "start_depth": {
               "description": "Where the model's top lies, mm down from the stock top: 0 for the top.",
               "format": "double",
@@ -2345,6 +2356,56 @@
         "plunge_feed",
         "step_down",
         "stepover",
+        "allowance"
+      ],
+      "type": "object"
+    },
+    "ReliefSmoothing": {
+      "additionalProperties": false,
+      "description": "A relief's smoothing pass (docs/specs/stl-relief.md §17): after the roughing, the surface\nfollowed once with the raster, an allowance left on the model for the finish.",
+      "properties": {
+        "allowance": {
+          "description": "What is left on the model for the finish, mm, in every direction: 0 or more.",
+          "format": "double",
+          "type": "number"
+        },
+        "angle": {
+          "description": "The lines' direction, radians counter-clockwise from X: across the roughing's by\ndefault.",
+          "format": "double",
+          "type": "number"
+        },
+        "enabled": {
+          "default": true,
+          "description": "False: kept, but not cut. Missing: true.",
+          "type": "boolean"
+        },
+        "feed": {
+          "description": "The cutting feed, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "plunge_feed": {
+          "description": "The feed going down to each line's first point, mm/min.",
+          "format": "double",
+          "type": "number"
+        },
+        "stepover": {
+          "description": "The distance between lines, as a fraction of the tool diameter: more than 0, at most\n0.9.",
+          "format": "double",
+          "type": "number"
+        },
+        "tool": {
+          "description": "The id of the project tool it cuts with (`tools`): an end mill or a plain ball nose.",
+          "format": "int64",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tool",
+        "feed",
+        "plunge_feed",
+        "stepover",
+        "angle",
         "allowance"
       ],
       "type": "object"

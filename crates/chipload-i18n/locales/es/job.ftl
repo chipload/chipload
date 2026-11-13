@@ -26,6 +26,8 @@ job-operation-label-floor = Operación { $number } (fondo)
 job-operation-label-named-floor = Operación { $number } ({ $name }, fondo)
 job-operation-label-roughing = Operación { $number } (desbaste)
 job-operation-label-named-roughing = Operación { $number } ({ $name }, desbaste)
+job-operation-label-smoothing = Operación { $number } (alisado)
+job-operation-label-named-smoothing = Operación { $number } ({ $name }, alisado)
 # The kinds of tools, alone and with their article, inside other messages.
 job-tool-type = { $type ->
     [drill] broca
@@ -108,6 +110,7 @@ job-no-image = no hay imagen { $id } en drawing.images
 job-no-model = no hay modelo { $id } en drawing.models
 job-relief-stepover = debe ser como mucho { $most } de la herramienta, es { $got }
 job-relief-allowance = debe ser 0 o más, es { $got }
+job-relief-smoothing-alone = una pasada de alisado sigue la superficie de una vez, así que necesita antes la pasada de desbaste del relieve, activada; añada o active el desbaste, o desactive el alisado
 job-relief-ramp = debe estar entre { $least }° y 90°, es { $got }°
 job-relief-rim-corner = debe estar entre 0 y el ancho del borde ({ $width }), es { $got }
 job-no-dxf = no hay DXF { $id } en drawing.dxfs

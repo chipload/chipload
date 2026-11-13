@@ -139,3 +139,5 @@ browser-add-roughing = Ajouter une passe d'ébauche
 browser-add-roughing-hover = Une fraise droite ou hémisphérique simple qui enlève d'abord la matière par niveaux, en laissant une surépaisseur pour le relief
 browser-roughing = Ébauche
 browser-roughing-hover = Une passe d'ébauche : la matière enlevée par niveaux avant le relief, une surépaisseur laissée sur le modèle
+browser-smoothing = Lissage
+browser-smoothing-hover = Une passe de lissage : après l'ébauche, la surface suivie une fois, elle enlève les marches que l'ébauche laisse sur les pentes

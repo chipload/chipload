@@ -136,3 +136,5 @@ browser-add-roughing = Schruppdurchgang hinzufügen
 browser-add-roughing-hover = Ein Schaftfräser oder einfacher Kugelfräser, der das Material zuerst in Ebenen abträgt und ein Aufmaß für das Relief lässt
 browser-roughing = Schruppen
 browser-roughing-hover = Ein Schruppdurchgang: das Material vor dem Relief in Ebenen abgetragen, ein Aufmaß am Modell gelassen
+browser-smoothing = Glätten
+browser-smoothing-hover = Ein Glättdurchgang: nach dem Schruppen der Oberfläche einmal gefolgt, nimmt er die Stufen weg, die das Schruppen an Hängen lässt

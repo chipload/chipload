@@ -468,6 +468,9 @@ enum OpAction {
     RoughingFocus(usize),
     RoughingToggle(usize),
     RoughingRemove(usize),
+    SmoothingFocus(usize),
+    SmoothingToggle(usize),
+    SmoothingRemove(usize),
     /// Into part `id`, at the end of its operations (dropped on the part's row).
     ToPart(usize, u64),
     PartFocus(u64),
@@ -566,6 +569,7 @@ fn tool_menu(
 enum Leaf {
     Floor,
     Roughing,
+    Smoothing,
 }
 
 /// The kinds of new operation: label, kind and what it does.
@@ -1077,6 +1081,9 @@ impl ChiploadApp {
             Some(OpAction::RoughingFocus(i)) => self.focus = Focus::RoughingPass(i),
             Some(OpAction::RoughingToggle(i)) => self.toggle_roughing(i),
             Some(OpAction::RoughingRemove(i)) => self.remove_roughing(i),
+            Some(OpAction::SmoothingFocus(i)) => self.focus = Focus::SmoothingPass(i),
+            Some(OpAction::SmoothingToggle(i)) => self.toggle_smoothing(i),
+            Some(OpAction::SmoothingRemove(i)) => self.remove_smoothing(i),
             Some(OpAction::ToPart(from, id)) => self.move_operation_to_part(from, id),
             Some(OpAction::PartFocus(id)) => self.focus = Focus::Part(id),
             Some(OpAction::PartActivate(id)) => self.activate_part(id),
@@ -1314,6 +1321,10 @@ impl ChiploadApp {
             Operation::Relief(r) => r.roughing,
             _ => None,
         };
+        let smoothing = match op {
+            Operation::Relief(r) => r.smoothing,
+            _ => None,
+        };
         let roughing_menu = match roughing {
             None => self.roughing_menu(i),
             Some(_) => None,
@@ -1456,7 +1467,7 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
-        // Cut before the operation: a floor pass, or a roughing pass.
+        // Cut before the operation: a floor pass, or a roughing and a smoothing pass.
         if let Some(pass) = &floor
             && let Some(a) =
                 self.pass_leaf(ui, i, Leaf::Floor, (pass.enabled, pass.tool), is_cut, color)
@@ -1468,6 +1479,18 @@ impl ChiploadApp {
                 ui,
                 i,
                 Leaf::Roughing,
+                (pass.enabled, pass.tool),
+                is_cut,
+                color,
+            )
+        {
+            action = Some(a);
+        }
+        if let Some(pass) = &smoothing
+            && let Some(a) = self.pass_leaf(
+                ui,
+                i,
+                Leaf::Smoothing,
                 (pass.enabled, pass.tool),
                 is_cut,
                 color,
@@ -1490,7 +1513,7 @@ impl ChiploadApp {
         op_cut: bool,
         color: Color32,
     ) -> Option<OpAction> {
-        let at = chipload_job::OpRef::pass(i, 0);
+        let at = chipload_job::OpRef::pass(i, usize::from(matches!(leaf, Leaf::Smoothing)));
         let (field, focus, icon, name, hover) = match leaf {
             Leaf::Floor => (
                 "floor",
@@ -1505,6 +1528,13 @@ impl ChiploadApp {
                 Icon::Relief,
                 t!(ui, "browser-roughing"),
                 t!(ui, "browser-roughing-hover"),
+            ),
+            Leaf::Smoothing => (
+                "smoothing",
+                Focus::SmoothingPass(i),
+                Icon::Relief,
+                t!(ui, "browser-smoothing"),
+                t!(ui, "browser-smoothing-hover"),
             ),
         };
         let flagged = self
@@ -1538,6 +1568,11 @@ impl ChiploadApp {
                 OpAction::RoughingToggle(i),
                 OpAction::RoughingFocus(i),
                 OpAction::RoughingRemove(i),
+            ),
+            Leaf::Smoothing => (
+                OpAction::SmoothingToggle(i),
+                OpAction::SmoothingFocus(i),
+                OpAction::SmoothingRemove(i),
             ),
         };
         let mut action = None;

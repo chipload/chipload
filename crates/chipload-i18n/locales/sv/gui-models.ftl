@@ -106,3 +106,7 @@ relief-wizard-summary-board-grows = Skivan växer så att kanten och dess ramp f
 relief-wizard-back = Tillbaka
 relief-wizard-next = Nästa
 relief-wizard-make = Skapa relief
+models-could-not-add-smoothing = Kunde inte lägga till utjämningspassen: { $error }
+relief-wizard-smooth = Jämna ut stegen
+relief-wizard-smooth-hover = Grovfräsen följer ytan en gång till, med banorna tvärs över de första, och tar bort stegen den lämnade i sluttningar, så att kulfräsen bara tar ett jämnt skikt
+relief-wizard-summary-smooth = Utjämning med samma verktyg
