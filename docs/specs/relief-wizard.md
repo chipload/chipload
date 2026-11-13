@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **draft 2026-11-13**, for review. It builds on docs/specs/stl-relief.md (the model,
+Status: **draft 2026-11-13**, for review; decisions 1, 2 and large buttons for Inlay and Relief decided by the user. It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -83,7 +83,7 @@ Speed targets, on the user's 57 MB file on an ordinary laptop: turning the view 
 30 frames a second; the relief preview redrawn within 0.1 s of a change; the window open
 within 1 s once the file is read.
 
-It opens from the model's properties (*Turn and cut…*), as step 1 of the Relief wizard
+It opens from the model's properties (*Turn and cut…*), as step 2 of the Relief wizard
 (§6), and by itself when an STL is dropped on the window or added by the ribbon's
 *3D model* button.
 
@@ -114,41 +114,74 @@ axes; a slanted cut waits for a model that needs it, and comes with the free til
 
 ## 6. The Relief wizard: *Relief…*
 
-On the ribbon's WIZARDS group and in *Wizards > Relief…*. Built like *New sign…*: it makes
-ordinary things, and afterwards they are edited as any others.
+On the ribbon's WIZARDS group and in *Wizards > Relief…*. Built like *New sign…* and
+*Two-sided…*: it makes ordinary things, and afterwards they are edited as any others.
 
-1. **The model:** an STL file to pick, or one already in the project; then the choosing
-   window of §4, inside the wizard.
-2. **Tools:** the finishing tool (ball nose or tapered ball nose, from the project and the
-   library, as Inlay… offers them) and, ticked by default when the depth is more than the
-   finishing tool's diameter, a roughing end mill with its allowance (default 0.5 mm).
-3. **Round it:** one of
+**The order follows the questions a user answers in their head**, each step needing only
+what came before it: *what* is carved, *how it lies*, *how big and where*, *what is round
+it*, *with what tools*, then a last look. The tools come late on purpose: whether a
+roughing pass is needed depends on the depth (step 3), and whether an end mill is needed
+at all depends on what is round it (step 4).
+
+A **picture of the board** stays on the right in every step from step 3 on, drawn from
+the light copy: the board, the relief's shading, its outline, and from step 4 the pocket
+or cut-out. Each step's change shows there at once. *Back* keeps every answer; *Next* is
+greyed out, with the reason beside it, until the step is complete.
+
+1. **Model.** An STL file to pick (*Choose file…*, or dropped on the wizard), or a model
+   already in the project from a list. Reading a large file shows "Reading…" here, and
+   *Next* waits for it.
+2. **Turn and cut.** The choosing window of §4, inside the wizard: the model in 3D and
+   the relief it gives; *Face up* (six faces), the quarter turns, and the *Cut level*.
+   Size isn't asked here: the preview fits its box.
+3. **Size and place.** Width and depth with *Keep proportions* (a new relief starts half
+   the board wide and at most half its thickness deep, as an added model does now), and
+   where it lies: centred on the board by default, or at X, Y. The board's own size and
+   thickness are shown, and can be changed here, since they bound both; a depth beyond the
+   board's thickness is refused with the reason.
+4. **Round it.** One of
    - **nothing:** the relief alone, within its outline;
-   - **cut out:** a profile outside the outline, through the board, with tabs, after the
-     relief;
-   - **background lowered:** a pocket from a rectangle *margin* mm (default 10) round the
-     model's box down to the relief's floor, with the outline as its island, before the
-     relief; the board fitted round it when the stock follows the drawing.
+   - **background lowered:** a pocket from a rectangle *margin* mm (default 10) round
+     the model's box down to the relief's floor, with the outline as its island, cut
+     before the relief; with rounded corners (*corner radius*, default 0);
+   - **cut out:** a profile outside the outline, through the board, with tabs, cut after
+     the relief.
 
-   A drawing of the board shows the result as the options change, as the two-sided
-   wizard's does.
+   The board grows to hold the margin when it follows the drawing.
+5. **Tools.** Only the tools the choices need, each from the project and the library as
+   Inlay… offers them:
+   - **finishing:** a ball nose or tapered ball nose, always;
+   - **roughing:** an end mill, ticked by default when the depth is more than the
+     finishing tool's diameter (as the deep-relief warning says), with its allowance
+     (default 0.5 mm);
+   - **pocket or cut-out:** an end mill, only with step 4's background or cut-out; the
+     roughing end mill by default, so one tool change does both.
+6. **Check and make.** In words, in cutting order: what will be made, the tools and the
+   tool changes, the depth, and the time the plan estimates from the light copy (marked
+   as an estimate). *Make* adds, as one undo step and in a part of its own: the model, the
+   pocket (if any), its relief with the roughing pass, and the profile (if any).
+   Afterwards the relief's operation is selected and the 3D view shows the board.
 
-It makes, as one undo step and in a part of its own: the model, its relief with the
-roughing pass, and the pocket or profile; the operations in cutting order.
+Command line: `relief add PROJECT FILE.stl --width W [--depth D] [--keep K] [--up U]
+[--rotation A] [--at X,Y] --tool T [--rough-tool R] [--allowance A]
+[--around none|background|cut-out] [--margin M] [--end-mill E]`: the same answers in the
+same order (rule 5: the command line first), so a script and the wizard give the same
+project.
 
-Command line: `relief add PROJECT FILE.stl --width W --depth D --keep K --up U
---tool T [--rough-tool R] [--around none|cut-out|background] [--margin M]`, the same
-choices as the wizard (rule 5: the command line first).
-
-## 7. Inlay to WIZARDS
+## 7. Inlay to WIZARDS, both large
 
 *Inlay…* already asks questions and makes a pocket, a plug's setup and floor passes in
 one step: it is a wizard. It leaves OPERATION (and the *Operation* menu) for WIZARDS (and
 the *Wizards* menu). One place, not two (the "no worse options" rule).
 
-On the ribbon, WIZARDS then holds Sign, Two-sided, Inlay and Relief. To keep the names at
-1280 px, Sign and Two-sided stay large and Inlay and Relief are small buttons one above
-the other, as Surface and Style are now (decision 6). The layout test guards it.
+On the ribbon, WIZARDS holds Sign, Two-sided, Inlay and Relief, all four **large** buttons
+with their names (the user, 2026-11-13).
+
+**Room.** Measured 2026-11-13 in English: at 1280 px the ribbon ends about 20 px before
+*Generate*; two more large buttons take about 90 px, so about 70 px must come from
+elsewhere, or every button drops its name. Inlay leaving OPERATION frees nothing: its small
+button shares a column with Surface and Style, which stays. Where the room comes from is
+decision 6. The layout test guards it in every language.
 
 ## 8. Not now
 
@@ -164,7 +197,8 @@ the other, as Surface and Style are now (decision 6). The layout test guards it.
 2. §3: the light copy, in `chipload-mesh`, with tests; measured on a large file.
 3. §5: the cut level, command line first, golden test of a cut dome.
 4. §4: the choosing window.
-5. §6: the Relief wizard, command line first; §7 Inlay moved. Guide in each step.
+5. §7: Inlay moved, the ribbon's room (decision 6).
+6. §6: the Relief wizard, command line first. Guide in each step.
 
 ## 10. Decisions
 
@@ -174,11 +208,23 @@ the other, as Surface and Style are now (decision 6). The layout test guards it.
    when a model needs it. *Decided 2026-11-13.*
 3. **Order:** turn, then cut, then size; width and depth are the kept part's, and a typed
    depth stays when the cut changes. *Recommended.*
-4. **Where the choosing window opens:** the model's properties, the wizard's step 1, and
+4. **Where the choosing window opens:** the model's properties, the wizard's step 2, and
    by itself on adding an STL (drop or ribbon button). *Recommended.*
 5. **Drawing:** egui's painter with CPU shading first. *Recommended.*
-6. **WIZARDS on the ribbon:** Sign and Two-sided large, Inlay and Relief small.
-   *Recommended;* the alternative is all four small, which loses every name in the group.
+6. **Room on the ribbon for Inlay and Relief, both large** (the user: large icons). About
+   70 px are needed at 1280 px. Options:
+   - (a) *Measure* moves from the ribbon's VIEW group to the navigation bar under the
+     canvas, beside fit, top and 3D, where the other viewing tools are (about 55 px:
+     the button and the group's separator); and LIBRARY's *Tools* and *Machines* become
+     one *Library* button that opens *This computer* in the Browser (about 50 px).
+   - (b) The window opens 1360 wide instead of 1280 (still fits a 1366 px screen; a
+     laptop at 150 % scaling is 1280 wide and shows icons alone either way).
+   - (c) Accept icons alone at 1280 in English.
+   *Recommended: (a);* both moves put things where they belong, and *Library* in the menu
+   bar keeps both lists one click away.
 7. **The cut level as a share** (0.5 = the top half), not in mm: it keeps its meaning when
    the model is scaled. The window shows the mm as well. *Recommended.*
 8. **The light copy's limit:** 50 000 triangles, a constant, no setting. *Recommended.*
+9. **The wizard's order:** model, turn and cut, size and place, round it, tools, check and
+   make (§6), the board's picture beside every step from size on. *Recommended.*
+10. **Where a relief lands:** centred on the board, in a part of its own. *Recommended.*
