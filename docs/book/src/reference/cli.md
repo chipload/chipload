@@ -1509,6 +1509,39 @@ chipload sign add <PROJECT> <WORDS> [OPTIONS]
 | `--keep-stock` | Leave the stock as it is instead of fitting it round the sign. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+## `chipload relief`
+
+A relief in one step: a 3D model turned, cut and sized, its relief, a roughing pass, and what is round it (docs/specs/relief-wizard.md)
+
+### `chipload relief add`
+
+Make a relief: the model (an STL file, or --model for one in the project) turned, cut and sized, centred on the board, its relief with an optional roughing pass, and what is round it, in a part of its own and in cutting order
+
+```text
+chipload relief add <PROJECT> <FILE> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<FILE>` | The STL file; leave it out with --model. |
+| `--model <MODEL>` | A model already in the project (an id from `model list`), in place of a file. |
+| `--units <UNITS>` | The unit a new file is read in: mm (default) or inch. |
+| `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
+| `--rotate <ROTATE>` | Turned on the board, degrees counter-clockwise. |
+| `--keep <KEEP>` | How much of it to keep from the top: 0.5 or 50% (default: all) |
+| `--width <WIDTH>` | Its width on the board, mm (default: half the board's) |
+| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
+| `--at <AT>` | Where its footprint's lower-left corner goes, X,Y (default: centred on the board) |
+| `--around <AROUND>` | What goes round it. One of: `none` (The relief alone, within its outline), `background` (A pocket round the model down to the relief's floor, the model an island in it), `cut-out` (A profile outside the outline, through the board, with tabs). Default: `none`. |
+| `--margin <MARGIN>` | The background's margin round the model, mm. |
+| `--corner <CORNER>` | The background's corner radius, mm (default 0: sharp) |
+| `--tool <TOOL>` | The ball nose that finishes it (a project tool id) Required. |
+| `--rough-tool <ROUGH_TOOL>` | An end mill for a roughing pass first (a project tool id) |
+| `--allowance <ALLOWANCE>` | What the roughing pass leaves for the finish, mm. |
+| `--end-mill <END_MILL>` | The end mill for the background or cut-out (default: the roughing one) |
+| `-o, --output <OUTPUT>` | Write here instead of over the project. |
+
 ## `chipload dxf`
 
 A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md)

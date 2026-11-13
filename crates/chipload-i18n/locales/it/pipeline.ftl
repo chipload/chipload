@@ -670,3 +670,10 @@ pipeline-model-dropped = { $count } triangoli senza area sono stati tralasciati
 pipeline-model-open = la superficie ha { $count } spigoli aperti: l'utensile cade da ogni buco fino al fondo del rilievo
 pipeline-model-large = il modello è di { $bytes } byte ed è conservato nel progetto: il progetto cresce di altrettanto
 pipeline-model-placed = Modello { $id } sul grezzo: { $x } × { $y }, profondo { $z }; contorno in { $outlines } forme
+
+# Relief… (docs/specs/relief-wizard.md §6)
+pipeline-relief-ball = l'utensile { $tool } non è una fresa sferica: un rilievo si finisce con una
+pipeline-relief-needs-end-mill = uno sfondo o un taglio richiede una fresa piatta: indicane una, o una per sgrossare
+pipeline-relief-end-mill = l'utensile { $tool } non è una fresa piatta: lo sfondo o il taglio si fa con una
+pipeline-relief-margin = il margine dello sfondo deve essere maggiore di 0 e il raggio degli angoli non sotto 0, ricevuto { $margin }
+pipeline-relief-nothing = niente da cui fare il rilievo

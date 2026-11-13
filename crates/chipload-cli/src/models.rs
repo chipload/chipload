@@ -99,7 +99,7 @@ pub struct Place {
 }
 
 /// A share of the model kept: "0.5" or "50%", more than 0 and at most 1.
-fn parse_keep(text: &str) -> Result<f64, String> {
+pub(crate) fn parse_keep(text: &str) -> Result<f64, String> {
     let text = text.trim();
     let share = match text.strip_suffix('%') {
         Some(percent) => percent.trim().parse::<f64>().map(|p| p / 100.0),
@@ -115,11 +115,11 @@ fn parse_keep(text: &str) -> Result<f64, String> {
     }
 }
 
-fn parse_at(text: &str) -> Result<(f64, f64), String> {
+pub(crate) fn parse_at(text: &str) -> Result<(f64, f64), String> {
     crate::lengths::point(text).map(|[x, y]| (x, y))
 }
 
-fn parse_units(text: &str) -> Result<Units, String> {
+pub(crate) fn parse_units(text: &str) -> Result<Units, String> {
     match text {
         "mm" => Ok(Units::Mm),
         "inch" | "in" => Ok(Units::Inch),
@@ -127,7 +127,7 @@ fn parse_units(text: &str) -> Result<Units, String> {
     }
 }
 
-fn parse_up(text: &str) -> Result<ModelUp, String> {
+pub(crate) fn parse_up(text: &str) -> Result<ModelUp, String> {
     [
         ModelUp::Z,
         ModelUp::Y,
@@ -142,7 +142,7 @@ fn parse_up(text: &str) -> Result<ModelUp, String> {
 }
 
 /// Degrees in 0 ≤ a < 360.
-fn turned(degrees: f64) -> Result<f64, String> {
+pub(crate) fn turned(degrees: f64) -> Result<f64, String> {
     if !degrees.is_finite() {
         return Err(format!("--rotate takes degrees, got {degrees}"));
     }

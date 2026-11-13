@@ -6,6 +6,40 @@ board like a picture, seen from above, and is carved in three axes; nothing unde
 overhang is reached. (Design: `docs/specs/stl-relief.md`.)
 
 
+## A relief in one step
+
+**Relief…** (the ribbon's WIZARDS group, or *Wizards > Relief…*) makes a whole relief, one
+question at a time, each needing only the ones before it:
+
+1. **Model:** an STL file, or a model already in the project.
+2. **Turn and cut:** which side faces up, quarter turns, and how much to keep from the top
+   (as in [Turn and cut](#turn-and-cut)).
+3. **Size and place:** width and depth, centred on the board or at a point; the board's
+   thickness, which the depth must stay within.
+4. **Round it:** nothing; the background lowered by a pocket round the model, the model
+   standing in it as an island (a margin, and rounded corners if you like); or the relief
+   cut out through the board with tabs.
+5. **Tools:** the ball nose that finishes it; an end mill to rough it first, ticked when the
+   relief is deeper than the ball nose is wide; the end mill for the background or cut-out,
+   by default the roughing one, so one tool does both.
+6. **Check and make:** what will be made, in cutting order, with the tools and tool changes.
+
+From step 3 on, a picture of the board beside the questions shows the relief where it will
+lie, and the pocket or cut-out round it. **Make** adds it all as one undo step, in a part of
+its own: the model, the background pocket, the relief with its roughing pass, the cut-out.
+Afterwards they are ordinary shapes and operations.
+
+From the command line, the same answers in the same order:
+
+```sh
+chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
+    --around background --margin 10 --tool 2 --rough-tool 1
+```
+
+`--model ID` uses a model already in the project; `--up`, `--rotate`, `--at X,Y`,
+`--corner`, `--allowance` and `--end-mill` answer the rest. The tools are project tool
+numbers.
+
 ## Adding a model
 
 In the window: **3D model** in the ribbon's DRAW group, **File > Add 3D model…**, *Add 3D

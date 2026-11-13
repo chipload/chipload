@@ -24,6 +24,7 @@ pub mod parts;
 pub mod placement;
 pub mod posts;
 pub mod recovery;
+pub mod relief_wizard;
 pub mod report;
 pub mod setups;
 pub mod shape_library;

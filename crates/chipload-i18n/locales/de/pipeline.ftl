@@ -668,3 +668,10 @@ pipeline-model-dropped = { $count } Dreiecke ohne Fläche wurden weggelassen
 pipeline-model-open = die Oberfläche hat { $count } offene Kanten: das Werkzeug fällt durch jede Lücke bis zum Boden des Reliefs
 pipeline-model-large = das Modell hat { $bytes } Bytes und wird im Projekt gespeichert: das Projekt wird entsprechend groß
 pipeline-model-placed = Modell { $id } auf dem Rohteil: { $x } × { $y }, { $z } tief; Umriss in { $outlines } Formen
+
+# Relief… (docs/specs/relief-wizard.md §6)
+pipeline-relief-ball = Werkzeug { $tool } ist kein Kugelfräser: ein Relief wird mit einem geschlichtet
+pipeline-relief-needs-end-mill = Hintergrund oder Ausschnitt brauchen einen Schaftfräser: gib einen an, oder einen zum Schruppen
+pipeline-relief-end-mill = Werkzeug { $tool } ist kein Schaftfräser: Hintergrund oder Ausschnitt werden mit einem gefräst
+pipeline-relief-margin = der Rand des Hintergrunds muss größer als 0 sein und der Eckradius nicht unter 0, erhalten { $margin }
+pipeline-relief-nothing = nichts, woraus das Relief entstehen kann

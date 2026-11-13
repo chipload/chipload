@@ -14,6 +14,7 @@ mod library;
 mod materials;
 mod models;
 mod parts;
+mod reliefs;
 mod setups;
 mod shape_library;
 mod signs;
@@ -346,6 +347,12 @@ enum Command {
     Sign {
         #[command(subcommand)]
         action: signs::SignAction,
+    },
+    /// A relief in one step: a 3D model turned, cut and sized, its relief, a roughing
+    /// pass, and what is round it (docs/specs/relief-wizard.md).
+    Relief {
+        #[command(subcommand)]
+        action: reliefs::ReliefAction,
     },
     /// A project's DXFs: add another, list them, remove one (docs/specs/drawing-sources.md).
     Dxf {
@@ -770,6 +777,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Text { action } => texts::text(out, action),
         Command::Frame { action } => frames::frame(out, action),
         Command::Sign { action } => signs::sign(out, action),
+        Command::Relief { action } => reliefs::relief(out, action),
         Command::Group { action } => groups::group_command(out, action),
         Command::Dxf { action } => dxfs::dxf(out, action),
         Command::Tool { action } => library::tool(out, action),

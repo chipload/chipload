@@ -665,3 +665,10 @@ pipeline-model-dropped = { $count } trianglar utan yta utelämnades
 pipeline-model-open = ytan har { $count } öppna kanter: verktyget faller genom varje glipa till reliefens botten
 pipeline-model-large = modellen är { $bytes } byte och sparas i projektet: projektet blir lika mycket större
 pipeline-model-placed = Modell { $id } på skivan: { $x } × { $y }, { $z } djup; kontur i { $outlines } former
+
+# Relief… (docs/specs/relief-wizard.md §6)
+pipeline-relief-ball = verktyg { $tool } är ingen kulfräs: en relief finfräses med en
+pipeline-relief-needs-end-mill = en bakgrund eller utsågning behöver en pinnfräs: ange en, eller en för grovfräsning
+pipeline-relief-end-mill = verktyg { $tool } är ingen pinnfräs: bakgrunden eller utsågningen fräses med en
+pipeline-relief-margin = bakgrundens marginal måste vara större än 0 och hörnradien inte under 0, fick { $margin }
+pipeline-relief-nothing = inget att göra reliefen av

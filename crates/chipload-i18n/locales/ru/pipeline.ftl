@@ -510,3 +510,10 @@ pipeline-model-dropped = пропущено { $count } треугольнико�
 pipeline-model-open = у поверхности { $count } открытых рёбер: инструмент проваливается в каждый разрыв до дна рельефа
 pipeline-model-large = модель занимает { $bytes } байт и хранится в проекте: проект становится настолько же больше
 pipeline-model-placed = Модель { $id } на заготовке: { $x } × { $y }, глубина { $z }; контур из { $outlines } фигур
+
+# Relief… (docs/specs/relief-wizard.md §6)
+pipeline-relief-ball = инструмент { $tool } — не сферическая фреза: рельеф чистовой обработкой делают ею
+pipeline-relief-needs-end-mill = для фона или вырезки нужна концевая фреза: укажите её или фрезу для черновой обработки
+pipeline-relief-end-mill = инструмент { $tool } — не концевая фреза: фон или вырезку режут ею
+pipeline-relief-margin = поле фона должно быть больше 0, а радиус углов не меньше 0, получено { $margin }
+pipeline-relief-nothing = не из чего сделать рельеф
