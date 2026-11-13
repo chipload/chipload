@@ -122,6 +122,23 @@ pub fn distance(loops: &[Vec<Point>], p: Point) -> f64 {
         .fold(f64::INFINITY, f64::min)
 }
 
+/// [`distance`], negative inside the loops: there minus the distance to the nearest edge of
+/// any loop. Changes by at most the distance moved, and is never below the true signed
+/// distance to the loops' union (an edge inside another loop only brings it nearer 0), so
+/// the ramp bounded by it is never too low.
+pub fn signed_distance(loops: &[Vec<Point>], p: Point) -> f64 {
+    let nearest = loops
+        .iter()
+        .flat_map(|l| (0..l.len()).map(move |k| (l[k], l[(k + 1) % l.len()])))
+        .map(|(a, b)| segment_distance(a, b, p))
+        .fold(f64::INFINITY, f64::min);
+    if loops.iter().any(|l| encloses(l, p)) {
+        -nearest
+    } else {
+        nearest
+    }
+}
+
 fn segment_distance(a: Point, b: Point, p: Point) -> f64 {
     let (dx, dy) = (b.0 - a.0, b.1 - a.1);
     let length2 = dx * dx + dy * dy;
@@ -224,18 +241,19 @@ impl Ramp {
 
     /// The ramp's surface over `p`, exactly.
     pub fn surface(&self, p: Point) -> f64 {
-        let out = (distance(&self.loops, p) - self.foot).max(0.0);
+        let out = (signed_distance(&self.loops, p) - self.foot).max(0.0);
         (self.floor + out * self.tan).min(self.top)
     }
 
     /// The highest the tip of `cutter` must stay over `p` so that it cuts nowhere into the
     /// ramp: within `ρ` of `p` the surface lies at most `min(top, floor + (s + ρ)·tan)`, `s`
-    /// the distance beyond the foot at `p`, and the tip at that minus the tool's height
+    /// the signed distance beyond the foot at `p` (negative inside the loops), and the tip at that minus the tool's height
     /// there, highest among `ρ` = 0, the radius, the tool's kinks, where its slope is the
     /// ramp's, and where the bound reaches the top (the function is concave); never below
     /// the flat.
     pub fn drop(&self, cutter: Cutter, p: Point) -> f64 {
-        let s = distance(&self.loops, p) - self.foot;
+        // Signed: inside the loops a point lies that far before the foot (§16).
+        let s = signed_distance(&self.loops, p) - self.foot;
         let r = cutter.radius();
         let mut candidates = vec![0.0, r, (self.top - self.floor) / self.tan - s];
         candidates.extend(cutter.kinks());
@@ -352,6 +370,25 @@ mod tests {
                 }
             }
         }
+    }
+
+    /// A box rim with sharp corners has its foot on the loop itself: inside, the tool
+    /// reaches the floor once its radius is clear of the edge (found by the user: the ramp
+    /// was taken to start everywhere inside, holding the tool up).
+    #[test]
+    fn inside_a_foot_on_the_loop_the_tool_reaches_the_floor() {
+        let ramp = Ramp {
+            foot: 0.0,
+            ..ramp()
+        };
+        let ball = Cutter::Ball { radius: 1.0 };
+        let flat = Cutter::Flat { radius: 3.1 };
+        assert_eq!(ramp.drop(ball, (0.0, 0.0)), -10.0);
+        assert_eq!(ramp.drop(flat, (6.0, 0.0)), -10.0);
+        // Nearer the edge than its radius, it rides up the ramp, never into it.
+        let z = ramp.drop(flat, (8.0, 0.0));
+        assert!((z - (-10.0 + 1.1)).abs() < 1e-9, "{z}");
+        assert_eq!(signed_distance(&ramp.loops, (6.0, 0.0)), -4.0);
     }
 
     #[test]

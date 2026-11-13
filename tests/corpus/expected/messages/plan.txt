@@ -954,11 +954,11 @@ $ chipload plan tests/corpus/jobs/v36/relief_box_rough.chipload
 exit 0
 --- stdout
 warning: Operation 1.1 (Relief 1, roughing): plunges straight down with tool 1, which isn't marked centre-cutting; use a helix or a ramp if it isn't
-Estimated time: 8 min 11 s (cutting 8 min 1 s, rapids 4 s, spindle 6 s), plus 1 tool change
+Estimated time: 8 min 13 s (cutting 8 min 3 s, rapids 4 s, spindle 6 s), plus 1 tool change
 Cut outline: 60.899 × 60.899 mm (X -0.449 … 60.449, Y -0.449 … 60.449, the tool included): the smallest stock that holds the job.
   Operation 1 (Relief 1): 6 min 2 s; cutting 4.7 m, plunging 3 mm, rapids 89 mm, 3 lifts
-  Operation 1.1 (Relief 1, roughing): 2 min 3 s; cutting 1.5 m, plunging 14 mm, rapids 232 mm, 6 lifts
-  File 1: 2 min 6 s
+  Operation 1.1 (Relief 1, roughing): 2 min 6 s; cutting 1.6 m, plunging 14 mm, rapids 232 mm, 6 lifts
+  File 1: 2 min 9 s
   File 2: 6 min 5 s
   In all: cutting 6.3 m, plunging 17 mm, rapids 321 mm, 9 lifts.
   At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
