@@ -239,8 +239,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    `relief add --hull`; golden v36_relief_rim_hull.
    A relief from a picture done (docs/specs/picture-relief.md, the user: "Go ahead"): a
    depth map (PNG, JPEG, BMP) as a 3D model in the project, `model add/set` with its
-   settings, the model form and wizard; golden v36_picture_relief. Later: inflated shapes
-   (§6).
+   settings, the model form and wizard; golden v36_picture_relief. Next: inflated shapes
+   (docs/specs/inflated-shapes.md, draft for the user's review, 2026-11-13).
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

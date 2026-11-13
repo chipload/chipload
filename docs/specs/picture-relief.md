@@ -108,8 +108,8 @@ setting makes it again.
 
 **Inflated shapes:** a black-and-white picture's shapes given a rounded height, rising from
 each edge towards the middle (a distance transform, its profile a quarter circle or a
-straight slope), as a second mode of the same picture model (`picture.mode`). Specified
-when it is built.
+straight slope), as a second mode of the same picture model (`picture.mode`): specified
+in docs/specs/inflated-shapes.md.
 
 Not planned: reading HEIC files and their embedded depth (a native library, a small and
 noisy map), estimating depth from an ordinary photo (large models, out of scope by ADR 0017).
