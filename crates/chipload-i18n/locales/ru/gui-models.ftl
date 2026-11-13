@@ -44,3 +44,17 @@ forms-remove-model-hover = Удалить модель и её контур; е�
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = Не удалось добавить черновой проход: { $error }
 models-no-roughing-tool = В проекте и вашей библиотеке нет концевой или обычной сферической фрезы
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Повернуть и срезать
+turn-cut-body = Выберите, какой стороной модель смотрит вверх и сколько её сохранить сверху. Перетаскивайте модель, чтобы осмотреть её со всех сторон; рядом показан получающийся рельеф.
+turn-cut-model = Модель (перетащите, чтобы повернуть)
+turn-cut-model-hover = Цветом: сохраняемая часть. Серым: срезаемая часть. Плита — уровень среза.
+turn-cut-relief = Получающийся рельеф, сверху
+turn-cut-size = { $width } × { $height }, глубина { $depth }
+turn-cut-face-up = Вверх
+turn-cut-turn = Повернуть на заготовке
+turn-cut-turn-left = Четверть оборота против часовой стрелки
+turn-cut-turn-right = Четверть оборота по часовой стрелке
+forms-model-turn-cut = Повернуть и срезать…
+forms-model-turn-cut-hover = Какая сторона смотрит вверх и сколько сохраняется — выбор с видом модели и рельефа

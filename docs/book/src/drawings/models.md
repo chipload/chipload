@@ -42,6 +42,26 @@ The report says how many triangles it has, any without an area that were left ou
 how many open edges its surface has: a gap in a model lets the tool fall through to the
 relief's floor.
 
+## Turn and cut
+
+When a model is added, **Turn and cut** opens (and later *Turn and cut…* in its
+properties): the model in 3D on the left, the relief it gives seen from above on the right,
+both redrawn as you change them.
+
+![Turn and cut: the model in 3D with its cut level, and the relief it gives](../images/turn-cut.png)
+
+- **Drag the model** to look at it from any side.
+- **Face up:** which of the model's sides faces up: Z, Y, X or one of them reversed.
+- **Turn on the board:** a quarter turn either way.
+- **Keep from top:** the cut level (below). The part kept is coloured, the part cut away
+  grey, and the plate is the level.
+- **Width** and **Depth**, as in the properties; the size it gives is under the relief.
+
+**OK** changes the model as one undo step and draws its outline again; **Cancel** leaves it
+as it was. The views are drawn from a light copy of the model (at most 50 000 triangles),
+so a large file turns smoothly; the outline, the toolpath and the G-code always come from
+the full model.
+
 ## Keeping the front: the cut level
 
 A model made to be seen from every side (a figure, a head, an animal) would be carved from

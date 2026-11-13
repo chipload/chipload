@@ -50,6 +50,7 @@ mod texts;
 mod three_d_view;
 mod tool_library;
 mod trim_select;
+mod turn_cut;
 mod two_sided;
 mod units;
 mod update_notice;

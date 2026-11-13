@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1-3 built. It builds on docs/specs/stl-relief.md (the model,
+Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1-4 built. It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -258,3 +258,13 @@ decision 6. The layout test guards it in every language.
   before it). The model's properties take it as *Keep from top* in % until the choosing
   window comes; the command line as `--keep 0.5` or `50%` on `model add` and `model set`.
   Golden `v36_relief_dome_cut` (the dome's top half, 5 mm deep).
+- **Step 4 (§4), 2026-11-13.** `mesh_view` in the GUI paints meshes with an orbit camera:
+  flat shading on the CPU, triangles sorted back to front into one `egui::Mesh`, kept
+  until the camera or the scene changes. The pipeline gives what it shows: `turn_view`
+  (the light copy turned, turned on the board, split at the cut level with
+  `Mesh::below`) and `relief_preview` (its top heights and size, placed by the light
+  copy's own box). The preview is lit by slope and tinted by height, so a shallow relief
+  shows. The window opens after an STL is added (a second dropped file waits for it to
+  close) and from *Turn and cut…* in the model's properties. On the 57 MB file: a frame
+  while turning 6.7 ms (the whole window, headless), a cut level change 21 ms. Guide
+  screenshot `turn-cut.png`.

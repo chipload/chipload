@@ -831,6 +831,13 @@ pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
     ui.add_space(4.0);
     ui.horizontal(|ui| {
         if ui
+            .button(t!(ui, "forms-model-turn-cut"))
+            .on_hover_text(t!(ui, "forms-model-turn-cut-hover"))
+            .clicked()
+        {
+            request = Some(JobRequest::TurnCut(id));
+        }
+        if ui
             .button(t!(ui, "forms-model-new-relief"))
             .on_hover_text(t!(ui, "forms-model-new-relief-hover"))
             .clicked()

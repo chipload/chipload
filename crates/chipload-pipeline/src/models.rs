@@ -8,7 +8,7 @@ use base64::engine::general_purpose::STANDARD;
 use chipload_core::primitives::Primitive;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Job, Model, ModelData, ModelUp, Shape, Units};
-use chipload_mesh::{Format, Mesh, MeshError};
+use chipload_mesh::{Format, MeshError};
 use sha2::{Digest, Sha256};
 
 use crate::PipelineError;
@@ -159,6 +159,76 @@ pub fn placed_light_mesh(job: &Job, id: u64) -> Result<Mesh, PipelineError> {
     chipload_toolpath::relief::placed_light_mesh(find(job, id)?).map_err(relief_error)
 }
 
+/// What the *Turn and cut…* window shows of a model (docs/specs/relief-wizard.md §4), from
+/// its light copy: turned up, turned on the board about its middle, and split at its cut
+/// level, in mm, unscaled.
+#[derive(Debug, Clone, PartialEq)]
+pub struct TurnView {
+    /// The part kept, above the cut level.
+    pub kept: Mesh,
+    /// The part cut away, below it; empty when the model is kept whole.
+    pub cut_away: Mesh,
+    /// The cut level's Z; the model's lowest Z when it is kept whole.
+    pub level: f64,
+    /// The whole model's box, lowest and highest corners.
+    pub bounds: ([f64; 3], [f64; 3]),
+}
+
+/// [`TurnView`] of `model`, which need not be in a project yet: a draft being turned.
+pub fn turn_view(model: &Model) -> Result<TurnView, PipelineError> {
+    let (light, level) = chipload_toolpath::relief::turned_light(model).map_err(relief_error)?;
+    let (lo, hi) = light
+        .bounds()
+        .ok_or_else(|| PipelineError::Job(Message::new("mesh-error-empty")))?;
+    // Turned on the board as it will lie, about the box's middle.
+    let (cx, cy) = ((lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0);
+    let (sin, cos) = model.rotation.to_radians().sin_cos();
+    let turned = light.mapped(|v| {
+        let (u, w) = (v[0] - cx, v[1] - cy);
+        [cx + u * cos - w * sin, cy + u * sin + w * cos, v[2]]
+    });
+    let bounds = turned
+        .bounds()
+        .ok_or_else(|| PipelineError::Job(Message::new("mesh-error-empty")))?;
+    Ok(match level {
+        Some(level) => TurnView {
+            kept: turned.above(level),
+            cut_away: turned.below(level),
+            level,
+            bounds,
+        },
+        None => TurnView {
+            kept: turned,
+            cut_away: Mesh::default(),
+            level: bounds.0[2],
+            bounds,
+        },
+    })
+}
+
+/// The relief `model` gives, seen from above, from its light copy: its top heights over
+/// about `along` cells along the longer side (Z from 0 down to −depth), and its size on the
+/// board (width, height, depth). Placed by the light copy's own box, so the size is within
+/// a light cell of the real one: for the live preview only (docs/specs/relief-wizard.md §4).
+pub fn relief_preview(
+    model: &Model,
+    along: usize,
+) -> Result<Option<(TopHeights, [f64; 3])>, PipelineError> {
+    let (light, level) = chipload_toolpath::relief::turned_light(model).map_err(relief_error)?;
+    let kept = match level {
+        Some(level) => light.above(level),
+        None => light,
+    };
+    let Some((lo, hi)) = kept.bounds() else {
+        return Ok(None);
+    };
+    let p = chipload_toolpath::relief::placement_in(model, lo, hi).map_err(relief_error)?;
+    let placed = chipload_toolpath::relief::placed(model, &kept, &p);
+    Ok(placed
+        .top_heights(along)
+        .map(|grid| (grid, [p.width, p.height, p.depth])))
+}
+
 /// Model `id` as it lies on the board, in the drawing's coordinates, mm: scaled, its
 /// footprint's lower-left corner at (x, y), turned about the footprint's centre, its top
 /// at Z 0 (the stock top) and its lowest point at −depth (spec §3). What the drop cutter
@@ -167,7 +237,7 @@ pub fn placed_mesh(job: &Job, id: u64) -> Result<Mesh, PipelineError> {
     chipload_toolpath::relief::placed_mesh(find(job, id)?).map_err(relief_error)
 }
 
-pub use chipload_mesh::TopHeights;
+pub use chipload_mesh::{Mesh, TopHeights};
 
 /// How much steeper a model's shading takes its slopes than they are (`top_shades`).
 const SHADE_STEEPEN: f64 = 4.0;

@@ -53,6 +53,13 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "model,3d",
         (1200.0, 800.0),
     ),
+    // *Turn and cut…* (docs/book/src/drawings/models.md).
+    (
+        "turn-cut",
+        "tests/corpus/jobs/v36/relief_dome.chipload",
+        "turn-cut",
+        (1200.0, 800.0),
+    ),
     (
         "parts",
         "tests/corpus/jobs/v22/two_parts.chipload",

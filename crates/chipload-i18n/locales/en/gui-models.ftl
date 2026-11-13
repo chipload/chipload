@@ -44,3 +44,17 @@ forms-remove-model-hover = Remove the model and its outline; its reliefs stay, e
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = Could not add the roughing pass: { $error }
 models-no-roughing-tool = No end mill or plain ball nose in the project or your library
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Turn and cut
+turn-cut-body = Choose which side of the model faces up and how much of it to keep from the top. Drag the model to look at it from any side; the relief it gives is shown beside it.
+turn-cut-model = The model (drag to turn it)
+turn-cut-model-hover = Coloured: the part kept. Grey: the part cut away. The plate is the cut level.
+turn-cut-relief = The relief it gives, from above
+turn-cut-size = { $width } × { $height }, { $depth } deep
+turn-cut-face-up = Face up
+turn-cut-turn = Turn on the board
+turn-cut-turn-left = A quarter turn counter-clockwise
+turn-cut-turn-right = A quarter turn clockwise
+forms-model-turn-cut = Turn and cut…
+forms-model-turn-cut-hover = Which side faces up and how much is kept, chosen while seeing the model and its relief

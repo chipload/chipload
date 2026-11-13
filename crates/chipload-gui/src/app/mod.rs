@@ -89,6 +89,7 @@ mod tab_markers;
 mod tests;
 mod text_fonts;
 mod texts;
+mod turn_cut;
 mod two_sided;
 mod update_notice;
 mod user_library;
@@ -270,6 +271,8 @@ enum Prompt {
     Sign(Box<sign::SignSettings>),
     /// *Two-sided…* (docs/specs/two-sided-wizard.md §4).
     TwoSided(Box<two_sided::TwoSidedSettings>),
+    /// *Turn and cut…*: a model turned and cut while seen (docs/specs/relief-wizard.md §4).
+    TurnCut(Box<turn_cut::TurnCut>),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame

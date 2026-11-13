@@ -390,6 +390,20 @@ impl ChiploadApp {
             self.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Model(id));
             self.focus = Focus::Model(id);
         }
+        // *Turn and cut…* on the first model, its top half kept (docs/specs/relief-wizard.md
+        // §4).
+        if steps.contains(&"turn-cut")
+            && let Some(id) = self
+                .edit
+                .as_ref()
+                .and_then(|e| e.job.drawing.models.first())
+                .map(|m| m.id)
+        {
+            self.open_turn_cut(id);
+            if let Some(Prompt::TurnCut(state)) = &mut self.dialogs.prompt {
+                state.draft.keep = 0.5;
+            }
+        }
         // The pictures under traced shapes left out, so the cut shows (the README's picture).
         if steps.contains(&"noimages") {
             self.display.images = false;

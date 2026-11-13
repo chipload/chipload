@@ -96,6 +96,8 @@ pub(super) enum JobRequest {
     ModelChange(u64, Box<chipload_job::Model>),
     RemoveModel(u64),
     NewRelief(u64),
+    /// *Turn and cut…* for this model (docs/specs/relief-wizard.md §4).
+    TurnCut(u64),
     /// Move DXF `id` (docs/specs/drawing-placement.md, drawing-sources.md §2).
     Place(u64, PlaceMove),
     /// Make this the project's post-processor; one of the user's is copied in (again:

@@ -283,6 +283,15 @@ pub fn placed_mesh(model: &Model) -> Result<Mesh, ReliefError> {
     Ok(placed(model, &turned, &p))
 }
 
+/// `model`'s light copy turned so its up axis points up, in mm, whole, and the Z its cut
+/// level lies at (None: kept whole): for showing it while it is turned and cut
+/// (docs/specs/relief-wizard.md §4).
+pub fn turned_light(model: &Model) -> Result<(Mesh, Option<f64>), ReliefError> {
+    let read = read_model(model)?;
+    let light = turned_in_mm(model, &read_mesh(&read)?.light);
+    Ok((light, cut_level(model)?))
+}
+
 /// `model`'s light copy placed on the board as the full mesh is: for showing it only, never
 /// for cutting (docs/specs/relief-wizard.md §3).
 pub fn placed_light_mesh(model: &Model) -> Result<Mesh, ReliefError> {

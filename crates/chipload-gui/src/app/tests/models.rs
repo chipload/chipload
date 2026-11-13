@@ -306,9 +306,15 @@ fn two_stls_dropped_are_read_one_after_the_other() {
     let path = dome_stl("models-drop-two");
     let mut app = ChiploadApp::default();
     assert!(app.drop_files(&[path.clone(), path]));
-    // The first is being read; the second waits for it.
+    // The first is being read; the second waits for it, and then for the first one's
+    // Turn and cut… window to close.
     assert!(app.reading_model());
     assert!(app.wait_model_reading());
+    assert!(matches!(app.dialogs.prompt, Some(Prompt::TurnCut(_))));
+    app.next_drop();
+    assert!(!app.reading_model());
+    app.dialogs.prompt = None;
+    app.next_drop();
     assert!(app.reading_model());
     assert!(app.wait_model_reading());
     assert!(!app.reading_model());

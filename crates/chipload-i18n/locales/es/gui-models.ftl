@@ -44,3 +44,17 @@ forms-remove-model-hover = Eliminar el modelo y su contorno; sus relieves quedan
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = No se pudo añadir la pasada de desbaste: { $error }
 models-no-roughing-tool = Ninguna fresa plana ni de punta esférica simple en el proyecto o tu biblioteca
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Girar y cortar
+turn-cut-body = Elige qué cara del modelo queda arriba y cuánto conservar desde arriba. Arrastra el modelo para verlo desde cualquier lado; el relieve que da se muestra al lado.
+turn-cut-model = El modelo (arrastra para girarlo)
+turn-cut-model-hover = En color: la parte conservada. En gris: la parte cortada. La placa es el nivel de corte.
+turn-cut-relief = El relieve que da, visto desde arriba
+turn-cut-size = { $width } × { $height }, { $depth } de profundidad
+turn-cut-face-up = Cara arriba
+turn-cut-turn = Girar sobre la tabla
+turn-cut-turn-left = Un cuarto de vuelta en sentido antihorario
+turn-cut-turn-right = Un cuarto de vuelta en sentido horario
+forms-model-turn-cut = Girar y cortar…
+forms-model-turn-cut-hover = Qué cara queda arriba y cuánto se conserva, elegido viendo el modelo y su relieve

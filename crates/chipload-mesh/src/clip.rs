@@ -17,6 +17,13 @@ impl Mesh {
         }
         Mesh { triangles }
     }
+
+    /// The part of the mesh at or below Z `level`: [`Mesh::above`] of the mesh mirrored in
+    /// the level, mirrored back (two mirrors keep each triangle's turn).
+    pub fn below(&self, level: f64) -> Mesh {
+        let mirror = |v: Vertex| [v[0], v[1], 2.0 * level - v[2]];
+        self.mapped(mirror).above(level).mapped(mirror)
+    }
 }
 
 /// Where edge `a`–`b` crosses Z `level` (`a` above it, `b` below).
@@ -109,6 +116,23 @@ mod tests {
         let pieces: f64 = two.triangles.iter().map(|p| area(p)[1]).sum();
         assert!(whole[1].signum() == pieces.signum());
         assert!((pieces.abs() - 37.5).abs() < 1e-9, "{pieces}");
+    }
+
+    #[test]
+    fn above_and_below_make_the_whole() {
+        let t = [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [0.0, 0.0, 10.0]];
+        let m = Mesh { triangles: vec![t] };
+        let (up, down) = (m.above(4.0), m.below(4.0));
+        let sum: f64 = up
+            .triangles
+            .iter()
+            .chain(&down.triangles)
+            .map(|p| area(p)[1])
+            .sum();
+        assert!((sum - area(&t)[1]).abs() < 1e-9, "{sum}");
+        for v in down.triangles.iter().flatten() {
+            assert!(v[2] <= 4.0 + 1e-12);
+        }
     }
 
     #[test]

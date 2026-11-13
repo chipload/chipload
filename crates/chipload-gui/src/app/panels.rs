@@ -338,6 +338,7 @@ impl ChiploadApp {
                 self.remove_model(id);
             }
             Some(JobRequest::NewRelief(id)) => self.new_relief(id),
+            Some(JobRequest::TurnCut(id)) => self.open_turn_cut(id),
             Some(JobRequest::RemoveDxf(_) | JobRequest::RemoveImage(_)) | None => {}
         }
     }

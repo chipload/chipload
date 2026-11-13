@@ -44,3 +44,17 @@ forms-remove-model-hover = Rimuovi il modello e il suo contorno; i suoi rilievi 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = Impossibile aggiungere la passata di sgrossatura: { $error }
 models-no-roughing-tool = Nessuna fresa piatta o sferica semplice nel progetto o nella tua libreria
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Ruota e taglia
+turn-cut-body = Scegli quale faccia del modello sta in alto e quanto tenerne dall'alto. Trascina il modello per vederlo da ogni lato; il rilievo che ne risulta è mostrato accanto.
+turn-cut-model = Il modello (trascina per ruotarlo)
+turn-cut-model-hover = Colorato: la parte tenuta. Grigio: la parte tagliata. La lastra è il livello di taglio.
+turn-cut-relief = Il rilievo che ne risulta, dall'alto
+turn-cut-size = { $width } × { $height }, profondo { $depth }
+turn-cut-face-up = Faccia in alto
+turn-cut-turn = Ruota sul pannello
+turn-cut-turn-left = Un quarto di giro in senso antiorario
+turn-cut-turn-right = Un quarto di giro in senso orario
+forms-model-turn-cut = Ruota e taglia…
+forms-model-turn-cut-hover = Quale faccia sta in alto e quanto si tiene, scelto vedendo il modello e il suo rilievo

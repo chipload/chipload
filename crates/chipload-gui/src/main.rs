@@ -12,6 +12,7 @@ mod editor;
 mod fonts;
 mod i18n;
 mod icons;
+mod mesh_view;
 mod shape_form;
 mod style;
 mod units;

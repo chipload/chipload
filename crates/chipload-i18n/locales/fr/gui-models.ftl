@@ -44,3 +44,17 @@ forms-remove-model-hover = Supprimer le modèle et son contour ; ses reliefs res
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = Impossible d'ajouter la passe d'ébauche : { $error }
 models-no-roughing-tool = Aucune fraise droite ni hémisphérique simple dans le projet ou votre bibliothèque
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Tourner et couper
+turn-cut-body = Choisissez quelle face du modèle est en haut et quelle part garder depuis le haut. Faites glisser le modèle pour le voir de tous côtés ; le relief obtenu est montré à côté.
+turn-cut-model = Le modèle (glisser pour le tourner)
+turn-cut-model-hover = En couleur : la partie gardée. En gris : la partie coupée. Le plateau est le niveau de coupe.
+turn-cut-relief = Le relief obtenu, vu de dessus
+turn-cut-size = { $width } × { $height }, { $depth } de profondeur
+turn-cut-face-up = Face en haut
+turn-cut-turn = Tourner sur la planche
+turn-cut-turn-left = Un quart de tour dans le sens antihoraire
+turn-cut-turn-right = Un quart de tour dans le sens horaire
+forms-model-turn-cut = Tourner et couper…
+forms-model-turn-cut-hover = Quelle face est en haut et quelle part est gardée, choisi en voyant le modèle et son relief

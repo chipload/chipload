@@ -44,3 +44,17 @@ forms-remove-model-hover = Modell und Umriss entfernen; seine Reliefs bleiben, j
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = Der Schruppdurchgang konnte nicht hinzugefügt werden: { $error }
 models-no-roughing-tool = Kein Schaftfräser und kein einfacher Kugelfräser im Projekt oder in Ihrer Bibliothek
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Drehen und schneiden
+turn-cut-body = Wähle, welche Seite des Modells nach oben zeigt und wie viel davon von oben behalten wird. Ziehe am Modell, um es von allen Seiten zu sehen; das Relief daraus steht daneben.
+turn-cut-model = Das Modell (ziehen zum Drehen)
+turn-cut-model-hover = Farbig: der behaltene Teil. Grau: der abgeschnittene Teil. Die Platte ist die Schnitthöhe.
+turn-cut-relief = Das Relief daraus, von oben
+turn-cut-size = { $width } × { $height }, { $depth } tief
+turn-cut-face-up = Nach oben
+turn-cut-turn = Auf der Platte drehen
+turn-cut-turn-left = Eine Vierteldrehung gegen den Uhrzeigersinn
+turn-cut-turn-right = Eine Vierteldrehung im Uhrzeigersinn
+forms-model-turn-cut = Drehen und schneiden…
+forms-model-turn-cut-hover = Welche Seite nach oben zeigt und wie viel behalten wird, gewählt mit Blick auf Modell und Relief

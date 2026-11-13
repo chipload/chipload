@@ -216,8 +216,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    docs/specs/relief-wizard.md approved ("Go ahead", decisions as recommended, 6a):
    step 1 done (the STL held once and read once, read on a worker thread), step 2 done
    (the light copy, vertex clustering, for the 3D view), step 3 done (the cut level
-   `keep`, *Keep from top*, `--keep`). Next: 4 the *Turn and cut…*
-   window, 5 Inlay to WIZARDS with Measure to the navigation bar and one Library button,
+   `keep`, *Keep from top*, `--keep`), step 4 done (the *Turn and cut…* window). Next:
+   5 Inlay to WIZARDS with Measure to the navigation bar and one Library button,
    6 the Relief wizard. After that: a relief from a picture (brightness as height,
    inflated shapes).
 13. **Small follow-ups:**

@@ -44,3 +44,17 @@ forms-remove-model-hover = Ta bort modellen och dess kontur; dess reliefer finns
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 models-could-not-add-roughing = Grovpasset kunde inte läggas till: { $error }
 models-no-roughing-tool = Ingen pinnfräs eller vanlig kulfräs i projektet eller ditt bibliotek
+
+# Turn and cut… (docs/specs/relief-wizard.md §4)
+turn-cut-title = Vrid och skär
+turn-cut-body = Välj vilken sida av modellen som är uppåt och hur mycket som behålls uppifrån. Dra i modellen för att se den från alla håll; reliefen den ger visas bredvid.
+turn-cut-model = Modellen (dra för att vrida den)
+turn-cut-model-hover = Färgat: den del som behålls. Grått: den del som skärs bort. Plattan är snittnivån.
+turn-cut-relief = Reliefen den ger, uppifrån
+turn-cut-size = { $width } × { $height }, { $depth } djup
+turn-cut-face-up = Uppåt
+turn-cut-turn = Vrid på skivan
+turn-cut-turn-left = Ett kvarts varv moturs
+turn-cut-turn-right = Ett kvarts varv medurs
+forms-model-turn-cut = Vrid och skär…
+forms-model-turn-cut-hover = Vilken sida som är uppåt och hur mycket som behålls, valt medan du ser modellen och reliefen

@@ -226,6 +226,8 @@ impl ChiploadApp {
                 self.focus = Focus::Model(report.id);
                 self.commit();
                 self.set_report(Report::of_messages(report.messages));
+                // Turned and cut first, while seen (docs/specs/relief-wizard.md decision 4).
+                self.open_turn_cut(report.id);
                 true
             }
             Err(err) => {
