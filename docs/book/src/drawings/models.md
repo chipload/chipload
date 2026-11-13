@@ -18,9 +18,10 @@ question at a time, each needing only the ones before it:
    depth**, how far below the board's surface the model's top lies (0 by default; a
    millimetre or so on a board that isn't planed, so its uneven top doesn't reach the
    relief); the board's thickness, which the start depth and the depth must stay within.
-4. **Round it:** a [rim](#a-rim-and-a-ramp) round the model's outline (the default) or
-   round a box, rounded corners if you like: a flat at the relief's depth, then a ramp up
-   to the surface; or the relief cut out through the board with tabs.
+4. **Round it:** a [rim](#a-rim-and-a-ramp) round the model's outline (the default; the
+   *Fuller* slider fills it out towards a rubber band round the model) or round a box,
+   rounded corners if you like: a flat at the relief's depth, then a ramp up to the
+   surface; or the relief cut out through the board with tabs.
 5. **Tools:** the ball nose that finishes it; an end mill to rough it first, ticked when the
    relief is deeper than the ball nose is wide, and *Smooth the steps* after it (a
    [smoothing pass](#smoothing-the-steps), ticked); for a cut-out, its end mill, by default
@@ -39,7 +40,8 @@ chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
     --around box --margin 10 --ramp 45 --tool 2 --rough-tool 1 --smooth
 ```
 
-`--around` is `rim` (the default), `box` or `cut-out`; `--smooth` adds the smoothing pass. `--model ID` uses a model already in
+`--around` is `rim` (the default), `box` or `cut-out`; `--hull 50%` fills an outline rim
+out towards the convex hull; `--smooth` adds the smoothing pass. `--model ID` uses a model already in
 the project; `--up`, `--rotate`, `--at X,Y`, `--start-depth`, `--corner`, `--allowance`
 and `--end-mill` answer the rest. The tools are project tool
 numbers.
@@ -213,6 +215,11 @@ clears the rim with the rest.
   the rectangle round the model, with rounded corners if you like.
 - **Flat width:** how far the flat reaches from the outline or the box. 0 starts the ramp
   right at it.
+- **Fuller** (outline only): how far the outline is filled out before the flat goes round
+  it. At 0 % the rim follows every notch of the model's outline; higher fills narrow
+  notches first, then wider ones, bridging them with round edges, and joins pieces that
+  lie close together; at 100 % it goes round the model like a rubber band, its convex
+  hull. The ramp keeps its angle all the way round.
 - **Ramp:** its slope from horizontal, 10° to 90°. At 45° it reaches out as far as the
   relief is deep; 90° is a straight wall.
 
@@ -225,6 +232,7 @@ relief's **Rim** section; untick it for none. From the command line:
 ```sh
 chipload set sign.chipload 'operations.0.rim={"shape":"box","width":8,"ramp":0.785,"corner_radius":4}'
 chipload set sign.chipload operations.0.rim.width=3
+chipload set sign.chipload operations.0.rim.hull=0.5   # fuller: halfway to the hull
 chipload set sign.chipload operations.0.rim=null      # no rim
 ```
 

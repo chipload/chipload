@@ -589,3 +589,5 @@ forms-smoothing-note = Lavorata dopo la passata di sgrossatura e prima del rilie
 forms-remove-smoothing = Rimuovi la passata di lisciatura
 forms-add-smoothing = Aggiungi passata di lisciatura
 forms-add-smoothing-hover = L'utensile di sgrossatura segue ancora una volta la superficie, con le linee di traverso a queste, e toglie i gradini che lasciano sui pendii
+forms-rim-hull = Più pieno
+forms-rim-hull-hover = Quanto viene riempito il contorno del bordo: 0 % segue il contorno del modello con tutte le rientranze; di più riempie prima le rientranze strette, poi le più larghe; 100 % gira intorno al modello come un elastico (il suo inviluppo convesso). La rampa mantiene il suo angolo.

@@ -591,3 +591,5 @@ forms-smoothing-note = Cut after the roughing pass and before the relief, follow
 forms-remove-smoothing = Remove smoothing pass
 forms-add-smoothing = Add smoothing pass
 forms-add-smoothing-hover = The roughing tool follows the surface once more, its lines across these, and takes off the steps they leave on slopes
+forms-rim-hull = Fuller
+forms-rim-hull-hover = How far the rim's outline is filled out: 0 % follows the model's outline, notches and all; higher fills narrow notches first, then wider ones; 100 % goes round the model like a rubber band (its convex hull). The ramp keeps its angle.

@@ -589,3 +589,5 @@ forms-smoothing-note = Usinée après la passe d'ébauche et avant le relief, en
 forms-remove-smoothing = Supprimer la passe de lissage
 forms-add-smoothing = Ajouter une passe de lissage
 forms-add-smoothing-hover = L'outil d'ébauche suit encore une fois la surface, ses lignes en travers de celles-ci, et enlève les marches qu'elles laissent sur les pentes
+forms-rim-hull = Plus plein
+forms-rim-hull-hover = Jusqu'où le contour du bord est rempli : 0 % suit le contour du modèle avec ses creux ; davantage remplit d'abord les creux étroits, puis les plus larges ; 100 % entoure le modèle comme un élastique (son enveloppe convexe). La rampe garde son angle.

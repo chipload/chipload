@@ -611,6 +611,7 @@ A relief's rim (docs/specs/stl-relief.md §16): a flat at the floor round the ar
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `corner_radius` | number | no | `box` only: the radius of the flat's outer corners, mm, from 0 to the width. |
+| `hull` | number | no | `outline` only: how far the outline is filled out towards its convex hull before the flat goes round it, 0 (as it is) to 1 (the hull). Missing: 0. |
 | `ramp` | number | yes | The ramp's slope from the flat up to the stock top, radians from horizontal: from 10° to 90° (a straight wall). |
 | `shape` | [RimShape](#rimshape) | yes | `outline`: the area's outer loops grown; `box`: the rectangle round them. |
 | `width` | number | yes | The flat's width, mm from the outline or the rectangle: 0 or more. |

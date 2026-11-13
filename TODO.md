@@ -234,7 +234,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    across, the roughing tool by default, 15 %), `op add-smoothing`, `relief add --smooth`,
    the wizard's *Smooth the steps*, its Browser row and form; golden v36_relief_box_smooth. The wizard's
    start depth (step 3, `relief add --start-depth`): a relief sunk below an unplaned
-   board's surface.
+   board's surface. §16.7 done (the user: "Go ahead, sounds right"): an outline
+   rim's *Fuller* slider (`rim.hull`, 0 the outline, 1 its convex hull, a closing between),
+   `relief add --hull`; golden v36_relief_rim_hull.
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

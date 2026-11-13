@@ -115,6 +115,23 @@ pub(crate) fn parse_keep(text: &str) -> Result<f64, String> {
     }
 }
 
+/// A share from 0 to 1, as 0.5 or 50%: how far a rim is filled out towards the hull.
+pub(crate) fn parse_hull(text: &str) -> Result<f64, String> {
+    let text = text.trim();
+    let share = match text.strip_suffix('%') {
+        Some(percent) => percent.trim().parse::<f64>().map(|p| p / 100.0),
+        None => text.parse::<f64>(),
+    }
+    .map_err(|_| format!("expected a share such as 0.5 or 50%, got {text:?}"))?;
+    if share.is_finite() && (0.0..=1.0).contains(&share) {
+        Ok(share)
+    } else {
+        Err(format!(
+            "from 0 (the outline) to 1 or 100% (the convex hull), got {text:?}"
+        ))
+    }
+}
+
 pub(crate) fn parse_at(text: &str) -> Result<(f64, f64), String> {
     crate::lengths::point(text).map(|[x, y]| (x, y))
 }

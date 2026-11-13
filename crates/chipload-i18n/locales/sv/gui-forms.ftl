@@ -589,3 +589,5 @@ forms-smoothing-note = Fräses efter grovpassen och före reliefen och följer y
 forms-remove-smoothing = Ta bort utjämningspassen
 forms-add-smoothing = Lägg till utjämningspass
 forms-add-smoothing-hover = Grovverktyget följer ytan en gång till, med banorna tvärs över dessa, och tar bort stegen de lämnar i sluttningar
+forms-rim-hull = Fylligare
+forms-rim-hull-hover = Hur mycket kantens kontur fylls ut: 0 % följer modellens kontur med alla inbuktningar; mer fyller först smala inbuktningar, sedan bredare; 100 % går runt modellen som ett gummiband (dess konvexa hölje). Rampen behåller sin vinkel.

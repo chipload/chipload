@@ -59,6 +59,8 @@ pub(super) struct ReliefWizard {
     corner: f64,
     /// The rim's ramp from horizontal, radians.
     ramp: f64,
+    /// How far the outline rim is filled out towards the convex hull, 0 to 1.
+    hull: f64,
     finish: Option<WizardTool>,
     rough_on: bool,
     rough: Option<WizardTool>,
@@ -138,6 +140,7 @@ impl ReliefWizard {
             around: Around::Rim,
             margin: DEFAULT_MARGIN_MM,
             margin_set: false,
+            hull: 0.0,
             corner: 0.0,
             ramp: chipload_job::DEFAULT_RIM.ramp,
             finish: first_tool(job, library, ToolKind::BallNose),
@@ -313,6 +316,7 @@ impl ChiploadApp {
         request.margin = w.margin;
         request.corner = w.corner;
         request.ramp = w.ramp;
+        request.hull = w.hull;
         request.smooth = w.smooth && rough.is_some();
         request.rough = rough;
         request.end_mill = end_mill;
@@ -487,7 +491,13 @@ impl ChiploadApp {
                                 _ => step_check(ui, &w, &job, library.as_ref(), units),
                             }
                         });
-                        board_picture(ui, &w, &job, color);
+                        let fuller = if w.around == Around::Rim {
+                            let ctx = ui.ctx().clone();
+                            w.views.fuller_picture(&ctx, w.hull)
+                        } else {
+                            None
+                        };
+                        board_picture(ui, &w, &job, color, fuller);
                     });
                 }
             });
@@ -664,6 +674,12 @@ fn step_around(ui: &mut egui::Ui, w: &mut ReliefWizard) {
             );
             w.margin_set |= typed.changed();
             ui.end_row();
+            if w.around == Around::Rim {
+                ui.label(t!(ui, "forms-rim-hull"))
+                    .on_hover_text(t!(ui, "forms-rim-hull-hover"));
+                super::forms::hull_slider(ui, &mut w.hull);
+                ui.end_row();
+            }
             if w.around == Around::Box {
                 ui.label(t!(ui, "relief-wizard-corner"));
                 ui.add(
@@ -829,7 +845,13 @@ fn step_check(
 
 /// The board seen from above with the relief where it will lie, and its rim and ramp or
 /// the cut-out's ring round it.
-fn board_picture(ui: &mut egui::Ui, w: &ReliefWizard, job: &Job, color: egui::Color32) {
+fn board_picture(
+    ui: &mut egui::Ui,
+    w: &ReliefWizard,
+    job: &Job,
+    color: egui::Color32,
+    fuller: Option<PlacedPicture>,
+) {
     let (rect, _) = ui.allocate_exact_size(BOARD_VIEW, egui::Sense::hover());
     let painter = ui.painter_at(rect);
     painter.rect_filled(rect, 4.0, ui.visuals().extreme_bg_color);
@@ -896,13 +918,15 @@ fn board_picture(ui: &mut egui::Ui, w: &ReliefWizard, job: &Job, color: egui::Co
             ring(w.margin, w.corner, flat);
         }
         Around::Rim => {
-            // The silhouette moved round in a circle: the outline grown, near enough.
+            // The silhouette, filled out as the rim fills it (stl-relief.md §16.7), moved
+            // round in a circle: the outline grown, near enough.
+            let stamp = fuller.map_or(texture, |f| f.texture);
             let grown = |grow: f64, fill: egui::Color32| {
                 let d = grow as f32 * scale;
                 for k in 0..RIM_PICTURE_STEPS {
                     let a = std::f32::consts::TAU * k as f32 / RIM_PICTURE_STEPS as f32;
                     let offset = egui::vec2(d * a.cos(), d * a.sin());
-                    painter.image(texture, shown.translate(offset), whole, fill);
+                    painter.image(stamp, shown.translate(offset), whole, fill);
                 }
             };
             grown(w.rim_reach(), slope.to_opaque());
@@ -946,5 +970,14 @@ impl ReliefWizard {
 
     pub(super) fn set_around(&mut self, around: Around) {
         self.around = around;
+    }
+
+    pub(super) fn set_hull(&mut self, hull: f64) {
+        self.hull = hull;
+    }
+
+    /// Whether the board picture shows the shadow filled out (a texture made for it).
+    pub(super) fn shows_fuller(&self) -> bool {
+        self.views.has_fuller()
     }
 }

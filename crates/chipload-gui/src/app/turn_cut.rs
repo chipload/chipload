@@ -54,6 +54,9 @@ pub(super) struct ModelViews {
         [f64; 3],
         chipload_pipeline::models::TopHeights,
     )>,
+    /// The preview's shadow filled out as an outline rim fills it, for the hull it was made
+    /// for (docs/specs/stl-relief.md §16.7).
+    fuller: Option<(f64, egui::TextureHandle)>,
 }
 
 // Two states are the same window when they change the same model the same way; what is
@@ -98,6 +101,7 @@ impl ModelViews {
             .ok()
             .flatten()
             .map(|(grid, size)| (preview_texture(ctx, &grid, color), size, grid));
+        self.fuller = None;
         self.shown = Some(draft.clone());
     }
 
@@ -109,6 +113,43 @@ impl ModelViews {
     /// The relief's size on the board from the preview: width, height, depth.
     pub(super) fn size(&self) -> Option<[f64; 3]> {
         self.preview.as_ref().map(|(_, size, _)| *size)
+    }
+
+    /// The relief's shadow filled out by `hull` as a plain picture, where it lies on the
+    /// board: made again when `hull` changes. None at 0 or without a preview.
+    pub(super) fn fuller_picture(
+        &mut self,
+        ctx: &egui::Context,
+        hull: f64,
+    ) -> Option<PlacedPicture> {
+        if hull <= 0.0 {
+            return None;
+        }
+        let (_, _, grid) = self.preview.as_ref()?;
+        if self.fuller.as_ref().is_none_or(|(h, _)| *h != hull) {
+            let cells = chipload_pipeline::models::fuller_shadow(grid, hull).ok()?;
+            let (w, h) = (grid.columns, grid.rows);
+            let mut pixels = vec![egui::Color32::TRANSPARENT; w * h];
+            // Row 0 of the grid is the lowest; a picture's is the top.
+            for row in 0..h {
+                for column in 0..w {
+                    if cells[row * w + column] {
+                        pixels[(h - 1 - row) * w + column] = egui::Color32::WHITE;
+                    }
+                }
+            }
+            let image = egui::ColorImage::new([w, h], pixels);
+            let texture = ctx.load_texture("relief-fuller", image, egui::TextureOptions::LINEAR);
+            self.fuller = Some((hull, texture));
+        }
+        let mut placed = self.placed_picture()?;
+        placed.texture = self.fuller.as_ref()?.1.id();
+        Some(placed)
+    }
+
+    #[cfg(test)]
+    pub(super) fn has_fuller(&self) -> bool {
+        self.fuller.is_some()
     }
 
     /// The relief's picture and where it lies on the board.

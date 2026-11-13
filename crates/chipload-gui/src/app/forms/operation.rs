@@ -1725,6 +1725,12 @@ fn rim_section(ui: &mut egui::Ui, rim: &mut Option<chipload_job::ReliefRim>) {
             flag(ui.add(mm(&mut r.corner_radius)), ui, "rim.corner_radius");
             ui.end_row();
         }
+        if r.shape == RimShape::Outline {
+            ui.label(t!(ui, "forms-rim-hull"))
+                .on_hover_text(t!(ui, "forms-rim-hull-hover"));
+            flag(super::hull_slider(ui, &mut r.hull), ui, "rim.hull");
+            ui.end_row();
+        }
         ui.label(t!(ui, "forms-rim-ramp"))
             .on_hover_text(t!(ui, "forms-rim-ramp-hover"));
         let mut degrees = r.ramp.to_degrees();

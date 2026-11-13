@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 69] = [
+const GOLDEN: [(&str, &str); 70] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -214,6 +214,9 @@ const GOLDEN: [(&str, &str); 69] = [
     // and a 45° ramp up to the stock top, `set operations.0.rim={"shape":"outline",
     // "width":4,"ramp":0.785…}`; the fitted board grows round it.
     ("v36_relief_rim", "jobs/v36/relief_rim.chipload"),
+    // The same rim filled out to the outline's convex hull (docs/specs/stl-relief.md
+    // §16.7): relief_rim with `set operations.0.rim.hull=1`.
+    ("v36_relief_rim_hull", "jobs/v36/relief_rim_hull.chipload"),
     // A box rim, roughed: relief_dome_rough with `set operations.0.rim={"shape":"box",
     // "width":6,"ramp":1.047…,"corner_radius":3}` (60°).
     ("v36_relief_box_rough", "jobs/v36/relief_box_rough.chipload"),

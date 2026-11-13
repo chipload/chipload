@@ -1422,6 +1422,11 @@ pub struct ReliefRim {
     /// `box` only: the radius of the flat's outer corners, mm, from 0 to the width.
     #[serde(default)]
     pub corner_radius: f64,
+    /// `outline` only: how far the outline is filled out towards its convex hull before the
+    /// flat goes round it, 0 (as it is) to 1 (the hull). Missing: 0.
+    // Spec: docs/specs/stl-relief.md §16.7.
+    #[serde(default)]
+    pub hull: f64,
 }
 
 /// A relief rim's gentlest ramp, radians: a gentler one reaches far out.
@@ -1433,6 +1438,7 @@ pub const DEFAULT_RIM: ReliefRim = ReliefRim {
     width: 5.0,
     ramp: std::f64::consts::FRAC_PI_4,
     corner_radius: 0.0,
+    hull: 0.0,
 };
 
 /// A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels

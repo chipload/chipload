@@ -481,16 +481,33 @@ fn footprint(placed: &Mesh) -> Result<Vec<Vec<Primitive>>, PipelineError> {
     let shadow = placed
         .shadow(cell, max_cells)
         .ok_or_else(|| PipelineError::Job(Message::new("pipeline-model-no-outline")))?;
-    // The picture's rows run from the top; the shadow's from the bottom.
-    let mut grey = Vec::with_capacity(shadow.columns * shadow.rows);
-    for row in (0..shadow.rows).rev() {
-        for column in 0..shadow.columns {
-            grey.push(if shadow.at(column, row) { 0.0 } else { 255.0 });
+    trace_cells(
+        (shadow.columns, shadow.rows),
+        shadow.cell,
+        shadow.origin,
+        |column, row| shadow.at(column, row),
+    )
+}
+
+/// Filled cells of a grid, `size` (columns, rows) of `cell` mm from `origin` (the lower-left
+/// corner), row 0 the lowest, traced as a black-and-white picture is: closed outlines, lines
+/// and arcs, in mm.
+fn trace_cells(
+    (columns, rows): (usize, usize),
+    cell: f64,
+    (ox, oy): (f64, f64),
+    filled: impl Fn(usize, usize) -> bool,
+) -> Result<Vec<Vec<Primitive>>, PipelineError> {
+    // The picture's rows run from the top; the grid's from the bottom.
+    let mut grey = Vec::with_capacity(columns * rows);
+    for row in (0..rows).rev() {
+        for column in 0..columns {
+            grey.push(if filled(column, row) { 0.0 } else { 255.0 });
         }
     }
     let picture = chipload_image::Decoded {
-        width: u32::try_from(shadow.columns).unwrap_or(u32::MAX),
-        height: u32::try_from(shadow.rows).unwrap_or(u32::MAX),
+        width: u32::try_from(columns).unwrap_or(u32::MAX),
+        height: u32::try_from(rows).unwrap_or(u32::MAX),
         grey,
     };
     let settings = chipload_image::Settings {
@@ -506,14 +523,76 @@ fn footprint(placed: &Mesh) -> Result<Vec<Vec<Primitive>>, PipelineError> {
         ),
         arcs: true,
     };
-    let width = shadow.cell * shadow.columns as f64;
+    let width = cell * columns as f64;
     let traced = chipload_image::trace(&picture, &settings, width)?;
-    let (ox, oy) = shadow.origin;
     Ok(traced
         .pieces
         .into_iter()
         .map(|loop_| loop_.iter().map(|p| p.translated((ox, oy))).collect())
         .collect())
+}
+
+/// The relief preview `grid`'s shadow filled out as an outline rim with `hull` fills it
+/// (docs/specs/stl-relief.md §16.7), for the Relief wizard's board picture: which cells lie
+/// inside, row by row from the lowest, as `grid.heights`. The shadow itself at `hull` 0.
+pub fn fuller_shadow(grid: &TopHeights, hull: f64) -> Result<Vec<bool>, PipelineError> {
+    let filled = |column: usize, row: usize| {
+        grid.heights
+            .get(row * grid.columns + column)
+            .is_some_and(Option::is_some)
+    };
+    let mut cells: Vec<bool> = (0..grid.rows)
+        .flat_map(|row| (0..grid.columns).map(move |column| (column, row)))
+        .map(|(column, row)| filled(column, row))
+        .collect();
+    if hull <= 0.0 {
+        return Ok(cells);
+    }
+    let loops: Vec<Vec<chipload_core::Point>> =
+        trace_cells((grid.columns, grid.rows), grid.cell, grid.origin, filled)?
+            .iter()
+            .map(|pieces| {
+                let mut points: Vec<chipload_core::Point> = Vec::new();
+                for piece in pieces {
+                    for p in piece.points() {
+                        if points.last() != Some(&p) {
+                            points.push(p);
+                        }
+                    }
+                }
+                points
+            })
+            .collect();
+    // The outer loops: inside an even number of others.
+    let outer: Vec<Vec<chipload_core::Point>> = loops
+        .iter()
+        .enumerate()
+        .filter(|&(i, l)| {
+            l.first().is_some_and(|&p| {
+                let around = loops
+                    .iter()
+                    .enumerate()
+                    .filter(|&(j, other)| j != i && chipload_toolpath::relief::encloses(other, p))
+                    .count();
+                around % 2 == 0
+            })
+        })
+        .map(|(_, l)| l.clone())
+        .collect();
+    let fuller = chipload_toolpath::fuller::fuller(&outer, hull).map_err(PipelineError::from)?;
+    let area = chipload_toolpath::rim::Area::Loops(fuller);
+    for row in 0..grid.rows {
+        let y = grid.origin.1 + (row as f64 + 0.5) * grid.cell;
+        for (x0, x1) in area.spans(y) {
+            for column in 0..grid.columns {
+                let x = grid.origin.0 + (column as f64 + 0.5) * grid.cell;
+                if (x0..=x1).contains(&x) {
+                    cells[row * grid.columns + column] = true;
+                }
+            }
+        }
+    }
+    Ok(cells)
 }
 
 /// Remove model `id` and its outline.
@@ -578,6 +657,34 @@ mod tests {
             out.extend([0u8; 2]);
         }
         out
+    }
+
+    #[test]
+    fn the_wizards_shadow_fills_out_between_two_blocks() {
+        // Two blocks of 10 × 10 cells, 10 cells apart, 1 mm cells.
+        let (columns, rows) = (40, 14);
+        let heights = (0..rows)
+            .flat_map(|row| (0..columns).map(move |c| (c, row)))
+            .map(|(c, row)| {
+                let block =
+                    (2..12).contains(&row) && ((2..12).contains(&c) || (22..32).contains(&c));
+                block.then_some(0.0)
+            })
+            .collect();
+        let grid = TopHeights {
+            origin: (0.0, 0.0),
+            cell: 1.0,
+            columns,
+            rows,
+            heights,
+        };
+        let at = |cells: &[bool], c: usize, row: usize| cells[row * columns + c];
+        let plain = fuller_shadow(&grid, 0.0).unwrap();
+        assert!(at(&plain, 5, 5) && !at(&plain, 17, 7));
+        let full = fuller_shadow(&grid, 1.0).unwrap();
+        assert!(at(&full, 5, 5) && at(&full, 17, 7));
+        // Never past the blocks' box.
+        assert!(!at(&full, 17, 0) && !at(&full, 36, 7));
     }
 
     #[test]

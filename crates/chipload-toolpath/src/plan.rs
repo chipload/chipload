@@ -2708,7 +2708,7 @@ fn plan_relief_op(
     let (start_depth, end_depth) = (op.start_depth, op.end_depth);
     let floor = ctx.top_z - (end_depth - start_depth);
     let stock_top = ctx.top_z + start_depth;
-    let (area, ramp) = relief_area(&sel.contours, op.rim.as_ref(), floor, stock_top);
+    let (area, ramp) = relief_area(&sel.contours, op.rim.as_ref(), floor, stock_top)?;
     let notes = past_the_board(ctx, &area).into_iter().collect();
     let cut = crate::relief::ReliefCut {
         mesh: &index,
@@ -2787,7 +2787,7 @@ fn plan_relief_pass(
     // With a rim, the grown area shrunk and the ramp raised by the allowance (spec §16).
     let (area, ramp) = match op.rim.as_ref() {
         Some(rim) => {
-            let (area, ramp) = relief_area(&sel.contours, Some(rim), floor, stock_top + allowance);
+            let (area, ramp) = relief_area(&sel.contours, Some(rim), floor, stock_top + allowance)?;
             let area = if inset > DEPTH_TOL_MM {
                 area.shrunk(inset).ok_or_else(room)?
             } else {
@@ -2865,14 +2865,14 @@ fn relief_area(
     rim: Option<&chipload_job::ReliefRim>,
     floor: f64,
     top: f64,
-) -> (Area, Option<Ramp>) {
+) -> Result<(Area, Option<Ramp>), ToolpathError> {
     let loops: Vec<Vec<Point>> = contours
         .iter()
         .filter(|c| c.closed)
         .map(|c| c.points())
         .collect();
     let Some(rim) = rim else {
-        return (Area::Loops(loops), None);
+        return Ok((Area::Loops(loops), None));
     };
     // The outer loops: inside an even number of others. Holes are cut to the floor.
     let outer: Vec<Vec<Point>> = loops
@@ -2892,7 +2892,8 @@ fn relief_area(
         .map(|(_, l)| l.clone())
         .collect();
     let (loops, foot) = match rim.shape {
-        RimShape::Outline => (outer, rim.width),
+        // Filled out towards the hull as asked (spec §16.7).
+        RimShape::Outline => (crate::fuller::fuller(&outer, rim.hull)?, rim.width),
         // The rectangle the corner radius inside the flat's edge, grown by it again.
         RimShape::Box => {
             let area = Area::Loops(outer);
@@ -2916,7 +2917,7 @@ fn relief_area(
         loops,
         reach: ramp.reach(),
     };
-    (area, Some(ramp))
+    Ok((area, Some(ramp)))
 }
 
 /// A note when a relief's area reaches past the board: the ramp is cut off at its edge

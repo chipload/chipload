@@ -13,7 +13,7 @@ use clap::{Args, Subcommand, ValueEnum};
 use serde_json::json;
 
 use crate::load;
-use crate::models::{parse_at, parse_keep, parse_units, parse_up, turned};
+use crate::models::{parse_at, parse_hull, parse_keep, parse_units, parse_up, turned};
 use crate::out::Out;
 
 #[derive(Subcommand)]
@@ -92,6 +92,10 @@ pub struct AddRelief {
     /// (default 45; 90: a straight wall).
     #[arg(long)]
     ramp: Option<f64>,
+    /// How far an outline rim is filled out towards the model's convex hull: 0 (default,
+    /// the outline as it is) to 1 or 100% (the hull).
+    #[arg(long, value_parser = parse_hull)]
+    hull: Option<f64>,
     /// A box rim's corner radius, mm, at most the margin (default 0: sharp).
     #[arg(value_parser = crate::lengths::length, long)]
     corner: Option<f64>,
@@ -144,6 +148,7 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
     request.sink = add.start_depth.unwrap_or(0.0);
     request.around = add.around.into();
     request.corner = add.corner.unwrap_or(0.0);
+    request.hull = add.hull.unwrap_or(0.0);
     if let Some(degrees) = add.ramp {
         request.ramp = degrees.to_radians();
     }

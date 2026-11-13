@@ -113,6 +113,7 @@ job-relief-allowance = deve essere 0 o più, è { $got }
 job-relief-smoothing-alone = una passata di lisciatura segue la superficie in una volta, quindi le serve prima la passata di sgrossatura del rilievo, attiva; aggiungi o attiva la sgrossatura, oppure disattiva la lisciatura
 job-relief-ramp = deve essere tra { $least }° e 90°, è { $got }°
 job-relief-rim-corner = deve essere tra 0 e la larghezza del bordo ({ $width }), è { $got }
+job-relief-rim-hull = deve essere tra 0 (il contorno così com'è) e 1 (il suo inviluppo convesso), è { $got }
 job-no-dxf = nessun DXF { $id } in drawing.dxfs
 job-no-text = nessun testo { $id } in drawing.texts
 job-no-group = nessun gruppo { $id } in drawing.groups

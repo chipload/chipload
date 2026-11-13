@@ -113,6 +113,7 @@ job-relief-allowance = doit valoir 0 ou plus, vaut { $got }
 job-relief-smoothing-alone = une passe de lissage suit la surface en une fois : il lui faut avant elle la passe d'ébauche du relief, activée ; ajoutez ou activez l'ébauche, ou désactivez le lissage
 job-relief-ramp = doit être entre { $least }° et 90°, vaut { $got }°
 job-relief-rim-corner = doit être entre 0 et la largeur du bord ({ $width }), vaut { $got }
+job-relief-rim-hull = doit être entre 0 (le contour tel quel) et 1 (son enveloppe convexe), vaut { $got }
 job-no-dxf = aucun DXF { $id } dans drawing.dxfs
 job-no-text = aucun texte { $id } dans drawing.texts
 job-no-group = pas de groupe { $id } dans drawing.groups

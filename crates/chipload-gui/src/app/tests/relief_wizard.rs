@@ -118,6 +118,40 @@ fn the_buttons_stay_on_screen_in_a_short_window() {
     }
 }
 
+/// The *Fuller* slider's share goes on the relief's rim, and the board picture shows the
+/// shadow filled out (docs/specs/stl-relief.md §16.7).
+#[test]
+fn a_fuller_rim_is_shown_and_made() {
+    let mut harness = window();
+    let model = harness.state().edit.as_ref().unwrap().job.drawing.models[0].clone();
+    wizard_of(harness.state_mut())
+        .unwrap()
+        .choose_existing(&model);
+    harness.run_steps(4);
+    for _ in 0..3 {
+        click(&mut harness, "Next");
+    }
+    assert_eq!(step(&mut harness), 4);
+    assert!(!wizard_of(harness.state_mut()).unwrap().shows_fuller());
+    wizard_of(harness.state_mut()).unwrap().set_hull(0.6);
+    harness.run_steps(2);
+    assert!(wizard_of(harness.state_mut()).unwrap().shows_fuller());
+    click(&mut harness, "Next");
+    click(&mut harness, "Next");
+    click(&mut harness, "Make relief");
+    let job = harness.state().edit.as_ref().unwrap().job.clone();
+    let relief = job
+        .operations
+        .iter()
+        .rev()
+        .find_map(|op| match op {
+            chipload_job::Operation::Relief(r) => Some(r),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(relief.rim.unwrap().hull, 0.6);
+}
+
 #[test]
 fn cancel_changes_nothing() {
     let mut harness = window();

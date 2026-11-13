@@ -589,3 +589,5 @@ forms-smoothing-note = Se corta tras la pasada de desbaste y antes del relieve, 
 forms-remove-smoothing = Quitar la pasada de alisado
 forms-add-smoothing = Añadir pasada de alisado
 forms-add-smoothing-hover = La herramienta de desbaste sigue la superficie una vez más, con sus líneas cruzando estas, y quita los escalones que dejan en las pendientes
+forms-rim-hull = Más lleno
+forms-rim-hull-hover = Cuánto se rellena el contorno del borde: 0 % sigue el contorno del modelo con todas sus entrantes; más rellena primero las entrantes estrechas y luego las anchas; 100 % rodea el modelo como una goma elástica (su envolvente convexa). La rampa mantiene su ángulo.

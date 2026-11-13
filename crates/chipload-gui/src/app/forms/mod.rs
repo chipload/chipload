@@ -109,6 +109,21 @@ pub(super) enum JobRequest {
     Post(String),
 }
 
+/// An outline rim's *Fuller* slider (docs/specs/stl-relief.md §16.7): `hull`, 0 to 1, shown
+/// as 0 to 100 %, from the outline as it is to its convex hull.
+pub(in crate::app) fn hull_slider(ui: &mut egui::Ui, hull: &mut f64) -> egui::Response {
+    let mut percent = *hull * 100.0;
+    let response = ui.add(
+        egui::Slider::new(&mut percent, 0.0..=100.0)
+            .suffix(" %")
+            .fixed_decimals(0),
+    );
+    if response.changed() {
+        *hull = (percent / 100.0).clamp(0.0, 1.0);
+    }
+    response
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

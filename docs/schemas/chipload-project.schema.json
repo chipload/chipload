@@ -2288,6 +2288,12 @@
           "format": "double",
           "type": "number"
         },
+        "hull": {
+          "default": 0.0,
+          "description": "`outline` only: how far the outline is filled out towards its convex hull before the\nflat goes round it, 0 (as it is) to 1 (the hull). Missing: 0.",
+          "format": "double",
+          "type": "number"
+        },
         "ramp": {
           "description": "The ramp's slope from the flat up to the stock top, radians from horizontal: from 10°\nto 90° (a straight wall).",
           "format": "double",

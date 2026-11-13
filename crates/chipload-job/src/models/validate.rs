@@ -1058,6 +1058,13 @@ fn rim_problems(i: usize, rim: &ReliefRim) -> Vec<Problem> {
     let corner_fits = rim.corner_radius.is_finite()
         && rim.corner_radius >= 0.0
         && rim.corner_radius <= rim.width.max(0.0);
+    if !(rim.hull.is_finite() && (0.0..=1.0).contains(&rim.hull)) {
+        problems.push(Problem::at(
+            at("hull"),
+            Message::new("job-relief-rim-hull")
+                .arg("got", Value::Number(rim.hull, Digits::Shortest)),
+        ));
+    }
     if rim.shape == RimShape::Box && !corner_fits {
         problems.push(Problem::at(
             at("corner_radius"),

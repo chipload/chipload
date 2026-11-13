@@ -590,3 +590,5 @@ forms-smoothing-note = Nach dem Schruppdurchgang und vor dem Relief geschnitten,
 forms-remove-smoothing = Glättdurchgang entfernen
 forms-add-smoothing = Glättdurchgang hinzufügen
 forms-add-smoothing-hover = Das Schruppwerkzeug folgt der Oberfläche noch einmal, quer zu diesen Bahnen, und nimmt die Stufen an Hängen weg
+forms-rim-hull = Voller
+forms-rim-hull-hover = Wie weit der Umriss des Rands aufgefüllt wird: 0 % folgt dem Umriss des Modells mit allen Einbuchtungen; mehr füllt erst schmale, dann breitere Einbuchtungen; 100 % geht wie ein Gummiband um das Modell (seine konvexe Hülle). Die Rampe behält ihren Winkel.

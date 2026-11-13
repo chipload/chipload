@@ -113,6 +113,7 @@ job-relief-allowance = måste vara 0 eller mer, är { $got }
 job-relief-smoothing-alone = en utjämningspass följer ytan i ett svep och behöver därför reliefens grovpass, påslagen, före sig; lägg till eller slå på grovpassen, eller slå av utjämningen
 job-relief-ramp = måste vara mellan { $least }° och 90°, är { $got }°
 job-relief-rim-corner = måste vara mellan 0 och kantens bredd ({ $width }), är { $got }
+job-relief-rim-hull = måste vara från 0 (konturen som den är) till 1 (dess konvexa hölje), är { $got }
 job-no-dxf = ingen DXF { $id } i drawing.dxfs
 job-no-text = ingen text { $id } i drawing.texts
 job-no-group = ingen grupp { $id } i drawing.groups

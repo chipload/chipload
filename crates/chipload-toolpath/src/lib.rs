@@ -11,6 +11,7 @@ pub mod centre;
 pub mod corners;
 pub mod drop;
 mod floor;
+pub mod fuller;
 pub mod geom;
 pub mod helix;
 pub mod holes;

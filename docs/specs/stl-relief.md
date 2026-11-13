@@ -497,6 +497,41 @@ the model, and the small ball nose takes the rest.
 - A relief made otherwise (`op add relief`, roughing added later) keeps its rim as it is;
   the note tells.
 
+### 16.7 Fuller: from the outline to its convex hull
+
+Asked by the user 2026-11-13 ("a slider for the offset rim … from offset as is to convex
+hull … fattening/rounding the rim"), decisions 1–5 as recommended ("Go ahead").
+
+**`hull`** on the rim (0 to 1, missing: 0; `outline` only, a box is convex already): how
+far the outline rim's loops are filled out towards their convex hull before the flat and
+the ramp are built round them, as before (§16).
+
+- **0:** the outer loops as they are.
+- **1:** the convex hull of all their points, one loop.
+- **Between:** a morphological closing (Serra, *Image Analysis and Mathematical
+  Morphology*, 1982) of the outer loops by a disc of radius
+  `R = 0.1 · diagonal · hull / (1 − hull)`, the diagonal of their bounding box: the loops
+  grown by `R` as one shape (so pieces closer than `2R` merge), then shrunk by `R`. Notches
+  narrower than about `2R` fill, with round edges where they are bridged; voids enclosed
+  by the growing are filled too (only outer loops are kept). As `hull` nears 1, `R` grows
+  without bound and the closing nears the hull (10 % of the diagonal at 0.5, 90 % at 0.9).
+  The growing and shrinking go through the offsets of `cavalier.rs`; the arcs become
+  chords within the arc tolerance.
+- The result lies inside the hull, so within the outline's bounding box: the board fitted
+  round a rim doesn't change.
+- The ramp, its drop, the path check and the roughing's shrunk area work on the filled
+  loops exactly as on the outline: the ramp keeps its angle everywhere.
+
+**The convex hull:** Andrew's monotone chain (A. M. Andrew, "Another efficient algorithm
+for convex hulls in two dimensions", 1979), on all the outer loops' points.
+
+**Where:** the relief's *Rim* section, *Fuller* slider 0–100 % (outline only); the
+wizard's step 4, the same slider, the board picture showing the filled shape (the shadow
+filled the same way at the picture's resolution); `relief add --hull 50%`; `set
+operations.N.rim.hull=0.5`. Rules: `hull` within 0 to 1 (`job-relief-rim-hull`).
+
+**Schema:** an optional field with a safe default (0: as before), no version bump.
+
 ## 17. A smoothing pass
 
 Asked by the user 2026-11-13 ("the roughing of the ramp leaves quite large steps that a

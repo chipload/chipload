@@ -98,6 +98,9 @@ pub struct ReliefRequest {
     pub margin: f64,
     pub corner: f64,
     pub ramp: f64,
+    /// How far the outline rim is filled out towards the convex hull, 0 to 1
+    /// (docs/specs/stl-relief.md §16.7).
+    pub hull: f64,
     /// Step 5: the finishing ball nose; the roughing end mill and its allowance; the end
     /// mill for the cut-out (None: the roughing one).
     pub tool: i64,
@@ -123,6 +126,7 @@ impl ReliefRequest {
             margin: DEFAULT_MARGIN_MM,
             corner: 0.0,
             ramp: DEFAULT_RIM.ramp,
+            hull: 0.0,
             tool,
             rough: None,
             smooth: false,
@@ -148,6 +152,11 @@ impl ReliefRequest {
             ramp: self.ramp,
             corner_radius: if shape == RimShape::Box {
                 self.corner
+            } else {
+                0.0
+            },
+            hull: if shape == RimShape::Outline {
+                self.hull
             } else {
                 0.0
             },
@@ -208,6 +217,7 @@ fn check(job: &Job, request: &ReliefRequest) -> Result<(), PipelineError> {
             && (RIM_MIN_RAMP..=std::f64::consts::FRAC_PI_2).contains(&rim.ramp)
             && rim.corner_radius.is_finite()
             && (0.0..=rim.width).contains(&rim.corner_radius)
+            && (0.0..=1.0).contains(&rim.hull)
     });
     if !rim_fits {
         return Err(refused(
@@ -456,6 +466,7 @@ mod tests {
                 width: 8.0,
                 ramp: 60f64.to_radians(),
                 corner_radius: 4.0,
+                hull: 0.0,
             })
         );
         // The model turned, cut and sized as asked, centred on the board: the fitted board
@@ -648,6 +659,82 @@ mod tests {
         // Above the surface (a start depth below 0) is refused.
         request.sink = -1.0;
         assert!(add_relief(&job, ReliefModel::Existing(1), &request, None, Language::En).is_err());
+    }
+
+    /// Two boxes 10 × 10 × 3 mm, 10 mm apart along X, as a text STL.
+    fn two_boxes() -> Vec<u8> {
+        let mut text = String::from("solid boxes\n");
+        for x0 in [0.0, 20.0] {
+            let (x1, y0, y1, z0, z1) = (x0 + 10.0, 0.0, 10.0, 0.0, 3.0);
+            let c = |i: usize| {
+                [
+                    if i & 1 == 0 { x0 } else { x1 },
+                    if i & 2 == 0 { y0 } else { y1 },
+                    if i & 4 == 0 { z0 } else { z1 },
+                ]
+            };
+            // Each face as two triangles, by its corners' numbers.
+            let faces = [
+                [0, 2, 3, 1],
+                [4, 5, 7, 6],
+                [0, 1, 5, 4],
+                [2, 6, 7, 3],
+                [0, 4, 6, 2],
+                [1, 3, 7, 5],
+            ];
+            for f in faces {
+                for t in [[f[0], f[1], f[2]], [f[0], f[2], f[3]]] {
+                    text.push_str("facet normal 0 0 0\nouter loop\n");
+                    for k in t {
+                        let p = c(k);
+                        text.push_str(&format!("vertex {} {} {}\n", p[0], p[1], p[2]));
+                    }
+                    text.push_str("endloop\nendfacet\n");
+                }
+            }
+        }
+        text.push_str("endsolid boxes\n");
+        text.into_bytes()
+    }
+
+    #[test]
+    fn a_fuller_rim_fills_the_gap_between_two_pieces() {
+        // The dome sample's tools, without its dome and its relief.
+        let mut job = dome();
+        job.operations.clear();
+        let job = crate::models::remove_model(&job, 1).unwrap();
+        let read = crate::models::read_model(&two_boxes()).unwrap();
+        let between = |hull: f64| {
+            let mut request = ReliefRequest::new(30.0, 2);
+            request.depth = Some(3.0);
+            request.margin = 1.0;
+            request.hull = hull;
+            let model = ReliefModel::New {
+                file: "boxes.stl",
+                read: &read,
+                units: chipload_job::Units::Mm,
+            };
+            let (out, made) = add_relief(&job, model, &request, None, Language::En).unwrap();
+            let id = out.drawing.models.last().unwrap().id;
+            let Operation::Relief(relief) = &out.operations[made.relief] else {
+                unreachable!()
+            };
+            assert_eq!(relief.rim.unwrap().hull, hull);
+            let (lo, _) = crate::models::placed_mesh(&out, id)
+                .unwrap()
+                .bounds()
+                .unwrap();
+            let (_, done) = before_and_after_the_finish(&out, made.relief);
+            // Midway between the boxes: 5 mm from each, a millimetre past the 1 mm flat and
+            // the 3 mm ramp (45°, 3 mm deep) at 0; inside the hull at 1.
+            let i = ((lo[0] + 15.0 - done.origin.0) / done.cell) as usize;
+            let j = ((lo[1] + 5.0 - done.origin.1) / done.cell) as usize;
+            (done.height(i, j), done.top)
+        };
+        let (apart, top) = between(0.0);
+        assert!((apart - top).abs() < 0.05, "{apart}");
+        let (filled, top) = between(1.0);
+        assert!((filled - (top - 3.0)).abs() < 0.05, "{filled}");
     }
 
     #[test]

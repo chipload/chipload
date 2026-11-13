@@ -113,6 +113,7 @@ job-relief-allowance = must be 0 or more, got { $got }
 job-relief-smoothing-alone = a smoothing pass follows the surface in one go, so it needs the relief's roughing pass, cut, before it; add or turn on the roughing pass, or turn the smoothing off
 job-relief-ramp = must be from { $least }° to 90°, got { $got }°
 job-relief-rim-corner = must be from 0 to the rim's width ({ $width }), got { $got }
+job-relief-rim-hull = must be from 0 (the outline as it is) to 1 (its convex hull), got { $got }
 job-no-dxf = no DXF { $id } in drawing.dxfs
 job-no-text = no text { $id } in drawing.texts
 job-no-group = no group { $id } in drawing.groups

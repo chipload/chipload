@@ -113,6 +113,7 @@ job-relief-allowance = muss 0 oder mehr sein, ist { $got }
 job-relief-smoothing-alone = ein Glättdurchgang folgt der Oberfläche in einem Zug und braucht daher vorher den Schruppdurchgang des Reliefs, eingeschaltet; füge ihn hinzu oder schalte ihn ein, oder schalte das Glätten aus
 job-relief-ramp = muss zwischen { $least }° und 90° liegen, ist { $got }°
 job-relief-rim-corner = muss zwischen 0 und der Breite des Rands ({ $width }) liegen, ist { $got }
+job-relief-rim-hull = muss zwischen 0 (der Umriss, wie er ist) und 1 (seine konvexe Hülle) liegen, ist { $got }
 job-no-dxf = keine DXF { $id } in drawing.dxfs
 job-no-text = kein Text { $id } in drawing.texts
 job-no-group = keine Gruppe { $id } in drawing.groups

@@ -70,6 +70,7 @@ job-relief-allowance = должно быть 0 или больше, а не { $g
 job-relief-smoothing-alone = проход сглаживания идёт по поверхности за один раз, поэтому перед ним нужен включённый черновой проход рельефа; добавьте или включите черновой проход либо выключите сглаживание
 job-relief-ramp = должен быть от { $least }° до 90°, а не { $got }°
 job-relief-rim-corner = должен быть от 0 до ширины бортика ({ $width }), а не { $got }
+job-relief-rim-hull = должно быть от 0 (контур как есть) до 1 (его выпуклая оболочка), а не { $got }
 job-no-dxf = нет DXF { $id } в drawing.dxfs
 job-no-text = нет текста { $id } в drawing.texts
 job-no-group = нет группы { $id } в drawing.groups

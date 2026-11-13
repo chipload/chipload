@@ -113,6 +113,7 @@ job-relief-allowance = debe ser 0 o más, es { $got }
 job-relief-smoothing-alone = una pasada de alisado sigue la superficie de una vez, así que necesita antes la pasada de desbaste del relieve, activada; añada o active el desbaste, o desactive el alisado
 job-relief-ramp = debe estar entre { $least }° y 90°, es { $got }°
 job-relief-rim-corner = debe estar entre 0 y el ancho del borde ({ $width }), es { $got }
+job-relief-rim-hull = debe estar entre 0 (el contorno tal cual) y 1 (su envolvente convexa), es { $got }
 job-no-dxf = no hay DXF { $id } en drawing.dxfs
 job-no-text = no hay texto { $id } en drawing.texts
 job-no-group = no hay grupo { $id } en drawing.groups
