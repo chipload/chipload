@@ -85,7 +85,10 @@ puts it on the model's layer, as a traced picture's shapes go on its layer.
 - Where the model has no surface inside the outline, as in a hole through it, the tool goes
   to the relief's depth (the floor).
 - The outline can be selected for a profile, for example to cut the relief out of the
-  board, or for a pocket that lowers the background first.
+  board, or for a pocket that lowers the background first. Drawn again, the outline keeps
+  its shape ids in order (a new loop gets a new id), so a selection that names it with other
+  shapes, such as a pocket with the outline as an island, still finds it (the user,
+  2026-11-13).
 
 **Optional boundary:** the relief operation can select closed shapes instead, as a pocket
 does. It then cuts only inside them; the model's footprint outline is the default

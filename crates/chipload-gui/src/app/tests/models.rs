@@ -251,3 +251,47 @@ fn a_models_handles_move_turn_and_size_it() {
     app.undo();
     assert_eq!(model(&app).rotation, before.rotation);
 }
+
+#[test]
+fn a_pocket_round_a_model_keeps_its_outline_as_an_island_when_the_model_moves() {
+    use chipload_pipeline::new_ops::OpKind;
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    // A square round the dome (X, Y 10 .. 50), drawn as in the window.
+    app.start_drawing(Tool::Rectangle);
+    app.draw_click((2.0, 2.0), false);
+    app.draw_click((58.0, 58.0), false);
+    app.commit();
+    let id_of = |app: &ChiploadApp, model: bool| {
+        app.contours
+            .iter()
+            .find(|c| {
+                c.parts
+                    .iter()
+                    .all(|p| p.segment.from == Some(chipload_core::chain::ShapeFrom::Model(1)))
+                    == model
+            })
+            .unwrap()
+            .id
+    };
+    // The outline clicked, the square added with Ctrl: a pocket of both.
+    app.click(Some(id_of(&app, true)), false);
+    app.click(Some(id_of(&app, false)), true);
+    let index = app.add_operation(OpKind::Pocket).unwrap();
+    let cut = |app: &ChiploadApp| {
+        let op = &app.edit.as_ref().unwrap().job.operations[index];
+        app.op_contours(op)
+    };
+    assert_eq!(cut(&app).len(), 2);
+    // Moved and made smaller: the pocket still has the outline as its island.
+    let mut model = app.edit.as_ref().unwrap().job.drawing.models[0].clone();
+    model.x += 3.0;
+    model.width = 30.0;
+    assert!(app.set_model(1, &model));
+    assert_eq!(
+        cut(&app),
+        [id_of(&app, true), id_of(&app, false)]
+            .into_iter()
+            .collect()
+    );
+}

@@ -302,11 +302,30 @@ pub fn remake(job: &Job, id: u64) -> Result<(Job, ModelReport), PipelineError> {
         m.depth = p.depth;
     }
     out.follow_thickness();
+    // The outline keeps its shape ids, in order, so an operation or group that names them
+    // with other shapes (a pocket round the model, the outline an island) still finds them
+    // after the model is moved or sized; a new loop gets a new id, and a loop that is gone
+    // takes its id with it, which the operation then reports as missing (the user,
+    // 2026-11-13).
+    let mut old_ids = job
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| s.model() == Some(id))
+        .map(|s| s.id)
+        .collect::<Vec<_>>()
+        .into_iter();
     out.drawing.shapes.retain(|s| s.model() != Some(id));
     let mut ids = Vec::with_capacity(outlines.len());
     for pieces in &outlines {
-        let shape_id = out.drawing.next_shape_id;
-        out.drawing.next_shape_id += 1;
+        let shape_id = match old_ids.next() {
+            Some(old) => old,
+            None => {
+                let new = out.drawing.next_shape_id;
+                out.drawing.next_shape_id += 1;
+                new
+            }
+        };
         ids.push(shape_id);
         out.drawing.shapes.push(Shape {
             construction: false,

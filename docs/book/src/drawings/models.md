@@ -44,7 +44,9 @@ relief's floor.
 
 The model's footprint seen from above becomes a closed shape on its layer, drawn again
 whenever the model is moved or changed. Select it for a profile to cut the relief out of
-the board, or for a pocket that clears round it.
+the board, or for a pocket that clears round it: click the outline, Ctrl+click a shape round
+it, then **Pocket**, and the outline stays an island in the pocket. The outline keeps its
+shape ids when it is drawn again, so the pocket still finds it after the model moves.
 
 ## Changing and removing
 
