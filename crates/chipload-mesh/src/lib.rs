@@ -9,11 +9,13 @@
 //! outer loop vertex x y z (three times) endloop endfacet … endsolid`. Stored normals are
 //! ignored.
 
+mod light;
 mod read;
 mod shadow;
 
 use chipload_i18n::Message;
 
+pub use light::LIGHT_TRIANGLES;
 pub use read::read_stl;
 pub use shadow::{Shadow, TopHeights};
 

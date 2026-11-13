@@ -150,6 +150,12 @@ fn turned(model: &Model) -> Result<(Mesh, [f64; 3], [f64; 3]), PipelineError> {
     Ok((mesh, lo, hi))
 }
 
+/// Model `id`'s light copy as it lies on the board, placed as [`placed_mesh`] places the
+/// full one: for showing it, never for cutting (docs/specs/relief-wizard.md §3).
+pub fn placed_light_mesh(job: &Job, id: u64) -> Result<Mesh, PipelineError> {
+    chipload_toolpath::relief::placed_light_mesh(find(job, id)?).map_err(relief_error)
+}
+
 /// Model `id` as it lies on the board, in the drawing's coordinates, mm: scaled, its
 /// footprint's lower-left corner at (x, y), turned about the footprint's centre, its top
 /// at Z 0 (the stock top) and its lowest point at −depth (spec §3). What the drop cutter
@@ -172,9 +178,10 @@ pub fn footprint_aspect(model: &Model) -> Result<f64, PipelineError> {
 }
 
 /// Model `id`'s top surface as placed, about `along` cells along its longer side, Z from
-/// the stock top (0) down: what the window shows of it in 3D (spec §9).
+/// the stock top (0) down: what the window shows of it in 3D (spec §9), from its light copy
+/// (docs/specs/relief-wizard.md §3).
 pub fn top_surface(job: &Job, id: u64, along: usize) -> Result<Option<TopHeights>, PipelineError> {
-    Ok(placed_mesh(job, id)?.top_heights(along))
+    Ok(placed_light_mesh(job, id)?.top_heights(along))
 }
 
 /// How bright each cell of a model's top looks, 0 to 1, lit low from the upper left: the
@@ -244,7 +251,7 @@ pub fn add_model(
         depth: new.depth.unwrap_or(1.0),
         proportional: new.depth.is_none(),
     };
-    let (_, lo, hi) = turned(&model)?;
+    let (lo, hi) = chipload_toolpath::relief::turned_bounds(&model).map_err(relief_error)?;
     model.width = new.width.unwrap_or(hi[0] - lo[0]);
     let mut out = job.clone();
     out.drawing.models.push(model);

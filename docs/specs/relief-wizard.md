@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); step 1 built. It builds on docs/specs/stl-relief.md (the model,
+Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1 and 2 built. It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -242,3 +242,11 @@ decision 6. The layout test guards it in every language.
   of the model in the window 1.13 s → 0.26 s; its placed mesh 0.49 s → 0.15 s. Still on
   each change: the outline from the full mesh (by design) and the faint 3D surface, which
   step 2 moves to the light copy. Pictures keep their data as plain text: small files.
+- **Step 2 (§3), 2026-11-13.** `Mesh::light(most)` in `chipload-mesh`, `LIGHT_TRIANGLES`
+  50 000: the grid's cube count along the longest side starts at √(most/2) and is
+  corrected by √(most/count) until the copy is within the limit and at least 70 % full
+  (at most 8 tries). Lookups by `HashMap`, the output in the triangles' own order, so the
+  same file gives the same copy. It is made with the read (§2), on the worker thread, and
+  remembered with the full mesh; placed by the full mesh's box, so the two lie alike. On
+  the 57 MB file: 47 709 triangles in 0.35 s; the faint 3D surface 210 ms → 10 ms. Used
+  for the 3D view's model now, and the choosing window (§4) next.

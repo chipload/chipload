@@ -214,8 +214,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    ribbon (Text moved among the small drawing buttons), Import/Open take STL, the outline
    keeps its shape ids when drawn again (a pocket with it as an island). Spec
    docs/specs/relief-wizard.md approved ("Go ahead", decisions as recommended, 6a):
-   step 1 done (the STL held once and read once, read on a worker thread). Next: step 2
-   the light copy (vertex clustering), 3 the cut level `keep`, 4 the *Turn and cut…*
+   step 1 done (the STL held once and read once, read on a worker thread), step 2 done
+   (the light copy, vertex clustering, for the 3D view). Next: 3 the cut level `keep`, 4 the *Turn and cut…*
    window, 5 Inlay to WIZARDS with Measure to the navigation bar and one Library button,
    6 the Relief wizard. After that: a relief from a picture (brightness as height,
    inflated shapes).

@@ -10,7 +10,7 @@ use chipload_core::cutter::Cutter;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Message, Value};
 use chipload_job::{Model, ModelUp};
-use chipload_mesh::{Mesh, Up};
+use chipload_mesh::{Mesh, Up, Vertex};
 
 use crate::drop::DropMesh;
 use crate::model::{Move, MoveKind};
@@ -80,33 +80,41 @@ enum ReadFailure {
     Reader,
 }
 
+/// A model's file as read: the full mesh, what is cut; its light copy, for showing it only
+/// (docs/specs/relief-wizard.md §3); and the full mesh's box.
+struct ReadMesh {
+    full: Mesh,
+    light: Mesh,
+    bounds: (Vertex, Vertex),
+}
+
+impl ReadMesh {
+    fn of(full: Mesh) -> Result<ReadMesh, ReadFailure> {
+        let bounds = full
+            .bounds()
+            .ok_or(ReadFailure::Mesh(Message::new("mesh-error-empty")))?;
+        let light = full.light(chipload_mesh::LIGHT_TRIANGLES);
+        Ok(ReadMesh {
+            full,
+            light,
+            bounds,
+        })
+    }
+}
+
 /// The model's file read, as its text gives it: decoded and parsed once for the text, and
 /// remembered with it (docs/specs/relief-wizard.md §2).
-fn read_model(model: &Model) -> Result<std::sync::Arc<Result<Mesh, ReadFailure>>, ReliefError> {
-    Ok(model.data.remembered(|text| {
+fn read_model(model: &Model) -> Result<std::sync::Arc<Result<ReadMesh, ReadFailure>>, ReliefError> {
+    let read = model.data.remembered(|text| {
         let bytes = STANDARD
             .decode(text)
             .map_err(|e| ReadFailure::Data(e.to_string()))?;
         match std::panic::catch_unwind(|| chipload_mesh::read_stl(&bytes)) {
-            Ok(Ok((mesh, _))) => Ok(mesh),
+            Ok(Ok((mesh, _))) => ReadMesh::of(mesh),
             Ok(Err(e)) => Err(ReadFailure::Mesh(e.message())),
             Err(_) => Err(ReadFailure::Reader),
         }
-    }))
-}
-
-/// A model's data from its file's base64 `text` and the mesh already read from it, so it
-/// isn't read again (docs/specs/relief-wizard.md §2). `mesh` must be what the text reads as.
-pub fn model_data(text: String, mesh: Mesh) -> chipload_job::ModelData {
-    let data = chipload_job::ModelData::new(text);
-    data.remembered(|_| Ok::<Mesh, ReadFailure>(mesh));
-    data
-}
-
-/// The model's mesh read from the project, turned so its up axis points up, in mm as its
-/// unit reads.
-pub fn turned_mesh(model: &Model) -> Result<Mesh, ReliefError> {
-    let read = read_model(model)?;
+    });
     let unreadable = |error: String| {
         refused(
             Message::new("toolpath-model-unreadable")
@@ -114,19 +122,79 @@ pub fn turned_mesh(model: &Model) -> Result<Mesh, ReliefError> {
                 .arg("error", Value::Text(error)),
         )
     };
-    let mesh = match &*read {
-        Ok(mesh) => mesh,
-        Err(ReadFailure::Data(error)) => return Err(unreadable(error.clone())),
-        Err(ReadFailure::Mesh(message)) => return Err(refused(message.clone())),
-        Err(ReadFailure::Reader) => return Err(unreadable(String::new())),
-    };
-    let k = match model.units {
+    match &*read {
+        Ok(_) => Ok(read),
+        Err(ReadFailure::Data(error)) => Err(unreadable(error.clone())),
+        Err(ReadFailure::Mesh(message)) => Err(refused(message.clone())),
+        Err(ReadFailure::Reader) => Err(unreadable(String::new())),
+    }
+}
+
+/// The read mesh of a read that succeeded ([`read_model`] returns only those).
+fn read_mesh(read: &Result<ReadMesh, ReadFailure>) -> Result<&ReadMesh, ReliefError> {
+    read.as_ref()
+        .map_err(|_| refused(Message::new("mesh-error-empty")))
+}
+
+/// A model's data from its file's base64 `text` and the mesh already read from it, so it
+/// isn't read again (docs/specs/relief-wizard.md §2). `mesh` must be what the text reads
+/// as. Its light copy is made here too, on the caller's thread.
+pub fn model_data(text: String, mesh: Mesh) -> chipload_job::ModelData {
+    let data = chipload_job::ModelData::new(text);
+    data.remembered(|_| ReadMesh::of(mesh));
+    data
+}
+
+/// The model's unit as a scale to mm.
+fn to_mm(model: &Model) -> f64 {
+    match model.units {
         chipload_job::Units::Mm => 1.0,
         chipload_job::Units::Inch => 25.4,
-    };
-    Ok(mesh
-        .turned(up(model.up))
-        .mapped(|v| [v[0] * k, v[1] * k, v[2] * k]))
+    }
+}
+
+/// `mesh` turned so the model's up axis points up, in mm.
+fn turned_in_mm(model: &Model, mesh: &Mesh) -> Mesh {
+    let (turn, k) = (up(model.up), to_mm(model));
+    mesh.mapped(|v| {
+        let t = turn.turn(v);
+        [t[0] * k, t[1] * k, t[2] * k]
+    })
+}
+
+/// The model's mesh read from the project, turned so its up axis points up, in mm as its
+/// unit reads.
+pub fn turned_mesh(model: &Model) -> Result<Mesh, ReliefError> {
+    let read = read_model(model)?;
+    Ok(turned_in_mm(model, &read_mesh(&read)?.full))
+}
+
+/// The box of [`turned_mesh`], without turning the mesh: its own box's corners turned (a
+/// turn of axes keeps a box a box).
+pub fn turned_bounds(model: &Model) -> Result<(Vertex, Vertex), ReliefError> {
+    let read = read_model(model)?;
+    let (lo, hi) = read_mesh(&read)?.bounds;
+    let (turn, k) = (up(model.up), to_mm(model));
+    let mut out: Option<(Vertex, Vertex)> = None;
+    for corner in 0..8 {
+        let pick = |axis: usize| {
+            if corner & (1 << axis) == 0 {
+                lo[axis]
+            } else {
+                hi[axis]
+            }
+        };
+        let t = turn.turn([pick(0), pick(1), pick(2)]);
+        let v = [t[0] * k, t[1] * k, t[2] * k];
+        out = Some(match out {
+            None => (v, v),
+            Some((a, b)) => (
+                [a[0].min(v[0]), a[1].min(v[1]), a[2].min(v[2])],
+                [b[0].max(v[0]), b[1].max(v[1]), b[2].max(v[2])],
+            ),
+        });
+    }
+    out.ok_or_else(|| refused(Message::new("mesh-error-empty")))
 }
 
 /// Where `model`'s turned mesh lies on the board (spec §3): its depth in proportion to the
@@ -135,6 +203,11 @@ pub fn placement(model: &Model, turned: &Mesh) -> Result<Placement, ReliefError>
     let (lo, hi) = turned
         .bounds()
         .ok_or_else(|| refused(Message::new("mesh-error-empty")))?;
+    placement_in(model, lo, hi)
+}
+
+/// [`placement`] from the turned mesh's box.
+pub fn placement_in(model: &Model, lo: Vertex, hi: Vertex) -> Result<Placement, ReliefError> {
     let own_width = hi[0] - lo[0];
     if own_width <= 0.0 {
         return Err(refused(
@@ -183,6 +256,16 @@ pub fn placed_mesh(model: &Model) -> Result<Mesh, ReliefError> {
     let turned = turned_mesh(model)?;
     let p = placement(model, &turned)?;
     Ok(placed(model, &turned, &p))
+}
+
+/// `model`'s light copy placed on the board as the full mesh is: for showing it only, never
+/// for cutting (docs/specs/relief-wizard.md §3).
+pub fn placed_light_mesh(model: &Model) -> Result<Mesh, ReliefError> {
+    let read = read_model(model)?;
+    let read = read_mesh(&read)?;
+    let (lo, hi) = turned_bounds(model)?;
+    let p = placement_in(model, lo, hi)?;
+    Ok(placed(model, &turned_in_mm(model, &read.light), &p))
 }
 
 /// What a relief's finishing lines are made from.
