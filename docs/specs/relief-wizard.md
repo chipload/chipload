@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **draft 2026-11-13**, for review; decisions 1, 2 and large buttons for Inlay and Relief decided by the user. It builds on docs/specs/stl-relief.md (the model,
+Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); step 1 built. It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -228,3 +228,17 @@ decision 6. The layout test guards it in every language.
 9. **The wizard's order:** model, turn and cut, size and place, round it, tools, check and
    make (§6), the board's picture beside every step from size on. *Recommended.*
 10. **Where a relief lands:** centred on the board, in a part of its own. *Recommended.*
+
+## 11. Settled while building
+
+- **Step 1 (§2), 2026-11-13.** The model's `data` is a `ModelData`: the base64 text in an
+  `Arc`, written to the file as the same string. The read mesh is remembered *on that
+  shared value* (`ModelData::remembered`, worked out once for the text), not in a cache
+  passed around: every copy of the project that shares the text shares the read, and
+  nothing is global. The pipeline's adding is split: `read_model` (read, check, encode,
+  parse once) and `add_model` (place it); the window runs `read_model` on a worker thread
+  ("Reading head.stl…"), and dropped files wait behind it. Measured on a generated 57 MB
+  STL (1.14 million triangles), release build: copying the project 45 ms → 6 µs; a change
+  of the model in the window 1.13 s → 0.26 s; its placed mesh 0.49 s → 0.15 s. Still on
+  each change: the outline from the full mesh (by design) and the faint 3D surface, which
+  step 2 moves to the light copy. Pictures keep their data as plain text: small files.

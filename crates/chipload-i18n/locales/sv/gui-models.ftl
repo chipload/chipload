@@ -3,6 +3,7 @@
 
 models-stl-filter = STL-modeller
 models-cannot-read = Kan inte läsa { $path }: { $error }
+models-reading = Läser { $file }…
 models-cannot-add = Kan inte lägga till { $path }:
 models-cannot-place = Modellen kunde inte placeras så:
 models-removed = Tog bort modell { $id }

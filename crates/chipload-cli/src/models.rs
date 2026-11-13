@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::{Job, ModelUp, Units};
-use chipload_pipeline::models::{ModelReport, NewModel, add_model, remake, remove_model};
+use chipload_pipeline::models::{
+    ModelReport, NewModel, add_model, read_model, remake, remove_model,
+};
 use clap::{Args, Subcommand};
 use serde_json::{Value, json};
 
@@ -240,7 +242,7 @@ fn add(
         .file_name()
         .map(|f| f.to_string_lossy().into_owned())
         .unwrap_or_default();
-    let mut new = NewModel::new(&file, &bytes);
+    let mut new = NewModel::new(&file);
     new.units = units.unwrap_or(Units::Mm);
     new.up = place.up.unwrap_or_default();
     new.layer = layer;
@@ -253,7 +255,8 @@ fn add(
             Err(err) => return out.fail(err),
         }
     }
-    match add_model(&job, new) {
+    let added = read_model(&bytes).and_then(|read| add_model(&job, &read, new));
+    match added {
         Ok((job, report)) => {
             reported(out, &report);
             write_project(out, &job, output.unwrap_or(project))

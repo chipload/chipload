@@ -7,7 +7,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chipload_core::primitives::Primitive;
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Geometry, Job, Model, ModelUp, Shape, Units};
+use chipload_job::{Geometry, Job, Model, ModelData, ModelUp, Shape, Units};
 use chipload_mesh::{Format, Mesh, MeshError};
 use sha2::{Digest, Sha256};
 
@@ -31,12 +31,34 @@ impl From<MeshError> for PipelineError {
     }
 }
 
-/// A model to add: its file name and bytes, the unit it is read in, which way is up, and
-/// where it goes.
+/// A model's file read (`read_model`), ready to add: the slow part of adding a model, which
+/// the window does on a worker thread (docs/specs/relief-wizard.md §2).
+#[derive(Debug, Clone)]
+pub struct ReadModel {
+    /// The file as the project keeps it, with its mesh already read.
+    pub data: ModelData,
+    pub sha256: String,
+    pub report: chipload_mesh::ReadReport,
+    /// The file's size in bytes.
+    pub size: usize,
+}
+
+/// Read an STL file's `bytes` for adding: checked, parsed once, encoded for the project.
+pub fn read_model(bytes: &[u8]) -> Result<ReadModel, PipelineError> {
+    let (mesh, report) = read(bytes)?;
+    Ok(ReadModel {
+        data: chipload_toolpath::relief::model_data(STANDARD.encode(bytes), mesh),
+        sha256: format!("{:x}", Sha256::digest(bytes)),
+        report,
+        size: bytes.len(),
+    })
+}
+
+/// A model to add: its file name, the unit it is read in, which way is up, and where it
+/// goes.
 #[derive(Debug, Clone)]
 pub struct NewModel<'a> {
     pub file: &'a str,
-    pub bytes: &'a [u8],
     pub units: Units,
     pub up: ModelUp,
     /// None: named after the file.
@@ -52,10 +74,9 @@ pub struct NewModel<'a> {
 
 impl<'a> NewModel<'a> {
     /// Read in mm, Z up, its own size, at (0, 0).
-    pub fn new(file: &'a str, bytes: &'a [u8]) -> Self {
+    pub fn new(file: &'a str) -> Self {
         NewModel {
             file,
-            bytes,
             units: Units::Mm,
             up: ModelUp::Z,
             layer: None,
@@ -107,7 +128,7 @@ pub fn find(job: &Job, id: u64) -> Result<&Model, PipelineError> {
 
 /// Model `id`'s STL file.
 pub fn model_bytes(model: &Model) -> Result<Vec<u8>, PipelineError> {
-    STANDARD.decode(&model.data).map_err(|e| {
+    STANDARD.decode(model.data.as_str()).map_err(|e| {
         PipelineError::Job(
             Message::new("pipeline-model-unreadable-data")
                 .arg("id", model.id)
@@ -196,8 +217,12 @@ pub fn top_shades(grid: &TopHeights) -> Vec<f32> {
 }
 
 /// Add a model and draw its footprint outline. Returns the project and what was read.
-pub fn add_model(job: &Job, new: NewModel) -> Result<(Job, ModelReport), PipelineError> {
-    let (_, read_report) = read(new.bytes)?;
+pub fn add_model(
+    job: &Job,
+    read: &ReadModel,
+    new: NewModel,
+) -> Result<(Job, ModelReport), PipelineError> {
+    let read_report = &read.report;
     let id = job.drawing.models.iter().map(|m| m.id).max().unwrap_or(0) + 1;
     let name = std::path::Path::new(new.file).file_stem().map_or_else(
         || new.file.to_string(),
@@ -207,8 +232,8 @@ pub fn add_model(job: &Job, new: NewModel) -> Result<(Job, ModelReport), Pipelin
         id,
         name: name.clone(),
         file: new.file.to_string(),
-        sha256: format!("{:x}", Sha256::digest(new.bytes)),
-        data: STANDARD.encode(new.bytes),
+        sha256: read.sha256.clone(),
+        data: read.data.clone(),
         units: new.units,
         up: new.up,
         layer: new.layer.unwrap_or_else(|| default_layer(job, &name)),
@@ -227,22 +252,22 @@ pub fn add_model(job: &Job, new: NewModel) -> Result<(Job, ModelReport), Pipelin
     report.triangles = read_report.triangles;
     report.dropped = read_report.dropped;
     report.open_edges = read_report.open_edges;
-    let read = Message::new(match read_report.format {
+    let read_message = Message::new(match read_report.format {
         Format::Binary => "pipeline-model-read-binary",
         Format::Text => "pipeline-model-read-text",
     })
     .arg("id", id)
     .arg("count", read_report.triangles)
     .arg("units", new.units.name());
-    let mut messages = vec![with_size(read, report.size)];
+    let mut messages = vec![with_size(read_message, report.size)];
     if read_report.dropped > 0 {
         messages.push(Message::new("pipeline-model-dropped").arg("count", read_report.dropped));
     }
     if let Some(open) = read_report.open_edges.filter(|n| *n > 0) {
         messages.push(Message::new("pipeline-model-open").arg("count", open));
     }
-    if new.bytes.len() > LARGE_MODEL_BYTES {
-        messages.push(Message::new("pipeline-model-large").arg("bytes", new.bytes.len()));
+    if read.size > LARGE_MODEL_BYTES {
+        messages.push(Message::new("pipeline-model-large").arg("bytes", read.size));
     }
     messages.append(&mut report.messages);
     report.lines = messages.iter().map(Message::english).collect();
@@ -478,12 +503,12 @@ mod tests {
     fn a_box_is_placed_scaled_and_outlined() {
         let job = crate::empty_project();
         let bytes = box_stl(40.0, 20.0, 10.0);
-        let mut new = NewModel::new("box.stl", &bytes);
+        let mut new = NewModel::new("box.stl");
         new.x = 5.0;
         new.y = 7.0;
         new.width = Some(80.0);
         new.depth = Some(4.0);
-        let (job, report) = add_model(&job, new).unwrap();
+        let (job, report) = add_model(&job, &read_model(&bytes).unwrap(), new).unwrap();
         assert_eq!(report.size, [40.0, 20.0, 10.0]);
         assert_eq!(report.placed, [80.0, 40.0, 4.0]);
         assert_eq!(report.shapes.len(), 1, "{report:?}");
@@ -526,10 +551,10 @@ mod tests {
     fn y_up_and_inches_and_proportional_depth() {
         let job = crate::empty_project();
         let bytes = box_stl(2.0, 1.0, 3.0);
-        let mut new = NewModel::new("tall.stl", &bytes);
+        let mut new = NewModel::new("tall.stl");
         new.up = ModelUp::Y;
         new.units = Units::Inch;
-        let (job, report) = add_model(&job, new).unwrap();
+        let (job, report) = add_model(&job, &read_model(&bytes).unwrap(), new).unwrap();
         // Y up: the 1 inch side stands up, the 3 inch side lies along −Y.
         let near = |a: [f64; 3], b: [f64; 3]| a.iter().zip(b).all(|(x, y)| (x - y).abs() < 1e-9);
         assert!(near(report.size, [50.8, 76.2, 25.4]), "{:?}", report.size);
@@ -544,8 +569,7 @@ mod tests {
 
     #[test]
     fn a_file_that_is_not_stl_is_refused() {
-        let job = crate::empty_project();
-        let err = add_model(&job, NewModel::new("x.stl", b"not a model")).unwrap_err();
+        let err = read_model(b"not a model").unwrap_err();
         assert!(err.to_string().contains("not an STL file"), "{err}");
     }
 }

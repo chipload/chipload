@@ -10,6 +10,7 @@
 
 mod drawing;
 mod machine;
+mod model_data;
 mod operations;
 mod project;
 mod selector;
@@ -19,6 +20,7 @@ mod validate;
 
 pub use drawing::*;
 pub use machine::*;
+pub use model_data::ModelData;
 pub use operations::*;
 pub use project::*;
 pub use selector::*;

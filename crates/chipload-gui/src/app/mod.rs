@@ -438,6 +438,9 @@ pub struct ChiploadApp {
     picture_textures: images::PictureTextures,
     /// The models' faint surfaces in 3D, and what they were made from.
     model_surfaces: models::ModelSurfaces,
+    /// An STL file being read on a worker thread, to be added when read
+    /// (docs/specs/relief-wizard.md §2).
+    model_reading: Option<models::ModelReading>,
 }
 
 impl Default for ChiploadApp {
@@ -496,6 +499,7 @@ impl Default for ChiploadApp {
             drawing_hidden: None,
             picture_textures: images::PictureTextures::default(),
             model_surfaces: models::ModelSurfaces::default(),
+            model_reading: None,
         }
     }
 }
@@ -2253,6 +2257,9 @@ impl eframe::App for ChiploadApp {
         }
         self.poll_updates(&ctx);
         self.poll_text_fonts(&ctx);
+        if self.poll_model_reading() {
+            ctx.request_repaint_after(generation::POLL);
+        }
         self.track_first_picked();
         if !busy
             && self.drag.handle.is_none()

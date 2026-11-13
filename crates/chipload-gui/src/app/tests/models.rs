@@ -18,6 +18,7 @@ fn a_model_is_added_placed_carved_and_removed() {
     app.new_project();
     let before = app.edit.as_ref().unwrap().job.clone();
     assert!(app.add_model_from(&path));
+    assert!(app.wait_model_reading());
     let job = app.edit.as_ref().unwrap().job.clone();
     let model = job.drawing.models[0].clone();
     // Half the board wide, and no deeper than half the board.
@@ -84,6 +85,7 @@ fn an_stl_dropped_on_the_window_is_added() {
     let path = dome_stl("models-drop");
     let mut app = ChiploadApp::default();
     assert!(app.drop_files(&[path]));
+    assert!(app.wait_model_reading());
     assert_eq!(app.edit.as_ref().unwrap().job.drawing.models.len(), 1);
 }
 
@@ -92,9 +94,11 @@ fn opening_or_importing_an_stl_starts_a_project_with_it() {
     let path = dome_stl("models-open");
     let mut app = ChiploadApp::default();
     assert!(app.open(&path));
+    assert!(app.wait_model_reading());
     assert_eq!(app.edit.as_ref().unwrap().job.drawing.models.len(), 1);
     // Import starts a new project even with one open: not a second model in the first.
     assert!(app.import_any(&path));
+    assert!(app.wait_model_reading());
     let job = &app.edit.as_ref().unwrap().job;
     assert_eq!(job.drawing.models.len(), 1);
 }
@@ -127,6 +131,7 @@ fn model_pictures() {
                 let mut app = ChiploadApp::default();
                 app.set_language(language);
                 app.add_model_from(&path);
+                app.wait_model_reading();
                 app
             });
         harness.run_steps(6);
@@ -294,4 +299,18 @@ fn a_pocket_round_a_model_keeps_its_outline_as_an_island_when_the_model_moves() 
             .into_iter()
             .collect()
     );
+}
+
+#[test]
+fn two_stls_dropped_are_read_one_after_the_other() {
+    let path = dome_stl("models-drop-two");
+    let mut app = ChiploadApp::default();
+    assert!(app.drop_files(&[path.clone(), path]));
+    // The first is being read; the second waits for it.
+    assert!(app.reading_model());
+    assert!(app.wait_model_reading());
+    assert!(app.reading_model());
+    assert!(app.wait_model_reading());
+    assert!(!app.reading_model());
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing.models.len(), 2);
 }

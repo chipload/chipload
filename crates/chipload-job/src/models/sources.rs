@@ -196,7 +196,8 @@ pub struct Model {
     /// The STL file's SHA-256.
     pub sha256: String,
     /// The STL file itself, base64-encoded.
-    pub data: String,
+    #[cfg_attr(feature = "schema", schemars(with = "String"))]
+    pub data: ModelData,
     /// The unit the file was read in, for its size on import only: the model is placed by
     /// `width` (decision 2).
     pub units: Units,

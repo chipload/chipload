@@ -4,7 +4,7 @@
 
 use chipload_core::chain::ShapeFrom;
 use chipload_job::Model;
-use chipload_pipeline::models::{NewModel, add_model, remake, remove_model};
+use chipload_pipeline::models::{NewModel, ReadModel, add_model, read_model, remake, remove_model};
 use chipload_pipeline::new_ops::OpKind;
 
 use super::*;
@@ -23,6 +23,15 @@ pub(super) struct ModelSurfaces {
     surfaces: Vec<crate::view::SimSurface>,
 }
 
+/// An STL file being read on a worker thread (docs/specs/relief-wizard.md §2).
+pub(super) struct ModelReading {
+    path: std::path::PathBuf,
+    receiver: std::sync::mpsc::Receiver<Result<ReadModel, ReadFailed>>,
+}
+
+/// Why a model's file could not be added: the line to show, and the reader's reason.
+type ReadFailed = (String, Option<chipload_i18n::Message>);
+
 /// A new model's depth is at most this share of the board's thickness when its own
 /// proportion would carve deeper (spec §14 step 4).
 const NEW_MODEL_MOST_DEPTH_SHARE: f64 = 0.5;
@@ -38,22 +47,135 @@ impl ChiploadApp {
         }
     }
 
-    /// Add the STL file at `path` to the project (a new one if none is open): half the
-    /// board wide at its lower-left corner, as deep as its proportion gives but at most half
-    /// the board, as one undo step; its properties open.
+    /// Start adding the STL file at `path` to the project (a new one if none is open): it
+    /// is read on a worker thread, the window stays usable, and it is added when read
+    /// ([`ChiploadApp::poll_model_reading`]). False when a file is being read already.
     pub fn add_model_from(&mut self, path: &std::path::Path) -> bool {
-        let bytes = match std::fs::read(path) {
-            Ok(bytes) => bytes,
-            Err(err) => {
-                self.error(vec![t!(
+        if self.model_reading.is_some() {
+            return false;
+        }
+        if self.edit.is_none() {
+            self.new_project();
+        }
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let file = path.to_path_buf();
+        let lang = crate::i18n::Lang::lang(self);
+        let spawned = std::thread::Builder::new()
+            .name("read model".into())
+            .spawn(move || {
+                let path = file.display().to_string();
+                let read = std::fs::read(&file)
+                    .map_err(|err| {
+                        let error = err.to_string();
+                        (
+                            t!(
+                                lang,
+                                "models-cannot-read",
+                                path = path.clone(),
+                                error = error
+                            ),
+                            None,
+                        )
+                    })
+                    .and_then(|bytes| {
+                        let cannot = t!(lang, "models-cannot-add", path = path.clone());
+                        match std::panic::catch_unwind(|| read_model(&bytes)) {
+                            Ok(Ok(read)) => Ok(read),
+                            Ok(Err(err)) => Err((cannot, Some(err.message()))),
+                            Err(_) => Err((cannot, None)),
+                        }
+                    });
+                let _ = sender.send(read);
+            });
+        if let Err(err) = spawned {
+            self.error(vec![t!(
+                self,
+                "models-cannot-read",
+                path = path.display().to_string(),
+                error = err.to_string()
+            )]);
+            return false;
+        }
+        let name = file_name(path);
+        self.set_status(t!(self, "models-reading", file = name), STATUS_SECONDS);
+        self.model_reading = Some(ModelReading {
+            path: path.to_path_buf(),
+            receiver,
+        });
+        true
+    }
+
+    /// An STL file is being read.
+    pub(super) fn reading_model(&self) -> bool {
+        self.model_reading.is_some()
+    }
+
+    /// Add the model whose file has been read, if it has; true while still reading.
+    pub(super) fn poll_model_reading(&mut self) -> bool {
+        let Some(reading) = &self.model_reading else {
+            return false;
+        };
+        let read = match reading.receiver.try_recv() {
+            Ok(read) => read,
+            Err(std::sync::mpsc::TryRecvError::Empty) => return true,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => Err((
+                t!(
                     self,
-                    "models-cannot-read",
-                    path = path.display().to_string(),
-                    error = err.to_string()
-                )]);
-                return false;
+                    "models-cannot-add",
+                    path = reading.path.display().to_string()
+                ),
+                None,
+            )),
+        };
+        self.finish_model_reading(read);
+        false
+    }
+
+    /// Wait for the file being read, and add it, as the window does when it is read. True
+    /// when a model was added.
+    #[cfg(test)]
+    pub fn wait_model_reading(&mut self) -> bool {
+        let Some(reading) = &self.model_reading else {
+            return false;
+        };
+        let read = reading.receiver.recv().unwrap_or_else(|_| {
+            Err((
+                t!(
+                    self,
+                    "models-cannot-add",
+                    path = reading.path.display().to_string()
+                ),
+                None,
+            ))
+        });
+        self.finish_model_reading(read)
+    }
+
+    fn finish_model_reading(&mut self, read: Result<ReadModel, ReadFailed>) -> bool {
+        let Some(reading) = self.model_reading.take() else {
+            return false;
+        };
+        self.status = None;
+        let added = match read {
+            Ok(read) => self.add_read_model(&reading.path, &read),
+            Err((text, Some(why))) => {
+                self.error_report(Report::failed(text, why));
+                false
+            }
+            Err((text, None)) => {
+                self.error(vec![text]);
+                false
             }
         };
+        // Dropped files waiting behind this one come in now.
+        self.next_drop();
+        added
+    }
+
+    /// Add the model read from `path`: half the board wide at its lower-left corner, as
+    /// deep as its proportion gives but at most half the board, as one undo step; its
+    /// properties open.
+    fn add_read_model(&mut self, path: &std::path::Path, read: &ReadModel) -> bool {
         if self.edit.is_none() {
             self.new_project();
         }
@@ -67,9 +189,9 @@ impl ChiploadApp {
         // Half the stock's width to start with, as a picture: shown and editable.
         let (width, _) = edit.job.stock_size();
         let thickness = edit.job.stock().thickness;
-        let mut new = NewModel::new(&file, &bytes);
+        let mut new = NewModel::new(&file);
         new.width = Some((width / 2.0).round().max(1.0));
-        let added = add_model(&edit.job, new).and_then(|(job, report)| {
+        let added = add_model(&edit.job, read, new).and_then(|(job, report)| {
             let most = thickness * NEW_MODEL_MOST_DEPTH_SHARE;
             if report.placed[2] <= most {
                 return Ok((job, report));

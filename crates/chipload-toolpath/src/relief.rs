@@ -70,27 +70,55 @@ pub struct Placement {
     pub depth: f64,
 }
 
+/// Why a model's file could not be read: what the text alone tells, without the model's id.
+enum ReadFailure {
+    /// Not base64: the decoder's words.
+    Data(String),
+    /// Not an STL file Chipload reads.
+    Mesh(Message),
+    /// The reader gave up (a panic, caught).
+    Reader,
+}
+
+/// The model's file read, as its text gives it: decoded and parsed once for the text, and
+/// remembered with it (docs/specs/relief-wizard.md §2).
+fn read_model(model: &Model) -> Result<std::sync::Arc<Result<Mesh, ReadFailure>>, ReliefError> {
+    Ok(model.data.remembered(|text| {
+        let bytes = STANDARD
+            .decode(text)
+            .map_err(|e| ReadFailure::Data(e.to_string()))?;
+        match std::panic::catch_unwind(|| chipload_mesh::read_stl(&bytes)) {
+            Ok(Ok((mesh, _))) => Ok(mesh),
+            Ok(Err(e)) => Err(ReadFailure::Mesh(e.message())),
+            Err(_) => Err(ReadFailure::Reader),
+        }
+    }))
+}
+
+/// A model's data from its file's base64 `text` and the mesh already read from it, so it
+/// isn't read again (docs/specs/relief-wizard.md §2). `mesh` must be what the text reads as.
+pub fn model_data(text: String, mesh: Mesh) -> chipload_job::ModelData {
+    let data = chipload_job::ModelData::new(text);
+    data.remembered(|_| Ok::<Mesh, ReadFailure>(mesh));
+    data
+}
+
 /// The model's mesh read from the project, turned so its up axis points up, in mm as its
 /// unit reads.
 pub fn turned_mesh(model: &Model) -> Result<Mesh, ReliefError> {
-    let bytes = STANDARD.decode(&model.data).map_err(|e| {
+    let read = read_model(model)?;
+    let unreadable = |error: String| {
         refused(
             Message::new("toolpath-model-unreadable")
                 .arg("id", model.id)
-                .arg("error", Value::Text(e.to_string())),
+                .arg("error", Value::Text(error)),
         )
-    })?;
-    let read = std::panic::catch_unwind(|| chipload_mesh::read_stl(&bytes));
-    let (mesh, _) = match read {
-        Ok(Ok(read)) => read,
-        Ok(Err(e)) => return Err(refused(e.message())),
-        Err(_) => {
-            return Err(refused(
-                Message::new("toolpath-model-unreadable")
-                    .arg("id", model.id)
-                    .arg("error", Value::Text(String::new())),
-            ));
-        }
+    };
+    let mesh = match &*read {
+        Ok(mesh) => mesh,
+        Err(ReadFailure::Data(error)) => return Err(unreadable(error.clone())),
+        Err(ReadFailure::Mesh(message)) => return Err(refused(message.clone())),
+        Err(ReadFailure::Reader) => return Err(unreadable(String::new())),
     };
     let k = match model.units {
         chipload_job::Units::Mm => 1.0,

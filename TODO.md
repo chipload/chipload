@@ -212,11 +212,13 @@ to a program you trust. It was about four per operation; with the defaults and s
    3D, its handles, the playback tool by its profile. 4d done: the guide's 3D models page covers the
    window, screenshot model.png. After trying it (2026-11-13): a 3D model button on the
    ribbon (Text moved among the small drawing buttons), Import/Open take STL, the outline
-   keeps its shape ids when drawn again (a pocket with it as an island). Next: spec
-   docs/specs/relief-wizard.md (draft, for review): the STL held once and read once, a
-   light copy (vertex clustering) for a live *Turn and cut…* window, a cut level `keep`,
-   the Relief wizard, Inlay moved to WIZARDS. After that: a relief from a picture
-   (brightness as height, inflated shapes).
+   keeps its shape ids when drawn again (a pocket with it as an island). Spec
+   docs/specs/relief-wizard.md approved ("Go ahead", decisions as recommended, 6a):
+   step 1 done (the STL held once and read once, read on a worker thread). Next: step 2
+   the light copy (vertex clustering), 3 the cut level `keep`, 4 the *Turn and cut…*
+   window, 5 Inlay to WIZARDS with Measure to the navigation bar and one Library button,
+   6 the Relief wizard. After that: a relief from a picture (brightness as height,
+   inflated shapes).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
