@@ -320,3 +320,17 @@ fn two_stls_dropped_are_read_one_after_the_other() {
     assert!(!app.reading_model());
     assert_eq!(app.edit.as_ref().unwrap().job.drawing.models.len(), 2);
 }
+
+#[test]
+fn the_delete_key_removes_a_selected_model_as_one_undo_step() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    app.selection = CanvasSelection::whole(chipload_core::chain::ShapeFrom::Model(1));
+    press(&mut app, egui::Key::Delete);
+    let job = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.clone();
+    assert!(job(&app).drawing.models.is_empty());
+    assert!(job(&app).drawing.shapes.iter().all(|s| s.model().is_none()));
+    assert_eq!(app.selection, CanvasSelection::Nothing);
+    app.undo();
+    assert_eq!(job(&app).drawing.models.len(), 1);
+}

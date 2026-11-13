@@ -445,7 +445,8 @@ impl ChiploadApp {
         self.delete_selected_shapes();
     }
 
-    /// Delete what is selected (the Delete key): a text, a picture or a DXF selected as a
+    /// Delete what is selected (the Delete key): a text, a picture, a DXF or a 3D model
+    /// selected as a
     /// whole goes as its Browser row's Remove does; otherwise the drawn shapes, and every
     /// text a selected letter belongs to (a box round a sign takes its words too), as one
     /// undo step. Operations that used a deleted shape are flagged. Other imported shapes
@@ -469,7 +470,11 @@ impl ChiploadApp {
                 self.remove_dxf(id);
                 return;
             }
-            Some(Source::Group(_) | Source::Model(_)) | None => {}
+            Some(Source::Model(id)) => {
+                self.remove_model(id);
+                return;
+            }
+            Some(Source::Group(_)) | None => {}
         }
         let (ids, texts, imported) = self.deletion();
         if ids.is_empty() && texts.is_empty() {
