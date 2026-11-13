@@ -11,7 +11,7 @@ For a sign, *Draw > Frame…* then draws a frame round the text, with border lin
 
 ## Writing a text
 
-1. **Draw > Text** in the ribbon (or *DRAW > Text*), then click on the canvas where the text
+1. **Text** among the ribbon's small DRAW buttons (or *Draw > Text*), then click on the canvas where the text
    should start. That point is the lower-left corner of the text's box; set **Anchor** to
    centre afterwards to keep it centred on a point instead.
 2. A text saying "Text" appears there, selected, with its properties open and the text field

@@ -87,6 +87,18 @@ fn an_stl_dropped_on_the_window_is_added() {
     assert_eq!(app.edit.as_ref().unwrap().job.drawing.models.len(), 1);
 }
 
+#[test]
+fn opening_or_importing_an_stl_starts_a_project_with_it() {
+    let path = dome_stl("models-open");
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&path));
+    assert_eq!(app.edit.as_ref().unwrap().job.drawing.models.len(), 1);
+    // Import starts a new project even with one open: not a second model in the first.
+    assert!(app.import_any(&path));
+    let job = &app.edit.as_ref().unwrap().job;
+    assert_eq!(job.drawing.models.len(), 1);
+}
+
 /// A model's rows and properties, rendered to look at:
 /// `CHIPLOAD_PICTURES=/some/dir cargo test -p chipload-gui model_pictures -- --ignored`.
 #[test]

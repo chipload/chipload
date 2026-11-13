@@ -1,6 +1,7 @@
 dialogs-user-guide = Руководство поставляется с каждым выпуском в архиве chipload-guide-<version>.zip (откройте index.html). Из исходников: packaging/docs/build-book.sh.
 dialogs-filter-projects = Проекты Chipload
 dialogs-filter-dxf = Чертежи (DXF, SVG)
+dialogs-filter-import = Чертежи и модели (DXF, SVG, STL)
 dialogs-selector-copied = Селектор скопирован в буфер обмена
 dialogs-about-title = О Chipload
 dialogs-about-appimage = Linux AppImage также содержит libxkbcommon и libxcb-xkb (лицензии типа MIT); файлы авторских прав находятся в usr/share/doc/chipload/bundled внутри AppImage.

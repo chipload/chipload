@@ -7,6 +7,7 @@ dialogs-user-guide = Le guide de l'utilisateur (en anglais) est livré avec chaq
 # Names of file types in the system's file dialogs.
 dialogs-filter-projects = Projets Chipload
 dialogs-filter-dxf = Dessins (DXF, SVG)
+dialogs-filter-import = Dessins et modèles (DXF, SVG, STL)
 
 dialogs-selector-copied = Sélecteur copié dans le presse-papiers
 

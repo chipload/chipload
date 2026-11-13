@@ -485,7 +485,10 @@ impl ChiploadApp {
                 // Four a row of small buttons, so the ribbon keeps its names at the
                 // default width. A frame alone is Draw > Frame… and the canvas'
                 // right-click; WIZARDS > Sign makes a whole sign (the user, 2026-11-10).
-                for row in tools.chunks(4) {
+                // Text is the last small button, so the sources (picture, drawing file,
+                // 3D model) keep their names (the user, 2026-11-13).
+                let rows = tools.chunks(4).count();
+                for (index, row) in tools.chunks(4).enumerate() {
                     ui.horizontal(|ui| {
                         for (tool, icon, label, hint, action) in row {
                             let active = app.sketch().is_some_and(|s| s.tool == *tool);
@@ -497,16 +500,20 @@ impl ChiploadApp {
                                 app.start_drawing(*tool);
                             }
                         }
+                        if index + 1 == rows {
+                            let label = t!(ui, "header-text");
+                            let hint = format!("{label}: {}", t!(ui, "header-text-hover"));
+                            let active = app.placing_text();
+                            if small_ribbon_button(ui, Icon::Text, &label, can_draw, active, None)
+                                .on_hover_text(hint)
+                                .clicked()
+                            {
+                                app.start_text();
+                            }
+                        }
                     });
                 }
             });
-            let label = t!(ui, "header-text");
-            if ribbon_button(ui, Icon::Text, &label, can_draw, app.placing_text())
-                .on_hover_text(t!(ui, "header-text-hover"))
-                .clicked()
-            {
-                app.start_text();
-            }
             let label = t!(ui, "header-image");
             if ribbon_button(ui, Icon::Image, &label, true, false)
                 .on_hover_text(t!(ui, "header-image-hover"))
@@ -526,6 +533,15 @@ impl ChiploadApp {
                 .clicked()
             {
                 app.ask_add_dxf();
+            }
+            // A 3D model for a relief, beside the picture and the drawing files: found where
+            // the other sources are (the user, 2026-11-13).
+            let label = t!(ui, "header-model");
+            if ribbon_button(ui, Icon::Model, &label, true, false)
+                .on_hover_text(t!(ui, "header-model-hover"))
+                .clicked()
+            {
+                app.add_model_dialog();
             }
         });
         ui.separator();

@@ -28,20 +28,31 @@ impl ChiploadApp {
                 t!(self, "dialogs-filter-projects"),
                 &[PROJECT_EXTENSION, "json"],
             )
-            .add_filter(t!(self, "dialogs-filter-dxf"), DRAWING_FILES)
+            .add_filter(t!(self, "dialogs-filter-import"), IMPORT_FILES)
             .pick_file()
         {
             self.open(&path);
         }
     }
 
+    /// File > Import…: a new project from a drawing file or an STL model.
     pub(super) fn import_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
-            .add_filter(t!(self, "dialogs-filter-dxf"), DRAWING_FILES)
+            .add_filter(t!(self, "dialogs-filter-import"), IMPORT_FILES)
             .pick_file()
         {
-            self.import_dxf(&path, None);
+            self.import_any(&path);
         }
+    }
+
+    /// A new project from `path`: an STL model goes into an empty project, anything else is
+    /// imported as a drawing.
+    pub(super) fn import_any(&mut self, path: &Path) -> bool {
+        if super::dropping::dropped_kind(path) == Some(super::dropping::Dropped::Model) {
+            self.new_project();
+            return self.add_model_from(path);
+        }
+        self.import_dxf(path, None)
     }
 
     pub(super) fn ask_new(&mut self) {

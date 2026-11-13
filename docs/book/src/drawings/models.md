@@ -8,8 +8,9 @@ overhang is reached. (Design: `docs/specs/stl-relief.md`.)
 
 ## Adding a model
 
-In the window: **File > Add 3D model…**, *Add 3D model…* on the Browser's Drawing folder,
-or drop an STL file on the window. The model starts half the board wide at the drawing's
+In the window: **3D model** in the ribbon's DRAW group, **File > Add 3D model…**, *Add 3D
+model…* on the Browser's Drawing folder, or drop an STL file on the window. *File > Import…*
+and *File > Open…* take an STL too, as a new project. The model starts half the board wide at the drawing's
 origin, as deep as its own proportion gives but no deeper than half the board (then
 *Keep proportions* is off), and its properties open.
 

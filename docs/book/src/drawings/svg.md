@@ -11,7 +11,7 @@ chipload dxf add part.chipload logo.svg            # beside the project's DXFs
 chipload update part.chipload --from logo.svg --dxf 2   # a new version of it
 ```
 
-In the window: *File > Import DXF or SVG…* (Ctrl+I) or *File > Open…* starts a project
+In the window: *File > Import DXF, SVG or STL…* (Ctrl+I) or *File > Open…* starts a project
 from it, *Add DXF or SVG to project…* adds it, and dropping an SVG on the window does either,
 as for a DXF. The file dialogs offer both kinds.
 

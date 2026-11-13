@@ -1,7 +1,7 @@
 # Importing a DXF
 
-*File > Import DXF or SVG…* (Ctrl+I), or `chipload import part.dxf -o part.chipload`, makes a new
-project from a DXF. *File > Open…* also opens a `.dxf` directly. `chipload inspect part.dxf`
+*File > Import DXF, SVG or STL…* (Ctrl+I), or `chipload import part.dxf -o part.chipload`, makes a new
+project from a DXF. *File > Open…* also opens a `.dxf` directly. An STL file picked here starts a project with that [3D model](models.md). `chipload inspect part.dxf`
 shows what Chipload sees in a DXF without making a project.
 
 **Dropping files** on the window:

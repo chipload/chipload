@@ -19,8 +19,8 @@ Under it, the **ribbon** groups the buttons:
 
 | Group | Buttons | Its menu also has |
 |---|---|---|
-| FILE | New, Open, Import (a DXF as a new project), Save | open recent, add a picture, a DXF/SVG or a [3D model](drawings/models.md), save as, update drawing, export, the *…from path* items, quit |
-| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key), Text, Image, DXF/SVG (add a DXF or SVG) | Frame… ([a frame for a sign](drawings/signs.md)) |
+| FILE | New, Open, Import (a DXF, SVG or STL as a new project), Save | open recent, add a picture, a DXF/SVG or a [3D model](drawings/models.md), save as, update drawing, export, the *…from path* items, quit |
+| DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a [relief](drawings/models.md)) | Frame… ([a frame for a sign](drawings/signs.md)) |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | New Relief (of a [3D model](drawings/models.md)), *Apply style ▸*, Generate |
 | WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window) | New sign…, Two-sided… |

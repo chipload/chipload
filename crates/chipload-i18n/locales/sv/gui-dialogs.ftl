@@ -7,6 +7,7 @@ dialogs-user-guide = Användarhandboken följer med varje version som chipload-g
 # Names of file types in the system's file dialogs.
 dialogs-filter-projects = Chipload-projekt
 dialogs-filter-dxf = Ritningar (DXF, SVG)
+dialogs-filter-import = Ritningar och modeller (DXF, SVG, STL)
 
 dialogs-selector-copied = Selektorn kopierad till Urklipp
 

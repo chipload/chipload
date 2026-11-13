@@ -548,6 +548,9 @@ fn selector_text(selector: &Selector) -> String {
 /// The extensions of the drawing files the file dialogs offer (docs/specs/svg-import.md §10).
 pub(super) const DRAWING_FILES: &[&str] = &["dxf", "svg", "svgz"];
 
+/// What File > Import… and Open… take besides projects: drawings and STL models.
+pub(super) const IMPORT_FILES: &[&str] = &["dxf", "svg", "svgz", "stl", "STL"];
+
 /// A DXF or an SVG, by its extension.
 fn is_drawing_file(path: &Path) -> bool {
     path.extension()
@@ -648,8 +651,8 @@ impl ChiploadApp {
 
     /// Open a project, an older job, or a DXF or SVG (imported as a new project).
     pub fn open(&mut self, path: &Path) -> bool {
-        if is_drawing_file(path) {
-            self.import_dxf(path, None)
+        if is_drawing_file(path) || dropping::dropped_kind(path) == Some(dropping::Dropped::Model) {
+            self.import_any(path)
         } else {
             self.open_project(path)
         }

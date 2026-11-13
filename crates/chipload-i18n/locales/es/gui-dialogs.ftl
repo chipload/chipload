@@ -7,6 +7,7 @@ dialogs-user-guide = La guía del usuario viene con cada versión como chipload-
 # Names of file types in the system's file dialogs.
 dialogs-filter-projects = Proyectos de Chipload
 dialogs-filter-dxf = Dibujos (DXF, SVG)
+dialogs-filter-import = Dibujos y modelos (DXF, SVG, STL)
 
 dialogs-selector-copied = Selector copiado al portapapeles
 

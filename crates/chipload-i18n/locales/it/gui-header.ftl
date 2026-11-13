@@ -58,6 +58,8 @@ header-add-dxf = DXF/SVG
 header-add-dxf-hover = Un DXF o SVG in questo progetto, accanto a ciò che c'è: posizionato e aggiornato per conto suo
 # "FILE > Import": the ribbon group FILE and its Import button.
 header-add-dxf-first-hover = Importa prima un DXF o SVG (FILE > Importa)
+header-model = Modello 3D
+header-model-hover = Un modello STL per un rilievo, in questo progetto (o in uno nuovo)
 # OPERATION: "Follow" is the short word under the icon for a Follow path operation.
 header-follow = Segui
 # $operation is what the operation does (a hover text of its own).
