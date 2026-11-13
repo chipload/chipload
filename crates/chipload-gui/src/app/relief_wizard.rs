@@ -423,7 +423,7 @@ impl ChiploadApp {
         };
         let mut answer: Option<bool> = None;
         let mut pick_file = false;
-        let modal = egui::Modal::new(egui::Id::new("relief-wizard")).show(ctx, |ui| {
+        let modal = super::turn_cut::hung_modal("relief-wizard").show(ctx, |ui| {
             ui.label(crate::style::bold(
                 ui,
                 egui::RichText::new(t!(ui, "relief-wizard-title")).heading(),
@@ -444,7 +444,9 @@ impl ChiploadApp {
                 name = name
             ));
             ui.add_space(8.0);
-            match w.step {
+            // The step's content scrolls in a short window, so the buttons below it always
+            // show (found by the user: on a laptop screen Next fell off the bottom).
+            super::turn_cut::scrolled(ui, |ui| match w.step {
                 1 => pick_file = step_model(ui, &mut w, &job),
                 2 => {
                     w.views.show(ui, color);
@@ -470,7 +472,7 @@ impl ChiploadApp {
                         board_picture(ui, &w, &job, color);
                     });
                 }
-            }
+            });
             ui.add_space(8.0);
             let blocked = w.blocked(ui);
             ui.horizontal(|ui| {

@@ -10,14 +10,16 @@ use crate::app::relief_wizard::wizard_of;
 use chipload_pipeline::relief_wizard::Around;
 
 fn window() -> Harness<'static, ChiploadApp> {
-    let mut harness = Harness::builder()
-        .with_size(egui::vec2(1400.0, 1000.0))
-        .build_eframe(move |_| {
-            let mut app = ChiploadApp::default();
-            assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
-            app.start_relief();
-            app
-        });
+    window_of(egui::vec2(1400.0, 1000.0))
+}
+
+fn window_of(size: egui::Vec2) -> Harness<'static, ChiploadApp> {
+    let mut harness = Harness::builder().with_size(size).build_eframe(move |_| {
+        let mut app = ChiploadApp::default();
+        assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+        app.start_relief();
+        app
+    });
     harness.run_steps(4);
     harness
 }
@@ -92,6 +94,28 @@ fn the_wizard_goes_step_by_step_and_makes_the_relief_as_one_undo_step() {
     assert!(matches!(harness.state().focus, Focus::Op(_)));
     harness.state_mut().undo();
     assert_eq!(harness.state().edit.as_ref().unwrap().job, before);
+}
+
+/// In a short window (a laptop screen, scaled) the step's content scrolls and the buttons
+/// stay on screen at every step (found by the user: Next fell off the bottom).
+#[test]
+fn the_buttons_stay_on_screen_in_a_short_window() {
+    let size = egui::vec2(1280.0, 560.0);
+    let mut harness = window_of(size);
+    let model = harness.state().edit.as_ref().unwrap().job.drawing.models[0].clone();
+    wizard_of(harness.state_mut())
+        .unwrap()
+        .choose_existing(&model);
+    harness.run_steps(4);
+    for n in 1..=6 {
+        assert_eq!(step(&mut harness), n);
+        let label = if n < 6 { "Next" } else { "Make relief" };
+        let button = harness.get_all_by_label(label).last().unwrap().rect();
+        assert!(button.bottom() <= size.y, "step {n}: {button:?}");
+        if n < 6 {
+            click(&mut harness, "Next");
+        }
+    }
 }
 
 #[test]

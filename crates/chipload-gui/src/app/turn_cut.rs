@@ -182,7 +182,7 @@ impl ChiploadApp {
         let color = crate::style::op_color(chipload_pipeline::new_ops::OpKind::Relief, dark);
         state.views.refresh(ctx, color, &state.draft);
         let mut answer: Option<bool> = None;
-        let modal = egui::Modal::new(egui::Id::new("turn-cut")).show(ctx, |ui| {
+        let modal = hung_modal("turn-cut").show(ctx, |ui| {
             ui.label(crate::style::bold(
                 ui,
                 egui::RichText::new(t!(ui, "turn-cut-title")).heading(),
@@ -190,15 +190,17 @@ impl ChiploadApp {
             ui.add_space(4.0);
             ui.label(t!(ui, "turn-cut-body"));
             ui.add_space(8.0);
-            state.views.show(ui, color);
-            ui.add_space(8.0);
-            egui::Grid::new("turn-cut-grid")
-                .num_columns(2)
-                .spacing([12.0, 6.0])
-                .show(ui, |ui| {
-                    turn_fields(ui, &mut state.draft);
-                    size_fields(ui, &mut state.draft);
-                });
+            scrolled(ui, |ui| {
+                state.views.show(ui, color);
+                ui.add_space(8.0);
+                egui::Grid::new("turn-cut-grid")
+                    .num_columns(2)
+                    .spacing([12.0, 6.0])
+                    .show(ui, |ui| {
+                        turn_fields(ui, &mut state.draft);
+                        size_fields(ui, &mut state.draft);
+                    });
+            });
             ui.add_space(8.0);
             ui.horizontal(|ui| {
                 let ready = state.views.ready();
@@ -401,4 +403,33 @@ pub(super) fn draft_of(app: &mut ChiploadApp) -> Option<&mut Model> {
         Some(Prompt::TurnCut(state)) => Some(&mut state.draft),
         _ => None,
     }
+}
+
+/// A tall dialog hangs this far below the window's top, points.
+const HUNG_TOP: f32 = 40.0;
+/// Height a tall dialog needs besides its scrolled content: title, a line or two, buttons
+/// and the window's margins, points.
+const HUNG_CHROME: f32 = 170.0;
+/// Its content scrolls in no less than this, points, however short the window.
+const MIN_CONTENT: f32 = 120.0;
+
+/// A dialog too tall to centre (the relief wizard, Turn and cut): hung from near the top,
+/// it grows downward only, so its buttons stay put while its content settles.
+pub(super) fn hung_modal(id: &str) -> egui::Modal {
+    let id = egui::Id::new(id);
+    let area =
+        egui::Modal::default_area(id).anchor(egui::Align2::CENTER_TOP, egui::vec2(0.0, HUNG_TOP));
+    egui::Modal::new(id).area(area)
+}
+
+/// A hung dialog's content, scrolling in a short window so the buttons below it always show
+/// (found by the user: on a laptop screen Next fell off the wizard's bottom).
+pub(super) fn scrolled<R>(ui: &mut egui::Ui, add: impl FnOnce(&mut egui::Ui) -> R) -> R {
+    let most = (ui.ctx().content_rect().height() - HUNG_TOP - HUNG_CHROME).max(MIN_CONTENT);
+    egui::ScrollArea::vertical()
+        .max_height(most)
+        .min_scrolled_height(most)
+        .auto_shrink([true, true])
+        .show(ui, add)
+        .inner
 }
