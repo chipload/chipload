@@ -76,6 +76,8 @@ header-new-relief = Ny relief
 header-machines = Maskiner
 header-library = Bibliotek
 header-library-hover = Dina verktyg och maskiner, under Den här datorn i bläddraren
+header-relief = Relief
+header-relief-hover = En relief av en 3D-modell i ett steg: vriden, skuren, i storlek, grovfräst, med bakgrund eller utsågning
 header-tool-library = Verktygsbibliotek
 
 # VIEW

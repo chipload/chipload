@@ -217,8 +217,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    step 1 done (the STL held once and read once, read on a worker thread), step 2 done
    (the light copy, vertex clustering, for the 3D view), step 3 done (the cut level
    `keep`, *Keep from top*, `--keep`), step 4 done (the *Turn and cut…* window), step 5
-   done (Inlay in WIZARDS, Measure on the navigation bar, one Library button). Next:
-   6 the Relief wizard. After that: a relief from a picture (brightness as height,
+   done (Inlay in WIZARDS, Measure on the navigation bar, one Library button), step 6
+   done (the Relief wizard, `relief add`). Left for later (spec §11): a time estimate in
+   the wizard's last step, dropping a file on the wizard, the board's size in step 3.
+   Next: the user tries the branch. After that: a relief from a picture (brightness as height,
    inflated shapes).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):

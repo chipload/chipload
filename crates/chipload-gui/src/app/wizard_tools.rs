@@ -40,6 +40,8 @@ pub(super) enum ToolKind {
     EndMill,
     /// What cuts a hole: a drill, or an end mill that bores it.
     Hole,
+    /// A ball nose, plain or tapered: what finishes a relief.
+    BallNose,
 }
 
 impl ToolKind {
@@ -48,6 +50,7 @@ impl ToolKind {
             ToolKind::Vbit => kind == ToolType::Vbit && angle.is_some(),
             ToolKind::EndMill => kind == ToolType::Endmill,
             ToolKind::Hole => matches!(kind, ToolType::Drill | ToolType::Endmill),
+            ToolKind::BallNose => kind == ToolType::Ballnose,
         }
     }
 }

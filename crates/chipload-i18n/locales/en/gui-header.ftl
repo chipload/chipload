@@ -76,6 +76,8 @@ header-new-relief = New Relief
 header-machines = Machines
 header-library = Library
 header-library-hover = Your tools and machines, under This computer in the Browser
+header-relief = Relief
+header-relief-hover = A relief of a 3D model in one step: turned, cut, sized, roughed, with its background or cut-out
 header-tool-library = Tool library
 
 # VIEW

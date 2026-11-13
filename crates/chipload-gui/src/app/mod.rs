@@ -74,6 +74,7 @@ mod playback;
 mod prefs;
 mod problems;
 mod recovery;
+mod relief_wizard;
 mod report;
 mod rulers;
 mod select_drag;
@@ -273,6 +274,8 @@ enum Prompt {
     TwoSided(Box<two_sided::TwoSidedSettings>),
     /// *Turn and cut…*: a model turned and cut while seen (docs/specs/relief-wizard.md §4).
     TurnCut(Box<turn_cut::TurnCut>),
+    /// *Relief…*: a relief in one step, its answers so far (docs/specs/relief-wizard.md §6).
+    Relief(Box<relief_wizard::ReliefWizard>),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame

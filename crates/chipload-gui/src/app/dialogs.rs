@@ -238,6 +238,7 @@ impl ChiploadApp {
             Prompt::Sign(settings) => self.sign_prompt(ctx, settings),
             Prompt::TwoSided(settings) => self.two_sided_prompt(ctx, settings),
             Prompt::TurnCut(state) => self.turn_cut_prompt(ctx, state),
+            Prompt::Relief(wizard) => self.relief_prompt(ctx, wizard),
             Prompt::PxPerInch(path, purpose, mut typed) => {
                 let mut chosen = None;
                 egui::Window::new(t!(ctx, "dialogs-px-title"))

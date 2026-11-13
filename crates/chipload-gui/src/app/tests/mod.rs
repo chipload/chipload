@@ -37,6 +37,7 @@ mod posts;
 mod profile_form;
 mod properties_sources;
 mod recovery_copies;
+mod relief_wizard;
 mod screenshots;
 mod select_drag;
 mod setups;

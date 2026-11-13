@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1-5 built. It builds on docs/specs/stl-relief.md (the model,
+Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); all six steps built (see §11 for what was left out). It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -274,3 +274,14 @@ decision 6. The layout test guards it in every language.
   Measured at 1280 px in English afterwards: 78 px to spare, room for Relief (about
   46 px). German, French and Spanish had less than a button's room already; the layout
   test asks for names in English at 1280, as before.
+- **Step 6 (§6), 2026-11-13.** The pipeline's `relief_wizard::add_relief` and the command
+  line's `relief add` (6a); the window's six steps (6b), built on *Turn and cut*'s views
+  and fields (`ModelViews`, `turn_fields`, `size_fields`) and the wizards' tool lists
+  (`ToolKind::BallNose` added). *Next* is greyed out with its reason beside it; *Back* keeps
+  the answers; roughing is ticked on entering step 5 when the relief is deeper than the
+  ball nose is wide. The board picture shows the board, the relief where it will lie, and
+  the pocket's rectangle or the cut-out's ring. Relief is a large button in WIZARDS and
+  *Wizards > Relief…*. Golden `v36_relief_wizard`.
+  **Left out, for later:** the time estimate in step 6 (planning from the light copy);
+  dropping a file on the wizard (*Choose STL file…* and the project's models only); the
+  board's width and height in step 3 (its thickness only; a fitted board grows by itself).

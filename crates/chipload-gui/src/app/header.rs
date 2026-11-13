@@ -762,6 +762,14 @@ impl ChiploadApp {
             {
                 app.start_inlay();
             }
+            // A relief of a 3D model in one step (docs/specs/relief-wizard.md §6).
+            let label = t!(ui, "header-relief");
+            if ribbon_button(ui, Icon::Relief, &label, true, false)
+                .on_hover_text(t!(ui, "header-relief-hover"))
+                .clicked()
+            {
+                app.start_relief();
+            }
         });
         ui.separator();
         // One button for the library, which opens This computer in the Browser: its tools

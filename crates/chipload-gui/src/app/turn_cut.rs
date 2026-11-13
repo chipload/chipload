@@ -28,13 +28,32 @@ pub(super) struct TurnCut {
     id: u64,
     stored: Model,
     pub(super) draft: Model,
+    views: ModelViews,
+}
+
+/// The relief's picture on the board: its lower-left corner and size, mm.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct PlacedPicture {
+    pub texture: egui::TextureId,
+    pub corner: (f64, f64),
+    pub size: (f64, f64),
+}
+
+/// The model in 3D and the relief it gives, for a draft model: made again when the draft
+/// changes. Shared by *Turn and cut…* and the Relief wizard.
+#[derive(Clone, Default)]
+pub(super) struct ModelViews {
     camera: Camera,
     painted: Painted,
     /// The draft the views were made for, and a number that changes with them.
     shown: Option<Model>,
     version: u64,
     view: Option<Result<TurnView, String>>,
-    preview: Option<(egui::TextureHandle, [f64; 3])>,
+    preview: Option<(
+        egui::TextureHandle,
+        [f64; 3],
+        chipload_pipeline::models::TopHeights,
+    )>,
 }
 
 // Two states are the same window when they change the same model the same way; what is
@@ -57,32 +76,53 @@ impl TurnCut {
             id,
             stored: model.clone(),
             draft: model.clone(),
-            camera: Camera::default(),
-            painted: Painted::default(),
-            shown: None,
-            version: 0,
-            view: None,
-            preview: None,
+            views: ModelViews::default(),
         }
     }
+}
 
-    /// The views made again when the draft has changed.
-    fn refresh(&mut self, ctx: &egui::Context, color: egui::Color32) {
-        if self.shown.as_ref() == Some(&self.draft) {
+impl ModelViews {
+    /// The views made again when `draft` has changed.
+    pub(super) fn refresh(&mut self, ctx: &egui::Context, color: egui::Color32, draft: &Model) {
+        if self.shown.as_ref() == Some(draft) {
             return;
         }
         let turned = self.shown.as_ref().is_none_or(|s| {
-            s.up != self.draft.up || s.rotation != self.draft.rotation || s.keep != self.draft.keep
+            s.up != draft.up || s.rotation != draft.rotation || s.keep != draft.keep
         });
         if turned {
-            self.view = Some(turn_view(&self.draft).map_err(|e| e.message().english()));
+            self.view = Some(turn_view(draft).map_err(|e| e.message().english()));
             self.version += 1;
         }
-        self.preview = relief_preview(&self.draft, PREVIEW_CELLS)
+        self.preview = relief_preview(draft, PREVIEW_CELLS)
             .ok()
             .flatten()
-            .map(|(grid, size)| (preview_texture(ctx, &grid, color), size));
-        self.shown = Some(self.draft.clone());
+            .map(|(grid, size)| (preview_texture(ctx, &grid, color), size, grid));
+        self.shown = Some(draft.clone());
+    }
+
+    /// The model could be shown: turned and cut, it has something left.
+    pub(super) fn ready(&self) -> bool {
+        matches!(self.view, Some(Ok(_)))
+    }
+
+    /// The relief's size on the board from the preview: width, height, depth.
+    pub(super) fn size(&self) -> Option<[f64; 3]> {
+        self.preview.as_ref().map(|(_, size, _)| *size)
+    }
+
+    /// The relief's picture and where it lies on the board.
+    pub(super) fn placed_picture(&self) -> Option<PlacedPicture> {
+        self.preview
+            .as_ref()
+            .map(|(texture, _, grid)| PlacedPicture {
+                texture: texture.id(),
+                corner: grid.origin,
+                size: (
+                    grid.cell * grid.columns as f64,
+                    grid.cell * grid.rows as f64,
+                ),
+            })
     }
 }
 
@@ -140,7 +180,7 @@ impl ChiploadApp {
     pub(super) fn turn_cut_prompt(&mut self, ctx: &egui::Context, mut state: Box<TurnCut>) {
         let dark = ctx.global_style().visuals.dark_mode;
         let color = crate::style::op_color(chipload_pipeline::new_ops::OpKind::Relief, dark);
-        state.refresh(ctx, color);
+        state.views.refresh(ctx, color, &state.draft);
         let mut answer: Option<bool> = None;
         let modal = egui::Modal::new(egui::Id::new("turn-cut")).show(ctx, |ui| {
             ui.label(crate::style::bold(
@@ -150,12 +190,18 @@ impl ChiploadApp {
             ui.add_space(4.0);
             ui.label(t!(ui, "turn-cut-body"));
             ui.add_space(8.0);
-            turn_cut_views(ui, &mut state, color);
+            state.views.show(ui, color);
             ui.add_space(8.0);
-            turn_cut_fields(ui, &mut state.draft);
+            egui::Grid::new("turn-cut-grid")
+                .num_columns(2)
+                .spacing([12.0, 6.0])
+                .show(ui, |ui| {
+                    turn_fields(ui, &mut state.draft);
+                    size_fields(ui, &mut state.draft);
+                });
             ui.add_space(8.0);
             ui.horizontal(|ui| {
-                let ready = matches!(state.view, Some(Ok(_)));
+                let ready = state.views.ready();
                 if ui
                     .add_enabled(ready, egui::Button::new(t!(ui, "common-ok")))
                     .clicked()
@@ -183,161 +229,164 @@ impl ChiploadApp {
     }
 }
 
-/// The two views side by side: the model in 3D, the relief from above, each with its
-/// caption; or why the model can't be shown.
-fn turn_cut_views(ui: &mut egui::Ui, state: &mut TurnCut, color: egui::Color32) {
-    let view = match &state.view {
-        Some(Ok(view)) => view,
-        Some(Err(why)) => {
-            ui.colored_label(ui.visuals().warn_fg_color, why);
-            return;
-        }
-        None => return,
-    };
-    let grey = ui.visuals().weak_text_color().gamma_multiply(0.5);
-    let plate = crate::view::Palette::of(ui.visuals().dark_mode)
-        .stock
-        .gamma_multiply(0.6);
-    let (lo, hi) = view.bounds;
-    let (mx, my) = (
-        (hi[0] - lo[0]) * PLATE_MARGIN,
-        (hi[1] - lo[1]) * PLATE_MARGIN,
-    );
-    let scene = Scene {
-        layers: vec![(&view.kept, color), (&view.cut_away, grey)],
-        plate: Some(Plate {
-            z: view.level,
-            lo: [lo[0] - mx, lo[1] - my],
-            hi: [hi[0] + mx, hi[1] + my],
-            color: plate,
-        }),
-        bounds: view.bounds,
-    };
-    ui.horizontal(|ui| {
-        ui.vertical(|ui| {
-            ui.weak(t!(ui, "turn-cut-model"));
-            mesh_view::show(
-                ui,
-                VIEW,
-                &mut state.camera,
-                &mut state.painted,
-                state.version,
-                &scene,
-            )
-            .on_hover_text(t!(ui, "turn-cut-model-hover"));
-        });
-        ui.vertical(|ui| {
-            ui.weak(t!(ui, "turn-cut-relief"));
-            let (rect, _) = ui.allocate_exact_size(VIEW, egui::Sense::hover());
-            ui.painter().rect_filled(
-                rect,
-                4.0,
-                crate::view::Palette::of(ui.visuals().dark_mode).stock,
-            );
-            if let Some((texture, size)) = &state.preview {
-                // Fitted to the view, its proportions kept.
-                let aspect = (size[1] / size[0].max(1e-9)) as f32;
-                let fit = (rect.width() * 0.9).min(rect.height() * 0.9 / aspect.max(1e-6));
-                let shown =
-                    egui::Rect::from_center_size(rect.center(), egui::vec2(fit, fit * aspect));
-                ui.painter().image(
-                    texture.id(),
-                    shown,
-                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                    egui::Color32::WHITE,
-                );
-                let units = ui.ctx();
-                let text =
-                    |mm: f64| crate::units::text(units, (mm / SIZE_STEP_MM).round() * SIZE_STEP_MM);
-                ui.label(t!(
-                    ui,
-                    "turn-cut-size",
-                    width = text(size[0]).as_str(),
-                    height = text(size[1]).as_str(),
-                    depth = text(size[2]).as_str()
-                ));
+impl ModelViews {
+    /// The two views side by side: the model in 3D, the relief from above, each with its
+    /// caption; or why the model can't be shown.
+    pub(super) fn show(&mut self, ui: &mut egui::Ui, color: egui::Color32) {
+        let state = self;
+        let view = match &state.view {
+            Some(Ok(view)) => view,
+            Some(Err(why)) => {
+                ui.colored_label(ui.visuals().warn_fg_color, why);
+                return;
             }
+            None => return,
+        };
+        let grey = ui.visuals().weak_text_color().gamma_multiply(0.5);
+        let plate = crate::view::Palette::of(ui.visuals().dark_mode)
+            .stock
+            .gamma_multiply(0.6);
+        let (lo, hi) = view.bounds;
+        let (mx, my) = (
+            (hi[0] - lo[0]) * PLATE_MARGIN,
+            (hi[1] - lo[1]) * PLATE_MARGIN,
+        );
+        let scene = Scene {
+            layers: vec![(&view.kept, color), (&view.cut_away, grey)],
+            plate: Some(Plate {
+                z: view.level,
+                lo: [lo[0] - mx, lo[1] - my],
+                hi: [hi[0] + mx, hi[1] + my],
+                color: plate,
+            }),
+            bounds: view.bounds,
+        };
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.weak(t!(ui, "turn-cut-model"));
+                mesh_view::show(
+                    ui,
+                    VIEW,
+                    &mut state.camera,
+                    &mut state.painted,
+                    state.version,
+                    &scene,
+                )
+                .on_hover_text(t!(ui, "turn-cut-model-hover"));
+            });
+            ui.vertical(|ui| {
+                ui.weak(t!(ui, "turn-cut-relief"));
+                let (rect, _) = ui.allocate_exact_size(VIEW, egui::Sense::hover());
+                ui.painter().rect_filled(
+                    rect,
+                    4.0,
+                    crate::view::Palette::of(ui.visuals().dark_mode).stock,
+                );
+                if let Some((texture, size, _)) = &state.preview {
+                    // Fitted to the view, its proportions kept.
+                    let aspect = (size[1] / size[0].max(1e-9)) as f32;
+                    let fit = (rect.width() * 0.9).min(rect.height() * 0.9 / aspect.max(1e-6));
+                    let shown =
+                        egui::Rect::from_center_size(rect.center(), egui::vec2(fit, fit * aspect));
+                    ui.painter().image(
+                        texture.id(),
+                        shown,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        egui::Color32::WHITE,
+                    );
+                    let units = ui.ctx();
+                    let text = |mm: f64| {
+                        crate::units::text(units, (mm / SIZE_STEP_MM).round() * SIZE_STEP_MM)
+                    };
+                    ui.label(t!(
+                        ui,
+                        "turn-cut-size",
+                        width = text(size[0]).as_str(),
+                        height = text(size[1]).as_str(),
+                        depth = text(size[2]).as_str()
+                    ));
+                }
+            });
         });
-    });
+    }
 }
 
-/// Face up, the quarter turns, the cut level, width and depth.
-fn turn_cut_fields(ui: &mut egui::Ui, draft: &mut Model) {
-    egui::Grid::new("turn-cut-grid")
-        .num_columns(2)
-        .spacing([12.0, 6.0])
-        .show(ui, |ui| {
-            ui.label(t!(ui, "turn-cut-face-up"))
-                .on_hover_text(t!(ui, "forms-model-up-hover"));
-            ui.horizontal(|ui| {
-                for up in [
-                    ModelUp::Z,
-                    ModelUp::MinusZ,
-                    ModelUp::Y,
-                    ModelUp::MinusY,
-                    ModelUp::X,
-                    ModelUp::MinusX,
-                ] {
-                    let name = up.name().to_uppercase().replace('-', "−");
-                    ui.selectable_value(&mut draft.up, up, name);
-                }
-            });
-            ui.end_row();
-            ui.label(t!(ui, "turn-cut-turn"));
-            ui.horizontal(|ui| {
-                if ui
-                    .button("⟲ 90°")
-                    .on_hover_text(t!(ui, "turn-cut-turn-left"))
-                    .clicked()
-                {
-                    draft.rotation = quarter(draft.rotation + 90.0);
-                }
-                if ui
-                    .button("⟳ 90°")
-                    .on_hover_text(t!(ui, "turn-cut-turn-right"))
-                    .clicked()
-                {
-                    draft.rotation = quarter(draft.rotation - 90.0);
-                }
-                ui.weak(format!("{}°", draft.rotation));
-            });
-            ui.end_row();
-            ui.label(t!(ui, "forms-model-keep"))
-                .on_hover_text(t!(ui, "forms-model-keep-hover"));
-            let mut percent = draft.keep * 100.0;
-            if ui
-                .add(
-                    egui::Slider::new(&mut percent, 1.0..=100.0)
-                        .max_decimals(0)
-                        .suffix(" %"),
-                )
-                .changed()
-            {
-                draft.keep = (percent / 100.0).clamp(0.01, 1.0);
-            }
-            ui.end_row();
-            ui.label(t!(ui, "forms-width"))
-                .on_hover_text(t!(ui, "forms-model-width-hover"));
-            ui.add(
-                crate::units::length(&mut draft.width)
-                    .range(0.1..=10_000.0)
-                    .speed(0.5),
-            );
-            ui.end_row();
-            ui.label(t!(ui, "forms-model-depth"))
-                .on_hover_text(t!(ui, "forms-model-depth-hover"));
-            ui.horizontal(|ui| {
-                ui.add_enabled(
-                    !draft.proportional,
-                    crate::units::length(&mut draft.depth)
-                        .range(0.01..=1_000.0)
-                        .speed(0.1),
-                );
-                ui.checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
-                    .on_hover_text(t!(ui, "forms-model-proportional-hover"));
-            });
-            ui.end_row();
-        });
+/// Face up, the quarter turns and the cut level: rows of a two-column grid.
+pub(super) fn turn_fields(ui: &mut egui::Ui, draft: &mut Model) {
+    ui.label(t!(ui, "turn-cut-face-up"))
+        .on_hover_text(t!(ui, "forms-model-up-hover"));
+    ui.horizontal(|ui| {
+        for up in [
+            ModelUp::Z,
+            ModelUp::MinusZ,
+            ModelUp::Y,
+            ModelUp::MinusY,
+            ModelUp::X,
+            ModelUp::MinusX,
+        ] {
+            let name = up.name().to_uppercase().replace('-', "−");
+            ui.selectable_value(&mut draft.up, up, name);
+        }
+    });
+    ui.end_row();
+    ui.label(t!(ui, "turn-cut-turn"));
+    ui.horizontal(|ui| {
+        if ui
+            .button("⟲ 90°")
+            .on_hover_text(t!(ui, "turn-cut-turn-left"))
+            .clicked()
+        {
+            draft.rotation = quarter(draft.rotation + 90.0);
+        }
+        if ui
+            .button("⟳ 90°")
+            .on_hover_text(t!(ui, "turn-cut-turn-right"))
+            .clicked()
+        {
+            draft.rotation = quarter(draft.rotation - 90.0);
+        }
+        ui.weak(format!("{}°", draft.rotation));
+    });
+    ui.end_row();
+    ui.label(t!(ui, "forms-model-keep"))
+        .on_hover_text(t!(ui, "forms-model-keep-hover"));
+    let mut percent = draft.keep * 100.0;
+    if ui
+        .add(
+            egui::Slider::new(&mut percent, 1.0..=100.0)
+                .max_decimals(0)
+                .suffix(" %"),
+        )
+        .changed()
+    {
+        draft.keep = (percent / 100.0).clamp(0.01, 1.0);
+    }
+    ui.end_row();
+}
+
+/// Width and depth with *Keep proportions*: rows of a two-column grid.
+pub(super) fn size_fields(ui: &mut egui::Ui, draft: &mut Model) {
+    ui.label(t!(ui, "forms-width"))
+        .on_hover_text(t!(ui, "forms-model-width-hover"));
+    ui.add(
+        crate::units::length(&mut draft.width)
+            .range(0.1..=10_000.0)
+            .speed(0.5),
+    );
+    ui.end_row();
+    ui.label(t!(ui, "forms-model-depth"))
+        .on_hover_text(t!(ui, "forms-model-depth-hover"));
+    ui.horizontal(|ui| {
+        ui.add_enabled(
+            !draft.proportional,
+            crate::units::length(&mut draft.depth)
+                .range(0.01..=1_000.0)
+                .speed(0.1),
+        );
+        ui.checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
+            .on_hover_text(t!(ui, "forms-model-proportional-hover"));
+    });
+    ui.end_row();
 }
 
 /// An angle stepped by quarters into 0 ≤ a < 360.

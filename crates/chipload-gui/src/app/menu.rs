@@ -632,6 +632,14 @@ impl ChiploadApp {
             self.start_inlay();
             ui.close();
         }
+        if ui
+            .button(t!(ui, "menu-wizard-relief"))
+            .on_hover_text(t!(ui, "header-relief-hover"))
+            .clicked()
+        {
+            self.start_relief();
+            ui.close();
+        }
     }
 
     /// The Modify menu's items: the editing tools (docs/specs/drawing-editing.md §8).
