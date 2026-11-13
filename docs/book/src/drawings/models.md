@@ -1,6 +1,7 @@
 # 3D models
 
-A 3D model in an STL file can be carved into the board from the top as a **relief**: a
+A 3D model in an STL file, or a picture read as a depth map, can be carved into the board
+from the top as a **relief**: a
 sign with raised, rounded letters, a rosette, a coin, a landscape. The model lies on the
 board like a picture, seen from above, and is carved in three axes; nothing under an
 overhang is reached. (Design: `docs/specs/stl-relief.md`.)
@@ -81,6 +82,37 @@ chipload model add sign.chipload rose.stl --width 120 --depth 6 --at 20,20
 The report says how many triangles it has, any without an area that were left out, and
 how many open edges its surface has: a gap in a model lets the tool fall through to the
 relief's floor.
+
+## A relief from a picture
+
+A grey picture where brightness is height, a **depth map**, is a 3D model too: the usual
+way CNC reliefs are drawn and shared. **Add 3D model…**, the Relief wizard and `model add`
+take a PNG, JPEG or BMP as well as an STL. White is the top and black the bottom; the
+picture is sized by its width, and its depth is yours (4 mm to start with).
+
+```sh
+chipload model add sign.chipload portrait.png --width 120 --depth 4 --background 10%
+chipload model set sign.chipload 1 --smoothing 0.5mm --gamma 1.5
+chipload relief add sign.chipload portrait.png --width 120 --depth 4 --tool 2 --rough-tool 1 --smooth
+```
+
+Its properties, and step 2 of the wizard, have four settings in place of *Up*:
+- **White is high:** untick for a depth map that has it the other way round.
+- **Smoothing:** a blur over the heights, its radius on the board (0.2 mm to start with):
+  it takes pixel noise and a photo's grain away; 0 keeps the picture as it is.
+- **Background:** the darkest greys up to this share are not the model. The outline goes
+  round the rest, and the rim round that; at 0 % the whole picture is the model.
+- **Gamma:** above 1 flatter low ground and steeper tops, below 1 the other way.
+
+A large picture is averaged onto at most 800 points along its longer side (0.15 mm apart on
+a 120 mm relief), finer than a small ball nose can cut. Everything else is as for an STL:
+place, turn, keep from the top, the Relief operation with its rim, roughing and smoothing.
+
+**From an iPhone:** Portrait photos carry a depth map, but inside the HEIC photo, which
+Chipload doesn't read (it says so). Save the depth map as a PNG first, with an app or a
+Shortcut that exports it; it is small (about 768 × 576) and soft at the edges, so a
+little smoothing and a background level help. For an object you can walk round, a
+3D-scanning app's STL gives far more.
 
 ## Turn and cut
 

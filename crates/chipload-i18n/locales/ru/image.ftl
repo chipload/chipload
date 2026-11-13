@@ -1,6 +1,9 @@
 image-error-too-large = размер изображения { $bytes } байт; поддерживается не более 20 МБ: уменьшите его
 image-error-too-many-pixels = изображение { $width } × { $height } пикселей; поддерживается не более 20 мегапикселей: уменьшите его
 image-error-format = изображение не в формате PNG, JPEG или BMP
+image-error-heic = фото HEIC, которое Chipload не читает: сначала сохраните карту глубины (или фото) в PNG; для предмета лучше подойдёт STL из приложения 3D-сканирования
+image-error-depth-setting = { $field } должно быть от { $low } до { $high }, а не { $got }
+image-error-depth-empty = всё изображение — фон: понизьте уровень фона
 image-error-decode = невозможно прочитать изображение: { $reason }
 image-error-no-pixels = в изображении нет пикселей
 image-error-decoder-failed = сбой декодера

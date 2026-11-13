@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! `chipload model …`: 3D models (STL) carved as reliefs from the top
-//! (docs/specs/stl-relief.md §2, §3, §9).
+//! `chipload model …`: 3D models (STL, or a picture read as a depth map) carved as reliefs
+//! from the top (docs/specs/stl-relief.md §2, §3, §9; docs/specs/picture-relief.md §5).
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -17,11 +17,12 @@ use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum ModelAction {
-    /// Add an STL model, placed on the board; its footprint outline goes on its own layer.
+    /// Add an STL model, or a picture (PNG, JPEG, BMP) read as a depth map, white high,
+    /// placed on the board; its footprint outline goes on its own layer.
     Add {
         /// The project (.chipload).
         project: PathBuf,
-        /// The STL file (binary or text).
+        /// The STL file (binary or text), or a picture.
         model: PathBuf,
         /// The unit the file is in, for its own size: mm (default) or inch. The model is
         /// placed by `--width` anyway.
@@ -32,12 +33,14 @@ pub enum ModelAction {
         layer: Option<String>,
         #[command(flatten)]
         place: Place,
+        #[command(flatten)]
+        depth_map: DepthMap,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Change a model's place, size, depth, up axis or cut level; its outline is drawn
-    /// again.
+    /// Change a model's place, size, depth, up axis or cut level, or a picture's depth-map
+    /// settings; its outline is drawn again.
     Set {
         /// The project (.chipload).
         project: PathBuf,
@@ -51,6 +54,8 @@ pub enum ModelAction {
         proportional: bool,
         #[command(flatten)]
         place: Place,
+        #[command(flatten)]
+        depth_map: DepthMap,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -72,6 +77,61 @@ pub enum ModelAction {
     },
 }
 
+/// How a picture is read as a depth map (docs/specs/picture-relief.md §3); unset: the
+/// default (add) or unchanged (set). Only for a picture.
+#[derive(Args)]
+pub struct DepthMap {
+    /// White is high (true, the default) or black is (false).
+    #[arg(long)]
+    white_high: Option<bool>,
+    /// A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2).
+    #[arg(value_parser = crate::lengths::length, long)]
+    smoothing: Option<f64>,
+    /// Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0).
+    #[arg(long, value_parser = parse_background)]
+    background: Option<f64>,
+    /// The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper
+    /// tops (default 1).
+    #[arg(long)]
+    gamma: Option<f64>,
+}
+
+impl DepthMap {
+    fn given(&self) -> bool {
+        self.white_high.is_some()
+            || self.smoothing.is_some()
+            || self.background.is_some()
+            || self.gamma.is_some()
+    }
+
+    /// `depth` with the values given.
+    fn applied(&self, mut depth: chipload_job::PictureDepth) -> chipload_job::PictureDepth {
+        if let Some(v) = self.white_high {
+            depth.white_high = v;
+        }
+        if let Some(v) = self.smoothing {
+            depth.smoothing = v;
+        }
+        if let Some(v) = self.background {
+            depth.background = v;
+        }
+        if let Some(v) = self.gamma {
+            depth.gamma = v;
+        }
+        depth
+    }
+}
+
+/// A share as 0.1 or 10%.
+fn parse_background(text: &str) -> Result<f64, String> {
+    let text = text.trim();
+    match text.strip_suffix('%') {
+        Some(percent) => percent.trim().parse::<f64>().map(|p| p / 100.0),
+        None => text.parse::<f64>(),
+    }
+    .map_err(|_| format!("expected a share such as 0.1 or 10%, got {text:?}"))
+}
+
 /// Where a model lies on the board (spec §3); unset: the default (add) or unchanged (set).
 #[derive(Args)]
 pub struct Place {
@@ -82,7 +142,7 @@ pub struct Place {
     /// alike.
     #[arg(value_parser = crate::lengths::length, long)]
     width: Option<f64>,
-    /// How deep the relief goes, mm (default: in proportion to the width).
+    /// How deep the relief goes, mm (default: in proportion to the width; a picture 4 mm).
     #[arg(value_parser = crate::lengths::length, long)]
     depth: Option<f64>,
     /// Turn it about its footprint's centre to this angle, degrees counter-clockwise.
@@ -175,6 +235,7 @@ pub fn model(out: &mut Out, action: ModelAction) -> ExitCode {
             units,
             layer,
             place,
+            depth_map,
             output,
         } => add(
             out,
@@ -182,7 +243,7 @@ pub fn model(out: &mut Out, action: ModelAction) -> ExitCode {
             &model,
             units,
             layer,
-            &place,
+            (&place, &depth_map),
             output.as_deref(),
         ),
         ModelAction::Set {
@@ -191,6 +252,7 @@ pub fn model(out: &mut Out, action: ModelAction) -> ExitCode {
             layer,
             proportional,
             place,
+            depth_map,
             output,
         } => {
             let job = match load(out, &project) {
@@ -229,6 +291,15 @@ pub fn model(out: &mut Out, action: ModelAction) -> ExitCode {
                 }
                 if let Some(layer) = &layer {
                     model.layer = layer.clone();
+                }
+                match &mut model.picture {
+                    Some(picture) => *picture = depth_map.applied(*picture),
+                    None if depth_map.given() => {
+                        return Err(format!(
+                            "model {id} is an STL file: depth-map settings are for a picture"
+                        ));
+                    }
+                    None => {}
                 }
                 Ok(())
             })();
@@ -270,7 +341,7 @@ fn add(
     path: &Path,
     units: Option<Units>,
     layer: Option<String>,
-    place: &Place,
+    (place, depth_map): (&Place, &DepthMap),
     output: Option<&Path>,
 ) -> ExitCode {
     let job = match load(out, project) {
@@ -293,13 +364,21 @@ fn add(
     new.width = place.width;
     new.depth = place.depth;
     new.keep = place.keep.unwrap_or(1.0);
+    new.picture = Some(depth_map.applied(chipload_job::DEFAULT_PICTURE_DEPTH));
     if let Some(degrees) = place.rotate {
         match turned(degrees) {
             Ok(a) => new.rotation = a,
             Err(err) => return out.fail(err),
         }
     }
-    let added = read_model(&bytes).and_then(|read| add_model(&job, &read, new));
+    let added = read_model(&bytes).and_then(|read| {
+        if read.picture.is_none() && depth_map.given() {
+            return Err(chipload_pipeline::PipelineError::Job(
+                chipload_i18n::Message::new("pipeline-model-not-picture"),
+            ));
+        }
+        add_model(&job, &read, new)
+    });
     match added {
         Ok((job, report)) => {
             reported(out, &report);
@@ -338,12 +417,22 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
         if model.keep < 1.0 {
             depth.push_str(&format!(", the top {}% kept", model.keep * 100.0));
         }
+        let kind = match &model.picture {
+            Some(p) => format!(
+                "a depth map, {} high, smoothing {} mm, background {}%, gamma {}",
+                if p.white_high { "white" } else { "black" },
+                p.smoothing,
+                p.background * 100.0,
+                p.gamma
+            ),
+            None => format!("{} up", model.up.name()),
+        };
         out.line(format!(
-            "Model {}: {} ({}), {} up, layer {:?}, at {}, {} wide, {}, turned {}°",
+            "Model {}: {} ({}), {}, layer {:?}, at {}, {} wide, {}, turned {}°",
             model.id,
             model.name,
             model.file,
-            model.up.name(),
+            kind,
             model.layer,
             point(model.x, model.y),
             model.width,
@@ -371,6 +460,12 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "proportional": model.proportional,
             "keep": model.keep,
             "rotation": model.rotation,
+            "picture": model.picture.map(|p| json!({
+                "white_high": p.white_high,
+                "smoothing": p.smoothing,
+                "background": p.background,
+                "gamma": p.gamma,
+            })),
             "shapes": shapes,
         }));
     }

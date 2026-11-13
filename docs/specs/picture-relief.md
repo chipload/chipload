@@ -1,6 +1,6 @@
 # A relief from a picture (depth map)
 
-Status: draft for review, 2026-11-13. Asked by the user 2026-11-13 ("generate reliefs from
+Status: approved and built, 2026-11-13 ("Go ahead"). Asked by the user 2026-11-13 ("generate reliefs from
 images … iphone has … depth map information … a separate step from images to stl
 perhaps?"), decisions 1–5 as recommended ("Go ahead!"). Builds on docs/specs/stl-relief.md
 (the model, the Relief operation, the rim, roughing and smoothing) and
@@ -52,7 +52,8 @@ bump.
 | `gamma` | the heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops, below 1 the other way | 1 |
 
 **From picture to heights,** in this order, each pixel a share `v` from 0 (black) to 1
-(white), 16-bit greys kept (`chipload-image`'s decoding, alpha over white):
+(white), 16-bit greys kept (`chipload-image`'s decoding, alpha over white), first averaged
+onto the grid below (whole pixels per cell, so smoothing works at the grid's resolution):
 1. `v` turned round (`1 − v`) unless `white_high`;
 2. smoothed by `smoothing` (a separable Gaussian of σ = radius / 2 in pixels, the edges
    repeated);
@@ -62,8 +63,8 @@ bump.
    brightest pixel kept, and `z = (h − h_max) · depth / (h_max − h_min)` with Z 0 at the
    top (a flat picture, `h_max = h_min`, is a flat model at Z 0).
 
-**From heights to a surface** (`chipload-mesh`): the pixels resampled by area averaging
-to a grid of at most `MAX_CELLS` = 800 cells along the longer side (0.15 mm cells on a 120 mm
+**From heights to a surface** (`chipload-mesh`, `Mesh::height_field`): the grid of at most
+`MAX_CELLS` = 800 cells along the longer side (0.15 mm cells on a 120 mm
 relief, finer than a quarter of a 1 mm ball nose's radius, the detail threshold of
 stl-relief.md §15), never finer than the picture; the grid's corners joined by two
 triangles per cell wherever all four corners are kept, the top surface only. That is at most
@@ -78,18 +79,25 @@ placement, the light copy for views, the drop cutter.
 
 The picture is read by `chipload-image`'s decoder as pictures for tracing are: PNG, JPEG,
 BMP only, its size and pixel limits, under `catch_unwind`. HEIC (an iPhone's own photos) is
-refused with advice (`model-picture-heic`): save the depth map as PNG first, or for an
-object, scan it to STL (decision 4). A picture with every pixel background is refused
-(`model-picture-empty`).
+refused with advice (`image-error-heic`, found by its `ftyp` box naming an HEIF brand):
+save the depth map as PNG first, or for an object, scan it to STL (decision 4). A picture
+with every pixel background is refused (`image-error-depth-empty`); settings out of range
+are problems (`job-model-picture-range`).
+
+**Remembered:** a model's file is read once and kept with its text (relief-wizard.md §2).
+A picture's surface also depends on its settings and width, so what is kept is the decoded
+picture and the last surface made, with the settings and width it was made for; another
+setting makes it again.
 
 ## 5. Where (decision 5)
 
-- **Command line:** `model add FILE.png --width 120 --depth 4 [--black-high]
+- **Command line:** `model add FILE.png --width 120 --depth 4 [--white-high false]
   [--smoothing 0.2mm] [--background 10%] [--gamma 1.5] [--at X,Y]`: a picture file makes a
-  picture model (by its contents, not its name). `model set ID --smoothing … --background …
-  --gamma … --white-high true|false` changes them; `relief add FILE.png …` makes the whole
-  relief, its settings with defaults.
-- **The window:** *Add 3D model…* and dropping a file take PNG, JPEG and BMP too. A picture
+  picture model (by its first bytes, not its name); without `--width` and `--depth`, 100
+  and 4 mm. `model set ID --smoothing … --background … --gamma … --white-high true|false`
+  changes them; `relief add FILE.png …` makes the whole relief, its settings with defaults.
+- **The window:** *Add 3D model…* takes PNG, JPEG and BMP too (a picture dropped on the
+  window is still traced, as before: dropping can't tell which is meant). A picture
   model's properties show the settings above besides its size and place (no *Up*, no
   *Keep proportions*). The Browser shows it with the models, its icon a picture.
 - **The Relief wizard:** step 1 takes a picture; step 2 (*Turn and cut*) shows the picture's

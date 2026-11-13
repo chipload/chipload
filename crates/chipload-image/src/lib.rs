@@ -8,6 +8,7 @@
 
 mod contour;
 mod decode;
+mod depth;
 mod field;
 mod simplify;
 
@@ -16,6 +17,9 @@ use chipload_core::primitives::Primitive;
 use chipload_i18n::{Digits, Message, Value};
 
 pub use decode::{Decoded, MAX_BYTES, MAX_PIXELS, decode};
+pub use depth::{
+    BACKGROUND_RANGE, DepthGrid, DepthSettings, GAMMA_RANGE, MAX_CELLS, SMOOTHING_RANGE, depth_grid,
+};
 pub use field::otsu;
 
 /// More loops than this is refused: a photo or noise, not a carving (spec §8).
@@ -102,6 +106,8 @@ pub enum ImageError {
     /// Width and height in pixels.
     TooManyPixels(u32, u32),
     UnsupportedFormat,
+    /// An iPhone's HEIC photo, not read (docs/specs/picture-relief.md §4).
+    Heic,
     /// The decoder's own words, or a message.
     Decode(Value),
     Width,
@@ -122,6 +128,7 @@ impl ImageError {
                 .arg("width", *width)
                 .arg("height", *height),
             ImageError::UnsupportedFormat => Message::new("image-error-format"),
+            ImageError::Heic => Message::new("image-error-heic"),
             ImageError::Decode(reason) => {
                 Message::new("image-error-decode").arg("reason", reason.clone())
             }

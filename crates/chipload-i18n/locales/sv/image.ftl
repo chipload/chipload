@@ -7,6 +7,9 @@
 image-error-too-large = bilden är { $bytes } byte; högst 20 MB stöds: skala ned den
 image-error-too-many-pixels = bilden är { $width } × { $height } pixlar; högst 20 megapixlar stöds: skala ned den
 image-error-format = inte en PNG-, JPEG- eller BMP-bild
+image-error-heic = ett HEIC-foto, som Chipload inte läser: spara djupkartan (eller fotot) som PNG först; för ett föremål fungerar en STL från en 3D-skanningsapp bättre
+image-error-depth-setting = { $field } måste vara från { $low } till { $high }, är { $got }
+image-error-depth-empty = hela bilden är bakgrund: sänk bakgrundsnivån
 # $reason is the picture decoder's own words, or one of the two texts below.
 image-error-decode = bilden kan inte läsas: { $reason }
 image-error-no-pixels = bilden har inga pixlar

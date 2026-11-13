@@ -83,6 +83,9 @@ pub struct ReliefRequest {
     pub up: ModelUp,
     pub rotation: f64,
     pub keep: f64,
+    /// A picture model's settings (docs/specs/picture-relief.md §3); None: as they are, or
+    /// the defaults for a new picture.
+    pub picture: Option<chipload_job::PictureDepth>,
     /// Step 3: its width, and its depth (None: in proportion to the width), mm; where
     /// its footprint's lower-left corner goes (None: centred on the board).
     pub width: f64,
@@ -118,6 +121,7 @@ impl ReliefRequest {
             up: ModelUp::Z,
             rotation: 0.0,
             keep: 1.0,
+            picture: None,
             width,
             depth: None,
             at: None,
@@ -276,6 +280,7 @@ pub fn add_relief(
             new.up = request.up;
             new.rotation = request.rotation;
             new.keep = request.keep;
+            new.picture = request.picture;
             new.width = Some(request.width);
             new.depth = request.depth;
             let (job, report) = add_model(job, read, new)?;
@@ -292,12 +297,19 @@ pub fn add_relief(
             m.up = request.up;
             m.rotation = request.rotation;
             m.keep = request.keep;
+            if m.picture.is_some()
+                && let Some(picture) = request.picture
+            {
+                m.picture = Some(picture);
+            }
             m.width = request.width;
             match request.depth {
                 Some(depth) => {
                     m.depth = depth;
                     m.proportional = false;
                 }
+                // A picture has no depth of its own: it keeps the one it has.
+                None if m.picture.is_some() => {}
                 None => m.proportional = true,
             }
             let (out, _) = remake(&out, id)?;

@@ -40,7 +40,9 @@ impl ChiploadApp {
     /// File > Add 3D model…: pick an STL file and add it.
     pub(super) fn add_model_dialog(&mut self) {
         if let Some(path) = rfd::FileDialog::new()
+            .add_filter(t!(self, "models-model-filter"), crate::app::MODEL_FILES)
             .add_filter(t!(self, "models-stl-filter"), &["stl", "STL"])
+            .add_filter(t!(self, "models-depth-filter"), crate::app::DEPTH_MAP_FILES)
             .pick_file()
         {
             self.add_model_from(&path);

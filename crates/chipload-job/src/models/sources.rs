@@ -224,7 +224,42 @@ pub struct Model {
     /// depth and the outline are the kept part's. 1 (the whole model) when missing.
     #[serde(default = "whole_model")]
     pub keep: f64,
+    /// Missing: the model is an STL file. Present: `data` is a picture (PNG, JPEG or BMP)
+    /// read as a depth map with these settings; `up` is `z` and `proportional` false.
+    // Spec: docs/specs/picture-relief.md §2, §3 (optional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub picture: Option<PictureDepth>,
 }
+
+/// How a picture model's picture is read as heights (docs/specs/picture-relief.md §3).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct PictureDepth {
+    /// White is the top, black the bottom; false: the other way round.
+    pub white_high: bool,
+    /// A blur over the heights, its radius on the board, mm: 0 to 5.
+    pub smoothing: f64,
+    /// Grey shares up to this, 0 to 0.95, are background, not the model; 0: none.
+    pub background: f64,
+    /// The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper
+    /// tops.
+    pub gamma: f64,
+}
+
+/// A new picture model's settings (docs/specs/picture-relief.md §3).
+pub const DEFAULT_PICTURE_DEPTH: PictureDepth = PictureDepth {
+    white_high: true,
+    smoothing: 0.2,
+    background: 0.0,
+    gamma: 1.0,
+};
+
+/// A picture model's smoothing, background and gamma ranges (the same as
+/// `chipload-image`'s).
+pub const PICTURE_SMOOTHING_RANGE: (f64, f64) = (0.0, 5.0);
+pub const PICTURE_BACKGROUND_RANGE: (f64, f64) = (0.0, 0.95);
+pub const PICTURE_GAMMA_RANGE: (f64, f64) = (0.2, 5.0);
 
 /// A model's `keep` when the file has none: all of it.
 fn whole_model() -> f64 {
@@ -313,6 +348,30 @@ impl Model {
                 format!("{at}.data"),
                 Message::new("job-model-missing"),
             ));
+        }
+        if let Some(picture) = &self.picture {
+            if self.up != ModelUp::Z {
+                problems.push(Problem::at(
+                    format!("{at}.up"),
+                    Message::new("job-model-picture-up"),
+                ));
+            }
+            let ranges = [
+                ("smoothing", picture.smoothing, PICTURE_SMOOTHING_RANGE),
+                ("background", picture.background, PICTURE_BACKGROUND_RANGE),
+                ("gamma", picture.gamma, PICTURE_GAMMA_RANGE),
+            ];
+            for (field, value, (low, high)) in ranges {
+                if !(value.is_finite() && (low..=high).contains(&value)) {
+                    problems.push(Problem::at(
+                        format!("{at}.picture.{field}"),
+                        Message::new("job-model-picture-range")
+                            .arg("low", Value::Number(low, Digits::Shortest))
+                            .arg("high", Value::Number(high, Digits::Shortest))
+                            .arg("got", Value::Number(value, Digits::Shortest)),
+                    ));
+                }
+            }
         }
         problems
     }

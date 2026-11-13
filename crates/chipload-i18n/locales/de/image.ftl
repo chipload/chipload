@@ -7,6 +7,9 @@
 image-error-too-large = das Bild hat { $bytes } Byte; höchstens 20 MB werden unterstützt: verkleinern Sie es
 image-error-too-many-pixels = das Bild hat { $width } × { $height } Pixel; höchstens 20 Megapixel werden unterstützt: verkleinern Sie es
 image-error-format = kein PNG-, JPEG- oder BMP-Bild
+image-error-heic = ein HEIC-Foto, das Chipload nicht liest: speichere die Tiefenkarte (oder das Foto) zuerst als PNG; für einen Gegenstand eignet sich die STL einer 3D-Scan-App besser
+image-error-depth-setting = { $field } muss zwischen { $low } und { $high } liegen, ist { $got }
+image-error-depth-empty = das ganze Bild ist Hintergrund: senke die Hintergrundstufe
 # $reason is the picture decoder's own words, or one of the two texts below.
 image-error-decode = das Bild kann nicht gelesen werden: { $reason }
 image-error-no-pixels = das Bild hat keine Pixel

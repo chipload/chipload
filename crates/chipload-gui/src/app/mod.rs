@@ -562,6 +562,14 @@ pub(super) const DRAWING_FILES: &[&str] = &["dxf", "svg", "svgz"];
 
 /// What File > Import… and Open… take besides projects: drawings and STL models.
 pub(super) const IMPORT_FILES: &[&str] = &["dxf", "svg", "svgz", "stl", "STL"];
+/// What *Add 3D model…* takes: STL files and pictures read as depth maps
+/// (docs/specs/picture-relief.md §5).
+pub(super) const MODEL_FILES: &[&str] = &[
+    "stl", "STL", "png", "PNG", "jpg", "JPG", "jpeg", "JPEG", "bmp", "BMP",
+];
+/// Pictures read as depth maps.
+pub(super) const DEPTH_MAP_FILES: &[&str] =
+    &["png", "PNG", "jpg", "JPG", "jpeg", "JPEG", "bmp", "BMP"];
 
 /// A DXF or an SVG, by its extension.
 fn is_drawing_file(path: &Path) -> bool {

@@ -773,31 +773,40 @@ pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
                             .speed(0.1),
                     );
                     finished |= response.drag_stopped() || response.lost_focus();
-                    finished |= ui
-                        .checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
-                        .on_hover_text(t!(ui, "forms-model-proportional-hover"))
-                        .changed();
+                    if draft.picture.is_none() {
+                        finished |= ui
+                            .checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
+                            .on_hover_text(t!(ui, "forms-model-proportional-hover"))
+                            .changed();
+                    }
                 });
                 ui.end_row();
-                ui.label(t!(ui, "forms-model-up"))
-                    .on_hover_text(t!(ui, "forms-model-up-hover"));
-                let before = draft.up;
-                egui::ComboBox::from_id_salt(("model-up", id))
-                    .selected_text(draft.up.name().to_uppercase())
-                    .show_ui(ui, |ui| {
-                        for up in [
-                            ModelUp::Z,
-                            ModelUp::Y,
-                            ModelUp::X,
-                            ModelUp::MinusZ,
-                            ModelUp::MinusY,
-                            ModelUp::MinusX,
-                        ] {
-                            ui.selectable_value(&mut draft.up, up, up.name().to_uppercase());
-                        }
-                    });
-                finished |= draft.up != before;
-                ui.end_row();
+                // A picture is a depth map seen from above (docs/specs/picture-relief.md
+                // §5): its settings in place of the up axis.
+                if let Some(picture) = draft.picture.as_mut() {
+                    finished |= crate::app::turn_cut::picture_fields(ui, picture);
+                }
+                if draft.picture.is_none() {
+                    ui.label(t!(ui, "forms-model-up"))
+                        .on_hover_text(t!(ui, "forms-model-up-hover"));
+                    let before = draft.up;
+                    egui::ComboBox::from_id_salt(("model-up", id))
+                        .selected_text(draft.up.name().to_uppercase())
+                        .show_ui(ui, |ui| {
+                            for up in [
+                                ModelUp::Z,
+                                ModelUp::Y,
+                                ModelUp::X,
+                                ModelUp::MinusZ,
+                                ModelUp::MinusY,
+                                ModelUp::MinusX,
+                            ] {
+                                ui.selectable_value(&mut draft.up, up, up.name().to_uppercase());
+                            }
+                        });
+                    finished |= draft.up != before;
+                    ui.end_row();
+                }
                 // The share kept from the top, as a percentage (docs/specs/relief-wizard.md
                 // §5); the rest, the model's back, is cut away.
                 ui.label(t!(ui, "forms-model-keep"))

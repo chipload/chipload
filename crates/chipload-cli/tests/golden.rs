@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 70] = [
+const GOLDEN: [(&str, &str); 71] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -217,6 +217,11 @@ const GOLDEN: [(&str, &str); 70] = [
     // The same rim filled out to the outline's convex hull (docs/specs/stl-relief.md
     // §16.7): relief_rim with `set operations.0.rim.hull=1`.
     ("v36_relief_rim_hull", "jobs/v36/relief_rim_hull.chipload"),
+    // A relief from a picture read as a depth map (docs/specs/picture-relief.md):
+    // tests/corpus/images/depth_dome.png (a soft grey dome on black) on relief_dome's
+    // board and tools, `relief add … --width 60 --depth 4 --tool 2 --rough-tool 1
+    // --smooth`, then `model set 1 --background 10% --gamma 1.5`.
+    ("v36_picture_relief", "jobs/v36/picture_relief.chipload"),
     // A box rim, roughed: relief_dome_rough with `set operations.0.rim={"shape":"box",
     // "width":6,"ramp":1.047…,"corner_radius":3}` (60°).
     ("v36_relief_box_rough", "jobs/v36/relief_box_rough.chipload"),

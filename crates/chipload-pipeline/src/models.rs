@@ -41,16 +41,52 @@ pub struct ReadModel {
     pub report: chipload_mesh::ReadReport,
     /// The file's size in bytes.
     pub size: usize,
+    /// A picture read as a depth map (docs/specs/picture-relief.md): its size in pixels.
+    /// None: an STL file.
+    pub picture: Option<(u32, u32)>,
 }
 
-/// Read an STL file's `bytes` for adding: checked, parsed once, encoded for the project.
+/// A new picture model's width when none is given, mm.
+pub const DEFAULT_PICTURE_WIDTH_MM: f64 = 100.0;
+/// A new picture model's depth when none is given, mm.
+pub const DEFAULT_PICTURE_DEPTH_MM: f64 = 4.0;
+
+/// Whether `bytes` begin as a picture does (PNG, JPEG, BMP, or an HEIC photo, refused
+/// later with advice): a model file that is a picture is a depth map.
+fn looks_like_picture(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"\x89PNG")
+        || bytes.starts_with(&[0xFF, 0xD8, 0xFF])
+        || bytes.starts_with(b"BM")
+        || bytes.get(4..8) == Some(b"ftyp".as_slice())
+}
+
+/// Read a model file's `bytes` for adding: an STL file, or a picture read as a depth map
+/// (docs/specs/picture-relief.md §2); checked, parsed once, encoded for the project.
 pub fn read_model(bytes: &[u8]) -> Result<ReadModel, PipelineError> {
+    let sha256 = format!("{:x}", Sha256::digest(bytes));
+    if looks_like_picture(bytes) {
+        let picture = chipload_image::decode(bytes)?;
+        let pixels = (picture.width, picture.height);
+        return Ok(ReadModel {
+            data: chipload_toolpath::relief::picture_data(STANDARD.encode(bytes), picture),
+            sha256,
+            report: chipload_mesh::ReadReport {
+                format: Format::Binary,
+                triangles: 0,
+                dropped: 0,
+                open_edges: None,
+            },
+            size: bytes.len(),
+            picture: Some(pixels),
+        });
+    }
     let (mesh, report) = read(bytes)?;
     Ok(ReadModel {
         data: chipload_toolpath::relief::model_data(STANDARD.encode(bytes), mesh),
-        sha256: format!("{:x}", Sha256::digest(bytes)),
+        sha256,
         report,
         size: bytes.len(),
+        picture: None,
     })
 }
 
@@ -72,6 +108,9 @@ pub struct NewModel<'a> {
     pub depth: Option<f64>,
     /// The share of its height kept from the top (docs/specs/relief-wizard.md §5).
     pub keep: f64,
+    /// A picture's settings (docs/specs/picture-relief.md §3); None: the defaults. Not
+    /// used for an STL.
+    pub picture: Option<chipload_job::PictureDepth>,
 }
 
 impl<'a> NewModel<'a> {
@@ -88,6 +127,7 @@ impl<'a> NewModel<'a> {
             rotation: 0.0,
             depth: None,
             keep: 1.0,
+            picture: None,
         }
     }
 }
@@ -308,6 +348,7 @@ pub fn add_model(
         || new.file.to_string(),
         |s| s.to_string_lossy().into_owned(),
     );
+    let picture = read.picture.is_some();
     let mut model = Model {
         id,
         name: name.clone(),
@@ -324,23 +365,44 @@ pub fn add_model(
         depth: new.depth.unwrap_or(1.0),
         proportional: new.depth.is_none(),
         keep: new.keep,
+        picture: None,
     };
-    let (lo, hi) = chipload_toolpath::relief::turned_bounds(&model).map_err(relief_error)?;
-    model.width = new.width.unwrap_or(hi[0] - lo[0]);
+    if picture {
+        // Seen from above, sized by the width given, as deep as asked
+        // (docs/specs/picture-relief.md §2).
+        model.picture = Some(new.picture.unwrap_or(chipload_job::DEFAULT_PICTURE_DEPTH));
+        model.units = Units::Mm;
+        model.up = ModelUp::Z;
+        model.width = new.width.unwrap_or(DEFAULT_PICTURE_WIDTH_MM);
+        model.depth = new.depth.unwrap_or(DEFAULT_PICTURE_DEPTH_MM);
+        model.proportional = false;
+    } else {
+        let (lo, hi) = chipload_toolpath::relief::turned_bounds(&model).map_err(relief_error)?;
+        model.width = new.width.unwrap_or(hi[0] - lo[0]);
+    }
     let mut out = job.clone();
     out.drawing.models.push(model);
     let (out, mut report) = remake(&out, id)?;
     report.triangles = read_report.triangles;
     report.dropped = read_report.dropped;
     report.open_edges = read_report.open_edges;
-    let read_message = Message::new(match read_report.format {
-        Format::Binary => "pipeline-model-read-binary",
-        Format::Text => "pipeline-model-read-text",
-    })
-    .arg("id", id)
-    .arg("count", read_report.triangles)
-    .arg("units", new.units.name());
-    let mut messages = vec![with_size(read_message, report.size)];
+    let read_message = match read.picture {
+        Some((w, h)) => Message::new("pipeline-model-read-picture")
+            .arg("id", id)
+            .arg("width", w)
+            .arg("height", h),
+        None => with_size(
+            Message::new(match read_report.format {
+                Format::Binary => "pipeline-model-read-binary",
+                Format::Text => "pipeline-model-read-text",
+            })
+            .arg("id", id)
+            .arg("count", read_report.triangles)
+            .arg("units", new.units.name()),
+            report.size,
+        ),
+    };
+    let mut messages = vec![read_message];
     if read_report.dropped > 0 {
         messages.push(Message::new("pipeline-model-dropped").arg("count", read_report.dropped));
     }
@@ -657,6 +719,60 @@ mod tests {
             out.extend([0u8; 2]);
         }
         out
+    }
+
+    /// The corpus's soft grey dome on black, 120 × 80 pixels.
+    fn depth_dome() -> Vec<u8> {
+        std::fs::read(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../tests/corpus/images/depth_dome.png"),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn a_picture_is_a_depth_map_its_background_left_out() {
+        let read = read_model(&depth_dome()).unwrap();
+        assert_eq!(read.picture, Some((120, 80)));
+        let mut new = NewModel::new("depth_dome.png");
+        new.width = Some(90.0);
+        new.depth = Some(5.0);
+        new.picture = Some(chipload_job::PictureDepth {
+            background: 0.1,
+            ..chipload_job::DEFAULT_PICTURE_DEPTH
+        });
+        let (job, report) = add_model(&crate::empty_project(), &read, new).unwrap();
+        let model = &job.drawing.models[0];
+        assert!(model.picture.is_some() && !model.proportional);
+        assert_eq!(model.up, ModelUp::Z);
+        // The dome's ellipse, 100 × 64 of the picture's pixels: 90 mm wide, 57.6 tall.
+        let (lo, hi) = placed_mesh(&job, model.id).unwrap().bounds().unwrap();
+        assert!((hi[0] - lo[0] - 90.0).abs() < 0.01, "{lo:?} {hi:?}");
+        assert!((hi[1] - lo[1] - 57.6).abs() < 1.5, "{lo:?} {hi:?}");
+        assert!(hi[2].abs() < 1e-9 && (lo[2] + 5.0).abs() < 1e-9);
+        assert_eq!(report.shapes.len(), 1);
+        // Smoothing more is a new surface: the remembered one is for the old settings.
+        let before = placed_mesh(&job, model.id).unwrap();
+        let mut softer = job.clone();
+        if let Some(p) = softer.drawing.models[0].picture.as_mut() {
+            p.smoothing = 3.0;
+        }
+        assert_ne!(placed_mesh(&softer, model.id).unwrap(), before);
+        // The picture's settings are checked.
+        let mut bad = job.clone();
+        if let Some(p) = bad.drawing.models[0].picture.as_mut() {
+            p.gamma = 9.0;
+        }
+        assert!(remake(&bad, model.id).is_err());
+    }
+
+    #[test]
+    fn an_iphone_photo_is_refused_with_advice() {
+        let mut heic = vec![0, 0, 0, 24];
+        heic.extend_from_slice(b"ftypheic");
+        heic.extend_from_slice(&[0; 40]);
+        let err = read_model(&heic).unwrap_err().to_string();
+        assert!(err.contains("HEIC") && err.contains("PNG"), "{err}");
     }
 
     #[test]

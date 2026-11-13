@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Lisciatura con lo stesso utensile
 relief-wizard-sink = Profondità iniziale
 relief-wizard-sink-hover = Quanto sotto la superficie della tavola si trova la sommità del modello: un poco per una tavola non piallata, così la sua faccia irregolare non tocca il rilievo. La rampa del bordo e la sgrossatura partono dalla superficie.
 relief-wizard-summary-sink = , la sommità { $sink } sotto la superficie
+models-model-filter = Modelli 3D e mappe di profondità
+models-depth-filter = Mappe di profondità (PNG, JPEG, BMP)

@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Smoothing with the same tool
 relief-wizard-sink = Start depth
 relief-wizard-sink-hover = How far below the board's surface the model's top lies: a little for a board that isn't planed, so its uneven top doesn't show on the relief. The rim's ramp and the roughing start at the surface.
 relief-wizard-summary-sink = , its top { $sink } below the surface
+models-model-filter = 3D models and depth maps
+models-depth-filter = Depth maps (PNG, JPEG, BMP)

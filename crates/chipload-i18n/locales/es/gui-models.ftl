@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Alisado con la misma herramienta
 relief-wizard-sink = Profundidad inicial
 relief-wizard-sink-hover = A qué distancia bajo la superficie del tablero queda la parte superior del modelo: un poco en un tablero sin cepillar, para que su cara irregular no se note en el relieve. La rampa del borde y el desbaste empiezan en la superficie.
 relief-wizard-summary-sink = , su parte superior { $sink } bajo la superficie
+models-model-filter = Modelos 3D y mapas de profundidad
+models-depth-filter = Mapas de profundidad (PNG, JPEG, BMP)

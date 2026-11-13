@@ -364,3 +364,32 @@ fn the_delete_key_removes_a_selected_model_as_one_undo_step() {
     app.undo();
     assert_eq!(job(&app).drawing.models.len(), 1);
 }
+
+/// A picture model's properties show its depth-map settings in place of the up axis, and
+/// Turn and cut shows them too (docs/specs/picture-relief.md §5).
+#[test]
+fn a_picture_model_shows_its_depth_map_settings() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/picture_relief.chipload")));
+    let id = app.edit.as_ref().unwrap().job.drawing.models[0].id;
+    assert!(
+        app.edit.as_ref().unwrap().job.drawing.models[0]
+            .picture
+            .is_some()
+    );
+    app.focus = Focus::Model(id);
+    draw_properties(&mut app);
+    app.open_turn_cut(id);
+    draw_properties(&mut app);
+    // The settings changed and sent: the surface made again.
+    let mut changed = app.edit.as_ref().unwrap().job.drawing.models[0].clone();
+    if let Some(p) = changed.picture.as_mut() {
+        p.gamma = 2.0;
+    }
+    let changed_job = {
+        let mut job = app.edit.as_ref().unwrap().job.clone();
+        job.drawing.models[0] = changed;
+        job
+    };
+    assert!(chipload_pipeline::models::remake(&changed_job, id).is_ok());
+}

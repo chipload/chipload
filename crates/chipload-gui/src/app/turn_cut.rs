@@ -356,22 +356,28 @@ impl ModelViews {
 
 /// Face up, the quarter turns and the cut level: rows of a two-column grid.
 pub(super) fn turn_fields(ui: &mut egui::Ui, draft: &mut Model) {
-    ui.label(t!(ui, "turn-cut-face-up"))
-        .on_hover_text(t!(ui, "forms-model-up-hover"));
-    ui.horizontal(|ui| {
-        for up in [
-            ModelUp::Z,
-            ModelUp::MinusZ,
-            ModelUp::Y,
-            ModelUp::MinusY,
-            ModelUp::X,
-            ModelUp::MinusX,
-        ] {
-            let name = up.name().to_uppercase().replace('-', "−");
-            ui.selectable_value(&mut draft.up, up, name);
-        }
-    });
-    ui.end_row();
+    // A picture is seen from above: its depth-map settings in place of the face up
+    // (docs/specs/picture-relief.md §5).
+    if let Some(picture) = draft.picture.as_mut() {
+        picture_fields(ui, picture);
+    } else {
+        ui.label(t!(ui, "turn-cut-face-up"))
+            .on_hover_text(t!(ui, "forms-model-up-hover"));
+        ui.horizontal(|ui| {
+            for up in [
+                ModelUp::Z,
+                ModelUp::MinusZ,
+                ModelUp::Y,
+                ModelUp::MinusY,
+                ModelUp::X,
+                ModelUp::MinusX,
+            ] {
+                let name = up.name().to_uppercase().replace('-', "−");
+                ui.selectable_value(&mut draft.up, up, name);
+            }
+        });
+        ui.end_row();
+    }
     ui.label(t!(ui, "turn-cut-turn"));
     ui.horizontal(|ui| {
         if ui
@@ -407,6 +413,55 @@ pub(super) fn turn_fields(ui: &mut egui::Ui, draft: &mut Model) {
     ui.end_row();
 }
 
+/// A picture model's depth-map settings (docs/specs/picture-relief.md §3): rows of a
+/// two-column grid. True when an edit finished (a drag let go, a box ticked).
+pub(in crate::app) fn picture_fields(
+    ui: &mut egui::Ui,
+    picture: &mut chipload_job::PictureDepth,
+) -> bool {
+    let mut finished = false;
+    let done = |r: &egui::Response| r.drag_stopped() || r.lost_focus();
+    ui.label(t!(ui, "forms-picture-white-high"))
+        .on_hover_text(t!(ui, "forms-picture-white-high-hover"));
+    finished |= ui.checkbox(&mut picture.white_high, "").changed();
+    ui.end_row();
+    ui.label(t!(ui, "forms-picture-smoothing"))
+        .on_hover_text(t!(ui, "forms-picture-smoothing-hover"));
+    let (lo, hi) = chipload_job::PICTURE_SMOOTHING_RANGE;
+    let r = ui.add(
+        crate::units::length(&mut picture.smoothing)
+            .range(lo..=hi)
+            .speed(0.02),
+    );
+    finished |= done(&r);
+    ui.end_row();
+    ui.label(t!(ui, "forms-picture-background"))
+        .on_hover_text(t!(ui, "forms-picture-background-hover"));
+    let (lo, hi) = chipload_job::PICTURE_BACKGROUND_RANGE;
+    let mut percent = picture.background * 100.0;
+    let r = ui.add(
+        egui::Slider::new(&mut percent, lo * 100.0..=hi * 100.0)
+            .fixed_decimals(0)
+            .suffix(" %"),
+    );
+    if r.changed() {
+        picture.background = (percent / 100.0).clamp(lo, hi);
+    }
+    finished |= done(&r);
+    ui.end_row();
+    ui.label(t!(ui, "forms-picture-gamma"))
+        .on_hover_text(t!(ui, "forms-picture-gamma-hover"));
+    let (lo, hi) = chipload_job::PICTURE_GAMMA_RANGE;
+    let r = ui.add(
+        egui::Slider::new(&mut picture.gamma, lo..=hi)
+            .logarithmic(true)
+            .fixed_decimals(2),
+    );
+    finished |= done(&r);
+    ui.end_row();
+    finished
+}
+
 /// Width and depth with *Keep proportions*: rows of a two-column grid.
 pub(super) fn size_fields(ui: &mut egui::Ui, draft: &mut Model) {
     ui.label(t!(ui, "forms-width"))
@@ -426,8 +481,11 @@ pub(super) fn size_fields(ui: &mut egui::Ui, draft: &mut Model) {
                 .range(0.01..=1_000.0)
                 .speed(0.1),
         );
-        ui.checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
-            .on_hover_text(t!(ui, "forms-model-proportional-hover"));
+        // A picture has no depth of its own to keep in proportion.
+        if draft.picture.is_none() {
+            ui.checkbox(&mut draft.proportional, t!(ui, "forms-model-proportional"))
+                .on_hover_text(t!(ui, "forms-model-proportional-hover"));
+        }
     });
     ui.end_row();
 }

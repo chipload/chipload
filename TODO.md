@@ -237,8 +237,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    board's surface. §16.7 done (the user: "Go ahead, sounds right"): an outline
    rim's *Fuller* slider (`rim.hull`, 0 the outline, 1 its convex hull, a closing between),
    `relief add --hull`; golden v36_relief_rim_hull.
-   Next: a relief from a picture (docs/specs/picture-relief.md, draft for the user's review,
-   2026-11-13): a depth map as a 3D model in the project; inflated shapes later.
+   A relief from a picture done (docs/specs/picture-relief.md, the user: "Go ahead"): a
+   depth map (PNG, JPEG, BMP) as a 3D model in the project, `model add/set` with its
+   settings, the model form and wizard; golden v36_picture_relief. Later: inflated shapes
+   (§6).
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

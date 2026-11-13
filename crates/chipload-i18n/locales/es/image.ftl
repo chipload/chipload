@@ -7,6 +7,9 @@
 image-error-too-large = la imagen ocupa { $bytes } bytes; se admiten como máximo 20 MB: redúcela
 image-error-too-many-pixels = la imagen mide { $width } × { $height } píxeles; se admiten como máximo 20 megapíxeles: redúcela
 image-error-format = no es una imagen PNG, JPEG ni BMP
+image-error-heic = una foto HEIC, que Chipload no lee: guarde primero el mapa de profundidad (o la foto) como PNG; para un objeto, el STL de una app de escaneo 3D funciona mejor
+image-error-depth-setting = { $field } debe estar entre { $low } y { $high }, es { $got }
+image-error-depth-empty = toda la imagen es fondo: baje el nivel del fondo
 # $reason is the picture decoder's own words, or one of the two texts below.
 image-error-decode = no se puede leer la imagen: { $reason }
 image-error-no-pixels = la imagen no tiene píxeles

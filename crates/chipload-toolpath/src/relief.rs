@@ -9,7 +9,9 @@ use chipload_core::Point;
 use chipload_core::cutter::Cutter;
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Message, Value};
-use chipload_job::{Model, ModelUp};
+use std::sync::{Arc, Mutex};
+
+use chipload_job::{Model, ModelUp, PictureDepth};
 use chipload_mesh::{Mesh, Up, Vertex};
 
 use crate::drop::DropMesh;
@@ -72,6 +74,7 @@ pub struct Placement {
 }
 
 /// Why a model's file could not be read: what the text alone tells, without the model's id.
+#[derive(Clone)]
 enum ReadFailure {
     /// Not base64: the decoder's words.
     Data(String),
@@ -103,19 +106,114 @@ impl ReadMesh {
     }
 }
 
-/// The model's file read, as its text gives it: decoded and parsed once for the text, and
-/// remembered with it (docs/specs/relief-wizard.md §2).
-fn read_model(model: &Model) -> Result<std::sync::Arc<Result<ReadMesh, ReadFailure>>, ReliefError> {
-    let read = model.data.remembered(|text| {
-        let bytes = STANDARD
+/// A picture model's file (docs/specs/picture-relief.md §3): the picture decoded once, and
+/// the surface last made from it, for the settings and width it was made for.
+pub struct PictureRead {
+    picture: Result<chipload_image::Decoded, ReadFailure>,
+    built: Mutex<Option<(PictureKey, SharedRead)>>,
+}
+
+/// A model's file as read, shared.
+type SharedRead = Arc<Result<ReadMesh, ReadFailure>>;
+
+/// What a picture model's surface depends on besides the picture.
+#[derive(Clone, Copy, PartialEq)]
+struct PictureKey {
+    depth: PictureDepth,
+    width: f64,
+}
+
+impl PictureRead {
+    /// The picture in base64 `text` decoded, under a guard.
+    fn of_text(text: &str) -> PictureRead {
+        let picture = STANDARD
             .decode(text)
-            .map_err(|e| ReadFailure::Data(e.to_string()))?;
-        match std::panic::catch_unwind(|| chipload_mesh::read_stl(&bytes)) {
-            Ok(Ok((mesh, _))) => ReadMesh::of(mesh),
-            Ok(Err(e)) => Err(ReadFailure::Mesh(e.message())),
-            Err(_) => Err(ReadFailure::Reader),
+            .map_err(|e| ReadFailure::Data(e.to_string()))
+            .and_then(|bytes| decoded(&bytes));
+        PictureRead::of(picture)
+    }
+
+    fn of(picture: Result<chipload_image::Decoded, ReadFailure>) -> PictureRead {
+        PictureRead {
+            picture,
+            built: Mutex::new(None),
         }
+    }
+}
+
+/// A picture's bytes decoded, a panic in the decoder caught.
+fn decoded(bytes: &[u8]) -> Result<chipload_image::Decoded, ReadFailure> {
+    match std::panic::catch_unwind(|| chipload_image::decode(bytes)) {
+        Ok(Ok(picture)) => Ok(picture),
+        Ok(Err(e)) => Err(ReadFailure::Mesh(e.message())),
+        Err(_) => Err(ReadFailure::Reader),
+    }
+}
+
+/// `picture` read as heights with `depth`, `width` mm wide, and made into a top surface
+/// (docs/specs/picture-relief.md §3).
+pub fn picture_surface(
+    picture: &chipload_image::Decoded,
+    depth: &PictureDepth,
+    width: f64,
+) -> Result<Mesh, Message> {
+    let settings = chipload_image::DepthSettings {
+        white_high: depth.white_high,
+        smoothing: depth.smoothing,
+        background: depth.background,
+        gamma: depth.gamma,
+    };
+    let grid = chipload_image::depth_grid(picture, &settings, width).map_err(|e| e.message())?;
+    let mesh = Mesh::height_field(grid.columns, grid.rows, grid.cell, &grid.heights);
+    if mesh.triangles.is_empty() {
+        return Err(Message::new("image-error-depth-empty"));
+    }
+    Ok(mesh)
+}
+
+/// A picture model's surface: made from its picture for its settings and width, or the one
+/// made last when they are the same.
+fn picture_mesh(model: &Model, depth: &PictureDepth) -> SharedRead {
+    let read = model.data.remembered(PictureRead::of_text);
+    let key = PictureKey {
+        depth: *depth,
+        width: model.width,
+    };
+    if let Ok(built) = read.built.lock()
+        && let Some((made, mesh)) = built.as_ref()
+        && *made == key
+    {
+        return Arc::clone(mesh);
+    }
+    let mesh = Arc::new(match &read.picture {
+        Ok(picture) => picture_surface(picture, depth, model.width)
+            .map_err(ReadFailure::Mesh)
+            .and_then(ReadMesh::of),
+        Err(failure) => Err(failure.clone()),
     });
+    if let Ok(mut built) = read.built.lock() {
+        *built = Some((key, Arc::clone(&mesh)));
+    }
+    mesh
+}
+
+/// The model's file read, as its text gives it: decoded and parsed once for the text, and
+/// remembered with it (docs/specs/relief-wizard.md §2); a picture's surface made for its
+/// settings (docs/specs/picture-relief.md §3).
+fn read_model(model: &Model) -> Result<SharedRead, ReliefError> {
+    let read = match &model.picture {
+        Some(depth) => picture_mesh(model, depth),
+        None => model.data.remembered(|text| {
+            let bytes = STANDARD
+                .decode(text)
+                .map_err(|e| ReadFailure::Data(e.to_string()))?;
+            match std::panic::catch_unwind(|| chipload_mesh::read_stl(&bytes)) {
+                Ok(Ok((mesh, _))) => ReadMesh::of(mesh),
+                Ok(Err(e)) => Err(ReadFailure::Mesh(e.message())),
+                Err(_) => Err(ReadFailure::Reader),
+            }
+        }),
+    };
     let unreadable = |error: String| {
         refused(
             Message::new("toolpath-model-unreadable")
@@ -143,6 +241,14 @@ fn read_mesh(read: &Result<ReadMesh, ReadFailure>) -> Result<&ReadMesh, ReliefEr
 pub fn model_data(text: String, mesh: Mesh) -> chipload_job::ModelData {
     let data = chipload_job::ModelData::new(text);
     data.remembered(|_| ReadMesh::of(mesh));
+    data
+}
+
+/// A picture model's data from its file's base64 `text` and the picture already decoded
+/// from it, so it isn't decoded again (docs/specs/picture-relief.md §3).
+pub fn picture_data(text: String, picture: chipload_image::Decoded) -> chipload_job::ModelData {
+    let data = chipload_job::ModelData::new(text);
+    data.remembered(|_| PictureRead::of(Ok(picture)));
     data
 }
 

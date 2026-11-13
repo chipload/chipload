@@ -31,10 +31,27 @@ impl Decoded {
     }
 }
 
+/// Whether `bytes` are an HEIF/HEIC file (an iPhone's photos): an ISO base media box `ftyp`
+/// at byte 4 naming an HEIF brand.
+fn is_heic(bytes: &[u8]) -> bool {
+    let brand = bytes.get(8..12);
+    bytes.get(4..8) == Some(b"ftyp".as_slice())
+        && brand.is_some_and(|b| {
+            [
+                b"heic", b"heix", b"hevc", b"heim", b"heis", b"mif1", b"msf1",
+            ]
+            .iter()
+            .any(|known| b == known.as_slice())
+        })
+}
+
 /// Reads a picture's bytes. Hostile input gives an error, never a panic.
 pub fn decode(bytes: &[u8]) -> Result<Decoded, ImageError> {
     if bytes.len() > MAX_BYTES {
         return Err(ImageError::TooLarge(bytes.len()));
+    }
+    if is_heic(bytes) {
+        return Err(ImageError::Heic);
     }
     let reader = || -> Result<ImageReader<Cursor<&[u8]>>, ImageError> {
         let reader = ImageReader::new(Cursor::new(bytes))

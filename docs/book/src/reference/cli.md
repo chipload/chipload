@@ -1238,7 +1238,7 @@ chipload image explode <PROJECT> <ID> [OPTIONS]
 
 ### `chipload model add`
 
-Add an STL model, placed on the board; its footprint outline goes on its own layer
+Add an STL model, or a picture (PNG, JPEG, BMP) read as a depth map, white high, placed on the board; its footprint outline goes on its own layer
 
 ```text
 chipload model add <PROJECT> <MODEL> [OPTIONS]
@@ -1247,20 +1247,24 @@ chipload model add <PROJECT> <MODEL> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<MODEL>` | The STL file (binary or text) |
+| `<MODEL>` | The STL file (binary or text), or a picture. |
 | `--units <UNITS>` | The unit the file is in, for its own size: mm (default) or inch. The model is placed by `--width` anyway. |
 | `--layer <LAYER>` | The layer for its outline; default: the file's name. |
 | `--at <AT>` | Where the footprint's lower-left corner goes: X,Y in mm (default 0,0) |
 | `--width <WIDTH>` | The footprint's width on the board, mm (default: the model's own); X and Y scale alike. |
-| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
+| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width; a picture 4 mm) |
 | `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
 | `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
 | `--keep <KEEP>` | How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part's. |
+| `--white-high <WHITE_HIGH>` | White is high (true, the default) or black is (false) One of: `true`, `false`. |
+| `--smoothing <SMOOTHING>` | A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2) |
+| `--background <BACKGROUND>` | Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0) |
+| `--gamma <GAMMA>` | The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops (default 1) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload model set`
 
-Change a model's place, size, depth, up axis or cut level; its outline is drawn again
+Change a model's place, size, depth, up axis or cut level, or a picture's depth-map settings; its outline is drawn again
 
 ```text
 chipload model set <PROJECT> <ID> [OPTIONS]
@@ -1274,10 +1278,14 @@ chipload model set <PROJECT> <ID> [OPTIONS]
 | `--proportional` | Make the depth follow the width again, in proportion. |
 | `--at <AT>` | Where the footprint's lower-left corner goes: X,Y in mm (default 0,0) |
 | `--width <WIDTH>` | The footprint's width on the board, mm (default: the model's own); X and Y scale alike. |
-| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
+| `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width; a picture 4 mm) |
 | `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
 | `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
 | `--keep <KEEP>` | How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part's. |
+| `--white-high <WHITE_HIGH>` | White is high (true, the default) or black is (false) One of: `true`, `false`. |
+| `--smoothing <SMOOTHING>` | A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2) |
+| `--background <BACKGROUND>` | Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0) |
+| `--gamma <GAMMA>` | The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops (default 1) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload model list`

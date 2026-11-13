@@ -10,6 +10,7 @@
 //! ignored.
 
 mod clip;
+mod field;
 mod light;
 mod read;
 mod shadow;

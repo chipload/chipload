@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Сглаживание тем же инструм
 relief-wizard-sink = Начальная глубина
 relief-wizard-sink-hover = Насколько ниже поверхности заготовки лежит верх модели: немного для нестроганой доски, чтобы её неровный верх не сказался на рельефе. Скат бортика и черновая обработка начинаются от поверхности.
 relief-wizard-summary-sink = , её верх на { $sink } ниже поверхности
+models-model-filter = 3D-модели и карты глубины
+models-depth-filter = Карты глубины (PNG, JPEG, BMP)

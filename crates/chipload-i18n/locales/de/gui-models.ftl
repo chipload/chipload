@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Glätten mit demselben Werkzeug
 relief-wizard-sink = Starttiefe
 relief-wizard-sink-hover = Wie weit unter der Oberfläche der Platte die Oberseite des Modells liegt: etwas bei einer ungehobelten Platte, damit ihre unebene Oberseite das Relief nicht trifft. Die Rampe des Rands und das Schruppen beginnen an der Oberfläche.
 relief-wizard-summary-sink = , seine Oberseite { $sink } unter der Oberfläche
+models-model-filter = 3D-Modelle und Tiefenkarten
+models-depth-filter = Tiefenkarten (PNG, JPEG, BMP)

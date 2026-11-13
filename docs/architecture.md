@@ -20,9 +20,9 @@ flowchart TB
     pipeline --> toolpath & dxf & image & text & mesh
     post["chipload-post<br/>TOML + Jinja per controller"] --> toolpath
     toolpath["chipload-toolpath<br/>operations into moves"] --> job
-    toolpath --> mesh
+    toolpath --> mesh & image
     dxf["chipload-dxf<br/>DXF import"] --> job
-    image["chipload-image<br/>picture tracing"] --> core
+    image["chipload-image<br/>picture tracing, depth maps"] --> core
     dxf --> svg
     svg["chipload-svg<br/>SVG reading"] --> core
     text["chipload-text<br/>fonts to outlines"] --> core
@@ -104,11 +104,11 @@ and names the files `-S1…`, `-S2…` when there are several.
 | `chipload-job` | The project file and everything else saved to disk: versioned loading with one migration per schema step, saving with a `.bak`, the tool library and machine profiles, settings, recovery notes. | core, i18n |
 | `chipload-dxf` | DXF into shapes and contours: blocks expanded, splines and ellipses approximated, duplicates and zero-length removed, everything reported. SVGs too, read by `chipload-svg`, as drawing files of their own format. Also the way out: shapes written as a DXF (R12 layout, its own writer) and read back. | core, job, i18n, svg; dxf |
 | `chipload-svg` | SVG into shapes of lines and arcs in mm: usvg resolves styles, `use`, transforms and units into paths; curves fitted with lines and arcs; layers from Inkscape layers or stroke colours; text, pictures and clips counted, not imported (ADR 0024). `chipload-dxf` makes its shapes a drawing file (docs/specs/svg-import.md). | core, i18n; usvg, flate2 |
-| `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs. | core, i18n; image |
-| `chipload-mesh` | STL files (binary and text) into triangles, written from the format's public description, with limits against hostile input; a model turned so a chosen axis points up, and the shadow it casts seen from above (docs/specs/stl-relief.md, ADR 0031). No I/O. | core, i18n |
+| `chipload-image` | PNG, JPEG and BMP into black and white, then traced loops or centre lines, with arcs; or read as a depth map, brightness as height (docs/specs/picture-relief.md). | core, i18n; image |
+| `chipload-mesh` | STL files (binary and text) into triangles, written from the format's public description, with limits against hostile input; a model turned so a chosen axis points up, and the shadow it casts seen from above (docs/specs/stl-relief.md, ADR 0031); a grid of heights as a top surface (a depth map's). No I/O. | core, i18n |
 | `chipload-text` | Text into closed outlines with arcs in the built-in fonts, or in a font file's bytes (the computer's fonts, found by the pipeline). | core, i18n; ttf-parser |
 | `chipload-draw` | Drawing geometry on core's lines and arcs: where segments cross, the points the cursor snaps to (ends, intersections, centres, quadrants, middles, perpendicular, tangent, nearest); offsets of drawn shapes, and the other editing operations to come (docs/specs/drawing-editing.md); the frames for signs (docs/specs/shape-library.md). No I/O, no project model. | core; cavalier_contours |
-| `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, the drop cutter for reliefs (docs/specs/stl-relief.md), merging overlapping letters, job planning. | core, job, mesh, i18n; cavalier_contours, boostvoronoi |
+| `chipload-toolpath` | Selection, offsets, profiles with tabs and ramps, pockets with rest machining, V-carving on the medial axis, follow paths, holes, surfacing, the drop cutter for reliefs (docs/specs/stl-relief.md), a picture model's surface from its depth map (docs/specs/picture-relief.md), merging overlapping letters, job planning. | core, job, mesh, image, i18n; cavalier_contours, boostvoronoi |
 | `chipload-post` | Post-processors as data: a TOML config and a Jinja template each for GRBL, LinuxCNC and Mach3, plus users' own. | job, toolpath, i18n, check; minijinja |
 | `chipload-check` | Parses G-code and checks machine limits, arc endpoints against centre and radius, feeds, units, retracts, and rapids through stock. | core, job, i18n |
 | `chipload-pipeline` | The services: run and plan, the report and setup sheet, time and chip-load estimates, the height-map simulation, messages in the display units, licence notices, the computer's fonts for texts (fontdb, not in the browser build; ADR 0027). | every library crate |

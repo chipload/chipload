@@ -381,6 +381,7 @@ A 3D model (an STL file) carved as a relief from the top: the file itself, which
 | `keep` | number | no | The share of the turned model's height kept, from its top, more than 0 and at most 1: what lies below is cut away, its back (docs/specs/relief-wizard.md §5). Width, depth and the outline are the kept part's. 1 (the whole model) when missing. |
 | `layer` | string | yes | The layer its footprint outline goes on. |
 | `name` | string | yes | Its name in the Browser and messages: the file's name without its extension at first. |
+| `picture` | [PictureDepth](#picturedepth) or null | no | Missing: the model is an STL file. Present: `data` is a picture (PNG, JPEG or BMP) read as a depth map with these settings; `up` is `z` and `proportional` false. |
 | `proportional` | boolean | yes | The depth follows the width, in the model's own proportion: made again whenever the model changes (decision 4). |
 | `rotation` | number | yes | Turned counter-clockwise about the footprint's centre, degrees, at least 0 and less than 360. |
 | `sha256` | string | yes | The STL file's SHA-256. |
@@ -576,6 +577,17 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 - object: 
 
 - object: 
+
+## PictureDepth
+
+How a picture model's picture is read as heights (docs/specs/picture-relief.md §3).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `background` | number | yes | Grey shares up to this, 0 to 0.95, are background, not the model; 0: none. |
+| `gamma` | number | yes | The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops. |
+| `smoothing` | number | yes | A blur over the heights, its radius on the board, mm: 0 to 5. |
+| `white_high` | boolean | yes | White is the top, black the bottom; false: the other way round. |
 
 ## Placement
 

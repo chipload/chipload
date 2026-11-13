@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Utjämning med samma verktyg
 relief-wizard-sink = Startdjup
 relief-wizard-sink-hover = Hur långt under skivans yta modellens topp ligger: lite för en ohyvlad skiva, så att den ojämna ytan inte syns på reliefen. Kantens ramp och grovpassen börjar vid ytan.
 relief-wizard-summary-sink = , toppen { $sink } under ytan
+models-model-filter = 3D-modeller och djupkartor
+models-depth-filter = Djupkartor (PNG, JPEG, BMP)

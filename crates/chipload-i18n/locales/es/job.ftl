@@ -95,6 +95,8 @@ job-image-threshold = debe ser de 1 a 254 o "auto", es { $got }
 job-image-missing = falta la imagen
 job-model-missing = falta el archivo del modelo
 job-model-keep = debe ser mayor que 0 y como máximo 1 (la parte del modelo que se conserva desde arriba), se obtuvo { $got }
+job-model-picture-up = un modelo de imagen se ve desde arriba: arriba debe ser z
+job-model-picture-range = debe estar entre { $low } y { $high }, es { $got }
 job-text-empty = está vacío: escribe algo que cortar
 job-text-height = debe ser más de 0 y como máximo { $most }, es { $got }
 # $heights is a number of text heights, $most that as a length.

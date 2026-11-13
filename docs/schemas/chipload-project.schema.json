@@ -1144,6 +1144,17 @@
           "description": "Its name in the Browser and messages: the file's name without its extension at\nfirst.",
           "type": "string"
         },
+        "picture": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PictureDepth"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Missing: the model is an STL file. Present: `data` is a picture (PNG, JPEG or BMP)\nread as a depth map with these settings; `up` is `z` and `proportional` false."
+        },
         "proportional": {
           "description": "The depth follows the width, in the model's own proportion: made again whenever the\nmodel changes (decision 4).",
           "type": "boolean"
@@ -2214,6 +2225,38 @@
           "type": "object"
         }
       ]
+    },
+    "PictureDepth": {
+      "additionalProperties": false,
+      "description": "How a picture model's picture is read as heights (docs/specs/picture-relief.md §3).",
+      "properties": {
+        "background": {
+          "description": "Grey shares up to this, 0 to 0.95, are background, not the model; 0: none.",
+          "format": "double",
+          "type": "number"
+        },
+        "gamma": {
+          "description": "The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper\ntops.",
+          "format": "double",
+          "type": "number"
+        },
+        "smoothing": {
+          "description": "A blur over the heights, its radius on the board, mm: 0 to 5.",
+          "format": "double",
+          "type": "number"
+        },
+        "white_high": {
+          "description": "White is the top, black the bottom; false: the other way round.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "white_high",
+        "smoothing",
+        "background",
+        "gamma"
+      ],
+      "type": "object"
     },
     "Placement": {
       "additionalProperties": false,

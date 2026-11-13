@@ -179,7 +179,15 @@ impl ReliefWizard {
             depth: 1.0,
             proportional: true,
             keep: 1.0,
+            picture: None,
         };
+        // A picture is a depth map (docs/specs/picture-relief.md §2): no depth of its own.
+        if read.picture.is_some() {
+            draft.picture = Some(chipload_job::DEFAULT_PICTURE_DEPTH);
+            draft.proportional = false;
+            draft.depth = chipload_pipeline::models::DEFAULT_PICTURE_DEPTH_MM
+                .min(self.thickness * MOST_DEPTH_SHARE);
+        }
         self.fit_depth(&mut draft);
         self.draft = Some(draft);
         self.source = Source::File(path, read);
@@ -309,6 +317,7 @@ impl ChiploadApp {
         request.up = draft.up;
         request.rotation = draft.rotation;
         request.keep = draft.keep;
+        request.picture = draft.picture;
         request.depth = (!draft.proportional).then_some(draft.depth);
         request.at = (!w.centred).then_some((draft.x, draft.y));
         request.sink = w.sink;
@@ -539,7 +548,9 @@ impl ChiploadApp {
         }
         if pick_file
             && let Some(path) = rfd::FileDialog::new()
+                .add_filter(t!(self, "models-model-filter"), crate::app::MODEL_FILES)
                 .add_filter(t!(self, "models-stl-filter"), &["stl", "STL"])
+                .add_filter(t!(self, "models-depth-filter"), crate::app::DEPTH_MAP_FILES)
                 .pick_file()
             && let Some(reading) = self.wizard_read(path)
         {

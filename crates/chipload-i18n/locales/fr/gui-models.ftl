@@ -113,3 +113,5 @@ relief-wizard-summary-smooth = Lissage avec le même outil
 relief-wizard-sink = Profondeur de départ
 relief-wizard-sink-hover = À quelle distance sous la surface du panneau se trouve le haut du modèle : un peu pour un panneau non raboté, pour que son dessus irrégulier ne marque pas le relief. La rampe du bord et l'ébauche partent de la surface.
 relief-wizard-summary-sink = , son sommet { $sink } sous la surface
+models-model-filter = Modèles 3D et cartes de profondeur
+models-depth-filter = Cartes de profondeur (PNG, JPEG, BMP)
