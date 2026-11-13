@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1-4 built. It builds on docs/specs/stl-relief.md (the model,
+Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1-5 built. It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -268,3 +268,9 @@ decision 6. The layout test guards it in every language.
   close) and from *Turn and cut…* in the model's properties. On the 57 MB file: a frame
   while turning 6.7 ms (the whole window, headless), a cut level change 21 ms. Guide
   screenshot `turn-cut.png`.
+- **Step 5 (§7), 2026-11-13.** Inlay is a large button in WIZARDS and *Wizards > New
+  inlay…*, gone from OPERATION and the Operation menu. LIBRARY is one *Library* button
+  (This computer in the Browser); *Measure* is the navigation bar's first view button.
+  Measured at 1280 px in English afterwards: 78 px to spare, room for Relief (about
+  46 px). German, French and Spanish had less than a button's room already; the layout
+  test asks for names in English at 1280, as before.

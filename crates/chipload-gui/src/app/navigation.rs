@@ -183,6 +183,22 @@ impl ChiploadApp {
 
     /// Fit, Top and 3D.
     fn view_buttons(&mut self, ui: &mut egui::Ui, compact: bool) {
+        // Measure with the other ways of looking at the drawing (docs/specs/relief-wizard.md
+        // §7, decision 6).
+        let label = t!(ui, "header-measure");
+        if nav_button(
+            ui,
+            compact,
+            Icon::Measure,
+            &label,
+            self.edit.is_some(),
+            self.measure().is_some(),
+        )
+        .on_hover_text(hover_keys(&t!(ui, "header-measure-hover"), Action::Measure))
+        .clicked()
+        {
+            self.toggle_measure();
+        }
         let fit = t!(ui, "navigation-fit");
         if nav_button(ui, compact, Icon::Fit, &fit, true, false)
             .on_hover_text(hover_keys(&t!(ui, "navigation-fit-hover"), Action::Fit))

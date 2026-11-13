@@ -23,9 +23,12 @@ Under it, the **ribbon** groups the buttons:
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a [relief](drawings/models.md)) | Frame… ([a frame for a sign](drawings/signs.md)) |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | New Relief (of a [3D model](drawings/models.md)), *Apply style ▸*, Generate |
-| WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window) | New sign…, Two-sided… |
-| LIBRARY | Tools, Machines: open them under *This computer* in the Browser | the same |
-| VIEW | Measure | fit, top and 3D view, Z scale, reverse left-right orbit, what is shown, legend, the panels (open, hide, reset), update automatically |
+| WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window); Inlay…: [a V-carve inlay](operations/vcarve.md) of the selected shapes | New sign…, Two-sided…, New inlay… |
+| LIBRARY | Library: opens *This computer* in the Browser, with your tools and machines | Tool library, Machines |
+
+The *View* menu has fit, top and 3D view, Z scale, reverse left-right orbit, what is shown,
+the legend, the panels (open, hide, reset) and update automatically; **Measure** is on the
+canvas's navigation bar.
 
 **Generate** (F5) and **Export** sit at the right end; Generate is greyed out until the
 project has an operation. When the buttons with their names
@@ -164,7 +167,7 @@ colour theme: dark, or light grey.
     as you left them there. Simulate starts as Edit is, the first time.
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - the mode: **Edit | Simulate** (F6 switches);
-  - how you look: **Fit** (F), **Top** (T) and **3D**. When the canvas changes size (the
+  - how you look: **Measure** (M), **Fit** (F), **Top** (T) and **3D**. When the canvas changes size (the
     window, or a panel opening or folding), a fitted view is fitted again, and a view you
     zoomed or moved keeps showing the same area;
   - what is shown: **Toolpath**, **Drawing** (in Simulate; Edit always shows the drawing),

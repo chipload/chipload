@@ -21,7 +21,7 @@ const LANGUAGES: [&str; 7] = ["en", "de", "fr", "es", "it", "sv", "ru"];
 /// The ribbon's last large button (View > Measure) and Generate, as named in `language`.
 fn ribbon_ends(language: &str) -> (String, String) {
     let lang = crate::i18n::resolve(language);
-    (t!(lang, "header-measure"), t!(lang, "header-generate"))
+    (t!(lang, "header-library"), t!(lang, "header-generate"))
 }
 
 /// The app with a project open, in `language`, set up as main.rs sets it up (the system's
@@ -52,9 +52,14 @@ fn harness(language: &str, size: egui::Vec2) -> Harness<'static, ChiploadApp> {
     app_harness(Harness::builder().with_size(size), language)
 }
 
-/// A widget's rectangle by its label.
+/// A widget's rectangle by its label: the lowest one with it (the ribbon's *Library*, not
+/// the menu bar's).
 fn rect_of(harness: &Harness<'_, ChiploadApp>, label: &str) -> egui::Rect {
-    harness.get_by_label(label).rect()
+    harness
+        .get_all_by_label(label)
+        .map(|node| node.rect())
+        .max_by(|a, b| a.top().total_cmp(&b.top()))
+        .unwrap_or_else(|| panic!("no {label:?}"))
 }
 
 /// Whether the ribbon's large buttons show their names (not their icons alone).
@@ -81,17 +86,17 @@ fn the_ribbon_shows_names_where_they_fit_and_icons_alone_where_not() {
     // English fits with names at the default size. Whether German does depends on the
     // font (DejaVu Sans on Linux: no; Windows' narrower Segoe UI: yes, seen on CI
     // 2026-11-03), so German is tried in a window too narrow for either.
-    assert!(names_shown(&harness("en", WINDOW), "Measure"));
+    assert!(names_shown(&harness("en", WINDOW), "Library"));
     let mut german = harness("de", egui::vec2(1000.0, 800.0));
-    assert!(!names_shown(&german, "Messen"));
+    assert!(!names_shown(&german, "Bibliothek"));
     // A wider window shows the names again.
     german.set_size(egui::vec2(1600.0, 800.0));
     german.run_steps(6);
-    assert!(names_shown(&german, "Messen"));
+    assert!(names_shown(&german, "Bibliothek"));
     // A narrow window: icons alone, in English too.
     assert!(!names_shown(
         &harness("en", egui::vec2(900.0, 700.0)),
-        "Measure"
+        "Library"
     ));
 }
 

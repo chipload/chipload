@@ -6,7 +6,7 @@ the same on another computer, or after you change the library.
 
 ## In the app
 
-Your tools are under **This computer > Tools** at the top of the [Browser](../window.md#the-browser). **Tools** in the ribbon's LIBRARY group opens it.
+Your tools are under **This computer > Tools** at the top of the [Browser](../window.md#the-browser). **Library** on the ribbon opens it, as does *Library > Tool library*.
 - **Click a tool** to edit it in Properties. Changes are a draft, marked *unsaved* in the
   Browser, until you press **Save**; **Revert** drops them.
 - **Drag a tool** onto the project's *Tools* (or right-click it > *Add to project*) to copy it

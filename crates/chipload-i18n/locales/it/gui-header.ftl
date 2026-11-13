@@ -30,7 +30,6 @@ header-group-file = File
 header-group-draw = Disegna
 header-group-operation = Lavorazione
 header-group-library = Libreria
-header-group-view = Vista
 # FILE: short words under icons.
 header-new = Nuovo
 header-new-hover = Nuovo progetto
@@ -74,10 +73,9 @@ header-new-surface = Nuova spianatura
 header-new-relief = Nuovo rilievo
 
 # LIBRARY
-header-tools = Utensili
-header-tools-hover = La tua libreria utensili, sotto Questo computer nel Browser
 header-machines = Macchine
-header-machines-hover = I tuoi profili macchina, sotto Questo computer nel Browser
+header-library = Libreria
+header-library-hover = I tuoi utensili e macchine, sotto Questo computer nel Browser
 header-tool-library = Libreria utensili
 
 # VIEW

@@ -30,7 +30,6 @@ header-group-file = File
 header-group-draw = Draw
 header-group-operation = Operation
 header-group-library = Library
-header-group-view = View
 # FILE: short words under icons.
 header-new = New
 header-new-hover = New project
@@ -74,10 +73,9 @@ header-new-surface = New Surface
 header-new-relief = New Relief
 
 # LIBRARY
-header-tools = Tools
-header-tools-hover = Your tool library, under This computer in the Browser
 header-machines = Machines
-header-machines-hover = Your machine profiles, under This computer in the Browser
+header-library = Library
+header-library-hover = Your tools and machines, under This computer in the Browser
 header-tool-library = Tool library
 
 # VIEW

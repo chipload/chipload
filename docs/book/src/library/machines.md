@@ -13,7 +13,7 @@ As with tools, a project copies the values; the profile is only where new projec
 ## In the app
 
 Your profiles are under **This computer > Machines** in the [Browser](../window.md#the-browser).
-**Machines** in the ribbon's LIBRARY group opens it.
+*Library > Machines* opens it, or **Library** on the ribbon (This computer, with the tools).
 - **Click a profile** to edit it in Properties; **Save** writes it.
 - **Right-click** it for *Use in this project*, *Make default* and *Delete*.
 

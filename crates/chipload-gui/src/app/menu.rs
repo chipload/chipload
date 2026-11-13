@@ -623,6 +623,15 @@ impl ChiploadApp {
             self.start_two_sided();
             ui.close();
         }
+        if ui
+            .add_enabled(self.can_inlay(), egui::Button::new(t!(ui, "inlay-menu")))
+            .on_hover_text(t!(ui, "inlay-ribbon-hover"))
+            .on_disabled_hover_text(t!(ui, "header-select-shapes-first"))
+            .clicked()
+        {
+            self.start_inlay();
+            ui.close();
+        }
     }
 
     /// The Modify menu's items: the editing tools (docs/specs/drawing-editing.md §8).

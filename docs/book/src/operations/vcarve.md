@@ -174,8 +174,8 @@ chipload op add-inlay sign.chipload --text 1 --tool 3 --floor-tool 2   # also --
 chipload op add-inlay sign.chipload --layer WORD --tool 3 --depth 5 --plug-start 3 --gap 1.5 --plug-thickness 10
 ```
 
-In the app, select the artwork and click **Inlay…** (ribbon, OPERATION, under Surface), or
-*New inlay…* in the group's menu. The dialog asks for the V-bit, the four numbers and the
+In the app, select the artwork and click **Inlay…** (ribbon, WIZARDS), or *Wizards > New
+inlay…*. The dialog asks for the V-bit, the four numbers and the
 floor end mill, with the project's first V-bit and smallest end mill chosen, and draws the
 two cuts with the numbers marked. Both tool lists also offer your tool library's tools
 under *From your library:* (marked **+**); one chosen is copied into the project when you

@@ -30,7 +30,6 @@ header-group-file = Arkiv
 header-group-draw = Rita
 header-group-operation = Operation
 header-group-library = Bibliotek
-header-group-view = Visa
 # FILE: short words under icons.
 header-new = Nytt
 header-new-hover = Nytt projekt
@@ -74,10 +73,9 @@ header-new-surface = Ny planfräsning
 header-new-relief = Ny relief
 
 # LIBRARY
-header-tools = Verktyg
-header-tools-hover = Ditt verktygsbibliotek, under Den här datorn i bläddraren
 header-machines = Maskiner
-header-machines-hover = Dina maskinprofiler, under Den här datorn i bläddraren
+header-library = Bibliotek
+header-library-hover = Dina verktyg och maskiner, under Den här datorn i bläddraren
 header-tool-library = Verktygsbibliotek
 
 # VIEW
