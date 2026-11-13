@@ -480,3 +480,19 @@ ball nose is wide.
 
 **Schema:** an optional field, absent meaning no rim: no version bump (an older Chipload
 refuses the unknown field).
+
+### 16.6 A flat the roughing tool fits
+
+Asked by the user 2026-11-13 ("yes add that"), after the turtle's test: a flat narrower than
+the roughing tool, grown by its allowance, leaves the rougher short of the floor all round
+the model, and the small ball nose takes the rest.
+
+- **The wizard's flat by default** (`relief add` without `--margin`, the window's wizard
+  until a width is typed in) is the roughing tool's diameter plus the allowance on both
+  sides, rounded up to a whole mm, and never less than 5 mm (`rim_width`). A 6 mm end mill
+  leaving 0.2 mm: 7 mm. Without roughing: 5 mm, as before.
+- **A note when it is narrower:** the roughing pass's plan notes it
+  (`toolpath-relief-rim-narrow`, the width, the tool and the width that lets it reach). It
+  isn't a problem: a narrow flat may be wanted, and nothing is cut wrong.
+- A relief made otherwise (`op add relief`, roughing added later) keeps its rim as it is;
+  the note tells.

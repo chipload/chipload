@@ -393,6 +393,7 @@ toolpath-relief-shape = die Form von Werkzeug { $tool } ist nicht bekannt: ein V
 toolpath-relief-no-area = ein Relief braucht geschlossene Formen als Bereich: den Umriss seines Modells oder andere
 toolpath-relief-gouge = die Bahn des Reliefs würde bei ({ $x }, { $y }) { $depth } ins Modell schneiden; es wird nichts erzeugt
 toolpath-relief-past-board = die Rampe seines Rands reicht { $by } über den Rand der Platte hinaus und wird dort abgeschnitten; eine größere Platte, ein schmalerer Rand oder eine steilere Rampe hält sie ganz
+toolpath-relief-rim-narrow = die Fläche seines Rands ({ $width }) ist schmaler, als das Schruppwerkzeug { $tool } braucht ({ $need }, sein Durchmesser und das Aufmaß auf beiden Seiten): rund um das Modell hört es über dem Boden auf, und die Schlichtbahn nimmt, was es stehen lässt; eine Fläche von { $need } lässt es hinunterreichen
 toolpath-relief-ramp-gouge = die Bahn des Reliefs würde bei ({ $x }, { $y }) { $depth } in die Rampe seines Rands schneiden; es wird nichts erzeugt
 toolpath-relief-roughing-tool = Werkzeug { $tool } kann kein Relief schruppen: dafür braucht es einen Schaftfräser oder einen einfachen Kugelfräser
 toolpath-relief-roughing-room = das Schruppwerkzeug { $tool } hat im Bereich des Reliefs keinen Platz, der in Reichweite der Schlichtbahn bleibt

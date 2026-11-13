@@ -2790,9 +2790,15 @@ fn plan_relief_roughing(
         ));
     }
     ramp_checked(&moves, ramp.as_ref(), grown)?;
+    let notes = op
+        .rim
+        .as_ref()
+        .and_then(|rim| rim_too_narrow(ctx, rim, grown))
+        .into_iter()
+        .collect();
     Ok(Planned {
         moves,
-        notes: Vec::new(),
+        notes,
         tabs: Vec::new(),
         pockets: Vec::new(),
         arcs: ArcTable::default(),
@@ -2883,6 +2889,25 @@ fn past_the_board(ctx: &Context, area: &Area) -> Option<Message> {
         labelled_note(
             ctx.label_message,
             Message::new("toolpath-relief-past-board").arg("by", Value::mm(by)),
+        )
+    })
+}
+
+/// A note when a rim's flat is narrower than the roughing tool, grown by its allowance: round
+/// the model it can't reach the floor (docs/specs/stl-relief.md §16.6).
+fn rim_too_narrow(
+    ctx: &Context,
+    rim: &chipload_job::ReliefRim,
+    grown: chipload_core::cutter::Cutter,
+) -> Option<Message> {
+    let need = 2.0 * grown.radius();
+    (rim.width + CHAIN_TOL_MM < need).then(|| {
+        labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-relief-rim-narrow")
+                .arg("width", Value::mm(rim.width))
+                .arg("tool", ctx.tool.id)
+                .arg("need", Value::mm(need)),
         )
     })
 }

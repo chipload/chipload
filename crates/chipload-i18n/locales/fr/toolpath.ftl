@@ -392,6 +392,7 @@ toolpath-relief-shape = la forme de l'outil { $tool } n'est pas connue : une fra
 toolpath-relief-no-area = un relief demande des formes fermées pour sa zone : le contour de son modèle, ou d'autres
 toolpath-relief-gouge = la trajectoire du relief entamerait le modèle de { $depth } en ({ $x }, { $y }) ; rien n'est produit
 toolpath-relief-past-board = la rampe de son bord dépasse le bord du panneau de { $by } et y est coupée ; un panneau plus grand, un bord plus étroit ou une rampe plus raide la garde entière
+toolpath-relief-rim-narrow = le plat de son bord ({ $width }) est plus étroit que ce dont l'outil d'ébauche { $tool } a besoin ({ $need }, son diamètre et la surépaisseur des deux côtés) : autour du modèle, il s'arrête avant le fond et la finition enlève ce qu'il laisse ; un plat de { $need } lui permet de l'atteindre
 toolpath-relief-ramp-gouge = la trajectoire du relief entamerait la rampe de son bord de { $depth } en ({ $x }, { $y }) ; rien n'est produit
 toolpath-relief-roughing-tool = l'outil { $tool } ne peut pas ébaucher un relief : il faut une fraise droite ou une fraise hémisphérique simple
 toolpath-relief-roughing-room = l'outil d'ébauche { $tool } n'a pas de place dans la zone du relief, limitée à la portée de la finition

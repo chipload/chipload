@@ -13,7 +13,7 @@ use chipload_job::{Job, Model, ModelUp, Units as JobUnits};
 use chipload_pipeline::models::{ReadModel, read_model};
 use chipload_pipeline::new_ops::OpKind;
 use chipload_pipeline::relief_wizard::{
-    Around, DEFAULT_MARGIN_MM, ReliefModel, ReliefRequest, add_relief,
+    Around, DEFAULT_MARGIN_MM, ReliefModel, ReliefRequest, add_relief, rim_width_for,
 };
 
 use super::turn_cut::{ModelViews, PlacedPicture, size_fields, turn_fields};
@@ -52,6 +52,8 @@ pub(super) struct ReliefWizard {
     thickness: f64,
     around: Around,
     margin: f64,
+    /// The margin typed in: it no longer follows the roughing tool.
+    margin_set: bool,
     corner: f64,
     /// The rim's ramp from horizontal, radians.
     ramp: f64,
@@ -130,6 +132,7 @@ impl ReliefWizard {
             thickness: job.stock().thickness,
             around: Around::Rim,
             margin: DEFAULT_MARGIN_MM,
+            margin_set: false,
             corner: 0.0,
             ramp: chipload_job::DEFAULT_RIM.ramp,
             finish: first_tool(job, library, ToolKind::BallNose),
@@ -416,6 +419,13 @@ impl ChiploadApp {
             let draft = draft.clone();
             w.views.refresh(ctx, color, &draft);
         }
+        // The rim's flat follows the roughing tool until a width is typed in (stl-relief.md
+        // §16.6): the tool fits between the model and the ramp.
+        if !w.margin_set {
+            let rough = w.rough.as_ref().filter(|_| w.rough_on);
+            let d = rough.and_then(|t| diameter(t, &job, library.as_ref()));
+            w.margin = rim_width_for(d, w.allowance);
+        }
         let offer = ToolOffer {
             tools: &job.tools,
             library: library.as_ref(),
@@ -631,11 +641,12 @@ fn step_around(ui: &mut egui::Ui, w: &mut ReliefWizard) {
         .spacing([12.0, 6.0])
         .show(ui, |ui| {
             ui.label(t!(ui, "relief-wizard-margin"));
-            ui.add(
+            let typed = ui.add(
                 crate::units::length(&mut w.margin)
                     .range(0.0..=1_000.0)
                     .speed(0.1),
             );
+            w.margin_set |= typed.changed();
             ui.end_row();
             if w.around == Around::Box {
                 ui.label(t!(ui, "relief-wizard-corner"));

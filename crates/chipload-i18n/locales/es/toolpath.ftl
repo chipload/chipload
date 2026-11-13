@@ -392,6 +392,7 @@ toolpath-relief-shape = la forma de la herramienta { $tool } no se conoce: una f
 toolpath-relief-no-area = un relieve necesita formas cerradas para su zona: el contorno de su modelo u otras
 toolpath-relief-gouge = la trayectoria del relieve cortaría { $depth } en el modelo en ({ $x }, { $y }); no se genera nada
 toolpath-relief-past-board = la rampa de su borde sobrepasa el canto del tablero en { $by } y allí queda cortada; un tablero mayor, un borde más estrecho o una rampa más empinada la mantiene entera
+toolpath-relief-rim-narrow = la parte plana de su borde ({ $width }) es más estrecha de lo que necesita la herramienta de desbaste { $tool } ({ $need }, su diámetro y la sobremedida a ambos lados): alrededor del modelo se queda por encima del fondo y el acabado quita lo que deja; una parte plana de { $need } le permite llegar
 toolpath-relief-ramp-gouge = la trayectoria del relieve cortaría { $depth } en la rampa de su borde en ({ $x }, { $y }); no se genera nada
 toolpath-relief-roughing-tool = la herramienta { $tool } no puede desbastar un relieve: hace falta una fresa plana o una fresa de punta esférica simple
 toolpath-relief-roughing-room = la herramienta de desbaste { $tool } no cabe en el área del relieve, limitada al alcance del acabado

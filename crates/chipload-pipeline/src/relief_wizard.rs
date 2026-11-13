@@ -19,6 +19,29 @@ use crate::new_ops::{NewRequest, OpKind, new_operations};
 /// The rim's flat reaches this far round the model by default, mm.
 pub const DEFAULT_MARGIN_MM: f64 = DEFAULT_RIM.width;
 
+/// The rim's flat by default (docs/specs/stl-relief.md §16.6): wide enough for the roughing
+/// tool `rough` (a project tool and its allowance) to reach the floor between the model and
+/// the ramp. See [`rim_width_for`].
+pub fn rim_width(job: &Job, rough: Option<(i64, f64)>) -> f64 {
+    match rough {
+        Some((tool, allowance)) => rim_width_for(job.tool(tool).map(|t| t.diameter), allowance),
+        None => DEFAULT_MARGIN_MM,
+    }
+}
+
+/// The rim's flat by default for a roughing tool `diameter` wide (None: no roughing) leaving
+/// `allowance`: its diameter and the allowance on both sides, rounded up to a whole mm, and
+/// at least [`DEFAULT_MARGIN_MM`].
+pub fn rim_width_for(diameter: Option<f64>, allowance: f64) -> f64 {
+    let needed = diameter
+        .map(|d| d + 2.0 * allowance.max(0.0))
+        .filter(|w| w.is_finite())
+        .map_or(0.0, |w| {
+            (w - chipload_core::tolerances::CHAIN_TOL_MM).ceil()
+        });
+    needed.max(DEFAULT_MARGIN_MM)
+}
+
 /// What goes round the relief (§6 step 4; docs/specs/stl-relief.md §16).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Around {
@@ -425,6 +448,52 @@ mod tests {
         assert!(
             !notes.iter().any(|n| n.contains("past the board")),
             "{notes:?}"
+        );
+    }
+
+    #[test]
+    fn the_default_flat_is_wide_enough_for_the_roughing_tool() {
+        let job = dome();
+        // Tool 1 is a 6 mm end mill: 6 + 2 × 0.2 = 6.4, rounded up to 7.
+        assert_eq!(rim_width(&job, Some((1, 0.2))), 7.0);
+        assert_eq!(rim_width(&job, Some((1, 0.5))), 7.0);
+        assert_eq!(rim_width(&job, Some((1, 0.6))), 8.0);
+        // Without roughing, or with a smaller tool: 5 mm, never less.
+        assert_eq!(rim_width(&job, None), DEFAULT_MARGIN_MM);
+        assert_eq!(rim_width_for(Some(3.0), 0.1), DEFAULT_MARGIN_MM);
+        assert_eq!(rim_width_for(Some(7.0), 0.0), 7.0);
+        assert_eq!(rim_width_for(None, 0.2), DEFAULT_MARGIN_MM);
+    }
+
+    #[test]
+    fn a_flat_narrower_than_the_roughing_tool_is_noted() {
+        let job = dome();
+        let notes = |margin: f64| {
+            let mut request = ReliefRequest::new(30.0, 2);
+            request.rough = Some((1, 0.2));
+            request.margin = margin;
+            request.depth = Some(4.0);
+            let (out, _) = made(&job, &request);
+            let result = crate::run_job(&out).unwrap();
+            result
+                .notes
+                .iter()
+                .map(|n| n.message.english())
+                .collect::<Vec<String>>()
+        };
+        let narrow = notes(5.0);
+        assert!(
+            narrow
+                .iter()
+                .any(|n| n.contains("narrower than the roughing tool")),
+            "{narrow:?}"
+        );
+        let wide = notes(rim_width(&job, Some((1, 0.2))));
+        assert!(
+            !wide
+                .iter()
+                .any(|n| n.contains("narrower than the roughing tool")),
+            "{wide:?}"
         );
     }
 

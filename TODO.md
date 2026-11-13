@@ -227,7 +227,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    box, flat width, ramp angle), default 5 mm and 45° on new reliefs, the drop onto the
    ramp and its path check, a fitted board grows round it; the wizard's *Round it* is now
    rim, box or cut-out (no background pocket); the deep-relief advice in the form. Not now:
-   an end mill pass to finish a wide flat.
+   an end mill pass to finish a wide flat. §16.6 done: the wizard's flat by default fits
+   the roughing tool (its diameter and allowance both sides, whole mm, at least 5), and a
+   plan note when a flat is narrower. Open, asked of the user: the steps the roughing end
+   mill leaves on slopes across its lines (a smoothing pass).
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

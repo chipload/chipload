@@ -1534,7 +1534,7 @@ chipload relief add <PROJECT> <FILE> [OPTIONS]
 | `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
 | `--at <AT>` | Where its footprint's lower-left corner goes, X,Y (default: centred on the board) |
 | `--around <AROUND>` | What goes round it. One of: `rim` (A flat round the model's outline at the relief's floor, then a ramp up to the stock top), `box` (The same round the rectangle round the model), `cut-out` (No rim: a profile outside the outline, through the board, with tabs). Default: `rim`. |
-| `--margin <MARGIN>` | The rim's flat round the outline or the model's box, mm (default 5) |
+| `--margin <MARGIN>` | The rim's flat round the outline or the model's box, mm (default 5, or wider: the roughing tool's diameter and its allowance on both sides) |
 | `--ramp <RAMP>` | The ramp from the flat up to the stock top, degrees from horizontal: 10 to 90 (default 45; 90: a straight wall) |
 | `--corner <CORNER>` | A box rim's corner radius, mm, at most the margin (default 0: sharp) |
 | `--tool <TOOL>` | The ball nose that finishes it (a project tool id) Required. |

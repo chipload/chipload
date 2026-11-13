@@ -389,6 +389,7 @@ toolpath-relief-shape = la forma dell'utensile { $tool } non è nota: una fresa 
 toolpath-relief-no-area = un rilievo richiede forme chiuse come area: il contorno del suo modello o altre
 toolpath-relief-gouge = il percorso del rilievo taglierebbe { $depth } nel modello in ({ $x }, { $y }); non viene generato nulla
 toolpath-relief-past-board = la rampa del suo bordo supera di { $by } il bordo della tavola, dove viene tagliata; una tavola più grande, un bordo più stretto o una rampa più ripida la mantiene intera
+toolpath-relief-rim-narrow = il piano del suo bordo ({ $width }) è più stretto di quanto serve all'utensile di sgrossatura { $tool } ({ $need }, il suo diametro e il sovrametallo sui due lati): intorno al modello si ferma prima del fondo e la finitura asporta ciò che lascia; un piano di { $need } gli permette di arrivarci
 toolpath-relief-ramp-gouge = il percorso del rilievo taglierebbe { $depth } nella rampa del suo bordo in ({ $x }, { $y }); non viene generato nulla
 toolpath-relief-roughing-tool = l'utensile { $tool } non può sgrossare un rilievo: serve una fresa piatta o una fresa sferica semplice
 toolpath-relief-roughing-room = l'utensile di sgrossatura { $tool } non ha spazio nell'area del rilievo, tenuta entro la portata della finitura

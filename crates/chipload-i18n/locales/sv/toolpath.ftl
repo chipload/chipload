@@ -389,6 +389,7 @@ toolpath-relief-shape = formen på verktyg { $tool } är inte känd: en V-fräs 
 toolpath-relief-no-area = en relief behöver slutna former som område: modellens kontur eller andra
 toolpath-relief-gouge = reliefens bana skulle skära { $depth } in i modellen vid ({ $x }, { $y }); inget görs
 toolpath-relief-past-board = kantens ramp når { $by } utanför skivans kant och skärs av där; en större skiva, en smalare kant eller en brantare ramp håller den hel
+toolpath-relief-rim-narrow = kantens plana del ({ $width }) är smalare än grovverktyget { $tool } behöver ({ $need }, dess diameter och tillägget på båda sidor): runt modellen stannar det ovanför botten och finbearbetningen tar det som blir kvar; en plan del på { $need } låter det nå ner
 toolpath-relief-ramp-gouge = reliefens bana skulle skära { $depth } in i kantens ramp vid ({ $x }, { $y }); inget görs
 toolpath-relief-roughing-tool = verktyg { $tool } kan inte grovbearbeta en relief: det kräver en pinnfräs eller en vanlig kulfräs
 toolpath-relief-roughing-room = grovverktyget { $tool } får inte plats i reliefens område, som hålls inom finbearbetningens räckvidd

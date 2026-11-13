@@ -211,7 +211,10 @@ clears the rim with the rest.
 - **Ramp:** its slope from horizontal, 10° to 90°. At 45° it reaches out as far as the
   relief is deep; 90° is a straight wall.
 
-A new relief has a rim 5 mm round its outline with a 45° ramp. In the window it is the
+A new relief has a rim 5 mm round its outline with a 45° ramp. *Relief…* and `relief add`
+make the flat wider when there is a roughing pass: its end mill's width and the allowance on
+both sides, rounded up to a whole mm, so the end mill reaches the floor all round the model.
+When a flat is narrower than that, the plan notes it. In the window it is the
 relief's **Rim** section; untick it for none. From the command line:
 
 ```sh

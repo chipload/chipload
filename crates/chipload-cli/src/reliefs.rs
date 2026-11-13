@@ -8,9 +8,7 @@ use std::process::ExitCode;
 use chipload_job::{ModelUp, Units};
 use chipload_pipeline::library::{Library, settings_dir};
 use chipload_pipeline::models::read_model;
-use chipload_pipeline::relief_wizard::{
-    Around, DEFAULT_MARGIN_MM, ReliefModel, ReliefRequest, add_relief,
-};
+use chipload_pipeline::relief_wizard::{Around, ReliefModel, ReliefRequest, add_relief, rim_width};
 use clap::{Args, Subcommand, ValueEnum};
 use serde_json::json;
 
@@ -82,7 +80,8 @@ pub struct AddRelief {
     /// What goes round it.
     #[arg(long, value_enum, default_value = "rim")]
     around: AroundArg,
-    /// The rim's flat round the outline or the model's box, mm (default 5).
+    /// The rim's flat round the outline or the model's box, mm (default 5, or wider: the
+    /// roughing tool's diameter and its allowance on both sides).
     #[arg(value_parser = crate::lengths::length, long)]
     margin: Option<f64>,
     /// The ramp from the flat up to the stock top, degrees from horizontal: 10 to 90
@@ -135,7 +134,6 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
     request.depth = add.depth;
     request.at = add.at;
     request.around = add.around.into();
-    request.margin = add.margin.unwrap_or(DEFAULT_MARGIN_MM);
     request.corner = add.corner.unwrap_or(0.0);
     if let Some(degrees) = add.ramp {
         request.ramp = degrees.to_radians();
@@ -147,6 +145,7 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
                 .unwrap_or(chipload_pipeline::DEFAULT_ROUGHING_ALLOWANCE_MM),
         )
     });
+    request.margin = add.margin.unwrap_or_else(|| rim_width(&job, request.rough));
     request.end_mill = add.end_mill;
     let library = settings_dir()
         .map(|dir| Library::load(&dir))
