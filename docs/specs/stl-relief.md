@@ -416,3 +416,67 @@ too much detail for the time saved (up to 0.25 mm at 1 % of positions), so neith
 3. **Not now:** simplifying the model to a known error for cutting (quadric error,
    Garland & Heckbert 1997), if the above proves not enough.
 
+
+## 16. A rim and a ramp
+
+Asked by the user 2026-11-13 ("a flat and then ramp up … the square rim should also have a
+ramp"), decisions 1–4 as recommended. Until now a relief's tool centre stayed inside its
+area, the model's outline: round the model a groove the tool's width, full depth, its lines
+plunging to the floor at the area's edge, and the board beyond untouched. The model sat in
+a trench; a background needed a pocket of its own.
+
+**The rim** (`rim` on the relief, optional; none: as before):
+
+| Field | Meaning |
+|---|---|
+| `shape` | `outline`: the area's outer loops grown (round corners); `box`: the rectangle round them, grown, its corners rounded by `corner_radius` |
+| `width` | the flat at the floor, mm from the outline or the box, ≥ 0 |
+| `ramp` | the slope up from the flat to the stock top, radians from horizontal, 10°–90° (90°: a straight wall) |
+| `corner_radius` | `box` only: the flat's corners, mm, at most `width` |
+
+The cross-section, outward from the model: the model, the flat at the floor `width` wide,
+the ramp rising at `ramp` to the stock top, which it reaches `depth / tan(ramp)` further out
+(45°: as far out as it is deep). Holes in the area (gaps in a silhouette) are cut to the
+floor: the rim goes round the outside.
+
+**Geometry,** one description for both shapes: some filled loops `L` and a distance `g` (the
+outline: the area's outer loops, `g` = width; the box: the rectangle `corner_radius` smaller
+than the flat's, `g` = corner_radius). `dist(p)` is the distance from `p` to the loops'
+inside (0 within them).
+- The flat's edge (the ramp's foot) is `dist = g`; the surface beyond it is
+  `S(p) = min(stock top, floor + (dist(p) − g)·tan(ramp))`.
+- The area, where the tool's centre goes, is `dist ≤ g + run`, `run = depth / tan(ramp)`:
+  there the tool stands on the stock top. Along each raster line it is the union of the
+  loops' insides and the capsules of their edges (each edge grown by `g + run`), so no
+  polygon union or offsetting is needed. Lines start and end at the stock top.
+- **The drop onto the ramp:** `dist` changes by at most the distance moved, so within the
+  tool's radius `ρ` of `p` the surface is at most `min(top, floor + (dist(p) − g + ρ)·tan)`.
+  The tip stands at the highest of that minus the tool's height `h(ρ)`, a concave function
+  of `ρ`, so its highest point is among `ρ` = 0, the radius, the tool's kinks, where its
+  slope is `tan(ramp)` (a ball: `r·sin(ramp)`), and where the bound reaches the top. Exact
+  on straight stretches and round outer corners; a little high in the ramp's inner corners,
+  never into it. The tip stands at the highest of this, the model's drop and the floor.
+- **The path check** also tests the ramp: at the sampled tool positions, points on rings
+  within the tool's radius against the exact `S`.
+- **Roughing** works the same with the grown tool and its allowance; its area is the
+  relief's shrunk by the inset (`dist ≤ g + run − inset`).
+
+**Defaults:** a new relief (`op add relief`, the window, the wizard) has an `outline` rim
+5 mm wide with a 45° ramp. Saved projects keep theirs: no rim.
+
+**The board's edge:** the area may reach past the stock (the ramp of a model near the
+edge, a board fitted tight); a note says so, as the ramp is then cut off by the board's
+edge.
+
+**Deep without roughing** (decision 3): the plan's note (`toolpath-relief-deep`) stays; the
+relief's form shows the same advice under the tool, so it is seen before generating.
+
+**The wizard** (relief-wizard.md §6 step 4): *Round the model* becomes *Rim* (outline, the
+default: width, ramp), *Box* (margin, corner radius, ramp) or *Cut out* (no rim, as before).
+The background pocket goes; *Nothing* goes too (the trench is never better). `relief add
+--around rim|box|cut-out [--rim W] [--ramp DEG] [--margin M] [--corner R]`. An end mill is
+asked for only for the cut-out; roughing stays ticked when the relief is deeper than the
+ball nose is wide.
+
+**Schema:** an optional field, absent meaning no rim: no version bump (an older Chipload
+refuses the unknown field).

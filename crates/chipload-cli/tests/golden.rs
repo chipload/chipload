@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 66] = [
+const GOLDEN: [(&str, &str); 68] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -207,8 +207,16 @@ const GOLDEN: [(&str, &str); 66] = [
     // Made from relief_dome with `model set 1 --keep 50%`: its top half, 5 mm deep.
     ("v36_relief_dome_cut", "jobs/v36/relief_dome_cut.chipload"),
     // Made from relief_dome with `relief add --model 1 --tool 2 --rough-tool 1 --around
-    // background --margin 8 --corner 4 --keep 60% --depth 6`.
+    // background --margin 8 --corner 4 --keep 60% --depth 6`, before reliefs had rims (a
+    // background pocket, the model its island).
     ("v36_relief_wizard", "jobs/v36/relief_wizard.chipload"),
+    // A rim (docs/specs/stl-relief.md §16): relief_dome with a flat 4 mm round the outline
+    // and a 45° ramp up to the stock top, `set operations.0.rim={"shape":"outline",
+    // "width":4,"ramp":0.785…}`; the fitted board grows round it.
+    ("v36_relief_rim", "jobs/v36/relief_rim.chipload"),
+    // A box rim, roughed: relief_dome_rough with `set operations.0.rim={"shape":"box",
+    // "width":6,"ramp":1.047…,"corner_radius":3}` (60°).
+    ("v36_relief_box_rough", "jobs/v36/relief_box_rough.chipload"),
     // The same relief roughed first (docs/specs/stl-relief.md §14 step 3): the 6 mm end
     // mill in levels 3 mm apart, 0.4 of the tool between lines, 0.5 mm left on the dome.
     // Made from relief_dome with `op add-roughing --op 1 --tool 1`.

@@ -29,6 +29,7 @@ pub mod profile;
 pub mod ramp;
 pub mod relief;
 mod retry;
+pub mod rim;
 pub mod select;
 pub mod start;
 pub mod surface;

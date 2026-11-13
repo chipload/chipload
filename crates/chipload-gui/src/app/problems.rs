@@ -85,6 +85,8 @@ pub(super) fn section_fields(key: &str) -> &'static [&'static str] {
         "op-entry" => &["entry", "lead"],
         "op-holding" => &["tabs", "skin"],
         "op-clearing" => &["stepover", "rest"],
+        // A relief's rim (docs/specs/stl-relief.md §16).
+        "op-rim" => &["rim"],
         // The job's sections (docs/specs/job-settings-layout.md §2): a field goes to the
         // section with the longest prefix it is under (`section_has_problem`).
         "job-stock" => &["stock"],

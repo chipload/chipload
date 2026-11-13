@@ -646,23 +646,49 @@ impl Job {
 
     /// The drawing a board is placed on (docs/specs/setups.md §3): with one setup the whole
     /// drawing, as always; with several, the shapes the active setup's operations select.
+    /// A relief's rim reaches past its shapes, and a fitted board grows round it
+    /// (docs/specs/stl-relief.md §16).
     pub fn board_extents(&self) -> Option<((f64, f64), (f64, f64))> {
-        if self.setups.len() < 2 {
-            return self.drawing.extents();
-        }
+        let drawing = if self.setups.len() < 2 {
+            self.drawing.extents()
+        } else {
+            let board = self.board_setups();
+            let selectors: Vec<Selector> = self
+                .operations
+                .iter()
+                .filter(|op| {
+                    // Dowel holes count too: a board fitted round the drawing grows round
+                    // its pins (docs/specs/two-sided.md §6, as changed 2026-11-12).
+                    op.selects_shapes() && self.on_board(op, &board)
+                })
+                .map(|op| op.select().resolved(&self.drawing))
+                .collect();
+            self.drawing
+                .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
+        };
         let board = self.board_setups();
-        let selectors: Vec<Selector> = self
-            .operations
-            .iter()
-            .filter(|op| {
-                // Dowel holes count too: a board fitted round the drawing grows round its
-                // pins (docs/specs/two-sided.md §6, as changed 2026-11-12).
-                op.selects_shapes() && self.part_of(op).is_some_and(|p| board.contains(&p.setup))
+        let rims = self.operations.iter().filter_map(|op| match op {
+            Operation::Relief(r) if self.setups.len() < 2 || self.on_board(op, &board) => {
+                let rim = r.rim?;
+                let select = r.select.resolved(&self.drawing);
+                let ((x0, y0), (x1, y1)) =
+                    self.drawing.extents_of(|shape| select.may_pick(shape))?;
+                let reach = rim.width + rim_run(r.end_depth, rim.ramp);
+                Some(((x0 - reach, y0 - reach), (x1 + reach, y1 + reach)))
+            }
+            _ => None,
+        });
+        rims.fold(drawing, |all, ((x0, y0), (x1, y1))| {
+            Some(match all {
+                None => ((x0, y0), (x1, y1)),
+                Some(((a0, b0), (a1, b1))) => ((a0.min(x0), b0.min(y0)), (a1.max(x1), b1.max(y1))),
             })
-            .map(|op| op.select().resolved(&self.drawing))
-            .collect();
-        self.drawing
-            .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
+        })
+    }
+
+    /// Whether `op` cuts one of the setups `board`.
+    fn on_board(&self, op: &Operation, board: &[u64]) -> bool {
+        self.part_of(op).is_some_and(|p| board.contains(&p.setup))
     }
 
     /// The setups that cut the active setup's board: it, and its front or its back
@@ -795,5 +821,16 @@ impl Job {
             ZZero::Bottom => "stock bottom",
         };
         format!("{at} = drawing X{x:.3} Y{y:.3}, Z0 = {z}")
+    }
+}
+
+/// How far out a relief rim's ramp reaches the stock top from its foot, mm, for a relief
+/// `depth` deep (docs/specs/stl-relief.md §16): 0 for a straight wall.
+pub fn rim_run(depth: f64, ramp: f64) -> f64 {
+    let tan = ramp.tan();
+    if tan.is_finite() && tan > 0.0 {
+        depth.max(0.0) / tan
+    } else {
+        0.0
     }
 }

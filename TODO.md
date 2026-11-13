@@ -222,7 +222,12 @@ to a program you trust. It was about four per operation; with the defaults and s
    the wizard's last step, dropping a file on the wizard, the board's size in step 3.
    The user's first try (2026-11-13): a 928,000-triangle bust planned in 68 s; spec §15
    done: relief lines on all cores (13 s), a ball nose's stepover from 0.02 mm ridges, the
-   ridges shown in the form. Not now: simplifying the model for cutting (§15.3).
+   ridges shown in the form. Not now: simplifying the model for cutting (§15.3). Spec
+   §16 done (the user, 2026-11-13: "a flat and then ramp up"): a relief's `rim` (outline or
+   box, flat width, ramp angle), default 5 mm and 45° on new reliefs, the drop onto the
+   ramp and its path check, a fitted board grows round it; the wizard's *Round it* is now
+   rim, box or cut-out (no background pocket); the deep-relief advice in the form. Not now:
+   an end mill pass to finish a wide flat.
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

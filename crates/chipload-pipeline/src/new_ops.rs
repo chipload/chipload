@@ -615,6 +615,7 @@ impl Start {
                     feed: self.feed,
                     plunge_feed: self.plunge_feed,
                     roughing: None,
+                    rim: Some(chipload_job::DEFAULT_RIM),
                 })
             }
             OpKind::Surface => {

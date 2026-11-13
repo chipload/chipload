@@ -16,28 +16,29 @@ question at a time, each needing only the ones before it:
    (as in [Turn and cut](#turn-and-cut)).
 3. **Size and place:** width and depth, centred on the board or at a point; the board's
    thickness, which the depth must stay within.
-4. **Round it:** nothing; the background lowered by a pocket round the model, the model
-   standing in it as an island (a margin, and rounded corners if you like); or the relief
-   cut out through the board with tabs.
+4. **Round it:** a [rim](#a-rim-and-a-ramp) round the model's outline (the default) or
+   round a box, rounded corners if you like: a flat at the relief's depth, then a ramp up
+   to the surface; or the relief cut out through the board with tabs.
 5. **Tools:** the ball nose that finishes it; an end mill to rough it first, ticked when the
-   relief is deeper than the ball nose is wide; the end mill for the background or cut-out,
-   by default the roughing one, so one tool does both.
+   relief is deeper than the ball nose is wide; for a cut-out, its end mill, by default the
+   roughing one, so one tool does both.
 6. **Check and make:** what will be made, in cutting order, with the tools and tool changes.
 
 From step 3 on, a picture of the board beside the questions shows the relief where it will
-lie, and the pocket or cut-out round it. **Make** adds it all as one undo step, in a part of
-its own: the model, the background pocket, the relief with its roughing pass, the cut-out.
-Afterwards they are ordinary shapes and operations.
+lie, and the rim or cut-out round it. **Make** adds it all as one undo step, in a part of
+its own: the model, the relief with its rim and roughing pass, the cut-out. A board fitted
+to the drawing grows to hold the rim. Afterwards they are ordinary shapes and operations.
 
 From the command line, the same answers in the same order:
 
 ```sh
 chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
-    --around background --margin 10 --tool 2 --rough-tool 1
+    --around box --margin 10 --ramp 45 --tool 2 --rough-tool 1
 ```
 
-`--model ID` uses a model already in the project; `--up`, `--rotate`, `--at X,Y`,
-`--corner`, `--allowance` and `--end-mill` answer the rest. The tools are project tool
+`--around` is `rim` (the default), `box` or `cut-out`. `--model ID` uses a model already in
+the project; `--up`, `--rotate`, `--at X,Y`, `--corner`, `--allowance` and `--end-mill`
+answer the rest. The tools are project tool
 numbers.
 
 ## Adding a model
@@ -157,9 +158,10 @@ tool can go without cutting into the model: the tool is lowered onto the model's
 until it first touches one. A ball nose gives the smoothest finish; a tapered ball nose
 reaches finer detail; an end mill or a V-bit works too, with their own marks.
 
-- **Area:** with `--model`, the model's outline: the tool's centre stays inside it, so
-  round the model a groove the tool's width is left, and the board beyond is untouched.
-  Clear the background with a pocket, or select other closed shapes for the area.
+- **Area:** with `--model`, the model's outline, with its [rim](#a-rim-and-a-ramp) round it.
+  Other closed shapes can be selected for the area instead: a drawn rectangle, say. Without
+  a rim the tool's centre stays inside the area, which leaves a groove the tool's width
+  round the model and the board beyond untouched.
 - **`stepover`:** the distance between lines as a share of the tool; smaller is smoother and
   slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
   0.02 mm between its lines on flat ground, which wood doesn't show: 20 % for a 2 mm ball,
@@ -185,6 +187,43 @@ In the project file a relief reads:
 `model` names the model it carves; `end_depth` is made again from the model's depth
 whenever the project is read or changed.
 
+## A rim and a ramp
+
+Round the model a relief cuts a **rim**: a flat at its full depth, then a **ramp** up to the
+board's surface, so the model sits in a shallow dish instead of a trench:
+
+```text
+ surface ─────╮                                   ╭───── surface
+               ╲ ramp                       ramp ╱
+                ╲        ╭── model ──╮          ╱
+                 ╲______╱             ╲________╱
+                   flat                  flat
+```
+
+Every line starts at the surface and runs down the ramp, so the tool never plunges to full
+depth at the area's edge, and its shank stays clear of the outer wall. The roughing pass
+clears the rim with the rest.
+
+- **Round:** the model's *outline* (the flat follows it, round at the corners) or a *box*,
+  the rectangle round the model, with rounded corners if you like.
+- **Flat width:** how far the flat reaches from the outline or the box. 0 starts the ramp
+  right at it.
+- **Ramp:** its slope from horizontal, 10° to 90°. At 45° it reaches out as far as the
+  relief is deep; 90° is a straight wall.
+
+A new relief has a rim 5 mm round its outline with a 45° ramp. In the window it is the
+relief's **Rim** section; untick it for none. From the command line:
+
+```sh
+chipload set sign.chipload 'operations.0.rim={"shape":"box","width":8,"ramp":0.785,"corner_radius":4}'
+chipload set sign.chipload operations.0.rim.width=3
+chipload set sign.chipload operations.0.rim=null      # no rim
+```
+
+`ramp` is in radians (0.785 is 45°). Holes in the outline are cut to the depth. A board
+fitted to the drawing grows to hold the rim; on a board of fixed size, the plan notes when
+the ramp reaches past its edge, where it is cut off.
+
 Along each line the tool stays within 0.01 mm of where the model needs it: more points are
 added where the surface bends. When the program is made, the path is checked against the
 model once more by a simpler test of its own; if anything would cut into the model, nothing
@@ -193,7 +232,9 @@ is made and the report says where.
 ## Roughing first
 
 A finishing ball nose is small, and a relief can be deeper than it should cut in one go
-(the plan warns when the relief is deeper than the tool is wide). A **roughing pass** takes
+(the plan and the relief's form warn when the relief is deeper than the tool is wide). A
+rim's ramp spares the tool the plunges, but on the way down each line still shaves a strip
+as tall as the depth there. A **roughing pass** takes
 most of the material first with a larger tool. In the window: *Add roughing pass ▸* on the
 relief's row in the Browser, with your project's and library's end mills and plain ball
 noses; the pass shows under the relief, with its own properties. From the command line:

@@ -63,7 +63,7 @@ fn the_wizard_goes_step_by_step_and_makes_the_relief_as_one_undo_step() {
     assert_eq!(step(&mut harness), 4);
     wizard_of(harness.state_mut())
         .unwrap()
-        .set_around(Around::Background);
+        .set_around(Around::Box);
     harness.run_steps(2);
     click(&mut harness, "Next");
     assert_eq!(step(&mut harness), 5);
@@ -76,17 +76,19 @@ fn the_wizard_goes_step_by_step_and_makes_the_relief_as_one_undo_step() {
     click(&mut harness, "Make relief");
     assert!(harness.state().dialogs.prompt.is_none());
     let job = harness.state().edit.as_ref().unwrap().job.clone();
-    // A pocket and a relief in a new part, the relief selected.
+    // The relief alone in a new part, its rim a box with a 45° ramp, the relief selected.
     let added: Vec<&chipload_job::Operation> = job
         .operations
         .iter()
         .filter(|op| op.part() == job.active_part.unwrap())
         .collect();
-    assert!(
-        matches!(added[0], chipload_job::Operation::Pocket(_)),
-        "{added:?}"
-    );
-    assert!(matches!(added[1], chipload_job::Operation::Relief(_)));
+    assert_eq!(added.len(), 1, "{added:?}");
+    let chipload_job::Operation::Relief(relief) = added[0] else {
+        panic!("{added:?}")
+    };
+    let rim = relief.rim.unwrap();
+    assert_eq!(rim.shape, chipload_job::RimShape::Box);
+    assert!((rim.ramp - std::f64::consts::FRAC_PI_4).abs() < 1e-12);
     assert!(matches!(harness.state().focus, Focus::Op(_)));
     harness.state_mut().undo();
     assert_eq!(harness.state().edit.as_ref().unwrap().job, before);
@@ -131,7 +133,7 @@ fn relief_wizard_pictures() {
             app.start_relief();
             let model = app.edit.as_ref().unwrap().job.drawing.models[0].clone();
             wizard_of(&mut app).unwrap().choose_existing(&model);
-            wizard_of(&mut app).unwrap().set_around(Around::Background);
+            wizard_of(&mut app).unwrap().set_around(Around::Box);
             app
         });
     harness.run_steps(4);

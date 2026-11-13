@@ -2053,6 +2053,17 @@
               "format": "double",
               "type": "number"
             },
+            "rim": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ReliefRim"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A flat round the model at the floor and a ramp up from it to the stock top. Missing:\nnone, the tool's centre stays within the area. Left out when missing."
+            },
             "roughing": {
               "anyOf": [
                 {
@@ -2066,7 +2077,7 @@
             },
             "select": {
               "$ref": "#/$defs/Selector",
-              "description": "The area the tool's centre stays in: closed shapes, by default the model's outline."
+              "description": "The area: closed shapes, by default the model's outline. The tool's centre stays in\nit, or with a rim, within the rim's reach round it."
             },
             "start_depth": {
               "description": "Where the model's top lies, mm down from the stock top: 0 for the top.",
@@ -2256,6 +2267,38 @@
         }
       ]
     },
+    "ReliefRim": {
+      "additionalProperties": false,
+      "description": "A relief's rim (docs/specs/stl-relief.md §16): a flat at the floor round the area, then a\nramp up to the stock top.",
+      "properties": {
+        "corner_radius": {
+          "default": 0.0,
+          "description": "`box` only: the radius of the flat's outer corners, mm, from 0 to the width.",
+          "format": "double",
+          "type": "number"
+        },
+        "ramp": {
+          "description": "The ramp's slope from the flat up to the stock top, radians from horizontal: from 10°\nto 90° (a straight wall).",
+          "format": "double",
+          "type": "number"
+        },
+        "shape": {
+          "$ref": "#/$defs/RimShape",
+          "description": "`outline`: the area's outer loops grown; `box`: the rectangle round them."
+        },
+        "width": {
+          "description": "The flat's width, mm from the outline or the rectangle: 0 or more.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "shape",
+        "width",
+        "ramp"
+      ],
+      "type": "object"
+    },
     "ReliefRoughing": {
       "additionalProperties": false,
       "description": "A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels\nwith the raster, an allowance left on the model for the finish.",
@@ -2320,6 +2363,21 @@
         "after_tool"
       ],
       "type": "object"
+    },
+    "RimShape": {
+      "description": "What a relief's rim follows (docs/specs/stl-relief.md §16).",
+      "oneOf": [
+        {
+          "const": "outline",
+          "description": "The area's outer loops, grown with round corners.",
+          "type": "string"
+        },
+        {
+          "const": "box",
+          "description": "The rectangle round the area's outer loops, grown, its corners rounded.",
+          "type": "string"
+        }
+      ]
     },
     "Selector": {
       "additionalProperties": false,

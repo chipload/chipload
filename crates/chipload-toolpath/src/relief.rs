@@ -14,6 +14,7 @@ use chipload_mesh::{Mesh, Up, Vertex};
 
 use crate::drop::DropMesh;
 use crate::model::{Move, MoveKind};
+use crate::rim::{Area, Ramp};
 
 /// Points along a line are first this far apart at most, mm; more are added where the
 /// surface asks (`refine`).
@@ -315,8 +316,11 @@ pub struct ReliefCut<'a> {
     /// The model's top in program Z, and the lowest the tool goes (its lowest point).
     pub top: f64,
     pub floor: f64,
-    /// The area the tool's centre stays in: closed loops, holes by the even-odd rule.
-    pub area: &'a [Vec<Point>],
+    /// The area the tool's centre stays in: closed loops, holes by the even-odd rule, or
+    /// loops grown by a rim (spec §16).
+    pub area: &'a Area,
+    /// The rim's ramp, a surface besides the model (spec §16).
+    pub ramp: Option<&'a Ramp>,
     /// Between lines, mm.
     pub step: f64,
     /// The lines' direction, radians from X.
@@ -336,7 +340,10 @@ impl ReliefCut<'_> {
             .mesh
             .drop(self.cutter, (p.0 - self.shift.0, p.1 - self.shift.1))
             .map_or(f64::NEG_INFINITY, |z| self.top + z);
-        drop.max(self.floor)
+        let ramp = self
+            .ramp
+            .map_or(f64::NEG_INFINITY, |r| r.drop(self.cutter, p));
+        drop.max(ramp).max(self.floor)
     }
 }
 
@@ -356,7 +363,7 @@ pub fn relief_moves(cut: &ReliefCut, start: Point) -> (Vec<Move>, Point) {
         match at {
             // The next line's start is near: along the surface to it, inside the area.
             Some(from)
-                if near(from.0, first.0, cut.step) && inside_link(cut.area, from.0, first.0) =>
+                if near(from.0, first.0, cut.step) && cut.area.link_inside(from.0, first.0) =>
             {
                 for (p, z) in follow(cut, from.0, first.0).into_iter().skip(1) {
                     moves.push(Move::feed_xyz(p, z, cut.feed));
@@ -402,26 +409,16 @@ fn lines(cut: &ReliefCut) -> Vec<Vec<(Point, Point)>> {
     // (u, v): u along the lines, v across them.
     let to_uv = |p: Point| (p.0 * cos + p.1 * sin, -p.0 * sin + p.1 * cos);
     let from_uv = |u: f64, v: f64| (u * cos - v * sin, u * sin + v * cos);
-    let loops: Vec<Vec<Point>> = cut
-        .area
-        .iter()
-        .map(|l| l.iter().map(|p| to_uv(*p)).collect())
-        .collect();
-    let (v0, v1) = loops
-        .iter()
-        .flatten()
-        .fold((f64::INFINITY, f64::NEG_INFINITY), |(lo, hi), p| {
-            (lo.min(p.1), hi.max(p.1))
-        });
-    if v0 > v1 {
+    let area = cut.area.mapped(to_uv);
+    let Some((v0, v1)) = area.y_range() else {
         return Vec::new();
-    }
+    };
     let count = ((v1 - v0) / cut.step).ceil().max(1.0) as usize;
     let gap = (v1 - v0) / count as f64;
     let mut out = Vec::new();
     for k in 0..count {
         let v = v0 + (k as f64 + 0.5) * gap;
-        let mut spans = spans(&loops, v);
+        let mut spans = area.spans(v);
         let backwards = cut.zigzag && k % 2 == 1;
         if backwards {
             spans.reverse();
@@ -440,7 +437,7 @@ fn lines(cut: &ReliefCut) -> Vec<Vec<(Point, Point)>> {
 }
 
 /// Where the line `v` lies inside the loops (even-odd), as (u0, u1) from low to high u.
-fn spans(loops: &[Vec<Point>], v: f64) -> Vec<(f64, f64)> {
+pub(crate) fn loop_spans(loops: &[Vec<Point>], v: f64) -> Vec<(f64, f64)> {
     let mut cross: Vec<f64> = Vec::new();
     for l in loops {
         for k in 0..l.len() {
@@ -594,8 +591,7 @@ fn next_stretch(
                 let Some(&(q, _)) = end else {
                     continue;
                 };
-                if (cut.zigzag || !reversed) && near(p, q, cut.step) && inside_link(cut.area, p, q)
-                {
+                if (cut.zigzag || !reversed) && near(p, q, cut.step) && cut.area.link_inside(p, q) {
                     return Some((line + 1, k, reversed, true));
                 }
             }
@@ -637,7 +633,7 @@ fn stretches(run: &Run, above: f64, level: f64) -> Vec<Run> {
 /// Whether the straight move from `a` to `b` stays inside the area: it crosses none of its
 /// edges and its middle and quarter points lie inside (even-odd) or on an edge. `a` and `b`
 /// may lie on the edges, and the move may run along one.
-fn inside_link(area: &[Vec<Point>], a: Point, b: Point) -> bool {
+pub(crate) fn inside_loops_link(area: &[Vec<Point>], a: Point, b: Point) -> bool {
     let at = |t: f64| (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
     let within = |p: Point| contains(area, p) || on_edge(area, p);
     if ![0.25, 0.5, 0.75].iter().all(|&t| within(at(t))) {
@@ -802,6 +798,37 @@ pub fn verify(
     worst
 }
 
+/// Rings under the tool the ramp check tests, and points on each.
+const RAMP_RINGS: usize = 4;
+const RAMP_RING_POINTS: usize = 16;
+
+/// The path check for a rim's ramp (spec §16): at sampled tool positions of the cutting
+/// moves, points on rings under the tool against the ramp's exact surface. Returns the
+/// worst cut into it and where, if any.
+pub fn verify_ramp(moves: &[Move], ramp: &Ramp, cutter: Cutter) -> Option<(f64, Point)> {
+    let positions = positions(moves);
+    let stride = positions.len().div_ceil(VERIFY_POSITIONS).max(1);
+    let r = cutter.radius();
+    let mut worst: Option<(f64, Point)> = None;
+    for &(p, z) in positions.iter().step_by(stride) {
+        for ring in 0..=RAMP_RINGS {
+            let rho = r * ring as f64 / RAMP_RINGS as f64;
+            let Some(h) = cutter.height_at(rho) else {
+                continue;
+            };
+            for k in 0..RAMP_RING_POINTS {
+                let a = std::f64::consts::TAU * k as f64 / RAMP_RING_POINTS as f64;
+                let q = (p.0 + rho * a.cos(), p.1 + rho * a.sin());
+                let into = ramp.surface(q) - (z + h);
+                if into > ARC_APPROX_TOL_MM && worst.is_none_or(|w| into > w.0) {
+                    worst = Some((into, p));
+                }
+            }
+        }
+    }
+    worst
+}
+
 /// The tool's positions along the cutting moves: every end, and a point between ends far
 /// apart.
 fn positions(moves: &[Move]) -> Vec<(Point, f64)> {
@@ -889,7 +916,7 @@ mod tests {
     fn a_dome_is_carved_without_cutting_into_it() {
         let mesh = dome();
         let index = DropMesh::new(&mesh, 6.0);
-        let area = square(22.0);
+        let area = Area::Loops(square(22.0));
         for cutter in [
             Cutter::Ball { radius: 1.5 },
             Cutter::Flat { radius: 3.0 },
@@ -905,6 +932,7 @@ mod tests {
                 top: 0.0,
                 floor: -20.0,
                 area: &area,
+                ramp: None,
                 step: 1.5,
                 angle: 30f64.to_radians(),
                 zigzag: true,
@@ -930,6 +958,128 @@ mod tests {
         }
     }
 
+    /// A dome with a rim (spec §16): a flat `foot` wide round its outline (the dome's circle
+    /// as a 48-gon), a 45° ramp up to the stock top.
+    fn rimmed(foot: f64, floor: f64) -> (Area, Ramp) {
+        let circle: Vec<Point> = (0..48)
+            .map(|k| {
+                let a = std::f64::consts::TAU * k as f64 / 48.0;
+                (20.0 * a.cos(), 20.0 * a.sin())
+            })
+            .collect();
+        let ramp = Ramp {
+            loops: vec![circle.clone()],
+            foot,
+            tan: 1.0,
+            floor,
+            top: 0.0,
+        };
+        let area = Area::Grown {
+            loops: vec![circle],
+            reach: ramp.reach(),
+        };
+        (area, ramp)
+    }
+
+    #[test]
+    fn a_rim_is_cut_flat_then_ramped_up_to_the_top() {
+        let mesh = dome();
+        let ball = Cutter::Ball { radius: 1.0 };
+        let index = DropMesh::new(&mesh, 2.0);
+        let (area, ramp) = rimmed(3.0, -20.0);
+        let cut = ReliefCut {
+            mesh: &index,
+            cutter: ball,
+            top: 0.0,
+            floor: -20.0,
+            area: &area,
+            ramp: Some(&ramp),
+            step: 0.8,
+            angle: 0.0,
+            zigzag: true,
+            safe_z: 5.0,
+            feed: 1500.0,
+            plunge_feed: 500.0,
+            shift: (0.0, 0.0),
+        };
+        let (moves, _) = relief_moves(&cut, (0.0, 0.0));
+        assert_eq!(verify(&moves, &mesh, ball, 0.0, (0.0, 0.0)), None);
+        assert_eq!(verify_ramp(&moves, &ramp, ball), None);
+        // Every plunge goes down to the stock top: lines start where the ramp meets it.
+        let plunges: Vec<f64> = moves
+            .windows(2)
+            .filter(|w| w[0].kind == MoveKind::Rapid && w[1].kind == MoveKind::Feed)
+            .filter(|w| w[1].x.is_none() && w[1].y.is_none())
+            .filter_map(|w| w[1].z)
+            .collect();
+        assert!(!plunges.is_empty());
+        assert!(plunges.iter().all(|z| *z > -0.01), "{plunges:?}");
+        // The flat at the floor: on the X axis between the dome (r 20) and the ramp's foot
+        // (r 23), within the ball's radius of it, the tool stands at the floor.
+        let feeds: Vec<(f64, f64, f64)> = positions(&moves)
+            .into_iter()
+            .map(|((x, y), z)| (x, y, z))
+            .collect();
+        let on_flat = feeds
+            .iter()
+            .filter(|(x, y, _)| y.abs() < 0.5 && (*x - 21.5).abs() < 0.4)
+            .collect::<Vec<_>>();
+        assert!(!on_flat.is_empty());
+        assert!(
+            on_flat.iter().all(|(_, _, z)| (z + 20.0).abs() < 0.02),
+            "{on_flat:?}"
+        );
+        // Halfway up the ramp (10 mm out from its foot), a ball 1/cos45° − 1 above it.
+        let up = feeds
+            .iter()
+            .filter(|(x, y, _)| y.abs() < 0.5 && (*x - 33.0).abs() < 0.2)
+            .collect::<Vec<_>>();
+        assert!(!up.is_empty());
+        let rest = 2f64.sqrt() - 1.0;
+        for (x, y, z) in up {
+            let expected = ramp.surface((*x, *y)) + rest;
+            assert!((z - expected).abs() < 0.02, "{x} {y} {z} {expected}");
+        }
+    }
+
+    #[test]
+    fn a_rim_is_roughed_keeping_the_allowance_off_its_ramp() {
+        let mesh = dome();
+        let allowance = 0.5;
+        let flat = Cutter::Flat { radius: 3.0 };
+        let grown = flat.grown(allowance).unwrap();
+        let index = DropMesh::new(&mesh, 2.0 * grown.radius());
+        let (area, ramp) = rimmed(10.0, -20.0 + allowance);
+        let ramp = Ramp {
+            top: allowance,
+            ..ramp
+        };
+        let cut = ReliefCut {
+            mesh: &index,
+            cutter: grown,
+            top: allowance,
+            floor: -20.0 + allowance,
+            area: &area.shrunk(2.0).unwrap(),
+            ramp: Some(&ramp),
+            step: 2.4,
+            angle: 0.0,
+            zigzag: true,
+            safe_z: 5.0,
+            feed: 1500.0,
+            plunge_feed: 500.0,
+            shift: (0.0, 0.0),
+        };
+        let (moves, _) = rough_moves(&cut, 0.0, 6.0, (0.0, 0.0));
+        assert_eq!(verify(&moves, &mesh, grown, allowance, (0.0, 0.0)), None);
+        assert_eq!(verify_ramp(&moves, &ramp, grown), None);
+        let lowest = moves
+            .iter()
+            .filter(|m| m.kind == MoveKind::Feed)
+            .filter_map(|m| m.z)
+            .fold(f64::INFINITY, f64::min);
+        assert!((lowest + 19.5).abs() < 1e-6, "{lowest}");
+    }
+
     #[test]
     fn the_check_finds_a_cut_into_the_model() {
         let mesh = dome();
@@ -946,7 +1096,7 @@ mod tests {
     #[test]
     fn a_dome_is_roughed_keeping_the_allowance() {
         let mesh = dome();
-        let area = square(22.0);
+        let area = Area::Loops(square(22.0));
         let allowance = 0.5;
         for tool in [Cutter::Flat { radius: 3.0 }, Cutter::Ball { radius: 3.0 }] {
             let grown = tool.grown(allowance).unwrap();
@@ -957,6 +1107,7 @@ mod tests {
                 top: allowance,
                 floor: -20.0 + allowance,
                 area: &area,
+                ramp: None,
                 step: 2.4,
                 angle: 0.0,
                 zigzag: true,
@@ -1017,13 +1168,13 @@ mod tests {
             (5.0, 10.0),
             (0.0, 10.0),
         ]];
-        assert!(inside_link(&l, (1.0, 1.0), (9.0, 4.0)));
+        assert!(inside_loops_link(&l, (1.0, 1.0), (9.0, 4.0)));
         // Along an edge's ends.
-        assert!(inside_link(&l, (10.0, 1.0), (10.0, 4.0)));
+        assert!(inside_loops_link(&l, (10.0, 1.0), (10.0, 4.0)));
         // Across the notch.
-        assert!(!inside_link(&l, (9.0, 4.0), (4.0, 9.0)));
+        assert!(!inside_loops_link(&l, (9.0, 4.0), (4.0, 9.0)));
         // Outside, between two ends on the boundary.
-        assert!(!inside_link(&l, (10.0, 5.0), (5.0, 10.0)));
+        assert!(!inside_loops_link(&l, (10.0, 5.0), (5.0, 10.0)));
     }
 
     #[test]
@@ -1032,8 +1183,8 @@ mod tests {
             vec![(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)],
             vec![(3.0, 3.0), (7.0, 3.0), (7.0, 7.0), (3.0, 7.0)],
         ];
-        assert_eq!(spans(&loops, 5.0), vec![(0.0, 3.0), (7.0, 10.0)]);
-        assert_eq!(spans(&loops, 1.0), vec![(0.0, 10.0)]);
-        assert!(spans(&loops, 11.0).is_empty());
+        assert_eq!(loop_spans(&loops, 5.0), vec![(0.0, 3.0), (7.0, 10.0)]);
+        assert_eq!(loop_spans(&loops, 1.0), vec![(0.0, 10.0)]);
+        assert!(loop_spans(&loops, 11.0).is_empty());
     }
 }

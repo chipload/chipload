@@ -646,6 +646,9 @@ impl Job {
                         ));
                     }
                 }
+                if let Some(rim) = &r.rim {
+                    problems.extend(rim_problems(i, rim));
+                }
                 if !r.angle.is_finite() {
                     problems.push(Problem::at(
                         format!("operations.{i}.angle"),
@@ -975,6 +978,46 @@ pub(super) fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
             Message::new("job-skin-above-tabs")
                 .arg("height", Value::LengthNumber(tabs.height, Digits::Shortest))
                 .arg("got", Value::LengthNumber(t, Digits::Shortest)),
+        ));
+    }
+    problems
+}
+
+/// A relief's rim (docs/specs/stl-relief.md §16): a width of 0 or more, a ramp from 10° to
+/// 90°, a box's corner radius from 0 to the width.
+fn rim_problems(i: usize, rim: &ReliefRim) -> Vec<Problem> {
+    let at = |field: &str| format!("operations.{i}.rim.{field}");
+    let degrees = |radians: f64| Value::Number(radians.to_degrees(), Digits::Fixed(1));
+    let mut problems = Vec::new();
+    if !(rim.width.is_finite() && rim.width >= 0.0) {
+        problems.push(Problem::at(
+            at("width"),
+            Message::new("job-relief-allowance")
+                .arg("got", Value::Length(rim.width, Digits::Shortest)),
+        ));
+    }
+    let straight = std::f64::consts::FRAC_PI_2;
+    if !(rim.ramp.is_finite()
+        && (RIM_MIN_RAMP - chipload_core::tolerances::ANGLE_TOL_RAD
+            ..=straight + chipload_core::tolerances::ANGLE_TOL_RAD)
+            .contains(&rim.ramp))
+    {
+        problems.push(Problem::at(
+            at("ramp"),
+            Message::new("job-relief-ramp")
+                .arg("least", degrees(RIM_MIN_RAMP))
+                .arg("got", degrees(rim.ramp)),
+        ));
+    }
+    let corner_fits = rim.corner_radius.is_finite()
+        && rim.corner_radius >= 0.0
+        && rim.corner_radius <= rim.width.max(0.0);
+    if rim.shape == RimShape::Box && !corner_fits {
+        problems.push(Problem::at(
+            at("corner_radius"),
+            Message::new("job-relief-rim-corner")
+                .arg("width", Value::Length(rim.width, Digits::Shortest))
+                .arg("got", Value::Length(rim.corner_radius, Digits::Shortest)),
         ));
     }
     problems

@@ -580,6 +580,19 @@ pub(in crate::app) fn op_form(
         }
         // docs/specs/stl-relief.md §5, §9.
         Operation::Relief(r) => {
+            // The plan's deep-relief warning, seen before generating (§16).
+            if r.roughing.is_none()
+                && r.end_depth > tool_diameter + chipload_core::tolerances::DEPTH_TOL_MM
+            {
+                ui.label(
+                    egui::RichText::new(t!(
+                        ui,
+                        "forms-relief-deep",
+                        depth = format!("{} {len_unit}", len_in(units, r.end_depth))
+                    ))
+                    .color(ui.visuals().warn_fg_color),
+                );
+            }
             let cut = t!(
                 ui,
                 "forms-relief-cut-summary",
@@ -641,6 +654,7 @@ pub(in crate::app) fn op_form(
                     .on_hover_text(t!(ui, "forms-relief-zigzag-hover"));
                 ui.end_row();
             });
+            rim_section(ui, &mut r.rim);
             feeds_section(ui, &mut r.feed, &mut r.plunge_feed, op_tool);
         }
     }
@@ -1656,4 +1670,75 @@ fn groove_width_row(ui: &mut egui::Ui, tool: Option<&Tool>, end_depth: &mut f64,
         *end_depth = depth;
     }
     ui.end_row();
+}
+
+/// A relief's rim (docs/specs/stl-relief.md §16): none, or a flat round the outline or a
+/// box, then a ramp up to the stock top.
+fn rim_section(ui: &mut egui::Ui, rim: &mut Option<chipload_job::ReliefRim>) {
+    use chipload_job::RimShape;
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let summary = match rim {
+        None => t!(ui, "forms-rim-none"),
+        Some(r) => t!(
+            ui,
+            "forms-rim-summary",
+            width = format!("{} {len_unit}", len_in(units, r.width)),
+            shape = match r.shape {
+                RimShape::Outline => t!(ui, "forms-rim-outline"),
+                RimShape::Box => t!(ui, "forms-rim-box"),
+            },
+            angle = format!("{:.0}", r.ramp.to_degrees())
+        ),
+    };
+    folded_section(ui, "op-rim", &t!(ui, "forms-section-rim"), &summary, |ui| {
+        let mut on = rim.is_some();
+        ui.label(t!(ui, "forms-section-rim"))
+            .on_hover_text(t!(ui, "forms-rim-hover"));
+        if ui.checkbox(&mut on, "").changed() {
+            *rim = on.then_some(chipload_job::DEFAULT_RIM);
+        }
+        ui.end_row();
+        let Some(r) = rim else {
+            return;
+        };
+        ui.label(t!(ui, "forms-rim-shape"));
+        let shape_name = |ui: &egui::Ui, shape: RimShape| match shape {
+            RimShape::Outline => t!(ui, "forms-rim-outline"),
+            RimShape::Box => t!(ui, "forms-rim-box"),
+        };
+        ComboBox::from_id_salt("rim-shape")
+            .selected_text(shape_name(ui, r.shape))
+            .show_ui(ui, |ui| {
+                for shape in [RimShape::Outline, RimShape::Box] {
+                    let name = shape_name(ui, shape);
+                    ui.selectable_value(&mut r.shape, shape, name);
+                }
+            });
+        ui.end_row();
+        ui.label(t!(ui, "forms-rim-width"))
+            .on_hover_text(t!(ui, "forms-rim-width-hover"));
+        flag(ui.add(mm(&mut r.width)), ui, "rim.width");
+        ui.end_row();
+        if r.shape == RimShape::Box {
+            ui.label(t!(ui, "forms-rim-corner"));
+            flag(ui.add(mm(&mut r.corner_radius)), ui, "rim.corner_radius");
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-rim-ramp"))
+            .on_hover_text(t!(ui, "forms-rim-ramp-hover"));
+        let mut degrees = r.ramp.to_degrees();
+        let least = chipload_job::RIM_MIN_RAMP.to_degrees();
+        let ramp = ui.add(
+            crate::units::number(ui, &mut degrees)
+                .speed(1.0)
+                .range(least..=90.0)
+                .suffix("°"),
+        );
+        if ramp.changed() {
+            r.ramp = degrees.to_radians();
+        }
+        flag(ramp, ui, "rim.ramp");
+        ui.end_row();
+    });
 }

@@ -11,8 +11,8 @@ use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Mirror,
-    Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Spindle,
-    SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, RimShape,
+    Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
@@ -38,6 +38,7 @@ use crate::pocket::{
 use crate::profile::{
     PathRing, contour_context, contour_note, labelled_note, pass_depths, plan_profile,
 };
+use crate::rim::{Area, Ramp};
 use crate::select::{Selection, select_contours, select_paths};
 use crate::surface::{SurfaceCut, surface_moves};
 use crate::tabs::{
@@ -2674,19 +2675,18 @@ fn plan_relief_op(
         return plan_relief_roughing(op, ctx, sel, start, shift, &mesh, cutter, finish, rough);
     }
     let index = crate::drop::DropMesh::new(&mesh, ctx.tool.diameter);
-    let area: Vec<Vec<Point>> = sel
-        .contours
-        .iter()
-        .filter(|c| c.closed)
-        .map(|c| c.points())
-        .collect();
     let (start_depth, end_depth) = (op.start_depth, op.end_depth);
+    let floor = ctx.top_z - (end_depth - start_depth);
+    let stock_top = ctx.top_z + start_depth;
+    let (area, ramp) = relief_area(&sel.contours, op.rim.as_ref(), floor, stock_top);
+    let notes = past_the_board(ctx, &area).into_iter().collect();
     let cut = crate::relief::ReliefCut {
         mesh: &index,
         cutter,
         top: ctx.top_z,
-        floor: ctx.top_z - (end_depth - start_depth),
+        floor,
         area: &area,
+        ramp: ramp.as_ref(),
         step: op.stepover * ctx.tool.diameter,
         angle: op.angle,
         zigzag: op.zigzag,
@@ -2704,9 +2704,10 @@ fn plan_relief_op(
                 .arg("y", Value::mm(at.1)),
         ));
     }
+    ramp_checked(&moves, ramp.as_ref(), cutter)?;
     Ok(Planned {
         moves,
-        notes: Vec::new(),
+        notes,
         tabs: Vec::new(),
         pockets: Vec::new(),
         arcs: ArcTable::default(),
@@ -2740,18 +2741,35 @@ fn plan_relief_roughing(
     })?;
     let index = crate::drop::DropMesh::new(mesh, 2.0 * grown.radius());
     let inset = cutter.radius() + allowance - finish.diameter / 2.0;
-    let area = roughing_area(&sel.contours, inset)?;
-    if area.is_empty() {
-        return Err(job_error(
-            Message::new("toolpath-relief-roughing-room").arg("tool", ctx.tool.id),
-        ));
-    }
+    let floor = ctx.top_z - (op.end_depth - op.start_depth) + allowance;
+    let stock_top = ctx.top_z + op.start_depth;
+    let room = || job_error(Message::new("toolpath-relief-roughing-room").arg("tool", ctx.tool.id));
+    // With a rim, the grown area shrunk and the ramp raised by the allowance (spec §16).
+    let (area, ramp) = match op.rim.as_ref() {
+        Some(rim) => {
+            let (area, ramp) = relief_area(&sel.contours, Some(rim), floor, stock_top + allowance);
+            let area = if inset > DEPTH_TOL_MM {
+                area.shrunk(inset).ok_or_else(room)?
+            } else {
+                area
+            };
+            (area, ramp)
+        }
+        None => {
+            let loops = roughing_area(&sel.contours, inset)?;
+            if loops.is_empty() {
+                return Err(room());
+            }
+            (Area::Loops(loops), None)
+        }
+    };
     let cut = crate::relief::ReliefCut {
         mesh: &index,
         cutter: grown,
         top: ctx.top_z + allowance,
-        floor: ctx.top_z - (op.end_depth - op.start_depth) + allowance,
+        floor,
         area: &area,
+        ramp: ramp.as_ref(),
         step: rough.stepover * ctx.tool.diameter,
         angle: op.angle,
         zigzag: op.zigzag,
@@ -2760,7 +2778,6 @@ fn plan_relief_roughing(
         plunge_feed: rough.plunge_feed,
         shift,
     };
-    let stock_top = ctx.top_z + op.start_depth;
     let (moves, end) = crate::relief::rough_moves(&cut, stock_top, rough.step_down, start);
     if let Some((depth, at)) =
         crate::relief::verify(&moves, mesh, grown, ctx.top_z + allowance, shift)
@@ -2772,6 +2789,7 @@ fn plan_relief_roughing(
                 .arg("y", Value::mm(at.1)),
         ));
     }
+    ramp_checked(&moves, ramp.as_ref(), grown)?;
     Ok(Planned {
         moves,
         notes: Vec::new(),
@@ -2785,6 +2803,105 @@ fn plan_relief_roughing(
         floor_hint: None,
         facts: Vec::new(),
     })
+}
+
+/// A relief's area and ramp (docs/specs/stl-relief.md §16) from its selected contours: the
+/// closed ones as they are without a rim. With one, its flat round the outer loops (or the
+/// rectangle round them) at `floor`, the ramp up to `top`, and the area out to where the
+/// ramp reaches the top.
+fn relief_area(
+    contours: &[&Contour],
+    rim: Option<&chipload_job::ReliefRim>,
+    floor: f64,
+    top: f64,
+) -> (Area, Option<Ramp>) {
+    let loops: Vec<Vec<Point>> = contours
+        .iter()
+        .filter(|c| c.closed)
+        .map(|c| c.points())
+        .collect();
+    let Some(rim) = rim else {
+        return (Area::Loops(loops), None);
+    };
+    // The outer loops: inside an even number of others. Holes are cut to the floor.
+    let outer: Vec<Vec<Point>> = loops
+        .iter()
+        .enumerate()
+        .filter(|&(i, l)| {
+            let Some(&p) = l.first() else {
+                return false;
+            };
+            let around = loops
+                .iter()
+                .enumerate()
+                .filter(|&(j, other)| j != i && crate::relief::encloses(other, p))
+                .count();
+            around % 2 == 0
+        })
+        .map(|(_, l)| l.clone())
+        .collect();
+    let (loops, foot) = match rim.shape {
+        RimShape::Outline => (outer, rim.width),
+        // The rectangle the corner radius inside the flat's edge, grown by it again.
+        RimShape::Box => {
+            let area = Area::Loops(outer);
+            let corner = rim.corner_radius.clamp(0.0, rim.width.max(0.0));
+            let loops = area.bounds().map_or_else(Vec::new, |(lo, hi)| {
+                let g = rim.width - corner;
+                let (x0, y0, x1, y1) = (lo.0 - g, lo.1 - g, hi.0 + g, hi.1 + g);
+                vec![vec![(x0, y0), (x1, y0), (x1, y1), (x0, y1)]]
+            });
+            (loops, corner)
+        }
+    };
+    let ramp = Ramp {
+        loops: loops.clone(),
+        foot,
+        tan: rim.ramp.tan(),
+        floor,
+        top,
+    };
+    let area = Area::Grown {
+        loops,
+        reach: ramp.reach(),
+    };
+    (area, Some(ramp))
+}
+
+/// A note when a relief's area reaches past the board: the ramp is cut off at its edge
+/// (docs/specs/stl-relief.md §16).
+fn past_the_board(ctx: &Context, area: &Area) -> Option<Message> {
+    if !matches!(area, Area::Grown { .. }) {
+        return None;
+    }
+    let (lo, hi) = area.bounds()?;
+    let ((x0, y0), (x1, y1)) = ctx.job.stock_bounds();
+    let by = [x0 - lo.0, y0 - lo.1, hi.0 - x1, hi.1 - y1]
+        .into_iter()
+        .fold(0.0, f64::max);
+    (by > CHAIN_TOL_MM).then(|| {
+        labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-relief-past-board").arg("by", Value::mm(by)),
+        )
+    })
+}
+
+/// The path checked against the rim's ramp, if any (docs/specs/stl-relief.md §16).
+fn ramp_checked(
+    moves: &[Move],
+    ramp: Option<&Ramp>,
+    cutter: chipload_core::cutter::Cutter,
+) -> Result<(), ToolpathError> {
+    let Some((depth, at)) = ramp.and_then(|r| crate::relief::verify_ramp(moves, r, cutter)) else {
+        return Ok(());
+    };
+    Err(job_error(
+        Message::new("toolpath-relief-ramp-gouge")
+            .arg("depth", Value::mm(depth))
+            .arg("x", Value::mm(at.0))
+            .arg("y", Value::mm(at.1)),
+    ))
 }
 
 /// A relief's area for its roughing tool: the closed contours moved `inset` into the area

@@ -285,3 +285,8 @@ decision 6. The layout test guards it in every language.
   **Left out, for later:** the time estimate in step 6 (planning from the light copy);
   dropping a file on the wizard (*Choose STL file…* and the project's models only); the
   board's width and height in step 3 (its thickness only; a fitted board grows by itself).
+
+**Changed 2026-11-13** (stl-relief.md §16): step 4's *Nothing* and *Lower the background*
+gave way to a rim on the relief itself: *Rim* round the outline (the default) or *Box*,
+each a flat and a ramp up to the surface; *Cut it out* stays, without a rim. The wizard
+adds no rectangle and no pocket; a fitted board grows round the rim.

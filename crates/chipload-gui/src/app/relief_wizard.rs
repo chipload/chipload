@@ -27,6 +27,9 @@ const BOARD_VIEW: egui::Vec2 = egui::vec2(300.0, 260.0);
 /// A new relief is at most this share of the board's thickness deep, as an added model.
 const MOST_DEPTH_SHARE: f64 = 0.5;
 
+/// The board picture draws a grown outline as the silhouette moved round this many times.
+const RIM_PICTURE_STEPS: usize = 24;
+
 /// Where the wizard's model comes from.
 #[derive(Clone)]
 enum Source {
@@ -50,6 +53,8 @@ pub(super) struct ReliefWizard {
     around: Around,
     margin: f64,
     corner: f64,
+    /// The rim's ramp from horizontal, radians.
+    ramp: f64,
     finish: Option<WizardTool>,
     rough_on: bool,
     rough: Option<WizardTool>,
@@ -123,9 +128,10 @@ impl ReliefWizard {
             views: ModelViews::default(),
             centred: true,
             thickness: job.stock().thickness,
-            around: Around::Nothing,
+            around: Around::Rim,
             margin: DEFAULT_MARGIN_MM,
             corner: 0.0,
+            ramp: chipload_job::DEFAULT_RIM.ramp,
             finish: first_tool(job, library, ToolKind::BallNose),
             rough_on: false,
             rough: first_tool(job, library, ToolKind::EndMill),
@@ -199,14 +205,14 @@ impl ReliefWizard {
                     )
                 })
             }
-            4 => (self.around == Around::Background && self.margin <= 0.0)
+            4 => (self.around == Around::Box && self.corner > self.margin)
                 .then(|| t!(ui, "relief-wizard-need-margin")),
             5 => {
                 if self.finish.is_none() {
                     Some(t!(ui, "relief-wizard-need-finish"))
                 } else if self.rough_on && self.rough.is_none() {
                     Some(t!(ui, "relief-wizard-need-rough"))
-                } else if self.around != Around::Nothing && self.around_mill().is_none() {
+                } else if self.around == Around::CutOut && self.around_mill().is_none() {
                     Some(t!(ui, "relief-wizard-need-end-mill"))
                 } else {
                     None
@@ -216,7 +222,21 @@ impl ReliefWizard {
         }
     }
 
-    /// The end mill for the background or cut-out: the one chosen, else the roughing one.
+    /// How far out the rim's ramp reaches the board's surface from its foot, mm.
+    fn rim_run(&self) -> f64 {
+        let depth = self.views.size().map_or(0.0, |s| s[2]);
+        chipload_job::rim_run(depth, self.ramp)
+    }
+
+    /// How far out the rim reaches in all, mm: none for a cut-out.
+    fn rim_reach(&self) -> f64 {
+        match self.around {
+            Around::CutOut => 0.0,
+            Around::Rim | Around::Box => self.margin + self.rim_run(),
+        }
+    }
+
+    /// The end mill for the cut-out: the one chosen, else the roughing one.
     fn around_mill(&self) -> Option<&WizardTool> {
         self.end_mill
             .as_ref()
@@ -282,6 +302,7 @@ impl ChiploadApp {
         request.around = w.around;
         request.margin = w.margin;
         request.corner = w.corner;
+        request.ramp = w.ramp;
         request.rough = rough;
         request.end_mill = end_mill;
         let made = match &w.source {
@@ -588,32 +609,33 @@ fn step_size(ui: &mut egui::Ui, w: &mut ReliefWizard, job: &Job) {
     }
 }
 
-/// Step 4: nothing, the background lowered, or a cut-out.
+/// Step 4: a rim round the outline or round a box, or a cut-out
+/// (docs/specs/stl-relief.md §16).
 fn step_around(ui: &mut egui::Ui, w: &mut ReliefWizard) {
     let choices = [
-        (Around::Nothing, t!(ui, "relief-wizard-around-nothing")),
-        (
-            Around::Background,
-            t!(ui, "relief-wizard-around-background"),
-        ),
+        (Around::Rim, t!(ui, "relief-wizard-around-rim")),
+        (Around::Box, t!(ui, "relief-wizard-around-box")),
         (Around::CutOut, t!(ui, "relief-wizard-around-cut-out")),
     ];
     for (around, text) in choices {
         ui.radio_value(&mut w.around, around, text);
     }
-    if w.around == Around::Background {
-        ui.add_space(6.0);
-        egui::Grid::new("relief-wizard-around")
-            .num_columns(2)
-            .spacing([12.0, 6.0])
-            .show(ui, |ui| {
-                ui.label(t!(ui, "relief-wizard-margin"));
-                ui.add(
-                    crate::units::length(&mut w.margin)
-                        .range(0.1..=1_000.0)
-                        .speed(0.1),
-                );
-                ui.end_row();
+    if w.around == Around::CutOut {
+        return;
+    }
+    ui.add_space(6.0);
+    egui::Grid::new("relief-wizard-around")
+        .num_columns(2)
+        .spacing([12.0, 6.0])
+        .show(ui, |ui| {
+            ui.label(t!(ui, "relief-wizard-margin"));
+            ui.add(
+                crate::units::length(&mut w.margin)
+                    .range(0.0..=1_000.0)
+                    .speed(0.1),
+            );
+            ui.end_row();
+            if w.around == Around::Box {
                 ui.label(t!(ui, "relief-wizard-corner"));
                 ui.add(
                     crate::units::length(&mut w.corner)
@@ -621,8 +643,24 @@ fn step_around(ui: &mut egui::Ui, w: &mut ReliefWizard) {
                         .speed(0.1),
                 );
                 ui.end_row();
-            });
-    }
+            }
+            ui.label(t!(ui, "relief-wizard-ramp"))
+                .on_hover_text(t!(ui, "relief-wizard-ramp-hover"));
+            let mut degrees = w.ramp.to_degrees();
+            let least = chipload_job::RIM_MIN_RAMP.to_degrees();
+            if ui
+                .add(
+                    crate::units::number(ui, &mut degrees)
+                        .range(least..=90.0)
+                        .speed(1.0)
+                        .suffix("°"),
+                )
+                .changed()
+            {
+                w.ramp = degrees.to_radians();
+            }
+            ui.end_row();
+        });
 }
 
 /// Step 5: only the tools the answers need.
@@ -663,7 +701,7 @@ fn step_tools(ui: &mut egui::Ui, w: &mut ReliefWizard, offer: &ToolOffer<'_>) {
                 );
                 ui.end_row();
             }
-            if w.around != Around::Nothing {
+            if w.around == Around::CutOut {
                 ui.label(t!(ui, "relief-wizard-end-mill"));
                 let same = t!(ui, "relief-wizard-same-as-rough");
                 let none = w.rough_on.then_some(same.as_str());
@@ -693,17 +731,6 @@ fn step_check(
     let size = w.views.size().unwrap_or([0.0; 3]);
     let mut lines: Vec<String> = Vec::new();
     let mut tools: Vec<WizardTool> = Vec::new();
-    if w.around == Around::Background
-        && let Some(mill) = w.around_mill()
-    {
-        lines.push(t!(
-            ui,
-            "relief-wizard-summary-background",
-            depth = text(size[2]).as_str(),
-            tool = name(mill)
-        ));
-        tools.push(mill.clone());
-    }
     if let (true, Some(rough)) = (w.rough_on, &w.rough) {
         lines.push(t!(
             ui,
@@ -723,6 +750,18 @@ fn step_check(
             tool = name(finish)
         ));
         tools.push(finish.clone());
+        // The rim is the relief's own: said on its line.
+        if w.around != Around::CutOut
+            && let Some(line) = lines.last_mut()
+        {
+            let rim = t!(
+                ui,
+                "relief-wizard-summary-rim",
+                width = text(w.margin).as_str(),
+                angle = format!("{:.0}", w.ramp.to_degrees())
+            );
+            *line = format!("{line}; {rim}");
+        }
     }
     if w.around == Around::CutOut
         && let Some(mill) = w.around_mill()
@@ -737,13 +776,13 @@ fn step_check(
     let changes = tools.windows(2).filter(|p| p[0] != p[1]).count();
     ui.add_space(4.0);
     ui.label(t!(ui, "relief-wizard-summary-changes", count = changes));
-    if job.stock().fit.is_some() && w.around == Around::Background {
+    if job.stock().fit.is_some() && w.around != Around::CutOut {
         ui.weak(t!(ui, "relief-wizard-summary-board-grows"));
     }
 }
 
-/// The board seen from above with the relief where it will lie, and the background's
-/// rectangle or the cut-out's ring round it.
+/// The board seen from above with the relief where it will lie, and its rim and ramp or
+/// the cut-out's ring round it.
 fn board_picture(ui: &mut egui::Ui, w: &ReliefWizard, job: &Job, color: egui::Color32) {
     let (rect, _) = ui.allocate_exact_size(BOARD_VIEW, egui::Sense::hover());
     let painter = ui.painter_at(rect);
@@ -758,11 +797,7 @@ fn board_picture(ui: &mut egui::Ui, w: &ReliefWizard, job: &Job, color: egui::Co
         ..
     }) = picture
     {
-        let m = if w.around == Around::Background {
-            w.margin
-        } else {
-            0.0
-        };
+        let m = w.rim_reach();
         lo = (lo.0.min(px - m), lo.1.min(py - m));
         hi = (hi.0.max(px + pw + m), hi.1.max(py + ph + m));
     }
@@ -793,21 +828,39 @@ fn board_picture(ui: &mut egui::Ui, w: &ReliefWizard, job: &Job, color: egui::Co
     let shown = egui::Rect::from_two_pos(at(px, py), at(px + pw, py + ph));
     let whole = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
     let ring = ui.visuals().strong_text_color();
+    // The ramp (shaded) and the flat (lowered: drawn darkest) round the relief.
+    let flat = ui.visuals().extreme_bg_color;
+    let slope = palette.stock.gamma_multiply(0.25);
     match w.around {
-        Around::Background => {
-            // The pocket's rectangle round the relief's box (lowered: drawn darker).
-            let size = w.views.size().unwrap_or([pw, ph, 0.0]);
+        Around::Box => {
             let (cx, cy) = (px + pw / 2.0, py + ph / 2.0);
-            let (hx, hy) = (size[0] / 2.0 + w.margin, size[1] / 2.0 + w.margin);
-            let pocket = egui::Rect::from_two_pos(at(cx - hx, cy - hy), at(cx + hx, cy + hy));
-            let radius = (w.corner as f32 * scale).min(pocket.width().min(pocket.height()) / 2.0);
-            painter.rect_filled(pocket, radius, ui.visuals().extreme_bg_color);
-            painter.rect_stroke(
-                pocket,
-                radius,
-                egui::Stroke::new(1.0, color),
-                egui::StrokeKind::Middle,
-            );
+            let ring = |grow: f64, corner: f64, fill: egui::Color32| {
+                let (hx, hy) = (pw / 2.0 + grow, ph / 2.0 + grow);
+                let r = egui::Rect::from_two_pos(at(cx - hx, cy - hy), at(cx + hx, cy + hy));
+                let radius = (corner as f32 * scale).min(r.width().min(r.height()) / 2.0);
+                painter.rect_filled(r, radius, fill);
+                painter.rect_stroke(
+                    r,
+                    radius,
+                    egui::Stroke::new(1.0, color),
+                    egui::StrokeKind::Middle,
+                );
+            };
+            ring(w.rim_reach(), w.corner + w.rim_run(), slope);
+            ring(w.margin, w.corner, flat);
+        }
+        Around::Rim => {
+            // The silhouette moved round in a circle: the outline grown, near enough.
+            let grown = |grow: f64, fill: egui::Color32| {
+                let d = grow as f32 * scale;
+                for k in 0..RIM_PICTURE_STEPS {
+                    let a = std::f32::consts::TAU * k as f32 / RIM_PICTURE_STEPS as f32;
+                    let offset = egui::vec2(d * a.cos(), d * a.sin());
+                    painter.image(texture, shown.translate(offset), whole, fill);
+                }
+            };
+            grown(w.rim_reach(), slope.to_opaque());
+            grown(w.margin, flat);
         }
         Around::CutOut => {
             // The relief's silhouette, a little larger behind it: the cut round it.
@@ -815,7 +868,6 @@ fn board_picture(ui: &mut egui::Ui, w: &ReliefWizard, job: &Job, color: egui::Co
                 painter.image(texture, shown.translate(egui::vec2(dx, dy)), whole, ring);
             }
         }
-        Around::Nothing => {}
     }
     painter.image(texture, shown, whole, egui::Color32::WHITE);
     // The board's edge over it all, so it shows where the pocket reaches it.

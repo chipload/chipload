@@ -1323,7 +1323,8 @@ pub struct ReliefOp {
     pub material: Option<MaterialRef>,
     /// The id of the model it carves (`drawing.models`).
     pub model: u64,
-    /// The area the tool's centre stays in: closed shapes, by default the model's outline.
+    /// The area: closed shapes, by default the model's outline. The tool's centre stays in
+    /// it, or with a rim, within the rim's reach round it.
     pub select: Selector,
     /// The id of the project tool it cuts with (`tools`): a ball nose, an endmill or a
     /// V-bit.
@@ -1349,7 +1350,53 @@ pub struct ReliefOp {
     // Spec: docs/specs/stl-relief.md §5, §14 step 3 (optional).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub roughing: Option<ReliefRoughing>,
+    /// A flat round the model at the floor and a ramp up from it to the stock top. Missing:
+    /// none, the tool's centre stays within the area. Left out when missing.
+    // Spec: docs/specs/stl-relief.md §16 (optional).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rim: Option<ReliefRim>,
 }
+
+/// What a relief's rim follows (docs/specs/stl-relief.md §16).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum RimShape {
+    /// The area's outer loops, grown with round corners.
+    #[default]
+    Outline,
+    /// The rectangle round the area's outer loops, grown, its corners rounded.
+    Box,
+}
+
+/// A relief's rim (docs/specs/stl-relief.md §16): a flat at the floor round the area, then a
+/// ramp up to the stock top.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ReliefRim {
+    /// `outline`: the area's outer loops grown; `box`: the rectangle round them.
+    pub shape: RimShape,
+    /// The flat's width, mm from the outline or the rectangle: 0 or more.
+    pub width: f64,
+    /// The ramp's slope from the flat up to the stock top, radians from horizontal: from 10°
+    /// to 90° (a straight wall).
+    pub ramp: f64,
+    /// `box` only: the radius of the flat's outer corners, mm, from 0 to the width.
+    #[serde(default)]
+    pub corner_radius: f64,
+}
+
+/// A relief rim's gentlest ramp, radians: a gentler one reaches far out.
+pub const RIM_MIN_RAMP: f64 = 10.0 * std::f64::consts::PI / 180.0;
+
+/// A new relief's rim (docs/specs/stl-relief.md §16): 5 mm round the outline, a 45° ramp.
+pub const DEFAULT_RIM: ReliefRim = ReliefRim {
+    shape: RimShape::Outline,
+    width: 5.0,
+    ramp: std::f64::consts::FRAC_PI_4,
+    corner_radius: 0.0,
+};
 
 /// A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels
 /// with the raster, an allowance left on the model for the finish.

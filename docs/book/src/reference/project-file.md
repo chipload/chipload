@@ -549,8 +549,9 @@ Relief: a 3D model carved from the top with the drop cutter, in parallel lines.
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
 | `part` | integer | yes | The id of the part it belongs to (`parts`). |
 | `plunge_feed` | number | yes | The feed going down to each line's first point, mm/min. |
+| `rim` | [ReliefRim](#reliefrim) or null | no | A flat round the model at the floor and a ramp up from it to the stock top. Missing: none, the tool's centre stays within the area. Left out when missing. |
 | `roughing` | [ReliefRoughing](#reliefroughing) or null | no | A roughing pass, cut just before: levels one step down apart, the tool kept the allowance off the model. Missing: none. Left out when missing. |
-| `select` | [Selector](#selector) | yes | The area the tool's centre stays in: closed shapes, by default the model's outline. |
+| `select` | [Selector](#selector) | yes | The area: closed shapes, by default the model's outline. The tool's centre stays in it, or with a rim, within the rim's reach round it. |
 | `start_depth` | number | yes | Where the model's top lies, mm down from the stock top: 0 for the top. |
 | `stepover` | number | yes | The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a ball nose, an endmill or a V-bit. |
@@ -602,6 +603,17 @@ How a turned board is located again.
 
 - `"corner"`: Pushed into the same corner of a fence: the board's size must be exact.
 
+## ReliefRim
+
+A relief's rim (docs/specs/stl-relief.md §16): a flat at the floor round the area, then a ramp up to the stock top.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `corner_radius` | number | no | `box` only: the radius of the flat's outer corners, mm, from 0 to the width. |
+| `ramp` | number | yes | The ramp's slope from the flat up to the stock top, radians from horizontal: from 10° to 90° (a straight wall). |
+| `shape` | [RimShape](#rimshape) | yes | `outline`: the area's outer loops grown; `box`: the rectangle round them. |
+| `width` | number | yes | The flat's width, mm from the outline or the rectangle: 0 or more. |
+
 ## ReliefRoughing
 
 A relief's roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels with the raster, an allowance left on the model for the finish.
@@ -623,6 +635,14 @@ Rest machining: the pocket clears only the material the larger tool `after_tool`
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `after_tool` | integer | yes | The id of the larger project tool whose leftovers this pocket clears. |
+
+## RimShape
+
+What a relief's rim follows (docs/specs/stl-relief.md §16).
+
+- `"outline"`: The area's outer loops, grown with round corners.
+
+- `"box"`: The rectangle round the area's outer loops, grown, its corners rounded.
 
 ## Selector
 

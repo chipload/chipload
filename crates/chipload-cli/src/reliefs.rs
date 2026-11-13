@@ -29,19 +29,20 @@ pub enum ReliefAction {
 /// What goes round the relief.
 #[derive(Clone, Copy, ValueEnum)]
 enum AroundArg {
-    /// The relief alone, within its outline.
-    None,
-    /// A pocket round the model down to the relief's floor, the model an island in it.
-    Background,
-    /// A profile outside the outline, through the board, with tabs.
+    /// A flat round the model's outline at the relief's floor, then a ramp up to the stock
+    /// top.
+    Rim,
+    /// The same round the rectangle round the model.
+    Box,
+    /// No rim: a profile outside the outline, through the board, with tabs.
     CutOut,
 }
 
 impl From<AroundArg> for Around {
     fn from(a: AroundArg) -> Self {
         match a {
-            AroundArg::None => Around::Nothing,
-            AroundArg::Background => Around::Background,
+            AroundArg::Rim => Around::Rim,
+            AroundArg::Box => Around::Box,
             AroundArg::CutOut => Around::CutOut,
         }
     }
@@ -79,12 +80,16 @@ pub struct AddRelief {
     #[arg(long, value_parser = parse_at)]
     at: Option<(f64, f64)>,
     /// What goes round it.
-    #[arg(long, value_enum, default_value = "none")]
+    #[arg(long, value_enum, default_value = "rim")]
     around: AroundArg,
-    /// The background's margin round the model, mm.
+    /// The rim's flat round the outline or the model's box, mm (default 5).
     #[arg(value_parser = crate::lengths::length, long)]
     margin: Option<f64>,
-    /// The background's corner radius, mm (default 0: sharp).
+    /// The ramp from the flat up to the stock top, degrees from horizontal: 10 to 90
+    /// (default 45; 90: a straight wall).
+    #[arg(long)]
+    ramp: Option<f64>,
+    /// A box rim's corner radius, mm, at most the margin (default 0: sharp).
     #[arg(value_parser = crate::lengths::length, long)]
     corner: Option<f64>,
     /// The ball nose that finishes it (a project tool id).
@@ -96,7 +101,7 @@ pub struct AddRelief {
     /// What the roughing pass leaves for the finish, mm.
     #[arg(value_parser = crate::lengths::length, long, requires = "rough_tool")]
     allowance: Option<f64>,
-    /// The end mill for the background or cut-out (default: the roughing one).
+    /// The end mill for the cut-out (default: the roughing one).
     #[arg(long)]
     end_mill: Option<i64>,
     /// Write here instead of over the project.
@@ -132,6 +137,9 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
     request.around = add.around.into();
     request.margin = add.margin.unwrap_or(DEFAULT_MARGIN_MM);
     request.corner = add.corner.unwrap_or(0.0);
+    if let Some(degrees) = add.ramp {
+        request.ramp = degrees.to_radians();
+    }
     request.rough = add.rough_tool.map(|tool| {
         (
             tool,
@@ -199,7 +207,6 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
     out.wrote(target, "");
     out.set("part", json!(made.part));
     out.set("model", json!(made.model));
-    out.set("frame", json!(made.frame));
     out.set(
         "operations",
         json!(made.operations.iter().map(|i| i + 1).collect::<Vec<_>>()),

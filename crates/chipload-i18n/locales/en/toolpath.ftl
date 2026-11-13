@@ -391,6 +391,8 @@ toolpath-relief-shape = tool { $tool }'s shape isn't known: a V-bit needs its an
 toolpath-relief-no-area = a relief needs closed shapes for its area: its model's outline, or others
 # $depth is how far the path cut into the model, at ($x, $y).
 toolpath-relief-gouge = the relief's path would cut { $depth } into the model at ({ $x }, { $y }); nothing is made
+toolpath-relief-past-board = its rim's ramp reaches { $by } past the board's edge, where it is cut off; a larger board or a narrower rim or steeper ramp keeps it whole
+toolpath-relief-ramp-gouge = the relief's path would cut { $depth } into its rim's ramp at ({ $x }, { $y }); nothing is made
 toolpath-relief-roughing-tool = tool { $tool } can't rough a relief: it takes an end mill or a plain ball nose
 toolpath-relief-roughing-room = the roughing tool { $tool } has no room in the relief's area, kept within the finish's reach
 toolpath-relief-deep = cuts { $depth } deep with tool { $tool } alone; a roughing pass (op add-roughing) takes most of it first
