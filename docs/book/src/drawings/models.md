@@ -108,6 +108,30 @@ A large picture is averaged onto at most 800 points along its longer side (0.15 
 a 120 mm relief), finer than a small ball nose can cut. Everything else is as for an STL:
 place, turn, keep from the top, the Relief operation with its rim, roughing and smoothing.
 
+### Inflated shapes
+
+A black-and-white picture (a logo, lettering, a silhouette) can be **inflated** instead:
+each black shape rises from its edge towards its middle, as if blown up, and the white
+round it is not the model. Set *Kind* to *Inflated* in the picture's settings, or:
+
+```sh
+chipload model add sign.chipload logo.png --inflate --width 120 --depth 4
+chipload model set sign.chipload 1 --profile straight --reach 3mm
+chipload relief add sign.chipload name.png --inflate --reach 2mm --width 200 --depth 5 --tool 2
+```
+
+- **Threshold:** greys darker than this are the shapes; *Automatic* picks it from the
+  picture. **Invert:** white is the shape.
+- **Profile:** *Round* rises steeply at the edge and is flat on top, a cushion; *Straight*
+  rises evenly, to a ridge along each stroke, as if chiselled.
+- **Reach:** how far in from the edge a shape keeps rising. *Automatic* takes the widest
+  shape's half-width, so nothing levels off and narrow shapes stay lower than wide ones.
+  Set it, and everything wider levels off at the full depth: for lettering, about half a
+  stroke's width gives letters all of one height.
+- **Smoothing** takes the pixels' steps off the edges.
+
+A letter's hole is an edge too, so an "O" rises from both sides of its ring.
+
 **From an iPhone:** Portrait photos carry a depth map, but inside the HEIC photo, which
 Chipload doesn't read (it says so). Save the depth map as a PNG first, with an app or a
 Shortcut that exports it; it is small (about 768 × 576) and soft at the edges, so a

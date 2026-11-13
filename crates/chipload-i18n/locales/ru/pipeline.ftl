@@ -506,6 +506,7 @@ pipeline-model-nothing-kept = от модели { $id } ничего не ост
 pipeline-model-no-outline = контур модели не удаётся построить
 pipeline-model-read-binary = Модель { $id }: { $count } треугольников (двоичный STL), { $x } × { $y } × { $z }, прочитано в { $units }
 pipeline-model-read-picture = Модель { $id }: изображение { $width } × { $height } пикселей, прочитано как карта глубины (белое — верх)
+pipeline-model-read-inflated = Модель { $id }: изображение { $width } × { $height } пикселей, его формы надуты
 pipeline-model-not-picture = настройки карты глубины относятся к изображению, а этот файл — STL
 pipeline-model-read-text = Модель { $id }: { $count } треугольников (текстовый STL), { $x } × { $y } × { $z }, прочитано в { $units }
 pipeline-model-dropped = пропущено { $count } треугольников без площади

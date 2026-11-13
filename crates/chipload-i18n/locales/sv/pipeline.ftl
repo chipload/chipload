@@ -661,6 +661,7 @@ pipeline-model-nothing-kept = inget av modell { $id } finns kvar ovanför dess s
 pipeline-model-no-outline = modellens kontur går inte att rita
 pipeline-model-read-binary = Modell { $id }: { $count } trianglar (binär STL), { $x } × { $y } × { $z } läst i { $units }
 pipeline-model-read-picture = Modell { $id }: en bild på { $width } × { $height } pixlar, läst som djupkarta (vitt högst)
+pipeline-model-read-inflated = Modell { $id }: en bild på { $width } × { $height } pixlar, dess former uppblåsta
 pipeline-model-not-picture = djupkartans inställningar gäller en bild, och den här filen är en STL
 pipeline-model-read-text = Modell { $id }: { $count } trianglar (text-STL), { $x } × { $y } × { $z } läst i { $units }
 pipeline-model-dropped = { $count } trianglar utan yta utelämnades

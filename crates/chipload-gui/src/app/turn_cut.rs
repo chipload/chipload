@@ -419,12 +419,89 @@ pub(in crate::app) fn picture_fields(
     ui: &mut egui::Ui,
     picture: &mut chipload_job::PictureDepth,
 ) -> bool {
+    use chipload_job::{InflateProfile, PictureMode};
     let mut finished = false;
     let done = |r: &egui::Response| r.drag_stopped() || r.lost_focus();
-    ui.label(t!(ui, "forms-picture-white-high"))
-        .on_hover_text(t!(ui, "forms-picture-white-high-hover"));
-    finished |= ui.checkbox(&mut picture.white_high, "").changed();
+    // Kind: a depth map, or its shapes inflated (docs/specs/inflated-shapes.md §5).
+    ui.label(t!(ui, "forms-picture-kind"))
+        .on_hover_text(t!(ui, "forms-picture-kind-hover"));
+    ui.horizontal(|ui| {
+        for (mode, name) in [
+            (PictureMode::Depth, t!(ui, "forms-picture-kind-depth")),
+            (PictureMode::Inflate, t!(ui, "forms-picture-kind-inflate")),
+        ] {
+            finished |= ui.selectable_value(&mut picture.mode, mode, name).changed();
+        }
+    });
     ui.end_row();
+    match picture.mode {
+        PictureMode::Depth => {
+            ui.label(t!(ui, "forms-picture-white-high"))
+                .on_hover_text(t!(ui, "forms-picture-white-high-hover"));
+            finished |= ui.checkbox(&mut picture.white_high, "").changed();
+            ui.end_row();
+        }
+        PictureMode::Inflate => {
+            ui.label(t!(ui, "forms-picture-threshold"))
+                .on_hover_text(t!(ui, "forms-picture-threshold-hover"));
+            ui.horizontal(|ui| {
+                let mut auto = picture.threshold.is_none();
+                if ui
+                    .checkbox(&mut auto, t!(ui, "forms-picture-automatic"))
+                    .changed()
+                {
+                    picture.threshold = (!auto).then_some(128);
+                    finished = true;
+                }
+                if let Some(level) = picture.threshold.as_mut() {
+                    let r = ui.add(egui::Slider::new(level, 1..=254));
+                    finished |= done(&r);
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-picture-invert"))
+                .on_hover_text(t!(ui, "forms-picture-invert-hover"));
+            finished |= ui.checkbox(&mut picture.invert, "").changed();
+            ui.end_row();
+            ui.label(t!(ui, "forms-picture-profile"))
+                .on_hover_text(t!(ui, "forms-picture-profile-hover"));
+            ui.horizontal(|ui| {
+                for (profile, name) in [
+                    (InflateProfile::Round, t!(ui, "forms-picture-profile-round")),
+                    (
+                        InflateProfile::Straight,
+                        t!(ui, "forms-picture-profile-straight"),
+                    ),
+                ] {
+                    finished |= ui
+                        .selectable_value(&mut picture.profile, profile, name)
+                        .changed();
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-picture-reach"))
+                .on_hover_text(t!(ui, "forms-picture-reach-hover"));
+            ui.horizontal(|ui| {
+                let mut auto = picture.reach.is_none();
+                if ui
+                    .checkbox(&mut auto, t!(ui, "forms-picture-automatic"))
+                    .changed()
+                {
+                    picture.reach = (!auto).then_some(3.0);
+                    finished = true;
+                }
+                if let Some(reach) = picture.reach.as_mut() {
+                    let r = ui.add(
+                        crate::units::length(reach)
+                            .range(0.05..=1_000.0)
+                            .speed(0.05),
+                    );
+                    finished |= done(&r);
+                }
+            });
+            ui.end_row();
+        }
+    }
     ui.label(t!(ui, "forms-picture-smoothing"))
         .on_hover_text(t!(ui, "forms-picture-smoothing-hover"));
     let (lo, hi) = chipload_job::PICTURE_SMOOTHING_RANGE;
@@ -435,30 +512,32 @@ pub(in crate::app) fn picture_fields(
     );
     finished |= done(&r);
     ui.end_row();
-    ui.label(t!(ui, "forms-picture-background"))
-        .on_hover_text(t!(ui, "forms-picture-background-hover"));
-    let (lo, hi) = chipload_job::PICTURE_BACKGROUND_RANGE;
-    let mut percent = picture.background * 100.0;
-    let r = ui.add(
-        egui::Slider::new(&mut percent, lo * 100.0..=hi * 100.0)
-            .fixed_decimals(0)
-            .suffix(" %"),
-    );
-    if r.changed() {
-        picture.background = (percent / 100.0).clamp(lo, hi);
+    if picture.mode == PictureMode::Depth {
+        ui.label(t!(ui, "forms-picture-background"))
+            .on_hover_text(t!(ui, "forms-picture-background-hover"));
+        let (lo, hi) = chipload_job::PICTURE_BACKGROUND_RANGE;
+        let mut percent = picture.background * 100.0;
+        let r = ui.add(
+            egui::Slider::new(&mut percent, lo * 100.0..=hi * 100.0)
+                .fixed_decimals(0)
+                .suffix(" %"),
+        );
+        if r.changed() {
+            picture.background = (percent / 100.0).clamp(lo, hi);
+        }
+        finished |= done(&r);
+        ui.end_row();
+        ui.label(t!(ui, "forms-picture-gamma"))
+            .on_hover_text(t!(ui, "forms-picture-gamma-hover"));
+        let (lo, hi) = chipload_job::PICTURE_GAMMA_RANGE;
+        let r = ui.add(
+            egui::Slider::new(&mut picture.gamma, lo..=hi)
+                .logarithmic(true)
+                .fixed_decimals(2),
+        );
+        finished |= done(&r);
+        ui.end_row();
     }
-    finished |= done(&r);
-    ui.end_row();
-    ui.label(t!(ui, "forms-picture-gamma"))
-        .on_hover_text(t!(ui, "forms-picture-gamma-hover"));
-    let (lo, hi) = chipload_job::PICTURE_GAMMA_RANGE;
-    let r = ui.add(
-        egui::Slider::new(&mut picture.gamma, lo..=hi)
-            .logarithmic(true)
-            .fixed_decimals(2),
-    );
-    finished |= done(&r);
-    ui.end_row();
     finished
 }
 

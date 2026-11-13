@@ -115,6 +115,9 @@ pub struct AddRelief {
     /// The end mill for the cut-out (default: the roughing one).
     #[arg(long)]
     end_mill: Option<i64>,
+    /// A picture's settings: as a depth map or its shapes inflated (see `model add`).
+    #[command(flatten)]
+    depth_map: crate::models::DepthMap,
     /// Write here instead of over the project.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -143,6 +146,9 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
         }
     }
     request.keep = add.keep.unwrap_or(1.0);
+    if add.depth_map.given() {
+        request.picture = Some(add.depth_map.applied(chipload_job::DEFAULT_PICTURE_DEPTH));
+    }
     request.depth = add.depth;
     request.at = add.at;
     request.sink = add.start_depth.unwrap_or(0.0);

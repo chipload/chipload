@@ -10,6 +10,7 @@ mod contour;
 mod decode;
 mod depth;
 mod field;
+mod inflate;
 mod simplify;
 
 use chipload_core::Point;
@@ -21,6 +22,7 @@ pub use depth::{
     BACKGROUND_RANGE, DepthGrid, DepthSettings, GAMMA_RANGE, MAX_CELLS, SMOOTHING_RANGE, depth_grid,
 };
 pub use field::otsu;
+pub use inflate::{InflateSettings, Profile, inflate_grid, squared_distances};
 
 /// More loops than this is refused: a photo or noise, not a carving (spec §8).
 pub const MAX_LOOPS: usize = 5000;

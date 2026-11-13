@@ -393,3 +393,18 @@ fn a_picture_model_shows_its_depth_map_settings() {
     };
     assert!(chipload_pipeline::models::remake(&changed_job, id).is_ok());
 }
+
+/// An inflated picture's settings are drawn: kind, threshold, invert, profile, reach
+/// (docs/specs/inflated-shapes.md §5).
+#[test]
+fn an_inflated_picture_shows_its_settings() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/inflated_relief.chipload")));
+    let model = &app.edit.as_ref().unwrap().job.drawing.models[0];
+    assert_eq!(
+        model.picture.map(|p| p.mode),
+        Some(chipload_job::PictureMode::Inflate)
+    );
+    app.focus = Focus::Model(model.id);
+    draw_properties(&mut app);
+}

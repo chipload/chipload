@@ -664,6 +664,7 @@ pipeline-model-nothing-kept = von Modell { $id } bleibt über seiner Schnitthöh
 pipeline-model-no-outline = der Umriss des Modells lässt sich nicht zeichnen
 pipeline-model-read-binary = Modell { $id }: { $count } Dreiecke (binäre STL), { $x } × { $y } × { $z } gelesen in { $units }
 pipeline-model-read-picture = Modell { $id }: ein Bild mit { $width } × { $height } Pixeln, als Tiefenkarte gelesen (Weiß oben)
+pipeline-model-read-inflated = Modell { $id }: ein Bild mit { $width } × { $height } Pixeln, seine Formen aufgeblasen
 pipeline-model-not-picture = die Tiefenkarten-Einstellungen gelten für ein Bild, und diese Datei ist eine STL
 pipeline-model-read-text = Modell { $id }: { $count } Dreiecke (Text-STL), { $x } × { $y } × { $z } gelesen in { $units }
 pipeline-model-dropped = { $count } Dreiecke ohne Fläche wurden weggelassen

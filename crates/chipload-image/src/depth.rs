@@ -92,32 +92,16 @@ pub fn depth_grid(
     if !(width.is_finite() && width > 0.0) {
         return Err(ImageError::Width);
     }
-    let (w, h) = (picture.width as usize, picture.height as usize);
-    // Whole pixels per cell, so no cell is finer than a pixel.
-    let factor = w.max(h).div_ceil(MAX_CELLS).max(1);
-    let (columns, rows) = (w.div_ceil(factor), h.div_ceil(factor));
-    let cell = width / columns as f64;
-    // Averaged, turned round as asked; the grid's row 0 is the picture's bottom.
-    let mut shares = vec![0.0; columns * rows];
-    for row in 0..rows {
-        let top = (rows - 1 - row) * factor;
-        for column in 0..columns {
-            let left = column * factor;
-            let (mut sum, mut count) = (0.0, 0.0);
-            for y in top..(top + factor).min(h) {
-                for x in left..(left + factor).min(w) {
-                    sum += picture.at(x, y);
-                    count += 1.0;
-                }
-            }
-            let v = sum / count / 255.0;
-            shares[row * columns + column] = if settings.white_high { v } else { 1.0 - v };
-        }
-    }
-    let sigma = settings.smoothing / cell / 2.0;
-    if sigma >= LEAST_SIGMA_CELLS {
-        shares = blurred(&shares, columns, rows, sigma);
-    }
+    let (columns, rows, cell, greys) = averaged(picture, width);
+    // Turned round as asked.
+    let mut shares: Vec<f64> = greys
+        .iter()
+        .map(|g| {
+            let v = g / 255.0;
+            if settings.white_high { v } else { 1.0 - v }
+        })
+        .collect();
+    shares = smoothed(shares, (columns, rows), cell, settings.smoothing);
     let b = settings.background;
     let heights: Vec<Option<f64>> = shares
         .iter()
@@ -138,6 +122,49 @@ pub fn depth_grid(
         cell,
         heights,
     })
+}
+
+/// `picture` averaged onto the grid for a picture `width` mm wide: at most [`MAX_CELLS`]
+/// cells along its longer side, whole pixels per cell so no cell is finer than a pixel.
+/// Columns, rows, the cell's side in mm, and the grey values (0–255), row 0 the picture's
+/// bottom.
+pub(crate) fn averaged(picture: &Decoded, width: f64) -> (usize, usize, f64, Vec<f64>) {
+    let (w, h) = (picture.width as usize, picture.height as usize);
+    let factor = w.max(h).div_ceil(MAX_CELLS).max(1);
+    let (columns, rows) = (w.div_ceil(factor), h.div_ceil(factor));
+    let cell = width / columns as f64;
+    let mut greys = vec![0.0; columns * rows];
+    for row in 0..rows {
+        let top = (rows - 1 - row) * factor;
+        for column in 0..columns {
+            let left = column * factor;
+            let (mut sum, mut count) = (0.0, 0.0);
+            for y in top..(top + factor).min(h) {
+                for x in left..(left + factor).min(w) {
+                    sum += picture.at(x, y);
+                    count += 1.0;
+                }
+            }
+            greys[row * columns + column] = sum / count;
+        }
+    }
+    (columns, rows, cell, greys)
+}
+
+/// `values` on a grid of `cell` mm blurred by a Gaussian of `radius` mm (σ = radius / 2),
+/// or as they are when that is less than a quarter of a cell.
+pub(crate) fn smoothed(
+    values: Vec<f64>,
+    (columns, rows): (usize, usize),
+    cell: f64,
+    radius: f64,
+) -> Vec<f64> {
+    let sigma = radius / cell / 2.0;
+    if sigma >= LEAST_SIGMA_CELLS {
+        blurred(&values, columns, rows, sigma)
+    } else {
+        values
+    }
 }
 
 /// `values` (`columns` × `rows`) blurred by a Gaussian of `sigma` cells, along the rows

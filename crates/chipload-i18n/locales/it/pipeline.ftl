@@ -666,6 +666,7 @@ pipeline-model-nothing-kept = non resta nulla del modello { $id } sopra il suo l
 pipeline-model-no-outline = il contorno del modello non si può disegnare
 pipeline-model-read-binary = Modello { $id }: { $count } triangoli (STL binario), { $x } × { $y } × { $z } letto in { $units }
 pipeline-model-read-picture = Modello { $id }: un'immagine di { $width } × { $height } pixel, letta come mappa di profondità (bianco in alto)
+pipeline-model-read-inflated = Modello { $id }: un'immagine di { $width } × { $height } pixel, le sue forme gonfiate
 pipeline-model-not-picture = le impostazioni della mappa di profondità sono per un'immagine, e questo file è un STL
 pipeline-model-read-text = Modello { $id }: { $count } triangoli (STL di testo), { $x } × { $y } × { $z } letto in { $units }
 pipeline-model-dropped = { $count } triangoli senza area sono stati tralasciati

@@ -938,6 +938,21 @@
         }
       ]
     },
+    "InflateProfile": {
+      "description": "How an inflated shape rises from its edge.",
+      "oneOf": [
+        {
+          "const": "round",
+          "description": "A quarter circle: steep at the edge, flat on top.",
+          "type": "string"
+        },
+        {
+          "const": "straight",
+          "description": "A straight rise: a ridge along narrow strokes.",
+          "type": "string"
+        }
+      ]
+    },
     "IssueSeverity": {
       "enum": [
         "warning",
@@ -2240,10 +2255,45 @@
           "format": "double",
           "type": "number"
         },
+        "invert": {
+          "default": false,
+          "description": "`inflate`: white is the shape; false: black is.",
+          "type": "boolean"
+        },
+        "mode": {
+          "$ref": "#/$defs/PictureMode",
+          "default": "depth",
+          "description": "How the picture becomes heights: a depth map, or its shapes inflated. Missing: a\ndepth map."
+        },
+        "profile": {
+          "$ref": "#/$defs/InflateProfile",
+          "default": "round",
+          "description": "`inflate`: how a shape rises from its edge."
+        },
+        "reach": {
+          "default": null,
+          "description": "`inflate`: how far in from the edge the height grows, mm, more than 0; null: the\nwidest shape's half-width.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "smoothing": {
           "description": "A blur over the heights, its radius on the board, mm: 0 to 5.",
           "format": "double",
           "type": "number"
+        },
+        "threshold": {
+          "default": null,
+          "description": "`inflate`: grey levels below this (1 to 254) are black; null: picked from the\npicture.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
         },
         "white_high": {
           "description": "White is the top, black the bottom; false: the other way round.",
@@ -2257,6 +2307,21 @@
         "gamma"
       ],
       "type": "object"
+    },
+    "PictureMode": {
+      "description": "How a picture model's picture becomes heights (docs/specs/inflated-shapes.md §3).",
+      "oneOf": [
+        {
+          "const": "depth",
+          "description": "Brightness as height.",
+          "type": "string"
+        },
+        {
+          "const": "inflate",
+          "description": "Its black-and-white shapes, each rising from its edge.",
+          "type": "string"
+        }
+      ]
     },
     "Placement": {
       "additionalProperties": false,

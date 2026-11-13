@@ -387,10 +387,13 @@ pub fn add_model(
     report.dropped = read_report.dropped;
     report.open_edges = read_report.open_edges;
     let read_message = match read.picture {
-        Some((w, h)) => Message::new("pipeline-model-read-picture")
-            .arg("id", id)
-            .arg("width", w)
-            .arg("height", h),
+        Some((w, h)) => Message::new(match new.picture.map(|p| p.mode) {
+            Some(chipload_job::PictureMode::Inflate) => "pipeline-model-read-inflated",
+            _ => "pipeline-model-read-picture",
+        })
+        .arg("id", id)
+        .arg("width", w)
+        .arg("height", h),
         None => with_size(
             Message::new(match read_report.format {
                 Format::Binary => "pipeline-model-read-binary",
@@ -764,6 +767,37 @@ mod tests {
             p.gamma = 9.0;
         }
         assert!(remake(&bad, model.id).is_err());
+    }
+
+    #[test]
+    fn a_logos_shapes_inflate_into_a_relief_its_outline_theirs() {
+        let bytes = std::fs::read(
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("../../tests/corpus/images/logo.png"),
+        )
+        .unwrap();
+        let read = read_model(&bytes).unwrap();
+        let mut new = NewModel::new("logo.png");
+        new.width = Some(60.0);
+        new.depth = Some(3.0);
+        new.picture = Some(chipload_job::PictureDepth {
+            mode: chipload_job::PictureMode::Inflate,
+            ..chipload_job::DEFAULT_PICTURE_DEPTH
+        });
+        let (job, report) = add_model(&crate::empty_project(), &read, new).unwrap();
+        assert!(report.lines[0].contains("inflated"), "{:?}", report.lines);
+        let model = &job.drawing.models[0];
+        let (lo, hi) = placed_mesh(&job, model.id).unwrap().bounds().unwrap();
+        assert!(hi[2].abs() < 1e-9 && (lo[2] + 3.0).abs() < 1e-9);
+        // The logo's shapes, not the whole picture: its outline has more than one loop.
+        assert!(report.shapes.len() > 1, "{:?}", report.shapes);
+        // A depth map of the same picture is the whole rectangle: one loop.
+        let mut plain = job.clone();
+        if let Some(p) = plain.drawing.models[0].picture.as_mut() {
+            p.mode = chipload_job::PictureMode::Depth;
+        }
+        let (_, again) = remake(&plain, model.id).unwrap();
+        assert_eq!(again.shapes.len(), 1);
     }
 
     #[test]

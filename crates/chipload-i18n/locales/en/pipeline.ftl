@@ -666,6 +666,7 @@ pipeline-model-no-outline = the model's outline can't be drawn
 # $units is mm or inch: the unit the file was read in. $x, $y, $z are its size.
 pipeline-model-read-binary = Model { $id }: { $count } triangles (binary STL), { $x } × { $y } × { $z } read in { $units }
 pipeline-model-read-picture = Model { $id }: a picture of { $width } × { $height } pixels, read as a depth map (white high)
+pipeline-model-read-inflated = Model { $id }: a picture of { $width } × { $height } pixels, its shapes inflated
 pipeline-model-not-picture = the depth-map settings are for a picture, and this file is an STL
 pipeline-model-read-text = Model { $id }: { $count } triangles (text STL), { $x } × { $y } × { $z } read in { $units }
 pipeline-model-dropped = { $count } triangles without an area were left out

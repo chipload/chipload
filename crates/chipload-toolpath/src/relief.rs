@@ -150,20 +150,43 @@ fn decoded(bytes: &[u8]) -> Result<chipload_image::Decoded, ReadFailure> {
     }
 }
 
-/// `picture` read as heights with `depth`, `width` mm wide, and made into a top surface
-/// (docs/specs/picture-relief.md §3).
+/// `picture` read as heights with `depth`, `width` mm wide: a depth map
+/// (docs/specs/picture-relief.md §3) or its shapes inflated (inflated-shapes.md §4); made
+/// into a top surface.
 pub fn picture_surface(
     picture: &chipload_image::Decoded,
     depth: &PictureDepth,
     width: f64,
 ) -> Result<Mesh, Message> {
-    let settings = chipload_image::DepthSettings {
-        white_high: depth.white_high,
-        smoothing: depth.smoothing,
-        background: depth.background,
-        gamma: depth.gamma,
-    };
-    let grid = chipload_image::depth_grid(picture, &settings, width).map_err(|e| e.message())?;
+    let grid = match depth.mode {
+        chipload_job::PictureMode::Depth => {
+            let settings = chipload_image::DepthSettings {
+                white_high: depth.white_high,
+                smoothing: depth.smoothing,
+                background: depth.background,
+                gamma: depth.gamma,
+            };
+            chipload_image::depth_grid(picture, &settings, width)
+        }
+        // Its shapes inflated (docs/specs/inflated-shapes.md §4).
+        chipload_job::PictureMode::Inflate => {
+            let settings = chipload_image::InflateSettings {
+                threshold: depth.threshold.map_or(
+                    chipload_image::Threshold::Auto,
+                    chipload_image::Threshold::Level,
+                ),
+                invert: depth.invert,
+                profile: match depth.profile {
+                    chipload_job::InflateProfile::Round => chipload_image::Profile::Round,
+                    chipload_job::InflateProfile::Straight => chipload_image::Profile::Straight,
+                },
+                reach: depth.reach,
+                smoothing: depth.smoothing,
+            };
+            chipload_image::inflate_grid(picture, &settings, width)
+        }
+    }
+    .map_err(|e| e.message())?;
     let mesh = Mesh::height_field(grid.columns, grid.rows, grid.cell, &grid.heights);
     if mesh.triangles.is_empty() {
         return Err(Message::new("image-error-depth-empty"));

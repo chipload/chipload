@@ -245,6 +245,49 @@ pub struct PictureDepth {
     /// The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper
     /// tops.
     pub gamma: f64,
+    /// How the picture becomes heights: a depth map, or its shapes inflated. Missing: a
+    /// depth map.
+    // Spec: docs/specs/inflated-shapes.md §3.
+    #[serde(default)]
+    pub mode: PictureMode,
+    /// `inflate`: grey levels below this (1 to 254) are black; null: picked from the
+    /// picture.
+    #[serde(default)]
+    pub threshold: Option<u8>,
+    /// `inflate`: white is the shape; false: black is.
+    #[serde(default)]
+    pub invert: bool,
+    /// `inflate`: how a shape rises from its edge.
+    #[serde(default)]
+    pub profile: InflateProfile,
+    /// `inflate`: how far in from the edge the height grows, mm, more than 0; null: the
+    /// widest shape's half-width.
+    #[serde(default)]
+    pub reach: Option<f64>,
+}
+
+/// How a picture model's picture becomes heights (docs/specs/inflated-shapes.md §3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum PictureMode {
+    /// Brightness as height.
+    #[default]
+    Depth,
+    /// Its black-and-white shapes, each rising from its edge.
+    Inflate,
+}
+
+/// How an inflated shape rises from its edge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum InflateProfile {
+    /// A quarter circle: steep at the edge, flat on top.
+    #[default]
+    Round,
+    /// A straight rise: a ridge along narrow strokes.
+    Straight,
 }
 
 /// A new picture model's settings (docs/specs/picture-relief.md §3).
@@ -253,6 +296,11 @@ pub const DEFAULT_PICTURE_DEPTH: PictureDepth = PictureDepth {
     smoothing: 0.2,
     background: 0.0,
     gamma: 1.0,
+    mode: PictureMode::Depth,
+    threshold: None,
+    invert: false,
+    profile: InflateProfile::Round,
+    reach: None,
 };
 
 /// A picture model's smoothing, background and gamma ranges (the same as
@@ -361,6 +409,30 @@ impl Model {
                 ("background", picture.background, PICTURE_BACKGROUND_RANGE),
                 ("gamma", picture.gamma, PICTURE_GAMMA_RANGE),
             ];
+            if picture.threshold.is_some_and(|t| !(1..=254).contains(&t)) {
+                problems.push(Problem::at(
+                    format!("{at}.picture.threshold"),
+                    Message::new("job-model-picture-range")
+                        .arg("low", Value::Number(1.0, Digits::Shortest))
+                        .arg("high", Value::Number(254.0, Digits::Shortest))
+                        .arg(
+                            "got",
+                            Value::Number(
+                                f64::from(picture.threshold.unwrap_or(0)),
+                                Digits::Shortest,
+                            ),
+                        ),
+                ));
+            }
+            if let Some(reach) = picture.reach
+                && !(reach.is_finite() && reach > 0.0)
+            {
+                problems.push(Problem::at(
+                    format!("{at}.picture.reach"),
+                    Message::new("job-must-be-positive")
+                        .arg("got", Value::Length(reach, Digits::Shortest)),
+                ));
+            }
             for (field, value, (low, high)) in ranges {
                 if !(value.is_finite() && (low..=high).contains(&value)) {
                     problems.push(Problem::at(

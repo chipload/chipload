@@ -317,6 +317,14 @@ What a picture is traced into.
 
 - `"centre_line"`: Open (or closed) paths along the black strokes' middles.
 
+## InflateProfile
+
+How an inflated shape rises from its edge.
+
+- `"round"`: A quarter circle: steep at the edge, flat on top.
+
+- `"straight"`: A straight rise: a ridge along narrow strokes.
+
 ## IssueSeverity
 
 One of: `"warning"`, `"error"`.
@@ -586,8 +594,21 @@ How a picture model's picture is read as heights (docs/specs/picture-relief.md ย
 |---|---|---|---|
 | `background` | number | yes | Grey shares up to this, 0 to 0.95, are background, not the model; 0: none. |
 | `gamma` | number | yes | The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops. |
+| `invert` | boolean | no | `inflate`: white is the shape; false: black is. |
+| `mode` | [PictureMode](#picturemode) | no | How the picture becomes heights: a depth map, or its shapes inflated. Missing: a depth map. |
+| `profile` | [InflateProfile](#inflateprofile) | no | `inflate`: how a shape rises from its edge. |
+| `reach` | number or null | no | `inflate`: how far in from the edge the height grows, mm, more than 0; null: the widest shape's half-width. |
 | `smoothing` | number | yes | A blur over the heights, its radius on the board, mm: 0 to 5. |
+| `threshold` | integer or null | no | `inflate`: grey levels below this (1 to 254) are black; null: picked from the picture. |
 | `white_high` | boolean | yes | White is the top, black the bottom; false: the other way round. |
+
+## PictureMode
+
+How a picture model's picture becomes heights (docs/specs/inflated-shapes.md ยง3).
+
+- `"depth"`: Brightness as height.
+
+- `"inflate"`: Its black-and-white shapes, each rising from its edge.
 
 ## Placement
 

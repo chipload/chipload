@@ -10,6 +10,8 @@ image-error-format = non è un'immagine PNG, JPEG o BMP
 image-error-heic = una foto HEIC, che Chipload non legge: salva prima la mappa di profondità (o la foto) come PNG; per un oggetto, l'STL di un'app di scansione 3D funziona meglio
 image-error-depth-setting = { $field } deve essere tra { $low } e { $high }, è { $got }
 image-error-depth-empty = tutta l'immagine è sfondo: abbassa il livello dello sfondo
+image-error-inflate-empty = l'immagine non ha forme a questa soglia: cambia la soglia o invertila
+image-error-inflate-reach = la portata deve essere maggiore di 0, è { $got }
 # $reason is the picture decoder's own words, or one of the two texts below.
 image-error-decode = impossibile leggere l'immagine: { $reason }
 image-error-no-pixels = l'immagine non ha pixel

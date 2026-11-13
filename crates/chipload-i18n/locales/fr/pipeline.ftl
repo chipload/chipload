@@ -669,6 +669,7 @@ pipeline-model-nothing-kept = il ne reste rien du modèle { $id } au-dessus de s
 pipeline-model-no-outline = le contour du modèle ne peut pas être dessiné
 pipeline-model-read-binary = Modèle { $id } : { $count } triangles (STL binaire), { $x } × { $y } × { $z } lu en { $units }
 pipeline-model-read-picture = Modèle { $id } : une image de { $width } × { $height } pixels, lue comme carte de profondeur (blanc en haut)
+pipeline-model-read-inflated = Modèle { $id } : une image de { $width } × { $height } pixels, ses formes gonflées
 pipeline-model-not-picture = les réglages de carte de profondeur sont pour une image, et ce fichier est un STL
 pipeline-model-read-text = Modèle { $id } : { $count } triangles (STL texte), { $x } × { $y } × { $z } lu en { $units }
 pipeline-model-dropped = { $count } triangles sans surface ont été écartés

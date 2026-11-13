@@ -80,7 +80,28 @@ pub enum ModelAction {
 /// How a picture is read as a depth map (docs/specs/picture-relief.md §3); unset: the
 /// default (add) or unchanged (set). Only for a picture.
 #[derive(Args)]
-pub struct DepthMap {
+pub(crate) struct DepthMap {
+    /// Inflate the picture's black-and-white shapes, each rising from its edge, instead of
+    /// reading it as a depth map (docs/specs/inflated-shapes.md).
+    #[arg(long, conflicts_with = "mode")]
+    inflate: bool,
+    /// How the picture becomes heights: depth (a depth map) or inflate (its shapes).
+    #[arg(long, value_parser = parse_mode)]
+    mode: Option<chipload_job::PictureMode>,
+    /// Inflated: grey levels below this (1 to 254) are black; auto: picked from the
+    /// picture (default).
+    #[arg(long, value_parser = parse_threshold)]
+    threshold: Option<OrAuto<u8>>,
+    /// Inflated: white is the shape (true) or black is (false, the default).
+    #[arg(long)]
+    invert: Option<bool>,
+    /// Inflated: how a shape rises from its edge: round (default) or straight.
+    #[arg(long, value_parser = parse_profile)]
+    profile: Option<chipload_job::InflateProfile>,
+    /// Inflated: how far in from the edge the height grows, in mm; auto: the widest
+    /// shape's half-width (default).
+    #[arg(long, value_parser = parse_reach)]
+    reach: Option<OrAuto<f64>>,
     /// White is high (true, the default) or black is (false).
     #[arg(long)]
     white_high: Option<bool>,
@@ -97,15 +118,42 @@ pub struct DepthMap {
 }
 
 impl DepthMap {
-    fn given(&self) -> bool {
-        self.white_high.is_some()
+    pub(crate) fn given(&self) -> bool {
+        self.inflate
+            || self.mode.is_some()
+            || self.threshold.is_some()
+            || self.invert.is_some()
+            || self.profile.is_some()
+            || self.reach.is_some()
+            || self.white_high.is_some()
             || self.smoothing.is_some()
             || self.background.is_some()
             || self.gamma.is_some()
     }
 
     /// `depth` with the values given.
-    fn applied(&self, mut depth: chipload_job::PictureDepth) -> chipload_job::PictureDepth {
+    pub(crate) fn applied(
+        &self,
+        mut depth: chipload_job::PictureDepth,
+    ) -> chipload_job::PictureDepth {
+        if self.inflate {
+            depth.mode = chipload_job::PictureMode::Inflate;
+        }
+        if let Some(v) = self.mode {
+            depth.mode = v;
+        }
+        if let Some(OrAuto(v)) = self.threshold {
+            depth.threshold = v;
+        }
+        if let Some(v) = self.invert {
+            depth.invert = v;
+        }
+        if let Some(v) = self.profile {
+            depth.profile = v;
+        }
+        if let Some(OrAuto(v)) = self.reach {
+            depth.reach = v;
+        }
         if let Some(v) = self.white_high {
             depth.white_high = v;
         }
@@ -119,6 +167,47 @@ impl DepthMap {
             depth.gamma = v;
         }
         depth
+    }
+}
+
+fn parse_mode(text: &str) -> Result<chipload_job::PictureMode, String> {
+    match text.trim() {
+        "depth" => Ok(chipload_job::PictureMode::Depth),
+        "inflate" => Ok(chipload_job::PictureMode::Inflate),
+        other => Err(format!("depth or inflate, got {other:?}")),
+    }
+}
+
+fn parse_profile(text: &str) -> Result<chipload_job::InflateProfile, String> {
+    match text.trim() {
+        "round" => Ok(chipload_job::InflateProfile::Round),
+        "straight" => Ok(chipload_job::InflateProfile::Straight),
+        other => Err(format!("round or straight, got {other:?}")),
+    }
+}
+
+/// A value given, or `auto` (None).
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct OrAuto<T>(Option<T>);
+
+/// `auto`, or a grey level from 1 to 254.
+fn parse_threshold(text: &str) -> Result<OrAuto<u8>, String> {
+    match text.trim() {
+        "auto" => Ok(OrAuto(None)),
+        other => other
+            .parse::<u8>()
+            .ok()
+            .filter(|t| (1..=254).contains(t))
+            .map(|t| OrAuto(Some(t)))
+            .ok_or_else(|| format!("auto or a grey level from 1 to 254, got {other:?}")),
+    }
+}
+
+/// `auto`, or a length.
+fn parse_reach(text: &str) -> Result<OrAuto<f64>, String> {
+    match text.trim() {
+        "auto" => Ok(OrAuto(None)),
+        other => crate::lengths::length(other).map(|r| OrAuto(Some(r))),
     }
 }
 
@@ -418,6 +507,17 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             depth.push_str(&format!(", the top {}% kept", model.keep * 100.0));
         }
         let kind = match &model.picture {
+            Some(p) if p.mode == chipload_job::PictureMode::Inflate => format!(
+                "its shapes inflated, {}, reach {}, threshold {}{}, smoothing {} mm",
+                match p.profile {
+                    chipload_job::InflateProfile::Round => "round",
+                    chipload_job::InflateProfile::Straight => "straight",
+                },
+                p.reach.map_or("auto".to_string(), |r| format!("{r} mm")),
+                p.threshold.map_or("auto".to_string(), |t| t.to_string()),
+                if p.invert { ", inverted" } else { "" },
+                p.smoothing
+            ),
             Some(p) => format!(
                 "a depth map, {} high, smoothing {} mm, background {}%, gamma {}",
                 if p.white_high { "white" } else { "black" },

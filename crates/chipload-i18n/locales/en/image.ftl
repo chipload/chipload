@@ -10,6 +10,8 @@ image-error-format = not a PNG, JPEG or BMP picture
 image-error-heic = an HEIC photo, which Chipload doesn't read: save the depth map (or the photo) as a PNG first; for an object, a 3D-scanning app's STL works better
 image-error-depth-setting = { $field } must be from { $low } to { $high }, got { $got }
 image-error-depth-empty = every part of the picture is background: lower the background level
+image-error-inflate-empty = the picture has no shape at this threshold: change the threshold, or invert it
+image-error-inflate-reach = the reach must be more than 0, got { $got }
 # $reason is the picture decoder's own words, or one of the two texts below.
 image-error-decode = the picture can't be read: { $reason }
 image-error-no-pixels = the picture has no pixels

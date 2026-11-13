@@ -1,6 +1,6 @@
 # Inflated shapes: a relief from a black-and-white picture
 
-Status: draft for review, 2026-11-13. Asked by the user 2026-11-13 ("Describe inflated
+Status: approved and built, 2026-11-13 ("Great! Go ahead"), decisions 1–5 as recommended. Asked by the user 2026-11-13 ("Describe inflated
 shapes" … "Go ahead"). Builds on docs/specs/picture-relief.md (a picture as a 3D model) and
 docs/specs/image-trace.md (black and white from a picture).
 
@@ -44,7 +44,7 @@ now:
 | Field | Meaning | Default |
 |---|---|---|
 | `mode` | `depth` or `inflate` | `depth` |
-| `threshold` | `inflate`: `auto`, or a grey level 1–254 below which is black | `auto` |
+| `threshold` | `inflate`: a grey level 1–254 below which is black; null: automatic (Otsu) | null |
 | `invert` | `inflate`: white is the shape | false |
 | `profile` | `inflate`: `round` or `straight` | `round` |
 | `reach` | `inflate`: mm from the edge, more than 0; null: automatic | null |
@@ -80,7 +80,8 @@ Shapes of fewer than four cells make no triangles (picture-relief.md §3) and ar
 
 - **Command line:** `model add logo.png --inflate [--profile round|straight]
   [--reach 3mm] [--threshold auto|128] [--invert] --width 120 --depth 4`; `model set ID
-  --mode inflate|depth`, and the same options; `relief add logo.png --inflate …`.
+  --mode inflate|depth`, and the same options (`--threshold auto`, `--reach auto` go back
+  to automatic; `--invert true|false`); `relief add logo.png --inflate …`.
 - **The window:** the picture settings get *Kind*: *Depth map* or *Inflated*; inflated
   shows *Threshold*, *Invert*, *Profile*, *Reach* (with *Automatic* ticked by default) and
   *Smoothing*. In the model's properties, *Turn and cut* and the wizard's step 2, whose 3D

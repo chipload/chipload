@@ -1256,6 +1256,12 @@ chipload model add <PROJECT> <MODEL> [OPTIONS]
 | `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
 | `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
 | `--keep <KEEP>` | How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part's. |
+| `--inflate` | Inflate the picture's black-and-white shapes, each rising from its edge, instead of reading it as a depth map (docs/specs/inflated-shapes.md) |
+| `--mode <MODE>` | How the picture becomes heights: depth (a depth map) or inflate (its shapes) |
+| `--threshold <THRESHOLD>` | Inflated: grey levels below this (1 to 254) are black; auto: picked from the picture (default) |
+| `--invert <INVERT>` | Inflated: white is the shape (true) or black is (false, the default) One of: `true`, `false`. |
+| `--profile <PROFILE>` | Inflated: how a shape rises from its edge: round (default) or straight. |
+| `--reach <REACH>` | Inflated: how far in from the edge the height grows, in mm; auto: the widest shape's half-width (default) |
 | `--white-high <WHITE_HIGH>` | White is high (true, the default) or black is (false) One of: `true`, `false`. |
 | `--smoothing <SMOOTHING>` | A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2) |
 | `--background <BACKGROUND>` | Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0) |
@@ -1282,6 +1288,12 @@ chipload model set <PROJECT> <ID> [OPTIONS]
 | `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
 | `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
 | `--keep <KEEP>` | How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part's. |
+| `--inflate` | Inflate the picture's black-and-white shapes, each rising from its edge, instead of reading it as a depth map (docs/specs/inflated-shapes.md) |
+| `--mode <MODE>` | How the picture becomes heights: depth (a depth map) or inflate (its shapes) |
+| `--threshold <THRESHOLD>` | Inflated: grey levels below this (1 to 254) are black; auto: picked from the picture (default) |
+| `--invert <INVERT>` | Inflated: white is the shape (true) or black is (false, the default) One of: `true`, `false`. |
+| `--profile <PROFILE>` | Inflated: how a shape rises from its edge: round (default) or straight. |
+| `--reach <REACH>` | Inflated: how far in from the edge the height grows, in mm; auto: the widest shape's half-width (default) |
 | `--white-high <WHITE_HIGH>` | White is high (true, the default) or black is (false) One of: `true`, `false`. |
 | `--smoothing <SMOOTHING>` | A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2) |
 | `--background <BACKGROUND>` | Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0) |
@@ -1582,6 +1594,16 @@ chipload relief add <PROJECT> <FILE> [OPTIONS]
 | `--allowance <ALLOWANCE>` | What the roughing pass leaves for the finish, mm. |
 | `--smooth` | A smoothing pass after the roughing, with the roughing tool, its lines across the roughing's: it takes the steps the roughing leaves on slopes. |
 | `--end-mill <END_MILL>` | The end mill for the cut-out (default: the roughing one) |
+| `--inflate` | Inflate the picture's black-and-white shapes, each rising from its edge, instead of reading it as a depth map (docs/specs/inflated-shapes.md) |
+| `--mode <MODE>` | How the picture becomes heights: depth (a depth map) or inflate (its shapes) |
+| `--threshold <THRESHOLD>` | Inflated: grey levels below this (1 to 254) are black; auto: picked from the picture (default) |
+| `--invert <INVERT>` | Inflated: white is the shape (true) or black is (false, the default) One of: `true`, `false`. |
+| `--profile <PROFILE>` | Inflated: how a shape rises from its edge: round (default) or straight. |
+| `--reach <REACH>` | Inflated: how far in from the edge the height grows, in mm; auto: the widest shape's half-width (default) |
+| `--white-high <WHITE_HIGH>` | White is high (true, the default) or black is (false) One of: `true`, `false`. |
+| `--smoothing <SMOOTHING>` | A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2) |
+| `--background <BACKGROUND>` | Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0) |
+| `--gamma <GAMMA>` | The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops (default 1) |
 | `-o, --output <OUTPUT>` | Write here instead of over the project. |
 
 ## `chipload dxf`
