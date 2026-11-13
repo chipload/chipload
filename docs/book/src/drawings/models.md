@@ -14,8 +14,10 @@ question at a time, each needing only the ones before it:
 1. **Model:** an STL file, or a model already in the project.
 2. **Turn and cut:** which side faces up, quarter turns, and how much to keep from the top
    (as in [Turn and cut](#turn-and-cut)).
-3. **Size and place:** width and depth, centred on the board or at a point; the board's
-   thickness, which the depth must stay within.
+3. **Size and place:** width and depth, centred on the board or at a point; the **start
+   depth**, how far below the board's surface the model's top lies (0 by default; a
+   millimetre or so on a board that isn't planed, so its uneven top doesn't reach the
+   relief); the board's thickness, which the start depth and the depth must stay within.
 4. **Round it:** a [rim](#a-rim-and-a-ramp) round the model's outline (the default) or
    round a box, rounded corners if you like: a flat at the relief's depth, then a ramp up
    to the surface; or the relief cut out through the board with tabs.
@@ -38,8 +40,8 @@ chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
 ```
 
 `--around` is `rim` (the default), `box` or `cut-out`; `--smooth` adds the smoothing pass. `--model ID` uses a model already in
-the project; `--up`, `--rotate`, `--at X,Y`, `--corner`, `--allowance` and `--end-mill`
-answer the rest. The tools are project tool
+the project; `--up`, `--rotate`, `--at X,Y`, `--start-depth`, `--corner`, `--allowance`
+and `--end-mill` answer the rest. The tools are project tool
 numbers.
 
 ## Adding a model
@@ -173,8 +175,10 @@ reaches finer detail; an end mill or a V-bit works too, with their own marks.
   model's long edges leave fewer marks.
 - **`zigzag`:** back and forth (true, the default), or every line the same way, lifting
   between them.
-- **`start_depth`:** how far below the stock top the model's top lies. Its lowest point is
-  the start depth plus the model's depth, which the checker holds within the stock.
+- **`start_depth`:** how far below the stock top the model's top lies: a little on an
+  unplaned board, so its uneven top doesn't reach the relief. Its lowest point is the start
+  depth plus the model's depth, which the checker holds within the stock. The roughing pass
+  still starts at the stock top, and a rim's ramp still climbs to it.
 
 In the project file a relief reads:
 

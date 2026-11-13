@@ -50,6 +50,8 @@ pub(super) struct ReliefWizard {
     views: ModelViews,
     centred: bool,
     thickness: f64,
+    /// The model's top below the board's surface, mm: the relief's start depth.
+    sink: f64,
     around: Around,
     margin: f64,
     /// The margin typed in: it no longer follows the roughing tool.
@@ -132,6 +134,7 @@ impl ReliefWizard {
             views: ModelViews::default(),
             centred: true,
             thickness: job.stock().thickness,
+            sink: 0.0,
             around: Around::Rim,
             margin: DEFAULT_MARGIN_MM,
             margin_set: false,
@@ -202,7 +205,7 @@ impl ReliefWizard {
                 .then(|| t!(ui, "relief-wizard-need-model")),
             2 => (!self.views.ready()).then(|| t!(ui, "relief-wizard-need-view")),
             3 => {
-                let depth = self.views.size().map_or(0.0, |s| s[2]);
+                let depth = self.views.size().map_or(0.0, |s| s[2]) + self.sink;
                 (depth > self.thickness).then(|| {
                     t!(
                         ui,
@@ -230,7 +233,7 @@ impl ReliefWizard {
 
     /// How far out the rim's ramp reaches the board's surface from its foot, mm.
     fn rim_run(&self) -> f64 {
-        let depth = self.views.size().map_or(0.0, |s| s[2]);
+        let depth = self.views.size().map_or(0.0, |s| s[2]) + self.sink;
         chipload_job::rim_run(depth, self.ramp)
     }
 
@@ -305,6 +308,7 @@ impl ChiploadApp {
         request.keep = draft.keep;
         request.depth = (!draft.proportional).then_some(draft.depth);
         request.at = (!w.centred).then_some((draft.x, draft.y));
+        request.sink = w.sink;
         request.around = w.around;
         request.margin = w.margin;
         request.corner = w.corner;
@@ -598,6 +602,14 @@ fn step_size(ui: &mut egui::Ui, w: &mut ReliefWizard, job: &Job) {
                 });
                 ui.end_row();
             }
+            ui.label(t!(ui, "relief-wizard-sink"))
+                .on_hover_text(t!(ui, "relief-wizard-sink-hover"));
+            ui.add(
+                crate::units::length(&mut w.sink)
+                    .range(0.0..=1_000.0)
+                    .speed(0.05),
+            );
+            ui.end_row();
             ui.label(t!(ui, "relief-wizard-thickness"));
             ui.add(
                 crate::units::length(&mut w.thickness)
@@ -773,6 +785,16 @@ fn step_check(
             depth = text(size[2]).as_str(),
             tool = name(finish)
         ));
+        if w.sink > 0.0
+            && let Some(line) = lines.last_mut()
+        {
+            let sunk = t!(
+                ui,
+                "relief-wizard-summary-sink",
+                sink = text(w.sink).as_str()
+            );
+            line.push_str(&sunk);
+        }
         tools.push(finish.clone());
         // The rim is the relief's own: said on its line.
         if w.around != Around::CutOut

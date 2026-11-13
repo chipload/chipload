@@ -110,3 +110,6 @@ models-could-not-add-smoothing = Der Glättdurchgang konnte nicht hinzugefügt w
 relief-wizard-smooth = Stufen glätten
 relief-wizard-smooth-hover = Der Schruppfräser folgt der Oberfläche noch einmal, quer zu seinen ersten Bahnen, und nimmt die Stufen an Hängen weg, sodass der Kugelfräser nur eine gleichmäßige Haut abnimmt
 relief-wizard-summary-smooth = Glätten mit demselben Werkzeug
+relief-wizard-sink = Starttiefe
+relief-wizard-sink-hover = Wie weit unter der Oberfläche der Platte die Oberseite des Modells liegt: etwas bei einer ungehobelten Platte, damit ihre unebene Oberseite das Relief nicht trifft. Die Rampe des Rands und das Schruppen beginnen an der Oberfläche.
+relief-wizard-summary-sink = , seine Oberseite { $sink } unter der Oberfläche

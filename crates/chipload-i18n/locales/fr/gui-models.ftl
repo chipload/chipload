@@ -110,3 +110,6 @@ models-could-not-add-smoothing = Impossible d'ajouter la passe de lissage : { $e
 relief-wizard-smooth = Lisser les marches
 relief-wizard-smooth-hover = La fraise d'ébauche suit encore une fois la surface, ses lignes en travers des premières, et enlève les marches laissées sur les pentes : la fraise hémisphérique n'enlève plus qu'une peau régulière
 relief-wizard-summary-smooth = Lissage avec le même outil
+relief-wizard-sink = Profondeur de départ
+relief-wizard-sink-hover = À quelle distance sous la surface du panneau se trouve le haut du modèle : un peu pour un panneau non raboté, pour que son dessus irrégulier ne marque pas le relief. La rampe du bord et l'ébauche partent de la surface.
+relief-wizard-summary-sink = , son sommet { $sink } sous la surface

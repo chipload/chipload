@@ -676,4 +676,5 @@ pipeline-relief-ball = l'utensile { $tool } non è una fresa sferica: un rilievo
 pipeline-relief-needs-end-mill = uno sfondo o un taglio richiede una fresa piatta: indicane una, o una per sgrossare
 pipeline-relief-end-mill = l'utensile { $tool } non è una fresa piatta: lo sfondo o il taglio si fa con una
 pipeline-relief-margin = il margine dello sfondo deve essere maggiore di 0 e il raggio degli angoli non sotto 0, ricevuto { $margin }
+pipeline-relief-sink = la profondità iniziale del rilievo sotto la superficie della tavola deve essere 0 o più, ottenuto { $got }
 pipeline-relief-nothing = niente da cui fare il rilievo

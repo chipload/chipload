@@ -110,3 +110,6 @@ models-could-not-add-smoothing = No se pudo añadir la pasada de alisado: { $err
 relief-wizard-smooth = Alisar los escalones
 relief-wizard-smooth-hover = La fresa de desbaste sigue la superficie una vez más, con sus líneas cruzando las primeras, y quita los escalones que dejó en las pendientes, para que la fresa esférica solo quite una capa uniforme
 relief-wizard-summary-smooth = Alisado con la misma herramienta
+relief-wizard-sink = Profundidad inicial
+relief-wizard-sink-hover = A qué distancia bajo la superficie del tablero queda la parte superior del modelo: un poco en un tablero sin cepillar, para que su cara irregular no se note en el relieve. La rampa del borde y el desbaste empiezan en la superficie.
+relief-wizard-summary-sink = , su parte superior { $sink } bajo la superficie

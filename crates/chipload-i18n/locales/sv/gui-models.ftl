@@ -110,3 +110,6 @@ models-could-not-add-smoothing = Kunde inte lägga till utjämningspassen: { $er
 relief-wizard-smooth = Jämna ut stegen
 relief-wizard-smooth-hover = Grovfräsen följer ytan en gång till, med banorna tvärs över de första, och tar bort stegen den lämnade i sluttningar, så att kulfräsen bara tar ett jämnt skikt
 relief-wizard-summary-smooth = Utjämning med samma verktyg
+relief-wizard-sink = Startdjup
+relief-wizard-sink-hover = Hur långt under skivans yta modellens topp ligger: lite för en ohyvlad skiva, så att den ojämna ytan inte syns på reliefen. Kantens ramp och grovpassen börjar vid ytan.
+relief-wizard-summary-sink = , toppen { $sink } under ytan

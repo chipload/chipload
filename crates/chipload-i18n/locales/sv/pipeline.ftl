@@ -671,4 +671,5 @@ pipeline-relief-ball = verktyg { $tool } är ingen kulfräs: en relief finfräse
 pipeline-relief-needs-end-mill = en bakgrund eller utsågning behöver en pinnfräs: ange en, eller en för grovfräsning
 pipeline-relief-end-mill = verktyg { $tool } är ingen pinnfräs: bakgrunden eller utsågningen fräses med en
 pipeline-relief-margin = bakgrundens marginal måste vara större än 0 och hörnradien inte under 0, fick { $margin }
+pipeline-relief-sink = reliefens startdjup under skivans yta måste vara 0 eller mer, fick { $got }
 pipeline-relief-nothing = inget att göra reliefen av

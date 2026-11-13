@@ -110,3 +110,6 @@ models-could-not-add-smoothing = Impossibile aggiungere la passata di lisciatura
 relief-wizard-smooth = Lisciare i gradini
 relief-wizard-smooth-hover = La fresa di sgrossatura segue ancora una volta la superficie, con le linee di traverso alle prime, e toglie i gradini lasciati sui pendii, così la fresa sferica asporta solo uno strato uniforme
 relief-wizard-summary-smooth = Lisciatura con lo stesso utensile
+relief-wizard-sink = Profondità iniziale
+relief-wizard-sink-hover = Quanto sotto la superficie della tavola si trova la sommità del modello: un poco per una tavola non piallata, così la sua faccia irregolare non tocca il rilievo. La rampa del bordo e la sgrossatura partono dalla superficie.
+relief-wizard-summary-sink = , la sommità { $sink } sotto la superficie

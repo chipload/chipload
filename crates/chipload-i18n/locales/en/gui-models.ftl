@@ -110,3 +110,6 @@ models-could-not-add-smoothing = Could not add the smoothing pass: { $error }
 relief-wizard-smooth = Smooth the steps
 relief-wizard-smooth-hover = The roughing end mill follows the surface once more, its lines across its first ones, and takes off the steps it left on slopes, so the ball nose only takes an even skin
 relief-wizard-summary-smooth = Smoothing with the same tool
+relief-wizard-sink = Start depth
+relief-wizard-sink-hover = How far below the board's surface the model's top lies: a little for a board that isn't planed, so its uneven top doesn't show on the relief. The rim's ramp and the roughing start at the surface.
+relief-wizard-summary-sink = , its top { $sink } below the surface

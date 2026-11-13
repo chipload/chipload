@@ -681,4 +681,5 @@ pipeline-relief-ball = tool { $tool } isn't a ball nose: a relief is finished wi
 pipeline-relief-needs-end-mill = a background or cut-out needs an end mill: give one, or a roughing end mill
 pipeline-relief-end-mill = tool { $tool } isn't an end mill: the background or cut-out is cut with one
 pipeline-relief-margin = the background's margin must be more than 0 and its corners' radius not below 0, got { $margin }
+pipeline-relief-sink = the relief's start depth below the board's surface must be 0 or more, got { $got }
 pipeline-relief-nothing = nothing to make the relief of

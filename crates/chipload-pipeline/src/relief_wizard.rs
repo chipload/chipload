@@ -88,6 +88,9 @@ pub struct ReliefRequest {
     pub width: f64,
     pub depth: Option<f64>,
     pub at: Option<(f64, f64)>,
+    /// How far below the board's surface the model's top lies, mm: the relief's start
+    /// depth, for an unplaned board. The roughing still starts at the surface.
+    pub sink: f64,
     /// Step 4.
     pub around: Around,
     /// The rim's flat round the outline or the model's box, mm; a box's corner radius, mm;
@@ -115,6 +118,7 @@ impl ReliefRequest {
             width,
             depth: None,
             at: None,
+            sink: 0.0,
             around: Around::Rim,
             margin: DEFAULT_MARGIN_MM,
             corner: 0.0,
@@ -181,6 +185,12 @@ fn check(job: &Job, request: &ReliefRequest) -> Result<(), PipelineError> {
     }
     if let Some((tool, _)) = request.rough {
         kind(tool)?;
+    }
+    if !(request.sink.is_finite() && request.sink >= 0.0) {
+        return Err(refused(
+            Message::new("pipeline-relief-sink")
+                .arg("got", Value::Length(request.sink, Digits::Shortest)),
+        ));
     }
     if request.around == Around::CutOut {
         let mill = request
@@ -340,6 +350,9 @@ pub fn add_relief(
     let mut op = op;
     if let Operation::Relief(r) = &mut op {
         r.rim = request.rim();
+        // Sunk below the surface: the model's depth below its start.
+        r.end_depth += request.sink - r.start_depth;
+        r.start_depth = request.sink;
     }
     let relief = append(&mut job, part, op);
     operations.push(relief);
@@ -594,6 +607,47 @@ mod tests {
         // error on the slope.
         assert!(steps > 2.2, "{steps}");
         assert!(smooth < 0.8, "{smooth}");
+    }
+
+    #[test]
+    fn a_sunken_relief_is_roughed_from_the_surface_and_its_ramp_meets_it() {
+        let job = dome();
+        let mut request = ReliefRequest::new(30.0, 2);
+        request.rough = Some((1, 0.2));
+        request.depth = Some(4.0);
+        request.sink = 1.0;
+        request.margin = 7.0;
+        let (out, made) = made(&job, &request);
+        let Operation::Relief(relief) = &out.operations[made.relief] else {
+            unreachable!()
+        };
+        assert_eq!((relief.start_depth, relief.end_depth), (1.0, 5.0));
+        let (rough, done) = before_and_after_the_finish(&out, made.relief);
+        let (lo, hi) = crate::models::placed_mesh(&out, 1)
+            .unwrap()
+            .bounds()
+            .unwrap();
+        let cell = |sim: &crate::simulate::Simulation, x: f64, y: f64| {
+            let i = ((x - sim.origin.0) / sim.cell) as usize;
+            let j = ((y - sim.origin.1) / sim.cell) as usize;
+            sim.height(i, j)
+        };
+        // The dome's top, 1 mm down: the roughing took the board's top layer off it, from
+        // the surface, leaving the allowance; the finish cut it to the model.
+        let middle = ((lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0);
+        let roughed = cell(&rough, middle.0, middle.1);
+        assert!(roughed < -0.7 && roughed > -1.0, "{roughed}");
+        let finished = cell(&done, middle.0, middle.1);
+        assert!((finished + 1.0).abs() < 0.1, "{finished}");
+        // Out past the flat (7 mm) and the ramp (5 mm deep at 45°): the surface, untouched.
+        let out_x = hi[0] + 7.0 + 5.0 + 3.0;
+        assert_eq!(cell(&done, out_x, middle.1), done.top);
+        // Halfway up the ramp: halfway between the floor and the surface.
+        let half = cell(&done, hi[0] + 7.0 + 2.5, middle.1);
+        assert!((half - (done.top - 2.5)).abs() < 0.3, "{half}");
+        // Above the surface (a start depth below 0) is refused.
+        request.sink = -1.0;
+        assert!(add_relief(&job, ReliefModel::Existing(1), &request, None, Language::En).is_err());
     }
 
     #[test]

@@ -232,7 +232,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    plan note when a flat is narrower. §17 done (the user, 2026-11-13: "Go ahead"): a
    relief's smoothing pass "N.2" after its roughing (the surface followed once, lines
    across, the roughing tool by default, 15 %), `op add-smoothing`, `relief add --smooth`,
-   the wizard's *Smooth the steps*, its Browser row and form; golden v36_relief_box_smooth.
+   the wizard's *Smooth the steps*, its Browser row and form; golden v36_relief_box_smooth. The wizard's
+   start depth (step 3, `relief add --start-depth`): a relief sunk below an unplaned
+   board's surface.
    Next: the user tries the branch further. After that: a relief from a picture (brightness
    as height, inflated shapes).
 13. **Small follow-ups:**

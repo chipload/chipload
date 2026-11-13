@@ -77,6 +77,10 @@ pub struct AddRelief {
     /// Where its footprint's lower-left corner goes, X,Y (default: centred on the board).
     #[arg(long, value_parser = parse_at)]
     at: Option<(f64, f64)>,
+    /// How far below the board's surface the model's top lies (default 0): for an
+    /// unplaned board. The rim's ramp and the roughing start at the surface.
+    #[arg(value_parser = crate::lengths::length, long)]
+    start_depth: Option<f64>,
     /// What goes round it.
     #[arg(long, value_enum, default_value = "rim")]
     around: AroundArg,
@@ -137,6 +141,7 @@ fn add_one(out: &mut Out, add: AddRelief) -> ExitCode {
     request.keep = add.keep.unwrap_or(1.0);
     request.depth = add.depth;
     request.at = add.at;
+    request.sink = add.start_depth.unwrap_or(0.0);
     request.around = add.around.into();
     request.corner = add.corner.unwrap_or(0.0);
     if let Some(degrees) = add.ramp {

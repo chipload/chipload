@@ -674,4 +674,5 @@ pipeline-relief-ball = Werkzeug { $tool } ist kein Kugelfräser: ein Relief wird
 pipeline-relief-needs-end-mill = Hintergrund oder Ausschnitt brauchen einen Schaftfräser: gib einen an, oder einen zum Schruppen
 pipeline-relief-end-mill = Werkzeug { $tool } ist kein Schaftfräser: Hintergrund oder Ausschnitt werden mit einem gefräst
 pipeline-relief-margin = der Rand des Hintergrunds muss größer als 0 sein und der Eckradius nicht unter 0, erhalten { $margin }
+pipeline-relief-sink = die Starttiefe des Reliefs unter der Oberfläche der Platte muss 0 oder mehr sein, erhalten { $got }
 pipeline-relief-nothing = nichts, woraus das Relief entstehen kann

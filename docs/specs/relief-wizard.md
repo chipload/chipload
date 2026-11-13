@@ -290,3 +290,12 @@ decision 6. The layout test guards it in every language.
 gave way to a rim on the relief itself: *Rim* round the outline (the default) or *Box*,
 each a flat and a ramp up to the surface; *Cut it out* stays, without a rim. The wizard
 adds no rectangle and no pocket; a fitted board grows round the rim.
+
+**Added 2026-11-13** (the user: "a start depth … so the relief can be sunken beneath the
+surface a little bit … if the wood is uneven, unplaned. The roughing should start from
+0"): step 3 asks the **start depth**, the model's top below the board's surface (0 by
+default), and `relief add --start-depth`. It is the relief's `start_depth`, which the
+relief already had: its end depth is the start depth plus the model's depth, which must
+stay within the board. Nothing else changes: the roughing's levels start at the stock top,
+taking the layer over the model with the rest, and the rim's ramp climbs from the floor to
+the stock top, its run worked out from the whole depth.

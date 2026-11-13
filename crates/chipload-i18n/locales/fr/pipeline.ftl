@@ -679,4 +679,5 @@ pipeline-relief-ball = l'outil { $tool } n'est pas une fraise boule : un relief 
 pipeline-relief-needs-end-mill = un fond ou un détourage demande une fraise droite : donnez-en une, ou une d'ébauche
 pipeline-relief-end-mill = l'outil { $tool } n'est pas une fraise droite : le fond ou le détourage se coupe avec une
 pipeline-relief-margin = la marge du fond doit être supérieure à 0 et le rayon des coins pas inférieur à 0, reçu { $margin }
+pipeline-relief-sink = la profondeur de départ du relief sous la surface du panneau doit valoir 0 ou plus, reçu { $got }
 pipeline-relief-nothing = rien dont faire le relief
