@@ -163,15 +163,40 @@ fn turned_in_mm(model: &Model, mesh: &Mesh) -> Mesh {
 }
 
 /// The model's mesh read from the project, turned so its up axis points up, in mm as its
-/// unit reads.
+/// unit reads, and cut at its cut level: the part kept (docs/specs/relief-wizard.md §5).
 pub fn turned_mesh(model: &Model) -> Result<Mesh, ReliefError> {
     let read = read_model(model)?;
-    Ok(turned_in_mm(model, &read_mesh(&read)?.full))
+    let turned = turned_in_mm(model, &read_mesh(&read)?.full);
+    Ok(match cut_level(model)? {
+        Some(level) => turned.above(level),
+        None => turned,
+    })
 }
 
-/// The box of [`turned_mesh`], without turning the mesh: its own box's corners turned (a
-/// turn of axes keeps a box a box).
+/// The Z the turned model is cut at, or None when it is kept whole: `keep` of its height
+/// from its top (docs/specs/relief-wizard.md §5).
+fn cut_level(model: &Model) -> Result<Option<f64>, ReliefError> {
+    if model.keep >= 1.0 {
+        return Ok(None);
+    }
+    let (lo, hi) = whole_turned_bounds(model)?;
+    Ok(Some(hi[2] - model.keep * (hi[2] - lo[2])))
+}
+
+/// The box of [`turned_mesh`]: for a model kept whole, its own box's corners turned (a
+/// turn of axes keeps a box a box), without turning the mesh; for one cut, the kept
+/// part's.
 pub fn turned_bounds(model: &Model) -> Result<(Vertex, Vertex), ReliefError> {
+    if model.keep >= 1.0 {
+        return whole_turned_bounds(model);
+    }
+    turned_mesh(model)?
+        .bounds()
+        .ok_or_else(|| refused(Message::new("pipeline-model-nothing-kept").arg("id", model.id)))
+}
+
+/// The box of the whole turned model, before any cut.
+fn whole_turned_bounds(model: &Model) -> Result<(Vertex, Vertex), ReliefError> {
     let read = read_model(model)?;
     let (lo, hi) = read_mesh(&read)?.bounds;
     let (turn, k) = (up(model.up), to_mm(model));
@@ -265,7 +290,12 @@ pub fn placed_light_mesh(model: &Model) -> Result<Mesh, ReliefError> {
     let read = read_mesh(&read)?;
     let (lo, hi) = turned_bounds(model)?;
     let p = placement_in(model, lo, hi)?;
-    Ok(placed(model, &turned_in_mm(model, &read.light), &p))
+    let light = turned_in_mm(model, &read.light);
+    let light = match cut_level(model)? {
+        Some(level) => light.above(level),
+        None => light,
+    };
+    Ok(placed(model, &light, &p))
 }
 
 /// What a relief's finishing lines are made from.

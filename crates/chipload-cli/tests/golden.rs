@@ -13,7 +13,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 64] = [
+const GOLDEN: [(&str, &str); 65] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -204,6 +204,8 @@ const GOLDEN: [(&str, &str); 64] = [
     // forth. Made with `new`, `model add dome.stl --width 40 --depth 5 --at 10,10`, the ball
     // nose set as tools.1, `op add relief --model 1`, stepover 0.25 and angle 30° set.
     ("v36_relief_dome", "jobs/v36/relief_dome.chipload"),
+    // Made from relief_dome with `model set 1 --keep 50%`: its top half, 5 mm deep.
+    ("v36_relief_dome_cut", "jobs/v36/relief_dome_cut.chipload"),
     // The same relief roughed first (docs/specs/stl-relief.md §14 step 3): the 6 mm end
     // mill in levels 3 mm apart, 0.4 of the tool between lines, 0.5 mm left on the dome.
     // Made from relief_dome with `op add-roughing --op 1 --tool 1`.

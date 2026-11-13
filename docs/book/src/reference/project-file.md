@@ -378,6 +378,7 @@ A 3D model (an STL file) carved as a relief from the top: the file itself, which
 | `depth` | number | yes | How deep the relief goes, from the model's top to its lowest point, mm. |
 | `file` | string | yes | The STL file's name. |
 | `id` | integer | yes | The model's id, which its outline and reliefs name. |
+| `keep` | number | no | The share of the turned model's height kept, from its top, more than 0 and at most 1: what lies below is cut away, its back (docs/specs/relief-wizard.md §5). Width, depth and the outline are the kept part's. 1 (the whole model) when missing. |
 | `layer` | string | yes | The layer its footprint outline goes on. |
 | `name` | string | yes | Its name in the Browser and messages: the file's name without its extension at first. |
 | `proportional` | boolean | yes | The depth follows the width, in the model's own proportion: made again whenever the model changes (decision 4). |

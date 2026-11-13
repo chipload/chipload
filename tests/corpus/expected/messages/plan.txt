@@ -964,6 +964,20 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/relief_dome_cut.chipload
+exit 0
+--- stdout
+warning: Operation 1 (Relief 1): cuts 5 mm deep with tool 2 alone; a roughing pass (op add-roughing) takes most of it first
+Estimated time: 2 min 19 s (cutting 2 min 14 s, rapids 1 s, spindle 3 s)
+Cut outline: 43.101 × 42.932 mm (X 8.450 … 51.550, Y 8.534 … 51.466, the tool included): the smallest stock that holds the job.
+  Operation 1 (Relief 1): 2 min 16 s; cutting 1.6 m, plunging 45 mm, rapids 125 mm, 8 lifts
+  In all: cutting 1.6 m, plunging 45 mm, rapids 125 mm, 8 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Relief 1): 0.022 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/relief_dome_rough.chipload
 exit 0
 --- stdout

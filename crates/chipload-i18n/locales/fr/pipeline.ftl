@@ -665,6 +665,7 @@ pipeline-no-model = aucun modèle { $id } dans le projet
 pipeline-model-unreadable = le modèle ne peut pas être lu
 pipeline-model-unreadable-data = le fichier du modèle { $id } ne peut pas être lu depuis le projet : { $error }
 pipeline-model-no-width = le modèle { $id } n'a pas de largeur avec cet axe vers le haut : choisissez un autre axe
+pipeline-model-nothing-kept = il ne reste rien du modèle { $id } au-dessus de son niveau de coupe : gardez-en plus
 pipeline-model-no-outline = le contour du modèle ne peut pas être dessiné
 pipeline-model-read-binary = Modèle { $id } : { $count } triangles (STL binaire), { $x } × { $y } × { $z } lu en { $units }
 pipeline-model-read-text = Modèle { $id } : { $count } triangles (STL texte), { $x } × { $y } × { $z } lu en { $units }

@@ -56,6 +56,7 @@ job-image-range-length = должно быть от { $low } до { $high }, п�
 job-image-threshold = должно быть от 1 до 254 или «auto», получено { $got }
 job-image-missing = изображение отсутствует
 job-model-missing = файл модели отсутствует
+job-model-keep = должно быть больше 0 и не больше 1 (доля модели, сохраняемая сверху), получено { $got }
 job-text-empty = пусто: введите текст для обработки
 job-text-height = должно быть больше 0 и не больше { $most }, получено { $got }
 job-text-spacing = должно быть не больше { $heights } высот в любую сторону ({ $most }), получено { $got }

@@ -502,6 +502,7 @@ pipeline-no-model = в проекте нет модели { $id }
 pipeline-model-unreadable = модель не читается
 pipeline-model-unreadable-data = файл модели { $id } не читается из проекта: { $error }
 pipeline-model-no-width = у модели { $id } нет ширины при этой оси вверх: выберите другую ось
+pipeline-model-nothing-kept = от модели { $id } ничего не остаётся выше уровня среза: сохраните больше
 pipeline-model-no-outline = контур модели не удаётся построить
 pipeline-model-read-binary = Модель { $id }: { $count } треугольников (двоичный STL), { $x } × { $y } × { $z }, прочитано в { $units }
 pipeline-model-read-text = Модель { $id }: { $count } треугольников (текстовый STL), { $x } × { $y } × { $z }, прочитано в { $units }

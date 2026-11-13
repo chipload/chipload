@@ -1225,11 +1225,12 @@ chipload model add <PROJECT> <MODEL> [OPTIONS]
 | `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
 | `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
 | `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
+| `--keep <KEEP>` | How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part's. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload model set`
 
-Change a model's place, size, depth or up axis; its outline is drawn again
+Change a model's place, size, depth, up axis or cut level; its outline is drawn again
 
 ```text
 chipload model set <PROJECT> <ID> [OPTIONS]
@@ -1246,6 +1247,7 @@ chipload model set <PROJECT> <ID> [OPTIONS]
 | `--depth <DEPTH>` | How deep the relief goes, mm (default: in proportion to the width) |
 | `--rotate <ROTATE>` | Turn it about its footprint's centre to this angle, degrees counter-clockwise. |
 | `--up <UP>` | Which of the model's axes points up: z (default), y, x, -z, -y or -x. |
+| `--keep <KEEP>` | How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part's. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload model list`

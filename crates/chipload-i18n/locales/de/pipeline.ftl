@@ -660,6 +660,7 @@ pipeline-no-model = kein Modell { $id } im Projekt
 pipeline-model-unreadable = das Modell lässt sich nicht lesen
 pipeline-model-unreadable-data = die Datei von Modell { $id } lässt sich nicht aus dem Projekt lesen: { $error }
 pipeline-model-no-width = Modell { $id } hat mit dieser Achse nach oben keine Breite: wähle eine andere Achse
+pipeline-model-nothing-kept = von Modell { $id } bleibt über seiner Schnitthöhe nichts übrig: behalte mehr davon
 pipeline-model-no-outline = der Umriss des Modells lässt sich nicht zeichnen
 pipeline-model-read-binary = Modell { $id }: { $count } Dreiecke (binäre STL), { $x } × { $y } × { $z } gelesen in { $units }
 pipeline-model-read-text = Modell { $id }: { $count } Dreiecke (Text-STL), { $x } × { $y } × { $z } gelesen in { $units }

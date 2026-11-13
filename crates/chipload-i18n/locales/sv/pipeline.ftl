@@ -657,6 +657,7 @@ pipeline-no-model = ingen modell { $id } i projektet
 pipeline-model-unreadable = modellen går inte att läsa
 pipeline-model-unreadable-data = filen för modell { $id } går inte att läsa ur projektet: { $error }
 pipeline-model-no-width = modell { $id } har ingen bredd med den här axeln uppåt: välj en annan axel
+pipeline-model-nothing-kept = inget av modell { $id } finns kvar ovanför dess snittnivå: behåll mer av den
 pipeline-model-no-outline = modellens kontur går inte att rita
 pipeline-model-read-binary = Modell { $id }: { $count } trianglar (binär STL), { $x } × { $y } × { $z } läst i { $units }
 pipeline-model-read-text = Modell { $id }: { $count } trianglar (text-STL), { $x } × { $y } × { $z } läst i { $units }

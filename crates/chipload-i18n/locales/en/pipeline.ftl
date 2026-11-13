@@ -661,6 +661,7 @@ pipeline-model-unreadable = the model can't be read
 # $error is the base64 decoder's own words.
 pipeline-model-unreadable-data = model { $id }'s file can't be read from the project: { $error }
 pipeline-model-no-width = model { $id } has no width with this axis up: choose another up axis
+pipeline-model-nothing-kept = nothing of model { $id } is left above its cut level: keep more of it
 pipeline-model-no-outline = the model's outline can't be drawn
 # $units is mm or inch: the unit the file was read in. $x, $y, $z are its size.
 pipeline-model-read-binary = Model { $id }: { $count } triangles (binary STL), { $x } × { $y } × { $z } read in { $units }

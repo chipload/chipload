@@ -34,11 +34,24 @@ chipload model add sign.chipload rose.stl --width 120 --depth 6 --at 20,20
   them reversed (`-z` …). Many models are drawn with Y up.
 - **`--units inch`:** STL files carry no unit. The size on import is read in mm, or in inches
   with this; since the model is placed by its width, it matters only for that first size.
+- **`--keep`:** how much of the model to keep, from its top: `0.5` or `50%` keeps the top
+  half and cuts away the rest, its back (see below). By default all of it.
 - **`--layer`:** the layer for its outline; by default the file's name.
 
 The report says how many triangles it has, any without an area that were left out, and
 how many open edges its surface has: a gap in a model lets the tool fall through to the
 relief's floor.
+
+## Keeping the front: the cut level
+
+A model made to be seen from every side (a figure, a head, an animal) would be carved from
+its top all the way down to its lowest point: most of the depth goes into its far side,
+which the tool can't reach anyway, and the side you see comes out flat. **Keep from top**
+in its properties (`model set sign.chipload 1 --keep 50%`) cuts it level at that share of
+its height and keeps the part above: the front half of a head keeps its whole outline,
+and its depth and width are now that half's. So set the cut level first, then the depth
+the board allows; a depth you typed stays when the cut level changes. Where the cut goes
+through the model, the relief is cut to its floor.
 
 ## Its outline
 
@@ -53,7 +66,7 @@ shape ids when it is drawn again, so the pocket still finds it after the model m
 In the window the model is a row of the Browser's Drawing folder; a click selects its
 outline and shows its **properties**: the file, its size on the board, *Position* (the
 lower-left corner before the turn), *Rotation*, *Width*, *Depth* with *Keep proportions*,
-*Up* and *Layer*. Each change draws the outline again, as one undo step. Selected on the
+*Up*, *Keep from top* and *Layer*. Each change draws the outline again, as one undo step. Selected on the
 canvas it has a picture's **handles**: drag the middle to move it, the round handle to
 turn it, a corner to size it. In the **3D view** it shows faintly as its surface, until a
 simulation is shown. *Remove* (in its properties or on its row) takes the model and its

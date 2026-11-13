@@ -798,6 +798,23 @@ pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
                     });
                 finished |= draft.up != before;
                 ui.end_row();
+                // The share kept from the top, as a percentage (docs/specs/relief-wizard.md
+                // §5); the rest, the model's back, is cut away.
+                ui.label(t!(ui, "forms-model-keep"))
+                    .on_hover_text(t!(ui, "forms-model-keep-hover"));
+                let mut percent = draft.keep * 100.0;
+                let response = ui.add(
+                    egui::DragValue::new(&mut percent)
+                        .range(1.0..=100.0)
+                        .speed(0.5)
+                        .max_decimals(1)
+                        .suffix(" %"),
+                );
+                if response.changed() {
+                    draft.keep = (percent / 100.0).clamp(0.01, 1.0);
+                }
+                finished |= response.drag_stopped() || response.lost_focus();
+                ui.end_row();
                 ui.label(t!(ui, "forms-layer"))
                     .on_hover_text(t!(ui, "forms-model-layer-hover"));
                 let response = ui.add(

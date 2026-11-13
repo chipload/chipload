@@ -219,6 +219,16 @@ pub struct Model {
     /// The depth follows the width, in the model's own proportion: made again whenever the
     /// model changes (decision 4).
     pub proportional: bool,
+    /// The share of the turned model's height kept, from its top, more than 0 and at most
+    /// 1: what lies below is cut away, its back (docs/specs/relief-wizard.md §5). Width,
+    /// depth and the outline are the kept part's. 1 (the whole model) when missing.
+    #[serde(default = "whole_model")]
+    pub keep: f64,
+}
+
+/// A model's `keep` when the file has none: all of it.
+fn whole_model() -> f64 {
+    1.0
 }
 
 /// Which of a model's axes points up on the board.
@@ -270,6 +280,13 @@ impl Model {
         };
         positive("width", self.width, &mut problems);
         positive("depth", self.depth, &mut problems);
+        if !(self.keep.is_finite() && self.keep > 0.0 && self.keep <= 1.0) {
+            problems.push(Problem::at(
+                format!("{at}.keep"),
+                Message::new("job-model-keep")
+                    .arg("got", Value::Number(self.keep, Digits::Shortest)),
+            ));
+        }
         if !rotation_in_range(self.rotation) {
             problems.push(Problem::at(
                 format!("{at}.rotation"),

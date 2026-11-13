@@ -70,6 +70,8 @@ pub struct NewModel<'a> {
     pub rotation: f64,
     /// None: in proportion to the width.
     pub depth: Option<f64>,
+    /// The share of its height kept from the top (docs/specs/relief-wizard.md §5).
+    pub keep: f64,
 }
 
 impl<'a> NewModel<'a> {
@@ -85,6 +87,7 @@ impl<'a> NewModel<'a> {
             width: None,
             rotation: 0.0,
             depth: None,
+            keep: 1.0,
         }
     }
 }
@@ -250,6 +253,7 @@ pub fn add_model(
         rotation: new.rotation,
         depth: new.depth.unwrap_or(1.0),
         proportional: new.depth.is_none(),
+        keep: new.keep,
     };
     let (lo, hi) = chipload_toolpath::relief::turned_bounds(&model).map_err(relief_error)?;
     model.width = new.width.unwrap_or(hi[0] - lo[0]);
@@ -572,6 +576,80 @@ mod tests {
         );
         let (lo, hi) = placed_mesh(&job, 1).unwrap().bounds().unwrap();
         assert!((hi[2] - 0.0).abs() < 1e-9 && (lo[2] + 25.4).abs() < 1e-9);
+    }
+
+    /// A binary STL of `tris`.
+    fn stl_of(tris: &[[[f64; 3]; 3]]) -> Vec<u8> {
+        let mut out = vec![0u8; 80];
+        out.extend((tris.len() as u32).to_le_bytes());
+        for t in tris {
+            out.extend([0u8; 12]);
+            for v in t {
+                for k in v {
+                    out.extend((*k as f32).to_le_bytes());
+                }
+            }
+            out.extend([0u8; 2]);
+        }
+        out
+    }
+
+    #[test]
+    fn a_model_cut_at_half_keeps_its_front_its_outline_and_scales_what_is_kept() {
+        // An octahedron 20 wide and 20 tall, widest at its middle: its top half is a
+        // pyramid as wide as the whole.
+        let (x, mx, y, my, z, mz) = (
+            [10.0, 0.0, 0.0],
+            [-10.0, 0.0, 0.0],
+            [0.0, 10.0, 0.0],
+            [0.0, -10.0, 0.0],
+            [0.0, 0.0, 10.0],
+            [0.0, 0.0, -10.0],
+        );
+        let tris = [
+            [x, y, z],
+            [y, mx, z],
+            [mx, my, z],
+            [my, x, z],
+            [y, x, mz],
+            [mx, y, mz],
+            [my, mx, mz],
+            [x, my, mz],
+        ];
+        let bytes = stl_of(&tris);
+        let job = crate::empty_project();
+        let mut new = NewModel::new("octa.stl");
+        new.width = Some(40.0);
+        new.keep = 0.5;
+        let (job, report) = add_model(&job, &read_model(&bytes).unwrap(), new).unwrap();
+        // The kept half scaled to 40 wide: in proportion, 20 deep (not 40).
+        assert_eq!(report.placed, [40.0, 40.0, 20.0]);
+        let (lo, hi) = placed_mesh(&job, 1).unwrap().bounds().unwrap();
+        assert_eq!((lo, hi), ([0.0, 0.0, -20.0], [40.0, 40.0, 0.0]));
+        // The light copy lies as the full mesh does.
+        let light = placed_light_mesh(&job, 1).unwrap().bounds().unwrap();
+        assert_eq!(light, (lo, hi));
+        // The outline is the whole width: the cut went through the widest part.
+        let contours = crate::load_drawing(&job).unwrap().contours;
+        let x1 = contours[0]
+            .points()
+            .iter()
+            .map(|p| p.0)
+            .fold(f64::NEG_INFINITY, f64::max);
+        assert!((x1 - 40.0).abs() <= 40.0 / OUTLINE_CELLS, "{x1}");
+        // A typed depth stays when the cut changes.
+        let mut deeper = job.clone();
+        deeper.drawing.models[0].depth = 6.0;
+        deeper.drawing.models[0].proportional = false;
+        deeper.drawing.models[0].keep = 0.25;
+        let (deeper, report) = remake(&deeper, 1).unwrap();
+        assert_eq!(report.placed[2], 6.0);
+        let (lo, _) = placed_mesh(&deeper, 1).unwrap().bounds().unwrap();
+        assert!((lo[2] + 6.0).abs() < 1e-9);
+        // Nothing but 0 < keep <= 1.
+        let mut wrong = job.clone();
+        wrong.drawing.models[0].keep = 0.0;
+        assert!(remake(&wrong, 1).is_err());
     }
 
     #[test]

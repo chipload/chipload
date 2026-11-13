@@ -1130,6 +1130,12 @@
           "minimum": 0,
           "type": "integer"
         },
+        "keep": {
+          "default": 1.0,
+          "description": "The share of the turned model's height kept, from its top, more than 0 and at most\n1: what lies below is cut away, its back (docs/specs/relief-wizard.md §5). Width,\ndepth and the outline are the kept part's. 1 (the whole model) when missing.",
+          "format": "double",
+          "type": "number"
+        },
         "layer": {
           "description": "The layer its footprint outline goes on.",
           "type": "string"

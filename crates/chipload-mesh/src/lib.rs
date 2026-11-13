@@ -9,6 +9,7 @@
 //! outer loop vertex x y z (three times) endloop endfacet … endsolid`. Stored normals are
 //! ignored.
 
+mod clip;
 mod light;
 mod read;
 mod shadow;

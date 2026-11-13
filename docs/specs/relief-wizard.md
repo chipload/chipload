@@ -1,6 +1,6 @@
 # Spec: a relief made lightly: turning and cutting a model live, the Relief wizard
 
-Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1 and 2 built. It builds on docs/specs/stl-relief.md (the model,
+Status: **approved 2026-11-13** ("Go ahead": decisions as recommended, 6 (a)); steps 1-3 built. It builds on docs/specs/stl-relief.md (the model,
 the relief, the drop cutter), whose rules for planning and checking stay as they are.
 
 The user tried a 57 MB STL from Printables and found it "quite heavy to work with", and
@@ -250,3 +250,11 @@ decision 6. The layout test guards it in every language.
   remembered with the full mesh; placed by the full mesh's box, so the two lie alike. On
   the 57 MB file: 47 709 triangles in 0.35 s; the faint 3D surface 210 ms → 10 ms. Used
   for the 3D view's model now, and the choosing window (§4) next.
+- **Step 3 (§5), 2026-11-13.** `Mesh::above(level)` in `chipload-mesh` clips each
+  triangle against the level (Sutherland–Hodgman against one plane, a fan for the quad);
+  the cut corners lie exactly on it. The toolpath's `turned_mesh` cuts the turned model,
+  so placement, outline, drop cutter and check all see the kept part; the light copy is
+  cut at the same level. `keep` is written always (`serde(default)` 1 for files from
+  before it). The model's properties take it as *Keep from top* in % until the choosing
+  window comes; the command line as `--keep 0.5` or `50%` on `model add` and `model set`.
+  Golden `v36_relief_dome_cut` (the dome's top half, 5 mm deep).

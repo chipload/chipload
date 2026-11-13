@@ -36,7 +36,8 @@ pub enum ModelAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Change a model's place, size, depth or up axis; its outline is drawn again.
+    /// Change a model's place, size, depth, up axis or cut level; its outline is drawn
+    /// again.
     Set {
         /// The project (.chipload).
         project: PathBuf,
@@ -90,6 +91,28 @@ pub struct Place {
     /// Which of the model's axes points up: z (default), y, x, -z, -y or -x.
     #[arg(long, allow_hyphen_values = true, value_parser = parse_up)]
     up: Option<ModelUp>,
+    /// How much of the model to keep, from its top: a share (0.5) or a percentage (50%);
+    /// the rest, its back, is cut away (default: all of it). Width and depth are the kept
+    /// part's.
+    #[arg(long, value_parser = parse_keep)]
+    keep: Option<f64>,
+}
+
+/// A share of the model kept: "0.5" or "50%", more than 0 and at most 1.
+fn parse_keep(text: &str) -> Result<f64, String> {
+    let text = text.trim();
+    let share = match text.strip_suffix('%') {
+        Some(percent) => percent.trim().parse::<f64>().map(|p| p / 100.0),
+        None => text.parse::<f64>(),
+    }
+    .map_err(|_| format!("expected a share such as 0.5 or 50%, got {text:?}"))?;
+    if share.is_finite() && share > 0.0 && share <= 1.0 {
+        Ok(share)
+    } else {
+        Err(format!(
+            "keep more than 0 and at most all of it (1 or 100%), got {text:?}"
+        ))
+    }
 }
 
 fn parse_at(text: &str) -> Result<(f64, f64), String> {
@@ -184,6 +207,9 @@ pub fn model(out: &mut Out, action: ModelAction) -> ExitCode {
                 if let Some(up) = place.up {
                     model.up = up;
                 }
+                if let Some(keep) = place.keep {
+                    model.keep = keep;
+                }
                 if let Some(layer) = &layer {
                     model.layer = layer.clone();
                 }
@@ -249,6 +275,7 @@ fn add(
     (new.x, new.y) = place.at.unwrap_or((0.0, 0.0));
     new.width = place.width;
     new.depth = place.depth;
+    new.keep = place.keep.unwrap_or(1.0);
     if let Some(degrees) = place.rotate {
         match turned(degrees) {
             Ok(a) => new.rotation = a,
@@ -286,11 +313,14 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
     }
     let mut rows = Vec::new();
     for model in &job.drawing.models {
-        let depth = if model.proportional {
+        let mut depth = if model.proportional {
             format!("{} mm deep, in proportion", model.depth)
         } else {
             format!("{} mm deep", model.depth)
         };
+        if model.keep < 1.0 {
+            depth.push_str(&format!(", the top {}% kept", model.keep * 100.0));
+        }
         out.line(format!(
             "Model {}: {} ({}), {} up, layer {:?}, at {}, {} wide, {}, turned {}°",
             model.id,
@@ -322,6 +352,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "width": model.width,
             "depth": model.depth,
             "proportional": model.proportional,
+            "keep": model.keep,
             "rotation": model.rotation,
             "shapes": shapes,
         }));
