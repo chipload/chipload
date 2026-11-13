@@ -389,12 +389,10 @@ fn near(a: Point, b: Point, step: f64) -> bool {
 
 /// The finishing lines across the area, each cut into the runs that lie inside it, in
 /// cutting order: back and forth, or all the same way.
+/// Each stretch is worked on its own, on all cores (spec §15).
 fn runs(cut: &ReliefCut) -> Vec<Run> {
-    lines(cut)
-        .into_iter()
-        .flatten()
-        .map(|(a, b)| follow(cut, a, b))
-        .collect()
+    let stretches: Vec<(Point, Point)> = lines(cut).into_iter().flatten().collect();
+    crate::parallel::map_ordered(&stretches, |&(a, b)| follow(cut, a, b))
 }
 
 /// The lines across the area, one stepover apart, each as the stretches (start, end) that
@@ -514,11 +512,10 @@ pub fn rough_moves(
     step_down: f64,
     start: Point,
 ) -> (Vec<Move>, Point) {
-    // Each line's heights, found once for every level.
-    let lines: Vec<Vec<Run>> = lines(cut)
-        .into_iter()
-        .map(|line| line.into_iter().map(|(a, b)| sampled(cut, a, b)).collect())
-        .collect();
+    // Each line's heights, found once for every level, the lines on all cores (spec §15).
+    let lines: Vec<Vec<Run>> = crate::parallel::map_ordered(&lines(cut), |line| {
+        line.iter().map(|&(a, b)| sampled(cut, a, b)).collect()
+    });
     let mut moves = vec![Move::rapid_z(cut.safe_z)];
     let mut end = start;
     let mut down = false;

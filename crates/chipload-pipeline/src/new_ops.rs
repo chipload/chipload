@@ -11,13 +11,54 @@ use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, ProfileOp, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, ToolType,
-    VcarveOp,
+    PocketOp, ProfileOp, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, Tool,
+    ToolType, VcarveOp,
 };
 
-/// A new relief's lines, as a fraction of the tool: fine enough for a ball nose's finish
-/// (docs/specs/stl-relief.md §5).
+/// A new relief's lines, as a fraction of the tool, with an end mill or a V-bit
+/// (docs/specs/stl-relief.md §5); a ball nose's come from [`RELIEF_RIDGE_MM`].
 pub const DEFAULT_RELIEF_STEPOVER: f64 = 0.1;
+
+/// The ridges a new relief's ball nose leaves between its lines on flat ground, mm: below
+/// what wood shows (docs/specs/stl-relief.md §15).
+pub const RELIEF_RIDGE_MM: f64 = 0.02;
+
+/// The stepover found from the ridge stays within these, as fractions of the tool.
+pub const RELIEF_STEPOVER_RANGE: (f64, f64) = (0.05, 0.4);
+
+/// Halvings in finding the stepover: far finer than the whole percent it is rounded to.
+const RIDGE_HALVINGS: u32 = 40;
+
+/// The ridge `tool` leaves between relief lines `stepover` (a fraction of it) apart on flat
+/// ground, mm: the height of its cutting surface halfway between two lines. Only for a ball
+/// nose; an end mill leaves none on flat ground but steps on slopes, and a V-bit's grooves
+/// are its own.
+pub fn relief_ridge(tool: &Tool, stepover: f64) -> Option<f64> {
+    if tool.kind != ToolType::Ballnose {
+        return None;
+    }
+    tool.cutter()?.height_at(stepover * tool.diameter / 2.0)
+}
+
+/// A new relief's stepover for `tool`: with a ball nose, the widest that leaves ridges of
+/// [`RELIEF_RIDGE_MM`], to the nearest whole percent and within [`RELIEF_STEPOVER_RANGE`];
+/// otherwise [`DEFAULT_RELIEF_STEPOVER`].
+pub fn relief_stepover(tool: Option<&Tool>) -> f64 {
+    let Some(tool) = tool.filter(|t| t.kind == ToolType::Ballnose && t.diameter > 0.0) else {
+        return DEFAULT_RELIEF_STEPOVER;
+    };
+    let (lo, hi) = RELIEF_STEPOVER_RANGE;
+    // The ridge grows with the stepover: halve towards the widest within the target.
+    let (mut below, mut above) = (0.0, 1.0);
+    for _ in 0..RIDGE_HALVINGS {
+        let mid = (below + above) / 2.0;
+        match relief_ridge(tool, mid) {
+            Some(h) if h <= RELIEF_RIDGE_MM => below = mid,
+            _ => above = mid,
+        }
+    }
+    ((below * 100.0).round() / 100.0).clamp(lo, hi)
+}
 
 use crate::chip_load::{default_feed, default_plunge_feed};
 use crate::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
@@ -341,6 +382,8 @@ struct Start {
     last: Vec<(OpKind, f64, Option<f64>)>,
     /// The project's models and their depths: what a relief carves.
     models: Vec<(u64, f64)>,
+    /// A new relief's stepover for the tool (docs/specs/stl-relief.md §15).
+    relief_stepover: f64,
 }
 
 impl Start {
@@ -386,6 +429,7 @@ impl Start {
             feed,
             plunge_feed,
             stepover,
+            relief_stepover: relief_stepover(chosen),
             cutting: tool_cutting(job, library, tool),
             thickness: job.stock().thickness,
             below: job.stock().max_overcut,
@@ -565,7 +609,7 @@ impl Start {
                     tool: self.tool,
                     start_depth: 0.0,
                     end_depth: depth,
-                    stepover: DEFAULT_RELIEF_STEPOVER,
+                    stepover: self.relief_stepover,
                     angle: 0.0,
                     zigzag: true,
                     feed: self.feed,
@@ -665,6 +709,59 @@ mod tests {
 
     fn layer(name: &str) -> Selector {
         Selector::on_layer(name)
+    }
+
+    fn tool(kind: ToolType, diameter: f64) -> Tool {
+        Tool {
+            id: 1,
+            name: None,
+            library_uid: None,
+            kind,
+            diameter,
+            flutes: None,
+            center_cutting: None,
+            rpm: None,
+            angle: None,
+            tip_diameter: None,
+        }
+    }
+
+    /// docs/specs/stl-relief.md §15: ridges of 0.02 mm, to the whole percent.
+    #[test]
+    fn a_ball_noses_relief_stepover_comes_from_its_ridge() {
+        let cases = [
+            (0.5, 0.39),
+            (1.0, 0.28),
+            (2.0, 0.2),
+            (6.0, 0.12),
+            (12.7, 0.08),
+        ];
+        for (diameter, expected) in cases {
+            let ball = tool(ToolType::Ballnose, diameter);
+            let got = relief_stepover(Some(&ball));
+            assert!((got - expected).abs() < 1e-9, "{diameter} mm: {got}");
+            let ridge = relief_ridge(&ball, got).unwrap();
+            assert!(
+                (ridge - RELIEF_RIDGE_MM).abs() < 0.003,
+                "{diameter} mm: {ridge}"
+            );
+        }
+        // Tiny and huge balls stay within the range.
+        assert_eq!(relief_stepover(Some(&tool(ToolType::Ballnose, 0.1))), 0.4);
+        assert_eq!(relief_stepover(Some(&tool(ToolType::Ballnose, 50.0))), 0.05);
+    }
+
+    #[test]
+    fn other_tools_keep_the_plain_relief_stepover() {
+        assert_eq!(relief_stepover(None), DEFAULT_RELIEF_STEPOVER);
+        for kind in [ToolType::Endmill, ToolType::Vbit, ToolType::Drill] {
+            let t = tool(kind, 6.0);
+            assert_eq!(relief_stepover(Some(&t)), DEFAULT_RELIEF_STEPOVER);
+            assert_eq!(relief_ridge(&t, 0.2), None);
+        }
+        // The ridge of a 2 mm ball at 10 %: half a hundredth.
+        let ridge = relief_ridge(&tool(ToolType::Ballnose, 2.0), 0.1).unwrap();
+        assert!((ridge - 0.005).abs() < 0.0001, "{ridge}");
     }
 
     fn add(job: &Job, contours: &[Contour], kind: OpKind, select: Selector) -> NewOps {

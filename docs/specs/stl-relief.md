@@ -103,7 +103,7 @@ A new operation kind, **Relief**, in the Operation menu and ribbon. It cuts one 
 | model | which model | the selected or only one |
 | select | the area (§4) | the model's outline |
 | tool | the finishing tool | a ball nose, else the smallest end mill |
-| stepover | between raster lines, mm or % of the tool | 10 % of the tool (ball nose) |
+| stepover | between raster lines, mm or % of the tool | a ball nose: from its ridges (§15); else 10 % |
 | angle | the raster's direction, degrees | 0 (along X) |
 | direction | one way or back and forth | back and forth |
 | feed, plunge feed, spindle | as other operations, from the tool's cutting data | |
@@ -390,4 +390,29 @@ Step 4, the window, 2026-11-12:
 - **4d, the guide:** *3D models* covers the window (adding, properties, handles, 3D,
   New relief, roughing), with a screenshot `model.png` (the dome in 3D, its properties
   open); *The window* lists the new menu items and right-clicks.
+
+## 15. Speed and the stepover
+
+Decided 2026-11-13, after a user's project took over a minute to plan: a 928,000-triangle
+bust, 150 × 224 mm, a 2 mm ball nose at 10 %. Measured: 1.7 million drop-cutter positions at
+about 40 µs each, on one core; a coarser model (vertex clustering) or a grid of heights lost
+too much detail for the time saved (up to 0.25 mm at 1 % of positions), so neither is used.
+
+1. **All cores.** A relief's finishing stretches, and a roughing's lines, are each worked on
+   their own on as many threads as the processor has (`chipload_toolpath::parallel`),
+   their results put back in order: the moves are byte for byte those of one thread. No new
+   dependency (`std::thread::scope`); one thread where threads can't be had (the browser),
+   and a piece whose thread fails is worked again on the calling one. The joins between
+   lines, the placing and the path check stay on one thread. The project above: 68 s → 13 s
+   on 16 threads.
+2. **The stepover from the ridges.** A ball nose leaves ridges between its lines on flat
+   ground as high as its surface stands at half the stepover from its axis. A new relief
+   with a ball nose (plain or tapered) takes the widest stepover whose ridges stay within
+   0.02 mm (`RELIEF_RIDGE_MM`), below what wood shows, to the nearest whole percent and
+   within 5–40 % of the tool: 2 mm → 20 %, 1/8" → 16 %, 6 mm → 12 %, 1/2" → 8 %. An end mill
+   (no ridges on flat ground, steps on slopes) and a V-bit keep 10 %. The relief's form shows
+   the ridge height of the stepover set, for a ball nose only. Saved projects keep their
+   stepover; nothing is migrated.
+3. **Not now:** simplifying the model to a known error for cutting (quadric error,
+   Garland & Heckbert 1997), if the above proves not enough.
 

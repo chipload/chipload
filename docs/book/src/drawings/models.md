@@ -160,8 +160,12 @@ reaches finer detail; an end mill or a V-bit works too, with their own marks.
 - **Area:** with `--model`, the model's outline: the tool's centre stays inside it, so
   round the model a groove the tool's width is left, and the board beyond is untouched.
   Clear the background with a pocket, or select other closed shapes for the area.
-- **`stepover`:** the distance between lines as a share of the tool, 0.1 (10 %) by default;
-  smaller is smoother and slower.
+- **`stepover`:** the distance between lines as a share of the tool; smaller is smoother and
+  slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
+  0.02 mm between its lines on flat ground, which wood doesn't show: 20 % for a 2 mm ball,
+  16 % for 1/8", 12 % for 6 mm. The relief's form shows the ridges for the stepover you set.
+  Finer only takes longer: a 2 mm ball at 10 % leaves ridges of 0.005 mm and takes about
+  three times as long. Other tools start at 10 %.
 - **`angle`:** the lines' direction in radians from X (0 by default). Lines at an angle to the
   model's long edges leave fewer marks.
 - **`zigzag`:** back and forth (true, the default), or every line the same way, lifting

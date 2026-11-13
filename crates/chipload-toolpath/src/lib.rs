@@ -21,6 +21,7 @@ pub(crate) mod medial;
 pub mod merge;
 pub mod model;
 pub mod offset;
+mod parallel;
 pub mod path;
 pub mod plan;
 pub mod pocket;

@@ -220,8 +220,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    done (Inlay in WIZARDS, Measure on the navigation bar, one Library button), step 6
    done (the Relief wizard, `relief add`). Left for later (spec §11): a time estimate in
    the wizard's last step, dropping a file on the wizard, the board's size in step 3.
-   Next: the user tries the branch. After that: a relief from a picture (brightness as height,
-   inflated shapes).
+   The user's first try (2026-11-13): a 928,000-triangle bust planned in 68 s; spec §15
+   done: relief lines on all cores (13 s), a ball nose's stepover from 0.02 mm ridges, the
+   ridges shown in the form. Not now: simplifying the model for cutting (§15.3).
+   Next: the user tries the branch further. After that: a relief from a picture (brightness
+   as height, inflated shapes).
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts

@@ -612,6 +612,15 @@ pub(in crate::app) fn op_form(
                 );
                 flag(stepover, ui, "stepover");
                 ui.end_row();
+                // A ball nose's ridges between lines (docs/specs/stl-relief.md §15).
+                if let Some(ridge) =
+                    op_tool.and_then(|t| chipload_pipeline::new_ops::relief_ridge(t, r.stepover))
+                {
+                    ui.label(t!(ui, "forms-relief-ridge"))
+                        .on_hover_text(t!(ui, "forms-relief-ridge-hover"));
+                    ui.weak(format!("{} {len_unit}", len_in(units, ridge)));
+                    ui.end_row();
+                }
                 ui.label(t!(ui, "forms-relief-angle"))
                     .on_hover_text(t!(ui, "forms-relief-angle-hover"));
                 let mut degrees = r.angle.to_degrees();
