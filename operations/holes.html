@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Holes - Chipload 0.34.0 user guide</title>
+        <title>Holes - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -253,6 +253,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>feed</code></td><td>Feed: the bore’s helix and circle</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Drill feed, or the bore’s descent to the start depth</td></tr>
 <tr><td><code>method</code></td><td><code>{"type": "drill", "peck": … or null}</code> or <code>{"type": "bore", "step_down": …, "ramp_angle": …, "direction": …}</code></td></tr>
+<tr><td><code>dowels</code></td><td>dowel holes for turning the board over (<a href="../concepts/setups.html#the-back-side-experimental">Setups</a>): their <code>through</code> is how far the pins go into the spoilboard, deeper than <em>Max depth below stock</em> allows other cuts; missing: false</td></tr>
 </tbody>
 </table>
 </div>

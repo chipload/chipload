@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.34.0 user guide</title>
+        <title>Chipload 0.36.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9a5ad1b5.js"></script>
+        <script src="toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -182,7 +182,8 @@
 <img src="images/chipload-wordmark.svg" alt="Chipload" height="64">
 <p>Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.</p>
 <ul>
-<li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, and
+<li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
+models (STL) and depth maps for reliefs, and
 shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
 offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.</li>
 <li><strong>Out:</strong> G-code for your controller, in mm or inches, through a post-processor: GRBL,
@@ -194,7 +195,9 @@ LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li>V-carving;</li>
 <li>follow path;</li>
 <li>drilled and helically bored holes;</li>
-<li>surfacing the stock.</li>
+<li>surfacing the stock;</li>
+<li>reliefs: a 3D model (STL), a depth-map picture or a picture’s shapes inflated, carved
+from the top, with a rim, roughing and smoothing.</li>
 </ul>
 </li>
 <li><strong>Checked:</strong> every program passes an independent checker before Chipload writes it. The
@@ -235,7 +238,7 @@ licences of everything it is built with are under <em>Help &gt; About and licenc
 <p>Chipload is meant to be lean. It leaves out what other tools do better:</p>
 <ul>
 <li>nesting parts on a sheet;</li>
-<li>3D surface machining;</li>
+<li>3D surface machining, beyond <a href="#3d-models">reliefs</a> carved from the top;</li>
 <li>sending G-code to the machine (use your controller’s sender);</li>
 <li>CAD beyond a few shapes;</li>
 <li>facing the spoilboard.</li>
@@ -491,7 +494,8 @@ place.</li>
 <h2 id="the-header"><a class="header" href="#the-header">The header</a></h2>
 <p>At the top, a slim <strong>top bar</strong>:</p>
 <ul>
-<li><strong>Left:</strong> Open, Save, Undo and Redo.</li>
+<li><strong>Left:</strong> Open, Save, Undo and Redo, then the <strong>menus</strong>: <em>File</em>, <em>Edit</em>, <em>View</em>, <em>Draw</em>,
+<em>Modify</em>, <em>Operation</em>, <em>Wizards</em>, <em>Library</em> and <em>Help</em>.</li>
 <li><strong>Middle:</strong> the project’s name on a tab. A dot on it means unsaved changes.
 Closing, opening or starting a project with unsaved changes asks first, in the middle of
 the window: <strong>Save</strong> (then go on), <strong>Don’t save</strong> or <strong>Cancel</strong>.</li>
@@ -500,31 +504,36 @@ the window: <strong>Save</strong> (then go on), <strong>Don’t save</strong> or
 seconds and says so in the report. <strong>Ctrl+Z</strong> goes back to what you had. If you have
 unsaved changes, it asks first: <strong>Load it</strong> (your changes stay one Ctrl+Z away) or <strong>Keep
 mine</strong> (your next Save overwrites the file).</li>
-<li><strong>Right:</strong> the <strong>colour theme</strong> (a click goes System → Light → Dark), <strong>? Help</strong> (user
-guide, keyboard shortcuts, about) and the version.</li>
+<li><strong>Right:</strong> the <strong>colour theme</strong> (a click goes System → Light → Dark) and the version.</li>
 </ul>
 <p>Under it, the <strong>ribbon</strong> groups the buttons:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Group</th><th>Buttons</th><th>Its caption’s menu also has</th></tr>
+<tr><th>Group</th><th>Buttons</th><th>Its menu also has</th></tr>
 </thead>
 <tbody>
-<tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
-<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="#signs-and-frames">a frame for a sign</a>), Text, Image, DXF/SVG (add a DXF or SVG)</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>FILE</td><td>New, Open, Import (a DXF, SVG or STL as a new project), Save</td><td>open recent, add a picture, a DXF/SVG or a <a href="#3d-models">3D model</a>, save as, update drawing, export, the <em>…from path</em> items, quit</td></tr>
+<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a <a href="#3d-models">relief</a>)</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>)</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your <a href="#styles">styles</a>, for the selected shapes)</td><td><em>Apply style ▸</em>, Generate</td></tr>
-<tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
-<tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected <a href="#3d-models">3D model</a>, or the first) and Style (one of your <a href="#styles">styles</a>, for the selected shapes)</td><td>New Relief, <em>Apply style ▸</em>, Generate</td></tr>
+<tr><td>WIZARDS</td><td>Sign: <a href="#a-sign-in-one-step">a whole sign in one step</a>, its drawing and its operations; Two-sided: <a href="#in-the-window">a back side with its dowel pins</a>; Inlay…: <a href="#v-carve">a V-carve inlay</a> of the selected shapes; Relief: <a href="#a-relief-in-one-step">a whole relief in one step</a></td><td>New sign…, Two-sided…, New inlay…, Relief…</td></tr>
+<tr><td>LIBRARY</td><td>Library: opens <em>This computer</em> in the Browser, with your tools and machines</td><td>Tool library, Machines</td></tr>
 </tbody>
 </table>
 </div>
+<p>The <em>View</em> menu has fit, top and 3D view, Z scale, reverse left-right orbit, what is shown,
+the legend, the panels (open, hide, reset) and update automatically; <strong>Measure</strong> is on the
+canvas’s navigation bar.</p>
 <p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end; Generate is greyed out until the
 project has an operation. When the buttons with their names
 don’t fit, in a longer language or a narrow window, the large buttons show their icons
 alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
-<p>Each group’s caption (<strong>FILE ▾</strong> …) opens its whole menu. This guide writes those menus as
-<em>File &gt; …</em>, <em>Draw &gt; …</em> and <em>View &gt; …</em>. <em>Help &gt; …</em> is the question mark in the top bar.</p>
+<p>Each group has the menu of its name in the top bar. Two menus have no group: <strong>Edit</strong>
+(undo, redo; copy, paste, mirror, join, delete and group the selected shapes, copy as
+selector; <strong>Preferences…</strong>, which opens <em>This computer &gt; Preferences</em> in the Browser:
+units, language, colour theme, the setup sheet) and <strong>Help</strong> (the user guide, keyboard
+shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.</p>
 <p>The <strong>status bar</strong> at the bottom gives hints on the left. On the right it shows the
 cursor’s position, the number of copies, the cycle time once generated, the
 post-processor and the units.</p>
@@ -581,12 +590,17 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 <li><strong>A picture:</strong> <em>Trace settings…</em> and <em>Remove</em>.</li>
 <li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>,
 <em>Save as style…</em> (a <a href="#styles">style</a>), for a pocket <em>Add rest pass ▸</em> (a
-<a href="#rest-machining-1">rest pass</a> shows under it), and <em>Delete</em>.</li>
+<a href="#rest-machining-1">rest pass</a> shows under it), for a relief <em>Add roughing pass ▸</em>
+(<a href="#roughing-first">roughing</a>) and <em>Add smoothing pass</em>
+(<a href="#smoothing-the-steps">smoothing</a>, greyed out until it has a roughing
+pass), and <em>Delete</em>.</li>
 <li><strong>A style:</strong> <em>Apply to the selection</em> and <em>Delete</em>.</li>
-<li><strong>A rest pass:</strong> <em>Remove</em>.</li>
+<li><strong>A rest pass, floor pass, roughing or smoothing pass:</strong> <em>Remove</em> (or Delete with it
+selected); a roughing pass also <em>Add smoothing pass</em>.</li>
 <li><strong>A project tool:</strong> <em>Delete</em>, greyed while an operation or a rest or floor pass cuts
 with it (its hover says which).</li>
-<li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em> and <em>Import image…</em>.</li>
+<li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em>, <em>Import image…</em> and <em>Add 3D model…</em>.</li>
+<li><strong>A 3D model:</strong> <em>Select</em>, <em>Hide</em> or <em>Show</em>, <em>New relief</em>, <em>Properties</em> and <em>Remove</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
@@ -664,7 +678,9 @@ as you left them there. Simulate starts as Edit is, the first time.</li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
 <ul>
 <li>the mode: <strong>Edit | Simulate</strong> (F6 switches);</li>
-<li>how you look: <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>;</li>
+<li>how you look: <strong>Measure</strong> (M), <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>. When the canvas changes size (the
+window, or a panel opening or folding), a fitted view is fitted again, and a view you
+zoomed or moved keeps showing the same area;</li>
 <li>what is shown: <strong>Toolpath</strong>, <strong>Drawing</strong> (in Simulate; Edit always shows the drawing),
 <strong>Images</strong> and <strong>Grid</strong> (G);</li>
 <li>with two parts or more, <strong>All parts</strong>: the toolpath and simulation of every part, not
@@ -690,7 +706,8 @@ selects with a box: from left to right it takes what lies wholly inside, from ri
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="#editing">moves it</a>. To pan, drag with the right or middle
 button, or hold Space and drag (the way on a touchpad; the status bar’s hint starts with
-it). In 3D, a left drag orbits. In Simulate a left drag pans (in 3D it orbits). On a
+it). In 3D, a left drag orbits: the model turns with the mouse. To have a left-right
+drag move the view round the model instead, tick <em>View &gt; Reverse left-right orbit in 3D</em>. In Simulate a left drag pans (in 3D it orbits). On a
 touchpad, a two-finger scroll or a pinch zooms.</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
@@ -730,7 +747,7 @@ Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <li>a drawn shape’s exact values, to edit, and the tools for the selection (align, arrays,
 construction);</li>
 <li><em>Copy as selector</em>, which copies the selection as JSON for a project file (also under
-DRAW ▾, and Ctrl+Shift+C).</li>
+<em>Edit</em>, and Ctrl+Shift+C).</li>
 </ul>
 <p>The selection stays on the canvas when you open something else. An operation’s <em>Use
 selection</em> button counts it (“Use selection (3)”) and takes it as the operation’s geometry.
@@ -795,7 +812,7 @@ The app shows them in degrees, and project files store them in radians (90° is
 <p>The canvas shows the cursor’s position in drawing coordinates and in work coordinates.
 <em>View &gt; Measure</em> (M) gives the distance, ΔX, ΔY and the angle between two clicks.</p>
 <h2 id="mm-or-inches-on-screen"><a class="header" href="#mm-or-inches-on-screen">mm or inches on screen</a></h2>
-<p><em>Units</em> (Preferences, or the VIEW menu) says what the app shows and takes lengths in:
+<p><em>Units</em> (<em>Edit &gt; Preferences…</em>) says what the app shows and takes lengths in:
 <strong>mm</strong>, or <strong>inch</strong>. It is a setting of this computer, not of the project: a project is
 always stored in mm, so it opens the same for someone who works in the other units.</p>
 <p>With inch:</p>
@@ -952,6 +969,121 @@ chipload run box.chipload -o box.nc --setup 2
 </code></pre>
 <p>In paths, a setup’s board is <code>setups.N.stock…</code> and its zero <code>setups.N.work_zero</code>, counting
 from 0. The older <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active setup’s.</p>
+<h2 id="the-back-side-experimental"><a class="header" href="#the-back-side-experimental">The back side (experimental)</a></h2>
+<p>A setup can be the <strong>back of another</strong>: the same board turned over, for parts cut on both
+faces. It shares its front’s board and work zero: change the thickness of the front, and the
+back follows. A board that fits fits the shapes of both sides.</p>
+<pre><code class="language-sh">chipload setup add sign.chipload --back-of 1 --turn left-right   # "Setup 1 back", with a part
+chipload setup add sign.chipload --back-of 1 --pins --zero       # with its dowel holes, 8 mm pins
+chipload setup set sign.chipload 2 --turn top-bottom --register corner
+chipload setup set sign.chipload 2 --own-board    # a board of its own again, as it is now
+</code></pre>
+<p><code>--turn</code> is how the board is turned over: <strong>left-right</strong> about its vertical centre line, or
+<strong>top-bottom</strong> about its horizontal one. <code>--register</code> is how it is put back in place:
+<strong>pins</strong> (dowel pins on the turn axis, the default) or <strong>corner</strong> (pushed into the same
+corner of a fence). A board has one back, and a back can’t be turned over again. Removing
+the front gives its back a board of its own.</p>
+<p>You draw the back as seen <strong>from the front</strong>, looking through the board: the back’s
+shapes lie where they are on the board, and the view, the toolpath and the markers stay the
+front’s. The back’s program is mirrored when it is made, about the board’s centre line, so
+it cuts those shapes on the turned board. Climb stays climb and inside stays inside on the
+back face.</p>
+<p>The back’s board is as thick as the front leaves it: a surfacing pass on the front makes the
+back that much thinner, and its cuts through the stock follow.</p>
+<p>Its work zero is the front’s, on the board as it lies after turning: a stock corner is the
+corner of the turned board in that place, so push the board against the same stops.</p>
+<h3 id="dowel-holes"><a class="header" href="#dowel-holes">Dowel holes</a></h3>
+<p>Pins put the turned board back exactly where it was. <code>setup dowels</code> draws two circles on the
+layer <em>dowels</em>, on the line the board turns about, one at each end just beyond where both
+sides cut (an outside profile reaches a tool’s width past its outline), and adds a holes operation <strong>Dowel holes</strong> first in the front (after a
+surface pass). It cuts them through the board and on into the spoilboard for the pins:</p>
+<pre><code class="language-sh">chipload setup dowels sign.chipload --setup 2 --zero        # 8 mm pins, 8 mm deep
+chipload setup dowels sign.chipload --setup 2 --diameter 6 --depth 10
+chipload setup dowels sign.chipload --setup 2 --remove      # the operation and its circles
+chipload setup dowels sign.chipload --setup 2 --place       # place them again, where they go now
+</code></pre>
+<p>The holes stay where they are made: once the front is cut they are drilled, so nothing
+moves them by itself. When the board, its margin or the cuts change before then, <strong>Place
+again</strong> in the back’s form (<code>--place</code>) moves the two circles to where they would go now,
+clear of both sides’ cuts. The operation stays as it is, and a work zero at the first pin
+moves with it. When <em>Generate</em> is refused because the back cuts into a pin, the report
+offers the same: <strong>Place the dowel holes again</strong>.</p>
+<p>A back put back by pins whose front has no dowel holes (none, or all switched off) is
+warned about, but never stopped: ⚠ beside it in the Browser, <em>None yet</em> in its form and in
+its front’s, a line in the report after generating, and <em>no dowel holes (warning)</em> in
+<code>setup list</code>.</p>
+<p><code>--zero</code> puts the front’s work zero at the first pin’s centre (the bottom one, or the left
+one when the board turns top to bottom): a pin lands on itself when the board is turned, so
+front and back share it exactly. Pins of 8 mm are the default because a 6 mm end mill bores
+them; with a drill of the pins’ size in the project, it drills them.</p>
+<p>The holes may go deeper than <em>Max depth below stock</em>, but only they, and only inside their
+circles: the checker knows them from the project and refuses any other cut that deep. A
+dowel hole moved off the turn axis is refused, as it would miss its pin on the turned board.</p>
+<p>A board fitted round the drawing grows round the holes, its margin beyond each pin, along
+the turn axis only: saw it to the size the setup sheet gives. On a board of its own size
+the holes are centred between the cuts and the board’s edge; when there is less room than
+a hole and a millimetre each side, they are made anyway, with a warning, and where to put
+them is yours to decide: move them along the axis by hand, or make the board larger. The
+pins stand in the board while its back is cut, so the checker refuses a back side’s program that comes
+within a pin, and a front cut made after the holes that cuts into one is noted, since the
+pin would no longer sit firmly. Move the holes along the axis, or place them again.</p>
+<p><strong>Surfacing the back</strong> goes over the pins, edge to edge. That is allowed: a surface pass
+on the back may pass over them as deep as it cuts, and no other cut may. Its operation gets
+a warning, and the back’s setup sheet says to tap the pins down at least that far below the
+back face before you start (<em>Tap the pins down at least 0.5 mm below the back face</em>).</p>
+<h3 id="the-setup-sheets"><a class="header" href="#the-setup-sheets">The setup sheets</a></h3>
+<p>The front’s sheet says that a back follows, so the board stays where it is until the front is
+done. The back’s sheet starts with <strong>Turn the board over</strong>: which way to turn it, the pins to
+put in (or the fence corner to push it into, with the size it must have), and its picture
+shows the board as it lies on the machine, back face up.</p>
+<p>A text carved on the back gets a note: it reads right from the front, where you drew it, so
+on the back face it reads mirrored. To have it read right there, explode it (<code>text explode</code>) and mirror its shapes (<code>shape mirror</code>).</p>
+<h3 id="in-the-window-1"><a class="header" href="#in-the-window-1">In the window</a></h3>
+<p><strong>Two-sided</strong> in the ribbon’s WIZARDS group (<em>Wizards &gt; Two-sided…</em>) makes the back side
+of the active setup in one dialog. So do <strong>Add the back side…</strong> on a setup’s right-click,
+and <em>Add the back side</em> and <em>Add dowel holes</em> in a front’s form. It asks:</p>
+<ul>
+<li><strong>Front:</strong> the setup cut first;</li>
+<li><strong>Turn over:</strong> <em>Left to right</em> or <em>Top to bottom</em>;</li>
+<li><strong>Put back by:</strong> <em>Dowel pins</em> or <em>A fence corner</em>;</li>
+<li>with pins, <strong>Pin diameter</strong> (8 mm), <strong>Into the spoilboard</strong> (8 mm), <strong>Cut with</strong> (a drill
+of the pins’ size, else the largest end mill that bores them, or any tool of the project
+or your library, a library tool copied in when you click <em>Make</em>) and <strong>Work zero: At the
+first pin</strong> (on).</li>
+</ul>
+<p>A picture draws the board, the area both sides cut, the turn axis and the pins. Under it,
+for a board fitted round the drawing, the dialog says how much longer the board gets to
+hold the pins; for a board of its own size with less room than they need, it warns, and
+<em>Make</em> still makes them. <strong>Make the back side</strong>
+adds the back setup with its part and the dowel holes, as one undo step, and opens the
+back’s form. Opened on a setup that has a back, it <strong>changes</strong> that back instead: its turn,
+how it is put back, and its dowel holes, made again.</p>
+<p>The back is a new setup right after its front, “… back”, with a part of its own, marked ⟲
+in the Browser. Its form has:</p>
+<ul>
+<li><strong>Board:</strong> <em>Its own board</em>, or <em>Back of …</em> any setup that has no back yet;</li>
+<li><strong>Turn over:</strong> <em>Left to right</em> or <em>Top to bottom</em>;</li>
+<li><strong>Put back by:</strong> <em>Dowel pins</em> or <em>A fence corner</em>;</li>
+<li><strong>Dowel holes:</strong> with pins, <strong>Add dowel holes</strong> (it opens <em>Two-sided…</em>), or the
+operation that cuts them as a link, with <strong>Place again</strong> and <strong>Remove</strong> beside it (the
+operation and its two circles, one undo step).</li>
+</ul>
+<p>The front’s form has a <strong>Back side</strong> row: <em>None</em> with <strong>Add the back side</strong>, or the back as
+a link, with its dowel holes.</p>
+<p>While a two-sided board is shown, the canvas draws its <strong>turn axis</strong>: a long dashed line
+across the board, marked <em>⟲ Turn axis</em>, on the line the board turns about, where the dowel
+holes go. <em>View &gt; Show turn axis</em> hides it.</p>
+<p>A back’s <strong>Stock</strong> and <strong>Work zero</strong> are its front’s: their forms say so, with a button to
+open the front’s, and how thick the board is after the front’s surfacing. On the command
+line, <code>chipload set</code> refuses a back’s <code>stock</code> or <code>work_zero</code> and names the front’s path to
+set instead. You pick and edit
+the back’s shapes in the same view as the front’s, where you drew them; only its G-code and
+its setup sheet are turned over.</p>
+<p>Simulating a back setup shows the whole part: its front cut first, then the back from
+below (<a href="#3d-view-simulation-and-playback">Simulation</a>).</p>
+<p>In Simulate, <strong>Turn over</strong> on the navigation bar shows the board back face up, as it lies
+for the back.</p>
+<p>This is an experiment (docs/specs/two-sided.md): try it, and say what should change.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="depths-and-oversize"><a class="header" href="#depths-and-oversize">Depths and oversize</a></h1>
 <h2 id="start-and-end-depth"><a class="header" href="#start-and-end-depth">Start and end depth</a></h2>
@@ -1079,11 +1211,11 @@ which is the tool number in the G-code, and:</p>
 <tr><th>Setting</th><th></th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Type</strong></td><td>endmill, drill or V-bit</td></tr>
+<tr><td><strong>Type</strong></td><td>endmill, drill, V-bit or ball nose</td></tr>
 <tr><td><strong>Diameter</strong></td><td>mm</td></tr>
 <tr><td><strong>Spindle speed</strong></td><td>rpm. Required: a program can’t start the spindle without it.</td></tr>
 <tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill. New pockets go down round a helix and new follow paths ramp unless it is marked centre-cutting; when it can’t plunge, sloped tabs may be no steeper than the ramp angle.</td></tr>
-<tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter</td></tr>
+<tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter. Tapered ball noses: the taper’s included angle and the ball’s diameter at the tip; a plain ball nose has neither</td></tr>
 </tbody>
 </table>
 </div>
@@ -1108,6 +1240,8 @@ this.</li>
 change. Only posts that support it offer it (GRBL, whose sender must do the change).</li>
 </ul>
 <p>The command line can override it for one run: <code>chipload run part.chipload -o part.nc --tool-change program</code>. The setup sheet lists the tools in the order they’re used.</p>
+<p>A <strong>ball nose</strong> carves <a href="#3d-models">3D reliefs</a> and can follow a path; the
+other operations need a flat bottom and refuse it. <code>chipload tool add "Ball 3" --type ballnose --diameter 3</code> adds a plain one, and <code>--angle 7.2 --tip 1</code> a tapered one.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="the-checker-1"><a class="header" href="#the-checker-1">The checker</a></h1>
 <p>Every program goes through an independent checker before Chipload writes it, in the app and
@@ -1146,8 +1280,8 @@ is really there, and whether the zero is set right. The <a href="README.html#saf
 still apply.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="importing-a-dxf"><a class="header" href="#importing-a-dxf">Importing a DXF</a></h1>
-<p><em>File &gt; Import DXF or SVG…</em> (Ctrl+I), or <code>chipload import part.dxf -o part.chipload</code>, makes a new
-project from a DXF. <em>File &gt; Open…</em> also opens a <code>.dxf</code> directly. <code>chipload inspect part.dxf</code>
+<p><em>File &gt; Import DXF, SVG or STL…</em> (Ctrl+I), or <code>chipload import part.dxf -o part.chipload</code>, makes a new
+project from a DXF. <em>File &gt; Open…</em> also opens a <code>.dxf</code> directly. An STL file picked here starts a project with that <a href="#3d-models">3D model</a>. <code>chipload inspect part.dxf</code>
 shows what Chipload sees in a DXF without making a project.</p>
 <p><strong>Dropping files</strong> on the window:</p>
 <ul>
@@ -1229,7 +1363,7 @@ chipload import logo.svg -o logo.chipload          # a new project from it
 chipload dxf add part.chipload logo.svg            # beside the project's DXFs
 chipload update part.chipload --from logo.svg --dxf 2   # a new version of it
 </code></pre>
-<p>In the window: <em>File &gt; Import DXF or SVG…</em> (Ctrl+I) or <em>File &gt; Open…</em> starts a project
+<p>In the window: <em>File &gt; Import DXF, SVG or STL…</em> (Ctrl+I) or <em>File &gt; Open…</em> starts a project
 from it, <em>Add DXF or SVG to project…</em> adds it, and dropping an SVG on the window does either,
 as for a DXF. The file dialogs offer both kinds.</p>
 <p>The SVG shares the DXFs’ numbers: <code>--dxf 2</code>, <code>place --dxf 2</code> and <code>dxf remove … 2</code> work on
@@ -1594,10 +1728,13 @@ the tool. <em>Cancel</em>, Esc or the tool’s button again ends it without copi
 command line: <code>chipload shape array P 2 3 --columns 4 --rows 2 --dx 30 --dy 20</code>, <code>chipload shape array-polar P 5 --count 6 --center 100,80 [--angle-deg 180] [--no-rotate]</code>.</li>
 <li><strong>Align</strong> and <strong>Distribute</strong> sit under <em>Selection</em> when drawn shapes are selected.
 Align lines up each shape’s box (its left or right side, top or bottom, or middle) with
-the box round them all, or, with <em>To the stock</em>, with the stock’s (then one shape is
-enough). Distribute, with three shapes or more, evens out the gaps between their boxes
+that of the shape you picked <strong>first</strong>, which stays put, however many times you align
+the same selection. Shapes picked all at once with a box have no first: they line up
+with the box round them all. With <em>To the stock</em> they line up with the stock’s box
+(then one shape is enough). Hover over <em>Align</em> to see which applies. Distribute, with three shapes or more, evens out the gaps between their boxes
 across or up and down; the outermost two stay put. Shapes move whole and keep their
-numbers. On the command line: <code>chipload shape align P 2 3 --to left|centre|right|top| middle|bottom [--stock]</code>, <code>chipload shape distribute P 2 3 4 --horizontal</code> (or
+numbers. Pieces that join into one outline (a slot drawn as four lines and arcs) line
+up as one, and so does a <a href="#groups">group</a> with its texts. On the command line, the first shape named stays put: <code>chipload shape align P 2 3 --to left|centre|right|top| middle|bottom [--stock]</code>, <code>chipload shape distribute P 2 3 4 --horizontal</code> (or
 <code>--vertical</code>).</li>
 <li>New shapes on a layer that an operation selects by its name are cut by that operation
 too, as a shape drawn there is; the status bar names those operations.</li>
@@ -1966,7 +2103,7 @@ out with a <a href="#profile">profile</a>. (Design: <code>docs/specs/text.md</co
 <a href="#signs-and-frames">Signs and frames</a>.</p>
 <h2 id="writing-a-text"><a class="header" href="#writing-a-text">Writing a text</a></h2>
 <ol>
-<li><strong>Draw &gt; Text</strong> in the ribbon (or <em>DRAW &gt; Text</em>), then click on the canvas where the text
+<li><strong>Text</strong> among the ribbon’s small DRAW buttons (or <em>Draw &gt; Text</em>), then click on the canvas where the text
 should start. That point is the lower-left corner of the text’s box; set <strong>Anchor</strong> to
 centre afterwards to keep it centred on a point instead.</li>
 <li>A text saying “Text” appears there, selected, with its properties open and the text field
@@ -2038,8 +2175,11 @@ Apache License 2.0. Neither puts any condition on what you make: the letters you
 their G-code are yours.</p>
 <h3 id="your-computers-fonts"><a class="header" href="#your-computers-fonts">Your computer’s fonts</a></h3>
 <p>The <em>Font</em> list also has <strong>On this computer</strong>: every TrueType or OpenType font installed
-there, by name (“Arial Bold”), with a search field. Hover over a name to see a sample. The
-first time the list opens, Chipload looks for them (<em>Looking for fonts…</em>).</p>
+there, by name (“Arial Bold”). Hover over a name to see a sample. The first time the list
+opens, Chipload looks for them (<em>Looking for fonts…</em>).</p>
+<p>When the list opens you can type at once: the <strong>search</strong> field at its top keeps only the
+fonts whose name has what you typed, built in and on this computer. <strong>Recently used</strong>, at
+the top, has the last five fonts you picked, each in its own face.</p>
 <p>A font you don’t want to install can go in a folder named <code>fonts</code> in your
 <a href="#your-settings">settings folder</a>; Chipload finds it there too.</p>
 <p>Only the font’s name goes into the project, never the font file: fonts are licensed to the
@@ -2071,18 +2211,391 @@ chipload text fonts                                           # built in, then t
 <code>"select": {"text": 1}</code>, and any value can be changed with <code>chipload set</code>
 (<code>drawing.texts.0.text="SIGN"</code>); the letters are made again.</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="3d-models"><a class="header" href="#3d-models">3D models</a></h1>
+<p>A 3D model in an STL file, or a picture read as a depth map, can be carved into the board
+from the top as a <strong>relief</strong>: a
+sign with raised, rounded letters, a rosette, a coin, a landscape. The model lies on the
+board like a picture, seen from above, and is carved in three axes; nothing under an
+overhang is reached. (Design: <code>docs/specs/stl-relief.md</code>.)</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/showcase-relief.png" alt="A 3DBenchy relief simulated in 3D: the boat raised inside a rim that ramps up to the board’s surface"><span class="img-wrapper"><img src="images/showcase-relief.png" alt="A 3DBenchy relief simulated in 3D: the boat raised inside a rim that ramps up to the board’s surface"></span></label></p>
+<p><em><a href="https://www.printables.com/model/3161-3d-benchy">3DBenchy</a> by Creative Tools (CC0), 150 mm
+wide and 10 mm deep, with a rim filled out by Fuller at 90 %, a roughing pass with a 6 mm end
+mill, a smoothing pass and a 2 mm ball nose finish.</em></p>
+<h2 id="a-relief-in-one-step"><a class="header" href="#a-relief-in-one-step">A relief in one step</a></h2>
+<p><strong>Relief…</strong> (the ribbon’s WIZARDS group, or <em>Wizards &gt; Relief…</em>) makes a whole relief, one
+question at a time, each needing only the ones before it:</p>
+<ol>
+<li><strong>Model:</strong> an STL file, or a model already in the project.</li>
+<li><strong>Turn and cut:</strong> which side faces up, quarter turns, and how much to keep from the top
+(as in <a href="#turn-and-cut">Turn and cut</a>).</li>
+<li><strong>Size and place:</strong> width and depth, centred on the board or at a point; the <strong>start
+depth</strong>, how far below the board’s surface the model’s top lies (0 by default; a
+millimetre or so on a board that isn’t planed, so its uneven top doesn’t reach the
+relief); the board’s thickness, which the start depth and the depth must stay within.</li>
+<li><strong>Round it:</strong> a <a href="#a-rim-and-a-ramp">rim</a> round the model’s outline (the default; the
+<em>Fuller</em> slider fills it out towards a rubber band round the model) or round a box,
+rounded corners if you like: a flat at the relief’s depth, then a ramp up to the
+surface; or the relief cut out through the board with tabs.</li>
+<li><strong>Tools:</strong> the ball nose that finishes it; an end mill to rough it first, ticked when the
+relief is deeper than the ball nose is wide, and <em>Smooth the steps</em> after it (a
+<a href="#smoothing-the-steps">smoothing pass</a>, ticked); for a cut-out, its end mill, by default
+the roughing one, so one tool does both.</li>
+<li><strong>Check and make:</strong> what will be made, in cutting order, with the tools and tool changes.</li>
+</ol>
+<p>From step 3 on, a picture of the board beside the questions shows the relief where it will
+lie, and the rim or cut-out round it. <strong>Make</strong> adds it all as one undo step, in a part of
+its own: the model, the relief with its rim, roughing and smoothing passes, the cut-out. A board fitted
+to the drawing grows to hold the rim. Afterwards they are ordinary shapes and operations.</p>
+<p>From the command line, the same answers in the same order:</p>
+<pre><code class="language-sh">chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
+    --around box --margin 10 --ramp 45 --tool 2 --rough-tool 1 --smooth
+</code></pre>
+<p><code>--around</code> is <code>rim</code> (the default), <code>box</code> or <code>cut-out</code>; <code>--hull 50%</code> fills an outline rim
+out towards the convex hull; <code>--smooth</code> adds the smoothing pass. <code>--model ID</code> uses a model already in
+the project; <code>--up</code>, <code>--rotate</code>, <code>--at X,Y</code>, <code>--start-depth</code>, <code>--corner</code>, <code>--allowance</code>
+and <code>--end-mill</code> answer the rest. The tools are project tool
+numbers.</p>
+<h2 id="adding-a-model"><a class="header" href="#adding-a-model">Adding a model</a></h2>
+<p>In the window: <strong>3D model</strong> in the ribbon’s DRAW group, <strong>File &gt; Add 3D model…</strong>, <em>Add 3D
+model…</em> on the Browser’s Drawing folder, or drop an STL file on the window. <em>File &gt; Import…</em>
+and <em>File &gt; Open…</em> take an STL too, as a new project. The model starts half the board wide at the drawing’s
+origin, as deep as its own proportion gives but no deeper than half the board (then
+<em>Keep proportions</em> is off), and its properties open.</p>
+<p>From the command line:</p>
+<pre><code class="language-sh">chipload model add sign.chipload rose.stl --width 120 --depth 6 --at 20,20
+</code></pre>
+<ul>
+<li><strong>The file:</strong> binary or text STL. It is kept inside the project, as pictures are, so the
+project stays one file; a model over 20 MB says that the project gets as large.</li>
+<li><strong><code>--width</code>:</strong> its width on the board; the height follows. Without it, the model keeps its
+own size.</li>
+<li><strong><code>--depth</code>:</strong> how deep the relief goes, from the model’s top at the stock top to its
+lowest point. Reliefs are usually flatter than the model: a 14 mm tall model carved 4 mm
+deep. Without it, the depth is in proportion to the width, and follows the width when it
+changes.</li>
+<li><strong><code>--at X,Y</code>:</strong> where the lower-left corner of its footprint goes; <strong><code>--rotate</code></strong> turns
+it about its centre, any angle.</li>
+<li><strong><code>--up</code>:</strong> which of the model’s axes points up: <code>z</code> (the default), <code>y</code>, <code>x</code>, or one of
+them reversed (<code>-z</code> …). Many models are drawn with Y up.</li>
+<li><strong><code>--units inch</code>:</strong> STL files carry no unit. The size on import is read in mm, or in inches
+with this; since the model is placed by its width, it matters only for that first size.</li>
+<li><strong><code>--keep</code>:</strong> how much of the model to keep, from its top: <code>0.5</code> or <code>50%</code> keeps the top
+half and cuts away the rest, its back (see below). By default all of it.</li>
+<li><strong><code>--layer</code>:</strong> the layer for its outline; by default the file’s name.</li>
+</ul>
+<p>The report says how many triangles it has, any without an area that were left out, and
+how many open edges its surface has: a gap in a model lets the tool fall through to the
+relief’s floor.</p>
+<h2 id="a-relief-from-a-picture"><a class="header" href="#a-relief-from-a-picture">A relief from a picture</a></h2>
+<p>A grey picture where brightness is height, a <strong>depth map</strong>, is a 3D model too: the usual
+way CNC reliefs are drawn and shared. <strong>Add 3D model…</strong>, the Relief wizard and <code>model add</code>
+take a PNG, JPEG or BMP as well as an STL. White is the top and black the bottom; the
+picture is sized by its width, and its depth is yours (4 mm to start with).</p>
+<pre><code class="language-sh">chipload model add sign.chipload portrait.png --width 120 --depth 4 --background 10%
+chipload model set sign.chipload 1 --smoothing 0.5mm --gamma 1.5
+chipload relief add sign.chipload portrait.png --width 120 --depth 4 --tool 2 --rough-tool 1 --smooth
+</code></pre>
+<p>Its properties, and step 2 of the wizard, have four settings in place of <em>Up</em>:</p>
+<ul>
+<li><strong>White is high:</strong> untick for a depth map that has it the other way round.</li>
+<li><strong>Smoothing:</strong> a blur over the heights, its radius on the board (0.2 mm to start with):
+it takes pixel noise and a photo’s grain away; 0 keeps the picture as it is.</li>
+<li><strong>Background:</strong> the darkest greys up to this share are not the model. The outline goes
+round the rest, and the rim round that; at 0 % the whole picture is the model.</li>
+<li><strong>Gamma:</strong> above 1 flatter low ground and steeper tops, below 1 the other way.</li>
+</ul>
+<p>A large picture is averaged onto at most 800 points along its longer side (0.15 mm apart on
+a 120 mm relief), finer than a small ball nose can cut. Everything else is as for an STL:
+place, turn, keep from the top, the Relief operation with its rim, roughing and smoothing.</p>
+<h3 id="inflated-shapes"><a class="header" href="#inflated-shapes">Inflated shapes</a></h3>
+<p>A black-and-white picture (a logo, lettering, a silhouette) can be <strong>inflated</strong> instead:
+each black shape rises from its edge towards its middle, as if blown up, and the white
+round it is not the model. Set <em>Kind</em> to <em>Inflated</em> in the picture’s settings, or:</p>
+<pre><code class="language-sh">chipload model add sign.chipload logo.png --inflate --width 120 --depth 4
+chipload model set sign.chipload 1 --profile straight --reach 3mm
+chipload relief add sign.chipload name.png --inflate --reach 2mm --width 200 --depth 5 --tool 2
+</code></pre>
+<ul>
+<li><strong>Threshold:</strong> greys darker than this are the shapes; <em>Automatic</em> picks it from the
+picture. <strong>Invert:</strong> white is the shape.</li>
+<li><strong>Profile:</strong> <em>Round</em> rises steeply at the edge and is flat on top, a cushion; <em>Straight</em>
+rises evenly, to a ridge along each stroke, as if chiselled.</li>
+<li><strong>Reach:</strong> how far in from the edge a shape keeps rising. <em>Automatic</em> takes the widest
+shape’s half-width, so nothing levels off and narrow shapes stay lower than wide ones.
+Set it, and everything wider levels off at the full depth: for lettering, about half a
+stroke’s width gives letters all of one height.</li>
+<li><strong>Smoothing</strong> takes the pixels’ steps off the edges.</li>
+</ul>
+<p>A letter’s hole is an edge too, so an “O” rises from both sides of its ring.</p>
+<p><strong>From an iPhone:</strong> Portrait photos carry a depth map, but inside the HEIC photo, which
+Chipload doesn’t read (it says so). Save the depth map as a PNG first, with an app or a
+Shortcut that exports it; it is small (about 768 × 576) and soft at the edges, so a
+little smoothing and a background level help. For an object you can walk round, a
+3D-scanning app’s STL gives far more.</p>
+<h2 id="turn-and-cut"><a class="header" href="#turn-and-cut">Turn and cut</a></h2>
+<p>When a model is added, <strong>Turn and cut</strong> opens (and later <em>Turn and cut…</em> in its
+properties): the model in 3D on the left, the relief it gives seen from above on the right,
+both redrawn as you change them.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/turn-cut.png" alt="Turn and cut: the model in 3D with its cut level, and the relief it gives"><span class="img-wrapper"><img src="images/turn-cut.png" alt="Turn and cut: the model in 3D with its cut level, and the relief it gives"></span></label></p>
+<ul>
+<li><strong>Drag the model</strong> to look at it from any side.</li>
+<li><strong>Face up:</strong> which of the model’s sides faces up: Z, Y, X or one of them reversed.</li>
+<li><strong>Turn on the board:</strong> a quarter turn either way.</li>
+<li><strong>Keep from top:</strong> the cut level (below). The part kept is coloured, the part cut away
+grey, and the plate is the level.</li>
+<li><strong>Width</strong> and <strong>Depth</strong>, as in the properties; the size it gives is under the relief.</li>
+</ul>
+<p><strong>OK</strong> changes the model as one undo step and draws its outline again; <strong>Cancel</strong> leaves it
+as it was. The views are drawn from a light copy of the model (at most 50 000 triangles),
+so a large file turns smoothly; the outline, the toolpath and the G-code always come from
+the full model.</p>
+<h2 id="keeping-the-front-the-cut-level"><a class="header" href="#keeping-the-front-the-cut-level">Keeping the front: the cut level</a></h2>
+<p>A model made to be seen from every side (a figure, a head, an animal) would be carved from
+its top all the way down to its lowest point: most of the depth goes into its far side,
+which the tool can’t reach anyway, and the side you see comes out flat. <strong>Keep from top</strong>
+in its properties (<code>model set sign.chipload 1 --keep 50%</code>) cuts it level at that share of
+its height and keeps the part above: the front half of a head keeps its whole outline,
+and its depth and width are now that half’s. So set the cut level first, then the depth
+the board allows; a depth you typed stays when the cut level changes. Where the cut goes
+through the model, the relief is cut to its floor.</p>
+<h2 id="its-outline"><a class="header" href="#its-outline">Its outline</a></h2>
+<p>The model’s footprint seen from above becomes a closed shape on its layer, drawn again
+whenever the model is moved or changed. Select it for a profile to cut the relief out of
+the board, or for a pocket that clears round it: click the outline, Ctrl+click a shape round
+it, then <strong>Pocket</strong>, and the outline stays an island in the pocket. The outline keeps its
+shape ids when it is drawn again, so the pocket still finds it after the model moves.</p>
+<h2 id="changing-and-removing"><a class="header" href="#changing-and-removing">Changing and removing</a></h2>
+<p>In the window the model is a row of the Browser’s Drawing folder; a click selects its
+outline and shows its <strong>properties</strong>: the file, its size on the board, <em>Position</em> (the
+lower-left corner before the turn), <em>Rotation</em>, <em>Width</em>, <em>Depth</em> with <em>Keep proportions</em>,
+<em>Up</em>, <em>Keep from top</em> and <em>Layer</em>. Each change draws the outline again, as one undo step. Selected on the
+canvas it has a picture’s <strong>handles</strong>: drag the middle to move it, the round handle to
+turn it, a corner to size it. In the <strong>3D view</strong> it shows faintly as its surface, until a
+simulation is shown. <em>Remove</em> (in its properties or on its row) takes the model and its
+outline; a relief of it stays, with a problem, until it carves another model.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/model.png" alt="A 3D model in the 3D view, its properties open"><span class="img-wrapper"><img src="images/model.png" alt="A 3D model in the 3D view, its properties open"></span></label></p>
+<pre><code class="language-sh">chipload model set sign.chipload 1 --rotate 15 --depth 4
+chipload model set sign.chipload 1 --proportional     # the depth follows the width again
+chipload model list sign.chipload                     # file, up axis, place and size
+chipload model remove sign.chipload 1                 # the model and its outline
+</code></pre>
+<p><code>chipload set sign.chipload drawing.models.0.width=100</code> works as well, and draws the outline
+again.</p>
+<h2 id="carving-it-the-relief-operation"><a class="header" href="#carving-it-the-relief-operation">Carving it: the Relief operation</a></h2>
+<p>In the window: <strong>New relief</strong> in the model’s properties or on its row, <em>Relief</em> in the
+ribbon’s OPERATION group (the small button under <em>Surface</em>), or <em>Operation &gt; New Relief</em>;
+the last two carve the selected model, or the first. A relief is made in the
+active part, with a ball nose when the project has one.</p>
+<p>From the command line:</p>
+<pre><code class="language-sh">chipload tool add "Ball 3" --type ballnose --diameter 3     # then `tool use` it in the project
+chipload op add sign.chipload relief --model 1             # a relief of model 1, within its outline
+chipload set sign.chipload operations.0.stepover=0.1 operations.0.angle=0.785
+</code></pre>
+<p>A <strong>Relief</strong> carves the model in parallel lines across its area, each point as low as the
+tool can go without cutting into the model: the tool is lowered onto the model’s triangles
+until it first touches one. A ball nose gives the smoothest finish; a tapered ball nose
+reaches finer detail; an end mill or a V-bit works too, with their own marks.</p>
+<ul>
+<li><strong>Area:</strong> with <code>--model</code>, the model’s outline, with its <a href="#a-rim-and-a-ramp">rim</a> round it.
+Other closed shapes can be selected for the area instead: a drawn rectangle, say. Without
+a rim the tool’s centre stays inside the area, which leaves a groove the tool’s width
+round the model and the board beyond untouched.</li>
+<li><strong><code>stepover</code>:</strong> the distance between lines as a share of the tool; smaller is smoother and
+slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
+0.02 mm between its lines on flat ground, which wood doesn’t show: 20 % for a 2 mm ball,
+16 % for 1/8“, 12 % for 6 mm. The relief’s form shows the ridges for the stepover you set.
+Finer only takes longer: a 2 mm ball at 10 % leaves ridges of 0.005 mm and takes about
+three times as long. Other tools start at 10 %.</li>
+<li><strong><code>angle</code>:</strong> the lines’ direction in radians from X (0 by default). Lines at an angle to the
+model’s long edges leave fewer marks.</li>
+<li><strong><code>zigzag</code>:</strong> back and forth (true, the default), or every line the same way, lifting
+between them.</li>
+<li><strong><code>start_depth</code>:</strong> how far below the stock top the model’s top lies: a little on an
+unplaned board, so its uneven top doesn’t reach the relief. Its lowest point is the start
+depth plus the model’s depth, which the checker holds within the stock. The roughing pass
+still starts at the stock top, and a rim’s ramp still climbs to it.</li>
+<li><strong>Depth:</strong> the model’s depth. Changed in the relief’s properties, it is the model that
+changes, and every relief of it; a depth typed there turns the model’s <em>Keep proportions</em>
+off.</li>
+</ul>
+<p>In the project file a relief reads:</p>
+<pre><code class="language-json">{ "type": "relief", "name": "Relief 1", "enabled": true, "part": 1, "material": null,
+  "model": 1, "select": { "model": 1, "shapes": null, "layer": null }, "tool": 2,
+  "start_depth": 0.0, "end_depth": 5.0, "stepover": 0.1, "angle": 0.0, "zigzag": true,
+  "feed": 1500.0, "plunge_feed": 500.0 }
+</code></pre>
+<p><code>model</code> names the model it carves; <code>end_depth</code> is made again from the model’s depth
+whenever the project is read or changed.</p>
+<h2 id="a-rim-and-a-ramp"><a class="header" href="#a-rim-and-a-ramp">A rim and a ramp</a></h2>
+<p>Round the model a relief cuts a <strong>rim</strong>: a flat at its full depth, then a <strong>ramp</strong> up to the
+board’s surface, so the model sits in a shallow dish instead of a trench:</p>
+<pre><code class="language-text"> surface ─────╮                                   ╭───── surface
+               ╲ ramp                       ramp ╱
+                ╲        ╭── model ──╮          ╱
+                 ╲______╱             ╲________╱
+                   flat                  flat
+</code></pre>
+<p>Every line starts at the surface and runs down the ramp, so the tool never plunges to full
+depth at the area’s edge, and its shank stays clear of the outer wall. The roughing pass
+clears the rim with the rest.</p>
+<ul>
+<li><strong>Round:</strong> the model’s <em>outline</em> (the flat follows it, round at the corners) or a <em>box</em>,
+the rectangle round the model, with rounded corners if you like.</li>
+<li><strong>Flat width:</strong> how far the flat reaches from the outline or the box. 0 starts the ramp
+right at it.</li>
+<li><strong>Fuller</strong> (outline only): how far the outline is filled out before the flat goes round
+it. At 0 % the rim follows every notch of the model’s outline; higher fills narrow
+notches first, then wider ones, bridging them with round edges, and joins pieces that
+lie close together; at 100 % it goes round the model like a rubber band, its convex
+hull. The ramp keeps its angle all the way round.</li>
+<li><strong>Ramp:</strong> its slope from horizontal, 10° to 90°. At 45° it reaches out as far as the
+relief is deep; 90° is a straight wall.</li>
+</ul>
+<p>A new relief has a rim 5 mm round its outline with a 45° ramp. <em>Relief…</em> and <code>relief add</code>
+make the flat wider when there is a roughing pass: its end mill’s width and the allowance on
+both sides, rounded up to a whole mm, so the end mill reaches the floor all round the model.
+When a flat is narrower than that, the plan notes it. In the window it is the
+relief’s <strong>Rim</strong> section; untick it for none. While the relief or one of its passes is open,
+the canvas shows the rim as dashed lines in the relief’s colour: the outline as <em>Fuller</em>
+fills it out (bolder), the flat’s outer edge and where the ramp reaches the top. They
+follow the settings as you change them, without generating the toolpath. From the command
+line:</p>
+<pre><code class="language-sh">chipload set sign.chipload 'operations.0.rim={"shape":"box","width":8,"ramp":0.785,"corner_radius":4}'
+chipload set sign.chipload operations.0.rim.width=3
+chipload set sign.chipload operations.0.rim.hull=0.5   # fuller: halfway to the hull
+chipload set sign.chipload operations.0.rim=null      # no rim
+</code></pre>
+<p><code>ramp</code> is in radians (0.785 is 45°). Holes in the outline are cut to the depth. A board
+fitted to the drawing grows to hold the rim; on a board of fixed size, the plan notes when
+the ramp reaches past its edge, where it is cut off.</p>
+<p>Along each line the tool stays within 0.01 mm of where the model needs it: more points are
+added where the surface bends. When the program is made, the path is checked against the
+model once more by a simpler test of its own; if anything would cut into the model, nothing
+is made and the report says where.</p>
+<h2 id="roughing-first"><a class="header" href="#roughing-first">Roughing first</a></h2>
+<p>A finishing ball nose is small, and a relief can be deeper than it should cut in one go
+(the plan and the relief’s form warn when the relief is deeper than the tool is wide). A
+rim’s ramp spares the tool the plunges, but on the way down each line still shaves a strip
+as tall as the depth there. A <strong>roughing pass</strong> takes
+most of the material first with a larger tool. In the window: <em>Add roughing pass ▸</em> on the
+relief’s row in the Browser (right-click), with your project’s and library’s end mills and
+plain ball noses; the pass shows under the relief, with its own properties. <em>Remove</em> on its
+row, or Delete with it selected, takes it away. From the command line:</p>
+<pre><code class="language-sh">chipload op add-roughing sign.chipload --op 1 --tool 1 --allowance 0.5mm
+chipload set sign.chipload operations.0.roughing.step_down=2.5
+chipload op remove-roughing sign.chipload --op 1
+</code></pre>
+<ul>
+<li><strong>The tool:</strong> an end mill or a plain ball nose (not a V-bit or a tapered ball nose). Its
+feeds, step down and stepover come from the tool library’s cutting data, or else from the
+relief, half the tool’s diameter and 0.4.</li>
+<li><strong>Levels:</strong> it goes down one <code>step_down</code> at a time from the stock top to the relief’s
+lowest point, along the relief’s lines (<code>stepover</code> apart, at the relief’s angle), and
+cuts only where material is left above each level.</li>
+<li><strong><code>allowance</code>:</strong> what it leaves on the model for the finish, 0.5 mm by default, all
+round, not only above: on steep sides too.</li>
+<li><strong>Never wider than the finish:</strong> its area is the relief’s, shrunk so its edge stays
+where the finishing tool reaches. The finish takes the narrow ring left inside the
+outline itself.</li>
+</ul>
+<p>It is cut just before the relief, as pass <em>Operation 1.1 (Relief 1, roughing)</em>, with its
+own tool; the program is checked to keep the allowance off the model. In the project file
+it is the relief’s <code>roughing</code>:</p>
+<pre><code class="language-json">"roughing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "step_down": 3.0,
+  "stepover": 0.4, "allowance": 0.5, "enabled": true }
+</code></pre>
+<h2 id="smoothing-the-steps"><a class="header" href="#smoothing-the-steps">Smoothing the steps</a></h2>
+<p>Along its lines the roughing end mill follows the surface, but between them, on ground
+that rises across the lines, its flat bottom leaves a stair: steps one stepover wide and
+as tall as the slope makes them, 2.4 mm on a 45° ramp at 40 % of a 6 mm end mill. Smaller
+step-downs don’t change them. A small ball nose would take each step in one bite.</p>
+<p>A <strong>smoothing pass</strong> takes them off: after the roughing, the roughing end mill follows the
+surface once more, no levels, with its lines across the roughing’s, and leaves the same
+allowance. Ground that rises along either set of lines comes out clean, so a box rim’s four
+ramps do; on curved ground the steps shrink to the smoothing’s stepover times the slope. A
+larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
+change.</p>
+<p>In the window: <em>Add smoothing pass</em> on the relief’s or the roughing pass’s row in the
+Browser (right-click), or in the roughing pass’s properties; on a relief without a roughing
+pass it is greyed out, its hover saying to add one first. The pass shows under the relief
+after the roughing, with its own properties (tool, stepover, the lines’ angle, allowance,
+feeds); Delete with it selected removes it. From the command line:</p>
+<pre><code class="language-sh">chipload op add-smoothing sign.chipload --op 1                 # the roughing tool
+chipload op add-smoothing sign.chipload --op 1 --tool 3 --allowance 0.3mm
+chipload op remove-smoothing sign.chipload --op 1
+</code></pre>
+<ul>
+<li><strong>Defaults:</strong> the roughing pass’s tool, feeds and allowance; lines a quarter turn from
+the relief’s; stepover 15 % with an end mill, or with a ball nose the widest that leaves
+0.1 mm ridges on flat ground.</li>
+<li><strong>Only after roughing:</strong> it follows the surface in one go, so it needs the roughing pass,
+ticked, before it; removing the roughing pass removes it too.</li>
+</ul>
+<p>It is cut between the roughing and the relief, as <em>Operation 1.2 (Relief 1, smoothing)</em>;
+the program is checked to keep the allowance off the model. In the project file it is the
+relief’s <code>smoothing</code>:</p>
+<pre><code class="language-json">"smoothing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "stepover": 0.15,
+  "angle": 1.5708, "allowance": 0.5, "enabled": true }
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="signs-and-frames"><a class="header" href="#signs-and-frames">Signs and frames</a></h1>
-<p>An engraved sign is a few words with a frame round them, cut out of a board. <strong>Draw &gt;
-Frame…</strong> draws the frame for you: round the text you have written, centred on it, with
-border lines inside it, or to a size as a blank. A sign you will make again can be kept in the
+<p>An engraved sign is a few words with a frame round them, cut out of a board. <strong>New sign…</strong>
+(below) makes the whole sign, its operations too. <strong>Draw &gt; Frame…</strong> only draws a frame: round
+the text or shapes you have selected, centred on them, with border lines inside it, or to a
+size as a blank, for a frame you cut with operations of your own. A sign you will make again can be kept in the
 <a href="#the-shape-library">shape library</a>. (Design: <code>docs/specs/shape-library.md</code>.)</p>
+<h2 id="a-sign-in-one-step"><a class="header" href="#a-sign-in-one-step">A sign in one step</a></h2>
+<p><strong>New sign…</strong> (<strong>Sign</strong> in the ribbon’s <em>WIZARDS</em> group, or <em>Wizards &gt; New sign…</em>) makes a whole sign: the words, a frame round them, and every operation that
+cuts it, in a part of its own named after the words (a new project’s empty part becomes
+it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
+<code>docs/specs/sign-maker.md</code>.)</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"><span class="img-wrapper"><img src="images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"></span></label></p>
+<ul>
+<li><strong>Words</strong>, <strong>Font</strong>, <strong>Height</strong>: the text, centred on the board. The font list is the
+text tool’s: your recently used fonts first (the last one picked is chosen), then the
+built-in fonts and your computer’s (<a href="#text">Text</a>). With shapes selected
+when you open it (a traced picture, a text, drawn shapes or a DXF’s), the sign goes
+<strong>round the selection</strong> instead: those shapes are carved with the V-bit (an operation
+named <em>Carving</em>) and the frame follows them, a picture traced again too. <em>Write words
+instead</em> goes back to new words. A raised sign round a picture’s or a DXF’s shapes can’t
+be made yet (its background pocket needs them grouped with the frame, and a group takes
+only drawn shapes and texts).</li>
+<li><strong>Frame</strong>: as for <em>Frame…</em> below: the kind, margin, corner, borders and their groove
+width. The frame follows the words afterwards.</li>
+<li><strong>Style</strong>:
+<ul>
+<li><em>Engraved</em>: the letters V-carved;</li>
+<li><em>Raised</em>: the background inside the innermost border cut down round the letters with
+the end mill (<strong>Background depth</strong>, 3 mm by default), the letters and the border left
+standing; it needs a border. Inside corners round the letters keep the end mill’s
+radius;</li>
+<li><em>Inlay</em>: the letters as a <a href="#inlays">V-carve inlay</a>, the plug in a
+board of its own.</li>
+</ul>
+</li>
+<li><strong>Edge</strong>: a <strong>Chamfer</strong> of that width round the outline, cut with the V-bit centred on the
+outline before the sign is cut out (the other half of the groove is in the waste).</li>
+<li><strong>V-bit</strong>, <strong>End mill</strong>: the project’s tools, then under <em>From your library:</em> your tool
+library’s (marked <strong>+</strong>). A library tool is copied into the project when you click <em>Make
+sign</em>, not before. A project without such a tool starts on the library’s. The V-bit
+carves the letters and the grooves, the end mill cuts the sign out (and clears a raised
+background).</li>
+<li><strong>Board</strong>: <em>Fit round the sign</em> (on in an empty project) fits the stock round the drawing
+with the margin, at the thickness.</li>
+</ul>
+<p>It adds, in cutting order: <em>Letters</em> (or <em>Background</em>, or the inlay’s pocket), <em>Borders</em>
+(a follow path on the border lines as deep as the groove width needs), <em>Edge chamfer</em>,
+and <em>Cut out</em> (a profile outside the outline, through, with tabs). Feeds come from the
+tools’ cutting data. The words and the frame are one group: a click selects the sign, a drag
+moves it. All of it is one undo step, and every part of it is ordinary shapes and
+operations afterwards.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"><span class="img-wrapper"><img src="images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"></span></label></p>
 <h2 id="a-frame-round-a-text"><a class="header" href="#a-frame-round-a-text">A frame round a text</a></h2>
 <ol>
-<li>Write the text (<a href="#text">Text</a>) and leave it selected, or select any shapes: the frame
-goes round all of them.</li>
-<li><strong>Frame</strong>: the small button after the shape tools in the ribbon’s <em>DRAW</em> group (a
-rounded frame with a line inside), or <em>DRAW ▾ &gt; Frame…</em>. Its values open under
+<li>Write the text (<a href="#text">Text</a>) and leave it selected, or select any shapes, a traced
+<a href="#images">picture</a> for instance: the frame goes round all of them.</li>
+<li>Right-click the selection and choose <strong>Frame round the selection…</strong>, or <em>Draw &gt;
+Frame…</em> (the way to a frame to a size, with nothing selected). Its values open under
 <em>Selection</em>, and the frame shows on the canvas as you change them.</li>
 <li>Pick a frame from the row of pictures, set the values, and click <strong>Add</strong>. The frame is
 added as one undo step, and its shapes are selected.</li>
@@ -2097,13 +2610,30 @@ adds one); a click on empty space, or on the previewed frame, changes nothing. <
 <tr><th>Frame</th><th>Its corner size is</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Rectangle</strong></td><td>(sharp corners)</td></tr>
-<tr><td><strong>Rounded</strong></td><td>the corners’ radius</td></tr>
-<tr><td><strong>Notched</strong></td><td>the radius of the quarter circles cut into each corner</td></tr>
-<tr><td><strong>Chamfered</strong></td><td>how far each corner is cut off at 45°, along each side</td></tr>
+<tr><td><strong>Rectangle</strong></td><td>depends on its <strong>Corners</strong> (below)</td></tr>
 <tr><td><strong>Oval</strong></td><td>(an ellipse touching the four sides)</td></tr>
 <tr><td><strong>Arched top</strong></td><td>how far the top arc rises above the top corners</td></tr>
+<tr><td><strong>Arched top and bottom</strong></td><td>how far each arc rises beyond the corners</td></tr>
+<tr><td><strong>Gable</strong></td><td>how far the pointed top rises above the top corners</td></tr>
+<tr><td><strong>Shield</strong></td><td>how far below the straight sides the point is; from half the width down, the sides curve into a point, shallower the bottom is one arc</td></tr>
 <tr><td><strong>Plaque</strong></td><td>how far the short sides bulge out</td></tr>
+<tr><td><strong>Banner</strong></td><td>how deep the V cut into each short end is (forked ends)</td></tr>
+<tr><td><strong>Octagon</strong></td><td>(the corners cut off at 45°, the cut sides as long as the shorter sides)</td></tr>
+</tbody>
+</table>
+</div>
+<p>A rectangle’s <strong>Corners</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Corners</th><th>Its corner size is</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Sharp</strong></td><td>(none)</td></tr>
+<tr><td><strong>Round</strong></td><td>the corners’ radius</td></tr>
+<tr><td><strong>Notch</strong></td><td>the radius of the quarter circles cut into each corner</td></tr>
+<tr><td><strong>Chamfer</strong></td><td>how far each corner is cut off at 45°, along each side</td></tr>
+<tr><td><strong>Step</strong></td><td>the side of the square cut out of each corner (at most a third of the shorter side)</td></tr>
 </tbody>
 </table>
 </div>
@@ -2118,12 +2648,41 @@ shown greyed; tick it to set your own. One too large for the frame is refused, w
 largest that fits.</li>
 <li><strong>Borders:</strong> 0 to 3 lines inside the outline, each <strong>Gap</strong> further in (5 mm by default).
 They follow the outline’s shape: a notched frame’s borders are notched too.</li>
+<li><strong>Border corners</strong> (a rectangle with borders): the borders’ own corners, at the same
+gap, such as a round sign with a notched line inside. <em>As the outline</em> follows its shape.</li>
+<li><strong>Groove width:</strong> how wide a border’s groove will be at the surface: the V-bit’s width at
+the depth it cuts. The margin is then measured to the inner edge of the innermost groove,
+so the words keep their distance from the cut, not from the line. 0 (the default)
+measures to the line.</li>
+<li><strong>Double lines:</strong> each border two grooves, twice the groove width apart, which leaves a
+ridge as wide as a groove between them. It needs the groove width. The gap is then from
+one border’s inner line to the next border.</li>
 <li><strong>Layer</strong>, <strong>Border layer:</strong> the outline goes on <code>frame</code>, the borders on <code>border</code>, so that
 each can be cut by its own operation.</li>
 </ul>
 <p>A frame is ordinary drawn shapes: a rounded or plain rectangle, a circle for a round oval,
-otherwise a polyline of lines and arcs. Change it like any drawn shape, or draw it again:
-delete it, change the text, and <em>Draw &gt; Frame…</em> again with the same values.</p>
+otherwise a polyline of lines and arcs. Operations cut it like any other shape.</p>
+<h2 id="the-frame-follows-its-text"><a class="header" href="#the-frame-follows-its-text">The frame follows its text</a></h2>
+<p>A frame remembers what it goes round. Change the words, the font or the height of the text,
+or move it, and the frame is drawn again round it, with its borders, in the same undo step.
+Its shapes keep their ids, so the operations that cut them go on cutting them. A frame round
+a picture follows it when it is traced again, at another size or place; one round other
+shapes follows them when they move. A frame round only some of a text’s letters or a
+picture’s shapes keeps those shapes by id, and lets go when they are made again.</p>
+<p>Select the frame (its outline or a border) and its values show under <em>Selection</em>, in a
+<strong>Frame</strong> card: the kind, margin, corner, borders and gap. Change them there and the frame is
+drawn again. A frame drawn to a size shows its width and height instead, and follows
+nothing.</p>
+<p>The frame lets go, and becomes plain shapes that follow nothing, when:</p>
+<ul>
+<li>you edit one of its shapes by hand: move it alone, drag a corner, change its values in its
+own form (moving the frame <em>with</em> its text keeps it following);</li>
+<li>one of its shapes is deleted, or everything it went round is;</li>
+<li><strong>Detach</strong> in its card, on purpose.</li>
+</ul>
+<p>A note on the status bar says so each time. Undo brings the frame back as it was.</p>
+<p>An older Chipload refuses to open a project with a frame that follows something, and says
+why; detach the frame first to open the project there.</p>
 <h2 id="a-frame-to-a-size"><a class="header" href="#a-frame-to-a-size">A frame to a size</a></h2>
 <p>With nothing selected, <em>Draw &gt; Frame…</em> asks for the outline’s <strong>Width</strong> and <strong>Height</strong>
 instead of the margin, and the frame is centred on the stock: a blank for a sign, or a
@@ -2133,8 +2692,9 @@ plaque to write on afterwards.</p>
 <ol>
 <li>a <strong><a href="#v-carve">V-carve</a></strong> on the text’s layer, with a V-bit;</li>
 <li>a <strong><a href="#follow-path">Follow path</a></strong> on the <code>border</code> layer with the same V-bit: a
-groove along each border line, as wide as the V-bit is at that depth. (A V-carve of a
-border would carve the whole area inside it.);</li>
+groove along each border line, as wide as the V-bit is at that depth. Set its <strong>Groove
+width</strong> to the frame’s, and its end depth follows. (A V-carve of a border would carve
+the whole area inside it.);</li>
 <li>a <strong><a href="#profile">Profile</a></strong> outside the <code>frame</code> layer with an end mill, to
 cut the sign out, with tabs.</li>
 </ol>
@@ -2146,12 +2706,33 @@ sign.</p>
 <pre><code>chipload text add sign.chipload "SIGN" --height 30 --at 150,80 --anchor center
 chipload frame add sign.chipload --kind rounded --around-text 1 --borders 1 --corner 8 --margin 12
 chipload frame add blank.chipload --kind oval --width 300 --height 150 --borders 2
+chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --double --border-width 2
+chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
+chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectangle --corners notch \
+    --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
 chipload frame kinds
+chipload frame list sign.chipload                              # the frames that follow, with their values
+chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again
+chipload frame detach sign.chipload 7                          # plain shapes from now on
 </code></pre>
-<p><code>--around</code> takes shape ids, <code>--around-text</code> text ids (<code>chipload text list</code>); without
+<p><code>sign add</code> takes the words, or instead <code>--around</code>, <code>--around-text</code> or <code>--around-image</code> to
+make the sign round what is drawn; it takes the frame’s options as <code>frame add</code> does (<code>--frame</code> for the kind), and
+<code>--style engraved|raised|inlay</code>, <code>--relief</code>, <code>--edge none|chamfer:WIDTH</code>, <code>--vbit</code>,
+<code>--end-mill</code> (project tool ids), <code>--thickness</code> and <code>--board-margin</code> (or <code>--keep-stock</code>);
+<code>--json</code> gives the new part, text, outline, borders, group and operations.
+<code>--kind</code> is one of the frames above (<code>rectangle</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>,
+<code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>); <code>--corners</code> (<code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>,
+<code>step</code>) picks a rectangle’s corners, and the older names <code>rounded</code>, <code>notched</code>, <code>chamfered</code>
+and <code>stepped</code> still work as kinds. <code>--border-corners</code>, <code>--double</code> and <code>--border-width</code> set
+the borders; <code>frame set</code> takes the same, and <code>--border-corners-off</code> to make the borders
+follow the outline again. <code>--around</code> takes shape ids, <code>--around-text</code> text ids (<code>chipload text list</code>),
+<code>--around-image</code> picture ids (<code>chipload image list</code>); without
 either, <code>--width</code> and <code>--height</code> give the outline’s size and <code>--at</code> its centre (the stock’s
 centre by default). The new shapes’ ids are printed, the outline’s first; <code>--json</code> gives
-them with the frame’s size and corner.</p>
+them with the frame’s size and corner. <code>frame set</code> and <code>frame detach</code> take the id of the
+frame’s outline or of one of its borders. Every command that changes a text or a shape draws
+the frames that follow it again before it saves, and prints a line for any frame it let go
+of.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="the-shape-library"><a class="header" href="#the-shape-library">The shape library</a></h1>
 <p>Shapes you use again and again, such as a frame you like, a house-number plate or a logo
@@ -2159,7 +2740,7 @@ with its border, can be kept in your <strong>shape library</strong> and put into
 holds drawn shapes and texts; a text stays a text, so a saved sign can get new words.
 (Design: <code>docs/specs/shape-library.md</code>.)</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/shape-library.png" alt="The Shapes tab beside the canvas: a saved sign, and frames in a group"><span class="img-wrapper"><img src="images/shape-library.png" alt="The Shapes tab beside the canvas: a saved sign, and frames in a group"></span></label></p>
-<h2 id="in-the-window-1"><a class="header" href="#in-the-window-1">In the window</a></h2>
+<h2 id="in-the-window-2"><a class="header" href="#in-the-window-2">In the window</a></h2>
 <p>The <strong>Shapes</strong> panel is the library, at the start a tab beside Properties on the right
 (<a href="#arranging-the-panels">arranged as you like</a>). It holds a search field, then the entries as small pictures with their names, the ones in no group
 first and each group under a header that folds.</p>
@@ -2231,19 +2812,22 @@ shapes and a traced picture’s already belong to their file or picture, which k
 together; explode the DXF, or put the picture through the shape library, to group its
 shapes. A shape is in one group at most, and groups don’t hold groups.</p>
 <p>Inserting a library entry of more than one shape or text makes a group named after it.</p>
-<h2 id="in-the-window-2"><a class="header" href="#in-the-window-2">In the window</a></h2>
+<h2 id="in-the-window-3"><a class="header" href="#in-the-window-3">In the window</a></h2>
 <ul>
 <li><strong>Group:</strong> select shapes and texts (Ctrl+click, or a box), then right-click &gt; <strong>Group</strong>,
 or <strong>Ctrl+G</strong>. With one group among them, the rest join it; with several, they become
 one. Right-click &gt; <strong>Add to group ▸</strong> adds the selection to a group you pick.</li>
 <li><strong>Select:</strong> a click on any shape or letter of a group selects all of it, and so does its
-row in the Browser (under <em>Drawing</em>, with its shapes under it). <strong>Ctrl+click</strong> on shapes
+row in the Browser (under <em>Drawing</em>, with its texts and shapes under it; a grouped text
+or shape isn’t listed again elsewhere). <strong>Ctrl+click</strong> on shapes
 of the selected group leaves them out of the selection and back in.</li>
-<li><strong>One shape inside:</strong> <strong>double-click</strong> it on the canvas, or click its row under the
-group in the Browser. Then right-click &gt; <strong>Remove from group</strong> takes it out of the group;
+<li><strong>One shape or text inside:</strong> <strong>double-click</strong> it on the canvas, or click its row under
+the group in the Browser. Then right-click &gt; <strong>Remove from group</strong> takes it out of the group;
 it stays where it is.</li>
 <li><strong>Move, turn, scale:</strong> drag any of its shapes, or the handles of its box: the texts in
 it move, turn and scale too. The box turns with the group and stays turned.</li>
+<li><strong>Align and distribute:</strong> a group lines up as one, with its texts: alone with <em>To the
+stock</em>, or with other shapes (Ctrl+click them).</li>
 <li><strong>Ungroup:</strong> right-click &gt; <strong>Ungroup</strong>, or <strong>Ctrl+Shift+G</strong>. <strong>Del</strong> deletes the group
 with its shapes and texts. Properties shows its name, which you can change, what it
 holds, and <em>Ungroup</em>.</li>
@@ -2367,6 +2951,31 @@ chipload part remove part.chipload 2 --with-operations  # without the flag: refu
 Properties. Right-click it to activate, export, move or delete it, or right-click its setup
 for a new one. Drag an operation onto a part to move it there.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"><span class="img-wrapper"><img src="images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"></span></label></p>
+<h2 id="mirrored-parts"><a class="header" href="#mirrored-parts">Mirrored parts</a></h2>
+<p>A part can be cut <strong>mirrored</strong>, left to right or top to bottom, while the drawing stays as
+you drew it. Set <strong>Mirror</strong> in the part’s properties, or <code>chipload part set --mirror</code>. Use it
+for left- and right-hand pieces from one drawing, the plug of an inlay, a stamp or branding
+iron whose text must read backwards, or a sign cut from the back of clear acrylic.</p>
+<ul>
+<li><strong>About its own centre:</strong> the part is mirrored about the centre line of the shapes its
+operations cut, so it stays where it is on the board and a board that fits its parts
+still fits. To cut a mirrored twin somewhere else, mirror a copy of its shapes in the
+drawing instead (<code>shape mirror</code>).</li>
+<li><strong>Settings mean what they say:</strong> inside stays inside, climb stays climb. Chipload plans
+the part as drawn with the cutting direction turned, then mirrors it, so a climb cut
+is still a climb cut on the mirrored part. Tabs placed by hand, dogbone corners and ring
+starts stay on their feature.</li>
+<li><strong>On the canvas:</strong> the toolpath and the simulation show the part as it is cut, and its
+shapes are drawn there dashed and faded. You still edit the shapes as drawn; the start
+and tab markers stay on them. The Browser marks the part <em>mirrored</em>.</li>
+<li><strong>What isn’t mirrored:</strong> a surface pass and dowel holes belong to the board, not the part.</li>
+<li><strong>Copies:</strong> each copy is the mirrored part.</li>
+<li><strong>Text:</strong> a mirrored part’s text reads backwards on the board, and the report says so.
+On the <a href="#setups">back of a board</a> the two mirrors cancel and it reads right.</li>
+<li><strong>The setup sheet</strong> says which parts are cut mirrored.</li>
+</ul>
+<pre><code class="language-sh">chipload part set part.chipload 1 --mirror left-right   # also top-bottom; none: as drawn
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="profile"><a class="header" href="#profile">Profile</a></h1>
 <p>A profile cuts along a closed contour:</p>
@@ -2914,6 +3523,88 @@ mill reaches into a sharp corner. The advice is information only; the job runs e
 <pre><code class="language-sh">chipload op add-floor sign.chipload --op 1 --tool 2   # the floor pass with project tool 2
 chipload op remove-floor sign.chipload --op 1
 </code></pre>
+<h2 id="inlays"><a class="header" href="#inlays">Inlays</a></h2>
+<p>An <strong>inlay</strong> sets one wood into another: a dark word flush in a light board, without paint.
+The artwork is V-carved twice, with the same V-bit:</p>
+<ul>
+<li>a <strong>pocket</strong> in the base board, an ordinary V-carve;</li>
+<li>a <strong>plug</strong> in a second board: the rest of that board is carved away, so the artwork stands
+up as a tapered plug, mirrored. It is glued face down into the pocket, and when the glue
+has set, its back is sawn or planed off down to the base’s surface.</li>
+</ul>
+<p>The pocket’s walls and the plug’s walls slope at the bit’s angle, so they wedge together
+and centre themselves, sharp inside corners included. No dowels or corners are needed to
+line them up.</p>
+<pre><code class="language-text">          plug board's back, g above the base
+        ┌───────────────────────────┐
+        └──────┐             ┌──────┘   ← the base's surface
+   ────────────\    plug     /──────────
+                \___________/            ← the plug's face, D deep
+                 glue space               ← the pocket's floor, P deep
+   ────────────────────────────────────
+</code></pre>
+<p>Four numbers set it up:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Number</th><th>What it does</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td>Pocket depth P</td><td>how deep the pocket is</td><td>5 mm</td></tr>
+<tr><td>Plug start depth D</td><td>the plug’s outline is taken this deep in its board: its face lies D deep in the pocket, leaving P − D under it for glue</td><td>3 mm</td></tr>
+<tr><td>Glue gap g</td><td>the plug board is carved g deeper than D, so its back stands g above the base and squeezed-out glue has room</td><td>1.5 mm</td></tr>
+<tr><td>Plug board thickness</td><td>what is left under the plug’s channel holds it together until it is planed off</td><td>10 mm</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-sh">chipload op add-inlay sign.chipload --text 1 --tool 3 --floor-tool 2   # also --layer, --shapes, --group
+chipload op add-inlay sign.chipload --layer WORD --tool 3 --depth 5 --plug-start 3 --gap 1.5 --plug-thickness 10
+</code></pre>
+<p>In the app, select the artwork and click <strong>Inlay…</strong> (ribbon, WIZARDS), or <em>Wizards &gt; New
+inlay…</em>. The dialog asks for the V-bit, the four numbers and the
+floor end mill, with the project’s first V-bit and smallest end mill chosen, and draws the
+two cuts with the numbers marked. Both tool lists also offer your tool library’s tools
+under <em>From your library:</em> (marked <strong>+</strong>); one chosen is copied into the project when you
+click <em>Make inlay</em>, not before. A project without a V-bit starts on the library’s.
+<strong>Make inlay</strong> makes the pair as one undo step. On the
+command line, <code>op add-inlay</code> does the same.</p>
+<p>Both make the pocket in the active part, and a new <a href="#setups">setup</a>, <em>Inlay
+plug board</em>, whose board fits the artwork with a 10 mm margin, holding a part of its own,
+<a href="#mirrored-parts">mirrored</a> left to right, with the plug. With a floor end mill, both
+get a floor pass. Give the plug one: its channel is mostly floor. Afterwards both are
+ordinary V-carves: change their depths, feeds and passes as for any other. The plug’s
+properties have a <strong>Plug</strong> section with its start depth and glue gap; changing the gap moves
+its end depth. Both select the same shapes, so editing the artwork changes both. The plug’s
+<a href="#setup-sheet">setup sheet</a> says it is mirrored and lists the steps below.</p>
+<p>The plug’s checks warn when:</p>
+<ul>
+<li>no V-carve of the same shapes with a bit of the same angle is in another setup;</li>
+<li>the pocket isn’t deeper than D (the plug would sit on the pocket’s floor);</li>
+<li>the plug’s part isn’t mirrored;</li>
+<li>the glue gap is under 0.5 mm, or less than 2 mm of board is left under the channel;</li>
+<li>the pocket ignores kinks;</li>
+<li>there is no floor pass;</li>
+<li>a floor pass’s end mill doesn’t reach all of the floor, and what it leaves stands more
+than 0.2 mm above the plug’s face (in the pocket) or above the outline level (in the
+plug’s channel). A smaller end mill for the floor pass clears it. The pocket gets this
+warning too.</li>
+</ul>
+<p>A flat-tipped V-bit is fine. A note says how far from a sharp corner plug and pocket fall
+short of meeting: 0.14 mm for a 0.2 mm tip at a right angle, which the glue and the clamp
+take up. Refused:</p>
+<ul>
+<li>a plug deeper than its V-bit cuts with its cone;</li>
+<li>a plug that ignores kinks;</li>
+<li>copies of the plug’s part (the plug carves its whole board);</li>
+<li>a floor end mill wider than the V-bit (it would cut off the board’s edges).</li>
+</ul>
+<p><strong>Steps:</strong></p>
+<ol>
+<li>Cut the pocket in the base board.</li>
+<li>Clamp the plug board on the machine (setup 2) and cut the plug.</li>
+<li>Glue it face down into the pocket and clamp or press until it seats on its walls.</li>
+<li>Let the glue set. Saw or plane the plug board’s back off down to the base’s surface.</li>
+</ol>
 <h2 id="limits"><a class="header" href="#limits">Limits</a></h2>
 <ul>
 <li><strong>A flat tip:</strong> it can’t reach into the last bit of a sharp corner, and strokes narrower
@@ -2943,6 +3634,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
 <tr><td><code>floor</code></td><td>the floor pass, left out when there is none: <code>tool</code> (an end mill), <code>feed</code>, <code>plunge_feed</code>, <code>step_down</code>, <code>stepover</code> (a fraction of the end mill’s diameter), <code>entry</code> and <code>enabled</code></td></tr>
+<tr><td><code>plug</code></td><td>an inlay’s plug, left out for an ordinary V-carve: <code>start_depth</code>, where its outline is taken (D). Its end depth is D plus the glue gap</td></tr>
 </tbody>
 </table>
 </div>
@@ -2968,6 +3660,7 @@ cut that layer’s centre lines.</p>
 </thead>
 <tbody>
 <tr><td><strong>Start depth</strong>, <strong>End depth</strong>, <strong>Step down</strong></td><td>as on every operation</td></tr>
+<tr><td><strong>Groove width</strong></td><td>with a V-bit only: how wide the groove is at the surface. Change it and the end depth is set to give that width (a border of a <a href="#signs-and-frames">sign</a> is set this way). Greyed when the path cuts through.</td></tr>
 <tr><td><strong>Entry</strong></td><td><em>plunge</em>, or <em>ramp</em> along the path. A pointed V-bit counts as centre-cutting. A tool marked not centre-cutting ramps only along a path at least its diameter long.</td></tr>
 <tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min</td></tr>
 </tbody>
@@ -3078,6 +3771,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>feed</code></td><td>Feed: the bore’s helix and circle</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Drill feed, or the bore’s descent to the start depth</td></tr>
 <tr><td><code>method</code></td><td><code>{"type": "drill", "peck": … or null}</code> or <code>{"type": "bore", "step_down": …, "ramp_angle": …, "direction": …}</code></td></tr>
+<tr><td><code>dowels</code></td><td>dowel holes for turning the board over (<a href="#the-back-side-experimental">Setups</a>): their <code>through</code> is how far the pins go into the spoilboard, deeper than <em>Max depth below stock</em> allows other cuts; missing: false</td></tr>
 </tbody>
 </table>
 </div>
@@ -3149,12 +3843,34 @@ are in mm, feeds in mm/min.</p>
 </table>
 </div>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="relief"><a class="header" href="#relief">Relief</a></h1>
+<p>A <strong>relief</strong> carves a 3D model into the board from the top: an STL file, a picture read as a
+depth map, or a picture’s black shapes inflated into rounded ones. The tool follows the
+model in parallel lines, each point as low as it can go without cutting into the model, so
+a ball nose leaves a smooth surface; nothing under an overhang is reached.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/showcase-relief.png" alt="A 3DBenchy relief simulated in 3D"><span class="img-wrapper"><img src="images/showcase-relief.png" alt="A 3DBenchy relief simulated in 3D"></span></label></p>
+<p>Everything about it is on the <a href="#3d-models">3D models</a> page, as a relief is
+made from a model:</p>
+<ul>
+<li><a href="#a-relief-in-one-step">A relief in one step</a>: the <em>Relief…</em>
+wizard, or <code>chipload relief add</code>.</li>
+<li><a href="#adding-a-model">Adding a model</a>, <a href="#a-relief-from-a-picture">a relief from a
+picture</a> and <a href="#inflated-shapes">inflated
+shapes</a>.</li>
+<li><a href="#carving-it-the-relief-operation">The Relief operation</a>: its
+lines, stepover, angle, start depth and depth.</li>
+<li><a href="#a-rim-and-a-ramp">A rim and a ramp</a>: a flat round the model and a
+ramp up to the surface, <em>Fuller</em> filling the outline out.</li>
+<li><a href="#roughing-first">Roughing first</a> and <a href="#smoothing-the-steps">smoothing the
+steps</a>: the passes before the finish.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="tool-library"><a class="header" href="#tool-library">Tool library</a></h1>
 <p>Your tools, kept between projects in <code>tools.json</code> in your <a href="#your-settings">settings folder</a>.
 A project <strong>copies</strong> the tools it uses, so its G-code never depends on the library: it cuts
 the same on another computer, or after you change the library.</p>
 <h2 id="in-the-app-2"><a class="header" href="#in-the-app-2">In the app</a></h2>
-<p>Your tools are under <strong>This computer &gt; Tools</strong> at the top of the <a href="#the-browser">Browser</a>. <strong>Tools</strong> in the ribbon’s LIBRARY group opens it.</p>
+<p>Your tools are under <strong>This computer &gt; Tools</strong> at the top of the <a href="#the-browser">Browser</a>. <strong>Library</strong> on the ribbon opens it, as does <em>Library &gt; Tool library</em>.</p>
 <ul>
 <li><strong>Click a tool</strong> to edit it in Properties. Changes are a draft, marked <em>unsaved</em> in the
 Browser, until you press <strong>Save</strong>; <strong>Revert</strong> drops them.</li>
@@ -3291,7 +4007,7 @@ supplier’s catalogue.</p>
 As with tools, a project copies the values; the profile is only where new projects start.</p>
 <h2 id="in-the-app-3"><a class="header" href="#in-the-app-3">In the app</a></h2>
 <p>Your profiles are under <strong>This computer &gt; Machines</strong> in the <a href="#the-browser">Browser</a>.
-<strong>Machines</strong> in the ribbon’s LIBRARY group opens it.</p>
+<em>Library &gt; Machines</em> opens it, or <strong>Library</strong> on the ribbon (This computer, with the tools).</p>
 <ul>
 <li><strong>Click a profile</strong> to edit it in Properties; <strong>Save</strong> writes it.</li>
 <li><strong>Right-click</strong> it for <em>Use in this project</em>, <em>Make default</em> and <em>Delete</em>.</li>
@@ -3653,12 +4369,15 @@ FRONT, RIGHT, …).</li>
 Simulate</em> or F6, and <strong>Edit</strong> or F6 to go back (<a href="#the-canvas">Edit and Simulate</a>).</p>
 <ul>
 <li><strong>Top view:</strong> a shaded picture.</li>
-<li><strong>3D:</strong> a surface you can turn.</li>
+<li><strong>3D:</strong> the board as a solid you can turn: holes cut through are open, and the board
+stands on its sides.</li>
 <li><strong>Tool shapes:</strong> each tool’s real shape is used: a flat endmill, a V-bit’s cone with its
 tip, and a drill’s 118° point.</li>
 <li><strong>When:</strong> in the background, when you enter Simulate and after each new toolpath while
 you’re in it; in Edit nothing is simulated. Until it’s done, the canvas says <em>Updating
-the simulation…</em> and still shows the stock as the last toolpath cut it. Back in Simulate
+the simulation…</em> with a bar and how far it has got, and still shows the stock as the
+last toolpath cut it. A toolpath being made shows the same way, <em>Updating the
+toolpath…</em>: a relief’s lines are counted as they are done. Back in Simulate
 without changes, the last simulation shows at once. With no toolpath yet, entering
 Simulate makes one.</li>
 <li><strong>What makes a new toolpath:</strong> a change that can change the cut. Drawing a shape that no
@@ -3682,6 +4401,18 @@ drawing</em>) as well, and only the simulated stock is left.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The simulated stock in 3D, with the toolpath on it"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The simulated stock in 3D, with the toolpath on it"></span></label></p>
 <p>On the command line, <code>chipload simulate part.chipload</code> prints the same numbers and writes a
 shaded top view (<code>part-sim.png</code>). <code>--after N</code> stops after the first N moves.</p>
+<p><strong>Both sides of a board.</strong> A <a href="#the-back-side-experimental">back side</a>
+is simulated on its front’s result: the front is cut first, then the back from below, so you
+see the finished part. The report adds the area cut through and, where neither side alone
+goes through but the two together do, <em>The two sides meet</em> with its area: a plain note, as
+that can be meant. <code>chipload simulate part.chipload --setup 2 --face back</code> draws the back
+face, the board as it lies turned over; <code>--face front</code> the front. A back setup’s picture
+shows its own face by default.</p>
+<p>In the window, Simulate mode has <strong>Turn over</strong> on the navigation bar for a board with two
+sides: the board shown back face up, as it lies for its back’s setup, in the top view and
+in 3D, the toolpath and shapes turned with it. Making the back setup active turns it over;
+making the front active turns it back. In Edit mode the board is always seen from the
+front, where you draw.</p>
 <h2 id="playback"><a class="header" href="#playback">Playback</a></h2>
 <p>Under the canvas, a <strong>slider</strong> runs through the program by time, like a 3D printer’s
 preview:</p>
@@ -3781,7 +4512,10 @@ it, <code>part-sheet.html</code>. Open it in a browser, or print it. It holds:</
 <ul>
 <li><strong>Time:</strong> the estimated cycle time.</li>
 <li><strong>Stock and zero:</strong> the stock’s size and thickness, where X0 Y0 and Z0 are, and the
-copies. With several <a href="#parts">parts</a>, each part with its copies.</li>
+copies. With several <a href="#parts">parts</a>, each part with its copies. Which
+parts are cut <a href="#mirrored-parts">mirrored</a>, and for an
+<a href="#inlays">inlay’s plug</a> how to glue it into its pocket and take its
+back off.</li>
 <li><strong>A top view:</strong> the stock, the part, each file’s or tool’s cuts, the tabs, and the X0
 Y0 mark.</li>
 <li><strong>Files and tools in order:</strong> for each file or tool change, the tool to put in, the
@@ -3796,6 +4530,9 @@ operations it cuts, and the time.</li>
 </ul>
 </li>
 <li><strong>Watch out:</strong> every warning and check warning.</li>
+<li><strong>Turn the board over</strong>, on a back side’s sheet (<a href="#the-back-side-experimental">Setups</a>):
+how to turn the board and put it back in place; its picture shows the board as it lies,
+back face up.</li>
 </ul>
 <p>The sheet is written:</p>
 <ul>
@@ -4169,6 +4906,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--no-image</code></td><td>Print the numbers only.</td></tr>
 <tr><td><code>--after &lt;N&gt;</code></td><td>The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>The setup to simulate (as <code>setup list</code> numbers it); default: the active one.</td></tr>
+<tr><td><code>--face &lt;FACE&gt;</code></td><td>The face the picture shows: front, or back (the board turned over, as it lies); default: the face the setup cuts (docs/specs/two-sided.md §10.2) One of: <code>front</code>, <code>back</code>.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
 </table>
@@ -4239,11 +4977,14 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>.</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline).</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
 <tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
 <tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>--text &lt;TEXT&gt;</code></td><td>All of this text (an id from <code>text list</code>)</td></tr>
+<tr><td><code>--image &lt;IMAGE&gt;</code></td><td>All of this traced picture (an id from <code>image list</code>)</td></tr>
+<tr><td><code>--model &lt;MODEL&gt;</code></td><td>The outline of this 3D model (an id from <code>model list</code>): a relief of it carves within it (docs/specs/stl-relief.md §4)</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project; default: the one the app would take.</td></tr>
 <tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>End depth instead of the default (not with –through)</td></tr>
 <tr><td><code>--through</code></td><td>Cut through the stock, below it by the setup’s max overcut.</td></tr>
@@ -4298,6 +5039,102 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--op &lt;OP&gt;</code></td><td>The V-carve’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The end mill’s id in the project. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-inlay"><a class="header" href="#chipload-op-add-inlay"><code>chipload op add-inlay</code></a></h3>
+<p>Make a V-carve inlay of closed shapes (docs/specs/vcarve-inlay.md): a pocket V-carved in the active part, and in a new setup, the plug board, the plug: the rest of that board carved, mirrored left to right, so the shapes stand as a tapered plug that is glued face down into the pocket</p>
+<pre><code class="language-text">chipload op add-inlay &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
+<tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
+<tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
+<tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>--text &lt;TEXT&gt;</code></td><td>All of this text (an id from <code>text list</code>)</td></tr>
+<tr><td><code>--image &lt;IMAGE&gt;</code></td><td>All of this traced picture (an id from <code>image list</code>)</td></tr>
+<tr><td><code>--model &lt;MODEL&gt;</code></td><td>The outline of this 3D model (an id from <code>model list</code>): a relief of it carves within it (docs/specs/stl-relief.md §4)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The V-bit’s id in the project; both are carved with it. Required.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>The pocket’s depth; default 5 mm.</td></tr>
+<tr><td><code>--plug-start &lt;PLUG_START&gt;</code></td><td>How deep below the plug board’s surface its outline is taken: the plug’s face lies that deep in the pocket, the rest of the pocket’s depth left for glue; default 3 mm.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>The glue gap: how much farther the plug board is carved, so its back stands above the base; default 1.5 mm.</td></tr>
+<tr><td><code>--floor-tool &lt;FLOOR_TOOL&gt;</code></td><td>An end mill’s id for the floor passes of both (the plug’s channel is mostly floor)</td></tr>
+<tr><td><code>--plug-thickness &lt;PLUG_THICKNESS&gt;</code></td><td>The plug board’s thickness; default 10 mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-roughing"><a class="header" href="#chipload-op-add-roughing"><code>chipload op add-roughing</code></a></h3>
+<p>Give a relief a roughing pass (docs/specs/stl-relief.md §14): an end mill or a plain ball nose that takes the material down in levels before the relief, leaving an allowance on the model. Replaces the roughing pass it had</p>
+<pre><code class="language-text">chipload op add-roughing &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The relief’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The roughing tool’s id in the project. Required.</td></tr>
+<tr><td><code>--allowance &lt;ALLOWANCE&gt;</code></td><td>What is left on the model for the finish; default 0.5 mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-add-smoothing"><a class="header" href="#chipload-op-add-smoothing"><code>chipload op add-smoothing</code></a></h3>
+<p>Give a relief a smoothing pass (docs/specs/stl-relief.md §17), after its roughing pass: the surface followed once, lines across the roughing’s, taking the steps the roughing leaves on slopes. Replaces the smoothing pass it had</p>
+<pre><code class="language-text">chipload op add-smoothing &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The relief’s number as the app lists it (1 = first; <code>get</code> and <code>set</code> paths count from 0) Required.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The smoothing tool’s id in the project, an end mill or a plain ball nose; default the roughing tool.</td></tr>
+<tr><td><code>--allowance &lt;ALLOWANCE&gt;</code></td><td>What is left on the model for the finish; default the roughing’s.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-remove-smoothing"><a class="header" href="#chipload-op-remove-smoothing"><code>chipload op remove-smoothing</code></a></h3>
+<p>Take a relief’s smoothing pass away</p>
+<pre><code class="language-text">chipload op remove-smoothing &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The relief’s number as the app lists it (1 = first) Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-op-remove-roughing"><a class="header" href="#chipload-op-remove-roughing"><code>chipload op remove-roughing</code></a></h3>
+<p>Take a relief’s roughing pass away, and its smoothing pass with it</p>
+<pre><code class="language-text">chipload op remove-roughing &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--op &lt;OP&gt;</code></td><td>The relief’s number as the app lists it (1 = first) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -4972,7 +5809,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-shape-align"><a class="header" href="#chipload-shape-align"><code>chipload shape align</code></a></h3>
-<p>Line up drawn shapes: each one’s box side or middle with that of the box round them all, or the stock’s; they move whole and keep their ids (docs/specs/drawing-editing.md §7)</p>
+<p>Line up drawn shapes: each one’s box side or middle with that of the first shape named, which stays put, or the stock’s; they move whole and keep their ids. The shapes of one contour, and a group named whole, line up as one (docs/specs/drawing-editing.md §7, arrange-whole.md, align-first.md)</p>
 <pre><code class="language-text">chipload shape align &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -4982,7 +5819,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S); the first stays put.</td></tr>
 <tr><td><code>--to &lt;TO&gt;</code></td><td>Which side or middle lines up. One of: <code>left</code>, <code>centre</code>, <code>right</code>, <code>top</code>, <code>middle</code>, <code>bottom</code>. Required.</td></tr>
 <tr><td><code>--stock</code></td><td>Line up with the stock instead (then one shape is enough)</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
@@ -4990,7 +5827,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-shape-distribute"><a class="header" href="#chipload-shape-distribute"><code>chipload shape distribute</code></a></h3>
-<p>Even out the gaps between drawn shapes’ boxes, the first and last staying put (docs/specs/drawing-editing.md §7)</p>
+<p>Even out the gaps between drawn shapes’ boxes, the first and last staying put; the shapes of one contour, and a group named whole, count as one (docs/specs/drawing-editing.md §7, arrange-whole.md)</p>
 <pre><code class="language-text">chipload shape distribute &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -5300,6 +6137,106 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="chipload-model"><a class="header" href="#chipload-model"><code>chipload model</code></a></h2>
+<p>3D models (STL) carved as reliefs from the top: add, change, list, remove (docs/specs/stl-relief.md)</p>
+<h3 id="chipload-model-add"><a class="header" href="#chipload-model-add"><code>chipload model add</code></a></h3>
+<p>Add an STL model, or a picture (PNG, JPEG, BMP) read as a depth map, white high, placed on the board; its footprint outline goes on its own layer</p>
+<pre><code class="language-text">chipload model add &lt;PROJECT&gt; &lt;MODEL&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;MODEL&gt;</code></td><td>The STL file (binary or text), or a picture.</td></tr>
+<tr><td><code>--units &lt;UNITS&gt;</code></td><td>The unit the file is in, for its own size: mm (default) or inch. The model is placed by <code>--width</code> anyway.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The layer for its outline; default: the file’s name.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Where the footprint’s lower-left corner goes: X,Y in mm (default 0,0)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>The footprint’s width on the board, mm (default: the model’s own); X and Y scale alike.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How deep the relief goes, mm (default: in proportion to the width; a picture 4 mm)</td></tr>
+<tr><td><code>--rotate &lt;ROTATE&gt;</code></td><td>Turn it about its footprint’s centre to this angle, degrees counter-clockwise.</td></tr>
+<tr><td><code>--up &lt;UP&gt;</code></td><td>Which of the model’s axes points up: z (default), y, x, -z, -y or -x.</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part’s.</td></tr>
+<tr><td><code>--inflate</code></td><td>Inflate the picture’s black-and-white shapes, each rising from its edge, instead of reading it as a depth map (docs/specs/inflated-shapes.md)</td></tr>
+<tr><td><code>--mode &lt;MODE&gt;</code></td><td>How the picture becomes heights: depth (a depth map) or inflate (its shapes)</td></tr>
+<tr><td><code>--threshold &lt;THRESHOLD&gt;</code></td><td>Inflated: grey levels below this (1 to 254) are black; auto: picked from the picture (default)</td></tr>
+<tr><td><code>--invert &lt;INVERT&gt;</code></td><td>Inflated: white is the shape (true) or black is (false, the default) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--profile &lt;PROFILE&gt;</code></td><td>Inflated: how a shape rises from its edge: round (default) or straight.</td></tr>
+<tr><td><code>--reach &lt;REACH&gt;</code></td><td>Inflated: how far in from the edge the height grows, in mm; auto: the widest shape’s half-width (default)</td></tr>
+<tr><td><code>--white-high &lt;WHITE_HIGH&gt;</code></td><td>White is high (true, the default) or black is (false) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--smoothing &lt;SMOOTHING&gt;</code></td><td>A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2)</td></tr>
+<tr><td><code>--background &lt;BACKGROUND&gt;</code></td><td>Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0)</td></tr>
+<tr><td><code>--gamma &lt;GAMMA&gt;</code></td><td>The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops (default 1)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-model-set"><a class="header" href="#chipload-model-set"><code>chipload model set</code></a></h3>
+<p>Change a model’s place, size, depth, up axis or cut level, or a picture’s depth-map settings; its outline is drawn again</p>
+<pre><code class="language-text">chipload model set &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The model’s id (as <code>model list</code> shows it)</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The layer for its outline.</td></tr>
+<tr><td><code>--proportional</code></td><td>Make the depth follow the width again, in proportion.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Where the footprint’s lower-left corner goes: X,Y in mm (default 0,0)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>The footprint’s width on the board, mm (default: the model’s own); X and Y scale alike.</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How deep the relief goes, mm (default: in proportion to the width; a picture 4 mm)</td></tr>
+<tr><td><code>--rotate &lt;ROTATE&gt;</code></td><td>Turn it about its footprint’s centre to this angle, degrees counter-clockwise.</td></tr>
+<tr><td><code>--up &lt;UP&gt;</code></td><td>Which of the model’s axes points up: z (default), y, x, -z, -y or -x.</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>How much of the model to keep, from its top: a share (0.5) or a percentage (50%); the rest, its back, is cut away (default: all of it). Width and depth are the kept part’s.</td></tr>
+<tr><td><code>--inflate</code></td><td>Inflate the picture’s black-and-white shapes, each rising from its edge, instead of reading it as a depth map (docs/specs/inflated-shapes.md)</td></tr>
+<tr><td><code>--mode &lt;MODE&gt;</code></td><td>How the picture becomes heights: depth (a depth map) or inflate (its shapes)</td></tr>
+<tr><td><code>--threshold &lt;THRESHOLD&gt;</code></td><td>Inflated: grey levels below this (1 to 254) are black; auto: picked from the picture (default)</td></tr>
+<tr><td><code>--invert &lt;INVERT&gt;</code></td><td>Inflated: white is the shape (true) or black is (false, the default) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--profile &lt;PROFILE&gt;</code></td><td>Inflated: how a shape rises from its edge: round (default) or straight.</td></tr>
+<tr><td><code>--reach &lt;REACH&gt;</code></td><td>Inflated: how far in from the edge the height grows, in mm; auto: the widest shape’s half-width (default)</td></tr>
+<tr><td><code>--white-high &lt;WHITE_HIGH&gt;</code></td><td>White is high (true, the default) or black is (false) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--smoothing &lt;SMOOTHING&gt;</code></td><td>A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2)</td></tr>
+<tr><td><code>--background &lt;BACKGROUND&gt;</code></td><td>Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0)</td></tr>
+<tr><td><code>--gamma &lt;GAMMA&gt;</code></td><td>The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops (default 1)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-model-list"><a class="header" href="#chipload-model-list"><code>chipload model list</code></a></h3>
+<p>The project’s models: file, triangles, place and size on the board</p>
+<pre><code class="language-text">chipload model list &lt;PROJECT&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-model-remove"><a class="header" href="#chipload-model-remove"><code>chipload model remove</code></a></h3>
+<p>Remove a model and its outline</p>
+<pre><code class="language-text">chipload model remove &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The model’s id.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="chipload-text"><a class="header" href="#chipload-text"><code>chipload text</code></a></h2>
 <p>Text written into shapes for V-carving, pocketing or profiling: add, change, list, remove, and the built-in fonts (docs/specs/text.md)</p>
 <h3 id="chipload-text-add"><a class="header" href="#chipload-text-add"><code>chipload text add</code></a></h3>
@@ -5420,9 +6357,10 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>--kind &lt;KIND&gt;</code></td><td>Which frame (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>oval</code>, <code>arched</code>, <code>plaque</code>. Required.</td></tr>
+<tr><td><code>--kind &lt;KIND&gt;</code></td><td>Which frame (<code>frame kinds</code>); default rectangle, with –corners. One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>stepped</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>, <code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>.</td></tr>
 <tr><td><code>--around &lt;AROUND&gt;</code></td><td>Round these shapes (ids as <code>inspect</code> lists them, without the S): the frame is centred on their box, –margin from it to the innermost line. Repeatable.</td></tr>
 <tr><td><code>--around-text &lt;AROUND_TEXT&gt;</code></td><td>Round these texts’ letters (ids as <code>text list</code> shows them) Repeatable.</td></tr>
+<tr><td><code>--around-image &lt;AROUND_IMAGE&gt;</code></td><td>Round these traced pictures’ shapes (ids as <code>image list</code> shows them); the frame follows a picture traced again. Repeatable.</td></tr>
 <tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>From the shapes’ box to the innermost line, mm (default 10)</td></tr>
 <tr><td><code>--width &lt;WIDTH&gt;</code></td><td>The outline’s width, mm, when not round shapes.</td></tr>
 <tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>The outline’s height, mm, when not round shapes.</td></tr>
@@ -5430,9 +6368,158 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The corner size, mm (default: a tenth of the shorter side; <code>frame kinds</code> says what it is for each frame)</td></tr>
 <tr><td><code>--borders &lt;BORDERS&gt;</code></td><td>Border lines inside the outline, 0 to 3. Default: <code>0</code>.</td></tr>
 <tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm. Default: <code>5</code>.</td></tr>
+<tr><td><code>--corners &lt;CORNERS&gt;</code></td><td>A rectangular frame’s corners: sharp, round, notch, chamfer or step (with –kind rectangle, or instead of it) One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
+<tr><td><code>--border-corners &lt;BORDER_CORNERS&gt;</code></td><td>The borders’ own corners, inside a rectangular frame (default: the outline’s shape) One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
+<tr><td><code>--double</code></td><td>Each border two lines, twice –border-width apart.</td></tr>
+<tr><td><code>--border-width &lt;BORDER_WIDTH&gt;</code></td><td>A border’s groove width at the surface, mm: the margin is measured to its inner edge (default 0: lines) Default: <code>0</code>.</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>The outline’s layer. Default: <code>frame</code>.</td></tr>
 <tr><td><code>--border-layer &lt;BORDER_LAYER&gt;</code></td><td>The borders’ layer. Default: <code>border</code>.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-frame-list"><a class="header" href="#chipload-frame-list"><code>chipload frame list</code></a></h3>
+<p>The frames that follow what they go round: their shapes and values</p>
+<pre><code class="language-text">chipload frame list &lt;PROJECT&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-frame-set"><a class="header" href="#chipload-frame-set"><code>chipload frame set</code></a></h3>
+<p>Change a frame’s values (ID: its outline’s or a border’s shape id); it is drawn again with them</p>
+<pre><code class="language-text">chipload frame set &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>Its outline’s or a border’s shape id.</td></tr>
+<tr><td><code>--kind &lt;KIND&gt;</code></td><td>Another frame kind (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>stepped</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>, <code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>.</td></tr>
+<tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The corner size, mm.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>From what it goes round to the innermost line, mm.</td></tr>
+<tr><td><code>--borders &lt;BORDERS&gt;</code></td><td>Border lines inside the outline, 0 to 3.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm.</td></tr>
+<tr><td><code>--corners &lt;CORNERS&gt;</code></td><td>A rectangular frame’s corners: sharp, round, notch, chamfer or step. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
+<tr><td><code>--border-corners &lt;BORDER_CORNERS&gt;</code></td><td>The borders’ own corners, inside a rectangular frame. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
+<tr><td><code>--border-corners-off</code></td><td>The borders follow the outline’s shape again.</td></tr>
+<tr><td><code>--double &lt;DOUBLE&gt;</code></td><td>Each border two lines (true) or one (false) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--border-width &lt;BORDER_WIDTH&gt;</code></td><td>A border’s groove width at the surface, mm.</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>A frame drawn to a size: its outline’s width, mm.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>A frame drawn to a size: its outline’s height, mm.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-frame-detach"><a class="header" href="#chipload-frame-detach"><code>chipload frame detach</code></a></h3>
+<p>Let a frame go: its shapes stay as they are and follow nothing from now on</p>
+<pre><code class="language-text">chipload frame detach &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>Its outline’s or a border’s shape id.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="chipload-sign"><a class="header" href="#chipload-sign"><code>chipload sign</code></a></h2>
+<p>A sign in one step: words, a frame that follows them, and every operation that cuts it (docs/specs/sign-maker.md)</p>
+<h3 id="chipload-sign-add"><a class="header" href="#chipload-sign-add"><code>chipload sign add</code></a></h3>
+<p>Make a sign: the words centred on the board, a frame round them that follows them, the sign grouped in a part of its own, and its operations: the letters, the borders’ grooves, the edge chamfer, and the profile that cuts it out</p>
+<pre><code class="language-text">chipload sign add &lt;PROJECT&gt; &lt;WORDS&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;WORDS&gt;</code></td><td>What it says; “\n” starts a new line. Leave it out to make the sign round shapes already drawn (–around, –around-text, –around-image)</td></tr>
+<tr><td><code>--around &lt;AROUND&gt;</code></td><td>Round these shapes instead of new words (ids as <code>inspect</code> lists them) Repeatable.</td></tr>
+<tr><td><code>--around-text &lt;AROUND_TEXT&gt;</code></td><td>Round these texts’ letters. Repeatable.</td></tr>
+<tr><td><code>--around-image &lt;AROUND_IMAGE&gt;</code></td><td>Round these traced pictures (ids as <code>image list</code> shows them): carved as the picture, the frame following it when it is traced again. Repeatable.</td></tr>
+<tr><td><code>--font &lt;FONT&gt;</code></td><td>The font (<code>chipload text fonts</code>)</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>The capital height, mm. Default: <code>30</code>.</td></tr>
+<tr><td><code>--frame &lt;FRAME&gt;</code></td><td>The frame (<code>frame kinds</code>) One of: <code>rectangle</code>, <code>rounded</code>, <code>notched</code>, <code>chamfered</code>, <code>stepped</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>, <code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>. Default: <code>rounded</code>.</td></tr>
+<tr><td><code>--corners &lt;CORNERS&gt;</code></td><td>A rectangular frame’s corners: sharp, round, notch, chamfer or step. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
+<tr><td><code>--corner &lt;CORNER&gt;</code></td><td>The frame’s corner size, mm (default: a tenth of its shorter side)</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>From the words to the inner edge of the innermost border’s groove, mm. Default: <code>10</code>.</td></tr>
+<tr><td><code>--borders &lt;BORDERS&gt;</code></td><td>Border lines inside the outline, 0 to 3. Default: <code>1</code>.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>From the outline to the first border and between borders, mm. Default: <code>5</code>.</td></tr>
+<tr><td><code>--border-corners &lt;BORDER_CORNERS&gt;</code></td><td>The borders’ own corners, inside a rectangular frame. One of: <code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>, <code>step</code>.</td></tr>
+<tr><td><code>--double</code></td><td>Each border two grooves.</td></tr>
+<tr><td><code>--border-width &lt;BORDER_WIDTH&gt;</code></td><td>The borders’ groove width at the surface, mm: their depth comes from the V-bit.</td></tr>
+<tr><td><code>--style &lt;STYLE&gt;</code></td><td>engraved (V-carved letters), raised (the background cleared round them) or inlay. One of: <code>engraved</code>, <code>raised</code>, <code>inlay</code>. Default: <code>engraved</code>.</td></tr>
+<tr><td><code>--relief &lt;RELIEF&gt;</code></td><td>A raised sign’s background depth, mm.</td></tr>
+<tr><td><code>--edge &lt;EDGE&gt;</code></td><td>The outline’s edge: <code>none</code>, or <code>chamfer:WIDTH</code> (mm) cut with the V-bit. Default: <code>none</code>.</td></tr>
+<tr><td><code>--vbit &lt;VBIT&gt;</code></td><td>The V-bit for the letters and grooves (a project tool id) Required.</td></tr>
+<tr><td><code>--end-mill &lt;END_MILL&gt;</code></td><td>The end mill that cuts the sign out (and clears a raised background) Required.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>The board’s thickness, mm; the board is fitted round the sign.</td></tr>
+<tr><td><code>--board-margin &lt;BOARD_MARGIN&gt;</code></td><td>From the sign’s outline to the board’s edges, mm.</td></tr>
+<tr><td><code>--keep-stock</code></td><td>Leave the stock as it is instead of fitting it round the sign.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="chipload-relief"><a class="header" href="#chipload-relief"><code>chipload relief</code></a></h2>
+<p>A relief in one step: a 3D model turned, cut and sized, its relief, a roughing pass, and what is round it (docs/specs/relief-wizard.md)</p>
+<h3 id="chipload-relief-add"><a class="header" href="#chipload-relief-add"><code>chipload relief add</code></a></h3>
+<p>Make a relief: the model (an STL file, or –model for one in the project) turned, cut and sized, centred on the board, its relief with an optional roughing pass, and what is round it, in a part of its own and in cutting order</p>
+<pre><code class="language-text">chipload relief add &lt;PROJECT&gt; &lt;FILE&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;FILE&gt;</code></td><td>The STL file; leave it out with –model.</td></tr>
+<tr><td><code>--model &lt;MODEL&gt;</code></td><td>A model already in the project (an id from <code>model list</code>), in place of a file.</td></tr>
+<tr><td><code>--units &lt;UNITS&gt;</code></td><td>The unit a new file is read in: mm (default) or inch.</td></tr>
+<tr><td><code>--up &lt;UP&gt;</code></td><td>Which of the model’s axes points up: z (default), y, x, -z, -y or -x.</td></tr>
+<tr><td><code>--rotate &lt;ROTATE&gt;</code></td><td>Turned on the board, degrees counter-clockwise.</td></tr>
+<tr><td><code>--keep &lt;KEEP&gt;</code></td><td>How much of it to keep from the top: 0.5 or 50% (default: all)</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>Its width on the board, mm (default: half the board’s)</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How deep the relief goes, mm (default: in proportion to the width)</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Where its footprint’s lower-left corner goes, X,Y (default: centred on the board)</td></tr>
+<tr><td><code>--start-depth &lt;START_DEPTH&gt;</code></td><td>How far below the board’s surface the model’s top lies (default 0): for an unplaned board. The rim’s ramp and the roughing start at the surface.</td></tr>
+<tr><td><code>--around &lt;AROUND&gt;</code></td><td>What goes round it. One of: <code>rim</code> (A flat round the model’s outline at the relief’s floor, then a ramp up to the stock top), <code>box</code> (The same round the rectangle round the model), <code>cut-out</code> (No rim: a profile outside the outline, through the board, with tabs). Default: <code>rim</code>.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>The rim’s flat round the outline or the model’s box, mm (default 5, or wider: the roughing tool’s diameter and its allowance on both sides)</td></tr>
+<tr><td><code>--ramp &lt;RAMP&gt;</code></td><td>The ramp from the flat up to the stock top, degrees from horizontal: 10 to 90 (default 45; 90: a straight wall)</td></tr>
+<tr><td><code>--hull &lt;HULL&gt;</code></td><td>How far an outline rim is filled out towards the model’s convex hull: 0 (default, the outline as it is) to 1 or 100% (the hull)</td></tr>
+<tr><td><code>--corner &lt;CORNER&gt;</code></td><td>A box rim’s corner radius, mm, at most the margin (default 0: sharp)</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The ball nose that finishes it (a project tool id) Required.</td></tr>
+<tr><td><code>--rough-tool &lt;ROUGH_TOOL&gt;</code></td><td>An end mill for a roughing pass first (a project tool id)</td></tr>
+<tr><td><code>--allowance &lt;ALLOWANCE&gt;</code></td><td>What the roughing pass leaves for the finish, mm.</td></tr>
+<tr><td><code>--smooth</code></td><td>A smoothing pass after the roughing, with the roughing tool, its lines across the roughing’s: it takes the steps the roughing leaves on slopes.</td></tr>
+<tr><td><code>--end-mill &lt;END_MILL&gt;</code></td><td>The end mill for the cut-out (default: the roughing one)</td></tr>
+<tr><td><code>--inflate</code></td><td>Inflate the picture’s black-and-white shapes, each rising from its edge, instead of reading it as a depth map (docs/specs/inflated-shapes.md)</td></tr>
+<tr><td><code>--mode &lt;MODE&gt;</code></td><td>How the picture becomes heights: depth (a depth map) or inflate (its shapes)</td></tr>
+<tr><td><code>--threshold &lt;THRESHOLD&gt;</code></td><td>Inflated: grey levels below this (1 to 254) are black; auto: picked from the picture (default)</td></tr>
+<tr><td><code>--invert &lt;INVERT&gt;</code></td><td>Inflated: white is the shape (true) or black is (false, the default) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--profile &lt;PROFILE&gt;</code></td><td>Inflated: how a shape rises from its edge: round (default) or straight.</td></tr>
+<tr><td><code>--reach &lt;REACH&gt;</code></td><td>Inflated: how far in from the edge the height grows, in mm; auto: the widest shape’s half-width (default)</td></tr>
+<tr><td><code>--white-high &lt;WHITE_HIGH&gt;</code></td><td>White is high (true, the default) or black is (false) One of: <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>--smoothing &lt;SMOOTHING&gt;</code></td><td>A blur over the heights, its radius on the board: 0 to 5 mm (default 0.2)</td></tr>
+<tr><td><code>--background &lt;BACKGROUND&gt;</code></td><td>Grey shares up to this are background, not the model: 0 to 0.95 or 95% (default 0)</td></tr>
+<tr><td><code>--gamma &lt;GAMMA&gt;</code></td><td>The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops (default 1)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Write here instead of over the project.</td></tr>
 </tbody>
 </table>
 </div>
@@ -5571,13 +6658,13 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--type &lt;KIND&gt;</code></td><td>One of: <code>endmill</code>, <code>drill</code>, <code>vbit</code>.</td></tr>
+<tr><td><code>--type &lt;KIND&gt;</code></td><td>One of: <code>endmill</code>, <code>drill</code>, <code>vbit</code>, <code>ballnose</code> (A ball nose; with –angle and –tip, a tapered one).</td></tr>
 <tr><td><code>--diameter &lt;DIAMETER&gt;</code></td><td></td></tr>
 <tr><td><code>--flutes &lt;FLUTES&gt;</code></td><td></td></tr>
 <tr><td><code>--center-cutting &lt;CENTER_CUTTING&gt;</code></td><td>One of: <code>yes</code>, <code>no</code>.</td></tr>
 <tr><td><code>--rpm &lt;RPM&gt;</code></td><td></td></tr>
-<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees.</td></tr>
-<tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed)</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees. Tapered ball noses: the taper’s.</td></tr>
+<tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball’s diameter at the tip.</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
 </tbody>
 </table>
@@ -5593,13 +6680,13 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--type &lt;KIND&gt;</code></td><td>One of: <code>endmill</code>, <code>drill</code>, <code>vbit</code>.</td></tr>
+<tr><td><code>--type &lt;KIND&gt;</code></td><td>One of: <code>endmill</code>, <code>drill</code>, <code>vbit</code>, <code>ballnose</code> (A ball nose; with –angle and –tip, a tapered one).</td></tr>
 <tr><td><code>--diameter &lt;DIAMETER&gt;</code></td><td></td></tr>
 <tr><td><code>--flutes &lt;FLUTES&gt;</code></td><td></td></tr>
 <tr><td><code>--center-cutting &lt;CENTER_CUTTING&gt;</code></td><td>One of: <code>yes</code>, <code>no</code>.</td></tr>
 <tr><td><code>--rpm &lt;RPM&gt;</code></td><td></td></tr>
-<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees.</td></tr>
-<tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed)</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees. Tapered ball noses: the taper’s.</td></tr>
+<tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball’s diameter at the tip.</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
 <tr><td><code>--rename &lt;RENAME&gt;</code></td><td>A new name.</td></tr>
 </tbody>
@@ -5929,6 +7016,9 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
 <tr><td><code>--group &lt;GROUP&gt;</code></td><td>All of this group.</td></tr>
+<tr><td><code>--text &lt;TEXT&gt;</code></td><td>All of this text (an id from <code>text list</code>)</td></tr>
+<tr><td><code>--image &lt;IMAGE&gt;</code></td><td>All of this traced picture (an id from <code>image list</code>)</td></tr>
+<tr><td><code>--model &lt;MODEL&gt;</code></td><td>The outline of this 3D model (an id from <code>model list</code>): a relief of it carves within it (docs/specs/stl-relief.md §4)</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -6248,6 +7338,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its new name.</td></tr>
 <tr><td><code>--off</code></td><td>Leave the part and its operations out of the program.</td></tr>
 <tr><td><code>--on</code></td><td>Cut the part again.</td></tr>
+<tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Cut the part mirrored about the centre line of its box, the drawing as drawn: left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -6314,6 +7405,13 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its name; default: “Setup N”.</td></tr>
 <tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s thickness; default: the active setup’s.</td></tr>
+<tr><td><code>--back-of &lt;BACK_OF&gt;</code></td><td>The back of this setup: the same board turned over, its cuts mirrored (docs/specs/two-sided.md). Its name defaults to “<that setup=""> back”.</that></td></tr>
+<tr><td><code>--turn &lt;TURN&gt;</code></td><td>How the board is turned over: left-right (default) or top-bottom.</td></tr>
+<tr><td><code>--register &lt;REGISTER&gt;</code></td><td>How the turned board is put back: pins (default) or corner.</td></tr>
+<tr><td><code>--pins &lt;PINS&gt;</code></td><td>Dowel holes for pins of this diameter too (8 mm without a value), in the same step (docs/specs/two-sided-wizard.md §6)</td></tr>
+<tr><td><code>--pin-depth &lt;PIN_DEPTH&gt;</code></td><td>How far the dowel holes go into the spoilboard; default 8 mm.</td></tr>
+<tr><td><code>--zero</code></td><td>Set the front’s work zero to the first pin’s centre, which the back shares.</td></tr>
+<tr><td><code>--pin-tool &lt;PIN_TOOL&gt;</code></td><td>The project tool that cuts the dowel holes; default: a drill of their size, else the largest end mill that bores them.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -6333,6 +7431,32 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--name &lt;NAME&gt;</code></td><td>Its new name.</td></tr>
 <tr><td><code>--off</code></td><td>Leave the setup and its parts out.</td></tr>
 <tr><td><code>--on</code></td><td>Cut the setup again.</td></tr>
+<tr><td><code>--back-of &lt;BACK_OF&gt;</code></td><td>Make it the back of this setup: the same board turned over.</td></tr>
+<tr><td><code>--own-board</code></td><td>Give a back a board of its own again, as it is now.</td></tr>
+<tr><td><code>--turn &lt;TURN&gt;</code></td><td>How a back is turned over: left-right or top-bottom.</td></tr>
+<tr><td><code>--register &lt;REGISTER&gt;</code></td><td>How a turned board is located: pins (dowel pins on the turn axis) or corner.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-dowels"><a class="header" href="#chipload-setup-dowels"><code>chipload setup dowels</code></a></h3>
+<p>Dowel holes for a back setup (docs/specs/two-sided.md §6): two circles on the line the board turns about, in the margin beyond the shapes, cut first with the front, through the board and into the spoilboard for the pins</p>
+<pre><code class="language-text">chipload setup dowels &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The back setup’s id. Required.</td></tr>
+<tr><td><code>--diameter &lt;DIAMETER&gt;</code></td><td>The pins’ diameter; default 8 mm (a 6 mm end mill bores it)</td></tr>
+<tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How far the holes go into the spoilboard; default 8 mm.</td></tr>
+<tr><td><code>--zero</code></td><td>Set the front’s work zero to the first pin’s centre, which the back shares.</td></tr>
+<tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The project tool that cuts them; default: a drill of their size, else the largest end mill that bores them.</td></tr>
+<tr><td><code>--remove</code></td><td>Remove the dowel holes instead: the front’s operation and its circles.</td></tr>
+<tr><td><code>--place</code></td><td>Place the dowel holes there are again, clear of both sides’ cuts as they are now; a work zero at the first pin moves with it. Not once the front is cut: its holes are drilled.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -6526,7 +7650,7 @@ reaches the assistant only once you save.</li>
 <h1 id="project-file"><a class="header" href="#project-file">Project file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>A project (<code>.chipload</code>) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked <em>no</em> may be left out. Lengths are in mm, angles in radians, feeds in mm/min. <code>chipload schema project</code> prints the JSON Schema this page is made from.</p>
-<p>Schema version 35. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
+<p>Schema version 36. Older files load through Chipload’s migrations; this schema describes only the current version.</p>
 <h2 id="the-file-2"><a class="header" href="#the-file-2">The file</a></h2>
 <div class="table-wrapper">
 <table>
@@ -6540,7 +7664,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>machine</code></td><td><a href="#machine">Machine</a></td><td>yes</td><td>The machine: post-processor, safe height, limits.</td></tr>
 <tr><td><code>operations</code></td><td>list of <a href="#operation">Operation</a></td><td>yes</td><td>The operations, cut in this order: grouped by part, in the parts’ order.</td></tr>
 <tr><td><code>parts</code></td><td>list of <a href="#part">Part</a></td><td>yes</td><td>The parts: groups of operations, each cut with its copies before the next part. At least one.</td></tr>
-<tr><td><code>schema_version</code></td><td><code>35</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
+<tr><td><code>schema_version</code></td><td><code>36</code></td><td>yes</td><td>The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones.</td></tr>
 <tr><td><code>setups</code></td><td>list of <a href="#setup">Setup</a></td><td>yes</td><td>The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34.</td></tr>
 <tr><td><code>tools</code></td><td>list of <a href="#tool">Tool</a></td><td>yes</td><td>The tools the operations cut with.</td></tr>
 <tr><td><code>written_by</code></td><td>string or null</td><td>no</td><td>The Chipload version that wrote the file, for reference.</td></tr>
@@ -6568,6 +7692,20 @@ reaches the assistant only once you save.</li>
 <h2 id="axis"><a class="header" href="#axis">Axis</a></h2>
 <p>An axis of the drawing.</p>
 <p>One of: <code>"x"</code>, <code>"y"</code>.</p>
+<h2 id="backof"><a class="header" href="#backof">BackOf</a></h2>
+<p>Which setup a back setup turns over, and how (docs/specs/two-sided.md §3).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>register</code></td><td><a href="#register">Register</a></td><td>yes</td><td>How the turned board is put back in place.</td></tr>
+<tr><td><code>setup</code></td><td>integer</td><td>yes</td><td>The id of the front setup: the board as it lies first.</td></tr>
+<tr><td><code>turn</code></td><td><a href="#turn">Turn</a></td><td>yes</td><td>How the board is turned over.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="bone"><a class="header" href="#bone">Bone</a></h2>
 <p>What a chosen corner gets.</p>
 <p>One of: <code>"none"</code>, <code>"dogbone"</code>, <code>"tbone"</code>.</p>
@@ -6681,9 +7819,11 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>dxfs</code></td><td>list of <a href="#drawingsource">DrawingSource</a></td><td>no</td><td>The DXFs the imported shapes came from, each as at its last import or update, with its own placement.</td></tr>
+<tr><td><code>frames</code></td><td>list of <a href="#frame">Frame</a></td><td>no</td><td>Frames for signs that are drawn again round what they go round when it changes. Left out of the file when there are none, so projects without them open in older versions.</td></tr>
 <tr><td><code>groups</code></td><td>list of <a href="#shapegroup">ShapeGroup</a></td><td>no</td><td>Groups of drawn shapes and texts, selected, moved and cut as one. Left out of the file when there are none, so projects without groups open in older versions.</td></tr>
 <tr><td><code>hidden</code></td><td>list of string</td><td>no</td><td>Groups and layers not drawn on the canvas (they are still cut): <code>dxf:1</code>, <code>dxf:1/layer:Cut</code>, <code>image:1</code>, <code>text:1</code>, <code>drawn:circle</code>, <code>drawn:rectangle</code>, <code>drawn:polyline</code>.</td></tr>
 <tr><td><code>images</code></td><td>list of <a href="#image">Image</a></td><td>no</td><td>Pictures traced into shapes, for V-carving.</td></tr>
+<tr><td><code>models</code></td><td>list of <a href="#model">Model</a></td><td>no</td><td>3D models carved as reliefs from the top. Left out of the file when there are none, so projects without them open in older versions, which refuse one with them.</td></tr>
 <tr><td><code>next_shape_id</code></td><td>integer</td><td>yes</td><td>The id the next new shape gets. Ids are never reused.</td></tr>
 <tr><td><code>shapes</code></td><td>list of <a href="#shape">Shape</a></td><td>yes</td><td>The shapes, imported and drawn.</td></tr>
 <tr><td><code>texts</code></td><td>list of <a href="#text-1">Text</a></td><td>no</td><td>Texts written into shapes, for V-carving, pocketing or profiling. Left out of the file when there are none, so projects without text open in older versions.</td></tr>
@@ -6758,6 +7898,50 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="frame"><a class="header" href="#frame">Frame</a></h2>
+<p>A frame for a sign that follows what it goes round (docs/specs/sign-maker.md §4): its outline and border lines are ordinary drawn shapes, drawn again from these values when the texts or shapes it goes round change. Editing its shapes by hand ends that: the record goes and they stay as they are.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>around</code></td><td><a href="#framearound">FrameAround</a> or null</td><td>no</td><td>What it goes round. None: drawn to a size, following nothing.</td></tr>
+<tr><td><code>border_corners</code></td><td><a href="#framecorners">FrameCorners</a> or null</td><td>no</td><td>The borders’ own corner style, for a rectangular frame; None: they follow the outline’s shape, each <code>gap</code> further in (docs/specs/sign-maker.md §5).</td></tr>
+<tr><td><code>border_width</code></td><td>number</td><td>no</td><td>The width of a border’s groove at the surface, mm: the margin is measured to its inner edge, and a double border’s lines are twice it apart. 0: lines as drawn.</td></tr>
+<tr><td><code>borders</code></td><td>list of integer</td><td>no</td><td>Its border lines inside the outline, outside in, by shape id.</td></tr>
+<tr><td><code>center</code></td><td>2 × number</td><td>yes</td><td>Where it was last drawn: the outline’s centre, mm.</td></tr>
+<tr><td><code>corner</code></td><td>number</td><td>yes</td><td>The corner size, mm: what it is depends on the kind (<code>chipload frame kinds</code>).</td></tr>
+<tr><td><code>double</code></td><td>boolean</td><td>no</td><td>Each border two lines, twice <code>border_width</code> apart, which leaves a ridge as wide as a groove between them.</td></tr>
+<tr><td><code>gap</code></td><td>number</td><td>yes</td><td>From the outline to the first border, and from one border to the next (from its inner line, for double borders), mm.</td></tr>
+<tr><td><code>height</code></td><td>number</td><td>yes</td><td>The outline’s height as last drawn, mm.</td></tr>
+<tr><td><code>kind</code></td><td><a href="#frameshape">FrameShape</a></td><td>yes</td><td>The outline’s shape.</td></tr>
+<tr><td><code>margin</code></td><td>number</td><td>yes</td><td>From the box of what it goes round to its innermost line, mm.</td></tr>
+<tr><td><code>outline</code></td><td>integer</td><td>yes</td><td>Its outline, by shape id; the frame is named by it.</td></tr>
+<tr><td><code>width</code></td><td>number</td><td>yes</td><td>The outline’s width as last drawn, mm.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="framearound"><a class="header" href="#framearound">FrameAround</a></h2>
+<p>What a frame goes round: texts with all their letters, pictures with all their traced shapes, and other shapes, by id.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>images</code></td><td>list of integer</td><td>no</td><td></td></tr>
+<tr><td><code>shapes</code></td><td>list of integer</td><td>no</td><td></td></tr>
+<tr><td><code>texts</code></td><td>list of integer</td><td>no</td><td></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="framecorners"><a class="header" href="#framecorners">FrameCorners</a></h2>
+<p>The corner style of a rectangular frame’s borders (docs/specs/sign-maker.md §5).</p>
+<p>One of: <code>"sharp"</code>, <code>"round"</code>, <code>"notch"</code>, <code>"chamfer"</code>, <code>"step"</code>.</p>
+<h2 id="frameshape"><a class="header" href="#frameshape">FrameShape</a></h2>
+<p>A frame’s outline (docs/specs/shape-library.md §3.1).</p>
+<p>One of: <code>"rectangle"</code>, <code>"rounded"</code>, <code>"notched"</code>, <code>"chamfered"</code>, <code>"oval"</code>, <code>"arched"</code>, <code>"plaque"</code>, <code>"stepped"</code>, <code>"gable"</code>, <code>"double_arch"</code>, <code>"shield"</code>, <code>"banner"</code>, <code>"octagon"</code>.</p>
 <h2 id="holemethod"><a class="header" href="#holemethod">HoleMethod</a></h2>
 <p>How a Holes operation cuts.</p>
 <h3 id="type-drill"><a class="header" href="#type-drill"><code>"type": "drill"</code></a></h3>
@@ -6833,6 +8017,16 @@ reaches the assistant only once you save.</li>
 <p><code>"centre_line"</code>: Open (or closed) paths along the black strokes’ middles.</p>
 </li>
 </ul>
+<h2 id="inflateprofile"><a class="header" href="#inflateprofile">InflateProfile</a></h2>
+<p>How an inflated shape rises from its edge.</p>
+<ul>
+<li>
+<p><code>"round"</code>: A quarter circle: steep at the edge, flat on top.</p>
+</li>
+<li>
+<p><code>"straight"</code>: A straight rise: a ridge along narrow strokes.</p>
+</li>
+</ul>
 <h2 id="issueseverity"><a class="header" href="#issueseverity">IssueSeverity</a></h2>
 <p>One of: <code>"warning"</code>, <code>"error"</code>.</p>
 <h2 id="lead"><a class="header" href="#lead">Lead</a></h2>
@@ -6892,6 +8086,46 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="mirror"><a class="header" href="#mirror">Mirror</a></h2>
+<p>How a part is cut mirrored: about the vertical or the horizontal centre line of its box.</p>
+<ul>
+<li>
+<p><code>"left_right"</code>: About the vertical centre line: left and right change places, X is mirrored.</p>
+</li>
+<li>
+<p><code>"top_bottom"</code>: About the horizontal centre line: top and bottom change places, Y is mirrored.</p>
+</li>
+</ul>
+<h2 id="model"><a class="header" href="#model">Model</a></h2>
+<p>A 3D model (an STL file) carved as a relief from the top: the file itself, which way is up, and where it lies on the board. Its footprint outline is a <code>path</code> shape on its layer that names it in <code>model</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>data</code></td><td>string</td><td>yes</td><td>The STL file itself, base64-encoded.</td></tr>
+<tr><td><code>depth</code></td><td>number</td><td>yes</td><td>How deep the relief goes, from the model’s top to its lowest point, mm.</td></tr>
+<tr><td><code>file</code></td><td>string</td><td>yes</td><td>The STL file’s name.</td></tr>
+<tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The model’s id, which its outline and reliefs name.</td></tr>
+<tr><td><code>keep</code></td><td>number</td><td>no</td><td>The share of the turned model’s height kept, from its top, more than 0 and at most 1: what lies below is cut away, its back (docs/specs/relief-wizard.md §5). Width, depth and the outline are the kept part’s. 1 (the whole model) when missing.</td></tr>
+<tr><td><code>layer</code></td><td>string</td><td>yes</td><td>The layer its footprint outline goes on.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name in the Browser and messages: the file’s name without its extension at first.</td></tr>
+<tr><td><code>picture</code></td><td><a href="#picturedepth">PictureDepth</a> or null</td><td>no</td><td>Missing: the model is an STL file. Present: <code>data</code> is a picture (PNG, JPEG or BMP) read as a depth map with these settings; <code>up</code> is <code>z</code> and <code>proportional</code> false.</td></tr>
+<tr><td><code>proportional</code></td><td>boolean</td><td>yes</td><td>The depth follows the width, in the model’s own proportion: made again whenever the model changes (decision 4).</td></tr>
+<tr><td><code>rotation</code></td><td>number</td><td>yes</td><td>Turned counter-clockwise about the footprint’s centre, degrees, at least 0 and less than 360.</td></tr>
+<tr><td><code>sha256</code></td><td>string</td><td>yes</td><td>The STL file’s SHA-256.</td></tr>
+<tr><td><code>units</code></td><td><a href="#units-2">Units</a></td><td>yes</td><td>The unit the file was read in, for its size on import only: the model is placed by <code>width</code> (decision 2).</td></tr>
+<tr><td><code>up</code></td><td><a href="#modelup">ModelUp</a></td><td>yes</td><td>Which of the model’s axes points up on the board.</td></tr>
+<tr><td><code>width</code></td><td>number</td><td>yes</td><td>The footprint’s width on the board, mm: it scales X and Y alike.</td></tr>
+<tr><td><code>x</code></td><td>number</td><td>yes</td><td>X of the footprint’s lower-left corner on the board, mm, before the turn.</td></tr>
+<tr><td><code>y</code></td><td>number</td><td>yes</td><td>Y of the footprint’s lower-left corner on the board, mm, before the turn.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="modelup"><a class="header" href="#modelup">ModelUp</a></h2>
+<p>Which of a model’s axes points up on the board.</p>
+<p>One of: <code>"z"</code>, <code>"y"</code>, <code>"x"</code>, <code>"-z"</code>, <code>"-y"</code>, <code>"-x"</code>.</p>
 <h2 id="operation"><a class="header" href="#operation">Operation</a></h2>
 <h3 id="type-profile"><a class="header" href="#type-profile"><code>"type": "profile"</code></a></h3>
 <div class="table-wrapper">
@@ -6976,6 +8210,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
 <tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
 <tr><td><code>passes</code></td><td>integer</td><td>yes</td><td>How many depth passes, 1 to [<code>MAX_VCARVE_PASSES</code>]: each removes the same cross-section, the last at the end depth (docs/specs/v-carve.md decision 12).</td></tr>
+<tr><td><code>plug</code></td><td><a href="#plug">Plug</a> or null</td><td>no</td><td>The plug of a V-carve inlay: the rest of the board is carved, its outline taken <code>plug.start_depth</code> below the surface, so the shapes stand as a tapered plug that fits the pocket a V-carve of the same shapes cuts. Missing: an ordinary V-carve. Left out when missing.</td></tr>
 <tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed for moves steeper than 45°, mm/min.</td></tr>
 <tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id.</td></tr>
 <tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>The surface carved, mm down from the stock top: 0 for the top, more to carve on a floor an earlier pocket cut.</td></tr>
@@ -7016,6 +8251,7 @@ reaches the assistant only once you save.</li>
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
+<tr><td><code>dowels</code></td><td>boolean</td><td>no</td><td>Dowel holes for turning the board over (docs/specs/two-sided.md §6): drawn circles on the turn axis, cut through the board and <code>through</code> mm into the spoilboard for the pins, deeper than the stock’s max overcut allows any other cut. Missing: false.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
 <tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>Where the hole ends, mm down from the stock top. For a drill, the depth of its point.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>A bore’s feed round its helix and bottom circle, mm/min. A drill doesn’t use it.</td></tr>
@@ -7053,6 +8289,34 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="type-relief"><a class="header" href="#type-relief"><code>"type": "relief"</code></a></h3>
+<p>Relief: a 3D model carved from the top with the drop cutter, in parallel lines.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>angle</code></td><td>number</td><td>yes</td><td>The lines’ direction, radians counter-clockwise from X.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>The model’s lowest point, mm down from the stock top: the start depth plus the model’s depth, made again from the model whenever the project is read or changed.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>model</code></td><td>integer</td><td>yes</td><td>The id of the model it carves (<code>drawing.models</code>).</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down to each line’s first point, mm/min.</td></tr>
+<tr><td><code>rim</code></td><td><a href="#reliefrim">ReliefRim</a> or null</td><td>no</td><td>A flat round the model at the floor and a ramp up from it to the stock top. Missing: none, the tool’s centre stays within the area. Left out when missing.</td></tr>
+<tr><td><code>roughing</code></td><td><a href="#reliefroughing">ReliefRoughing</a> or null</td><td>no</td><td>A roughing pass, cut just before: levels one step down apart, the tool kept the allowance off the model. Missing: none. Left out when missing.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>The area: closed shapes, by default the model’s outline. The tool’s centre stays in it, or with a rim, within the rim’s reach round it.</td></tr>
+<tr><td><code>smoothing</code></td><td><a href="#reliefsmoothing">ReliefSmoothing</a> or null</td><td>no</td><td>A smoothing pass, cut after the roughing pass and before the finish: the surface followed once, the allowance kept, taking the steps the roughing leaves. Only with a roughing pass. Missing: none. Left out when missing.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the model’s top lies, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a ball nose, an endmill or a V-bit.</td></tr>
+<tr><td><code>zigzag</code></td><td>boolean</td><td>yes</td><td>Back and forth (true), or every line the same way, lifting between them.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="part"><a class="header" href="#part">Part</a></h2>
 <p>A part: a named group of operations, cut together, with its own copies (docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.</p>
 <div class="table-wrapper">
@@ -7064,6 +8328,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>copies</code></td><td><a href="#copies-1">Copies</a> or null</td><td>no</td><td>Cut the part several times in a grid. Null: once.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>yes</td><td>False: the part and all its operations stay in the project but aren’t cut.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>Its number, unique in the project: what operations name it by.</td></tr>
+<tr><td><code>mirror</code></td><td><a href="#mirror">Mirror</a> or null</td><td>no</td><td>Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as drawn. Left out when missing.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name, unique in the project, shown in the Browser, the report and the sheet.</td></tr>
 <tr><td><code>setup</code></td><td>integer</td><td>yes</td><td>The id of the setup it is cut in (<code>setups</code>). Since schema 34.</td></tr>
 </tbody>
@@ -7076,6 +8341,36 @@ reaches the assistant only once you save.</li>
 </li>
 <li>
 <p>object:</p>
+</li>
+</ul>
+<h2 id="picturedepth"><a class="header" href="#picturedepth">PictureDepth</a></h2>
+<p>How a picture model’s picture is read as heights (docs/specs/picture-relief.md §3).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>background</code></td><td>number</td><td>yes</td><td>Grey shares up to this, 0 to 0.95, are background, not the model; 0: none.</td></tr>
+<tr><td><code>gamma</code></td><td>number</td><td>yes</td><td>The heights raised to this power, 0.2 to 5: above 1 flatter low ground and steeper tops.</td></tr>
+<tr><td><code>invert</code></td><td>boolean</td><td>no</td><td><code>inflate</code>: white is the shape; false: black is.</td></tr>
+<tr><td><code>mode</code></td><td><a href="#picturemode">PictureMode</a></td><td>no</td><td>How the picture becomes heights: a depth map, or its shapes inflated. Missing: a depth map.</td></tr>
+<tr><td><code>profile</code></td><td><a href="#inflateprofile">InflateProfile</a></td><td>no</td><td><code>inflate</code>: how a shape rises from its edge.</td></tr>
+<tr><td><code>reach</code></td><td>number or null</td><td>no</td><td><code>inflate</code>: how far in from the edge the height grows, mm, more than 0; null: the widest shape’s half-width.</td></tr>
+<tr><td><code>smoothing</code></td><td>number</td><td>yes</td><td>A blur over the heights, its radius on the board, mm: 0 to 5.</td></tr>
+<tr><td><code>threshold</code></td><td>integer or null</td><td>no</td><td><code>inflate</code>: grey levels below this (1 to 254) are black; null: picked from the picture.</td></tr>
+<tr><td><code>white_high</code></td><td>boolean</td><td>yes</td><td>White is the top, black the bottom; false: the other way round.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="picturemode"><a class="header" href="#picturemode">PictureMode</a></h2>
+<p>How a picture model’s picture becomes heights (docs/specs/inflated-shapes.md §3).</p>
+<ul>
+<li>
+<p><code>"depth"</code>: Brightness as height.</p>
+</li>
+<li>
+<p><code>"inflate"</code>: Its black-and-white shapes, each rising from its edge.</p>
 </li>
 </ul>
 <h2 id="placement"><a class="header" href="#placement">Placement</a></h2>
@@ -7093,6 +8388,80 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="plug"><a class="header" href="#plug">Plug</a></h2>
+<p>A V-carve inlay’s plug (docs/specs/vcarve-inlay.md §2.2).</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the outline is taken, mm down from the stock top: more than the operation’s start depth, less than its end depth. The end depth less this is the glue gap.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="register"><a class="header" href="#register">Register</a></h2>
+<p>How a turned board is located again.</p>
+<ul>
+<li>
+<p><code>"pins"</code>: Dowel pins through holes on the turn axis, drilled with the front.</p>
+</li>
+<li>
+<p><code>"corner"</code>: Pushed into the same corner of a fence: the board’s size must be exact.</p>
+</li>
+</ul>
+<h2 id="reliefrim"><a class="header" href="#reliefrim">ReliefRim</a></h2>
+<p>A relief’s rim (docs/specs/stl-relief.md §16): a flat at the floor round the area, then a ramp up to the stock top.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>corner_radius</code></td><td>number</td><td>no</td><td><code>box</code> only: the radius of the flat’s outer corners, mm, from 0 to the width.</td></tr>
+<tr><td><code>hull</code></td><td>number</td><td>no</td><td><code>outline</code> only: how far the outline is filled out towards its convex hull before the flat goes round it, 0 (as it is) to 1 (the hull). Missing: 0.</td></tr>
+<tr><td><code>ramp</code></td><td>number</td><td>yes</td><td>The ramp’s slope from the flat up to the stock top, radians from horizontal: from 10° to 90° (a straight wall).</td></tr>
+<tr><td><code>shape</code></td><td><a href="#rimshape">RimShape</a></td><td>yes</td><td><code>outline</code>: the area’s outer loops grown; <code>box</code>: the rectangle round them.</td></tr>
+<tr><td><code>width</code></td><td>number</td><td>yes</td><td>The flat’s width, mm from the outline or the rectangle: 0 or more.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="reliefroughing"><a class="header" href="#reliefroughing">ReliefRoughing</a></h2>
+<p>A relief’s roughing pass (docs/specs/stl-relief.md §5): the material taken down in levels with the raster, an allowance left on the model for the finish.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>allowance</code></td><td>number</td><td>yes</td><td>What is left on the model for the finish, mm, in every direction: 0 or more.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down to each stretch’s first point, mm/min.</td></tr>
+<tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The distance between levels, mm.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill or a plain ball nose.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="reliefsmoothing"><a class="header" href="#reliefsmoothing">ReliefSmoothing</a></h2>
+<p>A relief’s smoothing pass (docs/specs/stl-relief.md §17): after the roughing, the surface followed once with the raster, an allowance left on the model for the finish.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>allowance</code></td><td>number</td><td>yes</td><td>What is left on the model for the finish, mm, in every direction: 0 or more.</td></tr>
+<tr><td><code>angle</code></td><td>number</td><td>yes</td><td>The lines’ direction, radians counter-clockwise from X: across the roughing’s by default.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: kept, but not cut. Missing: true.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down to each line’s first point, mm/min.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between lines, as a fraction of the tool diameter: more than 0, at most 0.9.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): an end mill or a plain ball nose.</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="rest"><a class="header" href="#rest">Rest</a></h2>
 <p>Rest machining: the pocket clears only the material the larger tool <code>after_tool</code> can’t reach in its shapes.</p>
 <div class="table-wrapper">
@@ -7105,6 +8474,16 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="rimshape"><a class="header" href="#rimshape">RimShape</a></h2>
+<p>What a relief’s rim follows (docs/specs/stl-relief.md §16).</p>
+<ul>
+<li>
+<p><code>"outline"</code>: The area’s outer loops, grown with round corners.</p>
+</li>
+<li>
+<p><code>"box"</code>: The rectangle round the area’s outer loops, grown, its corners rounded.</p>
+</li>
+</ul>
 <h2 id="selector"><a class="header" href="#selector">Selector</a></h2>
 <div class="table-wrapper">
 <table>
@@ -7117,6 +8496,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>group</code></td><td>integer or null</td><td>no</td><td>The shapes and texts’ letters of this group (an id in <code>drawing.groups</code>), as they are at each run.</td></tr>
 <tr><td><code>image</code></td><td>integer or null</td><td>no</td><td>Only shapes traced from this image (an id in <code>drawing.images</code>).</td></tr>
 <tr><td><code>layer</code></td><td>string or null</td><td>no</td><td>Every shape on this layer (upper or lower case don’t matter).</td></tr>
+<tr><td><code>model</code></td><td>integer or null</td><td>no</td><td>The footprint outline of this 3D model (an id in <code>drawing.models</code>).</td></tr>
 <tr><td><code>shapes</code></td><td>list of integer or null</td><td>no</td><td>These shapes, by id.</td></tr>
 <tr><td><code>text</code></td><td>integer or null</td><td>no</td><td>Only the letters of this text (an id in <code>drawing.texts</code>).</td></tr>
 </tbody>
@@ -7130,6 +8510,7 @@ reaches the assistant only once you save.</li>
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
+<tr><td><code>back_of</code></td><td><a href="#backof">BackOf</a> or null</td><td>no</td><td>Set: this setup is the back of another, the same board turned over. Its stock and work zero then follow that setup’s ([<code>Job::follow_fronts</code>]), and its cuts are mirrored about the board’s centre line. Null: a board of its own. Since schema 36.</td></tr>
 <tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the setup and its parts stay in the project but aren’t cut.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>Its number, unique in the project: what parts name it by.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>yes</td><td>Its name, shown in the Browser, the report and the setup sheet.</td></tr>
@@ -7160,6 +8541,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>kind</code></td><td><a href="#shapekind">ShapeKind</a></td><td>yes</td><td><code>path</code> (imported from a DXF), or a shape drawn in Chipload: <code>circle</code>, <code>rectangle</code>, <code>polyline</code>.</td></tr>
 <tr><td><code>layer</code></td><td>string</td><td>yes</td><td>Its layer.</td></tr>
 <tr><td><code>length</code></td><td>number or null</td><td>no</td><td>rectangle: its size along its own X axis, mm.</td></tr>
+<tr><td><code>model</code></td><td>integer or null</td><td>no</td><td>path: the 3D model it is the footprint outline of (its id in <code>drawing.models</code>).</td></tr>
 <tr><td><code>name</code></td><td>string or null</td><td>no</td><td>circle, rectangle, polyline: its name in the Browser; left out when it has none.</td></tr>
 <tr><td><code>points</code></td><td>list of 2 × number or null</td><td>no</td><td>polyline: its points, mm.</td></tr>
 <tr><td><code>radius</code></td><td>number or null</td><td>no</td><td>circle: the radius, mm; polygon: the radius to its corners, mm.</td></tr>
@@ -7313,7 +8695,7 @@ reaches the assistant only once you save.</li>
 <tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
 </thead>
 <tbody>
-<tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool.</td></tr>
+<tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. Ball noses: the taper’s included angle; null: a plain ball nose.</td></tr>
 <tr><td><code>center_cutting</code></td><td>boolean or null</td><td>no</td><td>Whether it can plunge straight down. False: profiles ramp in and pockets go down round a helix. Null: unknown.</td></tr>
 <tr><td><code>diameter</code></td><td>number</td><td>yes</td><td>Diameter, mm. For a V-bit, its widest cutting diameter.</td></tr>
 <tr><td><code>flutes</code></td><td>integer or null</td><td>no</td><td>Number of flutes, for the chip load. Null: unknown.</td></tr>
@@ -7321,8 +8703,8 @@ reaches the assistant only once you save.</li>
 <tr><td><code>library_uid</code></td><td>string or null</td><td>no</td><td>The <code>uid</code> of the library tool it came from, for reference; nothing that cuts reads it. Null: not from the library.</td></tr>
 <tr><td><code>name</code></td><td>string or null</td><td>no</td><td>The library tool it came from, for reference.</td></tr>
 <tr><td><code>rpm</code></td><td>number or null</td><td>no</td><td>Spindle speed, rpm. Needed to generate.</td></tr>
-<tr><td><code>tip_diameter</code></td><td>number or null</td><td>no</td><td>V-bits: the flat tip’s diameter, mm. Null: pointed.</td></tr>
-<tr><td><code>type</code></td><td><a href="#tooltype">ToolType</a></td><td>no</td><td><code>endmill</code>, <code>drill</code> or <code>vbit</code>.</td></tr>
+<tr><td><code>tip_diameter</code></td><td>number or null</td><td>no</td><td>V-bits: the flat tip’s diameter, mm. Null: pointed. Tapered ball noses: the ball’s diameter at the tip.</td></tr>
+<tr><td><code>type</code></td><td><a href="#tooltype">ToolType</a></td><td>no</td><td><code>endmill</code>, <code>drill</code>, <code>vbit</code> or <code>ballnose</code>.</td></tr>
 </tbody>
 </table>
 </div>
@@ -7337,7 +8719,14 @@ reaches the assistant only once you save.</li>
 </li>
 </ul>
 <h2 id="tooltype"><a class="header" href="#tooltype">ToolType</a></h2>
-<p>One of: <code>"endmill"</code>, <code>"drill"</code>, <code>"vbit"</code>.</p>
+<ul>
+<li>
+<p><code>"endmill"</code>, <code>"drill"</code>, <code>"vbit"</code>:</p>
+</li>
+<li>
+<p><code>"ballnose"</code>: A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow paths only.</p>
+</li>
+</ul>
 <h2 id="travel"><a class="header" href="#travel">Travel</a></h2>
 <div class="table-wrapper">
 <table>
@@ -7351,6 +8740,16 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="turn"><a class="header" href="#turn">Turn</a></h2>
+<p>How a board is turned over: about its vertical or its horizontal centre line.</p>
+<ul>
+<li>
+<p><code>"left_right"</code>: About the vertical centre line: the left edge goes to the right, X is mirrored.</p>
+</li>
+<li>
+<p><code>"top_bottom"</code>: About the horizontal centre line: the bottom edge goes to the top, Y is mirrored.</p>
+</li>
+</ul>
 <h2 id="units-2"><a class="header" href="#units-2">Units</a></h2>
 <p>One of: <code>"mm"</code>, <code>"inch"</code>.</p>
 <h2 id="unitsfrom"><a class="header" href="#unitsfrom">UnitsFrom</a></h2>
@@ -7453,7 +8852,14 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h2 id="tooltype-1"><a class="header" href="#tooltype-1">ToolType</a></h2>
-<p>One of: <code>"endmill"</code>, <code>"drill"</code>, <code>"vbit"</code>.</p>
+<ul>
+<li>
+<p><code>"endmill"</code>, <code>"drill"</code>, <code>"vbit"</code>:</p>
+</li>
+<li>
+<p><code>"ballnose"</code>: A ball nose, plain or tapered (docs/specs/stl-relief.md §8): for reliefs and follow paths only.</p>
+</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="machine-profiles-file"><a class="header" href="#machine-profiles-file">Machine profiles file</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
@@ -7690,8 +9096,8 @@ Check each profile’s side.</li>
 (Italiano), Swedish (Svenska) and Russian (Русский).</p>
 <h2 id="choosing-the-language"><a class="header" href="#choosing-the-language">Choosing the language</a></h2>
 <p>At the start the app follows your computer’s language, and English when it isn’t one of
-these. To choose another, use <em>View &gt; Language</em> or <em>This computer &gt; Preferences</em> in the
-Browser. The change is immediate, and the app keeps it for next time.</p>
+these. To choose another, use <em>Edit &gt; Preferences…</em>, which opens <em>This computer &gt;
+Preferences</em> in the Browser. The change is immediate, and the app keeps it for next time.</p>
 <p>Problems, the report, the checker’s findings, error messages and the
 <a href="#setup-sheet">setup sheet</a> follow the language too. What stays in English, whatever
 the language:</p>
@@ -7704,11 +9110,12 @@ written, and what other programs say (the file system, a picture that can’t be
 <li>This guide.</li>
 </ul>
 <p>Names you give things (parts, operations, tools, machines, layers) are yours and are never
-translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian,
-Swedish and Russian a field also takes a decimal comma (<code>6,5</code>); in English a comma isn’t read, since
-<code>1,000</code> would mean a thousand.</p>
+translated. Numbers keep the decimal point in every language, and a field also takes a
+decimal comma (<code>6,5</code>, <code>0,3</code>) in every language. In English only, a comma followed by exactly
+three digits after a whole number (<code>1,000</code>, <code>2,500</code>) isn’t read, since it could mean a
+thousand: type <code>2.5</code> or <code>2,5</code> there.</p>
 <h2 id="helping-with-a-translation"><a class="header" href="#helping-with-a-translation">Helping with a translation</a></h2>
-<p>German, French, Spanish, Italian and Russian are marked <em>(review wanted)</em> in the language menu: they
+<p>German, French, Spanish, Italian and Russian are marked <em>(review wanted)</em> in the list of languages: they
 haven’t yet been read by someone who speaks the language and runs a CNC machine. A wrong
 word in a CAM program can mislead (climb or conventional, inside or outside), so your
 corrections matter.</p>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>3D view, simulation and playback - Chipload 0.34.0 user guide</title>
+        <title>3D view, simulation and playback - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -196,12 +196,15 @@ FRONT, RIGHT, …).</li>
 Simulate</em> or F6, and <strong>Edit</strong> or F6 to go back (<a href="../window.html#the-canvas">Edit and Simulate</a>).</p>
 <ul>
 <li><strong>Top view:</strong> a shaded picture.</li>
-<li><strong>3D:</strong> a surface you can turn.</li>
+<li><strong>3D:</strong> the board as a solid you can turn: holes cut through are open, and the board
+stands on its sides.</li>
 <li><strong>Tool shapes:</strong> each tool’s real shape is used: a flat endmill, a V-bit’s cone with its
 tip, and a drill’s 118° point.</li>
 <li><strong>When:</strong> in the background, when you enter Simulate and after each new toolpath while
 you’re in it; in Edit nothing is simulated. Until it’s done, the canvas says <em>Updating
-the simulation…</em> and still shows the stock as the last toolpath cut it. Back in Simulate
+the simulation…</em> with a bar and how far it has got, and still shows the stock as the
+last toolpath cut it. A toolpath being made shows the same way, <em>Updating the
+toolpath…</em>: a relief’s lines are counted as they are done. Back in Simulate
 without changes, the last simulation shows at once. With no toolpath yet, entering
 Simulate makes one.</li>
 <li><strong>What makes a new toolpath:</strong> a change that can change the cut. Drawing a shape that no
@@ -225,6 +228,18 @@ drawing</em>) as well, and only the simulated stock is left.</li>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/simulation-3d.png" alt="The simulated stock in 3D, with the toolpath on it"><span class="img-wrapper"><img src="../images/simulation-3d.png" alt="The simulated stock in 3D, with the toolpath on it"></span></label></p>
 <p>On the command line, <code>chipload simulate part.chipload</code> prints the same numbers and writes a
 shaded top view (<code>part-sim.png</code>). <code>--after N</code> stops after the first N moves.</p>
+<p><strong>Both sides of a board.</strong> A <a href="../concepts/setups.html#the-back-side-experimental">back side</a>
+is simulated on its front’s result: the front is cut first, then the back from below, so you
+see the finished part. The report adds the area cut through and, where neither side alone
+goes through but the two together do, <em>The two sides meet</em> with its area: a plain note, as
+that can be meant. <code>chipload simulate part.chipload --setup 2 --face back</code> draws the back
+face, the board as it lies turned over; <code>--face front</code> the front. A back setup’s picture
+shows its own face by default.</p>
+<p>In the window, Simulate mode has <strong>Turn over</strong> on the navigation bar for a board with two
+sides: the board shown back face up, as it lies for its back’s setup, in the top view and
+in 3D, the toolpath and shapes turned with it. Making the back setup active turns it over;
+making the front active turns it back. In Edit mode the board is always seen from the
+front, where you draw.</p>
 <h2 id="playback"><a class="header" href="#playback">Playback</a></h2>
 <p>Under the canvas, a <strong>slider</strong> runs through the program by time, like a 3D printer’s
 preview:</p>

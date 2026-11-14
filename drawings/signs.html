@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Signs and frames - Chipload 0.34.0 user guide</title>
+        <title>Signs and frames - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -178,17 +178,63 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="signs-and-frames"><a class="header" href="#signs-and-frames">Signs and frames</a></h1>
-<p>An engraved sign is a few words with a frame round them, cut out of a board. <strong>Draw &gt;
-Frame…</strong> draws the frame for you: round the text you have written, centred on it, with
-border lines inside it, or to a size as a blank. A sign you will make again can be kept in the
+<p>An engraved sign is a few words with a frame round them, cut out of a board. <strong>New sign…</strong>
+(below) makes the whole sign, its operations too. <strong>Draw &gt; Frame…</strong> only draws a frame: round
+the text or shapes you have selected, centred on them, with border lines inside it, or to a
+size as a blank, for a frame you cut with operations of your own. A sign you will make again can be kept in the
 <a href="shape-library.html">shape library</a>. (Design: <code>docs/specs/shape-library.md</code>.)</p>
+<h2 id="a-sign-in-one-step"><a class="header" href="#a-sign-in-one-step">A sign in one step</a></h2>
+<p><strong>New sign…</strong> (<strong>Sign</strong> in the ribbon’s <em>WIZARDS</em> group, or <em>Wizards &gt; New sign…</em>) makes a whole sign: the words, a frame round them, and every operation that
+cuts it, in a part of its own named after the words (a new project’s empty part becomes
+it). The dialog draws the sign as it will be and lists the operations it adds. (Design:
+<code>docs/specs/sign-maker.md</code>.)</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"><span class="img-wrapper"><img src="../images/new-sign.png" alt="New sign… filled in: the words, a notched frame with double lines, an edge chamfer, the sign drawn below and the operations it adds"></span></label></p>
+<ul>
+<li><strong>Words</strong>, <strong>Font</strong>, <strong>Height</strong>: the text, centred on the board. The font list is the
+text tool’s: your recently used fonts first (the last one picked is chosen), then the
+built-in fonts and your computer’s (<a href="text.html">Text</a>). With shapes selected
+when you open it (a traced picture, a text, drawn shapes or a DXF’s), the sign goes
+<strong>round the selection</strong> instead: those shapes are carved with the V-bit (an operation
+named <em>Carving</em>) and the frame follows them, a picture traced again too. <em>Write words
+instead</em> goes back to new words. A raised sign round a picture’s or a DXF’s shapes can’t
+be made yet (its background pocket needs them grouped with the frame, and a group takes
+only drawn shapes and texts).</li>
+<li><strong>Frame</strong>: as for <em>Frame…</em> below: the kind, margin, corner, borders and their groove
+width. The frame follows the words afterwards.</li>
+<li><strong>Style</strong>:
+<ul>
+<li><em>Engraved</em>: the letters V-carved;</li>
+<li><em>Raised</em>: the background inside the innermost border cut down round the letters with
+the end mill (<strong>Background depth</strong>, 3 mm by default), the letters and the border left
+standing; it needs a border. Inside corners round the letters keep the end mill’s
+radius;</li>
+<li><em>Inlay</em>: the letters as a <a href="../operations/vcarve.html#inlays">V-carve inlay</a>, the plug in a
+board of its own.</li>
+</ul>
+</li>
+<li><strong>Edge</strong>: a <strong>Chamfer</strong> of that width round the outline, cut with the V-bit centred on the
+outline before the sign is cut out (the other half of the groove is in the waste).</li>
+<li><strong>V-bit</strong>, <strong>End mill</strong>: the project’s tools, then under <em>From your library:</em> your tool
+library’s (marked <strong>+</strong>). A library tool is copied into the project when you click <em>Make
+sign</em>, not before. A project without such a tool starts on the library’s. The V-bit
+carves the letters and the grooves, the end mill cuts the sign out (and clears a raised
+background).</li>
+<li><strong>Board</strong>: <em>Fit round the sign</em> (on in an empty project) fits the stock round the drawing
+with the margin, at the thickness.</li>
+</ul>
+<p>It adds, in cutting order: <em>Letters</em> (or <em>Background</em>, or the inlay’s pocket), <em>Borders</em>
+(a follow path on the border lines as deep as the groove width needs), <em>Edge chamfer</em>,
+and <em>Cut out</em> (a profile outside the outline, through, with tabs). Feeds come from the
+tools’ cutting data. The words and the frame are one group: a click selects the sign, a drag
+moves it. All of it is one undo step, and every part of it is ordinary shapes and
+operations afterwards.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"><span class="img-wrapper"><img src="../images/frame.png" alt="A text selected, Draw &gt; Frame… open under Selection, a rounded frame with one border previewed round the text"></span></label></p>
 <h2 id="a-frame-round-a-text"><a class="header" href="#a-frame-round-a-text">A frame round a text</a></h2>
 <ol>
-<li>Write the text (<a href="text.html">Text</a>) and leave it selected, or select any shapes: the frame
-goes round all of them.</li>
-<li><strong>Frame</strong>: the small button after the shape tools in the ribbon’s <em>DRAW</em> group (a
-rounded frame with a line inside), or <em>DRAW ▾ &gt; Frame…</em>. Its values open under
+<li>Write the text (<a href="text.html">Text</a>) and leave it selected, or select any shapes, a traced
+<a href="images.html">picture</a> for instance: the frame goes round all of them.</li>
+<li>Right-click the selection and choose <strong>Frame round the selection…</strong>, or <em>Draw &gt;
+Frame…</em> (the way to a frame to a size, with nothing selected). Its values open under
 <em>Selection</em>, and the frame shows on the canvas as you change them.</li>
 <li>Pick a frame from the row of pictures, set the values, and click <strong>Add</strong>. The frame is
 added as one undo step, and its shapes are selected.</li>
@@ -203,13 +249,30 @@ adds one); a click on empty space, or on the previewed frame, changes nothing. <
 <tr><th>Frame</th><th>Its corner size is</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Rectangle</strong></td><td>(sharp corners)</td></tr>
-<tr><td><strong>Rounded</strong></td><td>the corners’ radius</td></tr>
-<tr><td><strong>Notched</strong></td><td>the radius of the quarter circles cut into each corner</td></tr>
-<tr><td><strong>Chamfered</strong></td><td>how far each corner is cut off at 45°, along each side</td></tr>
+<tr><td><strong>Rectangle</strong></td><td>depends on its <strong>Corners</strong> (below)</td></tr>
 <tr><td><strong>Oval</strong></td><td>(an ellipse touching the four sides)</td></tr>
 <tr><td><strong>Arched top</strong></td><td>how far the top arc rises above the top corners</td></tr>
+<tr><td><strong>Arched top and bottom</strong></td><td>how far each arc rises beyond the corners</td></tr>
+<tr><td><strong>Gable</strong></td><td>how far the pointed top rises above the top corners</td></tr>
+<tr><td><strong>Shield</strong></td><td>how far below the straight sides the point is; from half the width down, the sides curve into a point, shallower the bottom is one arc</td></tr>
 <tr><td><strong>Plaque</strong></td><td>how far the short sides bulge out</td></tr>
+<tr><td><strong>Banner</strong></td><td>how deep the V cut into each short end is (forked ends)</td></tr>
+<tr><td><strong>Octagon</strong></td><td>(the corners cut off at 45°, the cut sides as long as the shorter sides)</td></tr>
+</tbody>
+</table>
+</div>
+<p>A rectangle’s <strong>Corners</strong>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Corners</th><th>Its corner size is</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Sharp</strong></td><td>(none)</td></tr>
+<tr><td><strong>Round</strong></td><td>the corners’ radius</td></tr>
+<tr><td><strong>Notch</strong></td><td>the radius of the quarter circles cut into each corner</td></tr>
+<tr><td><strong>Chamfer</strong></td><td>how far each corner is cut off at 45°, along each side</td></tr>
+<tr><td><strong>Step</strong></td><td>the side of the square cut out of each corner (at most a third of the shorter side)</td></tr>
 </tbody>
 </table>
 </div>
@@ -224,12 +287,41 @@ shown greyed; tick it to set your own. One too large for the frame is refused, w
 largest that fits.</li>
 <li><strong>Borders:</strong> 0 to 3 lines inside the outline, each <strong>Gap</strong> further in (5 mm by default).
 They follow the outline’s shape: a notched frame’s borders are notched too.</li>
+<li><strong>Border corners</strong> (a rectangle with borders): the borders’ own corners, at the same
+gap, such as a round sign with a notched line inside. <em>As the outline</em> follows its shape.</li>
+<li><strong>Groove width:</strong> how wide a border’s groove will be at the surface: the V-bit’s width at
+the depth it cuts. The margin is then measured to the inner edge of the innermost groove,
+so the words keep their distance from the cut, not from the line. 0 (the default)
+measures to the line.</li>
+<li><strong>Double lines:</strong> each border two grooves, twice the groove width apart, which leaves a
+ridge as wide as a groove between them. It needs the groove width. The gap is then from
+one border’s inner line to the next border.</li>
 <li><strong>Layer</strong>, <strong>Border layer:</strong> the outline goes on <code>frame</code>, the borders on <code>border</code>, so that
 each can be cut by its own operation.</li>
 </ul>
 <p>A frame is ordinary drawn shapes: a rounded or plain rectangle, a circle for a round oval,
-otherwise a polyline of lines and arcs. Change it like any drawn shape, or draw it again:
-delete it, change the text, and <em>Draw &gt; Frame…</em> again with the same values.</p>
+otherwise a polyline of lines and arcs. Operations cut it like any other shape.</p>
+<h2 id="the-frame-follows-its-text"><a class="header" href="#the-frame-follows-its-text">The frame follows its text</a></h2>
+<p>A frame remembers what it goes round. Change the words, the font or the height of the text,
+or move it, and the frame is drawn again round it, with its borders, in the same undo step.
+Its shapes keep their ids, so the operations that cut them go on cutting them. A frame round
+a picture follows it when it is traced again, at another size or place; one round other
+shapes follows them when they move. A frame round only some of a text’s letters or a
+picture’s shapes keeps those shapes by id, and lets go when they are made again.</p>
+<p>Select the frame (its outline or a border) and its values show under <em>Selection</em>, in a
+<strong>Frame</strong> card: the kind, margin, corner, borders and gap. Change them there and the frame is
+drawn again. A frame drawn to a size shows its width and height instead, and follows
+nothing.</p>
+<p>The frame lets go, and becomes plain shapes that follow nothing, when:</p>
+<ul>
+<li>you edit one of its shapes by hand: move it alone, drag a corner, change its values in its
+own form (moving the frame <em>with</em> its text keeps it following);</li>
+<li>one of its shapes is deleted, or everything it went round is;</li>
+<li><strong>Detach</strong> in its card, on purpose.</li>
+</ul>
+<p>A note on the status bar says so each time. Undo brings the frame back as it was.</p>
+<p>An older Chipload refuses to open a project with a frame that follows something, and says
+why; detach the frame first to open the project there.</p>
 <h2 id="a-frame-to-a-size"><a class="header" href="#a-frame-to-a-size">A frame to a size</a></h2>
 <p>With nothing selected, <em>Draw &gt; Frame…</em> asks for the outline’s <strong>Width</strong> and <strong>Height</strong>
 instead of the margin, and the frame is centred on the stock: a blank for a sign, or a
@@ -239,8 +331,9 @@ plaque to write on afterwards.</p>
 <ol>
 <li>a <strong><a href="../operations/vcarve.html">V-carve</a></strong> on the text’s layer, with a V-bit;</li>
 <li>a <strong><a href="../operations/path.html">Follow path</a></strong> on the <code>border</code> layer with the same V-bit: a
-groove along each border line, as wide as the V-bit is at that depth. (A V-carve of a
-border would carve the whole area inside it.);</li>
+groove along each border line, as wide as the V-bit is at that depth. Set its <strong>Groove
+width</strong> to the frame’s, and its end depth follows. (A V-carve of a border would carve
+the whole area inside it.);</li>
 <li>a <strong><a href="../operations/profile.html">Profile</a></strong> outside the <code>frame</code> layer with an end mill, to
 cut the sign out, with tabs.</li>
 </ol>
@@ -252,18 +345,39 @@ sign.</p>
 <pre><code>chipload text add sign.chipload "SIGN" --height 30 --at 150,80 --anchor center
 chipload frame add sign.chipload --kind rounded --around-text 1 --borders 1 --corner 8 --margin 12
 chipload frame add blank.chipload --kind oval --width 300 --height 150 --borders 2
+chipload frame add sign.chipload --corners notch --around-text 1 --borders 1 --double --border-width 2
+chipload frame add plate.chipload --kind banner --width 300 --height 90 --corner 25
+chipload sign add sign.chipload "THE NÄSLUNDS" --font FreeSerif --frame rectangle --corners notch \
+    --borders 1 --double --style engraved --edge chamfer:3 --vbit 2 --end-mill 1 --thickness 18
 chipload frame kinds
+chipload frame list sign.chipload                              # the frames that follow, with their values
+chipload frame set sign.chipload 7 --margin 15 --borders 2     # change them: drawn again
+chipload frame detach sign.chipload 7                          # plain shapes from now on
 </code></pre>
-<p><code>--around</code> takes shape ids, <code>--around-text</code> text ids (<code>chipload text list</code>); without
+<p><code>sign add</code> takes the words, or instead <code>--around</code>, <code>--around-text</code> or <code>--around-image</code> to
+make the sign round what is drawn; it takes the frame’s options as <code>frame add</code> does (<code>--frame</code> for the kind), and
+<code>--style engraved|raised|inlay</code>, <code>--relief</code>, <code>--edge none|chamfer:WIDTH</code>, <code>--vbit</code>,
+<code>--end-mill</code> (project tool ids), <code>--thickness</code> and <code>--board-margin</code> (or <code>--keep-stock</code>);
+<code>--json</code> gives the new part, text, outline, borders, group and operations.
+<code>--kind</code> is one of the frames above (<code>rectangle</code>, <code>oval</code>, <code>arched</code>, <code>double-arch</code>, <code>gable</code>,
+<code>shield</code>, <code>plaque</code>, <code>banner</code>, <code>octagon</code>); <code>--corners</code> (<code>sharp</code>, <code>round</code>, <code>notch</code>, <code>chamfer</code>,
+<code>step</code>) picks a rectangle’s corners, and the older names <code>rounded</code>, <code>notched</code>, <code>chamfered</code>
+and <code>stepped</code> still work as kinds. <code>--border-corners</code>, <code>--double</code> and <code>--border-width</code> set
+the borders; <code>frame set</code> takes the same, and <code>--border-corners-off</code> to make the borders
+follow the outline again. <code>--around</code> takes shape ids, <code>--around-text</code> text ids (<code>chipload text list</code>),
+<code>--around-image</code> picture ids (<code>chipload image list</code>); without
 either, <code>--width</code> and <code>--height</code> give the outline’s size and <code>--at</code> its centre (the stock’s
 centre by default). The new shapes’ ids are printed, the outline’s first; <code>--json</code> gives
-them with the frame’s size and corner.</p>
+them with the frame’s size and corner. <code>frame set</code> and <code>frame detach</code> take the id of the
+frame’s outline or of one of its borders. Every command that changes a text or a shape draws
+the frames that follow it again before it saves, and prints a line for any frame it let go
+of.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../drawings/text.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../drawings/models.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -277,7 +391,7 @@ them with the frame’s size and corner.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../drawings/text.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../drawings/models.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

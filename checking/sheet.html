@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Setup sheet - Chipload 0.34.0 user guide</title>
+        <title>Setup sheet - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -183,7 +183,10 @@ it, <code>part-sheet.html</code>. Open it in a browser, or print it. It holds:</
 <ul>
 <li><strong>Time:</strong> the estimated cycle time.</li>
 <li><strong>Stock and zero:</strong> the stock’s size and thickness, where X0 Y0 and Z0 are, and the
-copies. With several <a href="../operations/parts.html">parts</a>, each part with its copies.</li>
+copies. With several <a href="../operations/parts.html">parts</a>, each part with its copies. Which
+parts are cut <a href="../operations/parts.html#mirrored-parts">mirrored</a>, and for an
+<a href="../operations/vcarve.html#inlays">inlay’s plug</a> how to glue it into its pocket and take its
+back off.</li>
 <li><strong>A top view:</strong> the stock, the part, each file’s or tool’s cuts, the tabs, and the X0
 Y0 mark.</li>
 <li><strong>Files and tools in order:</strong> for each file or tool change, the tool to put in, the
@@ -198,6 +201,9 @@ operations it cuts, and the time.</li>
 </ul>
 </li>
 <li><strong>Watch out:</strong> every warning and check warning.</li>
+<li><strong>Turn the board over</strong>, on a back side’s sheet (<a href="../concepts/setups.html#the-back-side-experimental">Setups</a>):
+how to turn the board and put it back in place; its picture shows the board as it lies,
+back face up.</li>
 </ul>
 <p>The sheet is written:</p>
 <ul>

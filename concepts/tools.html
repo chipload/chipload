@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Tools and tool changes - Chipload 0.34.0 user guide</title>
+        <title>Tools and tool changes - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -188,11 +188,11 @@ which is the tool number in the G-code, and:</p>
 <tr><th>Setting</th><th></th></tr>
 </thead>
 <tbody>
-<tr><td><strong>Type</strong></td><td>endmill, drill or V-bit</td></tr>
+<tr><td><strong>Type</strong></td><td>endmill, drill, V-bit or ball nose</td></tr>
 <tr><td><strong>Diameter</strong></td><td>mm</td></tr>
 <tr><td><strong>Spindle speed</strong></td><td>rpm. Required: a program can’t start the spindle without it.</td></tr>
 <tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill. New pockets go down round a helix and new follow paths ramp unless it is marked centre-cutting; when it can’t plunge, sloped tabs may be no steeper than the ramp angle.</td></tr>
-<tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter</td></tr>
+<tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter. Tapered ball noses: the taper’s included angle and the ball’s diameter at the tip; a plain ball nose has neither</td></tr>
 </tbody>
 </table>
 </div>
@@ -217,6 +217,8 @@ this.</li>
 change. Only posts that support it offer it (GRBL, whose sender must do the change).</li>
 </ul>
 <p>The command line can override it for one run: <code>chipload run part.chipload -o part.nc --tool-change program</code>. The setup sheet lists the tools in the order they’re used.</p>
+<p>A <strong>ball nose</strong> carves <a href="../drawings/models.html">3D reliefs</a> and can follow a path; the
+other operations need a flat bottom and refuse it. <code>chipload tool add "Ball 3" --type ballnose --diameter 3</code> adds a plain one, and <code>--angle 7.2 --tip 1</code> a tapered one.</p>
 
                     </main>
 

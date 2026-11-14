@@ -1,0 +1,563 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>3D models - Chipload 0.36.0 user guide</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-a2c1ad40.svg">
+        <link rel="shortcut icon" href="../favicon-b996bb97.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-5dd94fcc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/chipload/chipload" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="3d-models"><a class="header" href="#3d-models">3D models</a></h1>
+<p>A 3D model in an STL file, or a picture read as a depth map, can be carved into the board
+from the top as a <strong>relief</strong>: a
+sign with raised, rounded letters, a rosette, a coin, a landscape. The model lies on the
+board like a picture, seen from above, and is carved in three axes; nothing under an
+overhang is reached. (Design: <code>docs/specs/stl-relief.md</code>.)</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/showcase-relief.png" alt="A 3DBenchy relief simulated in 3D: the boat raised inside a rim that ramps up to the board’s surface"><span class="img-wrapper"><img src="../images/showcase-relief.png" alt="A 3DBenchy relief simulated in 3D: the boat raised inside a rim that ramps up to the board’s surface"></span></label></p>
+<p><em><a href="https://www.printables.com/model/3161-3d-benchy">3DBenchy</a> by Creative Tools (CC0), 150 mm
+wide and 10 mm deep, with a rim filled out by Fuller at 90 %, a roughing pass with a 6 mm end
+mill, a smoothing pass and a 2 mm ball nose finish.</em></p>
+<h2 id="a-relief-in-one-step"><a class="header" href="#a-relief-in-one-step">A relief in one step</a></h2>
+<p><strong>Relief…</strong> (the ribbon’s WIZARDS group, or <em>Wizards &gt; Relief…</em>) makes a whole relief, one
+question at a time, each needing only the ones before it:</p>
+<ol>
+<li><strong>Model:</strong> an STL file, or a model already in the project.</li>
+<li><strong>Turn and cut:</strong> which side faces up, quarter turns, and how much to keep from the top
+(as in <a href="#turn-and-cut">Turn and cut</a>).</li>
+<li><strong>Size and place:</strong> width and depth, centred on the board or at a point; the <strong>start
+depth</strong>, how far below the board’s surface the model’s top lies (0 by default; a
+millimetre or so on a board that isn’t planed, so its uneven top doesn’t reach the
+relief); the board’s thickness, which the start depth and the depth must stay within.</li>
+<li><strong>Round it:</strong> a <a href="#a-rim-and-a-ramp">rim</a> round the model’s outline (the default; the
+<em>Fuller</em> slider fills it out towards a rubber band round the model) or round a box,
+rounded corners if you like: a flat at the relief’s depth, then a ramp up to the
+surface; or the relief cut out through the board with tabs.</li>
+<li><strong>Tools:</strong> the ball nose that finishes it; an end mill to rough it first, ticked when the
+relief is deeper than the ball nose is wide, and <em>Smooth the steps</em> after it (a
+<a href="#smoothing-the-steps">smoothing pass</a>, ticked); for a cut-out, its end mill, by default
+the roughing one, so one tool does both.</li>
+<li><strong>Check and make:</strong> what will be made, in cutting order, with the tools and tool changes.</li>
+</ol>
+<p>From step 3 on, a picture of the board beside the questions shows the relief where it will
+lie, and the rim or cut-out round it. <strong>Make</strong> adds it all as one undo step, in a part of
+its own: the model, the relief with its rim, roughing and smoothing passes, the cut-out. A board fitted
+to the drawing grows to hold the rim. Afterwards they are ordinary shapes and operations.</p>
+<p>From the command line, the same answers in the same order:</p>
+<pre><code class="language-sh">chipload relief add sign.chipload rose.stl --keep 50% --width 120 --depth 6 \
+    --around box --margin 10 --ramp 45 --tool 2 --rough-tool 1 --smooth
+</code></pre>
+<p><code>--around</code> is <code>rim</code> (the default), <code>box</code> or <code>cut-out</code>; <code>--hull 50%</code> fills an outline rim
+out towards the convex hull; <code>--smooth</code> adds the smoothing pass. <code>--model ID</code> uses a model already in
+the project; <code>--up</code>, <code>--rotate</code>, <code>--at X,Y</code>, <code>--start-depth</code>, <code>--corner</code>, <code>--allowance</code>
+and <code>--end-mill</code> answer the rest. The tools are project tool
+numbers.</p>
+<h2 id="adding-a-model"><a class="header" href="#adding-a-model">Adding a model</a></h2>
+<p>In the window: <strong>3D model</strong> in the ribbon’s DRAW group, <strong>File &gt; Add 3D model…</strong>, <em>Add 3D
+model…</em> on the Browser’s Drawing folder, or drop an STL file on the window. <em>File &gt; Import…</em>
+and <em>File &gt; Open…</em> take an STL too, as a new project. The model starts half the board wide at the drawing’s
+origin, as deep as its own proportion gives but no deeper than half the board (then
+<em>Keep proportions</em> is off), and its properties open.</p>
+<p>From the command line:</p>
+<pre><code class="language-sh">chipload model add sign.chipload rose.stl --width 120 --depth 6 --at 20,20
+</code></pre>
+<ul>
+<li><strong>The file:</strong> binary or text STL. It is kept inside the project, as pictures are, so the
+project stays one file; a model over 20 MB says that the project gets as large.</li>
+<li><strong><code>--width</code>:</strong> its width on the board; the height follows. Without it, the model keeps its
+own size.</li>
+<li><strong><code>--depth</code>:</strong> how deep the relief goes, from the model’s top at the stock top to its
+lowest point. Reliefs are usually flatter than the model: a 14 mm tall model carved 4 mm
+deep. Without it, the depth is in proportion to the width, and follows the width when it
+changes.</li>
+<li><strong><code>--at X,Y</code>:</strong> where the lower-left corner of its footprint goes; <strong><code>--rotate</code></strong> turns
+it about its centre, any angle.</li>
+<li><strong><code>--up</code>:</strong> which of the model’s axes points up: <code>z</code> (the default), <code>y</code>, <code>x</code>, or one of
+them reversed (<code>-z</code> …). Many models are drawn with Y up.</li>
+<li><strong><code>--units inch</code>:</strong> STL files carry no unit. The size on import is read in mm, or in inches
+with this; since the model is placed by its width, it matters only for that first size.</li>
+<li><strong><code>--keep</code>:</strong> how much of the model to keep, from its top: <code>0.5</code> or <code>50%</code> keeps the top
+half and cuts away the rest, its back (see below). By default all of it.</li>
+<li><strong><code>--layer</code>:</strong> the layer for its outline; by default the file’s name.</li>
+</ul>
+<p>The report says how many triangles it has, any without an area that were left out, and
+how many open edges its surface has: a gap in a model lets the tool fall through to the
+relief’s floor.</p>
+<h2 id="a-relief-from-a-picture"><a class="header" href="#a-relief-from-a-picture">A relief from a picture</a></h2>
+<p>A grey picture where brightness is height, a <strong>depth map</strong>, is a 3D model too: the usual
+way CNC reliefs are drawn and shared. <strong>Add 3D model…</strong>, the Relief wizard and <code>model add</code>
+take a PNG, JPEG or BMP as well as an STL. White is the top and black the bottom; the
+picture is sized by its width, and its depth is yours (4 mm to start with).</p>
+<pre><code class="language-sh">chipload model add sign.chipload portrait.png --width 120 --depth 4 --background 10%
+chipload model set sign.chipload 1 --smoothing 0.5mm --gamma 1.5
+chipload relief add sign.chipload portrait.png --width 120 --depth 4 --tool 2 --rough-tool 1 --smooth
+</code></pre>
+<p>Its properties, and step 2 of the wizard, have four settings in place of <em>Up</em>:</p>
+<ul>
+<li><strong>White is high:</strong> untick for a depth map that has it the other way round.</li>
+<li><strong>Smoothing:</strong> a blur over the heights, its radius on the board (0.2 mm to start with):
+it takes pixel noise and a photo’s grain away; 0 keeps the picture as it is.</li>
+<li><strong>Background:</strong> the darkest greys up to this share are not the model. The outline goes
+round the rest, and the rim round that; at 0 % the whole picture is the model.</li>
+<li><strong>Gamma:</strong> above 1 flatter low ground and steeper tops, below 1 the other way.</li>
+</ul>
+<p>A large picture is averaged onto at most 800 points along its longer side (0.15 mm apart on
+a 120 mm relief), finer than a small ball nose can cut. Everything else is as for an STL:
+place, turn, keep from the top, the Relief operation with its rim, roughing and smoothing.</p>
+<h3 id="inflated-shapes"><a class="header" href="#inflated-shapes">Inflated shapes</a></h3>
+<p>A black-and-white picture (a logo, lettering, a silhouette) can be <strong>inflated</strong> instead:
+each black shape rises from its edge towards its middle, as if blown up, and the white
+round it is not the model. Set <em>Kind</em> to <em>Inflated</em> in the picture’s settings, or:</p>
+<pre><code class="language-sh">chipload model add sign.chipload logo.png --inflate --width 120 --depth 4
+chipload model set sign.chipload 1 --profile straight --reach 3mm
+chipload relief add sign.chipload name.png --inflate --reach 2mm --width 200 --depth 5 --tool 2
+</code></pre>
+<ul>
+<li><strong>Threshold:</strong> greys darker than this are the shapes; <em>Automatic</em> picks it from the
+picture. <strong>Invert:</strong> white is the shape.</li>
+<li><strong>Profile:</strong> <em>Round</em> rises steeply at the edge and is flat on top, a cushion; <em>Straight</em>
+rises evenly, to a ridge along each stroke, as if chiselled.</li>
+<li><strong>Reach:</strong> how far in from the edge a shape keeps rising. <em>Automatic</em> takes the widest
+shape’s half-width, so nothing levels off and narrow shapes stay lower than wide ones.
+Set it, and everything wider levels off at the full depth: for lettering, about half a
+stroke’s width gives letters all of one height.</li>
+<li><strong>Smoothing</strong> takes the pixels’ steps off the edges.</li>
+</ul>
+<p>A letter’s hole is an edge too, so an “O” rises from both sides of its ring.</p>
+<p><strong>From an iPhone:</strong> Portrait photos carry a depth map, but inside the HEIC photo, which
+Chipload doesn’t read (it says so). Save the depth map as a PNG first, with an app or a
+Shortcut that exports it; it is small (about 768 × 576) and soft at the edges, so a
+little smoothing and a background level help. For an object you can walk round, a
+3D-scanning app’s STL gives far more.</p>
+<h2 id="turn-and-cut"><a class="header" href="#turn-and-cut">Turn and cut</a></h2>
+<p>When a model is added, <strong>Turn and cut</strong> opens (and later <em>Turn and cut…</em> in its
+properties): the model in 3D on the left, the relief it gives seen from above on the right,
+both redrawn as you change them.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/turn-cut.png" alt="Turn and cut: the model in 3D with its cut level, and the relief it gives"><span class="img-wrapper"><img src="../images/turn-cut.png" alt="Turn and cut: the model in 3D with its cut level, and the relief it gives"></span></label></p>
+<ul>
+<li><strong>Drag the model</strong> to look at it from any side.</li>
+<li><strong>Face up:</strong> which of the model’s sides faces up: Z, Y, X or one of them reversed.</li>
+<li><strong>Turn on the board:</strong> a quarter turn either way.</li>
+<li><strong>Keep from top:</strong> the cut level (below). The part kept is coloured, the part cut away
+grey, and the plate is the level.</li>
+<li><strong>Width</strong> and <strong>Depth</strong>, as in the properties; the size it gives is under the relief.</li>
+</ul>
+<p><strong>OK</strong> changes the model as one undo step and draws its outline again; <strong>Cancel</strong> leaves it
+as it was. The views are drawn from a light copy of the model (at most 50 000 triangles),
+so a large file turns smoothly; the outline, the toolpath and the G-code always come from
+the full model.</p>
+<h2 id="keeping-the-front-the-cut-level"><a class="header" href="#keeping-the-front-the-cut-level">Keeping the front: the cut level</a></h2>
+<p>A model made to be seen from every side (a figure, a head, an animal) would be carved from
+its top all the way down to its lowest point: most of the depth goes into its far side,
+which the tool can’t reach anyway, and the side you see comes out flat. <strong>Keep from top</strong>
+in its properties (<code>model set sign.chipload 1 --keep 50%</code>) cuts it level at that share of
+its height and keeps the part above: the front half of a head keeps its whole outline,
+and its depth and width are now that half’s. So set the cut level first, then the depth
+the board allows; a depth you typed stays when the cut level changes. Where the cut goes
+through the model, the relief is cut to its floor.</p>
+<h2 id="its-outline"><a class="header" href="#its-outline">Its outline</a></h2>
+<p>The model’s footprint seen from above becomes a closed shape on its layer, drawn again
+whenever the model is moved or changed. Select it for a profile to cut the relief out of
+the board, or for a pocket that clears round it: click the outline, Ctrl+click a shape round
+it, then <strong>Pocket</strong>, and the outline stays an island in the pocket. The outline keeps its
+shape ids when it is drawn again, so the pocket still finds it after the model moves.</p>
+<h2 id="changing-and-removing"><a class="header" href="#changing-and-removing">Changing and removing</a></h2>
+<p>In the window the model is a row of the Browser’s Drawing folder; a click selects its
+outline and shows its <strong>properties</strong>: the file, its size on the board, <em>Position</em> (the
+lower-left corner before the turn), <em>Rotation</em>, <em>Width</em>, <em>Depth</em> with <em>Keep proportions</em>,
+<em>Up</em>, <em>Keep from top</em> and <em>Layer</em>. Each change draws the outline again, as one undo step. Selected on the
+canvas it has a picture’s <strong>handles</strong>: drag the middle to move it, the round handle to
+turn it, a corner to size it. In the <strong>3D view</strong> it shows faintly as its surface, until a
+simulation is shown. <em>Remove</em> (in its properties or on its row) takes the model and its
+outline; a relief of it stays, with a problem, until it carves another model.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/model.png" alt="A 3D model in the 3D view, its properties open"><span class="img-wrapper"><img src="../images/model.png" alt="A 3D model in the 3D view, its properties open"></span></label></p>
+<pre><code class="language-sh">chipload model set sign.chipload 1 --rotate 15 --depth 4
+chipload model set sign.chipload 1 --proportional     # the depth follows the width again
+chipload model list sign.chipload                     # file, up axis, place and size
+chipload model remove sign.chipload 1                 # the model and its outline
+</code></pre>
+<p><code>chipload set sign.chipload drawing.models.0.width=100</code> works as well, and draws the outline
+again.</p>
+<h2 id="carving-it-the-relief-operation"><a class="header" href="#carving-it-the-relief-operation">Carving it: the Relief operation</a></h2>
+<p>In the window: <strong>New relief</strong> in the model’s properties or on its row, <em>Relief</em> in the
+ribbon’s OPERATION group (the small button under <em>Surface</em>), or <em>Operation &gt; New Relief</em>;
+the last two carve the selected model, or the first. A relief is made in the
+active part, with a ball nose when the project has one.</p>
+<p>From the command line:</p>
+<pre><code class="language-sh">chipload tool add "Ball 3" --type ballnose --diameter 3     # then `tool use` it in the project
+chipload op add sign.chipload relief --model 1             # a relief of model 1, within its outline
+chipload set sign.chipload operations.0.stepover=0.1 operations.0.angle=0.785
+</code></pre>
+<p>A <strong>Relief</strong> carves the model in parallel lines across its area, each point as low as the
+tool can go without cutting into the model: the tool is lowered onto the model’s triangles
+until it first touches one. A ball nose gives the smoothest finish; a tapered ball nose
+reaches finer detail; an end mill or a V-bit works too, with their own marks.</p>
+<ul>
+<li><strong>Area:</strong> with <code>--model</code>, the model’s outline, with its <a href="#a-rim-and-a-ramp">rim</a> round it.
+Other closed shapes can be selected for the area instead: a drawn rectangle, say. Without
+a rim the tool’s centre stays inside the area, which leaves a groove the tool’s width
+round the model and the board beyond untouched.</li>
+<li><strong><code>stepover</code>:</strong> the distance between lines as a share of the tool; smaller is smoother and
+slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
+0.02 mm between its lines on flat ground, which wood doesn’t show: 20 % for a 2 mm ball,
+16 % for 1/8“, 12 % for 6 mm. The relief’s form shows the ridges for the stepover you set.
+Finer only takes longer: a 2 mm ball at 10 % leaves ridges of 0.005 mm and takes about
+three times as long. Other tools start at 10 %.</li>
+<li><strong><code>angle</code>:</strong> the lines’ direction in radians from X (0 by default). Lines at an angle to the
+model’s long edges leave fewer marks.</li>
+<li><strong><code>zigzag</code>:</strong> back and forth (true, the default), or every line the same way, lifting
+between them.</li>
+<li><strong><code>start_depth</code>:</strong> how far below the stock top the model’s top lies: a little on an
+unplaned board, so its uneven top doesn’t reach the relief. Its lowest point is the start
+depth plus the model’s depth, which the checker holds within the stock. The roughing pass
+still starts at the stock top, and a rim’s ramp still climbs to it.</li>
+<li><strong>Depth:</strong> the model’s depth. Changed in the relief’s properties, it is the model that
+changes, and every relief of it; a depth typed there turns the model’s <em>Keep proportions</em>
+off.</li>
+</ul>
+<p>In the project file a relief reads:</p>
+<pre><code class="language-json">{ "type": "relief", "name": "Relief 1", "enabled": true, "part": 1, "material": null,
+  "model": 1, "select": { "model": 1, "shapes": null, "layer": null }, "tool": 2,
+  "start_depth": 0.0, "end_depth": 5.0, "stepover": 0.1, "angle": 0.0, "zigzag": true,
+  "feed": 1500.0, "plunge_feed": 500.0 }
+</code></pre>
+<p><code>model</code> names the model it carves; <code>end_depth</code> is made again from the model’s depth
+whenever the project is read or changed.</p>
+<h2 id="a-rim-and-a-ramp"><a class="header" href="#a-rim-and-a-ramp">A rim and a ramp</a></h2>
+<p>Round the model a relief cuts a <strong>rim</strong>: a flat at its full depth, then a <strong>ramp</strong> up to the
+board’s surface, so the model sits in a shallow dish instead of a trench:</p>
+<pre><code class="language-text"> surface ─────╮                                   ╭───── surface
+               ╲ ramp                       ramp ╱
+                ╲        ╭── model ──╮          ╱
+                 ╲______╱             ╲________╱
+                   flat                  flat
+</code></pre>
+<p>Every line starts at the surface and runs down the ramp, so the tool never plunges to full
+depth at the area’s edge, and its shank stays clear of the outer wall. The roughing pass
+clears the rim with the rest.</p>
+<ul>
+<li><strong>Round:</strong> the model’s <em>outline</em> (the flat follows it, round at the corners) or a <em>box</em>,
+the rectangle round the model, with rounded corners if you like.</li>
+<li><strong>Flat width:</strong> how far the flat reaches from the outline or the box. 0 starts the ramp
+right at it.</li>
+<li><strong>Fuller</strong> (outline only): how far the outline is filled out before the flat goes round
+it. At 0 % the rim follows every notch of the model’s outline; higher fills narrow
+notches first, then wider ones, bridging them with round edges, and joins pieces that
+lie close together; at 100 % it goes round the model like a rubber band, its convex
+hull. The ramp keeps its angle all the way round.</li>
+<li><strong>Ramp:</strong> its slope from horizontal, 10° to 90°. At 45° it reaches out as far as the
+relief is deep; 90° is a straight wall.</li>
+</ul>
+<p>A new relief has a rim 5 mm round its outline with a 45° ramp. <em>Relief…</em> and <code>relief add</code>
+make the flat wider when there is a roughing pass: its end mill’s width and the allowance on
+both sides, rounded up to a whole mm, so the end mill reaches the floor all round the model.
+When a flat is narrower than that, the plan notes it. In the window it is the
+relief’s <strong>Rim</strong> section; untick it for none. While the relief or one of its passes is open,
+the canvas shows the rim as dashed lines in the relief’s colour: the outline as <em>Fuller</em>
+fills it out (bolder), the flat’s outer edge and where the ramp reaches the top. They
+follow the settings as you change them, without generating the toolpath. From the command
+line:</p>
+<pre><code class="language-sh">chipload set sign.chipload 'operations.0.rim={"shape":"box","width":8,"ramp":0.785,"corner_radius":4}'
+chipload set sign.chipload operations.0.rim.width=3
+chipload set sign.chipload operations.0.rim.hull=0.5   # fuller: halfway to the hull
+chipload set sign.chipload operations.0.rim=null      # no rim
+</code></pre>
+<p><code>ramp</code> is in radians (0.785 is 45°). Holes in the outline are cut to the depth. A board
+fitted to the drawing grows to hold the rim; on a board of fixed size, the plan notes when
+the ramp reaches past its edge, where it is cut off.</p>
+<p>Along each line the tool stays within 0.01 mm of where the model needs it: more points are
+added where the surface bends. When the program is made, the path is checked against the
+model once more by a simpler test of its own; if anything would cut into the model, nothing
+is made and the report says where.</p>
+<h2 id="roughing-first"><a class="header" href="#roughing-first">Roughing first</a></h2>
+<p>A finishing ball nose is small, and a relief can be deeper than it should cut in one go
+(the plan and the relief’s form warn when the relief is deeper than the tool is wide). A
+rim’s ramp spares the tool the plunges, but on the way down each line still shaves a strip
+as tall as the depth there. A <strong>roughing pass</strong> takes
+most of the material first with a larger tool. In the window: <em>Add roughing pass ▸</em> on the
+relief’s row in the Browser (right-click), with your project’s and library’s end mills and
+plain ball noses; the pass shows under the relief, with its own properties. <em>Remove</em> on its
+row, or Delete with it selected, takes it away. From the command line:</p>
+<pre><code class="language-sh">chipload op add-roughing sign.chipload --op 1 --tool 1 --allowance 0.5mm
+chipload set sign.chipload operations.0.roughing.step_down=2.5
+chipload op remove-roughing sign.chipload --op 1
+</code></pre>
+<ul>
+<li><strong>The tool:</strong> an end mill or a plain ball nose (not a V-bit or a tapered ball nose). Its
+feeds, step down and stepover come from the tool library’s cutting data, or else from the
+relief, half the tool’s diameter and 0.4.</li>
+<li><strong>Levels:</strong> it goes down one <code>step_down</code> at a time from the stock top to the relief’s
+lowest point, along the relief’s lines (<code>stepover</code> apart, at the relief’s angle), and
+cuts only where material is left above each level.</li>
+<li><strong><code>allowance</code>:</strong> what it leaves on the model for the finish, 0.5 mm by default, all
+round, not only above: on steep sides too.</li>
+<li><strong>Never wider than the finish:</strong> its area is the relief’s, shrunk so its edge stays
+where the finishing tool reaches. The finish takes the narrow ring left inside the
+outline itself.</li>
+</ul>
+<p>It is cut just before the relief, as pass <em>Operation 1.1 (Relief 1, roughing)</em>, with its
+own tool; the program is checked to keep the allowance off the model. In the project file
+it is the relief’s <code>roughing</code>:</p>
+<pre><code class="language-json">"roughing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "step_down": 3.0,
+  "stepover": 0.4, "allowance": 0.5, "enabled": true }
+</code></pre>
+<h2 id="smoothing-the-steps"><a class="header" href="#smoothing-the-steps">Smoothing the steps</a></h2>
+<p>Along its lines the roughing end mill follows the surface, but between them, on ground
+that rises across the lines, its flat bottom leaves a stair: steps one stepover wide and
+as tall as the slope makes them, 2.4 mm on a 45° ramp at 40 % of a 6 mm end mill. Smaller
+step-downs don’t change them. A small ball nose would take each step in one bite.</p>
+<p>A <strong>smoothing pass</strong> takes them off: after the roughing, the roughing end mill follows the
+surface once more, no levels, with its lines across the roughing’s, and leaves the same
+allowance. Ground that rises along either set of lines comes out clean, so a box rim’s four
+ramps do; on curved ground the steps shrink to the smoothing’s stepover times the slope. A
+larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
+change.</p>
+<p>In the window: <em>Add smoothing pass</em> on the relief’s or the roughing pass’s row in the
+Browser (right-click), or in the roughing pass’s properties; on a relief without a roughing
+pass it is greyed out, its hover saying to add one first. The pass shows under the relief
+after the roughing, with its own properties (tool, stepover, the lines’ angle, allowance,
+feeds); Delete with it selected removes it. From the command line:</p>
+<pre><code class="language-sh">chipload op add-smoothing sign.chipload --op 1                 # the roughing tool
+chipload op add-smoothing sign.chipload --op 1 --tool 3 --allowance 0.3mm
+chipload op remove-smoothing sign.chipload --op 1
+</code></pre>
+<ul>
+<li><strong>Defaults:</strong> the roughing pass’s tool, feeds and allowance; lines a quarter turn from
+the relief’s; stepover 15 % with an end mill, or with a ball nose the widest that leaves
+0.1 mm ridges on flat ground.</li>
+<li><strong>Only after roughing:</strong> it follows the surface in one go, so it needs the roughing pass,
+ticked, before it; removing the roughing pass removes it too.</li>
+</ul>
+<p>It is cut between the roughing and the relief, as <em>Operation 1.2 (Relief 1, smoothing)</em>;
+the program is checked to keep the allowance off the model. In the project file it is the
+relief’s <code>smoothing</code>:</p>
+<pre><code class="language-json">"smoothing": { "tool": 1, "feed": 1500.0, "plunge_feed": 500.0, "stepover": 0.15,
+  "angle": 1.5708, "allowance": 0.5, "enabled": true }
+</code></pre>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../drawings/text.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../drawings/signs.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../drawings/text.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../drawings/signs.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

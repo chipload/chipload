@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Setups - Chipload 0.34.0 user guide</title>
+        <title>Setups - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -233,6 +233,121 @@ chipload run box.chipload -o box.nc --setup 2
 </code></pre>
 <p>In paths, a setup’s board is <code>setups.N.stock…</code> and its zero <code>setups.N.work_zero</code>, counting
 from 0. The older <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active setup’s.</p>
+<h2 id="the-back-side-experimental"><a class="header" href="#the-back-side-experimental">The back side (experimental)</a></h2>
+<p>A setup can be the <strong>back of another</strong>: the same board turned over, for parts cut on both
+faces. It shares its front’s board and work zero: change the thickness of the front, and the
+back follows. A board that fits fits the shapes of both sides.</p>
+<pre><code class="language-sh">chipload setup add sign.chipload --back-of 1 --turn left-right   # "Setup 1 back", with a part
+chipload setup add sign.chipload --back-of 1 --pins --zero       # with its dowel holes, 8 mm pins
+chipload setup set sign.chipload 2 --turn top-bottom --register corner
+chipload setup set sign.chipload 2 --own-board    # a board of its own again, as it is now
+</code></pre>
+<p><code>--turn</code> is how the board is turned over: <strong>left-right</strong> about its vertical centre line, or
+<strong>top-bottom</strong> about its horizontal one. <code>--register</code> is how it is put back in place:
+<strong>pins</strong> (dowel pins on the turn axis, the default) or <strong>corner</strong> (pushed into the same
+corner of a fence). A board has one back, and a back can’t be turned over again. Removing
+the front gives its back a board of its own.</p>
+<p>You draw the back as seen <strong>from the front</strong>, looking through the board: the back’s
+shapes lie where they are on the board, and the view, the toolpath and the markers stay the
+front’s. The back’s program is mirrored when it is made, about the board’s centre line, so
+it cuts those shapes on the turned board. Climb stays climb and inside stays inside on the
+back face.</p>
+<p>The back’s board is as thick as the front leaves it: a surfacing pass on the front makes the
+back that much thinner, and its cuts through the stock follow.</p>
+<p>Its work zero is the front’s, on the board as it lies after turning: a stock corner is the
+corner of the turned board in that place, so push the board against the same stops.</p>
+<h3 id="dowel-holes"><a class="header" href="#dowel-holes">Dowel holes</a></h3>
+<p>Pins put the turned board back exactly where it was. <code>setup dowels</code> draws two circles on the
+layer <em>dowels</em>, on the line the board turns about, one at each end just beyond where both
+sides cut (an outside profile reaches a tool’s width past its outline), and adds a holes operation <strong>Dowel holes</strong> first in the front (after a
+surface pass). It cuts them through the board and on into the spoilboard for the pins:</p>
+<pre><code class="language-sh">chipload setup dowels sign.chipload --setup 2 --zero        # 8 mm pins, 8 mm deep
+chipload setup dowels sign.chipload --setup 2 --diameter 6 --depth 10
+chipload setup dowels sign.chipload --setup 2 --remove      # the operation and its circles
+chipload setup dowels sign.chipload --setup 2 --place       # place them again, where they go now
+</code></pre>
+<p>The holes stay where they are made: once the front is cut they are drilled, so nothing
+moves them by itself. When the board, its margin or the cuts change before then, <strong>Place
+again</strong> in the back’s form (<code>--place</code>) moves the two circles to where they would go now,
+clear of both sides’ cuts. The operation stays as it is, and a work zero at the first pin
+moves with it. When <em>Generate</em> is refused because the back cuts into a pin, the report
+offers the same: <strong>Place the dowel holes again</strong>.</p>
+<p>A back put back by pins whose front has no dowel holes (none, or all switched off) is
+warned about, but never stopped: ⚠ beside it in the Browser, <em>None yet</em> in its form and in
+its front’s, a line in the report after generating, and <em>no dowel holes (warning)</em> in
+<code>setup list</code>.</p>
+<p><code>--zero</code> puts the front’s work zero at the first pin’s centre (the bottom one, or the left
+one when the board turns top to bottom): a pin lands on itself when the board is turned, so
+front and back share it exactly. Pins of 8 mm are the default because a 6 mm end mill bores
+them; with a drill of the pins’ size in the project, it drills them.</p>
+<p>The holes may go deeper than <em>Max depth below stock</em>, but only they, and only inside their
+circles: the checker knows them from the project and refuses any other cut that deep. A
+dowel hole moved off the turn axis is refused, as it would miss its pin on the turned board.</p>
+<p>A board fitted round the drawing grows round the holes, its margin beyond each pin, along
+the turn axis only: saw it to the size the setup sheet gives. On a board of its own size
+the holes are centred between the cuts and the board’s edge; when there is less room than
+a hole and a millimetre each side, they are made anyway, with a warning, and where to put
+them is yours to decide: move them along the axis by hand, or make the board larger. The
+pins stand in the board while its back is cut, so the checker refuses a back side’s program that comes
+within a pin, and a front cut made after the holes that cuts into one is noted, since the
+pin would no longer sit firmly. Move the holes along the axis, or place them again.</p>
+<p><strong>Surfacing the back</strong> goes over the pins, edge to edge. That is allowed: a surface pass
+on the back may pass over them as deep as it cuts, and no other cut may. Its operation gets
+a warning, and the back’s setup sheet says to tap the pins down at least that far below the
+back face before you start (<em>Tap the pins down at least 0.5 mm below the back face</em>).</p>
+<h3 id="the-setup-sheets"><a class="header" href="#the-setup-sheets">The setup sheets</a></h3>
+<p>The front’s sheet says that a back follows, so the board stays where it is until the front is
+done. The back’s sheet starts with <strong>Turn the board over</strong>: which way to turn it, the pins to
+put in (or the fence corner to push it into, with the size it must have), and its picture
+shows the board as it lies on the machine, back face up.</p>
+<p>A text carved on the back gets a note: it reads right from the front, where you drew it, so
+on the back face it reads mirrored. To have it read right there, explode it (<code>text explode</code>) and mirror its shapes (<code>shape mirror</code>).</p>
+<h3 id="in-the-window-1"><a class="header" href="#in-the-window-1">In the window</a></h3>
+<p><strong>Two-sided</strong> in the ribbon’s WIZARDS group (<em>Wizards &gt; Two-sided…</em>) makes the back side
+of the active setup in one dialog. So do <strong>Add the back side…</strong> on a setup’s right-click,
+and <em>Add the back side</em> and <em>Add dowel holes</em> in a front’s form. It asks:</p>
+<ul>
+<li><strong>Front:</strong> the setup cut first;</li>
+<li><strong>Turn over:</strong> <em>Left to right</em> or <em>Top to bottom</em>;</li>
+<li><strong>Put back by:</strong> <em>Dowel pins</em> or <em>A fence corner</em>;</li>
+<li>with pins, <strong>Pin diameter</strong> (8 mm), <strong>Into the spoilboard</strong> (8 mm), <strong>Cut with</strong> (a drill
+of the pins’ size, else the largest end mill that bores them, or any tool of the project
+or your library, a library tool copied in when you click <em>Make</em>) and <strong>Work zero: At the
+first pin</strong> (on).</li>
+</ul>
+<p>A picture draws the board, the area both sides cut, the turn axis and the pins. Under it,
+for a board fitted round the drawing, the dialog says how much longer the board gets to
+hold the pins; for a board of its own size with less room than they need, it warns, and
+<em>Make</em> still makes them. <strong>Make the back side</strong>
+adds the back setup with its part and the dowel holes, as one undo step, and opens the
+back’s form. Opened on a setup that has a back, it <strong>changes</strong> that back instead: its turn,
+how it is put back, and its dowel holes, made again.</p>
+<p>The back is a new setup right after its front, “… back”, with a part of its own, marked ⟲
+in the Browser. Its form has:</p>
+<ul>
+<li><strong>Board:</strong> <em>Its own board</em>, or <em>Back of …</em> any setup that has no back yet;</li>
+<li><strong>Turn over:</strong> <em>Left to right</em> or <em>Top to bottom</em>;</li>
+<li><strong>Put back by:</strong> <em>Dowel pins</em> or <em>A fence corner</em>;</li>
+<li><strong>Dowel holes:</strong> with pins, <strong>Add dowel holes</strong> (it opens <em>Two-sided…</em>), or the
+operation that cuts them as a link, with <strong>Place again</strong> and <strong>Remove</strong> beside it (the
+operation and its two circles, one undo step).</li>
+</ul>
+<p>The front’s form has a <strong>Back side</strong> row: <em>None</em> with <strong>Add the back side</strong>, or the back as
+a link, with its dowel holes.</p>
+<p>While a two-sided board is shown, the canvas draws its <strong>turn axis</strong>: a long dashed line
+across the board, marked <em>⟲ Turn axis</em>, on the line the board turns about, where the dowel
+holes go. <em>View &gt; Show turn axis</em> hides it.</p>
+<p>A back’s <strong>Stock</strong> and <strong>Work zero</strong> are its front’s: their forms say so, with a button to
+open the front’s, and how thick the board is after the front’s surfacing. On the command
+line, <code>chipload set</code> refuses a back’s <code>stock</code> or <code>work_zero</code> and names the front’s path to
+set instead. You pick and edit
+the back’s shapes in the same view as the front’s, where you drew them; only its G-code and
+its setup sheet are turned over.</p>
+<p>Simulating a back setup shows the whole part: its front cut first, then the back from
+below (<a href="../checking/simulation.html">Simulation</a>).</p>
+<p>In Simulate, <strong>Turn over</strong> on the navigation bar shows the board back face up, as it lies
+for the back.</p>
+<p>This is an experiment (docs/specs/two-sided.md): try it, and say what should change.</p>
 
                     </main>
 

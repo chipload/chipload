@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.34.0 user guide</title>
+        <title>The window - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9a5ad1b5.js"></script>
+        <script src="toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -181,7 +181,8 @@
 <h2 id="the-header"><a class="header" href="#the-header">The header</a></h2>
 <p>At the top, a slim <strong>top bar</strong>:</p>
 <ul>
-<li><strong>Left:</strong> Open, Save, Undo and Redo.</li>
+<li><strong>Left:</strong> Open, Save, Undo and Redo, then the <strong>menus</strong>: <em>File</em>, <em>Edit</em>, <em>View</em>, <em>Draw</em>,
+<em>Modify</em>, <em>Operation</em>, <em>Wizards</em>, <em>Library</em> and <em>Help</em>.</li>
 <li><strong>Middle:</strong> the project’s name on a tab. A dot on it means unsaved changes.
 Closing, opening or starting a project with unsaved changes asks first, in the middle of
 the window: <strong>Save</strong> (then go on), <strong>Don’t save</strong> or <strong>Cancel</strong>.</li>
@@ -190,31 +191,36 @@ the window: <strong>Save</strong> (then go on), <strong>Don’t save</strong> or
 seconds and says so in the report. <strong>Ctrl+Z</strong> goes back to what you had. If you have
 unsaved changes, it asks first: <strong>Load it</strong> (your changes stay one Ctrl+Z away) or <strong>Keep
 mine</strong> (your next Save overwrites the file).</li>
-<li><strong>Right:</strong> the <strong>colour theme</strong> (a click goes System → Light → Dark), <strong>? Help</strong> (user
-guide, keyboard shortcuts, about) and the version.</li>
+<li><strong>Right:</strong> the <strong>colour theme</strong> (a click goes System → Light → Dark) and the version.</li>
 </ul>
 <p>Under it, the <strong>ribbon</strong> groups the buttons:</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Group</th><th>Buttons</th><th>Its caption’s menu also has</th></tr>
+<tr><th>Group</th><th>Buttons</th><th>Its menu also has</th></tr>
 </thead>
 <tbody>
-<tr><td>FILE</td><td>New, Open, Import (a DXF as a new project), Save</td><td>open recent, save as, update drawing, export, the <em>…from path</em> items, undo, redo, quit</td></tr>
-<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon: hover for the name and key) and Frame (<a href="drawings/signs.html">a frame for a sign</a>), Text, Image, DXF/SVG (add a DXF or SVG)</td><td>Frame… (<a href="drawings/signs.html">a frame for a sign</a>); copy, paste, mirror and delete drawn shapes; copy as selector</td></tr>
+<tr><td>FILE</td><td>New, Open, Import (a DXF, SVG or STL as a new project), Save</td><td>open recent, add a picture, a DXF/SVG or a <a href="drawings/models.html">3D model</a>, save as, update drawing, export, the <em>…from path</em> items, quit</td></tr>
+<tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a <a href="drawings/models.html">relief</a>)</td><td>Frame… (<a href="drawings/signs.html">a frame for a sign</a>)</td></tr>
 <tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="drawings/shapes.html#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your <a href="library/styles.html">styles</a>, for the selected shapes)</td><td><em>Apply style ▸</em>, Generate</td></tr>
-<tr><td>LIBRARY</td><td>Tools, Machines: open them under <em>This computer</em> in the Browser</td><td>the same</td></tr>
-<tr><td>VIEW</td><td>Measure</td><td>fit, top and 3D view, Z scale, what is shown, legend, the panels (open, hide, reset), update automatically, units, colour theme</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected <a href="drawings/models.html">3D model</a>, or the first) and Style (one of your <a href="library/styles.html">styles</a>, for the selected shapes)</td><td>New Relief, <em>Apply style ▸</em>, Generate</td></tr>
+<tr><td>WIZARDS</td><td>Sign: <a href="drawings/signs.html#a-sign-in-one-step">a whole sign in one step</a>, its drawing and its operations; Two-sided: <a href="concepts/setups.html#in-the-window">a back side with its dowel pins</a>; Inlay…: <a href="operations/vcarve.html">a V-carve inlay</a> of the selected shapes; Relief: <a href="drawings/models.html#a-relief-in-one-step">a whole relief in one step</a></td><td>New sign…, Two-sided…, New inlay…, Relief…</td></tr>
+<tr><td>LIBRARY</td><td>Library: opens <em>This computer</em> in the Browser, with your tools and machines</td><td>Tool library, Machines</td></tr>
 </tbody>
 </table>
 </div>
+<p>The <em>View</em> menu has fit, top and 3D view, Z scale, reverse left-right orbit, what is shown,
+the legend, the panels (open, hide, reset) and update automatically; <strong>Measure</strong> is on the
+canvas’s navigation bar.</p>
 <p><strong>Generate</strong> (F5) and <strong>Export</strong> sit at the right end; Generate is greyed out until the
 project has an operation. When the buttons with their names
 don’t fit, in a longer language or a narrow window, the large buttons show their icons
 alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
-<p>Each group’s caption (<strong>FILE ▾</strong> …) opens its whole menu. This guide writes those menus as
-<em>File &gt; …</em>, <em>Draw &gt; …</em> and <em>View &gt; …</em>. <em>Help &gt; …</em> is the question mark in the top bar.</p>
+<p>Each group has the menu of its name in the top bar. Two menus have no group: <strong>Edit</strong>
+(undo, redo; copy, paste, mirror, join, delete and group the selected shapes, copy as
+selector; <strong>Preferences…</strong>, which opens <em>This computer &gt; Preferences</em> in the Browser:
+units, language, colour theme, the setup sheet) and <strong>Help</strong> (the user guide, keyboard
+shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.</p>
 <p>The <strong>status bar</strong> at the bottom gives hints on the left. On the right it shows the
 cursor’s position, the number of copies, the cycle time once generated, the
 post-processor and the units.</p>
@@ -271,12 +277,17 @@ or a picture shows its settings on the right, in <a href="#properties">Propertie
 <li><strong>A picture:</strong> <em>Trace settings…</em> and <em>Remove</em>.</li>
 <li><strong>An operation:</strong> <em>Move up</em> and <em>Move down</em> (also Alt+↑ and Alt+↓), <em>Duplicate</em>,
 <em>Save as style…</em> (a <a href="library/styles.html">style</a>), for a pocket <em>Add rest pass ▸</em> (a
-<a href="operations/rest.html">rest pass</a> shows under it), and <em>Delete</em>.</li>
+<a href="operations/rest.html">rest pass</a> shows under it), for a relief <em>Add roughing pass ▸</em>
+(<a href="drawings/models.html#roughing-first">roughing</a>) and <em>Add smoothing pass</em>
+(<a href="drawings/models.html#smoothing-the-steps">smoothing</a>, greyed out until it has a roughing
+pass), and <em>Delete</em>.</li>
 <li><strong>A style:</strong> <em>Apply to the selection</em> and <em>Delete</em>.</li>
-<li><strong>A rest pass:</strong> <em>Remove</em>.</li>
+<li><strong>A rest pass, floor pass, roughing or smoothing pass:</strong> <em>Remove</em> (or Delete with it
+selected); a roughing pass also <em>Add smoothing pass</em>.</li>
 <li><strong>A project tool:</strong> <em>Delete</em>, greyed while an operation or a rest or floor pass cuts
 with it (its hover says which).</li>
-<li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em> and <em>Import image…</em>.</li>
+<li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em>, <em>Import image…</em> and <em>Add 3D model…</em>.</li>
+<li><strong>A 3D model:</strong> <em>Select</em>, <em>Hide</em> or <em>Show</em>, <em>New relief</em>, <em>Properties</em> and <em>Remove</em>.</li>
 <li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
 down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
@@ -354,7 +365,9 @@ as you left them there. Simulate starts as Edit is, the first time.</li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
 <ul>
 <li>the mode: <strong>Edit | Simulate</strong> (F6 switches);</li>
-<li>how you look: <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>;</li>
+<li>how you look: <strong>Measure</strong> (M), <strong>Fit</strong> (F), <strong>Top</strong> (T) and <strong>3D</strong>. When the canvas changes size (the
+window, or a panel opening or folding), a fitted view is fitted again, and a view you
+zoomed or moved keeps showing the same area;</li>
 <li>what is shown: <strong>Toolpath</strong>, <strong>Drawing</strong> (in Simulate; Edit always shows the drawing),
 <strong>Images</strong> and <strong>Grid</strong> (G);</li>
 <li>with two parts or more, <strong>All parts</strong>: the toolpath and simulation of every part, not
@@ -380,7 +393,8 @@ selects with a box: from left to right it takes what lies wholly inside, from ri
 it touches; Shift adds to the selection, Ctrl adds or takes out. A left drag on a drawn
 shape <a href="drawings/shapes.html#editing">moves it</a>. To pan, drag with the right or middle
 button, or hold Space and drag (the way on a touchpad; the status bar’s hint starts with
-it). In 3D, a left drag orbits. In Simulate a left drag pans (in 3D it orbits). On a
+it). In 3D, a left drag orbits: the model turns with the mouse. To have a left-right
+drag move the view round the model instead, tick <em>View &gt; Reverse left-right orbit in 3D</em>. In Simulate a left drag pans (in 3D it orbits). On a
 touchpad, a two-finger scroll or a pinch zooms.</li>
 </ul>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"><span class="img-wrapper"><img src="images/simulation-3d.png" alt="The canvas in 3D: the simulated stock on the grid, the cube in the corner and the navigation bar"></span></label></p>
@@ -420,7 +434,7 @@ Browser, a shape just drawn) shows the <strong>Selection</strong>:</p>
 <li>a drawn shape’s exact values, to edit, and the tools for the selection (align, arrays,
 construction);</li>
 <li><em>Copy as selector</em>, which copies the selection as JSON for a project file (also under
-DRAW ▾, and Ctrl+Shift+C).</li>
+<em>Edit</em>, and Ctrl+Shift+C).</li>
 </ul>
 <p>The selection stays on the canvas when you open something else. An operation’s <em>Use
 selection</em> button counts it (“Use selection (3)”) and takes it as the operation’s geometry.

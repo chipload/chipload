@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Parts - Chipload 0.34.0 user guide</title>
+        <title>Parts - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -236,6 +236,31 @@ chipload part remove part.chipload 2 --with-operations  # without the flag: refu
 Properties. Right-click it to activate, export, move or delete it, or right-click its setup
 for a new one. Drag an operation onto a part to move it there.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"><span class="img-wrapper"><img src="../images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"></span></label></p>
+<h2 id="mirrored-parts"><a class="header" href="#mirrored-parts">Mirrored parts</a></h2>
+<p>A part can be cut <strong>mirrored</strong>, left to right or top to bottom, while the drawing stays as
+you drew it. Set <strong>Mirror</strong> in the part’s properties, or <code>chipload part set --mirror</code>. Use it
+for left- and right-hand pieces from one drawing, the plug of an inlay, a stamp or branding
+iron whose text must read backwards, or a sign cut from the back of clear acrylic.</p>
+<ul>
+<li><strong>About its own centre:</strong> the part is mirrored about the centre line of the shapes its
+operations cut, so it stays where it is on the board and a board that fits its parts
+still fits. To cut a mirrored twin somewhere else, mirror a copy of its shapes in the
+drawing instead (<code>shape mirror</code>).</li>
+<li><strong>Settings mean what they say:</strong> inside stays inside, climb stays climb. Chipload plans
+the part as drawn with the cutting direction turned, then mirrors it, so a climb cut
+is still a climb cut on the mirrored part. Tabs placed by hand, dogbone corners and ring
+starts stay on their feature.</li>
+<li><strong>On the canvas:</strong> the toolpath and the simulation show the part as it is cut, and its
+shapes are drawn there dashed and faded. You still edit the shapes as drawn; the start
+and tab markers stay on them. The Browser marks the part <em>mirrored</em>.</li>
+<li><strong>What isn’t mirrored:</strong> a surface pass and dowel holes belong to the board, not the part.</li>
+<li><strong>Copies:</strong> each copy is the mirrored part.</li>
+<li><strong>Text:</strong> a mirrored part’s text reads backwards on the board, and the report says so.
+On the <a href="../concepts/setups.html">back of a board</a> the two mirrors cancel and it reads right.</li>
+<li><strong>The setup sheet</strong> says which parts are cut mirrored.</li>
+</ul>
+<pre><code class="language-sh">chipload part set part.chipload 1 --mirror left-right   # also top-bottom; none: as drawn
+</code></pre>
 
                     </main>
 

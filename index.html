@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - Chipload 0.34.0 user guide</title>
+        <title>Introduction - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9a5ad1b5.js"></script>
+        <script src="toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -181,7 +181,8 @@
 <img src="images/chipload-wordmark.svg" alt="Chipload" height="64">
 <p>Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.</p>
 <ul>
-<li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, and
+<li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
+models (STL) and depth maps for reliefs, and
 shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
 offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.</li>
 <li><strong>Out:</strong> G-code for your controller, in mm or inches, through a post-processor: GRBL,
@@ -193,7 +194,9 @@ LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li>V-carving;</li>
 <li>follow path;</li>
 <li>drilled and helically bored holes;</li>
-<li>surfacing the stock.</li>
+<li>surfacing the stock;</li>
+<li>reliefs: a 3D model (STL), a depth-map picture or a picture’s shapes inflated, carved
+from the top, with a rim, roughing and smoothing.</li>
 </ul>
 </li>
 <li><strong>Checked:</strong> every program passes an independent checker before Chipload writes it. The
@@ -234,7 +237,7 @@ licences of everything it is built with are under <em>Help &gt; About and licenc
 <p>Chipload is meant to be lean. It leaves out what other tools do better:</p>
 <ul>
 <li>nesting parts on a sheet;</li>
-<li>3D surface machining;</li>
+<li>3D surface machining, beyond <a href="drawings/models.html">reliefs</a> carved from the top;</li>
 <li>sending G-code to the machine (use your controller’s sender);</li>
 <li>CAD beyond a few shapes;</li>
 <li>facing the spoilboard.</li>

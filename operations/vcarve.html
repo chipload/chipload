@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>V-carve - Chipload 0.34.0 user guide</title>
+        <title>V-carve - Chipload 0.36.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b43bf1a1.js";
+            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9a5ad1b5.js"></script>
+        <script src="../toc-5dd94fcc.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.34.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -295,6 +295,88 @@ mill reaches into a sharp corner. The advice is information only; the job runs e
 <pre><code class="language-sh">chipload op add-floor sign.chipload --op 1 --tool 2   # the floor pass with project tool 2
 chipload op remove-floor sign.chipload --op 1
 </code></pre>
+<h2 id="inlays"><a class="header" href="#inlays">Inlays</a></h2>
+<p>An <strong>inlay</strong> sets one wood into another: a dark word flush in a light board, without paint.
+The artwork is V-carved twice, with the same V-bit:</p>
+<ul>
+<li>a <strong>pocket</strong> in the base board, an ordinary V-carve;</li>
+<li>a <strong>plug</strong> in a second board: the rest of that board is carved away, so the artwork stands
+up as a tapered plug, mirrored. It is glued face down into the pocket, and when the glue
+has set, its back is sawn or planed off down to the base’s surface.</li>
+</ul>
+<p>The pocket’s walls and the plug’s walls slope at the bit’s angle, so they wedge together
+and centre themselves, sharp inside corners included. No dowels or corners are needed to
+line them up.</p>
+<pre><code class="language-text">          plug board's back, g above the base
+        ┌───────────────────────────┐
+        └──────┐             ┌──────┘   ← the base's surface
+   ────────────\    plug     /──────────
+                \___________/            ← the plug's face, D deep
+                 glue space               ← the pocket's floor, P deep
+   ────────────────────────────────────
+</code></pre>
+<p>Four numbers set it up:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Number</th><th>What it does</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td>Pocket depth P</td><td>how deep the pocket is</td><td>5 mm</td></tr>
+<tr><td>Plug start depth D</td><td>the plug’s outline is taken this deep in its board: its face lies D deep in the pocket, leaving P − D under it for glue</td><td>3 mm</td></tr>
+<tr><td>Glue gap g</td><td>the plug board is carved g deeper than D, so its back stands g above the base and squeezed-out glue has room</td><td>1.5 mm</td></tr>
+<tr><td>Plug board thickness</td><td>what is left under the plug’s channel holds it together until it is planed off</td><td>10 mm</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-sh">chipload op add-inlay sign.chipload --text 1 --tool 3 --floor-tool 2   # also --layer, --shapes, --group
+chipload op add-inlay sign.chipload --layer WORD --tool 3 --depth 5 --plug-start 3 --gap 1.5 --plug-thickness 10
+</code></pre>
+<p>In the app, select the artwork and click <strong>Inlay…</strong> (ribbon, WIZARDS), or <em>Wizards &gt; New
+inlay…</em>. The dialog asks for the V-bit, the four numbers and the
+floor end mill, with the project’s first V-bit and smallest end mill chosen, and draws the
+two cuts with the numbers marked. Both tool lists also offer your tool library’s tools
+under <em>From your library:</em> (marked <strong>+</strong>); one chosen is copied into the project when you
+click <em>Make inlay</em>, not before. A project without a V-bit starts on the library’s.
+<strong>Make inlay</strong> makes the pair as one undo step. On the
+command line, <code>op add-inlay</code> does the same.</p>
+<p>Both make the pocket in the active part, and a new <a href="../concepts/setups.html">setup</a>, <em>Inlay
+plug board</em>, whose board fits the artwork with a 10 mm margin, holding a part of its own,
+<a href="parts.html#mirrored-parts">mirrored</a> left to right, with the plug. With a floor end mill, both
+get a floor pass. Give the plug one: its channel is mostly floor. Afterwards both are
+ordinary V-carves: change their depths, feeds and passes as for any other. The plug’s
+properties have a <strong>Plug</strong> section with its start depth and glue gap; changing the gap moves
+its end depth. Both select the same shapes, so editing the artwork changes both. The plug’s
+<a href="../checking/sheet.html">setup sheet</a> says it is mirrored and lists the steps below.</p>
+<p>The plug’s checks warn when:</p>
+<ul>
+<li>no V-carve of the same shapes with a bit of the same angle is in another setup;</li>
+<li>the pocket isn’t deeper than D (the plug would sit on the pocket’s floor);</li>
+<li>the plug’s part isn’t mirrored;</li>
+<li>the glue gap is under 0.5 mm, or less than 2 mm of board is left under the channel;</li>
+<li>the pocket ignores kinks;</li>
+<li>there is no floor pass;</li>
+<li>a floor pass’s end mill doesn’t reach all of the floor, and what it leaves stands more
+than 0.2 mm above the plug’s face (in the pocket) or above the outline level (in the
+plug’s channel). A smaller end mill for the floor pass clears it. The pocket gets this
+warning too.</li>
+</ul>
+<p>A flat-tipped V-bit is fine. A note says how far from a sharp corner plug and pocket fall
+short of meeting: 0.14 mm for a 0.2 mm tip at a right angle, which the glue and the clamp
+take up. Refused:</p>
+<ul>
+<li>a plug deeper than its V-bit cuts with its cone;</li>
+<li>a plug that ignores kinks;</li>
+<li>copies of the plug’s part (the plug carves its whole board);</li>
+<li>a floor end mill wider than the V-bit (it would cut off the board’s edges).</li>
+</ul>
+<p><strong>Steps:</strong></p>
+<ol>
+<li>Cut the pocket in the base board.</li>
+<li>Clamp the plug board on the machine (setup 2) and cut the plug.</li>
+<li>Glue it face down into the pocket and clamp or press until it seats on its walls.</li>
+<li>Let the glue set. Saw or plane the plug board’s back off down to the base’s surface.</li>
+</ol>
 <h2 id="limits"><a class="header" href="#limits">Limits</a></h2>
 <ul>
 <li><strong>A flat tip:</strong> it can’t reach into the last bit of a sharp corner, and strokes narrower
@@ -324,6 +406,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>feed</code></td><td>Feed</td></tr>
 <tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
 <tr><td><code>floor</code></td><td>the floor pass, left out when there is none: <code>tool</code> (an end mill), <code>feed</code>, <code>plunge_feed</code>, <code>step_down</code>, <code>stepover</code> (a fraction of the end mill’s diameter), <code>entry</code> and <code>enabled</code></td></tr>
+<tr><td><code>plug</code></td><td>an inlay’s plug, left out for an ordinary V-carve: <code>start_depth</code>, where its outline is taken (D). Its end depth is D plus the glue gap</td></tr>
 </tbody>
 </table>
 </div>
