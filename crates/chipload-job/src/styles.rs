@@ -62,6 +62,11 @@ pub struct Style {
     /// The operation as a project stores it. Its shapes, name and part are not used, and
     /// its feeds only when the tool has no cutting data.
     pub operation: Value,
+    /// A layer rule (docs/specs/fewer-clicks.md §4): the style is used on every layer whose
+    /// name matches, `*` any run of characters and `?` one, upper or lower case alike.
+    /// Missing: none; left out then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layer: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -141,6 +146,10 @@ impl StyleLibrary {
         match self.position(&style.name) {
             Some(i) if replace => {
                 style.uid = self.styles[i].uid.clone();
+                // Saved again from an operation: its layer rule stays.
+                if style.layer.is_none() {
+                    style.layer = self.styles[i].layer.clone();
+                }
                 self.styles[i] = style;
             }
             Some(_) => {
@@ -194,6 +203,11 @@ impl StyleLibrary {
         for (i, style) in self.styles.iter().enumerate() {
             if style.tools.is_empty() {
                 problems.push(format!("styles.{i}.tools: must name the operation's tool"));
+            }
+            if style.layer.as_deref().is_some_and(|p| p.trim().is_empty()) {
+                problems.push(format!(
+                    "styles.{i}.layer: a layer pattern must not be empty (leave it out for none)"
+                ));
             }
             for (k, tool) in style.tools.iter().enumerate() {
                 if !is_uid(&tool.uid) {
@@ -344,7 +358,40 @@ pub fn style_of(
         tools: style_tools,
         side,
         operation,
+        layer: None,
     })
+}
+
+/// Whether layer `name` matches layer pattern `pattern` (docs/specs/fewer-clicks.md §4):
+/// `*` stands for any run of characters, `?` for one; upper or lower case alike, as layer
+/// selection is. No other special characters.
+pub fn layer_matches(pattern: &str, name: &str) -> bool {
+    let pattern: Vec<char> = pattern.trim().to_lowercase().chars().collect();
+    let name: Vec<char> = name.to_lowercase().chars().collect();
+    // The usual two-pointer match with one star to go back to.
+    let (mut p, mut n) = (0, 0);
+    let mut star: Option<(usize, usize)> = None;
+    while n < name.len() {
+        match pattern.get(p) {
+            Some('*') => {
+                star = Some((p, n));
+                p += 1;
+            }
+            Some(&c) if c == '?' || c == name[n] => {
+                p += 1;
+                n += 1;
+            }
+            _ => match star {
+                Some((sp, sn)) => {
+                    p = sp + 1;
+                    n = sn + 1;
+                    star = Some((sp, sn + 1));
+                }
+                None => return false,
+            },
+        }
+    }
+    pattern[p..].iter().all(|&c| c == '*')
 }
 
 /// Where a style with operation `op` cuts: a profile on the line keeps it, inside or

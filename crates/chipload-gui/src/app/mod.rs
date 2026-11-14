@@ -860,6 +860,8 @@ impl ChiploadApp {
         );
         let next = t!(self, "app-import-next");
         self.create_project(new_project(imported), start, first, Some(next));
+        // The styles' layer rules (docs/specs/fewer-clicks.md §4).
+        self.layer_rules_on_import();
     }
 
     /// Replace the imported drawing with a new version of the DXF (§4 of the project spec),

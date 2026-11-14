@@ -689,3 +689,9 @@ pipeline-relief-end-mill = verktyg { $tool } är ingen pinnfräs: bakgrunden ell
 pipeline-relief-margin = bakgrundens marginal måste vara större än 0 och hörnradien inte under 0, fick { $margin }
 pipeline-relief-sink = reliefens startdjup under skivans yta måste vara 0 eller mer, fick { $got }
 pipeline-relief-nothing = inget att göra reliefen av
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = stilen ”{ $style }” på lager { $layer }: { $operations }
+pipeline-rule-skipped = lager { $layer } hoppades över för stilen ”{ $style }”: en operation skär det redan
+pipeline-rule-failed = stilen ”{ $style }” användes inte på lager { $layer }: { $reason }
+pipeline-rule-unmatched = ingen lagerregel matchar lagren { $layers }
+pipeline-rule-none = ingen stil har en lagerregel: ge först en stil ett lagermönster

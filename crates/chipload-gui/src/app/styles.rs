@@ -25,6 +25,8 @@ pub(super) enum StyleAct {
     Focus(Focus),
     Apply(String),
     Rename(String, String),
+    /// A style's layer rule (docs/specs/fewer-clicks.md §4); empty for none.
+    Layer(String, String),
     Delete(String),
     /// Write the style's draft, or drop it (docs/specs/styles.md §9, step 3b).
     Save(String),
@@ -315,6 +317,29 @@ impl ChiploadApp {
                 ui.label(t!(ui, "styles-name"));
                 ui.text_edit_singleline(&mut name);
                 ui.end_row();
+                // The layer rule, kept when the field is left or Enter pressed.
+                ui.label(t!(ui, "styles-layer"))
+                    .on_hover_text(t!(ui, "styles-layer-hover"));
+                let layer_id = Id::new(("style-layer-draft", uid));
+                let saved = style.layer.clone().unwrap_or_default();
+                let mut layer: String = ui
+                    .data_mut(|d| d.get_temp(layer_id))
+                    .unwrap_or_else(|| saved.clone());
+                let response = ui.add(
+                    egui::TextEdit::singleline(&mut layer)
+                        .hint_text(t!(ui, "styles-layer-none"))
+                        .desired_width(160.0),
+                );
+                let response = response.on_hover_text(t!(ui, "styles-layer-hover"));
+                if response.lost_focus() {
+                    if layer.trim() != saved {
+                        *act = Some(StyleAct::Layer(uid.to_string(), layer.trim().to_string()));
+                    }
+                    ui.data_mut(|d| d.remove::<String>(layer_id));
+                } else {
+                    ui.data_mut(|d| d.insert_temp(layer_id, layer));
+                }
+                ui.end_row();
             })
         });
         let renamed = name.trim() != style.name && !name.trim().is_empty();
@@ -471,6 +496,9 @@ impl ChiploadApp {
                 let old = self.style_name(&uid);
                 let _ = self.change_styles(|library| library.rename(&old, &new));
             }
+            StyleAct::Layer(uid, pattern) => {
+                self.set_style_layer(&uid, &pattern);
+            }
             StyleAct::Delete(uid) => {
                 self.user.library_state.style_drafts.remove(&uid);
                 self.delete_style(&uid);
@@ -482,6 +510,79 @@ impl ChiploadApp {
                 self.user.library_state.style_drafts.remove(&uid);
             }
         }
+    }
+
+    /// Give style `uid` a layer rule, or none with an empty `pattern`
+    /// (docs/specs/fewer-clicks.md §4).
+    pub fn set_style_layer(&mut self, uid: &str, pattern: &str) -> bool {
+        let name = self.style_name(uid);
+        let pattern = pattern.trim();
+        let layer = (!pattern.is_empty()).then(|| pattern.to_string());
+        self.change_styles(|library| {
+            library.find_mut(&name)?.layer = layer;
+            Ok(())
+        })
+        .is_ok()
+    }
+
+    /// Apply the styles' layer rules to the open project, as one undo step
+    /// (docs/specs/fewer-clicks.md §4): the report says what was added and skipped. Returns
+    /// how many operations were added.
+    pub fn apply_layer_rules(&mut self) -> usize {
+        self.layer_rules(false)
+    }
+
+    /// A drawing just imported as a new project: its layer rules applied when any style
+    /// has one, as one undo step after the import, their lines added to the report; the
+    /// project stays open on its stock.
+    pub(super) fn layer_rules_on_import(&mut self) {
+        if self
+            .user
+            .library
+            .styles
+            .styles
+            .iter()
+            .any(|s| s.layer.is_some())
+        {
+            self.layer_rules(true);
+        }
+    }
+
+    fn layer_rules(&mut self, on_import: bool) -> usize {
+        self.commit();
+        self.reload_library();
+        let lang = self.prefs.language;
+        let Some(edit) = self.edit.as_mut() else {
+            return 0;
+        };
+        let rules = chipload_pipeline::styles::apply_layer_rules(
+            &edit.job,
+            &self.contours,
+            &self.user.library.styles.styles,
+            &self.user.library.tools,
+            lang,
+        );
+        // Inserted as *Apply style* inserts, so each keeps its side mark.
+        let mut first = None;
+        for made in rules.made {
+            edit.job.tools.extend(made.tools);
+            let index = edit.insert_made(made.made);
+            first.get_or_insert(index);
+        }
+        if let Some(first) = first {
+            if !on_import {
+                self.focus = Focus::Op(first);
+            }
+            self.commit();
+        }
+        if on_import {
+            for message in rules.messages {
+                self.report.push_message(Tone::Info, message, None);
+            }
+        } else {
+            self.set_report(Report::of_messages(rules.messages));
+        }
+        rules.added
     }
 
     /// Delete style `uid` from the library; the Browser shows the folder after.

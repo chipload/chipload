@@ -699,3 +699,9 @@ pipeline-relief-end-mill = tool { $tool } isn't an end mill: the background or c
 pipeline-relief-margin = the background's margin must be more than 0 and its corners' radius not below 0, got { $margin }
 pipeline-relief-sink = the relief's start depth below the board's surface must be 0 or more, got { $got }
 pipeline-relief-nothing = nothing to make the relief of
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = style "{ $style }" on layer { $layer }: { $operations }
+pipeline-rule-skipped = layer { $layer } skipped for style "{ $style }": an operation already cuts it
+pipeline-rule-failed = style "{ $style }" not used on layer { $layer }: { $reason }
+pipeline-rule-unmatched = no layer rule matches layers { $layers }
+pipeline-rule-none = no style has a layer rule: give a style a layer pattern first

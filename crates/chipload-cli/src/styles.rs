@@ -67,6 +67,25 @@ pub enum StyleAction {
         /// Another tool of your library, by name.
         #[arg(long)]
         tool: Option<String>,
+        /// A layer rule: the style is used on every layer whose name matches, `*` any run
+        /// of characters, `?` one, upper or lower case alike (`CUT*`, `DRILL_?`); "" for
+        /// none (docs/specs/fewer-clicks.md §4).
+        #[arg(long)]
+        layer: Option<String>,
+    },
+    /// Apply the layer rules to a project: each style with a layer pattern adds its
+    /// operations for the layers it matches, in the Styles' order, then by layer name. A
+    /// layer an operation already cuts is skipped, so applying twice adds nothing. `import`
+    /// does this by itself unless --no-rules.
+    Apply {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Say what would be added, write nothing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
     /// Remove a style.
     Remove { name: String },
@@ -157,8 +176,44 @@ pub fn style(out: &mut Out, action: StyleAction) -> ExitCode {
             library.rename(&name, &new)?;
             Ok(format!("Renamed style \"{name}\" to \"{}\".", new.trim()))
         }),
-        StyleAction::Set { name, values, tool } => {
-            return set(out, &path, &styles, &tools, &name, &values, tool.as_deref());
+        StyleAction::Set {
+            name,
+            values,
+            tool,
+            layer,
+        } => {
+            return set(
+                out,
+                &path,
+                &styles,
+                &tools,
+                &name,
+                &values,
+                tool.as_deref(),
+                layer.as_deref(),
+            );
+        }
+        StyleAction::Apply {
+            project,
+            dry_run,
+            output,
+        } => {
+            let mut job = match load(out, &project) {
+                Ok(job) => job,
+                Err(code) => return code,
+            };
+            if let Err(err) = apply_rules(out, &mut job, &styles.styles, &tools) {
+                return out.fail(err);
+            }
+            if dry_run {
+                return ExitCode::SUCCESS;
+            }
+            let target = output.as_deref().unwrap_or(&project);
+            if let Err(err) = crate::save_project(out, &job, target) {
+                return out.fail(err);
+            }
+            out.wrote(target, "");
+            return ExitCode::SUCCESS;
         }
         StyleAction::Remove { name } => update_library(&path, |library: &mut StyleLibrary| {
             let removed = library.remove(&name)?;
@@ -207,6 +262,7 @@ const NOT_SET: [&str; 9] = [
 /// `style set` (docs/specs/styles.md §9, step 3b): the values set in the style's
 /// operation, read back as an operation, and its tool from the library; written with the
 /// problems it has listed, as `chipload set` does.
+#[allow(clippy::too_many_arguments)]
 fn set(
     out: &mut Out,
     path: &Path,
@@ -215,9 +271,10 @@ fn set(
     name: &str,
     values: &[String],
     tool: Option<&str>,
+    layer: Option<&str>,
 ) -> ExitCode {
-    if values.is_empty() && tool.is_none() {
-        return out.fail("give PATH=VALUE or --tool NAME");
+    if values.is_empty() && tool.is_none() && layer.is_none() {
+        return out.fail("give PATH=VALUE, --tool NAME or --layer PATTERN");
     }
     let style = match styles.get(name) {
         Ok(style) => style.clone(),
@@ -262,6 +319,17 @@ fn set(
             "Style \"{}\" cuts with \"{}\".",
             style.name, entry.name
         ));
+    }
+    if let Some(layer) = layer {
+        let layer = layer.trim();
+        changed.layer = (!layer.is_empty()).then(|| layer.to_string());
+        lines.push(match &changed.layer {
+            Some(pattern) => format!(
+                "Style \"{}\" is used on layers matching {pattern}.",
+                style.name
+            ),
+            None => format!("Style \"{}\" has no layer rule.", style.name),
+        });
     }
     let problems = match chipload_pipeline::styles::style_draft(&changed, tools) {
         Ok(draft) => chipload_pipeline::styles::style_problems(&draft.operation, &draft.tools),
@@ -387,6 +455,31 @@ fn kind_name(op: &Operation) -> &'static str {
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",
     }
+}
+
+/// Apply the layer rules of `styles` to `job` (docs/specs/fewer-clicks.md §4), saying
+/// what was added and skipped; `operations` and `report` with --json.
+pub(crate) fn apply_rules(
+    out: &mut Out,
+    job: &mut chipload_job::Job,
+    styles: &[Style],
+    tools: &chipload_job::library::ToolLibrary,
+) -> Result<usize, chipload_pipeline::PipelineError> {
+    let drawing = chipload_pipeline::load_drawing(job)?;
+    let rules = chipload_pipeline::styles::apply_layer_rules(
+        job,
+        &drawing.contours,
+        styles,
+        tools,
+        chipload_i18n::Language::En,
+    );
+    let report: Vec<String> = rules.messages.iter().map(|m| m.english()).collect();
+    for line in &report {
+        out.line(format!("Layer rules: {line}."));
+    }
+    out.set("rules", json!({"added": rules.added, "report": report}));
+    *job = rules.job;
+    Ok(rules.added)
 }
 
 fn use_style(

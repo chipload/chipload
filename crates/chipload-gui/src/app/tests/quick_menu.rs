@@ -189,3 +189,49 @@ fn select_inside_and_similar_replace_or_add_to_the_selection() {
     app.select_inside(circle, false);
     assert_eq!(app.selection, CanvasSelection::Nothing);
 }
+
+/// Layer rules (docs/specs/fewer-clicks.md §4): a style with a pattern adds its operation on
+/// import, as one undo step; *Apply layer rules* then adds nothing more.
+#[test]
+fn layer_rules_add_operations_on_import_in_one_undo_step() {
+    let mut app = app_with_library("layer-rules");
+    select(&mut app, &[1]);
+    let i = app.add_operation(OpKind::Profile).unwrap();
+    assert!(app.save_style(i, "Cut out"));
+    let uid = app.user.library.styles.styles[0].uid.clone();
+    assert!(app.set_style_layer(&uid, " cut_* "));
+    assert_eq!(
+        app.user.library.styles.styles[0].layer.as_deref(),
+        Some("cut_*")
+    );
+    // A new project from the same drawing: the rule cuts its outline layer.
+    assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
+    let names: Vec<(String, Option<String>)> = ops(&app)
+        .iter()
+        .map(|op| (op.name().to_string(), op.select().layer.clone()))
+        .collect();
+    assert_eq!(
+        names,
+        [("Cut out".to_string(), Some("CUT_OUTSIDE".to_string()))]
+    );
+    // Still on the stock, as a new project opens; the report says what the rule did.
+    assert_ne!(app.focus, Focus::Op(0));
+    assert!(
+        app.report
+            .iter()
+            .any(|l| l.contains("style \"Cut out\" on layer CUT_OUTSIDE")),
+        "{:?}",
+        app.report.iter().collect::<Vec<_>>()
+    );
+    // Applied again: the layer is cut already.
+    assert_eq!(app.apply_layer_rules(), 0);
+    assert_eq!(ops(&app).len(), 1);
+    // One Undo takes the rule's operations away and keeps the project.
+    app.undo();
+    assert!(ops(&app).is_empty());
+    assert!(app.edit.is_some());
+    // No rule: nothing is added on import.
+    assert!(app.set_style_layer(&uid, ""));
+    assert!(app.import_dxf(&corpus("dxf/simple_part.dxf"), None));
+    assert!(ops(&app).is_empty());
+}

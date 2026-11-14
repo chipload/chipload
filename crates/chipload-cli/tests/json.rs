@@ -800,3 +800,84 @@ fn a_model_is_added_placed_changed_listed_and_removed() {
     assert_eq!(listed["models"], json!([]));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// Layer rules (docs/specs/fewer-clicks.md §4): styles with a layer pattern add their
+/// operations on import, or by `style apply`, the same either way; `--no-rules` skips them.
+#[test]
+fn layer_rules_apply_on_import_and_on_demand_alike() {
+    let dir = temp_dir("rules");
+    std::fs::copy(corpus("dxf/simple_part.dxf"), dir.join("part.dxf")).unwrap();
+    let ok = |args: &[&str]| {
+        let mut all = args.to_vec();
+        all.push("--json");
+        let value = json_of(&chipload(&dir, &all), &all);
+        assert_eq!(value["ok"], json!(true), "{all:?}: {value}");
+        value
+    };
+    ok(&["tool", "add", "6 mm", "--diameter", "6", "--rpm", "18000"]);
+    let import = |out: &str, extra: &[&str]| {
+        let mut args = vec!["import", "part.dxf", "-o", out, "--tools", "6 mm"];
+        args.extend_from_slice(extra);
+        ok(&args)
+    };
+    import("by-hand.chipload", &[]);
+    ok(&[
+        "op",
+        "add",
+        "by-hand.chipload",
+        "profile",
+        "--layer",
+        "CUT_OUTSIDE",
+        "--through",
+    ]);
+    ok(&[
+        "op",
+        "add",
+        "by-hand.chipload",
+        "pocket",
+        "--layer",
+        "HOLES",
+    ]);
+    ok(&[
+        "style",
+        "save",
+        "by-hand.chipload",
+        "--op",
+        "1",
+        "--name",
+        "Cut out",
+    ]);
+    ok(&[
+        "style",
+        "save",
+        "by-hand.chipload",
+        "--op",
+        "2",
+        "--name",
+        "Clear",
+    ]);
+    ok(&["style", "set", "Cut out", "--layer", "cut*"]);
+    ok(&["style", "set", "Clear", "--layer", "HOLE?"]);
+    let ruled = import("ruled.chipload", &[]);
+    assert_eq!(ruled["rules"]["added"], json!(2), "{ruled}");
+    let plain = import("plain.chipload", &["--no-rules"]);
+    assert_eq!(plain.get("rules"), None);
+    // A dry run writes nothing.
+    let dry = ok(&["style", "apply", "plain.chipload", "--dry-run"]);
+    assert_eq!(dry["rules"]["added"], json!(2));
+    assert!(dry["written"].as_array().unwrap().is_empty());
+    let applied = ok(&["style", "apply", "plain.chipload"]);
+    assert_eq!(applied["rules"]["added"], json!(2));
+    let gcode = |project: &str, out: &str| {
+        ok(&["run", project, "-o", out, "--no-sheet"]);
+        std::fs::read_to_string(dir.join(out)).unwrap()
+    };
+    assert_eq!(
+        gcode("ruled.chipload", "ruled.nc"),
+        gcode("plain.chipload", "plain.nc")
+    );
+    // Applied again: nothing more.
+    let again = ok(&["style", "apply", "plain.chipload"]);
+    assert_eq!(again["rules"]["added"], json!(0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

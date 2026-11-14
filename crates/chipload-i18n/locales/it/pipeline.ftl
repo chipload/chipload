@@ -694,3 +694,9 @@ pipeline-relief-end-mill = l'utensile { $tool } non è una fresa piatta: lo sfon
 pipeline-relief-margin = il margine dello sfondo deve essere maggiore di 0 e il raggio degli angoli non sotto 0, ricevuto { $margin }
 pipeline-relief-sink = la profondità iniziale del rilievo sotto la superficie della tavola deve essere 0 o più, ottenuto { $got }
 pipeline-relief-nothing = niente da cui fare il rilievo
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = stile «{ $style }» sul layer { $layer }: { $operations }
+pipeline-rule-skipped = layer { $layer } saltato per lo stile «{ $style }»: un’operazione lo lavora già
+pipeline-rule-failed = stile «{ $style }» non usato sul layer { $layer }: { $reason }
+pipeline-rule-unmatched = nessuna regola di layer corrisponde ai layer { $layers }
+pipeline-rule-none = nessuno stile ha una regola di layer: dai prima un modello di layer a uno stile

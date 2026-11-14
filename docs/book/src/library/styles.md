@@ -63,6 +63,35 @@ chipload style use part.chipload "Cut out 18 mm ply" --dxf 1       # also --laye
 - Nothing in the project remembers the style afterwards: changing the style later doesn't
   change operations made from it.
 
+## Layer rules
+
+If you draw each kind of cut on its own layer (`CUT_OUTSIDE`, `DRILL_5`, `POCKET`), a
+style can do its job by itself: give it a **layer pattern**, and every layer whose name
+matches gets the style's operations, selecting the layer.
+
+- **The pattern:** `*` stands for any run of characters, `?` for one, upper or lower case
+  alike: `CUT*`, `DRILL_?`, `pocket`. Nothing else is special.
+- **When:** on importing a DXF or SVG as a new project (one Ctrl+Z takes the operations
+  away again; `chipload import … --no-rules` leaves them out), and whenever you choose
+  **Operation > Apply layer rules** or `chipload style apply part.chipload` (`--dry-run`
+  says what it would add). Updating a drawing doesn't apply them.
+- **Order:** the styles' order in *This computer > Styles*, then the layers by name. Every
+  style that matches a layer adds its operations, so a rough and a finish pass can both come
+  from rules.
+- **Already cut:** a layer an operation already cuts, by its layer or by one of its shapes,
+  is skipped, so applying the rules twice adds nothing.
+- **The report** says what each rule added, which layers it skipped and why, and which
+  layers no rule matched.
+
+Set the pattern in the style's properties, *Layers* (empty for none), or:
+
+```
+chipload style set "Cut out 18 mm ply" --layer "CUT*"
+chipload style set "Cut out 18 mm ply" --layer ""          # no rule
+```
+
+A styles file with a layer pattern can't be read by Chipload 0.36 or older.
+
 ## Managing styles
 
 **This computer > Styles** in the Browser lists them; hover over one for what it does.

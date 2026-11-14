@@ -194,6 +194,26 @@ impl ChiploadApp {
                 self.style_act(act);
             }
         });
+        // Layer rules (docs/specs/fewer-clicks.md §4).
+        let rules = self
+            .user
+            .library
+            .styles
+            .styles
+            .iter()
+            .any(|s| s.layer.is_some());
+        if ui
+            .add_enabled(
+                rules && self.edit.is_some(),
+                egui::Button::new(t!(ui, "styles-apply-rules")),
+            )
+            .on_hover_text(t!(ui, "styles-apply-rules-hover"))
+            .on_disabled_hover_text(t!(ui, "styles-apply-rules-none"))
+            .clicked()
+        {
+            self.apply_layer_rules();
+            ui.close();
+        }
         ui.separator();
         self.job_menu(ui);
     }

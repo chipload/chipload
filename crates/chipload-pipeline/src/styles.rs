@@ -482,3 +482,143 @@ mod tests {
         );
     }
 }
+
+/// What applying the layer rules did (docs/specs/fewer-clicks.md §4).
+#[derive(Debug, Clone, PartialEq)]
+pub struct LayerRules {
+    /// The project with the operations added.
+    pub job: Job,
+    /// How many operations were added.
+    pub added: usize,
+    /// What each style used on a layer made, in order: inserted one after the other into
+    /// the project (`insert`), they give `job`. For the window, which keeps marks per
+    /// operation.
+    pub made: Vec<StyleOps>,
+    /// The report: one line per style and layer used or skipped, and the layers no rule
+    /// matched.
+    pub messages: Vec<Message>,
+}
+
+/// The layers of the drawing that can be cut (construction geometry left out), each once
+/// whatever its case, sorted by name.
+fn cut_layers(contours: &[Contour]) -> Vec<String> {
+    let mut seen = BTreeMap::new();
+    for contour in contours.iter().filter(|c| !c.is_construction()) {
+        for part in &contour.parts {
+            let layer = &part.segment.layer;
+            seen.entry(layer.to_lowercase())
+                .or_insert_with(|| layer.clone());
+        }
+    }
+    seen.into_values().collect()
+}
+
+/// The layers (lower case) that some operation of `job` already cuts: by layer, by one of
+/// their shapes, or a whole drawing. A surface or a relief cuts no shapes.
+fn layers_cut(job: &Job, contours: &[Contour]) -> std::collections::BTreeSet<String> {
+    let mut cut = std::collections::BTreeSet::new();
+    for op in &job.operations {
+        if !op.selects_shapes() || matches!(op, Operation::Relief(_)) {
+            continue;
+        }
+        let select = op.select().resolved(&job.drawing);
+        for contour in contours.iter().filter(|c| !c.is_construction()) {
+            for part in &contour.parts {
+                let left_out = part
+                    .segment
+                    .shape
+                    .is_some_and(|s| select.exclude.contains(&s));
+                if !left_out && chipload_toolpath::select::matches(&part.segment, &select) {
+                    cut.insert(part.segment.layer.to_lowercase());
+                }
+            }
+        }
+    }
+    cut
+}
+
+/// Apply the styles' layer rules to `job` (docs/specs/fewer-clicks.md §4): in the styles'
+/// order, each style with a layer pattern adds its operations for every matching layer, by
+/// name, selecting the layer (`select.layer`), at the end of the active part. A layer some
+/// operation already cut before is skipped with a note, so applying twice adds nothing; a
+/// style that can't be used on a layer (its tool gone from the library) is noted and the
+/// rest go on.
+pub fn apply_layer_rules(
+    job: &Job,
+    contours: &[Contour],
+    styles: &[Style],
+    library: &ToolLibrary,
+    lang: Language,
+) -> LayerRules {
+    let rules: Vec<(&Style, &str)> = styles
+        .iter()
+        .filter_map(|s| s.layer.as_deref().map(|p| (s, p)))
+        .collect();
+    if rules.is_empty() {
+        return LayerRules {
+            job: job.clone(),
+            added: 0,
+            made: Vec::new(),
+            messages: vec![Message::new("pipeline-rule-none")],
+        };
+    }
+    let layers = cut_layers(contours);
+    let cut = layers_cut(job, contours);
+    let mut out = job.clone();
+    let mut added = 0;
+    let mut all_made = Vec::new();
+    let mut messages = Vec::new();
+    let mut matched = std::collections::BTreeSet::new();
+    for (style, pattern) in rules {
+        for layer in layers
+            .iter()
+            .filter(|l| chipload_job::styles::layer_matches(pattern, l))
+        {
+            matched.insert(layer.clone());
+            let line = |id: &'static str| {
+                Message::new(id)
+                    .arg("style", style.name.as_str())
+                    .arg("layer", layer.as_str())
+            };
+            if cut.contains(&layer.to_lowercase()) {
+                messages.push(line("pipeline-rule-skipped"));
+                continue;
+            }
+            let select = Selector {
+                layer: Some(layer.clone()),
+                ..Selector::default()
+            };
+            match style_operations(&out, style, &select, contours, library, lang) {
+                Ok(made) => {
+                    let names: Vec<String> = made
+                        .made
+                        .ops
+                        .iter()
+                        .map(|n| n.op.name().to_string())
+                        .collect();
+                    added += names.len();
+                    all_made.push(made.clone());
+                    insert(&mut out, made);
+                    messages.push(line("pipeline-rule-added").arg("operations", names.join(", ")));
+                }
+                Err(err) => {
+                    messages.push(line("pipeline-rule-failed").arg("reason", err.message()))
+                }
+            }
+        }
+    }
+    let unmatched: Vec<&str> = layers
+        .iter()
+        .filter(|l| !matched.contains(*l))
+        .map(String::as_str)
+        .collect();
+    if !unmatched.is_empty() {
+        messages.push(Message::new("pipeline-rule-unmatched").arg("layers", unmatched.join(", ")));
+    }
+    LayerRules {
+        job: out,
+        added,
+        made: all_made,
+        messages,
+    }
+}

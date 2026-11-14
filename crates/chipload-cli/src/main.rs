@@ -136,6 +136,11 @@ enum Command {
         output: PathBuf,
         #[command(flatten)]
         start: StartArgs,
+        /// Don't apply your styles' layer rules (docs/specs/fewer-clicks.md §4); without
+        /// this, each style with a layer pattern adds its operations for the layers it
+        /// matches.
+        #[arg(long)]
+        no_rules: bool,
     },
     /// Replace a project's imported drawing with a new version of the DXF or SVG.
     Update {
@@ -732,16 +737,29 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             units: u,
             px_per_inch,
         } => inspect(out, &file, units(u), px_per_inch),
-        Command::New { output, start } => {
-            create(out, empty_project(), "New empty project.", &output, &start)
-        }
+        Command::New { output, start } => create(
+            out,
+            empty_project(),
+            "New empty project.",
+            &output,
+            &start,
+            false,
+        ),
         Command::Import {
             dxf,
             units: u,
             px_per_inch,
             output,
             start,
-        } => import(out, &dxf, (units(u), px_per_inch), &output, &start),
+            no_rules,
+        } => import(
+            out,
+            &dxf,
+            (units(u), px_per_inch),
+            &output,
+            &start,
+            !no_rules,
+        ),
         Command::Update {
             project,
             from,
@@ -1056,6 +1074,7 @@ fn import(
     (units, px_per_inch): SizeGiven,
     output: &Path,
     start: &StartArgs,
+    rules: bool,
 ) -> ExitCode {
     let imported = match shapes_from_file(dxf, units, px_per_inch, 1.0) {
         Ok(imported) => imported,
@@ -1066,7 +1085,7 @@ fn import(
         imported.source.file,
         imported.shapes.len()
     );
-    let code = create(out, new_project(imported), &line, output, start);
+    let code = create(out, new_project(imported), &line, output, start, rules);
     if out.json() && code == ExitCode::SUCCESS {
         // The import report as `inspect --json` gives it for the new project.
         if let Ok(result) = load_job(output)
@@ -1081,7 +1100,16 @@ fn import(
 
 /// Write a new project, started from the library and the options (docs/specs/
 /// new-project-dialog.md §5).
-fn create(out: &mut Out, mut job: Job, line: &str, output: &Path, start: &StartArgs) -> ExitCode {
+/// A new project from `job`, started with the library's choices; with `rules`, the
+/// styles' layer rules applied when any style has one (docs/specs/fewer-clicks.md §4).
+fn create(
+    out: &mut Out,
+    mut job: Job,
+    line: &str,
+    output: &Path,
+    start: &StartArgs,
+    rules: bool,
+) -> ExitCode {
     // The library only gives starting values; without a settings folder there is none.
     let library = settings_dir()
         .map(|dir| Library::load(&dir))
@@ -1091,10 +1119,17 @@ fn create(out: &mut Out, mut job: Job, line: &str, output: &Path, start: &StartA
         Ok(notes) => notes,
         Err(err) => return out.fail(err.english()),
     };
+    out.line(line.to_string());
+    let has_rules = library.styles.styles.iter().any(|s| s.layer.is_some());
+    if rules
+        && has_rules
+        && let Err(err) = styles::apply_rules(out, &mut job, &library.styles.styles, &library.tools)
+    {
+        return out.fail(err);
+    }
     if let Err(err) = crate::save_project(out, &job, output) {
         return out.fail(err);
     }
-    out.line(line.to_string());
     for problem in &library.problems {
         out.err(format!("warning: {}", problem.english()));
     }

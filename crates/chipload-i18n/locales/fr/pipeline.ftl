@@ -697,3 +697,9 @@ pipeline-relief-end-mill = l'outil { $tool } n'est pas une fraise droite : le fo
 pipeline-relief-margin = la marge du fond doit être supérieure à 0 et le rayon des coins pas inférieur à 0, reçu { $margin }
 pipeline-relief-sink = la profondeur de départ du relief sous la surface du panneau doit valoir 0 ou plus, reçu { $got }
 pipeline-relief-nothing = rien dont faire le relief
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = style « { $style } » sur le calque { $layer } : { $operations }
+pipeline-rule-skipped = calque { $layer } ignoré pour le style « { $style } » : une opération l’usine déjà
+pipeline-rule-failed = style « { $style } » non appliqué au calque { $layer } : { $reason }
+pipeline-rule-unmatched = aucune règle de calque ne correspond aux calques { $layers }
+pipeline-rule-none = aucun style n’a de règle de calque : donnez d’abord un motif de calque à un style

@@ -154,7 +154,8 @@ fn select<'a>(
     })
 }
 
-fn matches(segment: &Segment, selector: &Selector) -> bool {
+/// Whether `segment` is one `selector` names (a group already resolved to its shapes).
+pub fn matches(segment: &Segment, selector: &Selector) -> bool {
     // A group is resolved to its shapes before selecting (`Selector::resolved`).
     if let Some(from) = selector.source.and_then(Source::shape_from)
         && segment.from != Some(from)

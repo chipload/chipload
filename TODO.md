@@ -87,8 +87,8 @@ to a program you trust. It was about four per operation; with the defaults and s
 0.33 the aim is none beyond choosing a style.
 
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
-   2026-11-14** (chosen for 0.37.0; Ctrl+E like Save, the Q menu and select similar/inside
-   built, see *In main*; next layer rules): a Q menu at the cursor (kinds by letter,
+   2026-11-14** (chosen for 0.37.0; all four parts built, see *In main*; next the walk
+   again, then the pocket finishing pass): a Q menu at the cursor (kinds by letter,
    styles by digit), select similar / select inside, layer rules as styles with a layer
    pattern, Ctrl+E like Save; six decisions. Automatic generation is already on by
    default. What the first look listed:
@@ -307,6 +307,12 @@ Smaller follow-ups noted along the way, not in the order above:
 - **Select similar, select inside** (docs/specs/fewer-clicks.md §3): in the canvas'
   right-click menu (Ctrl adds), and `shape similar` / `shape inside` print shape ids
   (`selection::similar`, `selection::inside`).
+- **Layer rules** (docs/specs/fewer-clicks.md §4): a style can have a layer pattern
+  (`styles.json` `layer`, optional; `*`, `?`, any case); on import (`--no-rules`, one undo
+  step in the window) and on demand (*Operation > Apply layer rules*, `style apply
+  [--dry-run]`) each matching layer gets the style's operations, layers already cut
+  skipped; `style set --layer`, the style form's *Layers* field
+  (`styles::apply_layer_rules`).
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 

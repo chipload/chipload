@@ -60,6 +60,7 @@ chipload import <DXF> [OPTIONS]
 | `--fit <FIT>` | The board fitted round the drawing with this margin (the default, 10 mm) |
 | `--z-zero <Z_ZERO>` | Where Z zero is: the board's top, or the spoilboard. One of: `top`, `spoilboard`. |
 | `--tools <TOOLS>` | Library tools by name, comma-separated, numbered in this order (default: your default tool); "" for none. |
+| `--no-rules` | Don't apply your styles' layer rules (docs/specs/fewer-clicks.md §4); without this, each style with a layer pattern adds its operations for the layers it matches. |
 
 ## `chipload update`
 
@@ -2137,6 +2138,21 @@ chipload style set <NAME> <VALUES>... [OPTIONS]
 | `<NAME>` |  |
 | `<VALUES>` | PATH=VALUE, paths within the style's operation. |
 | `--tool <TOOL>` | Another tool of your library, by name. |
+| `--layer <LAYER>` | A layer rule: the style is used on every layer whose name matches, `*` any run of characters, `?` one, upper or lower case alike (`CUT*`, `DRILL_?`); "" for none (docs/specs/fewer-clicks.md §4) |
+
+### `chipload style apply`
+
+Apply the layer rules to a project: each style with a layer pattern adds its operations for the layers it matches, in the Styles' order, then by layer name. A layer an operation already cuts is skipped, so applying twice adds nothing. `import` does this by itself unless --no-rules
+
+```text
+chipload style apply <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--dry-run` | Say what would be added, write nothing. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload style remove`
 

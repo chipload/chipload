@@ -534,3 +534,9 @@ pipeline-relief-end-mill = инструмент { $tool } — не концев�
 pipeline-relief-margin = поле фона должно быть больше 0, а радиус углов не меньше 0, получено { $margin }
 pipeline-relief-sink = начальная глубина рельефа под поверхностью заготовки должна быть 0 или больше, получено { $got }
 pipeline-relief-nothing = не из чего сделать рельеф
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = стиль «{ $style }» на слое { $layer }: { $operations }
+pipeline-rule-skipped = слой { $layer } пропущен для стиля «{ $style }»: его уже обрабатывает операция
+pipeline-rule-failed = стиль «{ $style }» не применён к слою { $layer }: { $reason }
+pipeline-rule-unmatched = ни одно правило слоёв не подходит к слоям { $layers }
+pipeline-rule-none = ни у одного стиля нет правила слоёв: сначала задайте стилю шаблон слоя

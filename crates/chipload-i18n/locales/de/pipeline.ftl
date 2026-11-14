@@ -692,3 +692,9 @@ pipeline-relief-end-mill = Werkzeug { $tool } ist kein Schaftfräser: Hintergrun
 pipeline-relief-margin = der Rand des Hintergrunds muss größer als 0 sein und der Eckradius nicht unter 0, erhalten { $margin }
 pipeline-relief-sink = die Starttiefe des Reliefs unter der Oberfläche der Platte muss 0 oder mehr sein, erhalten { $got }
 pipeline-relief-nothing = nichts, woraus das Relief entstehen kann
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = Stil „{ $style }“ auf Layer { $layer }: { $operations }
+pipeline-rule-skipped = Layer { $layer } für Stil „{ $style }“ übersprungen: eine Operation bearbeitet ihn schon
+pipeline-rule-failed = Stil „{ $style }“ nicht auf Layer { $layer } angewendet: { $reason }
+pipeline-rule-unmatched = keine Layer-Regel passt auf die Layer { $layers }
+pipeline-rule-none = kein Stil hat eine Layer-Regel: zuerst einem Stil ein Layer-Muster geben

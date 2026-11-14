@@ -697,3 +697,9 @@ pipeline-relief-end-mill = la herramienta { $tool } no es una fresa plana: el fo
 pipeline-relief-margin = el margen del fondo debe ser mayor que 0 y el radio de las esquinas no menor que 0, se obtuvo { $margin }
 pipeline-relief-sink = la profundidad inicial del relieve bajo la superficie del tablero debe ser 0 o más, se obtuvo { $got }
 pipeline-relief-nothing = nada de lo que hacer el relieve
+# Layer rules (docs/specs/fewer-clicks.md §4).
+pipeline-rule-added = estilo «{ $style }» en la capa { $layer }: { $operations }
+pipeline-rule-skipped = capa { $layer } omitida para el estilo «{ $style }»: ya la corta una operación
+pipeline-rule-failed = estilo «{ $style }» no aplicado en la capa { $layer }: { $reason }
+pipeline-rule-unmatched = ninguna regla de capa coincide con las capas { $layers }
+pipeline-rule-none = ningún estilo tiene una regla de capa: da primero un patrón de capa a un estilo
