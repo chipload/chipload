@@ -230,28 +230,61 @@ fn screenshots() {
 /// The README's relief showcase (the user, 2026-11-14): a 3DBenchy relief, simulated, in
 /// 3D (`showcase-relief.png`), and its playback as frames for a GIF (`relief-frames/`).
 /// The project embeds the model (15 MB), so it stays out of the repository: its path comes
-/// from `CHIPLOAD_RELIEF_SHOWCASE`. Run by packaging/docs/relief-showcase.sh.
-/// The playback's frames at `(k / count)^FRAME_EASE` of its time.
-const FRAME_EASE: f64 = 1.6;
-
+/// from `CHIPLOAD_RELIEF_SHOWCASE`. Run by packaging/docs/relief-showcase.sh. The frames are
+/// closer together at the start, where the roughing takes the board down fast, than in the
+/// long finish.
 #[test]
 #[ignore = "writes the README's relief pictures; run by packaging/docs/relief-showcase.sh"]
 fn relief_showcase() {
+    let Ok(project) = std::env::var("CHIPLOAD_RELIEF_SHOWCASE") else {
+        panic!("set CHIPLOAD_RELIEF_SHOWCASE");
+    };
+    playback_showcase(
+        "relief",
+        &PathBuf::from(project),
+        (960.0, 600.0),
+        1.0,
+        1.6,
+        true,
+    );
+}
+
+/// The README's V-carved word (the user, 2026-11-14: a GIF like the relief's): "Workshop"
+/// V-carved with a 25° V-bit, its playback as frames (`text-frames/`). Run by
+/// packaging/docs/text-showcase.sh.
+#[test]
+#[ignore = "writes the README's V-carve frames; run by packaging/docs/text-showcase.sh"]
+fn text_showcase() {
+    let project = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../packaging/docs/showcase-text.chipload");
+    // A taller window, zoomed out a little: the board keeps clear of the navigation bar.
+    playback_showcase("text", &project, (960.0, 760.0), 0.85, 1.0, false);
+}
+
+/// Frames of `project`'s playback in 3D in a `window`-sized window, the tool shown cutting, into
+/// `$CHIPLOAD_SHOTS_OUT/<name>-frames/` (`CHIPLOAD_SHOWCASE_FRAMES` of them, 48 unless set),
+/// zoomed by `zoom` after the fit, at `(k / count)^ease` of its time; with `still`, also `showcase-<name>.png` of the
+/// finished stock in a larger window.
+fn playback_showcase(
+    name: &str,
+    project: &Path,
+    window: (f32, f32),
+    zoom: f64,
+    ease: f64,
+    still: bool,
+) {
     use egui_kittest::Harness;
-    let (Ok(out), Ok(project)) = (
-        std::env::var("CHIPLOAD_SHOTS_OUT"),
-        std::env::var("CHIPLOAD_RELIEF_SHOWCASE"),
-    ) else {
-        panic!("set CHIPLOAD_SHOTS_OUT and CHIPLOAD_RELIEF_SHOWCASE");
+    let Ok(out) = std::env::var("CHIPLOAD_SHOTS_OUT") else {
+        panic!("set CHIPLOAD_SHOTS_OUT");
     };
     let out = PathBuf::from(out);
-    let frames = out.join("relief-frames");
+    let frames = out.join(format!("{name}-frames"));
     std::fs::create_dir_all(&frames).unwrap();
-    let count: usize = std::env::var("CHIPLOAD_RELIEF_FRAMES")
+    let count: usize = std::env::var("CHIPLOAD_SHOWCASE_FRAMES")
         .ok()
         .and_then(|n| n.parse().ok())
         .unwrap_or(48);
-    let empty = temp_dir("relief-showcase-settings");
+    let empty = temp_dir(&format!("{name}-showcase-settings"));
     let open = move |size: (f32, f32), project: PathBuf, settings: PathBuf| {
         Harness::builder()
             .with_size(egui::vec2(size.0, size.1))
@@ -275,16 +308,23 @@ fn relief_showcase() {
                 app
             })
     };
-    let project = PathBuf::from(project);
-    let mut harness = open((1600.0, 950.0), project.clone(), empty.clone());
-    harness.run_steps(10);
-    let image = harness.render().unwrap();
-    image.save(out.join("showcase-relief.png")).unwrap();
-    println!("showcase-relief.png");
-    // The playback, the tool shown cutting: frames closer together at the start, where
-    // the roughing takes the board down fast, than in the long finish.
-    let mut harness = open((960.0, 600.0), project, empty);
+    if still {
+        let mut harness = open((1600.0, 950.0), project.to_path_buf(), empty.clone());
+        harness.run_steps(10);
+        let image = harness.render().unwrap();
+        image
+            .save(out.join(format!("showcase-{name}.png")))
+            .unwrap();
+        println!("showcase-{name}.png");
+    }
+    let mut harness = open(window, project.to_path_buf(), empty);
     harness.run_steps(4);
+    // Zoomed about the middle of what the GIF keeps (packaging/docs/frames-to-gif.py).
+    if zoom != 1.0 {
+        let middle = egui::pos2(window.0 / 2.0, (102.0 + window.1 - 132.0) / 2.0);
+        harness.state_mut().view.zoom_at(middle, zoom);
+        harness.run_steps(2);
+    }
     let total = harness.state().playback.as_ref().map_or(0.0, |p| p.total());
     assert!(
         total > 0.0,
@@ -292,11 +332,11 @@ fn relief_showcase() {
     );
     for k in 0..=count {
         if let Some(playback) = harness.state_mut().playback.as_mut() {
-            playback.set_time(total * math::pow(k as f64 / count as f64, FRAME_EASE));
+            playback.set_time(total * math::pow(k as f64 / count as f64, ease));
         }
         harness.run_steps(3);
         let image = harness.render().unwrap();
         image.save(frames.join(format!("{k:03}.png"))).unwrap();
     }
-    println!("relief-frames/ ({} frames)", count + 1);
+    println!("{name}-frames/ ({} frames)", count + 1);
 }

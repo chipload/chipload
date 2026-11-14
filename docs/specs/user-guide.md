@@ -87,7 +87,8 @@ in 3D with its simulated stock, in a larger window (1600 × 950), the report fol
 outline's form open. Below it the second (`images/showcase-text.png`, added 2026-11-04):
 `packaging/docs/showcase-text.chipload`, "Workshop" in Rochester V-carved with a 25° V-bit,
 in 3D with the panels hidden (P), without toolpath and drawing, so the carved stock fills the
-window. The first's outline is cut through with tabs along X, the stock 20 mm larger all
+window. Since 2026-11-14 the README shows it played back instead, as the Benchy relief is
+(`images/showcase-text.gif`, by `packaging/docs/text-showcase.sh`). The first's outline is cut through with tabs along X, the stock 20 mm larger all
 round.
 
 ## 4. Kept up to date

@@ -37,6 +37,11 @@ publish it.
 
        packaging/docs/relief-showcase.sh path/to/benchy_relief.chipload
 
+   The README's V-carved word (`showcase-text.gif`) comes from
+   `packaging/docs/showcase-text.chipload`; renew it with the relief's:
+
+       packaging/docs/text-showcase.sh
+
    Without the workflow, build and attach it by hand:
 
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip
