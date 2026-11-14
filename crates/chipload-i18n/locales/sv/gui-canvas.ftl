@@ -7,6 +7,10 @@ canvas-turn-axis = ⟲ Vändaxel
 # $id: the contour's number.
 canvas-select-contour = Markera #{ $id }
 canvas-select-layer = Markera lager { $layer }
+canvas-select-similar = Markera liknande
+canvas-select-similar-hover = Cirklar med samma diameter på alla lager, eller former av samma storlek på detta lager. Ctrl: lägg till i markeringen
+canvas-select-inside = Markera inuti
+canvas-select-inside-hover = De slutna formerna inuti denna: en dels fickor och hål. Ctrl: lägg till i markeringen
 canvas-right-click-hint = Högerklicka på en kontur för att markera dess lager.
 
 # Hovering a ring's start marker.

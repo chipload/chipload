@@ -7,6 +7,10 @@ canvas-turn-axis = ⟲ Eje de volteo
 # $id: the contour's number.
 canvas-select-contour = Seleccionar #{ $id }
 canvas-select-layer = Seleccionar capa { $layer }
+canvas-select-similar = Seleccionar similares
+canvas-select-similar-hover = Círculos del mismo diámetro en cualquier capa, o formas del mismo tamaño en esta capa. Ctrl: añadir a la selección
+canvas-select-inside = Seleccionar interior
+canvas-select-inside-hover = Las formas cerradas dentro de esta: cajeados y agujeros de una pieza. Ctrl: añadir a la selección
 canvas-right-click-hint = Haz clic derecho en un contorno para seleccionar su capa.
 
 # Hovering a ring's start marker.

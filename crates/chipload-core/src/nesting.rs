@@ -7,12 +7,23 @@ use crate::Point;
 use crate::math;
 use crate::primitives::distance;
 use crate::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
-use cavalier_contours::polyline::{PlineContainsResult, PlineSource, Polyline};
+use cavalier_contours::polyline::{PlineContainsResult, PlineSource, PlineSourceMut, Polyline};
 
 /// A valid closed contour: its vertices (no repeated end point) and the same as a polyline.
 pub struct Ring {
     pub points: Vec<Point>,
     pub pline: Polyline<f64>,
+}
+
+impl Ring {
+    /// The ring through `points` (a valid closed contour's vertices, no repeated end).
+    pub fn from_points(points: Vec<Point>) -> Ring {
+        let mut pline = Polyline::new_closed();
+        for &(x, y) in &points {
+            pline.add(x, y, 0.0);
+        }
+        Ring { points, pline }
+    }
 }
 
 pub fn contains(outer: &Ring, inner: &Ring) -> bool {

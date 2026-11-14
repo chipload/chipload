@@ -159,3 +159,33 @@ fn menu_picture() {
         .save(PathBuf::from(out).join("quick-menu.png"))
         .unwrap();
 }
+
+#[test]
+fn select_inside_and_similar_replace_or_add_to_the_selection() {
+    let mut app = app_with_library("select-by-kind");
+    select(&mut app, &[1]);
+    // The outline's holes, without it.
+    app.select_inside(1, false);
+    assert_eq!(app.selected_ids(), [2, 3, 4].into());
+    assert_eq!(app.focus, Focus::Selection);
+    // The circle is the only one of its diameter: replaces the selection.
+    let circle = app
+        .contours
+        .iter()
+        .find(|c| {
+            c.parts
+                .iter()
+                .all(|p| matches!(p.segment.prim, chipload_core::primitives::Primitive::Arc(_)))
+        })
+        .unwrap()
+        .id;
+    app.select_similar(circle, false);
+    assert_eq!(app.selected_ids(), [circle].into());
+    // With Ctrl: added.
+    app.select_similar(1, true);
+    assert_eq!(app.selected_ids(), [1, circle].into());
+    // No inside to an open contour or a hole with nothing in it.
+    assert!(app.has_inside(1));
+    app.select_inside(circle, false);
+    assert_eq!(app.selection, CanvasSelection::Nothing);
+}

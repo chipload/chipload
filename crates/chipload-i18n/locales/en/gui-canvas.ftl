@@ -7,6 +7,10 @@ canvas-turn-axis = ⟲ Turn axis
 # $id: the contour's number.
 canvas-select-contour = Select #{ $id }
 canvas-select-layer = Select layer { $layer }
+canvas-select-similar = Select similar
+canvas-select-similar-hover = Circles of the same diameter on any layer, or shapes of the same size on this layer. Ctrl: add to the selection
+canvas-select-inside = Select inside
+canvas-select-inside-hover = The closed shapes inside this one: a part's pockets and holes. Ctrl: add to the selection
 canvas-right-click-hint = Right-click a contour to select its layer.
 
 # Hovering a ring's start marker.

@@ -7,6 +7,10 @@ canvas-turn-axis = ⟲ Axe de retournement
 # $id: the contour's number.
 canvas-select-contour = Sélectionner #{ $id }
 canvas-select-layer = Sélectionner le calque { $layer }
+canvas-select-similar = Sélectionner les semblables
+canvas-select-similar-hover = Cercles de même diamètre sur tout calque, ou formes de même taille sur ce calque. Ctrl : ajouter à la sélection
+canvas-select-inside = Sélectionner l’intérieur
+canvas-select-inside-hover = Les formes fermées à l’intérieur de celle-ci : poches et trous d’une pièce. Ctrl : ajouter à la sélection
 canvas-right-click-hint = Clic droit sur un contour pour sélectionner son calque.
 
 # Hovering a ring's start marker.

@@ -640,6 +640,32 @@ chipload shape library group remove <NAME>
 |---|---|
 | `<NAME>` |  |
 
+### `chipload shape similar`
+
+The shapes like one (docs/specs/fewer-clicks.md §3): for a circle, every circle of the same diameter on any layer; else the shapes of the same kind (closed or open) on the same layer whose boxes are the same size, either way round. Prints their ids, the shape itself included, for `op add … --shapes`
+
+```text
+chipload shape similar <PROJECT> <ID>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The shape id (as `inspect` lists it, without the S) |
+
+### `chipload shape inside`
+
+The closed shapes inside a closed shape, nested ones too, without it (docs/specs/fewer-clicks.md §3): a part's pockets and holes. Prints their ids
+
+```text
+chipload shape inside <PROJECT> <ID>
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<ID>` | The outline's shape id (as `inspect` lists it, without the S) |
+
 ### `chipload shape add`
 
 Add a drawn shape; prints its id

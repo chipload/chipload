@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The Q menu (docs/specs/fewer-clicks.md §2): with shapes selected, Q opens a small menu
-//! at the mouse that adds an operation for the selection by a letter, or applies a style by
-//! a digit. Its letters work only while it is open.
+//! Fewer clicks (docs/specs/fewer-clicks.md): the Q menu (§2): with shapes selected, Q
+//! opens a small menu at the mouse that adds an operation for the selection by a letter, or
+//! applies a style by a digit; its letters work only while it is open. And selecting by
+//! kind (§3): *Select similar* and *Select inside* from the canvas' right-click menu.
 
 use std::collections::BTreeSet;
 
@@ -42,6 +43,34 @@ pub(super) enum QuickChoice {
 }
 
 impl ChiploadApp {
+    /// *Select similar* on contour `id` (docs/specs/fewer-clicks.md §3): replaces the
+    /// selection, or adds to it.
+    pub fn select_similar(&mut self, id: usize, add: bool) {
+        let found = chipload_pipeline::selection::similar(&self.contours, id);
+        self.select_found(found, add);
+    }
+
+    /// *Select inside* on closed contour `id`: the closed shapes within it.
+    pub fn select_inside(&mut self, id: usize, add: bool) {
+        let found = chipload_pipeline::selection::inside(&self.contours, id).unwrap_or_default();
+        self.select_found(found, add);
+    }
+
+    /// Whether contour `id` is closed, so *Select inside* is offered.
+    pub(super) fn has_inside(&self, id: usize) -> bool {
+        self.contours
+            .iter()
+            .any(|c| c.id == id && c.closed && c.invalid_reason.is_none())
+    }
+
+    fn select_found(&mut self, mut found: BTreeSet<usize>, add: bool) {
+        if add {
+            found.extend(self.selected_ids());
+        }
+        self.selection = CanvasSelection::of_contours(&found, &self.contours, &self.twins);
+        self.focus = Focus::Selection;
+    }
+
     /// Q: open the menu at the mouse, or say on the status bar that shapes come first.
     pub(super) fn open_quick_menu(&mut self, ctx: &egui::Context) {
         if self.edit.is_none() {

@@ -22,6 +22,11 @@ outside profile. The same steps follow in the app and on the command line.
    - double-click the outline on the canvas (a single click takes the whole DXF);
    - Ctrl+click adds more;
    - right-click selects a whole layer;
+   - right-click a shape for **Select similar** (every circle of its diameter, on any
+     layer, or every shape of its size on its layer) or **Select inside** (the closed
+     shapes within an outline: a part's pockets and holes). With Ctrl held they add to the
+     selection. On the command line, `chipload shape similar part.chipload 5` and
+     `chipload shape inside part.chipload 1` print the shape ids, for `op add … --shapes`;
    - or click a DXF or one of its layers in the Browser.
 4. **Add an operation:** **Profile**, in the ribbon's OPERATION group.
    - Quicker: press **Q** over the canvas, then **P**. The Q menu opens at the mouse with a

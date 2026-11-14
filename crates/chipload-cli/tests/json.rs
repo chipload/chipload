@@ -162,6 +162,12 @@ fn every_command_prints_one_json_object() {
         "5",
     ]);
     assert_eq!(added["ids"], json!([3]));
+    // The two circles of radius 5 are alike; part.dxf's outline holds its other shapes
+    // (docs/specs/fewer-clicks.md §3).
+    let similar = keys(&["shape", "similar", "empty.chipload", "1"]);
+    assert_eq!(similar["shapes"], json!([1, 2, 3]));
+    let inside = keys(&["shape", "inside", "part.chipload", "1"]);
+    assert_eq!(inside["shapes"], json!([2, 3, 4, 5, 6, 7]));
     let simulated = keys(&["simulate", "rest.chipload", "--no-image"]);
     assert!(simulated["numbers"]["removed_cm3"].as_f64().unwrap() > 1.0);
     assert_eq!(simulated["image"], Value::Null);

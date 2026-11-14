@@ -7,6 +7,10 @@ canvas-turn-axis = ⟲ Wendeachse
 # $id: the contour's number.
 canvas-select-contour = #{ $id } auswählen
 canvas-select-layer = Layer { $layer } auswählen
+canvas-select-similar = Ähnliche auswählen
+canvas-select-similar-hover = Kreise gleichen Durchmessers auf jedem Layer oder gleich große Formen auf diesem Layer. Strg: zur Auswahl hinzufügen
+canvas-select-inside = Innenliegende auswählen
+canvas-select-inside-hover = Die geschlossenen Formen innerhalb dieser: Taschen und Bohrungen eines Teils. Strg: zur Auswahl hinzufügen
 canvas-right-click-hint = Rechtsklick auf eine Kontur wählt ihren Layer.
 
 # Hovering a ring's start marker.

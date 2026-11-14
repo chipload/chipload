@@ -10,6 +10,24 @@ pub(crate) enum ShapeAction {
     /// The shape library: save, insert, list (docs/specs/shape-library.md §7).
     #[command(flatten)]
     Library(shape_library::LibraryCommand),
+    /// The shapes like one (docs/specs/fewer-clicks.md §3): for a circle, every circle of
+    /// the same diameter on any layer; else the shapes of the same kind (closed or open) on
+    /// the same layer whose boxes are the same size, either way round. Prints their ids,
+    /// the shape itself included, for `op add … --shapes`.
+    Similar {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape id (as `inspect` lists it, without the S).
+        id: u64,
+    },
+    /// The closed shapes inside a closed shape, nested ones too, without it
+    /// (docs/specs/fewer-clicks.md §3): a part's pockets and holes. Prints their ids.
+    Inside {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The outline's shape id (as `inspect` lists it, without the S).
+        id: u64,
+    },
     /// Add a drawn shape; prints its id.
     Add {
         /// The project (.chipload).
@@ -532,14 +550,53 @@ pub(crate) fn about_point(
     }
 }
 
+/// `shape similar` and `shape inside`: the ids of the shapes like shape `id`, or inside it.
+fn select_by_kind(out: &mut Out, project: &Path, id: u64, inside: bool) -> ExitCode {
+    use chipload_pipeline::selection;
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let contours = match load_drawing(&job) {
+        Ok(drawing) => drawing.contours,
+        Err(err) => return out.fail(err),
+    };
+    let Some(contour) = selection::contour_of_shape(&contours, id) else {
+        return out.fail(format!("there is no shape S{id} in the drawing"));
+    };
+    let found = if inside {
+        match selection::inside(&contours, contour) {
+            Some(found) => found,
+            None => return out.fail(format!("S{id} is not a closed shape: it has no inside")),
+        }
+    } else {
+        selection::similar(&contours, contour)
+    };
+    let shapes: Vec<u64> = selection::shapes_of(&contours, &found)
+        .into_iter()
+        .collect();
+    let list: Vec<String> = shapes.iter().map(u64::to_string).collect();
+    out.set("shapes", json!(shapes));
+    if list.is_empty() {
+        out.line(format!("Nothing inside S{id}."));
+    } else {
+        out.line(list.join(","));
+    }
+    ExitCode::SUCCESS
+}
+
 pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     let action = match action {
         ShapeAction::Library(command) => return shape_library::run(out, command),
+        ShapeAction::Similar { project, id } => return select_by_kind(out, &project, id, false),
+        ShapeAction::Inside { project, id } => return select_by_kind(out, &project, id, true),
         other => other,
     };
     let (project, output) = match &action {
         // Answered above.
-        ShapeAction::Library(_) => return ExitCode::FAILURE,
+        ShapeAction::Library(_) | ShapeAction::Similar { .. } | ShapeAction::Inside { .. } => {
+            return ExitCode::FAILURE;
+        }
         ShapeAction::Add {
             project, output, ..
         }
@@ -617,7 +674,9 @@ pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
     // What `shape join` joined and removed.
     let mut joined: Option<(Vec<u64>, Vec<u64>)> = None;
     let changed = match action {
-        ShapeAction::Library(_) => return ExitCode::FAILURE,
+        ShapeAction::Library(_) | ShapeAction::Similar { .. } | ShapeAction::Inside { .. } => {
+            return ExitCode::FAILURE;
+        }
         ShapeAction::Add { kind, values, .. } => new_geometry(kind, &values)
             .map_err(|e| PipelineError::Job(foreign_text(e)))
             .and_then(|geometry| {

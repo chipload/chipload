@@ -7,6 +7,10 @@ canvas-turn-axis = ⟲ Asse di capovolgimento
 # $id: the contour's number.
 canvas-select-contour = Seleziona #{ $id }
 canvas-select-layer = Seleziona layer { $layer }
+canvas-select-similar = Seleziona simili
+canvas-select-similar-hover = Cerchi dello stesso diametro su qualsiasi layer, o forme della stessa misura su questo layer. Ctrl: aggiungi alla selezione
+canvas-select-inside = Seleziona interne
+canvas-select-inside-hover = Le forme chiuse dentro questa: tasche e fori di un pezzo. Ctrl: aggiungi alla selezione
 canvas-right-click-hint = Clic destro su un contorno per selezionarne il layer.
 
 # Hovering a ring's start marker.

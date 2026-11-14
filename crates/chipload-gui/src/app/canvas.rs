@@ -717,6 +717,25 @@ impl ChiploadApp {
                                 ui.close();
                             }
                         }
+                        // Selecting by kind (docs/specs/fewer-clicks.md §3).
+                        let add = ui.input(|i| i.modifiers.command);
+                        if ui
+                            .button(t!(ui, "canvas-select-similar"))
+                            .on_hover_text(t!(ui, "canvas-select-similar-hover"))
+                            .clicked()
+                        {
+                            self.select_similar(id, add);
+                            ui.close();
+                        }
+                        if self.has_inside(id)
+                            && ui
+                                .button(t!(ui, "canvas-select-inside"))
+                                .on_hover_text(t!(ui, "canvas-select-inside-hover"))
+                                .clicked()
+                        {
+                            self.select_inside(id, add);
+                            ui.close();
+                        }
                     }
                     (None, None) => {
                         ui.label(t!(ui, "canvas-right-click-hint"));

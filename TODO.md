@@ -87,8 +87,8 @@ to a program you trust. It was about four per operation; with the defaults and s
 0.33 the aim is none beyond choosing a style.
 
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
-   2026-11-14** (chosen for 0.37.0; Ctrl+E like Save and the Q menu built, see *In main*;
-   next select similar/inside, then layer rules): a Q menu at the cursor (kinds by letter,
+   2026-11-14** (chosen for 0.37.0; Ctrl+E like Save, the Q menu and select similar/inside
+   built, see *In main*; next layer rules): a Q menu at the cursor (kinds by letter,
    styles by digit), select similar / select inside, layer rules as styles with a layer
    pattern, Ctrl+E like Save; six decisions. Automatic generation is already on by
    default. What the first look listed:
@@ -304,6 +304,9 @@ Smaller follow-ups noted along the way, not in the order above:
   mouse: P profile, K pocket, H holes, V V-carve, F follow path, digits 1-9 the styles in
   list order; kinds the selection can't take greyed with the reason
   (`selection::unfit_for`); its letters only while it is open.
+- **Select similar, select inside** (docs/specs/fewer-clicks.md §3): in the canvas'
+  right-click menu (Ctrl adds), and `shape similar` / `shape inside` print shape ids
+  (`selection::similar`, `selection::inside`).
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 
