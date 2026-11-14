@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } materiales
 } en tu biblioteca.
-materials-about = Un material es un nombre que eliges para una operación, bajo su herramienta, o para toda una sujeción, en sus propiedades. Sus valores están en los datos de corte de cada herramienta (Este equipo > Herramientas): rellénalos allí, o con Guardar en … bajo una operación que cortó bien.
+materials-about = Un material es un nombre que eliges para una operación, bajo su herramienta, o para toda una sujeción, en sus propiedades. Sus valores están en los datos de corte de cada herramienta (Biblioteca > Herramientas): rellénalos allí, o con Guardar en … bajo una operación que cortó bien.
 materials-gone = Este material ya no está en tu biblioteca.
 materials-entry-about = Una operación con este material corta con los valores de su herramienta para él, de los datos de corte de la herramienta.
 materials-name = Nombre

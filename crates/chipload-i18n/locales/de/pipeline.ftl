@@ -416,7 +416,7 @@ pipeline-post-no-settings = kein Einstellungsordner, also kein Postprozessor „
 pipeline-post-no-folder = Kein Postprozessor „{ $name }“: er ist nicht eingebaut, und es gibt keinen Ordner posts
 # Why a project's copy of a user post can't be compared with its file.
 pipeline-post-no-posts-folder = kein Ordner posts
-# What a post-processor is, one line each (Settings, This computer). $name, $extension,
+# What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Name: { $name }
 pipeline-post-builtin = Eingebaut

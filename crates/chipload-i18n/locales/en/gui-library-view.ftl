@@ -6,9 +6,9 @@ library-view-new-machine = New machine
 library-view-import = Import…
 library-view-export = Export…
 
-# The Browser's root for what is kept on this computer, not in the project.
-library-view-this-computer = This computer
-library-view-this-computer-hover = Your preferences, tools, machines and post-processors, kept on this computer for every project. A project keeps copies of what it uses, so it cuts the same in a year and on another computer.
+# The Browser's Library: what is kept on this computer, not in the project.
+library-view-this-computer = Library
+library-view-this-computer-hover = Your tools, machines, materials, styles and post-processors, kept on this computer for every project. A project keeps copies of what it uses, so it cuts the same in a year and on another computer.
 library-view-preferences = Preferences
 library-view-preferences-hover = The setup sheet, updating the toolpath automatically, the colour theme
 library-view-no-settings-folder = No settings folder
@@ -36,7 +36,7 @@ library-view-revert-hover = Drop the changes
 library-view-not-saved = not saved
 
 library-view-tool-library = Tool library
-library-view-tool-library-about = A project keeps a copy of each tool it uses. Click a tool under This computer to edit it; drag it onto the project's Tools, or right-click it, to use it.
+library-view-tool-library-about = A project keeps a copy of each tool it uses. Click a tool under Library to edit it; drag it onto the project's Tools, or right-click it, to use it.
 library-view-machines-about = A project keeps a copy of its machine's values. Right-click a profile to use it in this project; the default is what new projects start with.
 library-view-tool-count = { $count ->
     [one] { $count } tool

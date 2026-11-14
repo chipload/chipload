@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Styles in the window (docs/specs/styles.md §3): *Save as style…* on an operation, a
 //! style applied to the canvas selection from the ribbon, the canvas' right-click menu or
-//! the style's own menu, and the Styles folder under *This computer* with a form per style.
+//! the style's own menu, and the Styles folder under *Library* with a form per style.
 
 use std::collections::BTreeMap;
 

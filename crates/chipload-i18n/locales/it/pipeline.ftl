@@ -418,7 +418,7 @@ pipeline-post-no-settings = nessuna cartella impostazioni, quindi nessun post "{
 pipeline-post-no-folder = Nessun post-processore "{ $name }": non è integrato e non c'è una cartella posts
 # Why a project's copy of a user post can't be compared with its file.
 pipeline-post-no-posts-folder = nessuna cartella posts
-# What a post-processor is, one line each (Settings, This computer). $name, $extension,
+# What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Nome: { $name }
 pipeline-post-builtin = Integrato

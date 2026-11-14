@@ -18,7 +18,7 @@ user-library-save-as-new-hover = Guardar estos valores en tu biblioteca con otro
 user-library-update-from-library = Actualizar desde la biblioteca
 user-library-update-from-library-hover = Copiar los valores de la biblioteca al proyecto (se deshace con Ctrl+Z)
 user-library-show-in-library = Mostrar en la biblioteca
-user-library-show-in-library-hover = Abrirla en Este equipo en el Navegador
+user-library-show-in-library-hover = Abrirla en Biblioteca en el Navegador
 # $var is the name of an environment variable.
 user-library-no-settings-folder-set = No se encontró la carpeta de ajustes; define { $var }
 user-library-no-settings-folder-use = No se encontró la carpeta de ajustes; define { $var } para usar una biblioteca.

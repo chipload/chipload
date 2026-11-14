@@ -24,5 +24,5 @@ new-project-tools-count = { $count ->
     [one] 1 verktyg: { $list }
    *[other] { $count } verktyg: { $list }
 }
-new-project-no-library-tools = Verktygsbiblioteket är tomt: projektet börjar med en 6 mm pinnfräs. Lägg till dina verktyg under Den här datorn > Verktyg.
+new-project-no-library-tools = Verktygsbiblioteket är tomt: projektet börjar med en 6 mm pinnfräs. Lägg till dina verktyg under Bibliotek > Verktyg.
 new-project-create = Skapa

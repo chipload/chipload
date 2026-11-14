@@ -7,8 +7,8 @@ library-view-import = Importieren…
 library-view-export = Exportieren…
 
 # The Browser's root for what is kept on this computer, not in the project.
-library-view-this-computer = Dieser Computer
-library-view-this-computer-hover = Ihre Einstellungen, Werkzeuge, Maschinen und Postprozessoren, auf diesem Computer für jedes Projekt gespeichert. Ein Projekt behält Kopien von allem, was es verwendet, damit es in einem Jahr und auf einem anderen Computer gleich fräst.
+library-view-this-computer = Bibliothek
+library-view-this-computer-hover = Ihre Werkzeuge, Maschinen, Materialien, Stile und Postprozessoren, auf diesem Computer für jedes Projekt gespeichert. Ein Projekt behält Kopien dessen, was es verwendet, und schneidet daher in einem Jahr und auf einem anderen Computer gleich.
 library-view-preferences = Einstellungen
 library-view-preferences-hover = Das Einrichteblatt, das automatische Aktualisieren des Werkzeugwegs, das Farbschema
 library-view-no-settings-folder = Kein Einstellungsordner
@@ -36,7 +36,7 @@ library-view-revert-hover = Die Änderungen verwerfen
 library-view-not-saved = nicht gespeichert
 
 library-view-tool-library = Werkzeugbibliothek
-library-view-tool-library-about = Ein Projekt behält eine Kopie jedes Werkzeugs, das es verwendet. Klicken Sie auf ein Werkzeug unter Dieser Computer, um es zu bearbeiten; ziehen Sie es auf die Werkzeuge des Projekts oder klicken Sie mit rechts darauf, um es zu verwenden.
+library-view-tool-library-about = Ein Projekt behält eine Kopie jedes Werkzeugs, das es verwendet. Klicken Sie auf ein Werkzeug unter Bibliothek, um es zu bearbeiten; ziehen Sie es auf die Werkzeuge des Projekts oder klicken Sie mit rechts darauf, um es zu verwenden.
 library-view-machines-about = Ein Projekt behält eine Kopie der Werte seiner Maschine. Rechtsklick auf ein Profil verwendet es in diesem Projekt; der Standard ist das, womit neue Projekte beginnen.
 library-view-tool-count = { $count ->
     [one] { $count } Werkzeug

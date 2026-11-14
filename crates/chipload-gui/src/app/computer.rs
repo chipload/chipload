@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! "This computer" in the Browser, beside the library (docs/specs/this-computer.md):
+//! The Browser's Library and Preferences (docs/specs/this-computer.md; *This computer* until
+//! 2026-11-14):
 //! Preferences, and the post-processors with what each writes.
 
 use chipload_job::Units;

@@ -24,5 +24,5 @@ new-project-tools-count = { $count ->
     [one] 1 utensile: { $list }
    *[other] { $count } utensili: { $list }
 }
-new-project-no-library-tools = La libreria utensili è vuota: il progetto parte con una fresa da 6 mm. Aggiungi i tuoi utensili in Questo computer > Utensili.
+new-project-no-library-tools = La libreria utensili è vuota: il progetto parte con una fresa da 6 mm. Aggiungi i tuoi utensili in Libreria > Utensili.
 new-project-create = Crea

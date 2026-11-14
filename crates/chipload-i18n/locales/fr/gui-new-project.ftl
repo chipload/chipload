@@ -24,5 +24,5 @@ new-project-tools-count = { $count ->
     [one] 1 outil : { $list }
    *[other] { $count } outils : { $list }
 }
-new-project-no-library-tools = Votre bibliothèque d'outils est vide : le projet commence avec une fraise de 6 mm. Ajoutez vos outils sous Cet ordinateur > Outils.
+new-project-no-library-tools = Votre bibliothèque d'outils est vide : le projet commence avec une fraise de 6 mm. Ajoutez vos outils sous Bibliothèque > Outils.
 new-project-create = Créer

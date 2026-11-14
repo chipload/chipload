@@ -14,14 +14,14 @@ A material is about feeds only: choosing one never changes the stock or any dept
 
 ## Making one
 
-*This computer > Materials > New material*, then name it. Its page lists the tools with
+*Library > Materials > New material*, then name it. Its page lists the tools with
 values for it; click one to open its cutting data. To give it values:
 - **From a job that cut well:** choose the material in an operation's **Material** list,
   under its tool. Cut, and adjust the operation's feeds or step down until they're right.
   Its **Material** row then says *Changed from Plywood*: click **Save to Plywood**. The values
   the operation uses go into its tool's Plywood row (a profile its slot values, a pocket
   both); the row's others stay. A tool without a Plywood row gets one.
-- **By hand:** open the tool (*This computer > Tools*), and under **Cutting data**, *Add a
+- **By hand:** open the tool (*Library > Tools*), and under **Cutting data**, *Add a
   material…*.
 
 The tool must be in your tool library: the values belong to that library tool, so every
@@ -51,7 +51,7 @@ the default machine and tool; the report says so.
 (tick it in the material's form, or `chipload material set Plywood --thickness 18`, 0 to
 clear). The [new project dialog](../drawings/import.md#the-new-project-dialog) fills it in
 when the material is chosen. Choosing a material for a project never changes its board.
-For materials without one, *New projects: stock thickness* on *This computer > Materials*
+For materials without one, *New projects: stock thickness* on *Library > Materials*
 gives the thickness (`chipload material thickness 18`, `--none` for the built-in 10 mm).
 
 **Changing an operation's tool** takes the new tool's values for its material, when it has

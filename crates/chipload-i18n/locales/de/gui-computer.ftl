@@ -1,4 +1,4 @@
-# "This computer" in the Browser: Preferences and post-processors (crates/chipload-gui/src/app/computer.rs).
+# "Library" in the Browser: Preferences and post-processors (crates/chipload-gui/src/app/computer.rs).
 
 computer-posts = Postprozessoren
 computer-posts-hover = Was Werkzeugwege in G-Code für Ihre Maschine umsetzt: eingebaute und Ihre eigenen

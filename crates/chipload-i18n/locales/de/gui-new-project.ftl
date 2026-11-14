@@ -24,5 +24,5 @@ new-project-tools-count = { $count ->
     [one] 1 Werkzeug: { $list }
    *[other] { $count } Werkzeuge: { $list }
 }
-new-project-no-library-tools = Die Werkzeugbibliothek ist leer: das Projekt beginnt mit einem 6-mm-Schaftfräser. Werkzeuge unter Dieser Computer > Werkzeuge hinzufügen.
+new-project-no-library-tools = Die Werkzeugbibliothek ist leer: das Projekt beginnt mit einem 6-mm-Schaftfräser. Werkzeuge unter Bibliothek > Werkzeuge hinzufügen.
 new-project-create = Erstellen

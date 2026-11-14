@@ -7,8 +7,8 @@ library-view-import = Importera…
 library-view-export = Exportera…
 
 # The Browser's root for what is kept on this computer, not in the project.
-library-view-this-computer = Den här datorn
-library-view-this-computer-hover = Dina inställningar, verktyg, maskiner och postprocessorer, sparade på den här datorn för alla projekt. Ett projekt behåller kopior av det det använder, så det fräses likadant om ett år och på en annan dator.
+library-view-this-computer = Bibliotek
+library-view-this-computer-hover = Dina verktyg, maskiner, material, stilar och postprocessorer, sparade på den här datorn för alla projekt. Ett projekt behåller kopior av det det använder, så det skär likadant om ett år och på en annan dator.
 library-view-preferences = Inställningar
 library-view-preferences-hover = Uppsättningsbladet, automatisk uppdatering av verktygsbanan, färgtemat
 library-view-no-settings-folder = Ingen inställningsmapp
@@ -36,7 +36,7 @@ library-view-revert-hover = Kasta ändringarna
 library-view-not-saved = inte sparat
 
 library-view-tool-library = Verktygsbibliotek
-library-view-tool-library-about = Ett projekt behåller en kopia av varje verktyg det använder. Klicka på ett verktyg under Den här datorn för att redigera det; dra det till projektets Verktyg, eller högerklicka på det, för att använda det.
+library-view-tool-library-about = Ett projekt behåller en kopia av varje verktyg det använder. Klicka på ett verktyg under Bibliotek för att redigera det; dra det till projektets Verktyg, eller högerklicka på det, för att använda det.
 library-view-machines-about = Ett projekt behåller en kopia av maskinens värden. Högerklicka på en profil för att använda den i detta projekt; standardprofilen är den som nya projekt startar med.
 library-view-tool-count = { $count ->
     [one] { $count } verktyg

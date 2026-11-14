@@ -165,4 +165,4 @@ menu-bar-wizards = Guider
 menu-bar-library = Bibliotek
 menu-bar-help = Hjälp
 menu-preferences = Inställningar…
-menu-preferences-hover = Den här datorn > Inställningar i Bläddraren: enheter, språk, färgtema, riggblad, uppdatera automatiskt
+menu-preferences-hover = Inställningar i Bläddraren, under Biblioteket: enheter, språk, färgtema, riggblad, uppdatera automatiskt

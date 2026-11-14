@@ -70,11 +70,9 @@ fn folder_menu(ui: &mut egui::Ui, kind: LibraryKind, act: &mut Option<Act>) {
 }
 
 impl ChiploadApp {
-    /// The "This computer" root of the Browser (docs/specs/this-computer.md §2).
+    /// The Library root of the Browser (docs/specs/this-computer.md §2, named *This computer*
+    /// until 2026-11-14), and Preferences below it.
     pub(super) fn library_tree(&mut self, ui: &mut egui::Ui) {
-        if std::mem::take(&mut self.user.library_state.reveal_computer) {
-            ui.data_mut(|d| d.insert_persisted(Id::new(ROOT).with("folder-open"), true));
-        }
         if let Some(kind) = self.user.library_state.reveal.take() {
             let sub = match kind {
                 LibraryKind::Tools => TOOLS,
@@ -91,13 +89,15 @@ impl ChiploadApp {
         let (open, out) = folder(ui, root, false);
         out.response
             .on_hover_text(t!(ui, "library-view-this-computer-hover"));
-        if !open {
-            return;
-        }
         let mut act = None;
+        if open {
+            self.library_rows(ui, &mut act);
+        }
+        // Preferences are not part of the library: a row of their own below it (the user,
+        // 2026-11-14).
         let preferences = Row::new(
             Id::new(ROOT).with("preferences"),
-            1,
+            0,
             t!(ui, "library-view-preferences"),
         )
         .icon(Icon::Settings)
@@ -110,6 +110,13 @@ impl ChiploadApp {
         {
             act = Some(Act::Focus(Focus::Preferences));
         }
+        if let Some(act) = act {
+            self.library_act(act);
+        }
+    }
+
+    /// The Library folder's contents: tools, machines, materials, styles and posts.
+    fn library_rows(&mut self, ui: &mut egui::Ui, act: &mut Option<Act>) {
         if self.user.settings_dir.is_none() {
             Row::new(
                 Id::new(ROOT).with("none"),
@@ -125,16 +132,13 @@ impl ChiploadApp {
                 var = chipload_pipeline::library::CONFIG_DIR_VAR
             ));
         } else {
-            self.library_tool_rows(ui, &mut act);
-            self.library_machine_rows(ui, &mut act);
+            self.library_tool_rows(ui, act);
+            self.library_machine_rows(ui, act);
             self.library_material_rows(ui);
             self.library_style_rows(ui);
         }
         if let Some(focus) = self.post_rows(ui) {
-            act = Some(Act::Focus(focus));
-        }
-        if let Some(act) = act {
-            self.library_act(act);
+            *act = Some(Act::Focus(focus));
         }
     }
 

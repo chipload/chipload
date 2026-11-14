@@ -421,7 +421,7 @@ pipeline-post-no-settings = no hay carpeta de ajustes, así que no hay postproce
 pipeline-post-no-folder = No existe el postprocesador "{ $name }": no está incluido y no hay carpeta posts
 # Why a project's copy of a user post can't be compared with its file.
 pipeline-post-no-posts-folder = no hay carpeta posts
-# What a post-processor is, one line each (Settings, This computer). $name, $extension,
+# What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Nombre: { $name }
 pipeline-post-builtin = Incluido

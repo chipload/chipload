@@ -413,7 +413,7 @@ pipeline-post-no-settings = ingen inställningsmapp, alltså ingen postprocessor
 pipeline-post-no-folder = Ingen postprocessor "{ $name }": den är inte inbyggd, och det finns ingen posts-mapp
 # Why a project's copy of a user post can't be compared with its file.
 pipeline-post-no-posts-folder = ingen posts-mapp
-# What a post-processor is, one line each (Settings, This computer). $name, $extension,
+# What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Namn: { $name }
 pipeline-post-builtin = Inbyggd

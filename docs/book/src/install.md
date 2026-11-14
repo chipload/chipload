@@ -95,7 +95,7 @@ browser) or **Skip this version**. The same is under **Help**. Chipload never do
 installs anything by itself: download the new version as you did this one.
 
 **Help > Check for new versions now** checks at once, also with the daily check off, and
-says what it found. Change your answer in *This computer > Preferences > New versions*.
+says what it found. Change your answer in *Preferences > New versions*.
 Behind a proxy, set `HTTPS_PROXY`.
 
 ## Your settings

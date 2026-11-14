@@ -410,7 +410,7 @@ pipeline-post-no-settings = no settings folder, so no post "{ $name }"
 pipeline-post-no-folder = No post-processor "{ $name }": it isn't built in, and there is no posts folder
 # Why a project's copy of a user post can't be compared with its file.
 pipeline-post-no-posts-folder = no posts folder
-# What a post-processor is, one line each (Settings, This computer). $name, $extension,
+# What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Name: { $name }
 pipeline-post-builtin = Built in

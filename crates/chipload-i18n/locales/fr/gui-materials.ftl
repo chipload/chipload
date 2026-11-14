@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } matériau
    *[other] { $count } matériaux
 } dans votre bibliothèque.
-materials-about = Un matériau est un nom à choisir pour une opération, sous son outil, ou pour toute une mise en position, dans ses propriétés. Ses valeurs sont dans les données de coupe de chaque outil (Cet ordinateur > Outils) : remplissez-les là, ou avec Enregistrer dans … sous une opération qui a bien coupé.
+materials-about = Un matériau est un nom à choisir pour une opération, sous son outil, ou pour toute une mise en position, dans ses propriétés. Ses valeurs sont dans les données de coupe de chaque outil (Bibliothèque > Outils) : remplissez-les là, ou avec Enregistrer dans … sous une opération qui a bien coupé.
 materials-gone = Ce matériau n'est plus dans votre bibliothèque.
 materials-entry-about = Une opération avec ce matériau coupe avec les valeurs de son outil pour lui, tirées des données de coupe de l'outil.
 materials-name = Nom

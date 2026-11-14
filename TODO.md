@@ -313,6 +313,9 @@ Smaller follow-ups noted along the way, not in the order above:
   [--dry-run]`) each matching layer gets the style's operations, layers already cut
   skipped; `style set --layer`, the style form's *Layers* field
   (`styles::apply_layer_rules`).
+- **The Browser's root is *Library* again** (the user, 2026-11-14): what it holds is the
+  library; **Preferences** is a row of its own below it. Texts in every language, the guide
+  and its screenshots follow (docs/specs/this-computer.md, note at the top).
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 

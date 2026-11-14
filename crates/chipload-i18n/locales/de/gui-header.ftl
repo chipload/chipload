@@ -75,7 +75,7 @@ header-new-relief = Neues Relief
 # LIBRARY
 header-machines = Maschinen
 header-library = Bibliothek
-header-library-hover = Ihre Werkzeuge und Maschinen, unter Dieser Computer im Browser
+header-library-hover = Ihre Werkzeuge und Maschinen, unter Bibliothek im Browser
 header-relief = Relief
 header-relief-hover = Ein Relief aus einem 3D-Modell in einem Schritt: gedreht, geschnitten, skaliert, geschruppt, mit Hintergrund oder Ausschnitt
 header-tool-library = Werkzeugbibliothek

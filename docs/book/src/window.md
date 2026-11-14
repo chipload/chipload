@@ -24,7 +24,7 @@ Under it, the **ribbon** groups the buttons:
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
 | OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected [3D model](drawings/models.md), or the first) and Style (one of your [styles](library/styles.md), for the selected shapes) | New Relief, *Apply style ▸*, Generate |
 | WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window); Inlay…: [a V-carve inlay](operations/vcarve.md) of the selected shapes; Relief: [a whole relief in one step](drawings/models.md#a-relief-in-one-step) | New sign…, Two-sided…, New inlay…, Relief… |
-| LIBRARY | Library: opens *This computer* in the Browser, with your tools and machines | Tool library, Machines |
+| LIBRARY | Library: opens the *Library* in the Browser, with your tools and machines | Tool library, Machines |
 
 The *View* menu has fit, top and 3D view, Z scale, reverse left-right orbit, what is shown,
 the legend, the panels (open, hide, reset) and update automatically; **Measure** is on the
@@ -37,7 +37,7 @@ alone; hover over one for its name. Narrower still, the groups scroll sideways.
 
 Each group has the menu of its name in the top bar. Two menus have no group: **Edit**
 (undo, redo; copy, paste, mirror, join, delete and group the selected shapes, copy as
-selector; **Preferences…**, which opens *This computer > Preferences* in the Browser:
+selector; **Preferences…**, which opens *Preferences* in the Browser:
 units, language, colour theme, the setup sheet) and **Help** (the user guide, keyboard
 shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.
 
@@ -49,17 +49,17 @@ post-processor and the units.
 
 The **Browser** on the left holds your library and the whole project as a tree:
 
-- **This computer**, at the top and folded at the start: what is kept on this computer for
+- **Library**, at the top and folded at the start: what is kept on this computer for
   every project. It is there also with no project open.
-  - **Preferences:** the [setup sheet](checking/sheet.md), updating the toolpath by
-    itself, the [units](concepts/units.md#mm-or-inches-on-screen), the colour theme and
-    checking for [new versions](install.md#new-versions).
   - **Tools** and **Machines:** your [tool library](library/tools.md) and [machine
     profiles](library/machines.md).
   - **Materials** and **Styles:** your [materials](library/materials.md) and
     [styles](library/styles.md), operations saved by name.
   - **Post-processors:** the built-in ones and [yours](posts.md#your-own-post); click one
     for what it writes, and *Use in this project*.
+- **Preferences**, below the Library: the [setup sheet](checking/sheet.md), updating the
+  toolpath by itself, the [units](concepts/units.md#mm-or-inches-on-screen), the language,
+  the colour theme and checking for [new versions](install.md#new-versions).
 - **The project**, named after its file.
   - **Machine:** the post-processor, G-code units, safe Z, travel and tool changes, shown
     on the right when clicked. A red dot means one of them has a problem.
@@ -106,7 +106,7 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
     setup*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
-    *Use in this project*, *Make default*, *Delete*. **This computer > Tools or Machines:** *New*,
+    *Use in this project*, *Make default*, *Delete*. **Library > Tools or Machines:** *New*,
     *Import…*, *Export…*.
 - **Del** deletes what Properties shows: an operation or a rest pass picked in the
   Browser, a text opened there, a project tool nothing cuts with, a library tool, machine

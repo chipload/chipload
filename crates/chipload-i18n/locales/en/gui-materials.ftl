@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } materials
 } in your library.
-materials-about = A material is a name to choose for an operation, under its tool, or for a whole setup, in its properties. Its values are in each tool's cutting data (This computer > Tools): fill them in there, or with Save to … under an operation that cut well.
+materials-about = A material is a name to choose for an operation, under its tool, or for a whole setup, in its properties. Its values are in each tool's cutting data (Library > Tools): fill them in there, or with Save to … under an operation that cut well.
 materials-gone = This material is no longer in your library.
 materials-entry-about = An operation with this material cuts with its tool's values for it, from the tool's cutting data.
 materials-name = Name

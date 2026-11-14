@@ -421,7 +421,7 @@ pipeline-post-no-settings = pas de dossier des réglages, donc pas de post-proce
 pipeline-post-no-folder = Pas de post-processeur "{ $name }" : il n'est pas intégré, et il n'y a pas de dossier posts
 # Why a project's copy of a user post can't be compared with its file.
 pipeline-post-no-posts-folder = pas de dossier posts
-# What a post-processor is, one line each (Settings, This computer). $name, $extension,
+# What a post-processor is, one line each (Settings, Library). $name, $extension,
 # the paths and the units (mm, inch) and modes (files, program) are written as in its file.
 pipeline-post-name = Nom : { $name }
 pipeline-post-builtin = Intégré

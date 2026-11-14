@@ -52,12 +52,16 @@ fn harness(language: &str, size: egui::Vec2) -> Harness<'static, ChiploadApp> {
     app_harness(Harness::builder().with_size(size), language)
 }
 
-/// A widget's rectangle by its label: the lowest one with it (the ribbon's *Library*, not
-/// the menu bar's).
+/// The ribbon's bottom edge, at most: what lies below is the Browser and the canvas.
+const RIBBON_BOTTOM: f32 = 100.0;
+
+/// A widget's rectangle in the top bars by its label: the lowest one with it (the ribbon's
+/// *Library*, not the menu bar's, nor the Browser's Library folder below them).
 fn rect_of(harness: &Harness<'_, ChiploadApp>, label: &str) -> egui::Rect {
     harness
         .get_all_by_label(label)
         .map(|node| node.rect())
+        .filter(|rect| rect.top() < RIBBON_BOTTOM)
         .max_by(|a, b| a.top().total_cmp(&b.top()))
         .unwrap_or_else(|| panic!("no {label:?}"))
 }

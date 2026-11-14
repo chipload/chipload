@@ -24,5 +24,5 @@ new-project-tools-count = { $count ->
     [one] 1 herramienta: { $list }
    *[other] { $count } herramientas: { $list }
 }
-new-project-no-library-tools = Tu biblioteca de herramientas está vacía: el proyecto empieza con una fresa de 6 mm. Añade tus herramientas en Este equipo > Herramientas.
+new-project-no-library-tools = Tu biblioteca de herramientas está vacía: el proyecto empieza con una fresa de 6 mm. Añade tus herramientas en Biblioteca > Herramientas.
 new-project-create = Crear

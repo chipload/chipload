@@ -168,4 +168,4 @@ menu-bar-wizards = Wizards
 menu-bar-library = Library
 menu-bar-help = Help
 menu-preferences = Preferences…
-menu-preferences-hover = This computer > Preferences in the Browser: units, language, colour theme, the setup sheet, updating automatically
+menu-preferences-hover = Preferences in the Browser, below the Library: units, language, colour theme, the setup sheet, updating automatically

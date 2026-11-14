@@ -18,7 +18,7 @@ user-library-save-as-new-hover = Spara dessa värden i ditt bibliotek under ett 
 user-library-update-from-library = Uppdatera från biblioteket
 user-library-update-from-library-hover = Kopiera bibliotekets värden till projektet (ångra med Ctrl+Z)
 user-library-show-in-library = Visa i biblioteket
-user-library-show-in-library-hover = Öppna det under Den här datorn i bläddraren
+user-library-show-in-library-hover = Öppna det under Bibliotek i bläddraren
 # $var is the name of an environment variable.
 user-library-no-settings-folder-set = Ingen inställningsmapp hittades; sätt { $var }
 user-library-no-settings-folder-use = Ingen inställningsmapp hittades; sätt { $var } för att använda ett bibliotek.

@@ -24,5 +24,5 @@ new-project-tools-count = { $count ->
     [one] 1 tool: { $list }
    *[other] { $count } tools: { $list }
 }
-new-project-no-library-tools = Your tool library is empty: the project starts with a 6 mm end mill. Add your tools under This computer > Tools.
+new-project-no-library-tools = Your tool library is empty: the project starts with a 6 mm end mill. Add your tools under Library > Tools.
 new-project-create = Create

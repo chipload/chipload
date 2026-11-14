@@ -7,8 +7,8 @@ library-view-import = Importa…
 library-view-export = Esporta…
 
 # The Browser's root for what is kept on this computer, not in the project.
-library-view-this-computer = Questo computer
-library-view-this-computer-hover = Le tue preferenze, utensili, macchine e post-processori, conservati su questo computer per ogni progetto. Un progetto conserva copie di ciò che usa, così lavora allo stesso modo tra un anno e su un altro computer.
+library-view-this-computer = Libreria
+library-view-this-computer-hover = I tuoi utensili, macchine, materiali, stili e postprocessori, conservati su questo computer per ogni progetto. Un progetto conserva copie di ciò che usa, quindi lavora uguale tra un anno e su un altro computer.
 library-view-preferences = Preferenze
 library-view-preferences-hover = La scheda di attrezzaggio, l'aggiornamento automatico del percorso utensile, il tema colori
 library-view-no-settings-folder = Nessuna cartella impostazioni
@@ -36,7 +36,7 @@ library-view-revert-hover = Scarta le modifiche
 library-view-not-saved = non salvato
 
 library-view-tool-library = Libreria utensili
-library-view-tool-library-about = Un progetto conserva una copia di ogni utensile che usa. Fai clic su un utensile sotto Questo computer per modificarlo; trascinalo sugli Utensili del progetto, o fai clic destro su di esso, per usarlo.
+library-view-tool-library-about = Un progetto conserva una copia di ogni utensile che usa. Fai clic su un utensile sotto Libreria per modificarlo; trascinalo sugli Utensili del progetto, o fai clic destro su di esso, per usarlo.
 library-view-machines-about = Un progetto conserva una copia dei valori della sua macchina. Clic destro su un profilo per usarlo in questo progetto; il predefinito è quello con cui iniziano i nuovi progetti.
 library-view-tool-count = { $count ->
     [one] { $count } utensile

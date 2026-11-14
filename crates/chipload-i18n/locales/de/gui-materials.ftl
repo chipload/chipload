@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } Material
    *[other] { $count } Materialien
 } in Ihrer Bibliothek.
-materials-about = Ein Material ist ein Name, den Sie für eine Bearbeitung wählen, unter ihrem Werkzeug, oder für eine ganze Aufspannung, in ihren Eigenschaften. Seine Werte stehen in den Schnittdaten jedes Werkzeugs (Dieser Computer > Werkzeuge): tragen Sie sie dort ein oder mit In … speichern bei einer Bearbeitung, die gut geschnitten hat.
+materials-about = Ein Material ist ein Name, den Sie für eine Bearbeitung wählen, unter ihrem Werkzeug, oder für eine ganze Aufspannung, in ihren Eigenschaften. Seine Werte stehen in den Schnittdaten jedes Werkzeugs (Bibliothek > Werkzeuge): tragen Sie sie dort ein oder mit In … speichern bei einer Bearbeitung, die gut geschnitten hat.
 materials-gone = Dieses Material ist nicht mehr in Ihrer Bibliothek.
 materials-entry-about = Eine Bearbeitung mit diesem Material schneidet mit den Werten ihres Werkzeugs dafür, aus dessen Schnittdaten.
 materials-name = Name

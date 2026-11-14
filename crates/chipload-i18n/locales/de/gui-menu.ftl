@@ -165,4 +165,4 @@ menu-bar-wizards = Assistenten
 menu-bar-library = Bibliothek
 menu-bar-help = Hilfe
 menu-preferences = Einstellungen…
-menu-preferences-hover = Dieser Computer > Einstellungen im Browser: Einheiten, Sprache, Farbschema, Einrichteblatt, automatisch aktualisieren
+menu-preferences-hover = Einstellungen im Browser, unter der Bibliothek: Einheiten, Sprache, Farbschema, Einrichteblatt, automatisch aktualisieren

@@ -14,7 +14,7 @@ materials-count = { $count ->
     [one] { $count } material
    *[other] { $count } material
 } i ditt bibliotek.
-materials-about = Ett material är ett namn du väljer för en operation, under dess verktyg, eller för en hel uppspänning, i dess egenskaper. Dess värden finns i varje verktygs skärdata (Den här datorn > Verktyg): fyll i dem där, eller med Spara i … under en operation som fräste bra.
+materials-about = Ett material är ett namn du väljer för en operation, under dess verktyg, eller för en hel uppspänning, i dess egenskaper. Dess värden finns i varje verktygs skärdata (Bibliotek > Verktyg): fyll i dem där, eller med Spara i … under en operation som fräste bra.
 materials-gone = Det här materialet finns inte längre i ditt bibliotek.
 materials-entry-about = En operation med det här materialet fräser med sitt verktygs värden för det, från verktygets skärdata.
 materials-name = Namn

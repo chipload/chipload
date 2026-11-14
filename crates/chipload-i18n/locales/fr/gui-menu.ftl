@@ -165,4 +165,4 @@ menu-bar-wizards = Assistants
 menu-bar-library = Bibliothèque
 menu-bar-help = Aide
 menu-preferences = Préférences…
-menu-preferences-hover = Cet ordinateur > Préférences dans le Navigateur : unités, langue, thème de couleurs, fiche de réglage, mise à jour automatique
+menu-preferences-hover = Préférences dans le Navigateur, sous la Bibliothèque : unités, langue, thème de couleurs, fiche de réglage, mise à jour automatique

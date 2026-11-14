@@ -1,5 +1,11 @@
 # Spec: "This computer" in the Browser: preferences, library and posts
 
+**Renamed back 2026-11-14** (the user agreed: "yes do it that way"): the root is **Library**
+again, since what it holds is your library (tools, machines, materials, styles, shapes,
+post-processors), matching the ribbon group and the menu. **Preferences** left it: a row of
+its own at the top level, just below the Library, opened by *Edit > Preferences…* as before.
+The rest of this spec stands.
+
 Status: approved 2026-10-14 (the user: "agree").
 
 ## 1. Why

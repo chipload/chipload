@@ -33,7 +33,7 @@ chipload style save part.chipload --op 3 --name "Cut out 18 mm ply" --replace   
 - **A profile's side** is kept as "by the selection": the style cuts outlines outside and
   holes inside, as a [new profile](../concepts/depths.md#what-a-new-operation-starts-with)
   does. A profile *on* the line keeps that.
-- **To change a style,** open it under *This computer > Styles* (see below), or save an
+- **To change a style,** open it under *Library > Styles* (see below), or save an
   operation again under its name.
 
 ## Using a style
@@ -44,7 +44,7 @@ Select the shapes on the canvas, then one of:
 - press **Q** over the canvas, then the style's digit: the Q menu numbers the first nine
   styles 1 to 9 in the order of the Styles list, so moving a style up the list changes its
   digit;
-- right-click the style under *This computer > Styles*, or open it there: **Apply to the
+- right-click the style under *Library > Styles*, or open it there: **Apply to the
   selection**.
 
 On the command line:
@@ -75,7 +75,7 @@ matches gets the style's operations, selecting the layer.
   away again; `chipload import … --no-rules` leaves them out), and whenever you choose
   **Operation > Apply layer rules** or `chipload style apply part.chipload` (`--dry-run`
   says what it would add). Updating a drawing doesn't apply them.
-- **Order:** the styles' order in *This computer > Styles*, then the layers by name. Every
+- **Order:** the styles' order in *Library > Styles*, then the layers by name. Every
   style that matches a layer adds its operations, so a rough and a finish pass can both come
   from rules.
 - **Already cut:** a layer an operation already cuts, by its layer or by one of its shapes,
@@ -94,7 +94,7 @@ A styles file with a layer pattern can't be read by Chipload 0.36 or older.
 
 ## Managing styles
 
-**This computer > Styles** in the Browser lists them; hover over one for what it does.
+**Library > Styles** in the Browser lists them; hover over one for what it does.
 Click one for its properties: its name (**Rename**), **Apply to the selection**,
 **Delete** (also the Del key; the library has no undo, `styles.json.bak` keeps the file as
 it was), and below them the style's operation in the same form an operation has: its

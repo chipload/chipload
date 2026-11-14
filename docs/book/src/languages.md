@@ -6,8 +6,8 @@ The app speaks English, German (Deutsch), French (Français), Spanish (Español)
 ## Choosing the language
 
 At the start the app follows your computer's language, and English when it isn't one of
-these. To choose another, use *Edit > Preferences…*, which opens *This computer >
-Preferences* in the Browser. The change is immediate, and the app keeps it for next time.
+these. To choose another, use *Edit > Preferences…*, which opens *Preferences* in
+the Browser. The change is immediate, and the app keeps it for next time.
 
 Problems, the report, the checker's findings, error messages and the
 [setup sheet](checking/sheet.md) follow the language too. What stays in English, whatever
