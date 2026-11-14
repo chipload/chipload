@@ -199,10 +199,13 @@ to a program you trust. It was about four per operation; with the defaults and s
    end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
    a moment once (the user, 2026-11-14), not reproduced.
 13. **Small follow-ups:**
-    - **Platform-independent maths elsewhere** (ADR 0032): the relief path uses
-      `chipload_core::math` (libm) since 0.36.0's macOS golden failure; profiles, pockets
-      and V-carving still use the platform's `sin`/`cos`/`hypot`. Move them over if a golden
-      ever differs between platforms.
+    - **Platform-independent maths everywhere, for 0.37.0** (ADR 0032; the user,
+      2026-11-14: "do that change in the next release cycle"): the relief path uses
+      `chipload_core::math` (libm) since 0.36.0's macOS golden failure; move profiles,
+      pockets, V-carving and the rest of the library crates over too, and have clippy's
+      `disallowed_methods` refuse `f64::sin`/`cos`/`tan`/`hypot`/`exp`/`powf`/`atan2`… in
+      library code, so the rule holds by construction. Expect no golden changes (glibc and
+      libm agree on Linux); any that change are explained in the commit.
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
       `checking()` right after starting the background check, which can already be done.
@@ -280,7 +283,7 @@ Smaller follow-ups noted along the way, not in the order above:
 
 (nothing yet)
 
-### In 0.36.0 (tagged 2026-11-14)
+### In 0.36.0 (tagged 2026-11-14, guide published)
 
 - **Reliefs from 3D models** (docs/specs/stl-relief.md, ADR 0031): STL models in the
   project (`chipload-mesh`, binary and text, our own reader), placed like a picture (move,
