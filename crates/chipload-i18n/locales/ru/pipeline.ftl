@@ -317,6 +317,19 @@ pipeline-library-machine = станок: { $name } ({ $how ->
 pipeline-library-tool = инструмент { $tool }: { $name } (по умолчанию)
 pipeline-library-material = материал: { $name } (по умолчанию)
 pipeline-library-thickness = толщина заготовки: { $thickness } (по умолчанию)
+pipeline-library-no-tool = в библиотеке инструментов нет инструмента «{ $name }»
+# What a new project started with, as chosen in the new project dialog or on the command line.
+pipeline-start-tool = инструмент { $tool }: { $name }
+pipeline-start-no-tools = нет инструментов: добавьте инструмент в разделе «Инструменты» перед расчётом
+pipeline-start-material = материал: { $name }
+pipeline-start-thickness = толщина заготовки: { $thickness }
+pipeline-start-board-fit = заготовка: по чертежу, отступ { $margin }
+pipeline-start-board-size = заготовка: { $x } × { $y }, по центру чертежа
+# $where is "top" or "bottom".
+pipeline-start-z-zero = ноль Z: { $where ->
+    [bottom] жертвенный стол (низ заготовки)
+   *[top] верх заготовки
+}
 pipeline-library-post-unusable = постпроцессор «{ $name }»: { $error }
 pipeline-library-unknown-post = Станок «{ $name }»: в этой версии Chipload нет постпроцессора «{ $post }»; проекты с ним не смогут создать G-code, пока он не появится
 pipeline-material-chosen = Материал: { $name }

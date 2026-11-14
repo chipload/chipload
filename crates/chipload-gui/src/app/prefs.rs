@@ -30,6 +30,8 @@ pub struct Prefs {
     pub(super) applied_theme: Option<Theme>,
     /// File > Open recent (docs/specs/open-recent.md), most recent first.
     pub recent: Vec<String>,
+    /// What the last project was started with (docs/specs/new-project-dialog.md §4).
+    pub new_project: Option<chipload_job::library::NewProject>,
 }
 
 impl Default for Prefs {
@@ -46,6 +48,7 @@ impl Default for Prefs {
             theme: Theme::System,
             applied_theme: None,
             recent: Vec::new(),
+            new_project: None,
         }
     }
 }

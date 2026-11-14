@@ -52,12 +52,12 @@ impl ChiploadApp {
             self.new_project();
             return self.add_model_from(path);
         }
-        self.import_dxf(path, None)
+        self.ask_import_file(path, None, None)
     }
 
     pub(super) fn ask_new(&mut self) {
         if self.guard(Pending::New) {
-            self.new_project();
+            self.ask_new_project();
         }
     }
 
@@ -215,7 +215,7 @@ impl ChiploadApp {
                                 if ui.button(label).clicked() {
                                     match purpose {
                                         UnitsFor::NewProject => {
-                                            self.import_dxf(&path, Some(units));
+                                            self.ask_import_file(&path, Some(units), None);
                                         }
                                         UnitsFor::Update(id) => {
                                             self.update_dxf_from(id, &path, Some(units));
@@ -239,6 +239,7 @@ impl ChiploadApp {
             Prompt::TwoSided(settings) => self.two_sided_prompt(ctx, settings),
             Prompt::TurnCut(state) => self.turn_cut_prompt(ctx, state),
             Prompt::Relief(wizard) => self.relief_prompt(ctx, wizard),
+            Prompt::NewProject(dialog) => self.new_project_prompt(ctx, *dialog),
             Prompt::PxPerInch(path, purpose, mut typed) => {
                 let mut chosen = None;
                 egui::Window::new(t!(ctx, "dialogs-px-title"))
@@ -283,7 +284,7 @@ impl ChiploadApp {
                 match chosen {
                     Some(px) => match purpose {
                         UnitsFor::NewProject => {
-                            self.import_file(&path, None, Some(px));
+                            self.ask_import_file(&path, None, Some(px));
                         }
                         UnitsFor::Update(id) => {
                             self.update_file_from(id, &path, None, Some(px));

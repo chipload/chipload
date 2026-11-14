@@ -23,5 +23,6 @@ A material: a name to choose. Its values are the tools' rows for it.
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `name` | string | yes | The material's name, unique in the library (upper or lower case don't matter). |
+| `thickness` | number or null | no | The board's usual thickness, mm: what the new project dialog fills in when the material is chosen (docs/specs/new-project-dialog.md §3). Choosing a material for a project never changes its stock. Left out when none. |
 | `uid` | string | yes | What projects and the tools' rows name the material by: 16 lowercase hex digits, never changed. |
 

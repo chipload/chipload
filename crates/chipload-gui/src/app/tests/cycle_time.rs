@@ -126,6 +126,8 @@ fn dropped_files_open_or_import_after_asking() {
     // docs/specs/small-items.md §2, drawing-sources.md §3
     let mut app = ChiploadApp::default();
     assert!(app.drop_files(&[corpus("dxf/messy_2.dxf")]));
+    // The new project dialog first (docs/specs/new-project-dialog.md §2).
+    assert!(app.accept_new_project());
     assert!(!app.contours.is_empty(), "a new project from the DXF");
     // Unsaved changes: ask first.
     assert!(app.dirty());
@@ -151,6 +153,7 @@ fn dropped_dxfs_and_pictures_are_added_one_at_a_time() {
     // docs/specs/drawing-sources.md §3: two DXFs make a project of two.
     let mut app = ChiploadApp::default();
     assert!(app.drop_files(&[corpus("dxf/simple_part.dxf"), corpus("dxf/simple_part.dxf")]));
+    assert!(app.accept_new_project());
     let dxfs = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.drawing.dxfs.len();
     assert_eq!(dxfs(&app), 2);
     // A DXF without units asks, and is added once answered.

@@ -442,6 +442,19 @@ pipeline-library-machine = machine: { $name } ({ $how ->
 pipeline-library-tool = tool { $tool }: { $name } (default tool)
 pipeline-library-material = material: { $name } (default material)
 pipeline-library-thickness = stock thickness: { $thickness } (the default)
+pipeline-library-no-tool = no tool named "{ $name }" in your tool library
+# What a new project started with, as chosen in the new project dialog or on the command line.
+pipeline-start-tool = tool { $tool }: { $name }
+pipeline-start-no-tools = no tools: add one under Tools before generating
+pipeline-start-material = material: { $name }
+pipeline-start-thickness = stock thickness: { $thickness }
+pipeline-start-board-fit = board: fitted round the drawing, { $margin } margin
+pipeline-start-board-size = board: { $x } × { $y }, centred on the drawing
+# $where is "top" or "bottom".
+pipeline-start-z-zero = Z zero: { $where ->
+    [bottom] the spoilboard (the board's bottom)
+   *[top] the top of the board
+}
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = post-processor "{ $name }": { $error }
 pipeline-library-unknown-post = Machine "{ $name }": this Chipload has no post-processor "{ $post }"; projects using it can't make G-code until it has

@@ -101,7 +101,7 @@ impl ChiploadApp {
             };
             match dropped_kind(&path) {
                 Some(Dropped::Dxf) if self.edit.is_none() => {
-                    self.import_dxf(&path, None);
+                    self.ask_import_file(&path, None, None);
                 }
                 Some(Dropped::Dxf) => {
                     self.add_dxf_from(&path, None);

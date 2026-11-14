@@ -42,7 +42,7 @@ use chipload_pipeline::drawing_edit::{
 };
 use chipload_pipeline::estimate::{Lengths, estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;
-use chipload_pipeline::library::{Library, apply_library, settings_dir};
+use chipload_pipeline::library::{Library, settings_dir};
 use chipload_pipeline::placement::{
     Move as PlaceMove, dxf_list, dxf_size, place_drawing, place_dxf, placement_text,
 };
@@ -117,9 +117,8 @@ enum Command {
         /// The project to write (.chipload).
         #[arg(short, long)]
         output: PathBuf,
-        /// The machine profile to start from (default: your default machine).
-        #[arg(long)]
-        machine: Option<String>,
+        #[command(flatten)]
+        start: StartArgs,
     },
     /// Create a project from a DXF or an SVG.
     Import {
@@ -135,9 +134,8 @@ enum Command {
         /// The project to write (.chipload).
         #[arg(short, long)]
         output: PathBuf,
-        /// The machine profile to start from (default: your default machine).
-        #[arg(long)]
-        machine: Option<String>,
+        #[command(flatten)]
+        start: StartArgs,
     },
     /// Replace a project's imported drawing with a new version of the DXF or SVG.
     Update {
@@ -593,6 +591,92 @@ impl LangArg {
     }
 }
 
+/// What a new project starts with (docs/specs/new-project-dialog.md §5): without these,
+/// the library's defaults.
+#[derive(clap::Args)]
+pub struct StartArgs {
+    /// The machine profile to start from (default: your default machine).
+    #[arg(long)]
+    machine: Option<String>,
+    /// The material (default: your default material).
+    #[arg(long, conflicts_with = "no_material")]
+    material: Option<String>,
+    /// No material, even if your library has a default one.
+    #[arg(long)]
+    no_material: bool,
+    /// The board's thickness (default: the material's, else your default thickness).
+    #[arg(long, value_parser = crate::lengths::length)]
+    thickness: Option<f64>,
+    /// The board's size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in).
+    #[arg(long, conflicts_with = "fit", value_parser = board_size)]
+    size: Option<(f64, f64)>,
+    /// The board fitted round the drawing with this margin (the default, 10 mm).
+    #[arg(long, value_parser = crate::lengths::length)]
+    fit: Option<f64>,
+    /// Where Z zero is: the board's top, or the spoilboard.
+    #[arg(long)]
+    z_zero: Option<ZZeroArg>,
+    /// Library tools by name, comma-separated, numbered in this order (default: your
+    /// default tool); "" for none.
+    #[arg(long)]
+    tools: Option<String>,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum ZZeroArg {
+    Top,
+    Spoilboard,
+}
+
+/// "600x400": two lengths.
+fn board_size(text: &str) -> Result<(f64, f64), String> {
+    let (x, y) = text
+        .split_once(['x', 'X', '×'])
+        .ok_or_else(|| format!("expected X×Y, such as 600x400, got {text:?}"))?;
+    Ok((
+        crate::lengths::length(x.trim())?,
+        crate::lengths::length(y.trim())?,
+    ))
+}
+
+impl StartArgs {
+    /// The pipeline's start for a project whose board is `job`'s until told otherwise.
+    fn start(&self, job: &Job) -> chipload_pipeline::library::ProjectStart {
+        use chipload_pipeline::library::{Board, ProjectStart};
+        let stock = job.stock();
+        let board = match (self.size, self.fit) {
+            (Some((x, y)), _) => Some(Board { x, y, fit: None }),
+            (None, Some(margin)) => Some(Board {
+                x: stock.x,
+                y: stock.y,
+                fit: Some(margin),
+            }),
+            (None, None) => None,
+        };
+        ProjectStart {
+            machine: self.machine.clone(),
+            material: if self.no_material {
+                Some(None)
+            } else {
+                self.material.clone().map(Some)
+            },
+            thickness: self.thickness,
+            board,
+            z_zero: self.z_zero.map(|z| match z {
+                ZZeroArg::Top => chipload_job::ZZero::Top,
+                ZZeroArg::Spoilboard => chipload_job::ZZero::Bottom,
+            }),
+            tools: self.tools.as_ref().map(|list| {
+                list.split(',')
+                    .map(str::trim)
+                    .filter(|n| !n.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            }),
+        }
+    }
+}
+
 #[derive(Clone, Copy, ValueEnum)]
 pub enum UnitsArg {
     Mm,
@@ -648,26 +732,16 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             units: u,
             px_per_inch,
         } => inspect(out, &file, units(u), px_per_inch),
-        Command::New { output, machine } => create(
-            out,
-            empty_project(),
-            "New empty project.",
-            &output,
-            machine.as_deref(),
-        ),
+        Command::New { output, start } => {
+            create(out, empty_project(), "New empty project.", &output, &start)
+        }
         Command::Import {
             dxf,
             units: u,
             px_per_inch,
             output,
-            machine,
-        } => import(
-            out,
-            &dxf,
-            (units(u), px_per_inch),
-            &output,
-            machine.as_deref(),
-        ),
+            start,
+        } => import(out, &dxf, (units(u), px_per_inch), &output, &start),
         Command::Update {
             project,
             from,
@@ -981,7 +1055,7 @@ fn import(
     dxf: &Path,
     (units, px_per_inch): SizeGiven,
     output: &Path,
-    machine: Option<&str>,
+    start: &StartArgs,
 ) -> ExitCode {
     let imported = match shapes_from_file(dxf, units, px_per_inch, 1.0) {
         Ok(imported) => imported,
@@ -992,7 +1066,7 @@ fn import(
         imported.source.file,
         imported.shapes.len()
     );
-    let code = create(out, new_project(imported), &line, output, machine);
+    let code = create(out, new_project(imported), &line, output, start);
     if out.json() && code == ExitCode::SUCCESS {
         // The import report as `inspect --json` gives it for the new project.
         if let Ok(result) = load_job(output)
@@ -1005,19 +1079,15 @@ fn import(
     code
 }
 
-/// Write a new project, started from the library's machine profile and default tool.
-fn create(
-    out: &mut Out,
-    mut job: Job,
-    line: &str,
-    output: &Path,
-    machine: Option<&str>,
-) -> ExitCode {
+/// Write a new project, started from the library and the options (docs/specs/
+/// new-project-dialog.md §5).
+fn create(out: &mut Out, mut job: Job, line: &str, output: &Path, start: &StartArgs) -> ExitCode {
     // The library only gives starting values; without a settings folder there is none.
     let library = settings_dir()
         .map(|dir| Library::load(&dir))
         .unwrap_or_default();
-    let notes = match apply_library(&mut job, &library, machine) {
+    let begin = start.start(&job);
+    let notes = match chipload_pipeline::library::start_project(&mut job, &library, &begin) {
         Ok(notes) => notes,
         Err(err) => return out.fail(err.english()),
     };

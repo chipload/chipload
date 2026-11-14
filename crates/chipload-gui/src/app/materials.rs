@@ -303,6 +303,20 @@ impl ChiploadApp {
                     ui.label(t!(ui, "materials-name"));
                     ui.text_edit_singleline(&mut draft.name);
                     ui.end_row();
+                    // What the new project dialog fills in for it
+                    // (docs/specs/new-project-dialog.md §3); unticked: none.
+                    ui.label(t!(ui, "materials-thickness"))
+                        .on_hover_text(t!(ui, "materials-thickness-hover"));
+                    ui.horizontal(|ui| {
+                        let mut on = draft.thickness.is_some();
+                        if ui.checkbox(&mut on, "").changed() {
+                            draft.thickness = on.then_some(chipload_pipeline::DEFAULT_THICKNESS);
+                        }
+                        if let Some(t) = &mut draft.thickness {
+                            ui.add(crate::units::length(t).range(0.1..=1000.0));
+                        }
+                    });
+                    ui.end_row();
                 })
         });
         ui.add_space(4.0);

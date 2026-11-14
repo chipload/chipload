@@ -27,6 +27,11 @@ pub struct Material {
     /// What projects and the tools' rows name the material by: 16 lowercase hex digits,
     /// never changed.
     pub uid: String,
+    /// The board's usual thickness, mm: what the new project dialog fills in when the
+    /// material is chosen (docs/specs/new-project-dialog.md §3). Choosing a material for a
+    /// project never changes its stock. Left out when none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub thickness: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -96,6 +101,7 @@ impl MaterialLibrary {
         self.materials.push(Material {
             name: name.to_string(),
             uid,
+            thickness: None,
         });
         Ok(&self.materials[self.materials.len() - 1])
     }
@@ -149,7 +155,26 @@ impl MaterialLibrary {
                 "default_thickness: must be more than 0 mm, got {t}"
             ));
         }
+        for (i, m) in self.materials.iter().enumerate() {
+            if let Some(t) = m.thickness
+                && !(t.is_finite() && t > 0.0)
+            {
+                problems.push(format!(
+                    "materials.{i}.thickness: must be more than 0 mm, got {t}"
+                ));
+            }
+        }
         problems
+    }
+
+    /// The thickness a new project on `material` starts with (docs/specs/new-project-
+    /// dialog.md §4): the material's own, else the default thickness, else `otherwise`
+    /// (the new project's own: 10 mm, or its inch value).
+    pub fn thickness_for(&self, material: Option<&Material>, otherwise: f64) -> f64 {
+        material
+            .and_then(|m| m.thickness)
+            .or(self.default_thickness)
+            .unwrap_or(otherwise)
     }
 }
 

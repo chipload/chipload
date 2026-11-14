@@ -7,21 +7,17 @@ outside profile. The same steps follow in the app and on the command line.
 
 1. **Import the drawing:** *File > Import DXF…* (Ctrl+I).
    - If the DXF doesn't say whether it's in mm or inches, Chipload asks. It never guesses.
+   - The [new project dialog](drawings/import.md#the-new-project-dialog) asks for the
+     material, the board's thickness and size, Z zero, the machine and the tools. Set the
+     real thickness: depths are measured from the board's top. Enter creates the project.
    - The report under the canvas lists what was imported, and anything skipped or
      repaired: duplicate lines, gaps it closed, splines turned into arcs.
-2. **Check the setup and the machine:** click **Setup 1** under *Setups* in the
-   [Browser](window.md#the-browser) on the left for the board, and **Machine** for the
-   machine. A new project starts with:
-   - stock just covering the drawing, 10 mm thick;
-   - [work zero](concepts/stock.md#work-zero) at the stock's bottom-left corner, Z zero
-     on the stock top (the *Work zero* row under the setup; drag it in the view to move
-     it);
-   - the GRBL post, a safe height of 5 mm;
-   - a 6 mm endmill at 18 000 rpm.
-
-   With a [tool library](library/tools.md) and [machine profiles](library/machines.md) set up, your
-   defaults come instead. Set the real stock thickness now: depths are measured from its
-   top.
+2. **Check the setup and the machine:** the project opens on **Setup 1** under *Setups* in
+   the [Browser](window.md#the-browser) on the left, with the board you chose; **Machine**
+   shows the machine. [Work zero](concepts/stock.md#work-zero) is at the stock's bottom-left
+   corner (the *Work zero* row under the setup; drag it in the view to move it). Without a
+   [tool library](library/tools.md) and [machine profiles](library/machines.md), a project
+   has the GRBL post, a safe height of 5 mm and a 6 mm endmill at 18 000 rpm.
 3. **Select what to cut:**
    - double-click the outline on the canvas (a single click takes the whole DXF);
    - Ctrl+click adds more;

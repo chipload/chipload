@@ -69,6 +69,7 @@ mod menu;
 mod models;
 mod modify;
 mod navigation;
+mod new_project;
 mod panels;
 mod playback;
 mod prefs;
@@ -278,6 +279,8 @@ enum Prompt {
     TurnCut(Box<turn_cut::TurnCut>),
     /// *Relief…*: a relief in one step, its answers so far (docs/specs/relief-wizard.md §6).
     Relief(Box<relief_wizard::ReliefWizard>),
+    /// *New project*: the board, machine and tools (docs/specs/new-project-dialog.md).
+    NewProject(Box<new_project::NewProjectDialog>),
 }
 
 /// A handle drag in progress: the shape as it was when the drag began, which every frame
@@ -724,23 +727,52 @@ impl ChiploadApp {
         }
     }
 
-    /// Start a new, unsaved project with no drawing (docs/specs/new-project.md).
+    /// Start a new, unsaved project with no drawing (docs/specs/new-project.md), with what
+    /// the last project was started with (docs/specs/new-project-dialog.md §4). *New
+    /// project* in the window asks first ([`ChiploadApp::ask_new`]).
     pub fn new_project(&mut self) {
-        self.dialogs.prompt = None;
         self.reload_library();
-        let mut job = self.in_display_units(empty_project());
-        let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
-            .unwrap_or_default();
+        let start = self.remembered_start();
+        self.create_project(empty_project(), &start, t!(self, "app-new-project"), None);
+    }
+
+    /// Make the new project `job` (empty, or an imported drawing) with `start`, and say what
+    /// it started with; `next` is the report's last line (default: what to do next in an
+    /// empty project).
+    pub(super) fn create_project(
+        &mut self,
+        job: chipload_job::Job,
+        start: &chipload_pipeline::library::ProjectStart,
+        first: String,
+        next: Option<String>,
+    ) {
+        self.dialogs.prompt = None;
+        let mut job = self.in_display_units(job);
+        let notes =
+            match chipload_pipeline::library::start_project(&mut job, &self.user.library, start) {
+                Ok(notes) => notes,
+                // A choice the library no longer has: its defaults, and why.
+                Err(err) => {
+                    let mut notes = chipload_pipeline::library::apply_library(
+                        &mut job,
+                        &self.user.library,
+                        None,
+                    )
+                    .unwrap_or_default();
+                    notes.insert(0, err);
+                    notes
+                }
+            };
         self.start_editing(EditJob::from_job(&job), false, None);
         self.open_stock();
-        let mut lines = vec![t!(self, "app-new-project")];
+        let mut lines = vec![first];
         lines.extend(
             notes
                 .iter()
                 .map(|n| t!(self, "app-started-with", what = self.say(n))),
         );
         lines.extend(self.user.library.problems.iter().map(|p| self.say(p)));
-        lines.push(t!(self, "app-new-project-next"));
+        lines.push(next.unwrap_or_else(|| t!(self, "app-new-project-next")));
         self.set_report(Report::info(lines));
     }
 
@@ -755,19 +787,39 @@ impl ChiploadApp {
     }
 
     /// Import a DXF or an SVG as a new, unsaved project. A DXF without units asks for them.
+    #[cfg(test)]
     pub fn import_dxf(&mut self, path: &Path, units: Option<Units>) -> bool {
         self.import_file(path, units, None)
     }
 
     /// [`ChiploadApp::import_dxf`] with an SVG's pixels per inch; an SVG without a real size
-    /// and none given asks for them.
+    /// and none given asks for them. Made at once with the remembered choices; the window
+    /// asks first ([`ChiploadApp::ask_import_file`]).
+    #[cfg(test)]
     pub fn import_file(&mut self, path: &Path, units: Option<Units>, px: Option<f64>) -> bool {
+        let Some(imported) = self.read_new_drawing(path, units, px) else {
+            return false;
+        };
+        self.reload_library();
+        let start = self.remembered_start();
+        self.create_from_import(path, imported, &start);
+        true
+    }
+
+    /// Read a drawing for a new project; None after asking for its units or pixels per inch,
+    /// or saying why it can't be read.
+    pub(super) fn read_new_drawing(
+        &mut self,
+        path: &Path,
+        units: Option<Units>,
+        px: Option<f64>,
+    ) -> Option<chipload_dxf::ImportedShapes> {
         self.dialogs.prompt = None;
-        let imported = match shapes_from_file(path, units, px, 1.0) {
-            Ok(imported) => imported,
+        match shapes_from_file(path, units, px, 1.0) {
+            Ok(imported) => Some(imported),
             Err(ImportError::ScaleMissing) => {
                 self.ask_px_per_inch(path, UnitsFor::NewProject);
-                return false;
+                None
             }
             Err(ImportError::UnitsMissing) => {
                 self.dialogs.prompt = Some(Prompt::Units(path.to_path_buf(), UnitsFor::NewProject));
@@ -776,39 +828,34 @@ impl ChiploadApp {
                     "app-units-missing",
                     file = file_name(path)
                 )]));
-                return false;
+                None
             }
             Err(err) => {
                 self.error_report(Report::failed(
                     t!(self, "app-cannot-import", file = file_name(path)),
                     err.message(),
                 ));
-                return false;
+                None
             }
-        };
+        }
+    }
+
+    /// The new project from the drawing `imported` (read from `path`), with `start`.
+    pub(super) fn create_from_import(
+        &mut self,
+        path: &Path,
+        imported: chipload_dxf::ImportedShapes,
+        start: &chipload_pipeline::library::ProjectStart,
+    ) {
         let shapes = imported.shapes.len();
-        // The library gives starting values (the default machine and tool).
-        self.reload_library();
-        let mut job = self.in_display_units(new_project(imported));
-        let notes = chipload_pipeline::library::apply_library(&mut job, &self.user.library, None)
-            .unwrap_or_default();
-        self.start_editing(EditJob::from_job(&job), false, None);
-        self.open_stock();
-        let mut lines = vec![t!(
+        let first = t!(
             self,
             "app-new-project-from",
             file = file_name(path),
             shapes = shapes
-        )];
-        lines.extend(
-            notes
-                .iter()
-                .map(|n| t!(self, "app-started-with", what = self.say(n))),
         );
-        lines.extend(self.user.library.problems.iter().map(|p| self.say(p)));
-        lines.push(t!(self, "app-import-next"));
-        self.set_report(Report::info(lines));
-        true
+        let next = t!(self, "app-import-next");
+        self.create_project(new_project(imported), start, first, Some(next));
     }
 
     /// Replace the imported drawing with a new version of the DXF (§4 of the project spec),
@@ -2128,7 +2175,7 @@ impl ChiploadApp {
                 self.allow_close = true;
                 ctx.send_viewport_cmd(ViewportCommand::Close);
             }
-            Pending::New => self.new_project(),
+            Pending::New => self.ask_new_project(),
             Pending::OpenDialog => self.open_dialog(),
             Pending::ImportDialog => self.import_dialog(),
             Pending::Open(path) => {

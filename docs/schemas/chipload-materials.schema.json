@@ -8,6 +8,14 @@
           "description": "The material's name, unique in the library (upper or lower case don't matter).",
           "type": "string"
         },
+        "thickness": {
+          "description": "The board's usual thickness, mm: what the new project dialog fills in when the\nmaterial is chosen (docs/specs/new-project-dialog.md §3). Choosing a material for a\nproject never changes its stock. Left out when none.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "uid": {
           "description": "What projects and the tools' rows name the material by: 16 lowercase hex digits,\nnever changed.",
           "type": "string"

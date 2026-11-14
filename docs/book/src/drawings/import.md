@@ -60,13 +60,37 @@ that layer: they're skipped, with a note.
 If the DXF doesn't say whether it's in mm or inches, Chipload asks (command line:
 `--units mm` or `--units inch`). See [Units and coordinates](../concepts/units.md).
 
-## New project defaults
+## The new project dialog
 
-The stock just covers the drawing, 10 mm thick:
-- its bottom-left corner sits at the drawing's origin when the drawing lies right of and
-  above the origin;
-- otherwise it is centred on the origin.
+Before the project is made, a dialog asks what it starts with. It opens for *File > New
+project* (Ctrl+N), *Import* and a drawing dropped on an empty window:
 
-The machine and tool come from your default [machine profile](../library/machines.md) and
-[tool](../library/tools.md) if you have them. Otherwise you get GRBL, a safe Z of 5 mm, and
-a 6 mm endmill at 18 000 rpm.
+- **Material,** from your [materials](../library/materials.md). A material with a thickness
+  of its own fills in the thickness.
+- **Thickness** of the board: depths are measured from its top, and cuts through it follow
+  it.
+- **Board:** *Fit the drawing* with a margin (it follows the drawing as it changes), or a
+  **Size**. Either way it is centred on the drawing.
+- **Z zero:** on the top of the board or on the spoilboard.
+- **Machine,** from your [machine profiles](../library/machines.md), with its post, G-code
+  units and tool changes shown under it.
+- **Tools:** tick the [library](../library/tools.md) tools the project uses; the search
+  narrows a long list. Each keeps its library number; when two have the same, the second
+  takes the next free one, and the T column shows it.
+
+**Enter** creates the project, **Escape** cancels. Everything is remembered for the next
+project, which is often the same, so New project, Enter is enough.
+
+The first time, your library's defaults are offered: the default machine, material and tool,
+the material's thickness (else the default thickness, else 10 mm), the board fitted with a
+10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, and a
+6 mm endmill at 18 000 rpm.
+
+On the command line, `chipload new` and `chipload import` take the same choices and
+otherwise use your library's defaults:
+
+```
+chipload import part.dxf -o part.chipload --material Plywood --thickness 18 \
+    --fit 10 --z-zero top --machine "Shapeoko 4" --tools "6 mm end mill,V 60"
+chipload new -o sign.chipload --size 600x300 --tools ""      # no tools yet
+```

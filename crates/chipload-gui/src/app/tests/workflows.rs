@@ -65,6 +65,7 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
     let mut app = ChiploadApp::default();
     assert_eq!(app.update_labels().0, "Update drawing from DXF or SVG…");
     app.ask_new();
+    assert!(app.accept_new_project());
     let job = app.edit.as_ref().unwrap().job.clone();
     assert!(job.drawing.shapes.is_empty() && job.drawing.dxfs.is_empty());
     assert_eq!((job.stock().x, job.stock().y), (300.0, 200.0));
@@ -386,6 +387,7 @@ fn the_imported_drawing_is_moved_onto_the_stock_and_back() {
     // docs/specs/drawing-placement.md §5: the user's case, drawn first, DXF later.
     let mut app = ChiploadApp::default();
     app.ask_new();
+    assert!(app.accept_new_project());
     // A fixed board with its corner at the origin: the drawing is placed onto it.
     let stock = app.edit.as_mut().unwrap().job.stock_mut();
     stock.origin = chipload_job::StockOrigin::BottomLeft;

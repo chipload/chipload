@@ -15,7 +15,7 @@ use serde_json::Value;
 
 use crate::foreign;
 use crate::models::{
-    Job, Machine, Spindle, Tool, ToolChange, ToolType, Travel, Units, WorkZero,
+    Job, Machine, Spindle, Tool, ToolChange, ToolType, Travel, Units, WorkZero, ZZero,
     max_overcut_problems,
 };
 use crate::problem::{commas, semicolons};
@@ -899,6 +899,37 @@ pub struct AppSettings {
     /// duplicates (docs/specs/font-list.md). Missing (written before it existed): none.
     #[serde(default)]
     pub recent_fonts: Vec<String>,
+    /// What the last project started in the window was started with, offered again by the
+    /// new project dialog (docs/specs/new-project-dialog.md §4). Missing: none yet; left out
+    /// then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub new_project: Option<NewProject>,
+}
+
+/// The new project dialog's choices (docs/specs/new-project-dialog.md §2, §4): the library's
+/// machine, material and tools by uid, and the board.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NewProject {
+    /// The machine profile's uid. Null: the library's default.
+    #[serde(default)]
+    pub machine: Option<String>,
+    /// The material's uid. Null: none.
+    #[serde(default)]
+    pub material: Option<String>,
+    /// The board's thickness, mm.
+    pub thickness: f64,
+    /// The board's size, mm: its size, or a fitted board's while the drawing is empty.
+    pub x: f64,
+    pub y: f64,
+    /// Fitted round the drawing with this margin, mm. Null: the size.
+    #[serde(default)]
+    pub fit: Option<f64>,
+    /// Where Z0 is.
+    pub z_zero: ZZero,
+    /// The tools' uids, in the order they are numbered.
+    #[serde(default)]
+    pub tools: Vec<String>,
 }
 
 /// The `language` that follows the system's language.
@@ -938,6 +969,7 @@ impl Default for AppSettings {
             update_checked_at: None,
             update_skipped: None,
             recent_fonts: Vec::new(),
+            new_project: None,
         }
     }
 }

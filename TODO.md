@@ -87,7 +87,8 @@ to a program you trust. It was about four per operation; with the defaults and s
 0.33 the aim is none beyond choosing a style.
 
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **draft for
-   review** (2026-11-14, chosen for 0.37.0): a Q menu at the cursor (kinds by letter,
+   review, on hold** (2026-11-14, chosen for 0.37.0; the user: "wait with these", the new
+   project dialog first): a Q menu at the cursor (kinds by letter,
    styles by digit), select similar / select inside, layer rules as styles with a layer
    pattern, Ctrl+E like Save; six decisions. Automatic generation is already on by
    default. What the first look listed:
@@ -161,7 +162,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    pocket, cutting boards). **Done**, merged into main 2026-11-09 (docs/specs/two-sided.md;
    see *Done*).
 9. **Pockets: a finishing pass** (the gap review of 2026-11-03; chosen for 0.37.0). Spec
-   docs/specs/pocket-finish.md, **draft for review** (2026-11-14): `finish {wall, floor}`
+   docs/specs/pocket-finish.md, **draft for review, on hold** (2026-11-14): `finish {wall, floor}`
    on a pocket, roughing then floor then a full-depth wall lap per piece, bones cut by the
    roughing, refused where too narrow to rough; eight decisions.
 10. **First-run setup** (the gap review of 2026-11-03, and what the new defaults left): on
@@ -287,6 +288,14 @@ Smaller follow-ups noted along the way, not in the order above:
   smoothing) with the true shape and the ridge stepover, 2.5D operations with an end mill's
   path and two warnings (a through cut short of the corner, a stepover wider than the
   flat), the tool form, library, wizard lists, sheet; golden `v36_relief_bull`.
+- **The new project dialog** (docs/specs/new-project-dialog.md, approved and built
+  2026-11-14; the user: "it is easy to forget now and start drawing or making operations
+  directly"): one page before New project, Import and a dropped drawing make the project:
+  material, thickness, board (fit or size), Z zero, machine and library tools, all
+  remembered from the last project (`settings.json` `new_project`, optional); materials
+  get an optional `thickness` (`material set --thickness`); `new`/`import` take
+  `--material/--no-material/--thickness/--size/--fit/--z-zero/--tools`
+  (`library::start_project`, `apply_library` its default case).
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 

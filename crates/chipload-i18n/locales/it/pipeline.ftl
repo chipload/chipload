@@ -450,6 +450,19 @@ pipeline-library-machine = macchina: { $name } ({ $how ->
 pipeline-library-tool = utensile { $tool }: { $name } (utensile predefinito)
 pipeline-library-material = materiale: { $name } (materiale predefinito)
 pipeline-library-thickness = spessore del grezzo: { $thickness } (predefinito)
+pipeline-library-no-tool = nessun utensile di nome "{ $name }" nella libreria utensili
+# What a new project started with, as chosen in the new project dialog or on the command line.
+pipeline-start-tool = utensile { $tool }: { $name }
+pipeline-start-no-tools = nessun utensile: aggiungine uno in Utensili prima di generare
+pipeline-start-material = materiale: { $name }
+pipeline-start-thickness = spessore del grezzo: { $thickness }
+pipeline-start-board-fit = pannello: adattato attorno al disegno, margine { $margin }
+pipeline-start-board-size = pannello: { $x } × { $y }, centrato sul disegno
+# $where is "top" or "bottom".
+pipeline-start-z-zero = zero Z: { $where ->
+    [bottom] il piano di sacrificio (il lato inferiore)
+   *[top] il lato superiore del pannello
+}
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = post-processore "{ $name }": { $error }
 pipeline-library-unknown-post = Macchina "{ $name }": questo Chipload non ha il post-processore "{ $post }"; i progetti che la usano non possono generare G-code finché non lo avrà

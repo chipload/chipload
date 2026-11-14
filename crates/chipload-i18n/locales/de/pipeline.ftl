@@ -448,6 +448,19 @@ pipeline-library-machine = Maschine: { $name } ({ $how ->
 pipeline-library-tool = Werkzeug { $tool }: { $name } (Standardwerkzeug)
 pipeline-library-material = Material: { $name } (Standardmaterial)
 pipeline-library-thickness = Rohteildicke: { $thickness } (Standard)
+pipeline-library-no-tool = kein Werkzeug namens „{ $name }“ in der Werkzeugbibliothek
+# What a new project started with, as chosen in the new project dialog or on the command line.
+pipeline-start-tool = Werkzeug { $tool }: { $name }
+pipeline-start-no-tools = keine Werkzeuge: vor dem Erzeugen eines unter Werkzeuge hinzufügen
+pipeline-start-material = Material: { $name }
+pipeline-start-thickness = Rohteildicke: { $thickness }
+pipeline-start-board-fit = Platte: um die Zeichnung angepasst, { $margin } Rand
+pipeline-start-board-size = Platte: { $x } × { $y }, auf die Zeichnung zentriert
+# $where is "top" or "bottom".
+pipeline-start-z-zero = Z-Nullpunkt: { $where ->
+    [bottom] die Opferplatte (Unterseite der Platte)
+   *[top] die Oberseite der Platte
+}
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = Postprozessor „{ $name }“: { $error }
 pipeline-library-unknown-post = Maschine „{ $name }“: dieses Chipload hat keinen Postprozessor „{ $post }“; Projekte, die ihn verwenden, können erst G-Code erzeugen, wenn es ihn hat

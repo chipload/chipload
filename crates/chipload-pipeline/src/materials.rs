@@ -309,6 +309,7 @@ mod tests {
         Material {
             name: "Plywood".into(),
             uid: "3f9c0a1b2d4e5f60".into(),
+            thickness: None,
         }
     }
 

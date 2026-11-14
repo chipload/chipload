@@ -453,6 +453,19 @@ pipeline-library-machine = máquina: { $name } ({ $how ->
 pipeline-library-tool = herramienta { $tool }: { $name } (herramienta predeterminada)
 pipeline-library-material = material: { $name } (material predeterminado)
 pipeline-library-thickness = espesor del material en bruto: { $thickness } (predeterminado)
+pipeline-library-no-tool = no hay ninguna herramienta llamada "{ $name }" en tu biblioteca
+# What a new project started with, as chosen in the new project dialog or on the command line.
+pipeline-start-tool = herramienta { $tool }: { $name }
+pipeline-start-no-tools = sin herramientas: añade una en Herramientas antes de generar
+pipeline-start-material = material: { $name }
+pipeline-start-thickness = espesor del material en bruto: { $thickness }
+pipeline-start-board-fit = tablero: ajustado alrededor del dibujo, margen { $margin }
+pipeline-start-board-size = tablero: { $x } × { $y }, centrado en el dibujo
+# $where is "top" or "bottom".
+pipeline-start-z-zero = cero Z: { $where ->
+    [bottom] el tablero de sacrificio (la cara inferior)
+   *[top] la cara superior del tablero
+}
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = postprocesador "{ $name }": { $error }
 pipeline-library-unknown-post = Máquina "{ $name }": este Chipload no tiene el postprocesador "{ $post }"; los proyectos que la usan no pueden generar código G hasta que lo tenga

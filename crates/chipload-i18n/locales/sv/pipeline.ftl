@@ -445,6 +445,19 @@ pipeline-library-machine = maskin: { $name } ({ $how ->
 pipeline-library-tool = verktyg { $tool }: { $name } (standardverktyg)
 pipeline-library-material = material: { $name } (standardmaterial)
 pipeline-library-thickness = ämnets tjocklek: { $thickness } (standard)
+pipeline-library-no-tool = det finns inget verktyg som heter "{ $name }" i verktygsbiblioteket
+# What a new project started with, as chosen in the new project dialog or on the command line.
+pipeline-start-tool = verktyg { $tool }: { $name }
+pipeline-start-no-tools = inga verktyg: lägg till ett under Verktyg innan du genererar
+pipeline-start-material = material: { $name }
+pipeline-start-thickness = ämnets tjocklek: { $thickness }
+pipeline-start-board-fit = skiva: anpassad runt ritningen, { $margin } marginal
+pipeline-start-board-size = skiva: { $x } × { $y }, centrerad på ritningen
+# $where is "top" or "bottom".
+pipeline-start-z-zero = Z-nollpunkt: { $where ->
+    [bottom] offerskivan (skivans undersida)
+   *[top] skivans ovansida
+}
 # $error is why the post can't be used (a post-error text).
 pipeline-library-post-unusable = postprocessor "{ $name }": { $error }
 pipeline-library-unknown-post = Maskinen "{ $name }": den här Chipload har ingen postprocessor "{ $post }"; projekt som använder den kan inte göra G-kod förrän den har det

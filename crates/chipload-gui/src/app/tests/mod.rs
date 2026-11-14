@@ -31,6 +31,7 @@ mod materials;
 mod menu_bar;
 mod models;
 mod narrow_panel;
+mod new_project;
 mod part_export;
 mod parts;
 mod posts;

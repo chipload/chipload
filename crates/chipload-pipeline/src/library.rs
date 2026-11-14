@@ -7,12 +7,12 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::Job;
 use chipload_job::library::{
     LibraryError, MACHINES_FILE, MachineLibrary, SETTINGS_FILE, TOOLS_FILE, ToolLibrary,
     load_library, load_machines, load_tools, update_library,
 };
 use chipload_job::materials::{MATERIALS_FILE, MaterialLibrary, move_material_values};
+use chipload_job::{Job, StockOrigin, Tool, ZZero};
 
 /// Overrides the settings folder (tests, a portable install, a shared workshop folder).
 pub const CONFIG_DIR_VAR: &str = "CHIPLOAD_CONFIG_DIR";
@@ -191,13 +191,59 @@ pub fn apply_library(
     library: &Library,
     machine: Option<&str>,
 ) -> Result<Vec<Message>, Message> {
+    start_project(
+        job,
+        library,
+        &ProjectStart {
+            machine: machine.map(str::to_string),
+            ..ProjectStart::default()
+        },
+    )
+}
+
+/// What a new project starts with (docs/specs/new-project-dialog.md §2, §5): the dialog's
+/// choices, or the command line's options. Each None keeps the library's default (or the
+/// project's own value, for the board and Z zero).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ProjectStart {
+    /// A machine profile, by name or uid.
+    pub machine: Option<String>,
+    /// A material by name or uid; `Some(None)`: none.
+    pub material: Option<Option<String>>,
+    /// The board's thickness, mm.
+    pub thickness: Option<f64>,
+    /// The board's size and whether it fits the drawing.
+    pub board: Option<Board>,
+    pub z_zero: Option<ZZero>,
+    /// Library tools by name or uid, numbered in this order; empty: none.
+    pub tools: Option<Vec<String>>,
+}
+
+/// A new project's board: `x` × `y` mm, or fitted round the drawing with a margin of `fit`
+/// mm (`x` × `y` while the drawing is empty). Either way centred on the drawing.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Board {
+    pub x: f64,
+    pub y: f64,
+    pub fit: Option<f64>,
+}
+
+/// Start a new project from the library and `start` (docs/specs/new-project-dialog.md §5):
+/// the machine, the tools, the material, the thickness, the board and Z zero. Returns what
+/// was used, one line each; an unknown name or uid is refused.
+pub fn start_project(
+    job: &mut Job,
+    library: &Library,
+    start: &ProjectStart,
+) -> Result<Vec<Message>, Message> {
     let mut notes = Vec::new();
-    let profile = match machine {
-        Some(name) => Some((
+    let profile = match &start.machine {
+        Some(key) => Some((
             library
                 .machines
-                .find(name)
-                .ok_or_else(|| Message::new("pipeline-library-no-profile").arg("name", name))?,
+                .find_uid(key)
+                .or_else(|| library.machines.find(key))
+                .ok_or_else(|| Message::new("pipeline-library-no-profile").arg("name", key))?,
             "profile",
         )),
         None => library
@@ -214,30 +260,138 @@ pub fn apply_library(
         );
         notes.extend(copy_profile_post(job, library.posts.as_deref()));
     }
-    if let Some(entry) = library.tools.default_entry() {
-        let tool = entry.tool(entry.id.max(1));
+    notes.extend(start_tools(job, library, start.tools.as_deref())?);
+    // The material, after the tools: the operations an import made take its values for
+    // their tools (docs/specs/job-settings-layout.md §3).
+    let material = match &start.material {
+        None => library.materials.default_entry().map(|m| (m, true)),
+        Some(None) => None,
+        Some(Some(key)) => Some((
+            library
+                .materials
+                .materials
+                .iter()
+                .find(|m| m.uid == *key)
+                .or_else(|| library.materials.find(key))
+                .ok_or_else(|| Message::new("job-library-no-material").arg("name", key))?,
+            false,
+        )),
+    };
+    if let Some((m, default)) = material {
+        let (with, _) = crate::materials::use_material(job, &library.tools, Some(m));
+        *job = with;
+        let id = if default {
+            "pipeline-library-material"
+        } else {
+            "pipeline-start-material"
+        };
+        notes.push(Message::new(id).arg("name", &m.name));
+    }
+    // The board new projects are cut from (the user, 2026-11-03): as chosen, else the
+    // material's own, else the library's default.
+    let thickness = match start.thickness {
+        Some(t) => Some((t, "pipeline-start-thickness")),
+        None => match material.and_then(|(m, _)| m.thickness) {
+            Some(t) => Some((t, "pipeline-start-thickness")),
+            None => library
+                .materials
+                .default_thickness
+                .map(|t| (t, "pipeline-library-thickness")),
+        },
+    };
+    if let Some((t, id)) = thickness {
+        job.stock_mut().thickness = t;
+        notes.push(Message::new(id).arg("thickness", Value::Length(t, Digits::Shortest)));
+    }
+    if let Some(board) = start.board {
+        let stock = job.stock_mut();
+        stock.x = board.x;
+        stock.y = board.y;
+        stock.origin = StockOrigin::Drawing;
+        stock.fit = board.fit;
+        notes.push(match board.fit {
+            Some(margin) => Message::new("pipeline-start-board-fit")
+                .arg("margin", Value::Length(margin, Digits::Shortest)),
+            None => Message::new("pipeline-start-board-size")
+                .arg("x", Value::Length(board.x, Digits::Shortest))
+                .arg("y", Value::Length(board.y, Digits::Shortest)),
+        });
+    }
+    if let Some(z) = start.z_zero {
+        job.stock_mut().z_zero = z;
+        notes.push(Message::new("pipeline-start-z-zero").arg(
+            "where",
+            match z {
+                ZZero::Top => "top",
+                ZZero::Bottom => "bottom",
+            },
+        ));
+    }
+    Ok(notes)
+}
+
+/// The T numbers library tools get in a new project, in order: each its library number
+/// (at least 1), or the next free one when a tool before it took that number
+/// (docs/specs/new-project-dialog.md §2).
+pub fn tool_numbers(ids: impl IntoIterator<Item = i64>) -> Vec<i64> {
+    let mut numbers: Vec<i64> = Vec::new();
+    for wanted in ids {
+        let mut id = wanted.max(1);
+        while numbers.contains(&id) {
+            id += 1;
+        }
+        numbers.push(id);
+    }
+    numbers
+}
+
+/// The tools of a new project: the library's default tool, or the named library tools
+/// numbered in order, each with its library number or the next free one (docs/specs/
+/// new-project-dialog.md §2).
+fn start_tools(
+    job: &mut Job,
+    library: &Library,
+    keys: Option<&[String]>,
+) -> Result<Vec<Message>, Message> {
+    let mut notes = Vec::new();
+    let Some(keys) = keys else {
+        if let Some(entry) = library.tools.default_entry() {
+            let tool = entry.tool(entry.id.max(1));
+            notes.push(
+                Message::new("pipeline-library-tool")
+                    .arg("tool", tool.id)
+                    .arg("name", &entry.name),
+            );
+            job.tools = vec![tool];
+        }
+        return Ok(notes);
+    };
+    let mut entries = Vec::new();
+    for key in keys {
+        entries.push(
+            library
+                .tools
+                .find_uid(key)
+                .or_else(|| library.tools.find(key))
+                .ok_or_else(|| {
+                    Message::new("pipeline-library-no-tool").arg("name", key.as_str())
+                })?,
+        );
+    }
+    let numbers = tool_numbers(entries.iter().map(|e| e.id));
+    let mut tools: Vec<Tool> = Vec::new();
+    for (entry, id) in entries.into_iter().zip(numbers) {
+        tools.push(entry.tool(id));
         notes.push(
-            Message::new("pipeline-library-tool")
-                .arg("tool", tool.id)
+            Message::new("pipeline-start-tool")
+                .arg("tool", id)
                 .arg("name", &entry.name),
         );
-        job.tools = vec![tool];
     }
-    // The default material, last: the operations an import made take its values for
-    // their tools (docs/specs/job-settings-layout.md §3).
-    if let Some(material) = library.materials.default_entry() {
-        let (with, _) = crate::materials::use_material(job, &library.tools, Some(material));
-        *job = with;
-        notes.push(Message::new("pipeline-library-material").arg("name", &material.name));
+    if tools.is_empty() {
+        notes.push(Message::new("pipeline-start-no-tools"));
     }
-    // The board new projects are cut from (the user, 2026-11-03).
-    if let Some(thickness) = library.materials.default_thickness {
-        job.stock_mut().thickness = thickness;
-        notes.push(
-            Message::new("pipeline-library-thickness")
-                .arg("thickness", Value::Length(thickness, Digits::Shortest)),
-        );
-    }
+    job.tools = tools;
     Ok(notes)
 }
 

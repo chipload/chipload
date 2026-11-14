@@ -27,11 +27,14 @@ pub enum MaterialAction {
     Show { name: String },
     /// Add a material; its values are the tools' rows for it (`tool cutting`).
     Add { name: String },
-    /// Rename a material.
+    /// Rename a material, or give it the board thickness new projects on it start with.
     Set {
         name: String,
-        #[arg(long)]
-        rename: String,
+        #[arg(long, required_unless_present = "thickness")]
+        rename: Option<String>,
+        /// Its board's usual thickness, which the new project dialog fills in (0: none).
+        #[arg(long, value_parser = crate::lengths::length)]
+        thickness: Option<f64>,
     },
     /// The material new projects start with (--none: none).
     Default {
@@ -113,23 +116,36 @@ pub fn material(out: &mut Out, action: MaterialAction) -> ExitCode {
             let added = library.add(&name)?;
             Ok(format!("Added material \"{}\".", added.name))
         }),
-        MaterialAction::Set { name, rename } => {
-            update_library(&path, |library: &mut MaterialLibrary| {
-                let new = rename.trim();
-                if library
-                    .position(new)
-                    .is_some_and(|i| Some(i) != library.position(&name))
-                {
+        MaterialAction::Set {
+            name,
+            rename,
+            thickness,
+        } => update_library(&path, |library: &mut MaterialLibrary| {
+            if let Some(t) = thickness {
+                if !(t.is_finite() && t >= 0.0) {
                     return Err(refused(format!(
-                        "a material named \"{new}\" already exists"
+                        "--thickness must be 0 (none) or more, got {t}"
                     )));
                 }
-                library.rename(&name, new);
-                let material = library.find_mut(&name)?;
-                material.name = new.to_string();
-                Ok(format!("Changed material \"{}\".", material.name))
-            })
-        }
+                library.find_mut(&name)?.thickness = (t > 0.0).then_some(t);
+            }
+            let Some(rename) = rename else {
+                return Ok(format!("Changed material \"{name}\"."));
+            };
+            let new = rename.trim();
+            if library
+                .position(new)
+                .is_some_and(|i| Some(i) != library.position(&name))
+            {
+                return Err(refused(format!(
+                    "a material named \"{new}\" already exists"
+                )));
+            }
+            library.rename(&name, new);
+            let material = library.find_mut(&name)?;
+            material.name = new.to_string();
+            Ok(format!("Changed material \"{}\".", material.name))
+        }),
         MaterialAction::Default { name, none: _ } => {
             update_library(&path, |library: &mut MaterialLibrary| match name {
                 Some(name) => {

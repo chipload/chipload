@@ -47,9 +47,12 @@ this material.
 `--none` to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.
 
-**The board's thickness for new projects:** on *This computer > Materials*, tick *New
-projects: stock thickness* and type it (`chipload material thickness 18`, `--none` for the
-built-in 10 mm). It is kept in `materials.json` beside the default material.
+**The board's thickness for new projects:** a material can have its usual **Thickness**
+(tick it in the material's form, or `chipload material set Plywood --thickness 18`, 0 to
+clear). The [new project dialog](../drawings/import.md#the-new-project-dialog) fills it in
+when the material is chosen. Choosing a material for a project never changes its board.
+For materials without one, *New projects: stock thickness* on *This computer > Materials*
+gives the thickness (`chipload material thickness 18`, `--none` for the built-in 10 mm).
 
 **Changing an operation's tool** takes the new tool's values for its material, when it has
 some.

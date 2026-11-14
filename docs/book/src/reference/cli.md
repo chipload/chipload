@@ -30,6 +30,13 @@ chipload new [OPTIONS]
 |---|---|
 | `-o, --output <OUTPUT>` | The project to write (.chipload) Required. |
 | `--machine <MACHINE>` | The machine profile to start from (default: your default machine) |
+| `--material <MATERIAL>` | The material (default: your default material) |
+| `--no-material` | No material, even if your library has a default one. |
+| `--thickness <THICKNESS>` | The board's thickness (default: the material's, else your default thickness) |
+| `--size <SIZE>` | The board's size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in) |
+| `--fit <FIT>` | The board fitted round the drawing with this margin (the default, 10 mm) |
+| `--z-zero <Z_ZERO>` | Where Z zero is: the board's top, or the spoilboard. One of: `top`, `spoilboard`. |
+| `--tools <TOOLS>` | Library tools by name, comma-separated, numbered in this order (default: your default tool); "" for none. |
 
 ## `chipload import`
 
@@ -46,6 +53,13 @@ chipload import <DXF> [OPTIONS]
 | `--px-per-inch <PX_PER_INCH>` | Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72 (older Illustrator) |
 | `-o, --output <OUTPUT>` | The project to write (.chipload) Required. |
 | `--machine <MACHINE>` | The machine profile to start from (default: your default machine) |
+| `--material <MATERIAL>` | The material (default: your default material) |
+| `--no-material` | No material, even if your library has a default one. |
+| `--thickness <THICKNESS>` | The board's thickness (default: the material's, else your default thickness) |
+| `--size <SIZE>` | The board's size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in) |
+| `--fit <FIT>` | The board fitted round the drawing with this margin (the default, 10 mm) |
+| `--z-zero <Z_ZERO>` | Where Z zero is: the board's top, or the spoilboard. One of: `top`, `spoilboard`. |
+| `--tools <TOOLS>` | Library tools by name, comma-separated, numbered in this order (default: your default tool); "" for none. |
 
 ## `chipload update`
 
@@ -1905,7 +1919,7 @@ chipload material add <NAME>
 
 ### `chipload material set`
 
-Rename a material
+Rename a material, or give it the board thickness new projects on it start with
 
 ```text
 chipload material set <NAME> [OPTIONS]
@@ -1914,7 +1928,8 @@ chipload material set <NAME> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<NAME>` |  |
-| `--rename <RENAME>` | Required. |
+| `--rename <RENAME>` |  |
+| `--thickness <THICKNESS>` | Its board's usual thickness, which the new project dialog fills in (0: none) |
 
 ### `chipload material default`
 

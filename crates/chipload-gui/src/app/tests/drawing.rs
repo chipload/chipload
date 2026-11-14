@@ -793,6 +793,7 @@ fn svgs_open_and_a_file_in_pixels_asks_for_its_pixels_per_inch() {
     // docs/specs/svg-import.md §7, §10.
     let mut app = ChiploadApp::default();
     assert!(app.open(&corpus("svg/badge_layers.svg")));
+    assert!(app.accept_new_project());
     assert_eq!(app.contours.len(), 3);
     // Dropped on the open project: a second drawing file, which asks first.
     assert!(app.drop_files(&[corpus("svg/pixels.svg")]));
