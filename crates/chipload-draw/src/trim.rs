@@ -4,6 +4,7 @@
 //! 1 at its end); crossings with the cutting edges are found with `intersect`.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::{Arc, Line, Primitive, distance};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
@@ -290,7 +291,7 @@ fn share_along(prim: &Primitive, p: Point) -> f64 {
             if a.sweep == 0.0 {
                 return 0.0;
             }
-            let angle = (p.1 - a.center.1).atan2(p.0 - a.center.0);
+            let angle = math::atan2(p.1 - a.center.1, p.0 - a.center.0);
             let tau = std::f64::consts::TAU;
             let along = if a.sweep >= 0.0 {
                 (angle - a.start_angle).rem_euclid(tau)

@@ -2,6 +2,7 @@
 //! Shapes from the points of a drawing tool (docs/specs/drawing-input.md §4): the arc
 //! through three points, the arc of a radius between two, and an arc as polyline segments.
 
+use chipload_core::math;
 use std::f64::consts::{PI, TAU};
 
 use chipload_core::Point;
@@ -32,7 +33,7 @@ pub fn arc_through(start: Point, through: Point, end: Point) -> Option<Arc> {
     let cx = (ty * e2 - ey * t2) / d;
     let cy = (ex * t2 - tx * e2) / d;
     let center = (start.0 + cx, start.1 + cy);
-    let angle = |p: Point| (p.1 - center.1).atan2(p.0 - center.0);
+    let angle = |p: Point| math::atan2(p.1 - center.1, p.0 - center.0);
     let start_angle = angle(start);
     let to_end = (angle(end) - start_angle).rem_euclid(TAU);
     let to_through = (angle(through) - start_angle).rem_euclid(TAU);
@@ -77,10 +78,10 @@ pub fn arc_as_polyline(arc: &Arc) -> (Vec<Point>, Vec<f64>) {
     let start = arc.point_at(arc.start_angle);
     let end = arc.point_at(arc.start_angle + arc.sweep);
     if arc.sweep.abs() <= PI {
-        return (vec![start, end], vec![(arc.sweep / 4.0).tan()]);
+        return (vec![start, end], vec![math::tan(arc.sweep / 4.0)]);
     }
     let middle = arc.point_at(arc.start_angle + arc.sweep / 2.0);
-    let half = (arc.sweep / 8.0).tan();
+    let half = math::tan(arc.sweep / 8.0);
     (vec![start, middle, end], vec![half, half])
 }
 

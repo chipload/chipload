@@ -3,6 +3,7 @@
 //! `chipload-draw`'s; here shapes become its chains and its results become shapes, keeping
 //! a shape's kind where the result is exactly that kind, with ids as the spec says.
 
+use chipload_core::math;
 use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::PI;
 
@@ -277,7 +278,7 @@ pub(crate) fn offset_geometry(
             },
             true,
         ) if !outside || corners == Corners::Sharp => {
-            let step = d / (PI / f64::from(*sides)).cos();
+            let step = d / math::cos(PI / f64::from(*sides));
             let radius = if outside {
                 radius + step
             } else {
@@ -898,7 +899,7 @@ pub fn array_polar(job: &Job, ids: &[u64], polar: Polar) -> Result<Edited, Pipel
             if rotate {
                 (0.0, 0.0, turn)
             } else {
-                let (sin, cos) = turn.to_radians().sin_cos();
+                let (sin, cos) = math::sin_cos(turn.to_radians());
                 let (x, y) = (middle.0 - center.0, middle.1 - center.1);
                 let to = (center.0 + x * cos - y * sin, center.1 + x * sin + y * cos);
                 (to.0 - middle.0, to.1 - middle.1, 0.0)

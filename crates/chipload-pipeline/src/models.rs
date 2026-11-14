@@ -5,6 +5,7 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
+use chipload_core::math;
 use chipload_core::primitives::Primitive;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Geometry, Job, Model, ModelData, ModelUp, Shape, Units};
@@ -222,7 +223,7 @@ pub fn turn_view(model: &Model) -> Result<TurnView, PipelineError> {
         .ok_or_else(|| PipelineError::Job(Message::new("mesh-error-empty")))?;
     // Turned on the board as it will lie, about the box's middle.
     let (cx, cy) = ((lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0);
-    let (sin, cos) = model.rotation.to_radians().sin_cos();
+    let (sin, cos) = math::sin_cos(model.rotation.to_radians());
     let turned = light.mapped(|v| {
         let (u, w) = (v[0] - cx, v[1] - cy);
         [cx + u * cos - w * sin, cy + u * sin + w * cos, v[2]]

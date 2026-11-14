@@ -2,6 +2,7 @@
 //! Start points chosen by the user (docs/specs/helix-and-leads.md part A).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -166,7 +167,7 @@ fn a_start_on_an_arc_lands_on_the_arc() {
     )
     .unwrap();
     let p = plan.ring_starts[0].ring[0];
-    let r = (p.0 - 50.0).hypot(p.1 - 50.0);
+    let r = math::hypot(p.0 - 50.0, p.1 - 50.0);
     assert!((r - 23.0).abs() < 1e-9, "radius {r}");
     assert!((p.0 - p.1).abs() < 1e-6, "{p:?} not on the diagonal");
 }

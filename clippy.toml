@@ -2,3 +2,27 @@ allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-print-in-tests = true
+
+# The platform's maths library differs in the last bit between Linux, macOS and Windows,
+# and one bit can change the G-code (ADR 0032): use chipload_core::math instead.
+disallowed-methods = [
+    { path = "f64::sin", reason = "use chipload_core::math::sin (ADR 0032)" },
+    { path = "f64::cos", reason = "use chipload_core::math::cos (ADR 0032)" },
+    { path = "f64::sin_cos", reason = "use chipload_core::math::sin_cos (ADR 0032)" },
+    { path = "f64::tan", reason = "use chipload_core::math::tan (ADR 0032)" },
+    { path = "f64::asin", reason = "use chipload_core::math::asin (ADR 0032)" },
+    { path = "f64::acos", reason = "use chipload_core::math::acos (ADR 0032)" },
+    { path = "f64::atan", reason = "use chipload_core::math::atan (ADR 0032)" },
+    { path = "f64::atan2", reason = "use chipload_core::math::atan2 (ADR 0032)" },
+    { path = "f64::hypot", reason = "use chipload_core::math::hypot (ADR 0032)" },
+    { path = "f64::exp", reason = "use chipload_core::math::exp (ADR 0032)" },
+    { path = "f64::powf", reason = "use chipload_core::math::pow (ADR 0032)" },
+    { path = "f64::ln", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::log10", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::log2", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::exp2", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::cbrt", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::sinh", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::cosh", reason = "add it to chipload_core::math (ADR 0032)" },
+    { path = "f64::tanh", reason = "add it to chipload_core::math (ADR 0032)" },
+]

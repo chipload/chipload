@@ -2,6 +2,7 @@
 //! The drawing canvas: world (mm, Y up) to screen transform, what to draw, and picking.
 //! No geometry decisions here: it only shows core results.
 
+use chipload_core::math;
 use std::collections::BTreeSet;
 
 use crate::i18n::{Lang, t};
@@ -257,8 +258,8 @@ impl View {
         if self.is_top() {
             return (x, y); // exactly the 2D mapping, whatever Z is
         }
-        let (sin_t, cos_t) = self.turn.sin_cos();
-        let (sin_a, cos_a) = self.tilt.sin_cos();
+        let (sin_t, cos_t) = math::sin_cos(self.turn);
+        let (sin_a, cos_a) = math::sin_cos(self.tilt);
         let across = x * cos_t - y * sin_t;
         let depth = x * sin_t + y * cos_t;
         let height = (z - reference) * self.z_scale;
@@ -298,8 +299,8 @@ impl View {
         let lying = if self.is_top() {
             (across, up)
         } else {
-            let (sin_t, cos_t) = self.turn.sin_cos();
-            let depth = up / self.tilt.cos(); // on the stock top the height term is 0
+            let (sin_t, cos_t) = math::sin_cos(self.turn);
+            let depth = up / math::cos(self.tilt); // on the stock top the height term is 0
             (
                 across * cos_t + depth * sin_t,
                 -across * sin_t + depth * cos_t,
@@ -562,10 +563,10 @@ impl ToolpathShape {
                         let (dx, dy) = (next.0 - from.0, next.1 - from.1);
                         if since_arrow >= ARROW_SPACING_MM && !ghost {
                             let mid = ((from.0 + next.0) / 2.0, (from.1 + next.1) / 2.0);
-                            shape.arrows.push((mid, dy.atan2(dx)));
+                            shape.arrows.push((mid, math::atan2(dy, dx)));
                             since_arrow = 0.0;
                         }
-                        since_arrow += dx.hypot(dy);
+                        since_arrow += math::hypot(dx, dy);
                     }
                 }
             }
@@ -730,7 +731,7 @@ impl Progress {
             (0..=32)
                 .map(|k| {
                     let a = k as f64 / 32.0 * std::f64::consts::TAU;
-                    view.to_screen3((x + radius * a.cos(), y + radius * a.sin(), z))
+                    view.to_screen3((x + radius * math::cos(a), y + radius * math::sin(a), z))
                 })
                 .collect()
         };
@@ -764,7 +765,7 @@ impl Progress {
         painter.add(Shape::line(ring(shank.1, r), stroke));
         for k in 0..4 {
             let a = k as f64 * std::f64::consts::FRAC_PI_2 + view.turn;
-            let (c, s) = (a.cos(), a.sin());
+            let (c, s) = (math::cos(a), math::sin(a));
             let at = |radius: f64, z: f64| view.to_screen3((x + radius * c, y + radius * s, z));
             let side: Vec<Pos2> = profile
                 .iter()
@@ -861,7 +862,7 @@ impl SimSurface {
             }
         }
         // Depth into the screen grows with x·sin(turn) + y·cos(turn) (View::camera).
-        let (sin_t, cos_t) = view.turn.sin_cos();
+        let (sin_t, cos_t) = math::sin_cos(view.turn);
         let depth = |i: f64, j: f64| i * sin_t + j * cos_t;
         let columns = self.columns as u32;
         let mut quads: Vec<Quad> = Vec::with_capacity((self.columns - 1) * (self.rows - 1));
@@ -1142,7 +1143,7 @@ impl StartMarker {
         let n = self.ring.len();
         let (a, b) = (self.ring[i], self.ring[(i + 1) % n]);
         self.at = at;
-        self.heading = (b.1 - a.1).atan2(b.0 - a.0);
+        self.heading = math::atan2(b.1 - a.1, b.0 - a.0);
     }
 }
 
@@ -1656,8 +1657,8 @@ impl Scene {
                 }
                 let ahead = at
                     + Vec2::new(
-                        (16.0 * marker.heading.cos()) as f32,
-                        (-16.0 * marker.heading.sin()) as f32,
+                        (16.0 * math::cos(marker.heading)) as f32,
+                        (-16.0 * math::sin(marker.heading)) as f32,
                     );
                 painter.add(chevron(ahead, marker.heading, pal.operation));
             }
@@ -1792,7 +1793,7 @@ fn paint_background(painter: &Painter, pal: &Palette) {
 
 /// A ">" pointing along `angle` (world, CCW from +X); screen Y is down, so it flips.
 fn chevron(at: Pos2, angle: f64, color: Color32) -> Shape {
-    let (s, c) = (-angle).sin_cos();
+    let (s, c) = math::sin_cos(-angle);
     let rotate = |x: f64, y: f64| at + Vec2::new((x * c - y * s) as f32, (x * s + y * c) as f32);
     Shape::line(
         vec![rotate(-7.0, -5.0), rotate(0.0, 0.0), rotate(-7.0, 5.0)],

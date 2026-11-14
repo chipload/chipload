@@ -3,6 +3,7 @@
 //! its outline level meets the base's surface, fits the pocket (§2.3, §9).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_job::{Job, Operation, Selector, Source};
@@ -220,7 +221,7 @@ fn fit(job: &Job, made: &InlayMade, cell: f64, margin: f64, outline: f64) -> Fit
 /// rises 1.73 mm per mm). Off a wall, also the needles' disk: taking them out lowers a
 /// sharp ridge (the top of a hairline's plug) that much.
 fn tolerance(angle: f64, cell: f64) -> (f64, f64) {
-    let slope = 1.0 / (angle.to_radians() / 2.0).tan();
+    let slope = 1.0 / math::tan(angle.to_radians() / 2.0);
     let overlap = chipload_core::tolerances::VCARVE_TOL_MM + slope * cell;
     (overlap, overlap + slope * NEEDLE_CELLS as f64 * cell)
 }
@@ -367,7 +368,7 @@ fn a_plug_never_ignores_kinks() {
 fn a_plug_as_deep_as_its_v_bit_cuts_and_no_deeper() {
     let (mut job, made) = inlay_of(2, 1, 0.0);
     // A V-bit 5.196 mm across cuts 4.5 mm deep with its cone: exactly the channel's depth.
-    let across = 2.0 * 4.5 * 30f64.to_radians().tan();
+    let across = 2.0 * 4.5 * math::tan(30f64.to_radians());
     job.tools[1].diameter = across;
     let path = format!("operations.{}.end_depth", made.plug);
     let deep = |job: &Job| {
@@ -520,7 +521,7 @@ fn polygon_inlay(
         .enumerate()
         .map(|(k, r)| {
             let a = turn + std::f64::consts::TAU * k as f64 / n as f64;
-            (60.0 + r * a.cos(), 50.0 + r * a.sin())
+            (60.0 + r * math::cos(a), 50.0 + r * math::sin(a))
         })
         .collect();
     let mut shapes = vec![serde_json::json!({

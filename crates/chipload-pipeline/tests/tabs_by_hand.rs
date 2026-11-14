@@ -2,6 +2,7 @@
 //! Tabs placed by hand (docs/specs/tabs-by-hand.md §7).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use std::path::{Path, PathBuf};
 
 use chipload_core::primitives::distance;
@@ -25,7 +26,7 @@ const PROFILE: usize = 1;
 
 /// The middle of the rectangle's right side on the tool path (3 mm out), between two tabs.
 fn right_side() -> [f64; 2] {
-    let (s, c) = 10f64.to_radians().sin_cos();
+    let (s, c) = math::sin_cos(10f64.to_radians());
     [100.0 + 63.0 * c, 80.0 + 63.0 * s]
 }
 

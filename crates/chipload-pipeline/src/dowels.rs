@@ -7,6 +7,7 @@
 //! reaches a tool's diameter past its outline, and on the back the pins stand there.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Units, Value};
 use chipload_job::{Geometry, Job, Note, Operation, Selector, StockOrigin, Turn, WorkZero};
@@ -313,7 +314,7 @@ impl Cut {
         let Some((c, _, clockwise)) = self.arc else {
             return false;
         };
-        let angle = |q: Point| (q.1 - c.1).atan2(q.0 - c.0);
+        let angle = |q: Point| math::atan2(q.1 - c.1, q.0 - c.0);
         let along = |a: f64| {
             let d = if clockwise {
                 angle(self.from) - a
@@ -327,10 +328,10 @@ impl Cut {
 
     /// The shortest distance from `p` to the path.
     fn distance(&self, p: Point) -> f64 {
-        let to_end = |q: Point| (p.0 - q.0).hypot(p.1 - q.1);
+        let to_end = |q: Point| math::hypot(p.0 - q.0, p.1 - q.1);
         let ends = to_end(self.from).min(to_end(self.to));
         match self.arc {
-            Some((c, r, _)) if self.sweeps(p) => ((p.0 - c.0).hypot(p.1 - c.1) - r).abs(),
+            Some((c, r, _)) if self.sweeps(p) => (math::hypot(p.0 - c.0, p.1 - c.1) - r).abs(),
             Some(_) => ends,
             None => {
                 let (dx, dy) = (self.to.0 - self.from.0, self.to.1 - self.from.1);
@@ -438,11 +439,12 @@ pub fn broken_hole_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<
         }
         let breaks = holes.iter().any(|&(c, r)| {
             let touches = cut.distance(c) < r + cut.radius - CHAIN_TOL_MM;
-            let inside = |p: Point| (p.0 - c.0).hypot(p.1 - c.1) + cut.radius <= r + CHAIN_TOL_MM;
+            let inside =
+                |p: Point| math::hypot(p.0 - c.0, p.1 - c.1) + cut.radius <= r + CHAIN_TOL_MM;
             let wholly = match cut.arc {
                 None => inside(cut.from) && inside(cut.to),
                 Some((ac, ar, _)) => {
-                    (ac.0 - c.0).hypot(ac.1 - c.1) + ar + cut.radius <= r + CHAIN_TOL_MM
+                    math::hypot(ac.0 - c.0, ac.1 - c.1) + ar + cut.radius <= r + CHAIN_TOL_MM
                 }
             };
             touches && !wholly

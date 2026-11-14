@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::primitives::signed_area;
@@ -132,7 +133,7 @@ fn full_circle_offset_stays_round() {
         let expected = if side == Side::Outside { 53.0 } else { 47.0 };
         for p in &rings[0] {
             // Vertices lie on the true arc.
-            assert!((p.0.hypot(p.1) - expected).abs() < 1e-9);
+            assert!((math::hypot(p.0, p.1) - expected).abs() < 1e-9);
         }
     }
 }

@@ -5,6 +5,7 @@
 //! circles by their radical line. Points are kept only where they lie on both segments,
 //! within `CHAIN_TOL_MM`.
 
+use chipload_core::math;
 use std::f64::consts::{FRAC_PI_2, TAU};
 
 use chipload_core::Point;
@@ -44,7 +45,7 @@ pub fn lies_on(prim: &Primitive, p: Point) -> bool {
             let slack = CHAIN_TOL_MM / length;
             (-slack..=1.0 + slack).contains(&t)
         }
-        Primitive::Arc(a) => within_sweep(a, (p.1 - a.center.1).atan2(p.0 - a.center.0)),
+        Primitive::Arc(a) => within_sweep(a, math::atan2(p.1 - a.center.1, p.0 - a.center.0)),
     }
 }
 
@@ -75,7 +76,7 @@ pub fn nearest_on(prim: &Primitive, p: Point) -> Point {
             lerp(l.start, l.end, t)
         }
         Primitive::Arc(a) => {
-            let angle = (p.1 - a.center.1).atan2(p.0 - a.center.0);
+            let angle = math::atan2(p.1 - a.center.1, p.0 - a.center.0);
             if distance(p, a.center) > 0.0 && within_sweep(a, angle) {
                 a.point_at(angle)
             } else {
@@ -110,7 +111,7 @@ pub fn perpendicular_feet(prim: &Primitive, from: Point) -> Vec<Point> {
             if distance(from, a.center) <= CHAIN_TOL_MM {
                 return Vec::new();
             }
-            let angle = (from.1 - a.center.1).atan2(from.0 - a.center.0);
+            let angle = math::atan2(from.1 - a.center.1, from.0 - a.center.0);
             [angle, angle + std::f64::consts::PI]
                 .into_iter()
                 .filter(|&t| within_sweep(a, t))
@@ -126,8 +127,8 @@ pub fn tangent_points(arc: &Arc, from: Point) -> Vec<Point> {
     if d <= arc.radius + CHAIN_TOL_MM {
         return Vec::new();
     }
-    let towards = (from.1 - arc.center.1).atan2(from.0 - arc.center.0);
-    let spread = (arc.radius / d).acos();
+    let towards = math::atan2(from.1 - arc.center.1, from.0 - arc.center.0);
+    let spread = math::acos(arc.radius / d);
     [towards + spread, towards - spread]
         .into_iter()
         .filter(|&t| within_sweep(arc, t))
@@ -160,7 +161,7 @@ fn line_line(p: &Line, q: &Line) -> Option<Point> {
     let r = (p.end.0 - p.start.0, p.end.1 - p.start.1);
     let s = (q.end.0 - q.start.0, q.end.1 - q.start.1);
     let cross = r.0 * s.1 - r.1 * s.0;
-    let (p_len, q_len) = (r.0.hypot(r.1), s.0.hypot(s.1));
+    let (p_len, q_len) = (math::hypot(r.0, r.1), math::hypot(s.0, s.1));
     if p_len <= CHAIN_TOL_MM || q_len <= CHAIN_TOL_MM {
         return None;
     }
@@ -179,7 +180,7 @@ fn line_line(p: &Line, q: &Line) -> Option<Point> {
 /// `CHAIN_TOL_MM` of touching gives the touching point.
 fn line_circle(a: Point, b: Point, center: Point, radius: f64) -> Vec<Point> {
     let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-    let length = dx.hypot(dy);
+    let length = math::hypot(dx, dy);
     if length <= CHAIN_TOL_MM {
         return Vec::new();
     }
@@ -341,7 +342,7 @@ mod tests {
         assert_eq!(tangent_points(&full, (10.0, 0.0)).len(), 2);
         let up = tangent_points(&upper_arc, (10.0, 0.0));
         assert_eq!(up.len(), 1);
-        assert!(close(up[0], (2.5, 5.0 * (PI / 3.0).sin())));
+        assert!(close(up[0], (2.5, 5.0 * math::sin(PI / 3.0))));
         assert!(tangent_points(&full, (1.0, 0.0)).is_empty());
         // Quadrants: the half circle passes 0°, 90°, 180°.
         assert_eq!(quadrants(&upper_arc).len(), 3);

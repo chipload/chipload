@@ -2,6 +2,7 @@
 //! The shadow a mesh casts seen from above (spec §4): a grid of cells, each covered or not,
 //! from which the model's footprint outline is traced.
 
+use chipload_core::math;
 use chipload_core::tolerances::MESH_DEGENERATE_SHARE;
 
 use crate::Mesh;
@@ -157,7 +158,7 @@ fn height_in(t: &[[f64; 3]; 3], q: (f64, f64)) -> Option<f64> {
     let det = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
     let longest = [(a, b), (b, c), (c, a)]
         .iter()
-        .map(|(p, q)| (q[0] - p[0]).hypot(q[1] - p[1]))
+        .map(|(p, q)| math::hypot(q[0] - p[0], q[1] - p[1]))
         .fold(0.0, f64::max);
     if det.abs() <= (MESH_DEGENERATE_SHARE * longest).powi(2) || longest == 0.0 {
         return None;

@@ -3,6 +3,7 @@
 //! (straight down, in pecks) or bored with an endmill (a helix at the wall, then one level
 //! circle).
 
+use chipload_core::math;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
@@ -169,7 +170,7 @@ pub fn bore_moves(hole: &Hole, bore: &Bore, cut: &HoleCut) -> Result<Vec<Move>, 
         clockwise: cut_clockwise(Side::Inside, bore.direction, bore.spindle),
     };
     // At most `step_down` per turn: no steeper than that turn's slope.
-    let angle = bore.ramp_angle.min((bore.step_down / (TAU * rc)).atan());
+    let angle = bore.ramp_angle.min(math::atan(bore.step_down / (TAU * rc)));
     let mut moves = vec![Move::rapid_z(cut.safe_z), Move::rapid_xy(start)];
     moves.extend(helix_moves(
         &helix,

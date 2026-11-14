@@ -12,6 +12,7 @@
 //!   at the ring's start.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, Z_NOISE_MM};
 use chipload_i18n::{Digits, Message, Value};
@@ -36,7 +37,7 @@ pub struct TabSurface<'a> {
 impl TabSurface<'_> {
     /// tan(flank angle); None for a straight (vertical) flank.
     fn slope(&self) -> Option<f64> {
-        (!flank_is_straight(self.flank_angle)).then(|| self.flank_angle.tan())
+        (!flank_is_straight(self.flank_angle)).then(|| math::tan(self.flank_angle))
     }
 }
 
@@ -308,7 +309,7 @@ pub fn wall_lap(lap: &WallLap, arcs: &ArcTable) -> Result<RingMoves, ToolpathErr
 /// The path a ramp of `drop` at `ramp_angle` takes; refused when it would take more than
 /// `MAX_RAMP_LEGS` laps of a ring `length` long.
 fn ramp_length(drop: f64, ramp_angle: f64, length: f64) -> Result<f64, ToolpathError> {
-    let ramp = drop / ramp_angle.tan();
+    let ramp = drop / math::tan(ramp_angle);
     if ramp / length > MAX_RAMP_LEGS as f64 {
         return Err(ToolpathError::Geometry(
             Message::new("toolpath-error-ring-ramp")

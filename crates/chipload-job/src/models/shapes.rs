@@ -3,6 +3,7 @@
 //! arcs, and the rules a shape must meet.
 
 use super::*;
+use chipload_core::math;
 
 /// One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape per DXF
 /// entity), or drawn in Chipload (`circle`, `rectangle`, `polyline`). One flat object:
@@ -203,7 +204,7 @@ impl Shape {
                 angle,
                 corner_radius,
             } => {
-                let (sin, cos) = angle.sin_cos();
+                let (sin, cos) = math::sin_cos(*angle);
                 let (hl, hw) = (length / 2.0, width / 2.0);
                 let place =
                     |x: f64, y: f64| [center[0] + x * cos - y * sin, center[1] + x * sin + y * cos];
@@ -238,7 +239,7 @@ pub fn polygon_corners(center: [f64; 2], radius: f64, sides: u32, angle: f64) ->
     let n = f64::from(sides.max(1));
     (0..sides)
         .map(|k| {
-            let (sin, cos) = (angle + f64::from(k) * std::f64::consts::TAU / n).sin_cos();
+            let (sin, cos) = math::sin_cos(angle + f64::from(k) * std::f64::consts::TAU / n);
             [center[0] + radius * cos, center[1] + radius * sin]
         })
         .collect()
@@ -315,7 +316,7 @@ pub(super) fn rounded_rectangle(
     ];
     let mut segments = Vec::with_capacity(8);
     for (start, end, centre, start_angle) in sides {
-        if (end.0 - start.0).hypot(end.1 - start.1) > CHAIN_TOL_MM {
+        if math::hypot(end.0 - start.0, end.1 - start.1) > CHAIN_TOL_MM {
             segments.push(PathSegment::Line(LineSegment {
                 start: place(start.0, start.1),
                 end: place(end.0, end.1),
@@ -981,7 +982,7 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             let pairs = if *closed { n } else { n.saturating_sub(1) };
             for i in 0..pairs {
                 let (a, b) = (points[i], points[(i + 1) % n]);
-                if (a[0] - b[0]).hypot(a[1] - b[1]) <= CHAIN_TOL_MM {
+                if math::hypot(a[0] - b[0], a[1] - b[1]) <= CHAIN_TOL_MM {
                     problems.push(Problem::at(
                         format!("points.{}", (i + 1) % n),
                         Message::new("job-point-on-previous")

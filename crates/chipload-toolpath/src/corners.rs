@@ -3,6 +3,7 @@
 //! corner round, the ring goes out to a tip from which the tool's edge touches the corner,
 //! and back.
 
+use chipload_core::math;
 use std::f64::consts::PI;
 
 use chipload_core::Point;
@@ -84,7 +85,7 @@ fn cross(a: Point, b: Point) -> f64 {
 }
 
 fn unit(a: Point) -> Option<Point> {
-    let len = a.0.hypot(a.1);
+    let len = math::hypot(a.0, a.1);
     (len > 0.0).then(|| (a.0 / len, a.1 / len))
 }
 
@@ -98,7 +99,7 @@ fn tangents(part: &OrientedSegment) -> Option<(Point, Point)> {
         Primitive::Arc(arc) => {
             let along = |angle: f64| {
                 let sign = arc.sweep.signum();
-                (-sign * angle.sin(), sign * angle.cos())
+                (-sign * math::sin(angle), sign * math::cos(angle))
             };
             (along(arc.start_angle), along(arc.start_angle + arc.sweep))
         }
@@ -129,7 +130,7 @@ pub fn find_corners(contour: &Contour, waste_inside: bool) -> Vec<Corner> {
         };
         // Signed turn, counter-clockwise positive, as if the contour ran counter-clockwise:
         // the inside is then on the left, and a left turn is a corner of the inside.
-        let mut turn = cross(incoming, outgoing).atan2(dot(incoming, outgoing));
+        let mut turn = math::atan2(cross(incoming, outgoing), dot(incoming, outgoing));
         if !ccw {
             turn = -turn;
         }
@@ -164,7 +165,7 @@ pub fn find_corners(contour: &Contour, waste_inside: bool) -> Vec<Corner> {
 
 /// The corner moved so its walls are `clearance` into the part (docs/specs/dogbones.md §3).
 fn moved_corner(corner: &Corner, clearance: f64) -> Point {
-    let half = (corner.angle / 2.0).sin();
+    let half = math::sin(corner.angle / 2.0);
     sub(corner.at, scale(corner.bisector, clearance / half))
 }
 
@@ -179,7 +180,7 @@ pub fn tip(
 ) -> Option<Point> {
     let c = moved_corner(corner, clearance);
     let w = sub(v, c);
-    if w.0.hypot(w.1) <= tool_radius + CHAIN_TOL_MM {
+    if math::hypot(w.0, w.1) <= tool_radius + CHAIN_TOL_MM {
         return None;
     }
     match bone {
@@ -204,7 +205,7 @@ fn corner_vertex(
     offset: f64,
     clearance: f64,
 ) -> Option<(usize, usize)> {
-    let half = (corner.angle / 2.0).sin();
+    let half = math::sin(corner.angle / 2.0);
     let c = moved_corner(corner, clearance);
     // Straight walls put the vertex (offset + clearance) / sin(θ/2) from the moved corner;
     // a curved wall moves it a little (5 % for a line meeting a half circle at 90°). A rounded ring (the corner out of reach) has only
@@ -434,7 +435,7 @@ impl RingSlot<'_> {
         let (Some(a), Some(b)) = (unit(sub(here, prev)), unit(sub(next, here))) else {
             return 0.0;
         };
-        cross(a, b).atan2(dot(a, b)).abs()
+        math::atan2(cross(a, b), dot(a, b)).abs()
     }
 }
 

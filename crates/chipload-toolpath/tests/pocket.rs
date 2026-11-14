@@ -2,6 +2,7 @@
 //! Pocket planning: unit tests and the no-gouge / clears-everything property.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use std::f64::consts::TAU;
@@ -169,7 +170,7 @@ fn circle_and_polygon_of_the_same_circle_are_the_same_shape() {
     let points: Vec<Point> = (0..n)
         .map(|i| {
             let a = TAU * f64::from(i) / f64::from(n);
-            (50.0 + 20.0 * a.cos(), 30.0 + 20.0 * a.sin())
+            (50.0 + 20.0 * math::cos(a), 30.0 + 20.0 * math::sin(a))
         })
         .collect();
     let contours = [circle_id(1, (50.0, 30.0), 20.0), polygon_id(2, &points)];
@@ -637,7 +638,7 @@ fn inner_rings_step_out_onto_the_next_as_one_spiral() {
         for w in ring.points.windows(3) {
             let u = (w[1].0 - w[0].0, w[1].1 - w[0].1);
             let v = (w[2].0 - w[1].0, w[2].1 - w[1].1);
-            let turn = (u.0 * v.1 - u.1 * v.0).atan2(u.0 * v.0 + u.1 * v.1).abs();
+            let turn = math::atan2(u.0 * v.1 - u.1 * v.0, u.0 * v.0 + u.1 * v.1).abs();
             assert!(turn < 0.5, "turn of {turn} rad at {:?}", w[1]);
         }
     }
@@ -1033,7 +1034,7 @@ fn star(
                         .map(|(&a, &r)| {
                             let a = f64::from(a) / 36_000.0 * TAU;
                             let round = |v: f64| (v * 1e6).round() / 1e6;
-                            (round(cx + r * a.cos()), round(cy + r * a.sin()))
+                            (round(cx + r * math::cos(a)), round(cy + r * math::sin(a)))
                         })
                         .collect()
                 })
@@ -1276,7 +1277,7 @@ proptest! {
                 // At most a half circle: the chord is at least as long as the sagitta allows.
                 let (ax, ay) = (x - c.center.0, y - c.center.1);
                 let (bx, by) = (nx - c.center.0, ny - c.center.1);
-                let sweep = (ax * by - ay * bx).atan2(ax * bx + ay * by);
+                let sweep = math::atan2(ax * by - ay * bx, ax * bx + ay * by);
                 let cw = m.kind == MoveKind::ArcCw;
                 prop_assert!(sweep.abs() <= std::f64::consts::PI + 1e-9);
                 // The direction matches, except at exactly a half circle, where the short-way

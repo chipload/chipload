@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
+use chipload_core::math;
 
 #[test]
 fn an_imported_image_is_traced_selected_as_a_whole_and_v_carved() {
@@ -172,7 +173,10 @@ fn a_pictures_turn_handle_turns_it_in_steps() {
     // Up and a little right of the centre: 80°, stepped to 75°.
     let a = 80f64.to_radians();
     app.drag_box_to(
-        (center.0 + 30.0 * a.cos(), center.1 + 30.0 * a.sin()),
+        (
+            center.0 + 30.0 * math::cos(a),
+            center.1 + 30.0 * math::sin(a),
+        ),
         false,
     );
     app.end_box_drag();

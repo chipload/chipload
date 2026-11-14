@@ -321,7 +321,7 @@ mod join_properties {
                 for p in points {
                     let nearest = originals
                         .iter()
-                        .map(|q| (p[0] - q[0]).hypot(p[1] - q[1]))
+                        .map(|q| chipload_core::math::hypot(p[0] - q[0], p[1] - q[1]))
                         .fold(f64::INFINITY, f64::min);
                     prop_assert!(split || nearest <= gap / 2.0 + 1e-12, "{p:?} moved {nearest}");
                 }

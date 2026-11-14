@@ -2,6 +2,7 @@
 //! The stock, the machine, work zero and the tools.
 
 use super::*;
+use chipload_core::math;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -425,7 +426,7 @@ impl Tool {
     pub fn vbit_width_at(&self, depth: f64) -> Option<f64> {
         let half = self.vbit_half_angle()?;
         let tip = self.tip_diameter.unwrap_or(0.0);
-        Some((tip + 2.0 * depth.max(0.0) * half.tan()).min(self.diameter))
+        Some((tip + 2.0 * depth.max(0.0) * math::tan(half)).min(self.diameter))
     }
 
     /// How deep a V-bit goes to be `width` wide, mm (docs/specs/sign-maker.md §5): 0 for a
@@ -437,7 +438,7 @@ impl Tool {
             return None;
         }
         let tip = self.tip_diameter.unwrap_or(0.0);
-        Some(((width - tip) / 2.0 / half.tan()).max(0.0))
+        Some(((width - tip) / 2.0 / math::tan(half)).max(0.0))
     }
 
     fn vbit_half_angle(&self) -> Option<f64> {

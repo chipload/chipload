@@ -2,6 +2,7 @@
 //! A V-carve's floor pass (docs/specs/vcarve-wide-strokes.md §4, §8).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use std::path::Path;
 
 use chipload_job::{Job, Note, OpRef, Operation, Tool, ToolType, load_job};
@@ -43,7 +44,7 @@ fn the_floor_pass_is_cut_first_as_a_pocket_kept_off_the_walls() {
         panic!("a pocket");
     };
     // 3.5 mm deep with a 60° bit: the walls meet the floor 3.5 × tan 30° in.
-    let inset = 3.5 * (30.0f64).to_radians().tan();
+    let inset = 3.5 * math::tan((30.0f64).to_radians());
     assert!(
         (pocket.clearance + inset).abs() < 1e-9,
         "{}",

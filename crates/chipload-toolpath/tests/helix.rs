@@ -2,6 +2,7 @@
 //! Helical entry for pockets (docs/specs/helix-and-leads.md part C).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::chain::Contour;
@@ -71,12 +72,12 @@ fn assert_entries_safe(plan: &Plan, top: f64) -> usize {
     for (i, m) in plan.program.moves.iter().enumerate().skip(1) {
         let (before, now) = (at[i - 1], at[i]);
         if m.kind != MoveKind::Rapid && now.2 < before.2 - 1e-9 {
-            let run = (now.0 - before.0).hypot(now.1 - before.1);
+            let run = math::hypot(now.0 - before.0, now.1 - before.1);
             if run == 0.0 {
                 assert!(now.2 >= deepest - 1e-9, "move {i}: plunge to {}", now.2);
             } else {
                 assert!(
-                    (before.2 - now.2) / run <= THREE_DEG.tan() + 1e-9,
+                    (before.2 - now.2) / run <= math::tan(THREE_DEG) + 1e-9,
                     "move {i}"
                 );
                 sideways += 1;

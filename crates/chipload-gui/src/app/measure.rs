@@ -3,6 +3,7 @@
 //! distance, ΔX, ΔY and the angle. Nothing goes into the project.
 
 use super::*;
+use chipload_core::math;
 
 /// A measurement being made: the first point, then the second.
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
@@ -27,9 +28,9 @@ impl Measure {
 /// `L 26.926  ΔX 25.000  ΔY 10.000  21.8°` from `a` to `b`, in `units`.
 pub fn measure_text(a: Point, b: Point, units: chipload_job::Units) -> String {
     let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-    let length = dx.hypot(dy);
+    let length = math::hypot(dx, dy);
     let angle = if length > 0.0 {
-        dy.atan2(dx).to_degrees()
+        math::atan2(dy, dx).to_degrees()
     } else {
         0.0
     };

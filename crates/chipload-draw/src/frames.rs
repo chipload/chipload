@@ -4,6 +4,7 @@
 //! worked out here: lines and arcs about the corners and sides; the oval is an ellipse
 //! fitted with arcs (`chipload_core::fit`).
 
+use chipload_core::math;
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 use chipload_core::Point;
@@ -331,7 +332,7 @@ pub fn holds(chain: &Chain, inner: (f64, f64), inset: f64) -> bool {
     let from_box = |(px, py): Point| {
         let dx = (px.abs() - x).max(0.0);
         let dy = (py.abs() - y).max(0.0);
-        dx.hypot(dy)
+        math::hypot(dx, dy)
     };
     corners
         && chain
@@ -355,7 +356,7 @@ impl Path {
 
     /// A line to `p`; none when it would have no length.
     fn line_to(&mut self, p: Point) {
-        if (p.0 - self.at.0).hypot(p.1 - self.at.1) > CHAIN_TOL_MM {
+        if math::hypot(p.0 - self.at.0, p.1 - self.at.1) > CHAIN_TOL_MM {
             self.prims.push(Primitive::Line(Line {
                 start: self.at,
                 end: p,
@@ -367,14 +368,14 @@ impl Path {
     /// An arc about `center` from where the path is, turning `sweep` (radians, positive
     /// counter-clockwise); none when it has no radius or no turn.
     fn arc(&mut self, center: Point, sweep: f64) {
-        let radius = (self.at.0 - center.0).hypot(self.at.1 - center.1);
+        let radius = math::hypot(self.at.0 - center.0, self.at.1 - center.1);
         if radius <= CHAIN_TOL_MM || sweep == 0.0 {
             return;
         }
         let arc = Arc {
             center,
             radius,
-            start_angle: (self.at.1 - center.1).atan2(self.at.0 - center.0),
+            start_angle: math::atan2(self.at.1 - center.1, self.at.0 - center.0),
             sweep,
         };
         self.prims.push(Primitive::Arc(arc));
@@ -450,7 +451,7 @@ fn oval(path: &mut Path, a: f64, b: f64) {
     let mut points = Vec::new();
     let mut t = 0.0;
     while t < TAU {
-        let (sin, cos) = t.sin_cos();
+        let (sin, cos) = math::sin_cos(t);
         points.push((a * cos, b * sin));
         // How fast the point moves with t, and the radius of the curve there: a chord of
         // length L sags L² / 8ρ.
@@ -472,7 +473,7 @@ fn arched(path: &mut Path, a: f64, b: f64, r: f64) {
         // The circle through both top corners and the top middle.
         let radius = (a * a + r * r) / (2.0 * r);
         let center = (0.0, b - radius);
-        let start = (b - r - center.1).atan2(a);
+        let start = math::atan2(b - r - center.1, a);
         path.arc(center, PI - 2.0 * start);
     } else {
         path.line_to((-a, b));
@@ -486,7 +487,7 @@ fn plaque(path: &mut Path, a: f64, b: f64, r: f64) {
     path.line_to((a - r, -b));
     if r > CHAIN_TOL_MM {
         let radius = (b * b + r * r) / (2.0 * r);
-        let sweep = 2.0 * b.atan2(radius - r);
+        let sweep = 2.0 * math::atan2(b, radius - r);
         path.arc((a - radius, 0.0), sweep);
         path.line_to((-a + r, b));
         path.arc((-a + radius, 0.0), sweep);
@@ -534,7 +535,7 @@ fn double_arch(path: &mut Path, a: f64, b: f64, r: f64) {
     }
     // The circle through two corners and the middle `r` beyond them.
     let radius = (a * a + r * r) / (2.0 * r);
-    let half = a.atan2(radius - r);
+    let half = math::atan2(a, radius - r);
     path.start((-a, -b + r));
     path.arc((0.0, -b + radius), 2.0 * half);
     path.line_to((a, b - r));
@@ -560,13 +561,13 @@ fn shield(path: &mut Path, a: f64, b: f64, r: f64) {
         // A circle tangent to the side at (a, y0), centred level with it, through the
         // point: (a - R)² + r² = R².
         let radius = (a * a + r * r) / (2.0 * a);
-        let end = (-r).atan2(radius - a);
+        let end = math::atan2(-r, radius - a);
         ((a - radius, y0), (-a + radius, y0), -end)
     } else {
         // The circle through both side ends and the middle, centred above it.
         let radius = (a * a + r * r) / (2.0 * r);
         let center = (0.0, -b + radius);
-        (center, center, (r - radius).atan2(a) + FRAC_PI_2)
+        (center, center, math::atan2(r - radius, a) + FRAC_PI_2)
     };
     path.arc(center_right, sweep);
     path.line_to((a, b));
@@ -698,8 +699,8 @@ mod tests {
     /// points near the ray to `p` (a thin ellipse's other side is near too), narrowed down
     /// by golden sections.
     fn ellipse_distance(a: f64, b: f64, p: Point) -> f64 {
-        let at = |t: f64| distance(p, (a * t.cos(), b * t.sin()));
-        let guess = (p.1 / b).atan2(p.0 / a);
+        let at = |t: f64| distance(p, (a * math::cos(t), b * math::sin(t)));
+        let guess = math::atan2(p.1 / b, p.0 / a);
         let step = 0.6 / 4000.0;
         let best = (0..=4000)
             .map(|i| guess - 0.3 + step * f64::from(i))

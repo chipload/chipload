@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Fitting lines and arcs (docs/specs/image-arcs-centrelines.md §8).
 
+use chipload_core::math;
 use std::f64::consts::{PI, TAU};
 
 use chipload_core::Point;
@@ -21,7 +22,7 @@ fn piece_distance(piece: &Primitive, p: Point) -> f64 {
             distance(p, (l.start.0 + t * dx, l.start.1 + t * dy))
         }
         Primitive::Arc(a) => {
-            let angle = (p.1 - a.center.1).atan2(p.0 - a.center.0);
+            let angle = math::atan2(p.1 - a.center.1, p.0 - a.center.0);
             let along = (a.sweep.signum() * (angle - a.start_angle)).rem_euclid(TAU);
             if along <= a.sweep.abs() {
                 (distance(p, a.center) - a.radius).abs()
@@ -47,10 +48,10 @@ fn ring() -> impl Strategy<Value = Vec<Point>> {
                     let t = TAU * k as f64 / n as f64;
                     let mut radius = r;
                     for (h, (amp, phase)) in harmonics.iter().enumerate() {
-                        radius += r * amp * ((h as f64 + 2.0) * t + phase).sin() / 2.0;
+                        radius += r * amp * math::sin((h as f64 + 2.0) * t + phase) / 2.0;
                     }
                     radius += noise * jitter[k];
-                    (radius * t.cos(), radius * t.sin())
+                    (radius * math::cos(t), radius * math::sin(t))
                 })
                 .collect()
         })
@@ -134,14 +135,14 @@ fn half_a_circle_is_one_arc_and_more_is_split() {
     let half: Vec<Point> = (0..=60)
         .map(|k| {
             let t = PI * k as f64 / 60.0;
-            (5.0 * t.cos(), 5.0 * t.sin())
+            (5.0 * math::cos(t), 5.0 * math::sin(t))
         })
         .collect();
     assert_eq!(fit_path(&half, false, 0.01, true).len(), 1);
     let more: Vec<Point> = (0..=80)
         .map(|k| {
             let t = 1.3 * PI * k as f64 / 80.0;
-            (5.0 * t.cos(), 5.0 * t.sin())
+            (5.0 * math::cos(t), 5.0 * math::sin(t))
         })
         .collect();
     assert_eq!(fit_path(&more, false, 0.01, true).len(), 2);

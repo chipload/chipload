@@ -2,6 +2,7 @@
 //! The project itself: the job, its setups and parts, copies, and the drawing's units.
 
 use super::*;
+use chipload_core::math;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -797,7 +798,7 @@ impl Job {
         named.push(WorkZero::DrawingOrigin {});
         let distance = |zero: WorkZero| {
             let (x, y) = Self::work_zero_on(zero, stock);
-            (x - at.0).hypot(y - at.1)
+            math::hypot(x - at.0, y - at.1)
         };
         named
             .into_iter()
@@ -827,7 +828,7 @@ impl Job {
 /// How far out a relief rim's ramp reaches the stock top from its foot, mm, for a relief
 /// `depth` deep (docs/specs/stl-relief.md §16): 0 for a straight wall.
 pub fn rim_run(depth: f64, ramp: f64) -> f64 {
-    let tan = ramp.tan();
+    let tan = math::tan(ramp);
     if tan.is_finite() && tan > 0.0 {
         depth.max(0.0) / tan
     } else {

@@ -2,6 +2,7 @@
 //! The editor for one drawn shape's defining values (docs/specs/drawing-tools.md section 6).
 //! It only edits a draft; the app applies it through the pipeline, which validates.
 
+use chipload_core::math;
 use chipload_job::edit::{insert_point_after, remove_point, set_closed};
 use chipload_job::{Geometry, Shape, polyline_segment_count};
 use eframe::egui::{self, Grid, TextEdit};
@@ -122,7 +123,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     ui.end_row();
                     // Across the flats: twice the distance from the centre to a side's
                     // middle; changing it changes the radius.
-                    let cos = (std::f64::consts::PI / f64::from((*sides).max(3))).cos();
+                    let cos = math::cos(std::f64::consts::PI / f64::from((*sides).max(3)));
                     let mut flats = 2.0 * *radius * cos;
                     ui.label(t!(ui, "shape-form-across-flats"))
                         .on_hover_text(t!(ui, "shape-form-across-flats-hover"));

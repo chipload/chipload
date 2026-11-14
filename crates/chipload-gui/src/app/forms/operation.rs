@@ -2,6 +2,7 @@
 //! An operation's form, and its rest and floor passes'.
 
 use super::*;
+use chipload_core::math;
 
 /// The stock's thickness and how far below it a cut may go (`stock.max_overcut`), for an
 /// end depth that cuts through the stock.
@@ -133,7 +134,7 @@ pub(super) fn flank_row(ui: &mut egui::Ui, tabs: &mut Tabs) {
         if tabs.is_straight() {
             ui.weak(t!(ui, "forms-flank-straight"));
         } else if tabs.height > 0.0 {
-            let foot = tabs.height / tabs.flank_angle.tan();
+            let foot = tabs.height / math::tan(tabs.flank_angle);
             let length = format!("{} {len_unit}", len_in(units, foot));
             ui.weak(t!(ui, "forms-flank-feet", length = length));
         }

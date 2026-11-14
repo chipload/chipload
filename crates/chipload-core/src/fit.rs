@@ -7,15 +7,17 @@
 //! Every input point, and the path between them, lies within the tolerance of the piece
 //! that spans it, and every piece starts and ends on an input point.
 
+use crate::math;
 use std::f64::consts::{FRAC_PI_4, PI, TAU};
 
 use crate::Point;
 use crate::order::Ordered;
 use crate::primitives::{Arc, Line, Primitive, distance};
+use crate::tolerances::ANGLE_TOL_RAD;
 
 /// Arcs flatter than this are lines: a nearly straight arc gains nothing and makes poor G2/G3.
 pub const MAX_FIT_RADIUS_MM: f64 = 1000.0;
-/// An arc turns at most this far.
+/// An arc turns at most this far (and [`ANGLE_TOL_RAD`] more, for an exact half circle).
 pub const MAX_FIT_SWEEP: f64 = PI;
 /// A closed path turning less than this at its sharpest point has no corner to start at.
 const CORNER_TURN: f64 = FRAC_PI_4;
@@ -130,11 +132,12 @@ fn arc_through(path: &[Point], i: usize, j: usize, tol: f64) -> Option<Arc> {
     // The middle point right of a→b (a positive cross product of m − a and b − a): the arc
     // turns counter-clockwise.
     let direction = if turn > 0.0 { 1.0 } else { -1.0 };
-    let angle = |p: Point| (p.1 - center.1).atan2(p.0 - center.0);
+    let angle = |p: Point| math::atan2(p.1 - center.1, p.0 - center.0);
     let start_angle = angle(a);
     let along = |p: Point| (direction * (angle(p) - start_angle)).rem_euclid(TAU);
     let sweep = along(b);
-    if sweep > MAX_FIT_SWEEP || sweep <= 0.0 {
+    // An exact half circle may come out a hair over π: it is allowed, on any platform.
+    if sweep > MAX_FIT_SWEEP + ANGLE_TOL_RAD || sweep <= 0.0 {
         return None;
     }
     let mut before = 0.0;
@@ -194,8 +197,8 @@ fn start_of(points: &[Point]) -> usize {
             points[k],
             points[(k + reach) % n],
         );
-        let a = (q.1 - p.1).atan2(q.0 - p.0);
-        let b = (r.1 - q.1).atan2(r.0 - q.0);
+        let a = math::atan2(q.1 - p.1, q.0 - p.0);
+        let b = math::atan2(r.1 - q.1, r.0 - q.0);
         let d = (b - a).rem_euclid(TAU);
         d.min(TAU - d)
     };
@@ -218,7 +221,7 @@ mod tests {
         (0..n)
             .map(|k| {
                 let t = TAU * k as f64 / n as f64;
-                (r * t.cos(), r * t.sin())
+                (r * math::cos(t), r * math::sin(t))
             })
             .collect()
     }
@@ -231,7 +234,10 @@ mod tests {
             "{} pieces: {pieces:?}",
             pieces.len()
         );
-        assert!(pieces.iter().all(|p| matches!(p, Primitive::Arc(_))));
+        assert!(
+            pieces.iter().all(|p| matches!(p, Primitive::Arc(_))),
+            "{pieces:?}"
+        );
         let swept: f64 = pieces
             .iter()
             .map(|p| match p {
@@ -274,7 +280,7 @@ mod tests {
         let points: Vec<Point> = (0..=50)
             .map(|k| {
                 let t = PI * k as f64 / 50.0;
-                (10.0 * t.cos(), 10.0 * t.sin())
+                (10.0 * math::cos(t), 10.0 * math::sin(t))
             })
             .collect();
         let pieces = fit_path(&points, false, 0.01, true);

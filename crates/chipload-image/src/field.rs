@@ -2,6 +2,7 @@
 //! Black and white (spec §2): the grey values blurred, and the level where they turn black.
 
 use crate::{Decoded, Settings, Threshold};
+use chipload_core::math;
 
 /// The blurred picture as "darkness" around a white border one pixel wide, and the level
 /// below which it is black. Inverting flips the darkness, so black is always below the
@@ -128,7 +129,7 @@ pub(crate) fn gaussian(sigma: f64) -> Vec<f64> {
     }
     let r = (3.0 * sigma).ceil() as i64;
     let weights: Vec<f64> = (-r..=r)
-        .map(|x| (-((x * x) as f64) / (2.0 * sigma * sigma)).exp())
+        .map(|x| math::exp(-((x * x) as f64) / (2.0 * sigma * sigma)))
         .collect();
     let sum: f64 = weights.iter().sum();
     weights.into_iter().map(|w| w / sum).collect()

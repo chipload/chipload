@@ -2,6 +2,7 @@
 //! The drawing: its shapes, groups, DXF and SVG sources and their placement.
 
 use super::*;
+use chipload_core::math;
 
 /// The project's drawing: shapes in millimetres, or (only for jobs from before v4) a
 /// reference to a DXF that still has to be embedded.
@@ -373,7 +374,7 @@ pub fn rotated(p: [f64; 2], degrees: f64) -> [f64; 2] {
     if let Some(k) = as_quarter_turns(degrees) {
         return quarter_turned(p, k);
     }
-    let (sin, cos) = degrees.to_radians().sin_cos();
+    let (sin, cos) = math::sin_cos(degrees.to_radians());
     [p[0] * cos - p[1] * sin, p[0] * sin + p[1] * cos]
 }
 

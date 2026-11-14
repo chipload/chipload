@@ -2,6 +2,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use super::*;
+use chipload_core::math;
 use chipload_core::primitives::Arc;
 
 /// An SVG page `w` × `h` mm with a matching viewBox, so user units are mm.
@@ -284,7 +285,7 @@ fn distance_to(prim: &Primitive, p: Point) -> f64 {
         }
         Primitive::Arc(a) => {
             let on_circle = (distance(p, a.center) - a.radius).abs();
-            if within(a, (p.1 - a.center.1).atan2(p.0 - a.center.0)) {
+            if within(a, math::atan2(p.1 - a.center.1, p.0 - a.center.0)) {
                 on_circle
             } else {
                 distance(p, a.point_at(a.start_angle))

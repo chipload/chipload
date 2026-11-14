@@ -6,6 +6,7 @@
 //! template. Built-in configs and templates live in `posts/` and `templates/` and are
 //! compiled in (ADR 0007).
 
+use chipload_core::math;
 use std::path::Path;
 
 use chipload_i18n::Message;
@@ -443,8 +444,8 @@ fn centre_offsets(
     let round = |v: f64| (v / step).round() * step;
     let (i0, j0) = (round(centre.0 - start.0), round(centre.1 - start.1));
     let mismatch = |i: f64, j: f64| {
-        let r_start = i.hypot(j);
-        let r_end = (end.0 - (start.0 + i)).hypot(end.1 - (start.1 + j));
+        let r_start = math::hypot(i, j);
+        let r_end = math::hypot(end.0 - (start.0 + i), end.1 - (start.1 + j));
         (r_start - r_end).abs()
     };
     let mut best = (i0, j0, mismatch(i0, j0));

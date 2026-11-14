@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The box round selected drawn shapes (docs/specs/drawn-shapes-box.md §2).
 use super::*;
+use chipload_core::math;
 use chipload_pipeline::box_handles::BoxHandle;
 
 fn polyline_points(app: &ChiploadApp, id: u64) -> Vec<[f64; 2]> {
@@ -80,7 +81,7 @@ fn turning_and_sizing_the_box_turns_and_scales_about_its_centre() {
     let handles = app.box_handle_points();
     assert!((handles[2].1.0 - lower_left.0).abs() < 1.0);
     let grown = polyline_points(&app, 3);
-    let side = |p: &[[f64; 2]]| (p[1][0] - p[0][0]).hypot(p[1][1] - p[0][1]);
+    let side = |p: &[[f64; 2]]| math::hypot(p[1][0] - p[0][0], p[1][1] - p[0][1]);
     assert!(side(&grown) > 1.9 * side(&turned), "{grown:?}");
 }
 

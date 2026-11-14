@@ -2,6 +2,7 @@
 //! Tracing pictures (docs/specs/image-trace.md §9).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use std::io::Cursor;
 
 use chipload_core::Point;
@@ -63,7 +64,7 @@ fn edge_distance(loops: &[Vec<Point>], p: Point) -> f64 {
             let (a, b) = (ring[k], ring[(k + 1) % ring.len()]);
             let (dx, dy) = (b.0 - a.0, b.1 - a.1);
             let t = (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
-            best = best.min((p.0 - a.0 - t * dx).hypot(p.1 - a.1 - t * dy));
+            best = best.min(math::hypot(p.0 - a.0 - t * dx, p.1 - a.1 - t * dy));
         }
     }
     best
@@ -126,7 +127,7 @@ fn a_black_square_traces_through_the_middle_between_pixels() {
 
 /// Every loop's pieces join end to end and close, as many loops as points.
 fn pieces_close(t: &chipload_image::Trace) -> bool {
-    let near = |a: Point, b: Point| (a.0 - b.0).hypot(a.1 - b.1) < 1e-9;
+    let near = |a: Point, b: Point| math::hypot(a.0 - b.0, a.1 - b.1) < 1e-9;
     t.pieces.len() == t.loops.len()
         && t.pieces.iter().all(|pieces| {
             !pieces.is_empty()
@@ -143,7 +144,7 @@ fn with_arcs_a_disk_is_a_few_arcs_and_a_square_its_lines() {
     let (n, r) = (200u32, 80.0f64);
     let bytes = png(n, n, |x, y| {
         let (dx, dy) = (f64::from(x) + 0.5 - 100.0, f64::from(y) + 0.5 - 100.0);
-        dx.hypot(dy) <= r
+        math::hypot(dx, dy) <= r
     });
     let settings = Settings {
         blur: 1.0,
@@ -195,7 +196,7 @@ fn a_disk_traces_round() {
     let (n, r) = (60u32, 20.0f64);
     let bytes = png(n, n, |x, y| {
         let (dx, dy) = (f64::from(x) + 0.5 - 30.0, f64::from(y) + 0.5 - 30.0);
-        dx.hypot(dy) <= r
+        math::hypot(dx, dy) <= r
     });
     let settings = Settings {
         blur: 1.0,
@@ -204,7 +205,7 @@ fn a_disk_traces_round() {
     let t = trace(&decode(&bytes).unwrap(), &settings, 60.0).unwrap();
     assert_eq!(t.loops.len(), 1);
     for &(x, y) in &t.loops[0] {
-        let d = (x - 30.0).hypot(y - 30.0);
+        let d = math::hypot(x - 30.0, y - 30.0);
         assert!((d - r).abs() < 0.75, "{d}");
     }
 }

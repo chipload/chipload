@@ -72,7 +72,7 @@ line being its own.
 - **Units:** internal geometry and toolpaths are always **millimetres**. Convert only at the edges (DXF import via `$INSUNITS`, UI display, post-processor output). Never guess units silently: if the DXF has no units, require an explicit choice and record it in the job.
 - **Coordinates:** right-handed, Y up, angles in **radians** internally, counter-clockwise positive.
 - **Tolerances:** all in `chipload_core::tolerances` (chaining/joining 0.001 mm, arc approximation 0.01 mm). Never write a bare epsilon like `1e-6` in algorithm code. Use the named constant.
-- **Floats:** `f64` everywhere.
+- **Floats:** `f64` everywhere. `sin`, `cos`, `atan2`, `hypot`, `exp`… go through `chipload_core::math` (libm, the same bits on every platform, ADR 0032); clippy refuses `f64::sin` and the rest.
 - **Errors:** typed errors (`thiserror`) per crate. No `unwrap()`/`expect()`/`panic!` in library code (workspace lints deny them; tests may). `#![forbid(unsafe_code)]` via workspace lints.
 - **Determinism:** same input + same job file must produce byte-identical G-code. No timestamps in output unless a template asks for them. No `HashMap`/`HashSet` iteration in anything that reaches output (use `BTreeMap`/`BTreeSet`). Explicit number formatting.
 - **Style:** `cargo fmt`, `cargo clippy -D warnings`. Small functions, no clever one-liners in geometry code.

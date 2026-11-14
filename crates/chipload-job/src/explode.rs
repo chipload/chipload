@@ -3,6 +3,7 @@
 //! joined into one (docs/specs/explode-and-join.md §2, §3). Plain values in, plain values
 //! out; the pipeline applies them to a project.
 
+use chipload_core::math;
 use std::f64::consts::{PI, TAU};
 
 use chipload_core::primitives::{Arc, Primitive};
@@ -61,7 +62,7 @@ fn runs(prims: &[Primitive]) -> Vec<Vec<Primitive>> {
 }
 
 fn close(a: (f64, f64), b: (f64, f64)) -> bool {
-    (a.0 - b.0).hypot(a.1 - b.1) <= CHAIN_TOL_MM
+    math::hypot(a.0 - b.0, a.1 - b.1) <= CHAIN_TOL_MM
 }
 
 /// One run of segments as a polyline, closed when it ends where it starts.
@@ -464,7 +465,7 @@ fn end_point(geometry: &Geometry, last: bool) -> [f64; 2] {
 }
 
 fn distance(a: [f64; 2], b: [f64; 2]) -> f64 {
-    (a[0] - b[0]).hypot(a[1] - b[1])
+    math::hypot(a[0] - b[0], a[1] - b[1])
 }
 
 fn midpoint(a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
@@ -506,7 +507,7 @@ mod tests {
         let (ea, eb) = (ends(a), ends(b));
         assert_eq!(ea.len(), eb.len(), "{a:?}\n{b:?}");
         for (p, q) in ea.iter().zip(&eb) {
-            assert!((p.0 - q.0).hypot(p.1 - q.1) <= tol, "{p:?} vs {q:?}");
+            assert!(math::hypot(p.0 - q.0, p.1 - q.1) <= tol, "{p:?} vs {q:?}");
         }
     }
 

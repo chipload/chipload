@@ -4,6 +4,7 @@
 //! stock to beside it, so the tool only ever goes down in the air.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
 use crate::model::Move;
@@ -73,7 +74,7 @@ pub fn surface_moves(cut: &SurfaceCut, pass_z: &[f64], start: Point) -> (Vec<Mov
     let mut best_d = f64::INFINITY;
     for c in corners {
         let p = point(c.0, c.1);
-        let d = (p.0 - start.0).hypot(p.1 - start.1);
+        let d = math::hypot(p.0 - start.0, p.1 - start.1);
         if d < best_d - CHAIN_TOL_MM {
             best = c;
             best_d = d;

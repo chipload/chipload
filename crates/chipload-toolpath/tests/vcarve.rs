@@ -3,6 +3,7 @@
 //! planner: they measure the cone's circle at the surface against the drawn outline.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -45,7 +46,7 @@ fn dist_to_prim(prim: &Primitive, p: Point) -> f64 {
             ((ax + t * dx - p.0).powi(2) + (ay + t * dy - p.1).powi(2)).sqrt()
         }
         Primitive::Arc(a) => {
-            let angle = (p.1 - a.center.1).atan2(p.0 - a.center.0);
+            let angle = math::atan2(p.1 - a.center.1, p.0 - a.center.0);
             let from_start = if a.sweep >= 0.0 {
                 (angle - a.start_angle).rem_euclid(std::f64::consts::TAU)
             } else {
@@ -59,12 +60,12 @@ fn dist_to_prim(prim: &Primitive, p: Point) -> f64 {
                 let end = a.start_angle + a.sweep;
                 let ends = [
                     (
-                        a.center.0 + a.radius * a.start_angle.cos(),
-                        a.center.1 + a.radius * a.start_angle.sin(),
+                        a.center.0 + a.radius * math::cos(a.start_angle),
+                        a.center.1 + a.radius * math::sin(a.start_angle),
                     ),
                     (
-                        a.center.0 + a.radius * end.cos(),
-                        a.center.1 + a.radius * end.sin(),
+                        a.center.0 + a.radius * math::cos(end),
+                        a.center.1 + a.radius * math::sin(end),
                     ),
                 ];
                 ends.iter()
@@ -93,14 +94,14 @@ fn fine_ring(contour: &Contour) -> Vec<Point> {
         let mut points = match part.segment.prim {
             Primitive::Line(l) => vec![l.start, l.end],
             Primitive::Arc(a) => {
-                let step = 2.0 * (1.0 - sag / a.radius).clamp(-1.0, 1.0).acos();
+                let step = 2.0 * math::acos((1.0 - sag / a.radius).clamp(-1.0, 1.0));
                 let n = (a.sweep.abs() / step).ceil().max(1.0) as usize;
                 (0..=n)
                     .map(|i| {
                         let t = a.start_angle + a.sweep * i as f64 / n as f64;
                         (
-                            a.center.0 + a.radius * t.cos(),
-                            a.center.1 + a.radius * t.sin(),
+                            a.center.0 + a.radius * math::cos(t),
+                            a.center.1 + a.radius * math::sin(t),
                         )
                     })
                     .collect()
@@ -287,7 +288,7 @@ fn a_ring_is_one_circle_at_one_depth_without_spokes() {
     ];
     let bit = bit(60.0, 0.0);
     let plan = carve(&shape, &bit, 10.0);
-    let expected = 2.0 / (30.0f64).to_radians().tan();
+    let expected = 2.0 / math::tan((30.0f64).to_radians());
     assert_eq!(plan.paths.len(), 1, "one ring, no spokes");
     for (p, d) in plan.paths[0].points.iter().zip(&plan.paths[0].depths) {
         let r = (p.0 * p.0 + p.1 * p.1).sqrt();
@@ -321,11 +322,11 @@ fn a_flat_tip_carves_shallower_and_leaves_the_corner_tips() {
     let shape = [common::rect(1, 0.0, 0.0, 10.0, 4.0)];
     let bit = bit(60.0, 0.2);
     let plan = carve(&shape, &bit, 10.0);
-    let t = (30.0f64).to_radians().tan();
+    let t = math::tan((30.0f64).to_radians());
     assert!((deepest(&plan) - (2.0 - 0.1) / t).abs() < 1e-6);
     assert_no_gouge(&shape, &plan, &bit);
     // Only the tips of the corners (where the width is under 0.2) aren't reached.
-    assert!(worst_miss(&shape, &plan, &bit, 0.1) <= 0.1 / (45.0f64).to_radians().sin());
+    assert!(worst_miss(&shape, &plan, &bit, 0.1) <= 0.1 / math::sin((45.0f64).to_radians()));
     assert!(
         plan.notes.is_empty(),
         "corner tips aren't reported: {:?}",
@@ -499,7 +500,7 @@ fn arcs_and_lines_together() {
     )];
     let bit = bit(60.0, 0.0);
     let plan = carve(&shape, &bit, 20.0);
-    let expected = 3.0 / (30.0f64).to_radians().tan();
+    let expected = 3.0 / math::tan((30.0f64).to_radians());
     assert!(
         (deepest(&plan) - expected).abs() < 0.02,
         "{}",
@@ -516,7 +517,7 @@ fn star(points: usize, outer: f64, inner: f64, turn: f64) -> Contour {
         .map(|i| {
             let r = if i % 2 == 0 { outer } else { inner };
             let a = turn + std::f64::consts::PI * i as f64 / points as f64;
-            (r * a.cos(), r * a.sin())
+            (r * math::cos(a), r * math::sin(a))
         })
         .collect();
     common::polygon(&ring)
@@ -602,7 +603,7 @@ proptest! {
         let band = 2.0 * bit.radius_at(cap) - tip;
         let miss = worst_miss_within(&shape, &plan, &bit, 0.4, band - TOL);
         // Corner tips narrower than a flat tip are never reached (v-carve.md §1).
-        let corner_tip = tip / 2.0 / (std::f64::consts::PI / points as f64 / 2.0).sin();
+        let corner_tip = tip / 2.0 / math::sin(std::f64::consts::PI / points as f64 / 2.0);
         prop_assert!(miss <= TOL + corner_tip, "missed by {miss}");
     }
 }
@@ -882,7 +883,7 @@ fn corners_are_cut_out_and_back_and_passes_go_on_through_the_groove() {
 #[test]
 fn kinks_under_the_angle_get_no_branch() {
     // 30 × 6, the top edge bent 15° outwards in its middle: a kink at (15, 6 + 15·tan 7.5°).
-    let rise = 15.0 * 7.5_f64.to_radians().tan();
+    let rise = 15.0 * math::tan(7.5_f64.to_radians());
     let kink = (15.0, 6.0 + rise);
     let shape = [common::polygon_id(
         1,
@@ -910,7 +911,7 @@ fn kinks_under_the_angle_get_no_branch() {
     assert!(!reaches(&most, (30.0, 6.0), 0.2));
     // What the kink's branch leaves: at most r(1/cos(θ/2) − 1), r the cut's radius there.
     let r = 3.0;
-    let left = r * (1.0 / 7.5_f64.to_radians().cos() - 1.0);
+    let left = r * (1.0 / math::cos(7.5_f64.to_radians()) - 1.0);
     assert!(
         worst_miss(&shape, &kinks, &bit, 0.1) <= left + TOL,
         "{} > {left}",
@@ -927,7 +928,7 @@ fn a_stroke_ending_in_kinks_keeps_its_centre_line() {
     let mut points = vec![(0.0, 0.0), (4.0, 0.0), (4.0, 30.0)];
     for k in 1..12 {
         let a = std::f64::consts::PI * f64::from(k) / 12.0;
-        points.push((2.0 + 2.0 * a.cos(), 30.0 + 2.0 * a.sin()));
+        points.push((2.0 + 2.0 * math::cos(a), 30.0 + 2.0 * math::sin(a)));
     }
     points.push((0.0, 30.0));
     let shape = [common::polygon_id(1, &points)];

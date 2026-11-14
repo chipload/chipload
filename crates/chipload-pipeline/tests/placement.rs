@@ -2,6 +2,7 @@
 //! Placing the imported drawing (docs/specs/drawing-placement.md).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use std::path::{Path, PathBuf};
 
 use chipload_dxf::contours_from_shapes;
@@ -458,14 +459,14 @@ fn a_turned_part_keeps_its_holes_and_cuts_the_same_amount() {
     // (cut into other chords) measures the same.
     use chipload_toolpath::model::MoveKind;
     let along = |m: &chipload_toolpath::model::Move, a: (f64, f64), b: (f64, f64)| -> f64 {
-        let chord = (b.0 - a.0).hypot(b.1 - a.1);
+        let chord = math::hypot(b.0 - a.0, b.1 - a.1);
         let Some(c) = m.circle else { return chord };
-        let turn =
-            (b.1 - c.center.1).atan2(b.0 - c.center.0) - (a.1 - c.center.1).atan2(a.0 - c.center.0);
+        let turn = math::atan2(b.1 - c.center.1, b.0 - c.center.0)
+            - math::atan2(a.1 - c.center.1, a.0 - c.center.0);
         match m.kind {
             MoveKind::ArcCcw => c.radius * turn.rem_euclid(std::f64::consts::TAU),
             MoveKind::ArcCw => c.radius * (-turn).rem_euclid(std::f64::consts::TAU),
-            _ => 2.0 * c.radius * (chord / (2.0 * c.radius)).min(1.0).asin(),
+            _ => 2.0 * c.radius * math::asin((chord / (2.0 * c.radius)).min(1.0)),
         }
     };
     // Feed lengths per operation, following the position through moves that give only Z.
@@ -886,7 +887,7 @@ fn off_the_spline(p: [f64; 2]) -> f64 {
             let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
             let t =
                 (((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
-            (p[0] - a[0] - t * dx).hypot(p[1] - a[1] - t * dy)
+            math::hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
         })
         .fold(f64::INFINITY, f64::min)
 }

@@ -2,6 +2,7 @@
 //! Holes: drill cycles and helical bores (docs/specs/holes.md §8).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use std::f64::consts::{PI, TAU};
@@ -304,7 +305,7 @@ fn the_helix_follows_the_circle_down_then_one_level_circle() {
         let drop = from.2 - to.2;
         assert!(drop >= -TOL, "never up");
         assert!(
-            drop <= run * (10.0 * DEG).tan() + TOL,
+            drop <= run * math::tan(10.0 * DEG) + TOL,
             "never steeper than the angle"
         );
         travelled += run;

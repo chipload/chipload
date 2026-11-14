@@ -3,6 +3,7 @@
 //! onto the shape library; a group's box turned as the group is
 //! (docs/specs/dxf-whole-on-canvas.md).
 
+use chipload_core::math;
 use chipload_pipeline::box_handles::BoxHandle;
 use chipload_pipeline::placement::Move;
 use egui_kittest::Harness;
@@ -133,7 +134,10 @@ fn a_dxf_turns_by_its_handle_and_scales_by_a_corner_of_its_turned_box() {
     let ahead = (b.rotation + 90.0).to_radians();
     app.start_box_drag(BoxHandle::Turn);
     app.drag_box_to(
-        (c.0 + 100.0 * ahead.cos(), c.1 + 100.0 * ahead.sin()),
+        (
+            c.0 + 100.0 * math::cos(ahead),
+            c.1 + 100.0 * math::sin(ahead),
+        ),
         false,
     );
     app.end_box_drag();
@@ -218,7 +222,10 @@ fn a_turned_group_keeps_its_box_turned() {
     app.start_box_drag(BoxHandle::Turn);
     // 30° up from the +X side (the handle turns in 15° steps).
     let t = 30f64.to_radians();
-    app.drag_box_to((c.0 + 100.0 * t.cos(), c.1 + 100.0 * t.sin()), false);
+    app.drag_box_to(
+        (c.0 + 100.0 * math::cos(t), c.1 + 100.0 * math::sin(t)),
+        false,
+    );
     app.end_box_drag();
     let group = &app.edit.as_ref().unwrap().job.drawing.groups[0];
     assert!((group.rotation - 30.0).abs() < 1e-9, "{}", group.rotation);

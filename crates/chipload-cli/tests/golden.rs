@@ -7,6 +7,7 @@
 //! chipload-cli --test golden`, review the diff, and explain it in the commit message.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -412,8 +413,8 @@ fn every_golden_arc_is_consistent_as_written() {
     for name in golden_files() {
         let gcode = std::fs::read_to_string(corpus(&format!("expected/{name}"))).unwrap();
         for (start, end, centre) in arcs_in(&gcode) {
-            let r0 = (start.0 - centre.0).hypot(start.1 - centre.1);
-            let r1 = (end.0 - centre.0).hypot(end.1 - centre.1);
+            let r0 = math::hypot(start.0 - centre.0, start.1 - centre.1);
+            let r1 = math::hypot(end.0 - centre.0, end.1 - centre.1);
             assert!(
                 (r0 - r1).abs() <= 0.001,
                 "{name}: {start:?} -> {end:?} around {centre:?}"

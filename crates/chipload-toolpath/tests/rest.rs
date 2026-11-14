@@ -2,6 +2,7 @@
 //! Rest machining (docs/specs/rest-machining.md §8).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -193,7 +194,7 @@ fn the_gap_between_an_island_and_the_wall_is_cleared() {
     for &p in &rest {
         let dx = (4.0 - p.0).max(p.0 - 20.0).max(0.0);
         let dy = (10.0 - p.1).max(p.1 - 30.0).max(0.0);
-        assert!(dx.hypot(dy) >= 1.5 - SLACK, "{p:?} cuts the island");
+        assert!(math::hypot(dx, dy) >= 1.5 - SLACK, "{p:?} cuts the island");
     }
 }
 

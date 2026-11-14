@@ -4,6 +4,7 @@
 // Integration tests may unwrap and panic: a failure is the test result.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -46,7 +47,7 @@ fn sharpest_turn(ring: &PocketRing) -> f64 {
             let v = (c.0 - b.0, c.1 - b.1);
             let cross = u.0 * v.1 - u.1 * v.0;
             let dot = u.0 * v.0 + u.1 * v.1;
-            cross.atan2(dot).abs()
+            math::atan2(cross, dot).abs()
         })
         .fold(0.0, f64::max)
 }
@@ -186,7 +187,7 @@ fn star(n: usize, cx: f64, cy: f64, radii: &[f64]) -> Vec<Point> {
     (0..n)
         .map(|i| {
             let a = std::f64::consts::TAU * i as f64 / n as f64;
-            (cx + radii[i] * a.cos(), cy + radii[i] * a.sin())
+            (cx + radii[i] * math::cos(a), cy + radii[i] * math::sin(a))
         })
         .collect()
 }

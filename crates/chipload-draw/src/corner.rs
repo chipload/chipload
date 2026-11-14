@@ -5,6 +5,7 @@
 //! straight across at a distance along each side.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 
@@ -74,7 +75,7 @@ pub fn cut_corners(poly: &Poly, corner: Option<usize>, cut: Cut) -> Result<Poly,
         per_size[k] = match cut {
             // The angle between the sides is π − turn; the tangent points lie
             // r / tan(that / 2) from the corner.
-            Cut::Fillet(_) => 1.0 / ((std::f64::consts::PI - turn) / 2.0).tan(),
+            Cut::Fillet(_) => 1.0 / math::tan((std::f64::consts::PI - turn) / 2.0),
             Cut::Chamfer(_) => 1.0,
         };
     }
@@ -170,7 +171,7 @@ fn replace_corner(poly: &mut Poly, k: usize, back: f64, cut: Cut) {
             let cross = (p.0 - a.0) * (b.1 - p.1) - (p.1 - a.1) * (b.0 - p.0);
             let turn = corner_turn(a, p, b);
             let sweep = if cross > 0.0 { turn } else { -turn };
-            (sweep / 4.0).tan()
+            math::tan(sweep / 4.0)
         }
     };
     poly.points[k] = t1;
@@ -180,8 +181,8 @@ fn replace_corner(poly: &mut Poly, k: usize, back: f64, cut: Cut) {
 
 /// How far the direction turns at `p` going from `a` to `b`, radians, 0 to π.
 fn corner_turn(a: Point, p: Point, b: Point) -> f64 {
-    let incoming = (p.1 - a.1).atan2(p.0 - a.0);
-    let outgoing = (b.1 - p.1).atan2(b.0 - p.0);
+    let incoming = math::atan2(p.1 - a.1, p.0 - a.0);
+    let outgoing = math::atan2(b.1 - p.1, b.0 - p.0);
     ((outgoing - incoming + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU)
         - std::f64::consts::PI)
         .abs()
@@ -278,7 +279,7 @@ mod tests {
     #[test]
     fn a_sharp_corner_takes_far_more_side_than_a_blunt_one() {
         // A thin wedge: 10° at the tip.
-        let tip = (10f64.to_radians() / 2.0).tan() * 100.0;
+        let tip = math::tan(10f64.to_radians() / 2.0) * 100.0;
         let wedge = Poly {
             points: vec![(0.0, 0.0), (100.0, -tip), (100.0, tip)],
             bulges: vec![0.0; 3],
@@ -287,7 +288,7 @@ mod tests {
         let done = cut_corners(&wedge, Some(0), Cut::Fillet(1.0)).unwrap();
         // r / tan(5°) ≈ 11.43 back along each side.
         let back = distance((0.0, 0.0), done.points[0]);
-        assert!((back - 1.0 / 5f64.to_radians().tan()).abs() < 1e-9);
+        assert!((back - 1.0 / math::tan(5f64.to_radians())).abs() < 1e-9);
     }
 
     mod properties {
@@ -298,7 +299,7 @@ mod tests {
             /// A fillet's arc starts and ends along the sides: its centre is r from both.
             #[test]
             fn fillets_are_tangent(angle in 0.2..3.0f64, r in 0.1..5.0f64) {
-                let b = (100.0 * angle.cos(), 100.0 * angle.sin());
+                let b = (100.0 * math::cos(angle), 100.0 * math::sin(angle));
                 let poly = Poly {
                     points: vec![(-100.0, 0.0), (0.0, 0.0), b],
                     bulges: vec![0.0, 0.0],

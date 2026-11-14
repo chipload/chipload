@@ -2,6 +2,7 @@
 //! Job + imported contours -> Program: the toolpath half of `chipload_pipeline::run_job`,
 //! which then posts and independently checks it.
 
+use chipload_core::math;
 use std::collections::{BTreeMap, BTreeSet};
 
 use chipload_core::Point;
@@ -651,7 +652,7 @@ fn plug_board(job: &Job, index: usize, mirror: Option<(Mirror, f64)>) -> Option<
         return None;
     };
     let plug = vcarve.plug?;
-    let slope = (job.tool(vcarve.tool)?.angle? / 2.0).tan();
+    let slope = math::tan(job.tool(vcarve.tool)?.angle? / 2.0);
     let floor = vcarve
         .floor
         .filter(|f| f.enabled)
@@ -1470,7 +1471,7 @@ pub fn vbit_cone_depth(tool: &Tool) -> Option<f64> {
     }
     let angle = tool.angle.filter(|a| *a > 0.0)?;
     let tip = tool.tip_diameter.unwrap_or(0.0);
-    Some((tool.diameter - tip) / 2.0 / (angle / 2.0).tan())
+    Some((tool.diameter - tip) / 2.0 / math::tan(angle / 2.0))
 }
 
 /// The smallest end mill a floor hint names, mm: below it, no end mill clears the floor.
@@ -1975,7 +1976,7 @@ fn joined_feet(layout: &TabLayout, tabs: &Tabs) -> Option<Message> {
     if tabs.is_straight() || layout.spans.len() < 2 {
         return None;
     }
-    let feet = 2.0 * tabs.height / tabs.flank_angle.tan();
+    let feet = 2.0 * tabs.height / math::tan(tabs.flank_angle);
     let count = layout.spans.len();
     let mut pairs = Vec::new();
     for k in 0..count {
@@ -3270,7 +3271,7 @@ fn plug_checks(
         return (problems, notes); // reported with the V-bit's checks
     };
     let tip = bit.tip_diameter.unwrap_or(0.0);
-    let deepest = (bit.diameter - tip) / 2.0 / (angle / 2.0).tan();
+    let deepest = (bit.diameter - tip) / 2.0 / math::tan(angle / 2.0);
     let depth = vcarve.end_depth - vcarve.start_depth;
     if depth > deepest + DEPTH_TOL_MM {
         problems.push(labelled(
@@ -3381,7 +3382,7 @@ fn plug_checks(
     }
     if tip > 0.0 {
         // How far from a right-angled corner the fit falls short: w/2 ÷ sin(45°).
-        let short = tip / 2.0 / std::f64::consts::FRAC_PI_4.sin();
+        let short = tip / 2.0 / math::sin(std::f64::consts::FRAC_PI_4);
         notes.push(note(
             Message::new("toolpath-plug-flat-tip")
                 .arg("tip", length(tip))

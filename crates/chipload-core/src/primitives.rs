@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! 2D primitives in millimetres. Angles in radians, counter-clockwise positive.
 
+use crate::math;
 use std::f64::consts::{PI, TAU};
 
 use crate::Point;
@@ -35,22 +36,22 @@ impl Arc {
     /// (positive = counter-clockwise). None for a straight segment or a zero-length chord.
     pub fn from_bulge(a: Point, b: Point, bulge: f64) -> Option<Arc> {
         let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-        let chord = dx.hypot(dy);
+        let chord = math::hypot(dx, dy);
         if bulge == 0.0 || chord == 0.0 {
             return None;
         }
-        let sweep = 4.0 * bulge.atan();
+        let sweep = 4.0 * math::atan(bulge);
         let half = sweep / 2.0;
         // Centre: from the chord midpoint along the left normal, signed by the sweep.
-        let offset = chord / 2.0 / half.tan();
+        let offset = chord / 2.0 / math::tan(half);
         let center = (
             (a.0 + b.0) / 2.0 - dy / chord * offset,
             (a.1 + b.1) / 2.0 + dx / chord * offset,
         );
         Some(Arc {
             center,
-            radius: chord / 2.0 / half.sin().abs(),
-            start_angle: (a.1 - center.1).atan2(a.0 - center.0),
+            radius: chord / 2.0 / math::sin(half).abs(),
+            start_angle: math::atan2(a.1 - center.1, a.0 - center.0),
             sweep,
         })
     }
@@ -58,13 +59,13 @@ impl Arc {
     /// Bulge of this arc as one polyline segment, tan(sweep / 4). Only meaningful for
     /// |sweep| < 2π; split longer arcs first.
     pub fn bulge(&self) -> f64 {
-        (self.sweep / 4.0).tan()
+        math::tan(self.sweep / 4.0)
     }
 
     pub fn point_at(&self, angle: f64) -> Point {
         (
-            self.center.0 + self.radius * angle.cos(),
-            self.center.1 + self.radius * angle.sin(),
+            self.center.0 + self.radius * math::cos(angle),
+            self.center.1 + self.radius * math::sin(angle),
         )
     }
 }
@@ -203,7 +204,7 @@ impl Primitive {
 }
 
 pub fn distance(a: Point, b: Point) -> f64 {
-    (a.0 - b.0).hypot(a.1 - b.1)
+    math::hypot(a.0 - b.0, a.1 - b.1)
 }
 
 /// Largest chord angle whose sagitta r*(1 - cos(theta/2)) stays within `tol`.
@@ -211,7 +212,7 @@ pub fn max_segment_angle(radius: f64, tol: f64) -> f64 {
     if radius <= tol {
         return PI;
     }
-    2.0 * (1.0 - tol / radius).acos()
+    2.0 * math::acos(1.0 - tol / radius)
 }
 
 pub fn segment_count(radius: f64, sweep: f64) -> usize {
@@ -254,7 +255,7 @@ mod tests {
                 }
             };
             let m = arc.mirrored(across_x, at);
-            let near = |a: Point, b: Point| (a.0 - b.0).hypot(a.1 - b.1) < 1e-12;
+            let near = |a: Point, b: Point| math::hypot(a.0 - b.0, a.1 - b.1) < 1e-12;
             assert!(near(m.start(), flip(arc.start())), "{across_x}");
             assert!(near(m.end(), flip(arc.end())), "{across_x}");
             assert!(near(m.midpoint(), flip(arc.midpoint())), "{across_x}");

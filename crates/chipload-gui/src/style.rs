@@ -236,7 +236,7 @@ pub(crate) fn contrast(a: Color32, b: Color32) -> f64 {
         if c <= 0.04045 {
             c / 12.92
         } else {
-            ((c + 0.055) / 1.055).powf(2.4)
+            chipload_core::math::pow((c + 0.055) / 1.055, 2.4)
         }
     }
     let luminance =

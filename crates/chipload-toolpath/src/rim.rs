@@ -543,7 +543,10 @@ mod tests {
                 let rho = ring as f64 / 8.0;
                 for j in 0..32 {
                     let a = std::f64::consts::TAU * j as f64 / 32.0;
-                    let q = (p.0 + rho * a.cos(), p.1 + rho * a.sin());
+                    let q = (
+                        p.0 + rho * chipload_core::math::cos(a),
+                        p.1 + rho * chipload_core::math::sin(a),
+                    );
                     let h = ball.height_at(rho).unwrap();
                     assert!(tip + h >= ramp.surface(q) - 1e-9, "{p:?} {q:?}");
                 }
@@ -573,7 +576,7 @@ mod tests {
     #[test]
     fn a_straight_wall_keeps_the_tool_its_radius_inside() {
         let wall = Ramp {
-            tan: std::f64::consts::FRAC_PI_2.tan(),
+            tan: chipload_core::math::tan(std::f64::consts::FRAC_PI_2),
             ..ramp()
         };
         let flat = Cutter::Flat { radius: 1.0 };

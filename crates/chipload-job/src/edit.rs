@@ -3,6 +3,7 @@
 //! does, and inserting or removing polyline points (docs/specs/drawing-follow-ups.md
 //! sections 1 and 3). Plain values in, plain values out, so every rule is tested here.
 
+use chipload_core::math;
 use std::f64::consts::{PI, TAU};
 
 use chipload_core::primitives::Arc;
@@ -67,7 +68,7 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
             {
                 list.push((Handle::Corner(k), corner));
             }
-            let (sin, cos) = angle.sin_cos();
+            let (sin, cos) = math::sin_cos(*angle);
             let reach = length / 2.0 + rotate_reach;
             list.push((
                 Handle::Rotate,
@@ -146,7 +147,7 @@ pub fn dimensions(geometry: &Geometry) -> Vec<Shown> {
     // The right-hand normal of a → b: outward for a counter-clockwise loop.
     let right = |a: [f64; 2], b: [f64; 2]| {
         let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-        let len = dx.hypot(dy);
+        let len = math::hypot(dx, dy);
         if len > 0.0 {
             [dy / len, -dx / len]
         } else {
@@ -154,7 +155,7 @@ pub fn dimensions(geometry: &Geometry) -> Vec<Shown> {
         }
     };
     let radius_at = |center: &[f64; 2], radius: f64, angle: f64| {
-        let (sin, cos) = angle.sin_cos();
+        let (sin, cos) = math::sin_cos(angle);
         [
             center[0] + radius * cos / 2.0,
             center[1] + radius * sin / 2.0,
@@ -225,7 +226,7 @@ pub fn dimensions(geometry: &Geometry) -> Vec<Shown> {
                 .map(|i| {
                     let (a, b) = (points[i], points[(i + 1) % points.len()]);
                     let n = right(a, b);
-                    let length = (b[0] - a[0]).hypot(b[1] - a[1]);
+                    let length = math::hypot(b[0] - a[0], b[1] - a[1]);
                     Shown {
                         dimension: Dimension::Segment(i),
                         value: length,
@@ -266,7 +267,7 @@ pub fn with_dimension(
         {
             let n = points.len();
             let (a, b) = (points[i], points[(i + 1) % n]);
-            let now = (b[0] - a[0]).hypot(b[1] - a[1]);
+            let now = math::hypot(b[0] - a[0], b[1] - a[1]);
             if now <= 0.0 {
                 return Err("the segment has no direction".into());
             }
@@ -290,7 +291,7 @@ pub fn with_dimension(
 /// Corners of a rectangle, counter-clockwise from local (−length/2, −width/2), as its
 /// segments go.
 pub fn rectangle_corners(center: [f64; 2], length: f64, width: f64, angle: f64) -> [[f64; 2]; 4] {
-    let (sin, cos) = angle.sin_cos();
+    let (sin, cos) = math::sin_cos(angle);
     let (hl, hw) = (length / 2.0, width / 2.0);
     [(-hl, -hw), (hl, -hw), (hl, hw), (-hl, hw)]
         .map(|(x, y)| [center[0] + x * cos - y * sin, center[1] + x * sin + y * cos])
@@ -397,11 +398,11 @@ pub fn try_drag(
             if dx == 0.0 && dy == 0.0 {
                 return Err("the corner handle is on the centre".into());
             }
-            *radius = dx.hypot(dy);
-            *angle = dy.atan2(dx);
+            *radius = math::hypot(dx, dy);
+            *angle = math::atan2(dy, dx);
         }
         (Geometry::Circle { center, radius }, Handle::Radius) => {
-            *radius = (to[0] - center[0]).hypot(to[1] - center[1]);
+            *radius = math::hypot(to[0] - center[0], to[1] - center[1]);
         }
         (
             Geometry::Rectangle {
@@ -414,7 +415,7 @@ pub fn try_drag(
             Handle::Corner(k),
         ) if k < 4 => {
             let opposite = rectangle_corners(*center, *length, *width, *angle)[(k + 2) % 4];
-            let (sin, cos) = angle.sin_cos();
+            let (sin, cos) = math::sin_cos(*angle);
             let d = [to[0] - opposite[0], to[1] - opposite[1]];
             // In the rectangle's own axes; the angle stays.
             *length = (d[0] * cos + d[1] * sin).abs();
@@ -430,7 +431,7 @@ pub fn try_drag(
             if dx == 0.0 && dy == 0.0 {
                 return Err("the rotation handle is on the centre".into());
             }
-            *angle = dy.atan2(dx);
+            *angle = math::atan2(dy, dx);
         }
         (Geometry::Polyline { points, .. }, Handle::Point(i)) if i < points.len() => {
             points[i] = to;
@@ -482,7 +483,7 @@ pub fn try_drag(
 /// circle either way.
 pub fn bulge_through(a: [f64; 2], b: [f64; 2], to: [f64; 2]) -> f64 {
     let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-    let chord = dx.hypot(dy);
+    let chord = math::hypot(dx, dy);
     if chord == 0.0 {
         return 0.0;
     }
@@ -511,7 +512,7 @@ pub fn insert_point_after(geometry: &mut Geometry, i: usize) -> bool {
         let (a, b) = (points[i], points[(i + 1) % points.len()]);
         let middle = segment_middle(a, b, bulges[i]);
         // tan(sweep / 4) for half the sweep: tan(atan(bulge) / 2).
-        let half = (bulges[i].atan() / 2.0).tan();
+        let half = math::tan(math::atan(bulges[i]) / 2.0);
         points.insert(i + 1, middle);
         bulges[i] = half;
         bulges.insert(i + 1, half);
@@ -796,12 +797,12 @@ pub fn followed_point(p: [f64; 2], old: &Geometry, new: &Geometry) -> Option<[f6
                 return None;
             }
             // In the old rectangle's frame, as shares of its half sides.
-            let (s0, k0) = a0.sin_cos();
+            let (s0, k0) = math::sin_cos(*a0);
             let (dx, dy) = (p[0] - c0[0], p[1] - c0[1]);
             let u = (dx * k0 + dy * s0) / (l0 / 2.0);
             let v = (-dx * s0 + dy * k0) / (w0 / 2.0);
             let (x, y) = (u * l1 / 2.0, v * w1 / 2.0);
-            let (s1, k1) = a1.sin_cos();
+            let (s1, k1) = math::sin_cos(*a1);
             Some([c1[0] + x * k1 - y * s1, c1[1] + x * s1 + y * k1])
         }
         (
@@ -858,7 +859,7 @@ pub fn followed_point(p: [f64; 2], old: &Geometry, new: &Geometry) -> Option<[f6
                     0.0
                 };
                 let q = [a[0] + ex * t, a[1] + ey * t];
-                let d = (p[0] - q[0]).hypot(p[1] - q[1]);
+                let d = math::hypot(p[0] - q[0], p[1] - q[1]);
                 if best.is_none_or(|(bd, _, _)| d < bd) {
                     best = Some((d, i, t));
                 }
@@ -1100,7 +1101,7 @@ mod tests {
             let start = rect(angle);
             let before = corners(&start);
             for k in 0..4 {
-                let (sin, cos) = f64::sin_cos(angle);
+                let (sin, cos) = math::sin_cos(angle);
                 // 3 mm further out along the local X and 1 mm along local Y.
                 let to = [
                     before[k][0] + 3.0 * cos - 1.0 * sin,
@@ -1179,7 +1180,7 @@ mod tests {
             panic!("arc")
         };
         let mid = list[4].1;
-        let r = (mid[0] - arc.center[0]).hypot(mid[1] - arc.center[1]);
+        let r = math::hypot(mid[0] - arc.center[0], mid[1] - arc.center[1]);
         assert!((r - arc.radius).abs() < 1e-9);
 
         let moved = drag(&start, Handle::Point(2), [20.0, 40.0], SegmentDrag::Move).unwrap();
@@ -1358,7 +1359,7 @@ mod tests {
             panic!();
         };
         for (p, q) in points.iter().zip([[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]]) {
-            assert!((p[0] - q[0]).hypot(p[1] - q[1]) < 1e-12);
+            assert!(math::hypot(p[0] - q[0], p[1] - q[1]) < 1e-12);
         }
         assert_eq!(transformed(&polyline, [0.0; 2], [0.0; 2], 0.0, 0.0), None);
         assert_eq!(transformed(&polyline, [0.0; 2], [0.0; 2], -1.0, 0.0), None);

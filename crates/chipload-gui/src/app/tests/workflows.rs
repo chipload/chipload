@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 use super::*;
+use chipload_core::math;
 
 #[test]
 fn opened_and_saved_projects_are_recent_and_missing_ones_are_forgotten() {
@@ -204,7 +205,7 @@ fn a_start_marker_is_dragged_along_its_ring_reset_and_undone() {
     // On a chord of an arc the start goes onto the arc itself: within the arc tolerance.
     let tol = chipload_core::tolerances::ARC_APPROX_TOL_MM;
     assert!(
-        (moved.at.0 - on_ring.0).hypot(moved.at.1 - on_ring.1) <= tol,
+        math::hypot(moved.at.0 - on_ring.0, moved.at.1 - on_ring.1) <= tol,
         "{:?} vs {on_ring:?}",
         moved.at
     );
@@ -664,12 +665,12 @@ fn dogbones_are_set_on_a_profile_and_generated() {
             (w[1].0 - w[0].0, w[1].1 - w[0].1),
             (w[2].0 - w[1].0, w[2].1 - w[1].1),
         );
-        let (lu, lv) = (u.0.hypot(u.1), v.0.hypot(v.1));
+        let (lu, lv) = (math::hypot(u.0, u.1), math::hypot(v.0, v.1));
         let back = lu > 1e-6 && lv > 1e-6 && (u.0 * v.0 + u.1 * v.1) / (lu * lv) < -1.0 + 1e-9;
         if back
             && !tips
                 .iter()
-                .any(|t| (t.0 - w[1].0).hypot(t.1 - w[1].1) < 1e-6)
+                .any(|t| math::hypot(t.0 - w[1].0, t.1 - w[1].1) < 1e-6)
         {
             tips.push(w[1]);
         }

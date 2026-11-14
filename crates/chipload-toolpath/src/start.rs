@@ -4,6 +4,7 @@
 //! stored one. Rings without a point keep the start the planner gave them.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
@@ -121,7 +122,7 @@ pub fn restart(ring: &[Point], at: Point, arcs: &mut ArcTable) -> Vec<Point> {
 /// `p` moved radially onto the circle.
 pub(crate) fn onto(circle: Circle, p: Point) -> Point {
     let (dx, dy) = (p.0 - circle.center.0, p.1 - circle.center.1);
-    let len = dx.hypot(dy);
+    let len = math::hypot(dx, dy);
     if len == 0.0 {
         return p;
     }
@@ -188,7 +189,7 @@ mod tests {
         arcs.insert(a, b, circle);
         let out = restart(&ring, (8.0, 8.0), &mut arcs);
         let p = out[0];
-        assert!((p.0.hypot(p.1) - 10.0).abs() < 1e-9);
+        assert!((math::hypot(p.0, p.1) - 10.0).abs() < 1e-9);
         assert_eq!(arcs.get(a, p), Some(circle));
         assert_eq!(arcs.get(p, b), Some(circle));
         assert_eq!(out[1], b);

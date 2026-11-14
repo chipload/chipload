@@ -123,7 +123,7 @@ mod tests {
             "{up:?}"
         );
         // 30°: the first corner is (-4, -2) rotated by 30° about the centre.
-        let (sin, cos) = 30f64.to_radians().sin_cos();
+        let (sin, cos) = chipload_core::math::sin_cos(30f64.to_radians());
         let first = line_starts(&rect(30f64.to_radians()))[0];
         assert!(close(
             first,
@@ -155,8 +155,8 @@ mod tests {
             PathSegment::Arc(a) => {
                 let at = |t: f64| {
                     [
-                        a.center[0] + a.radius * t.cos(),
-                        a.center[1] + a.radius * t.sin(),
+                        a.center[0] + a.radius * chipload_core::math::cos(t),
+                        a.center[1] + a.radius * chipload_core::math::sin(t),
                     ]
                 };
                 (at(a.start_angle), at(a.start_angle + a.sweep))
@@ -168,7 +168,7 @@ mod tests {
         (0..segments.len()).all(|i| {
             let end = ends(&segments[i]).1;
             let next = ends(&segments[(i + 1) % segments.len()]).0;
-            (end[0] - next[0]).hypot(end[1] - next[1]) <= CHAIN_TOL_MM
+            chipload_core::math::hypot(end[0] - next[0], end[1] - next[1]) <= CHAIN_TOL_MM
         })
     }
 
@@ -197,7 +197,7 @@ mod tests {
         assert!(close([lowest, highest], [6.0, 14.0]));
         // Turned: the unturned segments turned about the centre.
         let angle = 0.4_f64;
-        let (sin, cos) = angle.sin_cos();
+        let (sin, cos) = chipload_core::math::sin_cos(angle);
         let turn = |p: [f64; 2]| {
             let (x, y) = (p[0] - 10.0, p[1] - 20.0);
             [10.0 + x * cos - y * sin, 20.0 + x * sin + y * cos]
@@ -285,12 +285,12 @@ mod tests {
         assert_eq!(arc.center, [expected.center.0, expected.center.1]);
         assert_eq!(arc.radius, expected.radius);
         assert_eq!(arc.start_angle, expected.start_angle);
-        assert_eq!(arc.sweep, 4.0 * 0.4f64.atan());
+        assert_eq!(arc.sweep, 4.0 * chipload_core::math::atan(0.4f64));
         // It ends on the next point.
         let end_angle = arc.start_angle + arc.sweep;
         let end = [
-            arc.center[0] + arc.radius * end_angle.cos(),
-            arc.center[1] + arc.radius * end_angle.sin(),
+            arc.center[0] + arc.radius * chipload_core::math::cos(end_angle),
+            arc.center[1] + arc.radius * chipload_core::math::sin(end_angle),
         ];
         assert!((end[0] - 20.0).abs() < 1e-9 && (end[1] - 30.0).abs() < 1e-9);
     }

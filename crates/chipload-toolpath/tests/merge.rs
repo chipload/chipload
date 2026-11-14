@@ -3,6 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_toolpath::merge::merge_overlaps;
 
@@ -45,7 +46,7 @@ fn area(prims: &[Primitive]) -> f64 {
             Primitive::Arc(a) => {
                 let (s, e) = (p.start(), p.end());
                 let chord = (s.0 * e.1 - e.0 * s.1) / 2.0;
-                let segment = a.radius * a.radius / 2.0 * (a.sweep - a.sweep.sin());
+                let segment = a.radius * a.radius / 2.0 * (a.sweep - math::sin(a.sweep));
                 chord + segment
             }
         })
@@ -99,7 +100,7 @@ fn a_stroke_over_a_hole_fills_only_what_it_covers() {
     // The disc, less what's left of the hole, plus the bar's ends outside the disc. A
     // strip |y| < h across a circle of radius r covers 2 (h √(r² − h²) + r² asin(h/r)).
     let pi = std::f64::consts::PI;
-    let strip = |r: f64| 2.0 * (0.5 * (r * r - 0.25f64).sqrt() + r * r * (0.5 / r).asin());
+    let strip = |r: f64| 2.0 * (0.5 * (r * r - 0.25f64).sqrt() + r * r * math::asin(0.5 / r));
     let expected = 25.0 * pi - (9.0 * pi - strip(3.0)) + (12.0 - strip(5.0));
     assert!(
         (total(&merged) - expected).abs() < 0.01,

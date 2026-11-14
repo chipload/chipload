@@ -190,7 +190,7 @@ mod tests {
         let above = (t.height_at(rt + e).unwrap() - t.height_at(rt).unwrap()) / e;
         assert!((below - above).abs() < 1e-3, "{below} {above}");
         // The cone's slope is 1/tan(5°).
-        assert!((above - 1.0 / 5f64.to_radians().tan()).abs() < 1e-3);
+        assert!((above - 1.0 / crate::math::tan(5f64.to_radians())).abs() < 1e-3);
     }
 
     #[test]

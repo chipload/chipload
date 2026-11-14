@@ -4,6 +4,7 @@
 //! contain each other.
 
 use crate::Point;
+use crate::math;
 use crate::primitives::distance;
 use crate::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 use cavalier_contours::polyline::{PlineContainsResult, PlineSource, Polyline};
@@ -62,8 +63,8 @@ fn inside_or_on(outer: &[Point], inner: &[Point]) -> bool {
 /// collinear overlap.
 fn split_params(p: Point, r: Point, a: Point, b: Point) -> Vec<f64> {
     let s = sub(b, a);
-    let len_r = r.0.hypot(r.1);
-    let len_s = s.0.hypot(s.1);
+    let len_r = math::hypot(r.0, r.1);
+    let len_s = math::hypot(s.0, s.1);
     if len_r == 0.0 || len_s == 0.0 {
         return Vec::new();
     }

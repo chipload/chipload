@@ -7,6 +7,7 @@
 //! and arcs; a fitted loop that crosses, or comes nearer another loop than twice the
 //! chaining tolerance, falls back to its Douglas–Peucker version, and then to the traced one.
 
+use chipload_core::math;
 use std::collections::BTreeMap;
 
 use chipload_core::Point;
@@ -187,7 +188,7 @@ fn simplify_ring(ring: &[Point], tolerance: f64) -> Vec<Point> {
 }
 
 fn distance(a: Point, b: Point) -> f64 {
-    (b.0 - a.0).hypot(b.1 - a.1)
+    math::hypot(b.0 - a.0, b.1 - a.1)
 }
 
 fn segment_distance(p: Point, a: Point, b: Point) -> f64 {

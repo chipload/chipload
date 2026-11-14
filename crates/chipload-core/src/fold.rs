@@ -224,7 +224,7 @@ mod tests {
     #[test]
     fn a_v_notch_folds_only_when_narrower_than_about_a_degree() {
         let notch = |degrees: f64| {
-            let half = (degrees / 2.0).to_radians().tan() * 10.0;
+            let half = crate::math::tan((degrees / 2.0).to_radians()) * 10.0;
             square_with(&[(20.0 - half, 0.0), (20.0, 10.0), (20.0 + half, 0.0)])
         };
         assert!(fold_point(&notch(2.0)).is_none());
@@ -246,7 +246,7 @@ mod tests {
         let circle: Vec<Point> = (0..720)
             .map(|i| {
                 let a = f64::from(i) / 720.0 * std::f64::consts::TAU;
-                (5.0 * a.cos(), 5.0 * a.sin())
+                (5.0 * crate::math::cos(a), 5.0 * crate::math::sin(a))
             })
             .collect();
         assert!(fold_point(&circle).is_none());

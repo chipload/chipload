@@ -8,6 +8,7 @@
 
 use boostvoronoi::prelude::{Builder, Diagram, SourceCategory, VertexIndex};
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM, CHAIN_TOL_MM, VORONOI_GRID_MM};
 
@@ -221,7 +222,7 @@ impl Graph {
                 continue;
             }
             let grows = (outline.distance(next) - outline.distance(corner)) / along;
-            let inside = 2.0 * grows.clamp(0.0, 1.0).asin();
+            let inside = 2.0 * math::asin(grows.clamp(0.0, 1.0));
             // Exactly the angle (a 90° corner at 90°) keeps its branch.
             let kink = std::f64::consts::PI - inside + ANGLE_TOL_RAD < max_turn;
             if kink && self.within_sliver(&chain, outline, max_turn, tol) {
@@ -242,7 +243,7 @@ impl Graph {
     /// centre line runs into a kink at its end it is the stroke's length. Checked against the
     /// axis as it is now, so a branch taken out never covers another.
     fn within_sliver(&self, chain: &[usize], outline: &Outline, max_turn: f64, tol: f64) -> bool {
-        let grow = 1.0 / (max_turn / 2.0).cos() - 1.0;
+        let grow = 1.0 / math::cos(max_turn / 2.0) - 1.0;
         let staying: Vec<(Point, f64)> = (0..self.edges.len())
             .filter(|e| self.edges[*e].alive && !chain.contains(e))
             .flat_map(|e| self.edges[e].points.iter().copied())
@@ -672,7 +673,7 @@ pub(crate) fn fine_ring(
             Primitive::Line(line) => ring.push(line.start),
             Primitive::Arc(arc) => {
                 let step = if arc.radius > sag {
-                    2.0 * (1.0 - sag / arc.radius).acos()
+                    2.0 * math::acos(1.0 - sag / arc.radius)
                 } else {
                     std::f64::consts::PI
                 };
@@ -681,8 +682,8 @@ pub(crate) fn fine_ring(
                 for k in 0..pieces {
                     let a = arc.start_angle + arc.sweep * k as f64 / pieces as f64;
                     ring.push((
-                        arc.center.0 + arc.radius * a.cos(),
-                        arc.center.1 + arc.radius * a.sin(),
+                        arc.center.0 + arc.radius * math::cos(a),
+                        arc.center.1 + arc.radius * math::sin(a),
                     ));
                 }
             }

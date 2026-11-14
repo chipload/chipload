@@ -2,6 +2,7 @@
 //! Exact distances between toolpath segments and contour primitives, and a grid index so
 //! distance queries only look at nearby primitives.
 
+use chipload_core::math;
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
 
@@ -86,7 +87,7 @@ pub fn segment_distance(a: Point, b: Point, prim: &Primitive) -> f64 {
                     ] {
                         if (0.0..=1.0).contains(&t) {
                             let p = (a.0 + ab.0 * t, a.1 + ab.1 * t);
-                            if on_arc(arc, (p.1 - arc.center.1).atan2(p.0 - arc.center.0)) {
+                            if on_arc(arc, math::atan2(p.1 - arc.center.1, p.0 - arc.center.0)) {
                                 return 0.0;
                             }
                         }
@@ -101,7 +102,7 @@ pub fn segment_distance(a: Point, b: Point, prim: &Primitive) -> f64 {
                 .min(distance(s, closest_on_segment(s, a, b)))
                 .min(distance(e, closest_on_segment(e, a, b)));
             let q = closest_on_segment(arc.center, a, b);
-            if on_arc(arc, (q.1 - arc.center.1).atan2(q.0 - arc.center.0)) {
+            if on_arc(arc, math::atan2(q.1 - arc.center.1, q.0 - arc.center.0)) {
                 best = best.min((distance(q, arc.center) - arc.radius).abs());
             }
             best

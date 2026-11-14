@@ -2,6 +2,7 @@
 //! Material-removal simulation (docs/specs/simulation.md §7).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use chipload_job::migrations::migrate;
 use chipload_job::{Job, Spindle, parse_job};
 use chipload_pipeline::Cancel;
@@ -142,7 +143,7 @@ fn a_drill_leaves_a_cone_at_the_bottom() {
     let sim = run(&job(drill), plunge(20.0, 20.0, -6.0));
     assert!((at(&sim, 20.05, 20.05) - -6.0).abs() < 0.1);
     // 118°: the side rises cot(59°) = 0.6 mm per mm out.
-    let slope = 1.0 / 59.0f64.to_radians().tan();
+    let slope = 1.0 / math::tan(59.0f64.to_radians());
     let h = at(&sim, 23.05, 20.05);
     let want = -6.0 + slope * 3.05;
     assert!((h - want).abs() < 0.1, "{h} vs {want}");
@@ -458,7 +459,7 @@ fn in_corner_fillet(x: f64, y: f64, r: f64, slack: f64) -> bool {
                 return false;
             }
             // Outside the circle the tool's edge follows in the corner.
-            (dx - r).hypot(dy - r) > r - slack
+            math::hypot(dx - r, dy - r) > r - slack
         })
 }
 

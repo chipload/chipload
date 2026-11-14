@@ -7,6 +7,7 @@
 //! `CHIPLOAD_SHOTS_LANGUAGE` (en unless set) and `CHIPLOAD_SHOTS_THEME` (dark unless
 //! `light`).
 use super::*;
+use chipload_core::math;
 
 /// Name, project (from the repository's root), setup steps, window size.
 const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
@@ -291,7 +292,7 @@ fn relief_showcase() {
     );
     for k in 0..=count {
         if let Some(playback) = harness.state_mut().playback.as_mut() {
-            playback.set_time(total * (k as f64 / count as f64).powf(FRAME_EASE));
+            playback.set_time(total * math::pow(k as f64 / count as f64, FRAME_EASE));
         }
         harness.run_steps(3);
         let image = harness.render().unwrap();

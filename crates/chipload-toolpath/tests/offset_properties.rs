@@ -3,6 +3,7 @@
 //! On random star polygons with bulged (arc) edges.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use cavalier_contours::core::math::Vector2;
@@ -34,7 +35,7 @@ fn star() -> impl Strategy<Value = Vec<(f64, f64, f64)>> {
                             let a = f64::from(a) / 36_000.0 * TAU;
                             // Rounded to 1e-6 mm, realistic DXF precision.
                             let round = |v: f64| (v * 1e6).round() / 1e6;
-                            (round(r * a.cos()), round(r * a.sin()), b)
+                            (round(r * math::cos(a)), round(r * math::sin(a)), b)
                         })
                         .collect()
                 })
@@ -48,7 +49,7 @@ fn sample(ring: &[Point]) -> Vec<Point> {
     let mut out = Vec::new();
     for i in 0..n {
         let (a, b) = (ring[i], ring[(i + 1) % n]);
-        let len = (b.0 - a.0).hypot(b.1 - a.1);
+        let len = math::hypot(b.0 - a.0, b.1 - a.1);
         let steps = ((len / 0.5).ceil() as usize).max(2);
         out.extend((0..steps).map(|k| {
             let t = k as f64 / steps as f64;

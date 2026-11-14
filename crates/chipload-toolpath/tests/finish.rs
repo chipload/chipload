@@ -2,6 +2,7 @@
 //! Finishing pass and onion skin on profiles (docs/specs/finish-and-skin.md).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -74,7 +75,7 @@ fn to_outline(p: Point) -> f64 {
     let dx = (x0 - p.0).max(p.0 - x1).max(0.0);
     let dy = (y0 - p.1).max(p.1 - y1).max(0.0);
     if dx > 0.0 || dy > 0.0 {
-        dx.hypot(dy)
+        math::hypot(dx, dy)
     } else {
         -(p.0 - x0).min(x1 - p.0).min(p.1 - y0).min(y1 - p.1)
     }
@@ -224,16 +225,16 @@ fn a_ramped_skin_lap_spirals_down_then_cuts_the_whole_ring_level() {
     assert!((b.2 + 11.5).abs() < 1e-9);
     // Never steeper than the ramp, never straight down below the roughing.
     for (a, b) in &skin.feeds[1..] {
-        let run = (b.0 - a.0).hypot(b.1 - a.1);
+        let run = math::hypot(b.0 - a.0, b.1 - a.1);
         assert!(run > 0.0, "no plunge: {a:?} -> {b:?}");
-        assert!((a.2 - b.2) <= run * THREE_DEG.tan() + 1e-9);
+        assert!((a.2 - b.2) <= run * math::tan(THREE_DEG) + 1e-9);
     }
     // At the end depth for one whole lap of the 212 mm ring (plus its corner arcs).
     let level: f64 = skin
         .feeds
         .iter()
         .filter(|(a, b)| a.2 == -12.0 && b.2 == -12.0)
-        .map(|(a, b)| (b.0 - a.0).hypot(b.1 - a.1))
+        .map(|(a, b)| math::hypot(b.0 - a.0, b.1 - a.1))
         .sum();
     let ring = 2.0 * (100.0 + 60.0) + std::f64::consts::TAU * 3.0;
     assert!(
@@ -249,11 +250,11 @@ fn tab_middles(plan: &Plan) -> Vec<Point> {
         .map(|line| {
             let total: f64 = line
                 .windows(2)
-                .map(|w| (w[1].0 - w[0].0).hypot(w[1].1 - w[0].1))
+                .map(|w| math::hypot(w[1].0 - w[0].0, w[1].1 - w[0].1))
                 .sum();
             let mut left = total / 2.0;
             for w in line.windows(2) {
-                let seg = (w[1].0 - w[0].0).hypot(w[1].1 - w[0].1);
+                let seg = math::hypot(w[1].0 - w[0].0, w[1].1 - w[0].1);
                 if left <= seg {
                     let t = left / seg;
                     return (
@@ -302,7 +303,7 @@ fn every_lap_leaves_the_tabs() {
                         0.0
                     };
                     let p = (a.0 + dx * t, a.1 + dy * t);
-                    if (p.0 - mid.0).hypot(p.1 - mid.1) > 0.3 + 1e-6 {
+                    if math::hypot(p.0 - mid.0, p.1 - mid.1) > 0.3 + 1e-6 {
                         continue;
                     }
                     passed[k] += 1;

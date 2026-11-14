@@ -2,6 +2,7 @@
 //! Texts in a project (docs/specs/text.md §3, §8).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_job::{Job, Operation, PathSegment, Selector, TextAnchor, Tool, ToolType, VcarveOp};
 use chipload_pipeline::fonts::BuiltinOnly;
@@ -215,14 +216,14 @@ fn a_centred_text_stays_centred_when_it_turns_and_changes() {
                 PathSegment::Arc(a) => {
                     let t = a.start_angle;
                     (
-                        a.center[0] + a.radius * t.cos(),
-                        a.center[1] + a.radius * t.sin(),
+                        a.center[0] + a.radius * math::cos(t),
+                        a.center[1] + a.radius * math::sin(t),
                     )
                 }
             })
             .collect()
     };
-    let (sin, cos) = 33.0_f64.to_radians().sin_cos();
+    let (sin, cos) = math::sin_cos(33.0_f64.to_radians());
     for (p, q) in starts(&job).iter().zip(starts(&turned)) {
         let (dx, dy) = (p.0 - 80.0, p.1 - 50.0);
         let want = (80.0 + dx * cos - dy * sin, 50.0 + dx * sin + dy * cos);

@@ -5,6 +5,7 @@
 //! into G2/G3 arcs when the post wants arcs. Without that the tags are ignored, so the
 //! output is exactly the chords.
 
+use chipload_core::math;
 use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
@@ -79,7 +80,7 @@ pub fn arc_midpoint(a: Point, b: Point, circle: Circle) -> Point {
     let c = circle.center;
     let mid = ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
     let (dx, dy) = (mid.0 - c.0, mid.1 - c.1);
-    let len = dx.hypot(dy);
+    let len = math::hypot(dx, dy);
     if len == 0.0 {
         return mid;
     }
@@ -113,7 +114,7 @@ pub fn tag_moves(moves: &mut [Move], table: &ArcTable) {
 fn swept(c: Point, a: Point, b: Point) -> f64 {
     let (ax, ay) = (a.0 - c.0, a.1 - c.1);
     let (bx, by) = (b.0 - c.0, b.1 - c.1);
-    (ax * by - ay * bx).atan2(ax * bx + ay * by)
+    math::atan2(ax * by - ay * bx, ax * bx + ay * by)
 }
 
 /// Turn runs of tagged chords into arc moves of at most 180°; arcs that bulge no more than
@@ -258,7 +259,7 @@ fn push_piece(
     if vertices.len() < 2 {
         return;
     }
-    let sagitta = circle.radius * (1.0 - (sweep.abs() / 2.0).cos());
+    let sagitta = circle.radius * (1.0 - math::cos(sweep.abs() / 2.0));
     if sagitta <= ARC_APPROX_TOL_MM {
         // Nearly straight: the chords themselves, as lines.
         for (&v, &h) in vertices[1..].iter().zip(&heights[1..]) {
@@ -302,7 +303,7 @@ mod tests {
         let mut points: Vec<Point> = (0..=n)
             .map(|i| {
                 let a = -PI / 2.0 + std::f64::consts::TAU * i as f64 / n as f64;
-                (c.0 + r * a.cos(), c.1 + r * a.sin())
+                (c.0 + r * math::cos(a), c.1 + r * math::sin(a))
             })
             .collect();
         if !ccw {

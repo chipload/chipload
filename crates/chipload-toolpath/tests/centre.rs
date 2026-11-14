@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Centre lines of strokes (docs/specs/image-arcs-centrelines.md §3, §8).
 
+use chipload_core::math;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
@@ -11,7 +12,7 @@ fn circle(r: f64, n: usize, ccw: bool) -> Vec<Point> {
     let mut ring: Vec<Point> = (0..n)
         .map(|k| {
             let t = TAU * k as f64 / n as f64;
-            (r * t.cos(), r * t.sin())
+            (r * math::cos(t), r * math::sin(t))
         })
         .collect();
     if !ccw {

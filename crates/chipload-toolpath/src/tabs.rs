@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Holding tabs on profile rings. See docs/specs/tabs.md.
 
+use chipload_core::math;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
@@ -296,8 +297,8 @@ fn vertex_turns(ring: &[Point]) -> (Vec<f64>, Vec<f64>) {
     let mut travelled = 0.0;
     for i in 0..n {
         let (prev, here, next) = (ring[(i + n - 1) % n], ring[i], ring[(i + 1) % n]);
-        let a_in = (here.1 - prev.1).atan2(here.0 - prev.0);
-        let a_out = (next.1 - here.1).atan2(next.0 - here.0);
+        let a_in = math::atan2(here.1 - prev.1, here.0 - prev.0);
+        let a_out = math::atan2(next.1 - here.1, next.0 - here.0);
         positions.push(travelled);
         turns.push(wrap_angle(a_out - a_in).abs());
         travelled += distance(here, next);

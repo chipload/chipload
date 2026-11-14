@@ -9,6 +9,7 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::math;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_SHARE, VCARVE_TOL_MM};
@@ -36,7 +37,7 @@ pub struct VBit {
 impl VBit {
     /// How much wider the cut gets at the surface per mm of depth, on each side.
     pub fn slope(&self) -> f64 {
-        (self.angle / 2.0).tan()
+        math::tan(self.angle / 2.0)
     }
 
     /// Radius of the cut at the surface with the tip `depth` below it.

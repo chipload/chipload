@@ -3,6 +3,7 @@
 //! (docs/specs/two-sided.md §4) and mirrored parts (docs/specs/mirror-part.md §3).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic, dead_code)]
 
+use chipload_core::math;
 use std::path::Path;
 
 use chipload_job::{Job, Turn};
@@ -120,7 +121,7 @@ pub fn loops(
                     from = from.or(Some(p));
                     area += (p.0 * to.1 - to.0 * p.1) / 2.0;
                     if let (MoveKind::ArcCw | MoveKind::ArcCcw, Some(c)) = (kind, m.circle) {
-                        let angle = |q: (f64, f64)| (q.1 - c.center.1).atan2(q.0 - c.center.0);
+                        let angle = |q: (f64, f64)| math::atan2(q.1 - c.center.1, q.0 - c.center.0);
                         let tau = std::f64::consts::TAU;
                         let mut sweep = (angle(to) - angle(p)).rem_euclid(tau);
                         if sweep == 0.0 {
@@ -129,7 +130,7 @@ pub fn loops(
                         if kind == MoveKind::ArcCw {
                             sweep -= tau;
                         }
-                        area += c.radius * c.radius / 2.0 * (sweep - sweep.sin());
+                        area += c.radius * c.radius / 2.0 * (sweep - math::sin(sweep));
                     }
                 }
                 _ => {}

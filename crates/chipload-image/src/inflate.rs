@@ -262,7 +262,9 @@ mod tests {
     #[test]
     fn a_disc_rises_as_a_dome_or_a_cone() {
         let r = 40.0;
-        let disc = picture(100, |x, y| (x - 50.0).hypot(y - 50.0) < r);
+        let disc = picture(100, |x, y| {
+            chipload_core::math::hypot(x - 50.0, y - 50.0) < r
+        });
         let grid = inflate_grid(&disc, &ROUND, 100.0).unwrap();
         // At a distance s from the centre: d = r − s from the edge, height √(1 − (s/r)²).
         for s in [0.5, 10.5, 20.5, 30.5] {
@@ -284,7 +286,8 @@ mod tests {
     fn a_set_reach_levels_wide_shapes_off() {
         // Discs of radius 10 and 20.
         let two = picture(100, |x, y| {
-            (x - 20.0).hypot(y - 50.0) < 10.0 || (x - 70.0).hypot(y - 50.0) < 20.0
+            chipload_core::math::hypot(x - 20.0, y - 50.0) < 10.0
+                || chipload_core::math::hypot(x - 70.0, y - 50.0) < 20.0
         });
         // Automatic: the reach is the large one's 20; the small one stops lower.
         let auto = inflate_grid(&two, &ROUND, 100.0).unwrap();
@@ -305,7 +308,7 @@ mod tests {
     #[test]
     fn a_ring_rises_from_both_its_sides() {
         let ring = picture(100, |x, y| {
-            let s = (x - 50.0).hypot(y - 50.0);
+            let s = chipload_core::math::hypot(x - 50.0, y - 50.0);
             (20.0..40.0).contains(&s)
         });
         let grid = inflate_grid(&ring, &ROUND, 100.0).unwrap();

@@ -4,6 +4,7 @@
 //! checks a program.
 
 use chipload_core::cutter::Cutter;
+use chipload_core::math;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Tool, ToolType};
@@ -98,7 +99,7 @@ fn shape_of(tool: &Tool, numbers: &mut Numbers) -> Shape {
     let cone = |angle: f64, tip: f64| Shape::Cone {
         radius,
         tip: tip.clamp(0.0, radius),
-        slope: 1.0 / (angle / 2.0).tan(),
+        slope: 1.0 / math::tan(angle / 2.0),
     };
     match tool.kind {
         ToolType::Endmill => Shape::Flat { radius },
@@ -659,7 +660,7 @@ impl Grid {
     /// most two tool diameters so each looks only at the cells near it.
     fn cut(&mut self, a: (f64, f64, f64), b: (f64, f64, f64), shape: Shape) {
         let radius = shape.radius();
-        let length = (b.0 - a.0).hypot(b.1 - a.1);
+        let length = math::hypot(b.0 - a.0, b.1 - a.1);
         let piece = (4.0 * radius).max(self.cell);
         // A small positive whole number: moves are bounded by the machine's travel.
         let pieces = ((length / piece).ceil().max(1.0)) as usize;
@@ -849,9 +850,9 @@ fn lowest_round(
 ) -> Option<f64> {
     let radius = cutter.radius();
     let d = (b.0 - a.0, b.1 - a.1);
-    let length = d.0.hypot(d.1);
+    let length = math::hypot(d.0, d.1);
     if length <= CHAIN_TOL_MM {
-        let dist = (a.0 - p.0).hypot(a.1 - p.1);
+        let dist = math::hypot(a.0 - p.0, a.1 - p.1);
         return cutter.height_at(dist).map(|h| a.2.min(b.2) + h);
     }
     let u = (d.0 / length, d.1 / length);
@@ -868,7 +869,7 @@ fn lowest_round(
     }
     let m = (b.2 - a.2) / length;
     let height = |s: f64| {
-        let dist = off.hypot(s);
+        let dist = math::hypot(off, s);
         cutter
             .height_at(dist.min(radius))
             .map(|h| a.2 + m * (s + foot) + h)
@@ -1147,7 +1148,7 @@ mod tests {
             .filter_map(|k| {
                 let t = k as f64 / n as f64;
                 let c = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
-                let d = (c.0 - p.0).hypot(c.1 - p.1);
+                let d = math::hypot(c.0 - p.0, c.1 - p.1);
                 let h = match shape {
                     Shape::Flat { radius } => (d <= radius).then_some(0.0),
                     Shape::Cone { radius, tip, slope } => {
@@ -1167,17 +1168,17 @@ mod tests {
             Shape::Cone {
                 radius: 6.35,
                 tip: 0.0,
-                slope: 1.0 / (30.0f64.to_radians()).tan(),
+                slope: 1.0 / math::tan(30.0f64.to_radians()),
             },
             Shape::Cone {
                 radius: 6.35,
                 tip: 0.5,
-                slope: 1.0 / (45.0f64.to_radians()).tan(),
+                slope: 1.0 / math::tan(45.0f64.to_radians()),
             },
             Shape::Cone {
                 radius: 4.0,
                 tip: 0.0,
-                slope: 1.0 / (59.0f64.to_radians()).tan(),
+                slope: 1.0 / math::tan(59.0f64.to_radians()),
             },
             Shape::Round(Cutter::Ball { radius: 3.0 }),
             Shape::Round(Cutter::TaperedBall {

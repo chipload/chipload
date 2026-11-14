@@ -4,6 +4,7 @@
 //! to its last chord. The tool goes down at the lead-in's start, in the waste, so the part
 //! keeps no plunge mark.
 
+use chipload_core::math;
 use std::f64::consts::FRAC_PI_2;
 
 use chipload_core::Point;
@@ -81,7 +82,10 @@ fn arc_points(center: Point, radius: f64, from: f64, sweep: f64) -> Vec<Point> {
     (0..=n)
         .map(|k| {
             let a = from + sweep * k as f64 / n as f64;
-            (center.0 + radius * a.cos(), center.1 + radius * a.sin())
+            (
+                center.0 + radius * math::cos(a),
+                center.1 + radius * math::sin(a),
+            )
         })
         .collect()
 }
@@ -103,9 +107,9 @@ pub fn quarter_leads(ring: &[Point], radius: f64, waste_left: bool) -> Option<Le
     let in_center = (p.0 + radius * n_out.0, p.1 + radius * n_out.1);
     let out_center = (p.0 + radius * n_in.0, p.1 + radius * n_in.1);
     // Lead-in: from the point behind the centre (against the cut) round to the start.
-    let mut lead_in = arc_points(in_center, radius, (-t_out.1).atan2(-t_out.0), sweep);
+    let mut lead_in = arc_points(in_center, radius, math::atan2(-t_out.1, -t_out.0), sweep);
     // Lead-out: from the start round to the point ahead of the centre.
-    let mut lead_out = arc_points(out_center, radius, (-n_in.1).atan2(-n_in.0), sweep);
+    let mut lead_out = arc_points(out_center, radius, math::atan2(-n_in.1, -n_in.0), sweep);
     // The ring's start exactly, so the arcs join it without a gap.
     if let Some(last) = lead_in.last_mut() {
         *last = p;
@@ -207,7 +211,7 @@ mod tests {
             let mut ring: Vec<Point> = (0..8)
                 .map(|k| {
                     let a = (k as f64 + 0.5) * std::f64::consts::TAU / 8.0;
-                    (10.0 * a.cos(), 10.0 * a.sin())
+                    (10.0 * math::cos(a), 10.0 * math::sin(a))
                 })
                 .collect();
             ring[3].0 += noise;
@@ -216,7 +220,7 @@ mod tests {
         };
         let want = roomiest_start(&polygon(0.0, 0)).unwrap();
         assert!(
-            close(want, (0.0, -10.0 * (std::f64::consts::PI / 8.0).cos())),
+            close(want, (0.0, -10.0 * math::cos(std::f64::consts::PI / 8.0))),
             "{want:?}"
         );
         for noise in [1e-15, -1e-15, 1e-12] {

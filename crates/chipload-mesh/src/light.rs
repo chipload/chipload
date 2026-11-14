@@ -127,7 +127,11 @@ mod tests {
         let at = |i: usize, j: usize| -> Vertex {
             let u = std::f64::consts::TAU * i as f64 / n as f64;
             let v = std::f64::consts::PI * j as f64 / (n / 2) as f64;
-            [r * u.cos() * v.sin(), r * u.sin() * v.sin(), r * v.cos()]
+            [
+                r * chipload_core::math::cos(u) * chipload_core::math::sin(v),
+                r * chipload_core::math::sin(u) * chipload_core::math::sin(v),
+                r * chipload_core::math::cos(v),
+            ]
         };
         let mut triangles = Vec::new();
         for i in 0..n {

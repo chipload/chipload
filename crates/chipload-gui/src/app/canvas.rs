@@ -2,6 +2,7 @@
 //! The drawing canvas: input, painting and hover texts.
 
 use super::*;
+use chipload_core::math;
 use chipload_core::order::Ordered;
 
 /// How far beyond a rectangle's end its rotation handle sits, in screen pixels.
@@ -419,7 +420,7 @@ impl ChiploadApp {
         }
         if let Some(pos) = response.hover_pos() {
             let (scroll, zoom) = ui.input(|i| (i.smooth_scroll_delta.y, i.zoom_delta()));
-            let factor = f64::from(zoom) * (f64::from(scroll) * 0.0015).exp();
+            let factor = f64::from(zoom) * math::exp(f64::from(scroll) * 0.0015);
             if (factor - 1.0).abs() > 1e-6 {
                 self.view.zoom_at(pos, factor);
             }

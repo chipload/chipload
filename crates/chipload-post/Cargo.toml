@@ -7,6 +7,7 @@ authors.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+chipload-core = { version = "0.36.0", path = "../chipload-core" }
 chipload-i18n = { version = "0.36.0", path = "../chipload-i18n" }
 chipload-job = { version = "0.36.0", path = "../chipload-job" }
 chipload-toolpath = { version = "0.36.0", path = "../chipload-toolpath" }

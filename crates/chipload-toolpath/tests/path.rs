@@ -2,6 +2,7 @@
 //! Follow path (docs/specs/follow-path.md §8).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -145,11 +146,11 @@ fn a_ramped_open_path_goes_down_as_it_travels_then_levels() {
     // Straight down only to the start depth.
     assert_eq!((feeds[0].0, feeds[0].1, feeds[0].2), (10.0, 10.0, 0.0));
     for w in feeds.windows(2) {
-        let run = (w[1].0 - w[0].0).hypot(w[1].1 - w[0].1);
+        let run = math::hypot(w[1].0 - w[0].0, w[1].1 - w[0].1);
         let drop = w[0].2 - w[1].2;
         if drop > 0.0 {
             assert!(run > 0.0, "a plunge to {}", w[1].2);
-            assert!(drop / run <= (3.0 * DEG).tan() + 1e-9);
+            assert!(drop / run <= math::tan(3.0 * DEG) + 1e-9);
             assert!(drop <= 1.0 + 1e-9, "more than a step in one traversal");
         }
     }
@@ -395,7 +396,7 @@ proptest! {
         let length: f64 = contour
             .points()
             .windows(2)
-            .map(|w| (w[1].0 - w[0].0).hypot(w[1].1 - w[0].1))
+            .map(|w| math::hypot(w[1].0 - w[0].0, w[1].1 - w[0].1))
             .sum();
         prop_assume!(length > 1.0);
         let entry = if ramped {
@@ -425,7 +426,7 @@ proptest! {
                     let t = if l2 == 0.0 { 0.0 } else {
                         (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / l2).clamp(0.0, 1.0)
                     };
-                    (p.0 - a.0 - t * dx).hypot(p.1 - a.1 - t * dy)
+                    math::hypot(p.0 - a.0 - t * dx, p.1 - a.1 - t * dy)
                 })
                 .fold(f64::INFINITY, f64::min)
         };
@@ -437,7 +438,7 @@ proptest! {
             }
             prop_assert!(off((p.0, p.1)) < 1e-3, "({}, {}) is off the path", p.0, p.1);
             let before = at[k - 1];
-            let run = (p.0 - before.0).hypot(p.1 - before.1);
+            let run = math::hypot(p.0 - before.0, p.1 - before.1);
             let drop = before.2 - p.2;
             if drop > 1e-9 {
                 if run == 0.0 {
@@ -452,7 +453,7 @@ proptest! {
                     // Descending along the path: at most one step per traversal of it, never
                     // steeper than the ramp.
                     prop_assert!(drop / run <= step / length + 1e-6, "{} over {}", drop, run);
-                    prop_assert!(drop / run <= (ramp_deg * DEG).tan() + 1e-9);
+                    prop_assert!(drop / run <= math::tan(ramp_deg * DEG) + 1e-9);
                 }
             }
             deepest = deepest.min(p.2);

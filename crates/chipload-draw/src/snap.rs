@@ -297,7 +297,7 @@ mod tests {
             SnapKind::Nearest
         );
         // Tangent from (10, 0) to the circle at (20, 0) r 5: at 60° from the axis.
-        let t = (20.0 - 2.5, 5.0 * (PI / 3.0).sin());
+        let t = (20.0 - 2.5, 5.0 * chipload_core::math::sin(PI / 3.0));
         let hit = snapper.find((t.0 + 0.2, t.1 - 0.1), 0.5, Some((10.0, 0.0)), &none());
         assert_eq!(hit.unwrap().kind, SnapKind::Tangent);
     }

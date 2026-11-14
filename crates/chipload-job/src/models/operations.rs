@@ -3,6 +3,7 @@
 //! (tabs, corners, entries, leads, passes).
 
 use super::*;
+use chipload_core::math;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
@@ -1163,7 +1164,7 @@ impl VcarveOp {
     /// cone reaches). None for a bit without an angle.
     // Spec: docs/specs/vcarve-wide-strokes.md §4.
     pub fn floor_inset(&self, bit: &Tool) -> Option<f64> {
-        let slope = (bit.angle? / 2.0).tan();
+        let slope = math::tan(bit.angle? / 2.0);
         let tip = bit.tip_diameter.unwrap_or(0.0);
         let deepest = (bit.diameter - tip) / 2.0 / slope;
         // A plug's walls are V-carved from its outline depth down (vcarve-inlay.md §2.2).

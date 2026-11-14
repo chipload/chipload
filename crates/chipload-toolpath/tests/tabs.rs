@@ -2,6 +2,7 @@
 //! Tab placement: unit tests and the no-overlap / no-lost-material property.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use std::f64::consts::TAU;
@@ -58,7 +59,7 @@ fn circle_path(r: f64, n: usize) -> Vec<Point> {
     let ring: Vec<Point> = (0..n)
         .map(|i| {
             let a = TAU * i as f64 / n as f64;
-            (r * a.cos(), r * a.sin())
+            (r * math::cos(a), r * math::sin(a))
         })
         .collect();
     orient(&ring, true)
@@ -112,7 +113,7 @@ fn slid_tabs_avoid_turning() {
     for line in tab_polylines(&ring, &layout) {
         let headings: Vec<f64> = line
             .windows(2)
-            .map(|w| (w[1].1 - w[0].1).atan2(w[1].0 - w[0].0))
+            .map(|w| math::atan2(w[1].1 - w[0].1, w[1].0 - w[0].0))
             .collect();
         let turning: f64 = headings
             .windows(2)
@@ -184,7 +185,7 @@ fn split_inserts_exact_boundaries() {
     let mut previous = ring[0];
     for &(point, flag) in &path {
         if flag {
-            in_tab += (point.0 - previous.0).hypot(point.1 - previous.1);
+            in_tab += math::hypot(point.0 - previous.0, point.1 - previous.1);
         }
         previous = point;
     }
@@ -230,7 +231,7 @@ fn convex_ring() -> impl Strategy<Value = Vec<Point>> {
                         .map(|(&a, &r)| {
                             let a = f64::from(a) / 36_000.0 * TAU;
                             let round = |v: f64| (v * 1e6).round() / 1e6;
-                            (round(r * a.cos()), round(r * a.sin()))
+                            (round(r * math::cos(a)), round(r * math::sin(a)))
                         })
                         .collect()
                 })

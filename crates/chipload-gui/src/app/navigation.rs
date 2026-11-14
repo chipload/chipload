@@ -3,6 +3,7 @@
 //! bottom (Fit, Top, 3D, Simulation, Grid) and, in 3D, an orientation cube in the top right
 //! corner whose faces turn the view to them. In top view the corner has an X–Y sign.
 
+use chipload_core::math;
 use eframe::egui::{Align2, FontId, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 
 use super::header::{plain_icon_button, ribbon_button};
@@ -449,8 +450,8 @@ impl ChiploadApp {
 
     /// The direction from the scene towards the viewer, in the world.
     fn toward_viewer(&self) -> (f64, f64, f64) {
-        let (sin_t, cos_t) = self.view.turn.sin_cos();
-        let (sin_a, cos_a) = self.view.tilt.sin_cos();
+        let (sin_t, cos_t) = math::sin_cos(self.view.turn);
+        let (sin_a, cos_a) = math::sin_cos(self.view.tilt);
         (-sin_a * sin_t, -sin_a * cos_t, cos_a)
     }
 
@@ -475,8 +476,8 @@ impl ChiploadApp {
 
     /// A point of the unit cube on screen: the view's turn and tilt, no Z stretch.
     fn cube_point(&self, (x, y, z): (f64, f64, f64), centre: Pos2) -> Pos2 {
-        let (sin_t, cos_t) = self.view.turn.sin_cos();
-        let (sin_a, cos_a) = self.view.tilt.sin_cos();
+        let (sin_t, cos_t) = math::sin_cos(self.view.turn);
+        let (sin_a, cos_a) = math::sin_cos(self.view.tilt);
         let across = x * cos_t - y * sin_t;
         let depth = x * sin_t + y * cos_t;
         let up = depth * cos_a + z * sin_a;

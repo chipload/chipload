@@ -3,6 +3,7 @@
 //! from it, with true arcs (`cavalier_contours`, ADR 0006), round corners or sharp ones,
 //! checked before it is returned.
 
+use chipload_core::math;
 use std::f64::consts::PI;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
@@ -42,7 +43,7 @@ impl Chain {
                     for i in 0..pieces {
                         let start = arc.point_at(arc.start_angle + sweep * f64::from(i));
                         points.push(start);
-                        bulges.push((sweep / 4.0).tan());
+                        bulges.push(math::tan(sweep / 4.0));
                     }
                 }
             }
@@ -256,7 +257,7 @@ fn line_meet(a: &Line, b: &Line) -> Option<Point> {
     let r = (a.end.0 - a.start.0, a.end.1 - a.start.1);
     let s = (b.end.0 - b.start.0, b.end.1 - b.start.1);
     let cross = r.0 * s.1 - r.1 * s.0;
-    let lengths = r.0.hypot(r.1) * s.0.hypot(s.1);
+    let lengths = math::hypot(r.0, r.1) * math::hypot(s.0, s.1);
     if lengths <= 0.0 || (cross / lengths).abs() < CHAIN_TOL_MM {
         return None;
     }
@@ -504,7 +505,7 @@ mod tests {
                 let c: Vec<Point> = (0..n)
                     .map(|k| {
                         let t = k as f64 * TAU / n as f64;
-                        (radius * t.cos(), radius * t.sin())
+                        (radius * math::cos(t), radius * math::sin(t))
                     })
                     .collect();
                 let chain = Chain {
@@ -516,7 +517,7 @@ mod tests {
                 let side = if outward { Side::Outside } else { Side::Inside };
                 let corners = if sharp { Corners::Sharp } else { Corners::Round };
                 // Inward, a polygon has room for d when d is under its inradius.
-                let inradius = radius * (PI / n as f64).cos();
+                let inradius = radius * math::cos(PI / n as f64);
                 prop_assume!(outward || d < inradius - 0.1);
                 let result = offset(&chain, d, side, corners);
                 prop_assert!(result.is_ok(), "{result:?}");

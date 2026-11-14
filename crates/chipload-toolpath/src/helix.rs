@@ -3,6 +3,7 @@
 //! round a small circle, so its side teeth cut and a tool that isn't centre-cutting can
 //! open a pocket. Then one flat circle levels the floor.
 
+use chipload_core::math;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
@@ -32,12 +33,12 @@ impl Helix {
     /// The point `turns` of a turn round from the start, going the helix's way.
     fn at(&self, turns: f64) -> Point {
         let c = self.circle.center;
-        let from = (self.start.1 - c.1).atan2(self.start.0 - c.0);
+        let from = math::atan2(self.start.1 - c.1, self.start.0 - c.0);
         let sign = if self.clockwise { -1.0 } else { 1.0 };
         let a = from + sign * TAU * turns;
         (
-            c.0 + self.circle.radius * a.cos(),
-            c.1 + self.circle.radius * a.sin(),
+            c.0 + self.circle.radius * math::cos(a),
+            c.1 + self.circle.radius * math::sin(a),
         )
     }
 
@@ -71,7 +72,7 @@ pub fn helix_moves(
     let drop = cleared - z;
     let circle = Some(helix.circle);
     if drop > DEPTH_TOL_MM {
-        let per_turn = TAU * helix.circle.radius * ramp_angle.tan();
+        let per_turn = TAU * helix.circle.radius * math::tan(ramp_angle);
         // Whole turns: the slope is at most the angle. A small positive whole number.
         let turns = (drop / per_turn).ceil().max(1.0) as usize;
         if turns > MAX_HELIX_TURNS {
@@ -154,7 +155,7 @@ mod tests {
             let z = m.z.unwrap();
             assert!((distance(p, h.circle.center) - 1.5).abs() < 1e-9);
             let run = distance(previous.0, p);
-            assert!(previous.1 - z > 0.0 && (previous.1 - z) / run <= THREE_DEG.tan() + 1e-9);
+            assert!(previous.1 - z > 0.0 && (previous.1 - z) / run <= math::tan(THREE_DEG) + 1e-9);
             assert_eq!(m.circle, Some(h.circle));
             previous = (p, z);
         }

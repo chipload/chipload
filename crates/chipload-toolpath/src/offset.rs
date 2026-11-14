@@ -2,6 +2,7 @@
 //! Tool-centre rings for profiles: offset with true arcs (cavalier_contours, ADR 0006), then
 //! flatten to chords and verify.
 
+use chipload_core::math;
 use std::collections::BTreeMap;
 use std::f64::consts::{FRAC_PI_2, TAU};
 
@@ -374,7 +375,7 @@ pub fn point_distance(prim: &Primitive, p: Point) -> f64 {
             distance(p, (l.start.0 + dx * t, l.start.1 + dy * t))
         }
         Primitive::Arc(a) => {
-            let angle = (p.1 - a.center.1).atan2(p.0 - a.center.0);
+            let angle = math::atan2(p.1 - a.center.1, p.0 - a.center.0);
             let along = if a.sweep > 0.0 {
                 (angle - a.start_angle).rem_euclid(TAU)
             } else {

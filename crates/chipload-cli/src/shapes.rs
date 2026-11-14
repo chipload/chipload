@@ -3,6 +3,7 @@
 //! …) and named.
 
 use super::*;
+use chipload_core::math;
 
 #[derive(Subcommand)]
 pub(crate) enum ShapeAction {
@@ -954,7 +955,7 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
 
 /// A polygon's radius to its corners from its size across the flats.
 pub(crate) fn polygon_radius_across_flats(flats: f64, sides: u32) -> f64 {
-    flats / 2.0 / (std::f64::consts::PI / f64::from(sides.max(3))).cos()
+    flats / 2.0 / math::cos(std::f64::consts::PI / f64::from(sides.max(3)))
 }
 
 /// The shape's geometry with the given values replaced; values that don't belong to its

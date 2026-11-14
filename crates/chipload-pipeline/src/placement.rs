@@ -5,6 +5,7 @@
 //! shapes in the same place. Each DXF of a project is placed on its own
 //! (docs/specs/drawing-sources.md §2). The CLI and the GUI both go through here.
 
+use chipload_core::math;
 use std::f64::consts::TAU;
 
 use chipload_core::Point;
@@ -763,13 +764,18 @@ fn distance_to_segment(segment: &PathSegment, p: Point) -> f64 {
         }
         PathSegment::Arc(arc) => {
             let c = (arc.center[0], arc.center[1]);
-            let angle = (p.1 - c.1).atan2(p.0 - c.0);
+            let angle = math::atan2(p.1 - c.1, p.0 - c.0);
             // How far round from the start, in the arc's own direction.
             let along = ((angle - arc.start_angle) * arc.sweep.signum()).rem_euclid(TAU);
             if along <= arc.sweep.abs() {
                 return (distance(c, p) - arc.radius).abs();
             }
-            let at = |a: f64| (c.0 + arc.radius * a.cos(), c.1 + arc.radius * a.sin());
+            let at = |a: f64| {
+                (
+                    c.0 + arc.radius * math::cos(a),
+                    c.1 + arc.radius * math::sin(a),
+                )
+            };
             let end = arc.start_angle + arc.sweep;
             distance(at(arc.start_angle), p).min(distance(at(end), p))
         }

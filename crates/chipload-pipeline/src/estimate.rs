@@ -104,7 +104,7 @@ fn move_counts(program: &Program, rapid_rate: f64) -> Vec<Counts> {
             }
             let [dx, dy, dz] = step;
             let length = f64::sqrt(dx * dx + dy * dy + dz * dz);
-            let in_xy = f64::hypot(dx, dy) > CHAIN_TOL_MM;
+            let in_xy = chipload_core::math::hypot(dx, dy) > CHAIN_TOL_MM;
             match (m.kind, m.feed) {
                 (MoveKind::Rapid, _) => Counts {
                     rapid_s: length / rapid_rate * 60.0,

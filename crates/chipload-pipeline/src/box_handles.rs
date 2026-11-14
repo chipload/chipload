@@ -4,6 +4,7 @@
 //! result through the same setters as Properties.
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Image, Text, TextAnchor, rotated};
@@ -137,7 +138,7 @@ pub fn drag_box(
             } else {
                 TURN_STEP_DEGREES
             };
-            let degrees = (dy.atan2(dx).to_degrees() / step).round() * step;
+            let degrees = (math::atan2(dy, dx).to_degrees() / step).round() * step;
             Ok(PlacedBox {
                 rotation: normalised(degrees),
                 ..*start
@@ -317,7 +318,7 @@ mod tests {
         let b = sample();
         let (cx, cy) = b.center();
         let a = 50f64.to_radians();
-        let to = (cx + 10.0 * a.cos(), cy + 10.0 * a.sin());
+        let to = (cx + 10.0 * math::cos(a), cy + 10.0 * math::sin(a));
         assert_eq!(
             drag_box(&b, BoxHandle::Turn, to, false).unwrap().rotation,
             45.0

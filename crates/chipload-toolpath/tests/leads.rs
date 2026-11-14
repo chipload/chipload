@@ -3,6 +3,7 @@
 //! have none since they always spiral (docs/specs/profile-always-spiral.md).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::Point;
@@ -67,7 +68,7 @@ fn to_outline(p: Point, (x0, y0, x1, y1): (f64, f64, f64, f64)) -> f64 {
     let dx = (x0 - p.0).max(p.0 - x1).max(0.0);
     let dy = (y0 - p.1).max(p.1 - y1).max(0.0);
     if dx > 0.0 || dy > 0.0 {
-        dx.hypot(dy)
+        math::hypot(dx, dy)
     } else {
         (p.0 - x0).min(x1 - p.0).min(p.1 - y0).min(y1 - p.1)
     }
@@ -156,7 +157,7 @@ fn star(radii: &[f64]) -> Vec<Point> {
         .enumerate()
         .map(|(i, r)| {
             let a = i as f64 / n * std::f64::consts::TAU;
-            (100.0 + r * a.cos(), 100.0 + r * a.sin())
+            (100.0 + r * math::cos(a), 100.0 + r * math::sin(a))
         })
         .collect()
 }

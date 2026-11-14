@@ -6,6 +6,7 @@
 //! entity (units, a mirrored extrusion, block inserts). Entities that don't lie in the XY
 //! plane are skipped and reported, never projected.
 
+use chipload_core::math;
 use std::collections::BTreeMap;
 use std::f64::consts::TAU;
 
@@ -46,7 +47,7 @@ impl Affine {
     }
 
     pub fn rotation(angle: f64) -> Self {
-        let (s, c) = angle.sin_cos();
+        let (s, c) = math::sin_cos(angle);
         Affine {
             m: [[c, -s], [s, c]],
             t: (0.0, 0.0),
@@ -96,8 +97,8 @@ impl Affine {
     fn conformal_split(&self) -> (f64, f64) {
         let [[a, b], [c, d]] = self.m;
         // The rotation-like part (q) and the reflection-like part (r) of the matrix.
-        let q = ((a + d) / 2.0).hypot((c - b) / 2.0);
-        let r = ((a - d) / 2.0).hypot((c + b) / 2.0);
+        let q = math::hypot((a + d) / 2.0, (c - b) / 2.0);
+        let r = math::hypot((a - d) / 2.0, (c + b) / 2.0);
         (q.max(r), q.min(r))
     }
 
@@ -112,7 +113,7 @@ impl Affine {
 /// −Z is the mirrored object coordinate system (x flipped), common for mirrored arcs.
 fn extrusion_frame(normal: &Vector) -> Option<Affine> {
     let len = (normal.x * normal.x + normal.y * normal.y + normal.z * normal.z).sqrt();
-    if len == 0.0 || normal.x.hypot(normal.y) / len > ANGLE_TOL_RAD {
+    if len == 0.0 || math::hypot(normal.x, normal.y) / len > ANGLE_TOL_RAD {
         return None;
     }
     Some(if normal.z < 0.0 {
@@ -550,10 +551,18 @@ fn map_arc(frame: &Affine, arc: &Arc) -> Vec<Primitive> {
         } else {
             arc.sweep
         };
+        // A move and a uniform scale keep every angle: the start angle stays as it is, bit
+        // for bit, rather than going round through a point and back.
+        let [[a, b], [c, d]] = frame.m;
+        let start_angle = if b == 0.0 && c == 0.0 && a == d && a > 0.0 {
+            arc.start_angle
+        } else {
+            math::atan2(start.1 - center.1, start.0 - center.0)
+        };
         return vec![Primitive::Arc(Arc {
             center,
             radius: arc.radius * stretch,
-            start_angle: (start.1 - center.1).atan2(start.0 - center.0),
+            start_angle,
             sweep,
         })];
     }

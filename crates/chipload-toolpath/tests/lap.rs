@@ -2,6 +2,7 @@
 //! Spiral profiles and ramped tabs (docs/specs/profile-spiral.md §10).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use std::f64::consts::{FRAC_PI_2, TAU};
@@ -75,7 +76,7 @@ fn along(ring: &[Point], moves: &[Move]) -> Vec<(f64, f64)> {
     let seg = |i: usize| (ring[i % n], ring[(i + 1) % n]);
     let len = |i: usize| {
         let (a, b) = seg(i);
-        (b.0 - a.0).hypot(b.1 - a.1)
+        math::hypot(b.0 - a.0, b.1 - a.1)
     };
     let mut i = 0; // current segment, counting on round the laps
     let mut base = 0.0; // s at the start of segment i
@@ -88,7 +89,7 @@ fn along(ring: &[Point], moves: &[Move]) -> Vec<(f64, f64)> {
         if !started {
             // The first feed is straight down at ring[0].
             assert!(
-                (x - ring[0].0).hypot(y - ring[0].1) < TOL,
+                math::hypot(x - ring[0].0, y - ring[0].1) < TOL,
                 "starts off the ring"
             );
             started = true;
@@ -101,7 +102,7 @@ fn along(ring: &[Point], moves: &[Move]) -> Vec<(f64, f64)> {
             let (a, b) = seg(k);
             let l = len(k);
             let t = ((x - a.0) * (b.0 - a.0) + (y - a.1) * (b.1 - a.1)) / (l * l);
-            let off = ((x - a.0) - t * (b.0 - a.0)).hypot((y - a.1) - t * (b.1 - a.1));
+            let off = math::hypot((x - a.0) - t * (b.0 - a.0), (y - a.1) - t * (b.1 - a.1));
             // Not behind the tool on the current segment.
             let behind = step == 0 && base + t * l < out.last().unwrap().0 - TOL;
             if off < TOL && (-TOL..=1.0 + TOL).contains(&t) && !behind {
@@ -141,7 +142,7 @@ fn surface_grown(layout: &TabLayout, z_tab: f64, flank: f64, s: f64, grow: f64) 
             let h = if flank >= FRAC_PI_2 - 1e-9 {
                 if d == 0.0 { z_tab } else { f64::NEG_INFINITY }
             } else {
-                z_tab - d * flank.tan()
+                z_tab - d * math::tan(flank)
             };
             best = best.max(h);
         }
@@ -163,7 +164,7 @@ fn a_spiral_ramps_at_the_angle_runs_level_and_levels_only_the_ramp() {
     }
     // A 4 mm step at 3° ramps over 76.3 mm. Each pass goes down over that stretch of its
     // lap, reaching its depth exactly there, and runs level to the lap's end.
-    let l = 4.0 / (3.0 * DEG).tan();
+    let l = 4.0 / math::tan(3.0 * DEG);
     for (k, &z) in pass_z.iter().enumerate() {
         let lap = 600.0 * k as f64;
         let at = path
@@ -203,7 +204,7 @@ fn a_spiral_ramps_at_the_angle_runs_level_and_levels_only_the_ramp() {
     for w in path.windows(2) {
         let run = w[1].0 - w[0].0;
         if run > TOL && w[1].1 < w[0].1 {
-            assert!(((w[0].1 - w[1].1) / run - (3.0 * DEG).tan()).abs() < 1e-9);
+            assert!(((w[0].1 - w[1].1) / run - math::tan(3.0 * DEG)).abs() < 1e-9);
         }
     }
 }
@@ -214,13 +215,13 @@ fn a_short_ring_takes_more_laps_not_a_steeper_slope() {
     let ring = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)];
     let result = run(&cut(&ring, None, &[-6.0], ramp(3.0))).unwrap();
     let path = along(&ring, &result.moves);
-    let l = 6.0 / (3.0 * DEG).tan();
+    let l = 6.0 / math::tan(3.0 * DEG);
     let deepest_at = path.iter().find(|p| p.1 == -6.0).unwrap().0;
     assert!((deepest_at - l).abs() < 1e-6, "{deepest_at} vs {l}");
     for w in path.windows(2) {
         let run = w[1].0 - w[0].0;
         if run > TOL && w[1].1 < w[0].1 {
-            assert!(((w[0].1 - w[1].1) / run - (3.0 * DEG).tan()).abs() < 1e-9);
+            assert!(((w[0].1 - w[1].1) / run - math::tan(3.0 * DEG)).abs() < 1e-9);
         }
     }
     // Level to the end of that lap (120 mm), then the 34.5 mm it ramped on the last lap,
@@ -251,7 +252,7 @@ fn spiral_chords_on_arcs_keep_their_circle() {
     let ring: Vec<Point> = (0..n)
         .map(|i| {
             let a = TAU * i as f64 / n as f64;
-            (50.0 * a.cos(), 50.0 * a.sin())
+            (50.0 * math::cos(a), 50.0 * math::sin(a))
         })
         .collect();
     let mut arcs = ArcTable::default();
@@ -306,7 +307,7 @@ fn the_level_stretches_follow_trapezoid_tabs() {
     // The level part of the last lap (after the 10.4 mm ramp) and the levelled stretch
     // after it are at -12 wherever the tab surface is lower, and at the surface elsewhere:
     // flat on each top, never deeper.
-    let l = 6.0 / (30.0 * DEG).tan();
+    let l = 6.0 / math::tan(30.0 * DEG);
     let level: Vec<_> = path
         .iter()
         .filter(|p| p.0 >= 600.0 + l && p.0 <= 1200.0 + l)
@@ -402,7 +403,7 @@ fn convex_ring() -> impl Strategy<Value = Vec<Point>> {
                         .map(|(&a, &r)| {
                             let a = f64::from(a) / 36_000.0 * TAU;
                             let round = |v: f64| (v * 1e6).round() / 1e6;
-                            (round(r * a.cos()), round(r * a.sin()))
+                            (round(r * math::cos(a)), round(r * math::sin(a)))
                         })
                         .collect()
                 })

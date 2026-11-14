@@ -496,7 +496,7 @@ mod tests {
         assert!((middle.0 - board.0).abs() < 0.2 && (middle.1 - board.1).abs() < 0.2);
         // The board holds the flat and the ramp: 30 mm, 8 mm flat and 6/tan 60° each side,
         // and the board's own 10 mm margin.
-        let ramp = 6.0 / 60f64.to_radians().tan();
+        let ramp = 6.0 / chipload_core::math::tan(60f64.to_radians());
         assert!(
             x1 - x0 > 30.0 + 2.0 * (8.0 + ramp + 10.0) - 0.5,
             "{}",

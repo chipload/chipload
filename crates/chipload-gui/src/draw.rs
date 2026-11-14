@@ -3,6 +3,7 @@
 //! rounding clicks to a grid, and outlines for the preview. Plain data, no GUI, so every
 //! rule is unit tested. See docs/specs/drawing-tools.md section 6.
 
+use chipload_core::math;
 use std::collections::BTreeSet;
 
 use chipload_core::MM_PER_INCH;
@@ -191,7 +192,7 @@ impl Sketch {
                     center: [first.0, first.1],
                     radius,
                     sides: self.sides,
-                    angle: (p.1 - first.1).atan2(p.0 - first.0),
+                    angle: math::atan2(p.1 - first.1, p.0 - first.0),
                 })
             }
             _ => None,
@@ -301,7 +302,7 @@ fn slot(a: Point, b: Point, p: Point) -> Option<Geometry> {
         center: [(a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0],
         length: between + width,
         width,
-        angle: (b.1 - a.1).atan2(b.0 - a.0),
+        angle: math::atan2(b.1 - a.1, b.0 - a.0),
         corner_radius: width / 2.0,
     })
 }
@@ -444,7 +445,7 @@ pub fn angle_step(anchor: Point, at: Point, step: Option<f64>, units: Units) -> 
         return anchor;
     }
     let step_rad = ANGLE_STEP_DEG.to_radians();
-    let angle = (dy.atan2(dx) / step_rad).round() * step_rad;
+    let angle = (math::atan2(dy, dx) / step_rad).round() * step_rad;
     let (sin, cos) = exact_sin_cos(angle);
     let along = dx * cos + dy * sin;
     let along = match step {
@@ -465,7 +466,7 @@ fn exact_sin_cos(angle: f64) -> (f64, f64) {
             _ => (-1.0, 0.0),
         }
     } else {
-        angle.sin_cos()
+        math::sin_cos(angle)
     }
 }
 
@@ -517,10 +518,10 @@ impl Sketch {
                 let angle = if dx == 0.0 && dy == 0.0 {
                     0.0
                 } else {
-                    dy.atan2(dx).to_degrees()
+                    math::atan2(dy, dx).to_degrees()
                 };
                 let angle = if angle.abs() < 0.05 { 0.0 } else { angle };
-                format!("L {}  {angle:.1}°", n(dx.hypot(dy)))
+                format!("L {}  {angle:.1}°", n(math::hypot(dx, dy)))
             }
             (Tool::Circle | Tool::Polygon, _) => format!("R {}", n(distance(first, p))),
             (Tool::Rectangle, _) => format!(
@@ -1034,10 +1035,10 @@ mod tests {
         // 15°: on that line, 10 mm long.
         let p = angle_step(o, (19.7, 12.6), Some(1.0), Units::Mm);
         assert!((distance(o, p) - 10.0).abs() < 1e-9);
-        assert!(((p.1 - o.1).atan2(p.0 - o.0).to_degrees() - 15.0).abs() < 1e-9);
+        assert!((math::atan2(p.1 - o.1, p.0 - o.0).to_degrees() - 15.0).abs() < 1e-9);
         // 345° is -15°.
         let q = angle_step(o, (19.7, 7.4), None, Units::Mm);
-        assert!(((q.1 - o.1).atan2(q.0 - o.0).to_degrees() + 15.0).abs() < 1e-9);
+        assert!((math::atan2(q.1 - o.1, q.0 - o.0).to_degrees() + 15.0).abs() < 1e-9);
         assert_eq!(angle_step(o, o, Some(1.0), Units::Mm), o);
     }
 

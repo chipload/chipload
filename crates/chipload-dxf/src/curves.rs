@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Bulges, splines and ellipses.
 
+use chipload_core::math;
 use std::f64::consts::{FRAC_PI_2, TAU};
 
 use chipload_i18n::Message;
@@ -196,7 +197,10 @@ impl Ellipse {
         let curve = |t: f64| {
             add(
                 self.center,
-                add(scale(self.major, t.cos()), scale(self.minor, t.sin())),
+                add(
+                    scale(self.major, math::cos(t)),
+                    scale(self.minor, math::sin(t)),
+                ),
             )
         };
         // Break at quarter turns so every piece is convex and well behaved.

@@ -5,6 +5,7 @@
 
 use cavalier_contours::polyline::{PlineSourceMut, Polyline};
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
 use crate::ToolpathError;
@@ -37,7 +38,7 @@ pub fn fuller(outer: &[Vec<Point>], hull: f64) -> Result<Vec<Vec<Point>>, Toolpa
         });
     }
     let (lo, hi) = bounds(outer);
-    let diagonal = (hi.0 - lo.0).hypot(hi.1 - lo.1);
+    let diagonal = math::hypot(hi.0 - lo.0, hi.1 - lo.1);
     let r = closing_radius(hull, diagonal);
     if r.is_nan() || r <= CHAIN_TOL_MM {
         return Ok(outer.to_vec());
@@ -185,7 +186,11 @@ mod tests {
             assert!((-1e-6..=30.0 + 1e-6).contains(&p.1), "{p:?}");
         }
         // The bottom corners stay square: a closing keeps convex corners.
-        let near = |q: Point| more[0].iter().any(|p| (p.0 - q.0).hypot(p.1 - q.1) < 0.05);
+        let near = |q: Point| {
+            more[0]
+                .iter()
+                .any(|p| math::hypot(p.0 - q.0, p.1 - q.1) < 0.05)
+        };
         assert!(near((0.0, 0.0)) && near((30.0, 0.0)));
     }
 

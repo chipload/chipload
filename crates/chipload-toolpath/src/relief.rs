@@ -1063,9 +1063,9 @@ mod tests {
             let polar = std::f64::consts::FRAC_PI_2 * i as f64 / n as f64;
             let az = std::f64::consts::TAU * j as f64 / m as f64;
             [
-                20.0 * polar.sin() * az.cos(),
-                20.0 * polar.sin() * az.sin(),
-                20.0 * polar.cos() - 20.0,
+                20.0 * chipload_core::math::sin(polar) * chipload_core::math::cos(az),
+                20.0 * chipload_core::math::sin(polar) * chipload_core::math::sin(az),
+                20.0 * chipload_core::math::cos(polar) - 20.0,
             ]
         };
         let mut triangles = Vec::new();
@@ -1143,7 +1143,10 @@ mod tests {
         let circle: Vec<Point> = (0..48)
             .map(|k| {
                 let a = std::f64::consts::TAU * k as f64 / 48.0;
-                (20.0 * a.cos(), 20.0 * a.sin())
+                (
+                    20.0 * chipload_core::math::cos(a),
+                    20.0 * chipload_core::math::sin(a),
+                )
             })
             .collect();
         let ramp = Ramp {

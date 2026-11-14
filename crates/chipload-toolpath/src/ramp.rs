@@ -7,6 +7,7 @@
 //! docs/specs/profile-spiral.md).
 
 use chipload_core::Point;
+use chipload_core::math;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
@@ -96,7 +97,7 @@ fn zigzag(
 ) -> Result<Vec<Move>, ToolpathError> {
     let drop = top - z;
     // The path length a ramp at this angle needs from `top` to `z`.
-    let full = drop / ramp_angle.tan();
+    let full = drop / math::tan(ramp_angle);
     let reach = (full / 2.0).min(available).min(polyline_length(path));
     let too_short = || {
         ToolpathError::Geometry(
@@ -169,7 +170,7 @@ mod tests {
         let mut last = from;
         let mut worst: f64 = 0.0;
         for &p in points {
-            let run = (p.0 - last.0).hypot(p.1 - last.1);
+            let run = math::hypot(p.0 - last.0, p.1 - last.1);
             if run > 0.0 {
                 worst = worst.max((last.2 - p.2) / run);
             }
@@ -205,7 +206,7 @@ mod tests {
         // Down to the cleared depth at the plunge feed, then two legs at the cutting feed.
         assert_eq!(moves[0], Move::feed_z(-1.0, 200.0));
         assert_eq!(moves.len(), 3);
-        let reach = 2.0 / THREE_DEG.tan() / 2.0;
+        let reach = 2.0 / math::tan(THREE_DEG) / 2.0;
         let points = trace(&moves[1..], -1.0);
         assert!((points[0].0 - reach).abs() < 1e-9 && (points[0].2 + 2.0).abs() < 1e-9);
         assert_eq!(points[1], (0.0, 0.0, -3.0));
@@ -214,7 +215,7 @@ mod tests {
                 .iter()
                 .all(|m| m.kind == MoveKind::Feed && m.feed == Some(1000.0))
         );
-        assert!(steepest(&points, (0.0, 0.0, -1.0)) <= THREE_DEG.tan() + 1e-12);
+        assert!(steepest(&points, (0.0, 0.0, -1.0)) <= math::tan(THREE_DEG) + 1e-12);
     }
 
     #[test]
@@ -227,7 +228,7 @@ mod tests {
         let moves = enter(&path, 5.0, 0.0, 0.0, -2.0, entry, 1000.0, 200.0).unwrap();
         let points = trace(&moves, 0.0);
         assert_eq!(points.last(), Some(&(0.0, 0.0, -2.0)));
-        assert!(steepest(&points, (0.0, 0.0, 0.0)) <= THREE_DEG.tan() + 1e-12);
+        assert!(steepest(&points, (0.0, 0.0, 0.0)) <= math::tan(THREE_DEG) + 1e-12);
         // Down all the way: no leg climbs.
         assert!(points.windows(2).all(|w| w[1].2 <= w[0].2));
         let legs = points.iter().filter(|p| p.0 == 0.0 && p.1 == 0.0).count();

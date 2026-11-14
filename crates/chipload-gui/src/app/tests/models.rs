@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! 3D models in the window (docs/specs/stl-relief.md §9).
 use super::*;
+use chipload_core::math;
 
 /// The dome sample's STL, written to a file of its own.
 fn dome_stl(name: &str) -> PathBuf {
@@ -436,7 +437,10 @@ fn a_models_handles_move_turn_and_size_it() {
     app.start_box_drag(BoxHandle::Turn);
     let a = 80f64.to_radians();
     app.drag_box_to(
-        (center.0 + 30.0 * a.cos(), center.1 + 30.0 * a.sin()),
+        (
+            center.0 + 30.0 * math::cos(a),
+            center.1 + 30.0 * math::sin(a),
+        ),
         false,
     );
     app.end_box_drag();

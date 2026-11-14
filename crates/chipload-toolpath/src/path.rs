@@ -6,6 +6,7 @@
 
 use chipload_core::Point;
 use chipload_core::chain::Contour;
+use chipload_core::math;
 use chipload_core::primitives::{Primitive, distance};
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
@@ -209,7 +210,7 @@ fn open_moves(
                 if drop <= DEPTH_TOL_MM {
                     continue;
                 }
-                let needed = ((drop / ramp_angle.tan() - CHAIN_TOL_MM) / length)
+                let needed = ((drop / math::tan(ramp_angle) - CHAIN_TOL_MM) / length)
                     .ceil()
                     .max(1.0);
                 if needed > MAX_RAMP_LEGS as f64 {

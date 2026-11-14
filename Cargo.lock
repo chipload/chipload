@@ -928,6 +928,7 @@ name = "chipload-post"
 version = "0.36.0"
 dependencies = [
  "chipload-check",
+ "chipload-core",
  "chipload-i18n",
  "chipload-job",
  "chipload-toolpath",

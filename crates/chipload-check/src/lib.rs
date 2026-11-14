@@ -7,6 +7,7 @@
 //!
 //! Only ASCII digits are accepted in numbers.
 
+use chipload_core::math;
 mod parse;
 
 use std::collections::BTreeMap;
@@ -269,7 +270,7 @@ fn distance_to_path(
     to: (f64, f64),
     arc: Option<((f64, f64), f64, bool)>,
 ) -> f64 {
-    let to_end = |q: (f64, f64)| (p.0 - q.0).hypot(p.1 - q.1);
+    let to_end = |q: (f64, f64)| math::hypot(p.0 - q.0, p.1 - q.1);
     let ends = to_end(from).min(to_end(to));
     match arc {
         None => {
@@ -282,7 +283,7 @@ fn distance_to_path(
             to_end((from.0 + t * dx, from.1 + t * dy))
         }
         Some((c, r, clockwise)) => {
-            let angle = |q: (f64, f64)| (q.1 - c.1).atan2(q.0 - c.0);
+            let angle = |q: (f64, f64)| math::atan2(q.1 - c.1, q.0 - c.0);
             let along = |a: f64| {
                 let d = if clockwise {
                     angle(from) - a
@@ -292,7 +293,7 @@ fn distance_to_path(
                 d.rem_euclid(std::f64::consts::TAU)
             };
             if along(angle(p)) <= along(angle(to)) {
-                ((p.0 - c.0).hypot(p.1 - c.1) - r).abs().min(ends)
+                (math::hypot(p.0 - c.0, p.1 - c.1) - r).abs().min(ends)
             } else {
                 ends
             }
@@ -314,13 +315,13 @@ fn inside_deep_hole(
 ) -> bool {
     limits.deep_holes.iter().any(|hole| {
         let room = hole.radius - radius + tol;
-        let inside = |p: (f64, f64)| (p.0 - hole.center.0).hypot(p.1 - hole.center.1) <= room;
+        let inside = |p: (f64, f64)| math::hypot(p.0 - hole.center.0, p.1 - hole.center.1) <= room;
         // A disc holds the segment between two of its points; an arc it holds when its
         // whole circle is in it. The circle's centre comes from the rounded start and I, J,
         // so it may lie a tolerance more off.
         let path_inside = match arc {
             None => inside(from) && inside(to),
-            Some((c, r)) => (c.0 - hole.center.0).hypot(c.1 - hole.center.1) + r <= room + tol,
+            Some((c, r)) => math::hypot(c.0 - hole.center.0, c.1 - hole.center.1) + r <= room + tol,
         };
         below <= hole.depth + tol && path_inside
     })
@@ -833,7 +834,7 @@ fn move_to(
                     values.get(&'I').copied().unwrap_or(0.0),
                     values.get(&'J').copied().unwrap_or(0.0),
                 );
-                Some(((x + i, y + j), i.hypot(j)))
+                Some(((x + i, y + j), math::hypot(i, j)))
             }
             _ => None,
         };
@@ -919,7 +920,7 @@ fn pin_check(
             values.get(&'I').copied().unwrap_or(0.0),
             values.get(&'J').copied().unwrap_or(0.0),
         );
-        ((x0 + i, y0 + j), i.hypot(j), motion == 2)
+        ((x0 + i, y0 + j), math::hypot(i, j), motion == 2)
     });
     let radius = state.radius.unwrap_or(limits.tool_radius);
     // Above a pin set down below the back face, a surface pass may go over it.
@@ -936,7 +937,7 @@ fn back_into_hole(state: &State, x: Option<f64>, y: Option<f64>, z: f64) -> bool
     let (Some(x), Some(y), Some((hx, hy, bottom))) = (x, y, state.hole) else {
         return false;
     };
-    (x - hx).hypot(y - hy) <= state.tol && z >= bottom + PECK_CLEARANCE_MM - state.tol
+    math::hypot(x - hx, y - hy) <= state.tol && z >= bottom + PECK_CLEARANCE_MM - state.tol
 }
 
 /// After a move: a straight feed down records (or deepens) the hole; any XY move or arc
@@ -988,13 +989,13 @@ fn check_arc(
     // A helical arc (one that changes Z) goes linearly from its start Z to its end Z, so its
     // lowest point is one of its ends: the depth and stock checks on the end (and on the
     // previous move's end, its start) cover it (docs/specs/helix-and-leads.md part C).
-    if (sx - ex).hypot(sy - ey) <= POSITION_TOL_MM {
+    if math::hypot(sx - ex, sy - ey) <= POSITION_TOL_MM {
         problems.push(Message::new("check-arc-full-circle"));
     }
     let cx = sx + values.get(&'I').copied().unwrap_or(0.0);
     let cy = sy + values.get(&'J').copied().unwrap_or(0.0);
-    let r_start = (sx - cx).hypot(sy - cy);
-    let r_end = (ex - cx).hypot(ey - cy);
+    let r_start = math::hypot(sx - cx, sy - cy);
+    let r_end = math::hypot(ex - cx, ey - cy);
     if (r_start - r_end).abs() > ARC_APPROX_TOL_MM {
         problems.push(
             Message::new("check-arc-radius-mismatch")
@@ -1004,7 +1005,7 @@ fn check_arc(
     }
     // Angles from the start going the arc's way; an axis extreme is on the arc if it comes
     // before the end.
-    let angle = |x: f64, y: f64| (y - cy).atan2(x - cx);
+    let angle = |x: f64, y: f64| math::atan2(y - cy, x - cx);
     let along = |a: f64| {
         let d = if clockwise {
             angle(sx, sy) - a
@@ -1017,7 +1018,7 @@ fn check_arc(
     let r = r_start;
     let extremes = [(r, 0.0), (0.0, r), (-r, 0.0), (0.0, -r)]
         .into_iter()
-        .filter(|&(dx, dy)| along(dy.atan2(dx)) < end)
+        .filter(|&(dx, dy)| along(math::atan2(dy, dx)) < end)
         .map(|(dx, dy)| (cx + dx, cy + dy))
         .collect();
     (problems, extremes)

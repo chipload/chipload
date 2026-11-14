@@ -2,6 +2,7 @@
 //! Job-level rules of plan_job.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use chipload_core::chain::Contour;
@@ -273,7 +274,7 @@ fn assert_ramps_only(moves: &[chipload_toolpath::model::Move], top: f64, angle: 
     let mut ramps = 0;
     for m in moves {
         let (nx, ny, nz) = (m.x.unwrap_or(x), m.y.unwrap_or(y), m.z.unwrap_or(z));
-        let run = (nx - x).hypot(ny - y);
+        let run = math::hypot(nx - x, ny - y);
         if m.kind != MoveKind::Rapid && nz < z - 1e-9 {
             if run == 0.0 {
                 assert!(
@@ -281,7 +282,7 @@ fn assert_ramps_only(moves: &[chipload_toolpath::model::Move], top: f64, angle: 
                     "straight plunge to {nz} below {deepest}"
                 );
             } else {
-                assert!((z - nz) / run <= angle.tan() + 1e-9, "ramp too steep");
+                assert!((z - nz) / run <= math::tan(angle) + 1e-9, "ramp too steep");
                 ramps += 1;
             }
         }

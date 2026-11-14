@@ -2,6 +2,7 @@
 //! Dogbone and T-bone corners (docs/specs/dogbones.md §8).
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
+use chipload_core::math;
 mod common;
 
 use std::f64::consts::{FRAC_PI_2, PI};
@@ -100,7 +101,7 @@ fn tips(moves: &[Move]) -> Vec<Point> {
             (w[1].0 - w[0].0, w[1].1 - w[0].1),
             (w[2].0 - w[1].0, w[2].1 - w[1].1),
         );
-        let (lu, lv) = (u.0.hypot(u.1), v.0.hypot(v.1));
+        let (lu, lv) = (math::hypot(u.0, u.1), math::hypot(v.0, v.1));
         if lu > TOL && lv > TOL {
             let cos = (u.0 * v.0 + u.1 * v.1) / (lu * lv);
             if cos < -1.0 + 1e-9 && !found.iter().any(|&f| distance(f, w[1]) < TOL) {
@@ -117,10 +118,10 @@ fn near(p: Point, q: Point) -> bool {
 
 /// A dogbone tip for a 90° corner at `c` whose tool side lies toward `into` (unit-ish).
 fn dogbone_tip(c: Point, into: Point, clearance: f64) -> Point {
-    let len = into.0.hypot(into.1);
+    let len = math::hypot(into.0, into.1);
     let b = (into.0 / len, into.1 / len);
     // The corner moved `clearance` into the part, then the tool radius toward the tool.
-    let back = clearance / (PI / 4.0).sin();
+    let back = clearance / math::sin(PI / 4.0);
     (c.0 + b.0 * (R - back), c.1 + b.1 * (R - back))
 }
 
@@ -233,7 +234,7 @@ fn the_max_angle_includes_its_own_angle() {
     let hexagon: Vec<(f64, f64)> = (0..6)
         .map(|k| {
             let a = k as f64 * PI / 3.0;
-            (50.0 + 20.0 * a.cos(), 50.0 + 20.0 * a.sin())
+            (50.0 + 20.0 * math::cos(a), 50.0 + 20.0 * math::sin(a))
         })
         .collect();
     let hex = plan(
@@ -870,7 +871,7 @@ proptest! {
         turn in 0.0f64..PI,
         tbone in any::<bool>(),
     ) {
-        let (c, s) = (turn.cos(), turn.sin());
+        let (c, s) = (math::cos(turn), math::sin(turn));
         let at = |x: f64, y: f64| (100.0 + x * c - y * s, 100.0 + x * s + y * c);
         let corners_at = [at(0.0, 0.0), at(w, 0.0), at(w, h), at(0.0, h)];
         let kind = if tbone { "tbone" } else { "dogbone" };
