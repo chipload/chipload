@@ -283,7 +283,7 @@ Smaller follow-ups noted along the way, not in the order above:
 
 (nothing yet)
 
-### In 0.36.0 (tagged 2026-11-14, guide published)
+### In 0.36.0 (published 2026-11-14, guide published)
 
 - **Reliefs from 3D models** (docs/specs/stl-relief.md, ADR 0031): STL models in the
   project (`chipload-mesh`, binary and text, our own reader), placed like a picture (move,
