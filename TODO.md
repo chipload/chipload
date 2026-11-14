@@ -86,8 +86,11 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
-1. **Fewer clicks for the usual job.** Spec first, after a look at what each step takes
-   today:
+1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **draft for
+   review** (2026-11-14, chosen for 0.37.0): a Q menu at the cursor (kinds by letter,
+   styles by digit), select similar / select inside, layer rules as styles with a layer
+   pattern, Ctrl+E like Save; six decisions. Automatic generation is already on by
+   default. What the first look listed:
    - keys that add an operation for the selection (profile, pocket, holes, V-carve, path),
      and a key per style;
    - layer rules (docs/specs/styles.md §5): a style with a layer pattern, applied on import
@@ -157,10 +160,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    by dowel pins or an edge, for parts machined on both faces (boxes, signs with a back
    pocket, cutting boards). **Done**, merged into main 2026-11-09 (docs/specs/two-sided.md;
    see *Done*).
-9. **Pockets: a finishing pass** (the gap review of 2026-11-03): a light last cut of the
-   walls and of the floor, for fits (inlays, lids, recesses) and clean floors. Spec first:
-   the allowance left by the roughing, the wall lap's direction, the floor's stepover,
-   with rest passes and dogbones.
+9. **Pockets: a finishing pass** (the gap review of 2026-11-03; chosen for 0.37.0). Spec
+   docs/specs/pocket-finish.md, **draft for review** (2026-11-14): `finish {wall, floor}`
+   on a pocket, roughing then floor then a full-depth wall lap per piece, bones cut by the
+   roughing, refused where too narrow to rough; eight decisions.
 10. **First-run setup** (the gap review of 2026-11-03, and what the new defaults left): on
     the first start, ask for the machine's travel and the first tool (marked
     centre-cutting or not), so the first project has no warning but its own; today tabs
