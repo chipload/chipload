@@ -24,6 +24,11 @@ outside profile. The same steps follow in the app and on the command line.
    - right-click selects a whole layer;
    - or click a DXF or one of its layers in the Browser.
 4. **Add an operation:** **Profile**, in the ribbon's OPERATION group.
+   - Quicker: press **Q** over the canvas, then **P**. The Q menu opens at the mouse with a
+     key for each kind (P profile, K pocket, H holes, V V-carve, F follow path) and a digit
+     for each of your [styles](library/styles.md). A kind the selection can't take is
+     greyed out, and its hover says why (holes need a circle, a pocket a closed shape).
+     Escape closes it.
    - **Side:** Chipload picks *outside* for an outline and *inside* for holes, and asks
      when a selection mixes both.
    - **End depth:** for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a

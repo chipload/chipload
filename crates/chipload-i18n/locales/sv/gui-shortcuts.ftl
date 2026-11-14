@@ -24,6 +24,7 @@ shortcuts-import = Nytt projekt från en DXF eller SVG
 shortcuts-save = Spara
 shortcuts-export = Exportera G-kod: frågar första gången, sedan samma fil
 shortcuts-export-as = Exportera G-kod som… (frågar alltid)
+shortcuts-quick-menu = Snabbmeny: lägg till en operation eller använd en stil för markeringen
 shortcuts-quit = Avsluta
 shortcuts-undo = Ångra
 shortcuts-move-up = Flytta upp operationen

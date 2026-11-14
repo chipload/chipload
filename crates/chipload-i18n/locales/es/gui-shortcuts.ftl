@@ -24,6 +24,7 @@ shortcuts-import = Proyecto nuevo a partir de un DXF o SVG
 shortcuts-save = Guardar
 shortcuts-export = Exportar código G: pregunta la primera vez, luego el mismo archivo
 shortcuts-export-as = Exportar código G como… (pregunta siempre)
+shortcuts-quick-menu = Menú rápido: añadir una operación o aplicar un estilo a la selección
 shortcuts-quit = Salir
 shortcuts-undo = Deshacer
 shortcuts-move-up = Subir la operación

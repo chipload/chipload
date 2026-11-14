@@ -26,6 +26,7 @@ pub mod posts;
 pub mod recovery;
 pub mod relief_wizard;
 pub mod report;
+pub mod selection;
 pub mod setups;
 pub mod shape_library;
 pub mod shapes;

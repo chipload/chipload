@@ -7,7 +7,7 @@ const TOOL: &str = "6 mm 2F";
 
 /// simple_part imported, with a settings folder whose library has its tool, the project's
 /// tool linked to it. Contour 1 is the outline, 2-4 its holes.
-fn app_with_library(name: &str) -> ChiploadApp {
+pub(super) fn app_with_library(name: &str) -> ChiploadApp {
     let dir = temp_dir(&format!("styles-{name}"));
     for file in [
         "tools.json",

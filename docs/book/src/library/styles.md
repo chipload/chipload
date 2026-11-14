@@ -41,6 +41,9 @@ chipload style save part.chipload --op 3 --name "Cut out 18 mm ply" --replace   
 Select the shapes on the canvas, then one of:
 - **Style** at the end of the ribbon's OPERATION group: its menu lists your styles;
 - right-click the canvas, **Apply style ▸**;
+- press **Q** over the canvas, then the style's digit: the Q menu numbers the first nine
+  styles 1 to 9 in the order of the Styles list, so moving a style up the list changes its
+  digit;
 - right-click the style under *This computer > Styles*, or open it there: **Apply to the
   selection**.
 

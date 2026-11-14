@@ -16,6 +16,11 @@ impl ChiploadApp {
         if ctx.egui_wants_keyboard_input() {
             return;
         }
+        // The Q menu takes the keys while it is open (docs/specs/fewer-clicks.md §2).
+        if self.quick_menu_open() {
+            self.quick_menu_keys(ctx);
+            return;
+        }
         self.clipboard_events(ctx);
         for binding in shortcuts::BINDINGS {
             if ctx.input_mut(|i| i.consume_shortcut(&binding.keys)) {

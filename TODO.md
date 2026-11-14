@@ -87,8 +87,8 @@ to a program you trust. It was about four per operation; with the defaults and s
 0.33 the aim is none beyond choosing a style.
 
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
-   2026-11-14** (chosen for 0.37.0; Ctrl+E like Save built, see *In main*; next the Q menu,
-   then select similar/inside, then layer rules): a Q menu at the cursor (kinds by letter,
+   2026-11-14** (chosen for 0.37.0; Ctrl+E like Save and the Q menu built, see *In main*;
+   next select similar/inside, then layer rules): a Q menu at the cursor (kinds by letter,
    styles by digit), select similar / select inside, layer rules as styles with a layer
    pattern, Ctrl+E like Save; six decisions. Automatic generation is already on by
    default. What the first look listed:
@@ -300,6 +300,10 @@ Smaller follow-ups noted along the way, not in the order above:
   export of a project asks, then Ctrl+E writes the same file again without asking;
   *Export G-code as…* (Ctrl+Shift+E) always asks; `settings.json` `exports` (optional)
   keeps each recent project's file.
+- **The Q menu** (docs/specs/fewer-clicks.md §2): Q over the canvas opens a menu at the
+  mouse: P profile, K pocket, H holes, V V-carve, F follow path, digits 1-9 the styles in
+  list order; kinds the selection can't take greyed with the reason
+  (`selection::unfit_for`); its letters only while it is open.
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 

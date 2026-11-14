@@ -74,6 +74,7 @@ mod panels;
 mod playback;
 mod prefs;
 mod problems;
+mod quick_menu;
 mod recovery;
 mod relief_wizard;
 mod report;
@@ -388,6 +389,8 @@ pub struct ChiploadApp {
     pub selection: CanvasSelection,
     /// The focused operation's corners and an open corner menu (docs/specs/dogbone-per-corner.md).
     corners: corners::CornerMarkers,
+    /// Where the Q menu is open (docs/specs/fewer-clicks.md §2).
+    quick_menu: Option<egui::Pos2>,
     context_pick: Option<usize>,
     /// The panels round the canvas: which are open, which tab the right one shows.
     pub panels: layout::Panels,
@@ -478,6 +481,7 @@ impl Default for ChiploadApp {
             fit_only: None,
             selection: CanvasSelection::Nothing,
             corners: corners::CornerMarkers::default(),
+            quick_menu: None,
             context_pick: None,
             // On at start: it is how the canvas shows what the tools leave
             // (docs/specs/material-left-merge.md, decision 2).

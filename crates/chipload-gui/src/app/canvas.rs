@@ -722,6 +722,11 @@ impl ChiploadApp {
                         ui.label(t!(ui, "canvas-right-click-hint"));
                     }
                 }
+                // The Q menu does the same in two keys (docs/specs/fewer-clicks.md §2).
+                if context_start.is_none() && self.selection != CanvasSelection::Nothing {
+                    ui.separator();
+                    ui.weak(t!(ui, "quick-hint"));
+                }
                 // A style for what is selected (docs/specs/styles.md §3.2).
                 if context_start.is_none()
                     && self.selection != CanvasSelection::Nothing
@@ -805,6 +810,7 @@ impl ChiploadApp {
         self.paint_rulers(ui, &painter, rect);
         self.typed_entry(ui);
         self.corner_menu(ui);
+        self.quick_menu_ui(ui);
         self.canvas_overlays(ui, rect);
         // Simulate frames the canvas in the accent colour (edit-and-simulate.md decision 10).
         if self.display.simulate {

@@ -17,6 +17,7 @@ pub(super) enum Action {
     SaveAs,
     Export,
     ExportAs,
+    QuickMenu,
     Quit,
     Undo,
     Redo,
@@ -132,6 +133,7 @@ pub(super) const BINDINGS: &[Binding] = &[
     bind(Action::Grid, Modifiers::NONE, Key::G, Group::View),
     bind(Action::Simulate, Modifiers::NONE, Key::F6, Group::View),
     bind(Action::Measure, Modifiers::NONE, Key::M, Group::View),
+    bind(Action::QuickMenu, Modifiers::NONE, Key::Q, Group::Edit),
     bind(Action::Panels, Modifiers::NONE, Key::P, Group::View),
     bind(Action::Shortcuts, Modifiers::NONE, Key::F1, Group::Help),
     bind(
@@ -176,6 +178,7 @@ pub(super) fn what(action: Action, src: &impl crate::i18n::Lang) -> String {
         Action::Save => t!(src, "shortcuts-save"),
         Action::Export => t!(src, "shortcuts-export"),
         Action::ExportAs => t!(src, "shortcuts-export-as"),
+        Action::QuickMenu => t!(src, "shortcuts-quick-menu"),
         Action::Quit => t!(src, "shortcuts-quit"),
         Action::Undo => t!(src, "shortcuts-undo"),
         Action::MoveUp => t!(src, "shortcuts-move-up"),
@@ -363,6 +366,7 @@ impl ChiploadApp {
             }
             Action::Export => self.export_when_ready(),
             Action::ExportAs => self.export_as_when_ready(),
+            Action::QuickMenu => self.open_quick_menu(ctx),
             Action::Quit => ctx.send_viewport_cmd(ViewportCommand::Close),
             Action::Undo => self.undo(),
             Action::Redo => self.redo(),

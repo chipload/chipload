@@ -2,7 +2,7 @@
 
 Status: **approved 2026-11-14**, every decision as recommended (TODO *Next* item 1, the
 user: "prioritize usability improvements and a streamlined, quick and efficient
-workflow"). §5 built first.
+workflow"). §5 built first, then §2.
 
 ## 1. The usual job today
 

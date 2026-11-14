@@ -38,6 +38,7 @@ mod parts;
 mod posts;
 mod profile_form;
 mod properties_sources;
+mod quick_menu;
 mod recovery_copies;
 mod relief_wizard;
 mod screenshots;
