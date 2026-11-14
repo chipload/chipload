@@ -90,6 +90,11 @@ impl ChiploadApp {
         self.set_show_simulation(false);
     }
 
+    /// How far the simulation being computed has got, 0 to 1; None when none is.
+    pub fn simulation_progress(&self) -> Option<f64> {
+        self.sim.run.as_ref().map(|r| r.cancel.progress())
+    }
+
     /// A simulation is being computed.
     pub fn simulating(&self) -> bool {
         self.sim.run.is_some()

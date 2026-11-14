@@ -460,6 +460,10 @@ pub struct ReliefCut<'a> {
     pub plunge_feed: f64,
     /// The copy's shift: the area is moved already, the model is moved by this.
     pub shift: Point,
+    /// Where the lines done are reported, and checked for a stop
+    /// (docs/specs/background-generation.md §7): a stopped run skips the lines left, and
+    /// its caller checks the flag.
+    pub progress: Option<&'a crate::cancel::Cancel>,
 }
 
 impl ReliefCut<'_> {
@@ -528,8 +532,47 @@ fn near(a: Point, b: Point, step: f64) -> bool {
 /// Each stretch is worked on its own, on all cores (spec §15).
 fn runs(cut: &ReliefCut) -> Vec<Run> {
     let stretches: Vec<(Point, Point)> = lines(cut).into_iter().flatten().collect();
-    crate::parallel::map_ordered(&stretches, |&(a, b)| follow(cut, a, b))
+    let counter = Counter::new(cut.progress, stretches.len());
+    crate::parallel::map_ordered(&stretches, |&(a, b)| {
+        counter.work(Vec::new, || follow(cut, a, b))
+    })
 }
+
+/// The share of a relief's lines done, reported as they finish on any thread, and a stop
+/// asked for: the lines left are skipped (docs/specs/background-generation.md §7).
+struct Counter<'a> {
+    progress: Option<&'a crate::cancel::Cancel>,
+    done: std::sync::atomic::AtomicUsize,
+    total: usize,
+}
+
+impl<'a> Counter<'a> {
+    fn new(progress: Option<&'a crate::cancel::Cancel>, total: usize) -> Self {
+        Counter {
+            progress,
+            done: std::sync::atomic::AtomicUsize::new(0),
+            total,
+        }
+    }
+
+    /// `f`'s result, counted; `skipped` instead once a stop is asked for.
+    fn work<R>(&self, skipped: impl FnOnce() -> R, f: impl FnOnce() -> R) -> R {
+        let Some(progress) = self.progress else {
+            return f();
+        };
+        if progress.is_cancelled() {
+            return skipped();
+        }
+        let out = f();
+        let done = self.done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        // The lines are most of the step; the check of the path after them the rest.
+        progress.stage_done(LINES_SHARE * done as f64 / self.total.max(1) as f64);
+        out
+    }
+}
+
+/// The share of a relief step its lines take, the rest the path's check.
+const LINES_SHARE: f64 = 0.9;
 
 /// The lines across the area, one stepover apart, each as the stretches (start, end) that
 /// lie inside it, in cutting order: back and forth, or all the same way.
@@ -639,8 +682,12 @@ pub fn rough_moves(
     start: Point,
 ) -> (Vec<Move>, Point) {
     // Each line's heights, found once for every level, the lines on all cores (spec §15).
-    let lines: Vec<Vec<Run>> = crate::parallel::map_ordered(&lines(cut), |line| {
-        line.iter().map(|&(a, b)| sampled(cut, a, b)).collect()
+    let across = lines(cut);
+    let counter = Counter::new(cut.progress, across.len());
+    let lines: Vec<Vec<Run>> = crate::parallel::map_ordered(&across, |line| {
+        counter.work(Vec::new, || {
+            line.iter().map(|&(a, b)| sampled(cut, a, b)).collect()
+        })
     });
     let mut moves = vec![Move::rapid_z(cut.safe_z)];
     let mut end = start;
@@ -1069,6 +1116,7 @@ mod tests {
                 feed: 1500.0,
                 plunge_feed: 500.0,
                 shift: (0.0, 0.0),
+                progress: None,
             };
             let (moves, _) = relief_moves(&cut, (0.0, 0.0));
             assert!(moves.len() > 50, "{cutter:?}: {}", moves.len());
@@ -1130,6 +1178,7 @@ mod tests {
             feed: 1500.0,
             plunge_feed: 500.0,
             shift: (0.0, 0.0),
+            progress: None,
         };
         let (moves, _) = relief_moves(&cut, (0.0, 0.0));
         assert_eq!(verify(&moves, &mesh, ball, 0.0, (0.0, 0.0)), None);
@@ -1197,6 +1246,7 @@ mod tests {
             feed: 1500.0,
             plunge_feed: 500.0,
             shift: (0.0, 0.0),
+            progress: None,
         };
         let (moves, _) = rough_moves(&cut, 0.0, 6.0, (0.0, 0.0));
         assert_eq!(verify(&moves, &mesh, grown, allowance, (0.0, 0.0)), None);
@@ -1244,6 +1294,7 @@ mod tests {
                 feed: 1500.0,
                 plunge_feed: 500.0,
                 shift: (0.0, 0.0),
+                progress: None,
             };
             let (moves, _) = rough_moves(&cut, 0.0, 6.0, (0.0, 0.0));
             // The allowance is kept: the grown tool, raised by it, stays off the model.
@@ -1315,5 +1366,57 @@ mod tests {
         assert_eq!(loop_spans(&loops, 5.0), vec![(0.0, 3.0), (7.0, 10.0)]);
         assert_eq!(loop_spans(&loops, 1.0), vec![(0.0, 10.0)]);
         assert!(loop_spans(&loops, 11.0).is_empty());
+    }
+
+    /// The lines done are reported as they finish, up to their share of the step, and a
+    /// stop skips the rest (docs/specs/background-generation.md §7).
+    #[test]
+    fn a_relief_reports_its_lines_and_stops_when_asked() {
+        let mesh = dome();
+        let index = DropMesh::new(&mesh, 3.0);
+        let area = Area::Loops(square(22.0));
+        let cancel = crate::cancel::Cancel::new();
+        let cut = ReliefCut {
+            mesh: &index,
+            cutter: Cutter::Ball { radius: 1.5 },
+            top: 0.0,
+            floor: -20.0,
+            area: &area,
+            ramp: None,
+            step: 1.0,
+            angle: 0.0,
+            zigzag: true,
+            safe_z: 5.0,
+            feed: 1500.0,
+            plunge_feed: 500.0,
+            shift: (0.0, 0.0),
+            progress: Some(&cancel),
+        };
+        let (moves, _) = relief_moves(&cut, (0.0, 0.0));
+        assert!(
+            (cancel.progress() - LINES_SHARE).abs() < 1e-9,
+            "{}",
+            cancel.progress()
+        );
+        // The same lines as without a flag.
+        let plain = ReliefCut {
+            progress: None,
+            ..cut
+        };
+        assert_eq!(relief_moves(&plain, (0.0, 0.0)).0, moves);
+        // Stopped: no line is followed.
+        let stopped = crate::cancel::Cancel::new();
+        stopped.cancel();
+        let cut = ReliefCut {
+            progress: Some(&stopped),
+            ..plain
+        };
+        let (moves, _) = relief_moves(&cut, (0.0, 0.0));
+        assert!(
+            moves
+                .iter()
+                .all(|m| m.kind == crate::model::MoveKind::Rapid),
+            "{moves:?}"
+        );
     }
 }

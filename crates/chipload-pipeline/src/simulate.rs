@@ -168,6 +168,11 @@ pub fn simulate_with_history(
     cancel: &Cancel,
 ) -> Result<(Simulation, Option<History>), PipelineError> {
     let base = front_of_back(job, cell, cancel)?;
+    // The back's own run fills what the front's left of the progress (§7 of
+    // docs/specs/background-generation.md).
+    if base.is_some() {
+        cancel.set_window(0.5, 0.5);
+    }
     run(job, program, groups, cell, cancel, true, base.as_ref())
 }
 
@@ -188,7 +193,10 @@ fn front_of_back(
     };
     let front = job.for_setup(front);
     let contours = crate::load_drawing(&front)?.contours;
+    // The front planned in the first quarter of the progress, simulated in the second.
+    cancel.set_window(0.0, 0.25);
     let plan = chipload_toolpath::plan_job_cancellable(&front, &contours, cancel)?;
+    cancel.set_window(0.25, 0.25);
     let (sim, _) = run(
         &front,
         &plan.program,
@@ -301,6 +309,7 @@ fn run(
     for (k, m) in program.moves.iter().enumerate() {
         if k % 256 == 0 {
             cancel.check()?;
+            cancel.stage_done(k as f64 / program.moves.len() as f64);
         }
         let to = (m.x.or(here.0), m.y.or(here.1), m.z.or(here.2));
         let from = here;
@@ -324,6 +333,7 @@ fn run(
         }
         grid.cut((x0, y0, z0), (x1, y1, z1), shape);
     }
+    cancel.stage_done(1.0);
     numbers.removed_cm3 = grid.removed(top, bottom, size_x, size_y) / 1000.0;
     if up.is_some() {
         let (through, meet) = grid.through(bottom, size_x, size_y);

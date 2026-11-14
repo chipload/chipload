@@ -144,6 +144,12 @@ impl ChiploadApp {
         self.start_generation(true)
     }
 
+    /// How far the run in progress has got, 0 to 1 (docs/specs/background-generation.md
+    /// §7); None when none is running.
+    pub fn generation_progress(&self) -> Option<f64> {
+        self.toolpath.running.as_ref().map(|r| r.cancel.progress())
+    }
+
     /// A run is in progress.
     pub fn generating(&self) -> bool {
         self.toolpath.running.is_some()

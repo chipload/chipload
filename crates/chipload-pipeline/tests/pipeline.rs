@@ -1709,3 +1709,24 @@ fn a_new_holes_operation_takes_the_drill_that_fits_its_circles() {
         None
     );
 }
+
+/// A run and its simulation report how far they have got, ending at the whole
+/// (docs/specs/background-generation.md §7; the user, 2026-11-14).
+#[test]
+fn a_run_and_its_simulation_report_their_progress_to_the_end() {
+    let job = load_job(&corpus("jobs/v36/relief_dome.chipload")).unwrap();
+    let cancel = chipload_pipeline::Cancel::new();
+    assert_eq!(cancel.progress(), 0.0);
+    let result = chipload_pipeline::run_job_cancellable(&job, &cancel).unwrap();
+    assert_eq!(cancel.progress(), 1.0);
+    let cancel = chipload_pipeline::Cancel::new();
+    chipload_pipeline::simulate::simulate_with_history(
+        &job,
+        &result.program,
+        &result.groups,
+        None,
+        &cancel,
+    )
+    .unwrap();
+    assert_eq!(cancel.progress(), 1.0);
+}

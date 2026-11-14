@@ -188,8 +188,23 @@ pub fn plan_job_cancellable(
     let mut gathered = Gathered::default();
     let mut facts = Vec::new();
     let mut position: Point = (0.0, 0.0);
-    for step in &steps {
+    // Each step's share of the progress (§7 of background-generation.md): a relief's far
+    // larger than another operation's.
+    let weights: Vec<f64> = steps
+        .iter()
+        .map(|step| match chosen[step.chosen].op {
+            Operation::Relief(_) => RELIEF_WEIGHT,
+            _ => 1.0,
+        })
+        .collect();
+    let total: f64 = weights.iter().sum();
+    let mut before = 0.0;
+    for (step, weight) in steps.iter().zip(&weights) {
         cancel.check()?;
+        if total > 0.0 {
+            cancel.set_stage(before / total, weight / total);
+        }
+        before += weight;
         let Chosen {
             at,
             op,
@@ -232,6 +247,8 @@ pub fn plan_job_cancellable(
         gathered.add(job, step, *at, tool.diameter / 2.0, planned, &mut notes);
         groups[step.group].moves.end = gathered.moves.len();
     }
+    cancel.set_stage(0.0, 1.0);
+    cancel.stage_done(1.0);
     let Gathered {
         mut moves,
         facts: op_facts,
@@ -374,6 +391,10 @@ struct CutContours<'a> {
 }
 
 /// One step of the cut order: an operation planned for one copy of its part.
+/// A relief step's share of a run's progress against another operation's 1: its lines
+/// take far longer than any other operation (docs/specs/background-generation.md §7).
+const RELIEF_WEIGHT: f64 = 20.0;
+
 struct Step {
     /// Index in the chosen operations.
     chosen: usize,
@@ -2724,8 +2745,10 @@ fn plan_relief_op(
         feed: op.feed,
         plunge_feed: op.plunge_feed,
         shift,
+        progress: Some(ctx.cancel),
     };
     let (moves, end) = crate::relief::relief_moves(&cut, start);
+    ctx.cancel.check()?;
     if let Some((depth, at)) = crate::relief::verify(&moves, &mesh, cutter, ctx.top_z, shift) {
         return Err(job_error(
             Message::new("toolpath-relief-gouge")
@@ -2817,6 +2840,7 @@ fn plan_relief_pass(
         feed: op.feed,
         plunge_feed: op.plunge_feed,
         shift,
+        progress: Some(ctx.cancel),
     };
     let (moves, end) = match pass.step_down {
         Some(step_down) => crate::relief::rough_moves(&cut, stock_top, step_down, start),

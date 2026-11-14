@@ -1038,3 +1038,26 @@ fn a_new_project_drops_the_old_simulation() {
     assert!(app.scene.sim.is_none() && app.sim.simulation.is_none());
     assert!(app.playback.is_none() && app.scene.toolpath.is_none());
 }
+
+/// While a toolpath or a simulation is being worked out, how far it has got is there for
+/// the canvas's bar; done, it is gone (the user, 2026-11-14).
+#[test]
+fn generation_and_simulation_show_their_progress_while_they_run() {
+    let ctx = egui::Context::default();
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    assert_eq!(app.generation_progress(), None);
+    app.set_show_simulation(true);
+    assert!(
+        app.generation_progress()
+            .is_some_and(|p| (0.0..=1.0).contains(&p))
+    );
+    assert!(app.wait_for_generation());
+    assert_eq!(app.generation_progress(), None);
+    assert!(
+        app.simulation_progress()
+            .is_some_and(|p| (0.0..=1.0).contains(&p))
+    );
+    assert!(app.wait_for_simulation(&ctx));
+    assert_eq!(app.simulation_progress(), None);
+}

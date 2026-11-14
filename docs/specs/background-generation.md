@@ -107,3 +107,25 @@ press Generate (F5) again to see what the edit did.
   DXF imported (the import report stays on screen).
 - App settings schema 3 (`auto_generate`, `settings_v2_to_v3`, frozen sample
   `tests/corpus/settings/v2`).
+
+## 7. Progress (2026-11-14)
+
+Asked by the user ("there is no indication that the simulation is generating … preferably
+a percentage or a bar that is increasing"). The canvas's notice shows, while a toolpath or
+a simulation is worked out, *Updating the toolpath…* or *Updating the simulation…* with a
+bar and its percentage; also on a first generation, which showed nothing before (only an
+out-of-date toolpath had the notice).
+
+How far a run has got travels on its `Cancel`, which the planner, the simulation and the
+window already share: a share from 0 to 1 that only rises (so threads finishing lines in
+any order can't move it back). A caller marks out a *window* of the whole, the work a
+*stage* of the window, and reports the share of the stage done:
+- `run_job_cancellable`: planning 95 %, the post-processor and the check the rest;
+- the planner: each step a stage, weighted 1, a relief's 20 (its lines take far longer);
+- a relief: its lines counted as they finish on any core, 90 % of its stage, the path's
+  check the rest; a stop asked for skips the lines left (before, a relief could not be
+  stopped midway);
+- the simulation: its moves; a back's simulation plans the front in the first quarter,
+  simulates it in the second, and the back in the second half.
+
+Progress changes nothing that is computed: the same plan and G-code with or without it.

@@ -203,6 +203,25 @@ fn model_pictures() {
     harness.run_steps(6);
     let image = harness.render().unwrap();
     image.save(dir.join("relief-rim.png")).unwrap();
+    // A toolpath on its way: the notice with its bar, a frame after the run starts.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1280.0, 800.0))
+        .wgpu()
+        .build_eframe(move |cc| {
+            {
+                let mut fonts = crate::fonts::ui_fonts();
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+            }
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            app.open(&corpus("jobs/v36/relief_rim_hull.chipload"));
+            app.generate();
+            app
+        });
+    harness.run_steps(1);
+    let image = harness.render().unwrap();
+    image.save(dir.join("progress.png")).unwrap();
 }
 
 #[test]

@@ -24,7 +24,9 @@ Simulate* or F6, and **Edit** or F6 to go back ([Edit and Simulate](../window.md
   tip, and a drill's 118° point.
 - **When:** in the background, when you enter Simulate and after each new toolpath while
   you're in it; in Edit nothing is simulated. Until it's done, the canvas says *Updating
-  the simulation…* and still shows the stock as the last toolpath cut it. Back in Simulate
+  the simulation…* with a bar and how far it has got, and still shows the stock as the
+  last toolpath cut it. A toolpath being made shows the same way, *Updating the
+  toolpath…*: a relief's lines are counted as they are done. Back in Simulate
   without changes, the last simulation shows at once. With no toolpath yet, entering
   Simulate makes one.
 - **What makes a new toolpath:** a change that can change the cut. Drawing a shape that no

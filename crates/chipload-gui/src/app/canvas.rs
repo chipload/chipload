@@ -9,6 +9,9 @@ const ROTATE_HANDLE_PX: f64 = 24.0;
 /// The accent frame round the canvas in Simulate, points.
 const SIMULATE_FRAME: f32 = 3.0;
 
+/// The progress bar's width in the canvas's notice, points.
+const PROGRESS_WIDTH: f32 = 160.0;
+
 impl ChiploadApp {
     /// `pos` lies on the active stock's outline, in the top view, within the pick
     /// tolerance.
@@ -822,17 +825,40 @@ impl ChiploadApp {
             .corner_radius(6.0)
             .inner_margin(egui::Margin::symmetric(10, 6));
         let inner = rect.shrink(10.0);
-        if self.toolpath.stale {
-            let top = egui::UiBuilder::new()
-                .max_rect(inner)
-                .layout(egui::Layout::top_down(egui::Align::Min));
+        let top = egui::UiBuilder::new()
+            .max_rect(inner)
+            .layout(egui::Layout::top_down(egui::Align::Min));
+        // What is being worked on, with how far it has got (the user, 2026-11-14:
+        // "there is no indication that the simulation is generating").
+        let busy = match (self.generation_progress(), self.simulation_progress()) {
+            (Some(share), _) => Some((t!(ui, "canvas-updating-toolpath"), share)),
+            (None, Some(share)) if self.display.simulate && !self.toolpath.stale => {
+                // The simulated stock still shows the last one until its worker is done
+                // (user report 2026-10-17: it looked finished).
+                Some((t!(ui, "canvas-updating-simulation"), share))
+            }
+            _ => None,
+        };
+        if let Some((label, share)) = busy {
             ui.scope_builder(top, |ui| {
                 frame.show(ui, |ui| {
                     ui.horizontal(|ui| {
-                        // Live preview: the new toolpath is on its way (or about to be).
-                        let coming = self.generating()
-                            || (self.prefs.auto_generate && self.toolpath.changed_at.is_some());
-                        if coming {
+                        ui.spinner();
+                        ui.label(label);
+                        ui.add(
+                            egui::ProgressBar::new(share as f32)
+                                .desired_width(PROGRESS_WIDTH)
+                                .show_percentage(),
+                        );
+                    });
+                });
+            });
+        } else if self.toolpath.stale {
+            ui.scope_builder(top, |ui| {
+                frame.show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        // Live preview: the new toolpath is about to be generated.
+                        if self.prefs.auto_generate && self.toolpath.changed_at.is_some() {
                             ui.spinner();
                             ui.label(t!(ui, "canvas-updating-toolpath"));
                         } else {
@@ -848,20 +874,6 @@ impl ChiploadApp {
                                 self.generate();
                             }
                         }
-                    });
-                });
-            });
-        } else if self.simulating() && self.display.simulate {
-            // The toolpath is current, but the simulated stock still shows the last one
-            // until its worker is done (user report 2026-10-17: it looked finished).
-            let top = egui::UiBuilder::new()
-                .max_rect(inner)
-                .layout(egui::Layout::top_down(egui::Align::Min));
-            ui.scope_builder(top, |ui| {
-                frame.show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        ui.spinner();
-                        ui.label(t!(ui, "canvas-updating-simulation"));
                     });
                 });
             });

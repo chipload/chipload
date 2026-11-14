@@ -831,9 +831,12 @@ pub fn run_setups(job: &Job, only: Option<u64>) -> Result<Vec<(u64, RunResult)>,
     Ok(runs)
 }
 
+/// Planning's share of a run's progress.
+const PLANNING_SHARE: f64 = 0.95;
+
 /// [`run_job`] that stops with `ToolpathError::Cancelled` once `cancel` is set, from
 /// another thread (docs/specs/background-generation.md). Not cancelled, it gives the same
-/// result.
+/// result; `cancel` also carries how far it has got (§7).
 pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, PipelineError> {
     // One program is one setup's (docs/specs/setups.md §4): the active one. Every setup in
     // turn: `run_setups`.
@@ -842,9 +845,14 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     validate_job(job)?;
     let post = posts::job_post(job)?;
     let imported = load_drawing(job)?;
+    // Planning is most of a run's progress, the post-processor and the check the rest
+    // (docs/specs/background-generation.md §7).
+    cancel.set_window(0.0, PLANNING_SHARE);
     let plan = plan_job_cancellable(job, &imported.contours, cancel)?;
     cancel.check()?;
     let (files, checked) = post_and_check(job, &post, &plan.program, &plan.groups)?;
+    cancel.set_window(0.0, 1.0);
+    cancel.stage_done(1.0);
     let estimate = estimate::estimate(
         job,
         &plan.program,

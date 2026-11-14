@@ -248,7 +248,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    properties (the model's depth, proportions off); *Relief* on the ribbon (small, under
    Surface); a model hidden by its eye leaves the 3D view; a decimal comma read in English
    too (not `1,000`). The rim's edges on the canvas while a relief is open (§16.8), following *Fuller* and
-   the other rim settings live. Finding 5 left for now: the navigation bar's *Drawing* button
+   the other rim settings live. Progress bars for the toolpath and the simulation (background-generation.md §7), a relief
+   now stoppable midway. Finding 5 left for now: the navigation bar's *Drawing* button
    was missing for a moment once, not reproduced (the user, 2026-11-14). Next: the user tries the branch further.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
