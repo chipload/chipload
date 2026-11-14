@@ -247,8 +247,8 @@ to a program you trust. It was about four per operation; with the defaults and s
    (greyed out on a relief without roughing, with why); the relief's depth editable in its
    properties (the model's depth, proportions off); *Relief* on the ribbon (small, under
    Surface); a model hidden by its eye leaves the 3D view; a decimal comma read in English
-   too (not `1,000`). Asked back: finding 5 (the relief outline "not a drawing", no
-   *Drawing* toggle). Next: the user tries the branch further.
+   too (not `1,000`). Finding 5 left for now: the navigation bar's *Drawing* button
+   was missing for a moment once, not reproduced (the user, 2026-11-14). Next: the user tries the branch further.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
