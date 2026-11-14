@@ -193,12 +193,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    grows round the pins, a board of its own size only warns. Next: the user tries it.
 12c. **Reliefs** (docs/specs/stl-relief.md, relief-wizard.md, picture-relief.md,
    inflated-shapes.md; ADR 0031): built on branch `relief` 2026-11-12 to 11-14, all of it
-   approved, for 0.36.0 (see *Done*). Left for later: a time estimate in the wizard's last
+   approved, released in 0.36.0 (see *Done*). Left for later: a time estimate in the wizard's last
    step, dropping a file on the wizard, the board's size in its step 3
    (relief-wizard.md §11); simplifying a large model for cutting (stl-relief.md §15.3); an
    end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
-   a moment once (the user, 2026-11-14), not reproduced. Next: the user tries the branch,
-   then merge and release.
+   a moment once (the user, 2026-11-14), not reproduced.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
@@ -273,7 +272,11 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### For 0.36.0 (branch `relief`, not merged yet)
+### In main, not released yet
+
+(nothing yet)
+
+### In 0.36.0 (tagged 2026-11-14)
 
 - **Reliefs from 3D models** (docs/specs/stl-relief.md, ADR 0031): STL models in the
   project (`chipload-mesh`, binary and text, our own reader), placed like a picture (move,
