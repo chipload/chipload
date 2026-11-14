@@ -134,6 +134,7 @@ browser-tool-change = verktygsbyte → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Lägg till grovpass
 browser-add-roughing-hover = En pinnfräs eller vanlig kulfräs som först tar ner materialet i nivåer och lämnar ett tillägg för reliefen
+browser-add-smoothing-needs-roughing = Ett utjämningspass går efter ett grovpass: lägg först till ett grovpass
 browser-roughing = Grovpass
 browser-roughing-hover = Ett grovpass: materialet nertaget i nivåer före reliefen, ett tillägg lämnat på modellen
 browser-smoothing = Utjämning

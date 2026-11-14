@@ -813,7 +813,7 @@ pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
                     .on_hover_text(t!(ui, "forms-model-keep-hover"));
                 let mut percent = draft.keep * 100.0;
                 let response = ui.add(
-                    egui::DragValue::new(&mut percent)
+                    crate::units::number(ui, &mut percent)
                         .range(1.0..=100.0)
                         .speed(0.5)
                         .max_decimals(1)

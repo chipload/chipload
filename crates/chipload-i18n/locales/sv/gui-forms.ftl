@@ -549,7 +549,7 @@ forms-material-speed-differs = Värdena för { $name } gäller { $rpm } rpm; ver
 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 forms-relief-depth = Djup
-forms-relief-depth-hover = Hur djupt reliefen går: modellens djup, inställt i modellens egenskaper
+forms-relief-depth-hover = Hur djupt reliefen går: modellens djup. Ändras det här ändras modellen, och varje relief av den
 forms-relief-stepover-hover = Avståndet mellan banorna som andel av verktygets diameter: mindre blir slätare och långsammare
 forms-relief-ridge = Åsar
 forms-relief-ridge-hover = Höjden på åsarna som kulfräsen lämnar mellan sina linjer på plan mark. Under 0,02 mm syns de inte i trä; ett finare sidosteg tar då bara längre tid

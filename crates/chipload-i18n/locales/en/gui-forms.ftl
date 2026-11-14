@@ -551,7 +551,7 @@ forms-material-speed-differs = { $name }'s values are for { $rpm } rpm; the tool
 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 forms-relief-depth = Depth
-forms-relief-depth-hover = How deep the relief goes: the model's depth, set in the model's properties
+forms-relief-depth-hover = How deep the relief goes: its model's depth. Changing it here changes the model, and every relief of it
 forms-relief-stepover-hover = The distance between lines, as a share of the tool's diameter: smaller is smoother and slower
 forms-relief-ridge = Ridges
 forms-relief-ridge-hover = The height of the ridges the ball nose leaves between its lines on flat ground. Below 0.02 mm wood doesn't show them; a finer stepover then only takes longer

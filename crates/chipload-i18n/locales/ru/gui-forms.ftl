@@ -484,7 +484,7 @@ forms-material-speed-differs = Значения { $name } даны для { $rpm
 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 forms-relief-depth = Глубина
-forms-relief-depth-hover = Насколько глубоко идёт рельеф: глубина модели, задаётся в её свойствах
+forms-relief-depth-hover = Насколько глубоко идёт рельеф: глубина его модели. Изменённая здесь, она меняет модель и каждый рельеф из неё
 forms-relief-stepover-hover = Расстояние между проходами в долях диаметра инструмента: меньше — глаже и медленнее
 forms-relief-ridge = Гребешки
 forms-relief-ridge-hover = Высота гребешков, которые сферическая фреза оставляет между строками на ровной поверхности. Ниже 0,02 мм в дереве их не видно; более мелкий шаг лишь удлиняет работу

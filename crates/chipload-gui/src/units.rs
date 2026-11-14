@@ -114,18 +114,38 @@ impl<'a> Field<'a> {
     }
 }
 
-/// A typed number with its decimal comma made a point, when the app's language writes
-/// decimals with a comma (docs/specs/translations.md decision 6): `6,5` is 6.5 in German,
-/// and stays unreadable in English, where `1,000` means a thousand.
+/// A typed number with its decimal comma made a point (docs/specs/translations.md decision
+/// 6, as changed 2026-11-14): one comma and no point is a decimal comma in every language,
+/// `6,5` is 6.5 and `0,3` is 0.3. Only where the language doesn't write a decimal comma
+/// (`comma` false: English) is a comma followed by exactly three digits after a whole
+/// number not starting with 0 left as typed, so it doesn't parse: `1,000` could be a
+/// thousand, and is never guessed at.
 pub fn decimal_point(text: &str, comma: bool) -> String {
-    if comma && !text.contains('.') && text.matches(',').count() == 1 {
-        text.replace(',', ".")
-    } else {
-        text.to_string()
+    if text.contains('.') || text.matches(',').count() != 1 {
+        return text.to_string();
     }
+    if !comma && looks_like_thousands(text) {
+        return text.to_string();
+    }
+    text.replace(',', ".")
 }
 
-/// A number field (no unit) that also takes a decimal comma in a language that writes one.
+/// Is `text`'s one comma a thousands separator as English writes it: one to three digits
+/// before it, not starting with 0, and exactly three after it?
+fn looks_like_thousands(text: &str) -> bool {
+    let Some((whole, rest)) = text.split_once(',') else {
+        return false;
+    };
+    let whole: String = whole
+        .chars()
+        .rev()
+        .take_while(char::is_ascii_digit)
+        .collect();
+    let after = rest.chars().take_while(char::is_ascii_digit).count();
+    (1..=3).contains(&whole.len()) && !whole.ends_with('0') && after == 3
+}
+
+/// A number field (no unit) that also takes a decimal comma ([`decimal_point`]).
 pub fn number<'a, N: egui::emath::Numeric>(ui: &Ui, value: &'a mut N) -> DragValue<'a> {
     let comma = crate::i18n::Lang::lang(ui).decimal_comma();
     DragValue::new(value).custom_parser(move |text| {
@@ -189,11 +209,17 @@ mod tests {
     use super::decimal_point;
 
     #[test]
-    fn a_decimal_comma_is_read_only_in_languages_that_write_one() {
+    fn a_decimal_comma_is_read_in_every_language() {
         assert_eq!(decimal_point("6,5", true), "6.5");
         assert_eq!(decimal_point("-0,25 in", true), "-0.25 in");
-        assert_eq!(decimal_point("6,5", false), "6,5");
+        assert_eq!(decimal_point("6,5", false), "6.5");
+        assert_eq!(decimal_point("0,3", false), "0.3");
+        assert_eq!(decimal_point("0,125", false), "0.125");
+        assert_eq!(decimal_point("12,25mm", false), "12.25mm");
+        // In English a thousands separator is never guessed at: left as typed.
         assert_eq!(decimal_point("1,000", false), "1,000");
+        assert_eq!(decimal_point("-1,500 mm", false), "-1,500 mm");
+        assert_eq!(decimal_point("1,000", true), "1.000");
         // A point already there, or two commas: left as typed, so it doesn't parse.
         assert_eq!(decimal_point("1.000,5", true), "1.000,5");
         assert_eq!(decimal_point("1,0,5", true), "1,0,5");

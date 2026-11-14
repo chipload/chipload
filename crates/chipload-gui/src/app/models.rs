@@ -273,6 +273,26 @@ impl ChiploadApp {
         }
     }
 
+    /// Model `id` `depth` mm deep, as a relief's properties set it (the user, 2026-11-14):
+    /// a depth typed is the depth wanted, so the model no longer keeps its proportions.
+    /// One undo step; the selection on the canvas stays as it was.
+    pub fn set_model_depth(&mut self, id: u64, depth: f64) -> bool {
+        let Some(mut model) = self
+            .edit
+            .as_ref()
+            .and_then(|e| e.job.drawing.models.iter().find(|m| m.id == id))
+            .cloned()
+        else {
+            return false;
+        };
+        model.depth = depth;
+        model.proportional = false;
+        let selection = self.selection.clone();
+        let done = self.set_model(id, &model);
+        self.selection = selection;
+        done
+    }
+
     /// Remove model `id` and its outline, as one undo step. Its reliefs stay, with a
     /// problem each until they get another model.
     pub fn remove_model(&mut self, id: u64) -> bool {
@@ -482,12 +502,22 @@ impl ChiploadApp {
         }
     }
 
-    /// Keep the 3D view's model surfaces in step with the project's models.
+    /// Keep the 3D view's model surfaces in step with the project's models: those shown,
+    /// a model hidden by its eye in the Browser hidden here too (the user, 2026-11-14).
     pub(super) fn sync_models(&mut self, dark: bool) {
         let models: Vec<Model> = self
             .edit
             .as_ref()
-            .map(|e| e.job.drawing.models.clone())
+            .map(|e| {
+                let hidden = &e.job.drawing.hidden;
+                e.job
+                    .drawing
+                    .models
+                    .iter()
+                    .filter(|m| !hidden.contains(&format!("model:{}", m.id)))
+                    .cloned()
+                    .collect()
+            })
             .unwrap_or_default();
         let top = self.scene.stock_z.map_or(0.0, |(top, _)| top);
         let key = Some((models.clone(), top.to_bits(), dark));

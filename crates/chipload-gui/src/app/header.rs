@@ -655,6 +655,7 @@ impl ChiploadApp {
             let dark = ui.visuals().dark_mode;
             let tint = |kind| Some(crate::style::op_color(kind, dark));
             let mut surface = None;
+            let mut relief = None;
             for (label, kind, hover) in super::browser::new_operations(ui) {
                 let icon = match kind {
                     OpKind::Profile => Icon::Profile,
@@ -666,10 +667,12 @@ impl ChiploadApp {
                         surface = Some((label, hover));
                         continue;
                     }
-                    // Not on the ribbon: at the default width it would lose its names
-                    // (docs/specs/stl-relief.md §14 step 4). The Operation menu, the
-                    // Browser and a model's New relief make one.
-                    OpKind::Relief => continue,
+                    // A small button under Surface, so the ribbon keeps its names at the
+                    // default width (the user, 2026-11-14).
+                    OpKind::Relief => {
+                        relief = Some((label, hover));
+                        continue;
+                    }
                 };
                 let short = if kind == OpKind::Path {
                     t!(ui, "header-follow")
@@ -691,8 +694,8 @@ impl ChiploadApp {
                     app.add_operation(kind);
                 }
             }
-            // Surface and your styles (docs/specs/styles.md §3.2) as small buttons, so
-            // the ribbon keeps its names at the default width.
+            // Surface and Relief as small buttons, so the ribbon keeps its names at the
+            // default width.
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
                 if let Some((label, hover)) = surface
@@ -709,6 +712,32 @@ impl ChiploadApp {
                 {
                     app.add_operation(OpKind::Surface);
                 }
+                // A relief of the selected model, or the first one (needs a model).
+                if let Some((label, hover)) = relief {
+                    let enabled = app.has_models();
+                    let hover = if enabled {
+                        format!("{label}: {hover}")
+                    } else {
+                        format!("{label}: {}", t!(ui, "browser-relief-needs-model"))
+                    };
+                    if small_ribbon_button(
+                        ui,
+                        Icon::Relief,
+                        &label,
+                        enabled,
+                        false,
+                        tint(OpKind::Relief),
+                    )
+                    .on_hover_text(hover)
+                    .clicked()
+                    {
+                        app.add_operation(OpKind::Relief);
+                    }
+                }
+            });
+            // Your styles (docs/specs/styles.md §3.2), a small button of its own.
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
                 let label = t!(ui, "styles-ribbon");
                 let enabled = app.can_apply_style();
                 let hover = if app.user.library.styles.styles.is_empty() {

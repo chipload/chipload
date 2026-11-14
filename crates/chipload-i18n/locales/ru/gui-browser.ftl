@@ -109,6 +109,7 @@ browser-tool-change = смена инструмента → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Добавить черновой проход
 browser-add-roughing-hover = Концевая или обычная сферическая фреза, которая сначала снимает материал по уровням, оставляя припуск для рельефа
+browser-add-smoothing-needs-roughing = Проход сглаживания идёт после чернового: сначала добавьте черновой проход
 browser-roughing = Черновая
 browser-roughing-hover = Черновой проход: материал снимается по уровням перед рельефом, на модели остаётся припуск
 browser-smoothing = Сглаживание

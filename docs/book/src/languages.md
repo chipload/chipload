@@ -20,9 +20,10 @@ the language:
 - This guide.
 
 Names you give things (parts, operations, tools, machines, layers) are yours and are never
-translated. Numbers keep the decimal point in every language. In German, French, Spanish, Italian,
-Swedish and Russian a field also takes a decimal comma (`6,5`); in English a comma isn't read, since
-`1,000` would mean a thousand.
+translated. Numbers keep the decimal point in every language, and a field also takes a
+decimal comma (`6,5`, `0,3`) in every language. In English only, a comma followed by exactly
+three digits after a whole number (`1,000`, `2,500`) isn't read, since it could mean a
+thousand: type `2.5` or `2,5` there.
 
 ## Helping with a translation
 

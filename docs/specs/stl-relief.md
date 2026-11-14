@@ -373,13 +373,17 @@ Step 4, the window, 2026-11-12:
   its V-carves.
 - **4b, the relief and its roughing in the window:** *Relief* is in the Operation menu and
   the Browser's *New operation*, on when the project has a model (its hover says to add one
-  first). **Not on the ribbon** for now: at the default 1280-pixel width a Relief button,
-  even a small one beside Surface, leaves the ribbon 10 pixels short, and every button
-  loses its name; the user decides. The relief's form shows its depth (the model's) as a
-  fact, with hovers for its lines. A relief's right-click offers *Add roughing pass ▸*
-  with the project's and the library's end mills and plain ball noses; the pass is a leaf
-  under the relief, as a floor pass is, with its own form (tool, step down, stepover,
-  allowance, feeds) and *Remove roughing pass*.
+  first). On the ribbon since 2026-11-14 (the user): a small button under *Surface* in the
+  OPERATION group, *Styles* in a column of its own beside them; English keeps its names at
+  the default 1280-pixel width. The relief's form shows its depth (the model's), with hovers
+  for its lines; changed there (the user, 2026-11-14), the model takes the new depth, *Keep
+  proportions* off, as one undo step, and every relief of it follows. A relief's
+  right-click offers *Add roughing pass ▸* with the project's and the library's end mills
+  and plain ball noses, and *Add smoothing pass* (greyed out until it has a roughing pass,
+  §17); the pass is a leaf under the relief, as a floor pass is, with its own form (tool,
+  step down, stepover, allowance, feeds) and *Remove roughing pass*; its right-click offers
+  *Add smoothing pass* too. Delete removes the selected pass, as its *Remove* does. A model
+  hidden by its eye in the Browser leaves the 3D view too.
 - **4c, seeing it:** in 3D, with no simulation shown, each model is drawn faintly as its
   top surface on a grid of about 160 cells along its longer side
   (`Mesh::top_heights`), lit low from the upper left with its slopes steepened four times

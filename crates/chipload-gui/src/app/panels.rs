@@ -259,6 +259,9 @@ impl ChiploadApp {
         if let (true, Focus::Op(i)) = (op_request.tool_changed, focus) {
             self.follow_op_material(i);
         }
+        if let Some((model, depth)) = op_request.relief_depth {
+            self.set_model_depth(model, depth);
+        }
         if let (true, Focus::Op(i)) = (op_request.save_to_material, focus) {
             self.save_op_to_material(i);
         }

@@ -188,7 +188,10 @@ impl ChiploadApp {
             .unwrap_or_default();
         let shape = self.selected_shape().and_then(|id| self.shape(id)).cloned();
         let result = match (
-            chipload_pipeline::units::parse_length(&text, self.prefs.units),
+            chipload_pipeline::units::parse_length(
+                &crate::units::decimal_point(&text, crate::i18n::Lang::lang(self).decimal_comma()),
+                self.prefs.units,
+            ),
             shape,
         ) {
             (Some(value), Some(shape)) => {
@@ -360,6 +363,10 @@ impl ChiploadApp {
         match self.focus {
             Focus::Op(_) => self.delete_operation(),
             Focus::RestPass(i, k) => self.remove_rest_pass(i, k),
+            // A pass cut before its operation, as *Remove* in its menu (the user, 2026-11-14).
+            Focus::FloorPass(i) => self.remove_floor_pass(i),
+            Focus::RoughingPass(i) => self.remove_roughing(i),
+            Focus::SmoothingPass(i) => self.remove_smoothing(i),
             Focus::Text(id) => {
                 self.remove_text(id);
             }

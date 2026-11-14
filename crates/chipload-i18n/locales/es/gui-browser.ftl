@@ -134,6 +134,7 @@ browser-tool-change = cambio de herramienta → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Añadir pasada de desbaste
 browser-add-roughing-hover = Una fresa plana o de punta esférica simple que primero quita el material por niveles, dejando sobrematerial para el relieve
+browser-add-smoothing-needs-roughing = La pasada de alisado sigue a una pasada de desbaste: añade primero una pasada de desbaste
 browser-roughing = Desbaste
 browser-roughing-hover = Una pasada de desbaste: el material quitado por niveles antes del relieve, con sobrematerial sobre el modelo
 browser-smoothing = Alisado

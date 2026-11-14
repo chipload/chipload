@@ -8,8 +8,8 @@ chose to start with the app; the user guide stays English for now (§5).
 in 34 files, `gui-<file>.ftl` per source file), translated into the five languages from
 the glossary. The language is chosen under View > Language and *This computer >
 Preferences*. Default names of new operations and library entries ("Profile 1", "New
-tool") follow the language (decision 9). A decimal comma is read only in the five
-languages (decision 6). `packaging/docs/screenshots.sh` pins English for the guide and
+tool") follow the language (decision 9). A decimal comma is read in every language,
+English refusing only what could be a thousands separator (decision 6). `packaging/docs/screenshots.sh` pins English for the guide and
 takes `SHOTS_LANGUAGE` to check the fit in another language. Still English: what the
 library crates write (step 2), the GUI's own two "missing" problems, which are worded like
 the library's (`EditJob::missing`, moved with step 2), and startup errors.
@@ -79,9 +79,13 @@ the app turns into inches (`chipload_pipeline::units::text_in`, inch-units.md st
 6. **Numbers.** *Recommended:* the decimal point stays everywhere (fields, canvas, report,
    G-code), as in most CAM programs and on the machine's controller, and a field also
    accepts a decimal comma (`6,5` reads as 6.5), since that is what a German, French,
-   Spanish, Italian or Swedish keyboard gives on the number pad. Only in those languages:
-   in English `1,000` means a thousand, so a comma stays unreadable there, and a text with
-   a point and a comma, or two commas, is never guessed at. Lists in fields are
+   Spanish, Italian or Swedish keyboard gives on the number pad. In every language
+   (changed 2026-11-14, the user: a Swede running the window in English typed `0,3` and was
+   refused): one comma and no point is a decimal comma, except that in English a comma
+   after a whole number of one to three digits not starting with 0 and followed by exactly
+   three digits (`1,000`, `2,500`) could be a thousands separator, so it stays unreadable
+   there (`0,125` and `12,5` read). A text with a point and a comma, or two commas, is
+   never guessed at. Lists in fields are
    rare enough that the comma isn't needed as a separator there; where it is (X,Y on the
    command line), the command line is English and unchanged. *Alternative:* a decimal
    comma in display too, per language: more natural to read, but the same number then looks

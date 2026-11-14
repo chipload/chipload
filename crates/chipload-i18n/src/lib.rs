@@ -69,8 +69,9 @@ impl Language {
         matches!(self, Language::En)
     }
 
-    /// Does the language write decimals with a comma (`6,5`)? Fields then take one
-    /// (decision 6); the app still shows a point.
+    /// Does the language write decimals with a comma (`6,5`)? Fields take a decimal comma
+    /// in every language; where this is false (English) one that could be a thousands
+    /// separator (`1,000`) is not read (decision 6). The app still shows a point.
     pub fn decimal_comma(self) -> bool {
         self != Language::En
     }

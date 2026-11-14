@@ -468,6 +468,8 @@ enum OpAction {
     RoughingFocus(usize),
     RoughingToggle(usize),
     RoughingRemove(usize),
+    /// A smoothing pass for relief i, with its roughing tool.
+    AddSmoothing(usize),
     SmoothingFocus(usize),
     SmoothingToggle(usize),
     SmoothingRemove(usize),
@@ -1081,6 +1083,9 @@ impl ChiploadApp {
             Some(OpAction::RoughingFocus(i)) => self.focus = Focus::RoughingPass(i),
             Some(OpAction::RoughingToggle(i)) => self.toggle_roughing(i),
             Some(OpAction::RoughingRemove(i)) => self.remove_roughing(i),
+            Some(OpAction::AddSmoothing(i)) => {
+                self.add_smoothing(i);
+            }
             Some(OpAction::SmoothingFocus(i)) => self.focus = Focus::SmoothingPass(i),
             Some(OpAction::SmoothingToggle(i)) => self.toggle_smoothing(i),
             Some(OpAction::SmoothingRemove(i)) => self.remove_smoothing(i),
@@ -1444,6 +1449,26 @@ impl ChiploadApp {
                     None => {}
                 }
             }
+            // A smoothing pass goes after a roughing pass (docs/specs/stl-relief.md §17):
+            // offered on the relief too, greyed out until it has one (the user, 2026-11-14).
+            if matches!(op, Operation::Relief(_)) && smoothing.is_none() {
+                let hover = if roughing.is_some() {
+                    t!(ui, "forms-add-smoothing-hover")
+                } else {
+                    t!(ui, "browser-add-smoothing-needs-roughing")
+                };
+                if ui
+                    .add_enabled(
+                        roughing.is_some(),
+                        egui::Button::new(t!(ui, "forms-add-smoothing")),
+                    )
+                    .on_hover_text(hover)
+                    .on_disabled_hover_text(t!(ui, "browser-add-smoothing-needs-roughing"))
+                    .clicked()
+                {
+                    action = Some(OpAction::AddSmoothing(i));
+                }
+            }
             if let Some(parent) = parent
                 && ui
                     .button(t!(
@@ -1514,6 +1539,10 @@ impl ChiploadApp {
         color: Color32,
     ) -> Option<OpAction> {
         let at = chipload_job::OpRef::pass(i, usize::from(matches!(leaf, Leaf::Smoothing)));
+        let smoothed = matches!(
+            self.edit.as_ref().and_then(|e| e.job.operations.get(i)),
+            Some(Operation::Relief(r)) if r.smoothing.is_some()
+        );
         let (field, focus, icon, name, hover) = match leaf {
             Leaf::Floor => (
                 "floor",
@@ -1582,6 +1611,15 @@ impl ChiploadApp {
             action = Some(open);
         }
         row.response.on_hover_text(hover).context_menu(|ui| {
+            if matches!(leaf, Leaf::Roughing)
+                && !smoothed
+                && ui
+                    .button(t!(ui, "forms-add-smoothing"))
+                    .on_hover_text(t!(ui, "forms-add-smoothing-hover"))
+                    .clicked()
+            {
+                action = Some(OpAction::AddSmoothing(i));
+            }
             if ui.button(t!(ui, "browser-remove")).clicked() {
                 action = Some(remove);
             }

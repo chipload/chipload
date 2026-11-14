@@ -137,6 +137,7 @@ browser-tool-change = changement d'outil → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Ajouter une passe d'ébauche
 browser-add-roughing-hover = Une fraise droite ou hémisphérique simple qui enlève d'abord la matière par niveaux, en laissant une surépaisseur pour le relief
+browser-add-smoothing-needs-roughing = La passe de lissage suit une passe d'ébauche : ajoutez d'abord une passe d'ébauche
 browser-roughing = Ébauche
 browser-roughing-hover = Une passe d'ébauche : la matière enlevée par niveaux avant le relief, une surépaisseur laissée sur le modèle
 browser-smoothing = Lissage

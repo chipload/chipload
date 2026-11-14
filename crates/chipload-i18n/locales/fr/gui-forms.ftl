@@ -549,7 +549,7 @@ forms-material-speed-differs = Les valeurs de { $name } sont pour { $rpm } rpm ;
 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 forms-relief-depth = Profondeur
-forms-relief-depth-hover = La profondeur du relief : celle du modèle, réglée dans ses propriétés
+forms-relief-depth-hover = La profondeur du relief : celle de son modèle. La changer ici change le modèle, et chaque relief qui en vient
 forms-relief-stepover-hover = L'écart entre les lignes, en part du diamètre de l'outil : plus petit est plus lisse et plus lent
 forms-relief-ridge = Crêtes
 forms-relief-ridge-hover = La hauteur des crêtes que la fraise hémisphérique laisse entre ses lignes sur un fond plat. Sous 0,02 mm, le bois ne les montre pas ; un pas plus fin ne fait que prendre plus de temps

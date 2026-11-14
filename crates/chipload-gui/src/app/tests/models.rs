@@ -254,6 +254,69 @@ fn a_roughed_relief_can_be_smoothed_and_loses_it_with_its_roughing() {
     assert_eq!(smooth(&app), None);
 }
 
+/// Delete on a roughing or smoothing pass in the Browser removes it, as its menu's
+/// *Remove* does (the user, 2026-11-14).
+#[test]
+fn the_delete_key_removes_a_reliefs_roughing_and_smoothing_passes() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    let passes = |app: &ChiploadApp| match &app.edit.as_ref().unwrap().job.operations[0] {
+        chipload_job::Operation::Relief(r) => (r.roughing.is_some(), r.smoothing.is_some()),
+        _ => (false, false),
+    };
+    assert!(app.add_roughing(0, 1));
+    assert!(app.add_smoothing(0));
+    assert_eq!(app.focus, Focus::SmoothingPass(0));
+    press(&mut app, egui::Key::Delete);
+    assert_eq!(passes(&app), (true, false));
+    assert_eq!(app.focus, Focus::RoughingPass(0));
+    press(&mut app, egui::Key::Delete);
+    assert_eq!(passes(&app), (false, false));
+    assert_eq!(app.focus, Focus::Op(0));
+    app.undo();
+    assert_eq!(passes(&app), (true, false));
+}
+
+/// A relief's depth set in its properties is its model's depth, which no longer keeps its
+/// proportions; the selection stays (the user, 2026-11-14).
+#[test]
+fn a_reliefs_depth_set_in_its_properties_changes_its_model() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    app.focus = Focus::Op(0);
+    let selection = app.selection.clone();
+    assert!(app.set_model_depth(1, 3.5));
+    let job = app.edit.as_ref().unwrap().job.clone();
+    let model = &job.drawing.models[0];
+    assert_eq!((model.depth, model.proportional), (3.5, false));
+    match &job.operations[0] {
+        chipload_job::Operation::Relief(r) => {
+            assert!((r.end_depth - r.start_depth - 3.5).abs() < 1e-9);
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(app.selection, selection);
+    assert_eq!(app.focus, Focus::Op(0));
+    draw_properties(&mut app);
+    app.undo();
+    assert_ne!(app.edit.as_ref().unwrap().job.drawing.models[0].depth, 3.5);
+}
+
+/// A model hidden by its eye in the Browser leaves the 3D view too (the user, 2026-11-14).
+#[test]
+fn a_hidden_model_shows_no_surface() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_dome.chipload")));
+    app.sync_models(false);
+    assert_eq!(app.scene.models.len(), 1);
+    app.toggle_hidden("model:1");
+    app.sync_models(false);
+    assert!(app.scene.models.is_empty());
+    app.toggle_hidden("model:1");
+    app.sync_models(false);
+    assert_eq!(app.scene.models.len(), 1);
+}
+
 #[test]
 fn a_models_handles_move_turn_and_size_it() {
     use chipload_pipeline::box_handles::BoxHandle;

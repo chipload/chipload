@@ -134,6 +134,7 @@ browser-tool-change = tool change → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Add roughing pass
 browser-add-roughing-hover = An end mill or a plain ball nose that takes the material down in levels first, leaving an allowance for the relief
+browser-add-smoothing-needs-roughing = Smoothing follows a roughing pass: add a roughing pass first
 browser-roughing = Roughing
 browser-roughing-hover = A roughing pass: the material taken down in levels before the relief, an allowance left on the model
 browser-smoothing = Smoothing

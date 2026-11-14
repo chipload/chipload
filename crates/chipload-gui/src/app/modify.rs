@@ -260,6 +260,8 @@ impl ChiploadApp {
             .as_ref()
             .map(|t| t.text.clone())
             .unwrap_or_default();
+        let text =
+            crate::units::decimal_point(&text, crate::i18n::Lang::lang(self).decimal_comma());
         let value = chipload_pipeline::units::parse_length(&text, self.prefs.units);
         let side = self.offset_for_cursor(cursor, true).map(|(_, side)| side);
         let applied = match (value, side) {
@@ -686,7 +688,7 @@ impl ChiploadApp {
                 ui.end_row();
                 ui.label(t!(ui, "array-angle"));
                 ui.add(
-                    egui::DragValue::new(&mut a.angle_deg)
+                    crate::units::number(ui, &mut a.angle_deg)
                         .range(-360.0..=360.0)
                         .suffix("°"),
                 )

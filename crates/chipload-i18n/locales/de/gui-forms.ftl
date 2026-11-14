@@ -550,7 +550,7 @@ forms-material-speed-differs = Die Werte von { $name } gelten für { $rpm } rpm;
 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 forms-relief-depth = Tiefe
-forms-relief-depth-hover = Wie tief das Relief geht: die Tiefe des Modells, in den Eigenschaften des Modells eingestellt
+forms-relief-depth-hover = Wie tief das Relief geht: die Tiefe seines Modells. Hier geändert, ändert sich das Modell und jedes Relief daraus
 forms-relief-stepover-hover = Der Abstand der Bahnen als Anteil des Werkzeugdurchmessers: kleiner ist glatter und langsamer
 forms-relief-ridge = Rillen
 forms-relief-ridge-hover = Die Höhe der Rillen, die der Kugelfräser auf ebenem Grund zwischen seinen Bahnen stehen lässt. Unter 0,02 mm zeigt Holz sie nicht; eine feinere Zustellung dauert dann nur länger

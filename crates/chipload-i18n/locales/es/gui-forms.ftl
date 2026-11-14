@@ -549,7 +549,7 @@ forms-material-speed-differs = Los valores de { $name } son para { $rpm } rpm; l
 
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 forms-relief-depth = Profundidad
-forms-relief-depth-hover = Cuánto baja el relieve: la profundidad del modelo, ajustada en sus propiedades
+forms-relief-depth-hover = Cuánto baja el relieve: la profundidad de su modelo. Cambiarla aquí cambia el modelo y cada relieve que sale de él
 forms-relief-stepover-hover = La distancia entre líneas, como parte del diámetro de la herramienta: menor es más liso y más lento
 forms-relief-ridge = Crestas
 forms-relief-ridge-hover = La altura de las crestas que deja la fresa de punta esférica entre sus líneas en terreno plano. Por debajo de 0,02 mm la madera no las muestra; un paso más fino solo tarda más

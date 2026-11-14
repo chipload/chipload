@@ -184,6 +184,8 @@ pub(in crate::app) struct OpFormRequest {
     pub save_to_material: bool,
     /// The tool was changed: the operation takes its material's values for the new one.
     pub tool_changed: bool,
+    /// A relief's depth was changed: model `id` gets this depth (mm).
+    pub relief_depth: Option<(u64, f64)>,
 }
 
 /// What the operation form needs to know about tools: the project's, the library's names
@@ -476,7 +478,7 @@ pub(in crate::app) fn op_form(
                     .on_hover_text(t!(ui, "forms-ignore-kinks-hover"));
                 flag(
                     ui.add(
-                        egui::DragValue::new(&mut v.ignore_kinks_deg)
+                        crate::units::number(ui, &mut v.ignore_kinks_deg)
                             .range(0.0..=chipload_job::MAX_IGNORE_KINKS_DEG)
                             .speed(1.0)
                             .max_decimals(1)
@@ -607,13 +609,26 @@ pub(in crate::app) fn op_form(
                     .on_hover_text(t!(ui, "forms-start-depth-hover"));
                 flag(ui.add(mm(&mut r.start_depth)), ui, "start_depth");
                 ui.end_row();
-                // The model's depth, set in its own properties.
+                // The model's depth: changed here, it is the model's that changes, once the
+                // edit is finished (the user, 2026-11-14), for every relief of the model.
                 ui.label(t!(ui, "forms-relief-depth"))
                     .on_hover_text(t!(ui, "forms-relief-depth-hover"));
-                ui.weak(format!(
-                    "{} {len_unit}",
-                    len_in(units, r.end_depth - r.start_depth)
-                ));
+                let stored = r.end_depth - r.start_depth;
+                let key = egui::Id::new(("relief-depth", index));
+                let mut depth = ui
+                    .data(|d| d.get_temp::<(f64, f64)>(key))
+                    .filter(|(from, _)| *from == stored)
+                    .map_or(stored, |(_, draft)| draft);
+                let response = ui.add(mm(&mut depth).range(0.01..=1_000.0).speed(0.1));
+                if response.drag_stopped() || response.lost_focus() {
+                    ui.data_mut(|d| d.remove::<(f64, f64)>(key));
+                    if (depth - stored).abs() > chipload_core::tolerances::DEPTH_TOL_MM {
+                        request.relief_depth = Some((r.model, depth));
+                    }
+                } else {
+                    ui.data_mut(|d| d.insert_temp(key, (stored, depth)));
+                }
+                flag(response, ui, "end_depth");
                 ui.end_row();
                 ui.label(t!(ui, "forms-stepover"))
                     .on_hover_text(t!(ui, "forms-relief-stepover-hover"));

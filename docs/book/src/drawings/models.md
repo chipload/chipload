@@ -202,8 +202,9 @@ again.
 
 ## Carving it: the Relief operation
 
-In the window: **New relief** in the model's properties or on its row, or *Operation >
-New Relief*, which carves the selected model, or the first. A relief is made in the
+In the window: **New relief** in the model's properties or on its row, *Relief* in the
+ribbon's OPERATION group (the small button under *Surface*), or *Operation > New Relief*;
+the last two carve the selected model, or the first. A relief is made in the
 active part, with a ball nose when the project has one.
 
 From the command line:
@@ -237,6 +238,9 @@ reaches finer detail; an end mill or a V-bit works too, with their own marks.
   unplaned board, so its uneven top doesn't reach the relief. Its lowest point is the start
   depth plus the model's depth, which the checker holds within the stock. The roughing pass
   still starts at the stock top, and a rim's ramp still climbs to it.
+- **Depth:** the model's depth. Changed in the relief's properties, it is the model that
+  changes, and every relief of it; a depth typed there turns the model's *Keep proportions*
+  off.
 
 In the project file a relief reads:
 
@@ -308,8 +312,9 @@ A finishing ball nose is small, and a relief can be deeper than it should cut in
 rim's ramp spares the tool the plunges, but on the way down each line still shaves a strip
 as tall as the depth there. A **roughing pass** takes
 most of the material first with a larger tool. In the window: *Add roughing pass ▸* on the
-relief's row in the Browser, with your project's and library's end mills and plain ball
-noses; the pass shows under the relief, with its own properties. From the command line:
+relief's row in the Browser (right-click), with your project's and library's end mills and
+plain ball noses; the pass shows under the relief, with its own properties. *Remove* on its
+row, or Delete with it selected, takes it away. From the command line:
 
 ```sh
 chipload op add-roughing sign.chipload --op 1 --tool 1 --allowance 0.5mm
@@ -352,9 +357,11 @@ ramps do; on curved ground the steps shrink to the smoothing's stepover times th
 larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
 change.
 
-In the window: *Add smoothing pass* on the roughing pass's properties; it shows under the
-relief after the roughing, with its own properties (tool, stepover, the lines' angle,
-allowance, feeds). From the command line:
+In the window: *Add smoothing pass* on the relief's or the roughing pass's row in the
+Browser (right-click), or in the roughing pass's properties; on a relief without a roughing
+pass it is greyed out, its hover saying to add one first. The pass shows under the relief
+after the roughing, with its own properties (tool, stepover, the lines' angle, allowance,
+feeds); Delete with it selected removes it. From the command line:
 
 ```sh
 chipload op add-smoothing sign.chipload --op 1                 # the roughing tool

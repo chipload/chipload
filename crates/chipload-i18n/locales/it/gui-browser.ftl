@@ -134,6 +134,7 @@ browser-tool-change = cambio utensile → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Aggiungi passata di sgrossatura
 browser-add-roughing-hover = Una fresa piatta o sferica semplice che prima toglie il materiale a livelli, lasciando sovrametallo per il rilievo
+browser-add-smoothing-needs-roughing = La passata di lisciatura segue una passata di sgrossatura: aggiungi prima una passata di sgrossatura
 browser-roughing = Sgrossatura
 browser-roughing-hover = Una passata di sgrossatura: il materiale tolto a livelli prima del rilievo, con sovrametallo sul modello
 browser-smoothing = Lisciatura

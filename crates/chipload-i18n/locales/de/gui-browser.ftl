@@ -134,6 +134,7 @@ browser-tool-change = Werkzeugwechsel → T{ $tool }
 # Reliefs and their roughing pass (docs/specs/stl-relief.md §9, §14).
 browser-add-roughing = Schruppdurchgang hinzufügen
 browser-add-roughing-hover = Ein Schaftfräser oder einfacher Kugelfräser, der das Material zuerst in Ebenen abträgt und ein Aufmaß für das Relief lässt
+browser-add-smoothing-needs-roughing = Ein Glättdurchgang folgt auf einen Schruppdurchgang: zuerst einen Schruppdurchgang hinzufügen
 browser-roughing = Schruppen
 browser-roughing-hover = Ein Schruppdurchgang: das Material vor dem Relief in Ebenen abgetragen, ein Aufmaß am Modell gelassen
 browser-smoothing = Glätten
