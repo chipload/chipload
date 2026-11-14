@@ -320,6 +320,10 @@ mod tests {
                 ball: 0.8,
                 half_angle: 10f64.to_radians(),
             },
+            Cutter::Bull {
+                radius: 3.0,
+                corner: 1.0,
+            },
         ]
     }
 
@@ -441,7 +445,7 @@ mod tests {
         #[test]
         fn the_drop_agrees_with_sampling(
             tris in proptest::collection::vec(triangle(), 1..4),
-            k in 0usize..4,
+            k in 0usize..5,
             x in -8.0..8.0f64,
             y in -8.0..8.0f64,
         ) {

@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 72] = [
+const GOLDEN: [(&str, &str); 73] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -237,6 +237,11 @@ const GOLDEN: [(&str, &str); 72] = [
         "v36_relief_box_smooth",
         "jobs/v36/relief_box_smooth.chipload",
     ),
+    // Bull noses (docs/specs/corner-radius.md): relief_box_smooth with `set
+    // tools.0.corner_radius=1` (the roughing and smoothing end mill) and the finishing tool
+    // made a 6.35 mm end mill with a 1.5 mm corner (`set tools.1.type=endmill`,
+    // `tools.1.diameter=6.35`, `tools.1.corner_radius=1.5`).
+    ("v36_relief_bull", "jobs/v36/relief_bull.chipload"),
     // The same relief roughed first (docs/specs/stl-relief.md §14 step 3): the 6 mm end
     // mill in levels 3 mm apart, 0.4 of the tool between lines, 0.5 mm left on the dome.
     // Made from relief_dome with `op add-roughing --op 1 --tool 1`.

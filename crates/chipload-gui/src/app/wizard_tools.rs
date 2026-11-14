@@ -40,17 +40,22 @@ pub(super) enum ToolKind {
     EndMill,
     /// What cuts a hole: a drill, or an end mill that bores it.
     Hole,
-    /// A ball nose, plain or tapered: what finishes a relief.
+    /// A ball nose, plain or tapered, or a bull nose: what finishes a relief
+    /// (docs/specs/corner-radius.md §4).
     BallNose,
 }
 
 impl ToolKind {
-    pub(super) fn fits(self, kind: ToolType, angle: Option<f64>) -> bool {
+    /// Whether a tool of `kind`, with its `angle` and `corner` radius, is of this kind.
+    pub(super) fn fits(self, kind: ToolType, angle: Option<f64>, corner: Option<f64>) -> bool {
         match self {
             ToolKind::Vbit => kind == ToolType::Vbit && angle.is_some(),
             ToolKind::EndMill => kind == ToolType::Endmill,
             ToolKind::Hole => matches!(kind, ToolType::Drill | ToolType::Endmill),
-            ToolKind::BallNose => kind == ToolType::Ballnose,
+            ToolKind::BallNose => {
+                kind == ToolType::Ballnose
+                    || (kind == ToolType::Endmill && corner.is_some_and(|r| r > 0.0))
+            }
         }
     }
 }
@@ -65,7 +70,7 @@ pub(super) fn library_choices<'a>(
     library
         .tools
         .iter()
-        .filter(|t| want.fits(t.kind, t.angle))
+        .filter(|t| want.fits(t.kind, t.angle, t.corner_radius))
         .filter(|t| {
             !tools
                 .iter()
@@ -114,7 +119,11 @@ pub(super) fn tool_combo(
             if let Some(none) = none {
                 ui.selectable_value(chosen, None, none);
             }
-            for t in offer.tools.iter().filter(|t| want.fits(t.kind, t.angle)) {
+            for t in offer
+                .tools
+                .iter()
+                .filter(|t| want.fits(t.kind, t.angle, t.corner_radius))
+            {
                 let label = tool_label(ui, t, offer.units);
                 ui.selectable_value(chosen, Some(WizardTool::Project(t.id)), label);
             }

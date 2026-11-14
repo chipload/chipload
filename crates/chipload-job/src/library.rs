@@ -226,6 +226,10 @@ pub struct LibraryTool {
     /// V-bits: the flat tip's diameter, mm. Null: pointed.
     #[serde(default)]
     pub tip_diameter: Option<f64>,
+    /// End mills: the radius of its corners, mm (docs/specs/corner-radius.md §2). Missing:
+    /// square corners; left out of the file then.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corner_radius: Option<f64>,
 }
 
 impl LibraryTool {
@@ -248,6 +252,7 @@ impl LibraryTool {
             cutting_data,
             angle: tool.angle,
             tip_diameter: tool.tip_diameter,
+            corner_radius: tool.corner_radius,
         }
     }
 
@@ -264,6 +269,7 @@ impl LibraryTool {
             rpm: self.rpm,
             angle: self.angle,
             tip_diameter: self.tip_diameter,
+            corner_radius: self.corner_radius,
         }
     }
 
@@ -340,6 +346,11 @@ impl LibraryTool {
             "tip",
             optional(tool.tip_diameter.map(mm)),
             optional(self.tip_diameter.map(mm)),
+        );
+        changes.differs(
+            "corner-radius",
+            optional(tool.corner_radius.map(mm)),
+            optional(self.corner_radius.map(mm)),
         );
         changes.0
     }

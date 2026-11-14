@@ -97,6 +97,8 @@ toolpath-skipped-open = se omitió el contorno abierto #{ $contour } en { $layer
 toolpath-into-spoilboard = corta { $below } por debajo del material (en el tablero de sacrificio)
 # A cut with Through ticked: deeper than the stock on purpose, said as a plain note.
 toolpath-through-spoilboard = corta de lado a lado, { $below } en el tablero de sacrificio
+toolpath-through-corner = baja solo { $below } por debajo del tablero, menos que el radio de esquina de la herramienta ({ $radius }): la esquina redonda deja un chaflán curvo en el borde inferior que puede sujetar la pieza; baja al menos { $radius }
+toolpath-corner-ridges = el paso lateral es más ancho que el fondo plano de la herramienta ({ $flat }): quedan crestas de hasta { $ridge } en el fondo
 # $operations lists operation numbers with their kind: "1 (pocket), 3 (profile) and 4 (holes)".
 toolpath-plunge-unknown = La herramienta { $tool } no está marcada como center_cutting y { $count ->
     [one] la operación { $operations } penetra

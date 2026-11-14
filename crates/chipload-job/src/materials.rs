@@ -398,6 +398,7 @@ mod tests {
             rpm: Some(18000.0),
             angle: None,
             tip_diameter: None,
+            corner_radius: None,
         };
         tools.tools.push(LibraryTool::from_tool(
             "6 mm",

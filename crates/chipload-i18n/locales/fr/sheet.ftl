@@ -84,6 +84,7 @@ sheet-spindle-cw = sens horaire (M3)
 sheet-spindle-ccw = sens anti-horaire (M4)
 # The parts of $what, joined with ", ".
 sheet-end-mill = fraise { $diameter }
+sheet-corner-radius = rayon de coin { $radius }
 sheet-drill = foret { $diameter }
 # $angle in degrees.
 sheet-vbit-angle = fraise à graver en V { $angle }°, { $diameter }

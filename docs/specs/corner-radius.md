@@ -1,6 +1,7 @@
 # End mills with a corner radius
 
-Status: **draft for review** (2026-11-14, the user: "I also want to have the possibility to
+Status: **approved 2026-11-14** ("do bull nose": decisions 1-6 as recommended); built
+(§10). Asked for 2026-11-14 (the user: "I also want to have the possibility to
 add corner radius to endmills if possible. It would be good to have such a tool for roughing
 and smoothing perhaps. We should have the option at least.")
 
@@ -98,8 +99,8 @@ nose, raised by *a*.
 
 ## 6. Schema
 
-An optional field, left out of the file when none, as `angle` and `tip_diameter` are: **no
-version bump**. A Chipload older than this refuses a project or a tool library that has one
+An optional field, left out of the file when none (unlike `angle` and `tip_diameter`, which
+are written as null): **no version bump**. A Chipload older than this refuses a project or a tool library that has one
 (an unknown field), rather than cutting with a square corner it was never told about.
 
 ## 7. Edge cases and tests
@@ -137,3 +138,15 @@ version bump**. A Chipload older than this refuses a project or a tool library t
    would change the user's numbers without asking.
 5. **The simulation draws the true shape for every operation** (§4.3). *Recommended.*
 6. **No schema bump** (§6). *Recommended.*
+
+## 10. Settled while building
+
+- 2026-11-14: built in one go, all three steps. `Tool::corner_radius` and
+  `LibraryTool::corner_radius` (skipped when none); `Tool::is_bull_nose`, `Tool::is_round`
+  (ball or bull nose: the relief's ridge rule and the wizard's finishing list); messages
+  `job-tool-corner-radius-too-large` and `job-tool-corner-radius-endmill-only` (the
+  rectangle's `job-corner-radius-too-large` was taken); `toolpath-through-corner` and
+  `toolpath-corner-ridges` as notes when planning. The level-point search returns the foot
+  at once for a level line (most 2.5D moves in the simulation), exactly. Golden
+  `v36_relief_bull`; `crates/chipload-pipeline/tests/bull_nose.rs`. Lists name the tool
+  "Ø6 mm R1 mm"; the sheet adds "corner radius 1 mm".

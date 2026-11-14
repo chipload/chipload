@@ -2240,6 +2240,44 @@ fn length(mm: f64) -> Value {
 
 /// The problems, in the order the checks were always made (so the first is the error
 /// `validate_job` always gave), and the notes of a job without problems.
+/// A bull nose's warnings for an operation cut with an end mill's path
+/// (docs/specs/corner-radius.md §4.2): a through cut less than the corner radius below the
+/// board leaves a fillet on the cut's bottom edge, and a pocket's or surface's stepover
+/// wider than the flat leaves ridges on the floor. `below`: how far the cut goes below the
+/// board.
+fn bull_nose_notes(op: &Operation, tool: &Tool, below: f64) -> Vec<Message> {
+    let Some(corner) = tool.corner_radius.filter(|_| tool.is_bull_nose()) else {
+        return Vec::new();
+    };
+    let mut notes = Vec::new();
+    if op.through().is_some() && below < corner - DEPTH_TOL_MM {
+        notes.push(
+            Message::new("toolpath-through-corner")
+                .arg("radius", length(corner))
+                .arg("below", Value::Length(below.max(0.0), Digits::Trim(3))),
+        );
+    }
+    let stepover = match op {
+        Operation::Pocket(p) => Some(p.stepover),
+        Operation::Surface(f) => Some(f.stepover),
+        _ => None,
+    };
+    let flat = tool.diameter - 2.0 * corner;
+    if let Some(step) = stepover.map(|s| s * tool.diameter)
+        && step > flat + DEPTH_TOL_MM
+    {
+        // Halfway across the band the flat misses, the corner stands this high.
+        let half = ((step - flat) / 2.0).min(corner);
+        let ridge = corner - (corner * corner - half * half).max(0.0).sqrt();
+        notes.push(
+            Message::new("toolpath-corner-ridges")
+                .arg("ridge", Value::Length(ridge, Digits::Trim(3)))
+                .arg("flat", Value::Length(flat, Digits::Trim(3))),
+        );
+    }
+    notes
+}
+
 /// How far a through cut goes into the spoilboard, as a plain note (docs/specs/styles.md
 /// §2.1); None for a cut that isn't through or stays in the stock.
 fn through_overcut(job: &Job, op: &Operation) -> Option<Message> {
@@ -2387,6 +2425,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .arg("depth", length(p.end_depth - p.start_depth)),
             ));
         }
+        notes.extend(
+            bull_nose_notes(op, tool, below)
+                .into_iter()
+                .map(|n| Note::at(index, labelled_note(&label_message, n))),
+        );
         if op.clearance() >= tool.diameter / 2.0 {
             problems.push(labelled(
                 at("clearance"),

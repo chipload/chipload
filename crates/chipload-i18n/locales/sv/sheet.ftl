@@ -84,6 +84,7 @@ sheet-spindle-cw = medurs (M3)
 sheet-spindle-ccw = moturs (M4)
 # The parts of $what, joined with ", ".
 sheet-end-mill = { $diameter } pinnfräs
+sheet-corner-radius = hörnradie { $radius }
 sheet-drill = { $diameter } borr
 # $angle in degrees.
 sheet-vbit-angle = { $angle }° V-fräs, { $diameter }

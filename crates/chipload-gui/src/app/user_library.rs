@@ -386,6 +386,7 @@ pub(super) fn tool_entry_form(
             entry.center_cutting = tool.center_cutting;
             entry.angle = tool.angle;
             entry.tip_diameter = tool.tip_diameter;
+            entry.corner_radius = tool.corner_radius;
             entry.flutes = tool.flutes;
         })
     });
@@ -1381,6 +1382,7 @@ impl ChiploadApp {
                         cutting_data: Vec::new(),
                         angle: None,
                         tip_diameter: None,
+                        corner_radius: None,
                     },
                 };
                 self.store_library_tool(entry).map(|()| uid)

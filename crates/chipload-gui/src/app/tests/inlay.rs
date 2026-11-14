@@ -111,6 +111,7 @@ fn inlay_takes_a_v_bit_from_the_library_when_it_is_made() {
             cutting_data: Vec::new(),
             angle: Some(60f64.to_radians()),
             tip_diameter: None,
+            corner_radius: None,
         }],
         ..ToolLibrary::default()
     };

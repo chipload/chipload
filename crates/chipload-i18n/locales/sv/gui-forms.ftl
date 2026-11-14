@@ -483,6 +483,9 @@ forms-angle-hover = V:ets toppvinkel; V-gravyr behöver den
 forms-tip = Spets
 forms-tip-hover = Diametern på den plana spetsen; ej angiven räknas som spetsig
 forms-pointed = spetsig
+forms-corner-radius = Hörnradie
+forms-corner-radius-hover = Radien på de rundade hörnen (torusfräs): reliefer fräses med dess verkliga form, fickor får en hålkäl vid väggarna. Ej angiven: skarpa hörn
+forms-square = skarpa
 
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = operation { $number }

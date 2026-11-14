@@ -164,6 +164,7 @@ fn a_library_tool_is_copied_in_only_when_the_sign_is_made() {
         cutting_data: Vec::new(),
         angle,
         tip_diameter: None,
+        corner_radius: None,
     };
     let dir = temp_dir("sign-library");
     let library = ToolLibrary {

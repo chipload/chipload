@@ -144,6 +144,8 @@ job-bulge-range = måste vara mellan -1 och 1 (högst en halvcirkel), fick { $go
 job-work-zero-not-finite = x och y måste vara ändliga, fick { $x }, { $y }
 job-tip-diameter = måste vara 0 eller mer och mindre än diametern ({ $diameter }), fick { $got }
 job-tapered-ball-needs-tip = en konisk kulfräs behöver kulans diameter i spetsen (tip_diameter)
+job-tool-corner-radius-too-large = måste vara mindre än halva diametern ({ $diameter }), fick { $got }: ett verktyg som är rundat till halva diametern är en kulfräs, välj Kulfräs som typ
+job-tool-corner-radius-endmill-only = bara en pinnfräs har hörnradie
 
 ## Parts
 
@@ -270,6 +272,7 @@ job-library-field = { $field ->
     [rpm] varvtal
     [angle] vinkel
     [tip] spets
+    [corner-radius] hörnradie
     [id] nummer
     [cutting-values] skärdata
     [post] postprocessor

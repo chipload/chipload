@@ -483,6 +483,9 @@ forms-angle-hover = L'angolo incluso della V; serve per l'incisione a V
 forms-tip = Punta
 forms-tip-hover = Il diametro della punta piatta; se non impostato è considerata appuntita
 forms-pointed = appuntita
+forms-corner-radius = Raggio di spigolo
+forms-corner-radius-hover = Il raggio degli spigoli arrotondati (fresa torica): i rilievi sono lavorati con la sua forma reale, le tasche mantengono un raccordo al piede delle pareti. Non impostato: spigoli vivi
+forms-square = vivi
 
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = lavorazione { $number }

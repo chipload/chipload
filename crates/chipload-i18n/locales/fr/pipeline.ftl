@@ -678,7 +678,7 @@ pipeline-model-large = le modèle fait { $bytes } octets et est gardé dans le p
 pipeline-model-placed = Modèle { $id } sur le brut : { $x } × { $y }, { $z } de profondeur ; contour en { $outlines } formes
 
 # Relief… (docs/specs/relief-wizard.md §6)
-pipeline-relief-ball = l'outil { $tool } n'est pas une fraise boule : un relief se finit avec une
+pipeline-relief-ball = l'outil { $tool } n'est ni une fraise boule ni une fraise droite à rayon de coin : un relief se finit avec l'une d'elles
 pipeline-relief-needs-end-mill = un fond ou un détourage demande une fraise droite : donnez-en une, ou une d'ébauche
 pipeline-relief-end-mill = l'outil { $tool } n'est pas une fraise droite : le fond ou le détourage se coupe avec une
 pipeline-relief-margin = la marge du fond doit être supérieure à 0 et le rayon des coins pas inférieur à 0, reçu { $margin }

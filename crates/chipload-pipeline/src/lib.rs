@@ -1203,6 +1203,7 @@ pub fn empty_project() -> Job {
             rpm: Some(DEFAULT_RPM),
             angle: None,
             tip_diameter: None,
+            corner_radius: None,
         }],
         parts: vec![chipload_job::Part {
             id: 1,

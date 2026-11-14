@@ -84,6 +84,7 @@ sheet-spindle-cw = horario (M3)
 sheet-spindle-ccw = antihorario (M4)
 # The parts of $what, joined with ", ".
 sheet-end-mill = fresa de { $diameter }
+sheet-corner-radius = radio de esquina { $radius }
 sheet-drill = broca de { $diameter }
 # $angle in degrees.
 sheet-vbit-angle = fresa en V de { $angle }°, { $diameter }

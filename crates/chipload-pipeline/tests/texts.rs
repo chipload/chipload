@@ -154,6 +154,7 @@ fn a_v_carved_text_passes_the_checker() {
         rpm: Some(18000.0),
         angle: Some(60.0_f64.to_radians()),
         tip_diameter: Some(0.2),
+        corner_radius: None,
     });
     job.operations.push(vcarve(Selector {
         source: Some(chipload_job::Source::Text(1)),

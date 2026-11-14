@@ -97,6 +97,14 @@
             "null"
           ]
         },
+        "corner_radius": {
+          "description": "End mills: the radius of its corners, mm (docs/specs/corner-radius.md §2). Missing:\nsquare corners; left out of the file then.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "cutting_data": {
           "default": [],
           "description": "The cutting data: one row per material, and one for any material\n(docs/specs/cutting-data.md §2). What an operation takes when a material is chosen,\nits tool changes or it is added. Missing: none.",

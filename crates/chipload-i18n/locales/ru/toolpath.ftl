@@ -54,6 +54,8 @@ toolpath-operation-kind = { $number } ({ $kind ->
 toolpath-skipped-open = пропущен разомкнутый контур №{ $contour } на { $layers }, от { $from } до { $to }
 toolpath-into-spoilboard = рез на { $below } ниже заготовки (в жертвенный стол)
 toolpath-through-spoilboard = сквозной рез, { $below } в жертвенный стол
+toolpath-through-corner = уходит только на { $below } ниже доски, меньше радиуса угла инструмента ({ $radius }): скруглённый угол оставляет галтель по нижней кромке, которая может удержать деталь; опуститесь хотя бы на { $radius }
+toolpath-corner-ridges = шаг шире плоского торца инструмента ({ $flat }): на дне остаются гребни высотой до { $ridge }
 toolpath-plunge-unknown = Инструмент { $tool } не отмечен как center_cutting, а { $count ->
     [one] операция { $operations } врезается
    *[other] операции { $operations } врезаются

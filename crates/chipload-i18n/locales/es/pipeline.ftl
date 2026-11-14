@@ -678,7 +678,7 @@ pipeline-model-large = el modelo tiene { $bytes } bytes y se guarda en el proyec
 pipeline-model-placed = Modelo { $id } en el tablero: { $x } × { $y }, { $z } de profundidad; contorno en { $outlines } formas
 
 # Relief… (docs/specs/relief-wizard.md §6)
-pipeline-relief-ball = la herramienta { $tool } no es una fresa de bola: un relieve se acaba con una
+pipeline-relief-ball = la herramienta { $tool } no es una fresa de bola ni una fresa plana con radio de esquina: un relieve se acaba con una de ellas
 pipeline-relief-needs-end-mill = un fondo o un recorte necesita una fresa plana: indica una, o una de desbaste
 pipeline-relief-end-mill = la herramienta { $tool } no es una fresa plana: el fondo o el recorte se corta con una
 pipeline-relief-margin = el margen del fondo debe ser mayor que 0 y el radio de las esquinas no menor que 0, se obtuvo { $margin }

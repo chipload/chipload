@@ -50,6 +50,7 @@ fn a_traced_picture_is_v_carved_end_to_end() {
                 rpm: Some(18000.0),
                 angle: Some(60.0_f64.to_radians()),
                 tip_diameter: Some(0.2),
+                corner_radius: None,
             });
         app.commit();
         // The picture is selected after importing: V-carve from the ribbon.

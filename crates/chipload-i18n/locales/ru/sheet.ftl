@@ -58,6 +58,7 @@ sheet-tool = Инструмент T{ $tool }: { $what }, { $rpm } об/мин { 
 sheet-spindle-cw = по часовой стрелке (M3)
 sheet-spindle-ccw = против часовой стрелки (M4)
 sheet-end-mill = концевая фреза { $diameter }
+sheet-corner-radius = радиус угла { $radius }
 sheet-drill = сверло { $diameter }
 sheet-vbit-angle = V-образная фреза { $angle }°, { $diameter }
 sheet-vbit = V-образная фреза, { $diameter }

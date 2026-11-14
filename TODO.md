@@ -198,11 +198,6 @@ to a program you trust. It was about four per operation; with the defaults and s
    (relief-wizard.md §11); simplifying a large model for cutting (stl-relief.md §15.3); an
    end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
    a moment once (the user, 2026-11-14), not reproduced.
-12d. **End mills with a corner radius** (bull noses; the user, 2026-11-14: "for roughing
-   and smoothing perhaps. We should have the option at least"), for 0.37.0. Spec
-   docs/specs/corner-radius.md, **draft for review**: an optional `corner_radius` on end
-   mills, `Cutter::Bull` in the drop cutter, reliefs with the true shape, 2.5D operations
-   with an end mill's path and two warnings, the simulation's true shape; six decisions.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
@@ -283,6 +278,12 @@ Smaller follow-ups noted along the way, not in the order above:
   `chipload_core::math` (libm) instead of the platform's `sin`, `cos`, `atan2`, `hypot`…;
   `clippy.toml`'s `disallowed-methods` refuses them. No golden changed; a DXF arc keeps its
   start angle under a move or scale, and an exact half circle fits as one arc.
+- **End mills with a corner radius** (bull noses; docs/specs/corner-radius.md, approved and
+  built 2026-11-14): `corner_radius` on end mills (optional, no schema bump),
+  `Cutter::Bull` in the drop cutter and the simulation, reliefs (finish, roughing,
+  smoothing) with the true shape and the ridge stepover, 2.5D operations with an end mill's
+  path and two warnings (a through cut short of the corner, a stepover wider than the
+  flat), the tool form, library, wizard lists, sheet; golden `v36_relief_bull`.
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 

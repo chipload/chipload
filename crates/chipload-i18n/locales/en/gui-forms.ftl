@@ -483,6 +483,9 @@ forms-angle-hover = The included angle of the V; V-carving needs it
 forms-tip = Tip
 forms-tip-hover = The diameter of the flat tip; not set is taken as pointed
 forms-pointed = pointed
+forms-corner-radius = Corner radius
+forms-corner-radius-hover = The radius of its rounded corners, a bull nose: reliefs cut with its true shape, pockets keep a fillet at their walls. Not set: square corners
+forms-square = square
 
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = operation { $number }

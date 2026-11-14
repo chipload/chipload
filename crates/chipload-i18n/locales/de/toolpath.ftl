@@ -97,6 +97,8 @@ toolpath-skipped-open = offene Kontur #{ $contour } auf { $layers } von { $from 
 toolpath-into-spoilboard = fräst { $below } unter das Rohteil (in die Opferplatte)
 # A cut with Through ticked: deeper than the stock on purpose, said as a plain note.
 toolpath-through-spoilboard = fräst durch, { $below } in die Opferplatte
+toolpath-through-corner = geht nur { $below } unter die Platte, weniger als der Eckenradius des Werkzeugs ({ $radius }): die runde Ecke lässt an der Unterkante eine Hohlkehle stehen, die das Teil halten kann; mindestens { $radius } tiefer gehen
+toolpath-corner-ridges = die Zustellung ist breiter als der flache Boden des Werkzeugs ({ $flat }): auf dem Boden bleiben Grate bis { $ridge } hoch stehen
 # $operations lists operation numbers with their kind: "1 (pocket), 3 (profile) and 4 (holes)".
 toolpath-plunge-unknown = Werkzeug { $tool } ist nicht als center_cutting markiert, und { $count ->
     [one] Bearbeitung { $operations } taucht

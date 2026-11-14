@@ -144,6 +144,8 @@ job-bulge-range = deve essere tra -1 e 1 (al massimo mezzo cerchio), trovato { $
 job-work-zero-not-finite = x e y devono essere finiti, trovato { $x }, { $y }
 job-tip-diameter = deve essere 0 o più e minore del diametro ({ $diameter }), trovato { $got }
 job-tapered-ball-needs-tip = una fresa sferica conica ha bisogno del diametro della sfera in punta (tip_diameter)
+job-tool-corner-radius-too-large = deve essere minore di metà del diametro ({ $diameter }), trovato { $got }: un utensile arrotondato a metà del diametro è una fresa sferica, scegli Fresa sferica come tipo
+job-tool-corner-radius-endmill-only = solo una fresa cilindrica ha un raggio di spigolo
 
 ## Parts
 
@@ -270,6 +272,7 @@ job-library-field = { $field ->
     [rpm] velocità mandrino
     [angle] angolo
     [tip] punta
+    [corner-radius] raggio di spigolo
     [id] id
     [cutting-values] valori di taglio
     [post] post

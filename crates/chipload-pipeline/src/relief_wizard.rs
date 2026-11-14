@@ -9,7 +9,7 @@ use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::library::ToolLibrary;
 use chipload_job::{
     DEFAULT_RIM, Job, ModelUp, Operation, RIM_MIN_RAMP, ReliefRim, RimShape, Selector, Source,
-    ToolType, Units,
+    Tool, ToolType, Units,
 };
 
 use crate::PipelineError;
@@ -191,7 +191,8 @@ fn check(job: &Job, request: &ReliefRequest) -> Result<(), PipelineError> {
             .map(|t| t.kind)
             .ok_or_else(|| refused(Message::new("pipeline-no-tool").arg("tool", id)))
     };
-    if kind(request.tool)? != ToolType::Ballnose {
+    kind(request.tool)?;
+    if !job.tool(request.tool).is_some_and(Tool::is_round) {
         return Err(refused(
             Message::new("pipeline-relief-ball").arg("tool", request.tool),
         ));

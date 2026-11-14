@@ -64,6 +64,7 @@ correction here is a correction everywhere: change the term, then every text usi
 | tool | Werkzeug | outil | herramienta | utensile | verktyg |
 | end mill | Schaftfräser | fraise | fresa | fresa | pinnfräs |
 | V-bit | V-Fräser | fraise à graver en V | fresa en V | fresa a V | V-fräs |
+| bull nose / corner radius (an end mill with round corners) | Torusfräser / Eckenradius | fraise torique / rayon de coin | fresa tórica / radio de esquina | fresa torica / raggio di spigolo | torusfräs / hörnradie |
 | tool library | Werkzeugbibliothek | bibliothèque d'outils | biblioteca de herramientas | libreria utensili | verktygsbibliotek |
 | machine | Maschine | machine | máquina | macchina | maskin |
 | spindle | Spindel | broche | husillo | mandrino | spindel |
@@ -129,6 +130,7 @@ names unchanged. Numbers display a decimal point; input also accepts a decimal c
 | stock / spoilboard / work zero | заготовка / жертвенный стол / ноль детали |
 | back side / turn over / dowel pin | обратная сторона / перевернуть / установочный штифт |
 | tool / end mill / V-bit | инструмент / концевая фреза / V-образная фреза |
+| bull nose / corner radius | торовая фреза / радиус угла |
 | spindle speed / feed / plunge feed | обороты шпинделя / подача / подача врезания |
 | chip load / flutes | подача на зуб / число зубьев |
 | step down / step over | глубина за проход / боковой шаг |

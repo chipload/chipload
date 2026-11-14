@@ -101,6 +101,7 @@ fn a_post_without_tool_changes_refuses_one_file_with_m6() {
         rpm: Some(18000.0),
         angle: None,
         tip_diameter: None,
+        corner_radius: None,
     };
     let parts = [
         ToolPart {

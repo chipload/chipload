@@ -144,6 +144,8 @@ job-bulge-range = muss zwischen -1 und 1 liegen (höchstens ein Halbkreis), ist 
 job-work-zero-not-finite = x und y müssen endlich sein, sind { $x }, { $y }
 job-tip-diameter = muss 0 oder mehr und kleiner als der Durchmesser ({ $diameter }) sein, ist { $got }
 job-tapered-ball-needs-tip = ein konischer Kugelfräser braucht den Durchmesser seiner Kugel an der Spitze (tip_diameter)
+job-tool-corner-radius-too-large = muss kleiner als der halbe Durchmesser ({ $diameter }) sein, ist { $got }: ein Werkzeug, das bis zum halben Durchmesser gerundet ist, ist ein Kugelfräser, wähle Kugelfräser als Typ
+job-tool-corner-radius-endmill-only = nur ein Schaftfräser hat einen Eckenradius
 
 ## Parts
 
@@ -270,6 +272,7 @@ job-library-field = { $field ->
     [rpm] Drehzahl
     [angle] Winkel
     [tip] Spitze
+    [corner-radius] Eckenradius
     [id] Nummer
     [cutting-values] Schnittwerte
     [post] Postprozessor

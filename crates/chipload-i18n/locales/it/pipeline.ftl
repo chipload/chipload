@@ -675,7 +675,7 @@ pipeline-model-large = il modello è di { $bytes } byte ed è conservato nel pro
 pipeline-model-placed = Modello { $id } sul grezzo: { $x } × { $y }, profondo { $z }; contorno in { $outlines } forme
 
 # Relief… (docs/specs/relief-wizard.md §6)
-pipeline-relief-ball = l'utensile { $tool } non è una fresa sferica: un rilievo si finisce con una
+pipeline-relief-ball = l'utensile { $tool } non è una fresa sferica né una fresa cilindrica con raggio di spigolo: un rilievo si finisce con una di queste
 pipeline-relief-needs-end-mill = uno sfondo o un taglio richiede una fresa piatta: indicane una, o una per sgrossare
 pipeline-relief-end-mill = l'utensile { $tool } non è una fresa piatta: lo sfondo o il taglio si fa con una
 pipeline-relief-margin = il margine dello sfondo deve essere maggiore di 0 e il raggio degli angoli non sotto 0, ricevuto { $margin }

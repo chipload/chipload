@@ -144,6 +144,8 @@ job-bulge-range = debe estar entre -1 y 1 (como máximo media circunferencia), e
 job-work-zero-not-finite = x e y deben ser finitos, son { $x }, { $y }
 job-tip-diameter = debe ser 0 o más y menor que el diámetro ({ $diameter }), es { $got }
 job-tapered-ball-needs-tip = una fresa de bola cónica necesita el diámetro de su bola en la punta (tip_diameter)
+job-tool-corner-radius-too-large = debe ser menor que la mitad del diámetro ({ $diameter }), es { $got }: una herramienta redondeada a la mitad de su diámetro es una fresa de bola, elige Fresa de bola como tipo
+job-tool-corner-radius-endmill-only = solo una fresa plana tiene radio de esquina
 
 ## Parts
 
@@ -271,6 +273,7 @@ job-library-field = { $field ->
     [rpm] rpm
     [angle] ángulo
     [tip] punta
+    [corner-radius] radio de esquina
     [id] id
     [cutting-values] valores de corte
     [post] postprocesador

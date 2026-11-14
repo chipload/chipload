@@ -84,6 +84,7 @@ sheet-spindle-cw = im Uhrzeigersinn (M3)
 sheet-spindle-ccw = gegen den Uhrzeigersinn (M4)
 # The parts of $what, joined with ", ".
 sheet-end-mill = { $diameter } Schaftfräser
+sheet-corner-radius = Eckenradius { $radius }
 sheet-drill = { $diameter } Bohrer
 # $angle in degrees.
 sheet-vbit-angle = { $angle }° V-Fräser, { $diameter }

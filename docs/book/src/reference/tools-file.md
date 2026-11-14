@@ -46,6 +46,7 @@ One tool of the library: a project tool with a name and optional cutting values.
 |---|---|---|---|
 | `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown. |
 | `center_cutting` | boolean or null | no | Whether it can plunge straight down. Null: unknown. |
+| `corner_radius` | number or null | no | End mills: the radius of its corners, mm (docs/specs/corner-radius.md §2). Missing: square corners; left out of the file then. |
 | `cutting_data` | list of [CuttingRow](#cuttingrow) | no | The cutting data: one row per material, and one for any material (docs/specs/cutting-data.md §2). What an operation takes when a material is chosen, its tool changes or it is added. Missing: none. |
 | `diameter` | number | yes | Diameter, mm. |
 | `flutes` | integer or null | no | Number of flutes. Null: unknown. |

@@ -144,6 +144,8 @@ job-bulge-range = must be between -1 and 1 (at most a half circle), got { $got }
 job-work-zero-not-finite = x and y must be finite, got { $x }, { $y }
 job-tip-diameter = must be 0 or more and less than the diameter ({ $diameter }), got { $got }
 job-tapered-ball-needs-tip = a tapered ball nose needs its ball's diameter at the tip (tip_diameter)
+job-tool-corner-radius-too-large = must be less than half the diameter ({ $diameter }), got { $got }: a tool rounded to half its diameter is a ball nose, choose Ball nose as its type
+job-tool-corner-radius-endmill-only = only an end mill has a corner radius
 
 ## Parts
 
@@ -271,6 +273,7 @@ job-library-field = { $field ->
     [rpm] rpm
     [angle] angle
     [tip] tip
+    [corner-radius] corner radius
     [id] id
     [cutting-values] cutting values
     [post] post

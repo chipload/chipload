@@ -39,7 +39,7 @@ impl InlaySettings {
     fn for_tools(tools: &[Tool], library: Option<&ToolLibrary>) -> Self {
         let vbit = tools
             .iter()
-            .find(|t| ToolKind::Vbit.fits(t.kind, t.angle))
+            .find(|t| ToolKind::Vbit.fits(t.kind, t.angle, t.corner_radius))
             .map(|t| WizardTool::Project(t.id))
             .or_else(|| {
                 library
@@ -48,7 +48,7 @@ impl InlaySettings {
             });
         let floor = tools
             .iter()
-            .filter(|t| ToolKind::EndMill.fits(t.kind, t.angle))
+            .filter(|t| ToolKind::EndMill.fits(t.kind, t.angle, t.corner_radius))
             .min_by(|a, b| a.diameter.total_cmp(&b.diameter));
         Self {
             tool: vbit,

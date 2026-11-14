@@ -673,7 +673,7 @@ pipeline-model-large = das Modell hat { $bytes } Bytes und wird im Projekt gespe
 pipeline-model-placed = Modell { $id } auf dem Rohteil: { $x } × { $y }, { $z } tief; Umriss in { $outlines } Formen
 
 # Relief… (docs/specs/relief-wizard.md §6)
-pipeline-relief-ball = Werkzeug { $tool } ist kein Kugelfräser: ein Relief wird mit einem geschlichtet
+pipeline-relief-ball = Werkzeug { $tool } ist weder ein Kugelfräser noch ein Schaftfräser mit Eckenradius: ein Relief wird mit einem davon geschlichtet
 pipeline-relief-needs-end-mill = Hintergrund oder Ausschnitt brauchen einen Schaftfräser: gib einen an, oder einen zum Schruppen
 pipeline-relief-end-mill = Werkzeug { $tool } ist kein Schaftfräser: Hintergrund oder Ausschnitt werden mit einem gefräst
 pipeline-relief-margin = der Rand des Hintergrunds muss größer als 0 sein und der Eckradius nicht unter 0, erhalten { $margin }

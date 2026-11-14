@@ -24,6 +24,7 @@ fn with_text() -> (ChiploadApp, u64) {
             rpm: Some(18000.0),
             angle: Some(60.0_f64.to_radians()),
             tip_diameter: Some(0.2),
+            corner_radius: None,
         });
     app.commit();
     app.start_text();

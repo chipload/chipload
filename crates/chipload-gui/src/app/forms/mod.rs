@@ -142,6 +142,7 @@ mod tests {
             rpm: None,
             angle: None,
             tip_diameter: None,
+            corner_radius: None,
         };
         let tools = [
             tool(1, ToolType::Endmill, 12.0),

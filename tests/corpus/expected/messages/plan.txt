@@ -1026,6 +1026,29 @@ Tool group 2: tool 2, operations 1
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/relief_bull.chipload
+exit 0
+--- stdout
+warning: Operation 1.1 (Relief 1, roughing): plunges straight down with tool 1, which isn't marked centre-cutting; use a helix or a ramp if it isn't
+warning: Operation 1.2 (Relief 1, smoothing): plunges straight down with tool 1, which isn't marked centre-cutting; use a helix or a ramp if it isn't
+warning: Tool 2 isn't marked center_cutting and operation 1 (relief) plunges straight down: make sure it is a centre-cutting tool, or ramp in (entry: ramp)
+warning: Operation 1.1 (Relief 1, roughing): its rim's flat of 6 mm is narrower than the roughing tool 1 needs (7 mm, its diameter and the allowance on both sides): round the model it stops short of the floor and the finish takes what it leaves; a flat of 7 mm lets it reach
+Estimated time: 10 min 48 s (cutting 10 min 37 s, rapids 5 s, spindle 6 s), plus 1 tool change
+Cut outline: 64.074 × 64.074 mm (X -2.037 … 62.037, Y -2.037 … 62.037, the tool included): the smallest stock that holds the job.
+  Operation 1 (Relief 1): 3 min 5 s; cutting 2.4 m, plunging 1 mm, rapids 61 mm, 1 lift
+  Operation 1.1 (Relief 1, roughing): 2 min 22 s; cutting 1.8 m, plunging 21 mm, rapids 312 mm, 7 lifts
+  Operation 1.2 (Relief 1, smoothing): 5 min 15 s; cutting 4.1 m, plunging 0 mm, rapids 61 mm, 1 lift
+  File 1: 7 min 40 s
+  File 2: 3 min 8 s
+  In all: cutting 8.3 m, plunging 23 mm, rapids 434 mm, 9 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Relief 1): 0.022 mm/tooth
+Tool group 1: tool 1, operations 1.1, 1.2
+Tool group 2: tool 2, operations 1
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/relief_dome.chipload
 exit 0
 --- stdout

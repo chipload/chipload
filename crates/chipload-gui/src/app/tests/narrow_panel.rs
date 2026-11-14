@@ -46,6 +46,7 @@ fn every_properties_page_fits_the_narrowest_panel() {
             rpm: Some(18000.0),
             angle: Some(60.0_f64.to_radians()),
             tip_diameter: Some(0.2),
+            corner_radius: None,
         });
     app.commit();
     for kind in [OpKind::Vcarve, OpKind::Path, OpKind::Holes] {

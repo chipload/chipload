@@ -102,7 +102,11 @@ fn shape_of(tool: &Tool, numbers: &mut Numbers) -> Shape {
         slope: 1.0 / math::tan(angle / 2.0),
     };
     match tool.kind {
-        ToolType::Endmill => Shape::Flat { radius },
+        // A bull nose cuts its round corners (docs/specs/corner-radius.md §4.3).
+        ToolType::Endmill => match tool.cutter() {
+            Some(bull @ Cutter::Bull { .. }) => Shape::Round(bull),
+            _ => Shape::Flat { radius },
+        },
         ToolType::Drill => {
             numbers.drill_point_assumed = true;
             cone(DRILL_POINT_RAD, 0.0)
@@ -1185,6 +1189,10 @@ mod tests {
                 radius: 3.175,
                 ball: 0.5,
                 half_angle: 7.5f64.to_radians(),
+            }),
+            Shape::Round(Cutter::Bull {
+                radius: 3.0,
+                corner: 1.0,
             }),
         ];
         // A deterministic spread of moves and points.

@@ -382,13 +382,19 @@ pub struct Tool {
     /// diameter at the tip.
     #[serde(default)]
     pub tip_diameter: Option<f64>,
+    /// End mills: the radius of its corners, mm, a bull nose (docs/specs/corner-radius.md
+    /// §2). Missing: square corners. Left out of the file when missing, so a Chipload that
+    /// doesn't know it refuses only a tool that has one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub corner_radius: Option<f64>,
 }
 
 /// A drill's point, taken as 118° (docs/specs/simulation.md decision 3).
 pub const DRILL_POINT_RAD: f64 = 118.0 * std::f64::consts::PI / 180.0;
 
 impl Tool {
-    /// The shape of its cutting end (docs/specs/stl-relief.md §6). None for a V-bit or a
+    /// The shape of its cutting end (docs/specs/stl-relief.md §6): an end mill with a corner
+    /// radius is a bull nose (docs/specs/corner-radius.md §3). None for a V-bit or a
     /// tapered ball nose without its angle, or a tapered ball nose without its ball.
     pub fn cutter(&self) -> Option<chipload_core::cutter::Cutter> {
         use chipload_core::cutter::Cutter;
@@ -398,7 +404,13 @@ impl Tool {
             .filter(|a| a.is_finite() && *a > 0.0)
             .map(|a| a / 2.0);
         Some(match self.kind {
-            ToolType::Endmill => Cutter::Flat { radius },
+            ToolType::Endmill => match self.corner_radius.filter(|r| *r > 0.0) {
+                Some(corner) => Cutter::Bull {
+                    radius,
+                    corner: corner.min(radius),
+                },
+                None => Cutter::Flat { radius },
+            },
             ToolType::Drill => Cutter::Cone {
                 radius,
                 tip: 0.0,
@@ -418,6 +430,17 @@ impl Tool {
                 },
             },
         })
+    }
+
+    /// An end mill with a corner radius (docs/specs/corner-radius.md §2).
+    pub fn is_bull_nose(&self) -> bool {
+        self.kind == ToolType::Endmill && self.corner_radius.is_some_and(|r| r > 0.0)
+    }
+
+    /// A tool with a round end that finishes a relief and leaves ridges between its lines:
+    /// a ball nose, plain or tapered, or a bull nose (docs/specs/corner-radius.md §4).
+    pub fn is_round(&self) -> bool {
+        self.kind == ToolType::Ballnose || self.is_bull_nose()
     }
 
     /// A V-bit's width at `depth` below its tip's end, mm: its tip and twice the depth's

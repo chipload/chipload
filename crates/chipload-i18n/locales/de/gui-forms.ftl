@@ -484,6 +484,9 @@ forms-angle-hover = Der Spitzenwinkel des V; die V-Gravur braucht ihn
 forms-tip = Spitze
 forms-tip-hover = Der Durchmesser der flachen Spitze; nicht gesetzt gilt als spitz
 forms-pointed = spitz
+forms-corner-radius = Eckenradius
+forms-corner-radius-hover = Der Radius der gerundeten Ecken (Torusfräser): Reliefs werden mit seiner echten Form gefräst, Taschen behalten eine Hohlkehle an den Wänden. Nicht gesetzt: scharfe Ecken
+forms-square = scharf
 
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = Bearbeitung { $number }

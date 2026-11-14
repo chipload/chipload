@@ -144,6 +144,8 @@ job-bulge-range = doit être entre -1 et 1 (au plus un demi-cercle), reçu { $go
 job-work-zero-not-finite = x et y doivent être finis, reçu { $x }, { $y }
 job-tip-diameter = doit être 0 ou plus et inférieur au diamètre ({ $diameter }), reçu { $got }
 job-tapered-ball-needs-tip = une fraise boule conique a besoin du diamètre de sa boule à la pointe (tip_diameter)
+job-tool-corner-radius-too-large = doit être inférieur à la moitié du diamètre ({ $diameter }), reçu { $got } : un outil arrondi à la moitié de son diamètre est une fraise boule, choisissez Fraise boule comme type
+job-tool-corner-radius-endmill-only = seule une fraise droite a un rayon de coin
 
 ## Parts
 
@@ -270,6 +272,7 @@ job-library-field = { $field ->
     [rpm] vitesse de broche
     [angle] angle
     [tip] pointe
+    [corner-radius] rayon de coin
     [id] numéro
     [cutting-values] valeurs de coupe
     [post] post-processeur

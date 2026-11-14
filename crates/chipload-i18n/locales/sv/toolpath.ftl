@@ -97,6 +97,8 @@ toolpath-skipped-open = hoppade över öppen kontur #{ $contour } på lager { $l
 toolpath-into-spoilboard = fräser { $below } under ämnet (ned i offerskivan)
 # A cut with Through ticked: deeper than the stock on purpose, said as a plain note.
 toolpath-through-spoilboard = fräser igenom, { $below } ned i offerskivan
+toolpath-through-corner = går bara { $below } under skivan, mindre än verktygets hörnradie ({ $radius }): det runda hörnet lämnar en hålkäl längs underkanten som kan hålla kvar detaljen; gå minst { $radius } under
+toolpath-corner-ridges = stegningen är bredare än verktygets plana botten ({ $flat }): åsar upp till { $ridge } höga blir kvar på botten
 # $operations lists operation numbers with their kind: "1 (pocket), 3 (profile) and 4 (holes)".
 toolpath-plunge-unknown = Verktyg { $tool } är inte markerat center_cutting och { $count ->
     [one] operation { $operations } matar

@@ -57,13 +57,13 @@ impl SignSettings {
         let vbit = job
             .tools
             .iter()
-            .find(|t| ToolKind::Vbit.fits(t.kind, t.angle))
+            .find(|t| ToolKind::Vbit.fits(t.kind, t.angle, t.corner_radius))
             .map(|t| WizardTool::Project(t.id))
             .or_else(|| from_library(ToolKind::Vbit));
         let mill = job
             .tools
             .iter()
-            .filter(|t| ToolKind::EndMill.fits(t.kind, t.angle))
+            .filter(|t| ToolKind::EndMill.fits(t.kind, t.angle, t.corner_radius))
             .max_by(|a, b| a.diameter.total_cmp(&b.diameter))
             .map(|t| WizardTool::Project(t.id))
             .or_else(|| from_library(ToolKind::EndMill));

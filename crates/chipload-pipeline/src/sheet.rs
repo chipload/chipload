@@ -594,7 +594,13 @@ fn file_section(
 fn tool_text(tool: &Tool, w: Words) -> String {
     let diameter = len_u(tool.diameter);
     let mut parts = match tool.kind {
-        ToolType::Endmill => vec![Message::new("sheet-end-mill").arg("diameter", diameter)],
+        ToolType::Endmill => {
+            let mut parts = vec![Message::new("sheet-end-mill").arg("diameter", diameter)];
+            if let Some(r) = tool.corner_radius.filter(|r| *r > 0.0) {
+                parts.push(Message::new("sheet-corner-radius").arg("radius", len_u(r)));
+            }
+            parts
+        }
         ToolType::Drill => vec![Message::new("sheet-drill").arg("diameter", diameter)],
         ToolType::Ballnose => match (tool.angle, tool.tip_diameter) {
             (Some(angle), Some(ball)) => vec![

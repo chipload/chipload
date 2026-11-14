@@ -75,7 +75,8 @@ pub(super) fn machine_section(
     );
 }
 
-/// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it.
+/// "T2 endmill Ø3 mm "3 mm downcut"": a project tool as lists show it; a bull nose's corner
+/// after its diameter, "Ø6 mm R1 mm".
 pub(in crate::app) fn tool_label(
     lang: &impl crate::i18n::Lang,
     tool: &Tool,
@@ -86,8 +87,12 @@ pub(in crate::app) fn tool_label(
         .name
         .as_deref()
         .map_or(String::new(), |n| format!(" \"{n}\""));
+    let corner = match tool.corner_radius.filter(|_| tool.is_bull_nose()) {
+        Some(r) => format!(" R{} {len_unit}", len_in(units, r)),
+        None => String::new(),
+    };
     format!(
-        "T{} {} Ø{} {len_unit}{name}",
+        "T{} {} Ø{} {len_unit}{corner}{name}",
         tool.id,
         tool_kind_name(lang, tool.kind),
         len_in(units, tool.diameter)
@@ -188,6 +193,7 @@ pub(in crate::app) fn tools_form(
                 rpm: Some(chipload_pipeline::DEFAULT_RPM),
                 angle: None,
                 tip_diameter: None,
+                corner_radius: None,
             });
         }
     });
@@ -645,6 +651,10 @@ pub(in crate::app) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &
                 ui.selectable_value(&mut tool.kind, kind, name);
             }
         });
+    // Only an end mill has a corner radius (docs/specs/corner-radius.md §2).
+    if tool.kind != ToolType::Endmill {
+        tool.corner_radius = None;
+    }
     ui.end_row();
     ui.label(t!(ui, "forms-diameter"));
     flag(
@@ -653,6 +663,9 @@ pub(in crate::app) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &
         &format!("{at}.diameter"),
     );
     ui.end_row();
+    if tool.kind == ToolType::Endmill {
+        corner_row(ui, at, tool);
+    }
     ui.label(t!(ui, "forms-spindle-speed"));
     let mut rpm = tool.rpm.unwrap_or(0.0);
     let response = ui.add(
@@ -702,6 +715,29 @@ pub(in crate::app) fn tool_rows(ui: &mut egui::Ui, salt: &str, at: &str, tool: &
     if matches!(tool.kind, ToolType::Vbit | ToolType::Ballnose) {
         vbit_rows(ui, at, tool);
     }
+}
+
+/// An end mill's corner radius, a bull nose (docs/specs/corner-radius.md §5): unticked for
+/// square corners.
+fn corner_row(ui: &mut egui::Ui, at: &str, tool: &mut Tool) {
+    ui.label(t!(ui, "forms-corner-radius"))
+        .on_hover_text(t!(ui, "forms-corner-radius-hover"));
+    ui.horizontal(|ui| {
+        let mut set = tool.corner_radius.is_some();
+        if ui.checkbox(&mut set, "").changed() {
+            // A start that is valid for any tool: a tenth of its diameter.
+            tool.corner_radius = set.then_some((tool.diameter / 10.0).max(0.1));
+        }
+        match &mut tool.corner_radius {
+            Some(corner) => {
+                flag(ui.add(mm(corner)), ui, &format!("{at}.corner_radius"));
+            }
+            None => {
+                ui.weak(t!(ui, "forms-square"));
+            }
+        }
+    });
+    ui.end_row();
 }
 
 /// A V-bit's included angle (degrees here, radians in the file) and flat tip

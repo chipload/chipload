@@ -20,6 +20,7 @@ fn tool(id: i64, kind: ToolType, diameter: f64) -> Tool {
         rpm: Some(18000.0),
         angle: (kind == ToolType::Vbit).then(|| 60.0_f64.to_radians()),
         tip_diameter: (kind == ToolType::Vbit).then_some(0.2),
+        corner_radius: None,
     }
 }
 

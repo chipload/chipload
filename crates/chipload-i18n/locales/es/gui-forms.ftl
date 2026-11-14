@@ -483,6 +483,9 @@ forms-angle-hover = El ángulo incluido de la V; el tallado en V lo necesita
 forms-tip = Punta
 forms-tip-hover = El diámetro de la punta plana; sin definir se toma como puntiaguda
 forms-pointed = puntiaguda
+forms-corner-radius = Radio de esquina
+forms-corner-radius-hover = El radio de las esquinas redondeadas (fresa tórica): los relieves se cortan con su forma real, los cajeados conservan un redondeo al pie de las paredes. Sin definir: esquinas vivas
+forms-square = vivas
 
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = operación { $number }

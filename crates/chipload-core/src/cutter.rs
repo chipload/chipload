@@ -29,7 +29,16 @@ pub enum Cutter {
         ball: f64,
         half_angle: f64,
     },
+    /// An end mill with a corner radius, a bull nose (docs/specs/corner-radius.md §3): a
+    /// flat bottom out to `radius − corner`, then a quarter round of radius `corner` up to
+    /// the side. `corner` is more than 0 and less than `radius`.
+    Bull { radius: f64, corner: f64 },
 }
+
+/// Steps of the golden-section search for a bull nose's level point along a line
+/// (docs/specs/corner-radius.md §3): each keeps 0.618 of the stretch, so 60 take a tool's
+/// width far below a nanometre. A fixed count gives the same answer on every run.
+const LEVEL_SEARCH_STEPS: u32 = 60;
 
 impl Cutter {
     /// The tool's outer radius.
@@ -38,7 +47,8 @@ impl Cutter {
             Cutter::Flat { radius }
             | Cutter::Ball { radius }
             | Cutter::Cone { radius, .. }
-            | Cutter::TaperedBall { radius, .. } => radius,
+            | Cutter::TaperedBall { radius, .. }
+            | Cutter::Bull { radius, .. } => radius,
         }
     }
 
@@ -46,7 +56,9 @@ impl Cutter {
     /// when its tip is raised by `allowance` (a relief's roughing, docs/specs/stl-relief.md
     /// §14): the flat end mill or ball nose wider by the allowance. A flat end mill grown by
     /// a ball of the allowance fits inside the wider cylinder raised by it, and a ball grown
-    /// so is the wider ball. None for a V-bit or a tapered ball nose.
+    /// so is the wider ball; a bull nose grown so is the bull nose wider by the allowance
+    /// with a corner larger by it (docs/specs/corner-radius.md §3). None for a V-bit or a
+    /// tapered ball nose.
     pub fn grown(self, allowance: f64) -> Option<Cutter> {
         match self {
             Cutter::Flat { radius } => Some(Cutter::Flat {
@@ -54,6 +66,10 @@ impl Cutter {
             }),
             Cutter::Ball { radius } => Some(Cutter::Ball {
                 radius: radius + allowance,
+            }),
+            Cutter::Bull { radius, corner } => Some(Cutter::Bull {
+                radius: radius + allowance,
+                corner: corner + allowance,
             }),
             Cutter::Cone { .. } | Cutter::TaperedBall { .. } => None,
         }
@@ -88,13 +104,19 @@ impl Cutter {
                     ht + (d - rt) / crate::math::tan(half_angle)
                 }
             }
+            Cutter::Bull { radius, corner } => {
+                let out = (d - (radius - corner)).max(0.0);
+                corner - (corner * corner - out * out).max(0.0).sqrt()
+            }
         })
     }
 
     /// The radii where the surface's slope jumps: a flat tip's edge, a ball's joint with its
-    /// cone. The drop cutter tries them as candidates.
+    /// cone. The drop cutter tries them as candidates; a bull nose's flat edge too, where
+    /// the slope doesn't jump but the shape changes.
     pub fn kinks(self) -> Vec<f64> {
         match self {
+            Cutter::Bull { radius, corner } => vec![radius - corner],
             Cutter::Flat { .. } | Cutter::Ball { .. } => Vec::new(),
             Cutter::Cone { tip, .. } => vec![tip],
             Cutter::TaperedBall {
@@ -111,6 +133,8 @@ impl Cutter {
         match self {
             Cutter::Flat { .. } | Cutter::Cone { .. } => Vec::new(),
             Cutter::Ball { radius } => vec![on_sphere(radius)],
+            // On the corner's quarter round, a circle of radius `corner` in section.
+            Cutter::Bull { radius, corner } => vec![radius - corner + on_sphere(corner)],
             Cutter::TaperedBall {
                 ball, half_angle, ..
             } => {
@@ -150,7 +174,48 @@ impl Cutter {
                 .into_iter()
                 .chain(cone(1.0 / crate::math::tan(half_angle)))
                 .collect(),
+            Cutter::Bull { radius, .. } => self.highest_along(m, p, radius).into_iter().collect(),
         }
+    }
+
+    /// Where the reach `m·t − h(√(p² + t²))` is highest along a line `p` from the axis, for
+    /// `t` within the tool (docs/specs/corner-radius.md §3): no closed form on a bull nose's
+    /// corner, so a golden-section search, which the reach's concavity makes exact (the
+    /// shape is convex). None when the line misses the tool.
+    fn highest_along(self, m: f64, p: f64, radius: f64) -> Option<f64> {
+        let half = (radius * radius - p * p).max(0.0).sqrt();
+        if half <= 0.0 {
+            return None;
+        }
+        // A level line: the reach is even about the foot, so highest there.
+        if m == 0.0 {
+            return Some(0.0);
+        }
+        let reach = |t: f64| {
+            let d = (p * p + t * t).sqrt().min(radius);
+            m * t - self.height_at(d).unwrap_or(0.0)
+        };
+        let ratio = (5f64.sqrt() - 1.0) / 2.0;
+        let (mut lo, mut hi) = (-half, half);
+        let mut a = hi - ratio * (hi - lo);
+        let mut b = lo + ratio * (hi - lo);
+        let (mut fa, mut fb) = (reach(a), reach(b));
+        for _ in 0..LEVEL_SEARCH_STEPS {
+            if fa < fb {
+                lo = a;
+                a = b;
+                fa = fb;
+                b = lo + ratio * (hi - lo);
+                fb = reach(b);
+            } else {
+                hi = b;
+                b = a;
+                fb = fa;
+                a = hi - ratio * (hi - lo);
+                fa = reach(a);
+            }
+        }
+        Some((lo + hi) / 2.0)
     }
 }
 
@@ -164,6 +229,74 @@ mod tests {
             ball: 0.4,
             half_angle: 5f64.to_radians(),
         }
+    }
+
+    fn bull() -> Cutter {
+        Cutter::Bull {
+            radius: 3.0,
+            corner: 1.0,
+        }
+    }
+
+    #[test]
+    fn a_bull_nose_is_flat_then_round() {
+        let b = bull();
+        assert_eq!(b.height_at(0.0), Some(0.0));
+        assert_eq!(b.height_at(2.0), Some(0.0));
+        assert!((b.height_at(3.0).unwrap() - 1.0).abs() < 1e-12);
+        // Halfway round the corner: 1 − √(1 − 0.5²).
+        let h = b.height_at(2.5).unwrap();
+        assert!((h - (1.0 - 0.75f64.sqrt())).abs() < 1e-12, "{h}");
+        assert_eq!(b.height_at(3.01), None);
+        // Grown by 0.5: wider and rounder, the same flat.
+        assert_eq!(
+            b.grown(0.5),
+            Some(Cutter::Bull {
+                radius: 3.5,
+                corner: 1.5
+            })
+        );
+    }
+
+    #[test]
+    fn a_bull_nose_near_half_its_width_is_a_ball() {
+        let ball = Cutter::Ball { radius: 3.0 };
+        let almost = Cutter::Bull {
+            radius: 3.0,
+            corner: 3.0 - 1e-9,
+        };
+        for k in 0..=30 {
+            let d = 0.1 * f64::from(k);
+            let (a, b) = (almost.height_at(d).unwrap(), ball.height_at(d).unwrap());
+            assert!((a - b).abs() < 1e-4, "{d}: {a} {b}");
+        }
+    }
+
+    #[test]
+    fn a_plane_touches_a_bull_nose_where_its_slope_matches() {
+        let b = bull();
+        for slope in [0.2, 1.0, 4.0] {
+            let d = b.where_slope(slope)[0];
+            let e = 1e-7;
+            let found = (b.height_at(d + e).unwrap() - b.height_at(d - e).unwrap()) / (2.0 * e);
+            assert!((found - slope).abs() < 1e-4, "{slope}: {found}");
+        }
+    }
+
+    #[test]
+    fn a_bull_noses_level_point_is_the_highest_reach() {
+        let b = bull();
+        for (m, p) in [(0.3, 0.0), (0.8, 1.5), (-0.5, 2.2), (2.0, 2.9), (0.0, 1.0)] {
+            let t = b.level_along(m, p)[0];
+            let reach = |t: f64| m * t - b.height_at((p * p + t * t).sqrt().min(3.0)).unwrap();
+            let half = (9.0f64 - p * p).sqrt();
+            let best = (0..=20_000)
+                .map(|k| -half + 2.0 * half * f64::from(k) / 20_000.0)
+                .map(reach)
+                .fold(f64::NEG_INFINITY, f64::max);
+            assert!(reach(t) >= best - 1e-6, "{m} {p}: {} < {best}", reach(t));
+        }
+        assert!(b.level_along(1.0, 3.5).is_empty());
     }
 
     #[test]
@@ -204,6 +337,7 @@ mod tests {
                 half_angle: 30f64.to_radians(),
             },
             tapered(),
+            bull(),
         ] {
             let r = c.radius();
             let n = 300;

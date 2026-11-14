@@ -123,7 +123,26 @@ impl Tool {
                 Message::new("job-tapered-ball-needs-tip"),
             ));
         }
+        problems.extend(self.corner_problem(at));
         problems
+    }
+
+    /// A corner radius: end mills only, more than 0 and less than half the diameter; half
+    /// or more is a ball nose (docs/specs/corner-radius.md §2).
+    fn corner_problem(&self, at: &str) -> Option<Problem> {
+        let corner = self.corner_radius?;
+        let message = if self.kind != ToolType::Endmill {
+            Message::new("job-tool-corner-radius-endmill-only")
+        } else if !(corner.is_finite() && corner > 0.0) {
+            Message::new("job-must-be-positive").arg("got", Value::Length(corner, Digits::Shortest))
+        } else if corner >= self.diameter / 2.0 {
+            Message::new("job-tool-corner-radius-too-large")
+                .arg("diameter", Value::Length(self.diameter, Digits::Shortest))
+                .arg("got", Value::Length(corner, Digits::Shortest))
+        } else {
+            return None;
+        };
+        Some(Problem::at(format!("{at}.corner_radius"), message))
     }
 }
 

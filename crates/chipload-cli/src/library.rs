@@ -141,6 +141,9 @@ pub struct ToolValues {
     /// ball's diameter at the tip.
     #[arg(value_parser = crate::lengths::length, long)]
     tip: Option<f64>,
+    /// End mills: the radius of its corners, a bull nose (0: square corners).
+    #[arg(value_parser = crate::lengths::length, long)]
+    corner_radius: Option<f64>,
     /// The id it gets in a project where that id is free (default 1).
     #[arg(long)]
     id: Option<i64>,
@@ -357,6 +360,7 @@ pub fn tool(out: &mut Out, action: ToolAction) -> ExitCode {
                 cutting_data: Vec::new(),
                 angle: None,
                 tip_diameter: None,
+                corner_radius: None,
             };
             set_tool_values(&mut entry, &values)?;
             library.tools.push(entry);
@@ -589,6 +593,9 @@ fn set_tool_values(entry: &mut LibraryTool, values: &ToolValues) -> Result<(), L
     if let Some(tip) = values.tip {
         entry.tip_diameter = Some(tip);
     }
+    if let Some(corner) = values.corner_radius {
+        entry.corner_radius = (corner != 0.0).then_some(corner);
+    }
     if let Some(id) = values.id {
         if id < 1 {
             return Err(refused(format!("--id must be 1 or more, got {id}")));
@@ -801,6 +808,7 @@ fn list_tools(out: &mut Out, path: &Path) -> ExitCode {
             "°",
         ));
         line.push_str(&optional("tip", t.tip_diameter, " mm"));
+        line.push_str(&optional("corner radius", t.corner_radius, " mm"));
         line.push_str(&format!(" (uid {})", t.uid));
         out.line(line.to_string());
         for row in &t.cutting_data {

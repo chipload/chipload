@@ -84,6 +84,7 @@ sheet-spindle-cw = clockwise (M3)
 sheet-spindle-ccw = counter-clockwise (M4)
 # The parts of $what, joined with ", ".
 sheet-end-mill = { $diameter } end mill
+sheet-corner-radius = corner radius { $radius }
 sheet-drill = { $diameter } drill
 # $angle in degrees.
 sheet-vbit-angle = { $angle }° V-bit, { $diameter }

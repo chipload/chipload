@@ -31,26 +31,27 @@ const RIDGE_HALVINGS: u32 = 40;
 
 /// The ridge `tool` leaves between relief lines `stepover` (a fraction of it) apart on flat
 /// ground, mm: the height of its cutting surface halfway between two lines. Only for a ball
-/// nose; an end mill leaves none on flat ground but steps on slopes, and a V-bit's grooves
-/// are its own.
+/// nose or a bull nose (none within its flat); a square end mill leaves none on flat ground
+/// but steps on slopes, and a V-bit's grooves are its own.
 pub fn relief_ridge(tool: &Tool, stepover: f64) -> Option<f64> {
-    if tool.kind != ToolType::Ballnose {
+    if !tool.is_round() {
         return None;
     }
     tool.cutter()?.height_at(stepover * tool.diameter / 2.0)
 }
 
-/// A new relief's stepover for `tool`: with a ball nose, the widest that leaves ridges of
+/// A new relief's stepover for `tool`: with a ball or bull nose, the widest that leaves ridges of
 /// [`RELIEF_RIDGE_MM`], to the nearest whole percent and within [`RELIEF_STEPOVER_RANGE`];
 /// otherwise [`DEFAULT_RELIEF_STEPOVER`].
 pub fn relief_stepover(tool: Option<&Tool>) -> f64 {
     ridge_stepover(tool, RELIEF_RIDGE_MM).unwrap_or(DEFAULT_RELIEF_STEPOVER)
 }
 
-/// With a ball nose, the widest stepover that leaves ridges of `ridge` mm on flat ground, to
-/// the nearest whole percent and within [`RELIEF_STEPOVER_RANGE`]; None for another tool.
+/// With a ball or bull nose, the widest stepover that leaves ridges of `ridge` mm on flat
+/// ground, to the nearest whole percent and within [`RELIEF_STEPOVER_RANGE`]; None for
+/// another tool.
 pub fn ridge_stepover(tool: Option<&Tool>, ridge: f64) -> Option<f64> {
-    let tool = tool.filter(|t| t.kind == ToolType::Ballnose && t.diameter > 0.0)?;
+    let tool = tool.filter(|t| t.is_round() && t.diameter > 0.0)?;
     let (lo, hi) = RELIEF_STEPOVER_RANGE;
     // The ridge grows with the stepover: halve towards the widest within the target.
     let (mut below, mut above) = (0.0, 1.0);
@@ -729,6 +730,7 @@ mod tests {
             rpm: None,
             angle: None,
             tip_diameter: None,
+            corner_radius: None,
         }
     }
 

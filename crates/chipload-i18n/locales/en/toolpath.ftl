@@ -97,6 +97,8 @@ toolpath-skipped-open = skipped open contour #{ $contour } on { $layers } { $fro
 toolpath-into-spoilboard = cuts { $below } below the stock (into the spoilboard)
 # A cut with Through ticked: deeper than the stock on purpose, said as a plain note.
 toolpath-through-spoilboard = cuts through, { $below } into the spoilboard
+toolpath-through-corner = goes only { $below } below the board, less than the tool's corner radius ({ $radius }): the round corner leaves a fillet along the bottom edge that can hold the part; go at least { $radius } below
+toolpath-corner-ridges = the stepover is wider than the tool's flat bottom ({ $flat }): ridges up to { $ridge } high stay on the floor
 # $operations lists operation numbers with their kind: "1 (pocket), 3 (profile) and 4 (holes)".
 toolpath-plunge-unknown = Tool { $tool } isn't marked center_cutting and { $count ->
     [one] operation { $operations } plunges

@@ -483,6 +483,9 @@ forms-angle-hover = L'angle inclus du V ; la gravure en V en a besoin
 forms-tip = Pointe
 forms-tip-hover = Le diamètre de la pointe plate ; non défini vaut pointe aiguë
 forms-pointed = aiguë
+forms-corner-radius = Rayon de coin
+forms-corner-radius-hover = Le rayon des coins arrondis (fraise torique) : les reliefs sont usinés avec sa vraie forme, les poches gardent un congé au pied des parois. Non défini : coins vifs
+forms-square = vifs
 
 # A rest pass of a pocket: a smaller tool clears what the one before left.
 forms-rest-pass-of = opération { $number }

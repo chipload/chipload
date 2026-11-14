@@ -86,7 +86,7 @@ impl std::fmt::Debug for ReliefWizard {
 fn first_tool(job: &Job, library: Option<&ToolLibrary>, kind: ToolKind) -> Option<WizardTool> {
     job.tools
         .iter()
-        .find(|t| kind.fits(t.kind, t.angle))
+        .find(|t| kind.fits(t.kind, t.angle, t.corner_radius))
         .map(|t| WizardTool::Project(t.id))
         .or_else(|| {
             library

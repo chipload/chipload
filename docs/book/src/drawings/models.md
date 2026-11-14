@@ -225,14 +225,16 @@ chipload set sign.chipload operations.0.stepover=0.1 operations.0.angle=0.785
 A **Relief** carves the model in parallel lines across its area, each point as low as the
 tool can go without cutting into the model: the tool is lowered onto the model's triangles
 until it first touches one. A ball nose gives the smoothest finish; a tapered ball nose
-reaches finer detail; an end mill or a V-bit works too, with their own marks.
+reaches finer detail; a [bull nose](../concepts/tools.md#the-projects-tools) (an end mill
+with round corners) finishes a wide relief faster; a square end mill or a V-bit works too,
+with their own marks.
 
 - **Area:** with `--model`, the model's outline, with its [rim](#a-rim-and-a-ramp) round it.
   Other closed shapes can be selected for the area instead: a drawn rectangle, say. Without
   a rim the tool's centre stays inside the area, which leaves a groove the tool's width
   round the model and the board beyond untouched.
 - **`stepover`:** the distance between lines as a share of the tool; smaller is smoother and
-  slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
+  slower. With a ball or bull nose a new relief takes the widest stepover that leaves ridges of
   0.02 mm between its lines on flat ground, which wood doesn't show: 20 % for a 2 mm ball,
   16 % for 1/8", 12 % for 6 mm. The relief's form shows the ridges for the stepover you set.
   Finer only takes longer: a 2 mm ball at 10 % leaves ridges of 0.005 mm and takes about
@@ -366,7 +368,8 @@ surface once more, no levels, with its lines across the roughing's, and leaves t
 allowance. Ground that rises along either set of lines comes out clean, so a box rim's four
 ramps do; on curved ground the steps shrink to the smoothing's stepover times the slope. A
 larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
-change.
+change. A roughing end mill with a corner radius (a bull nose) leaves smaller steps to
+begin with, and smooths them better.
 
 In the window: *Add smoothing pass* on the relief's or the roughing pass's row in the
 Browser (right-click), or in the roughing pass's properties; on a relief without a roughing

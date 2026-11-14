@@ -174,6 +174,7 @@ mod tests {
             rpm,
             angle: None,
             tip_diameter: None,
+            corner_radius: None,
         }
     }
 

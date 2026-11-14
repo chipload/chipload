@@ -3265,6 +3265,14 @@
             "null"
           ]
         },
+        "corner_radius": {
+          "description": "End mills: the radius of its corners, mm, a bull nose (docs/specs/corner-radius.md\n§2). Missing: square corners. Left out of the file when missing, so a Chipload that\ndoesn't know it refuses only a tool that has one.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "diameter": {
           "description": "Diameter, mm. For a V-bit, its widest cutting diameter.",
           "format": "double",

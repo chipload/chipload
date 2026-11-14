@@ -865,6 +865,7 @@ What a text's position is (docs/specs/text.md §3).
 |---|---|---|---|
 | `angle` | number or null | no | V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. Ball noses: the taper's included angle; null: a plain ball nose. |
 | `center_cutting` | boolean or null | no | Whether it can plunge straight down. False: profiles ramp in and pockets go down round a helix. Null: unknown. |
+| `corner_radius` | number or null | no | End mills: the radius of its corners, mm, a bull nose (docs/specs/corner-radius.md §2). Missing: square corners. Left out of the file when missing, so a Chipload that doesn't know it refuses only a tool that has one. |
 | `diameter` | number | yes | Diameter, mm. For a V-bit, its widest cutting diameter. |
 | `flutes` | integer or null | no | Number of flutes, for the chip load. Null: unknown. |
 | `id` | integer | yes | The tool's number: what operations name it by, and its T number in the G-code. |

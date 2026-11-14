@@ -1742,6 +1742,7 @@ chipload tool add <NAME> [OPTIONS]
 | `--rpm <RPM>` |  |
 | `--angle <ANGLE>` | V-bits: the included angle, degrees. Tapered ball noses: the taper's. |
 | `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball's diameter at the tip. |
+| `--corner-radius <CORNER_RADIUS>` | End mills: the radius of its corners, a bull nose (0: square corners) |
 | `--id <ID>` | The id it gets in a project where that id is free (default 1) |
 
 ### `chipload tool set`
@@ -1762,6 +1763,7 @@ chipload tool set <NAME> [OPTIONS]
 | `--rpm <RPM>` |  |
 | `--angle <ANGLE>` | V-bits: the included angle, degrees. Tapered ball noses: the taper's. |
 | `--tip <TIP>` | V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball's diameter at the tip. |
+| `--corner-radius <CORNER_RADIUS>` | End mills: the radius of its corners, a bull nose (0: square corners) |
 | `--id <ID>` | The id it gets in a project where that id is free (default 1) |
 | `--rename <RENAME>` | A new name. |
 
