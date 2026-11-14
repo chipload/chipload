@@ -191,66 +191,14 @@ to a program you trust. It was about four per operation; with the defaults and s
    (decision 10): dowel holes placed again on request (*Place again*, the report's offer,
    `setup dowels --place`), never by themselves. Then (2026-11-12) looser: a fitted board
    grows round the pins, a board of its own size only warns. Next: the user tries it.
-12c. **Relief carving from an STL model** (the user, 2026-11-12: "stl 3d model engraving.
-   drop cutter"). Spec docs/specs/stl-relief.md and ADR 0031 (an exception to ADR 0017's
-   "out: 3D surface machining") drafted 2026-11-12, for review: a model placed like a
-   picture, a Relief operation with a drop-cutter raster (flat, ball nose, tapered ball
-   nose, V-bit) and roughing by levels, an STL reader of our own. **Approved 2026-11-12**
-   (decisions 1-10 as recommended; ADR 0031 accepted). Step 1 built on branch `relief`:
-   `chipload-mesh`, `drawing.models` (no schema bump, §14), `model add/set/list/remove`,
-   the footprint outline. Step 2a: the ball nose tool (plain and tapered, `Tool::cutter`,
-   `chipload_core::cutter`), the simulation's round shape; 2b the drop cutter; 2c the
-   Relief operation (finishing, `op add relief --model`, the path check, goldens
-   v36_relief_dome). Step 3: roughing as the relief's pass "N.1" (`roughing`, `op
-   add-roughing/remove-roughing`): levels with the raster, the tool grown by the allowance,
-   its area kept within the finish's reach, joined along the next line; a warning for a
-   relief deeper than its tool is wide without one; goldens v36_relief_dome_rough. Next:
-   the window (step 4), including the roughing pass's row and form in the Browser. 4a done:
-   File > Add 3D model…, models in the Browser with their properties, STL drops. 4b done: Relief in
-   the Operation menu and New operation (not the ribbon: 10 px short at 1280, asked the
-   user), its form, the roughing pass's row and form. 4c done: the model faint in
-   3D, its handles, the playback tool by its profile. 4d done: the guide's 3D models page covers the
-   window, screenshot model.png. After trying it (2026-11-13): a 3D model button on the
-   ribbon (Text moved among the small drawing buttons), Import/Open take STL, the outline
-   keeps its shape ids when drawn again (a pocket with it as an island). Spec
-   docs/specs/relief-wizard.md approved ("Go ahead", decisions as recommended, 6a):
-   step 1 done (the STL held once and read once, read on a worker thread), step 2 done
-   (the light copy, vertex clustering, for the 3D view), step 3 done (the cut level
-   `keep`, *Keep from top*, `--keep`), step 4 done (the *Turn and cut…* window), step 5
-   done (Inlay in WIZARDS, Measure on the navigation bar, one Library button), step 6
-   done (the Relief wizard, `relief add`). Left for later (spec §11): a time estimate in
-   the wizard's last step, dropping a file on the wizard, the board's size in step 3.
-   The user's first try (2026-11-13): a 928,000-triangle bust planned in 68 s; spec §15
-   done: relief lines on all cores (13 s), a ball nose's stepover from 0.02 mm ridges, the
-   ridges shown in the form. Not now: simplifying the model for cutting (§15.3). Spec
-   §16 done (the user, 2026-11-13: "a flat and then ramp up"): a relief's `rim` (outline or
-   box, flat width, ramp angle), default 5 mm and 45° on new reliefs, the drop onto the
-   ramp and its path check, a fitted board grows round it; the wizard's *Round it* is now
-   rim, box or cut-out (no background pocket); the deep-relief advice in the form. Not now:
-   an end mill pass to finish a wide flat. §16.6 done: the wizard's flat by default fits
-   the roughing tool (its diameter and allowance both sides, whole mm, at least 5), and a
-   plan note when a flat is narrower. §17 done (the user, 2026-11-13: "Go ahead"): a
-   relief's smoothing pass "N.2" after its roughing (the surface followed once, lines
-   across, the roughing tool by default, 15 %), `op add-smoothing`, `relief add --smooth`,
-   the wizard's *Smooth the steps*, its Browser row and form; golden v36_relief_box_smooth. The wizard's
-   start depth (step 3, `relief add --start-depth`): a relief sunk below an unplaned
-   board's surface. §16.7 done (the user: "Go ahead, sounds right"): an outline
-   rim's *Fuller* slider (`rim.hull`, 0 the outline, 1 its convex hull, a closing between),
-   `relief add --hull`; golden v36_relief_rim_hull.
-   A relief from a picture done (docs/specs/picture-relief.md, the user: "Go ahead"): a
-   depth map (PNG, JPEG, BMP) as a 3D model in the project, `model add/set` with its
-   settings, the model form and wizard; golden v36_picture_relief. Inflated shapes done
-   (docs/specs/inflated-shapes.md, the user: "Great! Go ahead"): `picture.mode` inflate,
-   threshold, invert, profile, reach; golden v36_inflated_relief.
-   The user's findings of 2026-11-14 done: Delete removes a selected floor, roughing or
-   smoothing pass; *Add smoothing pass* on the relief's and the roughing pass's right-click
-   (greyed out on a relief without roughing, with why); the relief's depth editable in its
-   properties (the model's depth, proportions off); *Relief* on the ribbon (small, under
-   Surface); a model hidden by its eye leaves the 3D view; a decimal comma read in English
-   too (not `1,000`). The rim's edges on the canvas while a relief is open (§16.8), following *Fuller* and
-   the other rim settings live. Progress bars for the toolpath and the simulation (background-generation.md §7), a relief
-   now stoppable midway. Finding 5 left for now: the navigation bar's *Drawing* button
-   was missing for a moment once, not reproduced (the user, 2026-11-14). Next: the user tries the branch further.
+12c. **Reliefs** (docs/specs/stl-relief.md, relief-wizard.md, picture-relief.md,
+   inflated-shapes.md; ADR 0031): built on branch `relief` 2026-11-12 to 11-14, all of it
+   approved, for 0.36.0 (see *Done*). Left for later: a time estimate in the wizard's last
+   step, dropping a file on the wizard, the board's size in its step 3
+   (relief-wizard.md §11); simplifying a large model for cutting (stl-relief.md §15.3); an
+   end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
+   a moment once (the user, 2026-11-14), not reproduced. Next: the user tries the branch,
+   then merge and release.
 13. **Small follow-ups:**
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
@@ -325,9 +273,31 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ## Done
 
-### In main, not released yet
+### For 0.36.0 (branch `relief`, not merged yet)
 
-(nothing yet)
+- **Reliefs from 3D models** (docs/specs/stl-relief.md, ADR 0031): STL models in the
+  project (`chipload-mesh`, binary and text, our own reader), placed like a picture (move,
+  turn, width, depth, which way is up, keep from the top); the **Relief** operation, a
+  drop-cutter raster with a ball nose (plain or tapered), end mill or V-bit, its lines on
+  all cores, a ball nose's stepover from 0.02 mm ridges; a **rim**: a flat round the
+  outline or a box and a ramp up to the surface, *Fuller* filling the outline out towards
+  its convex hull, its edges drawn live on the canvas; a **roughing pass** in levels with
+  an allowance; a **smoothing pass** that takes off the roughing's steps; a start depth
+  for a relief sunk into an unplaned board. Goldens v36_relief_*.
+- **The Relief wizard** (docs/specs/relief-wizard.md): *Relief…* in WIZARDS and `relief
+  add`, a whole relief in six steps; *Turn and cut…*, a model turned and cut while seen;
+  a light copy of each model for the 3D view; the model in 3D with its handles.
+- **Reliefs from pictures** (docs/specs/picture-relief.md, inflated-shapes.md): a depth
+  map (PNG, JPEG, BMP: white high, smoothing, background, gamma) or a black-and-white
+  picture inflated into rounded shapes (round or straight, its reach), as a 3D model.
+- **Progress bars** for the toolpath and the simulation (docs/specs/background-generation.md
+  §7); a relief can be stopped midway.
+- **Small things:** Delete removes a selected 3D model, roughing, smoothing or floor pass;
+  a decimal comma read in English too (not `1,000`); Relief on the ribbon; the relief's
+  depth set in its properties; a model hidden by its eye leaves the 3D view; Inlay moved to
+  WIZARDS, Measure to the navigation bar, one Library button.
+- **The README's relief showcase:** a 3DBenchy relief (CC0) simulated, and its playback as a
+  GIF (`packaging/docs/relief-showcase.sh`, the project kept out of the repository).
 
 ### In 0.35.0 (tagged 2026-11-12)
 

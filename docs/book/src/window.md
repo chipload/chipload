@@ -22,8 +22,8 @@ Under it, the **ribbon** groups the buttons:
 | FILE | New, Open, Import (a DXF, SVG or STL as a new project), Save | open recent, add a picture, a DXF/SVG or a [3D model](drawings/models.md), save as, update drawing, export, the *…from path* items, quit |
 | DRAW | the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a [relief](drawings/models.md)) | Frame… ([a frame for a sign](drawings/signs.md)) |
 | MODIFY | small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array ([Editing operations](drawings/shapes.md#editing-operations)) | the same |
-| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock) and Style (one of your [styles](library/styles.md), for the selected shapes) | New Relief (of a [3D model](drawings/models.md)), *Apply style ▸*, Generate |
-| WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window); Inlay…: [a V-carve inlay](operations/vcarve.md) of the selected shapes | New sign…, Two-sided…, New inlay… |
+| OPERATION | Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected [3D model](drawings/models.md), or the first) and Style (one of your [styles](library/styles.md), for the selected shapes) | New Relief, *Apply style ▸*, Generate |
+| WIZARDS | Sign: [a whole sign in one step](drawings/signs.md#a-sign-in-one-step), its drawing and its operations; Two-sided: [a back side with its dowel pins](concepts/setups.md#in-the-window); Inlay…: [a V-carve inlay](operations/vcarve.md) of the selected shapes; Relief: [a whole relief in one step](drawings/models.md#a-relief-in-one-step) | New sign…, Two-sided…, New inlay…, Relief… |
 | LIBRARY | Library: opens *This computer* in the Browser, with your tools and machines | Tool library, Machines |
 
 The *View* menu has fit, top and 3D view, Z scale, reverse left-right orbit, what is shown,
@@ -91,9 +91,12 @@ operations; the first DXF's placement window is open](images/drawing.png)
   - **An operation:** *Move up* and *Move down* (also Alt+↑ and Alt+↓), *Duplicate*,
     *Save as style…* (a [style](library/styles.md)), for a pocket *Add rest pass ▸* (a
     [rest pass](operations/rest.md) shows under it), for a relief *Add roughing pass ▸*
-    ([roughing](drawings/models.md#roughing-first)), and *Delete*.
+    ([roughing](drawings/models.md#roughing-first)) and *Add smoothing pass*
+    ([smoothing](drawings/models.md#smoothing-the-steps), greyed out until it has a roughing
+    pass), and *Delete*.
   - **A style:** *Apply to the selection* and *Delete*.
-  - **A rest pass:** *Remove*.
+  - **A rest pass, floor pass, roughing or smoothing pass:** *Remove* (or Delete with it
+    selected); a roughing pass also *Add smoothing pass*.
   - **A project tool:** *Delete*, greyed while an operation or a rest or floor pass cuts
     with it (its hover says which).
   - **The Drawing folder:** *Add DXF or SVG…*, *Import image…* and *Add 3D model…*.

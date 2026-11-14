@@ -6,6 +6,13 @@ sign with raised, rounded letters, a rosette, a coin, a landscape. The model lie
 board like a picture, seen from above, and is carved in three axes; nothing under an
 overhang is reached. (Design: `docs/specs/stl-relief.md`.)
 
+![A 3DBenchy relief simulated in 3D: the boat raised inside a rim that ramps up to the
+board's surface](../images/showcase-relief.png)
+
+*[3DBenchy](https://www.printables.com/model/3161-3d-benchy) by Creative Tools (CC0), 150 mm
+wide and 10 mm deep, with a rim filled out by Fuller at 90 %, a roughing pass with a 6 mm end
+mill, a smoothing pass and a 2 mm ball nose finish.*
+
 
 ## A relief in one step
 

@@ -46,6 +46,7 @@
 - [Follow path](operations/path.md)
 - [Holes](operations/holes.md)
 - [Surface](operations/surface.md)
+- [Relief](operations/relief.md)
 
 # Tools, machines and posts
 

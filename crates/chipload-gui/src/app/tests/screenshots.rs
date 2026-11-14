@@ -225,3 +225,77 @@ fn screenshots() {
         println!("{name}.png");
     }
 }
+
+/// The README's relief showcase (the user, 2026-11-14): a 3DBenchy relief, simulated, in
+/// 3D (`showcase-relief.png`), and its playback as frames for a GIF (`relief-frames/`).
+/// The project embeds the model (15 MB), so it stays out of the repository: its path comes
+/// from `CHIPLOAD_RELIEF_SHOWCASE`. Run by packaging/docs/relief-showcase.sh.
+/// The playback's frames at `(k / count)^FRAME_EASE` of its time.
+const FRAME_EASE: f64 = 1.6;
+
+#[test]
+#[ignore = "writes the README's relief pictures; run by packaging/docs/relief-showcase.sh"]
+fn relief_showcase() {
+    use egui_kittest::Harness;
+    let (Ok(out), Ok(project)) = (
+        std::env::var("CHIPLOAD_SHOTS_OUT"),
+        std::env::var("CHIPLOAD_RELIEF_SHOWCASE"),
+    ) else {
+        panic!("set CHIPLOAD_SHOTS_OUT and CHIPLOAD_RELIEF_SHOWCASE");
+    };
+    let out = PathBuf::from(out);
+    let frames = out.join("relief-frames");
+    std::fs::create_dir_all(&frames).unwrap();
+    let count: usize = std::env::var("CHIPLOAD_RELIEF_FRAMES")
+        .ok()
+        .and_then(|n| n.parse().ok())
+        .unwrap_or(48);
+    let empty = temp_dir("relief-showcase-settings");
+    let open = move |size: (f32, f32), project: PathBuf, settings: PathBuf| {
+        Harness::builder()
+            .with_size(egui::vec2(size.0, size.1))
+            .wgpu()
+            .build_eframe(move |cc| {
+                {
+                    let mut fonts = crate::fonts::ui_fonts();
+                    crate::fonts::add_text_fonts(&mut fonts);
+                    cc.egui_ctx.set_fonts(fonts);
+                }
+                crate::style::apply(&cc.egui_ctx);
+                let mut app = ChiploadApp::default();
+                app.set_settings_dir(Some(settings));
+                app.updates.bar_closed = true;
+                app.set_language("en");
+                assert!(app.open(&project), "{}", project.display());
+                app.screenshot_setup(
+                    &cc.egui_ctx,
+                    "simulation,3d,noreport,notoolpath,nodrawing,nopanels",
+                );
+                app
+            })
+    };
+    let project = PathBuf::from(project);
+    let mut harness = open((1600.0, 950.0), project.clone(), empty.clone());
+    harness.run_steps(10);
+    let image = harness.render().unwrap();
+    image.save(out.join("showcase-relief.png")).unwrap();
+    println!("showcase-relief.png");
+    // The playback, the tool shown cutting: frames closer together at the start, where
+    // the roughing takes the board down fast, than in the long finish.
+    let mut harness = open((960.0, 600.0), project, empty);
+    harness.run_steps(4);
+    let total = harness.state().playback.as_ref().map_or(0.0, |p| p.total());
+    assert!(
+        total > 0.0,
+        "no playback: the program may be too long to play"
+    );
+    for k in 0..=count {
+        if let Some(playback) = harness.state_mut().playback.as_mut() {
+            playback.set_time(total * (k as f64 / count as f64).powf(FRAME_EASE));
+        }
+        harness.run_steps(3);
+        let image = harness.render().unwrap();
+        image.save(frames.join(format!("{k:03}.png"))).unwrap();
+    }
+    println!("relief-frames/ ({} frames)", count + 1);
+}

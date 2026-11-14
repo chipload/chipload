@@ -31,6 +31,12 @@ publish it.
 
        packaging/docs/screenshots.sh         # docs/book/src/images/*.png
 
+   The README's relief showcase (`showcase-relief.png` and `.gif`) comes from a project kept
+   out of the repository (it embeds a 15 MB model: the 3DBenchy relief, CC0); renew it when
+   the relief or the simulation's look changes:
+
+       packaging/docs/relief-showcase.sh path/to/benchy_relief.chipload
+
    Without the workflow, build and attach it by hand:
 
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip

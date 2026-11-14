@@ -13,6 +13,14 @@ stock in 3D](docs/book/src/images/showcase.png)
 ![Chipload: the word "Workshop" in a script font, V-carved with a 25° V-bit, as the
 simulation shows it in 3D](docs/book/src/images/showcase-text.png)
 
+![Chipload: a 3DBenchy relief carved from its STL model, played back in the simulation: the
+roughing takes the board down in levels, a smoothing pass takes off the steps, and a 2 mm
+ball nose finishes the boat inside a rim that ramps up to the surface](docs/book/src/images/showcase-relief.gif)
+
+<sub>The relief above: [3DBenchy](https://www.printables.com/model/3161-3d-benchy) by
+Creative Tools (CC0), 150 mm wide and 10 mm deep, roughed with a 6 mm end mill and finished
+with a 2 mm ball nose.</sub>
+
 > **Testers with real machines wanted.** Chipload's programs pass its own checker, and they
 > cut wood on a GRBL router (a Shapeoko), but they haven't yet run on LinuxCNC or Mach3/4,
 > nor in inches. If you have a CNC router or mill, please try it, starting with an air cut,
@@ -24,7 +32,10 @@ simulation shows it in 3D](docs/book/src/images/showcase-text.png)
   written: machine limits, rapids through the stock, retracts, arcs, feeds.
 - **Operations:** profile (spiral, tabs, finishing pass, onion skin, dogbones), pocket
   (islands, spiral rings, rest passes, helical entry), V-carve, follow path, holes (drilled
-  or bored) and surfacing.
+  or bored), surfacing and relief.
+- **Reliefs:** carve a 3D model (STL), a depth-map picture or a logo inflated into rounded
+  shapes, from the top with a ball nose; a rim that ramps up to the surface, roughing in
+  levels and a smoothing pass, all set up in one wizard.
 - **See it before you cut:** a material-removal simulation in 3D, playback, cycle time,
   chip load and a setup sheet for the operator.
 - **Drawings:** several DXFs and SVGs, text in built-in fonts, traced pictures, and shapes

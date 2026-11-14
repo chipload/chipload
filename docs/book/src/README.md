@@ -4,7 +4,8 @@
 
 Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.
 
-- **In:** DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, and
+- **In:** DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
+  models (STL) and depth maps for reliefs, and
   shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
   offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.
 - **Out:** G-code for your controller, in mm or inches, through a post-processor: GRBL,
@@ -15,7 +16,9 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
   - V-carving;
   - follow path;
   - drilled and helically bored holes;
-  - surfacing the stock.
+  - surfacing the stock;
+  - reliefs: a 3D model (STL), a depth-map picture or a picture's shapes inflated, carved
+    from the top, with a rim, roughing and smoothing.
 - **Checked:** every program passes an independent checker before Chipload writes it. The
   checker is separate code that reads the G-code back and refuses rapids through the stock,
   cuts outside the machine, and other mistakes.
@@ -55,7 +58,7 @@ licences of everything it is built with are under *Help > About and licences*, a
 
 Chipload is meant to be lean. It leaves out what other tools do better:
 - nesting parts on a sheet;
-- 3D surface machining;
+- 3D surface machining, beyond [reliefs](drawings/models.md) carved from the top;
 - sending G-code to the machine (use your controller's sender);
 - CAD beyond a few shapes;
 - facing the spoilboard.
