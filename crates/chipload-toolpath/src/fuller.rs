@@ -64,7 +64,7 @@ pub fn fuller(outer: &[Vec<Point>], hull: f64) -> Result<Vec<Vec<Point>>, Toolpa
 }
 
 /// A closed polyline through `points`, lines only.
-fn pline(points: &[Point]) -> Polyline<f64> {
+pub(crate) fn pline(points: &[Point]) -> Polyline<f64> {
     let mut p = Polyline::new_closed();
     for &(x, y) in points {
         p.add(x, y, 0.0);

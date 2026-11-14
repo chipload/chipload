@@ -536,6 +536,24 @@ operations.N.rim.hull=0.5`. Rules: `hull` within 0 to 1 (`job-relief-rim-hull`).
 
 **Schema:** an optional field with a safe default (0: as before), no version bump.
 
+### 16.8 The rim on the canvas
+
+Asked by the user 2026-11-14 ("can the rim outline be shown … so when i increase the fuller
+level in the properties panel i see the result directly without waiting for the
+toolpath"). While a relief with a rim, or one of its passes, is open in Properties, the
+canvas draws its rim's edges as dashed lines in the relief's colour, in top view and 3D:
+- where the relief meets the flat: the outline filled out by *Fuller* (an outline rim
+  only; a box rim's flat starts at the model's own outline), drawn bolder;
+- the flat's outer edge, where the ramp starts;
+- where the ramp reaches the stock top: the edge of everything the relief cuts.
+
+They follow every change of the rim (shape, width, ramp, corner radius, *Fuller*), the
+relief's depth and its outline as it is made, while a slider is dragged, with no toolpath:
+`chipload_toolpath::rim::rim_edges` grows the same base loops (`rim_base`) the relief's
+area is made from, by the flat's width and then the ramp's run (depth / tan ramp), with the
+offsetting the rest of the toolpath uses. Kept until the rim, the depth or the contours
+change. A drawing only: nothing is saved, and the toolpath stays the authority.
+
 ## 17. A smoothing pass
 
 Asked by the user 2026-11-13 ("the roughing of the ramp leaves quite large steps that a

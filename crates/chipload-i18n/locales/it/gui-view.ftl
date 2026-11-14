@@ -14,6 +14,7 @@ view-legend-stock = grezzo
 # Copies of the part laid out in a grid.
 view-legend-copies = copie
 view-legend-mirrored = pezzo specchiato, come lavorato
+view-legend-rim = bordo: contorno riempito, piano, cima della rampa
 view-legend-cutting = movimento di taglio
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = rapido, sopra il grezzo

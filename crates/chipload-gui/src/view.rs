@@ -627,6 +627,9 @@ pub struct Highlight {
     pub followed: BTreeSet<usize>,
 }
 
+/// Closed loops, each with its line width.
+pub type RimLines = Vec<(Vec<Point>, f32)>;
+
 /// Every move as a 3D segment, once the tool's position is known on all three axes.
 type Lines3 = (Vec<(Point3, Point3, bool)>, Vec<usize>);
 
@@ -1044,6 +1047,9 @@ pub struct Scene {
     /// Mirrored parts' contours where they are cut (docs/specs/mirror-part.md §5): drawn
     /// faded, never picked; the shapes as drawn stay to edit.
     pub mirrored: Vec<Vec<Point>>,
+    /// The open relief's rim edges, closed loops, each with its line width, in the
+    /// relief's colour (docs/specs/stl-relief.md §16.8).
+    pub rim: Option<(Color32, RimLines)>,
     /// The material-removal simulation, when shown (docs/specs/simulation.md §4).
     pub sim: Option<SimLayer>,
     /// The project's pictures, when shown (docs/specs/image-trace.md §6).
@@ -1457,6 +1463,15 @@ impl Scene {
             if let Some(c) = self.contours.iter().find(|c| c.id == id) {
                 let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
                 painter.add(Shape::line(screen(&moved), Stroke::new(1.0, pal.ghost)));
+            }
+        }
+        if let Some((color, lines)) = &self.rim {
+            for (line, width) in lines {
+                let mut pts = screen(line);
+                if let Some(&first) = pts.first() {
+                    pts.push(first);
+                }
+                dashed(pts, Stroke::new(*width, *color));
             }
         }
         for outline in &self.mirrored {
@@ -2313,6 +2328,9 @@ pub fn legend(scene: &Scene, lang: &impl Lang) -> Vec<(Swatch, String)> {
     }
     if !scene.mirrored.is_empty() {
         items.push((Swatch::Dashed(pal.ghost), t!(lang, "view-legend-mirrored")));
+    }
+    if let Some((color, _)) = &scene.rim {
+        items.push((Swatch::Dashed(*color), t!(lang, "view-legend-rim")));
     }
     if !scene.corner_markers.is_empty() {
         items.push((Swatch::Corner, t!(lang, "view-legend-corner")));

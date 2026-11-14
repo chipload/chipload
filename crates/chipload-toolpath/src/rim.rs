@@ -12,6 +12,12 @@ use chipload_core::Point;
 use chipload_core::cutter::Cutter;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
+use chipload_core::chain::Contour;
+use chipload_job::{ReliefRim, RimShape};
+
+use crate::ToolpathError;
+use crate::cavalier::{ccw, offset_loops};
+use crate::offset::flatten;
 use crate::relief::{encloses, inside_loops_link, loop_spans};
 
 /// A link between neighbouring lines is tested at this many points inside it.
@@ -269,9 +275,181 @@ impl Ramp {
     }
 }
 
+/// The closed contours' outer loops: each inside an even number of the others. A rim goes
+/// round these; holes are cut to the floor.
+pub fn outer_loops(contours: &[&Contour]) -> Vec<Vec<Point>> {
+    let loops: Vec<Vec<Point>> = contours
+        .iter()
+        .filter(|c| c.closed)
+        .map(|c| c.points())
+        .collect();
+    loops
+        .iter()
+        .enumerate()
+        .filter(|&(i, l)| {
+            let Some(&p) = l.first() else {
+                return false;
+            };
+            let around = loops
+                .iter()
+                .enumerate()
+                .filter(|&(j, other)| j != i && encloses(other, p))
+                .count();
+            around % 2 == 0
+        })
+        .map(|(_, l)| l.clone())
+        .collect()
+}
+
+/// What a rim grows from (spec §16): the loops and how far out from them its flat ends.
+/// An outline rim's loops are the outer loops filled out by *Fuller* (§16.7), the flat its
+/// width; a box rim's are the rectangle round them its corner radius inside the flat's
+/// edge, the flat that radius, so the grown rectangle has rounded corners.
+pub fn rim_base(
+    outer: &[Vec<Point>],
+    rim: &ReliefRim,
+) -> Result<(Vec<Vec<Point>>, f64), ToolpathError> {
+    match rim.shape {
+        RimShape::Outline => Ok((crate::fuller::fuller(outer, rim.hull)?, rim.width)),
+        RimShape::Box => {
+            let corner = rim.corner_radius.clamp(0.0, rim.width.max(0.0));
+            let loops = Area::Loops(outer.to_vec())
+                .bounds()
+                .map_or_else(Vec::new, |(lo, hi)| {
+                    let g = rim.width - corner;
+                    let (x0, y0, x1, y1) = (lo.0 - g, lo.1 - g, hi.0 + g, hi.1 + g);
+                    vec![vec![(x0, y0), (x1, y0), (x1, y1), (x0, y1)]]
+                });
+            Ok((loops, corner))
+        }
+    }
+}
+
+/// A rim's edges as lines on the drawing, for a preview before any toolpath (the user,
+/// 2026-11-14; spec §16.8). Each a list of closed loops.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct RimEdges {
+    /// Where the relief meets the flat: the outline filled out by *Fuller*. Empty for a box
+    /// rim, whose flat starts at the model's own outline.
+    pub inner: Vec<Vec<Point>>,
+    /// The flat's outer edge, where the ramp starts.
+    pub flat: Vec<Vec<Point>>,
+    /// Where the ramp reaches the stock top: the edge of all that is cut.
+    pub top: Vec<Vec<Point>>,
+}
+
+/// The edges of `rim` round the closed `contours` of a relief whose floor is `depth` below
+/// the stock top, as the relief's toolpath makes them (the same base, flat and ramp).
+pub fn rim_edges(
+    contours: &[&Contour],
+    rim: &ReliefRim,
+    depth: f64,
+) -> Result<RimEdges, ToolpathError> {
+    let (base, foot) = rim_base(&outer_loops(contours), rim)?;
+    let tan = rim.ramp.tan();
+    let rise = if tan.is_finite() && tan > 0.0 {
+        depth.max(0.0) / tan
+    } else {
+        0.0
+    };
+    let grown = |d: f64| -> Result<Vec<Vec<Point>>, ToolpathError> {
+        if d.is_nan() || d <= CHAIN_TOL_MM {
+            return Ok(base.clone());
+        }
+        let plines = base
+            .iter()
+            .filter(|l| l.len() >= 3)
+            .map(|l| ccw(crate::fuller::pline(l)));
+        Ok(offset_loops(plines, -d)?
+            .iter()
+            .map(|a| flatten(&a.outer))
+            .filter(|l| l.len() >= 3)
+            .collect())
+    };
+    let inner = match rim.shape {
+        RimShape::Outline => base.clone(),
+        RimShape::Box => Vec::new(),
+    };
+    Ok(RimEdges {
+        inner,
+        flat: grown(foot)?,
+        top: grown(foot + rise)?,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The loops' lowest and highest corners.
+    fn extent(loops: &[Vec<Point>]) -> (Point, Point) {
+        Area::Loops(loops.to_vec()).bounds().unwrap()
+    }
+
+    fn rim(shape: RimShape, width: f64, hull: f64) -> ReliefRim {
+        ReliefRim {
+            shape,
+            width,
+            ramp: std::f64::consts::FRAC_PI_4,
+            corner_radius: 2.0,
+            hull,
+        }
+    }
+
+    #[test]
+    fn an_outline_rims_edges_are_its_flat_and_ramp_grown_round_it() {
+        let c = crate::centre::contour(0, &[(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]);
+        let edges = rim_edges(&[&c], &rim(RimShape::Outline, 5.0, 0.0), 4.0).unwrap();
+        let near = |a: Point, b: Point| (a.0 - b.0).abs() < 1e-6 && (a.1 - b.1).abs() < 1e-6;
+        let (lo, hi) = extent(&edges.inner);
+        assert!(near(lo, (0.0, 0.0)) && near(hi, (10.0, 10.0)));
+        // The flat 5 mm out, the 45° ramp 4 mm further to the top.
+        let (lo, hi) = extent(&edges.flat);
+        assert!(
+            near(lo, (-5.0, -5.0)) && near(hi, (15.0, 15.0)),
+            "{lo:?} {hi:?}"
+        );
+        let (lo, hi) = extent(&edges.top);
+        assert!(
+            near(lo, (-9.0, -9.0)) && near(hi, (19.0, 19.0)),
+            "{lo:?} {hi:?}"
+        );
+    }
+
+    #[test]
+    fn fuller_fills_the_inner_edge_out_to_the_hull() {
+        // An L: its notch filled at hull 1.
+        let l = crate::centre::contour(
+            0,
+            &[
+                (0.0, 0.0),
+                (20.0, 0.0),
+                (20.0, 5.0),
+                (5.0, 5.0),
+                (5.0, 20.0),
+                (0.0, 20.0),
+            ],
+        );
+        let as_is = rim_edges(&[&l], &rim(RimShape::Outline, 5.0, 0.0), 4.0).unwrap();
+        let hull = rim_edges(&[&l], &rim(RimShape::Outline, 5.0, 1.0), 4.0).unwrap();
+        // The notch's corner (5, 5) is outside the L, inside its hull.
+        assert!(!as_is.inner.iter().any(|lp| encloses(lp, (6.0, 6.0))));
+        assert!(hull.inner.iter().any(|lp| encloses(lp, (6.0, 6.0))));
+    }
+
+    #[test]
+    fn a_box_rim_has_no_inner_edge_and_a_flat_its_width_out() {
+        let c = crate::centre::contour(0, &[(0.0, 0.0), (10.0, 0.0), (5.0, 8.0)]);
+        let edges = rim_edges(&[&c], &rim(RimShape::Box, 5.0, 0.0), 0.0).unwrap();
+        assert!(edges.inner.is_empty());
+        let (lo, hi) = extent(&edges.flat);
+        assert!(
+            (lo.0 + 5.0).abs() < 1e-6 && (hi.1 - 13.0).abs() < 1e-6,
+            "{lo:?} {hi:?}"
+        );
+        // No depth: the ramp ends where the flat does.
+        assert_eq!(extent(&edges.top), (lo, hi));
+    }
 
     fn square(half: f64) -> Vec<Vec<Point>> {
         vec![vec![

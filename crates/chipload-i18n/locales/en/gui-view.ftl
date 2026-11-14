@@ -14,6 +14,7 @@ view-legend-stock = stock
 # Copies of the part laid out in a grid.
 view-legend-copies = copies
 view-legend-mirrored = mirrored part, as cut
+view-legend-rim = rim: outline filled out, flat, top of the ramp
 view-legend-cutting = cutting move
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = rapid, above the stock

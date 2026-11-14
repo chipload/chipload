@@ -287,7 +287,11 @@ A new relief has a rim 5 mm round its outline with a 45° ramp. *Relief…* and 
 make the flat wider when there is a roughing pass: its end mill's width and the allowance on
 both sides, rounded up to a whole mm, so the end mill reaches the floor all round the model.
 When a flat is narrower than that, the plan notes it. In the window it is the
-relief's **Rim** section; untick it for none. From the command line:
+relief's **Rim** section; untick it for none. While the relief or one of its passes is open,
+the canvas shows the rim as dashed lines in the relief's colour: the outline as *Fuller*
+fills it out (bolder), the flat's outer edge and where the ramp reaches the top. They
+follow the settings as you change them, without generating the toolpath. From the command
+line:
 
 ```sh
 chipload set sign.chipload 'operations.0.rim={"shape":"box","width":8,"ramp":0.785,"corner_radius":4}'

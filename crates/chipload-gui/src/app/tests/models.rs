@@ -177,6 +177,32 @@ fn model_pictures() {
     harness.run_steps(8);
     let image = harness.render().unwrap();
     image.save(dir.join("model-3d.png")).unwrap();
+    // A relief open: its rim's edges on the canvas, Fuller at its sample's share.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1280.0, 800.0))
+        .wgpu()
+        .build_eframe(move |cc| {
+            open_sections(&cc.egui_ctx);
+            {
+                let mut fonts = crate::fonts::ui_fonts();
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+            }
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            app.open(&corpus("jobs/v36/relief_rim_hull.chipload"));
+            let relief = app.edit.as_ref().and_then(|e| {
+                e.job
+                    .operations
+                    .iter()
+                    .position(|o| matches!(o, chipload_job::Operation::Relief(_)))
+            });
+            app.focus = Focus::Op(relief.unwrap_or(0));
+            app
+        });
+    harness.run_steps(6);
+    let image = harness.render().unwrap();
+    image.save(dir.join("relief-rim.png")).unwrap();
 }
 
 #[test]
@@ -315,6 +341,57 @@ fn a_hidden_model_shows_no_surface() {
     app.toggle_hidden("model:1");
     app.sync_models(false);
     assert_eq!(app.scene.models.len(), 1);
+}
+
+/// The open relief's rim shows on the canvas and follows Fuller at once, before any
+/// toolpath (the user, 2026-11-14; docs/specs/stl-relief.md §16.8).
+#[test]
+fn the_open_reliefs_rim_shows_and_follows_fuller() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/relief_rim_hull.chipload")));
+    let relief = app
+        .edit
+        .as_ref()
+        .unwrap()
+        .job
+        .operations
+        .iter()
+        .position(|o| matches!(o, chipload_job::Operation::Relief(_)))
+        .unwrap();
+    app.focus = Focus::Job;
+    app.sync_rim_preview(false);
+    assert!(app.scene.rim.is_none());
+    app.focus = Focus::Op(relief);
+    let set_hull = |app: &mut ChiploadApp, hull: f64| {
+        if let Some(chipload_job::Operation::Relief(r)) =
+            app.edit.as_mut().unwrap().job.operations.get_mut(relief)
+        {
+            r.rim.as_mut().unwrap().hull = hull;
+        }
+    };
+    let mut lines = Vec::new();
+    for hull in [0.0, 0.5, 1.0] {
+        set_hull(&mut app, hull);
+        let started = std::time::Instant::now();
+        app.sync_rim_preview(false);
+        eprintln!("hull {hull}: {:?}", started.elapsed());
+        let (_, rim) = app.scene.rim.clone().expect("a rim shown");
+        assert!(rim.len() >= 3, "{}", rim.len());
+        lines.push(rim);
+    }
+    assert_ne!(lines[0], lines[2]);
+    // Its passes show it too; a relief without a rim shows none.
+    app.focus = Focus::RoughingPass(relief);
+    app.sync_rim_preview(false);
+    assert!(app.scene.rim.is_some());
+    if let Some(chipload_job::Operation::Relief(r)) =
+        app.edit.as_mut().unwrap().job.operations.get_mut(relief)
+    {
+        r.rim = None;
+    }
+    app.focus = Focus::Op(relief);
+    app.sync_rim_preview(false);
+    assert!(app.scene.rim.is_none());
 }
 
 #[test]

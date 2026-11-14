@@ -188,6 +188,7 @@ impl ChiploadApp {
         // its operations cut; copy 1 is the drawing.
         self.scene.copies = self.copy_shifts();
         self.scene.mirrored = self.mirrored_outlines();
+        self.sync_rim_preview(ui.visuals().dark_mode);
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md). A
         // back is shown on its front's board, in its heights, and a turned board with its
         // other face up (docs/specs/two-sided.md §10.2).

@@ -541,6 +541,65 @@ impl ChiploadApp {
     }
 }
 
+/// The open relief's rim edges on the canvas (docs/specs/stl-relief.md §16.8), and what
+/// they were made from: the rim, the depth and the contours it goes round.
+#[derive(Default)]
+pub(super) struct RimPreview {
+    key: Option<(
+        chipload_job::ReliefRim,
+        u64,
+        Vec<chipload_core::chain::Contour>,
+    )>,
+    edges: chipload_toolpath::rim::RimEdges,
+}
+
+impl ChiploadApp {
+    /// The rim of the relief open in Properties (it or one of its passes) as dashed lines
+    /// on the canvas, following its settings as they change, before any toolpath (the
+    /// user, 2026-11-14). Nothing for any other focus or a relief without a rim.
+    pub(super) fn sync_rim_preview(&mut self, dark: bool) {
+        let relief = match (self.focus, self.edit.as_ref()) {
+            (Focus::Op(i) | Focus::RoughingPass(i) | Focus::SmoothingPass(i), Some(edit)) => {
+                match edit.job.operations.get(i) {
+                    Some(op @ Operation::Relief(r)) => {
+                        r.rim.map(|rim| (op.clone(), rim, r.end_depth))
+                    }
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        let Some((op, rim, depth)) = relief else {
+            self.scene.rim = None;
+            return;
+        };
+        let ids = self.op_contours(&op);
+        let contours: Vec<chipload_core::chain::Contour> = self
+            .contours
+            .iter()
+            .filter(|c| ids.contains(&c.id))
+            .cloned()
+            .collect();
+        let key = Some((rim, depth.to_bits(), contours));
+        if key != self.rim_preview.key {
+            let edges = key
+                .as_ref()
+                .map_or_else(Default::default, |(rim, _, contours)| {
+                    let refs: Vec<&chipload_core::chain::Contour> = contours.iter().collect();
+                    chipload_toolpath::rim::rim_edges(&refs, rim, depth).unwrap_or_default()
+                });
+            self.rim_preview = RimPreview { key, edges };
+        }
+        let edges = &self.rim_preview.edges;
+        // The relief's edge bolder, where Fuller shows; the flat and the ramp's top thin.
+        let mut lines: Vec<(Vec<chipload_core::Point>, f32)> = Vec::new();
+        lines.extend(edges.inner.iter().map(|l| (l.clone(), 1.5)));
+        lines.extend(edges.flat.iter().map(|l| (l.clone(), 1.0)));
+        lines.extend(edges.top.iter().map(|l| (l.clone(), 1.0)));
+        self.scene.rim = Some((crate::style::op_color(OpKind::Relief, dark), lines));
+    }
+}
+
 /// A model's top as a surface on the board whose top is at `top`: its sides go down to
 /// its lowest point, cells with nothing over them are left out.
 fn model_surface(

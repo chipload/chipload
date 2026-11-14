@@ -14,6 +14,7 @@ view-legend-stock = Rohteil
 # Copies of the part laid out in a grid.
 view-legend-copies = Kopien
 view-legend-mirrored = gespiegeltes Teil, wie gefräst
+view-legend-rim = Rand: aufgefüllter Umriss, Fläche, oberer Rand der Rampe
 view-legend-cutting = Schnittbewegung
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = Eilgang, über dem Rohteil

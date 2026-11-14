@@ -446,6 +446,8 @@ pub struct ChiploadApp {
     picture_textures: images::PictureTextures,
     /// The models' faint surfaces in 3D, and what they were made from.
     model_surfaces: models::ModelSurfaces,
+    /// The open relief's rim edges, kept until what they are made from changes.
+    rim_preview: models::RimPreview,
     /// An STL file being read on a worker thread, to be added when read
     /// (docs/specs/relief-wizard.md §2).
     model_reading: Option<models::ModelReading>,
@@ -507,6 +509,7 @@ impl Default for ChiploadApp {
             drawing_hidden: None,
             picture_textures: images::PictureTextures::default(),
             model_surfaces: models::ModelSurfaces::default(),
+            rim_preview: models::RimPreview::default(),
             model_reading: None,
         }
     }

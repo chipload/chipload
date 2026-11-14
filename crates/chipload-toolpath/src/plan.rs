@@ -11,8 +11,8 @@ use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Mirror,
-    Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, RimShape,
-    Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Spindle,
+    SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
@@ -2866,46 +2866,16 @@ fn relief_area(
     floor: f64,
     top: f64,
 ) -> Result<(Area, Option<Ramp>), ToolpathError> {
-    let loops: Vec<Vec<Point>> = contours
-        .iter()
-        .filter(|c| c.closed)
-        .map(|c| c.points())
-        .collect();
     let Some(rim) = rim else {
+        let loops: Vec<Vec<Point>> = contours
+            .iter()
+            .filter(|c| c.closed)
+            .map(|c| c.points())
+            .collect();
         return Ok((Area::Loops(loops), None));
     };
-    // The outer loops: inside an even number of others. Holes are cut to the floor.
-    let outer: Vec<Vec<Point>> = loops
-        .iter()
-        .enumerate()
-        .filter(|&(i, l)| {
-            let Some(&p) = l.first() else {
-                return false;
-            };
-            let around = loops
-                .iter()
-                .enumerate()
-                .filter(|&(j, other)| j != i && crate::relief::encloses(other, p))
-                .count();
-            around % 2 == 0
-        })
-        .map(|(_, l)| l.clone())
-        .collect();
-    let (loops, foot) = match rim.shape {
-        // Filled out towards the hull as asked (spec §16.7).
-        RimShape::Outline => (crate::fuller::fuller(&outer, rim.hull)?, rim.width),
-        // The rectangle the corner radius inside the flat's edge, grown by it again.
-        RimShape::Box => {
-            let area = Area::Loops(outer);
-            let corner = rim.corner_radius.clamp(0.0, rim.width.max(0.0));
-            let loops = area.bounds().map_or_else(Vec::new, |(lo, hi)| {
-                let g = rim.width - corner;
-                let (x0, y0, x1, y1) = (lo.0 - g, lo.1 - g, hi.0 + g, hi.1 + g);
-                vec![vec![(x0, y0), (x1, y0), (x1, y1), (x0, y1)]]
-            });
-            (loops, corner)
-        }
-    };
+    // Holes are cut to the floor; the rim goes round the outer loops.
+    let (loops, foot) = crate::rim::rim_base(&crate::rim::outer_loops(contours), rim)?;
     let ramp = Ramp {
         loops: loops.clone(),
         foot,

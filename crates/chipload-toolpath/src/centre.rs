@@ -182,7 +182,7 @@ fn tidy(graph: &mut Graph, outline: &Outline, allowance: impl Fn(f64) -> f64) {
 }
 
 /// A closed ring of points as a contour of lines.
-fn contour(id: usize, ring: &[Point]) -> Contour {
+pub(crate) fn contour(id: usize, ring: &[Point]) -> Contour {
     let n = ring.len();
     let parts = (0..n)
         .map(|k| OrientedSegment {

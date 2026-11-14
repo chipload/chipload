@@ -14,6 +14,7 @@ view-legend-stock = brut
 # Copies of the part laid out in a grid.
 view-legend-copies = copies
 view-legend-mirrored = pièce en miroir, telle qu’usinée
+view-legend-rim = bord : contour rempli, plat, haut de la rampe
 view-legend-cutting = mouvement de coupe
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = déplacement rapide, au-dessus du brut

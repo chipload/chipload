@@ -14,6 +14,7 @@ view-legend-stock = ämne
 # Copies of the part laid out in a grid.
 view-legend-copies = kopior
 view-legend-mirrored = spegelvänd del, som den fräses
+view-legend-rim = kant: utfylld kontur, plan, rampens överkant
 view-legend-cutting = skärande rörelse
 # A rapid move: the tool travels fast above the material.
 view-legend-rapid = snabbförflyttning, ovanför ämnet
