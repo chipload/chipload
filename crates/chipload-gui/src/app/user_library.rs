@@ -644,6 +644,7 @@ impl ChiploadApp {
         self.prefs.show_rulers = settings.show_rulers;
         self.prefs.reverse_orbit = settings.reverse_orbit;
         self.prefs.new_project = settings.new_project;
+        self.prefs.exports = settings.exports;
         self.prefs.units = settings.units;
         self.show_in(crate::i18n::resolve(&settings.language));
         self.prefs.language_setting = settings.language;
@@ -707,10 +708,13 @@ impl ChiploadApp {
         let path = chipload_pipeline::library::settings_path(&dir);
         let result = update_settings(&path, |settings| {
             change(settings);
-            Ok(settings.recent_projects.clone())
+            Ok((settings.recent_projects.clone(), settings.exports.clone()))
         });
         match result {
-            Ok(recent) => self.prefs.recent = recent,
+            Ok((recent, exports)) => {
+                self.prefs.recent = recent;
+                self.prefs.exports = exports;
+            }
             Err(err) => {
                 let status = t!(
                     self,

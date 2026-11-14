@@ -32,6 +32,9 @@ pub struct Prefs {
     pub recent: Vec<String>,
     /// What the last project was started with (docs/specs/new-project-dialog.md §4).
     pub new_project: Option<chipload_job::library::NewProject>,
+    /// The G-code file each recent project was last exported to, so Ctrl+E writes there
+    /// again (docs/specs/fewer-clicks.md §5).
+    pub exports: std::collections::BTreeMap<String, String>,
 }
 
 impl Default for Prefs {
@@ -49,6 +52,7 @@ impl Default for Prefs {
             applied_theme: None,
             recent: Vec::new(),
             new_project: None,
+            exports: std::collections::BTreeMap::new(),
         }
     }
 }

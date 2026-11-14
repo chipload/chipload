@@ -119,10 +119,40 @@ impl ChiploadApp {
             self.error(vec![t!(self, "app-generate-before-export")]);
             return;
         }
-        let suggested = self.default_export_path();
-        if let Some(path) = save_dialog(&suggested, "G-code", "nc") {
+        let asks = std::mem::take(&mut self.toolpath.export_asks);
+        if !asks && let Some(path) = self.remembered_export() {
             self.export_gcode(&path);
+            return;
         }
+        let suggested = self
+            .remembered_export()
+            .unwrap_or_else(|| self.default_export_path());
+        if let Some(path) = save_dialog(&suggested, "G-code", "nc") {
+            self.export_and_remember(&path);
+        }
+    }
+
+    /// Export to `path` and, when written, remember it as the project's export file, so
+    /// the next Ctrl+E writes there without asking (docs/specs/fewer-clicks.md §5). An
+    /// untitled project remembers nothing.
+    pub fn export_and_remember(&mut self, path: &Path) -> bool {
+        if !self.export_gcode(path) {
+            return false;
+        }
+        if let Some(project) = self.file.path.as_ref().map(|p| p.display().to_string()) {
+            let gcode = path.display().to_string();
+            self.prefs.exports.insert(project.clone(), gcode.clone());
+            self.change_settings(|settings| settings.set_export(&project, &gcode));
+        }
+        true
+    }
+
+    /// The file the saved project was last exported to, while its folder is there.
+    pub(super) fn remembered_export(&self) -> Option<PathBuf> {
+        let project = self.file.path.as_ref()?.display().to_string();
+        let path = PathBuf::from(self.prefs.exports.get(&project)?);
+        let folder = path.parent()?;
+        (folder.as_os_str().is_empty() || folder.is_dir()).then_some(path)
     }
 
     /// A part's right-click menu: *Export G-code of this part…* (docs/specs/part-export.md).
@@ -610,7 +640,7 @@ impl ChiploadApp {
                 self.save_project(&path);
             }
             PathPurpose::Export => {
-                self.export_gcode(&path);
+                self.export_and_remember(&path);
             }
             PathPurpose::ExportDxf => {
                 self.export_dxf(&path);

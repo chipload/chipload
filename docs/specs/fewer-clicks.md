@@ -1,7 +1,8 @@
 # Fewer clicks for the usual job
 
-Status: **draft for review** (2026-11-14; TODO *Next* item 1, the user: "prioritize
-usability improvements and a streamlined, quick and efficient workflow").
+Status: **approved 2026-11-14**, every decision as recommended (TODO *Next* item 1, the
+user: "prioritize usability improvements and a streamlined, quick and efficient
+workflow"). §5 built first.
 
 ## 1. The usual job today
 
@@ -106,12 +107,17 @@ As Save and Save as work:
 
 - **Ctrl+E**, the first time for a project, asks where to write, as today. After that it
   writes to the same file again without asking, and the status bar says "Exported
-  part.nc" (with the folder in its hover). The setup sheet beside it is written again
+  /path/to/part.nc", as every export does. The setup sheet beside it is written again
   too, when that setting is on.
 - **Ctrl+Shift+E**, *File > Export G-code as…*, always asks.
-- The file is remembered per project in the app settings, beside the project in the
-  recent-projects list (`recent[].export`, optional; settings stay version 3). An untitled
-  project always asks. A remembered file whose folder is gone asks again.
+- The file is remembered per project in the app settings, for the projects in the
+  recent-projects list: `exports`, a map from the project's path to the G-code file's,
+  left out while empty, so settings stay version 3 (a Chipload older than this starts with
+  default settings once this one has saved one, as for `new_project`). A project that
+  leaves the recent list forgets its file. An untitled project always asks. A remembered
+  file whose folder is gone asks again, and the dialog suggests the remembered file.
+- *File > Export G-code* loses its "…", as Save has none; the menu gains *Export G-code
+  as…*.
 - Export by part or by setup (part-export.md) keeps asking: each is a different file.
 
 ## 6. Not here

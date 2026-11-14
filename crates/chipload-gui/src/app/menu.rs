@@ -210,6 +210,15 @@ impl ChiploadApp {
             self.export_when_ready();
         }
         if ui
+            .add_enabled(
+                has_result || self.generating(),
+                egui::Button::new(with_keys(&t!(ui, "menu-export-as"), Action::ExportAs)),
+            )
+            .clicked()
+        {
+            self.export_as_when_ready();
+        }
+        if ui
             .add_enabled(has_result, egui::Button::new(t!(ui, "menu-export-path")))
             .clicked()
         {

@@ -16,6 +16,7 @@ pub(super) enum Action {
     Save,
     SaveAs,
     Export,
+    ExportAs,
     Quit,
     Undo,
     Redo,
@@ -105,6 +106,7 @@ const CTRL_SHIFT: Modifiers = Modifiers::COMMAND.plus(Modifiers::SHIFT);
 pub(super) const BINDINGS: &[Binding] = &[
     bind(Action::CopySelector, CTRL_SHIFT, Key::C, Group::Edit),
     bind(Action::SaveAs, CTRL_SHIFT, Key::S, Group::File),
+    bind(Action::ExportAs, CTRL_SHIFT, Key::E, Group::File),
     bind(Action::Redo, CTRL_SHIFT, Key::Z, Group::Edit),
     bind(Action::Ungroup, CTRL_SHIFT, Key::G, Group::Drawing),
     bind(Action::Group, CTRL, Key::G, Group::Drawing),
@@ -173,6 +175,7 @@ pub(super) fn what(action: Action, src: &impl crate::i18n::Lang) -> String {
         Action::Import => t!(src, "shortcuts-import"),
         Action::Save => t!(src, "shortcuts-save"),
         Action::Export => t!(src, "shortcuts-export"),
+        Action::ExportAs => t!(src, "shortcuts-export-as"),
         Action::Quit => t!(src, "shortcuts-quit"),
         Action::Undo => t!(src, "shortcuts-undo"),
         Action::MoveUp => t!(src, "shortcuts-move-up"),
@@ -359,6 +362,7 @@ impl ChiploadApp {
                 self.ask_save(true);
             }
             Action::Export => self.export_when_ready(),
+            Action::ExportAs => self.export_as_when_ready(),
             Action::Quit => ctx.send_viewport_cmd(ViewportCommand::Close),
             Action::Undo => self.undo(),
             Action::Redo => self.redo(),

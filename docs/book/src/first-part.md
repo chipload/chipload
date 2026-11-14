@@ -42,8 +42,12 @@ outside profile. The same steps follow in the app and on the command line.
 6. **Look at it:** **3D** shows the toolpath at its real depths. **Simulate** (F6) shows
    the stock as cut, and the slider under the canvas plays the program back; F6 again goes
    back to editing.
-7. **Export:** *File > Export G-code…* (Ctrl+E).
+7. **Export:** *File > Export G-code* (Ctrl+E).
    - You can only export once the [checker](#the-checker) has passed the program.
+   - The first time, it asks where to write. After that, Ctrl+E writes the same file again
+     without asking, as Ctrl+S saves, so a changed depth is one key away from the machine.
+     The project remembers its file for next time. *File > Export G-code as…*
+     (Ctrl+Shift+E) always asks.
    - Next to the G-code comes a setup sheet (`part-sheet.html`) for the operator: stock,
      zero, tools in order, operations and times.
 8. **Save the project:** Ctrl+S. A project (`.chipload`) keeps the drawing itself, so the DXF

@@ -564,6 +564,18 @@ impl ChiploadApp {
     /// Export G-code: now if the toolpath is current, else once the run in progress (or one
     /// started for it) has finished.
     pub(super) fn export_when_ready(&mut self) {
+        self.toolpath.export_asks = false;
+        self.export_now_or_when_planned();
+    }
+
+    /// *Export G-code as…* (Ctrl+Shift+E): as Ctrl+E, but always asks where to write
+    /// (docs/specs/fewer-clicks.md §5).
+    pub(super) fn export_as_when_ready(&mut self) {
+        self.toolpath.export_asks = true;
+        self.export_now_or_when_planned();
+    }
+
+    fn export_now_or_when_planned(&mut self) {
         // An export is always of every part that is cut: a preview of one part is planned
         // again whole first (docs/specs/active-part-preview.md §2).
         let whole = self.toolpath.result.is_some() && self.toolpath.part.is_none();
@@ -675,6 +687,9 @@ pub struct Toolpath {
     pub(super) shown_inputs: Option<chipload_pipeline::CutInputs>,
     /// Export G-code once the run in progress has finished (Ctrl+E while generating).
     pub(super) export_when_done: bool,
+    /// The export waiting for it asks where to write even when the project remembers a
+    /// file (*Export G-code as…*).
+    pub(super) export_asks: bool,
     /// Where to export once the run in progress, of every part, is done.
     pub(super) export_path_when_done: Option<PathBuf>,
     /// Export part `id` to this path once it is planned (docs/specs/part-export.md §4).
@@ -702,6 +717,7 @@ impl Default for Toolpath {
             changed_at: None,
             shown_inputs: None,
             export_when_done: false,
+            export_asks: false,
             export_path_when_done: None,
             export_part_when_done: None,
             undo_if_refused: None,

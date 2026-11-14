@@ -1,7 +1,7 @@
 # Pockets: a finishing pass
 
-Status: **draft for review** (2026-11-14; TODO *Next* item 9, from the gap review of
-2026-11-03; the user chose it for 0.37.0).
+Status: **approved 2026-11-14**, every decision as recommended (TODO *Next* item 9, from
+the gap review of 2026-11-03; the user chose it for 0.37.0).
 
 ## 1. What it is for
 

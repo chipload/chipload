@@ -86,9 +86,9 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
-1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **draft for
-   review, on hold** (2026-11-14, chosen for 0.37.0; the user: "wait with these", the new
-   project dialog first): a Q menu at the cursor (kinds by letter,
+1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
+   2026-11-14** (chosen for 0.37.0; Ctrl+E like Save built, see *In main*; next the Q menu,
+   then select similar/inside, then layer rules): a Q menu at the cursor (kinds by letter,
    styles by digit), select similar / select inside, layer rules as styles with a layer
    pattern, Ctrl+E like Save; six decisions. Automatic generation is already on by
    default. What the first look listed:
@@ -162,7 +162,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    pocket, cutting boards). **Done**, merged into main 2026-11-09 (docs/specs/two-sided.md;
    see *Done*).
 9. **Pockets: a finishing pass** (the gap review of 2026-11-03; chosen for 0.37.0). Spec
-   docs/specs/pocket-finish.md, **draft for review, on hold** (2026-11-14): `finish {wall, floor}`
+   docs/specs/pocket-finish.md, **approved 2026-11-14**, built after item 1: `finish {wall, floor}`
    on a pocket, roughing then floor then a full-depth wall lap per piece, bones cut by the
    roughing, refused where too narrow to rough; eight decisions.
 10. **First-run setup** (the gap review of 2026-11-03, and what the new defaults left): on
@@ -296,6 +296,10 @@ Smaller follow-ups noted along the way, not in the order above:
   get an optional `thickness` (`material set --thickness`); `new`/`import` take
   `--material/--no-material/--thickness/--size/--fit/--z-zero/--tools`
   (`library::start_project`, `apply_library` its default case).
+- **Ctrl+E like Save** (docs/specs/fewer-clicks.md §5, approved 2026-11-14): the first
+  export of a project asks, then Ctrl+E writes the same file again without asking;
+  *Export G-code as…* (Ctrl+Shift+E) always asks; `settings.json` `exports` (optional)
+  keeps each recent project's file.
 
 ### In 0.36.0 (published 2026-11-14, guide published)
 

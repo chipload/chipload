@@ -6,6 +6,7 @@
 //! Loading follows the job rules: one function per format, older versions migrated, missing,
 //! malformed or newer versions refused. A missing file is an empty library.
 
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use chipload_i18n::{Digits, Message, Value as I18nValue};
@@ -904,6 +905,11 @@ pub struct AppSettings {
     /// then.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub new_project: Option<NewProject>,
+    /// The G-code file each recent project was last exported to, so Ctrl+E writes there
+    /// again without asking (docs/specs/fewer-clicks.md §5): project path to G-code path,
+    /// only for projects in `recent_projects`. Missing: none; left out then.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub exports: BTreeMap<String, String>,
 }
 
 /// The new project dialog's choices (docs/specs/new-project-dialog.md §2, §4): the library's
@@ -970,6 +976,7 @@ impl Default for AppSettings {
             update_skipped: None,
             recent_fonts: Vec::new(),
             new_project: None,
+            exports: BTreeMap::new(),
         }
     }
 }
@@ -977,13 +984,32 @@ impl Default for AppSettings {
 impl AppSettings {
     /// Put a project at the top of the recent list (moving it if it is there already).
     pub fn add_recent(&mut self, path: &str) {
-        self.remove_recent(path);
+        self.recent_projects.retain(|p| p != path);
         self.recent_projects.insert(0, path.to_string());
         self.recent_projects.truncate(RECENT_MAX);
+        self.forget_exports_of_old_projects();
     }
 
     pub fn remove_recent(&mut self, path: &str) {
         self.recent_projects.retain(|p| p != path);
+        self.forget_exports_of_old_projects();
+    }
+
+    /// Remember the G-code file a project was exported to (docs/specs/fewer-clicks.md §5).
+    /// The project goes to the top of the recent list too, as only recent projects keep one.
+    pub fn set_export(&mut self, project: &str, gcode: &str) {
+        self.add_recent(project);
+        self.exports.insert(project.to_string(), gcode.to_string());
+    }
+
+    /// The G-code file a project was last exported to, if remembered.
+    pub fn export_of(&self, project: &str) -> Option<&str> {
+        self.exports.get(project).map(String::as_str)
+    }
+
+    fn forget_exports_of_old_projects(&mut self) {
+        let recent = &self.recent_projects;
+        self.exports.retain(|project, _| recent.contains(project));
     }
 
     /// Put a font at the top of the recently used fonts (moving it if it is there already).
@@ -1024,6 +1050,16 @@ impl AppSettings {
             }
             if recent[..i].contains(path) {
                 problems.push(format!("recent_projects.{i}: \"{path}\" is listed twice"));
+            }
+        }
+        for (project, gcode) in &self.exports {
+            if !recent.contains(project) {
+                problems.push(format!(
+                    "exports.{project}: only a recent project keeps its export file"
+                ));
+            }
+            if gcode.trim().is_empty() {
+                problems.push(format!("exports.{project}: must not be empty"));
             }
         }
         problems
