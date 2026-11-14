@@ -209,6 +209,10 @@ job-on-line-finish = un contorneado sobre la línea no tiene pared que acabar; u
 job-skin-above-step-down = debe ser como máximo la profundidad de pasada ({ $step_down }), es { $got }
 job-skin-above-cut = debe ser menor que el corte ({ $cut }, prof. final menos prof. inicial), es { $got }
 job-skin-above-tabs = debe ser menor que la altura de los puentes ({ $height }), es { $got }
+job-pocket-finish-negative = debe ser 0 o más, es { $got }
+job-pocket-finish-zero = no deja nada que acabar: da una sobremedida a las paredes o al fondo
+job-pocket-finish-through = un vaciado pasante no tiene fondo que acabar: pon la sobremedida del fondo a 0
+job-pocket-finish-rest = un vaciado de restos ya es un repaso ligero y no lleva pasada de acabado
 
 ## Lists
 

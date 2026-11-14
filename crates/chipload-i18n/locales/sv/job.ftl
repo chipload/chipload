@@ -209,6 +209,10 @@ job-on-line-finish = en konturfräsning på linjen har ingen vägg att finbearbe
 job-skin-above-step-down = måste vara högst skärdjupet ({ $step_down }), fick { $got }
 job-skin-above-cut = måste vara mindre än fräsdjupet ({ $cut }, slutdjup minus startdjup), fick { $got }
 job-skin-above-tabs = måste vara mindre än bryggornas höjd ({ $height }), fick { $got }
+job-pocket-finish-negative = måste vara 0 eller mer, fick { $got }
+job-pocket-finish-zero = lämnar inget att finbearbeta: ge väggarna eller botten en tilläggsmån
+job-pocket-finish-through = en genomgående ficka har ingen botten att finbearbeta: sätt bottnens tilläggsmån till 0
+job-pocket-finish-rest = en restficka är redan en lätt efterbearbetning och får inget finbearbetningspass
 
 ## Lists
 

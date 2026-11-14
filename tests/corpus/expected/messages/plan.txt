@@ -984,6 +984,27 @@ Tool group 2: tool 2, operations 1
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/pocket_finish.chipload
+exit 0
+--- stdout
+warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 1 (Finished pocket): contours #1, #2, #3: no room for a helix (its way to the first path passes a wall or island); ramping in instead
+Operation 1: a ring starts at (75.000, 94.800) (start point 1)
+Operation 1: a ring starts at (114.996, 81.252) (default)
+Operation 1: a ring starts at (106.460, 43.365) (default)
+Operation 2: a ring starts at (100.176, 123.999) (start point 1)
+Estimated time: 10 min 53 s (cutting 10 min 26 s, rapids 24 s, spindle 3 s)
+Cut outline: 144.665 × 112.221 mm (X 27.667 … 172.333, Y 23.889 … 136.110, the tool included): the smallest stock that holds the job.
+  Operation 1 (Finished pocket): 9 min 50 s; cutting 10.8 m, plunging 179 mm, rapids 2.0 m, 35 lifts
+  Operation 2 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 88 mm, 1 lift
+  In all: cutting 12.6 m, plunging 180 mm, rapids 2.0 m, 36 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Finished pocket): 0.033 mm/tooth
+  Operation 2 (Outline): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/relief_box_rough.chipload
 exit 0
 --- stdout

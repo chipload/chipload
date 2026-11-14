@@ -911,6 +911,18 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
             parts.push(Message::new("sheet-skin").arg("thickness", len_u(skin.thickness)));
         }
     }
+    // docs/specs/pocket-finish.md §6: "finishing: walls 0.3 mm, floor 0.2 mm".
+    if let Operation::Pocket(PocketOp {
+        finish: Some(finish),
+        ..
+    }) = op
+    {
+        parts.push(
+            Message::new("sheet-pocket-finish")
+                .arg("wall", len_u(finish.wall))
+                .arg("floor", len_u(finish.floor)),
+        );
+    }
     listed(w, &parts)
 }
 

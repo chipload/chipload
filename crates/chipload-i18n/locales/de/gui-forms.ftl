@@ -210,6 +210,14 @@ forms-finishing-lap = Schlichtumlauf
 forms-finishing-disabled = Eine Kontur auf der Linie hat keine Wand zum Schlichten
 # The material left on the wall for the finishing lap.
 forms-finish-stock = Aufmaß
+forms-pocket-finish-summary = Wände { $wall }, Boden { $floor }
+forms-pocket-finish-hover = Mit etwas Aufmaß an Wänden und Boden schruppen, dann es abnehmen: ein ebener Gang über den Boden und eine Runde an jeder Wand auf voller Tiefe. Sauberere Wände ohne Stufen und ein genaues Maß für eine Passung.
+forms-pocket-finish-tick = schruppen, dann schlichten
+forms-pocket-finish-rest = Eine Resttasche ist schon ein leichtes Nacharbeiten
+forms-pocket-finish-wall = Wandaufmaß
+forms-pocket-finish-wall-hover = An jeder Wand gelassen, auch an Inseln, für die Runde auf voller Tiefe
+forms-pocket-finish-floor = Bodenaufmaß
+forms-pocket-finish-floor-hover = Über der Endtiefe gelassen, für einen ebenen Gang über den Boden; höchstens die Zustellung. Eine durchgehende Tasche hat keinen Boden: 0
 
 # A pocket's lead-in and lead-out.
 forms-lead = Anfahrt

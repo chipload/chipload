@@ -132,6 +132,8 @@ toolpath-tabs-on-curves = alcuni ponticelli sui contorni { $contours } cadono su
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
 toolpath-tabs-joined = i ponticelli { $pairs } si toccano sotto la sommità (fianchi a { $flank }°): tengono come un unico ponticello più lungo
 toolpath-finish-lap-cuts = il giro di finitura taglia fino a { $most } negli angoli o nelle parti strette (sovrametallo di finitura { $stock })
+toolpath-pocket-finish-narrow = la tasca è troppo stretta vicino a { $at } per sgrossare lasciando { $wall } sulle pareti: riduci il sovrametallo delle pareti o usa un utensile più piccolo
+toolpath-pocket-finish-roughing = sgrossatura lasciando { $wall } sulle pareti
 # $style is the operation's corner style.
 toolpath-corner-unreached = angolo in { $point }: l'utensile non riesce a entrarci; { $style ->
     [dogbone] nessun dogbone

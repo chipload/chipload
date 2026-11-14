@@ -132,6 +132,8 @@ toolpath-tabs-on-curves = några bryggor på konturerna { $contours } sitter på
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
 toolpath-tabs-joined = bryggorna { $pairs } möts under sin topp (flanker på { $flank }°): de håller som en längre brygga
 toolpath-finish-lap-cuts = finskärsvarvet fräser upp till { $most } i hörn eller smala delar (kvar för finskär { $stock })
+toolpath-pocket-finish-narrow = fickan är för smal vid { $at } för att grovbearbetas med { $wall } kvar på väggarna: minska väggens tilläggsmån eller använd ett mindre verktyg
+toolpath-pocket-finish-roughing = grovbearbetning med { $wall } kvar på väggarna
 # $style is the operation's corner style.
 toolpath-corner-unreached = hörn vid { $point }: verktyget når inte in i det; { $style ->
     [dogbone] ingen dogbone

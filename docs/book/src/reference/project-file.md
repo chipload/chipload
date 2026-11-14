@@ -446,6 +446,7 @@ One of: `"z"`, `"y"`, `"x"`, `"-z"`, `"-y"`, `"-x"`.
 | `end_depth` | number | yes | Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within `stock.max_overcut`. |
 | `entry` | [Entry](#entry) | no | How the tool goes down at the start of each pass: `plunge` (straight down; needs a centre-cutting tool) or `ramp` along the path; pockets also `helix`. Missing: plunge. |
 | `feed` | number | yes | The cutting feed, mm/min. |
+| `finish` | [PocketFinish](#pocketfinish) or null | no | A finishing pass: the roughing leaves `wall` mm on the walls and `floor` mm on the floor, then one level pass takes the floor and one lap each wall. Null: none. Left out when none. |
 | `lead` | [Lead](#lead) or null | no | A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none. |
 | `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
@@ -628,6 +629,15 @@ A V-carve inlay's plug (docs/specs/vcarve-inlay.md §2.2).
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `start_depth` | number | yes | Where the outline is taken, mm down from the stock top: more than the operation's start depth, less than its end depth. The end depth less this is the glue gap. |
+
+## PocketFinish
+
+A finishing pass on a pocket.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `floor` | number | yes | Left above the end depth by the roughing, mm: 0 or more, at most the step down, less than the cut; 0 on a pocket cut through. |
+| `wall` | number | yes | Left on every wall by the roughing, mm: 0 or more, less than the tool radius. |
 
 ## Register
 

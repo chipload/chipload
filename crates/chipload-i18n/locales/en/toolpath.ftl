@@ -132,6 +132,9 @@ toolpath-tabs-on-curves = some tabs on contours { $contours } sit on a corner or
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
 toolpath-tabs-joined = tabs { $pairs } meet below their top (flanks at { $flank }°): they hold as one longer tab
 toolpath-finish-lap-cuts = the finishing lap cuts up to { $most } in corners or narrow parts (finishing stock { $stock })
+# A pocket's finishing pass (docs/specs/pocket-finish.md §5); $at is a point.
+toolpath-pocket-finish-narrow = the pocket is too narrow near { $at } to rough with { $wall } left on the walls: lower the wall allowance, or use a smaller tool
+toolpath-pocket-finish-roughing = roughing with { $wall } left on the walls
 # $style is the operation's corner style.
 toolpath-corner-unreached = corner at { $point }: the tool can't reach into it; { $style ->
     [dogbone] no dogbone

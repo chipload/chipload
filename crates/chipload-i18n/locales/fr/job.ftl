@@ -209,6 +209,10 @@ job-on-line-finish = un contour sur la ligne n'a pas de paroi à finir ; utilise
 job-skin-above-step-down = doit être au plus la profondeur de passe ({ $step_down }), reçu { $got }
 job-skin-above-cut = doit être inférieure à la coupe ({ $cut }, profondeur finale moins profondeur de départ), reçu { $got }
 job-skin-above-tabs = doit être inférieure à la hauteur des attaches ({ $height }), reçu { $got }
+job-pocket-finish-negative = doit être 0 ou plus, reçu { $got }
+job-pocket-finish-zero = ne laisse rien à finir : donnez une surépaisseur aux parois ou au fond
+job-pocket-finish-through = une poche débouchante n'a pas de fond à finir : mettez la surépaisseur du fond à 0
+job-pocket-finish-rest = une poche de reprise est déjà une reprise légère et ne prend pas de passe de finition
 
 ## Lists
 

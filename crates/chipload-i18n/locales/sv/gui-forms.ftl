@@ -210,6 +210,14 @@ forms-finishing-lap = finskärsvarv
 forms-finishing-disabled = En konturfräsning på linjen har ingen vägg att finbearbeta
 # The material left on the wall for the finishing lap.
 forms-finish-stock = kvar
+forms-pocket-finish-summary = väggar { $wall }, botten { $floor }
+forms-pocket-finish-hover = Grovbearbeta med lite kvar på väggarna och botten och ta sedan bort det: ett plant pass över botten och ett varv runt varje vägg på full djup. Renare väggar utan trappsteg och ett exakt mått för en passning.
+forms-pocket-finish-tick = grovbearbeta, sedan finbearbeta
+forms-pocket-finish-rest = En restficka är redan en lätt efterbearbetning
+forms-pocket-finish-wall = Väggens tilläggsmån
+forms-pocket-finish-wall-hover = Lämnas på varje vägg, öar också, för varvet på full djup
+forms-pocket-finish-floor = Bottnens tilläggsmån
+forms-pocket-finish-floor-hover = Lämnas ovanför slutdjupet, för ett plant pass över botten; högst skärdjupet. En genomgående ficka har ingen botten: 0
 
 # A pocket's lead-in and lead-out.
 forms-lead = Inkörning

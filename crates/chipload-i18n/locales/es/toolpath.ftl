@@ -132,6 +132,8 @@ toolpath-tabs-on-curves = algunos puentes en los contornos { $contours } quedan 
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
 toolpath-tabs-joined = los puentes { $pairs } se juntan por debajo de su cara superior (flancos a { $flank }°): sujetan como un solo puente más largo
 toolpath-finish-lap-cuts = la vuelta de acabado corta hasta { $most } en esquinas o partes estrechas (sobrematerial de acabado { $stock })
+toolpath-pocket-finish-narrow = el vaciado es demasiado estrecho cerca de { $at } para desbastar dejando { $wall } en las paredes: baja la sobremedida de las paredes o usa una herramienta más pequeña
+toolpath-pocket-finish-roughing = desbaste dejando { $wall } en las paredes
 # $style is the operation's corner style.
 toolpath-corner-unreached = esquina en { $point }: la herramienta no llega a ella; { $style ->
     [dogbone] sin dogbone

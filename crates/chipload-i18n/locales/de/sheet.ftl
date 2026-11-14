@@ -157,6 +157,7 @@ sheet-one-pass = ein Durchgang
 sheet-passes = { $count } Durchgänge
 sheet-finish = Schlichten, Aufmaß { $stock }
 sheet-skin = Restschicht { $thickness }
+sheet-pocket-finish = Schlichten: Wände { $wall }, Boden { $floor }
 # The entry column.
 sheet-entry-beside = neben dem Rohteil hinunter
 sheet-entry-straight = senkrecht hinunter

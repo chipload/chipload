@@ -209,6 +209,10 @@ job-on-line-finish = eine Kontur auf der Linie hat keine Wand zum Schlichten; ve
 job-skin-above-step-down = muss höchstens die Zustellung ({ $step_down }) sein, ist { $got }
 job-skin-above-cut = muss kleiner als die Schnitttiefe ({ $cut }, Endtiefe minus Starttiefe) sein, ist { $got }
 job-skin-above-tabs = muss kleiner als die Höhe der Haltestege ({ $height }) sein, ist { $got }
+job-pocket-finish-negative = muss 0 oder mehr sein, ist { $got }
+job-pocket-finish-zero = lässt nichts zum Schlichten übrig: geben Sie den Wänden oder dem Boden ein Aufmaß
+job-pocket-finish-through = eine durchgehende Tasche hat keinen Boden zum Schlichten: setzen Sie das Bodenaufmaß auf 0
+job-pocket-finish-rest = eine Resttasche ist schon ein leichtes Nacharbeiten und bekommt keinen Schlichtgang
 
 ## Lists
 

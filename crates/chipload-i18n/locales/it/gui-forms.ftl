@@ -210,6 +210,14 @@ forms-finishing-lap = giro di finitura
 forms-finishing-disabled = Una contornatura sulla linea non ha pareti da rifinire
 # The material left on the wall for the finishing lap.
 forms-finish-stock = sovrametallo
+forms-pocket-finish-summary = pareti { $wall }, fondo { $floor }
+forms-pocket-finish-hover = Sgrossa lasciando un po' sulle pareti e sul fondo, poi toglilo: una passata in piano sul fondo e un giro di ogni parete a piena profondità. Pareti più pulite senza gradini e una misura esatta per un accoppiamento.
+forms-pocket-finish-tick = sgrossare, poi rifinire
+forms-pocket-finish-rest = Una tasca di ripresa è già una ripassata leggera
+forms-pocket-finish-wall = Sovrametallo pareti
+forms-pocket-finish-wall-hover = Lasciato su ogni parete, anche sulle isole, per il giro a piena profondità
+forms-pocket-finish-floor = Sovrametallo fondo
+forms-pocket-finish-floor-hover = Lasciato sopra la profondità finale, per una passata in piano sul fondo; al massimo la profondità di passata. Una tasca passante non ha fondo: 0
 
 # A pocket's lead-in and lead-out.
 forms-lead = Raccordo

@@ -1033,6 +1033,33 @@ pub struct PocketOp {
     // Spec: docs/specs/rest-passes.md.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rest_passes: Vec<ClearingPass>,
+    /// A finishing pass: the roughing leaves `wall` mm on the walls and `floor` mm on the
+    /// floor, then one level pass takes the floor and one lap each wall. Null: none. Left out
+    /// when none.
+    // Spec: docs/specs/pocket-finish.md (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub finish: Option<PocketFinish>,
+}
+
+/// A finishing pass on a pocket.
+// Spec: docs/specs/pocket-finish.md §2.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct PocketFinish {
+    /// Left on every wall by the roughing, mm: 0 or more, less than the tool radius.
+    pub wall: f64,
+    /// Left above the end depth by the roughing, mm: 0 or more, at most the step down, less
+    /// than the cut; 0 on a pocket cut through.
+    pub floor: f64,
+}
+
+impl PocketFinish {
+    /// The allowances a ticked *Finishing pass* starts at (docs/specs/pocket-finish.md §6).
+    pub const DEFAULT: PocketFinish = PocketFinish {
+        wall: 0.3,
+        floor: 0.2,
+    };
 }
 
 /// A clearing pass with its own end mill, inside an operation's shapes and depths: a

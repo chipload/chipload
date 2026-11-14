@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 73] = [
+const GOLDEN: [(&str, &str); 74] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -193,6 +193,9 @@ const GOLDEN: [(&str, &str); 73] = [
     // right about its box's centre line, planned with the cutting sense turned so the
     // pocket stays conventional and the profiles climb. Made with `part set --mirror`.
     ("v36_mirrored_part", "jobs/v36/mirrored_part.chipload"),
+    // v14_round_corners' pocket (two islands, leads, a moved start) with dogbones and a
+    // finishing pass: walls 0.3 mm, floor 0.2 mm (docs/specs/pocket-finish.md).
+    ("v36_pocket_finish", "jobs/v36/pocket_finish.chipload"),
     // A V-carve inlay (docs/specs/vcarve-inlay.md): "AO" in FreeSerif 30 mm high, a pocket
     // 5 mm deep in the base, and in setup 2 the plug board, 10 mm thick and fitted round the
     // artwork, carved with its outline 3 mm down and a 1.5 mm glue gap; the plug's part is

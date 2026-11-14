@@ -1475,6 +1475,17 @@
               "format": "double",
               "type": "number"
             },
+            "finish": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PocketFinish"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A finishing pass: the roughing leaves `wall` mm on the walls and `floor` mm on the\nfloor, then one level pass takes the floor and one lap each wall. Null: none. Left out\nwhen none."
+            },
             "lead": {
               "anyOf": [
                 {
@@ -2368,6 +2379,27 @@
       },
       "required": [
         "start_depth"
+      ],
+      "type": "object"
+    },
+    "PocketFinish": {
+      "additionalProperties": false,
+      "description": "A finishing pass on a pocket.",
+      "properties": {
+        "floor": {
+          "description": "Left above the end depth by the roughing, mm: 0 or more, at most the step down, less\nthan the cut; 0 on a pocket cut through.",
+          "format": "double",
+          "type": "number"
+        },
+        "wall": {
+          "description": "Left on every wall by the roughing, mm: 0 or more, less than the tool radius.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "wall",
+        "floor"
       ],
       "type": "object"
     },

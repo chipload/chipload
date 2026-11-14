@@ -956,6 +956,9 @@ impl Job {
             if let Operation::Profile(p) = op {
                 problems.extend(finish_skin_problems(p, &format!("operations.{i}")));
             }
+            if let Operation::Pocket(p) = op {
+                problems.extend(pocket_finish_problems(p, &format!("operations.{i}")));
+            }
         }
         problems
     }
@@ -1006,6 +1009,73 @@ pub(super) fn finish_skin_problems(p: &ProfileOp, at: &str) -> Vec<Problem> {
             Message::new("job-skin-above-tabs")
                 .arg("height", Value::LengthNumber(tabs.height, Digits::Shortest))
                 .arg("got", Value::LengthNumber(t, Digits::Shortest)),
+        ));
+    }
+    problems
+}
+
+/// The rules for a pocket's finishing pass that need no tool (docs/specs/pocket-finish.md
+/// §2, §5); the wall allowance against the tool radius is checked when planning.
+pub(super) fn pocket_finish_problems(p: &PocketOp, at: &str) -> Vec<Problem> {
+    let mut problems = Vec::new();
+    let Some(finish) = p.finish else {
+        return problems;
+    };
+    let field = |name: &str| format!("{at}.finish.{name}");
+    let mut sound = true;
+    for (name, value) in [("wall", finish.wall), ("floor", finish.floor)] {
+        if !(value.is_finite() && value >= 0.0) {
+            sound = false;
+            problems.push(Problem::at(
+                field(name),
+                Message::new("job-pocket-finish-negative")
+                    .arg("got", Value::Length(value, Digits::Shortest)),
+            ));
+        }
+    }
+    if p.rest.is_some() {
+        problems.push(Problem::at(
+            format!("{at}.finish"),
+            Message::new("job-pocket-finish-rest"),
+        ));
+    }
+    if !sound {
+        return problems;
+    }
+    if finish.wall <= 0.0 && finish.floor <= 0.0 {
+        problems.push(Problem::at(
+            format!("{at}.finish"),
+            Message::new("job-pocket-finish-zero"),
+        ));
+    }
+    let f = finish.floor;
+    if f <= 0.0 {
+        return problems;
+    }
+    if p.through.is_some() {
+        problems.push(Problem::at(
+            field("floor"),
+            Message::new("job-pocket-finish-through"),
+        ));
+    }
+    if f > p.step_down + DEPTH_TOL_MM {
+        problems.push(Problem::at(
+            field("floor"),
+            Message::new("job-skin-above-step-down")
+                .arg(
+                    "step_down",
+                    Value::LengthNumber(p.step_down, Digits::Shortest),
+                )
+                .arg("got", Value::LengthNumber(f, Digits::Shortest)),
+        ));
+    }
+    let cut = p.end_depth - p.start_depth;
+    if f >= cut {
+        problems.push(Problem::at(
+            field("floor"),
+            Message::new("job-skin-above-cut")
+                .arg("cut", Value::LengthNumber(cut, Digits::Shortest))
+                .arg("got", Value::LengthNumber(f, Digits::Shortest)),
         ));
     }
     problems

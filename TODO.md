@@ -162,9 +162,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    pocket, cutting boards). **Done**, merged into main 2026-11-09 (docs/specs/two-sided.md;
    see *Done*).
 9. **Pockets: a finishing pass** (the gap review of 2026-11-03; chosen for 0.37.0). Spec
-   docs/specs/pocket-finish.md, **approved 2026-11-14**, built after item 1: `finish {wall, floor}`
-   on a pocket, roughing then floor then a full-depth wall lap per piece, bones cut by the
-   roughing, refused where too narrow to rough; eight decisions.
+   docs/specs/pocket-finish.md, **approved 2026-11-14**, **built 2026-11-14** (see *In
+   main*): `finish {wall, floor}` on a pocket, roughing then floor then a full-depth wall
+   lap per piece, bones cut by the roughing, refused where too narrow to rough; eight
+   decisions.
 10. **First-run setup** (the gap review of 2026-11-03, and what the new defaults left): on
     the first start, ask for the machine's travel and the first tool (marked
     centre-cutting or not), so the first project has no warning but its own; today tabs
@@ -247,7 +248,8 @@ to a program you trust. It was about four per operation; with the defaults and s
 Smaller follow-ups noted along the way, not in the order above:
 
 - **Profiles:** a separate finishing feed; rest passes for profiles, if missed.
-- **Pockets:** dogbones with rest passes (the finishing pass is *Next* item 9).
+- **Pockets:** dogbones with rest passes; a finishing pass with a tool of its own
+  (pocket-finish.md decision 1), if wanted.
 - **Holes** (docs/specs/holes.md §9): canned cycles G81/G83 as a post option, DXF points as
   hole centres, a clearance for a fit, dwell, chip-breaking pecks, V-bit chamfers,
   counterbores in one operation.
@@ -291,6 +293,19 @@ Smaller follow-ups noted along the way, not in the order above:
 ## Done
 
 ### In main, not released yet
+
+- **Pockets: a finishing pass** (docs/specs/pocket-finish.md, approved and built
+  2026-11-14): `finish {wall, floor}` on a pocket (optional, no schema bump). Per piece the
+  roughing keeps `wall` from the walls (its dogbones the same short) and stops `floor` above
+  the end depth; then the roughing's rings once more at the end depth, then one lap of each
+  wall ring at full depth, down in the roughed area and onto the wall along the lead or
+  straight across. Refused where the lap would run a tool radius or more from the roughing
+  (`toolpath-pocket-finish-narrow`, with the place), on a rest pocket, through with a floor,
+  both 0, wall at the tool radius, floor above the step down. *Finishing pass* section in
+  the pocket's properties, the sheet's "finishing: walls …, floor …", the guide's pocket
+  page. New golden `v36_pocket_finish` (v14_round_corners' pocket with dogbones and both
+  allowances); no other golden changed, and the simulated material removed equals the
+  unfinished pocket's.
 
 - **Platform-independent maths everywhere** (ADR 0032, 2026-11-14): every crate calls
   `chipload_core::math` (libm) instead of the platform's `sin`, `cos`, `atan2`, `hypot`…;

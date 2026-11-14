@@ -209,6 +209,10 @@ job-on-line-finish = una contornatura sulla linea non ha una parete da rifinire;
 job-skin-above-step-down = deve essere al massimo la profondità di passata ({ $step_down }), trovato { $got }
 job-skin-above-cut = deve essere minore del taglio ({ $cut }, profondità finale meno profondità iniziale), trovato { $got }
 job-skin-above-tabs = deve essere minore dell'altezza dei ponticelli ({ $height }), trovato { $got }
+job-pocket-finish-negative = deve essere 0 o più, trovato { $got }
+job-pocket-finish-zero = non lascia nulla da rifinire: dai un sovrametallo alle pareti o al fondo
+job-pocket-finish-through = una tasca passante non ha fondo da rifinire: imposta il sovrametallo del fondo a 0
+job-pocket-finish-rest = una tasca di ripresa è già una ripassata leggera e non prende una passata di finitura
 
 ## Lists
 

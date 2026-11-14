@@ -154,6 +154,7 @@ sheet-one-pass = ett skär
 sheet-passes = { $count } skär
 sheet-finish = finskär { $stock }
 sheet-skin = skikt { $thickness }
+sheet-pocket-finish = finbearbetning: väggar { $wall }, botten { $floor }
 # The entry column.
 sheet-entry-beside = ned bredvid ämnet
 sheet-entry-straight = rakt ned

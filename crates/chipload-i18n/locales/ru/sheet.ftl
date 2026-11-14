@@ -118,6 +118,7 @@ sheet-one-pass = один проход
 sheet-passes = проходов: { $count }
 sheet-finish = чистовой припуск { $stock }
 sheet-skin = остаточный слой { $thickness }
+sheet-pocket-finish = чистовой проход: стенки { $wall }, дно { $floor }
 sheet-entry-beside = заглубление рядом с заготовкой
 sheet-entry-straight = вертикально вниз
 sheet-entry-plunge = вертикальное

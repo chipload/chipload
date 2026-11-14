@@ -132,6 +132,8 @@ toolpath-tabs-on-curves = certaines attaches des contours { $contours } sont sur
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
 toolpath-tabs-joined = les attaches { $pairs } se rejoignent sous leur sommet (flancs à { $flank }°) : elles tiennent comme une seule attache plus longue
 toolpath-finish-lap-cuts = le tour de finition usine jusqu'à { $most } dans les coins ou les parties étroites (épaisseur de finition { $stock })
+toolpath-pocket-finish-narrow = la poche est trop étroite près de { $at } pour l'ébaucher en laissant { $wall } sur les parois : réduisez la surépaisseur des parois ou utilisez un outil plus petit
+toolpath-pocket-finish-roughing = ébauche en laissant { $wall } sur les parois
 # $style is the operation's corner style.
 toolpath-corner-unreached = coin en { $point } : l'outil ne peut pas l'atteindre ; { $style ->
     [dogbone] pas de dogbone

@@ -83,6 +83,29 @@ lead from the cleared side onto the wall.
 [profiles](profile.md#dogbones-and-t-bones), and any corner can have its own choice
 ([corner by corner](profile.md#corner-by-corner)). Not with [rest machining](rest.md).
 
+## Finishing pass
+
+**Finishing pass** roughs the pocket with a little material left, then takes it off in light
+cuts with the same tool: cleaner walls without a step mark at every depth, a cleaner floor,
+and a true size for a fit (an inlay, a lid, a recess for a hinge or a magnet).
+
+- **Wall allowance** (0.3 mm when ticked): left on every wall and island by the roughing.
+  Less than the tool radius.
+- **Floor allowance** (0.2 mm when ticked): the roughing stops this far above the end
+  depth. At most the step down; 0 on a pocket cut through. Either can be 0, not both.
+- For each area of the pocket, in turn: the roughing, then one level pass over the floor at
+  the end depth (the roughing's rings once more), then one lap of each wall at full depth.
+  The lap goes down in the roughed area and onto the wall along the lead, or straight across
+  the allowance, and leaves the same way.
+- Dogbones are cut by the roughing, the allowance short, and the lap skims them.
+- Where the pocket is too narrow to rough with the allowance (a gap between an island and a
+  wall only a little wider than the tool), the lap would cut it full width at full depth, so
+  the pocket is refused with the place: use a smaller allowance or a smaller tool.
+- Not on a rest pocket, which is a light clean-up already. Rest passes still come after a
+  finished pocket and clear what it leaves.
+- On the command line: `chipload set part.chipload 'operations.0.finish={"wall":0.3,"floor":0.2}'`,
+  or `null` for none. The setup sheet says "finishing: walls 0.3 mm, floor 0.2 mm".
+
 ## Rest machining
 
 A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
@@ -116,6 +139,7 @@ in mm, feeds in mm/min, angles in radians.
 | `corners` | Corners (dogbones, T-bones) |
 | `corner_choices` | corners with their own choice, as on [profiles](profile.md#in-the-file); left out when there are none |
 | `rest` | Rest after: `{"after_tool": id}` or null |
+| `finish` | Finishing pass: `{"wall": …, "floor": …}`, the allowances; left out when there is none |
 | `rest_passes` | Its rest passes, each `{tool, feed, plunge_feed, step_down, stepover, slot_feed, slot_step_down, entry, enabled}`; left out when there are none |
 
 Projects from before Chipload 0.14 that used the removed *trochoidal* or *adaptive*

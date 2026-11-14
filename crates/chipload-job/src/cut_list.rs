@@ -190,6 +190,7 @@ impl Job {
             corner_choices: Vec::new(),
             rest: Some(Rest { after_tool }),
             rest_passes: Vec::new(),
+            finish: None,
             ..pocket.clone()
         }))
     }
@@ -226,6 +227,7 @@ impl Job {
             corner_choices: Vec::new(),
             rest: None,
             rest_passes: Vec::new(),
+            finish: None,
         })
     }
 

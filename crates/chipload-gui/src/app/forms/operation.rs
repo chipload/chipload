@@ -448,6 +448,7 @@ pub(in crate::app) fn op_form(
                 entry_rows(ui, index, &mut p.entry, Some(tool_diameter));
                 lead_rows(ui, &mut p.lead, tool_diameter);
             });
+            pocket_finish_section(ui, p);
         }
         Operation::Vcarve(v) => {
             let start = format!("{} {len_unit}", len_in(units, v.start_depth));
@@ -1566,6 +1567,55 @@ pub(super) fn finish_section(ui: &mut egui::Ui, p: &mut ProfileOp) {
         if let Some(finish) = &mut p.finish {
             ui.label(format!("  {}", t!(ui, "forms-finish-stock")));
             flag(ui.add(mm(&mut finish.stock)), ui, "finish.stock");
+            ui.end_row();
+        }
+    });
+}
+
+/// A pocket's finishing pass (docs/specs/pocket-finish.md §6): a tick, then the wall and
+/// floor allowances. Ticking it starts at wall 0.3 mm and floor 0.2 mm (none on the floor of
+/// a pocket cut through).
+pub(super) fn pocket_finish_section(ui: &mut egui::Ui, p: &mut chipload_job::PocketOp) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let summary = match p.finish {
+        None => t!(ui, "forms-finish-none"),
+        Some(f) => t!(
+            ui,
+            "forms-pocket-finish-summary",
+            wall = format!("{} {len_unit}", len_in(units, f.wall)),
+            floor = format!("{} {len_unit}", len_in(units, f.floor))
+        ),
+    };
+    let title = t!(ui, "forms-finishing-pass");
+    folded_section(ui, "op-pocket-finish", &title, &summary, |ui| {
+        ui.label(t!(ui, "forms-finishing-pass"))
+            .on_hover_text(t!(ui, "forms-pocket-finish-hover"));
+        let mut on = p.finish.is_some();
+        let response = ui
+            .add_enabled(
+                p.rest.is_none() || on,
+                egui::Checkbox::new(&mut on, t!(ui, "forms-pocket-finish-tick")),
+            )
+            .on_disabled_hover_text(t!(ui, "forms-pocket-finish-rest"));
+        if flag(response, ui, "finish").changed() {
+            p.finish = on.then(|| {
+                let mut finish = chipload_job::PocketFinish::DEFAULT;
+                if p.through.is_some() {
+                    finish.floor = 0.0;
+                }
+                finish
+            });
+        }
+        ui.end_row();
+        if let Some(finish) = &mut p.finish {
+            ui.label(format!("  {}", t!(ui, "forms-pocket-finish-wall")))
+                .on_hover_text(t!(ui, "forms-pocket-finish-wall-hover"));
+            flag(ui.add(mm(&mut finish.wall)), ui, "finish.wall");
+            ui.end_row();
+            ui.label(format!("  {}", t!(ui, "forms-pocket-finish-floor")))
+                .on_hover_text(t!(ui, "forms-pocket-finish-floor-hover"));
+            flag(ui.add(mm(&mut finish.floor)), ui, "finish.floor");
             ui.end_row();
         }
     });

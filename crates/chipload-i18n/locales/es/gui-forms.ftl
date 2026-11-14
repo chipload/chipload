@@ -210,6 +210,14 @@ forms-finishing-lap = vuelta de acabado
 forms-finishing-disabled = Un contorneado sobre la línea no tiene pared que acabar
 # The material left on the wall for the finishing lap.
 forms-finish-stock = sobrematerial
+forms-pocket-finish-summary = paredes { $wall }, fondo { $floor }
+forms-pocket-finish-hover = Desbasta dejando un poco en las paredes y el fondo, y luego quítalo: una pasada a nivel por el fondo y una vuelta a cada pared a toda la profundidad. Paredes más limpias sin escalones y una medida exacta para un ajuste.
+forms-pocket-finish-tick = desbastar y luego acabar
+forms-pocket-finish-rest = Un vaciado de restos ya es un repaso ligero
+forms-pocket-finish-wall = Sobremedida de paredes
+forms-pocket-finish-wall-hover = Se deja en cada pared, también en las islas, para la vuelta a toda la profundidad
+forms-pocket-finish-floor = Sobremedida del fondo
+forms-pocket-finish-floor-hover = Se deja sobre la profundidad final, para una pasada a nivel por el fondo; como mucho la profundidad de pasada. Un vaciado pasante no tiene fondo: 0
 
 # A pocket's lead-in and lead-out.
 forms-lead = Aproximación

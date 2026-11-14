@@ -132,6 +132,8 @@ toolpath-tabs-on-curves = einige Haltestege auf den Konturen { $contours } sitze
 # $pairs lists the tabs that meet, by number ("1 and 2, 3 and 4"); $flank is in degrees.
 toolpath-tabs-joined = die Haltestege { $pairs } treffen sich unterhalb ihrer Oberkante (Flanken mit { $flank }°): sie halten wie ein längerer Haltesteg
 toolpath-finish-lap-cuts = der Schlichtgang nimmt in Ecken oder engen Stellen bis zu { $most } ab (Aufmaß für den Schlichtgang { $stock })
+toolpath-pocket-finish-narrow = die Tasche ist bei { $at } zu eng, um mit { $wall } Aufmaß an den Wänden zu schruppen: verringern Sie das Wandaufmaß oder verwenden Sie ein kleineres Werkzeug
+toolpath-pocket-finish-roughing = Schruppen mit { $wall } Aufmaß an den Wänden
 # $style is the operation's corner style.
 toolpath-corner-unreached = Ecke bei { $point }: das Werkzeug reicht nicht hinein; { $style ->
     [dogbone] kein Dogbone

@@ -157,6 +157,7 @@ sheet-one-pass = una passata
 sheet-passes = { $count } passate
 sheet-finish = finitura { $stock }
 sheet-skin = strato sottile { $thickness }
+sheet-pocket-finish = finitura: pareti { $wall }, fondo { $floor }
 # The entry column.
 sheet-entry-beside = discesa a lato del grezzo
 sheet-entry-straight = discesa dritta

@@ -525,6 +525,7 @@ impl Start {
                 corner_choices: Vec::new(),
                 rest: None,
                 rest_passes: Vec::new(),
+                finish: None,
             }),
             OpKind::Vcarve => Operation::Vcarve(VcarveOp {
                 material: None,

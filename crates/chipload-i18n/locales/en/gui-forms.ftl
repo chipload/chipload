@@ -210,6 +210,15 @@ forms-finishing-lap = finishing lap
 forms-finishing-disabled = A profile cut on the line has no wall to finish
 # The material left on the wall for the finishing lap.
 forms-finish-stock = stock
+# A pocket's finishing pass (docs/specs/pocket-finish.md §6).
+forms-pocket-finish-summary = walls { $wall }, floor { $floor }
+forms-pocket-finish-hover = Rough with a little left on the walls and the floor, then take it off: one level pass over the floor and one lap of each wall at full depth. Cleaner walls without step marks, and a true size for a fit.
+forms-pocket-finish-tick = rough, then finish
+forms-pocket-finish-rest = A rest pocket is already a light clean-up
+forms-pocket-finish-wall = Wall allowance
+forms-pocket-finish-wall-hover = Left on every wall, islands too, for the lap at full depth
+forms-pocket-finish-floor = Floor allowance
+forms-pocket-finish-floor-hover = Left above the end depth, for one level pass over the floor; at most the step down. A pocket cut through has no floor: 0
 
 # A pocket's lead-in and lead-out.
 forms-lead = Lead

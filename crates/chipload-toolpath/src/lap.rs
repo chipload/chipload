@@ -403,8 +403,15 @@ fn nearest_on_segment(a: Point, b: Point, p: Point) -> Point {
 /// The farthest any point of `ring` is from the `slot` rings: at every vertex and every
 /// `step` mm along each segment (docs/specs/finish-and-skin.md §6).
 pub fn farthest_from(ring: &[Point], slot: &[&[Point]], step: f64) -> f64 {
+    farthest_point_from(ring, slot, step).0
+}
+
+/// As [`farthest_from`], with the point of `ring` where it is farthest (the ring's first
+/// point when it is nowhere farther than 0).
+pub fn farthest_point_from(ring: &[Point], slot: &[&[Point]], step: f64) -> (f64, Point) {
     let n = ring.len();
     let mut farthest: f64 = 0.0;
+    let mut at = ring.first().copied().unwrap_or((0.0, 0.0));
     for i in 0..n {
         let (a, b) = (ring[i], ring[(i + 1) % n]);
         let seg = distance(a, b);
@@ -414,10 +421,12 @@ pub fn farthest_from(ring: &[Point], slot: &[&[Point]], step: f64) -> f64 {
             let t = k as f64 / count as f64;
             let p = (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
             let d = nearest_on_rings(slot, p).map_or(f64::INFINITY, |(_, d)| d);
-            farthest = farthest.max(d);
+            if d > farthest {
+                (farthest, at) = (d, p);
+            }
         }
     }
-    farthest
+    (farthest, at)
 }
 
 /// The tabs of a ring at the wall carried over to a roughing ring beside it: each tab end

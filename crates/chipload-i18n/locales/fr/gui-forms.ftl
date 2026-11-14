@@ -210,6 +210,14 @@ forms-finishing-lap = tour de finition
 forms-finishing-disabled = Un contour sur la ligne n'a pas de paroi à finir
 # The material left on the wall for the finishing lap.
 forms-finish-stock = surépaisseur
+forms-pocket-finish-summary = parois { $wall }, fond { $floor }
+forms-pocket-finish-hover = Ébaucher en laissant un peu sur les parois et le fond, puis l'enlever : une passe à niveau sur le fond et un tour de chaque paroi à pleine profondeur. Des parois plus nettes sans marches et une cote juste pour un ajustement.
+forms-pocket-finish-tick = ébaucher, puis finir
+forms-pocket-finish-rest = Une poche de reprise est déjà une reprise légère
+forms-pocket-finish-wall = Surépaisseur des parois
+forms-pocket-finish-wall-hover = Laissée sur chaque paroi, îlots compris, pour le tour à pleine profondeur
+forms-pocket-finish-floor = Surépaisseur du fond
+forms-pocket-finish-floor-hover = Laissée au-dessus de la profondeur finale, pour une passe à niveau sur le fond ; au plus la profondeur de passe. Une poche débouchante n'a pas de fond : 0
 
 # A pocket's lead-in and lead-out.
 forms-lead = Approche

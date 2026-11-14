@@ -157,6 +157,7 @@ sheet-one-pass = una pasada
 sheet-passes = { $count } pasadas
 sheet-finish = acabado { $stock }
 sheet-skin = piel { $thickness }
+sheet-pocket-finish = acabado: paredes { $wall }, fondo { $floor }
 # The entry column.
 sheet-entry-beside = baja junto al material en bruto
 sheet-entry-straight = recta hacia abajo

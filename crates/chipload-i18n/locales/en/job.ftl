@@ -209,6 +209,11 @@ job-on-line-finish = a profile on the line has no wall to finish; use inside or 
 job-skin-above-step-down = must be at most the step down ({ $step_down }), got { $got }
 job-skin-above-cut = must be less than the cut ({ $cut }, end depth minus start depth), got { $got }
 job-skin-above-tabs = must be less than the tab height ({ $height }), got { $got }
+# A pocket's finishing pass (docs/specs/pocket-finish.md).
+job-pocket-finish-negative = must be 0 or more, got { $got }
+job-pocket-finish-zero = leaves nothing to finish: give the walls or the floor an allowance
+job-pocket-finish-through = a pocket cut through has no floor to finish: set the floor allowance to 0
+job-pocket-finish-rest = a rest pocket is already a light clean-up and takes no finishing pass
 
 ## Lists
 

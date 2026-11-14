@@ -154,6 +154,7 @@ sheet-one-pass = one pass
 sheet-passes = { $count } passes
 sheet-finish = finish { $stock }
 sheet-skin = skin { $thickness }
+sheet-pocket-finish = finishing: walls { $wall }, floor { $floor }
 # The entry column.
 sheet-entry-beside = down beside the stock
 sheet-entry-straight = straight down
