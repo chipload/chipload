@@ -199,6 +199,10 @@ to a program you trust. It was about four per operation; with the defaults and s
    end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
    a moment once (the user, 2026-11-14), not reproduced.
 13. **Small follow-ups:**
+    - **Platform-independent maths elsewhere** (ADR 0032): the relief path uses
+      `chipload_core::math` (libm) since 0.36.0's macOS golden failure; profiles, pockets
+      and V-carving still use the platform's `sin`/`cos`/`hypot`. Move them over if a golden
+      ever differs between platforms.
     - Flaky test (seen twice 2026-11-10, under the full parallel run only):
       `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
       `checking()` right after starting the background check, which can already be done.

@@ -110,7 +110,7 @@ pub fn depth_grid(
                 return None;
             }
             let stretched = ((v - b) / (1.0 - b)).clamp(0.0, 1.0);
-            Some(stretched.powf(settings.gamma))
+            Some(chipload_core::math::pow(stretched, settings.gamma))
         })
         .collect();
     if heights.iter().all(Option::is_none) {
@@ -172,7 +172,7 @@ pub(crate) fn smoothed(
 fn blurred(values: &[f64], columns: usize, rows: usize, sigma: f64) -> Vec<f64> {
     let reach = (SIGMAS * sigma).ceil() as isize;
     let weights: Vec<f64> = (-reach..=reach)
-        .map(|k| (-((k * k) as f64) / (2.0 * sigma * sigma)).exp())
+        .map(|k| chipload_core::math::exp(-((k * k) as f64) / (2.0 * sigma * sigma)))
         .collect();
     let total: f64 = weights.iter().sum();
     let pass =

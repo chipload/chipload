@@ -15,6 +15,7 @@
 //! (`chipload_core::cutter`), lowered along Z until it first meets the surface.
 
 use chipload_core::cutter::Cutter;
+use chipload_core::math::hypot;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_mesh::Mesh;
 
@@ -212,7 +213,7 @@ fn triangle_drop(t: &Tri, cutter: Cutter, c: (f64, f64)) -> Option<f64> {
     let mut best: Option<f64> = None;
     let mut take = |z: f64| best = Some(best.map_or(z, |b: f64| b.max(z)));
     for v in &t.v {
-        let d = (v[0] - c.0).hypot(v[1] - c.1);
+        let d = hypot(v[0] - c.0, v[1] - c.1);
         if let Some(h) = cutter.height_at(d) {
             take(v[2] - h);
         }
@@ -233,7 +234,7 @@ fn triangle_drop(t: &Tri, cutter: Cutter, c: (f64, f64)) -> Option<f64> {
 /// its level point, its rim), if that point lies inside the triangle.
 fn face_drop(t: &Tri, cutter: Cutter, c: (f64, f64)) -> Option<f64> {
     let (a, b, k) = t.plane?;
-    let slope = a.hypot(b);
+    let slope = hypot(a, b);
     let radius = cutter.radius();
     let mut candidates = vec![0.0, radius];
     candidates.extend(cutter.kinks());
@@ -263,7 +264,7 @@ fn inside(v: &[V3; 3], q: (f64, f64)) -> bool {
 fn edge_drop(a: V3, b: V3, cutter: Cutter, c: (f64, f64)) -> Option<f64> {
     let radius = cutter.radius();
     let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
-    let length = dx.hypot(dy);
+    let length = hypot(dx, dy);
     // Upright: its ends are the corners, already tested.
     if length <= CHAIN_TOL_MM {
         return None;
@@ -282,7 +283,7 @@ fn edge_drop(a: V3, b: V3, cutter: Cutter, c: (f64, f64)) -> Option<f64> {
     }
     let m = (b[2] - a[2]) / length;
     let reach = |s: f64| {
-        let d = off.hypot(s).min(radius);
+        let d = hypot(off, s).min(radius);
         cutter.height_at(d).map(|h| a[2] + m * (s + foot) - h)
     };
     let mut candidates = vec![s0, s1, 0.0];
@@ -340,7 +341,7 @@ mod tests {
                         r * t[0][1] + p * t[1][1] + q * t[2][1],
                         r * t[0][2] + p * t[1][2] + q * t[2][2],
                     ];
-                    let d = (point[0] - c.0).hypot(point[1] - c.1);
+                    let d = hypot(point[0] - c.0, point[1] - c.1);
                     let h = if d <= radius + grow {
                         cutter.height_at(d.min(radius))
                     } else {

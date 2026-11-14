@@ -8,6 +8,9 @@ rust-version.workspace = true
 
 [dependencies]
 cavalier_contours = "0.9.0"
+# MIT OR Apache-2.0: sin, cos, tan and hypot with the same bits on every platform
+# (ADR 0032); already built for boostvoronoi.
+libm = "0.2.16"
 thiserror = "2.0.21"
 
 [dev-dependencies]

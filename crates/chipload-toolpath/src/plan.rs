@@ -2903,7 +2903,7 @@ fn relief_area(
     let ramp = Ramp {
         loops: loops.clone(),
         foot,
-        tan: rim.ramp.tan(),
+        tan: chipload_core::math::tan(rim.ramp),
         floor,
         top,
     };

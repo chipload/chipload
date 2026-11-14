@@ -808,6 +808,7 @@ name = "chipload-core"
 version = "0.36.0"
 dependencies = [
  "cavalier_contours",
+ "libm",
  "proptest",
  "thiserror 2.0.21",
 ]

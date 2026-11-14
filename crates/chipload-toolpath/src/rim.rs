@@ -10,6 +10,7 @@
 
 use chipload_core::Point;
 use chipload_core::cutter::Cutter;
+use chipload_core::math::{hypot, tan};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 
 use chipload_core::chain::Contour;
@@ -153,7 +154,7 @@ fn segment_distance(a: Point, b: Point, p: Point) -> f64 {
     } else {
         0.0
     };
-    (a.0 + t * dx - p.0).hypot(a.1 + t * dy - p.1)
+    hypot(a.0 + t * dx - p.0, a.1 + t * dy - p.1)
 }
 
 /// Where the line at Y `v` lies within `reach` of the filled `loops`: each loop's own inside
@@ -346,7 +347,7 @@ pub fn rim_edges(
     depth: f64,
 ) -> Result<RimEdges, ToolpathError> {
     let (base, foot) = rim_base(&outer_loops(contours), rim)?;
-    let tan = rim.ramp.tan();
+    let tan = tan(rim.ramp);
     let rise = if tan.is_finite() && tan > 0.0 {
         depth.max(0.0) / tan
     } else {

@@ -61,7 +61,7 @@ impl Cutter {
 
     /// Where a tapered ball's sphere meets its cone: the radius and height there.
     fn tangent(ball: f64, half_angle: f64) -> (f64, f64) {
-        let (sin, cos) = half_angle.sin_cos();
+        let (sin, cos) = crate::math::sin_cos(half_angle);
         (ball * cos, ball * (1.0 - sin))
     }
 
@@ -77,7 +77,7 @@ impl Cutter {
             Cutter::Ball { radius } => radius - (radius * radius - d * d).max(0.0).sqrt(),
             Cutter::Cone {
                 tip, half_angle, ..
-            } => (d - tip).max(0.0) / half_angle.tan(),
+            } => (d - tip).max(0.0) / crate::math::tan(half_angle),
             Cutter::TaperedBall {
                 ball, half_angle, ..
             } => {
@@ -85,7 +85,7 @@ impl Cutter {
                 if d <= rt {
                     ball - (ball * ball - d * d).max(0.0).sqrt()
                 } else {
-                    ht + (d - rt) / half_angle.tan()
+                    ht + (d - rt) / crate::math::tan(half_angle)
                 }
             }
         })
@@ -141,12 +141,14 @@ impl Cutter {
         match self {
             Cutter::Flat { .. } => Vec::new(),
             Cutter::Ball { radius } => sphere(radius).into_iter().collect(),
-            Cutter::Cone { half_angle, .. } => cone(1.0 / half_angle.tan()).into_iter().collect(),
+            Cutter::Cone { half_angle, .. } => cone(1.0 / crate::math::tan(half_angle))
+                .into_iter()
+                .collect(),
             Cutter::TaperedBall {
                 ball, half_angle, ..
             } => sphere(ball)
                 .into_iter()
-                .chain(cone(1.0 / half_angle.tan()))
+                .chain(cone(1.0 / crate::math::tan(half_angle)))
                 .collect(),
         }
     }

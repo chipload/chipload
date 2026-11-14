@@ -7,6 +7,7 @@ pub mod chain;
 pub mod cutter;
 pub mod fit;
 pub mod fold;
+pub mod math;
 pub mod nesting;
 pub mod order;
 pub mod primitives;

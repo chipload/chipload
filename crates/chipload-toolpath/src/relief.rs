@@ -7,6 +7,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chipload_core::Point;
 use chipload_core::cutter::Cutter;
+use chipload_core::math::{hypot, sin_cos};
 use chipload_core::tolerances::{ARC_APPROX_TOL_MM, CHAIN_TOL_MM, DEPTH_TOL_MM};
 use chipload_i18n::{Message, Value};
 use std::sync::{Arc, Mutex};
@@ -392,7 +393,7 @@ pub fn placement_in(model: &Model, lo: Vertex, hi: Vertex) -> Result<Placement, 
 /// Z 0 and its lowest point at −depth.
 pub fn placed(model: &Model, turned: &Mesh, p: &Placement) -> Mesh {
     let (cx, cy) = (p.width / 2.0, p.height / 2.0);
-    let (sin, cos) = model.rotation.to_radians().sin_cos();
+    let (sin, cos) = sin_cos(model.rotation.to_radians());
     turned.mapped(|v| {
         let (u, w) = (
             (v[0] - p.lo[0]) * p.scale - cx,
@@ -524,7 +525,7 @@ pub fn relief_moves(cut: &ReliefCut, start: Point) -> (Vec<Move>, Point) {
 /// Whether the tool may go along the surface from `a` to `b` rather than lifting: the next
 /// line's start, close by.
 fn near(a: Point, b: Point, step: f64) -> bool {
-    (b.0 - a.0).hypot(b.1 - a.1) <= 2.0 * step + CHAIN_TOL_MM
+    hypot(b.0 - a.0, b.1 - a.1) <= 2.0 * step + CHAIN_TOL_MM
 }
 
 /// The finishing lines across the area, each cut into the runs that lie inside it, in
@@ -577,7 +578,7 @@ const LINES_SHARE: f64 = 0.9;
 /// The lines across the area, one stepover apart, each as the stretches (start, end) that
 /// lie inside it, in cutting order: back and forth, or all the same way.
 fn lines(cut: &ReliefCut) -> Vec<Vec<(Point, Point)>> {
-    let (sin, cos) = cut.angle.sin_cos();
+    let (sin, cos) = sin_cos(cut.angle);
     // (u, v): u along the lines, v across them.
     let to_uv = |p: Point| (p.0 * cos + p.1 * sin, -p.0 * sin + p.1 * cos);
     let from_uv = |u: f64, v: f64| (u * cos - v * sin, u * sin + v * cos);
@@ -641,7 +642,7 @@ fn follow(cut: &ReliefCut, a: Point, b: Point) -> Run {
 
 /// [`follow`]'s points before they are joined.
 fn sampled(cut: &ReliefCut, a: Point, b: Point) -> Run {
-    let length = (b.0 - a.0).hypot(b.1 - a.1);
+    let length = hypot(b.0 - a.0, b.1 - a.1);
     let pieces = (length / FIRST_SPACING_MM.min(cut.step)).ceil().max(1.0) as usize;
     let at = |t: f64| (a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t);
     let mut points: Run = Vec::with_capacity(pieces + 1);
@@ -847,7 +848,7 @@ fn on_edge(area: &[Vec<Point>], p: Point) -> bool {
             } else {
                 0.0
             };
-            (a.0 + t * dx - p.0).hypot(a.1 + t * dy - p.1) <= CHAIN_TOL_MM
+            hypot(a.0 + t * dx - p.0, a.1 + t * dy - p.1) <= CHAIN_TOL_MM
         })
     })
 }
@@ -863,7 +864,7 @@ fn crosses(a: Point, b: Point, c: Point, d: Point) -> bool {
     // The signed distance of `p` from the line through `s` and `e`; 0 when within the
     // tolerance.
     let side = |s: Point, e: Point, p: Point| {
-        let length = (e.0 - s.0).hypot(e.1 - s.1);
+        let length = hypot(e.0 - s.0, e.1 - s.1);
         if length <= CHAIN_TOL_MM {
             return 0.0;
         }
@@ -906,11 +907,11 @@ fn simplified(points: Run) -> Run {
     let mut k = 2;
     while k < points.len() {
         let (a, b) = (points[anchor], points[k]);
-        let length = (b.0.0 - a.0.0).hypot(b.0.1 - a.0.1);
+        let length = hypot(b.0.0 - a.0.0, b.0.1 - a.0.1);
         let fits = (anchor + 1..k).all(|i| {
             let p = points[i];
             let t = if length > 0.0 {
-                ((p.0.0 - a.0.0).hypot(p.0.1 - a.0.1) / length).clamp(0.0, 1.0)
+                (hypot(p.0.0 - a.0.0, p.0.1 - a.0.1) / length).clamp(0.0, 1.0)
             } else {
                 0.0
             };
@@ -961,7 +962,7 @@ pub fn verify(
                 continue;
             }
             for q in samples(t) {
-                let d = (q[0] - c.0).hypot(q[1] - c.1);
+                let d = hypot(q[0] - c.0, q[1] - c.1);
                 if let Some(h) = cutter.height_at(d) {
                     let into = (top + q[2]) - (z + h);
                     if into > ARC_APPROX_TOL_MM && worst.is_none_or(|w| into > w.0) {
@@ -994,7 +995,8 @@ pub fn verify_ramp(moves: &[Move], ramp: &Ramp, cutter: Cutter) -> Option<(f64, 
             };
             for k in 0..RAMP_RING_POINTS {
                 let a = std::f64::consts::TAU * k as f64 / RAMP_RING_POINTS as f64;
-                let q = (p.0 + rho * a.cos(), p.1 + rho * a.sin());
+                let (sin, cos) = sin_cos(a);
+                let q = (p.0 + rho * cos, p.1 + rho * sin);
                 let into = ramp.surface(q) - (z + h);
                 if into > ARC_APPROX_TOL_MM && worst.is_none_or(|w| into > w.0) {
                     worst = Some((into, p));
@@ -1013,7 +1015,7 @@ fn positions(moves: &[Move]) -> Vec<(Point, f64)> {
     for m in moves {
         let (nx, ny, nz) = (m.x.unwrap_or(x), m.y.unwrap_or(y), m.z.unwrap_or(z));
         if m.kind == MoveKind::Feed {
-            let length = (nx - x).hypot(ny - y);
+            let length = hypot(nx - x, ny - y);
             let n = (length / FIRST_SPACING_MM).ceil().max(1.0) as usize;
             for k in 1..=n {
                 let t = k as f64 / n as f64;
