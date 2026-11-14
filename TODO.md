@@ -260,7 +260,8 @@ Smaller follow-ups noted along the way, not in the order above:
   scope, no 3D modelling, nesting or rotary), in this order:
   1. **Chamfer any outline:** a V-bit chamfer of a width on any closed shape's edge, not
      only a sign's (*New sign…* cuts one as a follow path on the line today); outside or
-     inside, the tool's flank on the edge.
+     inside, the tool's flank on the edge. **Spec drafted 2026-11-14**
+     (docs/specs/chamfer.md, ten decisions), awaiting the user's review.
   2. **Fluting:** grooves along lines or open paths with a V-bit or ball nose that ramp in
      and out (start and end ramp lengths, full depth in the middle).
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
