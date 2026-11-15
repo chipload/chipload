@@ -705,7 +705,6 @@ pipeline-rule-skipped = layer { $layer } saltato per lo stile «{ $style }»: un
 pipeline-rule-failed = stile «{ $style }» non usato sul layer { $layer }: { $reason }
 pipeline-rule-unmatched = nessuna regola di layer corrisponde ai layer { $layers }
 pipeline-rule-none = nessuno stile ha una regola di layer: dai prima un modello di layer a uno stile
-pipeline-pieces-not-yet = un piazzamento a tasselli si lavora come un programma per tassello: `chipload run` li scrive tutti, o uno con --piece; la finestra, la scheda di attrezzaggio e la simulazione non gestiscono ancora i tasselli
 pipeline-pieces-zero-off = tassello { $piece }: lo zero pezzo è fuori dalla sua tavola, quindi il suo zero è l’angolo in basso a sinistra della tavola
 pipeline-pieces-empty = il tassello { $piece } non ha niente da lavorare
 pipeline-pieces-no-such = non c’è nessun tassello { $piece }

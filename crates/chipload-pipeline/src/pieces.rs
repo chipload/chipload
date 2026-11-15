@@ -45,7 +45,16 @@ pub struct PieceMap {
 
 /// The active setup's pieces as they go together, or None when it is one board.
 pub fn piece_map(job: &Job) -> Result<Option<PieceMap>, PipelineError> {
-    let Some(set) = pieces_of(job)? else {
+    let imported = load_drawing(job)?;
+    piece_map_of(job, &imported.contours)
+}
+
+/// [`piece_map`] from the drawing's contours, already loaded (the window's).
+pub fn piece_map_of(
+    job: &Job,
+    contours: &[chipload_core::chain::Contour],
+) -> Result<Option<PieceMap>, PipelineError> {
+    let Some(set) = piece_set(job, contours)? else {
         return Ok(None);
     };
     let shape = set.layout.shape;

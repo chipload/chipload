@@ -13,6 +13,7 @@
 - [Units and coordinates](concepts/units.md)
 - [Stock and work zero](concepts/stock.md)
 - [Setups](concepts/setups.md)
+- [Pieces](concepts/pieces.md)
 - [Depths and oversize](concepts/depths.md)
 - [Side and direction](concepts/side-direction.md)
 - [Tools and tool changes](concepts/tools.md)

@@ -6,7 +6,10 @@ operations follow; the joints are puzzle knobs or fingers. The other reading, sl
 long board between tiles, is parked in docs/specs/sliding-tiles.md.
 
 As built, 2026-11-15:
-- Steps 1–6 built (the window, step 7, and the guide's own page, step 8, to come).
+- Steps 1–8 built. The window (§9): the setup's Pieces section (seam shifts as fields with
+  a grid given; dragging a seam in the view is not built), the pieces dashed and named in
+  the view, the preview and simulation of the pieces put together (`run_assembled`), and
+  export of every piece with the one sheet. The guide page is concepts/pieces.md.
 - The pieces come from `toolpath::pieces` (`piece_set`). Each piece's program comes from
   `pipeline::pieces::run_pieces`: the outside profiles cut the piece's loops in a project of
   its own (its drawing only those loops, its board fitted round them), and every other

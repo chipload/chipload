@@ -710,7 +710,6 @@ pipeline-rule-skipped = layer { $layer } skipped for style "{ $style }": an oper
 pipeline-rule-failed = style "{ $style }" not used on layer { $layer }: { $reason }
 pipeline-rule-unmatched = no layer rule matches layers { $layers }
 pipeline-rule-none = no style has a layer rule: give a style a layer pattern first
-pipeline-pieces-not-yet = a setup in pieces is cut as a program per piece: `chipload run` writes them all, or one with --piece; the window, the setup sheet and the simulation don't do pieces yet
 pipeline-pieces-zero-off = piece { $piece }: the work zero lies off its board, so its zero is the board's bottom-left corner
 pipeline-pieces-empty = piece { $piece } has nothing to cut
 pipeline-pieces-no-such = there is no piece { $piece }

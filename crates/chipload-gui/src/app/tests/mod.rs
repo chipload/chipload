@@ -39,6 +39,7 @@ mod new_project;
 mod part_export;
 mod parts;
 mod pattern;
+mod pieces;
 mod posts;
 mod prism;
 mod profile_form;

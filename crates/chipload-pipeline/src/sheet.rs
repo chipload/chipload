@@ -62,6 +62,53 @@ pub fn write_setup_sheet(
     Ok(path)
 }
 
+/// [`write_setup_sheet`], or for a setup in pieces its one sheet for all its pieces
+/// (docs/specs/pieces.md §8), the pieces planned again for it: the window's export, whose
+/// result is the pieces put together. Returns its path.
+pub fn write_sheet_for(
+    job: &Job,
+    result: &RunResult,
+    output: &Path,
+    info: &SheetInfo,
+) -> std::io::Result<PathBuf> {
+    let in_pieces = job
+        .setups
+        .get(job.active_setup_index())
+        .is_some_and(|s| s.pieces.is_some());
+    if !in_pieces {
+        return write_setup_sheet(job, result, output, info);
+    }
+    let failed = |e: crate::PipelineError| std::io::Error::other(e.to_string());
+    let one = job
+        .active_setup_id()
+        .map_or_else(|| job.clone(), |id| job.for_setup(id));
+    let map = crate::pieces::piece_map(&one)
+        .map_err(failed)?
+        .ok_or_else(|| std::io::Error::other("not in pieces"))?;
+    let mut runs = crate::pieces::run_pieces(&one, None).map_err(failed)?;
+    for run in &mut runs {
+        for file in &mut run.result.files {
+            let tail = file.suffix.take().unwrap_or_default();
+            let lead = match one.active_setup_id().filter(|_| one.setups.len() > 1) {
+                Some(id) => format!("-S{id}-{}", run.name),
+                None => format!("-{}", run.name),
+            };
+            file.suffix = Some(format!("{lead}{tail}"));
+        }
+    }
+    let pieces: Vec<PieceSheet> = runs
+        .iter()
+        .map(|r| PieceSheet {
+            name: &r.name,
+            job: &r.job,
+            result: &r.result,
+        })
+        .collect();
+    let path = setup_sheet_path(&one, output);
+    write_atomically(&path, &pieces_sheet(&one, &map, &pieces, output, info))?;
+    Ok(path)
+}
+
 /// Where the sheet of `job`'s run to `output` goes: `part-sheet.html`, or with several
 /// setups the active one's, `part-S2-sheet.html` (docs/specs/setups.md §4).
 pub fn setup_sheet_path(job: &Job, output: &Path) -> PathBuf {

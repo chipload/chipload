@@ -5,7 +5,7 @@
 //! `CHIPLOAD_SHOTS_LIBRARY` (a settings folder with a library, for `library.png` and
 //! `machine.png`) and
 //! `CHIPLOAD_SHOTS_LANGUAGE` (en unless set) and `CHIPLOAD_SHOTS_THEME` (dark unless
-//! `light`).
+//! `light`). `CHIPLOAD_SHOTS_ONLY=pieces,toolpath` renders only those.
 use super::*;
 use chipload_core::math;
 
@@ -45,6 +45,14 @@ const SHOTS: &[(&str, &str, &str, (f32, f32))] = &[
         "properties",
         "tests/corpus/jobs/v18/dogbones.chipload",
         "generate,select",
+        (1200.0, 800.0),
+    ),
+    // A setup cut in pieces, its seams and names in the view and its form open
+    // (docs/book/src/concepts/pieces.md).
+    (
+        "pieces",
+        "tests/corpus/jobs/v37/pieces.chipload",
+        "setup,generate",
         (1200.0, 800.0),
     ),
     // A 3D model in the 3D view, its properties open (docs/book/src/drawings/models.md).
@@ -188,7 +196,15 @@ fn screenshots() {
     // An empty settings folder: the pictures don't depend on this computer's library.
     let empty = temp_dir("shots-settings");
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    // Only these shots, comma separated, when set: to look at one without the rest.
+    let only = std::env::var("CHIPLOAD_SHOTS_ONLY").ok();
     for &(name, project, steps, (width, height)) in SHOTS {
+        if only
+            .as_deref()
+            .is_some_and(|names| !names.split(',').any(|n| n.trim() == name))
+        {
+            continue;
+        }
         let settings = match (name, &library) {
             ("library" | "machine", Some(dir)) => dir.clone(),
             ("library" | "machine", None) => {

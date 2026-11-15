@@ -892,14 +892,15 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     let one = job.active_setup_id().map(|id| job.for_setup(id));
     let job = one.as_ref().unwrap_or(job);
     validate_job(job)?;
-    // A setup in pieces is a program per piece (`run_setups_pieces`, docs/specs/pieces.md
-    // §7), never one program cut as one board, larger than the boards it is meant for.
+    // A setup in pieces is a program per piece (docs/specs/pieces.md §7), never one program
+    // cut as one board, larger than the boards it is meant for: its result is the pieces'
+    // programs put together, with every piece's files.
     if job
         .setups
         .get(job.active_setup_index())
         .is_some_and(|s| s.pieces.is_some())
     {
-        return Err(PipelineError::Job(Message::new("pipeline-pieces-not-yet")));
+        return pieces::run_assembled(job, cancel);
     }
     let post = posts::job_post(job)?;
     let imported = load_drawing(job)?;

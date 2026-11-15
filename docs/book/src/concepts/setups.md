@@ -68,47 +68,10 @@ chipload run box.chipload -o box.nc --setup 2
 In paths, a setup's board is `setups.N.stock…` and its zero `setups.N.work_zero`, counting
 from 0. The older `stock.…` and `machine.work_zero` still work and mean the active setup's.
 
-## Pieces (being built)
+## Pieces
 
-A shape larger than your boards, such as a round table top or a big sign, can be cut as a
-puzzle: seams split it into pieces that each fit a board, and puzzle knobs or fingers along
-the seams lock the pieces together. Each piece becomes a program of its own, and the
-pockets, V-carving and text follow across the seams.
-
-This is being built: it works on the command line, and the window doesn't show pieces yet.
-`chipload run` writes a program for each piece, named after it (`table-A1.nc`,
-`table-A2.nc`, …), each on a board fitted round its piece with the setup's margin and with
-the setup's work zero on that board. A zero off a piece's board (the drawing's origin, or a
-point) becomes that board's bottom-left corner. The setup sheet has a map of the pieces as
-they go together, then each piece's board, zero and programs, and how to glue them.
-`chipload simulate` shows the pieces put together, or one with `--piece`.
-
-```sh
-chipload setup pieces table.chipload --board 600x400            # knobs, the defaults
-chipload setup pieces table.chipload --joint fingers --grid 3x2 # fingers, 3 × 2 pieces
-chipload setup pieces table.chipload --shift-x 2=15             # move the 2nd seam 15 mm
-chipload run table.chipload -o table.nc                         # a program per piece
-chipload run table.chipload -o table.nc --piece A2              # only piece A2
-chipload simulate table.chipload -o table.png                   # the pieces put together
-chipload dxf export table.chipload -o pieces.dxf --pieces       # the pieces, a layer each
-chipload setup pieces table.chipload --off                      # one board again
-```
-
-The pieces are the outline cut out by the setup's **outside profiles**, split at the seams.
-Seams are evenly spaced over that outline; Chipload picks the fewest pieces whose boards fit
-the board size, counting the joints that stick out and the margin. Joints stay clear of the
-outline's edge and of where two seams cross. Everything else, such as pockets, V-carving and
-text, is generated once for the whole board and cut a little past each seam on both pieces,
-so it lines up when the pieces are glued. Where a V-carve or another cut that moves up and
-down is split at a seam, the cutter plunges into the cut there, and the report says so.
-
-A joint must suit the cut-out tool: its tightest curve must be at least the tool's radius
-plus the clearance (for knobs, a fifth of the joint size). If it isn't, Chipload names the
-smallest joint size that works.
-
-Without `--board`, the boards are the size of the machine's travel. Knobs default to 30 mm
-heads every 120 mm, fingers to 15 mm teeth every 60 mm, and the joints are cut 0.2 mm loose
-for glue (`--size`, `--spacing`, `--clearance`).
+A setup can also be cut as a puzzle of boards, for a shape larger than your boards: see
+[Pieces](pieces.md).
 
 ## The back side (experimental)
 

@@ -659,6 +659,7 @@ pub(in crate::app) fn setup_form(
     if several && let Some(change) = board_rows(ui, &edit.job, id, labels) {
         request = Some(change);
     }
+    pieces_section(ui, &mut edit.job, index);
     if !active {
         ui.add_space(6.0);
         if ui.button(t!(ui, "forms-setup-make-active")).clicked() {
@@ -672,6 +673,142 @@ pub(in crate::app) fn setup_form(
         }
     }
     request
+}
+
+/// The boards a new setup in pieces starts with when the machine's travel isn't known, mm.
+const PIECES_BOARD: (f64, f64) = (600.0, 400.0);
+
+/// A setup cut in pieces (docs/specs/pieces.md §9): on or off, the boards, the grid, the
+/// joint with its size, spacing and clearance, and with a grid given, each seam's shift.
+fn pieces_section(ui: &mut egui::Ui, job: &mut chipload_job::Job, index: usize) {
+    use chipload_job::{Joint, PieceBoard, PieceGrid, Pieces};
+    let units = crate::units::display(ui.ctx());
+    let travel = job.machine.travel.as_ref().map(|t| (t.x, t.y));
+    let setup = &mut job.setups[index];
+    let at = |field: &str| format!("setups.{index}.pieces.{field}");
+    let joint_name = |ui: &egui::Ui, joint: Joint| match joint {
+        Joint::Knobs => t!(ui, "forms-pieces-knobs"),
+        Joint::Fingers => t!(ui, "forms-pieces-fingers"),
+    };
+    let summary = match &setup.pieces {
+        Some(p) => format!(
+            "{} {} {}",
+            joint_name(ui, p.joint),
+            len_in(units, p.size),
+            chipload_pipeline::units::length_unit(units)
+        ),
+        None => t!(ui, "forms-pieces-off"),
+    };
+    ui.add_space(6.0);
+    section(
+        ui,
+        &format!("setup-pieces-{index}"),
+        &t!(ui, "forms-section-pieces"),
+        &summary,
+        |ui| {
+            let mut on = setup.pieces.is_some();
+            ui.label("");
+            if ui
+                .checkbox(&mut on, t!(ui, "forms-pieces-on"))
+                .on_hover_text(t!(ui, "forms-pieces-on-hover"))
+                .changed()
+            {
+                setup.pieces = on.then(|| {
+                    let (x, y) = travel.unwrap_or(PIECES_BOARD);
+                    Pieces::new(PieceBoard { x, y }, Joint::Knobs)
+                });
+            }
+            ui.end_row();
+            let Some(p) = setup.pieces.as_mut() else {
+                return;
+            };
+            ui.label(t!(ui, "forms-pieces-board"))
+                .on_hover_text(t!(ui, "forms-pieces-board-hover"));
+            ui.horizontal(|ui| {
+                flag(ui.add(mm(&mut p.board.x)), ui, &at("board.x"));
+                ui.label("×");
+                flag(ui.add(mm(&mut p.board.y)), ui, &at("board.y"));
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-pieces-grid"));
+            ui.horizontal(|ui| {
+                let mut auto = p.grid.is_none();
+                if ui
+                    .checkbox(&mut auto, t!(ui, "forms-pieces-grid-auto"))
+                    .changed()
+                {
+                    p.grid = (!auto).then_some(PieceGrid {
+                        columns: 2,
+                        rows: 1,
+                    });
+                    p.shift_x.clear();
+                    p.shift_y.clear();
+                }
+                if let Some(g) = &mut p.grid {
+                    ui.add(egui::DragValue::new(&mut g.columns).range(1..=50));
+                    ui.label("×");
+                    ui.add(egui::DragValue::new(&mut g.rows).range(1..=50));
+                }
+            });
+            ui.end_row();
+            ui.label(t!(ui, "forms-pieces-joint"));
+            ComboBox::from_id_salt(("setup-pieces-joint", index))
+                .selected_text(joint_name(ui, p.joint))
+                .show_ui(ui, |ui| {
+                    for joint in [Joint::Knobs, Joint::Fingers] {
+                        if ui
+                            .selectable_label(p.joint == joint, joint_name(ui, joint))
+                            .clicked()
+                            && p.joint != joint
+                        {
+                            p.joint = joint;
+                            (p.size, p.spacing) = joint.defaults();
+                        }
+                    }
+                });
+            ui.end_row();
+            ui.label(t!(ui, "forms-pieces-size"))
+                .on_hover_text(t!(ui, "forms-pieces-size-hover"));
+            flag(ui.add(mm(&mut p.size)), ui, &at("size"));
+            ui.end_row();
+            ui.label(t!(ui, "forms-pieces-spacing"))
+                .on_hover_text(t!(ui, "forms-pieces-spacing-hover"));
+            flag(ui.add(mm(&mut p.spacing)), ui, &at("spacing"));
+            ui.end_row();
+            ui.label(t!(ui, "forms-pieces-clearance"))
+                .on_hover_text(t!(ui, "forms-pieces-clearance-hover"));
+            flag(ui.add(mm(&mut p.clearance)), ui, &at("clearance"));
+            ui.end_row();
+            // Each inner seam's shift, with a grid given: its seams are known.
+            if let Some(g) = p.grid {
+                for (axis, count, shifts) in [
+                    ("x", g.columns, &mut p.shift_x),
+                    ("y", g.rows, &mut p.shift_y),
+                ] {
+                    let seams = count.saturating_sub(1) as usize;
+                    shifts.resize(seams.max(shifts.len()), 0.0);
+                    shifts.truncate(seams);
+                    for (k, shift) in shifts.iter_mut().enumerate() {
+                        let label = if axis == "x" {
+                            t!(ui, "forms-pieces-shift-x", seam = k + 1)
+                        } else {
+                            t!(ui, "forms-pieces-shift-y", seam = k + 1)
+                        };
+                        ui.label(label)
+                            .on_hover_text(t!(ui, "forms-pieces-shift-hover"));
+                        let field = crate::units::length(shift)
+                            .speed(1.0)
+                            .range(-100_000.0..=100_000.0);
+                        flag(ui.add(field), ui, &at(&format!("shift_{axis}")));
+                        ui.end_row();
+                    }
+                    while shifts.last() == Some(&0.0) {
+                        shifts.pop();
+                    }
+                }
+            }
+        },
+    );
 }
 
 /// A setup's board (docs/specs/two-sided.md §3): its own, or the back of another setup,

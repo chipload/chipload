@@ -700,7 +700,6 @@ pipeline-rule-skipped = lager { $layer } hoppades över för stilen ”{ $style 
 pipeline-rule-failed = stilen ”{ $style }” användes inte på lager { $layer }: { $reason }
 pipeline-rule-unmatched = ingen lagerregel matchar lagren { $layers }
 pipeline-rule-none = ingen stil har en lagerregel: ge först en stil ett lagermönster
-pipeline-pieces-not-yet = en uppspänning i bitar fräses som ett program per bit: `chipload run` skriver alla, eller en med --piece; fönstret, uppsättningsbladet och simuleringen hanterar inte bitar än
 pipeline-pieces-zero-off = bit { $piece }: nollpunkten ligger utanför dess skiva, så dess nollpunkt är skivans nedre vänstra hörn
 pipeline-pieces-empty = bit { $piece } har inget att fräsa
 pipeline-pieces-no-such = det finns ingen bit { $piece }

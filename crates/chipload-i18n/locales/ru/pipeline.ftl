@@ -545,7 +545,6 @@ pipeline-rule-skipped = слой { $layer } пропущен для стиля �
 pipeline-rule-failed = стиль «{ $style }» не применён к слою { $layer }: { $reason }
 pipeline-rule-unmatched = ни одно правило слоёв не подходит к слоям { $layers }
 pipeline-rule-none = ни у одного стиля нет правила слоёв: сначала задайте стилю шаблон слоя
-pipeline-pieces-not-yet = установ из фрагментов обрабатывается отдельной программой на каждый фрагмент: `chipload run` пишет все, или одну с --piece; окно, карта наладки и симуляция фрагменты пока не поддерживают
 pipeline-pieces-zero-off = фрагмент { $piece }: ноль детали лежит вне его заготовки, поэтому его ноль — левый нижний угол заготовки
 pipeline-pieces-empty = у фрагмента { $piece } нечего обрабатывать
 pipeline-pieces-no-such = фрагмента { $piece } нет

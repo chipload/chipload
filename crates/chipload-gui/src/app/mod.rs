@@ -19,7 +19,7 @@ use chipload_job::{
     StockOrigin, Tabs, ToolType, Travel, Units, WorkZero, ZZero, load_job, save_job,
 };
 use chipload_pipeline::shapes::{add_shape, delete_shape, set_shape};
-use chipload_pipeline::sheet::{SheetInfo, write_setup_sheet};
+use chipload_pipeline::sheet::{SheetInfo, write_sheet_for};
 use chipload_pipeline::{
     PipelineError, RunResult, empty_project, load_drawing, new_project, write_gcode_files,
 };
@@ -673,6 +673,14 @@ impl ChiploadApp {
         let job = self.edited_job();
         self.scene.stock = job.as_ref().map(chipload_job::Job::stock_bounds);
         self.scene.ghost_boards = job.as_ref().map(ghost_boards).unwrap_or_default();
+        // The pieces of a setup cut in pieces (docs/specs/pieces.md §9); none while they
+        // can't be worked out (the report says why once it generates).
+        self.scene.pieces = job
+            .as_ref()
+            .and_then(|job| chipload_pipeline::pieces::piece_map_of(job, &self.contours).ok())
+            .flatten()
+            .map(|map| map.pieces)
+            .unwrap_or_default();
         self.scene.ghost_contours = job
             .map(|job| ghost_contours(&job, &self.contours))
             .unwrap_or_default();
@@ -1735,7 +1743,7 @@ impl ChiploadApp {
                     language: self.lang(),
                     parts,
                 };
-                match write_setup_sheet(job, result, path, &info) {
+                match write_sheet_for(job, result, path, &info) {
                     Ok(sheet) => Some(sheet),
                     Err(err) => {
                         // The file system's own words.

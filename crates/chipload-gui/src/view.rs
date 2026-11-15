@@ -1034,6 +1034,9 @@ pub struct Scene {
     pub ghost_boards: Vec<(Point, Point)>,
     /// Contours only another setup's parts cut: drawn as ghosts.
     pub ghost_contours: std::collections::BTreeSet<usize>,
+    /// The active setup's pieces when it is cut in pieces: each one's name and loops
+    /// (docs/specs/pieces.md §9).
+    pub pieces: Vec<(String, Vec<Vec<Point>>)>,
     pub toolpath: Option<ToolpathShape>,
     pub tabs: Vec<Vec<Point>>,
     /// The shape being drawn, as it would be with the cursor's point.
@@ -1415,6 +1418,31 @@ impl Scene {
         }
         if let Some((a, b, label)) = &self.turn_axis {
             paint_turn_axis(painter, view, (*a, *b), label, pal);
+        }
+        // The pieces of a setup cut in pieces: their outlines dashed, their names inside.
+        for (name, rings) in &self.pieces {
+            let mut lo = (f64::INFINITY, f64::INFINITY);
+            let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+            for ring in rings {
+                let mut closed = ring.clone();
+                if let Some(&first) = ring.first() {
+                    closed.push(first);
+                }
+                dashed(screen(&closed), Stroke::new(1.5, pal.stock));
+                for p in ring {
+                    lo = (lo.0.min(p.0), lo.1.min(p.1));
+                    hi = (hi.0.max(p.0), hi.1.max(p.1));
+                }
+            }
+            if lo.0.is_finite() {
+                painter.text(
+                    view.to_screen(((lo.0 + hi.0) / 2.0, (lo.1 + hi.1) / 2.0)),
+                    eframe::egui::Align2::CENTER_CENTER,
+                    name,
+                    eframe::egui::FontId::proportional(18.0),
+                    pal.stock,
+                );
+            }
         }
         // The drawing origin as ghost axes once the work zero is elsewhere, so it can still
         // be found (docs/specs/work-zero-marker.md §3).

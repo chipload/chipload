@@ -335,6 +335,12 @@ impl ChiploadApp {
             self.activate_setup(2);
             self.focus = Focus::Setup(2);
         }
+        // The active setup's form open (docs/specs/pieces.md §9).
+        if steps.contains(&"setup")
+            && let Some(id) = self.edited_job().and_then(|job| job.active_setup_id())
+        {
+            self.focus = Focus::Setup(id);
+        }
         if steps.contains(&"generate") || steps.contains(&"simulation") {
             self.generate_and_wait();
         }

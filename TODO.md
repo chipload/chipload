@@ -285,9 +285,10 @@ Smaller follow-ups noted along the way, not in the order above:
      generating a setup in pieces is refused until step 5. Step 2 built: seams, knobs,
      fingers and cells (`chipload-toolpath` `pieces.rs`). Steps 3–6 built: piece outlines,
      a program per piece (`run --piece`), cuts trimmed to each piece, the sheet with its
-     map, `simulate --piece` or put together, `dxf export --pieces`, a golden. Left: the
-     window (step 7: Pieces section, seams in the view, export), `plan --piece`, the guide
-     page. The other reading, sliding one long board between tiles on
+     map, `simulate --piece` or put together, `dxf export --pieces`, a golden. Steps 7–8
+     built: the setup's Pieces section, pieces drawn and named in the view, preview and
+     export, the guide page (concepts/pieces.md). Left: dragging a seam in the view,
+     `plan --piece` (plan still plans one board), the user to try it. The other reading, sliding one long board between tiles on
      pins, is parked in docs/specs/sliding-tiles.md.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
