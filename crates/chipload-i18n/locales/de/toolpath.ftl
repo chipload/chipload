@@ -432,3 +432,4 @@ toolpath-relief-ramp-gouge = die Bahn des Reliefs würde bei ({ $x }, { $y }) { 
 toolpath-relief-roughing-tool = Werkzeug { $tool } kann kein Relief schruppen: dafür braucht es einen Schaftfräser oder einen einfachen Kugelfräser
 toolpath-relief-roughing-room = das Schruppwerkzeug { $tool } hat im Bereich des Reliefs keinen Platz, der in Reichweite der Schlichtbahn bleibt
 toolpath-relief-deep = schneidet { $depth } tief allein mit Werkzeug { $tool }; ein Schruppdurchgang (op add-roughing) nimmt vorher das meiste weg
+toolpath-pieces-joint-too-small = Verbindungen von { $size } sind zu klein für das Ausschneidewerkzeug: seine engste Kurve braucht einen Radius von { $radius } (Werkzeugradius plus Spiel); machen Sie die Verbindungen mindestens { $least } groß, oder schneiden Sie mit einem kleineren Werkzeug aus

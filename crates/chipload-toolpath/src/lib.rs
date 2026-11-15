@@ -28,6 +28,7 @@ pub mod offset;
 mod parallel;
 pub mod path;
 pub mod pattern;
+pub mod pieces;
 pub mod plan;
 pub mod pocket;
 pub mod pocket_finish;

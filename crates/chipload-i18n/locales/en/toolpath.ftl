@@ -432,3 +432,4 @@ toolpath-relief-ramp-gouge = the relief's path would cut { $depth } into its rim
 toolpath-relief-roughing-tool = tool { $tool } can't rough a relief: it takes an end mill or a plain ball nose
 toolpath-relief-roughing-room = the roughing tool { $tool } has no room in the relief's area, kept within the finish's reach
 toolpath-relief-deep = cuts { $depth } deep with tool { $tool } alone; a roughing pass (op add-roughing) takes most of it first
+toolpath-pieces-joint-too-small = joints of { $size } are too small for the cut-out tool: its tightest curve needs a radius of { $radius } (tool radius plus clearance); make the joints at least { $least }, or cut out with a smaller tool

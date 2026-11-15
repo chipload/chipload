@@ -431,3 +431,4 @@ toolpath-relief-ramp-gouge = la trayectoria del relieve cortaría { $depth } en 
 toolpath-relief-roughing-tool = la herramienta { $tool } no puede desbastar un relieve: hace falta una fresa plana o una fresa de punta esférica simple
 toolpath-relief-roughing-room = la herramienta de desbaste { $tool } no cabe en el área del relieve, limitada al alcance del acabado
 toolpath-relief-deep = corta { $depth } de profundidad solo con la herramienta { $tool }; una pasada de desbaste (op add-roughing) quita antes la mayor parte
+toolpath-pieces-joint-too-small = uniones de { $size } son demasiado pequeñas para la herramienta de recorte: su curva más cerrada necesita un radio de { $radius } (radio de la herramienta más la holgura); haga las uniones de al menos { $least }, o recorte con una herramienta más pequeña

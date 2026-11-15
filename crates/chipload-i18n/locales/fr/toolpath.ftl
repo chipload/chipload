@@ -431,3 +431,4 @@ toolpath-relief-ramp-gouge = la trajectoire du relief entamerait la rampe de son
 toolpath-relief-roughing-tool = l'outil { $tool } ne peut pas ébaucher un relief : il faut une fraise droite ou une fraise hémisphérique simple
 toolpath-relief-roughing-room = l'outil d'ébauche { $tool } n'a pas de place dans la zone du relief, limitée à la portée de la finition
 toolpath-relief-deep = coupe { $depth } de profondeur avec le seul outil { $tool } ; une passe d'ébauche (op add-roughing) en enlève d'abord l'essentiel
+toolpath-pieces-joint-too-small = des assemblages de { $size } sont trop petits pour l’outil de détourage : sa courbe la plus serrée demande un rayon de { $radius } (rayon de l’outil plus le jeu) ; faites des assemblages d’au moins { $least }, ou détourez avec un outil plus petit

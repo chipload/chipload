@@ -50,7 +50,9 @@ so the pieces fit, apart from the clearance (§5).
 
 **Puzzle knobs:** a round head on a narrower neck, as on a jigsaw puzzle.
 - The head's diameter is the **joint size** (default 30 mm). The neck is 0.6 times the
-  size, and the head stands about one size out from the seam.
+  size, and the head stands about one size out from the seam (*as built: 1.19 sizes; the
+  fillets are 0.2 sizes in radius, so the tool's radius plus the clearance may be at most a
+  fifth of the size*).
 - The knob is joined to the seam line by arcs tangent at both ends. The curve is all lines
   and arcs, with no corners, and every arc has a radius of at least the cut-out tool's
   radius plus the clearance. Otherwise the router can't cut the socket.
@@ -58,8 +60,9 @@ so the pieces fit, apart from the clearance (§5).
   sizes), centred in the stretch. A stretch too short for one knob stays straight.
 - Knobs **alternate** in and out along a seam, so neighbouring pieces get both knobs and
   sockets.
-- Knobs stay at least one size from where seams cross and from the outline's edge. The
-  socket's thin walls would break there.
+- Knobs stay at least one size from the outline's edge, and two sizes from where seams
+  cross. The socket's thin walls would break there, and two seams' knobs would meet at a
+  corner (*as built: two sizes from crossings, one from the edge; fingers the same*).
 
 **Fingers:** square teeth along the seam, with every corner rounded.
 - The tooth width is half the spacing, and the tooth length is the joint size (default

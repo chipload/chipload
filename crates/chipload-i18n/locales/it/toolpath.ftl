@@ -428,3 +428,4 @@ toolpath-relief-ramp-gouge = il percorso del rilievo taglierebbe { $depth } nell
 toolpath-relief-roughing-tool = l'utensile { $tool } non può sgrossare un rilievo: serve una fresa piatta o una fresa sferica semplice
 toolpath-relief-roughing-room = l'utensile di sgrossatura { $tool } non ha spazio nell'area del rilievo, tenuta entro la portata della finitura
 toolpath-relief-deep = taglia { $depth } in profondità con il solo utensile { $tool }; una passata di sgrossatura (op add-roughing) ne toglie prima la maggior parte
+toolpath-pieces-joint-too-small = incastri di { $size } sono troppo piccoli per l’utensile di contornatura: la sua curva più stretta richiede un raggio di { $radius } (raggio dell’utensile più il gioco); faccia incastri di almeno { $least }, o contorni con un utensile più piccolo

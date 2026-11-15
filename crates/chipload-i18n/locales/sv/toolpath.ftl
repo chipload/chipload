@@ -428,3 +428,4 @@ toolpath-relief-ramp-gouge = reliefens bana skulle skära { $depth } in i kanten
 toolpath-relief-roughing-tool = verktyg { $tool } kan inte grovbearbeta en relief: det kräver en pinnfräs eller en vanlig kulfräs
 toolpath-relief-roughing-room = grovverktyget { $tool } får inte plats i reliefens område, som hålls inom finbearbetningens räckvidd
 toolpath-relief-deep = skär { $depth } djupt med enbart verktyg { $tool }; ett grovpass (op add-roughing) tar det mesta först
+toolpath-pieces-joint-too-small = fogar på { $size } är för små för utskärningsverktyget: dess snävaste kurva behöver radien { $radius } (verktygsradie plus spel); gör fogarna minst { $least }, eller skär ut med ett mindre verktyg
