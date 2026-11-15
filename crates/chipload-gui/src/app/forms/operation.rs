@@ -1882,61 +1882,61 @@ fn pattern_sections(ui: &mut egui::Ui, f: &mut chipload_job::PatternOp, tool: Op
     let units = crate::units::display(ui.ctx());
     let len_unit = chipload_pipeline::units::length_unit(units);
     let with_unit = |mm: f64| format!("{} {len_unit}", len_in(units, mm));
-    let kind_name = |ui: &egui::Ui, p: &FillPattern| match p {
-        FillPattern::Lines { .. } => t!(ui, "forms-pattern-lines"),
-        FillPattern::Cross { .. } => t!(ui, "forms-pattern-cross"),
-        FillPattern::Rings { .. } => t!(ui, "forms-pattern-rings"),
-        FillPattern::Waves { .. } => t!(ui, "forms-pattern-waves"),
+    use chipload_pipeline::new_ops::PatternKind;
+    let kind_name = |ui: &egui::Ui, kind: PatternKind| match kind {
+        PatternKind::Lines => t!(ui, "forms-pattern-lines"),
+        PatternKind::Cross => t!(ui, "forms-pattern-cross"),
+        PatternKind::Rings => t!(ui, "forms-pattern-rings"),
+        PatternKind::Waves => t!(ui, "forms-pattern-waves"),
+        PatternKind::Dashes => t!(ui, "forms-pattern-dashes"),
+        PatternKind::Herringbone => t!(ui, "forms-pattern-herringbone"),
+        PatternKind::Scales => t!(ui, "forms-pattern-scales"),
+        PatternKind::Sunburst => t!(ui, "forms-pattern-sunburst"),
     };
+    let current = PatternKind::of(&f.pattern);
     let summary = t!(
         ui,
         "forms-pattern-summary",
-        kind = kind_name(ui, &f.pattern),
+        kind = kind_name(ui, current),
         spacing = with_unit(f.pattern.spacing())
     );
     let title = t!(ui, "forms-section-pattern");
     folded_section(ui, "op-pattern", &title, &summary, |ui| {
         ui.label(t!(ui, "forms-pattern"));
-        let spacing = f.pattern.spacing();
-        let angle = match f.pattern {
-            FillPattern::Lines { angle, .. }
-            | FillPattern::Cross { angle, .. }
-            | FillPattern::Waves { angle, .. } => angle,
-            FillPattern::Rings { .. } => std::f64::consts::FRAC_PI_4,
-        };
-        let choices = [
-            FillPattern::Lines { angle, spacing },
-            FillPattern::Cross {
-                angle,
-                spacing,
-                between: std::f64::consts::FRAC_PI_2,
-            },
-            FillPattern::Rings { spacing },
-            FillPattern::Waves {
-                angle,
-                spacing,
-                wavelength: 4.0 * spacing,
-                height: spacing,
-            },
-        ];
+        let mut chosen = None;
         let combo = ComboBox::from_id_salt("pattern-kind")
-            .selected_text(kind_name(ui, &f.pattern))
+            .selected_text(kind_name(ui, current))
             .show_ui(ui, |ui| {
-                for choice in choices {
-                    let same =
-                        std::mem::discriminant(&choice) == std::mem::discriminant(&f.pattern);
-                    let label = kind_name(ui, &choice);
-                    if ui.selectable_label(same, label).clicked() && !same {
-                        f.pattern = choice;
+                for kind in PatternKind::ALL {
+                    let label = kind_name(ui, kind);
+                    if ui.selectable_label(kind == current, label).clicked() && kind != current {
+                        chosen = Some(kind);
                     }
                 }
             });
+        if let Some(kind) = chosen {
+            // The new kind's sizes from the groove; a stroke pattern fluted (fill-pattern.md
+            // §14).
+            *f = chipload_pipeline::new_ops::switched_pattern(f, kind, tool);
+        }
         flag(combo.response, ui, "pattern");
         ui.end_row();
         let spacing_row = |ui: &mut egui::Ui, spacing: &mut f64| {
             ui.label(t!(ui, "forms-pattern-spacing"))
                 .on_hover_text(t!(ui, "forms-pattern-spacing-hover"));
             flag(ui.add(mm(spacing)), ui, "pattern.spacing");
+            ui.end_row();
+        };
+        let length_row = |ui: &mut egui::Ui, length: &mut f64| {
+            ui.label(t!(ui, "forms-pattern-length"));
+            flag(ui.add(mm(length)), ui, "pattern.length");
+            ui.end_row();
+        };
+        let whole_row = |ui: &mut egui::Ui, whole: &mut bool| {
+            ui.label(t!(ui, "forms-pattern-whole"))
+                .on_hover_text(t!(ui, "forms-pattern-whole-hover"));
+            let tick = ui.checkbox(whole, "");
+            flag(tick, ui, "pattern.whole");
             ui.end_row();
         };
         let angle_row = |ui: &mut egui::Ui, angle: &mut f64| {
@@ -1978,6 +1978,59 @@ fn pattern_sections(ui: &mut egui::Ui, f: &mut chipload_job::PatternOp, tool: Op
                     .on_hover_text(t!(ui, "forms-pattern-height-hover"));
                 flag(ui.add(mm(height)), ui, "pattern.height");
                 ui.end_row();
+            }
+            FillPattern::Dashes {
+                angle,
+                spacing,
+                length,
+                gap,
+                whole,
+            } => {
+                angle_row(ui, angle);
+                spacing_row(ui, spacing);
+                length_row(ui, length);
+                ui.label(t!(ui, "forms-pattern-gap"));
+                flag(ui.add(mm(gap)), ui, "pattern.gap");
+                ui.end_row();
+                whole_row(ui, whole);
+            }
+            FillPattern::Herringbone {
+                angle,
+                spacing,
+                length,
+                whole,
+            } => {
+                angle_row(ui, angle);
+                spacing_row(ui, spacing);
+                length_row(ui, length);
+                whole_row(ui, whole);
+            }
+            FillPattern::Scales {
+                angle,
+                spacing,
+                radius,
+                whole,
+            } => {
+                angle_row(ui, angle);
+                spacing_row(ui, spacing);
+                ui.label(t!(ui, "forms-pattern-radius"));
+                flag(ui.add(mm(radius)), ui, "pattern.radius");
+                ui.end_row();
+                whole_row(ui, whole);
+            }
+            FillPattern::Sunburst {
+                spacing,
+                length,
+                pitch,
+                whole,
+            } => {
+                spacing_row(ui, spacing);
+                length_row(ui, length);
+                ui.label(t!(ui, "forms-pattern-pitch"))
+                    .on_hover_text(t!(ui, "forms-pattern-pitch-hover"));
+                flag(ui.add(mm(pitch)), ui, "pattern.pitch");
+                ui.end_row();
+                whole_row(ui, whole);
             }
         }
         ui.label(t!(ui, "forms-pattern-inside"))

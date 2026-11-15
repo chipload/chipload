@@ -321,3 +321,185 @@ proptest! {
         }
     }
 }
+
+/// The length of a groove's path.
+fn length_of(g: &[(f64, f64)]) -> f64 {
+    g.windows(2)
+        .map(|w| math::hypot(w[1].0 - w[0].0, w[1].1 - w[0].1))
+        .sum()
+}
+
+#[test]
+fn whole_dashes_are_all_their_length_and_staggered() {
+    // docs/specs/fill-pattern.md §14.
+    let plan = plan(
+        &job(
+            json!({"pattern": {"kind": "dashes", "angle": 0.0, "spacing": 5.0,
+            "length": 6.0, "gap": 4.0, "whole": true}}),
+        ),
+        &rect(),
+    );
+    let found = grooves(&plan.program.moves);
+    assert!(!found.is_empty());
+    for g in &found {
+        assert!((length_of(g) - 6.0).abs() < TOL, "{g:?}");
+        for &(x, y) in g {
+            assert!((1.0 - TOL..=59.0 + TOL).contains(&x) && (1.0 - TOL..=39.0 + TOL).contains(&y));
+        }
+    }
+    // Rows 5 apart; at y = 5 dashes start at multiples of 10 + 5, at y = 10 of 10.
+    let starts = |y: f64| -> Vec<f64> {
+        let mut xs: Vec<f64> = found
+            .iter()
+            .filter(|g| (g[0].1 - y).abs() < TOL)
+            .map(|g| g[0].0.min(g[g.len() - 1].0))
+            .collect();
+        xs.sort_by(f64::total_cmp);
+        xs
+    };
+    assert!(
+        starts(5.0)
+            .iter()
+            .all(|x| ((x - 5.0) / 10.0).fract().abs() < 1e-6)
+    );
+    assert!(starts(10.0).iter().all(|x| (x / 10.0).fract().abs() < 1e-6));
+}
+
+#[test]
+fn clipped_strokes_reach_the_edge() {
+    let plan = plan(
+        &job(
+            json!({"pattern": {"kind": "dashes", "angle": 0.0, "spacing": 5.0,
+            "length": 7.0, "gap": 4.0, "whole": false}}),
+        ),
+        &rect(),
+    );
+    let found = grooves(&plan.program.moves);
+    assert!(found.iter().any(|g| length_of(g) < 7.0 - TOL));
+    assert!(
+        found
+            .iter()
+            .flatten()
+            .any(|p| (p.0 - 1.0).abs() < TOL || (p.0 - 59.0).abs() < TOL)
+    );
+}
+
+#[test]
+fn herringbone_strokes_lean_both_ways_at_45_degrees() {
+    let plan = plan(
+        &job(
+            json!({"pattern": {"kind": "herringbone", "angle": 0.0, "spacing": 3.0,
+            "length": 7.0, "whole": true}}),
+        ),
+        &rect(),
+    );
+    let mut leans: Vec<i64> = grooves(&plan.program.moves)
+        .iter()
+        .map(|g| {
+            let (a, b) = (g[0], g[g.len() - 1]);
+            let d = math::atan2(b.1 - a.1, b.0 - a.0)
+                .to_degrees()
+                .rem_euclid(180.0);
+            d.round() as i64
+        })
+        .collect();
+    leans.sort_unstable();
+    leans.dedup();
+    assert_eq!(leans, [45, 135]);
+}
+
+#[test]
+fn scales_are_half_circles_of_the_radius() {
+    let plan = plan(
+        &job(
+            json!({"pattern": {"kind": "scales", "angle": 0.0, "spacing": 4.0,
+            "radius": 5.0, "whole": true}}),
+        ),
+        &rect(),
+    );
+    let found = grooves(&plan.program.moves);
+    assert!(!found.is_empty());
+    for g in &found {
+        let (a, b) = (g[0], g[g.len() - 1]);
+        assert!(
+            (math::hypot(b.0 - a.0, b.1 - a.1) - 10.0).abs() < TOL,
+            "{g:?}"
+        );
+        let c = ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0);
+        for p in g {
+            assert!(
+                (math::hypot(p.0 - c.0, p.1 - c.1) - 5.0).abs() < 0.02,
+                "{p:?}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_sunburst_points_out_from_the_middle() {
+    let contours = vec![common::circle_id(1, (50.0, 50.0), 30.0)];
+    let plan = plan(
+        &job(
+            json!({"pattern": {"kind": "sunburst", "spacing": 7.0, "length": 5.0,
+            "pitch": 5.0, "whole": true}}),
+        ),
+        &contours,
+    );
+    let found = grooves(&plan.program.moves);
+    assert!(found.len() > 20);
+    for g in &found {
+        let (a, b) = (g[0], g[g.len() - 1]);
+        let ra = math::hypot(a.0 - 50.0, a.1 - 50.0);
+        let rb = math::hypot(b.0 - 50.0, b.1 - 50.0);
+        assert!(((ra - rb).abs() - 5.0).abs() < TOL, "radial, 5 long: {g:?}");
+        let cross = (a.0 - 50.0) * (b.1 - 50.0) - (a.1 - 50.0) * (b.0 - 50.0);
+        assert!(cross.abs() < 1e-6 * ra.max(rb).powi(2) + TOL, "{g:?}");
+    }
+}
+
+proptest! {
+    #![proptest_config(common::proptest_config(24))]
+
+    /// Random rectangles with a round hole and stroke patterns, whole strokes: every
+    /// cutting point inside the rectangle shrunk by half a groove, outside the hole grown
+    /// by it, and every dash its whole length.
+    #[test]
+    fn every_whole_stroke_stays_inside(
+        w in 20.0f64..100.0,
+        h in 20.0f64..80.0,
+        hole in 2.0f64..8.0,
+        angle in -3.2f64..3.2,
+        spacing in 2.0f64..8.0,
+        length in 3.0f64..12.0,
+        kind in 0usize..4,
+    ) {
+        let contours = vec![
+            common::rect(1, 10.0, 10.0, 10.0 + w, 10.0 + h),
+            common::circle_id(2, (10.0 + w / 2.0, 10.0 + h / 2.0), hole),
+        ];
+        let pattern = match kind {
+            0 => json!({"kind": "dashes", "angle": angle, "spacing": spacing,
+                        "length": length, "gap": length / 2.0, "whole": true}),
+            1 => json!({"kind": "herringbone", "angle": angle, "spacing": spacing,
+                        "length": length, "whole": true}),
+            2 => json!({"kind": "scales", "angle": angle, "spacing": spacing,
+                        "radius": length / 2.0, "whole": true}),
+            _ => json!({"kind": "sunburst", "spacing": spacing + length, "length": length,
+                        "pitch": length, "whole": true}),
+        };
+        // Square ends for dashes, so their full length is below the top to measure.
+        let ramp = if kind == 0 { 0.0 } else { 1.0 };
+        let plan = plan(&job(json!({"pattern": pattern, "ramp": ramp})), &contours);
+        for (x, y, _) in cuts(&plan.program.moves) {
+            prop_assert!(x >= 11.0 - TOL && x <= 9.0 + w + TOL, "x {x}");
+            prop_assert!(y >= 11.0 - TOL && y <= 9.0 + h + TOL, "y {y}");
+            let d = math::hypot(x - 10.0 - w / 2.0, y - 10.0 - h / 2.0);
+            prop_assert!(d >= hole + 1.0 - TOL, "in the hole at ({x}, {y})");
+        }
+        if kind == 0 {
+            for g in grooves(&plan.program.moves) {
+                prop_assert!((length_of(&g) - length).abs() < TOL, "{g:?}");
+            }
+        }
+    }
+}

@@ -681,6 +681,144 @@
             "height"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Rows `spacing` apart of strokes `length` long with `gap` between, every other row\nshifted half a stroke and gap (docs/specs/fill-pattern.md §14).",
+          "properties": {
+            "angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "gap": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "dashes",
+              "type": "string"
+            },
+            "length": {
+              "format": "double",
+              "type": "number"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            },
+            "whole": {
+              "description": "Only strokes the shape doesn't cut.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "angle",
+            "spacing",
+            "length",
+            "gap",
+            "whole"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Columns of strokes `length` long at 45° to `angle`, `spacing` apart along the column,\nevery other column mirrored, meeting in chevrons.",
+          "properties": {
+            "angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "herringbone",
+              "type": "string"
+            },
+            "length": {
+              "format": "double",
+              "type": "number"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            },
+            "whole": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "angle",
+            "spacing",
+            "length",
+            "whole"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Rows `spacing` apart of half circles of `radius` side by side, every other row\nshifted by a radius.",
+          "properties": {
+            "angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "scales",
+              "type": "string"
+            },
+            "radius": {
+              "format": "double",
+              "type": "number"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            },
+            "whole": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "angle",
+            "spacing",
+            "radius",
+            "whole"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Round the middle of each shape: rings `spacing` apart of strokes `length` long\npointing outwards, `pitch` apart round the ring, every other ring turned half a pitch.",
+          "properties": {
+            "kind": {
+              "const": "sunburst",
+              "type": "string"
+            },
+            "length": {
+              "format": "double",
+              "type": "number"
+            },
+            "pitch": {
+              "format": "double",
+              "type": "number"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            },
+            "whole": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "spacing",
+            "length",
+            "pitch",
+            "whole"
+          ],
+          "type": "object"
         }
       ]
     },

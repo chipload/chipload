@@ -30,6 +30,25 @@ Open shapes are skipped with a note.
 | **Rings** | Spacing | the outline repeated inwards, and round the holes |
 | **Waves** | Angle, Spacing, Wavelength, Height | parallel waves; the height is from top to bottom |
 
+**Patterns of short strokes**, for a fluted texture: each stroke is a groove of its own,
+so with ramped ends (see *Ends* below) every stroke tapers to a point at both ends, as a
+flute does.
+
+![Dashes round two holes, scales, a sunburst and herringbone, each stroke fluted, simulated](../images/pattern-strokes.png)
+
+| Pattern | Settings | Strokes |
+|---|---|---|
+| **Dashes** | Angle, Spacing, Stroke length, Gap | rows of strokes with gaps between, every other row shifted half a stroke and gap, as bricks |
+| **Herringbone** | Angle, Spacing, Stroke length | columns of strokes at 45°, the next column mirrored, meeting in chevrons |
+| **Scales** | Angle, Spacing, Radius | rows of half circles side by side, every other row shifted by a radius |
+| **Sunburst** | Spacing, Stroke length, Pitch | round the middle of each shape: rings of strokes pointing outwards, *pitch* apart round the ring, every other ring turned half a pitch |
+
+- **Whole strokes only** (on for a new stroke pattern): a stroke the shape's edge or a hole
+  would cut is left out, so every stroke keeps both tapered ends. Off: strokes are clipped
+  at the edge, as lines are.
+- Choosing a stroke pattern fills in sizes from the groove's width (strokes three widths
+  long, at least 4 mm) and, if the ends were square, ramps of a third of a stroke.
+
 - **Spacing** is from one groove's centre to the next. Narrower than a groove, the grooves
   overlap (a note says so) and the area comes out roughened.
 - **Angle** is the lines' direction from the X axis, counter-clockwise.
@@ -81,6 +100,15 @@ chipload set part.chipload operations.0.pattern.spacing=5
 `--height` a wave's (4 spacings and one spacing if left out); `--ramp` the ends;
 `--on-line` turns off *Inside the edge*. A pattern takes no `--through`.
 
+Stroke patterns: `--pattern dashes|herringbone|scales|sunburst`, with `--length`, `--gap`,
+`--radius` and `--pitch`; `--clip` turns off *Whole strokes only*. Without `--ramp` they
+are fluted:
+
+```
+chipload op add part.chipload pattern --shapes 1,2,3 --pattern dashes --length 6 --gap 3 --angle 30
+chipload op add part.chipload pattern --shapes 4 --pattern sunburst --pitch 5
+```
+
 ## In the file
 
 `"type": "pattern"` in the [project file](../reference/project-file.md#operation). Lengths
@@ -94,7 +122,7 @@ are in mm, angles in radians, feeds in mm/min. A project with a pattern opens in
 | `part` | the [part](parts.md) it belongs to |
 | `select` | the geometry: `{"layer": "NAME"}` or `{"shapes": [ids]}` |
 | `tool` | Tool: the project tool's id |
-| `pattern` | Pattern: `{"kind": "lines", "angle", "spacing"}`, `{"kind": "cross", "angle", "spacing", "between"}`, `{"kind": "rings", "spacing"}` or `{"kind": "waves", "angle", "spacing", "wavelength", "height"}` |
+| `pattern` | Pattern: `{"kind": "lines", "angle", "spacing"}`, `{"kind": "cross", "angle", "spacing", "between"}`, `{"kind": "rings", "spacing"}`, `{"kind": "waves", "angle", "spacing", "wavelength", "height"}`, `{"kind": "dashes", "angle", "spacing", "length", "gap", "whole"}`, `{"kind": "herringbone", "angle", "spacing", "length", "whole"}`, `{"kind": "scales", "angle", "spacing", "radius", "whole"}` or `{"kind": "sunburst", "spacing", "length", "pitch", "whole"}` |
 | `inside` | Inside the edge |
 | `start_depth` | Start depth |
 | `end_depth` | Depth |

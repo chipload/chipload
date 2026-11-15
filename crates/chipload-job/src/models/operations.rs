@@ -1587,6 +1587,40 @@ pub enum FillPattern {
         wavelength: f64,
         height: f64,
     },
+    /// Rows `spacing` apart of strokes `length` long with `gap` between, every other row
+    /// shifted half a stroke and gap (docs/specs/fill-pattern.md §14).
+    Dashes {
+        angle: f64,
+        spacing: f64,
+        length: f64,
+        gap: f64,
+        /// Only strokes the shape doesn't cut.
+        whole: bool,
+    },
+    /// Columns of strokes `length` long at 45° to `angle`, `spacing` apart along the column,
+    /// every other column mirrored, meeting in chevrons.
+    Herringbone {
+        angle: f64,
+        spacing: f64,
+        length: f64,
+        whole: bool,
+    },
+    /// Rows `spacing` apart of half circles of `radius` side by side, every other row
+    /// shifted by a radius.
+    Scales {
+        angle: f64,
+        spacing: f64,
+        radius: f64,
+        whole: bool,
+    },
+    /// Round the middle of each shape: rings `spacing` apart of strokes `length` long
+    /// pointing outwards, `pitch` apart round the ring, every other ring turned half a pitch.
+    Sunburst {
+        spacing: f64,
+        length: f64,
+        pitch: f64,
+        whole: bool,
+    },
 }
 
 impl FillPattern {
@@ -1596,8 +1630,36 @@ impl FillPattern {
             FillPattern::Lines { spacing, .. }
             | FillPattern::Cross { spacing, .. }
             | FillPattern::Rings { spacing }
-            | FillPattern::Waves { spacing, .. } => spacing,
+            | FillPattern::Waves { spacing, .. }
+            | FillPattern::Dashes { spacing, .. }
+            | FillPattern::Herringbone { spacing, .. }
+            | FillPattern::Scales { spacing, .. }
+            | FillPattern::Sunburst { spacing, .. } => spacing,
         }
+    }
+
+    /// The direction of its lines from the X axis, radians; None for rings and a sunburst.
+    pub fn angle(&self) -> Option<f64> {
+        match *self {
+            FillPattern::Lines { angle, .. }
+            | FillPattern::Cross { angle, .. }
+            | FillPattern::Waves { angle, .. }
+            | FillPattern::Dashes { angle, .. }
+            | FillPattern::Herringbone { angle, .. }
+            | FillPattern::Scales { angle, .. } => Some(angle),
+            FillPattern::Rings { .. } | FillPattern::Sunburst { .. } => None,
+        }
+    }
+
+    /// Whether it is made of short strokes (docs/specs/fill-pattern.md §14).
+    pub fn strokes(&self) -> bool {
+        matches!(
+            self,
+            FillPattern::Dashes { .. }
+                | FillPattern::Herringbone { .. }
+                | FillPattern::Scales { .. }
+                | FillPattern::Sunburst { .. }
+        )
     }
 }
 

@@ -3079,3 +3079,77 @@ fn op_add_prism_finds_the_v_bit_and_takes_a_max_depth() {
     }
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn op_add_pattern_takes_stroke_patterns_fluted() {
+    // docs/specs/fill-pattern.md §14: a stroke pattern gets ramps of a third of a stroke
+    // unless --ramp says otherwise.
+    let dir = temp_dir("op-add-strokes");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let mut json: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(corpus("jobs/v36/pattern.chipload")).unwrap(),
+    )
+    .unwrap();
+    json["operations"] = serde_json::json!([]);
+    std::fs::write(&project, json.to_string()).unwrap();
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "pattern",
+        "--shapes",
+        "5",
+        "--pattern",
+        "dashes",
+        "--length",
+        "6",
+        "--gap",
+        "3",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        text(&out.stdout).contains("dashes 6 mm long, 3 mm gaps"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", p, "operations.0.ramp"]);
+    let ramp: f64 = text(&out.stdout).trim().parse().unwrap();
+    assert!(ramp > 0.0, "fluted by default: {ramp}");
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "pattern",
+        "--shapes",
+        "4",
+        "--pattern",
+        "sunburst",
+        "--clip",
+        "--ramp",
+        "0",
+    ]);
+    let said = text(&out.stdout);
+    assert!(
+        said.contains("sunburst") && said.contains("clipped"),
+        "{said}"
+    );
+    let out = chipload(&["get", p, "operations.1.ramp"]);
+    assert_eq!(text(&out.stdout).trim(), "0.0");
+    for kind in ["herringbone", "scales"] {
+        let out = chipload(&[
+            "op",
+            "add",
+            p,
+            "pattern",
+            "--shapes",
+            "5",
+            "--pattern",
+            kind,
+        ]);
+        assert!(out.status.success(), "{kind}: {}", text(&out.stderr));
+    }
+    let out = chipload(&["run", p, "-o", path(&dir.join("out.nc")), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    std::fs::remove_dir_all(&dir).unwrap();
+}

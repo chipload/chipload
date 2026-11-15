@@ -89,7 +89,12 @@ pub fn grooves(
                 for area in &areas {
                     let mut loops = vec![flatten(&area.outer)];
                     loops.extend(area.holes.iter().map(flatten));
-                    for line in lines(&pattern, &loops, setup.anchor)? {
+                    let found = if pattern.strokes() {
+                        vec![strokes(&pattern, &loops, setup.anchor)?]
+                    } else {
+                        lines(&pattern, &loops, setup.anchor)?
+                    };
+                    for line in found {
                         for piece in line {
                             if crate::ramp::polyline_length(&piece) < setup.width.max(CHAIN_TOL_MM)
                             {
@@ -195,7 +200,11 @@ fn lines(
             spacing,
             (height > 0.0).then_some((wavelength, height / 2.0)),
         ),
-        FillPattern::Rings { .. } => return Ok(Vec::new()),
+        FillPattern::Rings { .. }
+        | FillPattern::Dashes { .. }
+        | FillPattern::Herringbone { .. }
+        | FillPattern::Scales { .. }
+        | FillPattern::Sunburst { .. } => return Ok(Vec::new()),
     };
     let mut out = Vec::new();
     for angle in directions {
@@ -246,6 +255,241 @@ fn lines(
             if !pieces.is_empty() {
                 out.push(pieces);
             }
+        }
+    }
+    Ok(out)
+}
+
+/// The strokes of a stroke pattern (docs/specs/fill-pattern.md §14) inside `loops`
+/// (even-odd), in the drawing's coordinates: whole strokes only when it asks so, else each
+/// clipped to the loops.
+fn strokes(
+    pattern: &FillPattern,
+    loops: &[Vec<Point>],
+    anchor: Point,
+) -> Result<Vec<Vec<Point>>, ToolpathError> {
+    let (angle, whole) = match *pattern {
+        FillPattern::Dashes { angle, whole, .. }
+        | FillPattern::Herringbone { angle, whole, .. }
+        | FillPattern::Scales { angle, whole, .. } => (angle, whole),
+        FillPattern::Sunburst { whole, .. } => (0.0, whole),
+        _ => return Ok(Vec::new()),
+    };
+    let (sin, cos) = math::sin_cos(angle);
+    let to_uv = |p: Point| {
+        let (x, y) = (p.0 - anchor.0, p.1 - anchor.1);
+        (x * cos + y * sin, -x * sin + y * cos)
+    };
+    let from_uv = |(u, v): Point| (anchor.0 + u * cos - v * sin, anchor.1 + u * sin + v * cos);
+    let edges: Vec<(Point, Point)> = loops
+        .iter()
+        .flat_map(|l| (0..l.len()).map(move |k| (l[k], l[(k + 1) % l.len()])))
+        .filter(|(a, b)| distance(*a, *b) > 0.0)
+        .collect();
+    let uv_loops: Vec<Vec<Point>> = loops
+        .iter()
+        .map(|l| l.iter().map(|&p| to_uv(p)).collect())
+        .collect();
+    let Some(uv_box) = bounds(&uv_loops) else {
+        return Ok(Vec::new());
+    };
+    let candidates: Vec<Vec<Point>> = match *pattern {
+        FillPattern::Sunburst {
+            spacing,
+            length,
+            pitch,
+            ..
+        } => sunburst(loops, spacing, length, pitch)?,
+        _ => stroke_layout(pattern, uv_box)?
+            .into_iter()
+            .map(|stroke| stroke.into_iter().map(from_uv).collect())
+            .collect(),
+    };
+    let mut out = Vec::new();
+    for stroke in candidates {
+        let Some(lo_hi) = bounds(std::slice::from_ref(&stroke)) else {
+            continue;
+        };
+        // Every edge across the stroke's height: those it can cross, and those the inside
+        // test's ray (towards +X) meets.
+        let (_, _, y0, y1) = lo_hi;
+        let near: Vec<(Point, Point)> = edges
+            .iter()
+            .copied()
+            .filter(|(a, b)| a.1.max(b.1) >= y0 - CHAIN_TOL_MM && a.1.min(b.1) <= y1 + CHAIN_TOL_MM)
+            .collect();
+        let pieces = clip(&stroke, &near);
+        if whole {
+            // Whole: one piece, from the stroke's first point to its last.
+            let (Some(&first), Some(&last)) = (stroke.first(), stroke.last()) else {
+                continue;
+            };
+            if let [piece] = &pieces[..]
+                && piece
+                    .first()
+                    .is_some_and(|&p| distance(p, first) <= CHAIN_TOL_MM)
+                && piece
+                    .last()
+                    .is_some_and(|&p| distance(p, last) <= CHAIN_TOL_MM)
+            {
+                out.push(piece.clone());
+                too_many(out.len())?;
+            }
+        } else {
+            out.extend(pieces);
+            too_many(out.len())?;
+        }
+    }
+    Ok(out)
+}
+
+/// The strokes of dashes, herringbone or scales covering the box (u0, u1, v0, v1), in the
+/// pattern's own (u, v) from the anchor.
+fn stroke_layout(
+    pattern: &FillPattern,
+    (u0, u1, v0, v1): (f64, f64, f64, f64),
+) -> Result<Vec<Vec<Point>>, ToolpathError> {
+    let mut out: Vec<Vec<Point>> = Vec::new();
+    let push = |stroke: Vec<Point>, out: &mut Vec<Vec<Point>>| -> Result<(), ToolpathError> {
+        out.push(stroke);
+        // Candidates far beyond the most kept: the spacing is a typo.
+        if out.len() > 8 * MAX_GROOVES {
+            too_many(out.len())?;
+        }
+        Ok(())
+    };
+    let range = |lo: f64, hi: f64, step: f64| -> (i64, i64) {
+        (
+            (lo / step).floor() as i64 - 1,
+            (hi / step).ceil() as i64 + 1,
+        )
+    };
+    match *pattern {
+        FillPattern::Dashes {
+            spacing,
+            length,
+            gap,
+            ..
+        } => {
+            let period = length + gap.max(0.0);
+            let (k0, k1) = range(v0, v1, spacing);
+            check_count(k1 - k0, (u1 - u0) / period)?;
+            for k in k0..=k1 {
+                let v = k as f64 * spacing;
+                let shift = if k.rem_euclid(2) == 1 {
+                    period / 2.0
+                } else {
+                    0.0
+                };
+                let (m0, m1) = range(u0 - shift, u1 - shift, period);
+                for m in m0..=m1 {
+                    let u = shift + m as f64 * period;
+                    push(vec![(u, v), (u + length, v)], &mut out)?;
+                }
+            }
+        }
+        FillPattern::Herringbone {
+            spacing, length, ..
+        } => {
+            // Each stroke spans a column `width` wide and rises (or falls) as much.
+            let width = length * std::f64::consts::FRAC_1_SQRT_2;
+            let (j0, j1) = range(u0, u1, width);
+            let (k0, k1) = range(v0 - width, v1, spacing);
+            check_count(k1 - k0, (u1 - u0) / width)?;
+            for j in j0..=j1 {
+                let (ua, ub) = (j as f64 * width, (j + 1) as f64 * width);
+                for k in k0..=k1 {
+                    let v = k as f64 * spacing;
+                    let stroke = if j.rem_euclid(2) == 0 {
+                        vec![(ua, v), (ub, v + width)]
+                    } else {
+                        vec![(ua, v + width), (ub, v)]
+                    };
+                    push(stroke, &mut out)?;
+                }
+            }
+        }
+        FillPattern::Scales {
+            spacing, radius, ..
+        } => {
+            let pieces = arc_pieces(radius, std::f64::consts::PI);
+            let (k0, k1) = range(v0 - radius, v1, spacing);
+            check_count(k1 - k0, (u1 - u0) / (2.0 * radius))?;
+            for k in k0..=k1 {
+                let v = k as f64 * spacing;
+                let shift = if k.rem_euclid(2) == 1 { radius } else { 0.0 };
+                let (m0, m1) = range(u0 - shift - radius, u1 - shift + radius, 2.0 * radius);
+                for m in m0..=m1 {
+                    let c = shift + m as f64 * 2.0 * radius;
+                    let arc = (0..=pieces)
+                        .map(|i| {
+                            let t = std::f64::consts::PI * (1.0 - i as f64 / pieces as f64);
+                            let (s, co) = math::sin_cos(t);
+                            (c + radius * co, v + radius * s)
+                        })
+                        .collect();
+                    push(arc, &mut out)?;
+                }
+            }
+        }
+        _ => {}
+    }
+    Ok(out)
+}
+
+/// Refused when `rows` × `per_row` strokes would be far beyond the limit.
+fn check_count(rows: i64, per_row: f64) -> Result<(), ToolpathError> {
+    if rows as f64 * per_row > 8.0 * MAX_GROOVES as f64 {
+        too_many(MAX_GROOVES + 1)?;
+    }
+    Ok(())
+}
+
+/// How many chords an arc of `radius` sweeping `sweep` radians takes to stay within the
+/// arc tolerance, at least four.
+fn arc_pieces(radius: f64, sweep: f64) -> usize {
+    let ratio = (1.0 - ARC_APPROX_TOL_MM / radius).clamp(-1.0, 1.0);
+    let step = 2.0 * math::acos(ratio);
+    if step <= 0.0 {
+        return 4;
+    }
+    ((sweep / step).ceil() as usize).clamp(4, 4096)
+}
+
+/// A sunburst round the middle of the loops' box: rings `spacing` apart (the first half a
+/// spacing out), on each strokes `length` long pointing outwards, `pitch` apart round the
+/// ring, every other ring turned half a pitch.
+fn sunburst(
+    loops: &[Vec<Point>],
+    spacing: f64,
+    length: f64,
+    pitch: f64,
+) -> Result<Vec<Vec<Point>>, ToolpathError> {
+    let Some((x0, x1, y0, y1)) = bounds(loops) else {
+        return Ok(Vec::new());
+    };
+    let c = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    let reach = loops
+        .iter()
+        .flatten()
+        .map(|&p| distance(c, p))
+        .fold(0.0, f64::max);
+    let rings = (reach / spacing).ceil() as usize + 1;
+    let mut out = Vec::new();
+    for k in 0..rings {
+        let r = (k as f64 + 0.5) * spacing;
+        let count = ((2.0 * std::f64::consts::PI * r / pitch).round() as usize).max(1);
+        if out.len() + count > 8 * MAX_GROOVES {
+            too_many(MAX_GROOVES + 1)?;
+        }
+        let turn = if k % 2 == 1 { 0.5 } else { 0.0 };
+        for i in 0..count {
+            let a = 2.0 * std::f64::consts::PI * (i as f64 + turn) / count as f64;
+            let (s, co) = math::sin_cos(a);
+            out.push(vec![
+                (c.0 + r * co, c.1 + r * s),
+                (c.0 + (r + length) * co, c.1 + (r + length) * s),
+            ]);
         }
     }
     Ok(out)

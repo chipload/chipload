@@ -379,6 +379,119 @@ fn flute_depth(tool: &Tool) -> f64 {
     }
 }
 
+/// The kinds of fill pattern, in the order the window lists them
+/// (docs/specs/fill-pattern.md §3, §14).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PatternKind {
+    Lines,
+    Cross,
+    Rings,
+    Waves,
+    Dashes,
+    Herringbone,
+    Scales,
+    Sunburst,
+}
+
+impl PatternKind {
+    pub const ALL: [PatternKind; 8] = [
+        PatternKind::Lines,
+        PatternKind::Cross,
+        PatternKind::Rings,
+        PatternKind::Waves,
+        PatternKind::Dashes,
+        PatternKind::Herringbone,
+        PatternKind::Scales,
+        PatternKind::Sunburst,
+    ];
+
+    /// The kind `pattern` is.
+    pub fn of(pattern: &FillPattern) -> PatternKind {
+        match pattern {
+            FillPattern::Lines { .. } => PatternKind::Lines,
+            FillPattern::Cross { .. } => PatternKind::Cross,
+            FillPattern::Rings { .. } => PatternKind::Rings,
+            FillPattern::Waves { .. } => PatternKind::Waves,
+            FillPattern::Dashes { .. } => PatternKind::Dashes,
+            FillPattern::Herringbone { .. } => PatternKind::Herringbone,
+            FillPattern::Scales { .. } => PatternKind::Scales,
+            FillPattern::Sunburst { .. } => PatternKind::Sunburst,
+        }
+    }
+}
+
+/// `op`'s pattern switched to `kind`, keeping its angle and spacing where they carry over,
+/// the rest from the groove's width with `tool` (docs/specs/fill-pattern.md §14): strokes
+/// three widths long (at least 4 mm), gaps half a stroke, a pitch of a stroke, scales of
+/// twice the spacing, sunburst rings a stroke and a width apart. A stroke pattern with
+/// square ends gets ramps of a third of a stroke, so it is fluted. The same kind: as it is.
+pub fn switched_pattern(op: &PatternOp, kind: PatternKind, tool: Option<&Tool>) -> PatternOp {
+    let mut out = op.clone();
+    if PatternKind::of(&op.pattern) == kind {
+        return out;
+    }
+    let depth = op.end_depth - op.start_depth;
+    let width = tool
+        .and_then(|t| chipload_toolpath::flute::flute_width_mm(t, depth))
+        .or(tool.map(|t| t.diameter))
+        .unwrap_or(1.0)
+        .max(0.1);
+    let spacing = op.pattern.spacing();
+    let angle = op
+        .pattern
+        .angle()
+        .unwrap_or(DEFAULT_PATTERN_ANGLE_DEG.to_radians());
+    let length = (3.0 * width).max(4.0);
+    let whole = true;
+    out.pattern = match kind {
+        PatternKind::Lines => FillPattern::Lines { angle, spacing },
+        PatternKind::Cross => FillPattern::Cross {
+            angle,
+            spacing,
+            between: std::f64::consts::FRAC_PI_2,
+        },
+        PatternKind::Rings => FillPattern::Rings { spacing },
+        PatternKind::Waves => FillPattern::Waves {
+            angle,
+            spacing,
+            wavelength: 4.0 * spacing,
+            height: spacing,
+        },
+        PatternKind::Dashes => FillPattern::Dashes {
+            angle,
+            spacing,
+            length,
+            gap: length / 2.0,
+            whole,
+        },
+        PatternKind::Herringbone => FillPattern::Herringbone {
+            angle,
+            spacing,
+            length,
+            whole,
+        },
+        PatternKind::Scales => FillPattern::Scales {
+            angle,
+            spacing,
+            radius: 2.0 * spacing,
+            whole,
+        },
+        PatternKind::Sunburst => FillPattern::Sunburst {
+            spacing: length + width,
+            length,
+            pitch: length,
+            whole,
+        },
+    };
+    if out.pattern.strokes() && out.ramp <= 0.0 {
+        out.ramp = match out.pattern {
+            FillPattern::Scales { radius, .. } => radius,
+            _ => length / 3.0,
+        };
+    }
+    out
+}
+
 /// A new pattern's (depth, spacing) with `tool`: `DEFAULT_PATTERN_DEPTH`, no deeper than
 /// a V-bit's cone; the spacing twice the groove's width there, at least
 /// `MIN_PATTERN_SPACING` (docs/specs/fill-pattern.md §8).

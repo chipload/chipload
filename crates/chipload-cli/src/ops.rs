@@ -514,6 +514,22 @@ pub(crate) struct PatternArgs {
     /// The grooves run up to the shapes' lines, centred on them, instead of staying inside.
     #[arg(long)]
     on_line: bool,
+    /// Dashes', herringbone's or a sunburst's strokes' length; three groove widths (at
+    /// least 4 mm) if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    length: Option<f64>,
+    /// The gap between dashes; half a stroke if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    gap: Option<f64>,
+    /// Scales' radius; twice the spacing if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    radius: Option<f64>,
+    /// A sunburst's strokes' distance round its rings; a stroke's length if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    pitch: Option<f64>,
+    /// Stroke patterns: strokes the shape's edge cuts are clipped, not left out.
+    #[arg(long)]
+    clip: bool,
 }
 
 impl PatternArgs {
@@ -525,39 +541,82 @@ impl PatternArgs {
             || self.wavelength.is_some()
             || self.height.is_some()
             || self.on_line
+            || self.length.is_some()
+            || self.gap.is_some()
+            || self.radius.is_some()
+            || self.pitch.is_some()
+            || self.clip
     }
 
-    /// The settings over the new pattern's defaults.
-    fn apply(&self, op: &mut chipload_job::PatternOp) {
+    /// The settings over the new pattern's defaults, a new kind's from `tool`.
+    fn apply(&self, op: &mut chipload_job::PatternOp, tool: Option<&chipload_job::Tool>) {
         use chipload_job::FillPattern;
-        let spacing = self.spacing.unwrap_or(op.pattern.spacing());
-        let angle = match op.pattern {
-            FillPattern::Lines { angle, .. }
-            | FillPattern::Cross { angle, .. }
-            | FillPattern::Waves { angle, .. } => angle,
-            FillPattern::Rings { .. } => 45f64.to_radians(),
-        };
-        let angle = self.angle.map_or(angle, f64::to_radians);
-        op.pattern = match self.pattern_kind.unwrap_or(match op.pattern {
-            FillPattern::Lines { .. } => PatternKindArg::Lines,
-            FillPattern::Cross { .. } => PatternKindArg::Cross,
-            FillPattern::Rings { .. } => PatternKindArg::Rings,
-            FillPattern::Waves { .. } => PatternKindArg::Waves,
-        }) {
-            PatternKindArg::Lines => FillPattern::Lines { angle, spacing },
-            PatternKindArg::Cross => FillPattern::Cross {
+        use chipload_pipeline::new_ops::{PatternKind, switched_pattern};
+        // The spacing first, so the kind's defaults follow it (scales' radius).
+        if let Some(spacing) = self.spacing {
+            set_spacing(&mut op.pattern, spacing);
+        }
+        if let Some(kind) = self.pattern_kind {
+            let kind = match kind {
+                PatternKindArg::Lines => PatternKind::Lines,
+                PatternKindArg::Cross => PatternKind::Cross,
+                PatternKindArg::Rings => PatternKind::Rings,
+                PatternKindArg::Waves => PatternKind::Waves,
+                PatternKindArg::Dashes => PatternKind::Dashes,
+                PatternKindArg::Herringbone => PatternKind::Herringbone,
+                PatternKindArg::Scales => PatternKind::Scales,
+                PatternKindArg::Sunburst => PatternKind::Sunburst,
+            };
+            *op = switched_pattern(op, kind, tool);
+        }
+        let given_angle = self.angle.map(f64::to_radians);
+        match &mut op.pattern {
+            FillPattern::Lines { angle, .. } | FillPattern::Herringbone { angle, .. } => {
+                *angle = given_angle.unwrap_or(*angle);
+            }
+            FillPattern::Cross { angle, between, .. } => {
+                *angle = given_angle.unwrap_or(*angle);
+                *between = self.between.map_or(*between, f64::to_radians);
+            }
+            FillPattern::Waves {
                 angle,
-                spacing,
-                between: self.between.unwrap_or(90.0).to_radians(),
-            },
-            PatternKindArg::Rings => FillPattern::Rings { spacing },
-            PatternKindArg::Waves => FillPattern::Waves {
-                angle,
-                spacing,
-                wavelength: self.wavelength.unwrap_or(4.0 * spacing),
-                height: self.height.unwrap_or(spacing),
-            },
-        };
+                wavelength,
+                height,
+                ..
+            } => {
+                *angle = given_angle.unwrap_or(*angle);
+                *wavelength = self.wavelength.unwrap_or(*wavelength);
+                *height = self.height.unwrap_or(*height);
+            }
+            FillPattern::Rings { .. } => {}
+            FillPattern::Dashes {
+                angle, length, gap, ..
+            } => {
+                *angle = given_angle.unwrap_or(*angle);
+                *length = self.length.unwrap_or(*length);
+                *gap = self.gap.unwrap_or(*gap);
+            }
+            FillPattern::Scales { angle, radius, .. } => {
+                *angle = given_angle.unwrap_or(*angle);
+                *radius = self.radius.unwrap_or(*radius);
+            }
+            FillPattern::Sunburst { length, pitch, .. } => {
+                *length = self.length.unwrap_or(*length);
+                *pitch = self.pitch.unwrap_or(*pitch);
+            }
+        }
+        if let FillPattern::Herringbone { length, .. } = &mut op.pattern {
+            *length = self.length.unwrap_or(*length);
+        }
+        if self.clip {
+            match &mut op.pattern {
+                FillPattern::Dashes { whole, .. }
+                | FillPattern::Herringbone { whole, .. }
+                | FillPattern::Scales { whole, .. }
+                | FillPattern::Sunburst { whole, .. } => *whole = false,
+                _ => {}
+            }
+        }
         if self.on_line {
             op.inside = false;
         }
@@ -571,6 +630,25 @@ pub(crate) enum PatternKindArg {
     Cross,
     Rings,
     Waves,
+    Dashes,
+    Herringbone,
+    Scales,
+    Sunburst,
+}
+
+/// The pattern's spacing set to `spacing`.
+fn set_spacing(pattern: &mut chipload_job::FillPattern, spacing: f64) {
+    use chipload_job::FillPattern;
+    match pattern {
+        FillPattern::Lines { spacing: s, .. }
+        | FillPattern::Cross { spacing: s, .. }
+        | FillPattern::Rings { spacing: s }
+        | FillPattern::Waves { spacing: s, .. }
+        | FillPattern::Dashes { spacing: s, .. }
+        | FillPattern::Herringbone { spacing: s, .. }
+        | FillPattern::Scales { spacing: s, .. }
+        | FillPattern::Sunburst { spacing: s, .. } => *s = spacing,
+    }
 }
 
 /// A flute's ramps, for `op add flute --ramp-shape`.
@@ -802,10 +880,13 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                     f.max_depth = max_depth;
                 }
                 if let Operation::Pattern(f) = &mut new.op {
+                    // The pattern first: a stroke pattern takes fluted ends unless --ramp
+                    // says otherwise.
+                    let tool = job.tool(f.tool).cloned();
+                    pattern.apply(f, tool.as_ref());
                     if let Some(ramp) = ramp {
                         f.ramp = ramp;
                     }
-                    pattern.apply(f);
                 }
                 if let Operation::Flute(f) = &mut new.op {
                     if let Some(both) = ramp {
@@ -1743,7 +1824,60 @@ pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
                 mm(wavelength),
                 mm(height)
             ),
+            chipload_job::FillPattern::Dashes {
+                angle,
+                spacing,
+                length,
+                gap,
+                ..
+            } => format!(
+                "dashes {} mm long, {} mm gaps, rows {} mm apart at {}°",
+                mm(length),
+                mm(gap),
+                mm(spacing),
+                deg(angle)
+            ),
+            chipload_job::FillPattern::Herringbone {
+                angle,
+                spacing,
+                length,
+                ..
+            } => format!(
+                "herringbone {} mm strokes {} mm apart at {}°",
+                mm(length),
+                mm(spacing),
+                deg(angle)
+            ),
+            chipload_job::FillPattern::Scales {
+                angle,
+                spacing,
+                radius,
+                ..
+            } => format!(
+                "scales of radius {} mm, rows {} mm apart at {}°",
+                mm(radius),
+                mm(spacing),
+                deg(angle)
+            ),
+            chipload_job::FillPattern::Sunburst {
+                spacing,
+                length,
+                pitch,
+                ..
+            } => format!(
+                "sunburst {} mm strokes, rings {} mm apart, {} mm round",
+                mm(length),
+                mm(spacing),
+                mm(pitch)
+            ),
         });
+        if let chipload_job::FillPattern::Dashes { whole: false, .. }
+        | chipload_job::FillPattern::Herringbone { whole: false, .. }
+        | chipload_job::FillPattern::Scales { whole: false, .. }
+        | chipload_job::FillPattern::Sunburst { whole: false, .. } = f.pattern
+        {
+            parts.push("clipped".to_string());
+        }
         parts.push(if f.inside { "inside" } else { "on the line" }.to_string());
     }
     if let Operation::Flute(f) = op {

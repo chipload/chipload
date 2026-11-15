@@ -212,13 +212,18 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--ramp-start <RAMP_START>` | A flute's ramp at the shapes' first ends (as drawn); 0 for a square end. |
 | `--ramp-end <RAMP_END>` | A flute's ramp at the shapes' last ends; 0 for a square end. |
 | `--ramp-shape <RAMP_SHAPE>` | A flute's ramps: straight (an even taper) or curved (easing into the floor) One of: `straight`, `curved`. |
-| `--pattern <pattern_kind>` | A pattern's kind, in place of lines. One of: `lines`, `cross`, `rings`, `waves`. |
+| `--pattern <pattern_kind>` | A pattern's kind, in place of lines. One of: `lines`, `cross`, `rings`, `waves`, `dashes`, `herringbone`, `scales`, `sunburst`. |
 | `--spacing <SPACING>` | A pattern's spacing, groove centre to centre, in place of twice the groove's width. |
 | `--angle <ANGLE>` | A pattern's lines' angle from the X axis, degrees counter-clockwise; 45 if left out. |
 | `--between <BETWEEN>` | A cross-hatch's angle between its two sets of lines, degrees (90 squares, 60 diamonds); 90 if left out. |
 | `--wavelength <WAVELENGTH>` | A wave pattern's wavelength; 4 spacings if left out. |
 | `--height <HEIGHT>` | A wave pattern's height, top to bottom; one spacing if left out. |
 | `--on-line` | The grooves run up to the shapes' lines, centred on them, instead of staying inside. |
+| `--length <LENGTH>` | Dashes', herringbone's or a sunburst's strokes' length; three groove widths (at least 4 mm) if left out. |
+| `--gap <GAP>` | The gap between dashes; half a stroke if left out. |
+| `--radius <RADIUS>` | Scales' radius; twice the spacing if left out. |
+| `--pitch <PITCH>` | A sunburst's strokes' distance round its rings; a stroke's length if left out. |
+| `--clip` | Stroke patterns: strokes the shape's edge cuts are clipped, not left out. |
 | `--max-depth <MAX_DEPTH>` | A prism's deepest edge, for bevelled shapes with a flat top; left out, as deep as the shapes and the V-bit's cone need (docs/specs/prism.md) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 

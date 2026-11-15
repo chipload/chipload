@@ -306,6 +306,10 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Stroke patterns** (the user, 2026-11-15: shorter strokes to flute;
+  docs/specs/fill-pattern.md §14): dashes, herringbone, scales and sunburst, whole strokes
+  only by default, fluted by default (ramps a third of a stroke). Later if asked for:
+  basket weave, honeycomb, a seeded chip texture, scales' arcs as G2/G3.
 - **Compass: To point, To centre point** (the user, 2026-11-15, after trying it;
   docs/specs/compass.md §15): a right-click on the centre or an arrow, then a click: the
   selection moves to the point (snapped) or to a shape's centre, freely from the centre,

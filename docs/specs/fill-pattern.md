@@ -212,3 +212,48 @@ A new operation type; no schema bump, as the chamfer and the flute.
   `plan_pattern_op`; the grooves reuse `flute::Flute::of_points` and `flute_moves`;
   `OpKind::Pattern`; `op add pattern --pattern/--spacing/--angle/--between/--wavelength/
   --height/--on-line/--ramp`; the form's `pattern_sections`; `Icon::Hatch`.
+
+## 14. Patterns of short strokes (2026-11-15)
+
+The user: "I want some more patterns, they should be shorter strokes so we can get fluting
+on them. Like arc segments or straight segments." Four were suggested and chosen ("do your
+suggestions"); basket weave, honeycomb and a seeded chip texture are for later.
+
+Each stroke is one groove, cut as a flute with the pattern's `ramp` (§4), so with a V-bit or
+a ball nose every stroke tapers to a point at both ends.
+
+| Pattern | Settings | Strokes |
+|---|---|---|
+| **Dashes** | angle, spacing, length, gap | rows *spacing* apart; along each, strokes *length* long with *gap* between; every other row shifted half a stroke and gap, as bricks |
+| **Herringbone** | angle, spacing, length | columns of parallel strokes *length* long at 45° to the angle, *spacing* apart along the column; the next column mirrored, so neighbours meet in chevrons |
+| **Scales** | angle, spacing, radius | rows *spacing* apart of half circles of *radius*, side by side, bulging along the rows' normal; every other row shifted by a radius |
+| **Sunburst** | spacing, length, pitch | round the middle of each shape's box: rings *spacing* apart, on each ring strokes *length* long pointing out from the middle, *pitch* apart round the ring; every other ring turned half a pitch |
+
+- **Whole strokes only** (`whole`, on by default): a stroke that the shape's edge (or a hole)
+  would cut is left out, so every stroke keeps both tapered ends. Off: strokes are clipped
+  at the edge as lines are, the ramp starting from the cut.
+- Dashes, herringbone and scales are laid out from the drawing's origin, as lines (§3);
+  a sunburst from each shape's own middle.
+- Scales' arcs are cut as short lines within the arc tolerance (a flute's points on an arc
+  as G2/G3 is for later).
+- **Defaults** when one is chosen (`switched_pattern`, shared by the form and `op add`):
+  length three times the groove's width, at least 4 mm; a gap of half the length; a pitch
+  of the length; scales' radius twice the spacing; sunburst rings a stroke and a groove
+  apart; the angle and spacing kept from the pattern before; and if the ends were square,
+  ramps of a third of the stroke (scales: a radius), so a new stroke pattern is fluted.
+  An explicit `--ramp` wins.
+- As built: each stroke is clipped against the edges that cross its height band (all of
+  them, so the inside test's ray meets every edge it should); with *whole*, a stroke is
+  kept only when it comes out as one piece from its first point to its last.
+- Format: new kinds of `pattern`, each with its own fields and `whole`:
+  `{"kind": "dashes", "angle", "spacing", "length", "gap", "whole"}`,
+  `{"kind": "herringbone", "angle", "spacing", "length", "whole"}`,
+  `{"kind": "scales", "angle", "spacing", "radius", "whole"}`,
+  `{"kind": "sunburst", "spacing", "length", "pitch", "whole"}`. No schema bump: an older
+  Chipload refuses an unknown kind. Lengths more than 0, a gap 0 or more.
+- Command line: `--pattern dashes|herringbone|scales|sunburst`, `--length`, `--gap`,
+  `--radius`, `--pitch`, `--clip` (whole strokes off).
+- Tests: every stroke whole inside the shape shrunk by half a groove (whole on); clipped
+  strokes reach the edge (whole off); the layouts' positions (dashes staggered, herringbone
+  mirrored at 45°, scales of the radius, sunburst radial round the middle); fluted ends;
+  a proptest over shapes and the four kinds; a golden sample.

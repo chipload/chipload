@@ -3,7 +3,7 @@
 //! closed shapes with the V-bit, and its properties show the pattern's settings.
 
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 
 use super::*;
 
@@ -93,4 +93,44 @@ fn pattern_picture() {
         .unwrap()
         .save(std::path::PathBuf::from(out).join("pattern.png"))
         .unwrap();
+}
+
+#[test]
+fn choosing_a_stroke_pattern_in_the_form_flutes_it() {
+    // docs/specs/fill-pattern.md §14.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|cc| {
+            open_sections(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v36/pattern.chipload")));
+            app.focus = Focus::Op(0);
+            app
+        });
+    harness.run_steps(4);
+    harness
+        .query_all_by_role(egui::accesskit::Role::ComboBox)
+        .find(|n| n.accesskit_node().value().as_deref() == Some("cross-hatch"))
+        .expect("the pattern list")
+        .click();
+    harness.run_steps(3);
+    harness.get_by_label("dashes").click();
+    harness.run_steps(3);
+    let Operation::Pattern(f) = harness.state().edit.as_ref().unwrap().job.operations[0].clone()
+    else {
+        panic!("a pattern");
+    };
+    let chipload_job::FillPattern::Dashes {
+        length, gap, whole, ..
+    } = f.pattern
+    else {
+        panic!("{:?}", f.pattern);
+    };
+    // The 1.4 mm groove: strokes 4.2 mm, gaps half that, fluted a third of a stroke.
+    assert!((length - 4.2).abs() < 1e-6, "{length}");
+    assert!((gap - 2.1).abs() < 1e-6);
+    assert!(whole);
+    assert!((f.ramp - 1.4).abs() < 1e-6, "{}", f.ramp);
+    harness.get_by_label("Whole strokes only");
+    harness.get_by_label("Stroke length");
 }

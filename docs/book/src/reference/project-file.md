@@ -224,6 +224,14 @@ The pattern a `PatternOp` engraves (docs/specs/fill-pattern.md §3). Angles in r
 
 - object: Parallel sine waves at `angle`, `spacing` apart: `wavelength` long, `height` from top to bottom.
 
+- object: Rows `spacing` apart of strokes `length` long with `gap` between, every other row shifted half a stroke and gap (docs/specs/fill-pattern.md §14).
+
+- object: Columns of strokes `length` long at 45° to `angle`, `spacing` apart along the column, every other column mirrored, meeting in chevrons.
+
+- object: Rows `spacing` apart of half circles of `radius` side by side, every other row shifted by a radius.
+
+- object: Round the middle of each shape: rings `spacing` apart of strokes `length` long pointing outwards, `pitch` apart round the ring, every other ring turned half a pitch.
+
 ## Finish
 
 A finishing pass on a profile.

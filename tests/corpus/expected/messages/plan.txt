@@ -1035,6 +1035,29 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/pattern_strokes.chipload
+exit 0
+--- stdout
+note: Operation 1 (Dashes): each groove is 1.4 mm wide at the top
+note: Operation 2 (Scales): each groove is 1.4 mm wide at the top
+note: Operation 3 (Sunburst): each groove is 1.4 mm wide at the top
+note: Operation 4 (Herringbone): each groove is 1.4 mm wide at the top
+Estimated time: 6 min 10 s (cutting 4 min 34 s, rapids 1 min 32 s, spindle 3 s)
+Cut outline: 250.058 × 186.000 mm (X 35.592 … 285.650, Y 14.350 … 200.350, the tool included): the smallest stock that holds the job.
+  Operation 1 (Dashes): 1 min 44 s; cutting 1.2 m, plunging 194 mm, rapids 2.7 m, 194 lifts
+  Operation 2 (Scales): 1 min 4 s; cutting 1.2 m, plunging 63 mm, rapids 730 mm, 63 lifts
+  Operation 3 (Sunburst): 20 s; cutting 204 mm, plunging 39 mm, rapids 633 mm, 39 lifts
+  Operation 4 (Herringbone): 2 min 59 s; cutting 2.3 m, plunging 355 mm, rapids 3.6 m, 355 lifts
+  In all: cutting 4.9 m, plunging 651 mm, rapids 7.7 m, 651 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Dashes): 0.042 mm/tooth
+  Operation 2 (Scales): 0.042 mm/tooth
+  Operation 3 (Sunburst): 0.042 mm/tooth
+  Operation 4 (Herringbone): 0.042 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/picture_relief.chipload
 exit 0
 --- stdout

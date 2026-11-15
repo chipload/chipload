@@ -830,6 +830,44 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                     .arg("angle", deg(angle))
                     .arg("wavelength", len(wavelength))
                     .arg("height", len(height)),
+                FillPattern::Dashes {
+                    angle,
+                    spacing,
+                    length,
+                    gap,
+                    ..
+                } => Message::new("sheet-pattern-dashes")
+                    .arg("spacing", len(spacing))
+                    .arg("angle", deg(angle))
+                    .arg("length", len(length))
+                    .arg("gap", len(gap)),
+                FillPattern::Herringbone {
+                    angle,
+                    spacing,
+                    length,
+                    ..
+                } => Message::new("sheet-pattern-herringbone")
+                    .arg("spacing", len(spacing))
+                    .arg("angle", deg(angle))
+                    .arg("length", len(length)),
+                FillPattern::Scales {
+                    angle,
+                    spacing,
+                    radius,
+                    ..
+                } => Message::new("sheet-pattern-scales")
+                    .arg("spacing", len(spacing))
+                    .arg("angle", deg(angle))
+                    .arg("radius", len(radius)),
+                FillPattern::Sunburst {
+                    spacing,
+                    length,
+                    pitch,
+                    ..
+                } => Message::new("sheet-pattern-sunburst")
+                    .arg("spacing", len(spacing))
+                    .arg("length", len(length))
+                    .arg("pitch", len(pitch)),
             };
             let mut parts = vec![
                 kind,

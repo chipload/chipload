@@ -554,8 +554,24 @@ impl Job {
                 }
                 Operation::Pattern(f) => {
                     positive(at("pattern.spacing"), f.pattern.spacing());
-                    if let FillPattern::Waves { wavelength, .. } = f.pattern {
-                        positive(at("pattern.wavelength"), wavelength);
+                    match f.pattern {
+                        FillPattern::Waves { wavelength, .. } => {
+                            positive(at("pattern.wavelength"), wavelength);
+                        }
+                        FillPattern::Dashes { length, .. }
+                        | FillPattern::Herringbone { length, .. } => {
+                            positive(at("pattern.length"), length);
+                        }
+                        FillPattern::Scales { radius, .. } => {
+                            positive(at("pattern.radius"), radius);
+                        }
+                        FillPattern::Sunburst { length, pitch, .. } => {
+                            positive(at("pattern.length"), length);
+                            positive(at("pattern.pitch"), pitch);
+                        }
+                        FillPattern::Lines { .. }
+                        | FillPattern::Cross { .. }
+                        | FillPattern::Rings { .. } => {}
                     }
                     if let Some(step) = f.step_down {
                         positive(at("step_down"), step);
@@ -651,6 +667,9 @@ impl Job {
                 let mut zero_or_more = vec![("ramp", f.ramp)];
                 if let FillPattern::Waves { height, .. } = f.pattern {
                     zero_or_more.push(("pattern.height", height));
+                }
+                if let FillPattern::Dashes { gap, .. } = f.pattern {
+                    zero_or_more.push(("pattern.gap", gap));
                 }
                 for (field, value) in zero_or_more {
                     if !(value.is_finite() && value >= 0.0) {
