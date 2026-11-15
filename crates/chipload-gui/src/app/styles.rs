@@ -165,10 +165,12 @@ impl ChiploadApp {
                 _ => t!(ui, "styles-side-by-selection"),
             });
         }
-        let (_, end) = op.depths();
-        parts.push(match op.through() {
-            Some(below) => t!(ui, "styles-through", below = length(below)),
-            None => t!(ui, "styles-depth", depth = length(end)),
+        // A style's tools are library references: a chamfer is told by its width.
+        let (_, end) = op.depths(&[]);
+        parts.push(match (&op, op.through()) {
+            (Operation::Chamfer(c), _) => t!(ui, "styles-chamfer-width", width = length(c.width)),
+            (_, Some(below)) => t!(ui, "styles-through", below = length(below)),
+            (_, None) => t!(ui, "styles-depth", depth = length(end)),
         });
         if let Operation::Profile(p) = &op
             && let Some(tabs) = &p.tabs
@@ -693,6 +695,7 @@ fn kind_name(ui: &egui::Ui, op: &Operation) -> String {
         Operation::Pocket(_) => t!(ui, "forms-kind-pocket"),
         Operation::Vcarve(_) => t!(ui, "forms-kind-vcarve"),
         Operation::Path(_) => t!(ui, "forms-kind-path"),
+        Operation::Chamfer(_) => t!(ui, "forms-kind-chamfer"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),

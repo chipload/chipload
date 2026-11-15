@@ -68,6 +68,7 @@ header-new-profile = Nuova contornatura
 header-new-pocket = Nuova tasca
 header-new-vcarve = Nuova incisione a V
 header-new-follow-path = Nuovo segui percorso
+header-new-chamfer = Nuovo smusso
 header-new-holes = Nuovi fori
 header-new-surface = Nuova spianatura
 header-new-relief = Nuovo rilievo

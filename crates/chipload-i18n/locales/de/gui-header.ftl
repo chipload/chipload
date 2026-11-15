@@ -68,6 +68,7 @@ header-new-profile = Neu: Konturfräsen
 header-new-pocket = Neue Tasche
 header-new-vcarve = Neue V-Gravur
 header-new-follow-path = Neu: Pfad folgen
+header-new-chamfer = Neue Fase
 header-new-holes = Neue Bohrungen
 header-new-surface = Neu: Planfräsen
 header-new-relief = Neues Relief

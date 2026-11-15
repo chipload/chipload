@@ -904,6 +904,34 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/chamfer.chipload
+exit 0
+--- stdout
+warning: Operation 3 (Holes): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 4 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
+Operation 3: a ring starts at (70.000, 71.000) (default)
+Operation 3: a ring starts at (113.000, 73.000) (default)
+Operation 4: a ring starts at (40.000, 36.700) (default)
+Estimated time: 2 min 17 s (cutting 2 min 7 s, rapids 4 s, spindle 6 s), plus 1 tool change
+Cut outline: 132.900 × 92.900 mm (X 33.550 … 166.450, Y 33.550 … 126.450, the tool included): the smallest stock that holds the job.
+  Operation 1 (Hole edges): 8 s; cutting 174 mm, plunging 4 mm, rapids 60 mm, 2 lifts
+  Operation 2 (Box edge): 34 s; cutting 820 mm, plunging 1 mm, rapids 85 mm, 1 lift
+  Operation 3 (Holes): 29 s; cutting 845 mm, plunging 2 mm, rapids 87 mm, 2 lifts
+  Operation 4 (Outline): 1 min 0 s; cutting 1.8 m, plunging 1 mm, rapids 96 mm, 1 lift
+  File 1: 45 s
+  File 2: 1 min 32 s
+  In all: cutting 3.6 m, plunging 8 mm, rapids 328 mm, 6 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Hole edges): 0.042 mm/tooth
+  Operation 2 (Box edge): 0.042 mm/tooth
+  Operation 3 (Holes): 0.050 mm/tooth
+  Operation 4 (Outline): 0.050 mm/tooth
+Tool group 1: tool 2, operations 1, 2
+Tool group 2: tool 1, operations 3, 4
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/inflated_relief.chipload
 exit 0
 --- stdout

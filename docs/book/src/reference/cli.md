@@ -195,7 +195,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
 | `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
@@ -206,6 +206,8 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--tool <TOOL>` | The tool's id in the project; default: the one the app would take. |
 | `--depth <DEPTH>` | End depth instead of the default (not with --through) |
 | `--through` | Cut through the stock, below it by the setup's max overcut. |
+| `--width <WIDTH>` | A chamfer's width at the surface, in place of 1 mm; its depth follows from the V-bit's angle (docs/specs/chamfer.md) |
+| `--side <SIDE>` | A chamfer's waste side, in place of the one the shapes tell: around them (outside) or within them (inside) One of: `outside`, `inside`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op tool`

@@ -1,6 +1,9 @@
 # Chamfer: a V-bit chamfer on any outline
 
-Status: **draft 2026-11-14**, for review (TODO *Ideas*, "More 2.5D toolpaths", item 1; the user asked for it after the pocket finishing pass).
+Status: **approved 2026-11-15**, decisions 1-6 and 8-10 as recommended, decision 7 changed
+by the user (§7); **built 2026-11-15**, all three steps of §9. No schema bump after all
+(§5). (TODO *Ideas*, "More 2.5D toolpaths", item 1; the user asked for it
+after the pocket finishing pass.)
 
 ## 1. What it is for
 
@@ -53,7 +56,10 @@ line, 2 mm deep.
 
 ## 5. Format
 
-A new operation type (schema 37; an older Chipload refuses the project):
+A new operation type. No schema bump: an older Chipload refuses a project with an operation
+type it doesn't know rather than misreading it, as reliefs came in (0.36.0) without one. The
+draft had schema 37 with an empty migration, which would only make an older Chipload refuse
+projects without a chamfer too.
 
 ```json
 {"type": "chamfer", "name": "", "enabled": true, "part": 1, "material": null,
@@ -70,10 +76,12 @@ A new operation type (schema 37; an older Chipload refuses the project):
 - `direction`: climb or conventional, as a profile.
 - `entry`: `plunge` or `ramp` along the path.
 
-Migration 36 → 37 changes nothing in the file: chamfers are new. The frozen sample is a v36
-project, and its golden G-code must not change.
+Existing goldens must not change.
 
 ## 6. Command line and window
+
+As built: the ribbon has *Chamfer* as a small button under Styles, so the ribbon keeps its
+width.
 
 - **Command line:** `chipload op add part.chipload chamfer --shapes 1 --width 2 --tool 2`
   (also `--layer`, `--side inside`); `set …operations.N.width=3`.
@@ -90,10 +98,16 @@ project, and its golden G-code must not change.
 
 ## 7. Cut order
 
-A chamfer on a part's outline is best cut **before** the cut-out, while the part is still
-held by the board. A new chamfer is therefore placed just before the first profile in its
-part that cuts the same shapes, and otherwise at the end of the part, like any new
-operation. It can be moved like any other.
+A new chamfer goes **at the end of its part**, like any new operation; it can be moved like
+any other. No rule keeps it before the cut-out, and nothing warns.
+
+The draft placed it before the profile that cuts the same shapes. The user asked how that
+could be enforced (2026-11-15): it can't. Operations can be moved and added afterwards, and
+"the same shapes" is vague across layers, shape ids and groups. It also costs a tool change:
+operations run in the list's order, so pocket → chamfer → profile is end mill → V-bit → end
+mill. After the cut-out works: the tabs or the onion skin hold the part, the cut-out's slot
+is on the waste side, and a chamfer stays far above the tabs. The guide says it can be moved
+before the cut-out, at the cost of a tool change.
 
 ## 8. Edge cases and tests
 
@@ -105,8 +119,8 @@ operation. It can be moved like any other.
 - Refused: deeper than the cone, an end mill, width 0; open shapes skipped with a note.
 - Start depth above 0 (the edge of a step).
 - Climb and conventional.
-- The checker passes every program; the v36 sample migrates with an unchanged golden; a
-  new golden: a box side with an outside chamfer and a hole with an inside one.
+- The checker passes every program; existing goldens unchanged; a new golden: a box side
+  with an outside chamfer and a hole with an inside one.
 
 ## 9. Order of building
 
@@ -116,7 +130,7 @@ operation. It can be moved like any other.
 
 ## 10. Decisions
 
-1. **A new operation type, *Chamfer*** (§5), with a schema bump. *Recommended:* it is a
+1. **A new operation type, *Chamfer*** (§5), with a schema bump (dropped when built: §5). *Recommended:* it is a
    thing users ask for by name and look for in the list. The alternative, a chamfer option
    on a follow path, needs no bump but hides the feature and gives a follow path two
    meanings.
@@ -131,7 +145,8 @@ operation. It can be moved like any other.
    *Recommended.*
 6. **V-bits only** for now (§4); a round-over bit when tools can describe one (sign-maker.md
    §8). *Recommended.*
-7. **Placed before the profile that cuts the same shapes** when added (§7). *Recommended.*
+7. ~~Placed before the profile that cuts the same shapes~~ **At the end of its part, like
+   any new operation** (§7); the user's change, 2026-11-15.
 8. **Corners as in §3**: round over outside corners by t/2, mitres elsewhere, no option.
    *Recommended.*
 9. **The sign maker moves onto it** (§6); old signs keep their follow paths, with no

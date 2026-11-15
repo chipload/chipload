@@ -260,8 +260,8 @@ Smaller follow-ups noted along the way, not in the order above:
   scope, no 3D modelling, nesting or rotary), in this order:
   1. **Chamfer any outline:** a V-bit chamfer of a width on any closed shape's edge, not
      only a sign's (*New sign…* cuts one as a follow path on the line today); outside or
-     inside, the tool's flank on the edge. **Spec drafted 2026-11-14**
-     (docs/specs/chamfer.md, ten decisions), awaiting the user's review.
+     inside, the tool's flank on the edge. **Built 2026-11-15** (docs/specs/chamfer.md;
+     see *In main*).
   2. **Fluting:** grooves along lines or open paths with a V-bit or ball nose that ramp in
      and out (start and end ramp lengths, full depth in the middle).
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
@@ -295,6 +295,16 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Chamfer** (docs/specs/chamfer.md, approved 2026-11-15 with decision 7 changed: a new
+  chamfer goes at the end of its part, no rule before the cut-out; built 2026-11-15): a new
+  operation type that breaks the top edge of closed shapes with a V-bit. The width at the
+  surface is the setting, the depth width ÷ tan(half angle); the tool centre half the tip
+  into the waste, so the width is as typed and a flat tip leaves no step. Outside or inside
+  (from the shapes for a new one), one pass or equal passes, a start depth for a step's
+  edge, refused past the bit's cone or with another tool. `op add chamfer --width --side`,
+  ribbon (small button under Styles), Q menu key C, Operation menu, properties with the
+  depth shown, setup sheet, guide page; *New sign…* now adds one for its edge. No schema
+  bump (an older Chipload refuses the unknown type, as with reliefs). Golden v36_chamfer.
 - **Pockets: a finishing pass** (docs/specs/pocket-finish.md, approved and built
   2026-11-14): `finish {wall, floor}` on a pocket (optional, no schema bump). Per piece the
   roughing keeps `wall` from the walls (its dogbones the same short) and stops `floor` above

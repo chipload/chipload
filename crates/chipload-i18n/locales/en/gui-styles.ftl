@@ -35,6 +35,7 @@ styles-unreadable = can't be read
 styles-side-by-selection = side by the selection
 styles-through = through + { $below }
 styles-depth = { $depth } deep
+styles-chamfer-width = { $width } wide
 styles-tabs = { $count ->
     [one] { $count } tab
    *[other] { $count } tabs

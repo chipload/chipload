@@ -34,6 +34,7 @@ styles-unreadable = не читается
 styles-side-by-selection = сторона по выделению
 styles-through = насквозь + { $below }
 styles-depth = глубина { $depth }
+styles-chamfer-width = ширина { $width }
 styles-tabs = { $count ->
     [one] { $count } перемычка
     [few] { $count } перемычки

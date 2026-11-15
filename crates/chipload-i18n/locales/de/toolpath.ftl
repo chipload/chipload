@@ -30,6 +30,7 @@ toolpath-tab-height = Höhe der Haltestege { $height } muss kleiner als die Schn
 # $field is "feed" or "plunge_feed", as written in the project file.
 toolpath-max-feed = { $field } { $feed } überschreitet max_feed { $max } der Maschine
 toolpath-helix-for-path = Helix-Eintauchen ist für Taschen; Pfad folgen kann per Rampe eintauchen (entry: ramp)
+toolpath-helix-for-chamfer = Helix-Eintauchen ist für Taschen; eine Fase kann senkrecht oder per Rampe eintauchen (entry: ramp)
 toolpath-helix-radius = Helixradius { $radius } muss kleiner als der Werkzeugradius { $tool_radius } sein, sonst bleibt in der Mitte ein Kern stehen
 # $most is a number of tool diameters, $longest that as a length.
 toolpath-lead-radius = Anfahrradius { $radius } ist mehr als { $most } × Werkzeugdurchmesser ({ $longest })
@@ -39,6 +40,7 @@ toolpath-lead-radius = Anfahrradius { $radius } ist mehr als { $most } × Werkze
 # $tool is a tool's number, $type a kind of tool (job-tool-type).
 toolpath-surface-endmill = Werkzeug { $tool } ist ein { $type }; Planfräsen braucht einen Schaftfräser
 toolpath-vcarve-vbit = V-Gravur braucht einen V-Fräser, Werkzeug { $tool } ist ein { $type }
+toolpath-chamfer-vbit = eine Fase braucht einen V-Fräser, Werkzeug { $tool } ist ein { $type }
 toolpath-vbit-no-angle = Werkzeug { $tool } ist ein V-Fräser ohne Winkel; geben Sie seinen Winkel an
 toolpath-pocket-endmill = Taschen brauchen einen Schaftfräser, Werkzeug { $tool } ist ein { $type }
 toolpath-path-drill = Werkzeug { $tool } ist ein Bohrer und kann keinem Pfad folgen; verwenden Sie einen Schaftfräser oder V-Fräser
@@ -88,6 +90,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] Tasche
     [vcarve] V-Gravur
     [path] Pfad folgen
+    [chamfer] Fase
     [holes] Bohrungen
     [relief] Relief
    *[surface] Planfräsen
@@ -193,6 +196,7 @@ toolpath-path-too-short = Kontur #{ $contour } ist zu kurz zum Folgen ({ $length
 toolpath-groove-no-angle = Werkzeug { $tool } ist ein V-Fräser ohne Winkel: die Breite der Nut ist unbekannt
 toolpath-groove-width = die V-Nut ist oben { $width } breit
 toolpath-path-past-cone = ein V-Fräser schneidet nicht tiefer als sein Kegel, hier { $deepest }, sonst reibt sein Schaft; dieser Pfad geht { $depth } tief: flacher machen oder einen Schaftfräser nehmen
+toolpath-chamfer-past-cone = Werkzeug { $tool } macht eine Fase höchstens { $widest } breit, sonst reibt sein Schaft; diese ist { $width }: schmaler machen oder einen breiteren V-Fräser nehmen
 toolpath-holes-not-circles = { $count ->
     [one] { $count } Form übersprungen, die kein Kreis ist
    *[other] { $count } Formen übersprungen, die keine Kreise sind

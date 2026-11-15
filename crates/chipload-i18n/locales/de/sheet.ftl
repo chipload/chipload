@@ -127,6 +127,7 @@ sheet-conventional = Gegenlauf
 sheet-stepover = seitliche Zustellung { $percent } %
 sheet-kind-vcarve = V-Gravur
 sheet-kind-path = Pfad folgen, auf der Linie
+sheet-kind-chamfer = Fase { $width } breit
 sheet-kind-holes-drilled = Bohrungen, gebohrt
 sheet-kind-holes-bored = Bohrungen, Helixbohren
 sheet-kind-surface = Planfräsen, das ganze Rohteil, hin und her (Gleichlauf und Gegenlauf), seitliche Zustellung { $percent } %

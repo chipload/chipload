@@ -35,6 +35,7 @@ styles-unreadable = nicht lesbar
 styles-side-by-selection = Seite nach Auswahl
 styles-through = durch + { $below }
 styles-depth = { $depth } tief
+styles-chamfer-width = { $width } breit
 styles-tabs = { $count ->
     [one] { $count } Haltesteg
    *[other] { $count } Haltestege

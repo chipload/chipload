@@ -634,6 +634,7 @@ pipeline-name-profile = Konturfräsen { $number }
 pipeline-name-pocket = Tasche { $number }
 pipeline-name-vcarve = V-Gravur { $number }
 pipeline-name-path = Pfad folgen { $number }
+pipeline-name-chamfer = Fase { $number }
 pipeline-name-holes = Bohrungen { $number }
 pipeline-name-surface = Planfräsen { $number }
 pipeline-name-relief = Relief { $number }
@@ -656,7 +657,7 @@ pipeline-sign-relief = die Tiefe des Hintergrunds muss mehr als 0 sein, ist { $g
 pipeline-sign-edge = die Breite der Kantenfase muss mehr als 0 sein, ist { $got }
 pipeline-sign-board = die Dicke des Bretts muss mehr als 0 und sein Rand 0 oder mehr sein
 pipeline-sign-groove-wide = eine Rille von { $width } Breite ist breiter, als V-Fräser { $tool } schneiden kann
-pipeline-sign-edge-wide = eine Fase von { $width } Breite ist mehr, als V-Fräser { $tool } schneiden kann (er schneidet eine doppelt so breite Rille, mittig auf der Außenlinie)
+pipeline-sign-edge-wide = eine Fase von { $width } Breite ist mehr, als V-Fräser { $tool } schneiden kann: höchstens { $widest }
 pipeline-setup-inlay-plug = Brett für den Intarsien-Stopfen
 pipeline-inlay-vbit = eine Intarsie wird V-graviert: Werkzeug { $tool } muss ein V-Fräser mit Winkel sein
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then

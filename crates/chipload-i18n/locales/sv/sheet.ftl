@@ -124,6 +124,7 @@ sheet-conventional = motfräsning
 sheet-stepover = sidosteg { $percent } %
 sheet-kind-vcarve = V-gravyr
 sheet-kind-path = Följ bana, på linjen
+sheet-kind-chamfer = Fas { $width } bred
 sheet-kind-holes-drilled = Hål, borrade
 sheet-kind-holes-bored = Hål, helixborrning
 sheet-kind-surface = Planfräsning, hela ämnet, fram och tillbaka (med- och motfräsning), sidosteg { $percent } %

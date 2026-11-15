@@ -378,7 +378,7 @@ mod tests {
         let text: Vec<String> = messages.iter().map(Message::english).collect();
         assert_eq!(text.len(), 3, "chosen, two operations: {text:?}");
         for (a, b) in out.operations.iter().zip(&job().operations) {
-            assert_eq!(a.depths(), b.depths());
+            assert_eq!(a.depths(&[]), b.depths(&[]));
         }
         let (again, messages) = use_material(&out, &library, Some(&material));
         assert_eq!(again, out);

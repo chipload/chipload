@@ -407,6 +407,7 @@ pub(super) fn op_icon(op: &Operation) -> Icon {
         Operation::Pocket(_) => Icon::Pocket,
         Operation::Vcarve(_) => Icon::Vcarve,
         Operation::Path(_) => Icon::FollowPath,
+        Operation::Chamfer(_) => Icon::EdgeChamfer,
         Operation::Holes(_) => Icon::Holes,
         Operation::Surface(_) => Icon::Surface,
         Operation::Relief(_) => Icon::Relief,
@@ -575,7 +576,7 @@ enum Leaf {
 }
 
 /// The kinds of new operation: label, kind and what it does.
-pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 7] {
+pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 8] {
     [
         (
             t!(src, "browser-profile"),
@@ -596,6 +597,11 @@ pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, 
             t!(src, "browser-follow-path"),
             OpKind::Path,
             t!(src, "browser-follow-path-hover"),
+        ),
+        (
+            t!(src, "browser-chamfer"),
+            OpKind::Chamfer,
+            t!(src, "browser-chamfer-hover"),
         ),
         (
             t!(src, "browser-holes"),
@@ -1690,12 +1696,14 @@ impl ChiploadApp {
             Operation::Pocket(_) => t!(self, "browser-pocket"),
             Operation::Vcarve(_) => t!(self, "browser-vcarve"),
             Operation::Path(_) => t!(self, "browser-follow-path"),
+            Operation::Chamfer(_) => t!(self, "browser-chamfer"),
             Operation::Holes(_) => t!(self, "browser-holes"),
             Operation::Surface(_) => t!(self, "browser-surface"),
             Operation::Relief(_) => t!(self, "browser-relief"),
         };
         let summary = geometry_summary(op, &self.contours, self);
-        let (start, end) = op.depths();
+        let tools = self.edit.as_ref().map_or(&[][..], |e| &e.job.tools[..]);
+        let (start, end) = op.depths(tools);
         // docs/specs/rest-machining.md §6.
         let rest = match op {
             Operation::Pocket(p) => p.rest.map_or(String::new(), |r| {

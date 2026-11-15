@@ -10,9 +10,9 @@ use chipload_core::chain::Contour;
 use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
-    DEFAULT_RAMP_ANGLE_RAD, Direction, Entry, HoleMethod, HolesOp, Job, Operation, PathOp,
-    PocketOp, ProfileOp, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, Tool,
-    ToolType, VcarveOp,
+    ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, HoleMethod, HolesOp, Job,
+    Operation, PathOp, PocketOp, ProfileOp, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp,
+    Tabs, Tool, ToolType, VcarveOp,
 };
 
 /// A new relief's lines, as a fraction of the tool, with an end mill or a V-bit
@@ -71,6 +71,8 @@ use crate::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
 /// The depth of a new pocket, V-carve or path with nothing to take it from, and of a
 /// profile of open shapes: a shallow test cut (decision 2026-10-09).
 pub const DEFAULT_DEPTH: f64 = 1.0;
+/// A new chamfer's width at the surface, mm (docs/specs/chamfer.md §6).
+pub const DEFAULT_CHAMFER_WIDTH: f64 = 1.0;
 /// A new pocket's stepover, as a share of the tool's diameter, when nothing gives one.
 pub const DEFAULT_STEPOVER: f64 = crate::materials::DEFAULT_STEPOVER;
 
@@ -82,6 +84,8 @@ pub enum OpKind {
     Vcarve,
     /// Follow path (docs/specs/follow-path.md).
     Path,
+    /// Chamfer: a V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md).
+    Chamfer,
     /// Holes (docs/specs/holes.md).
     Holes,
     /// Surface: the whole stock (docs/specs/surfacing.md).
@@ -104,6 +108,7 @@ impl OpKind {
                 | (Operation::Pocket(_), OpKind::Pocket)
                 | (Operation::Vcarve(_), OpKind::Vcarve)
                 | (Operation::Path(_), OpKind::Path)
+                | (Operation::Chamfer(_), OpKind::Chamfer)
                 | (Operation::Holes(_), OpKind::Holes)
                 | (Operation::Surface(_), OpKind::Surface)
                 | (Operation::Relief(_), OpKind::Relief)
@@ -116,6 +121,7 @@ impl OpKind {
             OpKind::Pocket => "pipeline-name-pocket",
             OpKind::Vcarve => "pipeline-name-vcarve",
             OpKind::Path => "pipeline-name-path",
+            OpKind::Chamfer => "pipeline-name-chamfer",
             OpKind::Holes => "pipeline-name-holes",
             OpKind::Surface => "pipeline-name-surface",
             OpKind::Relief => "pipeline-name-relief",
@@ -162,8 +168,8 @@ pub fn next_tool_id(job: &Job) -> i64 {
 }
 
 /// The tool a new operation of `kind` starts with: the last operation's tool when it
-/// suits the kind, else the project's first that does. A V-carve takes a V-bit; other
-/// kinds don't (user report 2026-10-14). A surface takes the widest endmill
+/// suits the kind, else the project's first that does. A V-carve and a chamfer take a V-bit;
+/// other kinds don't (user report 2026-10-14). A surface takes the widest endmill
 /// (docs/specs/surfacing.md §4).
 pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
     if kind == OpKind::Surface
@@ -178,10 +184,9 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
         return ball.id;
     }
     let suits = |id: i64| {
-        job.tools
-            .iter()
-            .find(|t| t.id == id)
-            .is_some_and(|t| (t.kind == ToolType::Vbit) == (kind == OpKind::Vcarve))
+        job.tools.iter().find(|t| t.id == id).is_some_and(|t| {
+            (t.kind == ToolType::Vbit) == matches!(kind, OpKind::Vcarve | OpKind::Chamfer)
+        })
     };
     let next = next_tool_id(job);
     if suits(next) {
@@ -280,6 +285,37 @@ pub fn new_operations(
                 )],
             }
         }
+        // A chamfer's waste is where a profile's would be: around outlines, within holes
+        // (docs/specs/chamfer.md §6).
+        OpKind::Chamfer => match profile_sides(job, &request.select, contours) {
+            Sides::One(side) => vec![(
+                start.chamfer(name(number), &request.select, edge_side(side)),
+                true,
+            )],
+            Sides::Split { holes, outlines } => {
+                let suffixed = |id: &'static str, n: usize| {
+                    Message::new(id)
+                        .arg("name", name(n))
+                        .render(lang, Units::Mm)
+                };
+                let hole_name = suffixed("pipeline-name-holes-of", number);
+                let outline_name = suffixed("pipeline-name-outline-of", number + 1);
+                if follows_drawing(&request.select) {
+                    messages.push(by_shapes(&hole_name, &outline_name));
+                }
+                vec![
+                    (start.chamfer(hole_name, &holes, EdgeSide::Inside), true),
+                    (
+                        start.chamfer(outline_name, &outlines, EdgeSide::Outside),
+                        true,
+                    ),
+                ]
+            }
+            Sides::Unknown => vec![(
+                start.chamfer(name(number), &request.select, EdgeSide::Outside),
+                true,
+            )],
+        },
         _ => vec![(start.other(kind, name(number), &request.select), true)],
     };
     let ops = made
@@ -293,6 +329,14 @@ pub fn new_operations(
         index,
         ops,
         messages,
+    }
+}
+
+/// A chamfer's side for a profile's: inside for holes, outside otherwise.
+fn edge_side(side: Side) -> EdgeSide {
+    match side {
+        Side::Inside => EdgeSide::Inside,
+        Side::Outside | Side::On => EdgeSide::Outside,
     }
 }
 
@@ -421,7 +465,7 @@ impl Start {
             .into_iter()
             .filter_map(|kind| {
                 let op = job.operations.iter().rev().find(|e| kind.is(e))?;
-                Some((kind, op.depths().1, op.through()))
+                Some((kind, op.depths(&job.tools).1, op.through()))
             })
             .collect();
         Start {
@@ -489,11 +533,38 @@ impl Start {
         })
     }
 
+    /// A chamfer on `side`, 1 mm wide in one pass; a V-bit goes down on its point.
+    fn chamfer(&self, name: String, select: &Selector, side: EdgeSide) -> Operation {
+        Operation::Chamfer(ChamferOp {
+            material: None,
+            name,
+            enabled: true,
+            part: self.part,
+            select: select.clone(),
+            tool: self.tool,
+            side,
+            width: DEFAULT_CHAMFER_WIDTH,
+            start_depth: 0.0,
+            step_down: None,
+            direction: Direction::Climb,
+            feed: self.feed,
+            plunge_feed: self.plunge_feed,
+            entry: if self.plunges() || self.tool_kind == Some(ToolType::Vbit) {
+                Entry::Plunge {}
+            } else {
+                Entry::Ramp {
+                    ramp_angle: DEFAULT_RAMP_ANGLE_RAD,
+                }
+            },
+        })
+    }
+
     fn other(&self, kind: OpKind, name: String, select: &Selector) -> Operation {
         let select = select.clone();
         let (end_depth, through) = self.depth(kind);
         match kind {
             OpKind::Profile => self.profile(name, &select, Side::Outside, false),
+            OpKind::Chamfer => self.chamfer(name, &select, EdgeSide::Outside),
             OpKind::Pocket => Operation::Pocket(PocketOp {
                 material: None,
                 name,
@@ -661,6 +732,7 @@ fn op_step_down(op: &Operation) -> f64 {
         Operation::Pocket(p) => p.step_down,
         Operation::Path(p) => p.step_down,
         Operation::Surface(f) => f.step_down,
+        Operation::Chamfer(c) => c.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Vcarve(_) | Operation::Holes(_) | Operation::Relief(_) => {
             crate::DEFAULT_STEP_DOWN
         }
@@ -673,6 +745,7 @@ fn op_feed(op: &Operation) -> f64 {
         Operation::Pocket(p) => p.feed,
         Operation::Vcarve(v) => v.feed,
         Operation::Path(p) => p.feed,
+        Operation::Chamfer(c) => c.feed,
         Operation::Holes(h) => h.feed,
         Operation::Surface(f) => f.feed,
         Operation::Relief(r) => r.feed,
@@ -685,6 +758,7 @@ fn op_plunge(op: &Operation) -> f64 {
         Operation::Pocket(p) => p.plunge_feed,
         Operation::Vcarve(v) => v.plunge_feed,
         Operation::Path(p) => p.plunge_feed,
+        Operation::Chamfer(c) => c.plunge_feed,
         Operation::Holes(h) => h.plunge_feed,
         Operation::Surface(f) => f.plunge_feed,
         Operation::Relief(r) => r.plunge_feed,
@@ -873,17 +947,17 @@ mod tests {
     fn depths_come_from_the_last_of_the_kind_and_holes_go_through() {
         let (mut job, contours) = part();
         let made = add(&job, &contours, OpKind::Pocket, layer("HOLES"));
-        assert_eq!(made.ops[0].op.depths().1, DEFAULT_DEPTH);
+        assert_eq!(made.ops[0].op.depths(&[]).1, DEFAULT_DEPTH);
         insert(&mut job, made);
         job.operations[0].set_end_depth(6.0);
         let made = add(&job, &contours, OpKind::Pocket, layer("HOLES"));
-        assert_eq!(made.ops[0].op.depths().1, 6.0);
+        assert_eq!(made.ops[0].op.depths(&[]).1, 6.0);
         assert_eq!(made.ops[0].op.name(), "Pocket 2");
         let made = add(&job, &contours, OpKind::Holes, layer("HOLES"));
         let stock = job.stock();
         assert_eq!(made.ops[0].op.through(), Some(stock.max_overcut));
         assert_eq!(
-            made.ops[0].op.depths().1,
+            made.ops[0].op.depths(&[]).1,
             stock.thickness + stock.max_overcut
         );
     }

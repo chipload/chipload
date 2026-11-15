@@ -68,6 +68,7 @@ header-new-profile = Nuevo contorneado
 header-new-pocket = Nueva cajera
 header-new-vcarve = Nuevo tallado en V
 header-new-follow-path = Nuevo seguir trayectoria
+header-new-chamfer = Nuevo chaflán
 header-new-holes = Nuevos taladros
 header-new-surface = Nuevo planeado
 header-new-relief = Nuevo relieve

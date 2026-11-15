@@ -11,9 +11,9 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job, MAX_LEAD_DIAMETERS, Mirror,
-    Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp, RestRefusal, Side, Spindle,
-    SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    ChamferOp, ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job,
+    MAX_LEAD_DIAMETERS, Mirror, Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp,
+    RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
@@ -481,8 +481,8 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
 }
 
 /// The Z of every depth pass of `op`, going down from the stock top at `top_z`.
-fn pass_heights(op: &Operation, top_z: f64) -> Result<Vec<f64>, ToolpathError> {
-    let (start_depth, end_depth) = op.depths();
+fn pass_heights(op: &Operation, tools: &[Tool], top_z: f64) -> Result<Vec<f64>, ToolpathError> {
+    let (start_depth, end_depth) = op.depths(tools);
     let heights = |depths: Vec<f64>| depths.into_iter().map(|d| top_z - d).collect();
     Ok(match op {
         Operation::Profile(ProfileOp { step_down, .. })
@@ -504,6 +504,11 @@ fn pass_heights(op: &Operation, top_z: f64) -> Result<Vec<f64>, ToolpathError> {
             peck.unwrap_or(end_depth - start_depth),
         )?),
         Operation::Holes(_) => vec![top_z - end_depth],
+        // One pass, or equal passes with a step down (docs/specs/chamfer.md §4).
+        Operation::Chamfer(c) => match c.step_down {
+            Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
+            None => vec![top_z - end_depth],
+        },
     })
 }
 
@@ -522,8 +527,8 @@ fn plan_step(
     let op = &chosen.op;
     let tool = op_tool(job, op).map_err(|err| err.at(index))?;
     let top_z = job.stock().top_z();
-    let pass_z = pass_heights(op, top_z).map_err(|err| err.at(index))?;
-    let (start_depth, _) = op.depths();
+    let pass_z = pass_heights(op, &job.tools, top_z).map_err(|err| err.at(index))?;
+    let (start_depth, _) = op.depths(&job.tools);
     let shift = step.shift;
     // A mirrored part is planned as drawn with the cutting sense turned, then mirrored about
     // its copy's centre line (docs/specs/mirror-part.md §3).
@@ -614,6 +619,7 @@ fn plan_step(
         }
         Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
         Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
+        Operation::Chamfer(chamfer) => plan_chamfer_op(chamfer, &context, &shifted, position),
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
         Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
         Operation::Relief(relief) => plan_relief_op(relief, &context, &shifted, position, shift),
@@ -1367,6 +1373,68 @@ fn plan_path_op(
         tabs: Vec::new(),
         pockets: Vec::new(),
         arcs,
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts: Vec::new(),
+    })
+}
+
+/// A chamfer (docs/specs/chamfer.md): each closed shape's line offset half the V-bit's tip
+/// into the waste, followed at every depth pass as a closed path.
+fn plan_chamfer_op(
+    op: &ChamferOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let tip = ctx.tool.tip_diameter.unwrap_or(0.0);
+    let rings = crate::chamfer::chamfer_rings(
+        op,
+        ctx.label_message,
+        &selection.contours,
+        tip,
+        ctx.sense,
+        start,
+    )?;
+    let cut = PathCut {
+        pass_z: ctx.pass_z,
+        top_z: ctx.top_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+        entry: op.entry,
+        tool_diameter: ctx.tool.diameter,
+        spindle: ctx.sense,
+    };
+    if op.entry.ramp_angle().is_some() {
+        for path in &rings.paths {
+            let length = crate::ramp::polyline_length(&crate::profile::closed_path(&path.points));
+            short_ramp_refusal(ctx.tool, length).map_err(|why| {
+                job_error(labelled_note(
+                    &contour_context(ctx.label_message, path.contour_id),
+                    why,
+                ))
+            })?;
+        }
+    }
+    let mut moves = Vec::new();
+    let mut end = start;
+    for path in &rings.paths {
+        ctx.cancel.check()?;
+        let (more, at) = path_moves(path, &cut, &rings.arcs)
+            .map_err(|err| err.with_context(contour_context(ctx.label_message, path.contour_id)))?;
+        moves.extend(more);
+        end = at;
+    }
+    Ok(Planned {
+        moves,
+        notes: rings.notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs: rings.arcs,
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
@@ -2422,7 +2490,7 @@ fn bull_nose_notes(op: &Operation, tool: &Tool, below: f64) -> Vec<Message> {
 fn through_overcut(job: &Job, op: &Operation) -> Option<Message> {
     op.through()?;
     let stock = job.setup_of(op).map_or(job.stock(), |s| &s.stock);
-    let below = op.depths().1 - job.drill_point(op) - stock.thickness;
+    let below = op.depths(&job.tools).1 - job.drill_point(op) - stock.thickness;
     (below > DEPTH_TOL_MM).then(|| {
         Message::new("toolpath-through-spoilboard")
             .arg("below", Value::Length(below, Digits::Fixed(3)))
@@ -2514,13 +2582,14 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Pocket(p) => (p.feed, p.plunge_feed),
             Operation::Vcarve(v) => (v.feed, v.plunge_feed),
             Operation::Path(p) => (p.feed, p.plunge_feed),
+            Operation::Chamfer(c) => (c.feed, c.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
             Operation::Surface(f) => (f.feed, f.plunge_feed),
             Operation::Relief(r) => (r.feed, r.plunge_feed),
         };
         // Below the stock: a warning within the overcut allowance, an error beyond it
         // (docs/specs/depths-and-clearance.md section 2).
-        let (_, end_depth) = op.depths();
+        let (_, end_depth) = op.depths(&job.tools);
         // Its own setup's board (docs/specs/setups.md §5).
         let stock = job.setup_of(op).map_or(job.stock(), |s| &s.stock);
         let thickness = stock.thickness;
@@ -2562,6 +2631,21 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 Message::new("toolpath-path-past-cone")
                     .arg("deepest", Value::Length(deepest, Digits::Trim(3)))
                     .arg("depth", length(p.end_depth - p.start_depth)),
+            ));
+        }
+        // A chamfer no wider than the bit's cone: the shank would rub beyond it
+        // (docs/specs/chamfer.md §4).
+        if let Operation::Chamfer(c) = op
+            && let Some(widest) = tool.widest_chamfer()
+            && c.width > widest + DEPTH_TOL_MM
+        {
+            problems.push(labelled(
+                at("width"),
+                &label_message,
+                Message::new("toolpath-chamfer-past-cone")
+                    .arg("widest", Value::Length(widest, Digits::Trim(3)))
+                    .arg("tool", tool.id)
+                    .arg("width", length(c.width)),
             ));
         }
         notes.extend(
@@ -2708,7 +2792,13 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             }
         }
         if let Entry::Helix { radius, .. } = op.entry() {
-            if let Operation::Path(_) = op {
+            if let Operation::Chamfer(_) = op {
+                problems.push(labelled(
+                    at("entry"),
+                    &label_message,
+                    Message::new("toolpath-helix-for-chamfer"),
+                ));
+            } else if let Operation::Path(_) = op {
                 problems.push(labelled(
                     at("entry"),
                     &label_message,
@@ -2761,6 +2851,17 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             },
             Operation::Path(p) => (
                 path_tool_notes(tool, p.entry).map_err(|e| (at("tool"), numbered.clone(), e)),
+                Vec::new(),
+            ),
+            Operation::Chamfer(_) => (
+                chamfer_tool_rule(tool).map_err(|e| {
+                    let path = if tool.kind == ToolType::Vbit {
+                        format!("tools.{k}.angle")
+                    } else {
+                        at("tool")
+                    };
+                    (path, numbered.clone(), e)
+                }),
                 Vec::new(),
             ),
             Operation::Holes(h) => (
@@ -2840,6 +2941,7 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Pocket(_) => "pocket",
         Operation::Vcarve(_) => "vcarve",
         Operation::Path(_) => "path",
+        Operation::Chamfer(_) => "chamfer",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",
@@ -3735,6 +3837,20 @@ fn path_tool_notes(tool: &Tool, entry: Entry) -> Result<bool, Message> {
         ToolType::Vbit | ToolType::Ballnose => Ok(false),
         ToolType::Endmill => plunge_unknown(tool, entry),
     }
+}
+
+/// A chamfer takes a V-bit with its angle, which its depth follows from
+/// (docs/specs/chamfer.md §4); a V-bit goes down on its point.
+fn chamfer_tool_rule(tool: &Tool) -> Result<bool, Message> {
+    if tool.kind != ToolType::Vbit {
+        return Err(Message::new("toolpath-chamfer-vbit")
+            .arg("tool", tool.id)
+            .arg("type", tool.kind.name_message()));
+    }
+    if tool.angle.is_none() {
+        return Err(Message::new("toolpath-vbit-no-angle").arg("tool", tool.id));
+    }
+    Ok(false)
 }
 
 /// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match

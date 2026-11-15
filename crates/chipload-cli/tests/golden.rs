@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 74] = [
+const GOLDEN: [(&str, &str); 75] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -196,6 +196,10 @@ const GOLDEN: [(&str, &str); 74] = [
     // v14_round_corners' pocket (two islands, leads, a moved start) with dogbones and a
     // finishing pass: walls 0.3 mm, floor 0.2 mm (docs/specs/pocket-finish.md).
     ("v36_pocket_finish", "jobs/v36/pocket_finish.chipload"),
+    // Chamfers (docs/specs/chamfer.md) with a 90° V-bit with a 0.2 mm flat: 1 mm inside a
+    // round and a square hole in one pass, 2 mm round a 120 × 80 box side in two ramped
+    // passes; then the holes and the outline cut with an end mill.
+    ("v36_chamfer", "jobs/v36/chamfer.chipload"),
     // A V-carve inlay (docs/specs/vcarve-inlay.md): "AO" in FreeSerif 30 mm high, a pocket
     // 5 mm deep in the base, and in setup 2 the plug board, 10 mm thick and fitted round the
     // artwork, carved with its outline 3 mm down and a 1.5 mm glue gap; the plug's part is

@@ -28,6 +28,14 @@ pub(crate) enum OpAction {
         /// Cut through the stock, below it by the setup's max overcut.
         #[arg(long)]
         through: bool,
+        /// A chamfer's width at the surface, in place of 1 mm; its depth follows from the
+        /// V-bit's angle (docs/specs/chamfer.md).
+        #[arg(long, value_parser = crate::lengths::length)]
+        width: Option<f64>,
+        /// A chamfer's waste side, in place of the one the shapes tell: around them
+        /// (outside) or within them (inside).
+        #[arg(long)]
+        side: Option<EdgeSideArg>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -445,10 +453,19 @@ pub(crate) enum KindArg {
     Pocket,
     Vcarve,
     Path,
+    /// A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width.
+    Chamfer,
     Holes,
     /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
     /// model within its outline.
     Relief,
+}
+
+/// A chamfer's waste side, for `op add chamfer --side`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum EdgeSideArg {
+    Outside,
+    Inside,
 }
 
 impl KindArg {
@@ -459,6 +476,7 @@ impl KindArg {
             KindArg::Pocket => OpKind::Pocket,
             KindArg::Vcarve => OpKind::Vcarve,
             KindArg::Path => OpKind::Path,
+            KindArg::Chamfer => OpKind::Chamfer,
             KindArg::Holes => OpKind::Holes,
             KindArg::Relief => OpKind::Relief,
         }
@@ -574,8 +592,20 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             tool,
             depth,
             through,
+            width,
+            side,
             output,
         } => {
+            let chamfer = matches!(kind, KindArg::Chamfer);
+            if !chamfer && (width.is_some() || side.is_some()) {
+                return out.fail("--width and --side are for a chamfer");
+            }
+            if chamfer && (depth.is_some() || through) {
+                return out.fail(
+                    "a chamfer's depth follows from its width and the V-bit's angle: give \
+                     --width",
+                );
+            }
             let mut job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
@@ -612,6 +642,16 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             );
             for new in &mut made.ops {
                 set_depth(&job, &mut new.op, depth, through);
+                if let Operation::Chamfer(c) = &mut new.op {
+                    if let Some(width) = width {
+                        c.width = width;
+                    }
+                    match side {
+                        Some(EdgeSideArg::Outside) => c.side = chipload_job::EdgeSide::Outside,
+                        Some(EdgeSideArg::Inside) => c.side = chipload_job::EdgeSide::Inside,
+                        None => {}
+                    }
+                }
             }
             let notes: Vec<String> = made.messages.iter().map(|m| m.english()).collect();
             let count = made.ops.len();
@@ -625,7 +665,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 out.line(format!(
                     "Added operation {}: {}.",
                     first + offset + 1,
-                    describe(op)
+                    describe(op, &job.tools)
                 ));
             }
             if unsided {
@@ -683,7 +723,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 return out.fail(err);
             }
             let op = &job.operations[index];
-            let (_, end_depth) = op.depths();
+            let (_, end_depth) = op.depths(&job.tools);
             let moved = if index + 1 < job.operations.len() {
                 " The operations after it move down one."
             } else {
@@ -1455,8 +1495,9 @@ pub(crate) fn rest_passes_json(refs: &[chipload_job::OpRef]) -> Value {
 
 /// `op add`'s --depth and --through over the defaults.
 fn set_depth(job: &Job, op: &mut Operation, depth: Option<f64>, through: bool) {
-    // A relief's depth is its model's (docs/specs/stl-relief.md §3): `model set --depth`.
-    if let Operation::Relief(_) = op {
+    // A relief's depth is its model's (docs/specs/stl-relief.md §3): `model set --depth`; a
+    // chamfer's follows from its width (docs/specs/chamfer.md §2).
+    if let Operation::Relief(_) | Operation::Chamfer(_) = op {
         return;
     }
     if through {
@@ -1475,8 +1516,18 @@ fn set_depth(job: &Job, op: &mut Operation, depth: Option<f64>, through: bool) {
 
 /// What `op add` added, in a few words: "\"Profile 1\", outside, through to 12.300 mm, with
 /// tabs, tool 1".
-pub(crate) fn describe(op: &Operation) -> String {
+pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
     let mut parts = vec![format!("\"{}\"", op.name())];
+    if let Operation::Chamfer(c) = op {
+        parts.push(format!(
+            "{} mm wide, {}",
+            chipload_core::text::mm(c.width),
+            match c.side {
+                chipload_job::EdgeSide::Outside => "outside",
+                chipload_job::EdgeSide::Inside => "inside",
+            }
+        ));
+    }
     if let Operation::Profile(p) = op {
         parts.push(
             match p.side {
@@ -1487,7 +1538,7 @@ pub(crate) fn describe(op: &Operation) -> String {
             .to_string(),
         );
     }
-    let (_, end) = op.depths();
+    let (_, end) = op.depths(tools);
     let depth = chipload_core::text::mm(end);
     parts.push(match op.through() {
         Some(_) => format!("through to {depth} mm"),

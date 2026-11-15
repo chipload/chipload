@@ -35,6 +35,7 @@ styles-unreadable = illeggibile
 styles-side-by-selection = lato secondo la selezione
 styles-through = passante + { $below }
 styles-depth = { $depth } di profondità
+styles-chamfer-width = largo { $width }
 styles-tabs = { $count ->
     [one] { $count } ponticello
    *[other] { $count } ponticelli

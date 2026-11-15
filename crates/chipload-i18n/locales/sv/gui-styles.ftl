@@ -35,6 +35,7 @@ styles-unreadable = kan inte läsas
 styles-side-by-selection = sida efter markeringen
 styles-through = igenom + { $below }
 styles-depth = { $depth } djup
+styles-chamfer-width = { $width } bred
 styles-tabs = { $count ->
     [one] { $count } brygga
    *[other] { $count } bryggor

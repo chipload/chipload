@@ -68,6 +68,7 @@ header-new-profile = New Profile
 header-new-pocket = New Pocket
 header-new-vcarve = New V-carve
 header-new-follow-path = New Follow path
+header-new-chamfer = New Chamfer
 header-new-holes = New Holes
 header-new-surface = New Surface
 header-new-relief = New Relief

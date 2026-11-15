@@ -91,6 +91,7 @@ sheet-conventional = встречное
 sheet-stepover = боковой шаг { $percent } %
 sheet-kind-vcarve = V-гравировка
 sheet-kind-path = Вдоль линии, по линии
+sheet-kind-chamfer = Фаска шириной { $width }
 sheet-kind-holes-drilled = Отверстия, сверление
 sheet-kind-holes-bored = Отверстия, винтовое фрезерование
 sheet-kind-surface = Торцевание, вся заготовка, возвратно-поступательно (попутное и встречное), боковой шаг { $percent } %

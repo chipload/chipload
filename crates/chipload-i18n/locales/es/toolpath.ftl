@@ -30,6 +30,7 @@ toolpath-tab-height = la altura de los puentes { $height } debe ser menor que la
 # $field is "feed" or "plunge_feed", as written in the project file.
 toolpath-max-feed = { $field } { $feed } supera el max_feed de la máquina, { $max }
 toolpath-helix-for-path = la entrada en hélice es para cajeras; un seguir trayectoria puede entrar en rampa (entry: ramp)
+toolpath-helix-for-chamfer = la entrada en hélice es para cajeras; un chaflán puede bajar en vertical o en rampa (entry: ramp)
 toolpath-helix-radius = el radio de hélice { $radius } debe ser menor que el radio de la herramienta { $tool_radius }, o deja un núcleo en pie en el centro
 # $most is a number of tool diameters, $longest that as a length.
 toolpath-lead-radius = el radio de aproximación { $radius } es más de { $most } × el diámetro de la herramienta ({ $longest })
@@ -39,6 +40,7 @@ toolpath-lead-radius = el radio de aproximación { $radius } es más de { $most 
 # $tool is a tool's number, $type a kind of tool (job-tool-type).
 toolpath-surface-endmill = la herramienta { $tool } es una { $type }; un planeado necesita una fresa
 toolpath-vcarve-vbit = el tallado en V necesita una fresa en V, la herramienta { $tool } es una { $type }
+toolpath-chamfer-vbit = un chaflán necesita una fresa en V, la herramienta { $tool } es una { $type }
 toolpath-vbit-no-angle = la herramienta { $tool } es una fresa en V sin ángulo; fija su ángulo
 toolpath-pocket-endmill = las cajeras necesitan una fresa, la herramienta { $tool } es una { $type }
 toolpath-path-drill = la herramienta { $tool } es una broca, que no puede seguir una trayectoria; usa una fresa o una fresa en V
@@ -88,6 +90,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] cajera
     [vcarve] tallado en V
     [path] seguir trayectoria
+    [chamfer] chaflán
     [holes] taladros
     [relief] relieve
    *[surface] planeado
@@ -193,6 +196,7 @@ toolpath-path-too-short = el contorno #{ $contour } es demasiado corto para segu
 toolpath-groove-no-angle = la herramienta { $tool } es una fresa en V sin ángulo: no se conoce el ancho de la ranura
 toolpath-groove-width = la ranura en V tiene { $width } de ancho arriba
 toolpath-path-past-cone = una fresa en V no corta más hondo que su cono, aquí { $deepest }, o su mango rozaría; esta trayectoria baja { $depth }: hazla menos profunda o usa una fresa plana
+toolpath-chamfer-past-cone = la herramienta { $tool } hace un chaflán de { $widest } como mucho, o su mango rozaría; este mide { $width }: hazlo más estrecho o usa una fresa en V más ancha
 toolpath-holes-not-circles = { $count ->
     [one] se omitió { $count } forma que no es un círculo
    *[other] se omitieron { $count } formas que no son círculos

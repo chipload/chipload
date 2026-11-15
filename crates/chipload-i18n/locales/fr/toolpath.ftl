@@ -30,6 +30,7 @@ toolpath-tab-height = la hauteur des attaches { $height } doit être inférieure
 # $field is "feed" or "plunge_feed", as written in the project file.
 toolpath-max-feed = { $field } { $feed } dépasse max_feed de la machine { $max }
 toolpath-helix-for-path = l'entrée en hélice est pour les poches ; un suivi de tracé peut entrer en rampe (entry: ramp)
+toolpath-helix-for-chamfer = l'entrée en hélice est pour les poches ; un chanfrein peut plonger ou entrer en rampe (entry: ramp)
 toolpath-helix-radius = le rayon d'hélice { $radius } doit être inférieur au rayon de l'outil { $tool_radius }, sinon un noyau reste debout au milieu
 # $most is a number of tool diameters, $longest that as a length.
 toolpath-lead-radius = le rayon d'approche { $radius } dépasse { $most } × le diamètre de l'outil ({ $longest })
@@ -39,6 +40,7 @@ toolpath-lead-radius = le rayon d'approche { $radius } dépasse { $most } × le 
 # $tool is a tool's number, $type a kind of tool (job-tool-type).
 toolpath-surface-endmill = l'outil { $tool } est de type { $type } ; un surfaçage a besoin d'une fraise
 toolpath-vcarve-vbit = la gravure en V a besoin d'une fraise en V, l'outil { $tool } est de type { $type }
+toolpath-chamfer-vbit = un chanfrein a besoin d'une fraise en V, l'outil { $tool } est de type { $type }
 toolpath-vbit-no-angle = l'outil { $tool } est une fraise en V sans angle ; réglez son angle
 toolpath-pocket-endmill = les poches ont besoin d'une fraise, l'outil { $tool } est de type { $type }
 toolpath-path-drill = l'outil { $tool } est un foret, qui ne peut pas suivre un tracé ; utilisez une fraise ou une fraise en V
@@ -88,6 +90,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] poche
     [vcarve] gravure en V
     [path] suivi de tracé
+    [chamfer] chanfrein
     [holes] perçages
     [relief] relief
    *[surface] surfaçage
@@ -193,6 +196,7 @@ toolpath-path-too-short = le contour #{ $contour } est trop court pour être sui
 toolpath-groove-no-angle = l'outil { $tool } est une fraise en V sans angle : la largeur de la rainure est inconnue
 toolpath-groove-width = la rainure en V fait { $width } de large en haut
 toolpath-path-past-cone = une fraise en V ne coupe pas plus profond que son cône, ici { $deepest }, sinon sa queue frotte ; ce tracé descend à { $depth } : réduisez la profondeur ou prenez une fraise droite
+toolpath-chamfer-past-cone = l'outil { $tool } fait un chanfrein d'au plus { $widest }, sinon sa queue frotte ; celui-ci fait { $width } : réduisez-le ou prenez une fraise en V plus large
 toolpath-holes-not-circles = { $count ->
     [one] { $count } forme qui n'est pas un cercle ignorée
    *[other] { $count } formes qui ne sont pas des cercles ignorées

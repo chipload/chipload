@@ -138,12 +138,12 @@ The existing kinds stay readable in projects and on the command line as names fo
 
 ## 6. The edge (decision 5)
 
-**Chamfer:** a follow path along the outline with the V-bit, its centre on the line, deep
-enough for a chamfer of width *c* at the surface (depth c ÷ tan(α/2)), cut before the
-profile so the outline is still held by the board. Half the groove falls outside the sign
-and goes with the waste. The sign's profile then cuts through below it. Needs nothing new
-in the toolpath. A **round-over** needs a round-over bit, which Chipload's tools don't
-describe yet (§8).
+**Chamfer:** a Chamfer operation on the outline (docs/specs/chamfer.md, since 0.37.0): the
+V-bit's flank on the line, its tip in the waste, as deep as the width *c* needs (c ÷
+tan(α/2)), cut before the profile so the outline is still held by the board. The sign's
+profile then cuts through beside it. Signs made before 0.37.0 keep their edge as a follow
+path centred on the outline, which still cuts as it did. A **round-over** needs a
+round-over bit, which Chipload's tools don't describe yet (§8).
 
 ## 7. Command line, window, sheet
 

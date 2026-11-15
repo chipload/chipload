@@ -29,6 +29,7 @@ pub fn kind_of(op: &Operation) -> OpKind {
         Operation::Pocket(_) => OpKind::Pocket,
         Operation::Vcarve(_) => OpKind::Vcarve,
         Operation::Path(_) => OpKind::Path,
+        Operation::Chamfer(_) => OpKind::Chamfer,
         Operation::Holes(_) => OpKind::Holes,
         Operation::Surface(_) => OpKind::Surface,
         Operation::Relief(_) => OpKind::Relief,
@@ -120,7 +121,8 @@ pub fn style_operations(
 }
 
 /// The style's settings `op` take what the new operation `fresh` has of the selection: its
-/// shapes, part and material, and a profile's side unless the style keeps its own.
+/// shapes, part and material, a profile's side unless the style keeps its own, and a
+/// chamfer's side.
 fn dress(op: &mut Operation, fresh: &Operation, name: String, side: Option<StyleSide>) {
     *op.name_mut() = name;
     op.set_part(fresh.part());
@@ -129,10 +131,13 @@ fn dress(op: &mut Operation, fresh: &Operation, name: String, side: Option<Style
     if let Some(select) = op.select_mut() {
         *select = fresh.select().clone();
     }
-    if let (Operation::Profile(p), Operation::Profile(f)) = (op, fresh)
-        && side != Some(StyleSide::AsSaved)
-    {
-        p.side = f.side;
+    match (op, fresh) {
+        (Operation::Profile(p), Operation::Profile(f)) if side != Some(StyleSide::AsSaved) => {
+            p.side = f.side;
+        }
+        // A chamfer's waste side always goes by the selection (docs/specs/chamfer.md §6).
+        (Operation::Chamfer(c), Operation::Chamfer(f)) => c.side = f.side,
+        _ => {}
     }
 }
 
@@ -441,7 +446,7 @@ mod tests {
         assert_eq!(saved.tools.len(), 1);
         assert_eq!(saved.tools[0].uid, "00000000000000aa");
         assert_eq!(saved.side, Some(StyleSide::AsSaved));
-        assert_eq!(saved.operation().unwrap().depths().1, 6.5);
+        assert_eq!(saved.operation().unwrap().depths(&[]).1, 6.5);
         // Unchanged, it is the style it was.
         let same = style_from_draft(&style, &draft.operation, &library).unwrap();
         assert_eq!(same.operation().unwrap(), style.operation().unwrap());

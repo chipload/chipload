@@ -1,0 +1,238 @@
+{
+  "schema_version": 36,
+  "written_by": "chipload 0.36.0",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "drawn",
+        "kind": "rectangle",
+        "center": [
+          100.0,
+          80.0
+        ],
+        "length": 120.0,
+        "width": 80.0,
+        "angle": 0.0,
+        "corner_radius": 0.0
+      },
+      {
+        "id": 2,
+        "layer": "drawn",
+        "kind": "circle",
+        "center": [
+          70.0,
+          80.0
+        ],
+        "radius": 12.0
+      },
+      {
+        "id": 3,
+        "layer": "drawn",
+        "kind": "rectangle",
+        "center": [
+          125.0,
+          80.0
+        ],
+        "length": 30.0,
+        "width": 20.0,
+        "angle": 0.0,
+        "corner_radius": 0.0
+      }
+    ],
+    "next_shape_id": 4,
+    "dxfs": [],
+    "images": [],
+    "hidden": []
+  },
+  "setups": [
+    {
+      "id": 1,
+      "name": "Setup 1",
+      "enabled": true,
+      "stock": {
+        "x": 300.0,
+        "y": 220.0,
+        "thickness": 12.0,
+        "origin": "bottom_left",
+        "fit": null,
+        "z_zero": "top",
+        "max_overcut": 0.5,
+        "material": null
+      },
+      "work_zero": {
+        "at": "drawing_origin"
+      },
+      "back_of": null
+    }
+  ],
+  "active_setup": null,
+  "machine": {
+    "name": null,
+    "library_uid": null,
+    "post": "grbl",
+    "gcode_units": "mm",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": 5000.0,
+    "travel": {
+      "x": 800.0,
+      "y": 600.0,
+      "z": 100.0
+    },
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "library_uid": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": 2,
+      "center_cutting": true,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    },
+    {
+      "id": 2,
+      "name": null,
+      "library_uid": null,
+      "type": "vbit",
+      "diameter": 12.7,
+      "flutes": 2,
+      "center_cutting": null,
+      "rpm": 18000.0,
+      "angle": 1.5707963267948966,
+      "tip_diameter": 0.2
+    }
+  ],
+  "parts": [
+    {
+      "id": 1,
+      "name": "Part 1",
+      "enabled": true,
+      "copies": null,
+      "setup": 1
+    }
+  ],
+  "active_part": null,
+  "operations": [
+    {
+      "type": "chamfer",
+      "name": "Hole edges",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          2,
+          3
+        ]
+      },
+      "tool": 2,
+      "side": "inside",
+      "width": 1.0,
+      "start_depth": 0.0,
+      "step_down": null,
+      "direction": "climb",
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "entry": {
+        "type": "plunge"
+      }
+    },
+    {
+      "type": "chamfer",
+      "name": "Box edge",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1
+        ]
+      },
+      "tool": 2,
+      "side": "outside",
+      "width": 2.0,
+      "start_depth": 0.0,
+      "step_down": 1.2,
+      "direction": "climb",
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "entry": {
+        "type": "ramp",
+        "ramp_angle": 0.17453292519943295
+      }
+    },
+    {
+      "type": "profile",
+      "name": "Holes",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          2,
+          3
+        ]
+      },
+      "side": "inside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 12.3,
+      "through": null,
+      "clearance": 0.0,
+      "step_down": 4.0,
+      "feed": 1800.0,
+      "plunge_feed": 600.0,
+      "tabs": null,
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Outline",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 12.3,
+      "through": null,
+      "clearance": -0.3,
+      "step_down": 4.0,
+      "feed": 1800.0,
+      "plunge_feed": 600.0,
+      "tabs": {
+        "count": 4,
+        "width": 6.0,
+        "height": 2.0,
+        "flank_angle": 0.05235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    }
+  ]
+}

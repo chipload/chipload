@@ -30,6 +30,7 @@ toolpath-tab-height = tab height { $height } must be less than the cut depth { $
 # $field is "feed" or "plunge_feed", as written in the project file.
 toolpath-max-feed = { $field } { $feed } exceeds machine max_feed { $max }
 toolpath-helix-for-path = helix entry is for pockets; a follow path can ramp in (entry: ramp)
+toolpath-helix-for-chamfer = helix entry is for pockets; a chamfer can plunge or ramp in (entry: ramp)
 toolpath-helix-radius = helix radius { $radius } must be less than the tool radius { $tool_radius }, or it leaves a core standing in the middle
 # $most is a number of tool diameters, $longest that as a length.
 toolpath-lead-radius = lead radius { $radius } is more than { $most } × the tool diameter ({ $longest })
@@ -39,6 +40,7 @@ toolpath-lead-radius = lead radius { $radius } is more than { $most } × the too
 # $tool is a tool's number, $type a kind of tool (job-tool-type).
 toolpath-surface-endmill = tool { $tool } is a { $type }; a surface needs an endmill
 toolpath-vcarve-vbit = V-carving needs a V-bit, tool { $tool } is a { $type }
+toolpath-chamfer-vbit = a chamfer needs a V-bit, tool { $tool } is a { $type }
 toolpath-vbit-no-angle = tool { $tool } is a V-bit with no angle; set its angle
 toolpath-pocket-endmill = pockets need an endmill, tool { $tool } is a { $type }
 toolpath-path-drill = tool { $tool } is a drill, which can't follow a path; use an endmill or a V-bit
@@ -88,6 +90,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] pocket
     [vcarve] V-carve
     [path] follow path
+    [chamfer] chamfer
     [holes] holes
     [relief] relief
    *[surface] surface
@@ -194,6 +197,7 @@ toolpath-path-too-short = contour #{ $contour } is too short to follow ({ $lengt
 toolpath-groove-no-angle = tool { $tool } is a V-bit without an angle: the groove's width is unknown
 toolpath-groove-width = the V-groove is { $width } wide at the top
 toolpath-path-past-cone = a V-bit cuts no deeper than its cone, { $deepest } here, or its shank would rub; this path goes { $depth } deep: make it shallower, or use an end mill
+toolpath-chamfer-past-cone = tool { $tool } makes a chamfer at most { $widest } wide, or its shank would rub; this one is { $width }: make it narrower, or use a wider V-bit
 toolpath-holes-not-circles = skipped { $count ->
     [one] { $count } shape that isn't a circle
    *[other] { $count } shapes that aren't circles

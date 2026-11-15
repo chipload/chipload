@@ -69,12 +69,16 @@ fn an_engraved_sign_is_letters_borders_edge_and_cut_out_in_that_order() {
     assert_eq!(borders.select.shapes, Some(sign.borders.clone()));
     // A groove 2 mm wide: its depth from the V-bit.
     assert!((vbit.vbit_width_at(borders.end_depth).unwrap() - 2.0).abs() < 1e-9);
-    let Operation::Path(edge) = ops[2] else {
-        panic!();
+    let Operation::Chamfer(edge) = ops[2] else {
+        panic!("{:?}", ops[2]);
     };
     assert_eq!(edge.select.shapes, Some(vec![sign.outline]));
-    // A 2 mm chamfer: a 4 mm groove centred on the outline.
-    assert!((vbit.vbit_width_at(edge.end_depth).unwrap() - 4.0).abs() < 1e-9);
+    // A 2 mm chamfer outside the outline (docs/specs/chamfer.md §6).
+    assert_eq!(
+        (edge.width, edge.side),
+        (2.0, chipload_job::EdgeSide::Outside)
+    );
+    assert_eq!(edge.tool, 2);
     let Operation::Profile(cut) = ops[3] else {
         panic!();
     };

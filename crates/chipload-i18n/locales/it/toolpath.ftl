@@ -30,6 +30,7 @@ toolpath-tab-height = l'altezza dei ponticelli { $height } deve essere minore de
 # $field is "feed" or "plunge_feed", as written in the project file.
 toolpath-max-feed = { $field } { $feed } supera max_feed della macchina { $max }
 toolpath-helix-for-path = l'ingresso a elica è per le tasche; un segui percorso può entrare in rampa (entry: ramp)
+toolpath-helix-for-chamfer = l'ingresso a elica è per le tasche; uno smusso può scendere in verticale o in rampa (entry: ramp)
 toolpath-helix-radius = il raggio dell'elica { $radius } deve essere minore del raggio dell'utensile { $tool_radius }, altrimenti resta in piedi un nucleo al centro
 # $most is a number of tool diameters, $longest that as a length.
 toolpath-lead-radius = il raggio di raccordo { $radius } è più di { $most } × il diametro dell'utensile ({ $longest })
@@ -39,6 +40,7 @@ toolpath-lead-radius = il raggio di raccordo { $radius } è più di { $most } ×
 # $tool is a tool's number, $type a kind of tool (job-tool-type).
 toolpath-surface-endmill = l'utensile { $tool } è una { $type }; una spianatura richiede una fresa
 toolpath-vcarve-vbit = l'incisione a V richiede una fresa a V, l'utensile { $tool } è una { $type }
+toolpath-chamfer-vbit = uno smusso richiede una fresa a V, l'utensile { $tool } è una { $type }
 toolpath-vbit-no-angle = l'utensile { $tool } è una fresa a V senza angolo; impostane l'angolo
 toolpath-pocket-endmill = le tasche richiedono una fresa, l'utensile { $tool } è una { $type }
 toolpath-path-drill = l'utensile { $tool } è una punta, che non può seguire un percorso; usa una fresa o una fresa a V
@@ -88,6 +90,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] tasca
     [vcarve] incisione a V
     [path] segui percorso
+    [chamfer] smusso
     [holes] fori
     [relief] rilievo
    *[surface] spianatura
@@ -193,6 +196,7 @@ toolpath-path-too-short = il contorno #{ $contour } è troppo corto da seguire (
 toolpath-groove-no-angle = l'utensile { $tool } è una fresa a V senza angolo: la larghezza della scanalatura è sconosciuta
 toolpath-groove-width = la scanalatura a V è larga { $width } in alto
 toolpath-path-past-cone = una fresa a V non taglia più a fondo del suo cono, qui { $deepest }, o il gambo sfregherebbe; questo percorso scende di { $depth }: rendilo meno profondo o usa una fresa cilindrica
+toolpath-chamfer-past-cone = l'utensile { $tool } fa uno smusso largo al massimo { $widest }, o il gambo sfregherebbe; questo è { $width }: restringilo o usa una fresa a V più larga
 toolpath-holes-not-circles = { $count ->
     [one] saltata { $count } forma che non è un cerchio
    *[other] saltate { $count } forme che non sono cerchi

@@ -51,6 +51,7 @@ header-new-profile = Новая обработка контура
 header-new-pocket = Новая выборка кармана
 header-new-vcarve = Новая V-гравировка
 header-new-follow-path = Новая обработка вдоль линии
+header-new-chamfer = Новая фаска
 header-new-holes = Новая обработка отверстий
 header-new-surface = Новое торцевание
 header-new-relief = Новый рельеф

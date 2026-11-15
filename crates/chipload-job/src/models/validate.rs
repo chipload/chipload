@@ -542,6 +542,14 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Chamfer(c) => {
+                    positive(at("width"), c.width);
+                    if let Some(step) = c.step_down {
+                        positive(at("step_down"), step);
+                    }
+                    positive(at("feed"), c.feed);
+                    positive(at("plunge_feed"), c.plunge_feed);
+                }
                 Operation::Surface(f) => {
                     positive(at("end_depth"), f.end_depth);
                     positive(at("step_down"), f.step_down);
@@ -595,7 +603,7 @@ impl Job {
                     Message::new("job-must-be-0-or-more")
                         .arg("got", Value::LengthNumber(below, Digits::Shortest)),
                 ));
-            } else if (op.depths().1 - (thickness + below + self.drill_point(op))).abs()
+            } else if (op.depths(&self.tools).1 - (thickness + below + self.drill_point(op))).abs()
                 > DEPTH_TOL_MM
             {
                 // A project read or edited follows the thickness (`follow_thickness`); one
@@ -611,14 +619,15 @@ impl Job {
         }
         problems.extend(self.part_problems());
         for (i, op) in self.operations.iter().enumerate() {
-            let (start, end) = op.depths();
+            let (start, end) = op.depths(&self.tools);
             if !(start.is_finite() && start >= 0.0) {
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),
                     Message::new("job-must-be-0-or-more")
                         .arg("got", Value::Length(start, Digits::Shortest)),
                 ));
-            } else if start >= end {
+            } else if start >= end && !matches!(op, Operation::Chamfer(_)) {
+                // A chamfer's depth follows from its width, checked above.
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),
                     Message::new("job-start-below-end")

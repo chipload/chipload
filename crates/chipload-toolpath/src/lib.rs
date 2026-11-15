@@ -8,6 +8,7 @@ pub mod arcs;
 pub mod cancel;
 pub(crate) mod cavalier;
 pub mod centre;
+pub mod chamfer;
 pub mod corners;
 pub mod drop;
 mod floor;

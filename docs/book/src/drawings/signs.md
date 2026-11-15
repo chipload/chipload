@@ -34,8 +34,9 @@ it). The dialog draws the sign as it will be and lists the operations it adds. (
     radius;
   - *Inlay*: the letters as a [V-carve inlay](../operations/vcarve.md#inlays), the plug in a
     board of its own.
-- **Edge**: a **Chamfer** of that width round the outline, cut with the V-bit centred on the
-  outline before the sign is cut out (the other half of the groove is in the waste).
+- **Edge**: a [chamfer](../operations/chamfer.md) of that width round the outline, cut with
+  the V-bit before the sign is cut out: its flank on the outline, its tip in the waste.
+  Signs made before 0.37.0 keep their edge as a follow path centred on the outline.
 - **V-bit**, **End mill**: the project's tools, then under *From your library:* your tool
   library's (marked **+**). A library tool is copied into the project when you click *Make
   sign*, not before. A project without such a tool starts on the library's. The V-bit

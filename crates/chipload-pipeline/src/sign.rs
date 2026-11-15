@@ -5,10 +5,11 @@
 //! shapes and operations.
 
 use chipload_core::chain::Contour;
+use chipload_core::tolerances::DEPTH_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Units, Value};
 use chipload_job::library::ToolLibrary;
 use chipload_job::{
-    Job, Operation, Selector, Source, StockOrigin, TextAlign, TextAnchor, ToolType,
+    EdgeSide, Job, Operation, Selector, Source, StockOrigin, TextAlign, TextAnchor, Tool, ToolType,
 };
 
 use crate::PipelineError;
@@ -509,20 +510,24 @@ pub fn add_sign(
         ..Selector::default()
     };
     if let Some(edge) = request.edge {
-        // Centred on the outline: the chamfer on the sign's side is half the groove.
-        let depth = bit
-            .as_ref()
-            .and_then(|b| b.vbit_depth_for(2.0 * edge))
-            .ok_or_else(|| {
-                refused(
-                    Message::new("pipeline-sign-edge-wide")
-                        .arg("width", length(edge))
-                        .arg("tool", request.vbit),
-                )
-            })?;
-        let mut op = ctx.make(&job, OpKind::Path, outline_only.clone(), request.vbit)?;
+        // A Chamfer operation: the bit's flank on the outline, as wide as asked
+        // (docs/specs/chamfer.md §6).
+        let widest = bit.as_ref().and_then(Tool::widest_chamfer).unwrap_or(0.0);
+        if edge > widest + DEPTH_TOL_MM {
+            return Err(refused(
+                Message::new("pipeline-sign-edge-wide")
+                    .arg("width", length(edge))
+                    .arg("tool", request.vbit)
+                    .arg("widest", length(widest)),
+            ));
+        }
+        let mut op = ctx.make(&job, OpKind::Chamfer, outline_only.clone(), request.vbit)?;
         *op.name_mut() = op_name("pipeline-name-sign-edge");
-        set_depth(&mut op, depth);
+        if let Operation::Chamfer(c) = &mut op {
+            c.side = EdgeSide::Outside;
+            c.width = edge;
+            c.start_depth = 0.0;
+        }
         operations.push(ctx.append(&mut job, op));
     }
     let mut op = ctx.make(&job, OpKind::Profile, outline_only, request.end_mill)?;

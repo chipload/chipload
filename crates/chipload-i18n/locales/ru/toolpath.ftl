@@ -11,10 +11,12 @@ toolpath-finish-radius = чистовой припуск { $stock } должен
 toolpath-tab-height = высота перемычки { $height } должна быть меньше глубины резания { $cut } (конечная глубина минус начальная)
 toolpath-max-feed = { $field } { $feed } превышает max_feed станка { $max }
 toolpath-helix-for-path = винтовое врезание применяется в карманах; для обработки вдоль линии доступно наклонное (entry: ramp)
+toolpath-helix-for-chamfer = винтовое врезание применяется в карманах; для фаски доступно вертикальное или наклонное (entry: ramp)
 toolpath-helix-radius = радиус винтовой линии { $radius } должен быть меньше радиуса инструмента { $tool_radius }, иначе в центре останется стержень
 toolpath-lead-radius = радиус подвода { $radius } больше { $most } × диаметр инструмента ({ $longest })
 toolpath-surface-endmill = инструмент { $tool } — { $type }; для торцевания нужна концевая фреза
 toolpath-vcarve-vbit = для V-гравировки нужна V-образная фреза, инструмент { $tool } — { $type }
+toolpath-chamfer-vbit = для фаски нужна V-образная фреза, инструмент { $tool } — { $type }
 toolpath-vbit-no-angle = инструмент { $tool } — V-образная фреза без заданного угла; задайте угол
 toolpath-pocket-endmill = для карманов нужна концевая фреза, инструмент { $tool } — { $type }
 toolpath-path-drill = инструмент { $tool } — сверло и не может обрабатывать вдоль линии; используйте концевую или V-образную фрезу
@@ -47,6 +49,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] выборка кармана
     [vcarve] V-гравировка
     [path] вдоль линии
+    [chamfer] фаска
     [holes] отверстия
     [relief] рельеф
    *[surface] торцевание
@@ -124,6 +127,7 @@ toolpath-path-too-short = контур №{ $contour } слишком корот
 toolpath-groove-no-angle = инструмент { $tool } — V-образная фреза без заданного угла: ширина паза неизвестна
 toolpath-groove-width = ширина V-образного паза вверху — { $width }
 toolpath-path-past-cone = V-образная фреза режет не глубже своего конуса, здесь { $deepest }, иначе хвостовик будет тереться; эта линия идёт на { $depth }: уменьшите глубину или возьмите концевую фрезу
+toolpath-chamfer-past-cone = инструмент { $tool } делает фаску шириной не более { $widest }, иначе хвостовик будет тереться; эта — { $width }: уменьшите ширину или возьмите более широкую V-образную фрезу
 toolpath-holes-not-circles = Пропущено { $count ->
     [one] { $count } объект, не являющийся окружностью
     [few] { $count } объекта, не являющихся окружностями

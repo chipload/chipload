@@ -464,6 +464,22 @@ impl Tool {
         Some(((width - tip) / 2.0 / math::tan(half)).max(0.0))
     }
 
+    /// How deep a V-bit goes for a chamfer `width` wide with its flank on the line, mm
+    /// (docs/specs/chamfer.md §2): the width over the tangent of the half angle, whatever the
+    /// tip. None for other tools and a V-bit without its angle.
+    pub fn chamfer_depth_for(&self, width: f64) -> Option<f64> {
+        let half = self.vbit_half_angle()?;
+        Some(width / math::tan(half))
+    }
+
+    /// The widest chamfer a V-bit makes before its shank would rub, mm: half its cone, its
+    /// diameter less its tip (docs/specs/chamfer.md §4). None for other tools and a V-bit
+    /// without its angle.
+    pub fn widest_chamfer(&self) -> Option<f64> {
+        self.vbit_half_angle()?;
+        Some(((self.diameter - self.tip_diameter.unwrap_or(0.0)) / 2.0).max(0.0))
+    }
+
     fn vbit_half_angle(&self) -> Option<f64> {
         let angle = self.angle.filter(|a| a.is_finite() && *a > 0.0)?;
         (self.kind == ToolType::Vbit).then_some(angle / 2.0)

@@ -636,6 +636,7 @@ pipeline-name-profile = Contornatura { $number }
 pipeline-name-pocket = Tasca { $number }
 pipeline-name-vcarve = Incisione a V { $number }
 pipeline-name-path = Segui percorso { $number }
+pipeline-name-chamfer = Smusso { $number }
 pipeline-name-holes = Fori { $number }
 pipeline-name-surface = Spianatura { $number }
 pipeline-name-relief = Rilievo { $number }
@@ -658,7 +659,7 @@ pipeline-sign-relief = la profondità dello sfondo deve essere più di 0, trovat
 pipeline-sign-edge = la larghezza dello smusso del bordo deve essere più di 0, trovato { $got }
 pipeline-sign-board = lo spessore della tavola deve essere più di 0 e il suo margine 0 o più
 pipeline-sign-groove-wide = una scanalatura larga { $width } è più larga di quanto la fresa a V { $tool } possa tagliare
-pipeline-sign-edge-wide = uno smusso largo { $width } è più di quanto la fresa a V { $tool } possa tagliare (taglia una scanalatura larga il doppio, centrata sul contorno)
+pipeline-sign-edge-wide = uno smusso largo { $width } è più di quanto la fresa a V { $tool } possa tagliare: al massimo { $widest }
 pipeline-setup-inlay-plug = Tavola del tassello
 pipeline-inlay-vbit = un intarsio si intaglia a V: l’utensile { $tool } deve essere una fresa a V con un angolo
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then

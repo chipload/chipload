@@ -15,8 +15,8 @@ use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::{
-    Corners, Direction, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp, Register,
-    Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn, Units, WorkZero, ZZero,
+    Corners, Direction, EdgeSide, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp,
+    Register, Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn, Units, WorkZero, ZZero,
     find_tool,
 };
 use chipload_toolpath::ToolGroup;
@@ -738,6 +738,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Pocket(p) => (p.feed, p.plunge_feed),
         Operation::Vcarve(v) => (v.feed, v.plunge_feed),
         Operation::Path(p) => (p.feed, p.plunge_feed),
+        Operation::Chamfer(c) => (c.feed, c.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
         Operation::Surface(f) => (f.feed, f.plunge_feed),
         Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -774,6 +775,15 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         ],
         Operation::Vcarve(_) => vec![Message::new("sheet-kind-vcarve")],
         Operation::Path(_) => vec![Message::new("sheet-kind-path")],
+        // "chamfer 2 mm wide, outside, climb" (docs/specs/chamfer.md §6).
+        Operation::Chamfer(c) => vec![
+            Message::new("sheet-kind-chamfer").arg("width", len(c.width)),
+            Message::new(match c.side {
+                EdgeSide::Outside => "sheet-side-outside",
+                EdgeSide::Inside => "sheet-side-inside",
+            }),
+            direction_message(c.direction),
+        ],
         Operation::Holes(h) => match h.method {
             HoleMethod::Drill { .. } => vec![Message::new("sheet-kind-holes-drilled")],
             HoleMethod::Bore { direction, .. } => vec![
@@ -841,12 +851,13 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
 
 /// "0 to 6, 2 per pass", with a profile's finishing stock and skin.
 fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
-    let (start, end) = op.depths();
+    let (start, end) = op.depths(tools);
     let step = match op {
         Operation::Profile(p) => Some(p.step_down),
         Operation::Pocket(p) => Some(p.step_down),
         Operation::Vcarve(_) => None,
         Operation::Path(p) => Some(p.step_down),
+        Operation::Chamfer(c) => c.step_down,
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
         // In one pass along the model (docs/specs/stl-relief.md §5).

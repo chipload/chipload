@@ -500,6 +500,14 @@
       ],
       "type": "object"
     },
+    "EdgeSide": {
+      "description": "Where a chamfer's waste is: around the shape (a part's outline) or within it (a hole's or\na pocket's rim).",
+      "enum": [
+        "outside",
+        "inside"
+      ],
+      "type": "string"
+    },
     "Entry": {
       "description": "How the tool goes down into the material at the start of each pass, for pockets and\nfollow paths (a profile always spirals: its `ramp_angle`).",
       "oneOf": [
@@ -1844,6 +1852,108 @@
             "start_depth",
             "end_depth",
             "step_down",
+            "feed",
+            "plunge_feed",
+            "entry"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Chamfer: a V-bit's flank on the line of closed shapes, breaking their top edge.",
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/Direction",
+              "description": "`climb` or `conventional` milling."
+            },
+            "enabled": {
+              "default": true,
+              "description": "False: the operation stays in the project but isn't cut. Missing: true.",
+              "type": "boolean"
+            },
+            "entry": {
+              "$ref": "#/$defs/Entry",
+              "description": "How the tool goes down at the start of each pass: `plunge` or `ramp` along the path."
+            },
+            "feed": {
+              "description": "The cutting feed, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "material": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MaterialRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The library material its feeds come from. Null: its own values."
+            },
+            "name": {
+              "default": "",
+              "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
+              "type": "string"
+            },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plunge_feed": {
+              "description": "The feed going down into the material, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "What the operation cuts: the shapes on a layer, or shapes by id. Closed shapes only;\nopen ones are skipped with a note."
+            },
+            "side": {
+              "$ref": "#/$defs/EdgeSide",
+              "description": "Where the waste is: `outside` the shape (a part's outline) or `inside` it (a hole's\nor a pocket's rim)."
+            },
+            "start_depth": {
+              "description": "Where the edge is, mm down from the stock top: 0 for the top, more for the edge of a\nstep an earlier operation cut.",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "default": null,
+              "description": "The deepest each pass goes, mm, in equal passes. Null: one pass.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "tool": {
+              "description": "The id of the project tool it cuts with (`tools`): a V-bit with its angle.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "chamfer",
+              "type": "string"
+            },
+            "width": {
+              "description": "The chamfer's width at the surface, mm, measured from the line into the part. More\nthan 0, at most half the bit's cone (its diameter less its tip, halved).",
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "type",
+            "part",
+            "select",
+            "tool",
+            "side",
+            "width",
+            "start_depth",
+            "direction",
             "feed",
             "plunge_feed",
             "entry"

@@ -35,6 +35,7 @@ styles-unreadable = illisible
 styles-side-by-selection = côté selon la sélection
 styles-through = à travers + { $below }
 styles-depth = { $depth } de profondeur
+styles-chamfer-width = { $width } de large
 styles-tabs = { $count ->
     [one] { $count } attache
    *[other] { $count } attaches

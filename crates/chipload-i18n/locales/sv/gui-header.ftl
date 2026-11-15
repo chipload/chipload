@@ -68,6 +68,7 @@ header-new-profile = Ny konturfräsning
 header-new-pocket = Ny ficka
 header-new-vcarve = Ny V-gravyr
 header-new-follow-path = Ny Följ bana
+header-new-chamfer = Ny Fas
 header-new-holes = Nya hål
 header-new-surface = Ny planfräsning
 header-new-relief = Ny relief

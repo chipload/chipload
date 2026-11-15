@@ -2844,3 +2844,52 @@ fn plan_lists_only_the_setup_it_planned() {
         .collect();
     assert_eq!(ops, [0, 1, 2]);
 }
+
+#[test]
+fn op_add_chamfer_takes_a_width_and_a_side_and_finds_the_v_bit() {
+    // docs/specs/chamfer.md §6: the golden chamfer project's drawing and tools, its
+    // operations removed.
+    let dir = temp_dir("op-add-chamfer");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let mut json: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(corpus("jobs/v36/chamfer.chipload")).unwrap(),
+    )
+    .unwrap();
+    json["operations"] = serde_json::json!([]);
+    std::fs::write(&project, json.to_string()).unwrap();
+    // The whole drawing: the holes inside, the outline outside, with the V-bit (tool 2).
+    let out = chipload(&[
+        "op", "add", p, "chamfer", "--shapes", "1,2,3", "--width", "1.5",
+    ]);
+    let said = text(&out.stdout);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        said.contains("1.5 mm wide, inside, 1.5 mm deep, tool 2"),
+        "{said}"
+    );
+    assert!(
+        said.contains("1.5 mm wide, outside, 1.5 mm deep, tool 2"),
+        "{said}"
+    );
+    let out = chipload(&[
+        "op", "add", p, "chamfer", "--shapes", "2", "--side", "outside",
+    ]);
+    assert!(
+        text(&out.stdout).contains("1 mm wide, outside, 1 mm deep"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", p, "operations.2.width"]);
+    assert_eq!(text(&out.stdout).trim(), "1.0");
+    // A depth, --through, or a width on another kind: refused.
+    for args in [
+        &["op", "add", p, "chamfer", "--shapes", "1", "--depth", "2"][..],
+        &["op", "add", p, "chamfer", "--shapes", "1", "--through"],
+        &["op", "add", p, "pocket", "--shapes", "2", "--width", "2"],
+    ] {
+        let out = chipload(args);
+        assert!(!out.status.success(), "{args:?}");
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}

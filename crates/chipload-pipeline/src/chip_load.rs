@@ -71,6 +71,7 @@ pub fn cutting_feed(op: &Operation) -> f64 {
         Operation::Pocket(p) => p.feed,
         Operation::Vcarve(v) => v.feed,
         Operation::Path(p) => p.feed,
+        Operation::Chamfer(c) => c.feed,
         // A drill cuts going down (docs/specs/holes.md §3).
         Operation::Holes(h) => match h.method {
             HoleMethod::Drill { .. } => h.plunge_feed,

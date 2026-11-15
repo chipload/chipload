@@ -35,6 +35,7 @@ styles-unreadable = no se puede leer
 styles-side-by-selection = lado según la selección
 styles-through = pasante + { $below }
 styles-depth = { $depth } de profundidad
+styles-chamfer-width = { $width } de ancho
 styles-tabs = { $count ->
     [one] { $count } puente
    *[other] { $count } puentes

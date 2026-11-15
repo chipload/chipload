@@ -127,6 +127,7 @@ sheet-conventional = en oposición
 sheet-stepover = paso lateral { $percent } %
 sheet-kind-vcarve = Tallado en V
 sheet-kind-path = Seguir trayectoria, sobre la línea
+sheet-kind-chamfer = Chaflán de { $width }
 sheet-kind-holes-drilled = Taladros, taladrados
 sheet-kind-holes-bored = Taladros, taladrado helicoidal
 sheet-kind-surface = Planeado, todo el material en bruto, en vaivén (en concordancia y en oposición), paso lateral { $percent } %

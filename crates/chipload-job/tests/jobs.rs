@@ -178,19 +178,19 @@ fn a_cut_through_the_stock_follows_its_thickness() {
     data["operations"][1]["through"] = json!(0.3);
     let job = parse_job(data, "job.json").unwrap();
     assert_eq!(job.operations[1].through(), Some(0.3));
-    assert_eq!(job.operations[1].depths().1, 12.3);
+    assert_eq!(job.operations[1].depths(&[]).1, 12.3);
     // The pocket keeps its end depth as set.
-    let pocket = parse_job(lower_job(), "job.json").unwrap().operations[0].depths();
-    assert_eq!(job.operations[0].depths(), pocket);
+    let pocket = parse_job(lower_job(), "job.json").unwrap().operations[0].depths(&[]);
+    assert_eq!(job.operations[0].depths(&[]), pocket);
     // A new thickness moves it; setting the end depth stops it following.
     let set = |job: &chipload_job::Job, path: &str, value: Value| {
         chipload_job::paths::set_all(job, &[(path.to_string(), value)]).unwrap()
     };
     let thicker = set(&job, "stock.thickness", json!(18.0));
-    assert_eq!(thicker.operations[1].depths().1, 18.3);
+    assert_eq!(thicker.operations[1].depths(&[]).1, 18.3);
     let typed = set(&thicker, "operations.1.end_depth", json!(10.0));
     assert_eq!(typed.operations[1].through(), None);
-    assert_eq!(typed.operations[1].depths().1, 10.0);
+    assert_eq!(typed.operations[1].depths(&[]).1, 10.0);
     // Below the stock is 0 or more.
     let mut data = lower_job();
     data["operations"][1]["through"] = json!(-0.1);

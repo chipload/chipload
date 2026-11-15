@@ -13,12 +13,13 @@ use super::styles::StyleAct;
 use super::*;
 
 /// The kinds the menu offers, with their keys, in its order.
-pub(super) const KINDS: [(Key, &str, OpKind); 5] = [
+pub(super) const KINDS: [(Key, &str, OpKind); 6] = [
     (Key::P, "P", OpKind::Profile),
     (Key::K, "K", OpKind::Pocket),
     (Key::H, "H", OpKind::Holes),
     (Key::V, "V", OpKind::Vcarve),
     (Key::F, "F", OpKind::Path),
+    (Key::C, "C", OpKind::Chamfer),
 ];
 
 /// The digit keys of the first nine styles.

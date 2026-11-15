@@ -537,7 +537,7 @@ impl Job {
                     && self.cuts(*i)
                     && self.part_of(op).is_some_and(|p| p.setup == id)
             })
-            .map(|(_, op)| op.depths().1)
+            .map(|(_, op)| op.depths(&self.tools).1)
             .fold(0.0, f64::max)
     }
 

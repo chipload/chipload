@@ -676,6 +676,7 @@ impl ChiploadApp {
             let tint = |kind| Some(crate::style::op_color(kind, dark));
             let mut surface = None;
             let mut relief = None;
+            let mut chamfer = None;
             for (label, kind, hover) in super::browser::new_operations(ui) {
                 let icon = match kind {
                     OpKind::Profile => Icon::Profile,
@@ -683,6 +684,11 @@ impl ChiploadApp {
                     OpKind::Vcarve => Icon::Vcarve,
                     OpKind::Path => Icon::FollowPath,
                     OpKind::Holes => Icon::Holes,
+                    // A small button under Styles (docs/specs/chamfer.md §6).
+                    OpKind::Chamfer => {
+                        chamfer = Some((label, hover));
+                        continue;
+                    }
                     OpKind::Surface => {
                         surface = Some((label, hover));
                         continue;
@@ -773,6 +779,26 @@ impl ChiploadApp {
                 egui::Popup::menu(&response).show(|ui| app.style_menu(ui, &mut act));
                 if let Some(act) = act {
                     app.style_act(act);
+                }
+                if let Some((label, hover)) = chamfer {
+                    let hover = if selected {
+                        format!("{label}: {hover}")
+                    } else {
+                        t!(ui, "header-needs-selection-hover", operation = hover)
+                    };
+                    if small_ribbon_button(
+                        ui,
+                        Icon::EdgeChamfer,
+                        &label,
+                        selected,
+                        false,
+                        tint(OpKind::Chamfer),
+                    )
+                    .on_hover_text(hover)
+                    .clicked()
+                    {
+                        app.add_operation(OpKind::Chamfer);
+                    }
                 }
             });
         });
@@ -905,6 +931,7 @@ fn new_operation(ui: &egui::Ui, kind: OpKind) -> String {
         OpKind::Pocket => t!(ui, "header-new-pocket"),
         OpKind::Vcarve => t!(ui, "header-new-vcarve"),
         OpKind::Path => t!(ui, "header-new-follow-path"),
+        OpKind::Chamfer => t!(ui, "header-new-chamfer"),
         OpKind::Holes => t!(ui, "header-new-holes"),
         OpKind::Surface => t!(ui, "header-new-surface"),
         OpKind::Relief => t!(ui, "header-new-relief"),

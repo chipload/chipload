@@ -631,6 +631,7 @@ pipeline-name-profile = Konturfräsning { $number }
 pipeline-name-pocket = Ficka { $number }
 pipeline-name-vcarve = V-gravyr { $number }
 pipeline-name-path = Följ bana { $number }
+pipeline-name-chamfer = Fas { $number }
 pipeline-name-holes = Hål { $number }
 pipeline-name-surface = Planfräsning { $number }
 pipeline-name-relief = Relief { $number }
@@ -653,7 +654,7 @@ pipeline-sign-relief = bakgrundens djup måste vara mer än 0, fick { $got }
 pipeline-sign-edge = kantfasens bredd måste vara mer än 0, fick { $got }
 pipeline-sign-board = brädans tjocklek måste vara mer än 0 och dess marginal 0 eller mer
 pipeline-sign-groove-wide = ett spår { $width } brett är bredare än V-fräs { $tool } kan skära
-pipeline-sign-edge-wide = en fas { $width } bred är mer än V-fräs { $tool } kan skära (den skär ett spår dubbelt så brett, mitt på ytterlinjen)
+pipeline-sign-edge-wide = en fas { $width } bred är mer än V-fräs { $tool } kan skära: högst { $widest }
 pipeline-setup-inlay-plug = Skiva för inläggningspluggen
 pipeline-inlay-vbit = en inläggning V-graveras: verktyg { $tool } måste vara en V-fräs med vinkel
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then

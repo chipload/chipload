@@ -236,6 +236,7 @@ pub(in crate::app) fn op_form(
         Operation::Pocket(_) => t!(ui, "forms-kind-pocket"),
         Operation::Vcarve(_) => t!(ui, "forms-kind-vcarve"),
         Operation::Path(_) => t!(ui, "forms-kind-path"),
+        Operation::Chamfer(_) => t!(ui, "forms-kind-chamfer"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),
@@ -305,6 +306,9 @@ pub(in crate::app) fn op_form(
                 flag(geometry.response, ui, "select");
                 ui.end_row();
                 tool_row(ui, index, &mut *op, &choice, &mut request);
+                if let Operation::Chamfer(c) = &mut *op {
+                    chamfer_side_row(ui, index, c);
+                }
                 if let Operation::Profile(p) = &mut *op {
                     ui.label(t!(ui, "forms-side"));
                     let side_name = |ui: &egui::Ui, side: Side| match side {
@@ -545,6 +549,7 @@ pub(in crate::app) fn op_form(
                 entry_rows(ui, index, &mut p.entry, None);
             });
         }
+        Operation::Chamfer(c) => chamfer_sections(ui, index, c, op_tool),
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
@@ -1618,6 +1623,93 @@ pub(super) fn pocket_finish_section(ui: &mut egui::Ui, p: &mut chipload_job::Poc
             flag(ui.add(mm(&mut finish.floor)), ui, "finish.floor");
             ui.end_row();
         }
+    });
+}
+
+/// A chamfer's waste side (docs/specs/chamfer.md §2): around the shapes or within them.
+fn chamfer_side_row(ui: &mut egui::Ui, index: usize, c: &mut chipload_job::ChamferOp) {
+    use chipload_job::EdgeSide;
+    let name = |ui: &egui::Ui, side: EdgeSide| match side {
+        EdgeSide::Outside => t!(ui, "forms-side-outside"),
+        EdgeSide::Inside => t!(ui, "forms-side-inside"),
+    };
+    ui.label(t!(ui, "forms-side"))
+        .on_hover_text(t!(ui, "forms-chamfer-side-hover"));
+    let combo = ComboBox::from_id_salt(("chamfer-side", index))
+        .selected_text(name(ui, c.side))
+        .show_ui(ui, |ui| {
+            for side in [EdgeSide::Outside, EdgeSide::Inside] {
+                let label = name(ui, side);
+                if ui.selectable_label(c.side == side, label).clicked() {
+                    c.side = side;
+                }
+            }
+        });
+    flag(combo.response, ui, "side");
+    ui.end_row();
+}
+
+/// A chamfer's sections (docs/specs/chamfer.md §6): its width, with the depth it makes with
+/// the V-bit beneath, start depth, passes and direction; feeds; entry.
+fn chamfer_sections(
+    ui: &mut egui::Ui,
+    index: usize,
+    c: &mut chipload_job::ChamferOp,
+    tool: Option<&Tool>,
+) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let with_unit = |mm: f64| format!("{} {len_unit}", len_in(units, mm));
+    let depth = tool.and_then(|t| c.depth_with(t));
+    let summary = t!(
+        ui,
+        "forms-chamfer-cut-summary",
+        width = with_unit(c.width),
+        depth = depth.map_or_else(|| "?".to_string(), with_unit),
+        direction = direction_name(ui, c.direction)
+    );
+    folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &summary, |ui| {
+        ui.label(t!(ui, "forms-chamfer-width"))
+            .on_hover_text(t!(ui, "forms-chamfer-width-hover"));
+        flag(ui.add(mm(&mut c.width)), ui, "width");
+        ui.end_row();
+        ui.label(t!(ui, "forms-chamfer-depth"));
+        match (depth, tool.and_then(|t| t.angle)) {
+            (Some(depth), Some(angle)) => ui.label(t!(
+                ui,
+                "forms-chamfer-depth-value",
+                depth = with_unit(depth),
+                angle = format!("{:.0}", angle.to_degrees())
+            )),
+            _ => ui.label(t!(ui, "forms-chamfer-needs-vbit")),
+        };
+        ui.end_row();
+        ui.label(t!(ui, "forms-start-depth"))
+            .on_hover_text(t!(ui, "forms-chamfer-start-hover"));
+        flag(ui.add(mm(&mut c.start_depth)), ui, "start_depth");
+        ui.end_row();
+        ui.label(t!(ui, "forms-step-down"))
+            .on_hover_text(t!(ui, "forms-chamfer-passes-hover"));
+        let mut passes = c.step_down.is_some();
+        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
+        if flag(tick, ui, "step_down").changed() {
+            c.step_down = passes.then(|| depth.map_or(c.width, |d| d / 2.0).max(0.1));
+        }
+        ui.end_row();
+        if let Some(step) = &mut c.step_down {
+            ui.label(format!("  {}", t!(ui, "forms-step-down")));
+            flag(ui.add(mm(step)), ui, "step_down");
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-direction"));
+        direction_combo(ui, ("direction", index), &mut c.direction);
+        ui.end_row();
+    });
+    feeds_section(ui, &mut c.feed, &mut c.plunge_feed, tool);
+    let entry_text = entry_summary(ui.lang(), &c.entry, None, units);
+    let title = t!(ui, "forms-section-entry");
+    folded_section(ui, "op-entry", &title, &entry_text, |ui| {
+        entry_rows(ui, index, &mut c.entry, None);
     });
 }
 

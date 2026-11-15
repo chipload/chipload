@@ -57,6 +57,9 @@ pub enum Icon {
     Pocket,
     Vcarve,
     FollowPath,
+    /// A board's edge in section, its top corner bevelled: a chamfer operation
+    /// (docs/specs/chamfer.md).
+    EdgeChamfer,
     Holes,
     Surface,
     Eye,
@@ -350,6 +353,16 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         Icon::FollowPath => {
             pen.wave();
             pen.dot((0.12, 0.62), 0.07);
+        }
+        Icon::EdgeChamfer => {
+            pen.closed(&[
+                (0.12, 0.85),
+                (0.12, 0.2),
+                (0.55, 0.2),
+                (0.88, 0.53),
+                (0.88, 0.85),
+            ]);
+            pen.line([(0.62, 0.12), (0.96, 0.46)]);
         }
         Icon::Holes => {
             pen.circle((0.5, 0.5), 0.34);

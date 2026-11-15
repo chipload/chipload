@@ -127,6 +127,7 @@ sheet-conventional = discorde
 sheet-stepover = passo laterale { $percent } %
 sheet-kind-vcarve = Incisione a V
 sheet-kind-path = Segui percorso, sulla linea
+sheet-kind-chamfer = Smusso di { $width }
 sheet-kind-holes-drilled = Fori, foratura con punta
 sheet-kind-holes-bored = Fori, foratura elicoidale
 sheet-kind-surface = Spianatura, tutto il grezzo, avanti e indietro (concorde e discorde), passo laterale { $percent } %

@@ -44,6 +44,7 @@
 - [Rest machining](operations/rest.md)
 - [V-carve](operations/vcarve.md)
 - [Follow path](operations/path.md)
+- [Chamfer](operations/chamfer.md)
 - [Holes](operations/holes.md)
 - [Surface](operations/surface.md)
 - [Relief](operations/relief.md)

@@ -238,7 +238,7 @@ fn the_back_is_as_thick_as_the_front_leaves_the_board() {
             .iter()
             .find(|op| op.name() == "Profile 2 (outline)")
             .unwrap()
-            .depths()
+            .depths(&[])
             .1
     };
     // Through the 9.5 mm, 0.5 mm into the spoilboard.

@@ -30,6 +30,7 @@ toolpath-tab-height = bryggornas höjd { $height } måste vara mindre än fräsd
 # $field is "feed" or "plunge_feed", as written in the project file.
 toolpath-max-feed = { $field } { $feed } överskrider maskinens max_feed { $max }
 toolpath-helix-for-path = helixnedgång är för fickor; Följ bana kan rampa ned (entry: ramp)
+toolpath-helix-for-chamfer = helixnedgång är för fickor; en fas kan gå rakt ned eller rampa ned (entry: ramp)
 toolpath-helix-radius = helixradien { $radius } måste vara mindre än verktygsradien { $tool_radius }, annars blir en kärna stående i mitten
 # $most is a number of tool diameters, $longest that as a length.
 toolpath-lead-radius = inkörningsradien { $radius } är mer än { $most } × verktygsdiametern ({ $longest })
@@ -39,6 +40,7 @@ toolpath-lead-radius = inkörningsradien { $radius } är mer än { $most } × ve
 # $tool is a tool's number, $type a kind of tool (job-tool-type).
 toolpath-surface-endmill = verktyg { $tool } är av typen { $type }; planfräsning kräver en pinnfräs
 toolpath-vcarve-vbit = V-gravyr kräver en V-fräs, verktyg { $tool } är av typen { $type }
+toolpath-chamfer-vbit = en fas kräver en V-fräs, verktyg { $tool } är av typen { $type }
 toolpath-vbit-no-angle = verktyg { $tool } är en V-fräs utan vinkel; ange dess vinkel
 toolpath-pocket-endmill = fickor kräver en pinnfräs, verktyg { $tool } är av typen { $type }
 toolpath-path-drill = verktyg { $tool } är ett borr, som inte kan följa en bana; använd en pinnfräs eller en V-fräs
@@ -88,6 +90,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [pocket] ficka
     [vcarve] V-gravyr
     [path] följ bana
+    [chamfer] fas
     [holes] hål
     [relief] relief
    *[surface] planfräsning
@@ -193,6 +196,7 @@ toolpath-path-too-short = kontur #{ $contour } är för kort att följa ({ $leng
 toolpath-groove-no-angle = verktyg { $tool } är en V-fräs utan vinkel: spårets bredd är okänd
 toolpath-groove-width = V-spåret är { $width } brett upptill
 toolpath-path-past-cone = en V-fräs skär inte djupare än sin kon, här { $deepest }, annars skaver skaftet; den här banan går { $depth } djupt: gör den grundare eller använd en pinnfräs
+toolpath-chamfer-past-cone = verktyg { $tool } gör en fas som högst { $widest } bred, annars skaver skaftet; den här är { $width }: gör den smalare eller använd en bredare V-fräs
 toolpath-holes-not-circles = hoppade över { $count ->
     [one] { $count } form som inte är en cirkel
    *[other] { $count } former som inte är cirklar

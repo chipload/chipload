@@ -124,6 +124,7 @@ sheet-conventional = conventional
 sheet-stepover = stepover { $percent } %
 sheet-kind-vcarve = V-carve
 sheet-kind-path = Follow path, on the line
+sheet-kind-chamfer = Chamfer { $width } wide
 sheet-kind-holes-drilled = Holes, drilled
 sheet-kind-holes-bored = Holes, helical bore
 sheet-kind-surface = Surface, the whole stock, back and forth (climb and conventional), stepover { $percent } %

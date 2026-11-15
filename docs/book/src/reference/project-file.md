@@ -181,6 +181,12 @@ Provenance of the imported shapes.
 | `units` | [Units](#units) | yes | The DXF's units: `mm` or `inch`. Inch drawings are converted to mm on import. |
 | `units_from` | [UnitsFrom](#unitsfrom) | yes | Where the units came from: the DXF itself, or the user's choice. |
 
+## EdgeSide
+
+Where a chamfer's waste is: around the shape (a part's outline) or within it (a hole's or a pocket's rim).
+
+One of: `"outside"`, `"inside"`.
+
 ## Entry
 
 How the tool goes down into the material at the start of each pass, for pockets and follow paths (a profile always spirals: its `ramp_angle`).
@@ -505,6 +511,27 @@ Follow path: the tool centre on the selected shapes, open or closed.
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
 | `through` | number or null | no | Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`). |
+
+### `"type": "chamfer"`
+
+Chamfer: a V-bit's flank on the line of closed shapes, breaking their top edge.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `entry` | [Entry](#entry) | yes | How the tool goes down at the start of each pass: `plunge` or `ramp` along the path. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `plunge_feed` | number | yes | The feed going down into the material, mm/min. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. Closed shapes only; open ones are skipped with a note. |
+| `side` | [EdgeSide](#edgeside) | yes | Where the waste is: `outside` the shape (a part's outline) or `inside` it (a hole's or a pocket's rim). |
+| `start_depth` | number | yes | Where the edge is, mm down from the stock top: 0 for the top, more for the edge of a step an earlier operation cut. |
+| `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a V-bit with its angle. |
+| `width` | number | yes | The chamfer's width at the surface, mm, measured from the line into the part. More than 0, at most half the bit's cone (its diameter less its tip, halved). |
 
 ### `"type": "holes"`
 

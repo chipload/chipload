@@ -127,6 +127,7 @@ sheet-conventional = en opposition
 sheet-stepover = pas latéral { $percent } %
 sheet-kind-vcarve = Gravure en V
 sheet-kind-path = Suivi de tracé, sur la ligne
+sheet-kind-chamfer = Chanfrein de { $width }
 sheet-kind-holes-drilled = Perçages, percés
 sheet-kind-holes-bored = Perçages, alésage hélicoïdal
 sheet-kind-surface = Surfaçage, tout le brut, en allers-retours (en avalant et en opposition), pas latéral { $percent } %

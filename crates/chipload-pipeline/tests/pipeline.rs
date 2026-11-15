@@ -1665,7 +1665,7 @@ mod drilled_through {
         }
         job.follow_thickness();
         let point = DRILL_POINT_PER_DIAMETER * 8.0;
-        let ends: Vec<f64> = job.operations.iter().map(|op| op.depths().1).collect();
+        let ends: Vec<f64> = job.operations.iter().map(|op| op.depths(&[]).1).collect();
         assert!((ends[0] - (12.0 + 0.5 + point)).abs() < 1e-9, "{ends:?}");
         assert!((ends[1] - 12.5).abs() < 1e-9, "a bore is flat: {ends:?}");
         assert!(job.validate().is_empty(), "{:?}", job.validate());

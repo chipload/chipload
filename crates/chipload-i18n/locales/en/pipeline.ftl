@@ -632,6 +632,7 @@ pipeline-name-profile = Profile { $number }
 pipeline-name-pocket = Pocket { $number }
 pipeline-name-vcarve = V-carve { $number }
 pipeline-name-path = Follow path { $number }
+pipeline-name-chamfer = Chamfer { $number }
 pipeline-name-holes = Holes { $number }
 pipeline-name-surface = Surface { $number }
 pipeline-name-relief = Relief { $number }
@@ -655,7 +656,7 @@ pipeline-sign-relief = the background's depth must be more than 0, got { $got }
 pipeline-sign-edge = the edge chamfer's width must be more than 0, got { $got }
 pipeline-sign-board = the board's thickness must be more than 0 and its margin 0 or more
 pipeline-sign-groove-wide = a groove { $width } wide is wider than V-bit { $tool } can cut
-pipeline-sign-edge-wide = a chamfer { $width } wide is more than V-bit { $tool } can cut (it cuts a groove twice as wide, centred on the outline)
+pipeline-sign-edge-wide = a chamfer { $width } wide is more than V-bit { $tool } can cut: at most { $widest }
 pipeline-setup-inlay-plug = Inlay plug board
 pipeline-inlay-vbit = an inlay is V-carved: tool { $tool } must be a V-bit with an angle
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then

@@ -501,3 +501,36 @@ fn rest_machining_cuts_the_floor_into_the_small_tool_s_corners() {
     // 3 mm tool's, in cells of 0.01 mm².
     assert!(standing_before > 2500, "{standing_before} cells");
 }
+
+/// A chamfer (docs/specs/chamfer.md §8): 2 mm wide with a 90° V-bit with a 0.2 mm flat
+/// round the golden box side (X 40 … 160, Y 40 … 120): as deep as the width at the line,
+/// half that halfway in, untouched at the width into the part.
+#[test]
+fn a_chamfer_is_as_deep_as_wide_at_the_line_and_ends_at_its_width() {
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v36/chamfer.chipload");
+    let mut job = chipload_job::load_job(&path).unwrap();
+    job.operations.retain(|op| op.name() == "Box edge");
+    let contours = chipload_pipeline::load_drawing(&job).unwrap().contours;
+    let plan = chipload_toolpath::plan_job(&job, &contours).unwrap();
+    let sim = simulate(
+        &job,
+        &plan.program,
+        &plan.groups,
+        Some(CELL),
+        &Cancel::new(),
+    )
+    .unwrap();
+    // Across the left side, halfway up, at cell centres.
+    let near = |x: f64, want: f64| {
+        let got = at(&sim, x, 80.05);
+        assert!((got - want).abs() < 0.06, "at x {x}: {got}, not {want}");
+    };
+    near(39.95, -2.0);
+    near(41.05, -0.95);
+    near(42.15, 0.0);
+    // The far corner is turned as a cone: 2 mm deep at the corner, nothing 2 mm in.
+    let corner = at(&sim, 159.95, 119.95);
+    assert!(corner < -1.9, "corner: {corner}");
+    assert_eq!(at(&sim, 157.9, 117.9), 0.0);
+}

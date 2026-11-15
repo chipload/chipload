@@ -112,6 +112,9 @@ pub enum Operation {
     /// Follow path: the tool centre on the selected shapes, open or closed.
     // Spec: docs/specs/follow-path.md.
     Path(PathOp),
+    /// Chamfer: a V-bit's flank on the line of closed shapes, breaking their top edge.
+    // Spec: docs/specs/chamfer.md.
+    Chamfer(ChamferOp),
     /// Holes: drilled with a drill, bored with a helix with an endmill.
     // Spec: docs/specs/holes.md.
     Holes(HolesOp),
@@ -192,6 +195,12 @@ impl Operation {
                 (p.feed, p.plunge_feed, p.step_down) =
                     (c.slot_feed, c.plunge_feed, c.slot_step_down);
             }
+            Operation::Chamfer(p) => {
+                (p.feed, p.plunge_feed) = (c.slot_feed, c.plunge_feed);
+                if let Some(step) = &mut p.step_down {
+                    *step = c.slot_step_down;
+                }
+            }
             Operation::Holes(h) => {
                 (h.feed, h.plunge_feed) = (c.slot_feed, c.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = &mut h.method {
@@ -232,6 +241,12 @@ impl Operation {
                 (c.slot_feed, c.plunge_feed, c.slot_step_down) =
                     (p.feed, p.plunge_feed, p.step_down);
             }
+            Operation::Chamfer(p) => {
+                (c.slot_feed, c.plunge_feed) = (p.feed, p.plunge_feed);
+                if let Some(step) = p.step_down {
+                    c.slot_step_down = step;
+                }
+            }
             Operation::Holes(h) => {
                 (c.slot_feed, c.plunge_feed) = (h.feed, h.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = h.method {
@@ -264,6 +279,7 @@ impl Operation {
             Operation::Pocket(op) => &op.name,
             Operation::Vcarve(op) => &op.name,
             Operation::Path(op) => &op.name,
+            Operation::Chamfer(op) => &op.name,
             Operation::Holes(op) => &op.name,
             Operation::Surface(op) => &op.name,
             Operation::Relief(op) => &op.name,
@@ -276,6 +292,7 @@ impl Operation {
             Operation::Pocket(op) => &mut op.name,
             Operation::Vcarve(op) => &mut op.name,
             Operation::Path(op) => &mut op.name,
+            Operation::Chamfer(op) => &mut op.name,
             Operation::Holes(op) => &mut op.name,
             Operation::Surface(op) => &mut op.name,
             Operation::Relief(op) => &mut op.name,
@@ -288,6 +305,7 @@ impl Operation {
             Operation::Pocket(op) => op.enabled = enabled,
             Operation::Vcarve(op) => op.enabled = enabled,
             Operation::Path(op) => op.enabled = enabled,
+            Operation::Chamfer(op) => op.enabled = enabled,
             Operation::Holes(op) => op.enabled = enabled,
             Operation::Surface(op) => op.enabled = enabled,
             Operation::Relief(op) => op.enabled = enabled,
@@ -300,6 +318,7 @@ impl Operation {
             Operation::Pocket(op) => op.enabled,
             Operation::Vcarve(op) => op.enabled,
             Operation::Path(op) => op.enabled,
+            Operation::Chamfer(op) => op.enabled,
             Operation::Holes(op) => op.enabled,
             Operation::Surface(op) => op.enabled,
             Operation::Relief(op) => op.enabled,
@@ -313,6 +332,7 @@ impl Operation {
             Operation::Pocket(op) => op.part,
             Operation::Vcarve(op) => op.part,
             Operation::Path(op) => op.part,
+            Operation::Chamfer(op) => op.part,
             Operation::Holes(op) => op.part,
             Operation::Surface(op) => op.part,
             Operation::Relief(op) => op.part,
@@ -325,6 +345,7 @@ impl Operation {
             Operation::Pocket(op) => op.part = part,
             Operation::Vcarve(op) => op.part = part,
             Operation::Path(op) => op.part = part,
+            Operation::Chamfer(op) => op.part = part,
             Operation::Holes(op) => op.part = part,
             Operation::Surface(op) => op.part = part,
             Operation::Relief(op) => op.part = part,
@@ -338,6 +359,7 @@ impl Operation {
             Operation::Pocket(op) => op.material.as_ref(),
             Operation::Vcarve(op) => op.material.as_ref(),
             Operation::Path(op) => op.material.as_ref(),
+            Operation::Chamfer(op) => op.material.as_ref(),
             Operation::Holes(op) => op.material.as_ref(),
             Operation::Surface(op) => op.material.as_ref(),
             Operation::Relief(op) => op.material.as_ref(),
@@ -350,6 +372,7 @@ impl Operation {
             Operation::Pocket(op) => op.material = material,
             Operation::Vcarve(op) => op.material = material,
             Operation::Path(op) => op.material = material,
+            Operation::Chamfer(op) => op.material = material,
             Operation::Holes(op) => op.material = material,
             Operation::Surface(op) => op.material = material,
             Operation::Relief(op) => op.material = material,
@@ -362,6 +385,7 @@ impl Operation {
             Operation::Pocket(op) => op.tool,
             Operation::Vcarve(op) => op.tool,
             Operation::Path(op) => op.tool,
+            Operation::Chamfer(op) => op.tool,
             Operation::Holes(op) => op.tool,
             Operation::Surface(op) => op.tool,
             Operation::Relief(op) => op.tool,
@@ -374,6 +398,7 @@ impl Operation {
             Operation::Pocket(op) => op.tool = tool,
             Operation::Vcarve(op) => op.tool = tool,
             Operation::Path(op) => op.tool = tool,
+            Operation::Chamfer(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
             Operation::Surface(op) => op.tool = tool,
             Operation::Relief(op) => op.tool = tool,
@@ -404,6 +429,7 @@ impl Operation {
             }
             Operation::Profile(_)
             | Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => {}
@@ -443,6 +469,7 @@ impl Operation {
             }
             Operation::Profile(_)
             | Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -478,14 +505,17 @@ impl Operation {
             }
             Operation::Profile(_)
             | Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
     }
 
-    /// Set the end depth, mm down from the stock top.
+    /// Set the end depth, mm down from the stock top. A chamfer has none: its depth follows
+    /// from its width and its bit.
     pub fn set_end_depth(&mut self, depth: f64) {
         match self {
+            Operation::Chamfer(_) => {}
             Operation::Profile(op) => op.end_depth = depth,
             Operation::Pocket(op) => op.end_depth = depth,
             Operation::Vcarve(op) => op.end_depth = depth,
@@ -496,9 +526,17 @@ impl Operation {
         }
     }
 
-    /// (start_depth, end_depth), mm down from the stock top.
-    pub fn depths(&self) -> (f64, f64) {
+    /// (start_depth, end_depth), mm down from the stock top. A chamfer's end depth comes
+    /// from its width and its tool among `tools`; without a V-bit with an angle it is taken
+    /// as a 90° bit's, which validation refuses anyway (docs/specs/chamfer.md §4).
+    pub fn depths(&self, tools: &[Tool]) -> (f64, f64) {
         match self {
+            Operation::Chamfer(op) => {
+                let depth = find_tool(tools, op.tool)
+                    .and_then(|t| op.depth_with(t))
+                    .unwrap_or(op.width);
+                (op.start_depth, op.start_depth + depth)
+            }
             Operation::Profile(op) => (op.start_depth, op.end_depth),
             Operation::Pocket(op) => (op.start_depth, op.end_depth),
             Operation::Vcarve(op) => (op.start_depth, op.end_depth),
@@ -517,7 +555,10 @@ impl Operation {
             Operation::Pocket(op) => op.through,
             Operation::Path(op) => op.through,
             Operation::Holes(op) => op.through,
-            Operation::Vcarve(_) | Operation::Surface(_) | Operation::Relief(_) => None,
+            Operation::Vcarve(_)
+            | Operation::Chamfer(_)
+            | Operation::Surface(_)
+            | Operation::Relief(_) => None,
         }
     }
 
@@ -544,7 +585,10 @@ impl Operation {
             Operation::Pocket(op) => Some(&mut op.through),
             Operation::Path(op) => Some(&mut op.through),
             Operation::Holes(op) => Some(&mut op.through),
-            Operation::Vcarve(_) | Operation::Surface(_) | Operation::Relief(_) => None,
+            Operation::Vcarve(_)
+            | Operation::Chamfer(_)
+            | Operation::Surface(_)
+            | Operation::Relief(_) => None,
         }
     }
 
@@ -557,7 +601,10 @@ impl Operation {
             Operation::Pocket(op) => op.through.map(|t| (&mut op.end_depth, t)),
             Operation::Path(op) => op.through.map(|t| (&mut op.end_depth, t)),
             Operation::Holes(op) => op.through.map(|t| (&mut op.end_depth, t)),
-            Operation::Vcarve(_) | Operation::Surface(_) | Operation::Relief(_) => None,
+            Operation::Vcarve(_)
+            | Operation::Chamfer(_)
+            | Operation::Surface(_)
+            | Operation::Relief(_) => None,
         };
         if let Some((end_depth, below)) = end {
             *end_depth = thickness + below + point;
@@ -574,6 +621,7 @@ impl Operation {
             // Paths start at the ends of the axis, mostly at depth 0; others plunge.
             Operation::Vcarve(_) => Entry::Plunge {},
             Operation::Path(p) => p.entry,
+            Operation::Chamfer(p) => p.entry,
             // Holes go down their own way (docs/specs/holes.md §3, §4).
             Operation::Holes(_) => Entry::Plunge {},
             // Each depth starts beside the stock, in the air (docs/specs/surfacing.md §3).
@@ -589,6 +637,7 @@ impl Operation {
             Operation::Pocket(p) => &p.starts,
             Operation::Vcarve(_) => &[],
             Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => &[],
@@ -603,6 +652,7 @@ impl Operation {
             Operation::Pocket(p) => Some(&mut p.starts),
             Operation::Vcarve(_)
             | Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -635,6 +685,7 @@ impl Operation {
             Operation::Pocket(p) => Some(&mut p.corner_choices),
             Operation::Vcarve(_)
             | Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -664,6 +715,7 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Vcarve(_)
             | Operation::Path(_)
+            | Operation::Chamfer(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -678,6 +730,8 @@ impl Operation {
             Operation::Vcarve(_) => 0.0,
             // On the line: no offset.
             Operation::Path(_) => 0.0,
+            // The bit's flank on the line, its tip in the waste (docs/specs/chamfer.md §2).
+            Operation::Chamfer(_) => 0.0,
             // Cut to the drawn size (docs/specs/holes.md decision 9).
             Operation::Holes(_) => 0.0,
             // The whole stock: no wall to clear.
@@ -693,6 +747,7 @@ impl Operation {
             Operation::Pocket(op) => &op.select,
             Operation::Vcarve(op) => &op.select,
             Operation::Path(op) => &op.select,
+            Operation::Chamfer(op) => &op.select,
             Operation::Holes(op) => &op.select,
             Operation::Surface(_) => &NO_SELECTOR,
             Operation::Relief(op) => &op.select,
@@ -706,6 +761,7 @@ impl Operation {
             Operation::Pocket(op) => Some(&mut op.select),
             Operation::Vcarve(op) => Some(&mut op.select),
             Operation::Path(op) => Some(&mut op.select),
+            Operation::Chamfer(op) => Some(&mut op.select),
             Operation::Holes(op) => Some(&mut op.select),
             Operation::Relief(op) => Some(&mut op.select),
             Operation::Surface(_) => None,
@@ -1245,6 +1301,81 @@ pub struct PathOp {
     pub plunge_feed: f64,
     /// How the tool goes down at the start of each pass: `plunge` or `ramp` along the path.
     pub entry: Entry,
+}
+
+/// Where a chamfer's waste is: around the shape (a part's outline) or within it (a hole's or
+/// a pocket's rim).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum EdgeSide {
+    Outside,
+    Inside,
+}
+
+impl EdgeSide {
+    /// The same side as a profile's.
+    pub fn side(self) -> Side {
+        match self {
+            EdgeSide::Outside => Side::Outside,
+            EdgeSide::Inside => Side::Inside,
+        }
+    }
+}
+
+/// Chamfer: the top edge of every selected closed shape broken with a V-bit, `width` mm wide
+/// at the surface. The bit's flank runs on the line, its tip in the waste; the depth follows
+/// from the bit's angle.
+// Spec: docs/specs/chamfer.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct ChamferOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
+    #[serde(default)]
+    pub name: String,
+    /// False: the operation stays in the project but isn't cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
+    /// What the operation cuts: the shapes on a layer, or shapes by id. Closed shapes only;
+    /// open ones are skipped with a note.
+    pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`): a V-bit with its angle.
+    pub tool: i64,
+    /// Where the waste is: `outside` the shape (a part's outline) or `inside` it (a hole's
+    /// or a pocket's rim).
+    pub side: EdgeSide,
+    /// The chamfer's width at the surface, mm, measured from the line into the part. More
+    /// than 0, at most half the bit's cone (its diameter less its tip, halved).
+    pub width: f64,
+    /// Where the edge is, mm down from the stock top: 0 for the top, more for the edge of a
+    /// step an earlier operation cut.
+    pub start_depth: f64,
+    /// The deepest each pass goes, mm, in equal passes. Null: one pass.
+    #[serde(default)]
+    pub step_down: Option<f64>,
+    /// `climb` or `conventional` milling.
+    pub direction: Direction,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going down into the material, mm/min.
+    pub plunge_feed: f64,
+    /// How the tool goes down at the start of each pass: `plunge` or `ramp` along the path.
+    pub entry: Entry,
+}
+
+impl ChamferOp {
+    /// How deep the chamfer goes below its start depth with `tool`, mm: its width over the
+    /// tangent of the bit's half angle (docs/specs/chamfer.md §2). None for a tool that
+    /// isn't a V-bit with an angle.
+    pub fn depth_with(&self, tool: &Tool) -> Option<f64> {
+        tool.chamfer_depth_for(self.width)
+    }
 }
 
 /// Holes: every selected circle, drilled with a drill or bored with a helix with an

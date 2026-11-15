@@ -76,7 +76,7 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
     harness.run_steps(4);
     let (op, stock) = profile(&harness);
     assert_eq!(op.through(), Some(stock.max_overcut));
-    assert_eq!(op.depths().1, stock.thickness + stock.max_overcut);
+    assert_eq!(op.depths(&[]).1, stock.thickness + stock.max_overcut);
     assert!(harness.query_by_label("Below stock").is_some());
     // A new thickness moves the end depth with it.
     harness
@@ -90,13 +90,13 @@ fn a_profile_cut_through_follows_the_stock_thickness() {
     harness.state_mut().commit();
     harness.run_steps(4);
     let (op, stock) = profile(&harness);
-    assert_eq!(op.depths().1, 12.0 + stock.max_overcut);
+    assert_eq!(op.depths(&[]).1, 12.0 + stock.max_overcut);
     // Unticked, the depth stays where it was.
     harness.get_by_label("Through").click();
     harness.run_steps(4);
     let (op, stock) = profile(&harness);
     assert_eq!(op.through(), None);
-    assert_eq!(op.depths().1, 12.0 + stock.max_overcut);
+    assert_eq!(op.depths(&[]).1, 12.0 + stock.max_overcut);
 }
 
 #[test]

@@ -266,7 +266,7 @@ fn undo_and_redo_restore_earlier_projects() {
     app.redo();
     assert_eq!(app.edit.as_ref().unwrap().job.operations.len(), 2);
     // A field edit is one step.
-    let before = app.edit.as_ref().unwrap().job.operations[1].depths().1;
+    let before = app.edit.as_ref().unwrap().job.operations[1].depths(&[]).1;
     if let Operation::Profile(p) = &mut app.edit.as_mut().unwrap().job.operations[1] {
         p.end_depth = 5.0;
     }

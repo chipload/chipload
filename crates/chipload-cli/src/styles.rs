@@ -417,12 +417,14 @@ fn summary(style: &Style, tools: &chipload_job::library::ToolLibrary) -> String 
             _ => "side by the selection".to_string(),
         });
     }
-    let (start, end) = op.depths();
+    // A style's tools are library references: a chamfer is told by its width.
+    let (start, end) = op.depths(&[]);
     let mm = chipload_core::text::mm;
-    parts.push(match op.through() {
-        Some(below) => format!("through + {} mm", mm(below)),
-        None if start > 0.0 => format!("{} to {} mm deep", mm(start), mm(end)),
-        None => format!("{} mm deep", mm(end)),
+    parts.push(match (&op, op.through()) {
+        (Operation::Chamfer(c), _) => format!("{} mm wide", mm(c.width)),
+        (_, Some(below)) => format!("through + {} mm", mm(below)),
+        (_, None) if start > 0.0 => format!("{} to {} mm deep", mm(start), mm(end)),
+        (_, None) => format!("{} mm deep", mm(end)),
     });
     if let Operation::Profile(p) = &op
         && let Some(tabs) = &p.tabs
@@ -451,6 +453,7 @@ fn kind_name(op: &Operation) -> &'static str {
         Operation::Pocket(_) => "pocket",
         Operation::Vcarve(_) => "V-carve",
         Operation::Path(_) => "follow path",
+        Operation::Chamfer(_) => "chamfer",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",
@@ -538,7 +541,7 @@ fn use_style(
         out.line(format!(
             "Added operation {}: {}.",
             first + offset + 1,
-            describe(op)
+            describe(op, &job.tools)
         ));
     }
     if unsided {

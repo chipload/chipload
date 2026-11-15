@@ -639,6 +639,7 @@ pipeline-name-profile = Contorneado { $number }
 pipeline-name-pocket = Cajera { $number }
 pipeline-name-vcarve = Tallado en V { $number }
 pipeline-name-path = Seguir trayectoria { $number }
+pipeline-name-chamfer = Chaflán { $number }
 pipeline-name-holes = Taladros { $number }
 pipeline-name-surface = Planeado { $number }
 pipeline-name-relief = Relieve { $number }
@@ -661,7 +662,7 @@ pipeline-sign-relief = la profundidad del fondo debe ser más de 0, es { $got }
 pipeline-sign-edge = el ancho del chaflán del canto debe ser más de 0, es { $got }
 pipeline-sign-board = el grosor del tablero debe ser más de 0 y su margen 0 o más
 pipeline-sign-groove-wide = una ranura de { $width } es más ancha de lo que la fresa en V { $tool } puede cortar
-pipeline-sign-edge-wide = un chaflán de { $width } es más de lo que la fresa en V { $tool } puede cortar (corta una ranura el doble de ancha, centrada en el contorno)
+pipeline-sign-edge-wide = un chaflán de { $width } es más de lo que la fresa en V { $tool } puede cortar: { $widest } como mucho
 pipeline-setup-inlay-plug = Tablero del tapón
 pipeline-inlay-vbit = una incrustación se talla en V: la herramienta { $tool } debe ser una fresa en V con ángulo
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then

@@ -639,6 +639,7 @@ pipeline-name-profile = Contour { $number }
 pipeline-name-pocket = Poche { $number }
 pipeline-name-vcarve = Gravure en V { $number }
 pipeline-name-path = Suivi de tracé { $number }
+pipeline-name-chamfer = Chanfrein { $number }
 pipeline-name-holes = Perçages { $number }
 pipeline-name-surface = Surfaçage { $number }
 pipeline-name-relief = Relief { $number }
@@ -661,7 +662,7 @@ pipeline-sign-relief = la profondeur du fond doit être de plus de 0, reçu { $g
 pipeline-sign-edge = la largeur du chanfrein du bord doit être de plus de 0, reçu { $got }
 pipeline-sign-board = l'épaisseur de la planche doit être de plus de 0 et sa marge de 0 ou plus
 pipeline-sign-groove-wide = une rainure de { $width } est plus large que ce que la fraise en V { $tool } peut tailler
-pipeline-sign-edge-wide = un chanfrein de { $width } est plus que ce que la fraise en V { $tool } peut tailler (elle taille une rainure deux fois plus large, centrée sur le contour)
+pipeline-sign-edge-wide = un chanfrein de { $width } est plus que ce que la fraise en V { $tool } peut tailler : { $widest } au plus
 pipeline-setup-inlay-plug = Planche du bouchon
 pipeline-inlay-vbit = une marqueterie se grave en V : l’outil { $tool } doit être une fraise en V avec un angle
 # A selection of outlines with their holes gets two profiles: the holes cut inside, then
