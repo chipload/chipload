@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Materials - Chipload 0.36.0 user guide</title>
+        <title>Materials - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -188,7 +188,7 @@ cutting wood with a 6 mm 2-flute bit runs about 1500 mm/min with a 2–2.5 mm st
 from what you know works on yours.</p>
 <p>A material is about feeds only: choosing one never changes the stock or any depth.</p>
 <h2 id="making-one"><a class="header" href="#making-one">Making one</a></h2>
-<p><em>This computer &gt; Materials &gt; New material</em>, then name it. Its page lists the tools with
+<p><em>Library &gt; Materials &gt; New material</em>, then name it. Its page lists the tools with
 values for it; click one to open its cutting data. To give it values:</p>
 <ul>
 <li><strong>From a job that cut well:</strong> choose the material in an operation’s <strong>Material</strong> list,
@@ -196,7 +196,7 @@ under its tool. Cut, and adjust the operation’s feeds or step down until they�
 Its <strong>Material</strong> row then says <em>Changed from Plywood</em>: click <strong>Save to Plywood</strong>. The values
 the operation uses go into its tool’s Plywood row (a profile its slot values, a pocket
 both); the row’s others stay. A tool without a Plywood row gets one.</li>
-<li><strong>By hand:</strong> open the tool (<em>This computer &gt; Tools</em>), and under <strong>Cutting data</strong>, <em>Add a
+<li><strong>By hand:</strong> open the tool (<em>Library &gt; Tools</em>), and under <strong>Cutting data</strong>, <em>Add a
 material…</em>.</li>
 </ul>
 <p>The tool must be in your tool library: the values belong to that library tool, so every
@@ -217,9 +217,12 @@ this material.</p>
 <p><strong>For new projects:</strong> <em>Make default</em> on a material (<code>chipload material default Plywood</code>,
 <code>--none</code> to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.</p>
-<p><strong>The board’s thickness for new projects:</strong> on <em>This computer &gt; Materials</em>, tick <em>New
-projects: stock thickness</em> and type it (<code>chipload material thickness 18</code>, <code>--none</code> for the
-built-in 10 mm). It is kept in <code>materials.json</code> beside the default material.</p>
+<p><strong>The board’s thickness for new projects:</strong> a material can have its usual <strong>Thickness</strong>
+(tick it in the material’s form, or <code>chipload material set Plywood --thickness 18</code>, 0 to
+clear). The <a href="../drawings/import.html#the-new-project-dialog">new project dialog</a> fills it in
+when the material is chosen. Choosing a material for a project never changes its board.
+For materials without one, <em>New projects: stock thickness</em> on <em>Library &gt; Materials</em>
+gives the thickness (<code>chipload material thickness 18</code>, <code>--none</code> for the built-in 10 mm).</p>
 <p><strong>Changing an operation’s tool</strong> takes the new tool’s values for its material, when it has
 some.</p>
 <p>Each operation’s material row says where its values stand: <em>From Plywood</em>, <em>Changed from

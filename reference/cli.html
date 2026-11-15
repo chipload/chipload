@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.36.0 user guide</title>
+        <title>Command line - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -208,6 +208,13 @@
 <tbody>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>The project to write (.chipload) Required.</td></tr>
 <tr><td><code>--machine &lt;MACHINE&gt;</code></td><td>The machine profile to start from (default: your default machine)</td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The material (default: your default material)</td></tr>
+<tr><td><code>--no-material</code></td><td>No material, even if your library has a default one.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>The board’s thickness (default: the material’s, else your default thickness)</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The board’s size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in)</td></tr>
+<tr><td><code>--fit &lt;FIT&gt;</code></td><td>The board fitted round the drawing with this margin (the default, 10 mm)</td></tr>
+<tr><td><code>--z-zero &lt;Z_ZERO&gt;</code></td><td>Where Z zero is: the board’s top, or the spoilboard. One of: <code>top</code>, <code>spoilboard</code>.</td></tr>
+<tr><td><code>--tools &lt;TOOLS&gt;</code></td><td>Library tools by name, comma-separated, numbered in this order (default: your default tool); “” for none.</td></tr>
 </tbody>
 </table>
 </div>
@@ -226,6 +233,14 @@
 <tr><td><code>--px-per-inch &lt;PX_PER_INCH&gt;</code></td><td>Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72 (older Illustrator)</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>The project to write (.chipload) Required.</td></tr>
 <tr><td><code>--machine &lt;MACHINE&gt;</code></td><td>The machine profile to start from (default: your default machine)</td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The material (default: your default material)</td></tr>
+<tr><td><code>--no-material</code></td><td>No material, even if your library has a default one.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>The board’s thickness (default: the material’s, else your default thickness)</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The board’s size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in)</td></tr>
+<tr><td><code>--fit &lt;FIT&gt;</code></td><td>The board fitted round the drawing with this margin (the default, 10 mm)</td></tr>
+<tr><td><code>--z-zero &lt;Z_ZERO&gt;</code></td><td>Where Z zero is: the board’s top, or the spoilboard. One of: <code>top</code>, <code>spoilboard</code>.</td></tr>
+<tr><td><code>--tools &lt;TOOLS&gt;</code></td><td>Library tools by name, comma-separated, numbered in this order (default: your default tool); “” for none.</td></tr>
+<tr><td><code>--no-rules</code></td><td>Don’t apply your styles’ layer rules (docs/specs/fewer-clicks.md §4); without this, each style with a layer pattern adds its operations for the layers it matches.</td></tr>
 </tbody>
 </table>
 </div>
@@ -374,7 +389,7 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline).</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>chamfer</code> (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): –width), <code>flute</code> (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): –depth, –ramp), <code>pattern</code> (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): –pattern, –spacing, –angle), <code>prism</code> (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): –max-depth), <code>moulding</code> (A profile swept along paths (docs/specs/moulding.md): –profile, –radius, –side, –ends), <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline).</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
 <tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
@@ -385,6 +400,30 @@
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project; default: the one the app would take.</td></tr>
 <tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>End depth instead of the default (not with –through)</td></tr>
 <tr><td><code>--through</code></td><td>Cut through the stock, below it by the setup’s max overcut.</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>A chamfer’s width at the surface, in place of 1 mm; its depth follows from the V-bit’s angle (docs/specs/chamfer.md)</td></tr>
+<tr><td><code>--side &lt;SIDE&gt;</code></td><td>A chamfer’s waste side, in place of the one the shapes tell: around them (outside) or within them (inside) One of: <code>outside</code>, <code>inside</code>, <code>left</code> (A moulding’s profile left of an open path as drawn), <code>right</code> (A moulding’s profile right of an open path as drawn).</td></tr>
+<tr><td><code>--ramp &lt;RAMP&gt;</code></td><td>A flute’s ramp at both ends, in place of 20 mm (docs/specs/fluting.md); a pattern’s grooves’ ramps, in place of square ends (docs/specs/fill-pattern.md)</td></tr>
+<tr><td><code>--ramp-start &lt;RAMP_START&gt;</code></td><td>A flute’s ramp at the shapes’ first ends (as drawn); 0 for a square end.</td></tr>
+<tr><td><code>--ramp-end &lt;RAMP_END&gt;</code></td><td>A flute’s ramp at the shapes’ last ends; 0 for a square end.</td></tr>
+<tr><td><code>--ramp-shape &lt;RAMP_SHAPE&gt;</code></td><td>A flute’s ramps: straight (an even taper) or curved (easing into the floor) One of: <code>straight</code>, <code>curved</code>.</td></tr>
+<tr><td><code>--pattern &lt;pattern_kind&gt;</code></td><td>A pattern’s kind, in place of lines. One of: <code>lines</code>, <code>cross</code>, <code>rings</code>, <code>waves</code>, <code>dashes</code>, <code>herringbone</code>, <code>scales</code>, <code>sunburst</code>.</td></tr>
+<tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>A pattern’s spacing, groove centre to centre, in place of twice the groove’s width.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>A pattern’s lines’ angle from the X axis, degrees counter-clockwise; 45 if left out.</td></tr>
+<tr><td><code>--between &lt;BETWEEN&gt;</code></td><td>A cross-hatch’s angle between its two sets of lines, degrees (90 squares, 60 diamonds); 90 if left out.</td></tr>
+<tr><td><code>--wavelength &lt;WAVELENGTH&gt;</code></td><td>A wave pattern’s wavelength; 4 spacings if left out.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>A wave pattern’s height, top to bottom; one spacing if left out.</td></tr>
+<tr><td><code>--on-line</code></td><td>The grooves run up to the shapes’ lines, centred on them, instead of staying inside.</td></tr>
+<tr><td><code>--length &lt;LENGTH&gt;</code></td><td>Dashes’, herringbone’s or a sunburst’s strokes’ length; three groove widths (at least 4 mm) if left out.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>The gap between dashes; half a stroke if left out.</td></tr>
+<tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>Scales’ radius; twice the spacing if left out.</td></tr>
+<tr><td><code>--pitch &lt;PITCH&gt;</code></td><td>A sunburst’s strokes’ distance round its rings; a stroke’s length if left out.</td></tr>
+<tr><td><code>--clip</code></td><td>Stroke patterns: strokes the shape’s edge cuts are clipped, not left out.</td></tr>
+<tr><td><code>--max-depth &lt;MAX_DEPTH&gt;</code></td><td>A prism’s deepest edge, for bevelled shapes with a flat top; left out, as deep as the shapes and the V-bit’s cone need (docs/specs/prism.md)</td></tr>
+<tr><td><code>--profile &lt;PROFILE&gt;</code></td><td>A moulding’s profile, in place of a 6 mm cove: with –radius, or –width and –depth for an ogee, or –profile-shape for a drawn one. One of: <code>cove</code>, <code>roundover</code>, <code>ogee</code>, <code>bead</code>, <code>flute</code>, <code>shape</code>.</td></tr>
+<tr><td><code>--profile-shape &lt;PROFILE_SHAPE&gt;</code></td><td>The drawn open shape a moulding’s profile is read from (its id)</td></tr>
+<tr><td><code>--ends &lt;ENDS&gt;</code></td><td>How a moulding ends on open paths: square, round, or taper (–taper long) One of: <code>square</code>, <code>round</code>, <code>taper</code>.</td></tr>
+<tr><td><code>--taper &lt;TAPER&gt;</code></td><td>A tapered end’s length; 30 mm if left out.</td></tr>
+<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>The distance between a moulding’s passes across its profile.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -860,6 +899,36 @@
 </tbody>
 </table>
 </div>
+<h3 id="chipload-shape-similar"><a class="header" href="#chipload-shape-similar"><code>chipload shape similar</code></a></h3>
+<p>The shapes like one (docs/specs/fewer-clicks.md §3): for a circle, every circle of the same diameter on any layer; else the shapes of the same kind (closed or open) on the same layer whose boxes are the same size, either way round. Prints their ids, the shape itself included, for <code>op add … --shapes</code></p>
+<pre><code class="language-text">chipload shape similar &lt;PROJECT&gt; &lt;ID&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The shape id (as <code>inspect</code> lists it, without the S)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-inside"><a class="header" href="#chipload-shape-inside"><code>chipload shape inside</code></a></h3>
+<p>The closed shapes inside a closed shape, nested ones too, without it (docs/specs/fewer-clicks.md §3): a part’s pockets and holes. Prints their ids</p>
+<pre><code class="language-text">chipload shape inside &lt;PROJECT&gt; &lt;ID&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The outline’s shape id (as <code>inspect</code> lists it, without the S)</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-shape-add"><a class="header" href="#chipload-shape-add"><code>chipload shape add</code></a></h3>
 <p>Add a drawn shape; prints its id</p>
 <pre><code class="language-text">chipload shape add &lt;PROJECT&gt; &lt;KIND&gt; [OPTIONS]
@@ -1181,6 +1250,24 @@
 <tr><td><code>--rows &lt;ROWS&gt;</code></td><td>Rows, the originals’ included. Default: <code>1</code>.</td></tr>
 <tr><td><code>--dx &lt;DX&gt;</code></td><td>From one column to the next, mm (or with a unit); negative goes left. Default: <code>0</code>.</td></tr>
 <tr><td><code>--dy &lt;DY&gt;</code></td><td>From one row to the next, mm (or with a unit); negative goes down. Default: <code>0</code>.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-array-linear"><a class="header" href="#chipload-shape-array-linear"><code>chipload shape array-linear</code></a></h3>
+<p>A line of copies of drawn shapes in any direction, on their layers; the originals stay (docs/specs/compass.md §8). Prints the new ids</p>
+<pre><code class="language-text">chipload shape array-linear &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--count &lt;COUNT&gt;</code></td><td>How many, the originals included. Required.</td></tr>
+<tr><td><code>--step &lt;STEP&gt;</code></td><td>From one copy to the next, “DX,DY” in mm (or with a unit) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -2062,6 +2149,7 @@
 <tr><td><code>--rpm &lt;RPM&gt;</code></td><td></td></tr>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees. Tapered ball noses: the taper’s.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball’s diameter at the tip.</td></tr>
+<tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>End mills: the radius of its corners, a bull nose (0: square corners)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
 </tbody>
 </table>
@@ -2084,6 +2172,7 @@
 <tr><td><code>--rpm &lt;RPM&gt;</code></td><td></td></tr>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees. Tapered ball noses: the taper’s.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball’s diameter at the tip.</td></tr>
+<tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>End mills: the radius of its corners, a bull nose (0: square corners)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
 <tr><td><code>--rename &lt;RENAME&gt;</code></td><td>A new name.</td></tr>
 </tbody>
@@ -2238,7 +2327,7 @@
 </table>
 </div>
 <h3 id="chipload-material-set"><a class="header" href="#chipload-material-set"><code>chipload material set</code></a></h3>
-<p>Rename a material</p>
+<p>Rename a material, or give it the board thickness new projects on it start with</p>
 <pre><code class="language-text">chipload material set &lt;NAME&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -2248,7 +2337,8 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--rename &lt;RENAME&gt;</code></td><td>Required.</td></tr>
+<tr><td><code>--rename &lt;RENAME&gt;</code></td><td></td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s usual thickness, which the new project dialog fills in (0: none)</td></tr>
 </tbody>
 </table>
 </div>
@@ -2448,6 +2538,23 @@
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
 <tr><td><code>&lt;VALUES&gt;</code></td><td>PATH=VALUE, paths within the style’s operation.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>Another tool of your library, by name.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>A layer rule: the style is used on every layer whose name matches, <code>*</code> any run of characters, <code>?</code> one, upper or lower case alike (<code>CUT*</code>, <code>DRILL_?</code>); “” for none (docs/specs/fewer-clicks.md §4)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-apply"><a class="header" href="#chipload-style-apply"><code>chipload style apply</code></a></h3>
+<p>Apply the layer rules to a project: each style with a layer pattern adds its operations for the layers it matches, in the Styles’ order, then by layer name. A layer an operation already cuts is skipped, so applying twice adds nothing. <code>import</code> does this by itself unless –no-rules</p>
+<pre><code class="language-text">chipload style apply &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--dry-run</code></td><td>Say what would be added, write nothing.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Project file - Chipload 0.36.0 user guide</title>
+        <title>Project file - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -387,6 +387,9 @@
 </tbody>
 </table>
 </div>
+<h2 id="edgeside"><a class="header" href="#edgeside">EdgeSide</a></h2>
+<p>Where a chamfer’s waste is: around the shape (a part’s outline) or within it (a hole’s or a pocket’s rim).</p>
+<p>One of: <code>"outside"</code>, <code>"inside"</code>.</p>
 <h2 id="entry"><a class="header" href="#entry">Entry</a></h2>
 <p>How the tool goes down into the material at the start of each pass, for pockets and follow paths (a profile always spirals: its <code>ramp_angle</code>).</p>
 <h3 id="type-plunge"><a class="header" href="#type-plunge"><code>"type": "plunge"</code></a></h3>
@@ -416,6 +419,34 @@
 </tbody>
 </table>
 </div>
+<h2 id="fillpattern"><a class="header" href="#fillpattern">FillPattern</a></h2>
+<p>The pattern a <code>PatternOp</code> engraves (docs/specs/fill-pattern.md §3). Angles in radians from the X axis, counter-clockwise; lengths in mm.</p>
+<ul>
+<li>
+<p>object: Parallel straight lines, <code>spacing</code> apart (centre to centre), at <code>angle</code>.</p>
+</li>
+<li>
+<p>object: Two sets of lines: at <code>angle</code>, and at <code>angle</code> + <code>between</code> (more than 0, at most 90°).</p>
+</li>
+<li>
+<p>object: The shape’s outline repeated inwards, <code>spacing</code> apart, as closed rings.</p>
+</li>
+<li>
+<p>object: Parallel sine waves at <code>angle</code>, <code>spacing</code> apart: <code>wavelength</code> long, <code>height</code> from top to bottom.</p>
+</li>
+<li>
+<p>object: Rows <code>spacing</code> apart of strokes <code>length</code> long with <code>gap</code> between, every other row shifted half a stroke and gap (docs/specs/fill-pattern.md §14).</p>
+</li>
+<li>
+<p>object: Columns of strokes <code>length</code> long at 45° to <code>angle</code>, <code>spacing</code> apart along the column, every other column mirrored, meeting in chevrons.</p>
+</li>
+<li>
+<p>object: Rows <code>spacing</code> apart of half circles of <code>radius</code> side by side, every other row shifted by a radius.</p>
+</li>
+<li>
+<p>object: Round the middle of each shape: rings <code>spacing</code> apart of strokes <code>length</code> long pointing outwards, <code>pitch</code> apart round the ring, every other ring turned half a pitch.</p>
+</li>
+</ul>
 <h2 id="finish"><a class="header" href="#finish">Finish</a></h2>
 <p>A finishing pass on a profile.</p>
 <div class="table-wrapper">
@@ -656,6 +687,57 @@
 <h2 id="modelup"><a class="header" href="#modelup">ModelUp</a></h2>
 <p>Which of a model’s axes points up on the board.</p>
 <p>One of: <code>"z"</code>, <code>"y"</code>, <code>"x"</code>, <code>"-z"</code>, <code>"-y"</code>, <code>"-x"</code>.</p>
+<h2 id="mouldends"><a class="header" href="#mouldends">MouldEnds</a></h2>
+<p>How a moulding ends on an open path (docs/specs/moulding.md §4).</p>
+<ul>
+<li>
+<p>object: The full profile right to the path’s end.</p>
+</li>
+<li>
+<p>object: The profile turned a quarter round the path’s end point.</p>
+</li>
+<li>
+<p>object: The section’s depth fading to the surface over <code>length</code> mm at each end.</p>
+</li>
+</ul>
+<h2 id="mouldprofile"><a class="header" href="#mouldprofile">MouldProfile</a></h2>
+<p>A moulding’s cross-section (docs/specs/moulding.md §3): a built-in shape by its size, or a drawn open shape read as the section.</p>
+<ul>
+<li>
+<p>object: A concave quarter circle: <code>radius</code> deep at the path, at the surface <code>radius</code> in.</p>
+</li>
+<li>
+<p>object: A convex quarter circle: the edge rounded, <code>radius</code> down at the path.</p>
+</li>
+<li>
+<p>object: An S, <code>width</code> wide and <code>depth</code> deep: a cove into a round-over, half the width each.</p>
+</li>
+<li>
+<p>object: A raised half round <code>2 × radius</code> wide, its top at the surface.</p>
+</li>
+<li>
+<p>object: A half-round groove <code>2 × radius</code> wide and <code>radius</code> deep.</p>
+</li>
+<li>
+<p>object: A drawn open shape, by id: across to the right, up the page; its leftmost point at the path, its highest point the surface.</p>
+</li>
+</ul>
+<h2 id="mouldside"><a class="header" href="#mouldside">MouldSide</a></h2>
+<p>Which side of the path a moulding’s profile lies on (docs/specs/moulding.md §4).</p>
+<ul>
+<li>
+<p><code>"left"</code>: Left of an open path as drawn.</p>
+</li>
+<li>
+<p><code>"right"</code>: Right of an open path as drawn.</p>
+</li>
+<li>
+<p><code>"inside"</code>: Inside a closed path.</p>
+</li>
+<li>
+<p><code>"outside"</code>: Outside a closed path.</p>
+</li>
+</ul>
 <h2 id="operation"><a class="header" href="#operation">Operation</a></h2>
 <h3 id="type-profile"><a class="header" href="#type-profile"><code>"type": "profile"</code></a></h3>
 <div class="table-wrapper">
@@ -704,6 +786,7 @@
 <tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within <code>stock.max_overcut</code>.</td></tr>
 <tr><td><code>entry</code></td><td><a href="#entry">Entry</a></td><td>no</td><td>How the tool goes down at the start of each pass: <code>plunge</code> (straight down; needs a centre-cutting tool) or <code>ramp</code> along the path; pockets also <code>helix</code>. Missing: plunge.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>finish</code></td><td><a href="#pocketfinish">PocketFinish</a> or null</td><td>no</td><td>A finishing pass: the roughing leaves <code>wall</code> mm on the walls and <code>floor</code> mm on the floor, then one level pass takes the floor and one lap each wall. Null: none. Left out when none.</td></tr>
 <tr><td><code>lead</code></td><td><a href="#lead">Lead</a> or null</td><td>no</td><td>A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none.</td></tr>
 <tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
@@ -770,6 +853,130 @@
 <tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth.</td></tr>
 <tr><td><code>through</code></td><td>number or null</td><td>no</td><td>Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-chamfer"><a class="header" href="#type-chamfer"><code>"type": "chamfer"</code></a></h3>
+<p>Chamfer: a V-bit’s flank on the line of closed shapes, breaking their top edge.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>direction</code></td><td><a href="#direction">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>entry</code></td><td><a href="#entry">Entry</a></td><td>yes</td><td>How the tool goes down at the start of each pass: <code>plunge</code> or <code>ramp</code> along the path.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id. Closed shapes only; open ones are skipped with a note.</td></tr>
+<tr><td><code>side</code></td><td><a href="#edgeside">EdgeSide</a></td><td>yes</td><td>Where the waste is: <code>outside</code> the shape (a part’s outline) or <code>inside</code> it (a hole’s or a pocket’s rim).</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the edge is, mm down from the stock top: 0 for the top, more for the edge of a step an earlier operation cut.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a V-bit with its angle.</td></tr>
+<tr><td><code>width</code></td><td>number</td><td>yes</td><td>The chamfer’s width at the surface, mm, measured from the line into the part. More than 0, at most half the bit’s cone (its diameter less its tip, halved).</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-flute"><a class="header" href="#type-flute"><code>"type": "flute"</code></a></h3>
+<p>Flute: a groove on the line of open shapes that ramps in and out at their ends.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>The flute’s depth through its middle, mm down from the stock top.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min, ramps included.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>ramp_end</code></td><td>number</td><td>yes</td><td>How far along the shape before its last end the flute starts to rise, mm. 0: a square end.</td></tr>
+<tr><td><code>ramp_shape</code></td><td><a href="#rampshape">RampShape</a></td><td>yes</td><td><code>straight</code> or <code>curved</code> ramps.</td></tr>
+<tr><td><code>ramp_start</code></td><td>number</td><td>yes</td><td>How far along the shape from its first end the flute reaches its depth, mm. 0: a square end.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id. Open shapes only; closed ones are skipped with a note.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the flute starts at its ends, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a ball nose, a V-bit or an endmill.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-pattern"><a class="header" href="#type-pattern"><code>"type": "pattern"</code></a></h3>
+<p>Pattern: grooves of lines, cross-hatch, rings or waves engraved inside closed shapes.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>How deep the grooves go, mm down from the stock top.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>inside</code></td><td>boolean</td><td>yes</td><td>True: the grooves stay inside the shape’s line and out of its holes, clipped half a groove’s width in. False: they run up to the line, centred on it.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>pattern</code></td><td><a href="#fillpattern">FillPattern</a></td><td>yes</td><td>The pattern and its settings.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>ramp</code></td><td>number</td><td>yes</td><td>How long each groove ramps in and out at its ends, mm, as a flute. 0: square ends.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation fills: closed shapes, the selected shapes inside them as holes.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the grooves start, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a V-bit, a ball nose or an endmill.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-prism"><a class="header" href="#type-prism"><code>"type": "prism"</code></a></h3>
+<p>Prism: closed shapes left standing as roofs, a sharp ridge along their centre line.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>direction</code></td><td><a href="#direction">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>max_depth</code></td><td>number or null</td><td>no</td><td>The deepest an edge goes below the start depth, mm, for bevelled shapes with a flat top. Null: as deep as the shapes and the bit’s cone need.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation carves: closed shapes, the selected shapes inside them as holes.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the surface is, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a V-bit with its angle.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-moulding"><a class="header" href="#type-moulding"><code>"type": "moulding"</code></a></h3>
+<p>Moulding: a profile swept along a path, in passes along it.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>direction</code></td><td><a href="#direction">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>ends</code></td><td><a href="#mouldends">MouldEnds</a></td><td>yes</td><td>How it ends on open paths.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>profile</code></td><td><a href="#mouldprofile">MouldProfile</a></td><td>yes</td><td>The cross-section.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>The paths the moulding runs along: open or closed shapes.</td></tr>
+<tr><td><code>side</code></td><td><a href="#mouldside">MouldSide</a></td><td>yes</td><td>The side of the path the profile lies on.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the surface is, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each level goes, mm, in equal levels. Null: one level.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between passes across the profile, mm.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a ball nose or an endmill.</td></tr>
 </tbody>
 </table>
 </div>
@@ -930,6 +1137,29 @@
 </tbody>
 </table>
 </div>
+<h2 id="pocketfinish"><a class="header" href="#pocketfinish">PocketFinish</a></h2>
+<p>A finishing pass on a pocket.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>floor</code></td><td>number</td><td>yes</td><td>Left above the end depth by the roughing, mm: 0 or more, at most the step down, less than the cut; 0 on a pocket cut through.</td></tr>
+<tr><td><code>wall</code></td><td>number</td><td>yes</td><td>Left on every wall by the roughing, mm: 0 or more, less than the tool radius.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="rampshape"><a class="header" href="#rampshape">RampShape</a></h2>
+<p>How a flute’s ramp goes down from its end to the full depth.</p>
+<ul>
+<li>
+<p><code>"straight"</code>: Evenly: depth × u, u from 0 at the end to 1 at full depth.</p>
+</li>
+<li>
+<p><code>"curved"</code>: Steepest at the surface, easing into the floor: depth × sin(π/2 × u).</p>
+</li>
+</ul>
 <h2 id="register"><a class="header" href="#register">Register</a></h2>
 <p>How a turned board is located again.</p>
 <ul>
@@ -1227,6 +1457,7 @@
 <tbody>
 <tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. Ball noses: the taper’s included angle; null: a plain ball nose.</td></tr>
 <tr><td><code>center_cutting</code></td><td>boolean or null</td><td>no</td><td>Whether it can plunge straight down. False: profiles ramp in and pockets go down round a helix. Null: unknown.</td></tr>
+<tr><td><code>corner_radius</code></td><td>number or null</td><td>no</td><td>End mills: the radius of its corners, mm, a bull nose (docs/specs/corner-radius.md §2). Missing: square corners. Left out of the file when missing, so a Chipload that doesn’t know it refuses only a tool that has one.</td></tr>
 <tr><td><code>diameter</code></td><td>number</td><td>yes</td><td>Diameter, mm. For a V-bit, its widest cutting diameter.</td></tr>
 <tr><td><code>flutes</code></td><td>integer or null</td><td>no</td><td>Number of flutes, for the chip load. Null: unknown.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The tool’s number: what operations name it by, and its T number in the G-code.</td></tr>

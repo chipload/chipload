@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Tool library file - Chipload 0.36.0 user guide</title>
+        <title>Tool library file - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -236,6 +236,7 @@
 <tbody>
 <tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown.</td></tr>
 <tr><td><code>center_cutting</code></td><td>boolean or null</td><td>no</td><td>Whether it can plunge straight down. Null: unknown.</td></tr>
+<tr><td><code>corner_radius</code></td><td>number or null</td><td>no</td><td>End mills: the radius of its corners, mm (docs/specs/corner-radius.md §2). Missing: square corners; left out of the file then.</td></tr>
 <tr><td><code>cutting_data</code></td><td>list of <a href="#cuttingrow">CuttingRow</a></td><td>no</td><td>The cutting data: one row per material, and one for any material (docs/specs/cutting-data.md §2). What an operation takes when a material is chosen, its tool changes or it is added. Missing: none.</td></tr>
 <tr><td><code>diameter</code></td><td>number</td><td>yes</td><td>Diameter, mm.</td></tr>
 <tr><td><code>flutes</code></td><td>integer or null</td><td>no</td><td>Number of flutes. Null: unknown.</td></tr>

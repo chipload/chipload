@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Introduction - Chipload 0.36.0 user guide</title>
+        <title>Introduction - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5dd94fcc.js"></script>
+        <script src="toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -184,15 +184,18 @@
 <li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
 models (STL) and depth maps for reliefs, and
 shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
-offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.</li>
+offset, fillet, trim, union and subtract, arrays; the Compass to move, turn and copy). The drawing exports as a DXF too.</li>
 <li><strong>Out:</strong> G-code for your controller, in mm or inches, through a post-processor: GRBL,
 LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li><strong>Operations:</strong>
 <ul>
 <li>profiles, spiralling down, with tabs, finishing passes, onion skins and dogbones;</li>
-<li>ring pockets, with helix entry and rest machining;</li>
-<li>V-carving;</li>
-<li>follow path;</li>
+<li>ring pockets, with helix entry, rest machining and a finishing pass;</li>
+<li>V-carving, and prisms: raised shapes with a ridge along their centre;</li>
+<li>chamfers on any closed outline;</li>
+<li>follow path, and flutes: grooves that ramp in and out;</li>
+<li>fill patterns: lines, cross-hatch, rings, waves, and short fluted strokes;</li>
+<li>mouldings: a profile (cove, ogee, bead…) swept along a path;</li>
 <li>drilled and helically bored holes;</li>
 <li>surfacing the stock;</li>
 <li>reliefs: a 3D model (STL), a depth-map picture or a picture’s shapes inflated, carved
@@ -237,10 +240,11 @@ licences of everything it is built with are under <em>Help &gt; About and licenc
 <p>Chipload is meant to be lean. It leaves out what other tools do better:</p>
 <ul>
 <li>nesting parts on a sheet;</li>
-<li>3D surface machining, beyond <a href="drawings/models.html">reliefs</a> carved from the top;</li>
+<li>machining driven by a 3D CAD model (features and depths from a STEP file): CAM connected
+to your CAD does that better. Chipload does carve 3D shapes from 2D input:
+<a href="drawings/models.html">reliefs</a> from the top, and <a href="operations/moulding.html">mouldings</a>;</li>
 <li>sending G-code to the machine (use your controller’s sender);</li>
-<li>CAD beyond a few shapes;</li>
-<li>facing the spoilboard.</li>
+<li>CAD beyond the shapes a part needs.</li>
 </ul>
 <h2 id="this-guide"><a class="header" href="#this-guide">This guide</a></h2>
 <p>This guide is for Chipload’s version in the title.</p>

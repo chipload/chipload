@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Your first part - Chipload 0.36.0 user guide</title>
+        <title>Your first part - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5dd94fcc.js"></script>
+        <script src="toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -186,25 +186,20 @@ outside profile. The same steps follow in the app and on the command line.</p>
 <p><strong>Import the drawing:</strong> <em>File &gt; Import DXF…</em> (Ctrl+I).</p>
 <ul>
 <li>If the DXF doesn’t say whether it’s in mm or inches, Chipload asks. It never guesses.</li>
+<li>The <a href="drawings/import.html#the-new-project-dialog">new project dialog</a> asks for the
+material, the board’s thickness and size, Z zero, the machine and the tools. Set the
+real thickness: depths are measured from the board’s top. Enter creates the project.</li>
 <li>The report under the canvas lists what was imported, and anything skipped or
 repaired: duplicate lines, gaps it closed, splines turned into arcs.</li>
 </ul>
 </li>
 <li>
-<p><strong>Check the setup and the machine:</strong> click <strong>Setup 1</strong> under <em>Setups</em> in the
-<a href="window.html#the-browser">Browser</a> on the left for the board, and <strong>Machine</strong> for the
-machine. A new project starts with:</p>
-<ul>
-<li>stock just covering the drawing, 10 mm thick;</li>
-<li><a href="concepts/stock.html#work-zero">work zero</a> at the stock’s bottom-left corner, Z zero
-on the stock top (the <em>Work zero</em> row under the setup; drag it in the view to move
-it);</li>
-<li>the GRBL post, a safe height of 5 mm;</li>
-<li>a 6 mm endmill at 18 000 rpm.</li>
-</ul>
-<p>With a <a href="library/tools.html">tool library</a> and <a href="library/machines.html">machine profiles</a> set up, your
-defaults come instead. Set the real stock thickness now: depths are measured from its
-top.</p>
+<p><strong>Check the setup and the machine:</strong> the project opens on <strong>Setup 1</strong> under <em>Setups</em> in
+the <a href="window.html#the-browser">Browser</a> on the left, with the board you chose; <strong>Machine</strong>
+shows the machine. <a href="concepts/stock.html#work-zero">Work zero</a> is at the stock’s bottom-left
+corner (the <em>Work zero</em> row under the setup; drag it in the view to move it). Without a
+<a href="library/tools.html">tool library</a> and <a href="library/machines.html">machine profiles</a>, a project
+has the GRBL post, a safe height of 5 mm and a 6 mm endmill at 18 000 rpm.</p>
 </li>
 <li>
 <p><strong>Select what to cut:</strong></p>
@@ -212,12 +207,22 @@ top.</p>
 <li>double-click the outline on the canvas (a single click takes the whole DXF);</li>
 <li>Ctrl+click adds more;</li>
 <li>right-click selects a whole layer;</li>
+<li>right-click a shape for <strong>Select similar</strong> (every circle of its diameter, on any
+layer, or every shape of its size on its layer) or <strong>Select inside</strong> (the closed
+shapes within an outline: a part’s pockets and holes). With Ctrl held they add to the
+selection. On the command line, <code>chipload shape similar part.chipload 5</code> and
+<code>chipload shape inside part.chipload 1</code> print the shape ids, for <code>op add … --shapes</code>;</li>
 <li>or click a DXF or one of its layers in the Browser.</li>
 </ul>
 </li>
 <li>
 <p><strong>Add an operation:</strong> <strong>Profile</strong>, in the ribbon’s OPERATION group.</p>
 <ul>
+<li>Quicker: press <strong>S</strong> over the canvas, then <strong>P</strong>. The quick menu opens at the mouse with a
+key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C chamfer, L flute, E pattern, R prism, M moulding) and a digit
+for each of your <a href="library/styles.html">styles</a>. A kind the selection can’t take is
+greyed out, and its hover says why (holes need a circle, a pocket a closed shape).
+Escape closes it.</li>
 <li><strong>Side:</strong> Chipload picks <em>outside</em> for an outline and <em>inside</em> for holes, and asks
 when a selection mixes both.</li>
 <li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
@@ -244,9 +249,13 @@ the stock as cut, and the slider under the canvas plays the program back; F6 aga
 back to editing.</p>
 </li>
 <li>
-<p><strong>Export:</strong> <em>File &gt; Export G-code…</em> (Ctrl+E).</p>
+<p><strong>Export:</strong> <em>File &gt; Export G-code</em> (Ctrl+E).</p>
 <ul>
 <li>You can only export once the <a href="#the-checker">checker</a> has passed the program.</li>
+<li>The first time, it asks where to write. After that, Ctrl+E writes the same file again
+without asking, as Ctrl+S saves, so a changed depth is one key away from the machine.
+The project remembers its file for next time. <em>File &gt; Export G-code as…</em>
+(Ctrl+Shift+E) always asks.</li>
 <li>Next to the G-code comes a setup sheet (<code>part-sheet.html</code>) for the operator: stock,
 zero, tools in order, operations and times.</li>
 </ul>

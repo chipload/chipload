@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Chipload 0.36.0 user guide</title>
+        <title>Chipload 0.37.0 user guide</title>
         <meta name="robots" content="noindex">
 
 
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5dd94fcc.js"></script>
+        <script src="toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -138,7 +138,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -185,15 +185,18 @@
 <li><strong>In:</strong> DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
 models (STL) and depth maps for reliefs, and
 shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
-offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.</li>
+offset, fillet, trim, union and subtract, arrays; the Compass to move, turn and copy). The drawing exports as a DXF too.</li>
 <li><strong>Out:</strong> G-code for your controller, in mm or inches, through a post-processor: GRBL,
 LinuxCNC and Mach3/4 are built in, and you can write your own.</li>
 <li><strong>Operations:</strong>
 <ul>
 <li>profiles, spiralling down, with tabs, finishing passes, onion skins and dogbones;</li>
-<li>ring pockets, with helix entry and rest machining;</li>
-<li>V-carving;</li>
-<li>follow path;</li>
+<li>ring pockets, with helix entry, rest machining and a finishing pass;</li>
+<li>V-carving, and prisms: raised shapes with a ridge along their centre;</li>
+<li>chamfers on any closed outline;</li>
+<li>follow path, and flutes: grooves that ramp in and out;</li>
+<li>fill patterns: lines, cross-hatch, rings, waves, and short fluted strokes;</li>
+<li>mouldings: a profile (cove, ogee, bead…) swept along a path;</li>
 <li>drilled and helically bored holes;</li>
 <li>surfacing the stock;</li>
 <li>reliefs: a 3D model (STL), a depth-map picture or a picture’s shapes inflated, carved
@@ -238,10 +241,11 @@ licences of everything it is built with are under <em>Help &gt; About and licenc
 <p>Chipload is meant to be lean. It leaves out what other tools do better:</p>
 <ul>
 <li>nesting parts on a sheet;</li>
-<li>3D surface machining, beyond <a href="#3d-models">reliefs</a> carved from the top;</li>
+<li>machining driven by a 3D CAD model (features and depths from a STEP file): CAM connected
+to your CAD does that better. Chipload does carve 3D shapes from 2D input:
+<a href="#3d-models">reliefs</a> from the top, and <a href="#moulding">mouldings</a>;</li>
 <li>sending G-code to the machine (use your controller’s sender);</li>
-<li>CAD beyond a few shapes;</li>
-<li>facing the spoilboard.</li>
+<li>CAD beyond the shapes a part needs.</li>
 </ul>
 <h2 id="this-guide"><a class="header" href="#this-guide">This guide</a></h2>
 <p>This guide is for Chipload’s version in the title.</p>
@@ -340,7 +344,7 @@ address as it does for any visit. When a newer version is out, the status bar sa
 browser) or <strong>Skip this version</strong>. The same is under <strong>Help</strong>. Chipload never downloads or
 installs anything by itself: download the new version as you did this one.</p>
 <p><strong>Help &gt; Check for new versions now</strong> checks at once, also with the daily check off, and
-says what it found. Change your answer in <em>This computer &gt; Preferences &gt; New versions</em>.
+says what it found. Change your answer in <em>Preferences &gt; New versions</em>.
 Behind a proxy, set <code>HTTPS_PROXY</code>.</p>
 <h2 id="your-settings"><a class="header" href="#your-settings">Your settings</a></h2>
 <p>Chipload keeps your tool library, machine profiles, <a href="#styles">styles</a>
@@ -372,25 +376,20 @@ outside profile. The same steps follow in the app and on the command line.</p>
 <p><strong>Import the drawing:</strong> <em>File &gt; Import DXF…</em> (Ctrl+I).</p>
 <ul>
 <li>If the DXF doesn’t say whether it’s in mm or inches, Chipload asks. It never guesses.</li>
+<li>The <a href="#the-new-project-dialog">new project dialog</a> asks for the
+material, the board’s thickness and size, Z zero, the machine and the tools. Set the
+real thickness: depths are measured from the board’s top. Enter creates the project.</li>
 <li>The report under the canvas lists what was imported, and anything skipped or
 repaired: duplicate lines, gaps it closed, splines turned into arcs.</li>
 </ul>
 </li>
 <li>
-<p><strong>Check the setup and the machine:</strong> click <strong>Setup 1</strong> under <em>Setups</em> in the
-<a href="#the-browser">Browser</a> on the left for the board, and <strong>Machine</strong> for the
-machine. A new project starts with:</p>
-<ul>
-<li>stock just covering the drawing, 10 mm thick;</li>
-<li><a href="#work-zero">work zero</a> at the stock’s bottom-left corner, Z zero
-on the stock top (the <em>Work zero</em> row under the setup; drag it in the view to move
-it);</li>
-<li>the GRBL post, a safe height of 5 mm;</li>
-<li>a 6 mm endmill at 18 000 rpm.</li>
-</ul>
-<p>With a <a href="#tool-library">tool library</a> and <a href="#machine-profiles">machine profiles</a> set up, your
-defaults come instead. Set the real stock thickness now: depths are measured from its
-top.</p>
+<p><strong>Check the setup and the machine:</strong> the project opens on <strong>Setup 1</strong> under <em>Setups</em> in
+the <a href="#the-browser">Browser</a> on the left, with the board you chose; <strong>Machine</strong>
+shows the machine. <a href="#work-zero">Work zero</a> is at the stock’s bottom-left
+corner (the <em>Work zero</em> row under the setup; drag it in the view to move it). Without a
+<a href="#tool-library">tool library</a> and <a href="#machine-profiles">machine profiles</a>, a project
+has the GRBL post, a safe height of 5 mm and a 6 mm endmill at 18 000 rpm.</p>
 </li>
 <li>
 <p><strong>Select what to cut:</strong></p>
@@ -398,12 +397,22 @@ top.</p>
 <li>double-click the outline on the canvas (a single click takes the whole DXF);</li>
 <li>Ctrl+click adds more;</li>
 <li>right-click selects a whole layer;</li>
+<li>right-click a shape for <strong>Select similar</strong> (every circle of its diameter, on any
+layer, or every shape of its size on its layer) or <strong>Select inside</strong> (the closed
+shapes within an outline: a part’s pockets and holes). With Ctrl held they add to the
+selection. On the command line, <code>chipload shape similar part.chipload 5</code> and
+<code>chipload shape inside part.chipload 1</code> print the shape ids, for <code>op add … --shapes</code>;</li>
 <li>or click a DXF or one of its layers in the Browser.</li>
 </ul>
 </li>
 <li>
 <p><strong>Add an operation:</strong> <strong>Profile</strong>, in the ribbon’s OPERATION group.</p>
 <ul>
+<li>Quicker: press <strong>S</strong> over the canvas, then <strong>P</strong>. The quick menu opens at the mouse with a
+key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C chamfer, L flute, E pattern, R prism, M moulding) and a digit
+for each of your <a href="#styles">styles</a>. A kind the selection can’t take is
+greyed out, and its hover says why (holes need a circle, a pocket a closed shape).
+Escape closes it.</li>
 <li><strong>Side:</strong> Chipload picks <em>outside</em> for an outline and <em>inside</em> for holes, and asks
 when a selection mixes both.</li>
 <li><strong>End depth:</strong> for a cut-out, the stock thickness plus a little, e.g. 10.3 mm into a
@@ -430,9 +439,13 @@ the stock as cut, and the slider under the canvas plays the program back; F6 aga
 back to editing.</p>
 </li>
 <li>
-<p><strong>Export:</strong> <em>File &gt; Export G-code…</em> (Ctrl+E).</p>
+<p><strong>Export:</strong> <em>File &gt; Export G-code</em> (Ctrl+E).</p>
 <ul>
 <li>You can only export once the <a href="#the-checker">checker</a> has passed the program.</li>
+<li>The first time, it asks where to write. After that, Ctrl+E writes the same file again
+without asking, as Ctrl+S saves, so a changed depth is one key away from the machine.
+The project remembers its file for next time. <em>File &gt; Export G-code as…</em>
+(Ctrl+Shift+E) always asks.</li>
 <li>Next to the G-code comes a setup sheet (<code>part-sheet.html</code>) for the operator: stock,
 zero, tools in order, operations and times.</li>
 </ul>
@@ -515,10 +528,9 @@ mine</strong> (your next Save overwrites the file).</li>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF, SVG or STL as a new project), Save</td><td>open recent, add a picture, a DXF/SVG or a <a href="#3d-models">3D model</a>, save as, update drawing, export, the <em>…from path</em> items, quit</td></tr>
 <tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a <a href="#3d-models">relief</a>)</td><td>Frame… (<a href="#signs-and-frames">a frame for a sign</a>)</td></tr>
-<tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected <a href="#3d-models">3D model</a>, or the first) and Style (one of your <a href="#styles">styles</a>, for the selected shapes)</td><td>New Relief, <em>Apply style ▸</em>, Generate</td></tr>
+<tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="#editing-operations">Editing operations</a>), and the <a href="#the-compass">Compass</a> (Q)</td><td>the same</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected <a href="#3d-models">3D model</a>, or the first), Style (one of your <a href="#styles">styles</a>, for the selected shapes) and <a href="#chamfer">Chamfer</a> (under Style), <a href="#flute">Flute</a> and <a href="#pattern">Pattern</a> (beside them); <a href="#prism">Prism</a> and <a href="#moulding">Moulding</a> are in the Operation menu and the S menu</td><td>New Chamfer, New Flute, New Pattern, New Prism, New Moulding, New Relief, <em>Apply style ▸</em>, Generate</td></tr>
 <tr><td>WIZARDS</td><td>Sign: <a href="#a-sign-in-one-step">a whole sign in one step</a>, its drawing and its operations; Two-sided: <a href="#in-the-window">a back side with its dowel pins</a>; Inlay…: <a href="#v-carve">a V-carve inlay</a> of the selected shapes; Relief: <a href="#a-relief-in-one-step">a whole relief in one step</a></td><td>New sign…, Two-sided…, New inlay…, Relief…</td></tr>
-<tr><td>LIBRARY</td><td>Library: opens <em>This computer</em> in the Browser, with your tools and machines</td><td>Tool library, Machines</td></tr>
 </tbody>
 </table>
 </div>
@@ -531,7 +543,7 @@ don’t fit, in a longer language or a narrow window, the large buttons show the
 alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
 <p>Each group has the menu of its name in the top bar. Two menus have no group: <strong>Edit</strong>
 (undo, redo; copy, paste, mirror, join, delete and group the selected shapes, copy as
-selector; <strong>Preferences…</strong>, which opens <em>This computer &gt; Preferences</em> in the Browser:
+selector; <strong>Preferences…</strong>, which opens <em>Preferences</em> in the Browser:
 units, language, colour theme, the setup sheet) and <strong>Help</strong> (the user guide, keyboard
 shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.</p>
 <p>The <strong>status bar</strong> at the bottom gives hints on the left. On the right it shows the
@@ -540,12 +552,9 @@ post-processor and the units.</p>
 <h2 id="the-browser"><a class="header" href="#the-browser">The Browser</a></h2>
 <p>The <strong>Browser</strong> on the left holds your library and the whole project as a tree:</p>
 <ul>
-<li><strong>This computer</strong>, at the top and folded at the start: what is kept on this computer for
+<li><strong>Library</strong>, at the top and folded at the start: what is kept on this computer for
 every project. It is there also with no project open.
 <ul>
-<li><strong>Preferences:</strong> the <a href="#setup-sheet">setup sheet</a>, updating the toolpath by
-itself, the <a href="#mm-or-inches-on-screen">units</a>, the colour theme and
-checking for <a href="#new-versions">new versions</a>.</li>
 <li><strong>Tools</strong> and <strong>Machines:</strong> your <a href="#tool-library">tool library</a> and <a href="#machine-profiles">machine
 profiles</a>.</li>
 <li><strong>Materials</strong> and <strong>Styles:</strong> your <a href="#materials">materials</a> and
@@ -554,6 +563,9 @@ profiles</a>.</li>
 for what it writes, and <em>Use in this project</em>.</li>
 </ul>
 </li>
+<li><strong>Preferences</strong>, below the Library: the <a href="#setup-sheet">setup sheet</a>, updating the
+toolpath by itself, the <a href="#mm-or-inches-on-screen">units</a>, the language,
+the colour theme and checking for <a href="#new-versions">new versions</a>.</li>
 <li><strong>The project</strong>, named after its file.
 <ul>
 <li><strong>Machine:</strong> the post-processor, G-code units, safe Z, travel and tool changes, shown
@@ -606,7 +618,7 @@ down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operati
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
 setup</em>.</li>
 <li><strong>A library tool:</strong> <em>Add to project</em>, <em>Make default</em>, <em>Delete</em>. <strong>A library machine:</strong>
-<em>Use in this project</em>, <em>Make default</em>, <em>Delete</em>. <strong>This computer &gt; Tools or Machines:</strong> <em>New</em>,
+<em>Use in this project</em>, <em>Make default</em>, <em>Delete</em>. <strong>Library &gt; Tools or Machines:</strong> <em>New</em>,
 <em>Import…</em>, <em>Export…</em>.</li>
 </ul>
 </li>
@@ -672,7 +684,8 @@ filled.</li>
 <li>Starting a drawing or editing tool, or selecting something in the Browser, goes back to
 Edit. F6 or <strong>Edit</strong> does too.</li>
 <li><strong>Each mode keeps its own view:</strong> top or 3D, the toolpath, the drawing and the pictures
-as you left them there. Simulate starts as Edit is, the first time.</li>
+as you left them there. The first time, Simulate starts in 3D with only the
+simulation shown (the toolpath, drawing and pictures hidden).</li>
 </ul>
 </li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:
@@ -1215,6 +1228,7 @@ which is the tool number in the G-code, and:</p>
 <tr><td><strong>Diameter</strong></td><td>mm</td></tr>
 <tr><td><strong>Spindle speed</strong></td><td>rpm. Required: a program can’t start the spindle without it.</td></tr>
 <tr><td><strong>Centre cutting</strong></td><td>whether the endmill can plunge straight down. Profiles spiral down with any endmill. New pockets go down round a helix and new follow paths ramp unless it is marked centre-cutting; when it can’t plunge, sloped tabs may be no steeper than the ramp angle.</td></tr>
+<tr><td><strong>Corner radius</strong></td><td>end mills: the radius of rounded corners, a <em>bull nose</em>. Not set: square corners. Less than half the diameter; a tool rounded that far is a ball nose</td></tr>
 <tr><td><strong>Angle</strong>, <strong>Tip</strong></td><td>V-bits: the included angle and the flat tip’s diameter. Tapered ball noses: the taper’s included angle and the ball’s diameter at the tip; a plain ball nose has neither</td></tr>
 </tbody>
 </table>
@@ -1242,6 +1256,21 @@ change. Only posts that support it offer it (GRBL, whose sender must do the chan
 <p>The command line can override it for one run: <code>chipload run part.chipload -o part.nc --tool-change program</code>. The setup sheet lists the tools in the order they’re used.</p>
 <p>A <strong>ball nose</strong> carves <a href="#3d-models">3D reliefs</a> and can follow a path; the
 other operations need a flat bottom and refuse it. <code>chipload tool add "Ball 3" --type ballnose --diameter 3</code> adds a plain one, and <code>--angle 7.2 --tip 1</code> a tapered one.</p>
+<p>A <strong>bull nose</strong> is an end mill with round corners: a flat bottom, then a quarter round of
+its <strong>corner radius</strong> up to the side. Its corners are stronger than square ones, and it
+cuts wherever an end mill does:</p>
+<ul>
+<li><strong>Reliefs</strong> are cut with its true shape: it roughs with smaller steps on slopes than a
+square end mill, smooths them, and finishes wide reliefs fast, as its flat leaves no
+ridges on flat ground and its corners leave a ball nose’s soft ones on slopes.</li>
+<li><strong>Profiles, pockets and the other operations</strong> cut an end mill’s path; the corners leave
+a fillet where the floor meets a wall, which the simulation shows. Two warnings watch
+for what the corners change: a cut through the board that goes less than the corner
+radius below it leaves a fillet along the bottom edge that can hold the part, and a
+pocket’s or surface’s stepover wider than the flat bottom leaves ridges on the floor.</li>
+</ul>
+<p><code>chipload tool add "Bull 6" --diameter 6 --corner-radius 1</code> adds one; in the window, tick
+<em>Corner radius</em> under the end mill’s diameter. Lists show it as <em>Ø6 mm R1 mm</em>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="the-checker-1"><a class="header" href="#the-checker-1">The checker</a></h1>
 <p>Every program goes through an independent checker before Chipload writes it, in the app and
@@ -1343,16 +1372,35 @@ that layer: they’re skipped, with a note.</p>
 <h2 id="units"><a class="header" href="#units">Units</a></h2>
 <p>If the DXF doesn’t say whether it’s in mm or inches, Chipload asks (command line:
 <code>--units mm</code> or <code>--units inch</code>). See <a href="#units-and-coordinates">Units and coordinates</a>.</p>
-<h2 id="new-project-defaults"><a class="header" href="#new-project-defaults">New project defaults</a></h2>
-<p>The stock just covers the drawing, 10 mm thick:</p>
+<h2 id="the-new-project-dialog"><a class="header" href="#the-new-project-dialog">The new project dialog</a></h2>
+<p>Before the project is made, a dialog asks what it starts with. It opens for <em>File &gt; New
+project</em> (Ctrl+N), <em>Import</em> and a drawing dropped on an empty window:</p>
 <ul>
-<li>its bottom-left corner sits at the drawing’s origin when the drawing lies right of and
-above the origin;</li>
-<li>otherwise it is centred on the origin.</li>
+<li><strong>Material,</strong> from your <a href="#materials">materials</a>. A material with a thickness
+of its own fills in the thickness.</li>
+<li><strong>Thickness</strong> of the board: depths are measured from its top, and cuts through it follow
+it.</li>
+<li><strong>Board:</strong> <em>Fit the drawing</em> with a margin (it follows the drawing as it changes), or a
+<strong>Size</strong>. Either way it is centred on the drawing.</li>
+<li><strong>Z zero:</strong> on the top of the board or on the spoilboard.</li>
+<li><strong>Machine,</strong> from your <a href="#machine-profiles">machine profiles</a>, with its post, G-code
+units and tool changes shown under it.</li>
+<li><strong>Tools:</strong> tick the <a href="#tool-library">library</a> tools the project uses; the search
+narrows a long list. Each keeps its library number; when two have the same, the second
+takes the next free one, and the T column shows it.</li>
 </ul>
-<p>The machine and tool come from your default <a href="#machine-profiles">machine profile</a> and
-<a href="#tool-library">tool</a> if you have them. Otherwise you get GRBL, a safe Z of 5 mm, and
-a 6 mm endmill at 18 000 rpm.</p>
+<p><strong>Enter</strong> creates the project, <strong>Escape</strong> cancels. Everything is remembered for the next
+project, which is often the same, so New project, Enter is enough.</p>
+<p>The first time, your library’s defaults are offered: the default machine, material and tool,
+the material’s thickness (else the default thickness, else 10 mm), the board fitted with a
+10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, and a
+6 mm endmill at 18 000 rpm.</p>
+<p>On the command line, <code>chipload new</code> and <code>chipload import</code> take the same choices and
+otherwise use your library’s defaults:</p>
+<pre><code>chipload import part.dxf -o part.chipload --material Plywood --thickness 18 \
+    --fit 10 --z-zero top --machine "Shapeoko 4" --tools "6 mm end mill,V 60"
+chipload new -o sign.chipload --size 600x300 --tools ""      # no tools yet
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="importing-an-svg"><a class="header" href="#importing-an-svg">Importing an SVG</a></h1>
 <p>Logos and artwork often come as SVG, from Inkscape, Illustrator, Affinity and the like. An
@@ -1609,7 +1657,7 @@ the first point again to close it; Enter or a double-click finishes it open.</li
 <li><strong>Arc</strong> (<strong>A</strong>): where it starts, where it ends, then a point it passes through (or type
 its radius: it bows to the cursor’s side). It becomes an open polyline of one or two arc
 segments.</li>
-<li><strong>Slot</strong> (<strong>S</strong>): the centres of its two ends, then its width (a click, or type it). It
+<li><strong>Slot</strong> (<strong>U</strong>): the centres of its two ends, then its width (a click, or type it). It
 is a rectangle whose corner radius is half its width; it shows as <em>Slot</em>, and stays one
 when you change its width.</li>
 <li><strong>Polygon</strong> (<strong>N</strong>): the centre, then a corner. Its number of sides is on the status bar
@@ -1817,6 +1865,44 @@ with its file.</li>
 <p>Imported shapes can’t be edited: they change only with the DXF, unless you
 <a href="#exploding-a-dxf-picture-or-text-joining-ends">explode it</a>. Lines whose ends almost meet can be joined into one shape with
 <em>Draw &gt; Join ends…</em> (same page).</p>
+<h2 id="the-compass"><a class="header" href="#the-compass">The Compass</a></h2>
+<p>The <strong>Compass</strong> moves, turns and copies the selection from one handle: two arrows (its X
+and Y axes), a ring and a centre. Select drawn shapes, a group, or a whole picture, text,
+3D model or drawing, then press <strong>Q</strong> (also MODIFY &gt; <em>Compass</em> in the ribbon, or <em>Compass</em>
+in the canvas’s right-click menu). It shows on the middle of the selection, and the
+selection’s own handles hide while it shows. <strong>Q</strong> again or <strong>Esc</strong> hides it.</p>
+<ul>
+<li><strong>An arrow:</strong> drag to move along that axis. The distance goes in steps of the grid, or
+to where a point of another shape lies along the axis.</li>
+<li><strong>The ring:</strong> drag to turn about the centre, in steps of 15° (Alt: 0.1°).</li>
+<li><strong>The centre:</strong> drag to move freely; the centre snaps to points, so a point of the
+selection lands exactly on a point of another shape.</li>
+<li><strong>Exact values:</strong> double-click an arrow, the ring or the centre and type the distance,
+the angle, or ΔX and ΔY (two numbers), then Enter.</li>
+<li><strong>Put the Compass on a point first:</strong> tap <strong>Space</strong> (press and let go). The Compass
+turns grey: drag its centre onto a corner, a hole’s centre or a line’s middle (the
+selection’s own points count too), or drag an arrow to turn its axes, which lie along a
+line under the cursor. Tap Space again to lock it: the next drag is measured from
+there. Holding Space while dragging still moves the view.</li>
+<li><strong>Right-drag</strong> an arrow, the ring or the centre, and choose when you let go:
+<em>Move here</em> (or <em>Turn here</em>), <em>Copy here</em> (the copy is then selected, so you can place
+the next one), <strong>Linear array…</strong> (from an arrow or the centre: count and step, the step
+as dragged) or <strong>Circular array…</strong> (from the ring: count and angle, round the Compass’s
+centre, the angle as dragged). The arrays show their copies before <em>Create</em>. The menu
+starts with the dragged distance or angle (ΔX and ΔY from the centre), selected: type an
+exact value over it before choosing, or press <strong>Enter</strong> to move or turn by it.</li>
+<li><strong>Right-click</strong> the centre or an arrow (without dragging) for <strong>To point</strong> or <strong>To centre
+point</strong>, then click: the selection moves so that the Compass’s centre comes to the
+clicked point, snapping as when dragging (Alt: no snapping), or to the centre of the
+shape you click (a circle’s or an arc’s centre, else the middle of its box). From the
+centre it moves in X and Y; from an arrow only along that axis, as far as the point
+lies along it. The outline shows where it will go while you point; <strong>Esc</strong> cancels.
+Unlocked, the same moves the Compass itself the same way, and the selection stays.</li>
+</ul>
+<p>Every move or turn is one undo step, and the shapes keep their ids, so the operations
+that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or
+whole drawing only moves and turns. The command line does the same with <code>shape move</code>,
+<code>shape turn --about</code>, <code>shape copy</code>, <code>shape array-linear</code> and <code>shape array-polar</code>.</p>
 <h2 id="on-the-command-line-2"><a class="header" href="#on-the-command-line-2">On the command line</a></h2>
 <pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
 chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
@@ -1825,6 +1911,7 @@ chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
 chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
+chipload shape array-linear part.chipload 8 --count 5 --step 20,10   # a line of copies, any direction
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape move part.chipload 8 9 --dx 10 --dy -5
 chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)
@@ -2394,14 +2481,16 @@ chipload set sign.chipload operations.0.stepover=0.1 operations.0.angle=0.785
 <p>A <strong>Relief</strong> carves the model in parallel lines across its area, each point as low as the
 tool can go without cutting into the model: the tool is lowered onto the model’s triangles
 until it first touches one. A ball nose gives the smoothest finish; a tapered ball nose
-reaches finer detail; an end mill or a V-bit works too, with their own marks.</p>
+reaches finer detail; a <a href="#the-projects-tools">bull nose</a> (an end mill
+with round corners) finishes a wide relief faster; a square end mill or a V-bit works too,
+with their own marks.</p>
 <ul>
 <li><strong>Area:</strong> with <code>--model</code>, the model’s outline, with its <a href="#a-rim-and-a-ramp">rim</a> round it.
 Other closed shapes can be selected for the area instead: a drawn rectangle, say. Without
 a rim the tool’s centre stays inside the area, which leaves a groove the tool’s width
 round the model and the board beyond untouched.</li>
 <li><strong><code>stepover</code>:</strong> the distance between lines as a share of the tool; smaller is smoother and
-slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
+slower. With a ball or bull nose a new relief takes the widest stepover that leaves ridges of
 0.02 mm between its lines on flat ground, which wood doesn’t show: 20 % for a 2 mm ball,
 16 % for 1/8“, 12 % for 6 mm. The relief’s form shows the ridges for the stepover you set.
 Finer only takes longer: a 2 mm ball at 10 % leaves ridges of 0.005 mm and takes about
@@ -2514,7 +2603,8 @@ surface once more, no levels, with its lines across the roughing’s, and leaves
 allowance. Ground that rises along either set of lines comes out clean, so a box rim’s four
 ramps do; on curved ground the steps shrink to the smoothing’s stepover times the slope. A
 larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
-change.</p>
+change. A roughing end mill with a corner radius (a bull nose) leaves smaller steps to
+begin with, and smooths them better.</p>
 <p>In the window: <em>Add smoothing pass</em> on the relief’s or the roughing pass’s row in the
 Browser (right-click), or in the roughing pass’s properties; on a relief without a roughing
 pass it is greyed out, its hover saying to add one first. The pass shows under the relief
@@ -2573,8 +2663,9 @@ radius;</li>
 board of its own.</li>
 </ul>
 </li>
-<li><strong>Edge</strong>: a <strong>Chamfer</strong> of that width round the outline, cut with the V-bit centred on the
-outline before the sign is cut out (the other half of the groove is in the waste).</li>
+<li><strong>Edge</strong>: a <a href="#chamfer">chamfer</a> of that width round the outline, cut with
+the V-bit before the sign is cut out: its flank on the outline, its tip in the waste.
+Signs made before 0.37.0 keep their edge as a follow path centred on the outline.</li>
 <li><strong>V-bit</strong>, <strong>End mill</strong>: the project’s tools, then under <em>From your library:</em> your tool
 library’s (marked <strong>+</strong>). A library tool is copied into the project when you click <em>Make
 sign</em>, not before. A project without such a tool starts on the library’s. The V-bit
@@ -3284,6 +3375,28 @@ lead from the cleared side onto the wall.</p>
 <p><strong>Corners</strong> puts dogbones or T-bones into the pocket wall’s inside corners, as on
 <a href="#dogbones-and-t-bones">profiles</a>, and any corner can have its own choice
 (<a href="#corner-by-corner">corner by corner</a>). Not with <a href="#rest-machining-1">rest machining</a>.</p>
+<h2 id="finishing-pass-1"><a class="header" href="#finishing-pass-1">Finishing pass</a></h2>
+<p><strong>Finishing pass</strong> roughs the pocket with a little material left, then takes it off in light
+cuts with the same tool: cleaner walls without a step mark at every depth, a cleaner floor,
+and a true size for a fit (an inlay, a lid, a recess for a hinge or a magnet).</p>
+<ul>
+<li><strong>Wall allowance</strong> (0.3 mm when ticked): left on every wall and island by the roughing.
+Less than the tool radius.</li>
+<li><strong>Floor allowance</strong> (0.2 mm when ticked): the roughing stops this far above the end
+depth. At most the step down; 0 on a pocket cut through. Either can be 0, not both.</li>
+<li>For each area of the pocket, in turn: the roughing, then one level pass over the floor at
+the end depth (the roughing’s rings once more), then one lap of each wall at full depth.
+The lap goes down in the roughed area and onto the wall along the lead, or straight across
+the allowance, and leaves the same way.</li>
+<li>Dogbones are cut by the roughing, the allowance short, and the lap skims them.</li>
+<li>Where the pocket is too narrow to rough with the allowance (a gap between an island and a
+wall only a little wider than the tool), the lap would cut it full width at full depth, so
+the pocket is refused with the place: use a smaller allowance or a smaller tool.</li>
+<li>Not on a rest pocket, which is a light clean-up already. Rest passes still come after a
+finished pocket and clear what it leaves.</li>
+<li>On the command line: <code>chipload set part.chipload 'operations.0.finish={"wall":0.3,"floor":0.2}'</code>,
+or <code>null</code> for none. The setup sheet says “finishing: walls 0.3 mm, floor 0.2 mm”.</li>
+</ul>
 <h2 id="rest-machining"><a class="header" href="#rest-machining">Rest machining</a></h2>
 <p>A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
 it in the Browser. See <a href="#rest-machining-1">Rest machining</a>.</p>
@@ -3317,6 +3430,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
 <tr><td><code>corner_choices</code></td><td>corners with their own choice, as on <a href="#in-the-file-1">profiles</a>; left out when there are none</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
+<tr><td><code>finish</code></td><td>Finishing pass: <code>{"wall": …, "floor": …}</code>, the allowances; left out when there is none</td></tr>
 <tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, slot_feed, slot_step_down, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>
 </table>
@@ -3695,6 +3809,518 @@ in mm, feeds in mm/min, angles in radians.</p>
 </table>
 </div>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="chamfer"><a class="header" href="#chamfer">Chamfer</a></h1>
+<p><strong>Chamfer</strong> breaks the top edge of closed shapes with a V-bit: the edge of a box side, a
+tray, a shelf or a sign, or the rim of a hole or a pocket. You give the width you want at
+the surface; the depth follows from the bit’s angle.</p>
+<p>Select the shapes, then <strong>Chamfer</strong> (ribbon, OPERATION, the small button under Styles), or
+press <strong>S</strong> over the canvas, then <strong>C</strong>.</p>
+<h2 id="how-it-cuts"><a class="header" href="#how-it-cuts">How it cuts</a></h2>
+<p>The bit’s flank runs on the line and its tip stays in the waste:</p>
+<ul>
+<li>the tool’s centre runs half the bit’s flat tip outside the line, on the waste side (on the
+line itself with a pointed bit);</li>
+<li>it goes down as deep as the width over the tangent of half the bit’s angle: with a 90°
+bit, as deep as the width (a 45° chamfer); with a 60° bit, 1.73 × the width (a steeper
+one).</li>
+</ul>
+<p>So the chamfer comes out as wide as you typed, and a flat-tipped bit leaves no step on the
+part. The other flank grooves the waste, which the cut-out or the pocket takes away.</p>
+<ul>
+<li><strong>The part’s outside corners</strong> are turned round as a cone, as a chamfer bit would.</li>
+<li><strong>Its inside corners</strong> meet in a mitre.</li>
+<li><strong>Open shapes</strong> are skipped, with a note: use a <a href="#follow-path">follow path</a> for them.</li>
+</ul>
+<p><strong>Order:</strong> a new chamfer goes at the end of its part, like any new operation, after the
+cut-out. That works: the tabs or the onion skin hold the part, the cut-out’s slot is on the
+waste side, and a chamfer stays far above the tabs. Drag it before the cut-out if you’d
+rather have the part held by the board while it is chamfered; with the V-bit between two
+end mill operations, that costs a tool change.</p>
+<h2 id="settings-1"><a class="header" href="#settings-1">Settings</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Tool</strong></td><td>a V-bit with its angle; any other tool is refused</td></tr>
+<tr><td><strong>Side</strong></td><td>where the waste is: <em>outside</em> the shape (a part’s outline) or <em>inside</em> it (a hole’s or a pocket’s rim). A new chamfer takes it from the shapes, as a new profile does: inside for holes, outside for outlines, two chamfers when both are selected</td></tr>
+<tr><td><strong>Width</strong></td><td>at the surface, from the line into the part; 1 mm for a new one. At most half the bit’s cone (its diameter less its tip, halved), or the shank would rub: 6.25 mm with a 12.7 mm bit with a 0.2 mm tip</td></tr>
+<tr><td><strong>Depth</strong></td><td>shown beneath: “2 mm with the 90° bit”</td></tr>
+<tr><td><strong>Start depth</strong></td><td>where the edge is: 0 for the stock top, more for the edge of a step an earlier operation cut</td></tr>
+<tr><td><strong>Step down</strong></td><td>off: one pass. On: equal passes no deeper than this, the last at the full depth</td></tr>
+<tr><td><strong>Direction</strong></td><td>climb or conventional</td></tr>
+<tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min; from the V-bit’s cutting data</td></tr>
+<tr><td><strong>Entry</strong></td><td><em>plunge</em> (a V-bit goes down on its point), or <em>ramp</em> along the path</td></tr>
+</tbody>
+</table>
+</div>
+<p>The setup sheet says, for example, “Chamfer 2 mm wide, outside, climb”, with its depths.</p>
+<p><a href="#signs-and-frames">New sign…</a> adds a chamfer for its edge.</p>
+<h2 id="command-line-1"><a class="header" href="#command-line-1">Command line</a></h2>
+<pre><code>chipload op add part.chipload chamfer --shapes 1,2 --width 2
+chipload op add part.chipload chamfer --layer OUTLINE --side outside --tool 3
+chipload set part.chipload operations.4.width=3
+</code></pre>
+<p><code>--width</code> is the width at the surface (1 mm if left out); <code>--side</code> sets the waste side in
+place of the one the shapes tell. A chamfer takes no <code>--depth</code> or <code>--through</code>.</p>
+<h2 id="in-the-file-5"><a class="header" href="#in-the-file-5">In the file</a></h2>
+<p><code>"type": "chamfer"</code> in the <a href="#operation">project file</a>. Lengths
+are in mm, feeds in mm/min. A project with a chamfer opens in Chipload 0.37.0 and later.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Setting</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>Name</td></tr>
+<tr><td><code>enabled</code></td><td>the tick on the operation’s row in the Browser</td></tr>
+<tr><td><code>part</code></td><td>the <a href="#parts">part</a> it belongs to</td></tr>
+<tr><td><code>select</code></td><td>the geometry: <code>{"layer": "NAME"}</code> or <code>{"shapes": [ids]}</code></td></tr>
+<tr><td><code>tool</code></td><td>Tool: the project tool’s id, a V-bit</td></tr>
+<tr><td><code>side</code></td><td>Side: <code>outside</code> or <code>inside</code></td></tr>
+<tr><td><code>width</code></td><td>Width</td></tr>
+<tr><td><code>start_depth</code></td><td>Start depth</td></tr>
+<tr><td><code>step_down</code></td><td>Step down; <code>null</code> for one pass</td></tr>
+<tr><td><code>direction</code></td><td>Direction: <code>climb</code> or <code>conventional</code></td></tr>
+<tr><td><code>feed</code></td><td>Feed</td></tr>
+<tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
+<tr><td><code>entry</code></td><td>Entry: plunge or ramp</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="flute"><a class="header" href="#flute">Flute</a></h1>
+<p><strong>Flute</strong> cuts a decorative groove along open shapes that dives in gradually at its start,
+runs at full depth, and comes up gradually at its end. Flutes are cut down the face of
+columns, table legs and pilasters, across panels, as the rays of a sunburst, or along a
+frame. With a ball nose or a V-bit, each end narrows to a point.</p>
+<p>Draw the flutes as lines, arcs or open polylines, select them, then <strong>Flute</strong> (ribbon,
+OPERATION, the small button beside Chamfer), or press <strong>S</strong> over the canvas, then <strong>L</strong>.</p>
+<h2 id="how-it-cuts-1"><a class="header" href="#how-it-cuts-1">How it cuts</a></h2>
+<p>The tool’s centre follows each shape on the line, as a <a href="#follow-path">follow path</a> does. Along
+the shape, the depth goes:</p>
+<ol>
+<li>from the <strong>start depth</strong> at the shape’s first end,</li>
+<li>down over the <strong>start ramp</strong> to the <strong>depth</strong>,</li>
+<li>at the depth through the middle,</li>
+<li>up over the <strong>end ramp</strong> to the start depth at the shape’s last end.</li>
+</ol>
+<p>A ramp of 0 makes a square end: the flute is at full depth right at that end. Use it for a
+flute that runs off the edge of the board.</p>
+<ul>
+<li><strong>First and last end</strong> are the ends the shape was drawn from and to. Most flutes have the
+same ramp at both ends, so this rarely matters. A shape drawn the other way round swaps
+its ramps.</li>
+<li><strong>Ramps longer than the shape</strong> (both together): both are shortened in the same
+proportion, so the flute reaches its depth at one point only. A note names the shape.</li>
+<li><strong>Closed shapes</strong> are skipped with a note. A closed groove is a <a href="#follow-path">follow path</a>.</li>
+</ul>
+<p><strong>Passes:</strong> deeper than the step down, the flute is cut in equal passes. Each pass follows
+the same ramps, cut off at its own depth, so the ramps keep their slope and the tool never
+has more than one step of material under it. The tool goes back and forth along the
+shape, with no retract between passes; at a square end it goes straight down one step at
+the plunge feed.</p>
+<h2 id="settings-2"><a class="header" href="#settings-2">Settings</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Tool</strong></td><td>a ball nose (a round-bottomed flute), a V-bit (a V-groove, no deeper than its cone) or an end mill (a flat-bottomed groove). A drill is refused</td></tr>
+<tr><td><strong>Start depth</strong></td><td>where the flute’s ends are: 0 for the stock top, more for a flute in the floor of a pocket</td></tr>
+<tr><td><strong>Depth</strong></td><td>through the middle. The width at the top is shown beneath: “6 mm wide with the 6 mm ball nose”</td></tr>
+<tr><td><strong>Step down</strong></td><td>off: one pass. On: equal passes no deeper than this, the last at the depth</td></tr>
+<tr><td><strong>Start ramp</strong>, <strong>End ramp</strong></td><td>how far along the shape, from each end, the flute reaches its depth, mm; 20 mm for a new flute. 0: a square end</td></tr>
+<tr><td><strong>Ramp</strong></td><td><em>straight</em>: an even taper. <em>Curved</em>: steepest at the surface, easing into the floor, so no line shows where the ramp meets the flat</td></tr>
+<tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min. The feed is used along the whole shape, ramps included; the plunge feed only going straight down</td></tr>
+</tbody>
+</table>
+</div>
+<p>A new flute takes the project’s first ball nose (else its first V-bit), as deep as the ball’s
+radius for a half-round flute (3 mm with another tool, no deeper than a V-bit’s cone).</p>
+<p>The report says how wide the flute is at the top: “the flute is 6 mm wide at the top”. The
+setup sheet says, for example, “Flute, ramps 20 / 20 mm, straight ramps”, with its depths.</p>
+<h2 id="command-line-2"><a class="header" href="#command-line-2">Command line</a></h2>
+<pre><code>chipload op add part.chipload flute --shapes 4,5,6 --depth 4 --ramp 20
+chipload op add part.chipload flute --layer FLUTES --ramp-start 0 --ramp-end 30 --ramp-shape curved
+chipload set part.chipload operations.2.ramp_end=0
+</code></pre>
+<p><code>--ramp</code> sets both ends; <code>--ramp-start</code> and <code>--ramp-end</code> one each; <code>--ramp-shape</code> is
+<code>straight</code> or <code>curved</code>. A flute takes no <code>--through</code>.</p>
+<h2 id="in-the-file-6"><a class="header" href="#in-the-file-6">In the file</a></h2>
+<p><code>"type": "flute"</code> in the <a href="#operation">project file</a>. Lengths
+are in mm, feeds in mm/min. A project with a flute opens in Chipload 0.37.0 and later.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Setting</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>Name</td></tr>
+<tr><td><code>enabled</code></td><td>the tick on the operation’s row in the Browser</td></tr>
+<tr><td><code>part</code></td><td>the <a href="#parts">part</a> it belongs to</td></tr>
+<tr><td><code>select</code></td><td>the geometry: <code>{"layer": "NAME"}</code> or <code>{"shapes": [ids]}</code></td></tr>
+<tr><td><code>tool</code></td><td>Tool: the project tool’s id</td></tr>
+<tr><td><code>start_depth</code></td><td>Start depth</td></tr>
+<tr><td><code>end_depth</code></td><td>Depth</td></tr>
+<tr><td><code>step_down</code></td><td>Step down; <code>null</code> for one pass</td></tr>
+<tr><td><code>ramp_start</code></td><td>Start ramp</td></tr>
+<tr><td><code>ramp_end</code></td><td>End ramp</td></tr>
+<tr><td><code>ramp_shape</code></td><td>Ramp: <code>straight</code> or <code>curved</code></td></tr>
+<tr><td><code>feed</code></td><td>Feed</td></tr>
+<tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="pattern"><a class="header" href="#pattern">Pattern</a></h1>
+<p><strong>Pattern</strong> engraves a texture of grooves inside closed shapes: lines, a cross-hatch,
+rings or waves. Use it for the background of a sign behind raised letters, a door panel, a
+box lid or a coaster. The grooves stop at the shape’s edge and leave its holes alone.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/pattern.png" alt="A cross-hatch round two holes, rings in a circle and waves with ramped ends, simulated"><span class="img-wrapper"><img src="images/pattern.png" alt="A cross-hatch round two holes, rings in a circle and waves with ramped ends, simulated"></span></label></p>
+<p>Select the shapes, with the shapes inside them that should stay untouched (the letters of
+a sign), then <strong>Pattern</strong> (ribbon, OPERATION, the small button under Flute), or press <strong>S</strong> over
+the canvas, then <strong>E</strong>.</p>
+<h2 id="what-it-fills"><a class="header" href="#what-it-fills">What it fills</a></h2>
+<p>The shapes are taken as a <a href="#pocket">pocket</a> takes them: a selected shape is filled, and
+the selected shapes inside it are holes. Shapes inside that aren’t selected don’t count.
+Open shapes are skipped with a note.</p>
+<ul>
+<li><strong>Inside the edge</strong> (on for a new pattern): the grooves stop half a groove’s width in
+from the line, so none cuts past the shape or into a hole. Off: they run up to the line,
+centred on it; use it when the edge is cut away or covered later.</li>
+<li>Pieces shorter than a groove’s width are left out.</li>
+</ul>
+<h2 id="patterns"><a class="header" href="#patterns">Patterns</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>Settings</th><th>Grooves</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Lines</strong></td><td>Angle, Spacing</td><td>parallel lines</td></tr>
+<tr><td><strong>Cross-hatch</strong></td><td>Angle, Spacing, Angle between</td><td>two sets of lines: 90° between gives squares, 60° diamonds</td></tr>
+<tr><td><strong>Rings</strong></td><td>Spacing</td><td>the outline repeated inwards, and round the holes</td></tr>
+<tr><td><strong>Waves</strong></td><td>Angle, Spacing, Wavelength, Height</td><td>parallel waves; the height is from top to bottom</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Patterns of short strokes</strong>, for a fluted texture: each stroke is a groove of its own,
+so with ramped ends (see <em>Ends</em> below) every stroke tapers to a point at both ends, as a
+flute does.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/pattern-strokes.png" alt="Dashes round two holes, scales, a sunburst and herringbone, each stroke fluted, simulated"><span class="img-wrapper"><img src="images/pattern-strokes.png" alt="Dashes round two holes, scales, a sunburst and herringbone, each stroke fluted, simulated"></span></label></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Pattern</th><th>Settings</th><th>Strokes</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Dashes</strong></td><td>Angle, Spacing, Stroke length, Gap</td><td>rows of strokes with gaps between, every other row shifted half a stroke and gap, as bricks</td></tr>
+<tr><td><strong>Herringbone</strong></td><td>Angle, Spacing, Stroke length</td><td>columns of strokes at 45°, the next column mirrored, meeting in chevrons</td></tr>
+<tr><td><strong>Scales</strong></td><td>Angle, Spacing, Radius</td><td>rows of half circles side by side, every other row shifted by a radius</td></tr>
+<tr><td><strong>Sunburst</strong></td><td>Spacing, Stroke length, Pitch</td><td>round the middle of each shape: rings of strokes pointing outwards, <em>pitch</em> apart round the ring, every other ring turned half a pitch</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li>
+<p><strong>Whole strokes only</strong> (on for a new stroke pattern): a stroke the shape’s edge or a hole
+would cut is left out, so every stroke keeps both tapered ends. Off: strokes are clipped
+at the edge, as lines are.</p>
+</li>
+<li>
+<p>Choosing a stroke pattern fills in sizes from the groove’s width (strokes three widths
+long, at least 4 mm) and, if the ends were square, ramps of a third of a stroke.</p>
+</li>
+<li>
+<p><strong>Spacing</strong> is from one groove’s centre to the next. Narrower than a groove, the grooves
+overlap (a note says so) and the area comes out roughened.</p>
+</li>
+<li>
+<p><strong>Angle</strong> is the lines’ direction from the X axis, counter-clockwise.</p>
+</li>
+<li>
+<p>Lines and waves are laid out from the drawing’s origin, so a pattern carries on unbroken
+from one shape to the next.</p>
+</li>
+</ul>
+<h2 id="how-it-cuts-2"><a class="header" href="#how-it-cuts-2">How it cuts</a></h2>
+<p>Every groove is cut at one depth, in passes if a step down is set. Each groove is cut
+like a <a href="#flute">flute</a>: back and forth through its passes without lifting, then the tool
+retracts and moves to the next groove. Rings go down where they start, as a closed
+<a href="#follow-path">follow path</a>.</p>
+<p><strong>Ends:</strong> square, the tool going straight down; or ramped in and out over a length, as a
+flute’s, so with a V-bit each groove ends in a point and the texture looks softer.</p>
+<p>A pattern with more than 50 000 grooves is refused: widen the spacing.</p>
+<h2 id="settings-3"><a class="header" href="#settings-3">Settings</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Tool</strong></td><td>a V-bit (the usual, no deeper than its cone), a ball nose or an end mill. A drill is refused</td></tr>
+<tr><td><strong>Pattern</strong></td><td>Lines, Cross-hatch, Rings or Waves, and their settings above</td></tr>
+<tr><td><strong>Inside the edge</strong></td><td>grooves inside the line (on) or up to it (off)</td></tr>
+<tr><td><strong>Start depth</strong></td><td>0 for the stock top, more for a pattern in the floor of a pocket</td></tr>
+<tr><td><strong>Depth</strong></td><td>the grooves’ depth; each groove’s width at the top is shown beneath</td></tr>
+<tr><td><strong>Step down</strong></td><td>off: one pass. On: equal passes no deeper than this</td></tr>
+<tr><td><strong>Ends</strong></td><td>0 for square ends, or the length each groove ramps in and out</td></tr>
+<tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min</td></tr>
+</tbody>
+</table>
+</div>
+<p>A new pattern takes the project’s first V-bit, 0.5 mm deep (no deeper than its cone),
+lines at 45°, the spacing twice the groove’s width (at least 1 mm), inside the edge, with
+square ends.</p>
+<p>The setup sheet says, for example, “Pattern, cross-hatch 4 mm apart at 45°, 90° between,
+inside the edge”.</p>
+<h2 id="command-line-3"><a class="header" href="#command-line-3">Command line</a></h2>
+<pre><code>chipload op add part.chipload pattern --shapes 1,2,3 --pattern cross --spacing 4 --angle 45
+chipload op add part.chipload pattern --layer PANEL --pattern waves --spacing 5 --wavelength 25 --height 4 --ramp 3
+chipload op add part.chipload pattern --shapes 4 --pattern rings --spacing 3 --on-line
+chipload set part.chipload operations.0.pattern.spacing=5
+</code></pre>
+<p><code>--between</code> sets a cross-hatch’s angle between (90 if left out); <code>--wavelength</code> and
+<code>--height</code> a wave’s (4 spacings and one spacing if left out); <code>--ramp</code> the ends;
+<code>--on-line</code> turns off <em>Inside the edge</em>. A pattern takes no <code>--through</code>.</p>
+<p>Stroke patterns: <code>--pattern dashes|herringbone|scales|sunburst</code>, with <code>--length</code>, <code>--gap</code>,
+<code>--radius</code> and <code>--pitch</code>; <code>--clip</code> turns off <em>Whole strokes only</em>. Without <code>--ramp</code> they
+are fluted:</p>
+<pre><code>chipload op add part.chipload pattern --shapes 1,2,3 --pattern dashes --length 6 --gap 3 --angle 30
+chipload op add part.chipload pattern --shapes 4 --pattern sunburst --pitch 5
+</code></pre>
+<h2 id="in-the-file-7"><a class="header" href="#in-the-file-7">In the file</a></h2>
+<p><code>"type": "pattern"</code> in the <a href="#operation">project file</a>. Lengths
+are in mm, angles in radians, feeds in mm/min. A project with a pattern opens in Chipload
+0.37.0 and later.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Setting</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>Name</td></tr>
+<tr><td><code>enabled</code></td><td>the tick on the operation’s row in the Browser</td></tr>
+<tr><td><code>part</code></td><td>the <a href="#parts">part</a> it belongs to</td></tr>
+<tr><td><code>select</code></td><td>the geometry: <code>{"layer": "NAME"}</code> or <code>{"shapes": [ids]}</code></td></tr>
+<tr><td><code>tool</code></td><td>Tool: the project tool’s id</td></tr>
+<tr><td><code>pattern</code></td><td>Pattern: <code>{"kind": "lines", "angle", "spacing"}</code>, <code>{"kind": "cross", "angle", "spacing", "between"}</code>, <code>{"kind": "rings", "spacing"}</code>, <code>{"kind": "waves", "angle", "spacing", "wavelength", "height"}</code>, <code>{"kind": "dashes", "angle", "spacing", "length", "gap", "whole"}</code>, <code>{"kind": "herringbone", "angle", "spacing", "length", "whole"}</code>, <code>{"kind": "scales", "angle", "spacing", "radius", "whole"}</code> or <code>{"kind": "sunburst", "spacing", "length", "pitch", "whole"}</code></td></tr>
+<tr><td><code>inside</code></td><td>Inside the edge</td></tr>
+<tr><td><code>start_depth</code></td><td>Start depth</td></tr>
+<tr><td><code>end_depth</code></td><td>Depth</td></tr>
+<tr><td><code>step_down</code></td><td>Step down; <code>null</code> for one pass</td></tr>
+<tr><td><code>ramp</code></td><td>Ends; 0 for square</td></tr>
+<tr><td><code>feed</code></td><td>Feed</td></tr>
+<tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="prism"><a class="header" href="#prism">Prism</a></h1>
+<p><strong>Prism</strong> leaves closed shapes standing as roofs: their sides slope up from the edges to a
+sharp ridge along the centre line, as hand-chiselled raised letters. It is the opposite of
+a <a href="#v-carve">V-carve</a>, which sinks the shape into the board, and it uses the same drawing
+and the same V-bit.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/prism.png" alt="A rectangle, a star and a ring carved as prisms, and a rectangle bevelled with a flat top, simulated"><span class="img-wrapper"><img src="images/prism.png" alt="A rectangle, a star and a ring carved as prisms, and a rectangle bevelled with a flat top, simulated"></span></label></p>
+<p>Select the shapes, with the shapes inside them that are holes (an O’s counter), then press
+<strong>S</strong> over the canvas and <strong>R</strong>, or choose <strong>Operation &gt; New Prism</strong>, or <em>New operation</em>
+in a part’s right-click menu in the Browser.</p>
+<h2 id="how-it-cuts-3"><a class="header" href="#how-it-cuts-3">How it cuts</a></h2>
+<p>The V-bit’s tip runs once round each outline, going as deep as the shape is wide there:
+the radius of the largest circle inside the shape that touches the outline at that point,
+over the tangent of half the bit’s angle. The bit’s inner flank then reaches the surface
+exactly on the centre line, so one lap round the outline cuts the whole roof.</p>
+<ul>
+<li>A stroke 10 mm wide comes out as a ridge 5 mm high with a 90° bit, 8.7 mm with a 60° bit.</li>
+<li>At a sharp outside corner the edge comes up to the surface, so corners end in points, as
+a chiselled serif does. Where strokes meet, the junction rises to a peak.</li>
+<li>With a flat-tipped bit, the tip runs half its width outside the line, so the edge has no
+step.</li>
+<li>Each lap starts at its shallowest point, at the surface where the shape has a corner.</li>
+</ul>
+<p><strong>Wider than the bit:</strong> where a shape is wider than the bit’s cone can bring to a ridge,
+its edges go as deep as the cone allows and the middle stays flat, at the surface. A note
+says which shape. <strong>Max depth</strong> does the same on purpose: bevelled raised shapes with a
+flat top, every edge no deeper than you set.</p>
+<p><strong>Round the shapes:</strong> the bit’s other flank cuts outwards, leaving a V-shaped trench round
+each shape as deep as its edge. Leave it for a carved-in look, or clear the background
+first with a <a href="#pocket">pocket</a> as deep as the deepest edge (the report says how deep)
+for shapes standing on a flat background. Where shapes stand so close that one’s trench
+reaches the next, that shape’s lower edge is cut into: a note names the two shapes and
+how much deeper the edge goes there; space them further apart, or set a max depth.</p>
+<p>Open shapes are skipped with a note.</p>
+<h2 id="settings-4"><a class="header" href="#settings-4">Settings</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Tool</strong></td><td>a V-bit with its angle; any other tool is refused</td></tr>
+<tr><td><strong>Start depth</strong></td><td>where the surface is: 0 for the stock top, more for a prism in the floor of a pocket</td></tr>
+<tr><td><strong>Max depth</strong></td><td>off: as deep as the shapes and the bit’s cone need. On: no deeper than this, for bevelled shapes with a flat top. Beneath it, how deep the edges can go with the bit</td></tr>
+<tr><td><strong>Step down</strong></td><td>off: one lap. On: equal passes, each the same lap no deeper than its level</td></tr>
+<tr><td><strong>Direction</strong></td><td>climb or conventional</td></tr>
+<tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min</td></tr>
+</tbody>
+</table>
+</div>
+<p>A new prism takes the project’s first V-bit, no max depth, the tool’s step down, climb.</p>
+<p>The report gives the deepest edge (“the deepest edge is 6 mm”). The setup sheet says
+“Prism, climb”, with the depths “0 to at most 6.35” (the bit’s cone or the max depth).</p>
+<h2 id="command-line-4"><a class="header" href="#command-line-4">Command line</a></h2>
+<pre><code>chipload op add part.chipload prism --shapes 1,2,3
+chipload op add part.chipload prism --layer LETTERS --max-depth 3
+chipload set part.chipload operations.0.max_depth=2.5
+</code></pre>
+<p><code>--max-depth</code> gives a flat top; a prism takes no <code>--depth</code> or <code>--through</code>, as its depth
+follows from the shapes.</p>
+<h2 id="in-the-file-8"><a class="header" href="#in-the-file-8">In the file</a></h2>
+<p><code>"type": "prism"</code> in the <a href="#operation">project file</a>. Lengths
+are in mm, feeds in mm/min. A project with a prism opens in Chipload 0.37.0 and later.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Setting</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>Name</td></tr>
+<tr><td><code>enabled</code></td><td>the tick on the operation’s row in the Browser</td></tr>
+<tr><td><code>part</code></td><td>the <a href="#parts">part</a> it belongs to</td></tr>
+<tr><td><code>select</code></td><td>the geometry: <code>{"layer": "NAME"}</code> or <code>{"shapes": [ids]}</code></td></tr>
+<tr><td><code>tool</code></td><td>Tool: the project tool’s id, a V-bit</td></tr>
+<tr><td><code>start_depth</code></td><td>Start depth</td></tr>
+<tr><td><code>max_depth</code></td><td>Max depth; <code>null</code> for as deep as needed</td></tr>
+<tr><td><code>step_down</code></td><td>Step down; <code>null</code> for one pass</td></tr>
+<tr><td><code>direction</code></td><td>Direction: <code>climb</code> or <code>conventional</code></td></tr>
+<tr><td><code>feed</code></td><td>Feed</td></tr>
+<tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="moulding"><a class="header" href="#moulding">Moulding</a></h1>
+<p><strong>Moulding</strong> sweeps a profile along a path: a cove or an ogee round a table top’s face, a
+bead along a door frame, a round-over beside a raised panel, a decorative band across a
+lid. You give the path (the line the moulding runs along) and the profile (its
+cross-section); a ball nose cuts it in passes along the path.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/moulding.png" alt="An ogee round a panel, a bead, a cove with tapered ends and a drawn profile along an arc with round ends, simulated"><span class="img-wrapper"><img src="images/moulding.png" alt="An ogee round a panel, a bead, a cove with tapered ends and a drawn profile along an arc with round ends, simulated"></span></label></p>
+<p>Select the paths (open or closed shapes), then press <strong>S</strong> over the canvas and <strong>M</strong>, or
+choose <strong>Operation &gt; New Moulding</strong>, or <em>New operation</em> in a part’s right-click menu in the
+Browser.</p>
+<h2 id="the-profile"><a class="header" href="#the-profile">The profile</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Profile</th><th>Settings</th><th>Cross-section</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Cove</strong></td><td>Radius</td><td>a hollow quarter circle: as deep as the radius at the path, at the surface the radius in</td></tr>
+<tr><td><strong>Round-over</strong></td><td>Radius</td><td>the edge rounded: a convex quarter circle</td></tr>
+<tr><td><strong>Ogee</strong></td><td>Width, Depth</td><td>an S: a cove into a round-over</td></tr>
+<tr><td><strong>Bead</strong></td><td>Radius</td><td>a raised half round, its top at the surface</td></tr>
+<tr><td><strong>Flute</strong></td><td>Radius</td><td>a half-round groove</td></tr>
+<tr><td><strong>Drawn shape</strong></td><td>Shape</td><td>any open shape you draw, read as the section</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>A drawn profile</strong> is the section as you would draw it on paper: across to the right
+(away from the path), up the page. Its leftmost point is at the path, its highest point is
+the surface; where it doubles back, the lowest part counts. Draw it as <strong>construction
+geometry</strong> (so it is never cut itself), anywhere on the canvas. Change the shape, and the
+moulding follows.</p>
+<h2 id="the-side-and-the-ends"><a class="header" href="#the-side-and-the-ends">The side and the ends</a></h2>
+<ul>
+<li><strong>Side:</strong> <em>outside</em> or <em>inside</em> a closed path, <em>left</em> or <em>right</em> of an open path as it
+was drawn. A new moulding takes outside for an outline, inside for a hole, left for an
+open path.</li>
+<li><strong>Corners:</strong> at a corner turning away from the profile, the moulding turns round it; at
+a corner turning towards it, the two meet in a mitre, as a mitred frame’s corner.</li>
+<li><strong>Ends</strong> of an open path:
+<ul>
+<li><strong>square:</strong> the full profile to the path’s end, for a moulding that runs off the
+board’s edge;</li>
+<li><strong>round:</strong> the profile turns a quarter round the path’s end point, as a moulding bit
+stopped and lifted out leaves it;</li>
+<li><strong>tapered:</strong> the moulding fades into the board over a length, straight or curved, as
+a stopped flute does. Along the taper the tool rises and falls with the section.</li>
+</ul>
+</li>
+</ul>
+<h2 id="how-it-cuts-4"><a class="header" href="#how-it-cuts-4">How it cuts</a></h2>
+<p>For each distance from the path, the tool goes as deep as its own shape allows without
+cutting below the profile: Chipload drops the tool’s shape onto the section. Each pass is
+the path’s offset at that distance, cut at that depth, one <strong>stepover</strong> apart across the
+profile, so the finish runs along the moulding. With a <strong>step down</strong>, a deep profile is
+cut in levels, each pass no deeper than its level. The tool lifts between passes.</p>
+<p>Where the profile has a curve tighter than the tool, or a wall the ball can’t reach (the
+sides of a bead, a vertical step in a drawn profile), the tool bridges it; a note says how
+far it stays above the profile there. A smaller ball, or an end mill, reaches further.</p>
+<p>The first pass runs on the path itself, so with a ball nose half the tool cuts beyond the
+path at the profile’s depth there: right for a cove, ogee or round-over at a part’s edge,
+where beyond the path is waste. A profile that starts at the surface (a bead, a flute, a
+drawn band) cuts nothing beyond the path.</p>
+<h2 id="settings-5"><a class="header" href="#settings-5">Settings</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Setting</th><th></th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Tool</strong></td><td>a ball nose (the usual) or an end mill; a V-bit or a drill is refused</td></tr>
+<tr><td><strong>Profile</strong></td><td>the shape and its size, or the drawn shape. The list shows each profile’s section beside its name, and a drawing of the chosen one, true to scale, sits under its size: the board with the profile cut into it, the path at the mark, the tool at its deepest pass and a dot where each pass’s tip goes</td></tr>
+<tr><td><strong>Side</strong>, <strong>Ends</strong></td><td>as above; <em>Taper length</em> and its ramp shape for tapered ends</td></tr>
+<tr><td><strong>Start depth</strong></td><td>where the surface is: 0 for the stock top</td></tr>
+<tr><td><strong>Stepover</strong></td><td>the distance between passes across the profile; a new moulding takes the widest that leaves ridges of 0.02 mm with a ball nose, a quarter of an end mill</td></tr>
+<tr><td><strong>Step down</strong></td><td>off: one level. On: equal levels no deeper than this</td></tr>
+<tr><td><strong>Direction</strong></td><td>climb or conventional</td></tr>
+<tr><td><strong>Feed</strong>, <strong>Plunge feed</strong></td><td>mm/min</td></tr>
+</tbody>
+</table>
+</div>
+<p>A new moulding takes the project’s first ball nose (else its first end mill), a 6 mm cove,
+square ends, the tool’s step down, climb. The report gives the profile’s depth and the
+number of passes. The setup sheet says, for example, “Moulding, cove R 6, outside,
+stepover 0.6, climb”.</p>
+<h2 id="command-line-5"><a class="header" href="#command-line-5">Command line</a></h2>
+<pre><code>chipload op add part.chipload moulding --shapes 1 --profile cove --radius 8
+chipload op add part.chipload moulding --shapes 2 --profile ogee --width 12 --depth 6 --side right
+chipload op add part.chipload moulding --shapes 3 --ends taper --taper 30 --ramp-shape curved
+chipload op add part.chipload moulding --shapes 4 --profile-shape 7 --ends round
+chipload set part.chipload operations.0.profile.radius=6
+</code></pre>
+<p><code>--side</code> is <code>outside</code>, <code>inside</code>, <code>left</code> or <code>right</code>; <code>--stepover</code> sets the stepover. A
+moulding takes no <code>--through</code>.</p>
+<h2 id="in-the-file-9"><a class="header" href="#in-the-file-9">In the file</a></h2>
+<p><code>"type": "moulding"</code> in the <a href="#operation">project file</a>. Lengths
+are in mm, feeds in mm/min. A project with a moulding opens in Chipload 0.37.0 and later.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Setting</th></tr>
+</thead>
+<tbody>
+<tr><td><code>name</code></td><td>Name</td></tr>
+<tr><td><code>enabled</code></td><td>the tick on the operation’s row in the Browser</td></tr>
+<tr><td><code>part</code></td><td>the <a href="#parts">part</a> it belongs to</td></tr>
+<tr><td><code>select</code></td><td>the paths: <code>{"layer": "NAME"}</code> or <code>{"shapes": [ids]}</code></td></tr>
+<tr><td><code>tool</code></td><td>Tool: the project tool’s id</td></tr>
+<tr><td><code>profile</code></td><td>Profile: <code>{"kind": "cove", "radius"}</code>, <code>{"kind": "roundover", "radius"}</code>, <code>{"kind": "ogee", "width", "depth"}</code>, <code>{"kind": "bead", "radius"}</code>, <code>{"kind": "flute", "radius"}</code> or <code>{"kind": "shape", "shape": ID}</code></td></tr>
+<tr><td><code>side</code></td><td>Side: <code>outside</code>, <code>inside</code>, <code>left</code> or <code>right</code></td></tr>
+<tr><td><code>ends</code></td><td>Ends: <code>{"kind": "square"}</code>, <code>{"kind": "round"}</code> or <code>{"kind": "taper", "length", "shape"}</code> (<code>straight</code> or <code>curved</code>)</td></tr>
+<tr><td><code>start_depth</code></td><td>Start depth</td></tr>
+<tr><td><code>stepover</code></td><td>Stepover</td></tr>
+<tr><td><code>step_down</code></td><td>Step down; <code>null</code> for one level</td></tr>
+<tr><td><code>direction</code></td><td>Direction: <code>climb</code> or <code>conventional</code></td></tr>
+<tr><td><code>feed</code></td><td>Feed</td></tr>
+<tr><td><code>plunge_feed</code></td><td>Plunge feed</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="holes"><a class="header" href="#holes">Holes</a></h1>
 <p><strong>Holes</strong> cuts every selected circle, either drilled with a drill or bored with a helix
 with an endmill. Select the circles (a whole layer is fine: other shapes are skipped with a
@@ -3752,7 +4378,7 @@ or use a pocket.</li>
 <h2 id="order"><a class="header" href="#order">Order</a></h2>
 <p>Holes are cut nearest first, from where the tool is. Where the Holes operation sits in the
 list decides whether holes come before or after the profiles.</p>
-<h2 id="in-the-file-5"><a class="header" href="#in-the-file-5">In the file</a></h2>
+<h2 id="in-the-file-10"><a class="header" href="#in-the-file-10">In the file</a></h2>
 <p><code>"type": "holes"</code> in the <a href="#operation">project file</a>. Lengths are
 in mm, feeds in mm/min, angles in radians.</p>
 <div class="table-wrapper">
@@ -3783,7 +4409,7 @@ your spoilboard, or to face a board before cutting it. It needs no selection: cl
 command line, <code>chipload op add-surface part.chipload</code>.</p>
 <p>A new surface goes <strong>first</strong> in the active part, since it faces the stock before anything
 else is cut. It takes the project’s widest endmill and 0.5 mm off the top in one pass.</p>
-<h2 id="how-it-cuts"><a class="header" href="#how-it-cuts">How it cuts</a></h2>
+<h2 id="how-it-cuts-5"><a class="header" href="#how-it-cuts-5">How it cuts</a></h2>
 <ul>
 <li><strong>Back and forth</strong> along the stock’s longer side, in straight passes one stepover apart.
 Half the passes climb, half are conventional: usual for a shallow facing pass, and about
@@ -3800,7 +4426,7 @@ way, going down beside the stock where the one before ended.</li>
 </ul>
 <p>The setup sheet says how far the tool runs past the stock’s ends (its radius): keep clamps
 and fences clear of that.</p>
-<h2 id="settings-1"><a class="header" href="#settings-1">Settings</a></h2>
+<h2 id="settings-6"><a class="header" href="#settings-6">Settings</a></h2>
 <ul>
 <li><strong>End depth:</strong> how much comes off, from the stock top. At most the stock thickness.</li>
 <li><strong>Step down:</strong> the deepest each pass goes. Usually the whole depth in one pass.</li>
@@ -3820,7 +4446,7 @@ cut.</p>
 <li>Add a Surface, with 0.3 to 0.5 mm off: enough to take out the dips.</li>
 <li>Export, zero Z on the spoilboard, and run it.</li>
 </ol>
-<h2 id="in-the-file-6"><a class="header" href="#in-the-file-6">In the file</a></h2>
+<h2 id="in-the-file-11"><a class="header" href="#in-the-file-11">In the file</a></h2>
 <p><code>"type": "surface"</code> in the <a href="#operation">project file</a>. Lengths
 are in mm, feeds in mm/min.</p>
 <div class="table-wrapper">
@@ -3870,16 +4496,16 @@ steps</a>: the passes before the finish.</li>
 A project <strong>copies</strong> the tools it uses, so its G-code never depends on the library: it cuts
 the same on another computer, or after you change the library.</p>
 <h2 id="in-the-app-2"><a class="header" href="#in-the-app-2">In the app</a></h2>
-<p>Your tools are under <strong>This computer &gt; Tools</strong> at the top of the <a href="#the-browser">Browser</a>. <strong>Library</strong> on the ribbon opens it, as does <em>Library &gt; Tool library</em>.</p>
+<p>Your tools are under <strong>Library &gt; Tools</strong> at the top of the <a href="#the-browser">Browser</a>. <strong>Library</strong> on the ribbon opens it, as does <em>Library &gt; Tool library</em>.</p>
 <ul>
 <li><strong>Click a tool</strong> to edit it in Properties. Changes are a draft, marked <em>unsaved</em> in the
 Browser, until you press <strong>Save</strong>; <strong>Revert</strong> drops them.</li>
 <li><strong>Drag a tool</strong> onto the project’s <em>Tools</em> (or right-click it &gt; <em>Add to project</em>) to copy it
 into the project.</li>
 <li><strong>Right-click</strong> a tool for <em>Make default</em> (new projects start with it) and <em>Delete</em>, or
-<em>This computer &gt; Tools</em> for <em>New tool</em>, <em>Import…</em> and <em>Export…</em>.</li>
+<em>Library &gt; Tools</em> for <em>New tool</em>, <em>Import…</em> and <em>Export…</em>.</li>
 </ul>
-<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/library.png" alt="This computer &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"><span class="img-wrapper"><img src="images/library.png" alt="This computer &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"></span></label></p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="images/library.png" alt="Library &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"><span class="img-wrapper"><img src="images/library.png" alt="Library &gt; Tools in the Browser, a library tool in Properties, and the project’s tool T3 linked to it"></span></label></p>
 <h3 id="project-tools-and-the-library"><a class="header" href="#project-tools-and-the-library">Project tools and the library</a></h3>
 <p>Each project tool remembers the library tool it was copied from, by an id that stays when
 the library tool is renamed. Its row in the Browser shows that tool’s name (“← 6 mm 2F”).
@@ -3990,7 +4616,7 @@ there keeps the values you don’t give. <code>tool list</code> shows each tool�
 <li>tools with the same name but other values are listed, and kept as yours unless you add
 <code>--replace</code>.</li>
 </ul>
-<p>The app has the same: right-click <em>This computer &gt; Tools</em> for <em>Import…</em> and <em>Export…</em>. The <a href="#tool-library-file">file
+<p>The app has the same: right-click <em>Library &gt; Tools</em> for <em>Import…</em> and <em>Export…</em>. The <a href="#tool-library-file">file
 format</a> is documented, so a script can make one, e.g. from a
 supplier’s catalogue.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -4006,8 +4632,8 @@ supplier’s catalogue.</p>
 <p>Profiles are kept in <code>machines.json</code> in your <a href="#your-settings">settings folder</a>.
 As with tools, a project copies the values; the profile is only where new projects start.</p>
 <h2 id="in-the-app-3"><a class="header" href="#in-the-app-3">In the app</a></h2>
-<p>Your profiles are under <strong>This computer &gt; Machines</strong> in the <a href="#the-browser">Browser</a>.
-<em>Library &gt; Machines</em> opens it, or <strong>Library</strong> on the ribbon (This computer, with the tools).</p>
+<p>Your profiles are under <strong>Library &gt; Machines</strong> in the <a href="#the-browser">Browser</a>.
+<em>Library &gt; Machines</em> opens it, or <strong>Library</strong> on the ribbon (with the tools).</p>
 <ul>
 <li><strong>Click a profile</strong> to edit it in Properties; <strong>Save</strong> writes it.</li>
 <li><strong>Right-click</strong> it for <em>Use in this project</em>, <em>Make default</em> and <em>Delete</em>.</li>
@@ -4058,7 +4684,7 @@ cutting wood with a 6 mm 2-flute bit runs about 1500 mm/min with a 2–2.5 mm st
 from what you know works on yours.</p>
 <p>A material is about feeds only: choosing one never changes the stock or any depth.</p>
 <h2 id="making-one"><a class="header" href="#making-one">Making one</a></h2>
-<p><em>This computer &gt; Materials &gt; New material</em>, then name it. Its page lists the tools with
+<p><em>Library &gt; Materials &gt; New material</em>, then name it. Its page lists the tools with
 values for it; click one to open its cutting data. To give it values:</p>
 <ul>
 <li><strong>From a job that cut well:</strong> choose the material in an operation’s <strong>Material</strong> list,
@@ -4066,7 +4692,7 @@ under its tool. Cut, and adjust the operation’s feeds or step down until they�
 Its <strong>Material</strong> row then says <em>Changed from Plywood</em>: click <strong>Save to Plywood</strong>. The values
 the operation uses go into its tool’s Plywood row (a profile its slot values, a pocket
 both); the row’s others stay. A tool without a Plywood row gets one.</li>
-<li><strong>By hand:</strong> open the tool (<em>This computer &gt; Tools</em>), and under <strong>Cutting data</strong>, <em>Add a
+<li><strong>By hand:</strong> open the tool (<em>Library &gt; Tools</em>), and under <strong>Cutting data</strong>, <em>Add a
 material…</em>.</li>
 </ul>
 <p>The tool must be in your tool library: the values belong to that library tool, so every
@@ -4087,9 +4713,12 @@ this material.</p>
 <p><strong>For new projects:</strong> <em>Make default</em> on a material (<code>chipload material default Plywood</code>,
 <code>--none</code> to clear it). A new project, empty or imported, starts with it, as it starts with
 the default machine and tool; the report says so.</p>
-<p><strong>The board’s thickness for new projects:</strong> on <em>This computer &gt; Materials</em>, tick <em>New
-projects: stock thickness</em> and type it (<code>chipload material thickness 18</code>, <code>--none</code> for the
-built-in 10 mm). It is kept in <code>materials.json</code> beside the default material.</p>
+<p><strong>The board’s thickness for new projects:</strong> a material can have its usual <strong>Thickness</strong>
+(tick it in the material’s form, or <code>chipload material set Plywood --thickness 18</code>, 0 to
+clear). The <a href="#the-new-project-dialog">new project dialog</a> fills it in
+when the material is chosen. Choosing a material for a project never changes its board.
+For materials without one, <em>New projects: stock thickness</em> on <em>Library &gt; Materials</em>
+gives the thickness (<code>chipload material thickness 18</code>, <code>--none</code> for the built-in 10 mm).</p>
 <p><strong>Changing an operation’s tool</strong> takes the new tool’s values for its material, when it has
 some.</p>
 <p>Each operation’s material row says where its values stand: <em>From Plywood</em>, <em>Changed from
@@ -4150,7 +4779,7 @@ library first”.</li>
 <li><strong>A profile’s side</strong> is kept as “by the selection”: the style cuts outlines outside and
 holes inside, as a <a href="#what-a-new-operation-starts-with">new profile</a>
 does. A profile <em>on</em> the line keeps that.</li>
-<li><strong>To change a style,</strong> open it under <em>This computer &gt; Styles</em> (see below), or save an
+<li><strong>To change a style,</strong> open it under <em>Library &gt; Styles</em> (see below), or save an
 operation again under its name.</li>
 </ul>
 <h2 id="using-a-style"><a class="header" href="#using-a-style">Using a style</a></h2>
@@ -4158,7 +4787,10 @@ operation again under its name.</li>
 <ul>
 <li><strong>Style</strong> at the end of the ribbon’s OPERATION group: its menu lists your styles;</li>
 <li>right-click the canvas, <strong>Apply style ▸</strong>;</li>
-<li>right-click the style under <em>This computer &gt; Styles</em>, or open it there: <strong>Apply to the
+<li>press <strong>S</strong> over the canvas, then the style’s digit: the quick menu numbers the first nine
+styles 1 to 9 in the order of the Styles list, so moving a style up the list changes its
+digit;</li>
+<li>right-click the style under <em>Library &gt; Styles</em>, or open it there: <strong>Apply to the
 selection</strong>.</li>
 </ul>
 <p>On the command line:</p>
@@ -4175,8 +4807,32 @@ none, the library tool copied in (the command says so).</li>
 <li>Nothing in the project remembers the style afterwards: changing the style later doesn’t
 change operations made from it.</li>
 </ul>
+<h2 id="layer-rules"><a class="header" href="#layer-rules">Layer rules</a></h2>
+<p>If you draw each kind of cut on its own layer (<code>CUT_OUTSIDE</code>, <code>DRILL_5</code>, <code>POCKET</code>), a
+style can do its job by itself: give it a <strong>layer pattern</strong>, and every layer whose name
+matches gets the style’s operations, selecting the layer.</p>
+<ul>
+<li><strong>The pattern:</strong> <code>*</code> stands for any run of characters, <code>?</code> for one, upper or lower case
+alike: <code>CUT*</code>, <code>DRILL_?</code>, <code>pocket</code>. Nothing else is special.</li>
+<li><strong>When:</strong> on importing a DXF or SVG as a new project (one Ctrl+Z takes the operations
+away again; <code>chipload import … --no-rules</code> leaves them out), and whenever you choose
+<strong>Operation &gt; Apply layer rules</strong> or <code>chipload style apply part.chipload</code> (<code>--dry-run</code>
+says what it would add). Updating a drawing doesn’t apply them.</li>
+<li><strong>Order:</strong> the styles’ order in <em>Library &gt; Styles</em>, then the layers by name. Every
+style that matches a layer adds its operations, so a rough and a finish pass can both come
+from rules.</li>
+<li><strong>Already cut:</strong> a layer an operation already cuts, by its layer or by one of its shapes,
+is skipped, so applying the rules twice adds nothing.</li>
+<li><strong>The report</strong> says what each rule added, which layers it skipped and why, and which
+layers no rule matched.</li>
+</ul>
+<p>Set the pattern in the style’s properties, <em>Layers</em> (empty for none), or:</p>
+<pre><code>chipload style set "Cut out 18 mm ply" --layer "CUT*"
+chipload style set "Cut out 18 mm ply" --layer ""          # no rule
+</code></pre>
+<p>A styles file with a layer pattern can’t be read by Chipload 0.36 or older.</p>
 <h2 id="managing-styles"><a class="header" href="#managing-styles">Managing styles</a></h2>
-<p><strong>This computer &gt; Styles</strong> in the Browser lists them; hover over one for what it does.
+<p><strong>Library &gt; Styles</strong> in the Browser lists them; hover over one for what it does.
 Click one for its properties: its name (<strong>Rename</strong>), <strong>Apply to the selection</strong>,
 <strong>Delete</strong> (also the Del key; the library has no undo, <code>styles.json.bak</code> keeps the file as
 it was), and below them the style’s operation in the same form an operation has: its
@@ -4261,7 +4917,7 @@ compensation, G43 tool lengths, G28 or G53 machine moves, or G91 relative moves,
 check fail, and nothing is exported.</li>
 </ul>
 <p><code>chipload post list</code> shows every post and why one can’t be used, and <code>chipload post show NAME</code> what one writes (extension, decimals, arcs, tool changes). In the app they are under
-<em>This computer &gt; Post-processors</em> in the Browser. <code>chipload render</code> writes a
+<em>Library &gt; Post-processors</em> in the Browser. <code>chipload render</code> writes a
 bare toolpath through a post, for trying a template (the result isn’t checked: use <code>run</code> to
 cut).</p>
 <h3 id="what-the-template-sees"><a class="header" href="#what-the-template-sees">What the template sees</a></h3>
@@ -4536,7 +5192,7 @@ back face up.</li>
 </ul>
 <p>The sheet is written:</p>
 <ul>
-<li>in the app, by <em>File &gt; Export G-code…</em> when <em>This computer &gt; Preferences &gt; Setup sheet</em>
+<li>in the app, by <em>File &gt; Export G-code</em> when <em>Preferences &gt; Setup sheet</em>
 in the Browser is on (the default; it applies to every project);</li>
 <li>on the command line, by <code>chipload run</code> unless you add <code>--no-sheet</code>;</li>
 <li>alone, by <code>chipload sheet part.chipload -o sheet.html</code>.</li>
@@ -4737,7 +5393,7 @@ the assistant to use full paths to your files there, as it has no project folder
 </li>
 </ul>
 <h2 id="what-the-assistant-can-do"><a class="header" href="#what-the-assistant-can-do">What the assistant can do</a></h2>
-<p>Every <a href="#command-line-1">command</a> is a tool with the same options, apart from <code>mcp</code>,
+<p>Every <a href="#command-line-6">command</a> is a tool with the same options, apart from <code>mcp</code>,
 <code>reference</code> and <code>render</code>. Each tool gives the same JSON as the command with
 <a href="#json-output"><code>--json</code></a>. So the assistant:</p>
 <ul>
@@ -4780,7 +5436,7 @@ reaches the assistant only once you save.</li>
 <li>It does one thing at a time; planning a big project takes a few seconds.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="command-line-1"><a class="header" href="#command-line-1">Command line</a></h1>
+<h1 id="command-line-6"><a class="header" href="#command-line-6">Command line</a></h1>
 <!-- Generated by `chipload reference`; do not edit. Regenerate with CHIPLOAD_UPDATE_GOLDEN=1 cargo test -p chipload-cli --test guide. -->
 <p>Every command takes <code>--json</code>: one JSON object instead of text (see <a href="#scripting-chipload">Scripting</a>). <code>chipload --help</code> and <code>chipload COMMAND --help</code> print the same help in the terminal.</p>
 <h2 id="chipload-inspect"><a class="header" href="#chipload-inspect"><code>chipload inspect</code></a></h2>
@@ -4811,6 +5467,13 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>The project to write (.chipload) Required.</td></tr>
 <tr><td><code>--machine &lt;MACHINE&gt;</code></td><td>The machine profile to start from (default: your default machine)</td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The material (default: your default material)</td></tr>
+<tr><td><code>--no-material</code></td><td>No material, even if your library has a default one.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>The board’s thickness (default: the material’s, else your default thickness)</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The board’s size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in)</td></tr>
+<tr><td><code>--fit &lt;FIT&gt;</code></td><td>The board fitted round the drawing with this margin (the default, 10 mm)</td></tr>
+<tr><td><code>--z-zero &lt;Z_ZERO&gt;</code></td><td>Where Z zero is: the board’s top, or the spoilboard. One of: <code>top</code>, <code>spoilboard</code>.</td></tr>
+<tr><td><code>--tools &lt;TOOLS&gt;</code></td><td>Library tools by name, comma-separated, numbered in this order (default: your default tool); “” for none.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4829,6 +5492,14 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--px-per-inch &lt;PX_PER_INCH&gt;</code></td><td>Pixels per inch of an SVG that gives no real size: 96 (Inkscape, browsers) or 72 (older Illustrator)</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>The project to write (.chipload) Required.</td></tr>
 <tr><td><code>--machine &lt;MACHINE&gt;</code></td><td>The machine profile to start from (default: your default machine)</td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The material (default: your default material)</td></tr>
+<tr><td><code>--no-material</code></td><td>No material, even if your library has a default one.</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>The board’s thickness (default: the material’s, else your default thickness)</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The board’s size, X×Y, centred on the drawing (e.g. 600x400, 24inx12in)</td></tr>
+<tr><td><code>--fit &lt;FIT&gt;</code></td><td>The board fitted round the drawing with this margin (the default, 10 mm)</td></tr>
+<tr><td><code>--z-zero &lt;Z_ZERO&gt;</code></td><td>Where Z zero is: the board’s top, or the spoilboard. One of: <code>top</code>, <code>spoilboard</code>.</td></tr>
+<tr><td><code>--tools &lt;TOOLS&gt;</code></td><td>Library tools by name, comma-separated, numbered in this order (default: your default tool); “” for none.</td></tr>
+<tr><td><code>--no-rules</code></td><td>Don’t apply your styles’ layer rules (docs/specs/fewer-clicks.md §4); without this, each style with a layer pattern adds its operations for the layers it matches.</td></tr>
 </tbody>
 </table>
 </div>
@@ -4977,7 +5648,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline).</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>chamfer</code> (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): –width), <code>flute</code> (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): –depth, –ramp), <code>pattern</code> (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): –pattern, –spacing, –angle), <code>prism</code> (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): –max-depth), <code>moulding</code> (A profile swept along paths (docs/specs/moulding.md): –profile, –radius, –side, –ends), <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline).</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
 <tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
@@ -4988,6 +5659,30 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The tool’s id in the project; default: the one the app would take.</td></tr>
 <tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>End depth instead of the default (not with –through)</td></tr>
 <tr><td><code>--through</code></td><td>Cut through the stock, below it by the setup’s max overcut.</td></tr>
+<tr><td><code>--width &lt;WIDTH&gt;</code></td><td>A chamfer’s width at the surface, in place of 1 mm; its depth follows from the V-bit’s angle (docs/specs/chamfer.md)</td></tr>
+<tr><td><code>--side &lt;SIDE&gt;</code></td><td>A chamfer’s waste side, in place of the one the shapes tell: around them (outside) or within them (inside) One of: <code>outside</code>, <code>inside</code>, <code>left</code> (A moulding’s profile left of an open path as drawn), <code>right</code> (A moulding’s profile right of an open path as drawn).</td></tr>
+<tr><td><code>--ramp &lt;RAMP&gt;</code></td><td>A flute’s ramp at both ends, in place of 20 mm (docs/specs/fluting.md); a pattern’s grooves’ ramps, in place of square ends (docs/specs/fill-pattern.md)</td></tr>
+<tr><td><code>--ramp-start &lt;RAMP_START&gt;</code></td><td>A flute’s ramp at the shapes’ first ends (as drawn); 0 for a square end.</td></tr>
+<tr><td><code>--ramp-end &lt;RAMP_END&gt;</code></td><td>A flute’s ramp at the shapes’ last ends; 0 for a square end.</td></tr>
+<tr><td><code>--ramp-shape &lt;RAMP_SHAPE&gt;</code></td><td>A flute’s ramps: straight (an even taper) or curved (easing into the floor) One of: <code>straight</code>, <code>curved</code>.</td></tr>
+<tr><td><code>--pattern &lt;pattern_kind&gt;</code></td><td>A pattern’s kind, in place of lines. One of: <code>lines</code>, <code>cross</code>, <code>rings</code>, <code>waves</code>, <code>dashes</code>, <code>herringbone</code>, <code>scales</code>, <code>sunburst</code>.</td></tr>
+<tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>A pattern’s spacing, groove centre to centre, in place of twice the groove’s width.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>A pattern’s lines’ angle from the X axis, degrees counter-clockwise; 45 if left out.</td></tr>
+<tr><td><code>--between &lt;BETWEEN&gt;</code></td><td>A cross-hatch’s angle between its two sets of lines, degrees (90 squares, 60 diamonds); 90 if left out.</td></tr>
+<tr><td><code>--wavelength &lt;WAVELENGTH&gt;</code></td><td>A wave pattern’s wavelength; 4 spacings if left out.</td></tr>
+<tr><td><code>--height &lt;HEIGHT&gt;</code></td><td>A wave pattern’s height, top to bottom; one spacing if left out.</td></tr>
+<tr><td><code>--on-line</code></td><td>The grooves run up to the shapes’ lines, centred on them, instead of staying inside.</td></tr>
+<tr><td><code>--length &lt;LENGTH&gt;</code></td><td>Dashes’, herringbone’s or a sunburst’s strokes’ length; three groove widths (at least 4 mm) if left out.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>The gap between dashes; half a stroke if left out.</td></tr>
+<tr><td><code>--radius &lt;RADIUS&gt;</code></td><td>Scales’ radius; twice the spacing if left out.</td></tr>
+<tr><td><code>--pitch &lt;PITCH&gt;</code></td><td>A sunburst’s strokes’ distance round its rings; a stroke’s length if left out.</td></tr>
+<tr><td><code>--clip</code></td><td>Stroke patterns: strokes the shape’s edge cuts are clipped, not left out.</td></tr>
+<tr><td><code>--max-depth &lt;MAX_DEPTH&gt;</code></td><td>A prism’s deepest edge, for bevelled shapes with a flat top; left out, as deep as the shapes and the V-bit’s cone need (docs/specs/prism.md)</td></tr>
+<tr><td><code>--profile &lt;PROFILE&gt;</code></td><td>A moulding’s profile, in place of a 6 mm cove: with –radius, or –width and –depth for an ogee, or –profile-shape for a drawn one. One of: <code>cove</code>, <code>roundover</code>, <code>ogee</code>, <code>bead</code>, <code>flute</code>, <code>shape</code>.</td></tr>
+<tr><td><code>--profile-shape &lt;PROFILE_SHAPE&gt;</code></td><td>The drawn open shape a moulding’s profile is read from (its id)</td></tr>
+<tr><td><code>--ends &lt;ENDS&gt;</code></td><td>How a moulding ends on open paths: square, round, or taper (–taper long) One of: <code>square</code>, <code>round</code>, <code>taper</code>.</td></tr>
+<tr><td><code>--taper &lt;TAPER&gt;</code></td><td>A tapered end’s length; 30 mm if left out.</td></tr>
+<tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>The distance between a moulding’s passes across its profile.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -5463,6 +6158,36 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h3 id="chipload-shape-similar"><a class="header" href="#chipload-shape-similar"><code>chipload shape similar</code></a></h3>
+<p>The shapes like one (docs/specs/fewer-clicks.md §3): for a circle, every circle of the same diameter on any layer; else the shapes of the same kind (closed or open) on the same layer whose boxes are the same size, either way round. Prints their ids, the shape itself included, for <code>op add … --shapes</code></p>
+<pre><code class="language-text">chipload shape similar &lt;PROJECT&gt; &lt;ID&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The shape id (as <code>inspect</code> lists it, without the S)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-inside"><a class="header" href="#chipload-shape-inside"><code>chipload shape inside</code></a></h3>
+<p>The closed shapes inside a closed shape, nested ones too, without it (docs/specs/fewer-clicks.md §3): a part’s pockets and holes. Prints their ids</p>
+<pre><code class="language-text">chipload shape inside &lt;PROJECT&gt; &lt;ID&gt;
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The outline’s shape id (as <code>inspect</code> lists it, without the S)</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="chipload-shape-add"><a class="header" href="#chipload-shape-add"><code>chipload shape add</code></a></h3>
 <p>Add a drawn shape; prints its id</p>
 <pre><code class="language-text">chipload shape add &lt;PROJECT&gt; &lt;KIND&gt; [OPTIONS]
@@ -5784,6 +6509,24 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--rows &lt;ROWS&gt;</code></td><td>Rows, the originals’ included. Default: <code>1</code>.</td></tr>
 <tr><td><code>--dx &lt;DX&gt;</code></td><td>From one column to the next, mm (or with a unit); negative goes left. Default: <code>0</code>.</td></tr>
 <tr><td><code>--dy &lt;DY&gt;</code></td><td>From one row to the next, mm (or with a unit); negative goes down. Default: <code>0</code>.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-shape-array-linear"><a class="header" href="#chipload-shape-array-linear"><code>chipload shape array-linear</code></a></h3>
+<p>A line of copies of drawn shapes in any direction, on their layers; the originals stay (docs/specs/compass.md §8). Prints the new ids</p>
+<pre><code class="language-text">chipload shape array-linear &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The shape ids (as <code>inspect</code> lists them, without the S)</td></tr>
+<tr><td><code>--count &lt;COUNT&gt;</code></td><td>How many, the originals included. Required.</td></tr>
+<tr><td><code>--step &lt;STEP&gt;</code></td><td>From one copy to the next, “DX,DY” in mm (or with a unit) Required.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -6665,6 +7408,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--rpm &lt;RPM&gt;</code></td><td></td></tr>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees. Tapered ball noses: the taper’s.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball’s diameter at the tip.</td></tr>
+<tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>End mills: the radius of its corners, a bull nose (0: square corners)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
 </tbody>
 </table>
@@ -6687,6 +7431,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>--rpm &lt;RPM&gt;</code></td><td></td></tr>
 <tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>V-bits: the included angle, degrees. Tapered ball noses: the taper’s.</td></tr>
 <tr><td><code>--tip &lt;TIP&gt;</code></td><td>V-bits: the diameter of the flat tip, mm (0: pointed). Tapered ball noses: the ball’s diameter at the tip.</td></tr>
+<tr><td><code>--corner-radius &lt;CORNER_RADIUS&gt;</code></td><td>End mills: the radius of its corners, a bull nose (0: square corners)</td></tr>
 <tr><td><code>--id &lt;ID&gt;</code></td><td>The id it gets in a project where that id is free (default 1)</td></tr>
 <tr><td><code>--rename &lt;RENAME&gt;</code></td><td>A new name.</td></tr>
 </tbody>
@@ -6841,7 +7586,7 @@ reaches the assistant only once you save.</li>
 </table>
 </div>
 <h3 id="chipload-material-set"><a class="header" href="#chipload-material-set"><code>chipload material set</code></a></h3>
-<p>Rename a material</p>
+<p>Rename a material, or give it the board thickness new projects on it start with</p>
 <pre><code class="language-text">chipload material set &lt;NAME&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -6851,7 +7596,8 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
-<tr><td><code>--rename &lt;RENAME&gt;</code></td><td>Required.</td></tr>
+<tr><td><code>--rename &lt;RENAME&gt;</code></td><td></td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>Its board’s usual thickness, which the new project dialog fills in (0: none)</td></tr>
 </tbody>
 </table>
 </div>
@@ -7051,6 +7797,23 @@ reaches the assistant only once you save.</li>
 <tr><td><code>&lt;NAME&gt;</code></td><td></td></tr>
 <tr><td><code>&lt;VALUES&gt;</code></td><td>PATH=VALUE, paths within the style’s operation.</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>Another tool of your library, by name.</td></tr>
+<tr><td><code>--layer &lt;LAYER&gt;</code></td><td>A layer rule: the style is used on every layer whose name matches, <code>*</code> any run of characters, <code>?</code> one, upper or lower case alike (<code>CUT*</code>, <code>DRILL_?</code>); “” for none (docs/specs/fewer-clicks.md §4)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-style-apply"><a class="header" href="#chipload-style-apply"><code>chipload style apply</code></a></h3>
+<p>Apply the layer rules to a project: each style with a layer pattern adds its operations for the layers it matches, in the Styles’ order, then by layer name. A layer an operation already cuts is skipped, so applying twice adds nothing. <code>import</code> does this by itself unless –no-rules</p>
+<pre><code class="language-text">chipload style apply &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--dry-run</code></td><td>Say what would be added, write nothing.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
 </div>
@@ -7857,6 +8620,9 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="edgeside"><a class="header" href="#edgeside">EdgeSide</a></h2>
+<p>Where a chamfer’s waste is: around the shape (a part’s outline) or within it (a hole’s or a pocket’s rim).</p>
+<p>One of: <code>"outside"</code>, <code>"inside"</code>.</p>
 <h2 id="entry-1"><a class="header" href="#entry-1">Entry</a></h2>
 <p>How the tool goes down into the material at the start of each pass, for pockets and follow paths (a profile always spirals: its <code>ramp_angle</code>).</p>
 <h3 id="type-plunge"><a class="header" href="#type-plunge"><code>"type": "plunge"</code></a></h3>
@@ -7886,6 +8652,34 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="fillpattern"><a class="header" href="#fillpattern">FillPattern</a></h2>
+<p>The pattern a <code>PatternOp</code> engraves (docs/specs/fill-pattern.md §3). Angles in radians from the X axis, counter-clockwise; lengths in mm.</p>
+<ul>
+<li>
+<p>object: Parallel straight lines, <code>spacing</code> apart (centre to centre), at <code>angle</code>.</p>
+</li>
+<li>
+<p>object: Two sets of lines: at <code>angle</code>, and at <code>angle</code> + <code>between</code> (more than 0, at most 90°).</p>
+</li>
+<li>
+<p>object: The shape’s outline repeated inwards, <code>spacing</code> apart, as closed rings.</p>
+</li>
+<li>
+<p>object: Parallel sine waves at <code>angle</code>, <code>spacing</code> apart: <code>wavelength</code> long, <code>height</code> from top to bottom.</p>
+</li>
+<li>
+<p>object: Rows <code>spacing</code> apart of strokes <code>length</code> long with <code>gap</code> between, every other row shifted half a stroke and gap (docs/specs/fill-pattern.md §14).</p>
+</li>
+<li>
+<p>object: Columns of strokes <code>length</code> long at 45° to <code>angle</code>, <code>spacing</code> apart along the column, every other column mirrored, meeting in chevrons.</p>
+</li>
+<li>
+<p>object: Rows <code>spacing</code> apart of half circles of <code>radius</code> side by side, every other row shifted by a radius.</p>
+</li>
+<li>
+<p>object: Round the middle of each shape: rings <code>spacing</code> apart of strokes <code>length</code> long pointing outwards, <code>pitch</code> apart round the ring, every other ring turned half a pitch.</p>
+</li>
+</ul>
 <h2 id="finish"><a class="header" href="#finish">Finish</a></h2>
 <p>A finishing pass on a profile.</p>
 <div class="table-wrapper">
@@ -8126,6 +8920,57 @@ reaches the assistant only once you save.</li>
 <h2 id="modelup"><a class="header" href="#modelup">ModelUp</a></h2>
 <p>Which of a model’s axes points up on the board.</p>
 <p>One of: <code>"z"</code>, <code>"y"</code>, <code>"x"</code>, <code>"-z"</code>, <code>"-y"</code>, <code>"-x"</code>.</p>
+<h2 id="mouldends"><a class="header" href="#mouldends">MouldEnds</a></h2>
+<p>How a moulding ends on an open path (docs/specs/moulding.md §4).</p>
+<ul>
+<li>
+<p>object: The full profile right to the path’s end.</p>
+</li>
+<li>
+<p>object: The profile turned a quarter round the path’s end point.</p>
+</li>
+<li>
+<p>object: The section’s depth fading to the surface over <code>length</code> mm at each end.</p>
+</li>
+</ul>
+<h2 id="mouldprofile"><a class="header" href="#mouldprofile">MouldProfile</a></h2>
+<p>A moulding’s cross-section (docs/specs/moulding.md §3): a built-in shape by its size, or a drawn open shape read as the section.</p>
+<ul>
+<li>
+<p>object: A concave quarter circle: <code>radius</code> deep at the path, at the surface <code>radius</code> in.</p>
+</li>
+<li>
+<p>object: A convex quarter circle: the edge rounded, <code>radius</code> down at the path.</p>
+</li>
+<li>
+<p>object: An S, <code>width</code> wide and <code>depth</code> deep: a cove into a round-over, half the width each.</p>
+</li>
+<li>
+<p>object: A raised half round <code>2 × radius</code> wide, its top at the surface.</p>
+</li>
+<li>
+<p>object: A half-round groove <code>2 × radius</code> wide and <code>radius</code> deep.</p>
+</li>
+<li>
+<p>object: A drawn open shape, by id: across to the right, up the page; its leftmost point at the path, its highest point the surface.</p>
+</li>
+</ul>
+<h2 id="mouldside"><a class="header" href="#mouldside">MouldSide</a></h2>
+<p>Which side of the path a moulding’s profile lies on (docs/specs/moulding.md §4).</p>
+<ul>
+<li>
+<p><code>"left"</code>: Left of an open path as drawn.</p>
+</li>
+<li>
+<p><code>"right"</code>: Right of an open path as drawn.</p>
+</li>
+<li>
+<p><code>"inside"</code>: Inside a closed path.</p>
+</li>
+<li>
+<p><code>"outside"</code>: Outside a closed path.</p>
+</li>
+</ul>
 <h2 id="operation"><a class="header" href="#operation">Operation</a></h2>
 <h3 id="type-profile"><a class="header" href="#type-profile"><code>"type": "profile"</code></a></h3>
 <div class="table-wrapper">
@@ -8174,6 +9019,7 @@ reaches the assistant only once you save.</li>
 <tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>Where the cut ends, mm down from the stock top. More than the start depth; below the stock bottom only within <code>stock.max_overcut</code>.</td></tr>
 <tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>no</td><td>How the tool goes down at the start of each pass: <code>plunge</code> (straight down; needs a centre-cutting tool) or <code>ramp</code> along the path; pockets also <code>helix</code>. Missing: plunge.</td></tr>
 <tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>finish</code></td><td><a href="#pocketfinish">PocketFinish</a> or null</td><td>no</td><td>A finishing pass: the roughing leaves <code>wall</code> mm on the walls and <code>floor</code> mm on the floor, then one level pass takes the floor and one lap each wall. Null: none. Left out when none.</td></tr>
 <tr><td><code>lead</code></td><td><a href="#lead">Lead</a> or null</td><td>no</td><td>A quarter-circle lead-in and lead-out from the cleared side onto the wall. Null: none.</td></tr>
 <tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
 <tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
@@ -8240,6 +9086,130 @@ reaches the assistant only once you save.</li>
 <tr><td><code>step_down</code></td><td>number</td><td>yes</td><td>The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth.</td></tr>
 <tr><td><code>through</code></td><td>number or null</td><td>no</td><td>Cut through the stock: how far below the stock bottom it ends, mm. The end depth is then the stock thickness plus this, and follows the thickness. Null: the end depth as set.</td></tr>
 <tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>).</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-chamfer"><a class="header" href="#type-chamfer"><code>"type": "chamfer"</code></a></h3>
+<p>Chamfer: a V-bit’s flank on the line of closed shapes, breaking their top edge.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>direction</code></td><td><a href="#direction-1">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>entry</code></td><td><a href="#entry-1">Entry</a></td><td>yes</td><td>How the tool goes down at the start of each pass: <code>plunge</code> or <code>ramp</code> along the path.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going down into the material, mm/min.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id. Closed shapes only; open ones are skipped with a note.</td></tr>
+<tr><td><code>side</code></td><td><a href="#edgeside">EdgeSide</a></td><td>yes</td><td>Where the waste is: <code>outside</code> the shape (a part’s outline) or <code>inside</code> it (a hole’s or a pocket’s rim).</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the edge is, mm down from the stock top: 0 for the top, more for the edge of a step an earlier operation cut.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a V-bit with its angle.</td></tr>
+<tr><td><code>width</code></td><td>number</td><td>yes</td><td>The chamfer’s width at the surface, mm, measured from the line into the part. More than 0, at most half the bit’s cone (its diameter less its tip, halved).</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-flute"><a class="header" href="#type-flute"><code>"type": "flute"</code></a></h3>
+<p>Flute: a groove on the line of open shapes that ramps in and out at their ends.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>The flute’s depth through its middle, mm down from the stock top.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min, ramps included.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>ramp_end</code></td><td>number</td><td>yes</td><td>How far along the shape before its last end the flute starts to rise, mm. 0: a square end.</td></tr>
+<tr><td><code>ramp_shape</code></td><td><a href="#rampshape">RampShape</a></td><td>yes</td><td><code>straight</code> or <code>curved</code> ramps.</td></tr>
+<tr><td><code>ramp_start</code></td><td>number</td><td>yes</td><td>How far along the shape from its first end the flute reaches its depth, mm. 0: a square end.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation cuts: the shapes on a layer, or shapes by id. Open shapes only; closed ones are skipped with a note.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the flute starts at its ends, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a ball nose, a V-bit or an endmill.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-pattern"><a class="header" href="#type-pattern"><code>"type": "pattern"</code></a></h3>
+<p>Pattern: grooves of lines, cross-hatch, rings or waves engraved inside closed shapes.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>end_depth</code></td><td>number</td><td>yes</td><td>How deep the grooves go, mm down from the stock top.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>inside</code></td><td>boolean</td><td>yes</td><td>True: the grooves stay inside the shape’s line and out of its holes, clipped half a groove’s width in. False: they run up to the line, centred on it.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>pattern</code></td><td><a href="#fillpattern">FillPattern</a></td><td>yes</td><td>The pattern and its settings.</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>ramp</code></td><td>number</td><td>yes</td><td>How long each groove ramps in and out at its ends, mm, as a flute. 0: square ends.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation fills: closed shapes, the selected shapes inside them as holes.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the grooves start, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a V-bit, a ball nose or an endmill.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-prism"><a class="header" href="#type-prism"><code>"type": "prism"</code></a></h3>
+<p>Prism: closed shapes left standing as roofs, a sharp ridge along their centre line.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>direction</code></td><td><a href="#direction-1">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>max_depth</code></td><td>number or null</td><td>no</td><td>The deepest an edge goes below the start depth, mm, for bevelled shapes with a flat top. Null: as deep as the shapes and the bit’s cone need.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>What the operation carves: closed shapes, the selected shapes inside them as holes.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the surface is, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each pass goes, mm, in equal passes. Null: one pass.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a V-bit with its angle.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="type-moulding"><a class="header" href="#type-moulding"><code>"type": "moulding"</code></a></h3>
+<p>Moulding: a profile swept along a path, in passes along it.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>direction</code></td><td><a href="#direction-1">Direction</a></td><td>yes</td><td><code>climb</code> or <code>conventional</code> milling.</td></tr>
+<tr><td><code>enabled</code></td><td>boolean</td><td>no</td><td>False: the operation stays in the project but isn’t cut. Missing: true.</td></tr>
+<tr><td><code>ends</code></td><td><a href="#mouldends">MouldEnds</a></td><td>yes</td><td>How it ends on open paths.</td></tr>
+<tr><td><code>feed</code></td><td>number</td><td>yes</td><td>The cutting feed, mm/min.</td></tr>
+<tr><td><code>material</code></td><td><a href="#materialref">MaterialRef</a> or null</td><td>no</td><td>The library material its feeds come from. Null: its own values.</td></tr>
+<tr><td><code>name</code></td><td>string</td><td>no</td><td>A name for the operation, shown in the list and on the setup sheet. Empty: none.</td></tr>
+<tr><td><code>part</code></td><td>integer</td><td>yes</td><td>The id of the part it belongs to (<code>parts</code>).</td></tr>
+<tr><td><code>plunge_feed</code></td><td>number</td><td>yes</td><td>The feed going straight down, mm/min.</td></tr>
+<tr><td><code>profile</code></td><td><a href="#mouldprofile">MouldProfile</a></td><td>yes</td><td>The cross-section.</td></tr>
+<tr><td><code>select</code></td><td><a href="#selector">Selector</a></td><td>yes</td><td>The paths the moulding runs along: open or closed shapes.</td></tr>
+<tr><td><code>side</code></td><td><a href="#mouldside">MouldSide</a></td><td>yes</td><td>The side of the path the profile lies on.</td></tr>
+<tr><td><code>start_depth</code></td><td>number</td><td>yes</td><td>Where the surface is, mm down from the stock top: 0 for the top.</td></tr>
+<tr><td><code>step_down</code></td><td>number or null</td><td>no</td><td>The deepest each level goes, mm, in equal levels. Null: one level.</td></tr>
+<tr><td><code>stepover</code></td><td>number</td><td>yes</td><td>The distance between passes across the profile, mm.</td></tr>
+<tr><td><code>tool</code></td><td>integer</td><td>yes</td><td>The id of the project tool it cuts with (<code>tools</code>): a ball nose or an endmill.</td></tr>
 </tbody>
 </table>
 </div>
@@ -8400,6 +9370,29 @@ reaches the assistant only once you save.</li>
 </tbody>
 </table>
 </div>
+<h2 id="pocketfinish"><a class="header" href="#pocketfinish">PocketFinish</a></h2>
+<p>A finishing pass on a pocket.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Field</th><th>Type</th><th>Required</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>floor</code></td><td>number</td><td>yes</td><td>Left above the end depth by the roughing, mm: 0 or more, at most the step down, less than the cut; 0 on a pocket cut through.</td></tr>
+<tr><td><code>wall</code></td><td>number</td><td>yes</td><td>Left on every wall by the roughing, mm: 0 or more, less than the tool radius.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="rampshape"><a class="header" href="#rampshape">RampShape</a></h2>
+<p>How a flute’s ramp goes down from its end to the full depth.</p>
+<ul>
+<li>
+<p><code>"straight"</code>: Evenly: depth × u, u from 0 at the end to 1 at full depth.</p>
+</li>
+<li>
+<p><code>"curved"</code>: Steepest at the surface, easing into the floor: depth × sin(π/2 × u).</p>
+</li>
+</ul>
 <h2 id="register"><a class="header" href="#register">Register</a></h2>
 <p>How a turned board is located again.</p>
 <ul>
@@ -8697,6 +9690,7 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown; a V-carve then refuses the tool. Ball noses: the taper’s included angle; null: a plain ball nose.</td></tr>
 <tr><td><code>center_cutting</code></td><td>boolean or null</td><td>no</td><td>Whether it can plunge straight down. False: profiles ramp in and pockets go down round a helix. Null: unknown.</td></tr>
+<tr><td><code>corner_radius</code></td><td>number or null</td><td>no</td><td>End mills: the radius of its corners, mm, a bull nose (docs/specs/corner-radius.md §2). Missing: square corners. Left out of the file when missing, so a Chipload that doesn’t know it refuses only a tool that has one.</td></tr>
 <tr><td><code>diameter</code></td><td>number</td><td>yes</td><td>Diameter, mm. For a V-bit, its widest cutting diameter.</td></tr>
 <tr><td><code>flutes</code></td><td>integer or null</td><td>no</td><td>Number of flutes, for the chip load. Null: unknown.</td></tr>
 <tr><td><code>id</code></td><td>integer</td><td>yes</td><td>The tool’s number: what operations name it by, and its T number in the G-code.</td></tr>
@@ -8839,6 +9833,7 @@ reaches the assistant only once you save.</li>
 <tbody>
 <tr><td><code>angle</code></td><td>number or null</td><td>no</td><td>V-bits: the included angle, radians. Null: unknown.</td></tr>
 <tr><td><code>center_cutting</code></td><td>boolean or null</td><td>no</td><td>Whether it can plunge straight down. Null: unknown.</td></tr>
+<tr><td><code>corner_radius</code></td><td>number or null</td><td>no</td><td>End mills: the radius of its corners, mm (docs/specs/corner-radius.md §2). Missing: square corners; left out of the file then.</td></tr>
 <tr><td><code>cutting_data</code></td><td>list of <a href="#cuttingrow">CuttingRow</a></td><td>no</td><td>The cutting data: one row per material, and one for any material (docs/specs/cutting-data.md §2). What an operation takes when a material is chosen, its tool changes or it is added. Missing: none.</td></tr>
 <tr><td><code>diameter</code></td><td>number</td><td>yes</td><td>Diameter, mm.</td></tr>
 <tr><td><code>flutes</code></td><td>integer or null</td><td>no</td><td>Number of flutes. Null: unknown.</td></tr>
@@ -8979,6 +9974,7 @@ reaches the assistant only once you save.</li>
 </thead>
 <tbody>
 <tr><td><code>name</code></td><td>string</td><td>yes</td><td>The material’s name, unique in the library (upper or lower case don’t matter).</td></tr>
+<tr><td><code>thickness</code></td><td>number or null</td><td>no</td><td>The board’s usual thickness, mm: what the new project dialog fills in when the material is chosen (docs/specs/new-project-dialog.md §3). Choosing a material for a project never changes its stock. Left out when none.</td></tr>
 <tr><td><code>uid</code></td><td>string</td><td>yes</td><td>What projects and the tools’ rows name the material by: 16 lowercase hex digits, never changed.</td></tr>
 </tbody>
 </table>
@@ -9096,8 +10092,8 @@ Check each profile’s side.</li>
 (Italiano), Swedish (Svenska) and Russian (Русский).</p>
 <h2 id="choosing-the-language"><a class="header" href="#choosing-the-language">Choosing the language</a></h2>
 <p>At the start the app follows your computer’s language, and English when it isn’t one of
-these. To choose another, use <em>Edit &gt; Preferences…</em>, which opens <em>This computer &gt;
-Preferences</em> in the Browser. The change is immediate, and the app keeps it for next time.</p>
+these. To choose another, use <em>Edit &gt; Preferences…</em>, which opens <em>Preferences</em> in
+the Browser. The change is immediate, and the app keeps it for next time.</p>
 <p>Problems, the report, the checker’s findings, error messages and the
 <a href="#setup-sheet">setup sheet</a> follow the language too. What stays in English, whatever
 the language:</p>

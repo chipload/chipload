@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Importing a DXF - Chipload 0.36.0 user guide</title>
+        <title>Importing a DXF - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -241,16 +241,35 @@ that layer: they’re skipped, with a note.</p>
 <h2 id="units"><a class="header" href="#units">Units</a></h2>
 <p>If the DXF doesn’t say whether it’s in mm or inches, Chipload asks (command line:
 <code>--units mm</code> or <code>--units inch</code>). See <a href="../concepts/units.html">Units and coordinates</a>.</p>
-<h2 id="new-project-defaults"><a class="header" href="#new-project-defaults">New project defaults</a></h2>
-<p>The stock just covers the drawing, 10 mm thick:</p>
+<h2 id="the-new-project-dialog"><a class="header" href="#the-new-project-dialog">The new project dialog</a></h2>
+<p>Before the project is made, a dialog asks what it starts with. It opens for <em>File &gt; New
+project</em> (Ctrl+N), <em>Import</em> and a drawing dropped on an empty window:</p>
 <ul>
-<li>its bottom-left corner sits at the drawing’s origin when the drawing lies right of and
-above the origin;</li>
-<li>otherwise it is centred on the origin.</li>
+<li><strong>Material,</strong> from your <a href="../library/materials.html">materials</a>. A material with a thickness
+of its own fills in the thickness.</li>
+<li><strong>Thickness</strong> of the board: depths are measured from its top, and cuts through it follow
+it.</li>
+<li><strong>Board:</strong> <em>Fit the drawing</em> with a margin (it follows the drawing as it changes), or a
+<strong>Size</strong>. Either way it is centred on the drawing.</li>
+<li><strong>Z zero:</strong> on the top of the board or on the spoilboard.</li>
+<li><strong>Machine,</strong> from your <a href="../library/machines.html">machine profiles</a>, with its post, G-code
+units and tool changes shown under it.</li>
+<li><strong>Tools:</strong> tick the <a href="../library/tools.html">library</a> tools the project uses; the search
+narrows a long list. Each keeps its library number; when two have the same, the second
+takes the next free one, and the T column shows it.</li>
 </ul>
-<p>The machine and tool come from your default <a href="../library/machines.html">machine profile</a> and
-<a href="../library/tools.html">tool</a> if you have them. Otherwise you get GRBL, a safe Z of 5 mm, and
-a 6 mm endmill at 18 000 rpm.</p>
+<p><strong>Enter</strong> creates the project, <strong>Escape</strong> cancels. Everything is remembered for the next
+project, which is often the same, so New project, Enter is enough.</p>
+<p>The first time, your library’s defaults are offered: the default machine, material and tool,
+the material’s thickness (else the default thickness, else 10 mm), the board fitted with a
+10 mm margin, and Z zero on top. Without a library you get GRBL, a safe Z of 5 mm, and a
+6 mm endmill at 18 000 rpm.</p>
+<p>On the command line, <code>chipload new</code> and <code>chipload import</code> take the same choices and
+otherwise use your library’s defaults:</p>
+<pre><code>chipload import part.dxf -o part.chipload --material Plywood --thickness 18 \
+    --fit 10 --z-zero top --machine "Shapeoko 4" --tools "6 mm end mill,V 60"
+chipload new -o sign.chipload --size 600x300 --tools ""      # no tools yet
+</code></pre>
 
                     </main>
 

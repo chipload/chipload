@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>3D models - Chipload 0.36.0 user guide</title>
+        <title>3D models - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -360,14 +360,16 @@ chipload set sign.chipload operations.0.stepover=0.1 operations.0.angle=0.785
 <p>A <strong>Relief</strong> carves the model in parallel lines across its area, each point as low as the
 tool can go without cutting into the model: the tool is lowered onto the model’s triangles
 until it first touches one. A ball nose gives the smoothest finish; a tapered ball nose
-reaches finer detail; an end mill or a V-bit works too, with their own marks.</p>
+reaches finer detail; a <a href="../concepts/tools.html#the-projects-tools">bull nose</a> (an end mill
+with round corners) finishes a wide relief faster; a square end mill or a V-bit works too,
+with their own marks.</p>
 <ul>
 <li><strong>Area:</strong> with <code>--model</code>, the model’s outline, with its <a href="#a-rim-and-a-ramp">rim</a> round it.
 Other closed shapes can be selected for the area instead: a drawn rectangle, say. Without
 a rim the tool’s centre stays inside the area, which leaves a groove the tool’s width
 round the model and the board beyond untouched.</li>
 <li><strong><code>stepover</code>:</strong> the distance between lines as a share of the tool; smaller is smoother and
-slower. With a ball nose a new relief takes the widest stepover that leaves ridges of
+slower. With a ball or bull nose a new relief takes the widest stepover that leaves ridges of
 0.02 mm between its lines on flat ground, which wood doesn’t show: 20 % for a 2 mm ball,
 16 % for 1/8“, 12 % for 6 mm. The relief’s form shows the ridges for the stepover you set.
 Finer only takes longer: a 2 mm ball at 10 % leaves ridges of 0.005 mm and takes about
@@ -480,7 +482,8 @@ surface once more, no levels, with its lines across the roughing’s, and leaves
 allowance. Ground that rises along either set of lines comes out clean, so a box rim’s four
 ramps do; on curved ground the steps shrink to the smoothing’s stepover times the slope. A
 larger ball nose works too: it leaves small, even ridges everywhere, for one more tool
-change.</p>
+change. A roughing end mill with a corner radius (a bull nose) leaves smaller steps to
+begin with, and smooths them better.</p>
 <p>In the window: <em>Add smoothing pass</em> on the relief’s or the roughing pass’s row in the
 Browser (right-click), or in the roughing pass’s properties; on a relief without a roughing
 pass it is greyed out, its hover saying to add one first. The pass shows under the relief

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.36.0 user guide</title>
+        <title>The window - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5dd94fcc.js"></script>
+        <script src="toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -202,10 +202,9 @@ mine</strong> (your next Save overwrites the file).</li>
 <tbody>
 <tr><td>FILE</td><td>New, Open, Import (a DXF, SVG or STL as a new project), Save</td><td>open recent, add a picture, a DXF/SVG or a <a href="drawings/models.html">3D model</a>, save as, update drawing, export, the <em>…from path</em> items, quit</td></tr>
 <tr><td>DRAW</td><td>the shape tools as small buttons (Circle, Rectangle, Polyline, Arc, Slot, Polygon, Text: hover for the name and key), Image, DXF/SVG (add a DXF or SVG), 3D model (add an STL for a <a href="drawings/models.html">relief</a>)</td><td>Frame… (<a href="drawings/signs.html">a frame for a sign</a>)</td></tr>
-<tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="drawings/shapes.html#editing-operations">Editing operations</a>)</td><td>the same</td></tr>
-<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected <a href="drawings/models.html">3D model</a>, or the first) and Style (one of your <a href="library/styles.html">styles</a>, for the selected shapes)</td><td>New Relief, <em>Apply style ▸</em>, Generate</td></tr>
+<tr><td>MODIFY</td><td>small buttons: Offset, Fillet, Chamfer, Trim, Extend, Break, Union, Subtract, Intersect, Array, Polar array (<a href="drawings/shapes.html#editing-operations">Editing operations</a>), and the <a href="drawings/shapes.html#the-compass">Compass</a> (Q)</td><td>the same</td></tr>
+<tr><td>OPERATION</td><td>Profile, Pocket, V-carve, Follow, Holes (for the selected shapes), and as small buttons Surface (the whole stock), Relief (of the selected <a href="drawings/models.html">3D model</a>, or the first), Style (one of your <a href="library/styles.html">styles</a>, for the selected shapes) and <a href="operations/chamfer.html">Chamfer</a> (under Style), <a href="operations/flute.html">Flute</a> and <a href="operations/pattern.html">Pattern</a> (beside them); <a href="operations/prism.html">Prism</a> and <a href="operations/moulding.html">Moulding</a> are in the Operation menu and the S menu</td><td>New Chamfer, New Flute, New Pattern, New Prism, New Moulding, New Relief, <em>Apply style ▸</em>, Generate</td></tr>
 <tr><td>WIZARDS</td><td>Sign: <a href="drawings/signs.html#a-sign-in-one-step">a whole sign in one step</a>, its drawing and its operations; Two-sided: <a href="concepts/setups.html#in-the-window">a back side with its dowel pins</a>; Inlay…: <a href="operations/vcarve.html">a V-carve inlay</a> of the selected shapes; Relief: <a href="drawings/models.html#a-relief-in-one-step">a whole relief in one step</a></td><td>New sign…, Two-sided…, New inlay…, Relief…</td></tr>
-<tr><td>LIBRARY</td><td>Library: opens <em>This computer</em> in the Browser, with your tools and machines</td><td>Tool library, Machines</td></tr>
 </tbody>
 </table>
 </div>
@@ -218,7 +217,7 @@ don’t fit, in a longer language or a narrow window, the large buttons show the
 alone; hover over one for its name. Narrower still, the groups scroll sideways.</p>
 <p>Each group has the menu of its name in the top bar. Two menus have no group: <strong>Edit</strong>
 (undo, redo; copy, paste, mirror, join, delete and group the selected shapes, copy as
-selector; <strong>Preferences…</strong>, which opens <em>This computer &gt; Preferences</em> in the Browser:
+selector; <strong>Preferences…</strong>, which opens <em>Preferences</em> in the Browser:
 units, language, colour theme, the setup sheet) and <strong>Help</strong> (the user guide, keyboard
 shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.</p>
 <p>The <strong>status bar</strong> at the bottom gives hints on the left. On the right it shows the
@@ -227,12 +226,9 @@ post-processor and the units.</p>
 <h2 id="the-browser"><a class="header" href="#the-browser">The Browser</a></h2>
 <p>The <strong>Browser</strong> on the left holds your library and the whole project as a tree:</p>
 <ul>
-<li><strong>This computer</strong>, at the top and folded at the start: what is kept on this computer for
+<li><strong>Library</strong>, at the top and folded at the start: what is kept on this computer for
 every project. It is there also with no project open.
 <ul>
-<li><strong>Preferences:</strong> the <a href="checking/sheet.html">setup sheet</a>, updating the toolpath by
-itself, the <a href="concepts/units.html#mm-or-inches-on-screen">units</a>, the colour theme and
-checking for <a href="install.html#new-versions">new versions</a>.</li>
 <li><strong>Tools</strong> and <strong>Machines:</strong> your <a href="library/tools.html">tool library</a> and <a href="library/machines.html">machine
 profiles</a>.</li>
 <li><strong>Materials</strong> and <strong>Styles:</strong> your <a href="library/materials.html">materials</a> and
@@ -241,6 +237,9 @@ profiles</a>.</li>
 for what it writes, and <em>Use in this project</em>.</li>
 </ul>
 </li>
+<li><strong>Preferences</strong>, below the Library: the <a href="checking/sheet.html">setup sheet</a>, updating the
+toolpath by itself, the <a href="concepts/units.html#mm-or-inches-on-screen">units</a>, the language,
+the colour theme and checking for <a href="install.html#new-versions">new versions</a>.</li>
 <li><strong>The project</strong>, named after its file.
 <ul>
 <li><strong>Machine:</strong> the post-processor, G-code units, safe Z, travel and tool changes, shown
@@ -293,7 +292,7 @@ down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operati
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
 setup</em>.</li>
 <li><strong>A library tool:</strong> <em>Add to project</em>, <em>Make default</em>, <em>Delete</em>. <strong>A library machine:</strong>
-<em>Use in this project</em>, <em>Make default</em>, <em>Delete</em>. <strong>This computer &gt; Tools or Machines:</strong> <em>New</em>,
+<em>Use in this project</em>, <em>Make default</em>, <em>Delete</em>. <strong>Library &gt; Tools or Machines:</strong> <em>New</em>,
 <em>Import…</em>, <em>Export…</em>.</li>
 </ul>
 </li>
@@ -359,7 +358,8 @@ filled.</li>
 <li>Starting a drawing or editing tool, or selecting something in the Browser, goes back to
 Edit. F6 or <strong>Edit</strong> does too.</li>
 <li><strong>Each mode keeps its own view:</strong> top or 3D, the toolpath, the drawing and the pictures
-as you left them there. Simulate starts as Edit is, the first time.</li>
+as you left them there. The first time, Simulate starts in 3D with only the
+simulation shown (the toolpath, drawing and pictures hidden).</li>
 </ul>
 </li>
 <li><strong>The navigation bar</strong> floats at the bottom, each button an icon over its name:

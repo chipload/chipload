@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Styles - Chipload 0.36.0 user guide</title>
+        <title>Styles - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -205,7 +205,7 @@ library first”.</li>
 <li><strong>A profile’s side</strong> is kept as “by the selection”: the style cuts outlines outside and
 holes inside, as a <a href="../concepts/depths.html#what-a-new-operation-starts-with">new profile</a>
 does. A profile <em>on</em> the line keeps that.</li>
-<li><strong>To change a style,</strong> open it under <em>This computer &gt; Styles</em> (see below), or save an
+<li><strong>To change a style,</strong> open it under <em>Library &gt; Styles</em> (see below), or save an
 operation again under its name.</li>
 </ul>
 <h2 id="using-a-style"><a class="header" href="#using-a-style">Using a style</a></h2>
@@ -213,7 +213,10 @@ operation again under its name.</li>
 <ul>
 <li><strong>Style</strong> at the end of the ribbon’s OPERATION group: its menu lists your styles;</li>
 <li>right-click the canvas, <strong>Apply style ▸</strong>;</li>
-<li>right-click the style under <em>This computer &gt; Styles</em>, or open it there: <strong>Apply to the
+<li>press <strong>S</strong> over the canvas, then the style’s digit: the quick menu numbers the first nine
+styles 1 to 9 in the order of the Styles list, so moving a style up the list changes its
+digit;</li>
+<li>right-click the style under <em>Library &gt; Styles</em>, or open it there: <strong>Apply to the
 selection</strong>.</li>
 </ul>
 <p>On the command line:</p>
@@ -230,8 +233,32 @@ none, the library tool copied in (the command says so).</li>
 <li>Nothing in the project remembers the style afterwards: changing the style later doesn’t
 change operations made from it.</li>
 </ul>
+<h2 id="layer-rules"><a class="header" href="#layer-rules">Layer rules</a></h2>
+<p>If you draw each kind of cut on its own layer (<code>CUT_OUTSIDE</code>, <code>DRILL_5</code>, <code>POCKET</code>), a
+style can do its job by itself: give it a <strong>layer pattern</strong>, and every layer whose name
+matches gets the style’s operations, selecting the layer.</p>
+<ul>
+<li><strong>The pattern:</strong> <code>*</code> stands for any run of characters, <code>?</code> for one, upper or lower case
+alike: <code>CUT*</code>, <code>DRILL_?</code>, <code>pocket</code>. Nothing else is special.</li>
+<li><strong>When:</strong> on importing a DXF or SVG as a new project (one Ctrl+Z takes the operations
+away again; <code>chipload import … --no-rules</code> leaves them out), and whenever you choose
+<strong>Operation &gt; Apply layer rules</strong> or <code>chipload style apply part.chipload</code> (<code>--dry-run</code>
+says what it would add). Updating a drawing doesn’t apply them.</li>
+<li><strong>Order:</strong> the styles’ order in <em>Library &gt; Styles</em>, then the layers by name. Every
+style that matches a layer adds its operations, so a rough and a finish pass can both come
+from rules.</li>
+<li><strong>Already cut:</strong> a layer an operation already cuts, by its layer or by one of its shapes,
+is skipped, so applying the rules twice adds nothing.</li>
+<li><strong>The report</strong> says what each rule added, which layers it skipped and why, and which
+layers no rule matched.</li>
+</ul>
+<p>Set the pattern in the style’s properties, <em>Layers</em> (empty for none), or:</p>
+<pre><code>chipload style set "Cut out 18 mm ply" --layer "CUT*"
+chipload style set "Cut out 18 mm ply" --layer ""          # no rule
+</code></pre>
+<p>A styles file with a layer pattern can’t be read by Chipload 0.36 or older.</p>
 <h2 id="managing-styles"><a class="header" href="#managing-styles">Managing styles</a></h2>
-<p><strong>This computer &gt; Styles</strong> in the Browser lists them; hover over one for what it does.
+<p><strong>Library &gt; Styles</strong> in the Browser lists them; hover over one for what it does.
 Click one for its properties: its name (<strong>Rename</strong>), <strong>Apply to the selection</strong>,
 <strong>Delete</strong> (also the Del key; the library has no undo, <code>styles.json.bak</code> keeps the file as
 it was), and below them the style’s operation in the same form an operation has: its

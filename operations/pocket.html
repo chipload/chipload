@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Pocket - Chipload 0.36.0 user guide</title>
+        <title>Pocket - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -260,6 +260,28 @@ lead from the cleared side onto the wall.</p>
 <p><strong>Corners</strong> puts dogbones or T-bones into the pocket wall’s inside corners, as on
 <a href="profile.html#dogbones-and-t-bones">profiles</a>, and any corner can have its own choice
 (<a href="profile.html#corner-by-corner">corner by corner</a>). Not with <a href="rest.html">rest machining</a>.</p>
+<h2 id="finishing-pass"><a class="header" href="#finishing-pass">Finishing pass</a></h2>
+<p><strong>Finishing pass</strong> roughs the pocket with a little material left, then takes it off in light
+cuts with the same tool: cleaner walls without a step mark at every depth, a cleaner floor,
+and a true size for a fit (an inlay, a lid, a recess for a hinge or a magnet).</p>
+<ul>
+<li><strong>Wall allowance</strong> (0.3 mm when ticked): left on every wall and island by the roughing.
+Less than the tool radius.</li>
+<li><strong>Floor allowance</strong> (0.2 mm when ticked): the roughing stops this far above the end
+depth. At most the step down; 0 on a pocket cut through. Either can be 0, not both.</li>
+<li>For each area of the pocket, in turn: the roughing, then one level pass over the floor at
+the end depth (the roughing’s rings once more), then one lap of each wall at full depth.
+The lap goes down in the roughed area and onto the wall along the lead, or straight across
+the allowance, and leaves the same way.</li>
+<li>Dogbones are cut by the roughing, the allowance short, and the lap skims them.</li>
+<li>Where the pocket is too narrow to rough with the allowance (a gap between an island and a
+wall only a little wider than the tool), the lap would cut it full width at full depth, so
+the pocket is refused with the place: use a smaller allowance or a smaller tool.</li>
+<li>Not on a rest pocket, which is a light clean-up already. Rest passes still come after a
+finished pocket and clear what it leaves.</li>
+<li>On the command line: <code>chipload set part.chipload 'operations.0.finish={"wall":0.3,"floor":0.2}'</code>,
+or <code>null</code> for none. The setup sheet says “finishing: walls 0.3 mm, floor 0.2 mm”.</li>
+</ul>
 <h2 id="rest-machining"><a class="header" href="#rest-machining">Rest machining</a></h2>
 <p>A pocket can have rest passes: smaller tools that clear only what its tool left, shown under
 it in the Browser. See <a href="rest.html">Rest machining</a>.</p>
@@ -293,6 +315,7 @@ in mm, feeds in mm/min, angles in radians.</p>
 <tr><td><code>corners</code></td><td>Corners (dogbones, T-bones)</td></tr>
 <tr><td><code>corner_choices</code></td><td>corners with their own choice, as on <a href="profile.html#in-the-file">profiles</a>; left out when there are none</td></tr>
 <tr><td><code>rest</code></td><td>Rest after: <code>{"after_tool": id}</code> or null</td></tr>
+<tr><td><code>finish</code></td><td>Finishing pass: <code>{"wall": …, "floor": …}</code>, the allowances; left out when there is none</td></tr>
 <tr><td><code>rest_passes</code></td><td>Its rest passes, each <code>{tool, feed, plunge_feed, step_down, stepover, slot_feed, slot_step_down, entry, enabled}</code>; left out when there are none</td></tr>
 </tbody>
 </table>

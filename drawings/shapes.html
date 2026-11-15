@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Drawing shapes - Chipload 0.36.0 user guide</title>
+        <title>Drawing shapes - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -188,7 +188,7 @@ the first point again to close it; Enter or a double-click finishes it open.</li
 <li><strong>Arc</strong> (<strong>A</strong>): where it starts, where it ends, then a point it passes through (or type
 its radius: it bows to the cursor’s side). It becomes an open polyline of one or two arc
 segments.</li>
-<li><strong>Slot</strong> (<strong>S</strong>): the centres of its two ends, then its width (a click, or type it). It
+<li><strong>Slot</strong> (<strong>U</strong>): the centres of its two ends, then its width (a click, or type it). It
 is a rectangle whose corner radius is half its width; it shows as <em>Slot</em>, and stays one
 when you change its width.</li>
 <li><strong>Polygon</strong> (<strong>N</strong>): the centre, then a corner. Its number of sides is on the status bar
@@ -396,6 +396,44 @@ with its file.</li>
 <p>Imported shapes can’t be edited: they change only with the DXF, unless you
 <a href="explode.html">explode it</a>. Lines whose ends almost meet can be joined into one shape with
 <em>Draw &gt; Join ends…</em> (same page).</p>
+<h2 id="the-compass"><a class="header" href="#the-compass">The Compass</a></h2>
+<p>The <strong>Compass</strong> moves, turns and copies the selection from one handle: two arrows (its X
+and Y axes), a ring and a centre. Select drawn shapes, a group, or a whole picture, text,
+3D model or drawing, then press <strong>Q</strong> (also MODIFY &gt; <em>Compass</em> in the ribbon, or <em>Compass</em>
+in the canvas’s right-click menu). It shows on the middle of the selection, and the
+selection’s own handles hide while it shows. <strong>Q</strong> again or <strong>Esc</strong> hides it.</p>
+<ul>
+<li><strong>An arrow:</strong> drag to move along that axis. The distance goes in steps of the grid, or
+to where a point of another shape lies along the axis.</li>
+<li><strong>The ring:</strong> drag to turn about the centre, in steps of 15° (Alt: 0.1°).</li>
+<li><strong>The centre:</strong> drag to move freely; the centre snaps to points, so a point of the
+selection lands exactly on a point of another shape.</li>
+<li><strong>Exact values:</strong> double-click an arrow, the ring or the centre and type the distance,
+the angle, or ΔX and ΔY (two numbers), then Enter.</li>
+<li><strong>Put the Compass on a point first:</strong> tap <strong>Space</strong> (press and let go). The Compass
+turns grey: drag its centre onto a corner, a hole’s centre or a line’s middle (the
+selection’s own points count too), or drag an arrow to turn its axes, which lie along a
+line under the cursor. Tap Space again to lock it: the next drag is measured from
+there. Holding Space while dragging still moves the view.</li>
+<li><strong>Right-drag</strong> an arrow, the ring or the centre, and choose when you let go:
+<em>Move here</em> (or <em>Turn here</em>), <em>Copy here</em> (the copy is then selected, so you can place
+the next one), <strong>Linear array…</strong> (from an arrow or the centre: count and step, the step
+as dragged) or <strong>Circular array…</strong> (from the ring: count and angle, round the Compass’s
+centre, the angle as dragged). The arrays show their copies before <em>Create</em>. The menu
+starts with the dragged distance or angle (ΔX and ΔY from the centre), selected: type an
+exact value over it before choosing, or press <strong>Enter</strong> to move or turn by it.</li>
+<li><strong>Right-click</strong> the centre or an arrow (without dragging) for <strong>To point</strong> or <strong>To centre
+point</strong>, then click: the selection moves so that the Compass’s centre comes to the
+clicked point, snapping as when dragging (Alt: no snapping), or to the centre of the
+shape you click (a circle’s or an arc’s centre, else the middle of its box). From the
+centre it moves in X and Y; from an arrow only along that axis, as far as the point
+lies along it. The outline shows where it will go while you point; <strong>Esc</strong> cancels.
+Unlocked, the same moves the Compass itself the same way, and the selection stays.</li>
+</ul>
+<p>Every move or turn is one undo step, and the shapes keep their ids, so the operations
+that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or
+whole drawing only moves and turns. The command line does the same with <code>shape move</code>,
+<code>shape turn --about</code>, <code>shape copy</code>, <code>shape array-linear</code> and <code>shape array-polar</code>.</p>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
 <pre><code class="language-sh">chipload shape add part.chipload circle --center 40,30 --radius 5 --layer HOLES   # prints its id
 chipload shape add part.chipload rectangle --center 80,30 --length 40 --width 10 --angle-deg 15
@@ -404,6 +442,7 @@ chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
 chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
+chipload shape array-linear part.chipload 8 --count 5 --step 20,10   # a line of copies, any direction
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape move part.chipload 8 9 --dx 10 --dy -5
 chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Signs and frames - Chipload 0.36.0 user guide</title>
+        <title>Signs and frames - Chipload 0.37.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-70c9cf51.js";
+            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5dd94fcc.js"></script>
+        <script src="../toc-a5a59c3f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.36.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -212,8 +212,9 @@ radius;</li>
 board of its own.</li>
 </ul>
 </li>
-<li><strong>Edge</strong>: a <strong>Chamfer</strong> of that width round the outline, cut with the V-bit centred on the
-outline before the sign is cut out (the other half of the groove is in the waste).</li>
+<li><strong>Edge</strong>: a <a href="../operations/chamfer.html">chamfer</a> of that width round the outline, cut with
+the V-bit before the sign is cut out: its flank on the outline, its tip in the waste.
+Signs made before 0.37.0 keep their edge as a follow path centred on the outline.</li>
 <li><strong>V-bit</strong>, <strong>End mill</strong>: the project’s tools, then under <em>From your library:</em> your tool
 library’s (marked <strong>+</strong>). A library tool is copied into the project when you click <em>Make
 sign</em>, not before. A project without such a tool starts on the library’s. The V-bit
