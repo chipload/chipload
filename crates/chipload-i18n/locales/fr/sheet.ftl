@@ -221,3 +221,12 @@ sheet-legend-grey = Gris : les pièces. Mouvements de coupe seulement, sans dép
 
 ## The time
 sheet-time = Temps
+sheet-pieces = Morceaux
+sheet-pieces-summary = { $count } morceaux, { $columns } × { $rows }, assemblés par des { $joint ->
+    [knobs] tenons de puzzle
+   *[fingers] doigts
+} de { $size }. Chaque morceau est usiné dans sa propre planche, ci-dessous.
+sheet-piece = Morceau { $name }
+sheet-piece-mark = Écrivez { $name } au crayon au dos avant de le débrider.
+sheet-pieces-glue-title = Collage
+sheet-pieces-glue = Assemblez d’abord les morceaux à sec : les assemblages ont { $clearance } de jeu pour la colle. Collez les morceaux de chaque rangée, puis réunissez les rangées.

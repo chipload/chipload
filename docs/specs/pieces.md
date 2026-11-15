@@ -5,6 +5,18 @@ shape larger than the board into pieces that lock together. The shapes are split
 operations follow; the joints are puzzle knobs or fingers. The other reading, sliding one
 long board between tiles, is parked in docs/specs/sliding-tiles.md.
 
+As built, 2026-11-15:
+- Steps 1–6 built (the window, step 7, and the guide's own page, step 8, to come).
+- The pieces come from `toolpath::pieces` (`piece_set`). Each piece's program comes from
+  `pipeline::pieces::run_pieces`: the outside profiles cut the piece's loops in a project of
+  its own (its drawing only those loops, its board fitted round them), and every other
+  operation's moves come from the whole setup's plan, trimmed by `pieces::Trimmer`.
+- `run --piece`, `simulate --piece` (without it, the pieces put together on the whole
+  board), the one sheet per setup with its map, and `dxf export --pieces` are built.
+- `plan` still plans a setup in pieces as one board, without `--piece`.
+- Joints stay two sizes from crossings, not one (§4).
+- A board with a fixed size gives each piece a 10 mm margin (`DEFAULT_PIECE_MARGIN`).
+
 ## 1. Why
 
 A 1.5 m round table top, a large wall sign, or a map of the country with its regions in

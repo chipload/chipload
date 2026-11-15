@@ -149,6 +149,10 @@ impl Joint {
     }
 }
 
+/// The margin round each piece's board when the setup's board has none of its own (a
+/// fixed size), mm (docs/specs/pieces.md §7).
+pub const DEFAULT_PIECE_MARGIN: f64 = 10.0;
+
 /// The room between pieces at a seam by default, mm (docs/specs/pieces.md §5).
 pub const DEFAULT_PIECE_CLEARANCE: f64 = 0.2;
 

@@ -111,6 +111,7 @@ chipload run <PROJECT> [OPTIONS]
 | `--sheet-units <UNITS>` | The setup sheet's lengths and feeds: mm (default) or inch. The G-code's units are the machine's (machine.gcode_units) One of: `mm`, `inch`. |
 | `--sheet-lang <LANG>` | The setup sheet's language (default: English). The command line itself stays English. One of: `en`, `de`, `fr`, `es`, `it`, `sv`, `ru`. |
 | `--setup <ID>` | Only this setup (as `setup list` numbers it); default: every setup for `run`, the active one otherwise (docs/specs/setups.md §8) |
+| `--piece <NAME>` | Only this piece of a setup cut in pieces, such as A1 (docs/specs/pieces.md §7); default: every piece. |
 | `--part <ID>` | Only this part (as `part list` numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
@@ -130,6 +131,7 @@ chipload simulate <PROJECT> [OPTIONS]
 | `--no-image` | Print the numbers only. |
 | `--after <N>` | The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts. |
 | `--setup <ID>` | The setup to simulate (as `setup list` numbers it); default: the active one. |
+| `--piece <NAME>` | Only this piece of a setup cut in pieces, on its own board; default: the pieces put together (docs/specs/pieces.md §7) |
 | `--face <FACE>` | The face the picture shows: front, or back (the board turned over, as it lies); default: the face the setup cuts (docs/specs/two-sided.md §10.2) One of: `front`, `back`. |
 | `--set <PATH=VALUE>` | For this run only: set a project value by path, e.g. `stock.thickness=18` (see `chipload set`). The project file isn't changed. Repeatable. |
 
@@ -1752,6 +1754,7 @@ chipload dxf export <PROJECT> [OPTIONS]
 | `--layer <LAYERS>` | Only this layer (repeat for more) Repeatable. |
 | `--shape <SHAPES>` | Only these shapes, by id (as `inspect` lists them, without the S) Repeatable. |
 | `--construction` | Construction geometry too, each on a layer of its own (LAYER_construction) |
+| `--pieces` | The active setup's pieces instead of the drawing, each on a layer named after it (docs/specs/pieces.md §7) |
 
 ### `chipload dxf remove`
 

@@ -417,6 +417,8 @@ toolpath-error-step = { $step ->
     [comparing-shapes] Comparación de formas
     [merging-islands] Fusión de islas
     [subtracting-an-island] Resta de una isla
+    [piece-outline] El contorno de un trozo
+    [piece-reach] El alcance de un trozo
    *[offset] Equidistante
 }
 
@@ -432,3 +434,7 @@ toolpath-relief-roughing-tool = la herramienta { $tool } no puede desbastar un r
 toolpath-relief-roughing-room = la herramienta de desbaste { $tool } no cabe en el área del relieve, limitada al alcance del acabado
 toolpath-relief-deep = corta { $depth } de profundidad solo con la herramienta { $tool }; una pasada de desbaste (op add-roughing) quita antes la mayor parte
 toolpath-pieces-joint-too-small = uniones de { $size } son demasiado pequeñas para la herramienta de recorte: su curva más cerrada necesita un radio de { $radius } (radio de la herramienta más la holgura); haga las uniones de al menos { $least }, o recorte con una herramienta más pequeña
+toolpath-pieces-no-cut-out = una sujeción en trozos necesita un perfilado exterior que recorte su contorno: los trozos son ese contorno cortado en las juntas
+toolpath-pieces-board-too-small = ni siquiera { $max } × { $max } trozos caben en tableros de { $x } × { $y }: indique tableros más grandes o una cuadrícula
+toolpath-pieces-no-seam = la junta { $seam } a lo largo de { $axis } está desplazada, pero solo hay { $seams } juntas en ese sentido
+toolpath-pieces-seams-close = dos juntas, o una junta y el borde del contorno, quedan a menos de { $least } (tres tamaños de unión): separe las juntas o use menos trozos

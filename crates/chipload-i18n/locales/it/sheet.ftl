@@ -221,3 +221,12 @@ sheet-legend-grey = Grigio: i pezzi. Solo movimenti di taglio, nessun rapido.
 
 ## The time
 sheet-time = Tempo
+sheet-pieces = Tasselli
+sheet-pieces-summary = { $count } tasselli, { $columns } × { $rows }, uniti con { $joint ->
+    [knobs] denti a puzzle
+   *[fingers] dita
+} di { $size }. Ogni tassello si lavora da una tavola propria, qui sotto.
+sheet-piece = Tassello { $name }
+sheet-piece-mark = Scriva { $name } a matita sul retro prima di sbloccarlo.
+sheet-pieces-glue-title = Incollaggio
+sheet-pieces-glue = Provi prima i tasselli a secco: gli incastri hanno { $clearance } di gioco per la colla. Incolli i tasselli di ogni fila, poi unisca le file.

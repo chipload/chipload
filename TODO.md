@@ -283,7 +283,11 @@ Smaller follow-ups noted along the way, not in the order above:
      puzzle knobs or fingers, the operations following (docs/specs/pieces.md, approved
      2026-11-15). Step 1 built: the model (schema 37), validation, `setup pieces`;
      generating a setup in pieces is refused until step 5. Step 2 built: seams, knobs,
-     fingers and cells (`chipload-toolpath` `pieces.rs`). The other reading, sliding one long board between tiles on
+     fingers and cells (`chipload-toolpath` `pieces.rs`). Steps 3–6 built: piece outlines,
+     a program per piece (`run --piece`), cuts trimmed to each piece, the sheet with its
+     map, `simulate --piece` or put together, `dxf export --pieces`, a golden. Left: the
+     window (step 7: Pieces section, seams in the view, export), `plan --piece`, the guide
+     page. The other reading, sliding one long board between tiles on
      pins, is parked in docs/specs/sliding-tiles.md.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced

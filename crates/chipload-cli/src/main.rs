@@ -209,6 +209,10 @@ enum Command {
         /// active one otherwise (docs/specs/setups.md §8).
         #[arg(long, value_name = "ID")]
         setup: Option<u64>,
+        /// Only this piece of a setup cut in pieces, such as A1 (docs/specs/pieces.md §7);
+        /// default: every piece.
+        #[arg(long, value_name = "NAME")]
+        piece: Option<String>,
         /// Only this part (as `part list` numbers it), as if every other part were switched
         /// off; may be given more than once (docs/specs/part-export.md).
         #[arg(long = "part", value_name = "ID")]
@@ -243,6 +247,10 @@ enum Command {
         /// The setup to simulate (as `setup list` numbers it); default: the active one.
         #[arg(long, value_name = "ID")]
         setup: Option<u64>,
+        /// Only this piece of a setup cut in pieces, on its own board; default: the pieces
+        /// put together (docs/specs/pieces.md §7).
+        #[arg(long, value_name = "NAME")]
+        piece: Option<String>,
         /// The face the picture shows: front, or back (the board turned over, as it lies);
         /// default: the face the setup cuts (docs/specs/two-sided.md §10.2).
         #[arg(long, value_parser = ["front", "back"])]
@@ -799,6 +807,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             sheet_lang,
             parts,
             setup,
+            piece,
             sets,
         } => {
             let sheet = (!no_sheet).then(|| {
@@ -814,7 +823,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 tool_change,
                 sheet,
                 &sets,
-                (&parts, setup),
+                (&parts, setup, piece.as_deref()),
             )
         }
         Command::Sheet {
@@ -847,6 +856,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             after,
             hash,
             setup,
+            piece,
             face,
             sets,
         } => simulate(
@@ -859,6 +869,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
                 image: !no_image,
                 hash,
                 back_face: face.map(|f| f == "back"),
+                piece,
             },
             &with_setup(sets, setup),
         ),

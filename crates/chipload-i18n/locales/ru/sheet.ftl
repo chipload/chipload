@@ -171,3 +171,12 @@ sheet-legend-file = Файл { $number } (T{ $tool })
 sheet-legend-tabs = перемычки
 sheet-legend-grey = Серым: детали. Только рабочие ходы, без быстрых перемещений.
 sheet-time = Время
+sheet-pieces = Фрагменты
+sheet-pieces-summary = { $count } фрагментов, { $columns } × { $rows }, соединённых { $joint ->
+    [knobs] пазловыми замками
+   *[fingers] шипами
+} размером { $size }. Каждый фрагмент вырезается из своей заготовки, ниже.
+sheet-piece = Фрагмент { $name }
+sheet-piece-mark = Подпишите { $name } карандашом на обороте, прежде чем снимать его.
+sheet-pieces-glue-title = Склейка
+sheet-pieces-glue = Сначала соберите фрагменты насухо: соединения сделаны с зазором { $clearance } под клей. Склейте фрагменты каждого ряда, затем соедините ряды.

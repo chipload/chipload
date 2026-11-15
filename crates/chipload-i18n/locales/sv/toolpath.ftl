@@ -414,6 +414,8 @@ toolpath-error-step = { $step ->
     [comparing-shapes] Jämförelsen av former
     [merging-islands] Sammanslagningen av öar
     [subtracting-an-island] Subtraktionen av en ö
+    [piece-outline] En bits kontur
+    [piece-reach] En bits räckvidd
    *[offset] Offseten
 }
 
@@ -429,3 +431,7 @@ toolpath-relief-roughing-tool = verktyg { $tool } kan inte grovbearbeta en relie
 toolpath-relief-roughing-room = grovverktyget { $tool } får inte plats i reliefens område, som hålls inom finbearbetningens räckvidd
 toolpath-relief-deep = skär { $depth } djupt med enbart verktyg { $tool }; ett grovpass (op add-roughing) tar det mesta först
 toolpath-pieces-joint-too-small = fogar på { $size } är för små för utskärningsverktyget: dess snävaste kurva behöver radien { $radius } (verktygsradie plus spel); gör fogarna minst { $least }, eller skär ut med ett mindre verktyg
+toolpath-pieces-no-cut-out = en uppspänning i bitar behöver en utvändig profil som skär ut dess kontur: bitarna är den konturen delad vid skarvarna
+toolpath-pieces-board-too-small = inte ens { $max } × { $max } bitar får plats på skivor på { $x } × { $y }: ange större skivor eller ett rutnät
+toolpath-pieces-no-seam = skarv { $seam } längs { $axis } är förskjuten, men det finns bara { $seams } skarvar åt det hållet
+toolpath-pieces-seams-close = två skarvar, eller en skarv och konturens kant, kommer närmare än { $least } (tre fogstorlekar): flytta isär skarvarna eller använd färre bitar

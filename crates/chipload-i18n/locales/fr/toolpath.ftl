@@ -417,6 +417,8 @@ toolpath-error-step = { $step ->
     [comparing-shapes] La comparaison des formes
     [merging-islands] La fusion des îlots
     [subtracting-an-island] La soustraction d'un îlot
+    [piece-outline] Le contour d'un morceau
+    [piece-reach] La portée d'un morceau
    *[offset] Le décalage
 }
 
@@ -432,3 +434,7 @@ toolpath-relief-roughing-tool = l'outil { $tool } ne peut pas ébaucher un relie
 toolpath-relief-roughing-room = l'outil d'ébauche { $tool } n'a pas de place dans la zone du relief, limitée à la portée de la finition
 toolpath-relief-deep = coupe { $depth } de profondeur avec le seul outil { $tool } ; une passe d'ébauche (op add-roughing) en enlève d'abord l'essentiel
 toolpath-pieces-joint-too-small = des assemblages de { $size } sont trop petits pour l’outil de détourage : sa courbe la plus serrée demande un rayon de { $radius } (rayon de l’outil plus le jeu) ; faites des assemblages d’au moins { $least }, ou détourez avec un outil plus petit
+toolpath-pieces-no-cut-out = un montage en morceaux demande un contournage extérieur qui détoure son contour : les morceaux sont ce contour coupé aux joints
+toolpath-pieces-board-too-small = même { $max } × { $max } morceaux ne tiennent pas sur des planches de { $x } × { $y } : indiquez des planches plus grandes ou une grille
+toolpath-pieces-no-seam = le joint { $seam } selon { $axis } est décalé, mais il n’y a que { $seams } joints dans ce sens
+toolpath-pieces-seams-close = deux joints, ou un joint et le bord du contour, sont à moins de { $least } (trois tailles d’assemblage) : écartez les joints ou prenez moins de morceaux

@@ -1343,6 +1343,32 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v37/pieces.chipload
+exit 0
+--- stdout
+warning: Operation 1: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+note: Operation 1 (Profile 1): cuts through, 0.500 mm into the spoilboard
+note: Operation 3 (V-carve 1): contours #3, #4, #5, #6, #7, #8, #9: wider than a carve at most 1.000 mm deep reaches (0.736 mm at the surface): the V-bit cuts the walls, and the floor between them is left at the surface. Add a floor pass with an end mill to clear it
+Operation 1: a ring starts at (40.000, -3.000) (default)
+Operation 2: a ring starts at (303.000, 245.943) (default)
+Estimated time: 45 min 36 s (cutting 45 min 9 s, rapids 22 s, spindle 6 s), plus 1 tool change
+Cut outline: 912.000 × 512.000 mm (X -6.000 … 906.000, Y -6.000 … 506.000, the tool included): the smallest stock that holds the job.
+  Operation 1 (Profile 1): 20 min 12 s; cutting 30.3 m, plunging 1 mm, rapids 9 mm, 1 lift
+  Operation 2 (Pocket 1): 23 min 42 s; cutting 35.4 m, plunging 3 mm, rapids 424 mm, 1 lift
+  Operation 3 (V-carve 1): 1 min 36 s; cutting 1.7 m, plunging 75 mm, rapids 1.4 m, 43 lifts
+  File 1: 43 min 57 s
+  File 2: 1 min 39 s
+  In all: cutting 67.5 m, plunging 79 mm, rapids 1.8 m, 45 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Profile 1): set the tool's flutes to see the chip load
+  Operation 2 (Pocket 1): set the tool's flutes to see the chip load
+  Operation 3 (V-carve 1): set the tool's flutes to see the chip load
+Tool group 1: tool 1, operations 1, 2
+Tool group 2: tool 2, operations 3
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

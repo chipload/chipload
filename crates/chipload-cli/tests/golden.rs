@@ -280,6 +280,16 @@ const GOLDEN: [(&str, &str); 80] = [
     ),
 ];
 
+/// Projects in pieces (docs/specs/pieces.md): a program per piece, run as `chipload run`
+/// does. Kept apart from GOLDEN, whose other tests plan a project as one program.
+const PIECES_GOLDEN: [(&str, &str); 1] = [
+    // A 900 × 500 mm rounded board cut out, a pocket and the word PUZZLE V-carved across its
+    // middle, in knob pieces on 600 × 600 mm boards: two pieces, A1 and A2, each with its
+    // end mill and V-bit files. Made with `new`, `shape add`, `text add`, `op add` and
+    // `setup pieces --board 600x600`.
+    ("v37_pieces", "jobs/v37/pieces.chipload"),
+];
+
 fn corpus(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/corpus")
@@ -361,6 +371,40 @@ fn golden_gcode() {
     );
 }
 
+#[test]
+fn golden_pieces_gcode() {
+    let base = std::env::temp_dir().join(format!("chipload-golden-pieces-{}", std::process::id()));
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    let mut mismatches = Vec::new();
+    for (name, project) in PIECES_GOLDEN {
+        let project = corpus(project);
+        let (one, two) = (
+            base.join(format!("{name}-a")),
+            base.join(format!("{name}-b")),
+        );
+        std::fs::create_dir_all(&one).unwrap();
+        std::fs::create_dir_all(&two).unwrap();
+        let first = run(&project, &one, name);
+        let second = run(&project, &two, name);
+        assert_eq!(first, second, "{name}: output differs between runs");
+        assert!(first.len() > 1, "{name}: a program per piece expected");
+        for (file, text) in &first {
+            let expected = corpus(&format!("expected/{file}"));
+            if update {
+                std::fs::write(&expected, text).unwrap();
+            } else if std::fs::read_to_string(&expected).ok().as_ref() != Some(text) {
+                mismatches.push(file.clone());
+            }
+        }
+    }
+    std::fs::remove_dir_all(&base).unwrap();
+    assert!(
+        mismatches.is_empty(),
+        "golden G-code differs for {mismatches:?}; if intended, regenerate with \
+         CHIPLOAD_UPDATE_GOLDEN=1 and explain the change in the commit message"
+    );
+}
+
 /// The same project rendered with its post but `arcs = false`: what run_job does, with
 /// that one setting changed. (file name, G-code) for each file, as `run` names them.
 fn render_without_arcs(project: &Path, name: &str) -> Vec<(String, String)> {
@@ -408,7 +452,7 @@ fn golden_files() -> Vec<String> {
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .filter(|f| {
-            GOLDEN.iter().any(|(name, _)| {
+            GOLDEN.iter().chain(&PIECES_GOLDEN).any(|(name, _)| {
                 f == &format!("{name}.nc")
                     || (f.starts_with(&format!("{name}-")) && f.ends_with(".nc"))
             })

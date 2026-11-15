@@ -218,3 +218,12 @@ sheet-legend-grey = Grey: the parts. Cutting moves only, no rapids.
 
 ## The time
 sheet-time = Time
+sheet-pieces = Pieces
+sheet-pieces-summary = { $count } pieces, { $columns } × { $rows }, joined by { $joint ->
+    [knobs] puzzle knobs
+   *[fingers] fingers
+} of { $size }. Each piece is cut from a board of its own, below.
+sheet-piece = Piece { $name }
+sheet-piece-mark = Write { $name } on the back in pencil before you unclamp it.
+sheet-pieces-glue-title = Gluing
+sheet-pieces-glue = Dry-fit the pieces first: the joints are cut { $clearance } loose for glue. Glue the pieces of each row, then join the rows.

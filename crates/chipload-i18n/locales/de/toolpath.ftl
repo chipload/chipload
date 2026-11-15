@@ -418,6 +418,8 @@ toolpath-error-step = { $step ->
     [comparing-shapes] Vergleichen der Formen
     [merging-islands] Zusammenführen der Inseln
     [subtracting-an-island] Abziehen einer Insel
+    [piece-outline] Der Umriss eines Stücks
+    [piece-reach] Die Reichweite eines Stücks
    *[offset] Offset
 }
 
@@ -433,3 +435,7 @@ toolpath-relief-roughing-tool = Werkzeug { $tool } kann kein Relief schruppen: d
 toolpath-relief-roughing-room = das Schruppwerkzeug { $tool } hat im Bereich des Reliefs keinen Platz, der in Reichweite der Schlichtbahn bleibt
 toolpath-relief-deep = schneidet { $depth } tief allein mit Werkzeug { $tool }; ein Schruppdurchgang (op add-roughing) nimmt vorher das meiste weg
 toolpath-pieces-joint-too-small = Verbindungen von { $size } sind zu klein für das Ausschneidewerkzeug: seine engste Kurve braucht einen Radius von { $radius } (Werkzeugradius plus Spiel); machen Sie die Verbindungen mindestens { $least } groß, oder schneiden Sie mit einem kleineren Werkzeug aus
+toolpath-pieces-no-cut-out = eine Aufspannung in Stücken braucht eine Außenkontur, die ihren Umriss ausschneidet: die Stücke sind dieser Umriss, an den Nähten geteilt
+toolpath-pieces-board-too-small = selbst { $max } × { $max } Stücke passen nicht auf Platten von { $x } × { $y }: geben Sie größere Platten oder ein Raster an
+toolpath-pieces-no-seam = Naht { $seam } entlang { $axis } ist verschoben, aber in dieser Richtung gibt es nur { $seams } Nähte
+toolpath-pieces-seams-close = zwei Nähte, oder eine Naht und der Rand des Umrisses, kommen sich näher als { $least } (drei Verbindungsgrößen): verschieben Sie die Nähte auseinander oder nehmen Sie weniger Stücke

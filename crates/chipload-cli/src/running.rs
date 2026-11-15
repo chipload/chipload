@@ -23,6 +23,52 @@ pub(crate) fn sheet_info(
     }
 }
 
+/// A project run for a view of it: a setup's program, or for a setup in pieces the piece
+/// `piece` on its own board, or without one the pieces' programs put together on the
+/// setup's whole board (docs/specs/pieces.md §7).
+fn load_and_run_pieces(
+    out: &mut Out,
+    project: &Path,
+    sets: &[String],
+    piece: Option<&str>,
+) -> Result<(Job, RunResult, Vec<String>), ExitCode> {
+    let (job, _) = load_parts(out, project, sets, &[])?;
+    let in_pieces = job
+        .setups
+        .get(job.active_setup_index())
+        .is_some_and(|s| s.pieces.is_some());
+    if !in_pieces {
+        if piece.is_some() {
+            out.err("error: --piece: the setup is not cut in pieces (setup pieces)");
+            return Err(ExitCode::from(EXIT_FAILED));
+        }
+        return load_and_run(out, project, None, sets, &[]);
+    }
+    let runs = chipload_pipeline::pieces::run_pieces(&job, piece).map_err(|err| {
+        out.err(format!("error: {err}"));
+        ExitCode::from(EXIT_FAILED)
+    })?;
+    if piece.is_some() {
+        let Some(run) = runs.into_iter().next() else {
+            out.err("error: the piece has nothing to cut");
+            return Err(ExitCode::from(EXIT_FAILED));
+        };
+        return Ok((run.job, run.result, Vec::new()));
+    }
+    let Some((program, groups)) = chipload_pipeline::pieces::assembled(&runs) else {
+        out.err("error: the setup's pieces have nothing to cut");
+        return Err(ExitCode::from(EXIT_FAILED));
+    };
+    let mut result = runs[0].result.clone();
+    result.program = program;
+    result.groups = groups;
+    result.op_spans = Vec::new();
+    let one = job
+        .active_setup_id()
+        .map_or(job.clone(), |id| job.for_setup(id));
+    Ok((one, result, Vec::new()))
+}
+
 pub(crate) fn sheet(
     out: &mut Out,
     project: &Path,
@@ -32,6 +78,9 @@ pub(crate) fn sheet(
     words: (Units, Language),
     (sets, parts): (&[String], &[u64]),
 ) -> ExitCode {
+    if let Some(code) = pieces_sheet_only(out, project, output, gcode, tool_change, words, sets) {
+        return code;
+    }
     let (job, result, names) = match load_and_run(out, project, tool_change, sets, parts) {
         Ok(run) => run,
         Err(code) => return code,
@@ -57,6 +106,8 @@ pub(crate) struct SimulateArgs {
     pub(crate) hash: bool,
     /// The picture's face: the back (Some(true)), the front, or the one the setup cuts.
     pub(crate) back_face: Option<bool>,
+    /// A setup in pieces: only this piece; None: the pieces put together.
+    pub(crate) piece: Option<String>,
 }
 
 pub(crate) fn simulate(
@@ -72,8 +123,9 @@ pub(crate) fn simulate(
         image,
         hash,
         back_face,
+        piece,
     } = args;
-    let (job, result, _) = match load_and_run(out, project, None, sets, &[]) {
+    let (job, result, _) = match load_and_run_pieces(out, project, sets, piece.as_deref()) {
         Ok(run) => run,
         Err(code) => return code,
     };
@@ -175,7 +227,7 @@ pub(crate) fn run(
     tool_change: Option<library::ToolChangeArg>,
     sheet: Option<(Units, Language)>,
     sets: &[String],
-    (parts, setup): (&[u64], Option<u64>),
+    (parts, setup, piece): (&[u64], Option<u64>, Option<&str>),
 ) -> ExitCode {
     let (mut job, names) = match load_parts(out, project, sets, parts) {
         Ok(loaded) => loaded,
@@ -185,7 +237,7 @@ pub(crate) fn run(
         job.machine.tool_change = change.value();
     }
     // Every setup is a program of its own (docs/specs/setups.md §4).
-    let runs = match chipload_pipeline::run_setups(&job, setup) {
+    let runs = match chipload_pipeline::run_setups_pieces(&job, setup, piece) {
         Ok(runs) => runs,
         Err(err @ PipelineError::CheckFailed { .. }) => {
             out.err(format!("error: {err}"));
@@ -201,11 +253,15 @@ pub(crate) fn run(
     let several = job.setups.len() > 1;
     let mut files = Vec::new();
     let mut sheets = Vec::new();
-    for (index, (id, result)) in runs.iter().enumerate() {
+    for (index, run) in runs.iter().enumerate() {
+        let (id, result) = (&run.setup, &run.result);
         let one = job.for_setup(*id);
         if several {
             let name = one.setup(*id).map_or("", |s| s.name.as_str());
             out.line(format!("Setup {id} ({name}):"));
+        }
+        if let Some(piece) = &run.piece {
+            out.line(format!("Piece {piece}:"));
         }
         // The drawing's facts are the same for every setup: said once.
         if index == 0 {
@@ -228,7 +284,16 @@ pub(crate) fn run(
         for note in &result.check_notes {
             out.line(format!("check note: {}", note.message));
         }
-        out.line(format!("Work zero: {}", one.work_zero_text()));
+        out.line(format!("Work zero: {}", run.job.work_zero_text()));
+        if run.piece.is_some() {
+            let (x, y) = run.job.stock_size();
+            out.line(format!(
+                "Board: {} × {} × {} mm",
+                chipload_core::text::mm(x),
+                chipload_core::text::mm(y),
+                chipload_core::text::mm(run.job.stock().thickness)
+            ));
+        }
         if !names.is_empty() {
             out.line(format!("Only: {}", names.join(", ")));
         }
@@ -255,6 +320,7 @@ pub(crate) fn run(
             files.push(json!({
                 "path": std::path::absolute(&path).unwrap_or(path).display().to_string(),
                 "setup": id,
+                "piece": run.piece,
                 "tool": file.tool,
                 "operations": operations_json(&file.operations),
                 "rest_passes": rest_passes_json(&file.operations),
@@ -276,7 +342,29 @@ pub(crate) fn run(
                 result.post.name
             ));
         }
-        if let Some(words) = sheet {
+        if run.piece.is_some() {
+            // A setup in pieces has one sheet for all its pieces, written after its last
+            // (docs/specs/pieces.md §8).
+            let last = runs
+                .get(index + 1)
+                .is_none_or(|next| next.setup != run.setup);
+            if let (true, Some(words)) = (last, sheet) {
+                let info = sheet_info(project, words, names.clone());
+                let mine: Vec<&chipload_pipeline::SetupRun> =
+                    runs.iter().filter(|r| r.setup == run.setup).collect();
+                match write_pieces_sheet(&one, &mine, output, &info) {
+                    Ok(path) => {
+                        out.wrote(&path, " (setup sheet)");
+                        let shown = std::path::absolute(&path).unwrap_or(path);
+                        sheets.push(json!(shown.display().to_string()));
+                    }
+                    Err(err) => {
+                        out.err(format!("error: cannot write the setup sheet: {err}"));
+                        return ExitCode::from(EXIT_FAILED);
+                    }
+                }
+            }
+        } else if let Some(words) = sheet {
             // Each setup's sheet beside its files: out-S2-sheet.html.
             let info = sheet_info(project, words, names.clone());
             match write_setup_sheet(&one, result, output, &info) {
@@ -296,17 +384,18 @@ pub(crate) fn run(
         }
     }
     out.set("files", json!(files));
-    if let [(_, result)] = runs.as_slice() {
-        out.set("estimate", estimate_json(&job, &result.estimate));
+    if let [run] = runs.as_slice() {
+        out.set("estimate", estimate_json(&job, &run.result.estimate));
         out.set("sheet", sheets.first().cloned().unwrap_or(Value::Null));
     } else {
         out.set(
             "setups",
             json!(
                 runs.iter()
-                    .map(|(id, r)| json!({
-                        "setup": id,
-                        "estimate": estimate_json(&job, &r.estimate),
+                    .map(|r| json!({
+                        "setup": r.setup,
+                        "piece": r.piece,
+                        "estimate": estimate_json(&job, &r.result.estimate),
                     }))
                     .collect::<Vec<_>>()
             ),
@@ -315,6 +404,95 @@ pub(crate) fn run(
         out.set("sheet", json!(sheets));
     }
     ExitCode::SUCCESS
+}
+
+/// `sheet` for a setup in pieces: its one sheet for all its pieces (docs/specs/pieces.md
+/// §8). None when the setup is one board.
+fn pieces_sheet_only(
+    out: &mut Out,
+    project: &Path,
+    output: &Path,
+    gcode: Option<&Path>,
+    tool_change: Option<library::ToolChangeArg>,
+    words: (Units, Language),
+    sets: &[String],
+) -> Option<ExitCode> {
+    let (mut job, names) = match load_parts(out, project, sets, &[]) {
+        Ok(loaded) => loaded,
+        Err(code) => return Some(code),
+    };
+    let setup = job.setups.get(job.active_setup_index())?;
+    setup.pieces.as_ref()?;
+    let id = setup.id;
+    if let Some(change) = tool_change {
+        job.machine.tool_change = change.value();
+    }
+    let runs = match chipload_pipeline::run_setups_pieces(&job, Some(id), None) {
+        Ok(runs) => runs,
+        Err(err) => {
+            out.err(format!("error: {err}"));
+            return Some(ExitCode::from(EXIT_FAILED));
+        }
+    };
+    let extension = runs.first().map_or("nc", |r| {
+        r.result.post.file_extension.trim_start_matches('.')
+    });
+    let gcode = gcode.map_or_else(|| project.with_extension(extension), Path::to_path_buf);
+    let one = job.for_setup(id);
+    let info = sheet_info(project, words, names);
+    let mine: Vec<&chipload_pipeline::SetupRun> = runs.iter().collect();
+    let map = match chipload_pipeline::pieces::piece_map(&one) {
+        Ok(Some(map)) => map,
+        Ok(None) => return None,
+        Err(err) => {
+            out.err(format!("error: {err}"));
+            return Some(ExitCode::from(EXIT_FAILED));
+        }
+    };
+    let pieces: Vec<chipload_pipeline::sheet::PieceSheet> = mine
+        .iter()
+        .filter_map(|r| {
+            Some(chipload_pipeline::sheet::PieceSheet {
+                name: r.piece.as_deref()?,
+                job: &r.job,
+                result: &r.result,
+            })
+        })
+        .collect();
+    let html = chipload_pipeline::sheet::pieces_sheet(&one, &map, &pieces, &gcode, &info);
+    if let Err(err) = write_atomically(output, &html) {
+        out.err(format!("error: cannot write {}: {err}", output.display()));
+        return Some(ExitCode::from(EXIT_FAILED));
+    }
+    out.wrote(output, "");
+    Some(ExitCode::SUCCESS)
+}
+
+/// The sheet of a setup in pieces, from its pieces' runs, next to the G-code: written where
+/// a setup's sheet goes (docs/specs/pieces.md §8).
+fn write_pieces_sheet(
+    one: &chipload_job::Job,
+    runs: &[&chipload_pipeline::SetupRun],
+    output: &Path,
+    info: &chipload_pipeline::sheet::SheetInfo,
+) -> Result<std::path::PathBuf, String> {
+    let map = chipload_pipeline::pieces::piece_map(one)
+        .map_err(|e| e.to_string())?
+        .ok_or("the setup is not in pieces")?;
+    let pieces: Vec<chipload_pipeline::sheet::PieceSheet> = runs
+        .iter()
+        .filter_map(|r| {
+            Some(chipload_pipeline::sheet::PieceSheet {
+                name: r.piece.as_deref()?,
+                job: &r.job,
+                result: &r.result,
+            })
+        })
+        .collect();
+    let html = chipload_pipeline::sheet::pieces_sheet(one, &map, &pieces, output, info);
+    let path = chipload_pipeline::sheet::setup_sheet_path(one, output);
+    chipload_pipeline::write_atomically(&path, &html).map_err(|e| e.to_string())?;
+    Ok(path)
 }
 
 pub(crate) fn render(out: &mut Out, program_path: &Path, post_name: &str) -> ExitCode {

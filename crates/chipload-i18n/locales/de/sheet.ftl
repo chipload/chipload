@@ -221,3 +221,12 @@ sheet-legend-grey = Grau: die Teile. Nur Fräsbewegungen, keine Eilgänge.
 
 ## The time
 sheet-time = Zeit
+sheet-pieces = Stücke
+sheet-pieces-summary = { $count } Stücke, { $columns } × { $rows }, verbunden durch { $joint ->
+    [knobs] Puzzlenasen
+   *[fingers] Zinken
+} von { $size }. Jedes Stück wird aus einer eigenen Platte gefräst, siehe unten.
+sheet-piece = Stück { $name }
+sheet-piece-mark = Schreiben Sie { $name } mit Bleistift auf die Rückseite, bevor Sie es ausspannen.
+sheet-pieces-glue-title = Verleimen
+sheet-pieces-glue = Passen Sie die Stücke zuerst trocken an: die Verbindungen sind { $clearance } locker für den Leim. Verleimen Sie die Stücke jeder Reihe, dann die Reihen miteinander.

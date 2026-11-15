@@ -414,6 +414,8 @@ toolpath-error-step = { $step ->
     [comparing-shapes] Confronto delle forme
     [merging-islands] Unione delle isole
     [subtracting-an-island] Sottrazione di un'isola
+    [piece-outline] Il contorno di un tassello
+    [piece-reach] La portata di un tassello
    *[offset] Offset
 }
 
@@ -429,3 +431,7 @@ toolpath-relief-roughing-tool = l'utensile { $tool } non può sgrossare un rilie
 toolpath-relief-roughing-room = l'utensile di sgrossatura { $tool } non ha spazio nell'area del rilievo, tenuta entro la portata della finitura
 toolpath-relief-deep = taglia { $depth } in profondità con il solo utensile { $tool }; una passata di sgrossatura (op add-roughing) ne toglie prima la maggior parte
 toolpath-pieces-joint-too-small = incastri di { $size } sono troppo piccoli per l’utensile di contornatura: la sua curva più stretta richiede un raggio di { $radius } (raggio dell’utensile più il gioco); faccia incastri di almeno { $least }, o contorni con un utensile più piccolo
+toolpath-pieces-no-cut-out = un piazzamento a tasselli richiede una contornatura esterna che ne ritagli il contorno: i tasselli sono quel contorno diviso alle giunte
+toolpath-pieces-board-too-small = nemmeno { $max } × { $max } tasselli stanno su tavole di { $x } × { $y }: indichi tavole più grandi o una griglia
+toolpath-pieces-no-seam = la giunta { $seam } lungo { $axis } è spostata, ma in quel senso ci sono solo { $seams } giunte
+toolpath-pieces-seams-close = due giunte, o una giunta e il bordo del contorno, sono più vicine di { $least } (tre misure di incastro): allontani le giunte o usi meno tasselli

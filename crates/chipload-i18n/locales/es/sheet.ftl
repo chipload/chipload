@@ -221,3 +221,12 @@ sheet-legend-grey = Gris: las piezas. Solo movimientos de corte, sin rápidos.
 
 ## The time
 sheet-time = Tiempo
+sheet-pieces = Trozos
+sheet-pieces-summary = { $count } trozos, { $columns } × { $rows }, unidos con { $joint ->
+    [knobs] lengüetas de puzle
+   *[fingers] dedos
+} de { $size }. Cada trozo se mecaniza de su propio tablero, abajo.
+sheet-piece = Trozo { $name }
+sheet-piece-mark = Escriba { $name } a lápiz en el reverso antes de soltarlo.
+sheet-pieces-glue-title = Encolado
+sheet-pieces-glue = Pruebe primero los trozos en seco: las uniones tienen { $clearance } de holgura para la cola. Encole los trozos de cada fila y luego una las filas.

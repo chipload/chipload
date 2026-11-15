@@ -77,6 +77,15 @@ other, each with its stock and work zero. `run_job` plans the active setup only
 program is always one board. `run_setups` runs every setup that is on, one `run_job` each,
 and names the files `-S1…`, `-S2…` when there are several.
 
+A setup can be cut in **pieces** (docs/specs/pieces.md): a puzzle of boards joined at seams
+with knobs or fingers. Its programs come from `pipeline::pieces::run_pieces`, one per piece
+(`-A1…`, `-A2…`), never from `run_job`. The setup is planned once; for each piece, its
+outline (`toolpath::pieces`: the seams' joints, the piece's loops by booleans) is cut by the
+outside profiles in a project of its own, its board fitted round the piece, and every other
+operation's moves are trimmed to the piece's cell grown by the tool's radius
+(`pieces::Trimmer`). Each piece's program goes through the post and the checker as any
+other.
+
 1. **Validate.** Check the project's values and resolve its post-processor, built in or
    copied into the project (`toolpath::plan::validate_job`, `pipeline::posts::job_post`).
 2. **Load the drawings.** The drawings stored in the project become contours, each with its

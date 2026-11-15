@@ -80,6 +80,10 @@ pub enum DxfAction {
         /// Construction geometry too, each on a layer of its own (LAYER_construction).
         #[arg(long)]
         construction: bool,
+        /// The active setup's pieces instead of the drawing, each on a layer named after it
+        /// (docs/specs/pieces.md §7).
+        #[arg(long, conflicts_with_all = ["hidden", "layers", "shapes", "construction"])]
+        pieces: bool,
     },
     /// Remove a DXF and its shapes.
     Remove {
@@ -137,10 +141,19 @@ pub fn dxf(out: &mut Out, action: DxfAction) -> ExitCode {
             layers,
             shapes,
             construction,
+            pieces,
         } => {
             let job = match load(out, &project) {
                 Ok(job) => job,
                 Err(code) => return code,
+            };
+            let job = if pieces {
+                match chipload_pipeline::pieces::pieces_drawing(&job) {
+                    Ok(job) => job,
+                    Err(err) => return out.fail(err),
+                }
+            } else {
+                job
             };
             let options = ExportOptions {
                 inch,

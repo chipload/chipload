@@ -221,3 +221,12 @@ sheet-legend-grey = Grått: detaljerna. Bara skärande rörelser, inga snabbför
 
 ## The time
 sheet-time = Tid
+sheet-pieces = Bitar
+sheet-pieces-summary = { $count } bitar, { $columns } × { $rows }, sammanfogade med { $joint ->
+    [knobs] pusselknoppar
+   *[fingers] tappar
+} på { $size }. Varje bit fräses ur en egen skiva, nedan.
+sheet-piece = Bit { $name }
+sheet-piece-mark = Skriv { $name } på baksidan med blyerts innan du spänner loss den.
+sheet-pieces-glue-title = Limning
+sheet-pieces-glue = Provpassa bitarna först: fogarna är { $clearance } lösa för limmet. Limma bitarna i varje rad, och sedan raderna ihop.

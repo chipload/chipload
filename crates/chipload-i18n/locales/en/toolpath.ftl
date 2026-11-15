@@ -415,6 +415,8 @@ toolpath-error-step = { $step ->
     [comparing-shapes] Comparing shapes
     [merging-islands] Merging islands
     [subtracting-an-island] Subtracting an island
+    [piece-outline] A piece's outline
+    [piece-reach] A piece's reach
    *[offset] Offset
 }
 
@@ -433,3 +435,7 @@ toolpath-relief-roughing-tool = tool { $tool } can't rough a relief: it takes an
 toolpath-relief-roughing-room = the roughing tool { $tool } has no room in the relief's area, kept within the finish's reach
 toolpath-relief-deep = cuts { $depth } deep with tool { $tool } alone; a roughing pass (op add-roughing) takes most of it first
 toolpath-pieces-joint-too-small = joints of { $size } are too small for the cut-out tool: its tightest curve needs a radius of { $radius } (tool radius plus clearance); make the joints at least { $least }, or cut out with a smaller tool
+toolpath-pieces-no-cut-out = a setup in pieces needs an outside profile that cuts its outline out: the pieces are that outline cut at the seams
+toolpath-pieces-board-too-small = even { $max } × { $max } pieces don't fit boards of { $x } × { $y }: give larger boards or a grid
+toolpath-pieces-no-seam = seam { $seam } along { $axis } is shifted, but there are only { $seams } seams that way
+toolpath-pieces-seams-close = two seams, or a seam and the outline's edge, come closer than { $least } (three joint sizes): shift the seams apart or use fewer pieces

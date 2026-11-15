@@ -21,6 +21,7 @@ pub mod models;
 pub mod new_ops;
 pub mod notices;
 pub mod parts;
+pub mod pieces;
 pub mod placement;
 pub mod posts;
 pub mod recovery;
@@ -804,6 +805,32 @@ pub fn run_job(job: &Job) -> Result<RunResult, PipelineError> {
 /// each file's name gets the setup's id first (`-S2`, `-S2-1-T1`); with one, the names are
 /// as they always were.
 pub fn run_setups(job: &Job, only: Option<u64>) -> Result<Vec<(u64, RunResult)>, PipelineError> {
+    Ok(run_setups_pieces(job, only, None)?
+        .into_iter()
+        .map(|run| (run.setup, run.result))
+        .collect())
+}
+
+/// One program of a run: a setup's, or a piece's of a setup in pieces.
+#[derive(Debug, Clone)]
+pub struct SetupRun {
+    pub setup: u64,
+    /// The piece's name ("A1"); None for a setup cut as one board.
+    pub piece: Option<String>,
+    /// The project as this program cuts it: the setup's, or for a piece, its board and
+    /// work zero.
+    pub job: Job,
+    pub result: RunResult,
+}
+
+/// [`run_setups`], a setup in pieces as a program per piece (docs/specs/pieces.md §7), each
+/// file named with its piece after the setup (`-A1`, `-S2-A1-1-T1`); with `piece`, only
+/// that piece of each setup in pieces.
+pub fn run_setups_pieces(
+    job: &Job,
+    only: Option<u64>,
+    piece: Option<&str>,
+) -> Result<Vec<SetupRun>, PipelineError> {
     let several = job.setups.len() > 1;
     let mut runs = Vec::new();
     for setup in &job.setups {
@@ -814,14 +841,35 @@ pub fn run_setups(job: &Job, only: Option<u64>) -> Result<Vec<(u64, RunResult)>,
         if several && only.is_none() && !(0..one.operations.len()).any(|i| one.cuts(i)) {
             continue;
         }
-        let mut result = run_job(&one)?;
-        if several {
-            for file in &mut result.files {
-                let tail = file.suffix.take().unwrap_or_default();
-                file.suffix = Some(format!("-S{}{tail}", setup.id));
+        let results: Vec<(Option<String>, Job, RunResult)> = if setup.pieces.is_some() {
+            pieces::run_pieces(&one, piece)?
+                .into_iter()
+                .map(|run| (Some(run.name), run.job, run.result))
+                .collect()
+        } else {
+            let result = run_job(&one)?;
+            vec![(None, one.clone(), result)]
+        };
+        for (name, cut, mut result) in results {
+            let tail_name = name.as_ref().map_or(String::new(), |n| format!("-{n}"));
+            let lead = if several {
+                format!("-S{}{tail_name}", setup.id)
+            } else {
+                tail_name
+            };
+            if !lead.is_empty() {
+                for file in &mut result.files {
+                    let tail = file.suffix.take().unwrap_or_default();
+                    file.suffix = Some(format!("{lead}{tail}"));
+                }
             }
+            runs.push(SetupRun {
+                setup: setup.id,
+                piece: name,
+                job: cut,
+                result,
+            });
         }
-        runs.push((setup.id, result));
     }
     if runs.is_empty() {
         return Err(PipelineError::Job(match only {
@@ -844,9 +892,8 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     let one = job.active_setup_id().map(|id| job.for_setup(id));
     let job = one.as_ref().unwrap_or(job);
     validate_job(job)?;
-    // Cutting in pieces is being built (docs/specs/pieces.md §13, step 5): until each piece
-    // is its own program, a setup in pieces is refused rather than cut as one board, which
-    // is larger than the boards it is meant for.
+    // A setup in pieces is a program per piece (`run_setups_pieces`, docs/specs/pieces.md
+    // §7), never one program cut as one board, larger than the boards it is meant for.
     if job
         .setups
         .get(job.active_setup_index())

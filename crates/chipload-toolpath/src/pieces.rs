@@ -9,12 +9,21 @@
 
 use std::f64::consts::{FRAC_PI_2, PI};
 
+use cavalier_contours::polyline::{BooleanOp, PlineSource, PlineSourceMut, Polyline};
 use chipload_core::Point;
+use chipload_core::chain::Contour;
 use chipload_core::math;
 use chipload_core::primitives::{Arc, Line, Primitive};
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::Joint;
+use chipload_job::{Job, Joint, Operation, Side};
+
+use crate::ToolpathError;
+use crate::cavalier::{Area, boolean, ccw, geometry, step};
+use crate::model::{Move, MoveKind};
+use crate::offset::{contour_pline, flatten, pline_segments};
+use crate::plan::op_tool;
+use crate::select::select_contours;
 
 /// A knob's fillets, as a share of its head's radius: the arcs joining the head to the seam.
 const KNOB_FILLET: f64 = 0.4;
@@ -579,6 +588,501 @@ pub fn auto_grid(
     ))
 }
 
+/// A closed loop of lines and arcs as a polyline with bulges; arcs over half a turn are
+/// split, since a bulge holds at most a full turn and loses precision near it.
+pub fn pline_of(ring: &[Primitive]) -> Polyline<f64> {
+    let mut pline = Polyline::new_closed();
+    for prim in ring {
+        match *prim {
+            Primitive::Line(line) => pline.add(line.start.0, line.start.1, 0.0),
+            Primitive::Arc(arc) => {
+                let pieces: u32 = if arc.sweep.abs() > PI { 2 } else { 1 };
+                let sweep = arc.sweep / f64::from(pieces);
+                for i in 0..pieces {
+                    let piece = Arc {
+                        start_angle: arc.start_angle + sweep * f64::from(i),
+                        sweep,
+                        ..arc
+                    };
+                    let start = piece.point_at(piece.start_angle);
+                    pline.add(start.0, start.1, piece.bulge());
+                }
+            }
+        }
+    }
+    pline
+}
+
+/// A closed loop of lines and arcs as a drawn polyline's points and bulges.
+pub fn bulged(ring: &[Primitive]) -> (Vec<[f64; 2]>, Vec<f64>) {
+    let pline = pline_of(ring);
+    (0..pline.vertex_count())
+        .map(|i| {
+            let v = pline.at(i);
+            ([v.x, v.y], v.bulge)
+        })
+        .unzip()
+}
+
+/// A piece's material: the cell shrunk by half the `clearance` (its seam edges move in, so
+/// two pieces leave the clearance between them), intersected with each outer outline the
+/// cut-out operations cut (docs/specs/pieces.md §5, §6). Counter-clockwise loops of lines
+/// and arcs; none when the cell holds no material.
+pub fn regions(
+    outers: &[Vec<Primitive>],
+    cell: &[Primitive],
+    clearance: f64,
+) -> Result<Vec<Vec<Primitive>>, ToolpathError> {
+    let cell = ccw(pline_of(cell));
+    let cells: Vec<Polyline<f64>> = if clearance > 0.0 {
+        Area::of(cell)
+            .shrunk(clearance / 2.0)?
+            .into_iter()
+            .map(|area| area.outer)
+            .collect()
+    } else {
+        vec![cell]
+    };
+    let mut out = Vec::new();
+    for outer in outers {
+        let outer = ccw(pline_of(outer));
+        for cell in &cells {
+            let result = boolean(step("piece-outline"), &outer, cell, BooleanOp::And)?;
+            if !result.neg_plines.is_empty() {
+                return Err(geometry(
+                    Message::new("toolpath-error-library-failed")
+                        .arg("what", step("piece-outline")),
+                ));
+            }
+            for piece in result.pos_plines {
+                let pline = ccw(piece.pline);
+                if pline.area().abs() > CHAIN_TOL_MM {
+                    out.push(pline_segments(&pline));
+                }
+            }
+        }
+    }
+    Ok(out)
+}
+
+/// Where a tool's centre may go for a piece: its cell grown by the tool's `radius`, as
+/// points within the arc tolerance (docs/specs/pieces.md §6.2). Each side then cuts a
+/// little past its seam, into what is waste on its own board.
+pub fn reach(cell: &[Primitive], radius: f64) -> Result<Vec<Point>, ToolpathError> {
+    let cell = ccw(pline_of(cell));
+    let grown = if radius > 0.0 {
+        Area::of(cell).shrunk(-radius)?
+    } else {
+        vec![Area::of(cell)]
+    };
+    match grown.as_slice() {
+        [one] => Ok(flatten(&one.outer)),
+        _ => Err(geometry(
+            Message::new("toolpath-error-library-failed").arg("what", step("piece-reach")),
+        )),
+    }
+}
+
+/// Whether `p` lies inside the polygon `ring` (even-odd, half-open, so a point on an edge
+/// counts for one side only).
+fn inside(ring: &[Point], p: Point) -> bool {
+    let mut odd = false;
+    for i in 0..ring.len() {
+        let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+        if (a.1 > p.1) != (b.1 > p.1) {
+            let x = a.0 + (p.1 - a.1) / (b.1 - a.1) * (b.0 - a.0);
+            if p.0 < x {
+                odd = !odd;
+            }
+        }
+    }
+    odd
+}
+
+/// Where along the segment from `p` to `q` (0 to 1) it crosses the polygon's edges.
+fn crossings(ring: &[Point], p: Point, q: Point) -> Vec<f64> {
+    let d = (q.0 - p.0, q.1 - p.1);
+    let mut out = Vec::new();
+    for i in 0..ring.len() {
+        let (a, b) = (ring[i], ring[(i + 1) % ring.len()]);
+        let e = (b.0 - a.0, b.1 - a.1);
+        let denom = d.0 * e.1 - d.1 * e.0;
+        // Parallel: no crossing point; the test of each part's middle decides.
+        if denom == 0.0 {
+            continue;
+        }
+        let w = (a.0 - p.0, a.1 - p.1);
+        let t = (w.0 * e.1 - w.1 * e.0) / denom;
+        let s = (w.0 * d.1 - w.1 * d.0) / denom;
+        if t > 0.0 && t < 1.0 && (0.0..=1.0).contains(&s) {
+            out.push(t);
+        }
+    }
+    out.sort_by(f64::total_cmp);
+    out
+}
+
+/// The moves of one piece's program, built from operations' moves kept only where the
+/// tool's centre lies within the piece's reach (docs/specs/pieces.md §6). A cut that leaves
+/// the reach ends; where it comes back the tool retracts to the safe height, rapids over,
+/// rapids down to just above the board and plunges at the plunge feed.
+pub struct Trimmer {
+    pub moves: Vec<Move>,
+    safe_z: f64,
+    /// A rapid down stops this high, above the board's top: below it the tool feeds.
+    approach_z: f64,
+    /// Where the tool is in the trimmed program; None before the first move.
+    at: Option<(f64, f64, f64)>,
+    /// The trimmed tool follows the original path without a break.
+    following: bool,
+    /// A comment waiting for the next move written.
+    comment: Option<u32>,
+    /// Entries made in the middle of a cut, below the board's top: where a cut was split.
+    pub split_entries: usize,
+}
+
+impl Trimmer {
+    pub fn new(safe_z: f64, approach_z: f64) -> Trimmer {
+        Trimmer {
+            moves: Vec::new(),
+            safe_z,
+            approach_z,
+            at: None,
+            following: false,
+            comment: None,
+            split_entries: 0,
+        }
+    }
+
+    fn push(&mut self, mut m: Move) {
+        if m.comment.is_none() {
+            m.comment = self.comment.take();
+        }
+        self.moves.push(m);
+    }
+
+    /// The moves `moves`, starting from `from` (where the original program stood before
+    /// them), kept within `reach` (None: all of them). `plunge` is the feed for an entry's
+    /// plunge.
+    pub fn add(
+        &mut self,
+        moves: &[Move],
+        from: (f64, f64, f64),
+        reach: Option<&[Point]>,
+        plunge: f64,
+    ) -> Result<(), ToolpathError> {
+        let mut p = from;
+        let mut cutting = false;
+        // Another operation's moves, or another program's: never followed on from.
+        self.following = false;
+        for m in moves {
+            if m.comment.is_some() && self.comment.is_none() {
+                self.comment = m.comment;
+            }
+            let q = (m.x.unwrap_or(p.0), m.y.unwrap_or(p.1), m.z.unwrap_or(p.2));
+            match m.kind {
+                MoveKind::Rapid => {
+                    self.following = false;
+                    cutting = false;
+                }
+                MoveKind::Feed => {
+                    let feed = m.feed.unwrap_or(plunge);
+                    self.feed(p, q, feed, m, reach, plunge, cutting);
+                    cutting = true;
+                }
+                MoveKind::ArcCw | MoveKind::ArcCcw => {
+                    return Err(geometry(
+                        Message::new("toolpath-error-library-failed")
+                            .arg("what", step("piece-reach")),
+                    ));
+                }
+            }
+            p = q;
+        }
+        Ok(())
+    }
+
+    /// One feed from `p` to `q`, kept where it lies within `reach`.
+    #[allow(clippy::too_many_arguments)]
+    fn feed(
+        &mut self,
+        p: (f64, f64, f64),
+        q: (f64, f64, f64),
+        feed: f64,
+        original: &Move,
+        reach: Option<&[Point]>,
+        plunge: f64,
+        cutting: bool,
+    ) {
+        let lerp = |t: f64| {
+            (
+                p.0 + t * (q.0 - p.0),
+                p.1 + t * (q.1 - p.1),
+                p.2 + t * (q.2 - p.2),
+            )
+        };
+        let mut ts = vec![0.0];
+        if let Some(reach) = reach {
+            ts.extend(crossings(reach, (p.0, p.1), (q.0, q.1)));
+        }
+        ts.push(1.0);
+        let pieces = ts.len() - 1;
+        for w in ts.windows(2) {
+            let (ta, tb) = (w[0], w[1]);
+            let mid = lerp((ta + tb) / 2.0);
+            if reach.is_some_and(|reach| !inside(reach, (mid.0, mid.1))) {
+                self.following = false;
+                continue;
+            }
+            let (a, b) = (lerp(ta), lerp(tb));
+            if !self.following {
+                // The original was cutting here already: the share starts mid-cut.
+                if cutting || ta > 0.0 {
+                    self.split_entries += usize::from(a.2 < self.approach_z);
+                }
+                self.enter(a, plunge);
+            }
+            let mut m = Move::feed_xyz((b.0, b.1), b.2, feed);
+            // A whole chord keeps its arc; a part of one is a straight line.
+            if pieces == 1 {
+                m.circle = original.circle;
+            }
+            self.push(m);
+            self.at = Some(b);
+            self.following = tb >= 1.0;
+        }
+    }
+
+    /// Up to the safe height, over to `a`, down to just above the board and in at the
+    /// plunge feed.
+    fn enter(&mut self, a: (f64, f64, f64), plunge: f64) {
+        if self.at.is_none_or(|at| at.2 < self.safe_z) {
+            self.push(Move::rapid_z(self.safe_z));
+        }
+        self.push(Move::rapid_xy((a.0, a.1)));
+        if a.2 >= self.approach_z {
+            self.push(Move::rapid_z(a.2));
+        } else {
+            self.push(Move::rapid_z(self.approach_z));
+            self.push(Move::feed_z(a.2, plunge));
+        }
+        self.at = Some(a);
+        self.following = true;
+    }
+
+    /// A tool group's end: back up to the safe height, and the next group, a program or a
+    /// tool change of its own, starts from an unknown height, so it climbs to the safe
+    /// height before anything else.
+    pub fn end_group(&mut self) {
+        self.finish();
+        self.at = None;
+    }
+
+    /// The program's end: back up to the safe height.
+    pub fn finish(&mut self) {
+        if self.at.is_some_and(|at| at.2 < self.safe_z) {
+            self.push(Move::rapid_z(self.safe_z));
+            if let Some(at) = &mut self.at {
+                at.2 = self.safe_z;
+            }
+        }
+        self.following = false;
+    }
+}
+
+/// Where the tool stands before each move of `moves`, starting from `start`.
+pub fn positions(moves: &[Move], start: (f64, f64, f64)) -> Vec<(f64, f64, f64)> {
+    let mut p = start;
+    let mut out = Vec::with_capacity(moves.len() + 1);
+    for m in moves {
+        out.push(p);
+        p = (m.x.unwrap_or(p.0), m.y.unwrap_or(p.1), m.z.unwrap_or(p.2));
+    }
+    out.push(p);
+    out
+}
+
+/// The slowest feed among `moves`: an entry's plunge goes no faster than anything the
+/// operation cut.
+pub fn slowest_feed(moves: &[Move]) -> Option<f64> {
+    moves
+        .iter()
+        .filter(|m| m.kind == MoveKind::Feed)
+        .filter_map(|m| m.feed)
+        .reduce(f64::min)
+}
+
+/// One piece of a setup cut as a puzzle.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Piece {
+    /// "A1": its row's letter from the bottom, its column's number from the left.
+    pub name: String,
+    pub column: usize,
+    pub row: usize,
+    /// The cell: the piece's share of the plane, bounded by the seams' joints.
+    pub cell: Vec<Primitive>,
+    /// The material the cut-out operations cut out for it: its loops, counter-clockwise.
+    pub regions: Vec<Vec<Primitive>>,
+}
+
+/// A setup's pieces, worked out from its project (docs/specs/pieces.md §3–§6).
+#[derive(Debug, Clone, PartialEq)]
+pub struct PieceSet {
+    pub layout: Layout,
+    /// The pieces with material, in order: A1, A2, …, B1, …
+    pub pieces: Vec<Piece>,
+    /// The cut-out operations (indices in `job.operations`): outside profiles, which cut
+    /// each piece's own loops instead of the outlines they select.
+    pub cut_out: Vec<usize>,
+}
+
+impl PieceSet {
+    pub fn piece(&self, name: &str) -> Option<&Piece> {
+        self.pieces.iter().find(|p| p.name == name)
+    }
+}
+
+/// A contour as a loop of lines and arcs.
+fn contour_ring(contour: &Contour) -> Vec<Primitive> {
+    pline_segments(&contour_pline(contour))
+}
+
+/// The pieces of `job`'s active setup, or None when it is one board. `contours` are the
+/// drawing's. Refused when nothing cuts an outline out, when the joints are too small for
+/// the cut-out tool, when no grid fits the board, or when a seam is shifted that doesn't
+/// exist or two seams come too close.
+pub fn piece_set(job: &Job, contours: &[Contour]) -> Result<Option<PieceSet>, ToolpathError> {
+    let one = job.active_setup_id().map(|id| job.for_setup(id));
+    let job = one.as_ref().unwrap_or(job);
+    let Some(setup) = job.setups.get(job.active_setup_index()) else {
+        return Ok(None);
+    };
+    let Some(pieces) = &setup.pieces else {
+        return Ok(None);
+    };
+    let mut cut_out = Vec::new();
+    let mut outers: Vec<Vec<Primitive>> = Vec::new();
+    let mut holes: Vec<Vec<Primitive>> = Vec::new();
+    let mut radius: f64 = 0.0;
+    for (i, op) in job.operations.iter().enumerate() {
+        let Operation::Profile(profile) = op else {
+            continue;
+        };
+        if !job.cuts(i) || profile.side == Side::On {
+            continue;
+        }
+        let label = job.label_message(chipload_job::OpRef::op(i));
+        let selection = select_contours(contours, &op.select().resolved(&job.drawing), &label)
+            .map_err(|e| e.at(i))?;
+        let rings = selection.contours.iter().map(|c| contour_ring(c));
+        if profile.side == Side::Outside {
+            cut_out.push(i);
+            outers.extend(rings);
+            radius = radius.max(op_tool(job, op).map_err(|e| e.at(i))?.diameter / 2.0);
+        } else {
+            holes.extend(rings);
+        }
+    }
+    if outers.is_empty() {
+        return Err(ToolpathError::Job(Message::new(
+            "toolpath-pieces-no-cut-out",
+        )));
+    }
+    let shape = JointShape {
+        joint: pieces.joint,
+        size: pieces.size,
+        spacing: pieces.spacing,
+        round: radius + pieces.clearance,
+    };
+    if let Some(problem) = shape.problem() {
+        return Err(ToolpathError::Job(problem));
+    }
+    let bounds = bounds_of(&outers);
+    let margin = setup
+        .stock
+        .fit
+        .unwrap_or(chipload_job::DEFAULT_PIECE_MARGIN);
+    let shifts = (pieces.shift_x.as_slice(), pieces.shift_y.as_slice());
+    let (columns, rows) = match pieces.grid {
+        Some(g) => (g.columns, g.rows),
+        None => auto_grid(
+            bounds,
+            (pieces.board.x, pieces.board.y),
+            margin,
+            shifts,
+            &shape,
+        )
+        .ok_or_else(|| {
+            ToolpathError::Job(
+                Message::new("toolpath-pieces-board-too-small")
+                    .arg("max", MAX_GRID)
+                    .arg("x", Value::mm(pieces.board.x))
+                    .arg("y", Value::mm(pieces.board.y)),
+            )
+        })?,
+    };
+    for (axis, count, list) in [("X", columns, shifts.0), ("Y", rows, shifts.1)] {
+        if list.len() >= count as usize && !list.is_empty() {
+            return Err(ToolpathError::Job(
+                Message::new("toolpath-pieces-no-seam")
+                    .arg("axis", axis)
+                    .arg("seam", list.len())
+                    .arg("seams", count.saturating_sub(1)),
+            ));
+        }
+    }
+    // Seams in order and apart, so no cell is too thin for its joints.
+    let ((x0, y0), (x1, y1)) = bounds;
+    for (lo, hi, count, list) in [(x0, x1, columns, shifts.0), (y0, y1, rows, shifts.1)] {
+        let mut edges = vec![lo - shape.size];
+        edges.extend(seam_positions(lo, hi, count, list));
+        edges.push(hi + shape.size);
+        if edges.windows(2).any(|w| w[1] - w[0] < 3.0 * shape.size) {
+            return Err(ToolpathError::Job(
+                Message::new("toolpath-pieces-seams-close")
+                    .arg("least", Value::mm(3.0 * shape.size)),
+            ));
+        }
+    }
+    let mut material = outers.clone();
+    material.extend(holes);
+    let layout = layout(&material, bounds, (columns, rows), shifts, shape);
+    let mut list = Vec::new();
+    for row in 0..layout.rows() {
+        for column in 0..layout.columns() {
+            let cell = layout.cell(column, row);
+            let regions = regions(&outers, &cell, pieces.clearance)?;
+            if regions.is_empty() {
+                continue;
+            }
+            list.push(Piece {
+                name: Layout::name(column, row),
+                column,
+                row,
+                cell,
+                regions,
+            });
+        }
+    }
+    Ok(Some(PieceSet {
+        layout,
+        pieces: list,
+        cut_out,
+    }))
+}
+
+/// The box round loops of lines and arcs.
+fn bounds_of(loops: &[Vec<Primitive>]) -> (Point, Point) {
+    let mut lo = (f64::INFINITY, f64::INFINITY);
+    let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for p in loops.iter().flatten() {
+        let (a, b) = p.bounds();
+        lo = (lo.0.min(a.0), lo.1.min(a.1));
+        hi = (hi.0.max(b.0), hi.1.max(b.1));
+    }
+    (lo, hi)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -805,6 +1309,110 @@ mod tests {
                     close(p.start(), q.start()) && close(p.end(), q.end()),
                     "{p:?} {q:?}"
                 );
+            }
+        }
+    }
+
+    fn square(x0: f64, y0: f64, x1: f64, y1: f64) -> Vec<Point> {
+        vec![(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    }
+
+    #[test]
+    fn a_cut_across_the_reach_is_kept_inside_and_entered_from_above() {
+        let reach = square(0.0, 0.0, 100.0, 100.0);
+        let mut t = Trimmer::new(5.0, 1.0);
+        let moves = [
+            Move::rapid_z(5.0),
+            Move::rapid_xy((-50.0, 50.0)),
+            Move::rapid_z(1.0),
+            Move::feed_z(-3.0, 300.0),
+            Move::feed_xy((150.0, 50.0), 1500.0),
+            Move::rapid_z(5.0),
+        ];
+        t.add(&moves, (0.0, 0.0, 5.0), Some(&reach), 300.0).unwrap();
+        t.finish();
+        // In at the reach's edge mid-cut, along to its far edge, up.
+        let expect = [
+            Move::rapid_z(5.0),
+            Move::rapid_xy((0.0, 50.0)),
+            Move::rapid_z(1.0),
+            Move::feed_z(-3.0, 300.0),
+            Move::feed_xyz((100.0, 50.0), -3.0, 1500.0),
+            Move::rapid_z(5.0),
+        ];
+        assert_eq!(t.moves, expect);
+        assert_eq!(t.split_entries, 1);
+    }
+
+    #[test]
+    fn a_cut_that_leaves_and_comes_back_is_entered_again() {
+        // A U-shaped reach: the cut runs out of it and back in.
+        let reach = vec![
+            (0.0, 0.0),
+            (100.0, 0.0),
+            (100.0, 100.0),
+            (60.0, 100.0),
+            (60.0, 20.0),
+            (40.0, 20.0),
+            (40.0, 100.0),
+            (0.0, 100.0),
+        ];
+        let mut t = Trimmer::new(5.0, 1.0);
+        let moves = [
+            Move::rapid_xy((10.0, 50.0)),
+            Move::rapid_z(1.0),
+            Move::feed_z(-2.0, 300.0),
+            Move::feed_xy((90.0, 50.0), 1000.0),
+        ];
+        t.add(&moves, (0.0, 0.0, 5.0), Some(&reach), 300.0).unwrap();
+        let feeds: Vec<&Move> = t
+            .moves
+            .iter()
+            .filter(|m| m.kind == MoveKind::Feed)
+            .collect();
+        // The first plunge, to x=40, a second plunge at x=60, to the end.
+        assert_eq!(feeds.len(), 4, "{:?}", t.moves);
+        assert_eq!(feeds[1].x, Some(40.0));
+        assert_eq!(t.split_entries, 1);
+        let ups = t
+            .moves
+            .iter()
+            .filter(|m| m.kind == MoveKind::Rapid && m.z == Some(5.0))
+            .count();
+        assert_eq!(ups, 2, "{:?}", t.moves);
+    }
+
+    #[test]
+    fn a_piece_is_its_cell_in_the_outline_less_half_the_clearance() {
+        let shape = knobs();
+        let outline = rect(0.0, 0.0, 900.0, 500.0);
+        let lay = layout(
+            std::slice::from_ref(&outline),
+            ((0.0, 0.0), (900.0, 500.0)),
+            (2, 1),
+            (&[], &[]),
+            shape,
+        );
+        let left = regions(std::slice::from_ref(&outline), &lay.cell(0, 0), 0.2).unwrap();
+        let right = regions(std::slice::from_ref(&outline), &lay.cell(1, 0), 0.2).unwrap();
+        assert_eq!((left.len(), right.len()), (1, 1));
+        let (a, b) = (area(&left[0]), area(&right[0]));
+        // Together the whole board less a 0.2 mm gap along the seam (500 long plus the
+        // knobs' extra length).
+        let gap = 900.0 * 500.0 - a - b;
+        assert!(gap > 0.2 * 500.0 && gap < 0.2 * 800.0, "{gap}");
+        // Every point of the left piece's seam edge is 0.2 mm from the right piece.
+        let right_pl = pline_of(&right[0]);
+        let right_edge = pline_segments(&right_pl);
+        for p in &left[0] {
+            let m = p.midpoint();
+            // The seam edge: near x = 450, off the outline's top and bottom.
+            if m.0 > 400.0 && m.1 > 1.0 && m.1 < 499.0 {
+                let d = right_edge
+                    .iter()
+                    .map(|s| crate::offset::point_distance(s, m))
+                    .fold(f64::INFINITY, f64::min);
+                assert!((d - 0.2).abs() < 0.01, "{d} at {m:?}");
             }
         }
     }
