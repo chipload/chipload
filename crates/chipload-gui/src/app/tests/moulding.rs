@@ -100,3 +100,23 @@ fn moulding_picture() {
         .save(std::path::PathBuf::from(out).join("moulding.png"))
         .unwrap();
 }
+
+#[test]
+fn the_profile_section_starts_open() {
+    // The user, 2026-11-15: a moulding's profile is its first choice; the other sections
+    // start folded as everywhere.
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v36/moulding.chipload")));
+            app.focus = Focus::Op(2);
+            app
+        });
+    harness.run_steps(4);
+    harness.get_by_label("  Taper length");
+    assert!(
+        harness.query_by_label("Stepover").is_none(),
+        "Cut starts folded"
+    );
+}

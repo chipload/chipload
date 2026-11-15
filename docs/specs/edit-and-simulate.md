@@ -114,3 +114,11 @@ now it does not stand out"):
     pencil) and *Simulate* in an outline of the accent colour (Generate's), the mode's half
     filled; each half sets its mode. In Simulate a 3-point frame of the accent colour runs
     round the canvas. Chosen over only filling the Simulate button in the accent colour.
+
+## Simulate's first view (2026-11-15)
+
+The user: "When choosing simulate, the default should be 3D and toolpath, drawing and images
+hidden. Then it will remember the state from then on." Each mode already kept its own view
+(2026-11-03); only the first one changes: the first time Simulate is entered it starts in
+3D with the toolpath, the drawing and the pictures hidden, instead of as Edit is. From then
+on it is as it was left, as before.

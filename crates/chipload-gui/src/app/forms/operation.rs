@@ -1830,7 +1830,8 @@ fn moulding_sections(
         side = side_name(ui, m.side)
     );
     let title = t!(ui, "forms-section-profile");
-    folded_section(ui, "op-moulding", &title, &summary, |ui| {
+    // Open at first: the profile is a moulding's first choice (the user, 2026-11-15).
+    unfolded_section(ui, "op-moulding", &title, &summary, |ui| {
         ui.label(t!(ui, "forms-moulding-profile"));
         let size = m.profile.depth().unwrap_or(6.0);
         let choices = [

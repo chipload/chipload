@@ -53,7 +53,19 @@ impl ChiploadApp {
             drawing: self.show_drawing(),
             images: self.display.images,
         };
-        let coming = self.display.other.replace(leaving).unwrap_or(leaving);
+        // The first time, Simulate starts in 3D with only the simulation shown (the user,
+        // 2026-11-15); Edit, left for the first time from Simulate, as Simulate was.
+        let first = if on {
+            super::display::ModeView {
+                three_d: true,
+                toolpath: false,
+                drawing: false,
+                images: false,
+            }
+        } else {
+            leaving
+        };
+        let coming = self.display.other.replace(leaving).unwrap_or(first);
         self.display.simulate = on;
         self.display.toolpath = coming.toolpath;
         self.display.images = coming.images;

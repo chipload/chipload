@@ -110,18 +110,20 @@ fn edit_and_simulate_each_keep_their_own_view() {
     let mut app = lower_part();
     assert!(!app.display.three_d && app.display.toolpath);
     app.set_show_simulation(true);
-    // Simulate starts as Edit was, then is set up its own way.
-    assert!(!app.display.three_d && app.display.toolpath && app.show_drawing());
-    app.view_3d();
-    app.display.toolpath = false;
-    app.display.images = false;
-    app.set_show_drawing(false);
+    // The first time, Simulate starts in 3D with only the simulation shown (the user,
+    // 2026-11-15) …
+    assert!(app.display.three_d && !app.display.toolpath && !app.display.images);
+    assert!(!app.show_drawing());
+    // … then is set up its own way.
+    app.view_top();
+    app.display.toolpath = true;
     app.set_show_simulation(false);
     // Edit as it was left, the drawing shown.
     assert!(!app.display.three_d && app.display.toolpath && app.display.images);
     assert!(app.show_drawing());
+    // Simulate as it was left.
     app.set_show_simulation(true);
-    assert!(app.display.three_d && !app.display.toolpath && !app.display.images);
+    assert!(!app.display.three_d && app.display.toolpath && !app.display.images);
     assert!(!app.show_drawing());
 }
 

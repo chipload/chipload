@@ -209,6 +209,23 @@ pub(in crate::app) fn folded_section<R>(
     section_shown(ui, key, title, summary, marked, look, rows)
 }
 
+/// [`folded_section`] that is open the first time it is shown (afterwards as left), for a
+/// section whose settings are the operation's first choice (a moulding's profile).
+pub(in crate::app) fn unfolded_section<R>(
+    ui: &mut egui::Ui,
+    key: &str,
+    title: &str,
+    summary: &str,
+    rows: impl FnOnce(&mut egui::Ui) -> R,
+) -> Option<R> {
+    let marked = problems::section_has_problem(ui, key);
+    let look = SectionLook {
+        open: true,
+        labels: label_width(ui),
+    };
+    section_shown(ui, key, title, summary, marked, look, rows)
+}
+
 /// How a section opens and how wide its label column is.
 #[derive(Clone, Copy)]
 pub(super) struct SectionLook {

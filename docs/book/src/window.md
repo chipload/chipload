@@ -166,7 +166,8 @@ colour theme: dark, or light grey.
   - Starting a drawing or editing tool, or selecting something in the Browser, goes back to
     Edit. F6 or **Edit** does too.
   - **Each mode keeps its own view:** top or 3D, the toolpath, the drawing and the pictures
-    as you left them there. Simulate starts as Edit is, the first time.
+    as you left them there. The first time, Simulate starts in 3D with only the
+    simulation shown (the toolpath, drawing and pictures hidden).
 - **The navigation bar** floats at the bottom, each button an icon over its name:
   - the mode: **Edit | Simulate** (F6 switches);
   - how you look: **Measure** (M), **Fit** (F), **Top** (T) and **3D**. When the canvas changes size (the
