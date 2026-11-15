@@ -86,6 +86,11 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
+0. **Compass** (the user, 2026-11-15, before fluting): one handle on the selection to move
+   along an axis, turn about its centre, move snap point to snap point, and with the right
+   button copy or make a linear (an axis) or circular (the ring) array; Space unlocks it to
+   be placed on a snap point first. Q shows it; the quick menu moves to S, the slot to U.
+   **Spec drafted 2026-11-15** (docs/specs/compass.md, nine decisions), awaiting review.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
    2026-11-14** (chosen for 0.37.0; all four parts built, see *In main*; next the walk
    again, then the pocket finishing pass): a Q menu at the cursor (kinds by letter,
