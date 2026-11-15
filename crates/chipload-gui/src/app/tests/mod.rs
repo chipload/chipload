@@ -7,6 +7,7 @@ mod active_tool;
 mod browser;
 mod browser_drawing_folder;
 mod chip_load;
+mod compass;
 mod corner_choices;
 mod cycle_time;
 mod delete_selection;

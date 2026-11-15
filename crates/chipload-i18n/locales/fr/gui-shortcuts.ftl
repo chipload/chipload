@@ -25,6 +25,7 @@ shortcuts-save = Enregistrer
 shortcuts-export = Exporter le G-code : demande la première fois, puis le même fichier
 shortcuts-export-as = Exporter le G-code sous… (demande toujours)
 shortcuts-quick-menu = Menu rapide : ajouter une opération ou appliquer un style à la sélection
+shortcuts-compass = La boussole sur la sélection : déplacer, tourner, copier et réseaux
 shortcuts-quit = Quitter
 shortcuts-undo = Annuler
 shortcuts-move-up = Monter l'opération

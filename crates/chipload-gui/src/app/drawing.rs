@@ -30,6 +30,8 @@ pub enum TypedTarget {
     Dimension(chipload_job::edit::Dimension),
     /// The offset tool's distance, to the cursor's side (drawing-editing.md §2).
     Offset,
+    /// An exact value for a part of the Compass (docs/specs/compass.md §4).
+    Compass(super::compass::CompassPart),
 }
 
 impl ChiploadApp {
@@ -119,6 +121,10 @@ impl ChiploadApp {
             }
             Some(TypedTarget::Offset) => {
                 self.apply_typed_offset(cursor);
+                return;
+            }
+            Some(TypedTarget::Compass(part)) => {
+                self.apply_typed_compass(part);
                 return;
             }
             _ => {}

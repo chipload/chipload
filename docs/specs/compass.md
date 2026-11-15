@@ -1,6 +1,8 @@
 # Compass: move, turn and array shapes from one handle on the canvas
 
-Status: **draft 2026-11-15**, for review (the user asked for it, before fluting).
+Status: **approved 2026-11-15**, every decision as recommended ("I will need to try it to
+know that it feels right and then we can iterate"); **built 2026-11-15**, all five steps of
+§12, for the user to try. What building settled is in §14.
 
 ## 1. What it is for
 
@@ -186,3 +188,30 @@ status bar hint and the shortcuts window change with it.
    gives the Compass a less natural key.
 9. **No persisted state:** where the Compass sits and how its axes turn is forgotten when it
    hides; nothing goes into the project. *Recommended.*
+
+## 14. As built
+
+- **Groups:** a group selected whole moves and turns with its texts, but *Copy here* and
+  the arrays are greyed for it, as for a picture: the array functions copy drawn shapes,
+  and a group's texts wouldn't come along. Select its shapes alone (double-click) to copy
+  them.
+- **Circular array…** opens the existing *Polar array* form, filled with a count of 2,
+  the Compass's centre, and the dragged angle as its sweep, rather than a form of its own
+  with *Angle between* and *Full circle*. With 2 copies the sweep is the angle between
+  them; raising the count spreads them over that sweep. One form for both ways in; the
+  user may prefer the other when trying it.
+- **Linear array…** opens a new *Linear array* tool (count and step ΔX, ΔY), the Compass's
+  only new tool; it isn't on the ribbon, since a grid array covers rows and columns.
+- **The ribbon:** the Compass starts the MODIFY group's second row, so the group keeps its
+  width (twelve small buttons, six a row).
+- **Snapping along an arrow:** a snap point projected onto the axis wins over the grid;
+  with neither under the cursor, the distance goes in grid steps. The centre, locked,
+  leaves the selection's own points out; unlocked it takes them, to sit on one of its
+  corners.
+- **Unlocked arrows** lie along the straight line nearest the cursor within the pick
+  distance, the way round nearer the arrow's; elsewhere they point at the cursor in 15°
+  steps.
+- **Code:** `app/compass.rs` (state, hit-testing, drags, the menu), the painting in
+  `view.rs` (`paint_compass`, sizes shared with the hit-testing), `array_linear` in the
+  pipeline, `shape array-linear` on the command line.
+

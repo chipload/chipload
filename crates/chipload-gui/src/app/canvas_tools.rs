@@ -44,6 +44,8 @@ pub struct CanvasTools {
     pub(super) offset_preview: modify::OffsetPreview,
     /// The array tools' values, kept for the session, and their preview.
     pub array: modify::ArraySettings,
+    /// The Compass on the selection (docs/specs/compass.md).
+    pub compass: super::compass::Compass,
     /// Align lines the selection up with the stock instead of its own box.
     pub align_to_stock: bool,
     pub(super) array_preview: modify::ArrayPreview,
@@ -69,6 +71,7 @@ impl Default for CanvasTools {
             chamfer_distance: 1.0,
             offset_preview: modify::OffsetPreview::default(),
             array: modify::ArraySettings::default(),
+            compass: super::compass::Compass::default(),
             align_to_stock: false,
             array_preview: modify::ArrayPreview::default(),
             frame: frames::FrameSettings::default(),

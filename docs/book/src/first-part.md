@@ -29,7 +29,7 @@ outside profile. The same steps follow in the app and on the command line.
      `chipload shape inside part.chipload 1` print the shape ids, for `op add … --shapes`;
    - or click a DXF or one of its layers in the Browser.
 4. **Add an operation:** **Profile**, in the ribbon's OPERATION group.
-   - Quicker: press **Q** over the canvas, then **P**. The Q menu opens at the mouse with a
+   - Quicker: press **S** over the canvas, then **P**. The quick menu opens at the mouse with a
      key for each kind (P profile, K pocket, H holes, V V-carve, F follow path, C chamfer) and a digit
      for each of your [styles](library/styles.md). A kind the selection can't take is
      greyed out, and its hover says why (holes need a circle, a pocket a closed shape).

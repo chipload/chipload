@@ -20,6 +20,7 @@ shortcuts-save = Сохранить
 shortcuts-export = Экспорт G-code: в первый раз спрашивает, потом тот же файл
 shortcuts-export-as = Экспорт G-code как… (всегда спрашивает)
 shortcuts-quick-menu = Быстрое меню: добавить операцию или применить стиль к выделению
+shortcuts-compass = Компас на выделении: перемещение, поворот, копии и массивы
 shortcuts-quit = Выход
 shortcuts-undo = Отменить
 shortcuts-move-up = Переместить операцию выше

@@ -57,3 +57,23 @@ canvas-legend = Legend
 canvas-legend-hover = What the canvas shows
 canvas-show-toolpath = Show toolpath
 canvas-show-toolpath-hover = Hide the toolpath to see the drawing or the simulated stock
+
+## The Compass (docs/specs/compass.md).
+compass-menu-item = Compass
+compass-hover = Move along an arrow, turn with the ring, drag the centre onto a point; right-drag to copy or make an array; Space unlocks it to be put in place
+compass-select-first = Select drawn shapes, a group, a picture, a text, a 3D model or a whole drawing first, then Q
+compass-unlocked = Compass unlocked: drag it into place, Space locks it
+compass-locked = Compass locked: a drag moves the selection
+compass-typed-unreadable = Can't read that: type a length, an angle in degrees, or ΔX and ΔY
+compass-move-here = Move here
+compass-turn-here = Turn here
+compass-copy-here = Copy here
+compass-linear-array = Linear array…
+compass-circular-array = Circular array…
+compass-copies-drawn-only = Only drawn shapes can be copied
+compass-status = Compass: drag an arrow, the ring or the centre; right-drag to copy; Space unlocks it; Q or Esc hides it
+compass-status-arrow = Drag to move along this arrow; double-click to type the distance; right-drag to copy or make a linear array
+compass-status-ring = Drag to turn about the centre in 15° steps (Alt: 0.1°); double-click to type the angle; right-drag for a circular array
+compass-status-centre = Drag to move freely, the centre snapping to points; double-click to type ΔX and ΔY
+compass-status-place = Drag to put the Compass on a point; Space locks it
+compass-status-aim = Drag to turn the Compass's axes, or lay one along a line; Space locks it

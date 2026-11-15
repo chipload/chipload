@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Fewer clicks (docs/specs/fewer-clicks.md): the Q menu (§2): with shapes selected, Q
-//! opens a small menu at the mouse that adds an operation for the selection by a letter, or
-//! applies a style by a digit; its letters work only while it is open. And selecting by
+//! Fewer clicks (docs/specs/fewer-clicks.md): the quick menu (§2; on S since the Compass
+//! took Q, docs/specs/compass.md §9): with shapes selected, S opens a small menu at the
+//! mouse that adds an operation for the selection by a letter, or applies a style by a
+//! digit; its letters work only while it is open. And selecting by
 //! kind (§3): *Select similar* and *Select inside* from the canvas' right-click menu.
 
 use std::collections::BTreeSet;
@@ -72,7 +73,7 @@ impl ChiploadApp {
         self.focus = Focus::Selection;
     }
 
-    /// Q: open the menu at the mouse, or say on the status bar that shapes come first.
+    /// S: open the menu at the mouse, or say on the status bar that shapes come first.
     pub(super) fn open_quick_menu(&mut self, ctx: &egui::Context) {
         if self.edit.is_none() {
             return;

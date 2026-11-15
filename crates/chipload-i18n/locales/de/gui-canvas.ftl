@@ -57,3 +57,23 @@ canvas-legend = Legende
 canvas-legend-hover = Was die Zeichenfläche zeigt
 canvas-show-toolpath = Werkzeugweg zeigen
 canvas-show-toolpath-hover = Werkzeugweg ausblenden, um die Zeichnung oder das simulierte Rohteil zu sehen
+
+## Der Kompass (docs/specs/compass.md).
+compass-menu-item = Kompass
+compass-hover = Entlang eines Pfeils verschieben, mit dem Ring drehen, die Mitte auf einen Punkt ziehen; mit rechts ziehen zum Kopieren oder für eine Reihe; Leertaste löst ihn, um ihn zu platzieren
+compass-select-first = Erst gezeichnete Formen, eine Gruppe, ein Bild, einen Text, ein 3D-Modell oder eine ganze Zeichnung auswählen, dann Q
+compass-unlocked = Kompass gelöst: an seinen Platz ziehen, Leertaste fixiert ihn
+compass-locked = Kompass fixiert: Ziehen verschiebt die Auswahl
+compass-typed-unreadable = Nicht lesbar: eine Länge, einen Winkel in Grad oder ΔX und ΔY eingeben
+compass-move-here = Hierher verschieben
+compass-turn-here = Hierher drehen
+compass-copy-here = Hierher kopieren
+compass-linear-array = Lineare Reihe…
+compass-circular-array = Kreisförmige Reihe…
+compass-copies-drawn-only = Nur gezeichnete Formen lassen sich kopieren
+compass-status = Kompass: einen Pfeil, den Ring oder die Mitte ziehen; mit rechts ziehen zum Kopieren; Leertaste löst ihn; Q oder Esc blendet ihn aus
+compass-status-arrow = Ziehen verschiebt entlang dieses Pfeils; Doppelklick zum Eingeben des Abstands; mit rechts ziehen zum Kopieren oder für eine lineare Reihe
+compass-status-ring = Ziehen dreht um die Mitte in 15°-Schritten (Alt: 0,1°); Doppelklick zum Eingeben des Winkels; mit rechts ziehen für eine kreisförmige Reihe
+compass-status-centre = Ziehen verschiebt frei, die Mitte rastet an Punkten ein; Doppelklick zum Eingeben von ΔX und ΔY
+compass-status-place = Ziehen setzt den Kompass auf einen Punkt; Leertaste fixiert ihn
+compass-status-aim = Ziehen dreht die Achsen des Kompasses oder legt eine an eine Linie; Leertaste fixiert ihn

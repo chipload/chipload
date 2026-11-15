@@ -86,11 +86,8 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
-0. **Compass** (the user, 2026-11-15, before fluting): one handle on the selection to move
-   along an axis, turn about its centre, move snap point to snap point, and with the right
-   button copy or make a linear (an axis) or circular (the ring) array; Space unlocks it to
-   be placed on a snap point first. Q shows it; the quick menu moves to S, the slot to U.
-   **Spec drafted 2026-11-15** (docs/specs/compass.md, nine decisions), awaiting review.
+0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
+   (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
    2026-11-14** (chosen for 0.37.0; all four parts built, see *In main*; next the walk
    again, then the pocket finishing pass): a Q menu at the cursor (kinds by letter,
@@ -300,6 +297,16 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Compass** (docs/specs/compass.md, approved and built 2026-11-15): Q shows a handle on
+  the selection, two arrows, a ring and a centre. An arrow moves along its axis (grid
+  steps, or a snap point's projection), the ring turns about the centre in 15° steps,
+  the centre moves freely snapping to points; a double-click types the exact value. A tap
+  of Space unlocks it to be put on a point (the selection's own corners too) or its axes
+  laid along a line; Space held still pans. Right-drag: *Move/Turn here*, *Copy here*,
+  *Linear array…* (new tool, count and step), *Circular array…* (the polar array form,
+  filled from the drag). Drawn shapes get everything; groups, pictures, texts, models
+  and whole drawings move and turn. The quick menu moved to S, the slot to U. New
+  `shape array-linear`. Ribbon (MODIFY), right-click menu, guide section.
 - **Chamfer** (docs/specs/chamfer.md, approved 2026-11-15 with decision 7 changed: a new
   chamfer goes at the end of its part, no rule before the cut-out; built 2026-11-15): a new
   operation type that breaks the top edge of closed shapes with a V-bit. The width at the

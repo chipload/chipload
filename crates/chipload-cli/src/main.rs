@@ -37,8 +37,8 @@ use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, grid_text, parts_lines, pitch_for_gap};
 use chipload_pipeline::drawing_edit::{
     AlignTo, AlignWith, Combine, Corners, Cut, End, OffsetSide, Polar, align_shapes, array_grid,
-    array_polar, break_shape, combine_shapes, cut_shape_corners, distribute_shapes, extend_shape,
-    offset_shapes, trim_shape,
+    array_linear, array_polar, break_shape, combine_shapes, cut_shape_corners, distribute_shapes,
+    extend_shape, offset_shapes, trim_shape,
 };
 use chipload_pipeline::estimate::{Lengths, estimate, estimate_lines};
 use chipload_pipeline::explode::join_shapes;

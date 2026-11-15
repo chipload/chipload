@@ -57,3 +57,23 @@ canvas-legend = Leyenda
 canvas-legend-hover = Qué muestra el lienzo
 canvas-show-toolpath = Mostrar trayectoria
 canvas-show-toolpath-hover = Oculta la trayectoria para ver el dibujo o el material simulado
+
+## La brújula (docs/specs/compass.md).
+compass-menu-item = Brújula
+compass-hover = Mover a lo largo de una flecha, girar con el anillo, arrastrar el centro a un punto; arrastrar con el botón derecho para copiar o hacer una matriz; Espacio la libera para colocarla
+compass-select-first = Selecciona primero formas dibujadas, un grupo, una imagen, un texto, un modelo 3D o un dibujo entero, luego Q
+compass-unlocked = Brújula libre: arrástrala a su sitio, Espacio la fija
+compass-locked = Brújula fija: arrastrar mueve la selección
+compass-typed-unreadable = No se puede leer: escribe una longitud, un ángulo en grados, o ΔX y ΔY
+compass-move-here = Mover aquí
+compass-turn-here = Girar aquí
+compass-copy-here = Copiar aquí
+compass-linear-array = Matriz lineal…
+compass-circular-array = Matriz circular…
+compass-copies-drawn-only = Solo se pueden copiar formas dibujadas
+compass-status = Brújula: arrastra una flecha, el anillo o el centro; botón derecho para copiar; Espacio la libera; Q o Esc la oculta
+compass-status-arrow = Arrastrar mueve a lo largo de esta flecha; doble clic para escribir la distancia; botón derecho para copiar o hacer una matriz lineal
+compass-status-ring = Arrastrar gira alrededor del centro en pasos de 15° (Alt: 0,1°); doble clic para escribir el ángulo; botón derecho para una matriz circular
+compass-status-centre = Arrastrar mueve libremente, el centro se ajusta a puntos; doble clic para escribir ΔX y ΔY
+compass-status-place = Arrastrar pone la brújula sobre un punto; Espacio la fija
+compass-status-aim = Arrastrar gira los ejes de la brújula, o alinea uno con una línea; Espacio la fija

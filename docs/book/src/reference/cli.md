@@ -960,6 +960,22 @@ chipload shape array <PROJECT> <IDS>... [OPTIONS]
 | `--dy <DY>` | From one row to the next, mm (or with a unit); negative goes down. Default: `0`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload shape array-linear`
+
+A line of copies of drawn shapes in any direction, on their layers; the originals stay (docs/specs/compass.md §8). Prints the new ids
+
+```text
+chipload shape array-linear <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
+| `--count <COUNT>` | How many, the originals included. Required. |
+| `--step <STEP>` | From one copy to the next, "DX,DY" in mm (or with a unit) Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload shape array-polar`
 
 Copies of drawn shapes round a centre, on their layers; the originals stay (docs/specs/drawing-editing.md §6). Prints the new ids

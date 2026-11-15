@@ -144,7 +144,7 @@ impl ChiploadApp {
     }
 
     /// DXF `id`'s shapes.
-    fn dxf_shapes(&self, id: u64) -> Vec<u64> {
+    pub(super) fn dxf_shapes(&self, id: u64) -> Vec<u64> {
         let Some(edit) = self.edit.as_ref() else {
             return Vec::new();
         };
@@ -387,12 +387,29 @@ impl ChiploadApp {
             self.drag_dxf(id, from, to, scale, degrees);
             return;
         }
+        let BoxOf::Whole(of) = drag.of else {
+            return;
+        };
+        self.place_whole(of, &drag.start, &drag.now, drag.free);
+    }
+
+    /// Picture, text or model `of` set to box `now` (it was in `start`), as one undo step.
+    /// `free`: exact, no rounding of the turn.
+    pub(super) fn place_whole(
+        &mut self,
+        of: Source,
+        start: &PlacedBox,
+        now: &PlacedBox,
+        free: bool,
+    ) {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
         let drawing = &edit.job.drawing;
-        let BoxOf::Whole(of) = drag.of else {
-            return;
+        let drag = BoxNow {
+            start: *start,
+            now: *now,
+            free,
         };
         match of {
             Source::Image(id) => {
@@ -495,6 +512,13 @@ impl BoxSize {
         self.0 = Some((key, size));
         Some(size)
     }
+}
+
+/// A box as a drag left it, for [`ChiploadApp::place_whole`].
+struct BoxNow {
+    start: PlacedBox,
+    now: PlacedBox,
+    free: bool,
 }
 
 /// What turns box `start` into `now`: from its centre to the new centre, the scale, the

@@ -26,6 +26,9 @@ the same way each time; layer rules do them in one go.
 
 ## 2. A quick menu at the cursor: Q
 
+*Changed 2026-11-15:* the menu moved to **S**, Q now shows the Compass
+(docs/specs/compass.md §9); the slot's key S became U.
+
 **Q** over the canvas, with shapes selected, opens a small menu at the mouse:
 
 ```

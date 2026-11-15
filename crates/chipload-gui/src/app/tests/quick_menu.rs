@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The Q menu (docs/specs/fewer-clicks.md §2).
+//! The quick menu (docs/specs/fewer-clicks.md §2).
 use super::super::quick_menu::QuickChoice;
 use super::styles::app_with_library;
 use super::*;
@@ -30,11 +30,11 @@ fn a_letter_adds_what_the_ribbon_adds() {
     let mut by_hand = app_with_library("quick-ribbon");
     select(&mut by_hand, &[2, 3, 4]);
     by_hand.add_operation(OpKind::Pocket).unwrap();
-    // By Q, K.
+    // By S, K.
     let mut app = app_with_library("quick-keys");
     select(&mut app, &[2, 3, 4]);
     let mut harness = window(app);
-    harness.key_press(egui::Key::Q);
+    harness.key_press(egui::Key::S);
     harness.run_steps(2);
     assert!(harness.state().quick_menu_open());
     harness.key_press(egui::Key::K);
@@ -42,7 +42,7 @@ fn a_letter_adds_what_the_ribbon_adds() {
     assert!(!harness.state().quick_menu_open());
     assert_eq!(ops(harness.state()), ops(&by_hand));
     // P is a profile while the menu is open, not Panels.
-    harness.key_press(egui::Key::Q);
+    harness.key_press(egui::Key::S);
     harness.run_steps(2);
     harness.key_press(egui::Key::P);
     harness.run_steps(2);
@@ -55,13 +55,13 @@ fn escape_closes_and_nothing_selected_says_so() {
     let mut app = app_with_library("quick-escape");
     app.selection = CanvasSelection::Nothing;
     let mut harness = window(app);
-    harness.key_press(egui::Key::Q);
+    harness.key_press(egui::Key::S);
     harness.run_steps(2);
     assert!(!harness.state().quick_menu_open());
     let status = harness.state().status.clone().unwrap().0;
-    assert!(status.contains("then Q"), "{status}");
+    assert!(status.contains("then S"), "{status}");
     select(harness.state_mut(), &[1]);
-    harness.key_press(egui::Key::Q);
+    harness.key_press(egui::Key::S);
     harness.run_steps(2);
     assert!(harness.state().quick_menu_open());
     harness.key_press(egui::Key::Escape);
@@ -98,7 +98,7 @@ fn a_digit_applies_the_style_in_the_list_order() {
     assert!(ops(&app).is_empty());
     select(&mut app, &[1]);
     let mut harness = window(app);
-    harness.key_press(egui::Key::Q);
+    harness.key_press(egui::Key::S);
     harness.run_steps(2);
     harness.key_press(egui::Key::Num1);
     harness.run_steps(2);
@@ -109,7 +109,7 @@ fn a_digit_applies_the_style_in_the_list_order() {
     assert_eq!(names, ["Cut out"]);
     // A digit with no style: nothing.
     select(harness.state_mut(), &[2]);
-    harness.key_press(egui::Key::Q);
+    harness.key_press(egui::Key::S);
     harness.run_steps(2);
     harness.key_press(egui::Key::Num2);
     harness.run_steps(2);
@@ -124,7 +124,7 @@ fn the_menu_opens_in_every_language() {
         app.set_language(language.code());
         select(&mut app, &[1, 2]);
         let mut harness = window(app);
-        harness.key_press(egui::Key::Q);
+        harness.key_press(egui::Key::S);
         harness.run_steps(3);
         assert!(harness.state().quick_menu_open(), "{language:?}");
     }

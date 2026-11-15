@@ -57,3 +57,23 @@ canvas-legend = Legenda
 canvas-legend-hover = Cosa mostra l'area di disegno
 canvas-show-toolpath = Mostra percorso utensile
 canvas-show-toolpath-hover = Nascondi il percorso utensile per vedere il disegno o il grezzo simulato
+
+## La bussola (docs/specs/compass.md).
+compass-menu-item = Bussola
+compass-hover = Sposta lungo una freccia, ruota con l’anello, trascina il centro su un punto; trascina col tasto destro per copiare o fare una serie; Spazio la sblocca per posizionarla
+compass-select-first = Seleziona prima forme disegnate, un gruppo, un’immagine, un testo, un modello 3D o un disegno intero, poi Q
+compass-unlocked = Bussola sbloccata: trascinala in posizione, Spazio la blocca
+compass-locked = Bussola bloccata: trascinare sposta la selezione
+compass-typed-unreadable = Non leggibile: scrivi una lunghezza, un angolo in gradi, oppure ΔX e ΔY
+compass-move-here = Sposta qui
+compass-turn-here = Ruota qui
+compass-copy-here = Copia qui
+compass-linear-array = Serie lineare…
+compass-circular-array = Serie circolare…
+compass-copies-drawn-only = Si possono copiare solo forme disegnate
+compass-status = Bussola: trascina una freccia, l’anello o il centro; tasto destro per copiare; Spazio la sblocca; Q o Esc la nasconde
+compass-status-arrow = Trascina per spostare lungo questa freccia; doppio clic per scrivere la distanza; tasto destro per copiare o fare una serie lineare
+compass-status-ring = Trascina per ruotare attorno al centro a passi di 15° (Alt: 0,1°); doppio clic per scrivere l’angolo; tasto destro per una serie circolare
+compass-status-centre = Trascina per spostare liberamente, il centro aggancia i punti; doppio clic per scrivere ΔX e ΔY
+compass-status-place = Trascina per mettere la bussola su un punto; Spazio la blocca
+compass-status-aim = Trascina per ruotare gli assi della bussola, o allinearne uno a una linea; Spazio la blocca

@@ -640,10 +640,28 @@ impl ChiploadApp {
                     None,
                 ),
             ];
+            // The Compass starts the second row (docs/specs/compass.md §3).
+            let can_compass = app.can_show_compass();
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-                for row in tools.chunks(tools.len().div_ceil(2)) {
+                let rows = tools.chunks(tools.len().div_ceil(2)).count();
+                for (index, row) in tools.chunks(tools.len().div_ceil(2)).enumerate() {
                     ui.horizontal(|ui| {
+                        if index + 1 == rows {
+                            let label = t!(ui, "compass-menu-item");
+                            let hint = hover_keys(
+                                &format!("{label}: {}", t!(ui, "compass-hover")),
+                                Action::Compass,
+                            );
+                            let active = app.compass_shown();
+                            let enabled = active || can_compass;
+                            if small_ribbon_button(ui, Icon::Compass, &label, enabled, active, None)
+                                .on_hover_text(hint)
+                                .clicked()
+                            {
+                                app.toggle_compass();
+                            }
+                        }
                         for (tool, icon, label, hint, action) in row {
                             let active = app.modify() == Some(*tool);
                             let hint = format!("{label}: {hint}");

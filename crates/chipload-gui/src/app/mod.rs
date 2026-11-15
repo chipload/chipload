@@ -43,6 +43,7 @@ mod browser;
 mod canvas;
 mod canvas_tools;
 use canvas_tools::ActiveTool;
+mod compass;
 mod computer;
 mod copy_paste;
 mod corners;

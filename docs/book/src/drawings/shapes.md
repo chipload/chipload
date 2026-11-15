@@ -10,7 +10,7 @@ Chipload draws the parts it cuts, with or without a DXF:
 - **Arc** (**A**): where it starts, where it ends, then a point it passes through (or type
   its radius: it bows to the cursor's side). It becomes an open polyline of one or two arc
   segments.
-- **Slot** (**S**): the centres of its two ends, then its width (a click, or type it). It
+- **Slot** (**U**): the centres of its two ends, then its width (a click, or type it). It
   is a rectangle whose corner radius is half its width; it shows as *Slot*, and stays one
   when you change its width.
 - **Polygon** (**N**): the centre, then a corner. Its number of sides is on the status bar
@@ -228,6 +228,37 @@ Imported shapes can't be edited: they change only with the DXF, unless you
 [explode it](explode.md). Lines whose ends almost meet can be joined into one shape with
 *Draw > Join ends…* (same page).
 
+## The Compass
+
+The **Compass** moves, turns and copies the selection from one handle: two arrows (its X
+and Y axes), a ring and a centre. Select drawn shapes, a group, or a whole picture, text,
+3D model or drawing, then press **Q** (also MODIFY > *Compass* in the ribbon, or *Compass*
+in the canvas's right-click menu). It shows on the middle of the selection, and the
+selection's own handles hide while it shows. **Q** again or **Esc** hides it.
+
+- **An arrow:** drag to move along that axis. The distance goes in steps of the grid, or
+  to where a point of another shape lies along the axis.
+- **The ring:** drag to turn about the centre, in steps of 15° (Alt: 0.1°).
+- **The centre:** drag to move freely; the centre snaps to points, so a point of the
+  selection lands exactly on a point of another shape.
+- **Exact values:** double-click an arrow, the ring or the centre and type the distance,
+  the angle, or ΔX and ΔY (two numbers), then Enter.
+- **Put the Compass on a point first:** tap **Space** (press and let go). The Compass
+  turns grey: drag its centre onto a corner, a hole's centre or a line's middle (the
+  selection's own points count too), or drag an arrow to turn its axes, which lie along a
+  line under the cursor. Tap Space again to lock it: the next drag is measured from
+  there. Holding Space while dragging still moves the view.
+- **Right-drag** an arrow, the ring or the centre, and choose when you let go:
+  *Move here* (or *Turn here*), *Copy here* (the copy is then selected, so you can place
+  the next one), **Linear array…** (from an arrow or the centre: count and step, the step
+  as dragged) or **Circular array…** (from the ring: count and angle, round the Compass's
+  centre, the angle as dragged). The arrays show their copies before *Create*.
+
+Every move or turn is one undo step, and the shapes keep their ids, so the operations
+that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or
+whole drawing only moves and turns. The command line does the same with `shape move`,
+`shape turn --about`, `shape copy`, `shape array-linear` and `shape array-polar`.
+
 ## On the command line
 
 ```sh
@@ -238,6 +269,7 @@ chipload shape add part.chipload polyline --points "0,0 50,0 50,20" --bulges "0 
 chipload shape set part.chipload 8 --radius 6         # change a value or the layer
 chipload shape set part.chipload 8 --name "Lid"       # its name in the Browser ("" takes it away)
 chipload shape copy part.chipload 8 9 --dx 25 --dy 0  # copies, with new ids
+chipload shape array-linear part.chipload 8 --count 5 --step 20,10   # a line of copies, any direction
 chipload shape mirror part.chipload 8 9 --axis x      # flip in place; ids kept
 chipload shape move part.chipload 8 9 --dx 10 --dy -5
 chipload shape turn part.chipload 8 9 --angle-deg 30  # about the middle of their box (or --about X,Y)

@@ -57,6 +57,8 @@ pub enum Icon {
     Pocket,
     Vcarve,
     FollowPath,
+    /// Two arrows, a ring and a centre: the Compass (docs/specs/compass.md).
+    Compass,
     /// A board's edge in section, its top corner bevelled: a chamfer operation
     /// (docs/specs/chamfer.md).
     EdgeChamfer,
@@ -353,6 +355,13 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         Icon::FollowPath => {
             pen.wave();
             pen.dot((0.12, 0.62), 0.07);
+        }
+        Icon::Compass => {
+            pen.line([(0.42, 0.58), (0.9, 0.58)]);
+            pen.poly(&[(0.78, 0.48), (0.9, 0.58), (0.78, 0.68)]);
+            pen.line([(0.42, 0.58), (0.42, 0.1)]);
+            pen.poly(&[(0.32, 0.22), (0.42, 0.1), (0.52, 0.22)]);
+            pen.circle((0.42, 0.58), 0.18);
         }
         Icon::EdgeChamfer => {
             pen.closed(&[

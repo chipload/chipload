@@ -862,6 +862,31 @@ pub fn array_grid(
     copies(job, ids, &moves, (0.0, 0.0))
 }
 
+/// A line of copies of drawn shapes `ids` (docs/specs/compass.md §8): `count` including the
+/// originals, each `step` (mm, any direction) further than the one before. The copies are
+/// new shapes on the originals' layers.
+pub fn array_linear(
+    job: &Job,
+    ids: &[u64],
+    count: u32,
+    (dx, dy): (f64, f64),
+) -> Result<Edited, PipelineError> {
+    if !(2..=ARRAY_MOST).contains(&count) {
+        return Err(refused(
+            Message::new("pipeline-array-count")
+                .arg("got", count)
+                .arg("most", ARRAY_MOST),
+        ));
+    }
+    if !(dx.is_finite() && dy.is_finite()) || math::hypot(dx, dy) < CHAIN_TOL_MM {
+        return Err(refused(Message::new("pipeline-array-spacing")));
+    }
+    let moves: Vec<(f64, f64, f64)> = (1..count)
+        .map(|k| (f64::from(k) * dx, f64::from(k) * dy, 0.0))
+        .collect();
+    copies(job, ids, &moves, (0.0, 0.0))
+}
+
 /// Copies of drawn shapes `ids` round a centre (`polar`): the copies are new shapes on the
 /// originals' layers.
 pub fn array_polar(job: &Job, ids: &[u64], polar: Polar) -> Result<Edited, PipelineError> {
@@ -1525,6 +1550,25 @@ mod tests {
         assert!(array_grid(&job, &[2], 1, 1, (30.0, 0.0)).is_err());
         assert!(array_grid(&job, &[2], 3, 1, (0.0, 10.0)).is_err());
         assert!(array_grid(&job, &[2], 200, 200, (1.0, 1.0)).is_err());
+    }
+
+    #[test]
+    fn a_linear_array_steps_in_any_direction() {
+        let job = drawn_part();
+        let edited = array_linear(&job, &[2], 3, (30.0, 40.0)).unwrap();
+        assert_eq!(edited.new_ids, [4, 5]);
+        let centres: Vec<[f64; 2]> = edited
+            .new_ids
+            .iter()
+            .map(|&id| match geometry(&edited.job, id) {
+                Geometry::Circle { center, .. } => *center,
+                other => panic!("{other:?}"),
+            })
+            .collect();
+        assert_eq!(centres, [[105.0, 120.0], [135.0, 160.0]]);
+        assert!(array_linear(&job, &[2], 1, (30.0, 0.0)).is_err());
+        assert!(array_linear(&job, &[2], 3, (0.0, 0.0)).is_err());
+        assert!(array_linear(&job, &[2], ARRAY_MOST + 1, (1.0, 1.0)).is_err());
     }
 
     #[test]

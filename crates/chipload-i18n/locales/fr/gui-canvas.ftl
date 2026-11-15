@@ -57,3 +57,23 @@ canvas-legend = Légende
 canvas-legend-hover = Ce que montre le canevas
 canvas-show-toolpath = Afficher le parcours
 canvas-show-toolpath-hover = Masquer le parcours d'outil pour voir le dessin ou le brut simulé
+
+## La boussole (docs/specs/compass.md).
+compass-menu-item = Boussole
+compass-hover = Déplacer le long d’une flèche, tourner avec l’anneau, glisser le centre sur un point ; glisser avec le bouton droit pour copier ou faire un réseau ; Espace la libère pour la placer
+compass-select-first = Sélectionnez d’abord des formes dessinées, un groupe, une image, un texte, un modèle 3D ou un dessin entier, puis Q
+compass-unlocked = Boussole libérée : glissez-la en place, Espace la bloque
+compass-locked = Boussole bloquée : glisser déplace la sélection
+compass-typed-unreadable = Illisible : tapez une longueur, un angle en degrés, ou ΔX et ΔY
+compass-move-here = Déplacer ici
+compass-turn-here = Tourner ici
+compass-copy-here = Copier ici
+compass-linear-array = Réseau linéaire…
+compass-circular-array = Réseau circulaire…
+compass-copies-drawn-only = Seules les formes dessinées se copient
+compass-status = Boussole : glissez une flèche, l’anneau ou le centre ; bouton droit pour copier ; Espace la libère ; Q ou Échap la masque
+compass-status-arrow = Glisser déplace le long de cette flèche ; double-clic pour taper la distance ; bouton droit pour copier ou faire un réseau linéaire
+compass-status-ring = Glisser tourne autour du centre par pas de 15° (Alt : 0,1°) ; double-clic pour taper l’angle ; bouton droit pour un réseau circulaire
+compass-status-centre = Glisser déplace librement, le centre accroché aux points ; double-clic pour taper ΔX et ΔY
+compass-status-place = Glisser pose la boussole sur un point ; Espace la bloque
+compass-status-aim = Glisser tourne les axes de la boussole, ou en couche un le long d’une ligne ; Espace la bloque

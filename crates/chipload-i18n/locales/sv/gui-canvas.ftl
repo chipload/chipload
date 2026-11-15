@@ -57,3 +57,23 @@ canvas-legend = Teckenförklaring
 canvas-legend-hover = Vad ritytan visar
 canvas-show-toolpath = Visa verktygsbana
 canvas-show-toolpath-hover = Dölj verktygsbanan för att se ritningen eller det simulerade ämnet
+
+## Kompassen (docs/specs/compass.md).
+compass-menu-item = Kompass
+compass-hover = Flytta längs en pil, vrid med ringen, dra mitten till en punkt; högerdra för att kopiera eller göra ett mönster; mellanslag låser upp den så att den kan placeras
+compass-select-first = Markera ritade former, en grupp, en bild, en text, en 3D-modell eller en hel ritning först, sedan Q
+compass-unlocked = Kompassen upplåst: dra den på plats, mellanslag låser den
+compass-locked = Kompassen låst: att dra flyttar markeringen
+compass-typed-unreadable = Går inte att läsa: skriv en längd, en vinkel i grader, eller ΔX och ΔY
+compass-move-here = Flytta hit
+compass-turn-here = Vrid hit
+compass-copy-here = Kopiera hit
+compass-linear-array = Linjärt mönster…
+compass-circular-array = Cirkulärt mönster…
+compass-copies-drawn-only = Bara ritade former kan kopieras
+compass-status = Kompass: dra en pil, ringen eller mitten; högerdra för att kopiera; mellanslag låser upp; Q eller Esc döljer den
+compass-status-arrow = Dra för att flytta längs pilen; dubbelklicka för att skriva avståndet; högerdra för att kopiera eller göra ett linjärt mönster
+compass-status-ring = Dra för att vrida runt mitten i steg om 15° (Alt: 0,1°); dubbelklicka för att skriva vinkeln; högerdra för ett cirkulärt mönster
+compass-status-centre = Dra för att flytta fritt, mitten fäster vid punkter; dubbelklicka för att skriva ΔX och ΔY
+compass-status-place = Dra för att sätta kompassen på en punkt; mellanslag låser den
+compass-status-aim = Dra för att vrida kompassens axlar, eller lägga en längs en linje; mellanslag låser den

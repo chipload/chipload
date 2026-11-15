@@ -240,7 +240,10 @@ impl ChiploadApp {
         self.update_corner_markers();
         // Simulate is a viewer: no handles to drag (docs/specs/edit-and-simulate.md §2).
         let editing = !self.display.simulate;
-        let shape_handles = if editing && self.show_drawing() {
+        // The Compass hides the selection's own handles while it shows (compass.md §3).
+        self.compass_space(ui.ctx());
+        let compass_on = editing && self.compass_now().is_some();
+        let shape_handles = if editing && self.show_drawing() && !compass_on {
             self.shape_handles()
         } else {
             Vec::new()
@@ -251,7 +254,7 @@ impl ChiploadApp {
         self.scene.handles = others.into_iter().map(|&(_, p)| p).collect();
         self.scene.middle_handles = middles.into_iter().map(|&(_, p)| p).collect();
         // A selected picture's or text's box handles (docs/specs/box-handles.md).
-        let box_handles = if editing {
+        let box_handles = if editing && !compass_on {
             self.box_handle_points()
         } else {
             Vec::new()
@@ -277,12 +280,27 @@ impl ChiploadApp {
         // The work zero's handle, over everything else (docs/specs/work-zero-marker.md §3).
         let zero_handle = self.zero_handle();
         self.scene.zero_handle = zero_handle.map(|p| (p, self.focus == Focus::WorkZero));
+        self.scene.compass = if editing {
+            self.compass_shape(response.hover_pos())
+        } else {
+            None
+        };
+        // A right drag on the Compass asks what to do when let go (compass.md §6).
+        if editing
+            && response.drag_started_by(egui::PointerButton::Secondary)
+            && let Some(origin) = ui.input(|i| i.pointer.press_origin())
+            && let Some(part) = self.compass_part_at(origin)
+        {
+            self.start_compass_drag(part, origin, true);
+        }
         if editing
             && response.drag_started_by(egui::PointerButton::Primary)
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
         {
             if self.on_zero_handle(origin) && self.start_zero_drag() {
                 // Dragged below.
+            } else if let Some(part) = self.compass_part_at(origin) {
+                self.start_compass_drag(part, origin, false);
             } else if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);
             } else if let Some(handle) = on_box_handle(origin) {
@@ -311,6 +329,8 @@ impl ChiploadApp {
             }
         }
         if response.drag_stopped() {
+            let at = ui.input(|i| i.pointer.latest_pos());
+            self.end_compass_drag(at);
             // Selected shapes carried onto the shape library: saved there, not moved.
             let box_carried = self.drag.boxed.as_ref().is_some_and(|b| b.carried);
             if box_carried || self.drag.moving.as_ref().is_some_and(|m| m.carried) {
@@ -331,7 +351,13 @@ impl ChiploadApp {
         self.drag.snapped = None;
         self.scene.snap_mark = None;
         let mut zero_label = None;
-        if self.dragging_zero() {
+        if self.dragging_compass() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                self.drag_compass_to(self.view.to_world(pos), alt);
+            }
+        } else if self.dragging_zero() {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
             {
@@ -429,6 +455,11 @@ impl ChiploadApp {
             self.cursor = None;
         }
         let mut readout = zero_label;
+        if readout.is_none()
+            && let (Some(text), Some(at)) = (self.compass_readout(), self.cursor)
+        {
+            readout = Some((at, text));
+        }
         if self.sketch().is_some() {
             self.scene.measure = None;
             let at = self.cursor.map(|c| self.drawing_point(c, alt, shift));
@@ -481,7 +512,11 @@ impl ChiploadApp {
                 }
             } else if matches!(
                 self.modify(),
-                Some(super::modify::ModifyTool::Array | super::modify::ModifyTool::PolarArray)
+                Some(
+                    super::modify::ModifyTool::Array
+                        | super::modify::ModifyTool::PolarArray
+                        | super::modify::ModifyTool::LinearArray
+                )
             ) {
                 // An array: its copies, and a polar array's centre marked.
                 self.scene.preview = self.array_outlines();
@@ -571,7 +606,16 @@ impl ChiploadApp {
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .is_some_and(|pos| self.on_zero_handle(pos));
-            if zero_clicked {
+            // A click on the Compass keeps the selection; a double-click types a value.
+            let compass_hit = (editing && (response.clicked() || response.double_clicked()))
+                .then(|| response.interact_pointer_pos())
+                .flatten()
+                .and_then(|pos| self.compass_part_at(pos).map(|part| (part, pos)));
+            if let Some((part, pos)) = compass_hit {
+                if response.double_clicked() {
+                    self.start_typing_compass(part, pos);
+                }
+            } else if zero_clicked {
                 self.focus = Focus::WorkZero;
             } else if let Some(label) = label {
                 self.start_typing_dimension(label.dimension, label.value, label.rect.left_top());
@@ -609,10 +653,15 @@ impl ChiploadApp {
                 }
             }
         }
-        let outline = self.box_outline();
-        self.scene.preview.extend(outline);
+        if !compass_on {
+            let outline = self.box_outline();
+            self.scene.preview.extend(outline);
+        }
         let moved = self.move_outlines();
         self.scene.preview.extend(moved);
+        let compassed = self.compass_outlines();
+        self.scene.preview.extend(compassed);
+        self.compass_menu(ui.ctx());
         // An entry of the shape library dragged over the canvas: where it would land; let
         // go, it is inserted there (docs/specs/shape-library.md §5.1).
         self.shape_library.view_middle = Some(self.view.to_world(rect.center()));
@@ -662,6 +711,7 @@ impl ChiploadApp {
                 .flatten()
         });
         let picked_id = picked.map(|c| c.id);
+        let compass_item = editing && !self.compass_shown() && self.can_show_compass();
         if editing && corner_clicked.is_none() {
             response.context_menu(|ui| {
                 // A tab, or the ring a tab can be added to (docs/specs/tabs-by-hand.md §1).
@@ -679,6 +729,22 @@ impl ChiploadApp {
                 if let (None, Some((ring, at))) = (context_start, context_ring) {
                     if ui.button(t!(ui, "canvas-tab-add")).clicked() {
                         self.add_tab(ring, at);
+                        ui.close();
+                    }
+                    ui.separator();
+                }
+                // The Compass on the selection (docs/specs/compass.md §3).
+                if context_start.is_none() && compass_item {
+                    let label = super::shortcuts::with_keys(
+                        &t!(ui, "compass-menu-item"),
+                        super::shortcuts::Action::Compass,
+                    );
+                    if ui
+                        .button(label)
+                        .on_hover_text(t!(ui, "compass-hover"))
+                        .clicked()
+                    {
+                        self.toggle_compass();
                         ui.close();
                     }
                     ui.separator();
@@ -1038,11 +1104,23 @@ impl ChiploadApp {
                 .map(|ids| ids.into_iter().collect())
                 .unwrap_or_default(),
         };
+        self.snap_skipping(at, free, &skip).0
+    }
+
+    /// Where the cursor at `at` lands, leaving out the contours `skip` (snap point, else
+    /// grid; exact with `free`), remembered for the marker and the status bar; and whether
+    /// it took a snap point.
+    pub(super) fn snap_skipping(
+        &mut self,
+        at: Point,
+        free: bool,
+        skip: &BTreeSet<usize>,
+    ) -> (Point, bool) {
         let step = grid_step(self.view.scale, self.prefs.units);
         let cursor = Cursor {
             at,
             from: self.last_point(),
-            skip: &skip,
+            skip,
         };
         let (p, hit) = snap_cursor(
             &cursor,
@@ -1054,7 +1132,7 @@ impl ChiploadApp {
         );
         self.drag.snapped = Some((p, hit));
         self.scene.snap_mark = hit.map(|h| h.at);
-        p
+        (p, hit.is_some())
     }
 
     /// Where a drawing click or the cursor lands: snapped (else the grid), or with Shift

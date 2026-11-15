@@ -5,9 +5,9 @@
 use chipload_pipeline::PipelineError;
 use chipload_pipeline::drawing_edit::{
     ARRAY_MOST, AlignTo, AlignWith, Combine, Corners, Cut, Edited, OffsetSide, Polar, align_shapes,
-    arrange_units_in, array_grid, array_polar, break_shape, combine_shapes, cut_shape_corners,
-    distribute_shapes, extend_shape, nearer_end, nearest_drawn, nearest_point, offset_at,
-    offset_shapes, shape_corners, trim_preview, trim_shape,
+    arrange_units_in, array_grid, array_linear, array_polar, break_shape, combine_shapes,
+    cut_shape_corners, distribute_shapes, extend_shape, nearer_end, nearest_drawn, nearest_point,
+    offset_at, offset_shapes, shape_corners, trim_preview, trim_shape,
 };
 
 use super::*;
@@ -39,6 +39,9 @@ pub enum ModifyTool {
     Array,
     /// Copies of the selection round a centre clicked on the canvas (§6).
     PolarArray,
+    /// Copies of the selection in a line, any direction: from the Compass's right-drag
+    /// (docs/specs/compass.md §6).
+    LinearArray,
     /// A frame round the selection, or to a size, set under Selection
     /// (docs/specs/shape-library.md §5).
     Frame,
@@ -65,6 +68,9 @@ pub struct ArraySettings {
     pub center: Point,
     pub angle_deg: f64,
     pub rotate: bool,
+    /// A linear array's count and its step from one copy to the next, mm.
+    pub line_count: u32,
+    pub step: Point,
 }
 
 impl Default for ArraySettings {
@@ -78,6 +84,8 @@ impl Default for ArraySettings {
             center: (0.0, 0.0),
             angle_deg: 360.0,
             rotate: true,
+            line_count: 2,
+            step: (20.0, 0.0),
         }
     }
 }
@@ -130,7 +138,10 @@ impl ChiploadApp {
         self.set_tool(ActiveTool::Modify(tool));
         if matches!(
             tool,
-            ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::Frame
+            ModifyTool::Array
+                | ModifyTool::PolarArray
+                | ModifyTool::LinearArray
+                | ModifyTool::Frame
         ) {
             // Its values and Create are under Selection: show it.
             self.focus = Focus::Selection;
@@ -411,7 +422,13 @@ impl ChiploadApp {
                     self.focus = Focus::Selection;
                 }
             }
-            Some(ModifyTool::Union | ModifyTool::Intersect | ModifyTool::Array) | None => {}
+            Some(
+                ModifyTool::Union
+                | ModifyTool::Intersect
+                | ModifyTool::Array
+                | ModifyTool::LinearArray,
+            )
+            | None => {}
         }
     }
 
@@ -552,9 +569,10 @@ impl ChiploadApp {
     pub fn modify_ready(&self, tool: ModifyTool) -> bool {
         match tool {
             ModifyTool::Union | ModifyTool::Intersect => self.selected_drawn().len() >= 2,
-            ModifyTool::Subtract | ModifyTool::Array | ModifyTool::PolarArray => {
-                !self.selected_drawn().is_empty()
-            }
+            ModifyTool::Subtract
+            | ModifyTool::Array
+            | ModifyTool::PolarArray
+            | ModifyTool::LinearArray => !self.selected_drawn().is_empty(),
             _ => true,
         }
     }
@@ -608,6 +626,7 @@ impl ChiploadApp {
         let a = &self.canvas_tools.array;
         Some(match self.modify()? {
             ModifyTool::Array => array_grid(job, &ids, a.columns, a.rows, (a.dx, a.dy)),
+            ModifyTool::LinearArray => array_linear(job, &ids, a.line_count, a.step),
             ModifyTool::PolarArray => array_polar(
                 job,
                 &ids,
@@ -669,14 +688,26 @@ impl ChiploadApp {
 
     /// Under Selection while an array tool is active: its values and Create.
     pub(super) fn array_form(&mut self, ui: &mut egui::Ui) {
-        let polar = match self.modify() {
-            Some(ModifyTool::Array) => false,
-            Some(ModifyTool::PolarArray) => true,
+        let (polar, linear) = match self.modify() {
+            Some(ModifyTool::Array) => (false, false),
+            Some(ModifyTool::PolarArray) => (true, false),
+            Some(ModifyTool::LinearArray) => (false, true),
             _ => return,
         };
         let a = &mut self.canvas_tools.array;
         egui::Grid::new("array-form").num_columns(2).show(ui, |ui| {
-            if polar {
+            if linear {
+                ui.label(t!(ui, "array-count"));
+                ui.add(egui::DragValue::new(&mut a.line_count).range(2..=ARRAY_MOST));
+                ui.end_row();
+                ui.label(t!(ui, "array-step"))
+                    .on_hover_text(t!(ui, "array-step-hover"));
+                ui.horizontal(|ui| {
+                    ui.add(crate::units::length(&mut a.step.0));
+                    ui.add(crate::units::length(&mut a.step.1));
+                });
+                ui.end_row();
+            } else if polar {
                 ui.label(t!(ui, "array-count"));
                 ui.add(egui::DragValue::new(&mut a.count).range(2..=ARRAY_MOST));
                 ui.end_row();
@@ -1009,10 +1040,12 @@ impl ChiploadApp {
                 t!(self, "modify-combine-pick")
             }
             ModifyTool::Subtract => t!(self, "modify-subtract-status"),
-            ModifyTool::Array | ModifyTool::PolarArray if self.selected_drawn().is_empty() => {
+            ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::LinearArray
+                if self.selected_drawn().is_empty() =>
+            {
                 t!(self, "modify-array-pick")
             }
-            ModifyTool::Array => t!(self, "modify-array-status"),
+            ModifyTool::Array | ModifyTool::LinearArray => t!(self, "modify-array-status"),
             ModifyTool::PolarArray => t!(self, "modify-polar-status"),
             ModifyTool::Frame if self.framed_shape_ids().is_empty() => {
                 t!(self, "modify-frame-size-status")

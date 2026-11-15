@@ -293,6 +293,24 @@ pub(crate) enum ShapeAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// A line of copies of drawn shapes in any direction, on their layers; the originals
+    /// stay (docs/specs/compass.md §8). Prints the new ids.
+    ArrayLinear {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The shape ids (as `inspect` lists them, without the S).
+        #[arg(required = true)]
+        ids: Vec<u64>,
+        /// How many, the originals included.
+        #[arg(long)]
+        count: u32,
+        /// From one copy to the next, "DX,DY" in mm (or with a unit).
+        #[arg(long, value_parser = crate::lengths::point, allow_hyphen_values = true)]
+        step: [f64; 2],
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Copies of drawn shapes round a centre, on their layers; the originals stay
     /// (docs/specs/drawing-editing.md §6). Prints the new ids.
     ArrayPolar {
@@ -645,6 +663,9 @@ pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
         | ShapeAction::Array {
             project, output, ..
         }
+        | ShapeAction::ArrayLinear {
+            project, output, ..
+        }
         | ShapeAction::ArrayPolar {
             project, output, ..
         }
@@ -813,6 +834,14 @@ pub(crate) fn shape(out: &mut Out, action: ShapeAction) -> ExitCode {
             dy,
             ..
         } => array_grid(&job, &ids, columns, rows, (dx, dy)).map(|edited| {
+            new_ids = Some(edited.new_ids.clone());
+            let mut lines = vec![format!("Added shapes {}.", shape_names(&edited.new_ids))];
+            lines.extend(edited.notes.iter().map(Message::english));
+            (edited.job, lines)
+        }),
+        ShapeAction::ArrayLinear {
+            ids, count, step, ..
+        } => array_linear(&job, &ids, count, (step[0], step[1])).map(|edited| {
             new_ids = Some(edited.new_ids.clone());
             let mut lines = vec![format!("Added shapes {}.", shape_names(&edited.new_ids))];
             lines.extend(edited.notes.iter().map(Message::english));

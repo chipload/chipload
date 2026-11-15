@@ -1008,6 +1008,23 @@ impl PictureLayer {
     }
 }
 
+/// Where the Compass's arrows start and end from its centre, its ring's radius and half its
+/// centre square's side, in screen pixels: drawn here, picked in the app's compass module.
+pub const COMPASS_ARM_START_PX: f32 = 26.0;
+pub const COMPASS_ARM_END_PX: f32 = 64.0;
+pub const COMPASS_RING_PX: f32 = 18.0;
+pub const COMPASS_CENTRE_PX: f32 = 6.0;
+
+/// The Compass as drawn: its centre, its X axis's angle (degrees), whether it is unlocked
+/// (grey), and the part to highlight (X, Y, ring, centre).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CompassShape {
+    pub centre: Point,
+    pub angle_deg: f64,
+    pub unlocked: bool,
+    pub hot: Option<usize>,
+}
+
 /// Everything on the canvas, in world coordinates.
 #[derive(Debug, Clone, Default)]
 pub struct Scene {
@@ -1040,6 +1057,8 @@ pub struct Scene {
     /// The work zero's handle and whether the zero is selected (top view only;
     /// docs/specs/work-zero-marker.md §3).
     pub zero_handle: Option<(Point, bool)>,
+    /// The Compass on the selection (top view only; docs/specs/compass.md §3).
+    pub compass: Option<CompassShape>,
     /// The stock's (top, bottom) Z, for the 3D view.
     pub stock_z: Option<(f64, f64)>,
     /// The copies (copy 1 excluded): a contour's id and a shift, one for each copy of each
@@ -1624,6 +1643,9 @@ impl Scene {
                 painter.circle_filled(at, ZERO_HANDLE_PX, pal.handle_fill);
                 painter.circle_stroke(at, ZERO_HANDLE_PX, Stroke::new(1.5, pal.axis_x));
             }
+        }
+        if let Some(compass) = self.compass.filter(|_| flat) {
+            paint_compass(painter, view, &compass, pal);
         }
         for &p in self.middle_handles.iter().filter(|_| flat) {
             let at = view.to_screen(p);
@@ -2260,6 +2282,52 @@ fn paint_tab_marker(painter: &Painter, view: &View, marker: &TabMarker, pal: &Pa
 /// A corner marker: a small diamond, filled where a bone is cut (with the tool's circle at
 /// the bone's tip), hollow where the corner stays round (amber where the tool can't reach
 /// into it), and a ring round it where the corner has its own choice.
+/// The Compass (docs/specs/compass.md §3): its arrows in the axes' colours, its ring and
+/// its centre; all grey while unlocked, the part under the pointer drawn bolder. Sizes
+/// match the hit areas in the app's compass module.
+fn paint_compass(painter: &Painter, view: &View, compass: &CompassShape, pal: &Palette) {
+    const HEAD: f32 = 7.0;
+    let (arm_start, arm_end, ring_r, centre_half) = (
+        COMPASS_ARM_START_PX,
+        COMPASS_ARM_END_PX,
+        COMPASS_RING_PX,
+        COMPASS_CENTRE_PX,
+    );
+    let grey = Color32::from_gray(140);
+    let at = view.to_screen(compass.centre);
+    let width = |k: usize| if compass.hot == Some(k) { 3.5 } else { 2.0 };
+    for (k, degrees, colour) in [
+        (0, compass.angle_deg, pal.axis_x),
+        (1, compass.angle_deg + 90.0, pal.axis_y),
+    ] {
+        let colour = if compass.unlocked { grey } else { colour };
+        let (sin, cos) = math::sin_cos(degrees.to_radians());
+        let u = Vec2::new(cos as f32, -(sin as f32));
+        let side = Vec2::new(-u.y, u.x);
+        let (start, end) = (at + u * arm_start, at + u * arm_end);
+        painter.line_segment([start, end - u * HEAD], Stroke::new(width(k), colour));
+        painter.add(Shape::convex_polygon(
+            vec![
+                end,
+                end - u * HEAD * 1.6 + side * HEAD * 0.7,
+                end - u * HEAD * 1.6 - side * HEAD * 0.7,
+            ],
+            colour,
+            Stroke::NONE,
+        ));
+    }
+    let ring = if compass.unlocked { grey } else { pal.selected };
+    painter.circle_stroke(at, ring_r, Stroke::new(width(2), ring));
+    let square = Rect::from_center_size(at, Vec2::splat(2.0 * centre_half));
+    painter.rect_filled(square, 0.0, pal.handle_fill);
+    painter.rect_stroke(
+        square,
+        0.0,
+        Stroke::new(width(3), ring),
+        eframe::egui::StrokeKind::Middle,
+    );
+}
+
 fn paint_corner_marker(painter: &Painter, view: &View, marker: &CornerMarker, pal: &Palette) {
     let at = view.to_screen(marker.at);
     if let Some((centre, radius)) = marker.notch {

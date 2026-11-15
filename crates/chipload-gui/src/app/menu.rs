@@ -74,8 +74,12 @@ impl ChiploadApp {
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.cancel_zero_drag() {
                 // The zero stays where it was (docs/specs/work-zero-marker.md §3).
+            } else if self.close_compass_menu() {
+                // Nothing moved (docs/specs/compass.md §6).
             } else if self.tool_active() {
                 self.end_tool();
+            } else if self.hide_compass() {
+                // The selection stays; another Escape clears it.
             } else {
                 self.selection = CanvasSelection::Nothing;
             }
@@ -925,6 +929,8 @@ impl ChiploadApp {
         {
             ui.label(text);
         } else if let Some(text) = self.modify_status(self.cursor, ui.input(|i| i.modifiers.alt)) {
+            ui.label(text);
+        } else if let Some(text) = self.compass_status(ui.input(|i| i.pointer.hover_pos())) {
             ui.label(text);
         } else if let (Some(sketch), Some((at, name))) = (&self.sketch(), &snapped) {
             let step = grid_step(self.view.scale, self.prefs.units);

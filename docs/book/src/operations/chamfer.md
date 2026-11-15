@@ -5,7 +5,7 @@ tray, a shelf or a sign, or the rim of a hole or a pocket. You give the width yo
 the surface; the depth follows from the bit's angle.
 
 Select the shapes, then **Chamfer** (ribbon, OPERATION, the small button under Styles), or
-press **Q** over the canvas, then **C**.
+press **S** over the canvas, then **C**.
 
 ## How it cuts
 
