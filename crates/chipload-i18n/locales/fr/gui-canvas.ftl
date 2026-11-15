@@ -86,3 +86,6 @@ compass-status-pick-point = Cliquez le point où déplacer la sélection (Alt : 
 compass-status-pick-point-axis = Cliquez un point : la sélection y va le long de la flèche (Alt : sans accrochage ; Échap annule)
 compass-status-pick-centre = Cliquez une forme : la sélection va à son centre (Échap annule)
 compass-status-pick-centre-axis = Cliquez une forme : la sélection va le long de la flèche jusqu’à son centre (Échap annule)
+compass-value-distance = Distance
+compass-value-angle = Angle
+compass-value-delta = ΔX ΔY

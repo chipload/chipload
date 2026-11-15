@@ -247,3 +247,16 @@ opened on that click; a drag that starts while picking does nothing; `contour_ce
 `chipload_pipeline::selection` (no geometry in the GUI). Tests: the right-click through the
 window (menu, pick, snap, Escape), an arrow's projection, a shape's centre and a click off
 any shape.
+
+## 16. An exact value after a right drag (2026-11-15)
+
+The user: "the right click drag should allow for an exact distance/angle to be entered."
+
+- The menu after a right drag (§6) starts with an entry holding the dragged value, selected
+  and taking the keyboard: the distance along the arrow, the angle for the ring, or ΔX and
+  ΔY for the centre, in the display units, as the double-click entry takes them (§4).
+- Typing over it moves the preview outline to the typed value; *Move here* (*Turn here*),
+  *Copy here* and the arrays then use it, so a copy or an array step is exact. **Enter** is
+  *Move here* (*Turn here*). Something that can't be read shows in red and greys the
+  choices; Escape or a click elsewhere cancels, as before.
+- As built: the entry's parsing is the double-click entry's (`typed_motion`), shared.

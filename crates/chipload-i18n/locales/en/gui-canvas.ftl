@@ -86,3 +86,6 @@ compass-status-pick-point = Click the point to move the selection to (Alt: no sn
 compass-status-pick-point-axis = Click a point: the selection moves along the arrow to it (Alt: no snapping; Esc cancels)
 compass-status-pick-centre = Click a shape: the selection moves to its centre (Esc cancels)
 compass-status-pick-centre-axis = Click a shape: the selection moves along the arrow to its centre (Esc cancels)
+compass-value-distance = Distance
+compass-value-angle = Angle
+compass-value-delta = ΔX ΔY

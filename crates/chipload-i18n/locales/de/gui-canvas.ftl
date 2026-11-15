@@ -86,3 +86,6 @@ compass-status-pick-point = Den Punkt klicken, zu dem die Auswahl verschoben wir
 compass-status-pick-point-axis = Einen Punkt klicken: die Auswahl wird entlang des Pfeils dorthin verschoben (Alt: ohne Fang; Esc bricht ab)
 compass-status-pick-centre = Eine Form klicken: die Auswahl wird zu ihrem Mittelpunkt verschoben (Esc bricht ab)
 compass-status-pick-centre-axis = Eine Form klicken: die Auswahl wird entlang des Pfeils zu ihrem Mittelpunkt verschoben (Esc bricht ab)
+compass-value-distance = Abstand
+compass-value-angle = Winkel
+compass-value-delta = ΔX ΔY

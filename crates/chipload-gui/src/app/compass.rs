@@ -124,6 +124,12 @@ pub(super) struct CompassMenu {
     angle: f64,
     at: egui::Pos2,
     target: Target,
+    /// The value in the menu's entry (§16): the drag's, or what was typed over it.
+    text: String,
+    /// The entry can't be read: shown in red, the choices greyed.
+    refused: bool,
+    /// The entry takes the keyboard, its text selected, on the menu's first frame.
+    focus: bool,
 }
 
 /// What the right drag's menu was asked for.
@@ -437,6 +443,7 @@ impl ChiploadApp {
             return;
         }
         if drag.right {
+            let text = self.motion_text(drag.part, drag.angle, drag.motion);
             self.canvas_tools.compass.menu = Some(CompassMenu {
                 part: drag.part,
                 motion: drag.motion,
@@ -444,6 +451,9 @@ impl ChiploadApp {
                 angle: drag.angle,
                 at: at.unwrap_or(egui::Pos2::ZERO),
                 target: drag.target,
+                text,
+                refused: false,
+                focus: true,
             });
             return;
         }
@@ -593,38 +603,12 @@ impl ChiploadApp {
             .as_ref()
             .map(|t| t.text.clone())
             .unwrap_or_default();
-        let comma = crate::i18n::Lang::lang(self).decimal_comma();
-        let units = self.prefs.units;
-        let length = |s: &str| {
-            chipload_pipeline::units::parse_length(&crate::units::decimal_point(s, comma), units)
-        };
         let target = self.compass_target();
         let (Some((target, _)), Some((centre, angle, _))) = (target, self.compass_now()) else {
             self.canvas_tools.typed = None;
             return;
         };
-        let motion = match part {
-            CompassPart::X | CompassPart::Y => length(text.trim()).map(|d| {
-                let u = axis(angle, part);
-                Motion::Move((u.0 * d, u.1 * d))
-            }),
-            CompassPart::Ring => crate::units::decimal_point(text.trim(), comma)
-                .trim_end_matches('°')
-                .parse::<f64>()
-                .ok()
-                .filter(|d| d.is_finite())
-                .map(Motion::Turn),
-            CompassPart::Centre => {
-                let parts: Vec<&str> = text
-                    .split(|c: char| c == ';' || c.is_whitespace() || (c == ',' && !comma))
-                    .filter(|s| !s.is_empty())
-                    .collect();
-                match parts[..] {
-                    [x, y] => length(x).zip(length(y)).map(Motion::Move),
-                    _ => None,
-                }
-            }
-        };
+        let motion = self.typed_motion(part, angle, &text);
         match motion {
             Some(motion) => {
                 self.canvas_tools.typed = None;
@@ -639,6 +623,58 @@ impl ChiploadApp {
                 }
                 self.set_status(t!(self, "compass-typed-unreadable"), STATUS_SECONDS);
             }
+        }
+    }
+
+    /// The motion `text` gives on `part` with the axes at `angle`: a distance along an
+    /// arrow, an angle for the ring, or "ΔX ΔY" for the centre. None when it can't be read.
+    fn typed_motion(&self, part: CompassPart, angle: f64, text: &str) -> Option<Motion> {
+        let comma = crate::i18n::Lang::lang(self).decimal_comma();
+        let units = self.prefs.units;
+        let length = |s: &str| {
+            chipload_pipeline::units::parse_length(&crate::units::decimal_point(s, comma), units)
+        };
+        match part {
+            CompassPart::X | CompassPart::Y => length(text.trim()).map(|d| {
+                let u = axis(angle, part);
+                Motion::Move((u.0 * d, u.1 * d))
+            }),
+            CompassPart::Ring => crate::units::decimal_point(text.trim(), comma)
+                .trim_end_matches('°')
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .filter(|d| d.is_finite())
+                .map(Motion::Turn),
+            CompassPart::Centre => {
+                let parts: Vec<&str> = text
+                    .split(|c: char| c == ';' || c.is_whitespace() || (c == ',' && !comma))
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                match parts[..] {
+                    [x, y] => length(x).zip(length(y)).map(Motion::Move),
+                    _ => None,
+                }
+            }
+        }
+    }
+
+    /// `motion` on `part` as the entry shows it, in the display units: the distance along
+    /// the arrow, the angle, or "ΔX ΔY".
+    fn motion_text(&self, part: CompassPart, angle: f64, motion: Motion) -> String {
+        let units = self.prefs.units;
+        let comma = crate::i18n::Lang::lang(self).decimal_comma();
+        let shown = |s: String| if comma { s.replace('.', ",") } else { s };
+        match (part, motion) {
+            (_, Motion::Turn(degrees)) => shown(format!("{degrees:.1}")),
+            (part @ (CompassPart::X | CompassPart::Y), Motion::Move(d)) => {
+                shown(crate::draw::fixed(dot(d, axis(angle, part)), units))
+            }
+            (_, Motion::Move((dx, dy))) => format!(
+                "{} {}",
+                shown(crate::draw::fixed(dx, units)),
+                shown(crate::draw::fixed(dy, units))
+            ),
         }
     }
 
@@ -681,31 +717,74 @@ impl ChiploadApp {
         }
     }
 
-    /// The menu after a right drag (§6), at the pointer: move or turn here, copy here, an
-    /// array, or cancel. A click elsewhere cancels.
+    /// The menu after a right drag (§6), at the pointer: the dragged distance or angle in an
+    /// entry to type an exact one over (§16), then move or turn here, copy here, an array, or
+    /// cancel. Enter is *Move here* (*Turn here*); a click elsewhere cancels.
     pub(super) fn compass_menu(&mut self, ctx: &egui::Context) {
-        let Some(menu) = self.canvas_tools.compass.menu.clone() else {
+        let Some(mut menu) = self.canvas_tools.compass.menu.clone() else {
             return;
         };
         let copies = matches!(menu.target, Target::Shapes(_));
         let turn = menu.part == CompassPart::Ring;
+        let unit = match menu.part {
+            CompassPart::Ring => "°".to_string(),
+            _ => chipload_pipeline::units::length_unit(self.prefs.units).to_string(),
+        };
+        let value_label = match menu.part {
+            CompassPart::Ring => t!(self, "compass-value-angle"),
+            CompassPart::Centre => t!(self, "compass-value-delta"),
+            CompassPart::X | CompassPart::Y => t!(self, "compass-value-distance"),
+        };
+        let id = egui::Id::new("compass-menu-value");
         let mut choice = None;
+        let mut typed = false;
+        let mut entered = false;
         let area = egui::Area::new(egui::Id::new("compass-menu"))
             .fixed_pos(menu.at)
             .order(egui::Order::Foreground)
             .show(ctx, |ui| {
                 egui::Frame::menu(ui.style()).show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label(&value_label);
+                        let mut edit = egui::TextEdit::singleline(&mut menu.text)
+                            .id(id)
+                            .desired_width(110.0);
+                        if menu.refused {
+                            edit = edit.text_color(ui.visuals().error_fg_color);
+                        }
+                        let shown = ui.add(edit);
+                        ui.label(&unit);
+                        typed = shown.changed();
+                        entered = shown.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
+                        if menu.focus {
+                            shown.request_focus();
+                            // The whole value selected, so typing replaces it.
+                            if let Some(mut state) = egui::TextEdit::load_state(ui.ctx(), id) {
+                                let end = egui::text::CCursor::new(menu.text.chars().count());
+                                state
+                                    .cursor
+                                    .set_char_range(Some(egui::text::CCursorRange::two(
+                                        egui::text::CCursor::new(0),
+                                        end,
+                                    )));
+                                state.store(ui.ctx(), id);
+                            }
+                            menu.focus = false;
+                        }
+                    });
+                    ui.separator();
+                    let ok = !menu.refused;
                     let here = if turn {
                         t!(ui, "compass-turn-here")
                     } else {
                         t!(ui, "compass-move-here")
                     };
-                    if ui.button(here).clicked() {
+                    if ui.add_enabled(ok, egui::Button::new(here)).clicked() {
                         choice = Some(Choice::Here);
                     }
                     let why = t!(ui, "compass-copies-drawn-only");
                     if ui
-                        .add_enabled(copies, egui::Button::new(t!(ui, "compass-copy-here")))
+                        .add_enabled(copies && ok, egui::Button::new(t!(ui, "compass-copy-here")))
                         .on_disabled_hover_text(&why)
                         .clicked()
                     {
@@ -717,7 +796,7 @@ impl ChiploadApp {
                         t!(ui, "compass-linear-array")
                     };
                     if ui
-                        .add_enabled(copies, egui::Button::new(array))
+                        .add_enabled(copies && ok, egui::Button::new(array))
                         .on_disabled_hover_text(&why)
                         .clicked()
                     {
@@ -729,13 +808,35 @@ impl ChiploadApp {
                     }
                 });
             });
+        if typed {
+            // The outline follows what is typed; something unreadable greys the choices.
+            match self.typed_motion(menu.part, menu.angle, &menu.text) {
+                Some(motion) => {
+                    menu.motion = motion;
+                    menu.refused = false;
+                }
+                None => menu.refused = true,
+            }
+        }
+        if entered && choice.is_none() {
+            if menu.refused {
+                menu.focus = true;
+                self.set_status(t!(self, "compass-typed-unreadable"), STATUS_SECONDS);
+            } else {
+                choice = Some(Choice::Here);
+            }
+        }
         if choice.is_none() && area.response.clicked_elsewhere() {
             choice = Some(Choice::Cancel);
         }
         let Some(choice) = choice else {
+            self.canvas_tools.compass.menu = Some(menu);
             return;
         };
         self.canvas_tools.compass.menu = None;
+        if menu.motion.is_none() && !matches!(choice, Choice::Cancel | Choice::Array) {
+            return;
+        }
         match choice {
             Choice::Here => self.compass_apply(&menu.target, menu.centre, menu.angle, menu.motion),
             Choice::Copy => self.compass_copy(&menu),

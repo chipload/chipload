@@ -72,3 +72,6 @@ compass-status-pick-point = Щёлкните точку, куда перемес
 compass-status-pick-point-axis = Щёлкните точку: выделение переместится к ней вдоль стрелки (Alt — без привязки; Esc — отмена)
 compass-status-pick-centre = Щёлкните фигуру: выделение переместится в её центр (Esc — отмена)
 compass-status-pick-centre-axis = Щёлкните фигуру: выделение переместится вдоль стрелки к её центру (Esc — отмена)
+compass-value-distance = Расстояние
+compass-value-angle = Угол
+compass-value-delta = ΔX ΔY

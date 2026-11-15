@@ -310,6 +310,8 @@ Smaller follow-ups noted along the way, not in the order above:
   docs/specs/compass.md §15): a right-click on the centre or an arrow, then a click: the
   selection moves to the point (snapped) or to a shape's centre, freely from the centre,
   along the axis from an arrow; Esc cancels.
+  Unlocked, the same moves the Compass alone. After a right drag, the menu takes an
+  exact distance, angle or ΔX ΔY (Enter moves or turns by it; copies and arrays use it).
 - **Prism** (docs/specs/prism.md, approved and built 2026-11-15): closed shapes left
   standing as roofs with a sharp ridge along their centre line. The V-bit's tip runs round
   each outline as deep as the largest touching circle allows, so its flank meets the

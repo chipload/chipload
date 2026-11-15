@@ -252,7 +252,9 @@ selection's own handles hide while it shows. **Q** again or **Esc** hides it.
   *Move here* (or *Turn here*), *Copy here* (the copy is then selected, so you can place
   the next one), **Linear array…** (from an arrow or the centre: count and step, the step
   as dragged) or **Circular array…** (from the ring: count and angle, round the Compass's
-  centre, the angle as dragged). The arrays show their copies before *Create*.
+  centre, the angle as dragged). The arrays show their copies before *Create*. The menu
+  starts with the dragged distance or angle (ΔX and ΔY from the centre), selected: type an
+  exact value over it before choosing, or press **Enter** to move or turn by it.
 - **Right-click** the centre or an arrow (without dragging) for **To point** or **To centre
   point**, then click: the selection moves so that the Compass's centre comes to the
   clicked point, snapping as when dragging (Alt: no snapping), or to the centre of the

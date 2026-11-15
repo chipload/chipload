@@ -4,7 +4,7 @@
 use super::super::compass::CompassPart;
 use super::super::modify::ModifyTool;
 use super::*;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT, Queryable};
 
 /// drawn_part with the triangle S3 (110, 65), (140, 65), (125, 95) selected and the
 /// Compass shown on it, the view 10 px to the mm.
@@ -449,4 +449,81 @@ fn unlocked_a_pick_moves_the_compass_alone_the_same_way() {
     harness.state_mut().click_compass_pick(corner, false);
     assert_eq!(harness.state_mut().compass_now().unwrap().0, (110.0, 65.0));
     assert_eq!(triangle(harness.state()), before);
+}
+
+#[test]
+fn after_a_right_drag_an_exact_value_can_be_typed() {
+    // docs/specs/compass.md §16.
+    let mut app = drawn_part();
+    app.click(Some(contour_of(&app, 3)), false);
+    let mut harness = window(app);
+    harness.key_press(egui::Key::Q);
+    harness.run_steps(2);
+    let shapes = |h: &egui_kittest::Harness<'_, ChiploadApp>| {
+        h.state().edit.as_ref().unwrap().job.drawing.shapes.len()
+    };
+    let before = shapes(&harness);
+    let was = triangle(harness.state());
+    // Right-dragged roughly along X; the entry holds the dragged distance, selected.
+    let arm = centre_on_screen(&mut harness) + egui::vec2(45.0, 0.0);
+    drag_with(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        arm,
+        arm + egui::vec2(97.0, 0.0),
+    );
+    assert!(harness.query_by_label("Distance").is_some());
+    // Typed over: 25 mm exactly, then Copy here.
+    harness.event(egui::Event::Text("25".into()));
+    harness.run_steps(2);
+    harness.get_by_label("Copy here").click();
+    harness.run_steps(2);
+    assert_eq!(shapes(&harness), before + 1);
+    let copy = match &harness.state().selection {
+        CanvasSelection::Shapes(ids) => *ids.iter().next().unwrap(),
+        other => panic!("{other:?}"),
+    };
+    let points = match &harness.state().shape(copy).unwrap().geometry {
+        Geometry::Polyline { points, .. } => points.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        points
+            .iter()
+            .zip(&was)
+            .all(|(a, b)| near(*a, [b[0] + 25.0, b[1]])),
+        "{points:?}"
+    );
+    // On the ring: 30°, then Enter turns it.
+    let centre = centre_on_screen(&mut harness);
+    let ring = centre + egui::vec2(18.0, 0.0);
+    drag_with(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        ring,
+        centre + egui::vec2(0.0, -60.0),
+    );
+    assert!(harness.query_by_label("Angle").is_some());
+    harness.event(egui::Event::Text("30".into()));
+    harness.run_steps(2);
+    harness.key_press(egui::Key::Enter);
+    harness.run_steps(3);
+    let (_, angle, _) = harness.state_mut().compass_now().unwrap();
+    assert!((angle - 30.0).abs() < 1e-9, "{angle}");
+    // Something unreadable greys the choices.
+    let arm = centre_on_screen(&mut harness) + egui::vec2(0.0, 0.0);
+    drag_with(
+        &mut harness,
+        egui::PointerButton::Secondary,
+        arm,
+        arm + egui::vec2(40.0, 30.0),
+    );
+    harness.event(egui::Event::Text("abc".into()));
+    harness.run_steps(2);
+    assert!(
+        harness
+            .get_by_label("Move here")
+            .accesskit_node()
+            .is_disabled()
+    );
 }

@@ -86,3 +86,6 @@ compass-status-pick-point = Klicka på punkten markeringen ska flyttas till (Alt
 compass-status-pick-point-axis = Klicka på en punkt: markeringen flyttas längs pilen dit (Alt: utan fäst; Esc avbryter)
 compass-status-pick-centre = Klicka på en form: markeringen flyttas till dess mitt (Esc avbryter)
 compass-status-pick-centre-axis = Klicka på en form: markeringen flyttas längs pilen till dess mitt (Esc avbryter)
+compass-value-distance = Avstånd
+compass-value-angle = Vinkel
+compass-value-delta = ΔX ΔY
