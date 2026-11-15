@@ -2,7 +2,8 @@
 //! The Compass (docs/specs/compass.md): one handle on the selection, two arrows, a ring and
 //! a centre. Locked, a drag moves the selection along an arrow, turns it about the centre,
 //! or moves it freely by the centre (§4); unlocked with a tap of Space, a drag places the
-//! Compass itself (§5); a right drag asks to move, copy or make an array (§6). What it
+//! Compass itself (§5); a right drag asks to move, copy or make an array (§6); a right-click
+//! on the centre or an arrow moves it to a point clicked next (§15). What it
 //! does to the drawing goes through the same pipeline calls as the box handles and the
 //! array tools; the only maths here is where the handle sits on screen.
 
@@ -133,6 +134,27 @@ enum Choice {
     Cancel,
 }
 
+/// What a pick takes from the click (§15): the snapped point, or a shape's centre.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum PickBy {
+    Point,
+    Centre,
+}
+
+/// *To point* or *To centre point* in progress (§15): the next click picks the point.
+#[derive(Debug, Clone)]
+pub(super) struct CompassPick {
+    part: CompassPart,
+    by: PickBy,
+    /// The Compass is being placed, not the selection moved.
+    unlocked: bool,
+    centre: Point,
+    angle: f64,
+    target: Target,
+    /// Where the point under the pointer would take it.
+    motion: Motion,
+}
+
 /// The Compass's state; nothing of it goes into the project (decision 9).
 #[derive(Debug, Clone, Default)]
 pub struct Compass {
@@ -146,6 +168,10 @@ pub struct Compass {
     selection: Option<CanvasSelection>,
     pub(super) drag: Option<CompassDrag>,
     pub(super) menu: Option<CompassMenu>,
+    /// The menu after a right-click on the centre or an arrow (§15): the part, where.
+    pick_menu: Option<(CompassPart, egui::Pos2)>,
+    /// A point being picked (§15).
+    pick: Option<CompassPick>,
     /// Space is held: where the pointer was, and whether a button was down while it moved.
     space: Option<(egui::Pos2, bool)>,
 }
@@ -195,9 +221,15 @@ impl ChiploadApp {
         self.canvas_tools.compass.shown
     }
 
-    /// Close the right drag's menu, changing nothing; whether it was open.
+    /// Close the right drag's menu, the right-click's menu or a pick in progress, changing
+    /// nothing; whether one was open.
     pub(super) fn close_compass_menu(&mut self) -> bool {
-        self.canvas_tools.compass.menu.take().is_some()
+        let compass = &mut self.canvas_tools.compass;
+        let open = compass.menu.is_some() || compass.pick_menu.is_some() || compass.pick.is_some();
+        compass.menu = None;
+        compass.pick_menu = None;
+        compass.pick = None;
+        open
     }
 
     /// What the Compass would move, and the middle of it: drawn shapes, a group, a whole
@@ -253,6 +285,10 @@ impl ChiploadApp {
         if let Some(menu) = &compass.menu {
             let (centre, angle) = menu.motion.applied(menu.centre, menu.angle);
             return Some((centre, angle, false));
+        }
+        if let Some(pick) = &compass.pick {
+            let (centre, angle) = pick.motion.applied(pick.centre, pick.angle);
+            return Some((centre, angle, pick.unlocked));
         }
         let (stored, angle) = (compass.centre, compass.angle);
         let (_, middle) = self.compass_target()?;
@@ -482,9 +518,10 @@ impl ChiploadApp {
     /// The outlines of what is moved, where the drag or the open menu has it.
     pub(super) fn compass_outlines(&self) -> Vec<Vec<Point>> {
         let compass = &self.canvas_tools.compass;
-        let (target, centre, motion) = match (&compass.drag, &compass.menu) {
-            (Some(drag), _) if !drag.unlocked => (&drag.target, drag.centre, drag.motion),
-            (None, Some(menu)) => (&menu.target, menu.centre, menu.motion),
+        let (target, centre, motion) = match (&compass.drag, &compass.menu, &compass.pick) {
+            (Some(drag), _, _) if !drag.unlocked => (&drag.target, drag.centre, drag.motion),
+            (None, Some(menu), _) => (&menu.target, menu.centre, menu.motion),
+            (None, None, Some(pick)) if !pick.unlocked => (&pick.target, pick.centre, pick.motion),
             _ => return Vec::new(),
         };
         if motion.is_none() {
@@ -762,9 +799,198 @@ impl ChiploadApp {
         self.start_modify(tool);
     }
 
+    /// A right-click on `part` at `at` on screen: the centre or an arrow opens the menu of
+    /// §15 (the ring has none). Whether it opened, so the canvas's own menu stays shut.
+    pub(super) fn open_compass_pick_menu(&mut self, part: CompassPart, at: egui::Pos2) -> bool {
+        if part == CompassPart::Ring || self.compass_now().is_none() {
+            return false;
+        }
+        let compass = &mut self.canvas_tools.compass;
+        compass.menu = None;
+        compass.pick = None;
+        compass.pick_menu = Some((part, at));
+        true
+    }
+
+    /// Whether the right-click's menu is open.
+    pub(super) fn compass_pick_menu_open(&self) -> bool {
+        self.canvas_tools.compass.pick_menu.is_some()
+    }
+
+    /// The right-click's menu (§15): *To point*, *To centre point*, or cancel. A click
+    /// elsewhere cancels.
+    pub(super) fn compass_pick_menu(&mut self, ctx: &egui::Context) {
+        let Some((part, at)) = self.canvas_tools.compass.pick_menu else {
+            return;
+        };
+        let mut choice: Option<Option<PickBy>> = None;
+        let area = egui::Area::new(egui::Id::new("compass-pick-menu"))
+            .fixed_pos(at)
+            .order(egui::Order::Foreground)
+            .show(ctx, |ui| {
+                egui::Frame::menu(ui.style()).show(ui, |ui| {
+                    if ui
+                        .button(t!(ui, "compass-to-point"))
+                        .on_hover_text(t!(ui, "compass-to-point-hover"))
+                        .clicked()
+                    {
+                        choice = Some(Some(PickBy::Point));
+                    }
+                    if ui
+                        .button(t!(ui, "compass-to-centre"))
+                        .on_hover_text(t!(ui, "compass-to-centre-hover"))
+                        .clicked()
+                    {
+                        choice = Some(Some(PickBy::Centre));
+                    }
+                    ui.separator();
+                    if ui.button(t!(ui, "common-cancel")).clicked() {
+                        choice = Some(None);
+                    }
+                });
+            });
+        if choice.is_none() && area.response.clicked_elsewhere() {
+            choice = Some(None);
+        }
+        let Some(choice) = choice else {
+            return;
+        };
+        self.canvas_tools.compass.pick_menu = None;
+        if let Some(by) = choice {
+            self.start_compass_pick(part, by);
+        }
+    }
+
+    /// *To point* or *To centre point* on `part`: the next click picks the point.
+    pub(super) fn start_compass_pick(&mut self, part: CompassPart, by: PickBy) {
+        let Some((centre, angle, unlocked)) = self.compass_now() else {
+            return;
+        };
+        let Some((target, _)) = self.compass_target() else {
+            return;
+        };
+        self.canvas_tools.compass.pick = Some(CompassPick {
+            part,
+            by,
+            unlocked,
+            centre,
+            angle,
+            target,
+            motion: Motion::Move((0.0, 0.0)),
+        });
+    }
+
+    /// Whether a point is being picked.
+    pub(super) fn compass_picking(&self) -> bool {
+        self.canvas_tools.compass.pick.is_some()
+    }
+
+    /// The point a pick takes at `pos` on screen: the snapped point (Alt: none), or the
+    /// centre of the shape there (an arc's or a circle's centre, else its box's middle).
+    fn picked_point(&mut self, pick: &CompassPick, pos: egui::Pos2, free: bool) -> Option<Point> {
+        match pick.by {
+            PickBy::Point => {
+                // Locked, the selection's own points are left out, as in a drag; unlocked,
+                // the Compass can go onto one of them.
+                let skip = if pick.unlocked {
+                    BTreeSet::new()
+                } else {
+                    self.own_contours(&pick.target)
+                };
+                Some(self.snap_skipping(self.view.to_world(pos), free, &skip).0)
+            }
+            PickBy::Centre => {
+                let id = self.scene.pick(&self.view, pos)?;
+                let centre = self
+                    .contours
+                    .iter()
+                    .find(|c| c.id == id)
+                    .map(chipload_pipeline::selection::contour_centre)?;
+                self.scene.snap_mark = Some(centre);
+                Some(centre)
+            }
+        }
+    }
+
+    /// Where `point` takes the Compass of `pick`: the centre there in X and Y, an arrow
+    /// along its axis only (to where the point lies across it); unlocked, the Compass placed
+    /// there or its arrow aimed at the point.
+    fn pick_motion(pick: &CompassPick, point: Point) -> Motion {
+        let d = (point.0 - pick.centre.0, point.1 - pick.centre.1);
+        match (pick.part, pick.unlocked) {
+            (CompassPart::Centre, _) => Motion::Move(d),
+            (part @ (CompassPart::X | CompassPart::Y), false) => {
+                let u = axis(pick.angle, part);
+                let along = dot(d, u);
+                Motion::Move((u.0 * along, u.1 * along))
+            }
+            (part @ (CompassPart::X | CompassPart::Y), true) => {
+                if d.0 == 0.0 && d.1 == 0.0 {
+                    return Motion::Turn(0.0);
+                }
+                let offset = if part == CompassPart::Y { 90.0 } else { 0.0 };
+                Motion::Turn(normalised(degrees_of(d) - offset - pick.angle))
+            }
+            (CompassPart::Ring, _) => Motion::Turn(0.0),
+        }
+    }
+
+    /// The pointer at `pos` while picking: the preview follows the point there.
+    pub(super) fn hover_compass_pick(&mut self, pos: egui::Pos2, free: bool) {
+        let Some(pick) = self.canvas_tools.compass.pick.clone() else {
+            return;
+        };
+        let motion = match self.picked_point(&pick, pos, free) {
+            Some(point) => Self::pick_motion(&pick, point),
+            None => match pick.part {
+                CompassPart::Centre | CompassPart::X | CompassPart::Y if !pick.unlocked => {
+                    Motion::Move((0.0, 0.0))
+                }
+                _ => Motion::Turn(0.0),
+            },
+        };
+        if let Some(p) = self.canvas_tools.compass.pick.as_mut() {
+            p.motion = motion;
+        }
+    }
+
+    /// A click at `pos` while picking: the move (one undo step) or, unlocked, the Compass
+    /// put there. *To centre point* off any shape says so and waits for another click.
+    pub(super) fn click_compass_pick(&mut self, pos: egui::Pos2, free: bool) {
+        let Some(pick) = self.canvas_tools.compass.pick.clone() else {
+            return;
+        };
+        let Some(point) = self.picked_point(&pick, pos, free) else {
+            self.set_status(t!(self, "compass-no-centre-here"), STATUS_SECONDS);
+            return;
+        };
+        self.scene.snap_mark = None;
+        self.canvas_tools.compass.pick = None;
+        let motion = Self::pick_motion(&pick, point);
+        if motion.is_none() {
+            return;
+        }
+        if pick.unlocked {
+            let (centre, angle) = motion.applied(pick.centre, pick.angle);
+            let compass = &mut self.canvas_tools.compass;
+            compass.centre = Some(centre);
+            compass.angle = angle;
+            return;
+        }
+        self.compass_apply(&pick.target, pick.centre, pick.angle, motion);
+    }
+
     /// The status bar while the Compass shows: what a drag on the part under the pointer
     /// at `hover` does.
     pub(super) fn compass_status(&mut self, hover: Option<egui::Pos2>) -> Option<String> {
+        if let Some(pick) = &self.canvas_tools.compass.pick {
+            return Some(match (pick.by, pick.part) {
+                (PickBy::Point, CompassPart::Centre) => t!(self, "compass-status-pick-point"),
+                (PickBy::Point, _) => t!(self, "compass-status-pick-point-axis"),
+                (PickBy::Centre, CompassPart::Centre) => t!(self, "compass-status-pick-centre"),
+                (PickBy::Centre, _) => t!(self, "compass-status-pick-centre-axis"),
+            });
+        }
         let (centre, angle, unlocked) = self.compass_now()?;
         let part = hover.and_then(|pos| part_at(self.view.to_screen(centre), angle, pos));
         Some(match (unlocked, part) {

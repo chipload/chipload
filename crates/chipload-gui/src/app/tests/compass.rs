@@ -299,3 +299,114 @@ fn a_whole_text_turns_about_the_compass() {
     let (still, _, _) = app.compass_now().unwrap();
     assert!((still.0 - centre.0).abs() < 1e-6 && (still.1 - centre.1).abs() < 1e-6);
 }
+
+/// A click with `button` at `pos` on screen, not moving.
+fn click_with(
+    harness: &mut egui_kittest::Harness<'_, ChiploadApp>,
+    button: egui::PointerButton,
+    pos: egui::Pos2,
+) {
+    let press = |pressed| egui::Event::PointerButton {
+        pos,
+        button,
+        pressed,
+        modifiers: egui::Modifiers::NONE,
+    };
+    harness.hover_at(pos);
+    harness.run_steps(2);
+    harness.event(press(true));
+    harness.run_steps(1);
+    harness.event(press(false));
+    harness.run_steps(3);
+}
+
+#[test]
+fn a_right_click_on_the_centre_moves_it_to_a_clicked_point() {
+    // docs/specs/compass.md §15: the Compass's own menu, not the canvas's.
+    let mut app = drawn_part();
+    app.click(Some(contour_of(&app, 3)), false);
+    let mut harness = window(app);
+    harness.key_press(egui::Key::Q);
+    harness.run_steps(2);
+    let centre = centre_on_screen(&mut harness);
+    click_with(&mut harness, egui::PointerButton::Secondary, centre);
+    assert!(harness.state().compass_pick_menu_open());
+    assert!(
+        !egui::Popup::is_any_open(&harness.ctx),
+        "the canvas's menu stays shut"
+    );
+    harness.get_by_label("To point").click();
+    harness.run_steps(2);
+    assert!(harness.state().compass_picking());
+    // The circle S2's centre (75, 80), clicked a hair off: snapped onto it, the triangle's
+    // middle (125, 80) moved there.
+    let circle = harness.state().view.to_screen((75.0, 80.0)) + egui::vec2(1.0, 1.0);
+    click_with(&mut harness, egui::PointerButton::Primary, circle);
+    assert!(!harness.state().compass_picking());
+    assert!(
+        near(triangle(harness.state())[0], [60.0, 65.0]),
+        "{:?}",
+        triangle(harness.state())
+    );
+    assert_eq!(
+        harness.state().selection,
+        CanvasSelection::Shapes([3].into()),
+        "the selection stays"
+    );
+    // Escape cancels a pick, moving nothing.
+    let centre = centre_on_screen(&mut harness);
+    click_with(&mut harness, egui::PointerButton::Secondary, centre);
+    harness.get_by_label("To point").click();
+    harness.run_steps(2);
+    let before = triangle(harness.state());
+    harness.key_press(egui::Key::Escape);
+    harness.run_steps(2);
+    assert!(!harness.state().compass_picking());
+    assert!(
+        harness.state().compass_shown(),
+        "the first Escape only cancels the pick"
+    );
+    assert_eq!(triangle(harness.state()), before);
+}
+
+#[test]
+fn an_arrow_moves_only_along_its_axis_to_the_point() {
+    let mut app = on_triangle();
+    app.start_compass_pick(CompassPart::X, super::super::compass::PickBy::Point);
+    // Alt: no snapping; (100, 90) is 25 left of the centre (125, 80) and 10 above it.
+    let at = app.view.to_screen((100.0, 90.0));
+    app.click_compass_pick(at, true);
+    assert!(
+        near(triangle(&app)[0], [85.0, 65.0]),
+        "{:?}",
+        triangle(&app)
+    );
+    assert_eq!(app.compass_now().unwrap().0, (100.0, 80.0));
+}
+
+#[test]
+fn to_centre_point_takes_the_clicked_shapes_centre() {
+    let mut app = on_triangle();
+    app.start_compass_pick(CompassPart::Y, super::super::compass::PickBy::Centre);
+    // Off any shape: it says so and waits.
+    let empty = app.view.to_screen((200.0, 200.0));
+    app.click_compass_pick(empty, false);
+    assert!(app.compass_picking());
+    // On the circle S2's line: its centre (75, 80), the same height as the Compass, so the
+    // Y arrow moves nothing; on the X arrow, 50 left.
+    let r = match &app.shape(2).unwrap().geometry {
+        Geometry::Circle { radius, .. } => *radius,
+        other => panic!("{other:?}"),
+    };
+    let on_line = app.view.to_screen((75.0 + r, 80.0));
+    app.click_compass_pick(on_line, false);
+    assert!(!app.compass_picking());
+    assert!(near(triangle(&app)[0], [110.0, 65.0]));
+    app.start_compass_pick(CompassPart::X, super::super::compass::PickBy::Centre);
+    app.click_compass_pick(on_line, false);
+    assert!(
+        near(triangle(&app)[0], [60.0, 65.0]),
+        "{:?}",
+        triangle(&app)
+    );
+}

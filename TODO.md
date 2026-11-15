@@ -306,6 +306,10 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Compass: To point, To centre point** (the user, 2026-11-15, after trying it;
+  docs/specs/compass.md §15): a right-click on the centre or an arrow, then a click: the
+  selection moves to the point (snapped) or to a shape's centre, freely from the centre,
+  along the axis from an arrow; Esc cancels.
 - **Prism** (docs/specs/prism.md, approved and built 2026-11-15): closed shapes left
   standing as roofs with a sharp ridge along their centre line. The V-bit's tip runs round
   each outline as deep as the largest touching circle allows, so its flank meets the

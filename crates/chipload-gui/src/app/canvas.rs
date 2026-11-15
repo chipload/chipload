@@ -295,6 +295,7 @@ impl ChiploadApp {
         }
         if editing
             && response.drag_started_by(egui::PointerButton::Primary)
+            && !self.compass_picking()
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
         {
             if self.on_zero_handle(origin) && self.start_zero_drag() {
@@ -351,6 +352,12 @@ impl ChiploadApp {
         self.drag.snapped = None;
         self.scene.snap_mark = None;
         let mut zero_label = None;
+        // Picking a point for the Compass (compass.md §15): the preview follows the pointer.
+        if self.compass_picking()
+            && let Some(pos) = response.hover_pos()
+        {
+            self.hover_compass_pick(pos, alt);
+        }
         if self.dragging_compass() {
             if response.dragged()
                 && let Some(pos) = response.interact_pointer_pos()
@@ -606,12 +613,21 @@ impl ChiploadApp {
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .is_some_and(|pos| self.on_zero_handle(pos));
+            // Picking a point for the Compass: the click is the point (compass.md §15).
+            let picked = (editing && response.clicked() && self.compass_picking())
+                .then(|| response.interact_pointer_pos())
+                .flatten();
+            if let Some(pos) = picked {
+                self.click_compass_pick(pos, alt);
+            }
             // A click on the Compass keeps the selection; a double-click types a value.
             let compass_hit = (editing && (response.clicked() || response.double_clicked()))
                 .then(|| response.interact_pointer_pos())
                 .flatten()
                 .and_then(|pos| self.compass_part_at(pos).map(|part| (part, pos)));
-            if let Some((part, pos)) = compass_hit {
+            if picked.is_some() {
+                // Taken above.
+            } else if let Some((part, pos)) = compass_hit {
                 if response.double_clicked() {
                     self.start_typing_compass(part, pos);
                 }
@@ -662,6 +678,7 @@ impl ChiploadApp {
         let compassed = self.compass_outlines();
         self.scene.preview.extend(compassed);
         self.compass_menu(ui.ctx());
+        self.compass_pick_menu(ui.ctx());
         // An entry of the shape library dragged over the canvas: where it would land; let
         // go, it is inserted there (docs/specs/shape-library.md §5.1).
         self.shape_library.view_middle = Some(self.view.to_world(rect.center()));
@@ -712,7 +729,16 @@ impl ChiploadApp {
         });
         let picked_id = picked.map(|c| c.id);
         let compass_item = editing && !self.compass_shown() && self.can_show_compass();
-        if editing && corner_clicked.is_none() {
+        // A right-click on the Compass's centre or an arrow: its own menu instead
+        // (compass.md §15).
+        if editing
+            && response.secondary_clicked()
+            && let Some(pos) = response.interact_pointer_pos()
+            && let Some(part) = self.compass_part_at(pos)
+        {
+            self.open_compass_pick_menu(part, pos);
+        }
+        if editing && corner_clicked.is_none() && !self.compass_pick_menu_open() {
             response.context_menu(|ui| {
                 // A tab, or the ring a tab can be added to (docs/specs/tabs-by-hand.md §1).
                 if let (None, Some(marker)) = (context_start, context_tab) {

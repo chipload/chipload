@@ -253,6 +253,13 @@ selection's own handles hide while it shows. **Q** again or **Esc** hides it.
   the next one), **Linear array…** (from an arrow or the centre: count and step, the step
   as dragged) or **Circular array…** (from the ring: count and angle, round the Compass's
   centre, the angle as dragged). The arrays show their copies before *Create*.
+- **Right-click** the centre or an arrow (without dragging) for **To point** or **To centre
+  point**, then click: the selection moves so that the Compass's centre comes to the
+  clicked point, snapping as when dragging (Alt: no snapping), or to the centre of the
+  shape you click (a circle's or an arc's centre, else the middle of its box). From the
+  centre it moves in X and Y; from an arrow only along that axis, as far as the point
+  lies along it. The outline shows where it will go while you point; **Esc** cancels.
+  Unlocked, the same puts the Compass itself on the point, or aims the arrow at it.
 
 Every move or turn is one undo step, and the shapes keep their ids, so the operations
 that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or

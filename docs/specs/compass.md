@@ -215,3 +215,32 @@ status bar hint and the shortcuts window change with it.
   `view.rs` (`paint_compass`, sizes shared with the hit-testing), `array_linear` in the
   pipeline, `shape array-linear` on the command line.
 
+## 15. To point, to centre point (2026-11-15)
+
+The user, after trying it: "We should be able to right click the center or the arrows and
+choose 'to point', 'to centerpoint' and click a point to move to. The center moves in x and
+y but the arrow moves only along that axis."
+
+- A **right-click** (pressed and let go without dragging) on the centre or an arrow opens
+  the Compass's own menu instead of the canvas's: **To point**, **To centre point**,
+  *Cancel*. The ring has none (a turn to a point is a drag of the ring). A right **drag**
+  still asks as in §6.
+- Then the **next click** picks the point:
+  - *To point:* the snapped point, as a drag snaps (the selection's own points left out,
+    locked); Alt: none.
+  - *To centre point:* the centre of the shape clicked: its arcs' common centre (a circle,
+    an arc), else the middle of its box. Off any shape the status bar says so and the pick
+    goes on.
+- **The move:** from the centre, the Compass's centre comes to the point, in X and Y; from
+  an arrow, along that axis only, as far as the point lies along it (its projection). One
+  undo step; the Compass goes with the selection, as after a drag.
+- While pointing, the moved outline previews and the status bar says what a click does;
+  **Esc** cancels (before hiding the Compass), and so does a click of *Cancel*.
+- **Unlocked** (§5), the same places the Compass itself: the centre onto the point, an
+  arrow aimed at it.
+
+As built: the menu is an `egui::Area` as the right drag's; the canvas's context menu isn't
+opened on that click; a drag that starts while picking does nothing; `contour_centre` is in
+`chipload_pipeline::selection` (no geometry in the GUI). Tests: the right-click through the
+window (menu, pick, snap, Escape), an arrow's projection, a shape's centre and a click off
+any shape.

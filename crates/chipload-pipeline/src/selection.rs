@@ -53,6 +53,31 @@ pub fn unfit_for(kind: OpKind, ids: &BTreeSet<usize>, contours: &[Contour]) -> O
     }
 }
 
+/// A contour's centre, for picking a point by it (docs/specs/compass.md §15): its arcs'
+/// common centre when every part is an arc about the same point (a circle, an arc), else
+/// the middle of its box.
+pub fn contour_centre(contour: &Contour) -> chipload_core::Point {
+    let mut centres = contour.parts.iter().map(|p| match p.segment.prim {
+        chipload_core::primitives::Primitive::Arc(arc) => Some(arc.center),
+        chipload_core::primitives::Primitive::Line(_) => None,
+    });
+    if let Some(Some(first)) = centres.next()
+        && centres.all(|c| {
+            c.is_some_and(|c| chipload_core::primitives::distance(c, first) <= CHAIN_TOL_MM)
+        })
+    {
+        return first;
+    }
+    let mut low = (f64::INFINITY, f64::INFINITY);
+    let mut high = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for part in &contour.parts {
+        let (a, b) = part.segment.prim.bounds();
+        low = (low.0.min(a.0), low.1.min(a.1));
+        high = (high.0.max(b.0), high.1.max(b.1));
+    }
+    ((low.0 + high.0) / 2.0, (low.1 + high.1) / 2.0)
+}
+
 /// The box round a contour: (width, height).
 fn size_of(contour: &Contour) -> (f64, f64) {
     let mut low = (f64::INFINITY, f64::INFINITY);
