@@ -1,7 +1,11 @@
 # Moulding: a profile swept along a path
 
-Status: **draft 2026-11-15**, for review (fourteen decisions, §13). TODO *Ideas*, "More 2.5D
-toolpaths", item 4; the user asked for the next feature after the prism.
+Status: **parked 2026-11-15** by the user ("this we should save for later"), not yet
+reviewed. When it is taken up again, revisit §2 and decision 1 with the user's word on scope
+(ADR 0017, 2026-11-15): the 3D line is about taking depths from a 3D model (STEP), not
+about 3D-shaped cuts, so a raster or surface approach may be chosen if it makes moulding
+more powerful (e.g. stopped ends, profiles that change along the path). TODO *Ideas*,
+"More 2.5D toolpaths", item 4.
 
 ## 1. What it is for
 

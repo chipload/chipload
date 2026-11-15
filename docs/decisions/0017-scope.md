@@ -33,6 +33,12 @@ the project file are first-class) as well as in the GUI.
 - **3D surface machining**: real 3D CAM.
   - 2026-11-12, accepted: **relief carving from an STL model**, top down in 3 axes, as a
     bounded exception (ADR 0031, docs/specs/stl-relief.md). The rest of 3D CAM stays out.
+  - 2026-11-15, the user, on what this line is about: not 3D moves or 3D-shaped results
+    as such ("we should not be so hard on the 3D requirement if it could make this more
+    powerful"), but **CAD-model-driven machining**: taking a part's features and operation
+    depths from a 3D model (a STEP file and the like). An operation that cuts a 3D shape
+    from 2D input (a profile swept along a path, a relief) is judged on its own merits by
+    the rules below, not refused for being 3D.
 - **Machine control**, sending G-code, jogging, probing: senders (UGS, CNCjs, gSender) and
   the controller's own software.
 - **CAD** beyond the few shapes Chipload draws (circle, rectangle, polyline): any CAD
