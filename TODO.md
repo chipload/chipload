@@ -282,6 +282,12 @@ Smaller follow-ups noted along the way, not in the order above:
   5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
      the setup sheet saying how far; probably built on setups.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
+- **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
+  picture was refused, "path crossed over itself or something like that"; not reproduced
+  yet, the user will). Raw traces can't cross (pixel edges), so a crossing means smoothing
+  or arc fitting slipped past its checks: a tracer bug to fix with the picture. Also
+  considered: skipping crossing or folding outlines with a warning instead of refusing the
+  whole operation (for every closed-shape operation); waits for the reproduction.
 - **A bug-report bundle.**
 - **A fixed pin station for two-sided batch work** (the user, 2026-11-10, envisioned, no
   station of their own yet). Today the router drills fresh dowel holes per job, centred in
