@@ -92,6 +92,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [path] följ bana
     [chamfer] fas
     [flute] räffla
+    [pattern] mönster
     [holes] hål
     [relief] relief
    *[surface] planfräsning
@@ -199,6 +200,10 @@ toolpath-groove-width = V-spåret är { $width } brett upptill
 toolpath-flute-width = räfflan är { $width } bred upptill
 toolpath-flute-closed = sluten kontur #{ $contour } hoppas över: en räffla går längs öppna former (följ bana skär ett slutet spår)
 toolpath-flute-ramps-shortened = kontur #{ $contour } är { $length } lång, kortare än sina två ramper: båda förkortade i proportion
+toolpath-pattern-overlap = avståndet ({ $spacing }) är smalare än ett spår ({ $width }): spåren överlappar
+toolpath-pattern-too-narrow = kontur #{ $contour } är för smal för mönstret: inget skärs där
+toolpath-pattern-too-many = fler än { $most } spår: gör avståndet större
+toolpath-pattern-width = varje spår är { $width } brett upptill
 toolpath-path-past-cone = en V-fräs skär inte djupare än sin kon, här { $deepest }, annars skaver skaftet; den här banan går { $depth } djupt: gör den grundare eller använd en pinnfräs
 toolpath-chamfer-past-cone = verktyg { $tool } gör en fas som högst { $widest } bred, annars skaver skaftet; den här är { $width }: gör den smalare eller använd en bredare V-fräs
 toolpath-holes-not-circles = hoppade över { $count ->

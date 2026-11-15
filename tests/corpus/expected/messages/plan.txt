@@ -1015,6 +1015,26 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/pattern.chipload
+exit 0
+--- stdout
+note: Operation 1 (Board background): each groove is 1.4 mm wide at the top
+note: Operation 2 (Rings): each groove is 1.2 mm wide at the top
+note: Operation 3 (Waves): each groove is 2.2 mm wide at the top
+Estimated time: 5 min 37 s (cutting 4 min 59 s, rapids 34 s, spindle 3 s)
+Cut outline: 250.900 × 178.600 mm (X 34.350 … 285.250, Y 14.750 … 193.350, the tool included): the smallest stock that holds the job.
+  Operation 1 (Board background): 3 min 18 s; cutting 4.1 m, plunging 158 mm, rapids 1.3 m, 99 lifts
+  Operation 2 (Rings): 38 s; cutting 848 mm, plunging 14 mm, rapids 231 mm, 9 lifts
+  Operation 3 (Waves): 1 min 38 s; cutting 2.0 m, plunging 17 mm, rapids 1.3 m, 17 lifts
+  In all: cutting 6.9 m, plunging 189 mm, rapids 2.9 m, 125 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Board background): 0.042 mm/tooth
+  Operation 2 (Rings): 0.042 mm/tooth
+  Operation 3 (Waves): 0.042 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/picture_relief.chipload
 exit 0
 --- stdout

@@ -92,6 +92,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [path] segui percorso
     [chamfer] smusso
     [flute] scanalatura decorativa
+    [pattern] motivo
     [holes] fori
     [relief] rilievo
    *[surface] spianatura
@@ -199,6 +200,10 @@ toolpath-groove-width = la scanalatura a V è larga { $width } in alto
 toolpath-flute-width = la scanalatura è larga { $width } in alto
 toolpath-flute-closed = contorno chiuso #{ $contour } saltato: una scanalatura segue forme aperte (segui percorso taglia una scanalatura chiusa)
 toolpath-flute-ramps-shortened = il contorno #{ $contour } è lungo { $length }, meno delle sue due rampe: entrambe accorciate in proporzione
+toolpath-pattern-overlap = la spaziatura ({ $spacing }) è più stretta di una scanalatura ({ $width }): le scanalature si sovrappongono
+toolpath-pattern-too-narrow = il contorno #{ $contour } è troppo stretto per il motivo: lì non si taglia nulla
+toolpath-pattern-too-many = più di { $most } scanalature: allarga la spaziatura
+toolpath-pattern-width = ogni scanalatura è larga { $width } in alto
 toolpath-path-past-cone = una fresa a V non taglia più a fondo del suo cono, qui { $deepest }, o il gambo sfregherebbe; questo percorso scende di { $depth }: rendilo meno profondo o usa una fresa cilindrica
 toolpath-chamfer-past-cone = l'utensile { $tool } fa uno smusso largo al massimo { $widest }, o il gambo sfregherebbe; questo è { $width }: restringilo o usa una fresa a V più larga
 toolpath-holes-not-circles = { $count ->

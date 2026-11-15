@@ -143,3 +143,5 @@ browser-smoothing = Glätten
 browser-smoothing-hover = Ein Glättdurchgang: nach dem Schruppen der Oberfläche einmal gefolgt, nimmt er die Stufen weg, die das Schruppen an Hängen lässt
 browser-flute = Kannelur
 browser-flute-hover = Eine Nut entlang der gewählten offenen Formen, die an ihren Enden ein- und ausläuft
+browser-pattern = Muster
+browser-pattern-hover = Nuten aus Linien, Kreuzschraffur, Ringen oder Wellen innerhalb der gewählten geschlossenen Formen

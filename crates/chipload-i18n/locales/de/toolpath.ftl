@@ -92,6 +92,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [path] Pfad folgen
     [chamfer] Fase
     [flute] Kannelur
+    [pattern] Muster
     [holes] Bohrungen
     [relief] Relief
    *[surface] Planfräsen
@@ -199,6 +200,10 @@ toolpath-groove-width = die V-Nut ist oben { $width } breit
 toolpath-flute-width = die Kannelur ist oben { $width } breit
 toolpath-flute-closed = geschlossene Kontur #{ $contour } übersprungen: eine Kannelur läuft entlang offener Formen (Pfad folgen schneidet eine geschlossene Nut)
 toolpath-flute-ramps-shortened = Kontur #{ $contour } ist { $length } lang, kürzer als ihre beiden Rampen: beide anteilig gekürzt
+toolpath-pattern-overlap = der Abstand ({ $spacing }) ist kleiner als eine Nut ({ $width }): die Nuten überlappen
+toolpath-pattern-too-narrow = Kontur #{ $contour } ist zu schmal für das Muster: dort wird nichts geschnitten
+toolpath-pattern-too-many = mehr als { $most } Nuten: den Abstand größer machen
+toolpath-pattern-width = jede Nut ist oben { $width } breit
 toolpath-path-past-cone = ein V-Fräser schneidet nicht tiefer als sein Kegel, hier { $deepest }, sonst reibt sein Schaft; dieser Pfad geht { $depth } tief: flacher machen oder einen Schaftfräser nehmen
 toolpath-chamfer-past-cone = Werkzeug { $tool } macht eine Fase höchstens { $widest } breit, sonst reibt sein Schaft; diese ist { $width }: schmaler machen oder einen breiteren V-Fräser nehmen
 toolpath-holes-not-circles = { $count ->

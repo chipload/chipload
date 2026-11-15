@@ -1,7 +1,8 @@
 # Fill pattern: engraving a pattern of grooves inside shapes
 
-Status: **draft 2026-11-15**, for review (twelve decisions, §12). The user asked for it after
-fluting ("fill pattern engraving within shapes").
+Status: **approved 2026-11-15**, every decision as recommended ("Go"); **built
+2026-11-15**, both steps of §11. What building settled is in §13. The user asked for it
+after fluting ("fill pattern engraving within shapes").
 
 ## 1. What it is for
 
@@ -189,3 +190,25 @@ A new operation type; no schema bump, as the chamfer and the flute.
     Pattern) is a question for later.
 12. **Defaults** (§8): the first V-bit, 0.5 mm deep, lines at 45°, spacing twice the
     groove's width, inside the edge, square ends. *Recommended.*
+
+## 13. As built
+
+- **A line along the edge is no groove:** with *inside* off, a pattern line lying exactly
+  on the shape's line (a rectangle's side at a multiple of the spacing) is left out, as a
+  line touching a corner is.
+- **Clipping** is to the region's loops flattened within the arc tolerance, so a groove
+  ends within 0.01 mm of a curved edge; the region (with *inside*) is the pocket's offset,
+  shrunk a hair farther when an offset fails at the exact distance (the safe side).
+- **Waves** are drawn in pieces within the arc tolerance and clipped piece by piece; only
+  the loops' edges near each wave are tried, so a large pattern stays quick.
+- **The groove's width** is the flute's (from the cutter's shape); with a tool whose shape
+  isn't known, its diameter.
+- **Rings** go down with a plunge, as a closed follow path with a plunge entry; an end mill
+  not known to be centre-cutting gets the usual note.
+- **Grooves** are taken nearest first from wherever the tool is, so a cross-hatch mixes
+  its two directions; the moves are short either way.
+- **The guide's picture** is the golden sample's simulation (`chipload simulate`), cropped.
+- **Code:** `chipload-toolpath/src/pattern.rs` (lines, waves, rings, clipping, order),
+  `plan_pattern_op`; the grooves reuse `flute::Flute::of_points` and `flute_moves`;
+  `OpKind::Pattern`; `op add pattern --pattern/--spacing/--angle/--between/--wavelength/
+  --height/--on-line/--ramp`; the form's `pattern_sections`; `Icon::Hatch`.

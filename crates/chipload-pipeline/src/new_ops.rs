@@ -10,9 +10,9 @@ use chipload_core::chain::Contour;
 use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
-    ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, FluteOp, HoleMethod, HolesOp,
-    Job, Operation, PathOp, PocketOp, ProfileOp, RampShape, ReliefOp, SURFACE_STEPOVER, Selector,
-    Side, SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
+    ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, FillPattern, FluteOp,
+    HoleMethod, HolesOp, Job, Operation, PathOp, PatternOp, PocketOp, ProfileOp, RampShape,
+    ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
 };
 
 /// A new relief's lines, as a fraction of the tool, with an end mill or a V-bit
@@ -77,6 +77,12 @@ pub const DEFAULT_CHAMFER_WIDTH: f64 = 1.0;
 pub const DEFAULT_FLUTE_DEPTH: f64 = 3.0;
 /// A new flute's ramp at each end, mm (docs/specs/fluting.md §8).
 pub const DEFAULT_FLUTE_RAMP: f64 = 20.0;
+/// A new pattern's depth, mm (docs/specs/fill-pattern.md §8).
+pub const DEFAULT_PATTERN_DEPTH: f64 = 0.5;
+/// A new pattern's lines, from the X axis (docs/specs/fill-pattern.md §8).
+pub const DEFAULT_PATTERN_ANGLE_DEG: f64 = 45.0;
+/// The narrowest spacing a new pattern takes, mm.
+pub const MIN_PATTERN_SPACING: f64 = 1.0;
 /// A new pocket's stepover, as a share of the tool's diameter, when nothing gives one.
 pub const DEFAULT_STEPOVER: f64 = crate::materials::DEFAULT_STEPOVER;
 
@@ -92,6 +98,8 @@ pub enum OpKind {
     Chamfer,
     /// Flute: a groove along open shapes that ramps in and out (docs/specs/fluting.md).
     Flute,
+    /// Pattern: grooves engraved inside closed shapes (docs/specs/fill-pattern.md).
+    Pattern,
     /// Holes (docs/specs/holes.md).
     Holes,
     /// Surface: the whole stock (docs/specs/surfacing.md).
@@ -116,6 +124,7 @@ impl OpKind {
                 | (Operation::Path(_), OpKind::Path)
                 | (Operation::Chamfer(_), OpKind::Chamfer)
                 | (Operation::Flute(_), OpKind::Flute)
+                | (Operation::Pattern(_), OpKind::Pattern)
                 | (Operation::Holes(_), OpKind::Holes)
                 | (Operation::Surface(_), OpKind::Surface)
                 | (Operation::Relief(_), OpKind::Relief)
@@ -130,6 +139,7 @@ impl OpKind {
             OpKind::Path => "pipeline-name-path",
             OpKind::Chamfer => "pipeline-name-chamfer",
             OpKind::Flute => "pipeline-name-flute",
+            OpKind::Pattern => "pipeline-name-pattern",
             OpKind::Holes => "pipeline-name-holes",
             OpKind::Surface => "pipeline-name-surface",
             OpKind::Relief => "pipeline-name-relief",
@@ -201,7 +211,8 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
     }
     let suits = |id: i64| {
         job.tools.iter().find(|t| t.id == id).is_some_and(|t| {
-            (t.kind == ToolType::Vbit) == matches!(kind, OpKind::Vcarve | OpKind::Chamfer)
+            (t.kind == ToolType::Vbit)
+                == matches!(kind, OpKind::Vcarve | OpKind::Chamfer | OpKind::Pattern)
         })
     };
     let next = next_tool_id(job);
@@ -360,6 +371,18 @@ fn flute_depth(tool: &Tool) -> f64 {
     }
 }
 
+/// A new pattern's (depth, spacing) with `tool`: `DEFAULT_PATTERN_DEPTH`, no deeper than
+/// a V-bit's cone; the spacing twice the groove's width there, at least
+/// `MIN_PATTERN_SPACING` (docs/specs/fill-pattern.md §8).
+fn pattern_start(tool: &Tool) -> (f64, f64) {
+    let depth = chipload_toolpath::plan::vbit_cone_depth(tool)
+        .map_or(DEFAULT_PATTERN_DEPTH, |deepest| {
+            DEFAULT_PATTERN_DEPTH.min(deepest)
+        });
+    let width = chipload_toolpath::flute::flute_width_mm(tool, depth).unwrap_or(tool.diameter);
+    (depth, (2.0 * width).max(MIN_PATTERN_SPACING))
+}
+
 /// A chamfer's side for a profile's: inside for holes, outside otherwise.
 fn edge_side(side: Side) -> EdgeSide {
     match side {
@@ -463,6 +486,8 @@ struct Start {
     relief_stepover: f64,
     /// A new flute's depth with the tool (docs/specs/fluting.md §8).
     flute_depth: f64,
+    /// A new pattern's depth and spacing with the tool (docs/specs/fill-pattern.md §8).
+    pattern: (f64, f64),
 }
 
 impl Start {
@@ -510,6 +535,7 @@ impl Start {
             stepover,
             relief_stepover: relief_stepover(chosen),
             flute_depth: chosen.map_or(DEFAULT_FLUTE_DEPTH, flute_depth),
+            pattern: chosen.map_or((DEFAULT_PATTERN_DEPTH, 2.0), pattern_start),
             cutting: tool_cutting(job, library, tool),
             thickness: job.stock().thickness,
             below: job.stock().max_overcut,
@@ -596,6 +622,25 @@ impl Start {
         match kind {
             OpKind::Profile => self.profile(name, &select, Side::Outside, false),
             OpKind::Chamfer => self.chamfer(name, &select, EdgeSide::Outside),
+            OpKind::Pattern => Operation::Pattern(PatternOp {
+                material: None,
+                name,
+                enabled: true,
+                part: self.part,
+                select,
+                tool: self.tool,
+                pattern: FillPattern::Lines {
+                    angle: DEFAULT_PATTERN_ANGLE_DEG.to_radians(),
+                    spacing: self.pattern.1,
+                },
+                inside: true,
+                start_depth: 0.0,
+                end_depth: self.pattern.0,
+                step_down: Some(self.step_down),
+                ramp: 0.0,
+                feed: self.feed,
+                plunge_feed: self.plunge_feed,
+            }),
             OpKind::Flute => Operation::Flute(FluteOp {
                 material: None,
                 name,
@@ -781,6 +826,7 @@ fn op_step_down(op: &Operation) -> f64 {
         Operation::Surface(f) => f.step_down,
         Operation::Chamfer(c) => c.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Flute(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
+        Operation::Pattern(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Vcarve(_) | Operation::Holes(_) | Operation::Relief(_) => {
             crate::DEFAULT_STEP_DOWN
         }
@@ -795,6 +841,7 @@ fn op_feed(op: &Operation) -> f64 {
         Operation::Path(p) => p.feed,
         Operation::Chamfer(c) => c.feed,
         Operation::Flute(f) => f.feed,
+        Operation::Pattern(f) => f.feed,
         Operation::Holes(h) => h.feed,
         Operation::Surface(f) => f.feed,
         Operation::Relief(r) => r.feed,
@@ -809,6 +856,7 @@ fn op_plunge(op: &Operation) -> f64 {
         Operation::Path(p) => p.plunge_feed,
         Operation::Chamfer(c) => c.plunge_feed,
         Operation::Flute(f) => f.plunge_feed,
+        Operation::Pattern(f) => f.plunge_feed,
         Operation::Holes(h) => h.plunge_feed,
         Operation::Surface(f) => f.plunge_feed,
         Operation::Relief(r) => r.plunge_feed,

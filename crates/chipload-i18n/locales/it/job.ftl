@@ -53,6 +53,7 @@ job-vcarve-plug-start = deve essere maggiore della profondità iniziale ({ $star
 job-vcarve-plug-kinks = deve essere 0 per il tassello di un intarsio, perché combaci con la sua tasca in ogni angolo, trovato { $got }
 job-must-be-more-than-0 = deve essere più di 0, trovato { $got }
 job-must-be-0-or-more = deve essere 0 o più, trovato { $got }
+job-pattern-between = l'angolo tra le due serie di linee deve essere maggiore di 0° e al massimo 90°, trovato { $got }°
 job-through-stale = attraversa il grezzo, quindi finisce a { $depth }
 job-stock-fit-needs-centred = un grezzo che si adatta al disegno deve essere centrato su di esso (stock.origin: drawing)
 job-must-be-1-or-more = deve essere 1 o più

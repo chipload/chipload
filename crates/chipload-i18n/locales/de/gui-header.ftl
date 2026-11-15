@@ -124,3 +124,4 @@ header-array-hover = Kopien der gewählten gezeichneten Formen in einem Raster: 
 header-polar-array = Kreisanordnung
 header-polar-array-hover = Kopien der gewählten gezeichneten Formen um einen Mittelpunkt, den Sie klicken: Anzahl und Winkel unter Auswahl
 header-new-flute = Neue Kannelur
+header-new-pattern = Neues Muster

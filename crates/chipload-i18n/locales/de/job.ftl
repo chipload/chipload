@@ -53,6 +53,7 @@ job-vcarve-plug-start = muss größer als die Starttiefe ({ $start }) und kleine
 job-vcarve-plug-kinks = muss bei einem Intarsien-Stopfen 0 sein, damit er in jeder Ecke in seine Tasche passt, ist { $got }
 job-must-be-more-than-0 = muss mehr als 0 sein, ist { $got }
 job-must-be-0-or-more = muss 0 oder mehr sein, ist { $got }
+job-pattern-between = der Winkel zwischen den beiden Linienscharen muss größer als 0° und höchstens 90° sein, ist { $got }°
 job-through-stale = schneidet durch das Material, endet also bei { $depth }
 job-stock-fit-needs-centred = ein Rohteil, das sich der Zeichnung anpasst, muss mittig auf ihr liegen (stock.origin: drawing)
 job-must-be-1-or-more = muss 1 oder mehr sein

@@ -36,7 +36,13 @@ pub struct Profile {
 impl Profile {
     /// The profile of a shape `length` long; and whether its ramps were shortened to fit.
     pub fn new(op: &FluteOp, depth: f64, length: f64) -> (Profile, bool) {
-        let (mut start, mut end) = (op.ramp_start.max(0.0), op.ramp_end.max(0.0));
+        Profile::with(depth, length, (op.ramp_start, op.ramp_end), op.ramp_shape)
+    }
+
+    /// The profile of a shape `length` long with (start, end) `ramps` of `shape`; and
+    /// whether the ramps were shortened to fit.
+    pub fn with(depth: f64, length: f64, ramps: (f64, f64), shape: RampShape) -> (Profile, bool) {
+        let (mut start, mut end) = (ramps.0.max(0.0), ramps.1.max(0.0));
         let total = start + end;
         let shortened = total > length + CHAIN_TOL_MM;
         if shortened {
@@ -47,7 +53,7 @@ impl Profile {
             depth,
             ramp_start: start,
             ramp_end: end,
-            shape: op.ramp_shape,
+            shape,
         };
         (profile, shortened)
     }
@@ -180,6 +186,31 @@ pub fn flutes(
         });
     }
     found
+}
+
+impl Flute {
+    /// A groove along `points` (straight segments, none on an arc) with straight ramps of
+    /// `ramp` at both ends, the profile's points added: what a pattern cuts
+    /// (docs/specs/fill-pattern.md §4).
+    pub fn of_points(
+        contour_id: usize,
+        points: Vec<Point>,
+        depth: f64,
+        ramp: f64,
+        levels: &[f64],
+    ) -> Flute {
+        let along = distances(&points);
+        let length = along.last().copied().unwrap_or(0.0);
+        let (profile, _) = Profile::with(depth, length, (ramp, ramp), RampShape::Straight);
+        let mut none = ArcTable::default();
+        let (points, along) = with_breaks(&points, &along, &profile.breaks(levels), &mut none);
+        Flute {
+            contour_id,
+            points,
+            along,
+            profile,
+        }
+    }
 }
 
 /// The distance along `points` at each point.

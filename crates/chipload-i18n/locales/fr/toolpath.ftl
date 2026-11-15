@@ -92,6 +92,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [path] suivi de tracé
     [chamfer] chanfrein
     [flute] cannelure
+    [pattern] motif
     [holes] perçages
     [relief] relief
    *[surface] surfaçage
@@ -199,6 +200,10 @@ toolpath-groove-width = la rainure en V fait { $width } de large en haut
 toolpath-flute-width = la cannelure fait { $width } de large en haut
 toolpath-flute-closed = contour fermé #{ $contour } ignoré : une cannelure suit des formes ouvertes (un suivi de tracé taille une rainure fermée)
 toolpath-flute-ramps-shortened = le contour #{ $contour } fait { $length }, moins que ses deux rampes : toutes deux raccourcies en proportion
+toolpath-pattern-overlap = l'espacement ({ $spacing }) est plus étroit qu'une rainure ({ $width }) : les rainures se chevauchent
+toolpath-pattern-too-narrow = le contour #{ $contour } est trop étroit pour le motif : rien n’y est taillé
+toolpath-pattern-too-many = plus de { $most } rainures : élargissez l'espacement
+toolpath-pattern-width = chaque rainure fait { $width } de large en haut
 toolpath-path-past-cone = une fraise en V ne coupe pas plus profond que son cône, ici { $deepest }, sinon sa queue frotte ; ce tracé descend à { $depth } : réduisez la profondeur ou prenez une fraise droite
 toolpath-chamfer-past-cone = l'outil { $tool } fait un chanfrein d'au plus { $widest }, sinon sa queue frotte ; celui-ci fait { $width } : réduisez-le ou prenez une fraise en V plus large
 toolpath-holes-not-circles = { $count ->

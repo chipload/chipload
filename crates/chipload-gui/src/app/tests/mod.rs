@@ -37,6 +37,7 @@ mod narrow_panel;
 mod new_project;
 mod part_export;
 mod parts;
+mod pattern;
 mod posts;
 mod profile_form;
 mod properties_sources;

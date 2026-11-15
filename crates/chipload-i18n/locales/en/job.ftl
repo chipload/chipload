@@ -53,6 +53,7 @@ job-vcarve-plug-start = must be more than the start depth ({ $start }) and less 
 job-vcarve-plug-kinks = must be 0 for an inlay plug, so it fits its pocket in every corner, got { $got }
 job-must-be-more-than-0 = must be more than 0, got { $got }
 job-must-be-0-or-more = must be 0 or more, got { $got }
+job-pattern-between = the angle between the two sets of lines must be more than 0° and at most 90°, got { $got }°
 job-through-stale = cuts through the stock, so it ends at { $depth }
 job-stock-fit-needs-centred = a stock that fits the drawing must be centred on it (stock.origin: drawing)
 job-must-be-1-or-more = must be 1 or more

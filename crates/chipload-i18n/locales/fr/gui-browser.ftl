@@ -146,3 +146,5 @@ browser-smoothing = Lissage
 browser-smoothing-hover = Une passe de lissage : après l'ébauche, la surface suivie une fois, elle enlève les marches que l'ébauche laisse sur les pentes
 browser-flute = Cannelure
 browser-flute-hover = Une rainure le long des formes ouvertes sélectionnées, qui entre et sort en rampe à leurs extrémités
+browser-pattern = Motif
+browser-pattern-hover = Des rainures en lignes, quadrillage, anneaux ou vagues gravées dans les formes fermées sélectionnées

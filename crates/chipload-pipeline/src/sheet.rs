@@ -15,9 +15,9 @@ use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::{
-    Corners, Direction, EdgeSide, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp,
-    RampShape, Register, Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn, Units,
-    WorkZero, ZZero, find_tool,
+    Corners, Direction, EdgeSide, Entry, FillPattern, HoleMethod, HolesOp, Job, OpRef, Operation,
+    PocketOp, RampShape, Register, Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn,
+    Units, WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -740,6 +740,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Path(p) => (p.feed, p.plunge_feed),
         Operation::Chamfer(c) => (c.feed, c.plunge_feed),
         Operation::Flute(f) => (f.feed, f.plunge_feed),
+        Operation::Pattern(f) => (f.feed, f.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
         Operation::Surface(f) => (f.feed, f.plunge_feed),
         Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -795,6 +796,48 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                 RampShape::Curved => "sheet-ramp-curved",
             }),
         ],
+        // "pattern, cross-hatch 3 mm at 45°, inside the edge" (docs/specs/fill-pattern.md §8).
+        Operation::Pattern(f) => {
+            let deg = |a: f64| num(a.to_degrees());
+            let kind = match f.pattern {
+                FillPattern::Lines { angle, spacing } => Message::new("sheet-pattern-lines")
+                    .arg("spacing", len(spacing))
+                    .arg("angle", deg(angle)),
+                FillPattern::Cross {
+                    angle,
+                    spacing,
+                    between,
+                } => Message::new("sheet-pattern-cross")
+                    .arg("spacing", len(spacing))
+                    .arg("angle", deg(angle))
+                    .arg("between", deg(between)),
+                FillPattern::Rings { spacing } => {
+                    Message::new("sheet-pattern-rings").arg("spacing", len(spacing))
+                }
+                FillPattern::Waves {
+                    angle,
+                    spacing,
+                    wavelength,
+                    height,
+                } => Message::new("sheet-pattern-waves")
+                    .arg("spacing", len(spacing))
+                    .arg("angle", deg(angle))
+                    .arg("wavelength", len(wavelength))
+                    .arg("height", len(height)),
+            };
+            let mut parts = vec![
+                kind,
+                Message::new(if f.inside {
+                    "sheet-pattern-inside"
+                } else {
+                    "sheet-pattern-on-line"
+                }),
+            ];
+            if f.ramp > 0.0 {
+                parts.push(Message::new("sheet-pattern-ramp").arg("ramp", len(f.ramp)));
+            }
+            parts
+        }
         Operation::Holes(h) => match h.method {
             HoleMethod::Drill { .. } => vec![Message::new("sheet-kind-holes-drilled")],
             HoleMethod::Bore { direction, .. } => vec![
@@ -870,6 +913,7 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         Operation::Path(p) => Some(p.step_down),
         Operation::Chamfer(c) => c.step_down,
         Operation::Flute(f) => f.step_down,
+        Operation::Pattern(f) => f.step_down,
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
         // In one pass along the model (docs/specs/stl-relief.md §5).

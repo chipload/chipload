@@ -46,6 +46,7 @@
 - [Follow path](operations/path.md)
 - [Chamfer](operations/chamfer.md)
 - [Flute](operations/flute.md)
+- [Pattern](operations/pattern.md)
 - [Holes](operations/holes.md)
 - [Surface](operations/surface.md)
 - [Relief](operations/relief.md)

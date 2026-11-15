@@ -2951,3 +2951,73 @@ fn op_add_flute_takes_ramps_and_finds_the_ball_nose() {
     }
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn op_add_pattern_takes_its_settings_and_finds_the_v_bit() {
+    // docs/specs/fill-pattern.md §8: the golden pattern project's drawing and tools, its
+    // operations removed.
+    let dir = temp_dir("op-add-pattern");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let mut json: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(corpus("jobs/v36/pattern.chipload")).unwrap(),
+    )
+    .unwrap();
+    json["operations"] = serde_json::json!([]);
+    std::fs::write(&project, json.to_string()).unwrap();
+    // The V-bit (tool 2, a 0.2 mm flat), 0.5 mm deep: a groove 1.2 mm wide, so 2.4 mm
+    // apart, lines at 45°.
+    let out = chipload(&["op", "add", p, "pattern", "--shapes", "1,2,3"]);
+    let said = text(&out.stdout);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        said.contains("lines 2.4 mm apart at 45°, inside, 0.5 mm deep, tool 2"),
+        "{said}"
+    );
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "pattern",
+        "--shapes",
+        "4",
+        "--pattern",
+        "cross",
+        "--spacing",
+        "3",
+        "--angle",
+        "-30",
+        "--between",
+        "60",
+        "--on-line",
+        "--ramp",
+        "1",
+    ]);
+    assert!(
+        text(&out.stdout).contains("cross-hatch 3 mm apart at -30°, 60° between, on the line"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", p, "operations.1.ramp"]);
+    assert_eq!(text(&out.stdout).trim(), "1.0");
+    let out = chipload(&["run", p, "-o", path(&dir.join("out.nc")), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    for args in [
+        &["op", "add", p, "pattern", "--shapes", "1", "--through"][..],
+        &["op", "add", p, "pocket", "--shapes", "1", "--spacing", "2"],
+        &[
+            "op",
+            "add",
+            p,
+            "pattern",
+            "--shapes",
+            "1",
+            "--ramp-start",
+            "2",
+        ],
+    ] {
+        let out = chipload(args);
+        assert!(!out.status.success(), "{args:?}");
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}

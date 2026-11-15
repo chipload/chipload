@@ -634,6 +634,7 @@ pipeline-name-vcarve = V-carve { $number }
 pipeline-name-path = Follow path { $number }
 pipeline-name-chamfer = Chamfer { $number }
 pipeline-name-flute = Flute { $number }
+pipeline-name-pattern = Pattern { $number }
 pipeline-name-holes = Holes { $number }
 pipeline-name-surface = Surface { $number }
 pipeline-name-relief = Relief { $number }

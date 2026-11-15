@@ -53,6 +53,7 @@ job-vcarve-plug-start = doit être plus grand que la profondeur de départ ({ $s
 job-vcarve-plug-kinks = doit être 0 pour le bouchon d’une marqueterie, pour qu’il épouse sa poche dans chaque coin, reçu { $got }
 job-must-be-more-than-0 = doit être plus grand que 0, reçu { $got }
 job-must-be-0-or-more = doit être 0 ou plus, reçu { $got }
+job-pattern-between = l'angle entre les deux séries de lignes doit être supérieur à 0° et au plus 90°, reçu { $got }°
 job-through-stale = traverse le brut, donc se termine à { $depth }
 job-stock-fit-needs-centred = un brut qui s'ajuste au dessin doit être centré dessus (stock.origin: drawing)
 job-must-be-1-or-more = doit être 1 ou plus

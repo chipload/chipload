@@ -212,6 +212,18 @@ Pockets only: down round a circle of `radius` (the tool centre's), never steeper
 | `radius` | number | yes | The helix's radius, mm: less than the tool radius. |
 | `ramp_angle` | number | yes | The steepest the helix goes, radians: more than 0, at most 30° (0.5236). |
 
+## FillPattern
+
+The pattern a `PatternOp` engraves (docs/specs/fill-pattern.md §3). Angles in radians from the X axis, counter-clockwise; lengths in mm.
+
+- object: Parallel straight lines, `spacing` apart (centre to centre), at `angle`.
+
+- object: Two sets of lines: at `angle`, and at `angle` + `between` (more than 0, at most 90°).
+
+- object: The shape's outline repeated inwards, `spacing` apart, as closed rings.
+
+- object: Parallel sine waves at `angle`, `spacing` apart: `wavelength` long, `height` from top to bottom.
+
 ## Finish
 
 A finishing pass on a profile.
@@ -553,6 +565,27 @@ Flute: a groove on the line of open shapes that ramps in and out at their ends.
 | `start_depth` | number | yes | Where the flute starts at its ends, mm down from the stock top: 0 for the top. |
 | `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a ball nose, a V-bit or an endmill. |
+
+### `"type": "pattern"`
+
+Pattern: grooves of lines, cross-hatch, rings or waves engraved inside closed shapes.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | How deep the grooves go, mm down from the stock top. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `inside` | boolean | yes | True: the grooves stay inside the shape's line and out of its holes, clipped half a groove's width in. False: they run up to the line, centred on it. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `pattern` | [FillPattern](#fillpattern) | yes | The pattern and its settings. |
+| `plunge_feed` | number | yes | The feed going straight down, mm/min. |
+| `ramp` | number | yes | How long each groove ramps in and out at its ends, mm, as a flute. 0: square ends. |
+| `select` | [Selector](#selector) | yes | What the operation fills: closed shapes, the selected shapes inside them as holes. |
+| `start_depth` | number | yes | Where the grooves start, mm down from the stock top: 0 for the top. |
+| `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a V-bit, a ball nose or an endmill. |
 
 ### `"type": "holes"`
 

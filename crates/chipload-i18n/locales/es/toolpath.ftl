@@ -92,6 +92,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [path] seguir trayectoria
     [chamfer] chaflán
     [flute] acanalado
+    [pattern] patrón
     [holes] taladros
     [relief] relieve
    *[surface] planeado
@@ -199,6 +200,10 @@ toolpath-groove-width = la ranura en V tiene { $width } de ancho arriba
 toolpath-flute-width = el acanalado tiene { $width } de ancho arriba
 toolpath-flute-closed = contorno cerrado #{ $contour } omitido: un acanalado sigue formas abiertas (seguir trayectoria corta una ranura cerrada)
 toolpath-flute-ramps-shortened = el contorno #{ $contour } mide { $length }, menos que sus dos rampas: ambas acortadas en proporción
+toolpath-pattern-overlap = la separación ({ $spacing }) es menor que una ranura ({ $width }): las ranuras se solapan
+toolpath-pattern-too-narrow = el contorno #{ $contour } es demasiado estrecho para el patrón: no se corta nada ahí
+toolpath-pattern-too-many = más de { $most } ranuras: aumenta la separación
+toolpath-pattern-width = cada ranura tiene { $width } de ancho arriba
 toolpath-path-past-cone = una fresa en V no corta más hondo que su cono, aquí { $deepest }, o su mango rozaría; esta trayectoria baja { $depth }: hazla menos profunda o usa una fresa plana
 toolpath-chamfer-past-cone = la herramienta { $tool } hace un chaflán de { $widest } como mucho, o su mango rozaría; este mide { $width }: hazlo más estrecho o usa una fresa en V más ancha
 toolpath-holes-not-circles = { $count ->

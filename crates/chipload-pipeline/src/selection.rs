@@ -43,7 +43,9 @@ pub fn unfit_for(kind: OpKind, ids: &BTreeSet<usize>, contours: &[Contour]) -> O
     };
     match kind {
         OpKind::Holes if !chosen.iter().any(|c| circle_of(c).is_some()) => Some(Unfit::NoCircles),
-        OpKind::Pocket | OpKind::Vcarve | OpKind::Chamfer if !closed() => Some(Unfit::NoClosed),
+        OpKind::Pocket | OpKind::Vcarve | OpKind::Chamfer | OpKind::Pattern if !closed() => {
+            Some(Unfit::NoClosed)
+        }
         OpKind::Flute if !chosen.iter().any(|c| !c.closed) => Some(Unfit::NoOpen),
         _ => None,
     }

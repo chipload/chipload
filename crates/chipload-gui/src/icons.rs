@@ -65,6 +65,9 @@ pub enum Icon {
     /// A groove pointed at both ends, with its centre line: a flute operation
     /// (docs/specs/fluting.md).
     Flute,
+    /// A square filled with crossing lines: a fill pattern operation
+    /// (docs/specs/fill-pattern.md).
+    Hatch,
     Holes,
     Surface,
     Eye,
@@ -375,6 +378,15 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 (0.88, 0.85),
             ]);
             pen.line([(0.62, 0.12), (0.96, 0.46)]);
+        }
+        Icon::Hatch => {
+            pen.closed(&[(0.12, 0.12), (0.88, 0.12), (0.88, 0.88), (0.12, 0.88)]);
+            pen.line([(0.12, 0.5), (0.5, 0.12)]);
+            pen.line([(0.12, 0.88), (0.88, 0.12)]);
+            pen.line([(0.5, 0.88), (0.88, 0.5)]);
+            pen.line([(0.5, 0.12), (0.88, 0.5)]);
+            pen.line([(0.12, 0.12), (0.88, 0.88)]);
+            pen.line([(0.12, 0.5), (0.5, 0.88)]);
         }
         Icon::Flute => {
             pen.closed(&[

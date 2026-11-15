@@ -36,7 +36,8 @@ pub(crate) enum OpAction {
         /// (outside) or within them (inside).
         #[arg(long)]
         side: Option<EdgeSideArg>,
-        /// A flute's ramp at both ends, in place of 20 mm (docs/specs/fluting.md).
+        /// A flute's ramp at both ends, in place of 20 mm (docs/specs/fluting.md); a
+        /// pattern's grooves' ramps, in place of square ends (docs/specs/fill-pattern.md).
         #[arg(long, value_parser = crate::lengths::length)]
         ramp: Option<f64>,
         /// A flute's ramp at the shapes' first ends (as drawn); 0 for a square end.
@@ -48,6 +49,8 @@ pub(crate) enum OpAction {
         /// A flute's ramps: straight (an even taper) or curved (easing into the floor).
         #[arg(long)]
         ramp_shape: Option<RampShapeArg>,
+        #[command(flatten)]
+        pattern: PatternArgs,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -470,10 +473,97 @@ pub(crate) enum KindArg {
     /// A groove along open shapes that ramps in and out at their ends
     /// (docs/specs/fluting.md): --depth, --ramp.
     Flute,
+    /// Grooves of lines, cross-hatch, rings or waves inside closed shapes
+    /// (docs/specs/fill-pattern.md): --pattern, --spacing, --angle.
+    Pattern,
     Holes,
     /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
     /// model within its outline.
     Relief,
+}
+
+/// A pattern's settings for `op add pattern` (docs/specs/fill-pattern.md §8).
+#[derive(Args, Clone, Copy)]
+pub(crate) struct PatternArgs {
+    /// A pattern's kind, in place of lines.
+    #[arg(id = "pattern_kind", long = "pattern")]
+    pattern_kind: Option<PatternKindArg>,
+    /// A pattern's spacing, groove centre to centre, in place of twice the groove's width.
+    #[arg(long, value_parser = crate::lengths::length)]
+    spacing: Option<f64>,
+    /// A pattern's lines' angle from the X axis, degrees counter-clockwise; 45 if left out.
+    #[arg(long, allow_negative_numbers = true)]
+    angle: Option<f64>,
+    /// A cross-hatch's angle between its two sets of lines, degrees (90 squares, 60
+    /// diamonds); 90 if left out.
+    #[arg(long)]
+    between: Option<f64>,
+    /// A wave pattern's wavelength; 4 spacings if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    wavelength: Option<f64>,
+    /// A wave pattern's height, top to bottom; one spacing if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    height: Option<f64>,
+    /// The grooves run up to the shapes' lines, centred on them, instead of staying inside.
+    #[arg(long)]
+    on_line: bool,
+}
+
+impl PatternArgs {
+    fn given(&self) -> bool {
+        self.pattern_kind.is_some()
+            || self.spacing.is_some()
+            || self.angle.is_some()
+            || self.between.is_some()
+            || self.wavelength.is_some()
+            || self.height.is_some()
+            || self.on_line
+    }
+
+    /// The settings over the new pattern's defaults.
+    fn apply(&self, op: &mut chipload_job::PatternOp) {
+        use chipload_job::FillPattern;
+        let spacing = self.spacing.unwrap_or(op.pattern.spacing());
+        let angle = match op.pattern {
+            FillPattern::Lines { angle, .. }
+            | FillPattern::Cross { angle, .. }
+            | FillPattern::Waves { angle, .. } => angle,
+            FillPattern::Rings { .. } => 45f64.to_radians(),
+        };
+        let angle = self.angle.map_or(angle, f64::to_radians);
+        op.pattern = match self.pattern_kind.unwrap_or(match op.pattern {
+            FillPattern::Lines { .. } => PatternKindArg::Lines,
+            FillPattern::Cross { .. } => PatternKindArg::Cross,
+            FillPattern::Rings { .. } => PatternKindArg::Rings,
+            FillPattern::Waves { .. } => PatternKindArg::Waves,
+        }) {
+            PatternKindArg::Lines => FillPattern::Lines { angle, spacing },
+            PatternKindArg::Cross => FillPattern::Cross {
+                angle,
+                spacing,
+                between: self.between.unwrap_or(90.0).to_radians(),
+            },
+            PatternKindArg::Rings => FillPattern::Rings { spacing },
+            PatternKindArg::Waves => FillPattern::Waves {
+                angle,
+                spacing,
+                wavelength: self.wavelength.unwrap_or(4.0 * spacing),
+                height: self.height.unwrap_or(spacing),
+            },
+        };
+        if self.on_line {
+            op.inside = false;
+        }
+    }
+}
+
+/// A pattern's kind, for `op add pattern --pattern`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum PatternKindArg {
+    Lines,
+    Cross,
+    Rings,
+    Waves,
 }
 
 /// A flute's ramps, for `op add flute --ramp-shape`.
@@ -500,6 +590,7 @@ impl KindArg {
             KindArg::Path => OpKind::Path,
             KindArg::Chamfer => OpKind::Chamfer,
             KindArg::Flute => OpKind::Flute,
+            KindArg::Pattern => OpKind::Pattern,
             KindArg::Holes => OpKind::Holes,
             KindArg::Relief => OpKind::Relief,
         }
@@ -621,16 +712,26 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ramp_start,
             ramp_end,
             ramp_shape,
+            pattern,
             output,
         } => {
             let flute = matches!(kind, KindArg::Flute);
-            let ramps = [ramp, ramp_start, ramp_end];
+            let filled = matches!(kind, KindArg::Pattern);
+            let ramps = [ramp_start, ramp_end];
             if !flute && (ramps.iter().any(Option::is_some) || ramp_shape.is_some()) {
-                return out
-                    .fail("--ramp, --ramp-start, --ramp-end and --ramp-shape are for a flute");
+                return out.fail("--ramp-start, --ramp-end and --ramp-shape are for a flute");
             }
-            if flute && through {
-                return out.fail("a flute never goes through: give --depth");
+            if !flute && !filled && ramp.is_some() {
+                return out.fail("--ramp is for a flute or a pattern");
+            }
+            if !filled && pattern.given() {
+                return out.fail(
+                    "--pattern, --spacing, --angle, --between, --wavelength, --height and \
+                     --on-line are for a pattern",
+                );
+            }
+            if (flute || filled) && through {
+                return out.fail("a flute or a pattern never goes through: give --depth");
             }
             let chamfer = matches!(kind, KindArg::Chamfer);
             if !chamfer && (width.is_some() || side.is_some()) {
@@ -678,6 +779,12 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             );
             for new in &mut made.ops {
                 set_depth(&job, &mut new.op, depth, through);
+                if let Operation::Pattern(f) = &mut new.op {
+                    if let Some(ramp) = ramp {
+                        f.ramp = ramp;
+                    }
+                    pattern.apply(f);
+                }
                 if let Operation::Flute(f) = &mut new.op {
                     if let Some(both) = ramp {
                         (f.ramp_start, f.ramp_end) = (both, both);
@@ -1575,6 +1682,41 @@ pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
                 chipload_job::EdgeSide::Inside => "inside",
             }
         ));
+    }
+    if let Operation::Pattern(f) = op {
+        let mm = chipload_core::text::mm;
+        let deg = |a: f64| chipload_core::text::mm(a.to_degrees());
+        parts.push(match f.pattern {
+            chipload_job::FillPattern::Lines { angle, spacing } => {
+                format!("lines {} mm apart at {}°", mm(spacing), deg(angle))
+            }
+            chipload_job::FillPattern::Cross {
+                angle,
+                spacing,
+                between,
+            } => format!(
+                "cross-hatch {} mm apart at {}°, {}° between",
+                mm(spacing),
+                deg(angle),
+                deg(between)
+            ),
+            chipload_job::FillPattern::Rings { spacing } => {
+                format!("rings {} mm apart", mm(spacing))
+            }
+            chipload_job::FillPattern::Waves {
+                angle,
+                spacing,
+                wavelength,
+                height,
+            } => format!(
+                "waves {} mm apart at {}°, {} mm long, {} mm high",
+                mm(spacing),
+                deg(angle),
+                mm(wavelength),
+                mm(height)
+            ),
+        });
+        parts.push(if f.inside { "inside" } else { "on the line" }.to_string());
     }
     if let Operation::Flute(f) = op {
         parts.push(format!(

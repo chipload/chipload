@@ -700,6 +700,7 @@ fn kind_name(ui: &egui::Ui, op: &Operation) -> String {
         Operation::Path(_) => t!(ui, "forms-kind-path"),
         Operation::Chamfer(_) => t!(ui, "forms-kind-chamfer"),
         Operation::Flute(_) => t!(ui, "forms-kind-flute"),
+        Operation::Pattern(_) => t!(ui, "forms-kind-pattern"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),

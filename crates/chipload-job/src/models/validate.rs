@@ -542,6 +542,17 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Pattern(f) => {
+                    positive(at("pattern.spacing"), f.pattern.spacing());
+                    if let FillPattern::Waves { wavelength, .. } = f.pattern {
+                        positive(at("pattern.wavelength"), wavelength);
+                    }
+                    if let Some(step) = f.step_down {
+                        positive(at("step_down"), step);
+                    }
+                    positive(at("feed"), f.feed);
+                    positive(at("plunge_feed"), f.plunge_feed);
+                }
                 Operation::Flute(f) => {
                     if let Some(step) = f.step_down {
                         positive(at("step_down"), step);
@@ -626,6 +637,33 @@ impl Job {
         }
         problems.extend(self.part_problems());
         for (i, op) in self.operations.iter().enumerate() {
+            if let Operation::Pattern(f) = op {
+                let mut zero_or_more = vec![("ramp", f.ramp)];
+                if let FillPattern::Waves { height, .. } = f.pattern {
+                    zero_or_more.push(("pattern.height", height));
+                }
+                for (field, value) in zero_or_more {
+                    if !(value.is_finite() && value >= 0.0) {
+                        problems.push(Problem::at(
+                            format!("operations.{i}.{field}"),
+                            Message::new("job-must-be-0-or-more")
+                                .arg("got", Value::Length(value, Digits::Shortest)),
+                        ));
+                    }
+                }
+                if let FillPattern::Cross { between, .. } = f.pattern
+                    && !(between > 0.0
+                        && between
+                            <= std::f64::consts::FRAC_PI_2
+                                + chipload_core::tolerances::ANGLE_TOL_RAD)
+                {
+                    problems.push(Problem::at(
+                        format!("operations.{i}.pattern.between"),
+                        Message::new("job-pattern-between")
+                            .arg("got", Value::Number(between.to_degrees(), Digits::Shortest)),
+                    ));
+                }
+            }
             if let Operation::Flute(f) = op {
                 for (field, ramp) in [("ramp_start", f.ramp_start), ("ramp_end", f.ramp_end)] {
                     if !(ramp.is_finite() && ramp >= 0.0) {

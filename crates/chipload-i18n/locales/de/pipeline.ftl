@@ -636,6 +636,7 @@ pipeline-name-vcarve = V-Gravur { $number }
 pipeline-name-path = Pfad folgen { $number }
 pipeline-name-chamfer = Fase { $number }
 pipeline-name-flute = Kannelur { $number }
+pipeline-name-pattern = Muster { $number }
 pipeline-name-holes = Bohrungen { $number }
 pipeline-name-surface = Planfräsen { $number }
 pipeline-name-relief = Relief { $number }

@@ -143,3 +143,5 @@ browser-smoothing = Alisado
 browser-smoothing-hover = Una pasada de alisado: tras el desbaste, la superficie seguida una vez, quita los escalones que el desbaste deja en las pendientes
 browser-flute = Acanalado
 browser-flute-hover = Una ranura a lo largo de las formas abiertas seleccionadas que entra y sale en rampa en sus extremos
+browser-pattern = Patrón
+browser-pattern-hover = Ranuras de líneas, trama cruzada, anillos u ondas grabadas dentro de las formas cerradas seleccionadas

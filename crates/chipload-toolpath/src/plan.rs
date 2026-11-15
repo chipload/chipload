@@ -11,9 +11,10 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    ChamferOp, ClearingPass, Copies, CopyOrder, Entry, FluteOp, HoleMethod, HolesOp, Job,
-    MAX_LEAD_DIAMETERS, Mirror, Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp,
-    RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
+    ChamferOp, ClearingPass, Copies, CopyOrder, Entry, FillPattern, FluteOp, HoleMethod, HolesOp,
+    Job, MAX_LEAD_DIAMETERS, Mirror, Note, OpRef, Operation, Part, PathOp, PatternOp, PocketOp,
+    Problem, ProfileOp, RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
+    ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
@@ -223,6 +224,12 @@ pub fn plan_job_cancellable(
             if let Operation::Path(p) = op
                 && let Some(width) = groove_width(tool, p.end_depth - p.start_depth)
             {
+                facts.push(Note::at(at.operation, labelled_note(label, width)));
+            }
+            if let Operation::Pattern(f) = op
+                && let Some(width) = crate::flute::flute_width_mm(tool, f.end_depth - f.start_depth)
+            {
+                let width = Message::new("toolpath-pattern-width").arg("width", Value::mm(width));
                 facts.push(Note::at(at.operation, labelled_note(label, width)));
             }
             if let Operation::Flute(f) = op
@@ -520,6 +527,11 @@ fn pass_heights(op: &Operation, tools: &[Tool], top_z: f64) -> Result<Vec<f64>, 
             Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
             None => vec![top_z - end_depth],
         },
+        // The same (docs/specs/fill-pattern.md §4).
+        Operation::Pattern(f) => match f.step_down {
+            Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
+            None => vec![top_z - end_depth],
+        },
     })
 }
 
@@ -632,6 +644,9 @@ fn plan_step(
         Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
         Operation::Chamfer(chamfer) => plan_chamfer_op(chamfer, &context, &shifted, position),
         Operation::Flute(flute) => plan_flute_op(flute, &context, &shifted, position),
+        Operation::Pattern(pattern) => {
+            plan_pattern_op(pattern, &context, &shifted, position, shift)
+        }
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
         Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
         Operation::Relief(relief) => plan_relief_op(relief, &context, &shifted, position, shift),
@@ -1501,6 +1516,79 @@ fn plan_flute_op(
         tabs: Vec::new(),
         pockets: Vec::new(),
         arcs,
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts: Vec::new(),
+    })
+}
+
+/// A fill pattern (docs/specs/fill-pattern.md): its grooves cut as flutes, or its rings as
+/// a follow path's closed rings; laid out from the drawing's origin moved by `shift`.
+fn plan_pattern_op(
+    op: &PatternOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+    shift: (f64, f64),
+) -> Result<Planned, ToolpathError> {
+    let depth = op.end_depth - op.start_depth;
+    let levels: Vec<f64> = ctx.pass_z.iter().map(|z| ctx.top_z - z).collect();
+    let width = crate::flute::flute_width_mm(ctx.tool, depth).unwrap_or(ctx.tool.diameter);
+    let setup = crate::pattern::PatternSetup {
+        width,
+        depth,
+        levels: &levels,
+        anchor: shift,
+        spindle: ctx.sense,
+    };
+    let found = crate::pattern::grooves(op, &selection.contours, &setup)
+        .map_err(|err| err.with_context(ctx.label_message.clone()))?;
+    let notes = found
+        .notes
+        .into_iter()
+        .map(|n| labelled_note(ctx.label_message, n))
+        .collect();
+    let mut moves = Vec::new();
+    let mut end = start;
+    let flute_cut = crate::flute::FluteCut {
+        pass_z: ctx.pass_z,
+        top_z: ctx.top_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+    };
+    for (groove, reverse) in crate::flute::order(found.open, start) {
+        ctx.cancel.check()?;
+        let (more, at) = crate::flute::flute_moves(&groove, reverse, &flute_cut, &found.arcs);
+        moves.extend(more);
+        end = at;
+    }
+    let ring_cut = PathCut {
+        pass_z: ctx.pass_z,
+        top_z: ctx.top_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+        entry: Entry::Plunge {},
+        tool_diameter: ctx.tool.diameter,
+        spindle: ctx.sense,
+    };
+    for ring in crate::pattern::order_rings(found.rings, end) {
+        ctx.cancel.check()?;
+        let (more, at) = path_moves(&ring, &ring_cut, &found.arcs)
+            .map_err(|err| err.with_context(contour_context(ctx.label_message, ring.contour_id)))?;
+        moves.extend(more);
+        end = at;
+    }
+    Ok(Planned {
+        moves,
+        notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs: found.arcs,
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
@@ -2650,6 +2738,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Path(p) => (p.feed, p.plunge_feed),
             Operation::Chamfer(c) => (c.feed, c.plunge_feed),
             Operation::Flute(f) => (f.feed, f.plunge_feed),
+            Operation::Pattern(f) => (f.feed, f.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
             Operation::Surface(f) => (f.feed, f.plunge_feed),
             Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -2700,17 +2789,23 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                     .arg("depth", length(p.end_depth - p.start_depth)),
             ));
         }
-        // A V-bit's flute no deeper than its cone (docs/specs/fluting.md §5).
-        if let Operation::Flute(f) = op
+        // A V-bit's flute or pattern no deeper than its cone (docs/specs/fluting.md §5,
+        // fill-pattern.md §6).
+        let groove = match op {
+            Operation::Flute(f) => Some((f.start_depth, f.end_depth)),
+            Operation::Pattern(f) => Some((f.start_depth, f.end_depth)),
+            _ => None,
+        };
+        if let Some((start_depth, end_depth)) = groove
             && let Some(deepest) = vbit_cone_depth(tool)
-            && f.end_depth - f.start_depth > deepest + DEPTH_TOL_MM
+            && end_depth - start_depth > deepest + DEPTH_TOL_MM
         {
             problems.push(labelled(
                 at("end_depth"),
                 &label_message,
                 Message::new("toolpath-path-past-cone")
                     .arg("deepest", Value::Length(deepest, Digits::Trim(3)))
-                    .arg("depth", length(f.end_depth - f.start_depth)),
+                    .arg("depth", length(end_depth - start_depth)),
             ));
         }
         // A chamfer no wider than the bit's cone: the shank would rub beyond it
@@ -2948,6 +3043,21 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 flute_tool_rule(tool, f).map_err(|e| (at("tool"), numbered.clone(), e)),
                 Vec::new(),
             ),
+            // Square ends and rings go straight down (docs/specs/fill-pattern.md §6).
+            Operation::Pattern(f) => {
+                let plunges = f.ramp <= 0.0 || matches!(f.pattern, FillPattern::Rings { .. });
+                let entry = if plunges {
+                    Entry::Plunge {}
+                } else {
+                    Entry::Ramp {
+                        ramp_angle: chipload_job::DEFAULT_RAMP_ANGLE_RAD,
+                    }
+                };
+                (
+                    path_tool_notes(tool, entry).map_err(|e| (at("tool"), numbered.clone(), e)),
+                    Vec::new(),
+                )
+            }
             Operation::Holes(h) => (
                 holes_tool_notes(tool, h.method)
                     .map(|()| false)
@@ -3027,6 +3137,7 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Path(_) => "path",
         Operation::Chamfer(_) => "chamfer",
         Operation::Flute(_) => "flute",
+        Operation::Pattern(_) => "pattern",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",

@@ -143,3 +143,5 @@ browser-smoothing = Lisciatura
 browser-smoothing-hover = Una passata di lisciatura: dopo la sgrossatura, la superficie seguita una volta, toglie i gradini che la sgrossatura lascia sui pendii
 browser-flute = Scanalatura
 browser-flute-hover = Una scanalatura lungo le forme aperte selezionate, che entra ed esce in rampa alle estremità
+browser-pattern = Motivo
+browser-pattern-hover = Scanalature a linee, tratteggio incrociato, anelli o onde incise dentro le forme chiuse selezionate

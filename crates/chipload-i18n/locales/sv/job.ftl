@@ -53,6 +53,7 @@ job-vcarve-plug-start = måste vara större än startdjupet ({ $start }) och min
 job-vcarve-plug-kinks = måste vara 0 för en inläggningsplugg, så att den passar sin ficka i varje hörn, fick { $got }
 job-must-be-more-than-0 = måste vara mer än 0, fick { $got }
 job-must-be-0-or-more = måste vara 0 eller mer, fick { $got }
+job-pattern-between = vinkeln mellan de två linjeskarorna måste vara över 0° och högst 90°, fick { $got }°
 job-through-stale = skär igenom materialet och slutar därför på { $depth }
 job-stock-fit-needs-centred = ett ämne som anpassas efter ritningen måste vara centrerat på den (stock.origin: drawing)
 job-must-be-1-or-more = måste vara 1 eller mer

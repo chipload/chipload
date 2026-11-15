@@ -573,6 +573,117 @@
         }
       ]
     },
+    "FillPattern": {
+      "description": "The pattern a `PatternOp` engraves (docs/specs/fill-pattern.md §3). Angles in radians from\nthe X axis, counter-clockwise; lengths in mm.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "Parallel straight lines, `spacing` apart (centre to centre), at `angle`.",
+          "properties": {
+            "angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "lines",
+              "type": "string"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "angle",
+            "spacing"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Two sets of lines: at `angle`, and at `angle` + `between` (more than 0, at most 90°).",
+          "properties": {
+            "angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "between": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "cross",
+              "type": "string"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "angle",
+            "spacing",
+            "between"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The shape's outline repeated inwards, `spacing` apart, as closed rings.",
+          "properties": {
+            "kind": {
+              "const": "rings",
+              "type": "string"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "spacing"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Parallel sine waves at `angle`, `spacing` apart: `wavelength` long, `height` from top\nto bottom.",
+          "properties": {
+            "angle": {
+              "format": "double",
+              "type": "number"
+            },
+            "height": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "waves",
+              "type": "string"
+            },
+            "spacing": {
+              "format": "double",
+              "type": "number"
+            },
+            "wavelength": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "angle",
+            "spacing",
+            "wavelength",
+            "height"
+          ],
+          "type": "object"
+        }
+      ]
+    },
     "Finish": {
       "additionalProperties": false,
       "description": "A finishing pass on a profile.",
@@ -2059,6 +2170,109 @@
             "ramp_start",
             "ramp_end",
             "ramp_shape",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Pattern: grooves of lines, cross-hatch, rings or waves engraved inside closed shapes.",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "description": "False: the operation stays in the project but isn't cut. Missing: true.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "description": "How deep the grooves go, mm down from the stock top.",
+              "format": "double",
+              "type": "number"
+            },
+            "feed": {
+              "description": "The cutting feed, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "inside": {
+              "description": "True: the grooves stay inside the shape's line and out of its holes, clipped half a\ngroove's width in. False: they run up to the line, centred on it.",
+              "type": "boolean"
+            },
+            "material": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MaterialRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The library material its feeds come from. Null: its own values."
+            },
+            "name": {
+              "default": "",
+              "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
+              "type": "string"
+            },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "pattern": {
+              "$ref": "#/$defs/FillPattern",
+              "description": "The pattern and its settings."
+            },
+            "plunge_feed": {
+              "description": "The feed going straight down, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "ramp": {
+              "description": "How long each groove ramps in and out at its ends, mm, as a flute. 0: square ends.",
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "What the operation fills: closed shapes, the selected shapes inside them as holes."
+            },
+            "start_depth": {
+              "description": "Where the grooves start, mm down from the stock top: 0 for the top.",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "default": null,
+              "description": "The deepest each pass goes, mm, in equal passes. Null: one pass.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "tool": {
+              "description": "The id of the project tool it cuts with (`tools`): a V-bit, a ball nose or an endmill.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "pattern",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "part",
+            "select",
+            "tool",
+            "pattern",
+            "inside",
+            "start_depth",
+            "end_depth",
+            "ramp",
             "feed",
             "plunge_feed"
           ],

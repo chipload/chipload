@@ -269,8 +269,8 @@ Smaller follow-ups noted along the way, not in the order above:
      2026-11-15** (docs/specs/fluting.md; see *In main*). Left: a marker on the canvas
      at each flute's start end (§13).
   2b. **Fill pattern** (the user, 2026-11-15, after fluting): grooves of lines,
-     cross-hatch, rings or waves engraved inside closed shapes. **Spec draft 2026-11-15**
-     (docs/specs/fill-pattern.md, twelve decisions), for review.
+     cross-hatch, rings or waves engraved inside closed shapes. **Built 2026-11-15**
+     (docs/specs/fill-pattern.md; see *In main*).
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
      instead of a flat floor, from the same medial axis as V-carving.
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
@@ -302,6 +302,13 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Pattern** (docs/specs/fill-pattern.md, approved and built 2026-11-15): grooves of
+  lines, cross-hatch (any angle between), rings or waves engraved inside closed shapes,
+  their selected holes left alone; inside the edge by default (half a groove in), laid out
+  from the drawing's origin so patterns line up across shapes; square or ramped ends;
+  each groove cut as a flute. Refused above 50 000 grooves. `op add pattern`, the S
+  menu's E, the Operation menu, a properties form, the setup sheet, a guide page with a
+  picture; texts in all seven languages. No schema bump.
 - **Flute** (docs/specs/fluting.md, approved and built 2026-11-15): a groove along open
   shapes that ramps in over a start ramp, runs at full depth and ramps out over an end
   ramp, straight or curved; a ramp of 0 is a square end. Passes are the profile cut off at

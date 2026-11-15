@@ -51,6 +51,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [path] вдоль линии
     [chamfer] фаска
     [flute] каннелюра
+    [pattern] узор
     [holes] отверстия
     [relief] рельеф
    *[surface] торцевание
@@ -130,6 +131,10 @@ toolpath-groove-width = ширина V-образного паза вверху 
 toolpath-flute-width = ширина каннелюры вверху — { $width }
 toolpath-flute-closed = замкнутый контур №{ $contour } пропущен: каннелюра идёт вдоль открытых фигур (замкнутый паз режется вдоль линии)
 toolpath-flute-ramps-shortened = контур №{ $contour } длиной { $length } короче двух своих рамп: обе укорочены пропорционально
+toolpath-pattern-overlap = шаг ({ $spacing }) меньше ширины паза ({ $width }): пазы перекрываются
+toolpath-pattern-too-narrow = контур №{ $contour } слишком узкий для узора: там ничего не режется
+toolpath-pattern-too-many = больше { $most } пазов: увеличьте шаг
+toolpath-pattern-width = ширина каждого паза вверху — { $width }
 toolpath-path-past-cone = V-образная фреза режет не глубже своего конуса, здесь { $deepest }, иначе хвостовик будет тереться; эта линия идёт на { $depth }: уменьшите глубину или возьмите концевую фрезу
 toolpath-chamfer-past-cone = инструмент { $tool } делает фаску шириной не более { $widest }, иначе хвостовик будет тереться; эта — { $width }: уменьшите ширину или возьмите более широкую V-образную фрезу
 toolpath-holes-not-circles = Пропущено { $count ->

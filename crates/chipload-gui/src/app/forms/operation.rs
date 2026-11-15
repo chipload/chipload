@@ -238,6 +238,7 @@ pub(in crate::app) fn op_form(
         Operation::Path(_) => t!(ui, "forms-kind-path"),
         Operation::Chamfer(_) => t!(ui, "forms-kind-chamfer"),
         Operation::Flute(_) => t!(ui, "forms-kind-flute"),
+        Operation::Pattern(_) => t!(ui, "forms-kind-pattern"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),
@@ -552,6 +553,7 @@ pub(in crate::app) fn op_form(
         }
         Operation::Chamfer(c) => chamfer_sections(ui, index, c, op_tool),
         Operation::Flute(f) => flute_sections(ui, f, op_tool),
+        Operation::Pattern(f) => pattern_sections(ui, f, op_tool),
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
@@ -1785,6 +1787,171 @@ fn flute_sections(ui: &mut egui::Ui, f: &mut chipload_job::FluteOp, tool: Option
                 }
             });
         flag(combo.response, ui, "ramp_shape");
+        ui.end_row();
+    });
+    feeds_section(ui, &mut f.feed, &mut f.plunge_feed, tool);
+}
+
+/// An angle in degrees for a radian `value`, -180° to 180°.
+fn degrees_field(ui: &mut egui::Ui, value: &mut f64, field: &str) {
+    let mut degrees = value.to_degrees();
+    let response = ui.add(
+        crate::units::number(ui, &mut degrees)
+            .speed(1.0)
+            .range(-180.0..=180.0)
+            .suffix("°"),
+    );
+    if flag(response, ui, field).changed() {
+        *value = degrees.to_radians();
+    }
+}
+
+/// A fill pattern's sections (docs/specs/fill-pattern.md §8): the pattern and its settings,
+/// inside the edge; the depths with the groove's width beneath, passes, ends; feeds.
+fn pattern_sections(ui: &mut egui::Ui, f: &mut chipload_job::PatternOp, tool: Option<&Tool>) {
+    use chipload_job::FillPattern;
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let with_unit = |mm: f64| format!("{} {len_unit}", len_in(units, mm));
+    let kind_name = |ui: &egui::Ui, p: &FillPattern| match p {
+        FillPattern::Lines { .. } => t!(ui, "forms-pattern-lines"),
+        FillPattern::Cross { .. } => t!(ui, "forms-pattern-cross"),
+        FillPattern::Rings { .. } => t!(ui, "forms-pattern-rings"),
+        FillPattern::Waves { .. } => t!(ui, "forms-pattern-waves"),
+    };
+    let summary = t!(
+        ui,
+        "forms-pattern-summary",
+        kind = kind_name(ui, &f.pattern),
+        spacing = with_unit(f.pattern.spacing())
+    );
+    let title = t!(ui, "forms-section-pattern");
+    folded_section(ui, "op-pattern", &title, &summary, |ui| {
+        ui.label(t!(ui, "forms-pattern"));
+        let spacing = f.pattern.spacing();
+        let angle = match f.pattern {
+            FillPattern::Lines { angle, .. }
+            | FillPattern::Cross { angle, .. }
+            | FillPattern::Waves { angle, .. } => angle,
+            FillPattern::Rings { .. } => std::f64::consts::FRAC_PI_4,
+        };
+        let choices = [
+            FillPattern::Lines { angle, spacing },
+            FillPattern::Cross {
+                angle,
+                spacing,
+                between: std::f64::consts::FRAC_PI_2,
+            },
+            FillPattern::Rings { spacing },
+            FillPattern::Waves {
+                angle,
+                spacing,
+                wavelength: 4.0 * spacing,
+                height: spacing,
+            },
+        ];
+        let combo = ComboBox::from_id_salt("pattern-kind")
+            .selected_text(kind_name(ui, &f.pattern))
+            .show_ui(ui, |ui| {
+                for choice in choices {
+                    let same =
+                        std::mem::discriminant(&choice) == std::mem::discriminant(&f.pattern);
+                    let label = kind_name(ui, &choice);
+                    if ui.selectable_label(same, label).clicked() && !same {
+                        f.pattern = choice;
+                    }
+                }
+            });
+        flag(combo.response, ui, "pattern");
+        ui.end_row();
+        let spacing_row = |ui: &mut egui::Ui, spacing: &mut f64| {
+            ui.label(t!(ui, "forms-pattern-spacing"))
+                .on_hover_text(t!(ui, "forms-pattern-spacing-hover"));
+            flag(ui.add(mm(spacing)), ui, "pattern.spacing");
+            ui.end_row();
+        };
+        let angle_row = |ui: &mut egui::Ui, angle: &mut f64| {
+            ui.label(t!(ui, "forms-pattern-angle"))
+                .on_hover_text(t!(ui, "forms-pattern-angle-hover"));
+            degrees_field(ui, angle, "pattern.angle");
+            ui.end_row();
+        };
+        match &mut f.pattern {
+            FillPattern::Lines { angle, spacing } => {
+                angle_row(ui, angle);
+                spacing_row(ui, spacing);
+            }
+            FillPattern::Cross {
+                angle,
+                spacing,
+                between,
+            } => {
+                angle_row(ui, angle);
+                spacing_row(ui, spacing);
+                ui.label(t!(ui, "forms-pattern-between"))
+                    .on_hover_text(t!(ui, "forms-pattern-between-hover"));
+                degrees_field(ui, between, "pattern.between");
+                ui.end_row();
+            }
+            FillPattern::Rings { spacing } => spacing_row(ui, spacing),
+            FillPattern::Waves {
+                angle,
+                spacing,
+                wavelength,
+                height,
+            } => {
+                angle_row(ui, angle);
+                spacing_row(ui, spacing);
+                ui.label(t!(ui, "forms-pattern-wavelength"));
+                flag(ui.add(mm(wavelength)), ui, "pattern.wavelength");
+                ui.end_row();
+                ui.label(t!(ui, "forms-pattern-height"))
+                    .on_hover_text(t!(ui, "forms-pattern-height-hover"));
+                flag(ui.add(mm(height)), ui, "pattern.height");
+                ui.end_row();
+            }
+        }
+        ui.label(t!(ui, "forms-pattern-inside"))
+            .on_hover_text(t!(ui, "forms-pattern-inside-hover"));
+        let tick = ui.checkbox(&mut f.inside, "");
+        flag(tick, ui, "inside");
+        ui.end_row();
+    });
+    let depth = f.end_depth - f.start_depth;
+    let cut = t!(ui, "forms-pattern-cut-summary", depth = with_unit(depth));
+    folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+        ui.label(t!(ui, "forms-start-depth"));
+        flag(ui.add(mm(&mut f.start_depth)), ui, "start_depth");
+        ui.end_row();
+        ui.label(t!(ui, "forms-flute-depth"));
+        flag(ui.add(mm(&mut f.end_depth)), ui, "end_depth");
+        ui.end_row();
+        if let Some(tool) = tool
+            && let Some(width) = chipload_toolpath::flute::flute_width_mm(tool, depth)
+        {
+            ui.label("");
+            ui.label(t!(
+                ui,
+                "forms-pattern-width-value",
+                width = with_unit(width)
+            ));
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-step-down"));
+        let mut passes = f.step_down.is_some();
+        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
+        if flag(tick, ui, "step_down").changed() {
+            f.step_down = passes.then(|| (depth / 2.0).max(0.1));
+        }
+        ui.end_row();
+        if let Some(step) = &mut f.step_down {
+            ui.label(format!("  {}", t!(ui, "forms-step-down")));
+            flag(ui.add(mm(step)), ui, "step_down");
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-pattern-ends"))
+            .on_hover_text(t!(ui, "forms-pattern-ends-hover"));
+        flag(ui.add(mm(&mut f.ramp)), ui, "ramp");
         ui.end_row();
     });
     feeds_section(ui, &mut f.feed, &mut f.plunge_feed, tool);

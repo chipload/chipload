@@ -143,3 +143,5 @@ browser-smoothing = Utjämning
 browser-smoothing-hover = En utjämningspass: efter grovpassen följs ytan en gång och stegen som grovpassen lämnar i sluttningar tas bort
 browser-flute = Räffla
 browser-flute-hover = Ett spår längs de valda öppna formerna som rampar in och ut vid ändarna
+browser-pattern = Mönster
+browser-pattern-hover = Spår i linjer, korsrutor, ringar eller vågor graverade inuti de valda slutna formerna

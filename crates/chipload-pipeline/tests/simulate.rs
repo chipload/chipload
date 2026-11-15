@@ -569,3 +569,32 @@ fn a_flute_follows_its_profile_along_the_shape() {
     // The ends: a ball's tip at the surface marks nothing.
     assert!(at(&sim, 40.05, 39.95) > -0.06);
 }
+
+/// A fill pattern (docs/specs/fill-pattern.md §10): the golden rings, 3 mm apart in a circle
+/// of radius 30 about (230, 160), 0.5 mm deep with a 90° V-bit with a 0.2 mm flat (grooves
+/// 1.2 mm wide): cut on each ring, untouched between them and at the edge.
+#[test]
+fn pattern_rings_are_grooves_one_spacing_apart() {
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v36/pattern.chipload");
+    let mut job = chipload_job::load_job(&path).unwrap();
+    job.operations.retain(|op| op.name() == "Rings");
+    let contours = chipload_pipeline::load_drawing(&job).unwrap().contours;
+    let plan = chipload_toolpath::plan_job(&job, &contours).unwrap();
+    let sim = simulate(
+        &job,
+        &plan.program,
+        &plan.groups,
+        Some(CELL),
+        &Cancel::new(),
+    )
+    .unwrap();
+    let near = |x: f64, want: f64| {
+        let got = at(&sim, x, 160.05);
+        assert!((got - want).abs() < 0.06, "at x {x}: {got}, not {want}");
+    };
+    near(257.05, -0.5);
+    near(254.05, -0.5);
+    near(255.55, 0.0);
+    near(259.95, 0.0);
+}
