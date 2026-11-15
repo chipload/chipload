@@ -283,3 +283,17 @@ proptest! {
         }
     }
 }
+
+#[test]
+fn thin_stock_is_judged_by_the_depth_cut_not_the_cone() {
+    // The 90° bit's cone reaches 6.35 mm; a 4 mm strip only needs 2 mm. On 3 mm stock
+    // (0.5 mm allowance) it is planned; a 20 mm strip, 6.35 mm deep, is refused.
+    let mut thin = job(json!({}));
+    thin.setups[0].stock.thickness = 3.0;
+    let strip = vec![common::rect(1, 0.0, 0.0, 60.0, 4.0)];
+    assert!(job_problems(&thin).is_empty(), "{:?}", job_problems(&thin));
+    plan_job(&thin, &strip).unwrap_or_else(|e| panic!("{e}"));
+    let wide = vec![common::rect(1, 0.0, 0.0, 60.0, 20.0)];
+    let err = plan_job(&thin, &wide).unwrap_err().to_string();
+    assert!(err.contains("below the stock"), "{err}");
+}

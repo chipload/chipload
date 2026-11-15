@@ -210,6 +210,7 @@ toolpath-prism-flat-top = Kontur #{ $contour } ist breiter, als die V-Fräse ein
 toolpath-prism-close = der Graben von Kontur #{ $contour } reicht bis Kontur #{ $other }: deren Kante geht dort { $deeper } tiefer; eine größte Tiefe setzen oder die Formen weiter auseinander legen
 toolpath-prism-vbit = ein Prisma braucht eine V-Fräse, Werkzeug { $tool } ist vom Typ { $type }
 toolpath-prism-deepest = die tiefste Kante liegt bei { $depth }
+toolpath-prism-below-stock = die tiefste Kante liegt bei { $depth }, unter dem Rohteil ({ $thickness }): eine größte Tiefe setzen oder eine V-Fräse mit größerem Winkel nehmen
 toolpath-moulding-no-width = das Profil hat keine Breite quer zum Pfad
 toolpath-moulding-too-wide = das Profil ist { $width } breit: höchstens { $most }
 toolpath-moulding-profile-shape = Form S{ $shape } kann kein Profil sein: sie fehlt oder ist geschlossen (eine offene Form als Querschnitt zeichnen)

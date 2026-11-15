@@ -211,6 +211,7 @@ toolpath-prism-flat-top = contour #{ $contour } is wider than the V-bit can ridg
 toolpath-prism-close = contour #{ $contour }'s trench reaches contour #{ $other }: its edge goes { $deeper } deeper there; set a max depth, or space the shapes further apart
 toolpath-prism-vbit = a prism needs a V-bit, tool { $tool } is a { $type }
 toolpath-prism-deepest = the deepest edge is { $depth }
+toolpath-prism-below-stock = the deepest edge is { $depth }, below the stock ({ $thickness }): set a max depth, or use a wider-angled V-bit
 toolpath-moulding-no-width = the profile has no width across the path
 toolpath-moulding-too-wide = the profile is { $width } wide: at most { $most }
 toolpath-moulding-profile-shape = shape S{ $shape } can’t be a profile: it is missing or closed (draw an open shape for the section)

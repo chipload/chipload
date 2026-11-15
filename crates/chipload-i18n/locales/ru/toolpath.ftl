@@ -141,6 +141,7 @@ toolpath-prism-flat-top = контур №{ $contour } шире, чем V-фре
 toolpath-prism-close = канавка контура №{ $contour } доходит до контура №{ $other }: его край там на { $deeper } глубже; задайте наибольшую глубину или раздвиньте фигуры
 toolpath-prism-vbit = для призмы нужна V-фреза, инструмент { $tool } — { $type }
 toolpath-prism-deepest = самый глубокий край — { $depth }
+toolpath-prism-below-stock = самый глубокий край — { $depth }, ниже заготовки ({ $thickness }): задайте наибольшую глубину или возьмите V-фрезу с большим углом
 toolpath-moulding-no-width = у профиля нет ширины поперёк пути
 toolpath-moulding-too-wide = ширина профиля { $width }: не больше { $most }
 toolpath-moulding-profile-shape = фигура S{ $shape } не может быть профилем: её нет или она замкнута (нарисуйте открытую фигуру как сечение)

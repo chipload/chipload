@@ -210,6 +210,7 @@ toolpath-prism-flat-top = el contorno #{ $contour } es más ancho de lo que la f
 toolpath-prism-close = la zanja del contorno #{ $contour } llega al contorno #{ $other }: su borde baja ahí { $deeper } más; fija una profundidad máxima o separa más las formas
 toolpath-prism-vbit = un prisma necesita una fresa en V, la herramienta { $tool } es { $type }
 toolpath-prism-deepest = el borde más profundo está a { $depth }
+toolpath-prism-below-stock = el borde más profundo está a { $depth }, por debajo del material ({ $thickness }): fija una profundidad máxima o usa una fresa en V de ángulo más abierto
 toolpath-moulding-no-width = el perfil no tiene anchura a través de la trayectoria
 toolpath-moulding-too-wide = el perfil mide { $width } de ancho: como mucho { $most }
 toolpath-moulding-profile-shape = la forma S{ $shape } no puede ser un perfil: falta o está cerrada (dibuja una forma abierta para la sección)

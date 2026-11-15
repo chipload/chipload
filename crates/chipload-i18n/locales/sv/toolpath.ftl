@@ -210,6 +210,7 @@ toolpath-prism-flat-top = kontur #{ $contour } är bredare än V-fräsen kan for
 toolpath-prism-close = diket runt kontur #{ $contour } når kontur #{ $other }: dess kant går { $deeper } djupare där; sätt ett största djup eller lägg formerna längre isär
 toolpath-prism-vbit = ett prisma kräver en V-fräs, verktyg { $tool } är av typen { $type }
 toolpath-prism-deepest = den djupaste kanten ligger på { $depth }
+toolpath-prism-below-stock = den djupaste kanten ligger på { $depth }, under ämnet ({ $thickness }): sätt ett största djup eller använd en V-fräs med större vinkel
 toolpath-moulding-no-width = profilen har ingen bredd tvärs banan
 toolpath-moulding-too-wide = profilen är { $width } bred: högst { $most }
 toolpath-moulding-profile-shape = form S{ $shape } kan inte vara en profil: den saknas eller är sluten (rita en öppen form som tvärsnitt)

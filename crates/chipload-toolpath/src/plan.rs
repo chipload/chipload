@@ -1665,6 +1665,21 @@ fn plan_prism_op(
         .iter()
         .map(|n| labelled_note(ctx.label_message, n.clone()))
         .collect();
+    // How deep it goes, below the stock only within its allowance.
+    let as_op = Operation::Prism(op.clone());
+    let stock = ctx
+        .job
+        .setup_of(&as_op)
+        .map_or(ctx.job.stock(), |s| &s.stock);
+    let bottom = op.start_depth + found.deepest;
+    if bottom > stock.thickness + stock.max_overcut + DEPTH_TOL_MM {
+        return Err(job_error(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-prism-below-stock")
+                .arg("depth", Value::mm(bottom))
+                .arg("thickness", Value::mm(stock.thickness)),
+        )));
+    }
     let mut facts = Vec::new();
     let mut moves = Vec::new();
     let mut end = start;
@@ -2937,7 +2952,9 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
         let below = end_depth - job.drill_point(op) - thickness;
         // Dowel holes go deeper, for the pins (docs/specs/two-sided.md §6).
         let allowed = op.allowed_below(stock.max_overcut);
-        if below > allowed + DEPTH_TOL_MM {
+        // A prism's end depth is only how deep its bit could go; how deep it does go follows
+        // from its shapes and is checked when it is planned (docs/specs/prism.md §4).
+        if below > allowed + DEPTH_TOL_MM && !matches!(op, Operation::Prism(_)) {
             problems.push(labelled(
                 at("end_depth"),
                 &label_message,

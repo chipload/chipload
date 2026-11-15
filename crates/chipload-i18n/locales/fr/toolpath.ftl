@@ -210,6 +210,7 @@ toolpath-prism-flat-top = le contour #{ $contour } est plus large que la fraise 
 toolpath-prism-close = la tranchée du contour #{ $contour } atteint le contour #{ $other } : son bord y descend de { $deeper } de plus ; fixez une profondeur maximale ou écartez les formes
 toolpath-prism-vbit = un prisme demande une fraise en V, l’outil { $tool } est { $type }
 toolpath-prism-deepest = le bord le plus profond est à { $depth }
+toolpath-prism-below-stock = le bord le plus profond est à { $depth }, sous le brut ({ $thickness }) : fixez une profondeur maximale ou prenez une fraise en V plus ouverte
 toolpath-moulding-no-width = le profil n’a pas de largeur en travers du tracé
 toolpath-moulding-too-wide = le profil fait { $width } de large : au plus { $most }
 toolpath-moulding-profile-shape = la forme S{ $shape } ne peut pas servir de profil : absente ou fermée (dessinez une forme ouverte pour la section)
