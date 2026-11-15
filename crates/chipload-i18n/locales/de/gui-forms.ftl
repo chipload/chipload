@@ -718,3 +718,4 @@ forms-moulding-taper-length = Auslauflänge
 forms-moulding-cut-summary = Zustellung { $stepover }, { $direction }
 forms-moulding-stepover = Zustellung
 forms-moulding-stepover-hover = Der Abstand der Bahnen quer zum Profil: kleiner, glatter
+forms-moulding-preview-hover = Das Profil im Schnitt, maßstäblich: das Brett mit dem eingefrästen Profil, der Pfad an der Marke

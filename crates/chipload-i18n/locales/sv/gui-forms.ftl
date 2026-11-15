@@ -717,3 +717,4 @@ forms-moulding-taper-length = Avklingningslängd
 forms-moulding-cut-summary = stegning { $stepover }, { $direction }
 forms-moulding-stepover = Stegning
 forms-moulding-stepover-hover = Avståndet mellan banorna tvärs profilen: mindre ger slätare
+forms-moulding-preview-hover = Profilen i genomskärning, skalenlig: brädan med profilen fräst i sig, banan vid markeringen

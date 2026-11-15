@@ -276,8 +276,8 @@ Smaller follow-ups noted along the way, not in the order above:
      2026-11-15** (docs/specs/prism.md; see *In main*).
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
      across the path; check against ADR 0031 first, as it is a surface of its own. **Spec draft
-     2026-11-15** (docs/specs/moulding.md), **built 2026-11-15** (see *In main*). Left: the form's
-     section drawing, a moulding step in the relief wizard (the user's idea), different
+     2026-11-15** (docs/specs/moulding.md), **built 2026-11-15** (see *In main*). The form shows the
+     section (added on request). Left: a moulding step in the relief wizard (the user's idea), different
      ends per end, linking passes.
   5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
      the setup sheet saying how far; probably built on setups.

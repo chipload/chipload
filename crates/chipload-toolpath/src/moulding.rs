@@ -50,6 +50,14 @@ impl Section {
     /// The section of `profile`; a drawn shape's from the project `job` (construction
     /// geometry, never among the contours cut).
     pub fn of(profile: &MouldProfile, job: &chipload_job::Job) -> Result<Section, ToolpathError> {
+        match *profile {
+            MouldProfile::Shape { shape } => drawn_section(shape, job),
+            _ => Section::built_in(profile),
+        }
+    }
+
+    /// The section of a built-in profile, from its size alone (a drawn one is refused here).
+    fn built_in(profile: &MouldProfile) -> Result<Section, ToolpathError> {
         let curve: Box<dyn Fn(f64) -> f64> = match *profile {
             MouldProfile::Cove { radius: r } => {
                 Box::new(move |d: f64| -(r * r - d * d).max(0.0).sqrt())
@@ -77,7 +85,11 @@ impl Section {
             MouldProfile::Flute { radius: r } => {
                 Box::new(move |d: f64| -(r * r - (d - r) * (d - r)).max(0.0).sqrt())
             }
-            MouldProfile::Shape { shape } => return drawn_section(shape, job),
+            MouldProfile::Shape { shape } => {
+                return Err(ToolpathError::Job(
+                    Message::new("toolpath-moulding-profile-shape").arg("shape", shape),
+                ));
+            }
         };
         let width = match *profile {
             MouldProfile::Cove { radius } | MouldProfile::Roundover { radius } => radius,
@@ -177,6 +189,11 @@ fn drawn_section(shape: u64, job: &chipload_job::Job) -> Result<Section, Toolpat
         .find(|s| s.id == shape)
         .map(|s| s.segments().iter().map(|seg| seg.to_primitive()).collect())
         .unwrap_or_default();
+    section_of_parts(shape, &parts)
+}
+
+/// The section a drawn shape's lines and arcs `parts` make (shape `shape`, for the error).
+fn section_of_parts(shape: u64, parts: &[Primitive]) -> Result<Section, ToolpathError> {
     let closed = match (parts.first(), parts.last()) {
         (Some(first), Some(last)) => distance(first.start(), last.end()) <= CHAIN_TOL_MM,
         _ => false,
@@ -225,6 +242,44 @@ fn drawn_section(shape: u64, job: &chipload_job::Job) -> Result<Section, Toolpat
         }
     };
     Section::sampled(x1 - x0, &curve)
+}
+
+/// The most points a preview of a section is drawn with.
+const PREVIEW_POINTS: usize = 160;
+
+/// The section of `profile` as points (distance across, Z below the surface) for a small
+/// drawing of it in the window (docs/specs/moulding.md §9): a drawn profile's from its
+/// shape among `contours` (the drawing's, construction geometry included). None when it
+/// can't be read (a drawn shape missing or closed).
+pub fn preview(profile: &MouldProfile, contours: &[Contour]) -> Option<Vec<Point>> {
+    let section = match *profile {
+        MouldProfile::Shape { shape } => {
+            let parts: Vec<Primitive> = contours
+                .iter()
+                .filter(|c| !c.closed)
+                .flat_map(|c| &c.parts)
+                .filter(|p| p.segment.shape == Some(shape))
+                .map(|p| p.segment.prim)
+                .collect();
+            section_of_parts(shape, &parts).ok()?
+        }
+        _ => Section::built_in(profile).ok()?,
+    };
+    let n = section.z.len();
+    let stride = n.div_ceil(PREVIEW_POINTS).max(1);
+    let mut points: Vec<Point> = (0..n)
+        .step_by(stride)
+        .map(|i| {
+            (
+                (i as f64 * SECTION_STEP_MM).min(section.width),
+                section.z[i],
+            )
+        })
+        .collect();
+    if let Some(&last) = section.z.last() {
+        points.push((section.width, last));
+    }
+    Some(points)
 }
 
 /// Everything the passes need.

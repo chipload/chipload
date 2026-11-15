@@ -557,7 +557,7 @@ pub(in crate::app) fn op_form(
         Operation::Flute(f) => flute_sections(ui, f, op_tool),
         Operation::Pattern(f) => pattern_sections(ui, f, op_tool),
         Operation::Prism(f) => prism_sections(ui, index, f, op_tool),
-        Operation::Moulding(m) => moulding_sections(ui, index, m, op_tool),
+        Operation::Moulding(m) => moulding_sections(ui, index, m, op_tool, contours),
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
@@ -1803,6 +1803,7 @@ fn moulding_sections(
     index: usize,
     m: &mut chipload_job::MouldingOp,
     tool: Option<&Tool>,
+    contours: &[Contour],
 ) {
     use chipload_job::{MouldEnds, MouldProfile, MouldSide, RampShape};
     let units = crate::units::display(ui.ctx());
@@ -1843,14 +1844,24 @@ fn moulding_sections(
             MouldProfile::Flute { radius: size },
             MouldProfile::Shape { shape: 0 },
         ];
+        let current = m.profile;
         let combo = ComboBox::from_id_salt(("moulding-profile", index))
             .selected_text(profile_name(ui, &m.profile))
             .show_ui(ui, |ui| {
                 for choice in choices {
                     let same =
                         std::mem::discriminant(&choice) == std::mem::discriminant(&m.profile);
+                    // A drawn profile shows the shape it has, if it has one.
+                    let shown = if same { current } else { choice };
                     let label = profile_name(ui, &choice);
-                    if ui.selectable_label(same, label).clicked() && !same {
+                    let clicked = ui
+                        .horizontal(|ui| {
+                            let points = chipload_toolpath::moulding::preview(&shown, contours);
+                            section_picture(ui, points.as_deref(), egui::vec2(44.0, 22.0));
+                            ui.selectable_label(same, label).clicked()
+                        })
+                        .inner;
+                    if clicked && !same {
                         m.profile = choice;
                     }
                 }
@@ -1882,6 +1893,13 @@ fn moulding_sections(
                 ui.end_row();
             }
         }
+        // The section, true to scale: the board with the profile cut into it, the path at
+        // the left.
+        ui.label("");
+        let points = chipload_toolpath::moulding::preview(&m.profile, contours);
+        section_picture(ui, points.as_deref(), egui::vec2(170.0, 72.0))
+            .on_hover_text(t!(ui, "forms-moulding-preview-hover"));
+        ui.end_row();
         ui.label(t!(ui, "forms-side"))
             .on_hover_text(t!(ui, "forms-moulding-side-hover"));
         let combo = ComboBox::from_id_salt(("moulding-side", index))
@@ -1983,6 +2001,87 @@ fn moulding_sections(
         ui.end_row();
     });
     feeds_section(ui, &mut m.feed, &mut m.plunge_feed, tool);
+}
+
+/// A small drawing of a moulding's section (docs/specs/moulding.md §9), `size` on screen:
+/// the board in section with the profile cut into it, true to scale, a mark at the path.
+/// `points` are (distance across, Z) from `moulding::preview`; None draws a question mark
+/// (a drawn profile that can't be read).
+fn section_picture(
+    ui: &mut egui::Ui,
+    points: Option<&[(f64, f64)]>,
+    size: egui::Vec2,
+) -> egui::Response {
+    let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
+    let painter = ui.painter_at(rect);
+    let visuals = ui.visuals();
+    // A wood tone, light or dark with the theme, so the board reads against the panel.
+    let board = if visuals.dark_mode {
+        egui::Color32::from_rgb(0x8a, 0x6a, 0x45)
+    } else {
+        egui::Color32::from_rgb(0xd9, 0xbc, 0x8c)
+    };
+    let line = visuals.text_color();
+    let Some(points) = points.filter(|p| p.len() >= 2) else {
+        painter.text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            "?",
+            egui::FontId::proportional(size.y * 0.6),
+            line,
+        );
+        return response;
+    };
+    let width = points.iter().map(|p| p.0).fold(0.0, f64::max).max(0.1);
+    let depth = -points.iter().map(|p| p.1).fold(0.0, f64::min);
+    // Room either side of the profile and below its deepest point, in mm.
+    let pad = 0.25 * width.max(depth);
+    let (x0, x1) = (-pad, width + pad);
+    let (z0, z1) = (-(depth + pad), pad * 0.5);
+    let margin = 2.0;
+    let scale = ((rect.width() - 2.0 * margin) as f64 / (x1 - x0))
+        .min((rect.height() - 2.0 * margin) as f64 / (z1 - z0));
+    let to_screen = |x: f64, z: f64| {
+        egui::pos2(
+            rect.left() + margin + ((x - x0) * scale) as f32,
+            rect.top() + margin + ((z1 - z) * scale) as f32,
+        )
+    };
+    // The board: an edge profile (below the surface at the path) has waste before the path.
+    let edge = points.first().is_some_and(|p| p.1 < -0.01);
+    let mut outline: Vec<egui::Pos2> = Vec::new();
+    if edge {
+        outline.push(to_screen(0.0, z0));
+    } else {
+        outline.push(to_screen(x0, z0));
+        outline.push(to_screen(x0, 0.0));
+    }
+    outline.extend(points.iter().map(|&(x, z)| to_screen(x, z)));
+    outline.push(to_screen(width, 0.0));
+    outline.push(to_screen(x1, 0.0));
+    outline.push(to_screen(x1, z0));
+    // Filled in vertical strips under the outline (the profile can be concave), as one mesh
+    // so no seams show between them.
+    let bottom = to_screen(0.0, z0).y;
+    let mut mesh = egui::epaint::Mesh::default();
+    for w in outline.windows(2) {
+        let (a, b) = (w[0], w[1]);
+        let base = mesh.vertices.len() as u32;
+        for p in [a, b, egui::pos2(b.x, bottom), egui::pos2(a.x, bottom)] {
+            mesh.colored_vertex(p, board);
+        }
+        mesh.add_triangle(base, base + 1, base + 2);
+        mesh.add_triangle(base, base + 2, base + 3);
+    }
+    painter.add(egui::Shape::mesh(mesh));
+    painter.add(egui::Shape::line(outline, egui::Stroke::new(1.2, line)));
+    // The path: a short tick at the surface.
+    let at = to_screen(0.0, 0.0);
+    painter.line_segment(
+        [at + egui::vec2(0.0, -4.0), at + egui::vec2(0.0, 2.0)],
+        egui::Stroke::new(1.5, visuals.selection.stroke.color),
+    );
+    response
 }
 
 /// A prism's sections (docs/specs/prism.md §5): start depth, max depth (with how deep the

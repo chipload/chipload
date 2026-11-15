@@ -58,3 +58,45 @@ fn the_form_shows_the_profile_side_and_ends() {
     harness.get_by_label("  Taper length");
     harness.get_by_label("Stepover");
 }
+
+/// The moulding form with its section and the profile list open, rendered (wgpu) to
+/// `CHIPLOAD_SHOTS_OUT`; looked at by hand.
+#[test]
+#[ignore = "a picture for looking at the moulding form"]
+fn moulding_picture() {
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(1400.0, 900.0))
+        .wgpu()
+        .build_eframe(|cc| {
+            cc.egui_ctx.set_fonts(crate::fonts::ui_fonts());
+            crate::style::apply(&cc.egui_ctx);
+            open_sections(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v36/moulding.chipload")));
+            app.focus = Focus::Op(0);
+            app
+        });
+    harness.run_steps(4);
+    let out = std::env::var("CHIPLOAD_SHOTS_OUT").unwrap_or_else(|_| ".".into());
+    harness
+        .render()
+        .unwrap()
+        .save(std::path::PathBuf::from(&out).join("moulding-form.png"))
+        .unwrap();
+    harness
+        .query_all_by_role(egui::accesskit::Role::ComboBox)
+        .find(|n| {
+            egui_kittest::kittest::NodeT::accesskit_node(n)
+                .value()
+                .as_deref()
+                == Some("ogee")
+        })
+        .expect("the profile list")
+        .click();
+    harness.run_steps(4);
+    harness
+        .render()
+        .unwrap()
+        .save(std::path::PathBuf::from(out).join("moulding.png"))
+        .unwrap();
+}

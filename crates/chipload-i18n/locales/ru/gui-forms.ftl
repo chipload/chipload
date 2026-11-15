@@ -652,3 +652,4 @@ forms-moulding-taper-length = Длина схода
 forms-moulding-cut-summary = шаг { $stepover }, { $direction }
 forms-moulding-stepover = Шаг
 forms-moulding-stepover-hover = Расстояние между проходами поперёк профиля: меньше — глаже
+forms-moulding-preview-hover = Профиль в разрезе, в масштабе: доска с вырезанным профилем, путь у отметки

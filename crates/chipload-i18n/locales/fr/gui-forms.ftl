@@ -717,3 +717,4 @@ forms-moulding-taper-length = Longueur d’effilement
 forms-moulding-cut-summary = pas { $stepover }, { $direction }
 forms-moulding-stepover = Pas
 forms-moulding-stepover-hover = La distance entre passes en travers du profil : plus petite, plus lisse
+forms-moulding-preview-hover = Le profil en coupe, à l’échelle : la planche avec le profil taillé, le tracé au repère

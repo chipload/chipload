@@ -717,3 +717,4 @@ forms-moulding-taper-length = Lunghezza della rampa
 forms-moulding-cut-summary = passo { $stepover }, { $direction }
 forms-moulding-stepover = Passo
 forms-moulding-stepover-hover = La distanza tra le passate attraverso il profilo: più piccola, più liscia
+forms-moulding-preview-hover = Il profilo in sezione, in scala: la tavola con il profilo tagliato, il percorso al segno

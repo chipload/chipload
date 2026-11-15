@@ -720,3 +720,4 @@ forms-moulding-taper-length = Taper length
 forms-moulding-cut-summary = stepover { $stepover }, { $direction }
 forms-moulding-stepover = Stepover
 forms-moulding-stepover-hover = The distance between passes across the profile: smaller, smoother
+forms-moulding-preview-hover = The profile in section, true to scale: the board with the profile cut into it, the path at the mark

@@ -282,8 +282,12 @@ bottom: it stays 0.4 mm above it".
 - **Command line:** `--radius`, `--width`, `--depth` (an ogee's), `--side` (now also left
   and right) and `--ramp-shape` (a taper's) are shared with the other operations; new
   are `--profile`, `--profile-shape`, `--ends`, `--taper` and `--stepover`.
-- **Left for later:** the form's small drawing of the section with the passes (the form
-  has the settings and a shape id for a drawn profile), different ends at each end, a
+- **The section in the form** (the user, 2026-11-15: "a preview of the profile next to it
+  and not just the name"): the profile list shows each profile's section beside its name,
+  and the chosen one is drawn true to scale under its settings (`moulding::preview` gives
+  the points; the form only paints them: the board in a wood tone with the profile cut in,
+  a tick at the path). A drawn profile that can't be read shows a question mark.
+- **Left for later:** the tool's passes in that drawing, different ends at each end, a
   profile that changes along the path, linking passes without lifting, and a moulding
   step in the relief wizard (the user's idea, 2026-11-15).
 - **Code:** `chipload-toolpath/src/moulding.rs` (section, drop, passes, ends, moves),

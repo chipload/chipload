@@ -311,3 +311,34 @@ proptest! {
         prop_assert!(touches, "never touches");
     }
 }
+
+#[test]
+fn the_preview_is_the_section_for_the_window() {
+    use chipload_toolpath::moulding::preview;
+    // A cove: from its full depth at the path up to the surface its radius across.
+    let cove = preview(&MouldProfile::Cove { radius: 6.0 }, &[]).unwrap();
+    assert!(
+        cove.len() <= 200,
+        "a few points for a small drawing: {}",
+        cove.len()
+    );
+    let (first, last) = (cove[0], cove[cove.len() - 1]);
+    assert!(
+        (first.0 - 0.0).abs() < 1e-9 && (first.1 + 6.0).abs() < TOL,
+        "{first:?}"
+    );
+    assert!(
+        (last.0 - 6.0).abs() < 1e-9 && last.1.abs() < TOL,
+        "{last:?}"
+    );
+    // A drawn profile from its shape among the drawing's contours; missing: none.
+    let mut drawn = open(1, &[(0.0, 10.0, 0.0), (4.0, 6.0, 0.0), (8.0, 10.0, 0.0)]);
+    for part in &mut drawn.parts {
+        part.segment.shape = Some(7);
+    }
+    let v = preview(&MouldProfile::Shape { shape: 7 }, &[drawn]).unwrap();
+    let deepest = v.iter().map(|p| p.1).fold(0.0, f64::min);
+    // Sampled for a small drawing: its tip within a few samples.
+    assert!((deepest + 4.0).abs() < 0.1, "{deepest}");
+    assert!(preview(&MouldProfile::Shape { shape: 8 }, &[]).is_none());
+}
