@@ -147,3 +147,5 @@ browser-pattern = Motivo
 browser-pattern-hover = Scanalature a linee, tratteggio incrociato, anelli o onde incise dentro le forme chiuse selezionate
 browser-prism = Prisma
 browser-prism-hover = Le forme chiuse selezionate restano in piedi come tetti, con uno spigolo vivo al centro, tagliate con una fresa a V
+browser-moulding = Modanatura
+browser-moulding-hover = Un profilo (guscio, gola, tondino…) fatto scorrere lungo i percorsi selezionati

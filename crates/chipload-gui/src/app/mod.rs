@@ -2081,7 +2081,13 @@ impl ChiploadApp {
         edit.job
             .operations
             .iter()
-            .filter(|e| e.enabled() && matches!(e, Operation::Path(_) | Operation::Flute(_)))
+            .filter(|e| {
+                e.enabled()
+                    && matches!(
+                        e,
+                        Operation::Path(_) | Operation::Flute(_) | Operation::Moulding(_)
+                    )
+            })
             .filter_map(|e| {
                 let select = e.select().resolved(&edit.job.drawing);
                 select_paths(&self.contours, &select, &e.label_message(0)).ok()

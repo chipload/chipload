@@ -636,6 +636,7 @@ pipeline-name-chamfer = Chamfer { $number }
 pipeline-name-flute = Flute { $number }
 pipeline-name-pattern = Pattern { $number }
 pipeline-name-prism = Prism { $number }
+pipeline-name-moulding = Moulding { $number }
 pipeline-name-holes = Holes { $number }
 pipeline-name-surface = Surface { $number }
 pipeline-name-relief = Relief { $number }

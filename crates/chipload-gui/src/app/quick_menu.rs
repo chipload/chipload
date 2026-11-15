@@ -14,7 +14,7 @@ use super::styles::StyleAct;
 use super::*;
 
 /// The kinds the menu offers, with their keys, in its order.
-pub(super) const KINDS: [(Key, &str, OpKind); 9] = [
+pub(super) const KINDS: [(Key, &str, OpKind); 10] = [
     (Key::P, "P", OpKind::Profile),
     (Key::K, "K", OpKind::Pocket),
     (Key::H, "H", OpKind::Holes),
@@ -24,6 +24,7 @@ pub(super) const KINDS: [(Key, &str, OpKind); 9] = [
     (Key::L, "L", OpKind::Flute),
     (Key::E, "E", OpKind::Pattern),
     (Key::R, "R", OpKind::Prism),
+    (Key::M, "M", OpKind::Moulding),
 ];
 
 /// The digit keys of the first nine styles.

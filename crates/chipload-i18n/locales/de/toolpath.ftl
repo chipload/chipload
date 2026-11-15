@@ -94,6 +94,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [flute] Kannelur
     [pattern] Muster
     [prism] Prisma
+    [moulding] Profilfräsung
     [holes] Bohrungen
     [relief] Relief
    *[surface] Planfräsen
@@ -209,6 +210,16 @@ toolpath-prism-flat-top = Kontur #{ $contour } ist breiter, als die V-Fräse ein
 toolpath-prism-close = der Graben von Kontur #{ $contour } reicht bis Kontur #{ $other }: deren Kante geht dort { $deeper } tiefer; eine größte Tiefe setzen oder die Formen weiter auseinander legen
 toolpath-prism-vbit = ein Prisma braucht eine V-Fräse, Werkzeug { $tool } ist vom Typ { $type }
 toolpath-prism-deepest = die tiefste Kante liegt bei { $depth }
+toolpath-moulding-no-width = das Profil hat keine Breite quer zum Pfad
+toolpath-moulding-too-wide = das Profil ist { $width } breit: höchstens { $most }
+toolpath-moulding-profile-shape = Form S{ $shape } kann kein Profil sein: sie fehlt oder ist geschlossen (eine offene Form als Querschnitt zeichnen)
+toolpath-moulding-stepover = die Zustellung ({ $stepover }) ist breiter als das Werkzeug ({ $diameter })
+toolpath-moulding-bridge = das Werkzeug erreicht das Profil nicht überall (eine Rundung enger als das Werkzeug): es bleibt dort bis zu { $gap } darüber
+toolpath-moulding-offset = Versatz des Profilpfads
+toolpath-moulding-offset-near = ein Versatz des Profilpfads kam dem Pfad bei ({ $x }, { $y }) zu nahe
+toolpath-moulding-tool = eine Profilfräsung braucht einen Kugelfräser oder Schaftfräser, Werkzeug { $tool } ist vom Typ { $type }
+toolpath-moulding-below-stock = das Profil geht { $depth } tief, unter das Rohteil ({ $thickness })
+toolpath-moulding-deepest = das Profil ist { $depth } tief, in { $passes } Bahnen
 toolpath-path-past-cone = ein V-Fräser schneidet nicht tiefer als sein Kegel, hier { $deepest }, sonst reibt sein Schaft; dieser Pfad geht { $depth } tief: flacher machen oder einen Schaftfräser nehmen
 toolpath-chamfer-past-cone = Werkzeug { $tool } macht eine Fase höchstens { $widest } breit, sonst reibt sein Schaft; diese ist { $width }: schmaler machen oder einen breiteren V-Fräser nehmen
 toolpath-holes-not-circles = { $count ->

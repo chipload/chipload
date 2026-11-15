@@ -53,6 +53,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [flute] каннелюра
     [pattern] узор
     [prism] призма
+    [moulding] профиль
     [holes] отверстия
     [relief] рельеф
    *[surface] торцевание
@@ -140,6 +141,16 @@ toolpath-prism-flat-top = контур №{ $contour } шире, чем V-фре
 toolpath-prism-close = канавка контура №{ $contour } доходит до контура №{ $other }: его край там на { $deeper } глубже; задайте наибольшую глубину или раздвиньте фигуры
 toolpath-prism-vbit = для призмы нужна V-фреза, инструмент { $tool } — { $type }
 toolpath-prism-deepest = самый глубокий край — { $depth }
+toolpath-moulding-no-width = у профиля нет ширины поперёк пути
+toolpath-moulding-too-wide = ширина профиля { $width }: не больше { $most }
+toolpath-moulding-profile-shape = фигура S{ $shape } не может быть профилем: её нет или она замкнута (нарисуйте открытую фигуру как сечение)
+toolpath-moulding-stepover = шаг ({ $stepover }) больше инструмента ({ $diameter })
+toolpath-moulding-bridge = инструмент не достаёт весь профиль (изгиб уже инструмента): там остаётся до { $gap } над ним
+toolpath-moulding-offset = смещение пути профиля
+toolpath-moulding-offset-near = смещение пути профиля подошло слишком близко к пути в ({ $x }, { $y })
+toolpath-moulding-tool = для профиля нужна сферическая или концевая фреза, инструмент { $tool } — { $type }
+toolpath-moulding-below-stock = профиль уходит на { $depth }, ниже заготовки ({ $thickness })
+toolpath-moulding-deepest = глубина профиля { $depth }, { $passes } проходов
 toolpath-path-past-cone = V-образная фреза режет не глубже своего конуса, здесь { $deepest }, иначе хвостовик будет тереться; эта линия идёт на { $depth }: уменьшите глубину или возьмите концевую фрезу
 toolpath-chamfer-past-cone = инструмент { $tool } делает фаску шириной не более { $widest }, иначе хвостовик будет тереться; эта — { $width }: уменьшите ширину или возьмите более широкую V-образную фрезу
 toolpath-holes-not-circles = Пропущено { $count ->

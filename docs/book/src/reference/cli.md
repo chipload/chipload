@@ -195,7 +195,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `pattern` (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): --pattern, --spacing, --angle), `prism` (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): --max-depth), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `pattern` (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): --pattern, --spacing, --angle), `prism` (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): --max-depth), `moulding` (A profile swept along paths (docs/specs/moulding.md): --profile, --radius, --side, --ends), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
 | `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
@@ -207,7 +207,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--depth <DEPTH>` | End depth instead of the default (not with --through) |
 | `--through` | Cut through the stock, below it by the setup's max overcut. |
 | `--width <WIDTH>` | A chamfer's width at the surface, in place of 1 mm; its depth follows from the V-bit's angle (docs/specs/chamfer.md) |
-| `--side <SIDE>` | A chamfer's waste side, in place of the one the shapes tell: around them (outside) or within them (inside) One of: `outside`, `inside`. |
+| `--side <SIDE>` | A chamfer's waste side, in place of the one the shapes tell: around them (outside) or within them (inside) One of: `outside`, `inside`, `left` (A moulding's profile left of an open path as drawn), `right` (A moulding's profile right of an open path as drawn). |
 | `--ramp <RAMP>` | A flute's ramp at both ends, in place of 20 mm (docs/specs/fluting.md); a pattern's grooves' ramps, in place of square ends (docs/specs/fill-pattern.md) |
 | `--ramp-start <RAMP_START>` | A flute's ramp at the shapes' first ends (as drawn); 0 for a square end. |
 | `--ramp-end <RAMP_END>` | A flute's ramp at the shapes' last ends; 0 for a square end. |
@@ -225,6 +225,11 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--pitch <PITCH>` | A sunburst's strokes' distance round its rings; a stroke's length if left out. |
 | `--clip` | Stroke patterns: strokes the shape's edge cuts are clipped, not left out. |
 | `--max-depth <MAX_DEPTH>` | A prism's deepest edge, for bevelled shapes with a flat top; left out, as deep as the shapes and the V-bit's cone need (docs/specs/prism.md) |
+| `--profile <PROFILE>` | A moulding's profile, in place of a 6 mm cove: with --radius, or --width and --depth for an ogee, or --profile-shape for a drawn one. One of: `cove`, `roundover`, `ogee`, `bead`, `flute`, `shape`. |
+| `--profile-shape <PROFILE_SHAPE>` | The drawn open shape a moulding's profile is read from (its id) |
+| `--ends <ENDS>` | How a moulding ends on open paths: square, round, or taper (--taper long) One of: `square`, `round`, `taper`. |
+| `--taper <TAPER>` | A tapered end's length; 30 mm if left out. |
+| `--stepover <STEPOVER>` | The distance between a moulding's passes across its profile. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op tool`

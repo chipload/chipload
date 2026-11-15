@@ -3153,3 +3153,102 @@ fn op_add_pattern_takes_stroke_patterns_fluted() {
     assert!(out.status.success(), "{}", text(&out.stderr));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn op_add_moulding_takes_a_profile_side_and_ends() {
+    // docs/specs/moulding.md §9: the golden moulding project's drawing and tools.
+    let dir = temp_dir("op-add-moulding");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let mut json: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(corpus("jobs/v36/moulding.chipload")).unwrap(),
+    )
+    .unwrap();
+    json["operations"] = serde_json::json!([]);
+    std::fs::write(&project, json.to_string()).unwrap();
+    // The rectangle: outside, a 6 mm cove by default, the ball nose (tool 1).
+    let out = chipload(&["op", "add", p, "moulding", "--shapes", "1"]);
+    let said = text(&out.stdout);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        said.contains("cove R 6, outside") && said.contains("tool 1"),
+        "{said}"
+    );
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "moulding",
+        "--shapes",
+        "2",
+        "--profile",
+        "ogee",
+        "--width",
+        "10",
+        "--depth",
+        "5",
+        "--side",
+        "right",
+        "--ends",
+        "taper",
+        "--taper",
+        "20",
+        "--ramp-shape",
+        "curved",
+    ]);
+    let said = text(&out.stdout);
+    assert!(
+        said.contains("ogee 10 × 5 mm, right, ends tapered over 20 mm"),
+        "{said}"
+    );
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "moulding",
+        "--shapes",
+        "4",
+        "--profile-shape",
+        "5",
+        "--ends",
+        "round",
+    ]);
+    assert!(
+        text(&out.stdout).contains("drawn profile S5") && text(&out.stdout).contains("round ends"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", p, "operations.1.ends.length"]);
+    assert_eq!(text(&out.stdout).trim(), "20.0");
+    let out = chipload(&["run", p, "-o", path(&dir.join("out.nc")), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    for args in [
+        &["op", "add", p, "moulding", "--shapes", "1", "--through"][..],
+        &["op", "add", p, "moulding", "--shapes", "1", "--width", "3"],
+        &[
+            "op",
+            "add",
+            p,
+            "moulding",
+            "--shapes",
+            "1",
+            "--profile",
+            "shape",
+        ],
+        &[
+            "op",
+            "add",
+            p,
+            "pocket",
+            "--shapes",
+            "1",
+            "--profile",
+            "cove",
+        ],
+        &["op", "add", p, "chamfer", "--shapes", "1", "--side", "left"],
+    ] {
+        let out = chipload(args);
+        assert!(!out.status.success(), "{args:?}");
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}

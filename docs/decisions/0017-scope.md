@@ -41,6 +41,9 @@ the project file are first-class) as well as in the GUI.
     the rules below, not refused for being 3D. **Why:** machining driven by a 3D model is
     better done by CAM software connected directly to the 3D CAD program; Chipload is for
     CNC routing, where the shapes come mostly from 2D drawings.
+  - 2026-11-15, in by that rule: **moulding** (docs/specs/moulding.md), a 2D profile swept
+    along a 2D path, in passes along it, with 3D moves where the depth changes along the
+    path (tapered ends).
 - **Machine control**, sending G-code, jogging, probing: senders (UGS, CNCjs, gSender) and
   the controller's own software.
 - **CAD** beyond the few shapes Chipload draws (circle, rectangle, polyline): any CAD

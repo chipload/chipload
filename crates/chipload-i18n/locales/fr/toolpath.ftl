@@ -94,6 +94,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [flute] cannelure
     [pattern] motif
     [prism] prisme
+    [moulding] moulure
     [holes] perçages
     [relief] relief
    *[surface] surfaçage
@@ -209,6 +210,16 @@ toolpath-prism-flat-top = le contour #{ $contour } est plus large que la fraise 
 toolpath-prism-close = la tranchée du contour #{ $contour } atteint le contour #{ $other } : son bord y descend de { $deeper } de plus ; fixez une profondeur maximale ou écartez les formes
 toolpath-prism-vbit = un prisme demande une fraise en V, l’outil { $tool } est { $type }
 toolpath-prism-deepest = le bord le plus profond est à { $depth }
+toolpath-moulding-no-width = le profil n’a pas de largeur en travers du tracé
+toolpath-moulding-too-wide = le profil fait { $width } de large : au plus { $most }
+toolpath-moulding-profile-shape = la forme S{ $shape } ne peut pas servir de profil : absente ou fermée (dessinez une forme ouverte pour la section)
+toolpath-moulding-stepover = le pas ({ $stepover }) est plus large que l’outil ({ $diameter })
+toolpath-moulding-bridge = l’outil n’atteint pas tout le profil (une courbe plus serrée que lui) : il reste jusqu’à { $gap } au-dessus
+toolpath-moulding-offset = décalage du tracé de la moulure
+toolpath-moulding-offset-near = un décalage du tracé de la moulure est trop près du tracé en ({ $x }, { $y })
+toolpath-moulding-tool = une moulure demande une fraise hémisphérique ou une fraise droite, l’outil { $tool } est { $type }
+toolpath-moulding-below-stock = le profil descend à { $depth }, sous le brut ({ $thickness })
+toolpath-moulding-deepest = le profil fait { $depth } de profondeur, en { $passes } passes
 toolpath-path-past-cone = une fraise en V ne coupe pas plus profond que son cône, ici { $deepest }, sinon sa queue frotte ; ce tracé descend à { $depth } : réduisez la profondeur ou prenez une fraise droite
 toolpath-chamfer-past-cone = l'outil { $tool } fait un chanfrein d'au plus { $widest }, sinon sa queue frotte ; celui-ci fait { $width } : réduisez-le ou prenez une fraise en V plus large
 toolpath-holes-not-circles = { $count ->

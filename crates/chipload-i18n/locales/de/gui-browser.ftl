@@ -147,3 +147,5 @@ browser-pattern = Muster
 browser-pattern-hover = Nuten aus Linien, Kreuzschraffur, Ringen oder Wellen innerhalb der gewählten geschlossenen Formen
 browser-prism = Prisma
 browser-prism-hover = Die gewählten geschlossenen Formen bleiben als Dächer stehen, mit einem scharfen Grat in der Mitte, geschnitten mit einer V-Fräse
+browser-moulding = Profilfräsung
+browser-moulding-hover = Ein Profil (Hohlkehle, Karnies, Rundstab…) entlang der gewählten Pfade

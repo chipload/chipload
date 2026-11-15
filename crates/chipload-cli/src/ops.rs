@@ -7,6 +7,8 @@ use chipload_job::{Operation, RampShape};
 use clap::Args;
 
 #[derive(Subcommand)]
+// Parsed once from the command line: the size of `Add`'s many options doesn't matter.
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum OpAction {
     /// Add an operation for shapes of the drawing, with the defaults the app gives
     /// (docs/specs/styles.md §2): a profile of outlines goes outside and through with tabs,
@@ -55,6 +57,8 @@ pub(crate) enum OpAction {
         /// as the shapes and the V-bit's cone need (docs/specs/prism.md).
         #[arg(long, value_parser = crate::lengths::length)]
         max_depth: Option<f64>,
+        #[command(flatten)]
+        moulding: MouldingArgs,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -483,6 +487,9 @@ pub(crate) enum KindArg {
     /// Closed shapes left standing as roofs with a ridge along their centre
     /// (docs/specs/prism.md): --max-depth.
     Prism,
+    /// A profile swept along paths (docs/specs/moulding.md): --profile, --radius, --side,
+    /// --ends.
+    Moulding,
     Holes,
     /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
     /// model within its outline.
@@ -533,6 +540,18 @@ pub(crate) struct PatternArgs {
 }
 
 impl PatternArgs {
+    /// Whether --radius was given, for a moulding's profile.
+    fn radius_given(&self) -> Option<f64> {
+        self.radius
+    }
+
+    /// Whether a pattern option other than --radius was given.
+    fn given_except_radius(&self) -> bool {
+        let mut rest = *self;
+        rest.radius = None;
+        rest.given()
+    }
+
     fn given(&self) -> bool {
         self.pattern_kind.is_some()
             || self.spacing.is_some()
@@ -663,7 +682,125 @@ pub(crate) enum RampShapeArg {
 pub(crate) enum EdgeSideArg {
     Outside,
     Inside,
+    /// A moulding's profile left of an open path as drawn.
+    Left,
+    /// A moulding's profile right of an open path as drawn.
+    Right,
 }
+
+/// A moulding's settings for `op add moulding` (docs/specs/moulding.md §9).
+#[derive(Args, Clone, Copy)]
+pub(crate) struct MouldingArgs {
+    /// A moulding's profile, in place of a 6 mm cove: with --radius, or --width and --depth
+    /// for an ogee, or --profile-shape for a drawn one.
+    #[arg(long)]
+    profile: Option<ProfileArg>,
+    /// The drawn open shape a moulding's profile is read from (its id).
+    #[arg(long)]
+    profile_shape: Option<u64>,
+    /// How a moulding ends on open paths: square, round, or taper (--taper long).
+    #[arg(long)]
+    ends: Option<EndsArg>,
+    /// A tapered end's length; 30 mm if left out.
+    #[arg(long, value_parser = crate::lengths::length)]
+    taper: Option<f64>,
+    /// The distance between a moulding's passes across its profile.
+    #[arg(long, value_parser = crate::lengths::length)]
+    stepover: Option<f64>,
+}
+
+/// A moulding's profile, for `op add moulding --profile`.
+#[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum ProfileArg {
+    Cove,
+    Roundover,
+    Ogee,
+    Bead,
+    Flute,
+    Shape,
+}
+
+/// A moulding's ends, for `op add moulding --ends`.
+#[derive(Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub(crate) enum EndsArg {
+    Square,
+    Round,
+    Taper,
+}
+
+/// A tapered end's length when none is given, mm.
+const DEFAULT_TAPER_MM: f64 = 30.0;
+
+impl MouldingArgs {
+    fn given(&self) -> bool {
+        self.profile.is_some()
+            || self.profile_shape.is_some()
+            || self.ends.is_some()
+            || self.taper.is_some()
+            || self.stepover.is_some()
+    }
+
+    /// The settings over a new moulding's defaults; `given` is (--radius, --width, --depth).
+    fn apply(
+        &self,
+        op: &mut chipload_job::MouldingOp,
+        (radius, width, depth): (Option<f64>, Option<f64>, Option<f64>),
+        side: Option<EdgeSideArg>,
+        shape: Option<RampShapeArg>,
+    ) -> Result<(), String> {
+        use chipload_job::{MouldEnds, MouldProfile, MouldSide};
+        let kind = match (self.profile, self.profile_shape) {
+            (Some(kind), _) => kind,
+            (None, Some(_)) => ProfileArg::Shape,
+            (None, None) => ProfileArg::Cove,
+        };
+        let r = radius.unwrap_or(crate::ops::DEFAULT_MOULDING_RADIUS_MM);
+        op.profile = match kind {
+            ProfileArg::Cove => MouldProfile::Cove { radius: r },
+            ProfileArg::Roundover => MouldProfile::Roundover { radius: r },
+            ProfileArg::Bead => MouldProfile::Bead { radius: r },
+            ProfileArg::Flute => MouldProfile::Flute { radius: r },
+            ProfileArg::Ogee => MouldProfile::Ogee {
+                width: width.unwrap_or(2.0 * r),
+                depth: depth.unwrap_or(r),
+            },
+            ProfileArg::Shape => match self.profile_shape {
+                Some(shape) => MouldProfile::Shape { shape },
+                None => return Err("--profile shape needs --profile-shape ID".to_string()),
+            },
+        };
+        if kind != ProfileArg::Ogee && (width.is_some() || depth.is_some()) {
+            return Err("--width and --depth are for an ogee's profile".to_string());
+        }
+        match side {
+            Some(EdgeSideArg::Left) => op.side = MouldSide::Left,
+            Some(EdgeSideArg::Right) => op.side = MouldSide::Right,
+            Some(EdgeSideArg::Inside) => op.side = MouldSide::Inside,
+            Some(EdgeSideArg::Outside) => op.side = MouldSide::Outside,
+            None => {}
+        }
+        let shape = match shape {
+            Some(RampShapeArg::Curved) => RampShape::Curved,
+            _ => RampShape::Straight,
+        };
+        op.ends = match (self.ends, self.taper) {
+            (Some(EndsArg::Square), _) => MouldEnds::Square,
+            (Some(EndsArg::Round), _) => MouldEnds::Round,
+            (Some(EndsArg::Taper), length) | (None, length @ Some(_)) => MouldEnds::Taper {
+                length: length.unwrap_or(DEFAULT_TAPER_MM),
+                shape,
+            },
+            (None, None) => op.ends,
+        };
+        if let Some(stepover) = self.stepover {
+            op.stepover = stepover;
+        }
+        Ok(())
+    }
+}
+
+/// A new moulding's radius when --radius isn't given, mm (as the app's default).
+const DEFAULT_MOULDING_RADIUS_MM: f64 = chipload_pipeline::new_ops::DEFAULT_MOULDING_RADIUS;
 
 impl KindArg {
     fn kind(self) -> chipload_pipeline::new_ops::OpKind {
@@ -677,6 +814,7 @@ impl KindArg {
             KindArg::Flute => OpKind::Flute,
             KindArg::Pattern => OpKind::Pattern,
             KindArg::Prism => OpKind::Prism,
+            KindArg::Moulding => OpKind::Moulding,
             KindArg::Holes => OpKind::Holes,
             KindArg::Relief => OpKind::Relief,
         }
@@ -800,8 +938,29 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ramp_shape,
             pattern,
             max_depth,
+            moulding,
             output,
         } => {
+            let moulds = matches!(kind, KindArg::Moulding);
+            if !moulds && moulding.given() {
+                return out.fail(
+                    "--profile, --profile-shape, --ends, --taper and --stepover are for a moulding",
+                );
+            }
+            if moulds && through {
+                return out.fail("a moulding's depth follows from its profile");
+            }
+            if moulds
+                && (pattern.given_except_radius()
+                    || ramp.is_some()
+                    || ramp_start.is_some()
+                    || ramp_end.is_some())
+            {
+                return out.fail(
+                    "a moulding takes --profile with --radius (or --width and --depth for an \
+                     ogee), --side, --ends, --taper, --ramp-shape and --stepover",
+                );
+            }
             let prism = matches!(kind, KindArg::Prism);
             if !prism && max_depth.is_some() {
                 return out.fail("--max-depth is for a prism");
@@ -815,13 +974,16 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             let flute = matches!(kind, KindArg::Flute);
             let filled = matches!(kind, KindArg::Pattern);
             let ramps = [ramp_start, ramp_end];
-            if !flute && (ramps.iter().any(Option::is_some) || ramp_shape.is_some()) {
-                return out.fail("--ramp-start, --ramp-end and --ramp-shape are for a flute");
+            if !flute && ramps.iter().any(Option::is_some) {
+                return out.fail("--ramp-start and --ramp-end are for a flute");
+            }
+            if !flute && !moulds && ramp_shape.is_some() {
+                return out.fail("--ramp-shape is for a flute or a moulding's taper");
             }
             if !flute && !filled && ramp.is_some() {
                 return out.fail("--ramp is for a flute or a pattern");
             }
-            if !filled && pattern.given() {
+            if !filled && !moulds && pattern.given() {
                 return out.fail(
                     "--pattern, --spacing, --angle, --between, --wavelength, --height and \
                      --on-line are for a pattern",
@@ -831,8 +993,11 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 return out.fail("a flute or a pattern never goes through: give --depth");
             }
             let chamfer = matches!(kind, KindArg::Chamfer);
-            if !chamfer && (width.is_some() || side.is_some()) {
-                return out.fail("--width and --side are for a chamfer");
+            if !chamfer && !moulds && (width.is_some() || side.is_some()) {
+                return out.fail("--width and --side are for a chamfer or a moulding");
+            }
+            if chamfer && matches!(side, Some(EdgeSideArg::Left | EdgeSideArg::Right)) {
+                return out.fail("a chamfer's side is outside or inside");
             }
             if chamfer && (depth.is_some() || through) {
                 return out.fail(
@@ -879,6 +1044,12 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                 if let Operation::Prism(f) = &mut new.op {
                     f.max_depth = max_depth;
                 }
+                if let Operation::Moulding(m) = &mut new.op {
+                    let given = (pattern.radius_given(), width, depth);
+                    if let Err(why) = moulding.apply(m, given, side, ramp_shape) {
+                        return out.fail(why);
+                    }
+                }
                 if let Operation::Pattern(f) = &mut new.op {
                     // The pattern first: a stroke pattern takes fluted ends unless --ramp
                     // says otherwise.
@@ -907,7 +1078,7 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
                     match side {
                         Some(EdgeSideArg::Outside) => c.side = chipload_job::EdgeSide::Outside,
                         Some(EdgeSideArg::Inside) => c.side = chipload_job::EdgeSide::Inside,
-                        None => {}
+                        Some(EdgeSideArg::Left | EdgeSideArg::Right) | None => {}
                     }
                 }
             }
@@ -1785,6 +1956,38 @@ pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
                 chipload_job::EdgeSide::Inside => "inside",
             }
         ));
+    }
+    if let Operation::Moulding(m) = op {
+        let mm = chipload_core::text::mm;
+        parts.push(match m.profile {
+            chipload_job::MouldProfile::Cove { radius } => format!("cove R {}", mm(radius)),
+            chipload_job::MouldProfile::Roundover { radius } => {
+                format!("round-over R {}", mm(radius))
+            }
+            chipload_job::MouldProfile::Ogee { width, depth } => {
+                format!("ogee {} × {} mm", mm(width), mm(depth))
+            }
+            chipload_job::MouldProfile::Bead { radius } => format!("bead R {}", mm(radius)),
+            chipload_job::MouldProfile::Flute { radius } => format!("flute R {}", mm(radius)),
+            chipload_job::MouldProfile::Shape { shape } => format!("drawn profile S{shape}"),
+        });
+        parts.push(
+            match m.side {
+                chipload_job::MouldSide::Left => "left",
+                chipload_job::MouldSide::Right => "right",
+                chipload_job::MouldSide::Inside => "inside",
+                chipload_job::MouldSide::Outside => "outside",
+            }
+            .to_string(),
+        );
+        match m.ends {
+            chipload_job::MouldEnds::Square => {}
+            chipload_job::MouldEnds::Round => parts.push("round ends".to_string()),
+            chipload_job::MouldEnds::Taper { length, .. } => {
+                parts.push(format!("ends tapered over {} mm", mm(length)));
+            }
+        }
+        parts.push(format!("stepover {} mm", mm(m.stepover)));
     }
     if let Operation::Prism(f) = op {
         parts.push(match f.max_depth {

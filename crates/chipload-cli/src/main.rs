@@ -99,6 +99,8 @@ struct Cli {
 }
 
 #[derive(Subcommand)]
+// Parsed once from the command line: the size of `op add`'s many options doesn't matter.
+#[allow(clippy::large_enum_variant)]
 enum Command {
     /// Dump units, entities, contours and issues of a DXF, an SVG or a project.
     Inspect {

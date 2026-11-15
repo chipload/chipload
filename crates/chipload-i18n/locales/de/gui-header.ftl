@@ -123,3 +123,4 @@ header-polar-array-hover = Kopien der gewählten gezeichneten Formen um einen Mi
 header-new-flute = Neue Kannelur
 header-new-pattern = Neues Muster
 header-new-prism = Neues Prisma
+header-new-moulding = Neue Profilfräsung

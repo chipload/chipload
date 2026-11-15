@@ -1,10 +1,8 @@
 # Moulding: a profile swept along a path
 
-Status: **draft 2026-11-15, revised** for review (fourteen decisions, §13). Parked by the
-user earlier the same day, taken up again with their word on scope (ADR 0017, 2026-11-15):
-the 3D line is about taking depths from a 3D model, not about 3D-shaped cuts, so 3D moves
-are used where they make the moulding more powerful (§2, §4). TODO *Ideas*, "More 2.5D
-toolpaths", item 4.
+Status: **approved 2026-11-15**, every decision as recommended ("go"), after the revision
+for the user's word on scope (ADR 0017, 2026-11-15); **built 2026-11-15**, both steps of
+§12. What building settled is in §14. TODO *Ideas*, "More 2.5D toolpaths", item 4.
 
 ## 1. What it is for
 
@@ -259,3 +257,36 @@ bottom: it stays 0.4 mm above it".
 13. **The S menu's M, the Operation menu, not the ribbon** (§9). *Recommended.*
 14. **Defaults** (§9): the first ball nose, a 6 mm cove, side from the shapes, stepover from
     the tool. *Recommended.*
+
+## 14. As built
+
+- **The drop** reads the section on its own sample points (every 0.01 mm), straight
+  between them, and also at the tool's rim on both sides, so a steep wall between two
+  samples still stops the tool. A proptest checks that the dropped tool touches the
+  section and is nowhere below it, for random profiles, balls and end mills.
+- **Before the path** (*d* < 0) is waste when the section starts below the surface (cove,
+  ogee, round-over at an edge) and untouched when it starts at the surface (bead, flute, a
+  drawn band): decision 4 made exact.
+- **A drawn profile** is read from the shape in the project (`Shape::segments`), not from
+  the contours cut: construction geometry never reaches them. A missing or closed shape is
+  refused, and the shape is never a path of its own moulding. Its depth, unknown to the
+  project's checks, is checked against the stock when planning.
+- **Open offsets** are cavalier's open-polyline offsets (positive to the left), verified
+  as no nearer the path than the pass's distance; round ends add a quarter arc of the
+  pass's radius about each end point, recorded as arcs.
+- **Tapers** take the flute's ramp (`flute::Profile`) along the path; each pass point's
+  place along the path is its nearest point on it. Points are added along a taper until Z
+  is within the arc tolerance, and dropped again on straight runs where Z changes evenly.
+- **The bridge note** compares the tool's reach (passes at every 0.05 mm) with the section
+  and speaks from 0.05 mm: a bead's sides or a drawn wall give it, as they should.
+- **Command line:** `--radius`, `--width`, `--depth` (an ogee's), `--side` (now also left
+  and right) and `--ramp-shape` (a taper's) are shared with the other operations; new
+  are `--profile`, `--profile-shape`, `--ends`, `--taper` and `--stepover`.
+- **Left for later:** the form's small drawing of the section with the passes (the form
+  has the settings and a shape id for a drawn profile), different ends at each end, a
+  profile that changes along the path, linking passes without lifting, and a moulding
+  step in the relief wizard (the user's idea, 2026-11-15).
+- **Code:** `chipload-toolpath/src/moulding.rs` (section, drop, passes, ends, moves),
+  `plan_moulding_op`; `MouldingOp`, `MouldProfile`, `MouldSide`, `MouldEnds` in the job
+  model; `OpKind::Moulding`; `op add moulding`; the form's `moulding_sections`;
+  `Icon::Moulding`.

@@ -48,6 +48,7 @@
 - [Flute](operations/flute.md)
 - [Pattern](operations/pattern.md)
 - [Prism](operations/prism.md)
+- [Moulding](operations/moulding.md)
 - [Holes](operations/holes.md)
 - [Surface](operations/surface.md)
 - [Relief](operations/relief.md)

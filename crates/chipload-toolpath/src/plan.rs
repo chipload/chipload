@@ -12,9 +12,9 @@ use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     ChamferOp, ClearingPass, Copies, CopyOrder, Entry, FillPattern, FluteOp, HoleMethod, HolesOp,
-    Job, MAX_LEAD_DIAMETERS, Mirror, Note, OpRef, Operation, Part, PathOp, PatternOp, PocketOp,
-    PrismOp, Problem, ProfileOp, RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType,
-    VcarveOp, ZZero, rest_refusal,
+    Job, MAX_LEAD_DIAMETERS, Mirror, MouldingOp, Note, OpRef, Operation, Part, PathOp, PatternOp,
+    PocketOp, PrismOp, Problem, ProfileOp, RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool,
+    ToolType, VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
@@ -38,7 +38,8 @@ use crate::pocket::{
     Choices, PocketCut, PocketPiece, PocketRequest, PocketRing, plan_pocket, pocket_moves,
 };
 use crate::profile::{
-    PathRing, contour_context, contour_note, labelled_note, pass_depths, plan_profile,
+    PathRing, contour_context, contour_note, cut_clockwise, labelled_note, pass_depths,
+    plan_profile,
 };
 use crate::rim::{Area, Ramp};
 use crate::select::{Selection, select_contours, select_paths};
@@ -358,7 +359,10 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
         let label_message = job.label_message(at);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Flute(_) | Operation::Holes(_) => select_paths(
+            Operation::Path(_)
+            | Operation::Flute(_)
+            | Operation::Moulding(_)
+            | Operation::Holes(_) => select_paths(
                 contours,
                 &op.select().resolved(&job.drawing),
                 &label_message,
@@ -529,6 +533,8 @@ fn pass_heights(op: &Operation, tools: &[Tool], top_z: f64) -> Result<Vec<f64>, 
         },
         // Its passes follow from its deepest edge (docs/specs/prism.md §3).
         Operation::Prism(_) => Vec::new(),
+        // Its levels follow from the section (docs/specs/moulding.md §6).
+        Operation::Moulding(_) => Vec::new(),
         // The same (docs/specs/fill-pattern.md §4).
         Operation::Pattern(f) => match f.step_down {
             Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
@@ -647,6 +653,7 @@ fn plan_step(
         Operation::Chamfer(chamfer) => plan_chamfer_op(chamfer, &context, &shifted, position),
         Operation::Flute(flute) => plan_flute_op(flute, &context, &shifted, position),
         Operation::Prism(prism) => plan_prism_op(prism, &context, &shifted, position),
+        Operation::Moulding(moulding) => plan_moulding_op(moulding, &context, &shifted, position),
         Operation::Pattern(pattern) => {
             plan_pattern_op(pattern, &context, &shifted, position, shift)
         }
@@ -1525,6 +1532,109 @@ fn plan_flute_op(
         tab_centres: Vec::new(),
         floor_hint: None,
         facts: Vec::new(),
+    })
+}
+
+/// A moulding (docs/specs/moulding.md): the section from its profile (a drawn one from
+/// the project), passes along each path, in levels to its deepest.
+fn plan_moulding_op(
+    op: &MouldingOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let label = ctx.label_message;
+    let Some(cutter) = ctx.tool.cutter() else {
+        return Err(job_error(
+            Message::new("toolpath-relief-shape").arg("tool", ctx.tool.id),
+        ));
+    };
+    let section = crate::moulding::Section::of(&op.profile, ctx.job)
+        .map_err(|err| err.with_context(label.clone()))?;
+    // A drawn profile's depth is known only here: below the stock beyond its allowance is
+    // refused, as any operation's end depth is.
+    let as_op = Operation::Moulding(op.clone());
+    let stock = ctx
+        .job
+        .setup_of(&as_op)
+        .map_or(ctx.job.stock(), |s| &s.stock);
+    let bottom = op.start_depth + section.deepest();
+    if bottom > stock.thickness + stock.max_overcut + DEPTH_TOL_MM {
+        return Err(job_error(labelled_note(
+            label,
+            Message::new("toolpath-moulding-below-stock")
+                .arg("depth", Value::mm(bottom))
+                .arg("thickness", Value::mm(stock.thickness)),
+        )));
+    }
+    let mut arcs = ArcTable::default();
+    // The profile's own shape is never a path.
+    let paths: Vec<&Contour> = selection
+        .contours
+        .iter()
+        .copied()
+        .filter(|c| match op.profile {
+            chipload_job::MouldProfile::Shape { shape } => {
+                !c.parts.iter().any(|p| p.segment.shape == Some(shape))
+            }
+            _ => true,
+        })
+        .collect();
+    let (passes, found) = crate::moulding::passes(op, &section, cutter, &paths, &mut arcs)
+        .map_err(|err| err.with_context(label.clone()))?;
+    let notes = found.into_iter().map(|n| labelled_note(label, n)).collect();
+    let deepest = -passes.iter().map(|p| p.low).fold(0.0, f64::min);
+    let mut facts = Vec::new();
+    let mut moves = Vec::new();
+    let mut end = start;
+    if deepest > DEPTH_TOL_MM {
+        facts.push(labelled_note(
+            label,
+            Message::new("toolpath-moulding-deepest")
+                .arg("depth", Value::mm(section.deepest()))
+                .arg("passes", passes.len()),
+        ));
+        let levels = match op.step_down {
+            Some(step) => pass_depths(0.0, deepest, step)?,
+            None => vec![deepest],
+        };
+        let side = match op.side {
+            chipload_job::MouldSide::Inside | chipload_job::MouldSide::Left => Side::Inside,
+            chipload_job::MouldSide::Outside | chipload_job::MouldSide::Right => Side::Outside,
+        };
+        // Open paths: left of the path is as inside a counter-clockwise ring.
+        let ccw = !cut_clockwise(Side::Inside, op.direction, ctx.sense);
+        let forward = match op.side {
+            chipload_job::MouldSide::Left | chipload_job::MouldSide::Inside => ccw,
+            chipload_job::MouldSide::Right | chipload_job::MouldSide::Outside => !ccw,
+        };
+        let cut = crate::moulding::MouldCut {
+            cutter,
+            levels: &levels,
+            top_z: ctx.top_z,
+            safe_z: ctx.job.machine.safe_z,
+            feed: op.feed,
+            plunge_feed: op.plunge_feed,
+            forward,
+            clockwise: cut_clockwise(side, op.direction, ctx.sense),
+        };
+        ctx.cancel.check()?;
+        let (more, at) = crate::moulding::moulding_moves(&passes, &cut, &arcs);
+        moves = more;
+        end = at.unwrap_or(start);
+    }
+    Ok(Planned {
+        moves,
+        notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs,
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts,
     })
 }
 
@@ -2811,6 +2921,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Flute(f) => (f.feed, f.plunge_feed),
             Operation::Pattern(f) => (f.feed, f.plunge_feed),
             Operation::Prism(f) => (f.feed, f.plunge_feed),
+            Operation::Moulding(m) => (m.feed, m.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
             Operation::Surface(f) => (f.feed, f.plunge_feed),
             Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -3115,6 +3226,11 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 flute_tool_rule(tool, f).map_err(|e| (at("tool"), numbered.clone(), e)),
                 Vec::new(),
             ),
+            // A ball nose or an endmill of known shape (docs/specs/moulding.md §8).
+            Operation::Moulding(_) => (
+                moulding_tool_rule(tool).map_err(|e| (at("tool"), numbered.clone(), e)),
+                Vec::new(),
+            ),
             // A V-bit with its angle (docs/specs/prism.md §4).
             Operation::Prism(_) => (
                 prism_tool_rule(tool).map_err(|e| {
@@ -3223,6 +3339,7 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Flute(_) => "flute",
         Operation::Pattern(_) => "pattern",
         Operation::Prism(_) => "prism",
+        Operation::Moulding(_) => "moulding",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",
@@ -4144,6 +4261,22 @@ fn flute_tool_rule(tool: &Tool, op: &FluteOp) -> Result<bool, Message> {
             plunge_unknown(tool, Entry::Plunge {})
         }
         ToolType::Endmill => Ok(false),
+    }
+}
+
+/// A moulding takes a ball nose or an endmill whose shape is known (docs/specs/moulding.md
+/// §8); its passes go down straight at their start, so an endmill of unknown
+/// centre-cutting gets the plunge note.
+fn moulding_tool_rule(tool: &Tool) -> Result<bool, Message> {
+    match tool.kind {
+        ToolType::Vbit | ToolType::Drill => Err(Message::new("toolpath-moulding-tool")
+            .arg("tool", tool.id)
+            .arg("type", tool.kind.name_message())),
+        _ if tool.cutter().is_none() => {
+            Err(Message::new("toolpath-relief-shape").arg("tool", tool.id))
+        }
+        ToolType::Ballnose => Ok(false),
+        ToolType::Endmill => plunge_unknown(tool, Entry::Plunge {}),
     }
 }
 

@@ -94,6 +94,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [flute] flute
     [pattern] pattern
     [prism] prism
+    [moulding] moulding
     [holes] holes
     [relief] relief
    *[surface] surface
@@ -210,6 +211,16 @@ toolpath-prism-flat-top = contour #{ $contour } is wider than the V-bit can ridg
 toolpath-prism-close = contour #{ $contour }'s trench reaches contour #{ $other }: its edge goes { $deeper } deeper there; set a max depth, or space the shapes further apart
 toolpath-prism-vbit = a prism needs a V-bit, tool { $tool } is a { $type }
 toolpath-prism-deepest = the deepest edge is { $depth }
+toolpath-moulding-no-width = the profile has no width across the path
+toolpath-moulding-too-wide = the profile is { $width } wide: at most { $most }
+toolpath-moulding-profile-shape = shape S{ $shape } can’t be a profile: it is missing or closed (draw an open shape for the section)
+toolpath-moulding-stepover = the stepover ({ $stepover }) is wider than the tool ({ $diameter })
+toolpath-moulding-bridge = the tool can’t reach all of the profile (a curve tighter than the tool): it stays up to { $gap } above it there
+toolpath-moulding-offset = offsetting the moulding’s path
+toolpath-moulding-offset-near = an offset of the moulding’s path came too near the path at ({ $x }, { $y })
+toolpath-moulding-tool = a moulding needs a ball nose or an endmill, tool { $tool } is a { $type }
+toolpath-moulding-below-stock = the profile goes { $depth } deep, below the stock ({ $thickness })
+toolpath-moulding-deepest = the profile is { $depth } deep, in { $passes } passes
 toolpath-path-past-cone = a V-bit cuts no deeper than its cone, { $deepest } here, or its shank would rub; this path goes { $depth } deep: make it shallower, or use an end mill
 toolpath-chamfer-past-cone = tool { $tool } makes a chamfer at most { $widest } wide, or its shank would rub; this one is { $width }: make it narrower, or use a wider V-bit
 toolpath-holes-not-circles = skipped { $count ->

@@ -150,3 +150,5 @@ browser-pattern = Motif
 browser-pattern-hover = Des rainures en lignes, quadrillage, anneaux ou vagues gravées dans les formes fermées sélectionnées
 browser-prism = Prisme
 browser-prism-hover = Les formes fermées sélectionnées restent debout en toit, une arête vive au milieu, taillées avec une fraise en V
+browser-moulding = Moulure
+browser-moulding-hover = Un profil (gorge, doucine, baguette…) balayé le long des tracés sélectionnés

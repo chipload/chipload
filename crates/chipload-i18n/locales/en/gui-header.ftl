@@ -123,3 +123,4 @@ header-polar-array-hover = Copies of the selected drawn shapes round a centre yo
 header-new-flute = New Flute
 header-new-pattern = New Pattern
 header-new-prism = New Prism
+header-new-moulding = New Moulding

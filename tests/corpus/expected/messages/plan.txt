@@ -1015,6 +1015,33 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/moulding.chipload
+exit 0
+--- stdout
+warning: Operation 1 (Ogee round the panel): the tool can’t reach all of the profile (a curve tighter than the tool): it stays up to 0.29 mm above it there
+warning: Operation 2 (Bead): the tool can’t reach all of the profile (a curve tighter than the tool): it stays up to 3.99 mm above it there
+warning: Operation 3 (Tapered cove): the tool can’t reach all of the profile (a curve tighter than the tool): it stays up to 0.23 mm above it there
+warning: Operation 4 (Drawn profile, round ends): the tool can’t reach all of the profile (a curve tighter than the tool): it stays up to 3 mm above it there
+note: Operation 1 (Ogee round the panel): the profile is 6 mm deep, in 20 passes
+note: Operation 2 (Bead): the profile is 4 mm deep, in 14 passes
+note: Operation 3 (Tapered cove): the profile is 6 mm deep, in 10 passes
+note: Operation 4 (Drawn profile, round ends): the profile is 6 mm deep, in 19 passes
+Estimated time: 14 min 1 s (cutting 12 min 39 s, rapids 1 min 19 s, spindle 3 s)
+Cut outline: 271.793 × 167.400 mm (X 15.600 … 287.393, Y 27.000 … 194.400, the tool included): the smallest stock that holds the job.
+  Operation 1 (Ogee round the panel): 8 min 28 s; cutting 12.1 m, plunging 128 mm, rapids 734 mm, 35 lifts
+  Operation 2 (Bead): 1 min 31 s; cutting 1.7 m, plunging 18 mm, rapids 1.8 m, 14 lifts
+  Operation 3 (Tapered cove): 1 min 29 s; cutting 1.7 m, plunging 15 mm, rapids 1.7 m, 15 lifts
+  Operation 4 (Drawn profile, round ends): 2 min 30 s; cutting 2.9 m, plunging 52 mm, rapids 2.3 m, 19 lifts
+  In all: cutting 18.3 m, plunging 213 mm, rapids 6.6 m, 83 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Ogee round the panel): 0.042 mm/tooth
+  Operation 2 (Bead): 0.042 mm/tooth
+  Operation 3 (Tapered cove): 0.042 mm/tooth
+  Operation 4 (Drawn profile, round ends): 0.042 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/pattern.chipload
 exit 0
 --- stdout

@@ -147,3 +147,5 @@ browser-pattern = Patrón
 browser-pattern-hover = Ranuras de líneas, trama cruzada, anillos u ondas grabadas dentro de las formas cerradas seleccionadas
 browser-prism = Prisma
 browser-prism-hover = Las formas cerradas seleccionadas quedan en pie como tejados, con una arista viva en el centro, cortadas con una fresa en V
+browser-moulding = Moldura
+browser-moulding-hover = Un perfil (mediacaña, gola, junquillo…) barrido a lo largo de las trayectorias seleccionadas

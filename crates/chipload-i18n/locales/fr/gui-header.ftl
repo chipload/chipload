@@ -123,3 +123,4 @@ header-polar-array-hover = Copies des formes dessinées sélectionnées autour d
 header-new-flute = Nouvelle cannelure
 header-new-pattern = Nouveau motif
 header-new-prism = Nouveau prisme
+header-new-moulding = Nouvelle moulure

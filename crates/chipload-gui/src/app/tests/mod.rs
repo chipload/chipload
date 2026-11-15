@@ -33,6 +33,7 @@ mod live_problems;
 mod materials;
 mod menu_bar;
 mod models;
+mod moulding;
 mod narrow_panel;
 mod new_project;
 mod part_export;

@@ -542,6 +542,28 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Moulding(m) => {
+                    match m.profile {
+                        MouldProfile::Cove { radius }
+                        | MouldProfile::Roundover { radius }
+                        | MouldProfile::Bead { radius }
+                        | MouldProfile::Flute { radius } => positive(at("profile.radius"), radius),
+                        MouldProfile::Ogee { width, depth } => {
+                            positive(at("profile.width"), width);
+                            positive(at("profile.depth"), depth);
+                        }
+                        MouldProfile::Shape { .. } => {}
+                    }
+                    if let MouldEnds::Taper { length, .. } = m.ends {
+                        positive(at("ends.length"), length);
+                    }
+                    positive(at("stepover"), m.stepover);
+                    if let Some(step) = m.step_down {
+                        positive(at("step_down"), step);
+                    }
+                    positive(at("feed"), m.feed);
+                    positive(at("plunge_feed"), m.plunge_feed);
+                }
                 Operation::Prism(f) => {
                     if let Some(max) = f.max_depth {
                         positive(at("max_depth"), max);
@@ -711,7 +733,12 @@ impl Job {
                     Message::new("job-must-be-0-or-more")
                         .arg("got", Value::Length(start, Digits::Shortest)),
                 ));
-            } else if start >= end && !matches!(op, Operation::Chamfer(_) | Operation::Prism(_)) {
+            } else if start >= end
+                && !matches!(
+                    op,
+                    Operation::Chamfer(_) | Operation::Prism(_) | Operation::Moulding(_)
+                )
+            {
                 // A chamfer's depth follows from its width, checked above.
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),

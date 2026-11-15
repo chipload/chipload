@@ -33,6 +33,7 @@ pub fn kind_of(op: &Operation) -> OpKind {
         Operation::Flute(_) => OpKind::Flute,
         Operation::Pattern(_) => OpKind::Pattern,
         Operation::Prism(_) => OpKind::Prism,
+        Operation::Moulding(_) => OpKind::Moulding,
         Operation::Holes(_) => OpKind::Holes,
         Operation::Surface(_) => OpKind::Surface,
         Operation::Relief(_) => OpKind::Relief,

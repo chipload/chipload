@@ -94,6 +94,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [flute] räffla
     [pattern] mönster
     [prism] prisma
+    [moulding] profilering
     [holes] hål
     [relief] relief
    *[surface] planfräsning
@@ -209,6 +210,16 @@ toolpath-prism-flat-top = kontur #{ $contour } är bredare än V-fräsen kan for
 toolpath-prism-close = diket runt kontur #{ $contour } når kontur #{ $other }: dess kant går { $deeper } djupare där; sätt ett största djup eller lägg formerna längre isär
 toolpath-prism-vbit = ett prisma kräver en V-fräs, verktyg { $tool } är av typen { $type }
 toolpath-prism-deepest = den djupaste kanten ligger på { $depth }
+toolpath-moulding-no-width = profilen har ingen bredd tvärs banan
+toolpath-moulding-too-wide = profilen är { $width } bred: högst { $most }
+toolpath-moulding-profile-shape = form S{ $shape } kan inte vara en profil: den saknas eller är sluten (rita en öppen form som tvärsnitt)
+toolpath-moulding-stepover = stegningen ({ $stepover }) är bredare än verktyget ({ $diameter })
+toolpath-moulding-bridge = verktyget når inte hela profilen (en kurva snävare än verktyget): det blir upp till { $gap } över den där
+toolpath-moulding-offset = förskjutning av profilens bana
+toolpath-moulding-offset-near = en förskjutning av profilens bana kom för nära banan vid ({ $x }, { $y })
+toolpath-moulding-tool = en profilering kräver en kulfräs eller en pinnfräs, verktyg { $tool } är av typen { $type }
+toolpath-moulding-below-stock = profilen går { $depth } djupt, under ämnet ({ $thickness })
+toolpath-moulding-deepest = profilen är { $depth } djup, i { $passes } banor
 toolpath-path-past-cone = en V-fräs skär inte djupare än sin kon, här { $deepest }, annars skaver skaftet; den här banan går { $depth } djupt: gör den grundare eller använd en pinnfräs
 toolpath-chamfer-past-cone = verktyg { $tool } gör en fas som högst { $widest } bred, annars skaver skaftet; den här är { $width }: gör den smalare eller använd en bredare V-fräs
 toolpath-holes-not-circles = hoppade över { $count ->

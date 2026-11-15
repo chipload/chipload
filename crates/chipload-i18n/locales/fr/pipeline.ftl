@@ -643,6 +643,7 @@ pipeline-name-chamfer = Chanfrein { $number }
 pipeline-name-flute = Cannelure { $number }
 pipeline-name-pattern = Motif { $number }
 pipeline-name-prism = Prisme { $number }
+pipeline-name-moulding = Moulure { $number }
 pipeline-name-holes = Perçages { $number }
 pipeline-name-surface = Surfaçage { $number }
 pipeline-name-relief = Relief { $number }

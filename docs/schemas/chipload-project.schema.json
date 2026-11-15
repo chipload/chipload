@@ -1494,6 +1494,212 @@
       ],
       "type": "string"
     },
+    "MouldEnds": {
+      "description": "How a moulding ends on an open path (docs/specs/moulding.md §4).",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "The full profile right to the path's end.",
+          "properties": {
+            "kind": {
+              "const": "square",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The profile turned a quarter round the path's end point.",
+          "properties": {
+            "kind": {
+              "const": "round",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The section's depth fading to the surface over `length` mm at each end.",
+          "properties": {
+            "kind": {
+              "const": "taper",
+              "type": "string"
+            },
+            "length": {
+              "format": "double",
+              "type": "number"
+            },
+            "shape": {
+              "$ref": "#/$defs/RampShape"
+            }
+          },
+          "required": [
+            "kind",
+            "length",
+            "shape"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MouldProfile": {
+      "description": "A moulding's cross-section (docs/specs/moulding.md §3): a built-in shape by its size, or\na drawn open shape read as the section.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A concave quarter circle: `radius` deep at the path, at the surface `radius` in.",
+          "properties": {
+            "kind": {
+              "const": "cove",
+              "type": "string"
+            },
+            "radius": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "radius"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A convex quarter circle: the edge rounded, `radius` down at the path.",
+          "properties": {
+            "kind": {
+              "const": "roundover",
+              "type": "string"
+            },
+            "radius": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "radius"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An S, `width` wide and `depth` deep: a cove into a round-over, half the width each.",
+          "properties": {
+            "depth": {
+              "format": "double",
+              "type": "number"
+            },
+            "kind": {
+              "const": "ogee",
+              "type": "string"
+            },
+            "width": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "width",
+            "depth"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A raised half round `2 × radius` wide, its top at the surface.",
+          "properties": {
+            "kind": {
+              "const": "bead",
+              "type": "string"
+            },
+            "radius": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "radius"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A half-round groove `2 × radius` wide and `radius` deep.",
+          "properties": {
+            "kind": {
+              "const": "flute",
+              "type": "string"
+            },
+            "radius": {
+              "format": "double",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "radius"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A drawn open shape, by id: across to the right, up the page; its leftmost point at\nthe path, its highest point the surface.",
+          "properties": {
+            "kind": {
+              "const": "shape",
+              "type": "string"
+            },
+            "shape": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "shape"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "MouldSide": {
+      "description": "Which side of the path a moulding's profile lies on (docs/specs/moulding.md §4).",
+      "oneOf": [
+        {
+          "const": "left",
+          "description": "Left of an open path as drawn.",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "description": "Right of an open path as drawn.",
+          "type": "string"
+        },
+        {
+          "const": "inside",
+          "description": "Inside a closed path.",
+          "type": "string"
+        },
+        {
+          "const": "outside",
+          "description": "Outside a closed path.",
+          "type": "string"
+        }
+      ]
+    },
     "Operation": {
       "oneOf": [
         {
@@ -2505,6 +2711,113 @@
             "select",
             "tool",
             "start_depth",
+            "direction",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Moulding: a profile swept along a path, in passes along it.",
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/Direction",
+              "description": "`climb` or `conventional` milling."
+            },
+            "enabled": {
+              "default": true,
+              "description": "False: the operation stays in the project but isn't cut. Missing: true.",
+              "type": "boolean"
+            },
+            "ends": {
+              "$ref": "#/$defs/MouldEnds",
+              "description": "How it ends on open paths."
+            },
+            "feed": {
+              "description": "The cutting feed, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "material": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MaterialRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The library material its feeds come from. Null: its own values."
+            },
+            "name": {
+              "default": "",
+              "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
+              "type": "string"
+            },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plunge_feed": {
+              "description": "The feed going straight down, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "profile": {
+              "$ref": "#/$defs/MouldProfile",
+              "description": "The cross-section."
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "The paths the moulding runs along: open or closed shapes."
+            },
+            "side": {
+              "$ref": "#/$defs/MouldSide",
+              "description": "The side of the path the profile lies on."
+            },
+            "start_depth": {
+              "description": "Where the surface is, mm down from the stock top: 0 for the top.",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "default": null,
+              "description": "The deepest each level goes, mm, in equal levels. Null: one level.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "stepover": {
+              "description": "The distance between passes across the profile, mm.",
+              "format": "double",
+              "type": "number"
+            },
+            "tool": {
+              "description": "The id of the project tool it cuts with (`tools`): a ball nose or an endmill.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "moulding",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "part",
+            "select",
+            "tool",
+            "profile",
+            "side",
+            "ends",
+            "start_depth",
+            "stepover",
             "direction",
             "feed",
             "plunge_feed"

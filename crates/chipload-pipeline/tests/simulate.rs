@@ -632,3 +632,34 @@ fn a_prism_is_a_roof_with_its_ridge_on_the_centre_line() {
     near(49.05, -3.0);
     near(52.15, 0.0);
 }
+
+/// A moulding (docs/specs/moulding.md §11): the golden tapered cove (6 mm, left of the line
+/// from (170, 30) to (280, 30)) with a 6 mm ball: across its middle the height map follows
+/// the cove (centre on the path's top edge) within the ridges and what the ball can't reach.
+#[test]
+fn a_moulding_cuts_its_section_along_the_path() {
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v36/moulding.chipload");
+    let mut job = chipload_job::load_job(&path).unwrap();
+    job.operations.retain(|op| op.name() == "Tapered cove");
+    let contours = chipload_pipeline::load_drawing(&job).unwrap().contours;
+    let plan = chipload_toolpath::plan_job(&job, &contours).unwrap();
+    let sim = simulate(
+        &job,
+        &plan.program,
+        &plan.groups,
+        Some(CELL),
+        &Cancel::new(),
+    )
+    .unwrap();
+    // Across the middle (x 225): the cove's depth −√(36 − d²) at d mm from the path, the
+    // ball reaching it to within its ridges where the cove isn't too steep for it.
+    for d in [0.55, 1.55, 2.55, 3.55] {
+        let want = -(36.0f64 - d * d).sqrt();
+        let got = at(&sim, 225.05, 30.0 + d);
+        assert!((got - want).abs() < 0.12, "at d {d}: {got}, not {want}");
+    }
+    // Beyond the profile: untouched; near the ends, shallower (the taper).
+    assert!(at(&sim, 225.05, 37.05) > -0.05);
+    assert!(at(&sim, 172.05, 30.55) > -3.0);
+}

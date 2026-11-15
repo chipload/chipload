@@ -643,6 +643,7 @@ pipeline-name-chamfer = Chaflán { $number }
 pipeline-name-flute = Acanalado { $number }
 pipeline-name-pattern = Patrón { $number }
 pipeline-name-prism = Prisma { $number }
+pipeline-name-moulding = Moldura { $number }
 pipeline-name-holes = Taladros { $number }
 pipeline-name-surface = Planeado { $number }
 pipeline-name-relief = Relieve { $number }

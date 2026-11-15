@@ -723,7 +723,7 @@ impl ChiploadApp {
                     }
                     // Not on the ribbon, which has no room left: the S menu (R), the
                     // Operation menu and the Browser (docs/specs/prism.md §5).
-                    OpKind::Prism => continue,
+                    OpKind::Prism | OpKind::Moulding => continue,
                     OpKind::Surface => {
                         surface = Some((label, hover));
                         continue;
@@ -980,6 +980,7 @@ fn new_operation(ui: &egui::Ui, kind: OpKind) -> String {
         OpKind::Flute => t!(ui, "header-new-flute"),
         OpKind::Pattern => t!(ui, "header-new-pattern"),
         OpKind::Prism => t!(ui, "header-new-prism"),
+        OpKind::Moulding => t!(ui, "header-new-moulding"),
         OpKind::Holes => t!(ui, "header-new-holes"),
         OpKind::Surface => t!(ui, "header-new-surface"),
         OpKind::Relief => t!(ui, "header-new-relief"),

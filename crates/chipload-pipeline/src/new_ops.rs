@@ -11,9 +11,9 @@ use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
     ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, FillPattern, FluteOp,
-    HoleMethod, HolesOp, Job, Operation, PathOp, PatternOp, PocketOp, PrismOp, ProfileOp,
-    RampShape, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, Tool, ToolType,
-    VcarveOp,
+    HoleMethod, HolesOp, Job, MouldEnds, MouldProfile, MouldSide, MouldingOp, Operation, PathOp,
+    PatternOp, PocketOp, PrismOp, ProfileOp, RampShape, ReliefOp, SURFACE_STEPOVER, Selector, Side,
+    SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
 };
 
 /// A new relief's lines, as a fraction of the tool, with an end mill or a V-bit
@@ -84,6 +84,10 @@ pub const DEFAULT_PATTERN_DEPTH: f64 = 0.5;
 pub const DEFAULT_PATTERN_ANGLE_DEG: f64 = 45.0;
 /// The narrowest spacing a new pattern takes, mm.
 pub const MIN_PATTERN_SPACING: f64 = 1.0;
+/// A new moulding's cove radius, mm (docs/specs/moulding.md §9).
+pub const DEFAULT_MOULDING_RADIUS: f64 = 6.0;
+/// A new moulding's stepover with an endmill, as a share of its diameter.
+pub const MOULDING_ENDMILL_STEPOVER: f64 = 0.25;
 /// A new pocket's stepover, as a share of the tool's diameter, when nothing gives one.
 pub const DEFAULT_STEPOVER: f64 = crate::materials::DEFAULT_STEPOVER;
 
@@ -103,6 +107,8 @@ pub enum OpKind {
     Pattern,
     /// Prism: closed shapes standing as roofs with a ridge (docs/specs/prism.md).
     Prism,
+    /// Moulding: a profile swept along a path (docs/specs/moulding.md).
+    Moulding,
     /// Holes (docs/specs/holes.md).
     Holes,
     /// Surface: the whole stock (docs/specs/surfacing.md).
@@ -129,6 +135,7 @@ impl OpKind {
                 | (Operation::Flute(_), OpKind::Flute)
                 | (Operation::Pattern(_), OpKind::Pattern)
                 | (Operation::Prism(_), OpKind::Prism)
+                | (Operation::Moulding(_), OpKind::Moulding)
                 | (Operation::Holes(_), OpKind::Holes)
                 | (Operation::Surface(_), OpKind::Surface)
                 | (Operation::Relief(_), OpKind::Relief)
@@ -145,6 +152,7 @@ impl OpKind {
             OpKind::Flute => "pipeline-name-flute",
             OpKind::Pattern => "pipeline-name-pattern",
             OpKind::Prism => "pipeline-name-prism",
+            OpKind::Moulding => "pipeline-name-moulding",
             OpKind::Holes => "pipeline-name-holes",
             OpKind::Surface => "pipeline-name-surface",
             OpKind::Relief => "pipeline-name-relief",
@@ -205,6 +213,15 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
         && let Some(ball) = job.tools.iter().find(|t| t.kind == ToolType::Ballnose)
     {
         return ball.id;
+    }
+    // A moulding takes the first ball nose, else the first endmill (docs/specs/moulding.md
+    // §9).
+    if kind == OpKind::Moulding
+        && let Some(round) = [ToolType::Ballnose, ToolType::Endmill]
+            .iter()
+            .find_map(|kind| job.tools.iter().find(|t| t.kind == *kind))
+    {
+        return round.id;
     }
     // A flute takes the first ball nose, else the first V-bit (docs/specs/fluting.md §8).
     if kind == OpKind::Flute
@@ -319,6 +336,16 @@ pub fn new_operations(
                     false,
                 )],
             }
+        }
+        // A moulding's profile lies where a profile's waste would be: round outlines,
+        // within holes; left of open paths (docs/specs/moulding.md §4).
+        OpKind::Moulding => {
+            let side = match profile_sides(job, &request.select, contours) {
+                Sides::One(Side::Inside) => MouldSide::Inside,
+                Sides::One(_) | Sides::Split { .. } => MouldSide::Outside,
+                Sides::Unknown => MouldSide::Left,
+            };
+            vec![(start.moulding(name(number), &request.select, side), true)]
         }
         // A chamfer's waste is where a profile's would be: around outlines, within holes
         // (docs/specs/chamfer.md §6).
@@ -492,6 +519,16 @@ pub fn switched_pattern(op: &PatternOp, kind: PatternKind, tool: Option<&Tool>) 
     out
 }
 
+/// A new moulding's stepover with `tool`, mm: with a ball or bull nose, the relief's ridge
+/// rule (ridges of 0.02 mm on flat ground); with a flat endmill, a quarter of it.
+fn moulding_stepover(tool: Option<&Tool>) -> f64 {
+    let diameter = tool.map_or(6.0, |t| t.diameter);
+    match ridge_stepover(tool, RELIEF_RIDGE_MM) {
+        Some(share) => share * diameter,
+        None => MOULDING_ENDMILL_STEPOVER * diameter,
+    }
+}
+
 /// A new pattern's (depth, spacing) with `tool`: `DEFAULT_PATTERN_DEPTH`, no deeper than
 /// a V-bit's cone; the spacing twice the groove's width there, at least
 /// `MIN_PATTERN_SPACING` (docs/specs/fill-pattern.md §8).
@@ -609,6 +646,8 @@ struct Start {
     flute_depth: f64,
     /// A new pattern's depth and spacing with the tool (docs/specs/fill-pattern.md §8).
     pattern: (f64, f64),
+    /// A new moulding's stepover with the tool, mm (docs/specs/moulding.md §6).
+    moulding_stepover: f64,
 }
 
 impl Start {
@@ -657,6 +696,7 @@ impl Start {
             relief_stepover: relief_stepover(chosen),
             flute_depth: chosen.map_or(DEFAULT_FLUTE_DEPTH, flute_depth),
             pattern: chosen.map_or((DEFAULT_PATTERN_DEPTH, 2.0), pattern_start),
+            moulding_stepover: moulding_stepover(chosen),
             cutting: tool_cutting(job, library, tool),
             thickness: job.stock().thickness,
             below: job.stock().max_overcut,
@@ -711,6 +751,29 @@ impl Start {
         })
     }
 
+    /// A moulding with the profile on `side`: a 6 mm cove, square ends, in levels.
+    fn moulding(&self, name: String, select: &Selector, side: MouldSide) -> Operation {
+        Operation::Moulding(MouldingOp {
+            material: None,
+            name,
+            enabled: true,
+            part: self.part,
+            select: select.clone(),
+            tool: self.tool,
+            profile: MouldProfile::Cove {
+                radius: DEFAULT_MOULDING_RADIUS,
+            },
+            side,
+            ends: MouldEnds::Square,
+            start_depth: 0.0,
+            stepover: self.moulding_stepover,
+            step_down: Some(self.step_down),
+            direction: Direction::Climb,
+            feed: self.feed,
+            plunge_feed: self.plunge_feed,
+        })
+    }
+
     /// A chamfer on `side`, 1 mm wide in one pass; a V-bit goes down on its point.
     fn chamfer(&self, name: String, select: &Selector, side: EdgeSide) -> Operation {
         Operation::Chamfer(ChamferOp {
@@ -743,6 +806,7 @@ impl Start {
         match kind {
             OpKind::Profile => self.profile(name, &select, Side::Outside, false),
             OpKind::Chamfer => self.chamfer(name, &select, EdgeSide::Outside),
+            OpKind::Moulding => self.moulding(name, &select, MouldSide::Outside),
             OpKind::Prism => Operation::Prism(PrismOp {
                 material: None,
                 name,
@@ -963,6 +1027,7 @@ fn op_step_down(op: &Operation) -> f64 {
         Operation::Flute(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Pattern(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Prism(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
+        Operation::Moulding(m) => m.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Vcarve(_) | Operation::Holes(_) | Operation::Relief(_) => {
             crate::DEFAULT_STEP_DOWN
         }
@@ -979,6 +1044,7 @@ fn op_feed(op: &Operation) -> f64 {
         Operation::Flute(f) => f.feed,
         Operation::Pattern(f) => f.feed,
         Operation::Prism(f) => f.feed,
+        Operation::Moulding(m) => m.feed,
         Operation::Holes(h) => h.feed,
         Operation::Surface(f) => f.feed,
         Operation::Relief(r) => r.feed,
@@ -995,6 +1061,7 @@ fn op_plunge(op: &Operation) -> f64 {
         Operation::Flute(f) => f.plunge_feed,
         Operation::Pattern(f) => f.plunge_feed,
         Operation::Prism(f) => f.plunge_feed,
+        Operation::Moulding(m) => m.plunge_feed,
         Operation::Holes(h) => h.plunge_feed,
         Operation::Surface(f) => f.plunge_feed,
         Operation::Relief(r) => r.plunge_feed,

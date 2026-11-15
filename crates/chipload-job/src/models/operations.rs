@@ -124,6 +124,9 @@ pub enum Operation {
     /// Prism: closed shapes left standing as roofs, a sharp ridge along their centre line.
     // Spec: docs/specs/prism.md.
     Prism(PrismOp),
+    /// Moulding: a profile swept along a path, in passes along it.
+    // Spec: docs/specs/moulding.md.
+    Moulding(MouldingOp),
     /// Holes: drilled with a drill, bored with a helix with an endmill.
     // Spec: docs/specs/holes.md.
     Holes(HolesOp),
@@ -228,6 +231,12 @@ impl Operation {
                     *step = c.slot_step_down;
                 }
             }
+            Operation::Moulding(p) => {
+                (p.feed, p.plunge_feed) = (c.slot_feed, c.plunge_feed);
+                if let Some(step) = &mut p.step_down {
+                    *step = c.slot_step_down;
+                }
+            }
             Operation::Holes(h) => {
                 (h.feed, h.plunge_feed) = (c.slot_feed, c.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = &mut h.method {
@@ -292,6 +301,12 @@ impl Operation {
                     c.slot_step_down = step;
                 }
             }
+            Operation::Moulding(p) => {
+                (c.slot_feed, c.plunge_feed) = (p.feed, p.plunge_feed);
+                if let Some(step) = p.step_down {
+                    c.slot_step_down = step;
+                }
+            }
             Operation::Holes(h) => {
                 (c.slot_feed, c.plunge_feed) = (h.feed, h.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = h.method {
@@ -328,6 +343,7 @@ impl Operation {
             Operation::Flute(op) => &op.name,
             Operation::Pattern(op) => &op.name,
             Operation::Prism(op) => &op.name,
+            Operation::Moulding(op) => &op.name,
             Operation::Holes(op) => &op.name,
             Operation::Surface(op) => &op.name,
             Operation::Relief(op) => &op.name,
@@ -344,6 +360,7 @@ impl Operation {
             Operation::Flute(op) => &mut op.name,
             Operation::Pattern(op) => &mut op.name,
             Operation::Prism(op) => &mut op.name,
+            Operation::Moulding(op) => &mut op.name,
             Operation::Holes(op) => &mut op.name,
             Operation::Surface(op) => &mut op.name,
             Operation::Relief(op) => &mut op.name,
@@ -360,6 +377,7 @@ impl Operation {
             Operation::Flute(op) => op.enabled = enabled,
             Operation::Pattern(op) => op.enabled = enabled,
             Operation::Prism(op) => op.enabled = enabled,
+            Operation::Moulding(op) => op.enabled = enabled,
             Operation::Holes(op) => op.enabled = enabled,
             Operation::Surface(op) => op.enabled = enabled,
             Operation::Relief(op) => op.enabled = enabled,
@@ -376,6 +394,7 @@ impl Operation {
             Operation::Flute(op) => op.enabled,
             Operation::Pattern(op) => op.enabled,
             Operation::Prism(op) => op.enabled,
+            Operation::Moulding(op) => op.enabled,
             Operation::Holes(op) => op.enabled,
             Operation::Surface(op) => op.enabled,
             Operation::Relief(op) => op.enabled,
@@ -393,6 +412,7 @@ impl Operation {
             Operation::Flute(op) => op.part,
             Operation::Pattern(op) => op.part,
             Operation::Prism(op) => op.part,
+            Operation::Moulding(op) => op.part,
             Operation::Holes(op) => op.part,
             Operation::Surface(op) => op.part,
             Operation::Relief(op) => op.part,
@@ -409,6 +429,7 @@ impl Operation {
             Operation::Flute(op) => op.part = part,
             Operation::Pattern(op) => op.part = part,
             Operation::Prism(op) => op.part = part,
+            Operation::Moulding(op) => op.part = part,
             Operation::Holes(op) => op.part = part,
             Operation::Surface(op) => op.part = part,
             Operation::Relief(op) => op.part = part,
@@ -426,6 +447,7 @@ impl Operation {
             Operation::Flute(op) => op.material.as_ref(),
             Operation::Pattern(op) => op.material.as_ref(),
             Operation::Prism(op) => op.material.as_ref(),
+            Operation::Moulding(op) => op.material.as_ref(),
             Operation::Holes(op) => op.material.as_ref(),
             Operation::Surface(op) => op.material.as_ref(),
             Operation::Relief(op) => op.material.as_ref(),
@@ -442,6 +464,7 @@ impl Operation {
             Operation::Flute(op) => op.material = material,
             Operation::Pattern(op) => op.material = material,
             Operation::Prism(op) => op.material = material,
+            Operation::Moulding(op) => op.material = material,
             Operation::Holes(op) => op.material = material,
             Operation::Surface(op) => op.material = material,
             Operation::Relief(op) => op.material = material,
@@ -458,6 +481,7 @@ impl Operation {
             Operation::Flute(op) => op.tool,
             Operation::Pattern(op) => op.tool,
             Operation::Prism(op) => op.tool,
+            Operation::Moulding(op) => op.tool,
             Operation::Holes(op) => op.tool,
             Operation::Surface(op) => op.tool,
             Operation::Relief(op) => op.tool,
@@ -474,6 +498,7 @@ impl Operation {
             Operation::Flute(op) => op.tool = tool,
             Operation::Pattern(op) => op.tool = tool,
             Operation::Prism(op) => op.tool = tool,
+            Operation::Moulding(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
             Operation::Surface(op) => op.tool = tool,
             Operation::Relief(op) => op.tool = tool,
@@ -508,6 +533,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => {}
@@ -551,6 +577,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -590,6 +617,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -603,6 +631,7 @@ impl Operation {
             Operation::Flute(op) => op.end_depth = depth,
             Operation::Pattern(op) => op.end_depth = depth,
             Operation::Prism(_) => {}
+            Operation::Moulding(_) => {}
             Operation::Profile(op) => op.end_depth = depth,
             Operation::Pocket(op) => op.end_depth = depth,
             Operation::Vcarve(op) => op.end_depth = depth,
@@ -623,6 +652,11 @@ impl Operation {
             Operation::Prism(op) => (
                 op.start_depth,
                 op.start_depth + op.deepest(find_tool(tools, op.tool)),
+            ),
+            // A drawn profile's depth is known from the drawing, at planning.
+            Operation::Moulding(op) => (
+                op.start_depth,
+                op.start_depth + op.profile.depth().unwrap_or(0.0),
             ),
             Operation::Chamfer(op) => {
                 let depth = find_tool(tools, op.tool)
@@ -653,6 +687,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         }
@@ -686,6 +721,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         }
@@ -705,6 +741,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         };
@@ -728,6 +765,7 @@ impl Operation {
             Operation::Flute(_) => Entry::Plunge {},
             Operation::Pattern(_) => Entry::Plunge {},
             Operation::Prism(_) => Entry::Plunge {},
+            Operation::Moulding(_) => Entry::Plunge {},
             // Holes go down their own way (docs/specs/holes.md §3, §4).
             Operation::Holes(_) => Entry::Plunge {},
             // Each depth starts beside the stock, in the air (docs/specs/surfacing.md §3).
@@ -747,6 +785,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => &[],
@@ -765,6 +804,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -801,6 +841,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -834,6 +875,7 @@ impl Operation {
             | Operation::Flute(_)
             | Operation::Pattern(_)
             | Operation::Prism(_)
+            | Operation::Moulding(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -853,6 +895,7 @@ impl Operation {
             Operation::Flute(_) => 0.0,
             Operation::Pattern(_) => 0.0,
             Operation::Prism(_) => 0.0,
+            Operation::Moulding(_) => 0.0,
             // Cut to the drawn size (docs/specs/holes.md decision 9).
             Operation::Holes(_) => 0.0,
             // The whole stock: no wall to clear.
@@ -872,6 +915,7 @@ impl Operation {
             Operation::Flute(op) => &op.select,
             Operation::Pattern(op) => &op.select,
             Operation::Prism(op) => &op.select,
+            Operation::Moulding(op) => &op.select,
             Operation::Holes(op) => &op.select,
             Operation::Surface(_) => &NO_SELECTOR,
             Operation::Relief(op) => &op.select,
@@ -889,6 +933,7 @@ impl Operation {
             Operation::Flute(op) => Some(&mut op.select),
             Operation::Pattern(op) => Some(&mut op.select),
             Operation::Prism(op) => Some(&mut op.select),
+            Operation::Moulding(op) => Some(&mut op.select),
             Operation::Holes(op) => Some(&mut op.select),
             Operation::Relief(op) => Some(&mut op.select),
             Operation::Surface(_) => None,
@@ -1758,6 +1803,111 @@ impl PrismOp {
             (None, max) => max.unwrap_or(0.0),
         }
     }
+}
+
+/// A moulding's cross-section (docs/specs/moulding.md §3): a built-in shape by its size, or
+/// a drawn open shape read as the section.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
+pub enum MouldProfile {
+    /// A concave quarter circle: `radius` deep at the path, at the surface `radius` in.
+    Cove { radius: f64 },
+    /// A convex quarter circle: the edge rounded, `radius` down at the path.
+    Roundover { radius: f64 },
+    /// An S, `width` wide and `depth` deep: a cove into a round-over, half the width each.
+    Ogee { width: f64, depth: f64 },
+    /// A raised half round `2 × radius` wide, its top at the surface.
+    Bead { radius: f64 },
+    /// A half-round groove `2 × radius` wide and `radius` deep.
+    Flute { radius: f64 },
+    /// A drawn open shape, by id: across to the right, up the page; its leftmost point at
+    /// the path, its highest point the surface.
+    Shape { shape: u64 },
+}
+
+impl MouldProfile {
+    /// How deep the section goes, mm; None for a drawn shape (known from the drawing).
+    pub fn depth(&self) -> Option<f64> {
+        match *self {
+            MouldProfile::Cove { radius }
+            | MouldProfile::Roundover { radius }
+            | MouldProfile::Bead { radius }
+            | MouldProfile::Flute { radius } => Some(radius),
+            MouldProfile::Ogee { depth, .. } => Some(depth),
+            MouldProfile::Shape { .. } => None,
+        }
+    }
+}
+
+/// Which side of the path a moulding's profile lies on (docs/specs/moulding.md §4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum MouldSide {
+    /// Left of an open path as drawn.
+    Left,
+    /// Right of an open path as drawn.
+    Right,
+    /// Inside a closed path.
+    Inside,
+    /// Outside a closed path.
+    Outside,
+}
+
+/// How a moulding ends on an open path (docs/specs/moulding.md §4).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(tag = "kind", rename_all = "lowercase", deny_unknown_fields)]
+pub enum MouldEnds {
+    /// The full profile right to the path's end.
+    Square,
+    /// The profile turned a quarter round the path's end point.
+    Round,
+    /// The section's depth fading to the surface over `length` mm at each end.
+    Taper { length: f64, shape: RampShape },
+}
+
+/// Moulding: a profile swept along every selected path, in passes along it.
+// Spec: docs/specs/moulding.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct MouldingOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
+    #[serde(default)]
+    pub name: String,
+    /// False: the operation stays in the project but isn't cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
+    /// The paths the moulding runs along: open or closed shapes.
+    pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`): a ball nose or an endmill.
+    pub tool: i64,
+    /// The cross-section.
+    pub profile: MouldProfile,
+    /// The side of the path the profile lies on.
+    pub side: MouldSide,
+    /// How it ends on open paths.
+    pub ends: MouldEnds,
+    /// Where the surface is, mm down from the stock top: 0 for the top.
+    pub start_depth: f64,
+    /// The distance between passes across the profile, mm.
+    pub stepover: f64,
+    /// The deepest each level goes, mm, in equal levels. Null: one level.
+    #[serde(default)]
+    pub step_down: Option<f64>,
+    /// `climb` or `conventional` milling.
+    pub direction: Direction,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going straight down, mm/min.
+    pub plunge_feed: f64,
 }
 
 /// Holes: every selected circle, drilled with a drill or bored with a helix with an

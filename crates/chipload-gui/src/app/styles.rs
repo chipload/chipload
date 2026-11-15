@@ -91,7 +91,7 @@ impl ChiploadApp {
         let edit = self.edit.as_mut()?;
         let open = matches!(
             style.operation().ok(),
-            Some(Operation::Path(_) | Operation::Flute(_))
+            Some(Operation::Path(_) | Operation::Flute(_) | Operation::Moulding(_))
         );
         let select = selection.selector(&self.contours, open);
         let made = match chipload_pipeline::styles::style_operations(
@@ -702,6 +702,7 @@ fn kind_name(ui: &egui::Ui, op: &Operation) -> String {
         Operation::Flute(_) => t!(ui, "forms-kind-flute"),
         Operation::Pattern(_) => t!(ui, "forms-kind-pattern"),
         Operation::Prism(_) => t!(ui, "forms-kind-prism"),
+        Operation::Moulding(_) => t!(ui, "forms-kind-moulding"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),

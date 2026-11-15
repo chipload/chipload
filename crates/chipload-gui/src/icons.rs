@@ -71,6 +71,9 @@ pub enum Icon {
     /// A raised shape in section, its sides sloping to a ridge: a prism operation
     /// (docs/specs/prism.md).
     Prism,
+    /// A board's edge in section with a cove cut into it: a moulding operation
+    /// (docs/specs/moulding.md).
+    Moulding,
     Holes,
     Surface,
     Eye,
@@ -381,6 +384,17 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 (0.88, 0.85),
             ]);
             pen.line([(0.62, 0.12), (0.96, 0.46)]);
+        }
+        Icon::Moulding => {
+            pen.line([(0.1, 0.25), (0.45, 0.25)]);
+            pen.line([(0.45, 0.25), (0.45, 0.4)]);
+            pen.line([(0.75, 0.7), (0.9, 0.7)]);
+            pen.line([(0.9, 0.7), (0.9, 0.9)]);
+            pen.line([(0.9, 0.9), (0.1, 0.9)]);
+            pen.line([(0.1, 0.9), (0.1, 0.25)]);
+            pen.line([(0.45, 0.4), (0.52, 0.55)]);
+            pen.line([(0.52, 0.55), (0.6, 0.64)]);
+            pen.line([(0.6, 0.64), (0.75, 0.7)]);
         }
         Icon::Prism => {
             pen.closed(&[(0.08, 0.82), (0.5, 0.18), (0.92, 0.82)]);

@@ -147,3 +147,5 @@ browser-pattern = Mönster
 browser-pattern-hover = Spår i linjer, korsrutor, ringar eller vågor graverade inuti de valda slutna formerna
 browser-prism = Prisma
 browser-prism-hover = De valda slutna formerna blir stående som tak med en skarp ås i mitten, skurna med en V-fräs
+browser-moulding = Profilering
+browser-moulding-hover = En profil (hålkäl, karnis, rundstav…) som följer de valda banorna

@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 79] = [
+const GOLDEN: [(&str, &str); 80] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -217,6 +217,11 @@ const GOLDEN: [(&str, &str); 79] = [
     // a 44 × 70 rectangle with a 60° V-bit with a 0.5 mm flat, at most 4 mm deep, in two
     // passes: bevelled with a flat top.
     ("v36_prism", "jobs/v36/prism.chipload"),
+    // Mouldings (docs/specs/moulding.md) with a 6 mm ball nose, 0.6 mm stepover: an ogee
+    // 12 × 6 outside a 100 × 60 rectangle in levels of 2 mm; a bead along a line; a cove
+    // along a line with curved 30 mm tapered ends in levels; a drawn profile (a flat, a
+    // cove and a wall) along an arc with round ends.
+    ("v36_moulding", "jobs/v36/moulding.chipload"),
     // A V-carve inlay (docs/specs/vcarve-inlay.md): "AO" in FreeSerif 30 mm high, a pocket
     // 5 mm deep in the base, and in setup 2 the plug board, 10 mm thick and fitted round the
     // artwork, carved with its outline 3 mm down and a 1.5 mm glue gap; the plug's part is

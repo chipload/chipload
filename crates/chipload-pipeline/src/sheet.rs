@@ -15,9 +15,9 @@ use chipload_core::text::trimmed;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::{
-    Corners, Direction, EdgeSide, Entry, FillPattern, HoleMethod, HolesOp, Job, OpRef, Operation,
-    PocketOp, RampShape, Register, Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn,
-    Units, WorkZero, ZZero, find_tool,
+    Corners, Direction, EdgeSide, Entry, FillPattern, HoleMethod, HolesOp, Job, MouldEnds,
+    MouldProfile, MouldSide, OpRef, Operation, PocketOp, RampShape, Register, Side, Spindle,
+    StockCorner, Tool, ToolChange, ToolType, Turn, Units, WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -742,6 +742,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Flute(f) => (f.feed, f.plunge_feed),
         Operation::Pattern(f) => (f.feed, f.plunge_feed),
         Operation::Prism(f) => (f.feed, f.plunge_feed),
+        Operation::Moulding(m) => (m.feed, m.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
         Operation::Surface(f) => (f.feed, f.plunge_feed),
         Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -797,6 +798,45 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                 RampShape::Curved => "sheet-ramp-curved",
             }),
         ],
+        // "Moulding, cove R 8, outside, climb" (docs/specs/moulding.md §9).
+        Operation::Moulding(m) => {
+            let profile = match m.profile {
+                MouldProfile::Cove { radius } => {
+                    Message::new("sheet-moulding-cove").arg("radius", len(radius))
+                }
+                MouldProfile::Roundover { radius } => {
+                    Message::new("sheet-moulding-roundover").arg("radius", len(radius))
+                }
+                MouldProfile::Ogee { width, depth } => Message::new("sheet-moulding-ogee")
+                    .arg("width", len(width))
+                    .arg("depth", len(depth)),
+                MouldProfile::Bead { radius } => {
+                    Message::new("sheet-moulding-bead").arg("radius", len(radius))
+                }
+                MouldProfile::Flute { radius } => {
+                    Message::new("sheet-moulding-flute").arg("radius", len(radius))
+                }
+                MouldProfile::Shape { shape } => {
+                    Message::new("sheet-moulding-shape").arg("shape", shape)
+                }
+            };
+            let side = Message::new(match m.side {
+                MouldSide::Left => "sheet-moulding-left",
+                MouldSide::Right => "sheet-moulding-right",
+                MouldSide::Inside => "sheet-side-inside",
+                MouldSide::Outside => "sheet-side-outside",
+            });
+            let mut parts = vec![profile, side];
+            match m.ends {
+                MouldEnds::Square => {}
+                MouldEnds::Round => parts.push(Message::new("sheet-moulding-round-ends")),
+                MouldEnds::Taper { length, .. } => parts
+                    .push(Message::new("sheet-moulding-tapered-ends").arg("length", len(length))),
+            }
+            parts.push(Message::new("sheet-stepover-mm").arg("stepover", len(m.stepover)));
+            parts.push(direction_message(m.direction));
+            parts
+        }
         // "Prism, climb" (docs/specs/prism.md §5).
         Operation::Prism(f) => vec![
             Message::new("sheet-kind-prism"),
@@ -959,6 +999,7 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         Operation::Flute(f) => f.step_down,
         Operation::Pattern(f) => f.step_down,
         Operation::Prism(f) => f.step_down,
+        Operation::Moulding(m) => m.step_down,
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
         // In one pass along the model (docs/specs/stl-relief.md §5).

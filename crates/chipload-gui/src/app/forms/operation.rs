@@ -240,6 +240,7 @@ pub(in crate::app) fn op_form(
         Operation::Flute(_) => t!(ui, "forms-kind-flute"),
         Operation::Pattern(_) => t!(ui, "forms-kind-pattern"),
         Operation::Prism(_) => t!(ui, "forms-kind-prism"),
+        Operation::Moulding(_) => t!(ui, "forms-kind-moulding"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),
@@ -556,6 +557,7 @@ pub(in crate::app) fn op_form(
         Operation::Flute(f) => flute_sections(ui, f, op_tool),
         Operation::Pattern(f) => pattern_sections(ui, f, op_tool),
         Operation::Prism(f) => prism_sections(ui, index, f, op_tool),
+        Operation::Moulding(m) => moulding_sections(ui, index, m, op_tool),
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
@@ -1792,6 +1794,195 @@ fn flute_sections(ui: &mut egui::Ui, f: &mut chipload_job::FluteOp, tool: Option
         ui.end_row();
     });
     feeds_section(ui, &mut f.feed, &mut f.plunge_feed, tool);
+}
+
+/// A moulding's sections (docs/specs/moulding.md §9): the profile and its size, the side,
+/// the ends; start depth, stepover, levels and direction; feeds.
+fn moulding_sections(
+    ui: &mut egui::Ui,
+    index: usize,
+    m: &mut chipload_job::MouldingOp,
+    tool: Option<&Tool>,
+) {
+    use chipload_job::{MouldEnds, MouldProfile, MouldSide, RampShape};
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let with_unit = |mm: f64| format!("{} {len_unit}", len_in(units, mm));
+    let profile_name = |ui: &egui::Ui, p: &MouldProfile| match p {
+        MouldProfile::Cove { .. } => t!(ui, "forms-moulding-cove"),
+        MouldProfile::Roundover { .. } => t!(ui, "forms-moulding-roundover"),
+        MouldProfile::Ogee { .. } => t!(ui, "forms-moulding-ogee"),
+        MouldProfile::Bead { .. } => t!(ui, "forms-moulding-bead"),
+        MouldProfile::Flute { .. } => t!(ui, "forms-moulding-flute"),
+        MouldProfile::Shape { .. } => t!(ui, "forms-moulding-shape"),
+    };
+    let side_name = |ui: &egui::Ui, s: MouldSide| match s {
+        MouldSide::Left => t!(ui, "forms-moulding-left"),
+        MouldSide::Right => t!(ui, "forms-moulding-right"),
+        MouldSide::Inside => t!(ui, "forms-side-inside"),
+        MouldSide::Outside => t!(ui, "forms-side-outside"),
+    };
+    let summary = t!(
+        ui,
+        "forms-moulding-summary",
+        profile = profile_name(ui, &m.profile),
+        side = side_name(ui, m.side)
+    );
+    let title = t!(ui, "forms-section-profile");
+    folded_section(ui, "op-moulding", &title, &summary, |ui| {
+        ui.label(t!(ui, "forms-moulding-profile"));
+        let size = m.profile.depth().unwrap_or(6.0);
+        let choices = [
+            MouldProfile::Cove { radius: size },
+            MouldProfile::Roundover { radius: size },
+            MouldProfile::Ogee {
+                width: 2.0 * size,
+                depth: size,
+            },
+            MouldProfile::Bead { radius: size },
+            MouldProfile::Flute { radius: size },
+            MouldProfile::Shape { shape: 0 },
+        ];
+        let combo = ComboBox::from_id_salt(("moulding-profile", index))
+            .selected_text(profile_name(ui, &m.profile))
+            .show_ui(ui, |ui| {
+                for choice in choices {
+                    let same =
+                        std::mem::discriminant(&choice) == std::mem::discriminant(&m.profile);
+                    let label = profile_name(ui, &choice);
+                    if ui.selectable_label(same, label).clicked() && !same {
+                        m.profile = choice;
+                    }
+                }
+            });
+        flag(combo.response, ui, "profile");
+        ui.end_row();
+        match &mut m.profile {
+            MouldProfile::Cove { radius }
+            | MouldProfile::Roundover { radius }
+            | MouldProfile::Bead { radius }
+            | MouldProfile::Flute { radius } => {
+                ui.label(t!(ui, "forms-pattern-radius"));
+                flag(ui.add(mm(radius)), ui, "profile.radius");
+                ui.end_row();
+            }
+            MouldProfile::Ogee { width, depth } => {
+                ui.label(t!(ui, "forms-moulding-width"));
+                flag(ui.add(mm(width)), ui, "profile.width");
+                ui.end_row();
+                ui.label(t!(ui, "forms-flute-depth"));
+                flag(ui.add(mm(depth)), ui, "profile.depth");
+                ui.end_row();
+            }
+            MouldProfile::Shape { shape } => {
+                ui.label(t!(ui, "forms-moulding-shape-id"))
+                    .on_hover_text(t!(ui, "forms-moulding-shape-hover"));
+                let field = ui.add(egui::DragValue::new(shape).prefix("S").range(0..=u64::MAX));
+                flag(field, ui, "profile.shape");
+                ui.end_row();
+            }
+        }
+        ui.label(t!(ui, "forms-side"))
+            .on_hover_text(t!(ui, "forms-moulding-side-hover"));
+        let combo = ComboBox::from_id_salt(("moulding-side", index))
+            .selected_text(side_name(ui, m.side))
+            .show_ui(ui, |ui| {
+                for side in [
+                    MouldSide::Outside,
+                    MouldSide::Inside,
+                    MouldSide::Left,
+                    MouldSide::Right,
+                ] {
+                    let label = side_name(ui, side);
+                    if ui.selectable_label(m.side == side, label).clicked() {
+                        m.side = side;
+                    }
+                }
+            });
+        flag(combo.response, ui, "side");
+        ui.end_row();
+        let ends_name = |ui: &egui::Ui, e: &MouldEnds| match e {
+            MouldEnds::Square => t!(ui, "forms-moulding-square"),
+            MouldEnds::Round => t!(ui, "forms-moulding-round"),
+            MouldEnds::Taper { .. } => t!(ui, "forms-moulding-taper"),
+        };
+        ui.label(t!(ui, "forms-moulding-ends"))
+            .on_hover_text(t!(ui, "forms-moulding-ends-hover"));
+        let ends = [
+            MouldEnds::Square,
+            MouldEnds::Round,
+            MouldEnds::Taper {
+                length: 30.0,
+                shape: RampShape::Straight,
+            },
+        ];
+        let combo = ComboBox::from_id_salt(("moulding-ends", index))
+            .selected_text(ends_name(ui, &m.ends))
+            .show_ui(ui, |ui| {
+                for choice in ends {
+                    let same = std::mem::discriminant(&choice) == std::mem::discriminant(&m.ends);
+                    let label = ends_name(ui, &choice);
+                    if ui.selectable_label(same, label).clicked() && !same {
+                        m.ends = choice;
+                    }
+                }
+            });
+        flag(combo.response, ui, "ends");
+        ui.end_row();
+        if let MouldEnds::Taper { length, shape } = &mut m.ends {
+            ui.label(format!("  {}", t!(ui, "forms-moulding-taper-length")));
+            flag(ui.add(mm(length)), ui, "ends.length");
+            ui.end_row();
+            ui.label(format!("  {}", t!(ui, "forms-flute-ramp")));
+            let shape_name = |ui: &egui::Ui, s: RampShape| match s {
+                RampShape::Straight => t!(ui, "forms-ramp-straight"),
+                RampShape::Curved => t!(ui, "forms-ramp-curved"),
+            };
+            let combo = ComboBox::from_id_salt(("moulding-taper-shape", index))
+                .selected_text(shape_name(ui, *shape))
+                .show_ui(ui, |ui| {
+                    for s in [RampShape::Straight, RampShape::Curved] {
+                        let label = shape_name(ui, s);
+                        if ui.selectable_label(*shape == s, label).clicked() {
+                            *shape = s;
+                        }
+                    }
+                });
+            flag(combo.response, ui, "ends.shape");
+            ui.end_row();
+        }
+    });
+    let cut = t!(
+        ui,
+        "forms-moulding-cut-summary",
+        stepover = with_unit(m.stepover),
+        direction = direction_name(ui, m.direction)
+    );
+    folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &cut, |ui| {
+        ui.label(t!(ui, "forms-start-depth"));
+        flag(ui.add(mm(&mut m.start_depth)), ui, "start_depth");
+        ui.end_row();
+        ui.label(t!(ui, "forms-moulding-stepover"))
+            .on_hover_text(t!(ui, "forms-moulding-stepover-hover"));
+        flag(ui.add(mm(&mut m.stepover)), ui, "stepover");
+        ui.end_row();
+        ui.label(t!(ui, "forms-step-down"));
+        let mut levels = m.step_down.is_some();
+        let tick = ui.checkbox(&mut levels, t!(ui, "forms-chamfer-passes"));
+        if flag(tick, ui, "step_down").changed() {
+            m.step_down = levels.then(|| tool.map_or(2.0, |t| (t.diameter / 3.0).max(0.5)));
+        }
+        ui.end_row();
+        if let Some(step) = &mut m.step_down {
+            ui.label(format!("  {}", t!(ui, "forms-step-down")));
+            flag(ui.add(mm(step)), ui, "step_down");
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-direction"));
+        direction_combo(ui, ("direction", index), &mut m.direction);
+        ui.end_row();
+    });
+    feeds_section(ui, &mut m.feed, &mut m.plunge_feed, tool);
 }
 
 /// A prism's sections (docs/specs/prism.md §5): start depth, max depth (with how deep the

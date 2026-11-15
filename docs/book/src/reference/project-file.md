@@ -431,6 +431,44 @@ Which of a model's axes points up on the board.
 
 One of: `"z"`, `"y"`, `"x"`, `"-z"`, `"-y"`, `"-x"`.
 
+## MouldEnds
+
+How a moulding ends on an open path (docs/specs/moulding.md §4).
+
+- object: The full profile right to the path's end.
+
+- object: The profile turned a quarter round the path's end point.
+
+- object: The section's depth fading to the surface over `length` mm at each end.
+
+## MouldProfile
+
+A moulding's cross-section (docs/specs/moulding.md §3): a built-in shape by its size, or a drawn open shape read as the section.
+
+- object: A concave quarter circle: `radius` deep at the path, at the surface `radius` in.
+
+- object: A convex quarter circle: the edge rounded, `radius` down at the path.
+
+- object: An S, `width` wide and `depth` deep: a cove into a round-over, half the width each.
+
+- object: A raised half round `2 × radius` wide, its top at the surface.
+
+- object: A half-round groove `2 × radius` wide and `radius` deep.
+
+- object: A drawn open shape, by id: across to the right, up the page; its leftmost point at the path, its highest point the surface.
+
+## MouldSide
+
+Which side of the path a moulding's profile lies on (docs/specs/moulding.md §4).
+
+- `"left"`: Left of an open path as drawn.
+
+- `"right"`: Right of an open path as drawn.
+
+- `"inside"`: Inside a closed path.
+
+- `"outside"`: Outside a closed path.
+
 ## Operation
 
 ### `"type": "profile"`
@@ -613,6 +651,28 @@ Prism: closed shapes left standing as roofs, a sharp ridge along their centre li
 | `start_depth` | number | yes | Where the surface is, mm down from the stock top: 0 for the top. |
 | `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a V-bit with its angle. |
+
+### `"type": "moulding"`
+
+Moulding: a profile swept along a path, in passes along it.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `ends` | [MouldEnds](#mouldends) | yes | How it ends on open paths. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `plunge_feed` | number | yes | The feed going straight down, mm/min. |
+| `profile` | [MouldProfile](#mouldprofile) | yes | The cross-section. |
+| `select` | [Selector](#selector) | yes | The paths the moulding runs along: open or closed shapes. |
+| `side` | [MouldSide](#mouldside) | yes | The side of the path the profile lies on. |
+| `start_depth` | number | yes | Where the surface is, mm down from the stock top: 0 for the top. |
+| `step_down` | number or null | no | The deepest each level goes, mm, in equal levels. Null: one level. |
+| `stepover` | number | yes | The distance between passes across the profile, mm. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a ball nose or an endmill. |
 
 ### `"type": "holes"`
 

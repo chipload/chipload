@@ -276,9 +276,9 @@ Smaller follow-ups noted along the way, not in the order above:
      2026-11-15** (docs/specs/prism.md; see *In main*).
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
      across the path; check against ADR 0031 first, as it is a surface of its own. **Spec draft
-     2026-11-15** (docs/specs/moulding.md, fourteen decisions), parked, then **revised 2026-11-15**
-     with the 3D rule (ADR 0017): passes along the path, 3D moves for tapered ends; also
-     round ends. For review.
+     2026-11-15** (docs/specs/moulding.md), **built 2026-11-15** (see *In main*). Left: the form's
+     section drawing, a moulding step in the relief wizard (the user's idea), different
+     ends per end, linking passes.
   5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
      the setup sheet saying how far; probably built on setups.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
@@ -306,6 +306,13 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Moulding** (docs/specs/moulding.md, approved and built 2026-11-15): a profile swept
+  along paths (cove, round-over, ogee, bead, flute, or a drawn open shape as the section),
+  in passes along the path at the depth a 1D drop of the tool onto the section gives;
+  outside/inside or left/right; square, round or tapered ends (3D moves along the taper);
+  levels; a note where the tool bridges the profile. `op add moulding`, the S menu's M,
+  the Operation menu, a properties form, the setup sheet, a guide page with a picture;
+  texts in all seven languages; ADR 0017 notes it as in by the 2026-11-15 rule.
 - **Stroke patterns** (the user, 2026-11-15: shorter strokes to flute;
   docs/specs/fill-pattern.md §14): dashes, herringbone, scales and sunburst, whole strokes
   only by default, fluted by default (ramps a third of a stroke). Later if asked for:

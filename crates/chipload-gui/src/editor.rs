@@ -319,7 +319,10 @@ impl EditJob {
     ) -> (usize, Vec<Message>) {
         let request = NewRequest {
             kind,
-            select: selection.selector(contours, matches!(kind, OpKind::Path | OpKind::Flute)),
+            select: selection.selector(
+                contours,
+                matches!(kind, OpKind::Path | OpKind::Flute | OpKind::Moulding),
+            ),
             tool: None,
         };
         let made = new_operations(&self.job, &request, contours, library, lang.lang());
@@ -348,7 +351,7 @@ impl EditJob {
     ) {
         let open = matches!(
             self.job.operations.get(index),
-            Some(Operation::Path(_) | Operation::Flute(_))
+            Some(Operation::Path(_) | Operation::Flute(_) | Operation::Moulding(_))
         );
         let select = selection.selector(contours, open);
         let unsided = !self.side_chosen(index);
@@ -373,6 +376,7 @@ impl EditJob {
             Operation::Flute(f) => f.select = select,
             Operation::Pattern(f) => f.select = select,
             Operation::Prism(f) => f.select = select,
+            Operation::Moulding(m) => m.select = select,
             Operation::Holes(h) => h.select = select,
             Operation::Relief(r) => r.select = select,
             // The whole stock: no shapes to set.

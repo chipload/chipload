@@ -94,6 +94,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [flute] acanalado
     [pattern] patrón
     [prism] prisma
+    [moulding] moldura
     [holes] taladros
     [relief] relieve
    *[surface] planeado
@@ -209,6 +210,16 @@ toolpath-prism-flat-top = el contorno #{ $contour } es más ancho de lo que la f
 toolpath-prism-close = la zanja del contorno #{ $contour } llega al contorno #{ $other }: su borde baja ahí { $deeper } más; fija una profundidad máxima o separa más las formas
 toolpath-prism-vbit = un prisma necesita una fresa en V, la herramienta { $tool } es { $type }
 toolpath-prism-deepest = el borde más profundo está a { $depth }
+toolpath-moulding-no-width = el perfil no tiene anchura a través de la trayectoria
+toolpath-moulding-too-wide = el perfil mide { $width } de ancho: como mucho { $most }
+toolpath-moulding-profile-shape = la forma S{ $shape } no puede ser un perfil: falta o está cerrada (dibuja una forma abierta para la sección)
+toolpath-moulding-stepover = el paso ({ $stepover }) es más ancho que la herramienta ({ $diameter })
+toolpath-moulding-bridge = la herramienta no alcanza todo el perfil (una curva más cerrada que ella): queda hasta { $gap } por encima
+toolpath-moulding-offset = desfase de la trayectoria de la moldura
+toolpath-moulding-offset-near = un desfase de la trayectoria de la moldura quedó demasiado cerca en ({ $x }, { $y })
+toolpath-moulding-tool = una moldura necesita una fresa de bola o una fresa plana, la herramienta { $tool } es { $type }
+toolpath-moulding-below-stock = el perfil baja a { $depth }, por debajo del material ({ $thickness })
+toolpath-moulding-deepest = el perfil tiene { $depth } de profundidad, en { $passes } pasadas
 toolpath-path-past-cone = una fresa en V no corta más hondo que su cono, aquí { $deepest }, o su mango rozaría; esta trayectoria baja { $depth }: hazla menos profunda o usa una fresa plana
 toolpath-chamfer-past-cone = la herramienta { $tool } hace un chaflán de { $widest } como mucho, o su mango rozaría; este mide { $width }: hazlo más estrecho o usa una fresa en V más ancha
 toolpath-holes-not-circles = { $count ->
