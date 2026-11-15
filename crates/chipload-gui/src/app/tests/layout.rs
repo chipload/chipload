@@ -18,10 +18,10 @@ const WINDOW: egui::Vec2 = egui::vec2(1280.0, 800.0);
 /// The supported languages, by their setting.
 const LANGUAGES: [&str; 7] = ["en", "de", "fr", "es", "it", "sv", "ru"];
 
-/// The ribbon's last large button (View > Measure) and Generate, as named in `language`.
+/// The ribbon's last large button (WIZARDS > Relief) and Generate, as named in `language`.
 fn ribbon_ends(language: &str) -> (String, String) {
     let lang = crate::i18n::resolve(language);
-    (t!(lang, "header-library"), t!(lang, "header-generate"))
+    (t!(lang, "header-relief"), t!(lang, "header-generate"))
 }
 
 /// The app with a project open, in `language`, set up as main.rs sets it up (the system's
@@ -56,7 +56,7 @@ fn harness(language: &str, size: egui::Vec2) -> Harness<'static, ChiploadApp> {
 const RIBBON_BOTTOM: f32 = 100.0;
 
 /// A widget's rectangle in the top bars by its label: the lowest one with it (the ribbon's
-/// *Library*, not the menu bar's, nor the Browser's Library folder below them).
+/// *Sign*, not a dialog's, nor anything in the Browser below).
 fn rect_of(harness: &Harness<'_, ChiploadApp>, label: &str) -> egui::Rect {
     harness
         .get_all_by_label(label)
@@ -76,7 +76,13 @@ fn the_ribbon_fits_the_default_window_in_every_language() {
     for language in LANGUAGES {
         let (last, generate) = ribbon_ends(language);
         let harness = harness(language, WINDOW);
-        let end = rect_of(&harness, &last).right();
+        // The rightmost of that name: OPERATION has a small Relief button too.
+        let end = harness
+            .get_all_by_label(&last)
+            .map(|node| node.rect())
+            .filter(|rect| rect.top() < RIBBON_BOTTOM)
+            .map(|rect| rect.right())
+            .fold(f32::NEG_INFINITY, f32::max);
         let action = rect_of(&harness, &generate).left();
         assert!(
             end <= action,
@@ -90,17 +96,17 @@ fn the_ribbon_shows_names_where_they_fit_and_icons_alone_where_not() {
     // English fits with names at the default size. Whether German does depends on the
     // font (DejaVu Sans on Linux: no; Windows' narrower Segoe UI: yes, seen on CI
     // 2026-11-03), so German is tried in a window too narrow for either.
-    assert!(names_shown(&harness("en", WINDOW), "Library"));
+    assert!(names_shown(&harness("en", WINDOW), "Sign"));
     let mut german = harness("de", egui::vec2(1000.0, 800.0));
-    assert!(!names_shown(&german, "Bibliothek"));
+    assert!(!names_shown(&german, "Schild"));
     // A wider window shows the names again.
     german.set_size(egui::vec2(1600.0, 800.0));
     german.run_steps(6);
-    assert!(names_shown(&german, "Bibliothek"));
+    assert!(names_shown(&german, "Schild"));
     // A narrow window: icons alone, in English too.
     assert!(!names_shown(
         &harness("en", egui::vec2(900.0, 700.0)),
-        "Library"
+        "Sign"
     ));
 }
 

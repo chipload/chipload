@@ -327,7 +327,7 @@ impl ChiploadApp {
         });
     }
 
-    /// The ribbon: FILE, DRAW, OPERATION, LIBRARY and VIEW groups, Generate and Export at the
+    /// The ribbon: FILE, DRAW, OPERATION and VIEW groups, Generate and Export at the
     /// right. The groups get the width Generate and Export leave. When their buttons with
     /// names don't fit, as in a longer language or a narrow window, the large buttons show
     /// their icons alone, named on hover; narrower still, the groups scroll.
@@ -695,6 +695,8 @@ impl ChiploadApp {
             let mut surface = None;
             let mut relief = None;
             let mut chamfer = None;
+            let mut flute = None;
+            let mut pattern = None;
             for (label, kind, hover) in super::browser::new_operations(ui) {
                 let icon = match kind {
                     OpKind::Profile => Icon::Profile,
@@ -710,7 +712,15 @@ impl ChiploadApp {
                     // Not on the ribbon, which then no longer fits English names at the
                     // default width: the S menu (L), the Operation menu and the Browser
                     // have it (docs/specs/fluting.md §13).
-                    OpKind::Flute | OpKind::Pattern => continue,
+                    // Small buttons beside Chamfer (docs/specs/fluting.md §13).
+                    OpKind::Flute => {
+                        flute = Some((label, hover));
+                        continue;
+                    }
+                    OpKind::Pattern => {
+                        pattern = Some((label, hover));
+                        continue;
+                    }
                     OpKind::Surface => {
                         surface = Some((label, hover));
                         continue;
@@ -823,6 +833,30 @@ impl ChiploadApp {
                     }
                 }
             });
+            // Flute over Pattern, a column of their own.
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
+                let small = [
+                    (flute, Icon::Flute, OpKind::Flute),
+                    (pattern, Icon::Hatch, OpKind::Pattern),
+                ];
+                for (named, icon, kind) in small {
+                    let Some((label, hover)) = named else {
+                        continue;
+                    };
+                    let hover = if selected {
+                        format!("{label}: {hover}")
+                    } else {
+                        t!(ui, "header-needs-selection-hover", operation = hover)
+                    };
+                    if small_ribbon_button(ui, icon, &label, selected, false, tint(kind))
+                        .on_hover_text(hover)
+                        .clicked()
+                    {
+                        app.add_operation(kind);
+                    }
+                }
+            });
         });
         ui.separator();
         // Wizards: a whole thing in one dialog, its drawing and its operations (the user,
@@ -866,20 +900,6 @@ impl ChiploadApp {
                 .clicked()
             {
                 app.start_relief();
-            }
-        });
-        ui.separator();
-        // One button for the library, which opens This computer in the Browser: its tools
-        // and machines are there, and in the Library menu (docs/specs/relief-wizard.md §7,
-        // decision 6).
-        let caption = t!(ui, "header-group-library");
-        self.group(ui, &caption, |app, ui| {
-            let label = t!(ui, "header-library");
-            if ribbon_button(ui, Icon::Tools, &label, true, false)
-                .on_hover_text(t!(ui, "header-library-hover"))
-                .clicked()
-            {
-                app.show_library(LibraryKind::Tools, None);
             }
         });
     }

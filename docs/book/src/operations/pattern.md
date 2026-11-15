@@ -7,8 +7,8 @@ box lid or a coaster. The grooves stop at the shape's edge and leave its holes a
 ![A cross-hatch round two holes, rings in a circle and waves with ramped ends, simulated](../images/pattern.png)
 
 Select the shapes, with the shapes inside them that should stay untouched (the letters of
-a sign), then press **S** over the canvas and **E**, or choose **Operation > New Pattern**,
-or *New operation* in a part's right-click menu in the Browser.
+a sign), then **Pattern** (ribbon, OPERATION, the small button under Flute), or press **S** over
+the canvas, then **E**.
 
 ## What it fills
 

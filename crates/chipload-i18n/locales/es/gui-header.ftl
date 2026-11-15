@@ -29,7 +29,6 @@ header-tab-not-saved-hover = Aún no guardado
 header-group-file = Archivo
 header-group-draw = Dibujar
 header-group-operation = Operación
-header-group-library = Biblioteca
 # FILE: short words under icons.
 header-new = Nuevo
 header-new-hover = Proyecto nuevo
@@ -75,8 +74,6 @@ header-new-relief = Nuevo relieve
 
 # LIBRARY
 header-machines = Máquinas
-header-library = Biblioteca
-header-library-hover = Tus herramientas y máquinas, en Biblioteca en el Navegador
 header-relief = Relieve
 header-relief-hover = Un relieve de un modelo 3D en un paso: girado, cortado, dimensionado, desbastado, con su fondo o recorte
 header-tool-library = Biblioteca de herramientas

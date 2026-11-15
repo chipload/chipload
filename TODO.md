@@ -302,6 +302,8 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Ribbon:** the LIBRARY group is gone (the user, 2026-11-15; the Library is in the menu
+  bar and the Browser); Flute and Pattern take its room as small buttons beside Chamfer.
 - **Pattern** (docs/specs/fill-pattern.md, approved and built 2026-11-15): grooves of
   lines, cross-hatch (any angle between), rings or waves engraved inside closed shapes,
   their selected holes left alone; inside the edge by default (half a groove in), laid out

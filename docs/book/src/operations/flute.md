@@ -5,9 +5,8 @@ runs at full depth, and comes up gradually at its end. Flutes are cut down the f
 columns, table legs and pilasters, across panels, as the rays of a sunburst, or along a
 frame. With a ball nose or a V-bit, each end narrows to a point.
 
-Draw the flutes as lines, arcs or open polylines, select them, then press **S** over the
-canvas and **L**, or choose **Operation > New Flute**, or *New operation* in a part's
-right-click menu in the Browser.
+Draw the flutes as lines, arcs or open polylines, select them, then **Flute** (ribbon,
+OPERATION, the small button beside Chamfer), or press **S** over the canvas, then **L**.
 
 ## How it cuts
 

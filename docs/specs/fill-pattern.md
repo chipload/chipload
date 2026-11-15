@@ -115,8 +115,8 @@ A new operation type; no schema bump, as the chamfer and the flute.
   (also `--between 60`, `--wavelength 10 --height 2` for waves, `--ramp 2`, `--on-line`,
   `--depth`, `--tool`, `--layer`); `set …operations.N.pattern.spacing=4`.
 - **Window:** *Pattern* in the S menu (key **E**, for engrave: P is the profile), the
-  Operation menu (*New Pattern*) and the Browser's new operations; not on the ribbon,
-  which has no room (as the flute, fluting.md §13). Its properties: Tool, Pattern (lines,
+  Operation menu (*New Pattern*) and the Browser's new operations; on the ribbon under
+  *Flute* since the LIBRARY group made room (fluting.md §13). Its properties: Tool, Pattern (lines,
   cross-hatch, rings, waves) and its settings, Inside the edge, Start depth, Depth with the
   groove's width beneath, Step down, Ends (square, or the ramp length), Feeds.
 - **Defaults** for a new pattern: the project's first V-bit, else the usual tool; depth

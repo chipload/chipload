@@ -199,10 +199,11 @@ refuses a project with a type it doesn't know.
 - **No start marker yet** (§2, decision 6). The canvas's start markers are a profile's
   draggable ring starts; a flute's would need its own kind of marker. Until then the
   simulation and the 3D view show which end ramps how. In TODO.
-- **Not on the ribbon:** a column of its own beside Styles and Chamfer (two small buttons
-  fit a column) made the ribbon too wide for English names at the default window size
-  (the layout test). *Flute* is in the S menu (L), the Operation menu and the Browser's
-  new operations. The user may prefer something else on the ribbon making room for it.
+- **The ribbon:** a column of its own beside Styles and Chamfer (two small buttons fit a
+  column) first made the ribbon too wide for English names at the default window size
+  (the layout test), so it was left off. The user then chose to drop the ribbon's LIBRARY
+  group (2026-11-15; the Library stays in the menu bar and the Browser): *Flute* and
+  *Pattern* share that column, Flute on top.
 - **The width at the top** is worked out from the tool's shape for every kind (twice the
   distance from the axis where the cutter's surface reaches the depth), so a tapered ball
   nose and a bull nose get it right too; a flat end mill's is its diameter.
