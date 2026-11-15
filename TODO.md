@@ -268,6 +268,9 @@ Smaller follow-ups noted along the way, not in the order above:
      and out (start and end ramp lengths, full depth in the middle). **Built
      2026-11-15** (docs/specs/fluting.md; see *In main*). Left: a marker on the canvas
      at each flute's start end (§13).
+  2b. **Fill pattern** (the user, 2026-11-15, after fluting): grooves of lines,
+     cross-hatch, rings or waves engraved inside closed shapes. **Spec draft 2026-11-15**
+     (docs/specs/fill-pattern.md, twelve decisions), for review.
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
      instead of a flat floor, from the same medial axis as V-carving.
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
