@@ -265,7 +265,8 @@ Smaller follow-ups noted along the way, not in the order above:
      inside, the tool's flank on the edge. **Built 2026-11-15** (docs/specs/chamfer.md;
      see *In main*).
   2. **Fluting:** grooves along lines or open paths with a V-bit or ball nose that ramp in
-     and out (start and end ramp lengths, full depth in the middle).
+     and out (start and end ramp lengths, full depth in the middle). **Spec draft
+     2026-11-15** (docs/specs/fluting.md, twelve decisions), for review.
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
      instead of a flat floor, from the same medial axis as V-carving.
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
