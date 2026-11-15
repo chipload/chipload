@@ -272,7 +272,8 @@ Smaller follow-ups noted along the way, not in the order above:
      cross-hatch, rings or waves engraved inside closed shapes. **Built 2026-11-15**
      (docs/specs/fill-pattern.md; see *In main*).
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
-     instead of a flat floor, from the same medial axis as V-carving.
+     instead of a flat floor, from the same medial axis as V-carving. **Spec draft
+     2026-11-15** (docs/specs/prism.md, twelve decisions), for review.
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
      across the path; check against ADR 0031 first, as it is a surface of its own.
   5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
