@@ -38,7 +38,9 @@ the project file are first-class) as well as in the GUI.
     powerful"), but **CAD-model-driven machining**: taking a part's features and operation
     depths from a 3D model (a STEP file and the like). An operation that cuts a 3D shape
     from 2D input (a profile swept along a path, a relief) is judged on its own merits by
-    the rules below, not refused for being 3D.
+    the rules below, not refused for being 3D. **Why:** machining driven by a 3D model is
+    better done by CAM software connected directly to the 3D CAD program; Chipload is for
+    CNC routing, where the shapes come mostly from 2D drawings.
 - **Machine control**, sending G-code, jogging, probing: senders (UGS, CNCjs, gSender) and
   the controller's own software.
 - **CAD** beyond the few shapes Chipload draws (circle, rectangle, polyline): any CAD
