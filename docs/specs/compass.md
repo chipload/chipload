@@ -236,8 +236,11 @@ y but the arrow moves only along that axis."
   undo step; the Compass goes with the selection, as after a drag.
 - While pointing, the moved outline previews and the status bar says what a click does;
   **Esc** cancels (before hiding the Compass), and so does a click of *Cancel*.
-- **Unlocked** (§5), the same places the Compass itself: the centre onto the point, an
-  arrow aimed at it.
+- **Unlocked** (§5), the same moves the Compass itself, the same way (the user,
+  2026-11-15): from the centre onto the point, from an arrow along its axis; the
+  selection stays. (First built as aiming the arrow at the point, which the user didn't
+  want.) Unlocked, the selection's own points snap too, so the Compass can go onto one of
+  its corners.
 
 As built: the menu is an `egui::Area` as the right drag's; the canvas's context menu isn't
 opened on that click; a drag that starts while picking does nothing; `contour_centre` is in

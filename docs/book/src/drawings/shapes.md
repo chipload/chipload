@@ -259,7 +259,7 @@ selection's own handles hide while it shows. **Q** again or **Esc** hides it.
   shape you click (a circle's or an arc's centre, else the middle of its box). From the
   centre it moves in X and Y; from an arrow only along that axis, as far as the point
   lies along it. The outline shows where it will go while you point; **Esc** cancels.
-  Unlocked, the same puts the Compass itself on the point, or aims the arrow at it.
+  Unlocked, the same moves the Compass itself the same way, and the selection stays.
 
 Every move or turn is one undo step, and the shapes keep their ids, so the operations
 that cut them follow. Copies and arrays are for drawn shapes; a picture, text, 3D model or

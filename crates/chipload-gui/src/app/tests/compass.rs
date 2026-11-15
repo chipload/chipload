@@ -410,3 +410,43 @@ fn to_centre_point_takes_the_clicked_shapes_centre() {
         triangle(&app)
     );
 }
+
+#[test]
+fn unlocked_a_pick_moves_the_compass_alone_the_same_way() {
+    let mut app = drawn_part();
+    app.click(Some(contour_of(&app, 3)), false);
+    let mut harness = window(app);
+    harness.key_press(egui::Key::Q);
+    harness.run_steps(2);
+    harness.key_down(egui::Key::Space);
+    harness.run_steps(1);
+    harness.key_up(egui::Key::Space);
+    harness.run_steps(2);
+    assert!(harness.state_mut().compass_now().unwrap().2, "unlocked");
+    let before = triangle(harness.state());
+    // Right-click the X arrow: To point, then the circle's centre (75, 80) 10 px up: along
+    // X only, the Compass goes from (125, 80) to (75, 80).
+    let arm = centre_on_screen(&mut harness) + egui::vec2(45.0, 0.0);
+    click_with(&mut harness, egui::PointerButton::Secondary, arm);
+    assert!(harness.state().compass_pick_menu_open());
+    harness.get_by_label("To point").click();
+    harness.run_steps(2);
+    let above = harness.state().view.to_screen((75.0, 80.0)) + egui::vec2(0.0, -10.0);
+    harness.state_mut().click_compass_pick(above, true);
+    let (centre, angle, unlocked) = harness.state_mut().compass_now().unwrap();
+    assert!(unlocked);
+    assert!(
+        (centre.0 - 75.0).abs() < 1e-4 && (centre.1 - 80.0).abs() < 1e-4,
+        "{centre:?}"
+    );
+    assert_eq!(angle, 0.0, "not turned");
+    assert_eq!(triangle(harness.state()), before, "the selection stays");
+    // The centre: onto the triangle's own corner (110, 65), in X and Y.
+    harness
+        .state_mut()
+        .start_compass_pick(CompassPart::Centre, super::super::compass::PickBy::Point);
+    let corner = harness.state().view.to_screen((110.0, 65.0)) + egui::vec2(1.0, 1.0);
+    harness.state_mut().click_compass_pick(corner, false);
+    assert_eq!(harness.state_mut().compass_now().unwrap().0, (110.0, 65.0));
+    assert_eq!(triangle(harness.state()), before);
+}

@@ -913,25 +913,18 @@ impl ChiploadApp {
     }
 
     /// Where `point` takes the Compass of `pick`: the centre there in X and Y, an arrow
-    /// along its axis only (to where the point lies across it); unlocked, the Compass placed
-    /// there or its arrow aimed at the point.
+    /// along its axis only (to where the point lies across it). Locked, the selection goes
+    /// with it; unlocked, the Compass alone moves, the same way.
     fn pick_motion(pick: &CompassPick, point: Point) -> Motion {
         let d = (point.0 - pick.centre.0, point.1 - pick.centre.1);
-        match (pick.part, pick.unlocked) {
-            (CompassPart::Centre, _) => Motion::Move(d),
-            (part @ (CompassPart::X | CompassPart::Y), false) => {
+        match pick.part {
+            CompassPart::Centre => Motion::Move(d),
+            part @ (CompassPart::X | CompassPart::Y) => {
                 let u = axis(pick.angle, part);
                 let along = dot(d, u);
                 Motion::Move((u.0 * along, u.1 * along))
             }
-            (part @ (CompassPart::X | CompassPart::Y), true) => {
-                if d.0 == 0.0 && d.1 == 0.0 {
-                    return Motion::Turn(0.0);
-                }
-                let offset = if part == CompassPart::Y { 90.0 } else { 0.0 };
-                Motion::Turn(normalised(degrees_of(d) - offset - pick.angle))
-            }
-            (CompassPart::Ring, _) => Motion::Turn(0.0),
+            CompassPart::Ring => Motion::Move((0.0, 0.0)),
         }
     }
 
@@ -942,12 +935,7 @@ impl ChiploadApp {
         };
         let motion = match self.picked_point(&pick, pos, free) {
             Some(point) => Self::pick_motion(&pick, point),
-            None => match pick.part {
-                CompassPart::Centre | CompassPart::X | CompassPart::Y if !pick.unlocked => {
-                    Motion::Move((0.0, 0.0))
-                }
-                _ => Motion::Turn(0.0),
-            },
+            None => Motion::Move((0.0, 0.0)),
         };
         if let Some(p) = self.canvas_tools.compass.pick.as_mut() {
             p.motion = motion;
@@ -955,7 +943,7 @@ impl ChiploadApp {
     }
 
     /// A click at `pos` while picking: the move (one undo step) or, unlocked, the Compass
-    /// put there. *To centre point* off any shape says so and waits for another click.
+    /// alone moved there. *To centre point* off any shape says so and waits for another click.
     pub(super) fn click_compass_pick(&mut self, pos: egui::Pos2, free: bool) {
         let Some(pick) = self.canvas_tools.compass.pick.clone() else {
             return;
