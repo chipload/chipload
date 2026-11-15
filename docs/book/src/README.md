@@ -7,14 +7,17 @@ Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out
 - **In:** DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
   models (STL) and depth maps for reliefs, and
   shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
-  offset, fillet, trim, union and subtract, arrays). The drawing exports as a DXF too.
+  offset, fillet, trim, union and subtract, arrays; the Compass to move, turn and copy). The drawing exports as a DXF too.
 - **Out:** G-code for your controller, in mm or inches, through a post-processor: GRBL,
   LinuxCNC and Mach3/4 are built in, and you can write your own.
 - **Operations:**
   - profiles, spiralling down, with tabs, finishing passes, onion skins and dogbones;
-  - ring pockets, with helix entry and rest machining;
-  - V-carving;
-  - follow path;
+  - ring pockets, with helix entry, rest machining and a finishing pass;
+  - V-carving, and prisms: raised shapes with a ridge along their centre;
+  - chamfers on any closed outline;
+  - follow path, and flutes: grooves that ramp in and out;
+  - fill patterns: lines, cross-hatch, rings, waves, and short fluted strokes;
+  - mouldings: a profile (cove, ogee, bead…) swept along a path;
   - drilled and helically bored holes;
   - surfacing the stock;
   - reliefs: a 3D model (STL), a depth-map picture or a picture's shapes inflated, carved
@@ -58,10 +61,11 @@ licences of everything it is built with are under *Help > About and licences*, a
 
 Chipload is meant to be lean. It leaves out what other tools do better:
 - nesting parts on a sheet;
-- 3D surface machining, beyond [reliefs](drawings/models.md) carved from the top;
+- machining driven by a 3D CAD model (features and depths from a STEP file): CAM connected
+  to your CAD does that better. Chipload does carve 3D shapes from 2D input:
+  [reliefs](drawings/models.md) from the top, and [mouldings](operations/moulding.md);
 - sending G-code to the machine (use your controller's sender);
-- CAD beyond a few shapes;
-- facing the spoilboard.
+- CAD beyond the shapes a part needs.
 
 ## This guide
 

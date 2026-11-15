@@ -312,6 +312,14 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- Nothing yet.
+
+### In 0.37.0 (prepared 2026-11-15: version bumped, notices and screenshots renewed; not tagged)
+
+- **Small things:** Simulate starts in 3D with only the simulation shown the first time;
+  the moulding form draws its section with the tool and opens its Profile section; a
+  prism is judged against the stock by the depth it cuts, not its bit's cone; the guide's
+  introduction and the README list the new operations.
 - **Moulding** (docs/specs/moulding.md, approved and built 2026-11-15): a profile swept
   along paths (cove, round-over, ogee, bead, flute, or a drawn open shape as the section),
   in passes along the path at the depth a 1D drop of the tool onto the section gives;
@@ -408,8 +416,9 @@ Smaller follow-ups noted along the way, not in the order above:
   export of a project asks, then Ctrl+E writes the same file again without asking;
   *Export G-code as…* (Ctrl+Shift+E) always asks; `settings.json` `exports` (optional)
   keeps each recent project's file.
-- **The Q menu** (docs/specs/fewer-clicks.md §2): Q over the canvas opens a menu at the
-  mouse: P profile, K pocket, H holes, V V-carve, F follow path, digits 1-9 the styles in
+- **The quick menu** (docs/specs/fewer-clicks.md §2): S over the canvas (Q until the
+  Compass took Q) opens a menu at the mouse: P profile, K pocket, H holes, V V-carve, F
+  follow path, C chamfer, L flute, E pattern, R prism, M moulding, digits 1-9 the styles in
   list order; kinds the selection can't take greyed with the reason
   (`selection::unfit_for`); its letters only while it is open.
 - **Select similar, select inside** (docs/specs/fewer-clicks.md §3): in the canvas'

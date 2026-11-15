@@ -31,8 +31,10 @@ with a 2 mm ball nose.</sub>
 - **Checked G-code, always.** An independent checker reads every program before it is
   written: machine limits, rapids through the stock, retracts, arcs, feeds.
 - **Operations:** profile (spiral, tabs, finishing pass, onion skin, dogbones), pocket
-  (islands, spiral rings, rest passes, helical entry), V-carve, follow path, holes (drilled
-  or bored), surfacing and relief.
+  (islands, spiral rings, rest passes, finishing pass, helical entry), V-carve, prism
+  (raised letters with a ridge), chamfer, follow path, flute (grooves that ramp in and
+  out), fill patterns (lines, cross-hatch, rings, waves, fluted strokes), moulding (a
+  profile swept along a path), holes (drilled or bored), surfacing and relief.
 - **Reliefs:** carve a 3D model (STL), a depth-map picture or a logo inflated into rounded
   shapes, from the top with a ball nose; a rim that ramps up to the surface, roughing in
   levels and a smoothing pass, all set up in one wizard.
@@ -40,7 +42,7 @@ with a 2 mm ball nose.</sub>
   chip load and a setup sheet for the operator.
 - **Drawings:** several DXFs and SVGs, text in built-in fonts, traced pictures, and shapes
   drawn and edited in the app (snapping, offset, fillet, trim, union and subtract, arrays,
-  construction lines); a new version of a DXF keeps the operations, and the drawing exports
+  construction lines, and the Compass: one handle to move, turn, copy and array); a new version of a DXF keeps the operations, and the drawing exports
   as a DXF.
 - **A sheet of parts:** several parts with their own operations and grids of copies; export
   the whole sheet or one part.
