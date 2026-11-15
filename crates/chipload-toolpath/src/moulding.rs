@@ -175,6 +175,10 @@ impl Section {
             };
             z = z.max(surface - h);
         }
+        // Nothing under the tool but waste: nothing to cut against, it stays at the surface.
+        if z == f64::NEG_INFINITY {
+            return 0.0;
+        }
         z.min(0.0)
     }
 }
@@ -282,6 +286,69 @@ pub fn preview(profile: &MouldProfile, contours: &[Contour]) -> Option<Vec<Point
     Some(points)
 }
 
+/// The tool in a preview of the section: each pass's tip (distance across, Z) and the
+/// tool's outline at the deepest pass, its shank going up past the surface.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PreviewTool {
+    pub tips: Vec<Point>,
+    pub outline: Vec<Point>,
+}
+
+/// The passes of `profile` with `cutter` `stepover` apart across it, for the window's
+/// drawing (docs/specs/moulding.md §9); None when the section can't be read or the
+/// stepover is no use.
+pub fn preview_tool(
+    profile: &MouldProfile,
+    contours: &[Contour],
+    cutter: Cutter,
+    stepover: f64,
+) -> Option<PreviewTool> {
+    let section = match *profile {
+        MouldProfile::Shape { shape } => {
+            let parts: Vec<Primitive> = contours
+                .iter()
+                .filter(|c| !c.closed)
+                .flat_map(|c| &c.parts)
+                .filter(|p| p.segment.shape == Some(shape))
+                .map(|p| p.segment.prim)
+                .collect();
+            section_of_parts(shape, &parts).ok()?
+        }
+        _ => Section::built_in(profile).ok()?,
+    };
+    if stepover.is_nan()
+        || stepover <= CHAIN_TOL_MM
+        || section.width / stepover > PREVIEW_POINTS as f64 * 4.0
+    {
+        return None;
+    }
+    let mut tips = Vec::new();
+    let mut c: f64 = 0.0;
+    loop {
+        let at = c.min(section.width);
+        let z = section.drop(cutter, at, 1.0);
+        if z < -DEPTH_TOL_MM {
+            tips.push((at, z));
+        }
+        if c >= section.width - CHAIN_TOL_MM {
+            break;
+        }
+        c += stepover;
+    }
+    let &(cx, cz) = tips.iter().min_by(|a, b| a.1.total_cmp(&b.1))?;
+    let r = cutter.radius();
+    let steps = 24;
+    let mut outline: Vec<Point> = Vec::with_capacity(steps + 3);
+    let shank = cz + cutter.height_at(r).unwrap_or(0.0) + section.deepest() + 2.0 * r;
+    outline.push((cx - r, shank));
+    for i in 0..=steps {
+        let x = -r + 2.0 * r * i as f64 / steps as f64;
+        outline.push((cx + x, cz + cutter.height_at(x).unwrap_or(0.0)));
+    }
+    outline.push((cx + r, shank));
+    Some(PreviewTool { tips, outline })
+}
+
 /// Everything the passes need.
 #[derive(Debug, Clone, Copy)]
 pub struct MouldCut<'a> {
@@ -335,7 +402,7 @@ pub fn passes(
     }
     // The distances across the profile: every stepover, and the far edge.
     let mut distances: Vec<f64> = Vec::new();
-    let mut c = 0.0;
+    let mut c: f64 = 0.0;
     while c < section.width - CHAIN_TOL_MM {
         distances.push(c);
         c += op.stepover;

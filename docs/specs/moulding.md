@@ -286,8 +286,10 @@ bottom: it stays 0.4 mm above it".
   and not just the name"): the profile list shows each profile's section beside its name,
   and the chosen one is drawn true to scale under its settings (`moulding::preview` gives
   the points; the form only paints them: the board in a wood tone with the profile cut in,
-  a tick at the path). A drawn profile that can't be read shows a question mark.
-- **Left for later:** the tool's passes in that drawing, different ends at each end, a
+  a tick at the path). A drawn profile that can't be read shows a question mark. The tool
+  is drawn too (asked for next): its outline at the deepest pass and a dot at each pass's
+  tip (`moulding::preview_tool`), so the stepover and what the tool bridges show.
+- **Left for later:** different ends at each end, a
   profile that changes along the path, linking passes without lifting, and a moulding
   step in the relief wizard (the user's idea, 2026-11-15).
 - **Code:** `chipload-toolpath/src/moulding.rs` (section, drop, passes, ends, moves),

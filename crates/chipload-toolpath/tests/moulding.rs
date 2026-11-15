@@ -342,3 +342,28 @@ fn the_preview_is_the_section_for_the_window() {
     assert!((deepest + 4.0).abs() < 0.1, "{deepest}");
     assert!(preview(&MouldProfile::Shape { shape: 8 }, &[]).is_none());
 }
+
+#[test]
+fn the_preview_shows_the_tool_at_each_pass() {
+    use chipload_toolpath::moulding::preview_tool;
+    let ball = Cutter::Ball { radius: 3.0 };
+    let shown = preview_tool(&MouldProfile::Cove { radius: 6.0 }, &[], ball, 1.0).unwrap();
+    // A tip every stepover up to the profile's far edge, where the ball doesn't cut.
+    let s = section(MouldProfile::Cove { radius: 6.0 });
+    assert!(shown.tips.len() >= 5, "{:?}", shown.tips);
+    for &(c, z) in &shown.tips {
+        assert!((z - s.drop(ball, c, 1.0)).abs() < 1e-9);
+    }
+    // The tool's outline at the deepest pass: its tip there, 6 mm across.
+    let deepest = shown.tips.iter().map(|t| t.1).fold(0.0, f64::min);
+    let low = shown.outline.iter().map(|p| p.1).fold(0.0, f64::min);
+    assert!((low - deepest).abs() < 1e-9);
+    let (lo, hi) = shown
+        .outline
+        .iter()
+        .fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), p| {
+            (a.min(p.0), b.max(p.0))
+        });
+    assert!((hi - lo - 6.0).abs() < 1e-9);
+    assert!(preview_tool(&MouldProfile::Cove { radius: 6.0 }, &[], ball, 0.0).is_none());
+}

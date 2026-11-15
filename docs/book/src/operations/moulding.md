@@ -65,7 +65,7 @@ drawn band) cuts nothing beyond the path.
 | Setting | |
 |---|---|
 | **Tool** | a ball nose (the usual) or an end mill; a V-bit or a drill is refused |
-| **Profile** | the shape and its size, or the drawn shape. The list shows each profile's section beside its name, and a drawing of the chosen one, true to scale, sits under its size: the board with the profile cut into it, the path at the mark |
+| **Profile** | the shape and its size, or the drawn shape. The list shows each profile's section beside its name, and a drawing of the chosen one, true to scale, sits under its size: the board with the profile cut into it, the path at the mark, the tool at its deepest pass and a dot where each pass's tip goes |
 | **Side**, **Ends** | as above; *Taper length* and its ramp shape for tapered ends |
 | **Start depth** | where the surface is: 0 for the stock top |
 | **Stepover** | the distance between passes across the profile; a new moulding takes the widest that leaves ridges of 0.02 mm with a ball nose, a quarter of an end mill |

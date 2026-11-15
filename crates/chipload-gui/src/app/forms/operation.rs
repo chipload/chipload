@@ -1857,7 +1857,7 @@ fn moulding_sections(
                     let clicked = ui
                         .horizontal(|ui| {
                             let points = chipload_toolpath::moulding::preview(&shown, contours);
-                            section_picture(ui, points.as_deref(), egui::vec2(44.0, 22.0));
+                            section_picture(ui, points.as_deref(), None, egui::vec2(44.0, 22.0));
                             ui.selectable_label(same, label).clicked()
                         })
                         .inner;
@@ -1897,8 +1897,16 @@ fn moulding_sections(
         // the left.
         ui.label("");
         let points = chipload_toolpath::moulding::preview(&m.profile, contours);
-        section_picture(ui, points.as_deref(), egui::vec2(170.0, 72.0))
-            .on_hover_text(t!(ui, "forms-moulding-preview-hover"));
+        let passes = tool.and_then(|t| t.cutter()).and_then(|cutter| {
+            chipload_toolpath::moulding::preview_tool(&m.profile, contours, cutter, m.stepover)
+        });
+        section_picture(
+            ui,
+            points.as_deref(),
+            passes.as_ref(),
+            egui::vec2(170.0, 72.0),
+        )
+        .on_hover_text(t!(ui, "forms-moulding-preview-hover"));
         ui.end_row();
         ui.label(t!(ui, "forms-side"))
             .on_hover_text(t!(ui, "forms-moulding-side-hover"));
@@ -2004,12 +2012,14 @@ fn moulding_sections(
 }
 
 /// A small drawing of a moulding's section (docs/specs/moulding.md §9), `size` on screen:
-/// the board in section with the profile cut into it, true to scale, a mark at the path.
-/// `points` are (distance across, Z) from `moulding::preview`; None draws a question mark
-/// (a drawn profile that can't be read).
+/// the board in section with the profile cut into it, true to scale, a mark at the path;
+/// with `passes`, the tool at its deepest pass and a dot at each pass's tip. `points` are
+/// (distance across, Z) from `moulding::preview`; None draws a question mark (a drawn
+/// profile that can't be read).
 fn section_picture(
     ui: &mut egui::Ui,
     points: Option<&[(f64, f64)]>,
+    passes: Option<&chipload_toolpath::moulding::PreviewTool>,
     size: egui::Vec2,
 ) -> egui::Response {
     let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
@@ -2036,7 +2046,13 @@ fn section_picture(
     let depth = -points.iter().map(|p| p.1).fold(0.0, f64::min);
     // Room either side of the profile and below its deepest point, in mm.
     let pad = 0.25 * width.max(depth);
-    let (x0, x1) = (-pad, width + pad);
+    // Room for the tool too, where it reaches past the profile.
+    let (tool_lo, tool_hi) = passes.map_or((0.0, width), |p| {
+        p.outline.iter().fold((0.0, width), |(lo, hi), q| {
+            (f64::min(lo, q.0), f64::max(hi, q.0))
+        })
+    });
+    let (x0, x1) = (tool_lo.min(0.0) - pad, tool_hi.max(width) + pad);
     let (z0, z1) = (-(depth + pad), pad * 0.5);
     let margin = 2.0;
     let scale = ((rect.width() - 2.0 * margin) as f64 / (x1 - x0))
@@ -2075,6 +2091,18 @@ fn section_picture(
     }
     painter.add(egui::Shape::mesh(mesh));
     painter.add(egui::Shape::line(outline, egui::Stroke::new(1.2, line)));
+    // The tool at its deepest pass, and where each pass's tip goes.
+    if let Some(p) = passes {
+        let tool_color = visuals.selection.stroke.color;
+        let outline: Vec<egui::Pos2> = p.outline.iter().map(|&(x, z)| to_screen(x, z)).collect();
+        painter.add(egui::Shape::line(
+            outline,
+            egui::Stroke::new(1.2, tool_color),
+        ));
+        for &(x, z) in &p.tips {
+            painter.circle_filled(to_screen(x, z), 1.6, tool_color);
+        }
+    }
     // The path: a short tick at the surface.
     let at = to_screen(0.0, 0.0);
     painter.line_segment(
