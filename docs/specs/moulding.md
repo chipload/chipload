@@ -1,11 +1,10 @@
 # Moulding: a profile swept along a path
 
-Status: **parked 2026-11-15** by the user ("this we should save for later"), not yet
-reviewed. When it is taken up again, revisit §2 and decision 1 with the user's word on scope
-(ADR 0017, 2026-11-15): the 3D line is about taking depths from a 3D model (STEP), not
-about 3D-shaped cuts, so a raster or surface approach may be chosen if it makes moulding
-more powerful (e.g. stopped ends, profiles that change along the path). TODO *Ideas*,
-"More 2.5D toolpaths", item 4.
+Status: **draft 2026-11-15, revised** for review (fourteen decisions, §13). Parked by the
+user earlier the same day, taken up again with their word on scope (ADR 0017, 2026-11-15):
+the 3D line is about taking depths from a 3D model, not about 3D-shaped cuts, so 3D moves
+are used where they make the moulding more powerful (§2, §4). TODO *Ideas*, "More 2.5D
+toolpaths", item 4.
 
 ## 1. What it is for
 
@@ -15,20 +14,28 @@ across a box lid. Today it needs a moulding bit in a router table, or a 3D model
 relief. A **Moulding** operation takes a path (the line the moulding runs along) and a
 **profile** (its cross-section), and cuts the profile along the path with a ball nose.
 
-## 2. Scope: 2.5D, not a surface (ADR 0017, ADR 0031)
+## 2. How it is cut, and scope (ADR 0017)
 
-ADR 0017 keeps 3D surface machining out; ADR 0031 let in relief carving from an STL as one
-bounded exception. The TODO note planned moulding as raster passes across the path, which
-would stretch that exception. This spec doesn't need it:
+ADR 0017 (2026-11-15): what stays out is machining driven by a 3D model (a STEP file);
+an operation that cuts a 3D shape from 2D input is judged on its merits. A moulding is
+exactly that: a 2D path and a 2D section. So the approach is chosen for the result, and it
+is the cut a moulding bit makes:
 
-- The profile is a 2D cross-section. For each distance *d* from the path, the depth the
-  tool's tip must go to so that it never cuts below the profile is found by dropping the
-  tool's shape onto the cross-section: one dimension, exact, no mesh.
-- Each pass is the path **offset** by *d*, cut at that one depth: flat offsets with their
-  arcs, as a profile's laps, verified as every offset is.
+- **Passes along the path.** The profile is a 2D cross-section. For each distance *c* from
+  the path, the depth the tool's tip must go to so that it never cuts below the profile is
+  found by dropping the tool's shape onto the section (one dimension, exact, no mesh).
+  Each pass is the path **offset** by *c*, cut at that depth: offsets with their arcs, as a
+  profile's laps, verified as every offset is. The finish runs along the moulding, arcs
+  stay arcs, and there are few moves.
+- **3D where the depth changes along the path:** a **tapered end** (§4) fades the profile
+  out over a length, so along it each pass goes up and down with the section's depth
+  there: 3D moves, from the same 1D drop at each point.
+- **Not raster passes across the path over a surface:** more general in principle, but a
+  worse finish along the moulding, far more moves, and nothing a moulding needs that the
+  passes along it can't do (decision 1).
 
-So every move is 2.5D, as the cuts a moulding bit makes. It is recorded in ADR 0017's
-in-scope list (2026-11-15) as a 2.5D operation, not as a second 3D exception (decision 1).
+ADR 0017's in-scope list gets a line for it (built from 2D input, as the relief's 3D moves
+come from a model placed in 2D).
 
 ## 3. The profile
 
@@ -65,8 +72,18 @@ The selected shapes are the paths: open or closed, lines, arcs, polylines, circl
 - **Corners:** at a corner turning away from the profile, the offsets go round it in arcs,
   so the profile turns round the corner as a bit's would. At a corner turning towards it,
   the offsets meet in a mitre, as a mitred frame's corner.
-- **Ends of an open path:** the moulding stops square at the path's ends, as a moulding
-  that runs off the board's edge. (Stopped ends, rounded as a bit's, are for later.)
+- **Ends of an open path** (decision 11), the same at both ends:
+  - **Square:** the full profile right to the path's end, as a moulding that runs off the
+    board's edge (the default).
+  - **Round:** the profile turns round the path's end point, a quarter turn on its side,
+    as a moulding bit stopped and lifted out leaves it: each pass goes on round the end in
+    an arc of its own offset. Still flat passes.
+  - **Tapered** over a length: the section's depth fades to the surface along the last
+    stretch of the path (straight or curved, as a flute's ramp, fluting.md §3), so the
+    moulding dies out into the board, as a stopped flute does. Along it each pass rises
+    with the section's depth there (3D moves, §2). Shortened in proportion when the two
+    tapers are longer than the path, as a flute's ramps.
+- Closed paths have no ends.
 
 ## 5. The tool's depth across the profile
 
@@ -83,6 +100,10 @@ and *d* > *W*) the section counts as the surface, untouched (decision 4).
 - The **passes** are at *c* = 0, *s*, 2*s*, … up to *W*: the stepover *s* across the profile
   (§6), and one at *W* exactly; each pass is the path offset by *c* on the profile's side,
   cut at *z(c)*. Passes whose *z* is at the surface are left out.
+- **Along a taper**, at a point where the section's depth is scaled by *k* (1 at the
+  taper's start, 0 at the path's end), the pass goes to the drop of the tool onto *k·f*.
+  Points are added along the pass until *z* between two of them is within the arc
+  tolerance (0.01 mm); a pass whose *z* reaches the surface there ends.
 - A pass at *c* = 0 runs on the path itself (the tool's centre on it): with a ball nose its
   other half cuts beyond the path, into what is outside the moulding (decision 4).
 
@@ -109,9 +130,14 @@ A new operation type; no schema bump, as the operations since the chamfer.
 {"type": "moulding", "name": "", "enabled": true, "part": 1, "material": null,
  "select": {"shapes": [1]}, "tool": 3,
  "profile": {"kind": "cove", "radius": 8.0},
- "side": "outside", "start_depth": 0.0, "stepover": 0.6, "step_down": 2.0,
+ "side": "outside", "ends": {"kind": "square"},
+ "start_depth": 0.0, "stepover": 0.6, "step_down": 2.0,
  "direction": "climb", "feed": 1500.0, "plunge_feed": 500.0}
 ```
+
+- `ends`: `{"kind": "square"}`, `{"kind": "round"}` or
+  `{"kind": "taper", "length": 30.0, "shape": "straight"}` (`curved` as a flute's ramp);
+  for open paths only, ignored on closed ones.
 
 - `profile`: one of `{"kind": "cove", "radius"}`, `{"kind": "roundover", "radius"}`,
   `{"kind": "ogee", "width", "depth"}`, `{"kind": "bead", "radius"}`,
@@ -138,7 +164,8 @@ bottom: it stays 0.4 mm above it".
 
 - **Command line:** `chipload op add part.chipload moulding --shapes 1 --profile cove
   --radius 8 --side outside` (also `--profile ogee --width 20 --depth 10`, `--profile
-  shape --profile-shape 7`, `--stepover`, `--tool`); `set …operations.N.profile.radius=6`.
+  shape --profile-shape 7`, `--ends round`, `--ends taper --taper 30 --taper-shape curved`,
+  `--stepover`, `--tool`); `set …operations.N.profile.radius=6`.
 - **Window:** *Moulding* in the S menu (key **M**), the Operation menu (*New Moulding*)
   and the Browser's new operations; not on the ribbon (no room). Its properties: Tool,
   Side, Profile (the five shapes and *Drawn shape*, with its settings or a shape picker),
@@ -159,7 +186,8 @@ bottom: it stays 0.4 mm above it".
 - A cove tighter than the ball: bridged, a note.
 - Step down none, dividing the depth, not dividing it.
 - Start depth above 0 (a moulding in a pocket's floor).
-- Open path ends: square.
+- Open path ends: square, round (a quarter turn round the end), tapered (straight and
+  curved; longer than half the path: shortened).
 
 ## 11. Tests
 
@@ -176,7 +204,7 @@ bottom: it stays 0.4 mm above it".
 - Refusals and notes; the drawn profile follows its shape.
 - Golden: a new `v36/moulding.chipload` (a rectangle with an ogee outside with a 6 mm ball
   in levels; a line with a bead; a drawn profile along an arc) and its `lines/` twin;
-  existing goldens unchanged.
+  existing goldens unchanged; plus a line with tapered ends and an arc with round ends.
 - CLI: `op add moulding` and its options; the window: the S menu's M, the form.
 
 ## 12. Order of building
@@ -188,10 +216,13 @@ bottom: it stays 0.4 mm above it".
 
 ## 13. Decisions
 
-1. **Scope: a 2.5D operation, recorded in ADR 0017** (§2), not a second 3D exception.
-   *Recommended:* the profile is a 2D section and every pass a flat offset, the cut a
-   moulding bit makes. The alternative, raster passes across the path over a surface, is
-   real 3D machining, stretches ADR 0031, and leaves a worse finish along the moulding.
+1. **Passes along the path, 3D only where the depth changes along it** (§2): offsets one
+   stepover apart at the 1D drop's depth, rising and falling along a taper; recorded in
+   ADR 0017's in-scope list under the 2026-11-15 rule. *Recommended:* the finish runs
+   along the moulding, arcs stay arcs, few moves, and the 3D moves give the stopped ends a
+   moulding needs. The alternative, raster passes across the path over a computed surface,
+   is more general but leaves a worse finish and far more moves for nothing a moulding
+   needs.
 2. **Profiles: five built-in shapes and any drawn open shape** (§3). *Recommended:* the
    built-ins cover the usual jobs in a few clicks; a drawn shape covers everything else
    without a profile editor. The alternative, drawn shapes only, makes a simple cove a
@@ -219,8 +250,11 @@ bottom: it stays 0.4 mm above it".
 9. **A retract between passes** (§6). *Recommended* for now: simple and safe; linking
    passes without lifting is a later optimisation.
 10. **Tools: ball nose and end mill; V-bit and drill refused** (§8). *Recommended.*
-11. **Square ends on open paths** (§4). *Recommended:* the common case (a moulding running
-    off the edge); stopped ends later if asked for.
+11. **Ends of open paths: square, round or tapered** (§4), the same at both ends, square by
+    default. *Recommended:* square for a moulding running off the edge; round for the end
+    a stopped bit leaves; tapered (now possible with 3D moves) for a moulding that dies out
+    into the board. Different ends at each end, or a profile that changes along the path,
+    can come later if asked for.
 12. **No schema bump** (§7). *Recommended*, as before.
 13. **The S menu's M, the Operation menu, not the ribbon** (§9). *Recommended.*
 14. **Defaults** (§9): the first ball nose, a 6 mm cove, side from the shapes, stepover from

@@ -276,9 +276,9 @@ Smaller follow-ups noted along the way, not in the order above:
      2026-11-15** (docs/specs/prism.md; see *In main*).
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
      across the path; check against ADR 0031 first, as it is a surface of its own. **Spec draft
-     2026-11-15** (docs/specs/moulding.md, fourteen decisions), **parked by the user**
-     ("save for later"). When taken up: the 3D scope line is about depths from a STEP
-     model, not 3D-shaped cuts (ADR 0017, 2026-11-15), so a surface approach is open.
+     2026-11-15** (docs/specs/moulding.md, fourteen decisions), parked, then **revised 2026-11-15**
+     with the 3D rule (ADR 0017): passes along the path, 3D moves for tapered ends; also
+     round ends. For review.
   5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
      the setup sheet saying how far; probably built on setups.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
