@@ -454,6 +454,7 @@ fn kind_name(op: &Operation) -> &'static str {
         Operation::Vcarve(_) => "V-carve",
         Operation::Path(_) => "follow path",
         Operation::Chamfer(_) => "chamfer",
+        Operation::Flute(_) => "flute",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",

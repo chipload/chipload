@@ -11,7 +11,7 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    ChamferOp, ClearingPass, Copies, CopyOrder, Entry, HoleMethod, HolesOp, Job,
+    ChamferOp, ClearingPass, Copies, CopyOrder, Entry, FluteOp, HoleMethod, HolesOp, Job,
     MAX_LEAD_DIAMETERS, Mirror, Note, OpRef, Operation, Part, PathOp, PocketOp, Problem, ProfileOp,
     RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp, ZZero, rest_refusal,
 };
@@ -225,6 +225,12 @@ pub fn plan_job_cancellable(
             {
                 facts.push(Note::at(at.operation, labelled_note(label, width)));
             }
+            if let Operation::Flute(f) = op
+                && let Some(width) = crate::flute::flute_width_mm(tool, f.end_depth - f.start_depth)
+            {
+                let width = Message::new("toolpath-flute-width").arg("width", Value::mm(width));
+                facts.push(Note::at(at.operation, labelled_note(label, width)));
+            }
             if let Some(below) = through_overcut(job, op) {
                 facts.push(Note::at(at.operation, labelled_note(label, below)));
             }
@@ -345,7 +351,7 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
         let label_message = job.label_message(at);
         let selection = match op {
             // Holes take every matching shape and skip what isn't a circle with a note.
-            Operation::Path(_) | Operation::Holes(_) => select_paths(
+            Operation::Path(_) | Operation::Flute(_) | Operation::Holes(_) => select_paths(
                 contours,
                 &op.select().resolved(&job.drawing),
                 &label_message,
@@ -509,6 +515,11 @@ fn pass_heights(op: &Operation, tools: &[Tool], top_z: f64) -> Result<Vec<f64>, 
             Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
             None => vec![top_z - end_depth],
         },
+        // The same (docs/specs/fluting.md §4).
+        Operation::Flute(f) => match f.step_down {
+            Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
+            None => vec![top_z - end_depth],
+        },
     })
 }
 
@@ -620,6 +631,7 @@ fn plan_step(
         Operation::Vcarve(vcarve) => plan_vcarve_op(vcarve, &context, &shifted, position),
         Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
         Operation::Chamfer(chamfer) => plan_chamfer_op(chamfer, &context, &shifted, position),
+        Operation::Flute(flute) => plan_flute_op(flute, &context, &shifted, position),
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
         Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
         Operation::Relief(relief) => plan_relief_op(relief, &context, &shifted, position, shift),
@@ -1435,6 +1447,60 @@ fn plan_chamfer_op(
         tabs: Vec::new(),
         pockets: Vec::new(),
         arcs: rings.arcs,
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts: Vec::new(),
+    })
+}
+
+/// A flute (docs/specs/fluting.md): each open shape cut back and forth, every pass its
+/// profile cut off at the pass's level.
+fn plan_flute_op(
+    op: &FluteOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let mut arcs = ArcTable::default();
+    let mut found = Vec::new();
+    let depth = op.end_depth - op.start_depth;
+    let levels: Vec<f64> = ctx.pass_z.iter().map(|z| ctx.top_z - z).collect();
+    let flutes = crate::flute::flutes(
+        op,
+        depth,
+        &levels,
+        &selection.contours,
+        &mut arcs,
+        &mut found,
+    );
+    let notes = found
+        .into_iter()
+        .map(|n| labelled_note(ctx.label_message, n))
+        .collect();
+    let cut = crate::flute::FluteCut {
+        pass_z: ctx.pass_z,
+        top_z: ctx.top_z,
+        safe_z: ctx.job.machine.safe_z,
+        feed: op.feed,
+        plunge_feed: op.plunge_feed,
+    };
+    let mut moves = Vec::new();
+    let mut end = start;
+    for (flute, reverse) in crate::flute::order(flutes, start) {
+        ctx.cancel.check()?;
+        let (more, at) = crate::flute::flute_moves(&flute, reverse, &cut, &arcs);
+        moves.extend(more);
+        end = at;
+    }
+    Ok(Planned {
+        moves,
+        notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs,
         end,
         starts: Vec::new(),
         unreached: Vec::new(),
@@ -2583,6 +2649,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Vcarve(v) => (v.feed, v.plunge_feed),
             Operation::Path(p) => (p.feed, p.plunge_feed),
             Operation::Chamfer(c) => (c.feed, c.plunge_feed),
+            Operation::Flute(f) => (f.feed, f.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
             Operation::Surface(f) => (f.feed, f.plunge_feed),
             Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -2631,6 +2698,19 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 Message::new("toolpath-path-past-cone")
                     .arg("deepest", Value::Length(deepest, Digits::Trim(3)))
                     .arg("depth", length(p.end_depth - p.start_depth)),
+            ));
+        }
+        // A V-bit's flute no deeper than its cone (docs/specs/fluting.md §5).
+        if let Operation::Flute(f) = op
+            && let Some(deepest) = vbit_cone_depth(tool)
+            && f.end_depth - f.start_depth > deepest + DEPTH_TOL_MM
+        {
+            problems.push(labelled(
+                at("end_depth"),
+                &label_message,
+                Message::new("toolpath-path-past-cone")
+                    .arg("deepest", Value::Length(deepest, Digits::Trim(3)))
+                    .arg("depth", length(f.end_depth - f.start_depth)),
             ));
         }
         // A chamfer no wider than the bit's cone: the shank would rub beyond it
@@ -2864,6 +2944,10 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 }),
                 Vec::new(),
             ),
+            Operation::Flute(f) => (
+                flute_tool_rule(tool, f).map_err(|e| (at("tool"), numbered.clone(), e)),
+                Vec::new(),
+            ),
             Operation::Holes(h) => (
                 holes_tool_notes(tool, h.method)
                     .map(|()| false)
@@ -2942,6 +3026,7 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Vcarve(_) => "vcarve",
         Operation::Path(_) => "path",
         Operation::Chamfer(_) => "chamfer",
+        Operation::Flute(_) => "flute",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",
@@ -3851,6 +3936,19 @@ fn chamfer_tool_rule(tool: &Tool) -> Result<bool, Message> {
         return Err(Message::new("toolpath-vbit-no-angle").arg("tool", tool.id));
     }
     Ok(false)
+}
+
+/// A flute takes a ball nose, a V-bit or an endmill (docs/specs/fluting.md §5); an endmill
+/// of unknown centre-cutting plunges at a square end.
+fn flute_tool_rule(tool: &Tool, op: &FluteOp) -> Result<bool, Message> {
+    match tool.kind {
+        ToolType::Drill => Err(Message::new("toolpath-path-drill").arg("tool", tool.id)),
+        ToolType::Vbit | ToolType::Ballnose => Ok(false),
+        ToolType::Endmill if op.ramp_start <= 0.0 || op.ramp_end <= 0.0 => {
+            plunge_unknown(tool, Entry::Plunge {})
+        }
+        ToolType::Endmill => Ok(false),
+    }
 }
 
 /// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match

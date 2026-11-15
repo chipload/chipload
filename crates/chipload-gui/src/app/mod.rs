@@ -2073,7 +2073,7 @@ impl ChiploadApp {
             .count()
     }
 
-    /// The open contours an enabled follow path cuts (docs/specs/follow-path.md §7).
+    /// The open contours an enabled follow path or flute cuts (docs/specs/follow-path.md §7).
     fn followed_contours(&self) -> BTreeSet<usize> {
         let Some(edit) = &self.edit else {
             return BTreeSet::new();
@@ -2081,7 +2081,7 @@ impl ChiploadApp {
         edit.job
             .operations
             .iter()
-            .filter(|e| e.enabled() && matches!(e, Operation::Path(_)))
+            .filter(|e| e.enabled() && matches!(e, Operation::Path(_) | Operation::Flute(_)))
             .filter_map(|e| {
                 let select = e.select().resolved(&edit.job.drawing);
                 select_paths(&self.contours, &select, &e.label_message(0)).ok()

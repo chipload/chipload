@@ -123,3 +123,4 @@ header-array = Array
 header-array-hover = Copies of the selected drawn shapes in a grid: columns, rows and spacing under Selection
 header-polar-array = Polar array
 header-polar-array-hover = Copies of the selected drawn shapes round a centre you click: count and angle under Selection
+header-new-flute = New Flute

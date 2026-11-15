@@ -141,3 +141,5 @@ browser-roughing = Roughing
 browser-roughing-hover = A roughing pass: the material taken down in levels before the relief, an allowance left on the model
 browser-smoothing = Smoothing
 browser-smoothing-hover = A smoothing pass: after the roughing, the surface followed once, taking off the steps the roughing leaves on slopes
+browser-flute = Flute
+browser-flute-hover = A groove along the selected open shapes that ramps in and out at their ends

@@ -640,6 +640,7 @@ pipeline-name-pocket = Cajera { $number }
 pipeline-name-vcarve = Tallado en V { $number }
 pipeline-name-path = Seguir trayectoria { $number }
 pipeline-name-chamfer = Chaflán { $number }
+pipeline-name-flute = Acanalado { $number }
 pipeline-name-holes = Taladros { $number }
 pipeline-name-surface = Planeado { $number }
 pipeline-name-relief = Relieve { $number }

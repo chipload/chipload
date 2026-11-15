@@ -265,8 +265,9 @@ Smaller follow-ups noted along the way, not in the order above:
      inside, the tool's flank on the edge. **Built 2026-11-15** (docs/specs/chamfer.md;
      see *In main*).
   2. **Fluting:** grooves along lines or open paths with a V-bit or ball nose that ramp in
-     and out (start and end ramp lengths, full depth in the middle). **Spec draft
-     2026-11-15** (docs/specs/fluting.md, twelve decisions), for review.
+     and out (start and end ramp lengths, full depth in the middle). **Built
+     2026-11-15** (docs/specs/fluting.md; see *In main*). Left: a marker on the canvas
+     at each flute's start end (§13).
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
      instead of a flat floor, from the same medial axis as V-carving.
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
@@ -298,6 +299,13 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Flute** (docs/specs/fluting.md, approved and built 2026-11-15): a groove along open
+  shapes that ramps in over a start ramp, runs at full depth and ramps out over an end
+  ramp, straight or curved; a ramp of 0 is a square end. Passes are the profile cut off at
+  each level, back and forth with no retract. Ball nose, V-bit (no deeper than its cone) or
+  end mill; the width at the top is reported. `op add flute --ramp`, the S menu's L, the Operation
+  menu, a properties form, the setup sheet, a guide page; texts in all
+  seven languages. No schema bump.
 - **Compass** (docs/specs/compass.md, approved and built 2026-11-15): Q shows a handle on
   the selection, two arrows, a ring and a centre. An arrow moves along its axis (grid
   steps, or a snap point's projection), the ring turns about the centre in 15° steps,

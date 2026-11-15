@@ -141,3 +141,5 @@ browser-roughing = Sgrossatura
 browser-roughing-hover = Una passata di sgrossatura: il materiale tolto a livelli prima del rilievo, con sovrametallo sul modello
 browser-smoothing = Lisciatura
 browser-smoothing-hover = Una passata di lisciatura: dopo la sgrossatura, la superficie seguita una volta, toglie i gradini che la sgrossatura lascia sui pendii
+browser-flute = Scanalatura
+browser-flute-hover = Una scanalatura lungo le forme aperte selezionate, che entra ed esce in rampa alle estremità

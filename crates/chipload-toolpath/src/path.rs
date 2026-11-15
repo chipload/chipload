@@ -129,7 +129,7 @@ pub fn order_paths(
 
 /// The points of an open contour in drawn order, arcs flattened within the arc tolerance,
 /// points closer than the chaining tolerance merged; chords on an arc recorded in `arcs`.
-fn open_points(contour: &Contour, arcs: &mut ArcTable) -> Vec<Point> {
+pub(crate) fn open_points(contour: &Contour, arcs: &mut ArcTable) -> Vec<Point> {
     let mut points: Vec<Point> = Vec::new();
     for part in &contour.parts {
         let circle = match part.segment.prim {

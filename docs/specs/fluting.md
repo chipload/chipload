@@ -1,6 +1,7 @@
 # Fluting: grooves that ramp in and out along a path
 
-Status: **draft 2026-11-15**, for review (twelve decisions, §12). TODO *Ideas*, "More 2.5D
+Status: **approved 2026-11-15**, every decision as recommended ("Go"); **built
+2026-11-15**, both steps of §11. What building settled is in §13. TODO *Ideas*, "More 2.5D
 toolpaths", item 2; the user asked for it after the Compass ("we do it before fluting").
 
 ## 1. What it is for
@@ -192,3 +193,26 @@ refuses a project with a type it doesn't know.
     free choice.
 12. **Defaults** (§8): the first ball nose, half-round depth, 20 mm straight ramps.
     *Recommended.*
+
+## 13. As built
+
+- **No start marker yet** (§2, decision 6). The canvas's start markers are a profile's
+  draggable ring starts; a flute's would need its own kind of marker. Until then the
+  simulation and the 3D view show which end ramps how. In TODO.
+- **Not on the ribbon:** a column of its own beside Styles and Chamfer (two small buttons
+  fit a column) made the ribbon too wide for English names at the default window size
+  (the layout test). *Flute* is in the S menu (L), the Operation menu and the Browser's
+  new operations. The user may prefer something else on the ribbon making room for it.
+- **The width at the top** is worked out from the tool's shape for every kind (twice the
+  distance from the axis where the cutter's surface reaches the depth), so a tapered ball
+  nose and a bull nose get it right too; a flat end mill's is its diameter.
+- **A new flute always has a step down** (the tool's, as other operations), so a depth typed
+  later is never cut in one pass by surprise; untick *In passes* for one.
+- **Points:** besides the shape's own, a point at each ramp's end, where each pass's level
+  meets a ramp, and on curved ramps enough that the depth is within 0.01 mm of the curve.
+  Points that fall on an arc are put on its circle, so the arc is still written as G2/G3
+  where Z changes evenly.
+- **Code:** `chipload-toolpath/src/flute.rs` (the profile, the points, the order, the
+  moves, the width), `plan_flute_op` in `plan.rs`; `OpKind::Flute` in the pipeline;
+  `op add flute --ramp/--ramp-start/--ramp-end/--ramp-shape`; the form's
+  `flute_sections`; `Icon::Flute`.

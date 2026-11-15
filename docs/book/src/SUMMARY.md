@@ -45,6 +45,7 @@
 - [V-carve](operations/vcarve.md)
 - [Follow path](operations/path.md)
 - [Chamfer](operations/chamfer.md)
+- [Flute](operations/flute.md)
 - [Holes](operations/holes.md)
 - [Surface](operations/surface.md)
 - [Relief](operations/relief.md)

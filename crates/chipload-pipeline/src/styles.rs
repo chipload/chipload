@@ -30,6 +30,7 @@ pub fn kind_of(op: &Operation) -> OpKind {
         Operation::Vcarve(_) => OpKind::Vcarve,
         Operation::Path(_) => OpKind::Path,
         Operation::Chamfer(_) => OpKind::Chamfer,
+        Operation::Flute(_) => OpKind::Flute,
         Operation::Holes(_) => OpKind::Holes,
         Operation::Surface(_) => OpKind::Surface,
         Operation::Relief(_) => OpKind::Relief,

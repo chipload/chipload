@@ -4,3 +4,4 @@ quick-select-first = Erst Formen auswählen, dann S
 quick-needs-circles = Bohrungen bohren Kreise: mindestens einen Kreis auswählen
 quick-needs-closed = Braucht eine geschlossene Form: mindestens eine auswählen
 quick-hint = S: eine Operation für die Auswahl hinzufügen
+quick-needs-open = Braucht eine offene Form: mindestens eine Linie, einen Bogen oder eine offene Polylinie auswählen

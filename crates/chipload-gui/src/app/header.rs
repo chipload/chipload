@@ -707,6 +707,10 @@ impl ChiploadApp {
                         chamfer = Some((label, hover));
                         continue;
                     }
+                    // Not on the ribbon, which then no longer fits English names at the
+                    // default width: the S menu (L), the Operation menu and the Browser
+                    // have it (docs/specs/fluting.md §13).
+                    OpKind::Flute => continue,
                     OpKind::Surface => {
                         surface = Some((label, hover));
                         continue;
@@ -950,6 +954,7 @@ fn new_operation(ui: &egui::Ui, kind: OpKind) -> String {
         OpKind::Vcarve => t!(ui, "header-new-vcarve"),
         OpKind::Path => t!(ui, "header-new-follow-path"),
         OpKind::Chamfer => t!(ui, "header-new-chamfer"),
+        OpKind::Flute => t!(ui, "header-new-flute"),
         OpKind::Holes => t!(ui, "header-new-holes"),
         OpKind::Surface => t!(ui, "header-new-surface"),
         OpKind::Relief => t!(ui, "header-new-relief"),

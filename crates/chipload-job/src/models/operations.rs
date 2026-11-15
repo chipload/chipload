@@ -115,6 +115,9 @@ pub enum Operation {
     /// Chamfer: a V-bit's flank on the line of closed shapes, breaking their top edge.
     // Spec: docs/specs/chamfer.md.
     Chamfer(ChamferOp),
+    /// Flute: a groove on the line of open shapes that ramps in and out at their ends.
+    // Spec: docs/specs/fluting.md.
+    Flute(FluteOp),
     /// Holes: drilled with a drill, bored with a helix with an endmill.
     // Spec: docs/specs/holes.md.
     Holes(HolesOp),
@@ -201,6 +204,12 @@ impl Operation {
                     *step = c.slot_step_down;
                 }
             }
+            Operation::Flute(p) => {
+                (p.feed, p.plunge_feed) = (c.slot_feed, c.plunge_feed);
+                if let Some(step) = &mut p.step_down {
+                    *step = c.slot_step_down;
+                }
+            }
             Operation::Holes(h) => {
                 (h.feed, h.plunge_feed) = (c.slot_feed, c.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = &mut h.method {
@@ -247,6 +256,12 @@ impl Operation {
                     c.slot_step_down = step;
                 }
             }
+            Operation::Flute(p) => {
+                (c.slot_feed, c.plunge_feed) = (p.feed, p.plunge_feed);
+                if let Some(step) = p.step_down {
+                    c.slot_step_down = step;
+                }
+            }
             Operation::Holes(h) => {
                 (c.slot_feed, c.plunge_feed) = (h.feed, h.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = h.method {
@@ -280,6 +295,7 @@ impl Operation {
             Operation::Vcarve(op) => &op.name,
             Operation::Path(op) => &op.name,
             Operation::Chamfer(op) => &op.name,
+            Operation::Flute(op) => &op.name,
             Operation::Holes(op) => &op.name,
             Operation::Surface(op) => &op.name,
             Operation::Relief(op) => &op.name,
@@ -293,6 +309,7 @@ impl Operation {
             Operation::Vcarve(op) => &mut op.name,
             Operation::Path(op) => &mut op.name,
             Operation::Chamfer(op) => &mut op.name,
+            Operation::Flute(op) => &mut op.name,
             Operation::Holes(op) => &mut op.name,
             Operation::Surface(op) => &mut op.name,
             Operation::Relief(op) => &mut op.name,
@@ -306,6 +323,7 @@ impl Operation {
             Operation::Vcarve(op) => op.enabled = enabled,
             Operation::Path(op) => op.enabled = enabled,
             Operation::Chamfer(op) => op.enabled = enabled,
+            Operation::Flute(op) => op.enabled = enabled,
             Operation::Holes(op) => op.enabled = enabled,
             Operation::Surface(op) => op.enabled = enabled,
             Operation::Relief(op) => op.enabled = enabled,
@@ -319,6 +337,7 @@ impl Operation {
             Operation::Vcarve(op) => op.enabled,
             Operation::Path(op) => op.enabled,
             Operation::Chamfer(op) => op.enabled,
+            Operation::Flute(op) => op.enabled,
             Operation::Holes(op) => op.enabled,
             Operation::Surface(op) => op.enabled,
             Operation::Relief(op) => op.enabled,
@@ -333,6 +352,7 @@ impl Operation {
             Operation::Vcarve(op) => op.part,
             Operation::Path(op) => op.part,
             Operation::Chamfer(op) => op.part,
+            Operation::Flute(op) => op.part,
             Operation::Holes(op) => op.part,
             Operation::Surface(op) => op.part,
             Operation::Relief(op) => op.part,
@@ -346,6 +366,7 @@ impl Operation {
             Operation::Vcarve(op) => op.part = part,
             Operation::Path(op) => op.part = part,
             Operation::Chamfer(op) => op.part = part,
+            Operation::Flute(op) => op.part = part,
             Operation::Holes(op) => op.part = part,
             Operation::Surface(op) => op.part = part,
             Operation::Relief(op) => op.part = part,
@@ -360,6 +381,7 @@ impl Operation {
             Operation::Vcarve(op) => op.material.as_ref(),
             Operation::Path(op) => op.material.as_ref(),
             Operation::Chamfer(op) => op.material.as_ref(),
+            Operation::Flute(op) => op.material.as_ref(),
             Operation::Holes(op) => op.material.as_ref(),
             Operation::Surface(op) => op.material.as_ref(),
             Operation::Relief(op) => op.material.as_ref(),
@@ -373,6 +395,7 @@ impl Operation {
             Operation::Vcarve(op) => op.material = material,
             Operation::Path(op) => op.material = material,
             Operation::Chamfer(op) => op.material = material,
+            Operation::Flute(op) => op.material = material,
             Operation::Holes(op) => op.material = material,
             Operation::Surface(op) => op.material = material,
             Operation::Relief(op) => op.material = material,
@@ -386,6 +409,7 @@ impl Operation {
             Operation::Vcarve(op) => op.tool,
             Operation::Path(op) => op.tool,
             Operation::Chamfer(op) => op.tool,
+            Operation::Flute(op) => op.tool,
             Operation::Holes(op) => op.tool,
             Operation::Surface(op) => op.tool,
             Operation::Relief(op) => op.tool,
@@ -399,6 +423,7 @@ impl Operation {
             Operation::Vcarve(op) => op.tool = tool,
             Operation::Path(op) => op.tool = tool,
             Operation::Chamfer(op) => op.tool = tool,
+            Operation::Flute(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
             Operation::Surface(op) => op.tool = tool,
             Operation::Relief(op) => op.tool = tool,
@@ -430,6 +455,7 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => {}
@@ -470,6 +496,7 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -506,6 +533,7 @@ impl Operation {
             Operation::Profile(_)
             | Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -516,6 +544,7 @@ impl Operation {
     pub fn set_end_depth(&mut self, depth: f64) {
         match self {
             Operation::Chamfer(_) => {}
+            Operation::Flute(op) => op.end_depth = depth,
             Operation::Profile(op) => op.end_depth = depth,
             Operation::Pocket(op) => op.end_depth = depth,
             Operation::Vcarve(op) => op.end_depth = depth,
@@ -531,6 +560,7 @@ impl Operation {
     /// as a 90° bit's, which validation refuses anyway (docs/specs/chamfer.md §4).
     pub fn depths(&self, tools: &[Tool]) -> (f64, f64) {
         match self {
+            Operation::Flute(op) => (op.start_depth, op.end_depth),
             Operation::Chamfer(op) => {
                 let depth = find_tool(tools, op.tool)
                     .and_then(|t| op.depth_with(t))
@@ -557,6 +587,7 @@ impl Operation {
             Operation::Holes(op) => op.through,
             Operation::Vcarve(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         }
@@ -587,6 +618,7 @@ impl Operation {
             Operation::Holes(op) => Some(&mut op.through),
             Operation::Vcarve(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         }
@@ -603,6 +635,7 @@ impl Operation {
             Operation::Holes(op) => op.through.map(|t| (&mut op.end_depth, t)),
             Operation::Vcarve(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         };
@@ -622,6 +655,8 @@ impl Operation {
             Operation::Vcarve(_) => Entry::Plunge {},
             Operation::Path(p) => p.entry,
             Operation::Chamfer(p) => p.entry,
+            // The ramps are its entry (docs/specs/fluting.md §4).
+            Operation::Flute(_) => Entry::Plunge {},
             // Holes go down their own way (docs/specs/holes.md §3, §4).
             Operation::Holes(_) => Entry::Plunge {},
             // Each depth starts beside the stock, in the air (docs/specs/surfacing.md §3).
@@ -638,6 +673,7 @@ impl Operation {
             Operation::Vcarve(_) => &[],
             Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => &[],
@@ -653,6 +689,7 @@ impl Operation {
             Operation::Vcarve(_)
             | Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -686,6 +723,7 @@ impl Operation {
             Operation::Vcarve(_)
             | Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -716,6 +754,7 @@ impl Operation {
             | Operation::Vcarve(_)
             | Operation::Path(_)
             | Operation::Chamfer(_)
+            | Operation::Flute(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -732,6 +771,7 @@ impl Operation {
             Operation::Path(_) => 0.0,
             // The bit's flank on the line, its tip in the waste (docs/specs/chamfer.md §2).
             Operation::Chamfer(_) => 0.0,
+            Operation::Flute(_) => 0.0,
             // Cut to the drawn size (docs/specs/holes.md decision 9).
             Operation::Holes(_) => 0.0,
             // The whole stock: no wall to clear.
@@ -748,6 +788,7 @@ impl Operation {
             Operation::Vcarve(op) => &op.select,
             Operation::Path(op) => &op.select,
             Operation::Chamfer(op) => &op.select,
+            Operation::Flute(op) => &op.select,
             Operation::Holes(op) => &op.select,
             Operation::Surface(_) => &NO_SELECTOR,
             Operation::Relief(op) => &op.select,
@@ -762,6 +803,7 @@ impl Operation {
             Operation::Vcarve(op) => Some(&mut op.select),
             Operation::Path(op) => Some(&mut op.select),
             Operation::Chamfer(op) => Some(&mut op.select),
+            Operation::Flute(op) => Some(&mut op.select),
             Operation::Holes(op) => Some(&mut op.select),
             Operation::Relief(op) => Some(&mut op.select),
             Operation::Surface(_) => None,
@@ -1376,6 +1418,64 @@ impl ChamferOp {
     pub fn depth_with(&self, tool: &Tool) -> Option<f64> {
         tool.chamfer_depth_for(self.width)
     }
+}
+
+/// How a flute's ramp goes down from its end to the full depth.
+// Spec: docs/specs/fluting.md §3.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "lowercase")]
+pub enum RampShape {
+    /// Evenly: depth × u, u from 0 at the end to 1 at full depth.
+    #[default]
+    Straight,
+    /// Steepest at the surface, easing into the floor: depth × sin(π/2 × u).
+    Curved,
+}
+
+/// Flute: a groove on the line of every selected open shape, going down over `ramp_start`
+/// mm from its first end to `end_depth`, and up again over `ramp_end` mm to its last end.
+// Spec: docs/specs/fluting.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct FluteOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
+    #[serde(default)]
+    pub name: String,
+    /// False: the operation stays in the project but isn't cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
+    /// What the operation cuts: the shapes on a layer, or shapes by id. Open shapes only;
+    /// closed ones are skipped with a note.
+    pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`): a ball nose, a V-bit or an
+    /// endmill.
+    pub tool: i64,
+    /// Where the flute starts at its ends, mm down from the stock top: 0 for the top.
+    pub start_depth: f64,
+    /// The flute's depth through its middle, mm down from the stock top.
+    pub end_depth: f64,
+    /// The deepest each pass goes, mm, in equal passes. Null: one pass.
+    #[serde(default)]
+    pub step_down: Option<f64>,
+    /// How far along the shape from its first end the flute reaches its depth, mm. 0: a
+    /// square end.
+    pub ramp_start: f64,
+    /// How far along the shape before its last end the flute starts to rise, mm. 0: a
+    /// square end.
+    pub ramp_end: f64,
+    /// `straight` or `curved` ramps.
+    pub ramp_shape: RampShape,
+    /// The cutting feed, mm/min, ramps included.
+    pub feed: f64,
+    /// The feed going straight down, mm/min.
+    pub plunge_feed: f64,
 }
 
 /// Holes: every selected circle, drilled with a drill or bored with a helix with an

@@ -533,6 +533,27 @@ Chamfer: a V-bit's flank on the line of closed shapes, breaking their top edge.
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a V-bit with its angle. |
 | `width` | number | yes | The chamfer's width at the surface, mm, measured from the line into the part. More than 0, at most half the bit's cone (its diameter less its tip, halved). |
 
+### `"type": "flute"`
+
+Flute: a groove on the line of open shapes that ramps in and out at their ends.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `end_depth` | number | yes | The flute's depth through its middle, mm down from the stock top. |
+| `feed` | number | yes | The cutting feed, mm/min, ramps included. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `plunge_feed` | number | yes | The feed going straight down, mm/min. |
+| `ramp_end` | number | yes | How far along the shape before its last end the flute starts to rise, mm. 0: a square end. |
+| `ramp_shape` | [RampShape](#rampshape) | yes | `straight` or `curved` ramps. |
+| `ramp_start` | number | yes | How far along the shape from its first end the flute reaches its depth, mm. 0: a square end. |
+| `select` | [Selector](#selector) | yes | What the operation cuts: the shapes on a layer, or shapes by id. Open shapes only; closed ones are skipped with a note. |
+| `start_depth` | number | yes | Where the flute starts at its ends, mm down from the stock top: 0 for the top. |
+| `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a ball nose, a V-bit or an endmill. |
+
 ### `"type": "holes"`
 
 Holes: drilled with a drill, bored with a helix with an endmill.
@@ -665,6 +686,14 @@ A finishing pass on a pocket.
 |---|---|---|---|
 | `floor` | number | yes | Left above the end depth by the roughing, mm: 0 or more, at most the step down, less than the cut; 0 on a pocket cut through. |
 | `wall` | number | yes | Left on every wall by the roughing, mm: 0 or more, less than the tool radius. |
+
+## RampShape
+
+How a flute's ramp goes down from its end to the full depth.
+
+- `"straight"`: Evenly: depth × u, u from 0 at the end to 1 at full depth.
+
+- `"curved"`: Steepest at the surface, easing into the floor: depth × sin(π/2 × u).
 
 ## Register
 

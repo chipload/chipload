@@ -141,3 +141,5 @@ browser-roughing = Grovpass
 browser-roughing-hover = Ett grovpass: materialet nertaget i nivåer före reliefen, ett tillägg lämnat på modellen
 browser-smoothing = Utjämning
 browser-smoothing-hover = En utjämningspass: efter grovpassen följs ytan en gång och stegen som grovpassen lämnar i sluttningar tas bort
+browser-flute = Räffla
+browser-flute-hover = Ett spår längs de valda öppna formerna som rampar in och ut vid ändarna

@@ -542,6 +542,13 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Flute(f) => {
+                    if let Some(step) = f.step_down {
+                        positive(at("step_down"), step);
+                    }
+                    positive(at("feed"), f.feed);
+                    positive(at("plunge_feed"), f.plunge_feed);
+                }
                 Operation::Chamfer(c) => {
                     positive(at("width"), c.width);
                     if let Some(step) = c.step_down {
@@ -619,6 +626,17 @@ impl Job {
         }
         problems.extend(self.part_problems());
         for (i, op) in self.operations.iter().enumerate() {
+            if let Operation::Flute(f) = op {
+                for (field, ramp) in [("ramp_start", f.ramp_start), ("ramp_end", f.ramp_end)] {
+                    if !(ramp.is_finite() && ramp >= 0.0) {
+                        problems.push(Problem::at(
+                            format!("operations.{i}.{field}"),
+                            Message::new("job-must-be-0-or-more")
+                                .arg("got", Value::Length(ramp, Digits::Shortest)),
+                        ));
+                    }
+                }
+            }
             let (start, end) = op.depths(&self.tools);
             if !(start.is_finite() && start >= 0.0) {
                 problems.push(Problem::at(

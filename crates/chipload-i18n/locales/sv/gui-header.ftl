@@ -123,3 +123,4 @@ header-array = Matris
 header-array-hover = Kopior av de valda ritade formerna i ett rutnät: kolumner, rader och avstånd under Markering
 header-polar-array = Polär matris
 header-polar-array-hover = Kopior av de valda ritade formerna runt en mittpunkt du klickar: antal och vinkel under Markering
+header-new-flute = Ny räffla

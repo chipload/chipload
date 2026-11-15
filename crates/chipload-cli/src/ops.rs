@@ -3,7 +3,7 @@
 //! passes.
 
 use super::*;
-use chipload_job::Operation;
+use chipload_job::{Operation, RampShape};
 use clap::Args;
 
 #[derive(Subcommand)]
@@ -36,6 +36,18 @@ pub(crate) enum OpAction {
         /// (outside) or within them (inside).
         #[arg(long)]
         side: Option<EdgeSideArg>,
+        /// A flute's ramp at both ends, in place of 20 mm (docs/specs/fluting.md).
+        #[arg(long, value_parser = crate::lengths::length)]
+        ramp: Option<f64>,
+        /// A flute's ramp at the shapes' first ends (as drawn); 0 for a square end.
+        #[arg(long, value_parser = crate::lengths::length, conflicts_with = "ramp")]
+        ramp_start: Option<f64>,
+        /// A flute's ramp at the shapes' last ends; 0 for a square end.
+        #[arg(long, value_parser = crate::lengths::length, conflicts_with = "ramp")]
+        ramp_end: Option<f64>,
+        /// A flute's ramps: straight (an even taper) or curved (easing into the floor).
+        #[arg(long)]
+        ramp_shape: Option<RampShapeArg>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -455,10 +467,20 @@ pub(crate) enum KindArg {
     Path,
     /// A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width.
     Chamfer,
+    /// A groove along open shapes that ramps in and out at their ends
+    /// (docs/specs/fluting.md): --depth, --ramp.
+    Flute,
     Holes,
     /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
     /// model within its outline.
     Relief,
+}
+
+/// A flute's ramps, for `op add flute --ramp-shape`.
+#[derive(Clone, Copy, ValueEnum)]
+pub(crate) enum RampShapeArg {
+    Straight,
+    Curved,
 }
 
 /// A chamfer's waste side, for `op add chamfer --side`.
@@ -477,6 +499,7 @@ impl KindArg {
             KindArg::Vcarve => OpKind::Vcarve,
             KindArg::Path => OpKind::Path,
             KindArg::Chamfer => OpKind::Chamfer,
+            KindArg::Flute => OpKind::Flute,
             KindArg::Holes => OpKind::Holes,
             KindArg::Relief => OpKind::Relief,
         }
@@ -594,8 +617,21 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             through,
             width,
             side,
+            ramp,
+            ramp_start,
+            ramp_end,
+            ramp_shape,
             output,
         } => {
+            let flute = matches!(kind, KindArg::Flute);
+            let ramps = [ramp, ramp_start, ramp_end];
+            if !flute && (ramps.iter().any(Option::is_some) || ramp_shape.is_some()) {
+                return out
+                    .fail("--ramp, --ramp-start, --ramp-end and --ramp-shape are for a flute");
+            }
+            if flute && through {
+                return out.fail("a flute never goes through: give --depth");
+            }
             let chamfer = matches!(kind, KindArg::Chamfer);
             if !chamfer && (width.is_some() || side.is_some()) {
                 return out.fail("--width and --side are for a chamfer");
@@ -642,6 +678,18 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             );
             for new in &mut made.ops {
                 set_depth(&job, &mut new.op, depth, through);
+                if let Operation::Flute(f) = &mut new.op {
+                    if let Some(both) = ramp {
+                        (f.ramp_start, f.ramp_end) = (both, both);
+                    }
+                    f.ramp_start = ramp_start.unwrap_or(f.ramp_start);
+                    f.ramp_end = ramp_end.unwrap_or(f.ramp_end);
+                    match ramp_shape {
+                        Some(RampShapeArg::Straight) => f.ramp_shape = RampShape::Straight,
+                        Some(RampShapeArg::Curved) => f.ramp_shape = RampShape::Curved,
+                        None => {}
+                    }
+                }
                 if let Operation::Chamfer(c) = &mut new.op {
                     if let Some(width) = width {
                         c.width = width;
@@ -1525,6 +1573,17 @@ pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
             match c.side {
                 chipload_job::EdgeSide::Outside => "outside",
                 chipload_job::EdgeSide::Inside => "inside",
+            }
+        ));
+    }
+    if let Operation::Flute(f) = op {
+        parts.push(format!(
+            "ramps {} / {} mm, {}",
+            chipload_core::text::mm(f.ramp_start),
+            chipload_core::text::mm(f.ramp_end),
+            match f.ramp_shape {
+                RampShape::Straight => "straight",
+                RampShape::Curved => "curved",
             }
         ));
     }

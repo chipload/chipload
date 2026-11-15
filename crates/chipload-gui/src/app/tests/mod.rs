@@ -18,6 +18,7 @@ mod drawn_box;
 mod dxf_whole;
 mod explode;
 mod export_again;
+mod flute;
 mod frames;
 mod generating;
 mod groups;

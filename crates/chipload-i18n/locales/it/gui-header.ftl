@@ -123,3 +123,4 @@ header-array = Serie
 header-array-hover = Copie delle forme disegnate selezionate in una griglia: colonne, righe e spaziatura sotto Selezione
 header-polar-array = Serie polare
 header-polar-array-hover = Copie delle forme disegnate selezionate attorno a un centro che clicchi: numero e angolo sotto Selezione
+header-new-flute = Nuova scanalatura

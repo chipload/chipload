@@ -534,3 +534,38 @@ fn a_chamfer_is_as_deep_as_wide_at_the_line_and_ends_at_its_width() {
     assert!(corner < -1.9, "corner: {corner}");
     assert_eq!(at(&sim, 157.9, 117.9), 0.0);
 }
+
+/// A flute (docs/specs/fluting.md §10): the golden 6 mm ball nose flute along X = 40 from
+/// Y 40 to 180, ramped 25 mm at both ends, 3 mm deep: nothing at its ends, half the depth
+/// halfway along a ramp, the full depth in the middle, as wide as the ball there.
+#[test]
+fn a_flute_follows_its_profile_along_the_shape() {
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v36/flute.chipload");
+    let mut job = chipload_job::load_job(&path).unwrap();
+    job.operations.retain(|op| op.name() == "Ramped both ends");
+    let contours = chipload_pipeline::load_drawing(&job).unwrap().contours;
+    let plan = chipload_toolpath::plan_job(&job, &contours).unwrap();
+    let sim = simulate(
+        &job,
+        &plan.program,
+        &plan.groups,
+        Some(CELL),
+        &Cancel::new(),
+    )
+    .unwrap();
+    let near = |x: f64, y: f64, want: f64| {
+        let got = at(&sim, x, y);
+        assert!(
+            (got - want).abs() < 0.06,
+            "at ({x}, {y}): {got}, not {want}"
+        );
+    };
+    near(40.05, 52.55, -1.5);
+    near(40.05, 110.05, -3.0);
+    near(40.05, 167.45, -1.5);
+    // Beyond the ball's edge, 3 mm from the line: untouched.
+    near(43.15, 110.05, 0.0);
+    // The ends: a ball's tip at the surface marks nothing.
+    assert!(at(&sim, 40.05, 39.95) > -0.06);
+}

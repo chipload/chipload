@@ -62,6 +62,9 @@ pub enum Icon {
     /// A board's edge in section, its top corner bevelled: a chamfer operation
     /// (docs/specs/chamfer.md).
     EdgeChamfer,
+    /// A groove pointed at both ends, with its centre line: a flute operation
+    /// (docs/specs/fluting.md).
+    Flute,
     Holes,
     Surface,
     Eye,
@@ -372,6 +375,19 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 (0.88, 0.85),
             ]);
             pen.line([(0.62, 0.12), (0.96, 0.46)]);
+        }
+        Icon::Flute => {
+            pen.closed(&[
+                (0.5, 0.06),
+                (0.62, 0.22),
+                (0.68, 0.5),
+                (0.62, 0.78),
+                (0.5, 0.94),
+                (0.38, 0.78),
+                (0.32, 0.5),
+                (0.38, 0.22),
+            ]);
+            pen.line([(0.5, 0.28), (0.5, 0.72)]);
         }
         Icon::Holes => {
             pen.circle((0.5, 0.5), 0.34);

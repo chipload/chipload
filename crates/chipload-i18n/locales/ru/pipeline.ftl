@@ -481,6 +481,7 @@ pipeline-name-pocket = Выборка кармана { $number }
 pipeline-name-vcarve = V-гравировка { $number }
 pipeline-name-path = Вдоль линии { $number }
 pipeline-name-chamfer = Фаска { $number }
+pipeline-name-flute = Каннелюра { $number }
 pipeline-name-holes = Отверстия { $number }
 pipeline-name-surface = Торцевание { $number }
 pipeline-name-relief = Рельеф { $number }

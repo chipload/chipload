@@ -91,6 +91,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-carve
     [path] follow path
     [chamfer] chamfer
+    [flute] flute
     [holes] holes
     [relief] relief
    *[surface] surface
@@ -196,6 +197,9 @@ toolpath-plug-floor-left = inlay plug: its floor pass leaves part of the channel
 toolpath-path-too-short = contour #{ $contour } is too short to follow ({ $length }); skipped
 toolpath-groove-no-angle = tool { $tool } is a V-bit without an angle: the groove's width is unknown
 toolpath-groove-width = the V-groove is { $width } wide at the top
+toolpath-flute-width = the flute is { $width } wide at the top
+toolpath-flute-closed = closed contour #{ $contour } skipped: a flute runs along open shapes (a follow path cuts a closed groove)
+toolpath-flute-ramps-shortened = contour #{ $contour } is { $length } long, shorter than its two ramps: both shortened in proportion
 toolpath-path-past-cone = a V-bit cuts no deeper than its cone, { $deepest } here, or its shank would rub; this path goes { $depth } deep: make it shallower, or use an end mill
 toolpath-chamfer-past-cone = tool { $tool } makes a chamfer at most { $widest } wide, or its shank would rub; this one is { $width }: make it narrower, or use a wider V-bit
 toolpath-holes-not-circles = skipped { $count ->

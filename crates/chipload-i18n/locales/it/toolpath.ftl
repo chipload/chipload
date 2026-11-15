@@ -91,6 +91,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] incisione a V
     [path] segui percorso
     [chamfer] smusso
+    [flute] scanalatura decorativa
     [holes] fori
     [relief] rilievo
    *[surface] spianatura
@@ -195,6 +196,9 @@ toolpath-plug-floor-left = tassello d’intarsio: la sua passata di fondo lascia
 toolpath-path-too-short = il contorno #{ $contour } è troppo corto da seguire ({ $length }); saltato
 toolpath-groove-no-angle = l'utensile { $tool } è una fresa a V senza angolo: la larghezza della scanalatura è sconosciuta
 toolpath-groove-width = la scanalatura a V è larga { $width } in alto
+toolpath-flute-width = la scanalatura è larga { $width } in alto
+toolpath-flute-closed = contorno chiuso #{ $contour } saltato: una scanalatura segue forme aperte (segui percorso taglia una scanalatura chiusa)
+toolpath-flute-ramps-shortened = il contorno #{ $contour } è lungo { $length }, meno delle sue due rampe: entrambe accorciate in proporzione
 toolpath-path-past-cone = una fresa a V non taglia più a fondo del suo cono, qui { $deepest }, o il gambo sfregherebbe; questo percorso scende di { $depth }: rendilo meno profondo o usa una fresa cilindrica
 toolpath-chamfer-past-cone = l'utensile { $tool } fa uno smusso largo al massimo { $widest }, o il gambo sfregherebbe; questo è { $width }: restringilo o usa una fresa a V più larga
 toolpath-holes-not-circles = { $count ->

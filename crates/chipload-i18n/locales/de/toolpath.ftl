@@ -91,6 +91,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-Gravur
     [path] Pfad folgen
     [chamfer] Fase
+    [flute] Kannelur
     [holes] Bohrungen
     [relief] Relief
    *[surface] Planfräsen
@@ -195,6 +196,9 @@ toolpath-plug-floor-left = Intarsien-Stopfen: sein Bodendurchgang lässt einen T
 toolpath-path-too-short = Kontur #{ $contour } ist zu kurz zum Folgen ({ $length }); übersprungen
 toolpath-groove-no-angle = Werkzeug { $tool } ist ein V-Fräser ohne Winkel: die Breite der Nut ist unbekannt
 toolpath-groove-width = die V-Nut ist oben { $width } breit
+toolpath-flute-width = die Kannelur ist oben { $width } breit
+toolpath-flute-closed = geschlossene Kontur #{ $contour } übersprungen: eine Kannelur läuft entlang offener Formen (Pfad folgen schneidet eine geschlossene Nut)
+toolpath-flute-ramps-shortened = Kontur #{ $contour } ist { $length } lang, kürzer als ihre beiden Rampen: beide anteilig gekürzt
 toolpath-path-past-cone = ein V-Fräser schneidet nicht tiefer als sein Kegel, hier { $deepest }, sonst reibt sein Schaft; dieser Pfad geht { $depth } tief: flacher machen oder einen Schaftfräser nehmen
 toolpath-chamfer-past-cone = Werkzeug { $tool } macht eine Fase höchstens { $widest } breit, sonst reibt sein Schaft; diese ist { $width }: schmaler machen oder einen breiteren V-Fräser nehmen
 toolpath-holes-not-circles = { $count ->

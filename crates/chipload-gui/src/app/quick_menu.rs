@@ -14,13 +14,14 @@ use super::styles::StyleAct;
 use super::*;
 
 /// The kinds the menu offers, with their keys, in its order.
-pub(super) const KINDS: [(Key, &str, OpKind); 6] = [
+pub(super) const KINDS: [(Key, &str, OpKind); 7] = [
     (Key::P, "P", OpKind::Profile),
     (Key::K, "K", OpKind::Pocket),
     (Key::H, "H", OpKind::Holes),
     (Key::V, "V", OpKind::Vcarve),
     (Key::F, "F", OpKind::Path),
     (Key::C, "C", OpKind::Chamfer),
+    (Key::L, "L", OpKind::Flute),
 ];
 
 /// The digit keys of the first nine styles.
@@ -103,6 +104,7 @@ impl ChiploadApp {
             Unfit::Nothing => t!(self, "header-select-shapes-first"),
             Unfit::NoCircles => t!(self, "quick-needs-circles"),
             Unfit::NoClosed => t!(self, "quick-needs-closed"),
+            Unfit::NoOpen => t!(self, "quick-needs-open"),
         })
     }
 

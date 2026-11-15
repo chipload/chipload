@@ -123,3 +123,4 @@ header-array = Matriz
 header-array-hover = Copias de las formas dibujadas seleccionadas en cuadrícula: columnas, filas y separación en Selección
 header-polar-array = Matriz polar
 header-polar-array-hover = Copias de las formas dibujadas seleccionadas alrededor de un centro que pulse: número y ángulo en Selección
+header-new-flute = Nuevo acanalado

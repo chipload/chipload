@@ -195,7 +195,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
 | `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
@@ -208,6 +208,10 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--through` | Cut through the stock, below it by the setup's max overcut. |
 | `--width <WIDTH>` | A chamfer's width at the surface, in place of 1 mm; its depth follows from the V-bit's angle (docs/specs/chamfer.md) |
 | `--side <SIDE>` | A chamfer's waste side, in place of the one the shapes tell: around them (outside) or within them (inside) One of: `outside`, `inside`. |
+| `--ramp <RAMP>` | A flute's ramp at both ends, in place of 20 mm (docs/specs/fluting.md) |
+| `--ramp-start <RAMP_START>` | A flute's ramp at the shapes' first ends (as drawn); 0 for a square end. |
+| `--ramp-end <RAMP_END>` | A flute's ramp at the shapes' last ends; 0 for a square end. |
+| `--ramp-shape <RAMP_SHAPE>` | A flute's ramps: straight (an even taper) or curved (easing into the floor) One of: `straight`, `curved`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op tool`

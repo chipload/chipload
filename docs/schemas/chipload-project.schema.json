@@ -1962,6 +1962,110 @@
         },
         {
           "additionalProperties": false,
+          "description": "Flute: a groove on the line of open shapes that ramps in and out at their ends.",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "description": "False: the operation stays in the project but isn't cut. Missing: true.",
+              "type": "boolean"
+            },
+            "end_depth": {
+              "description": "The flute's depth through its middle, mm down from the stock top.",
+              "format": "double",
+              "type": "number"
+            },
+            "feed": {
+              "description": "The cutting feed, mm/min, ramps included.",
+              "format": "double",
+              "type": "number"
+            },
+            "material": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MaterialRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The library material its feeds come from. Null: its own values."
+            },
+            "name": {
+              "default": "",
+              "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
+              "type": "string"
+            },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plunge_feed": {
+              "description": "The feed going straight down, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "ramp_end": {
+              "description": "How far along the shape before its last end the flute starts to rise, mm. 0: a\nsquare end.",
+              "format": "double",
+              "type": "number"
+            },
+            "ramp_shape": {
+              "$ref": "#/$defs/RampShape",
+              "description": "`straight` or `curved` ramps."
+            },
+            "ramp_start": {
+              "description": "How far along the shape from its first end the flute reaches its depth, mm. 0: a\nsquare end.",
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "What the operation cuts: the shapes on a layer, or shapes by id. Open shapes only;\nclosed ones are skipped with a note."
+            },
+            "start_depth": {
+              "description": "Where the flute starts at its ends, mm down from the stock top: 0 for the top.",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "default": null,
+              "description": "The deepest each pass goes, mm, in equal passes. Null: one pass.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "tool": {
+              "description": "The id of the project tool it cuts with (`tools`): a ball nose, a V-bit or an\nendmill.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "flute",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "part",
+            "select",
+            "tool",
+            "start_depth",
+            "end_depth",
+            "ramp_start",
+            "ramp_end",
+            "ramp_shape",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
           "description": "Holes: drilled with a drill, bored with a helix with an endmill.",
           "properties": {
             "dowels": {
@@ -2512,6 +2616,21 @@
         "floor"
       ],
       "type": "object"
+    },
+    "RampShape": {
+      "description": "How a flute's ramp goes down from its end to the full depth.",
+      "oneOf": [
+        {
+          "const": "straight",
+          "description": "Evenly: depth × u, u from 0 at the end to 1 at full depth.",
+          "type": "string"
+        },
+        {
+          "const": "curved",
+          "description": "Steepest at the surface, easing into the floor: depth × sin(π/2 × u).",
+          "type": "string"
+        }
+      ]
     },
     "Register": {
       "description": "How a turned board is located again.",

@@ -91,6 +91,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-gravyr
     [path] följ bana
     [chamfer] fas
+    [flute] räffla
     [holes] hål
     [relief] relief
    *[surface] planfräsning
@@ -195,6 +196,9 @@ toolpath-plug-floor-left = inläggningsplugg: dess bottenpass lämnar en del av 
 toolpath-path-too-short = kontur #{ $contour } är för kort att följa ({ $length }); hoppas över
 toolpath-groove-no-angle = verktyg { $tool } är en V-fräs utan vinkel: spårets bredd är okänd
 toolpath-groove-width = V-spåret är { $width } brett upptill
+toolpath-flute-width = räfflan är { $width } bred upptill
+toolpath-flute-closed = sluten kontur #{ $contour } hoppas över: en räffla går längs öppna former (följ bana skär ett slutet spår)
+toolpath-flute-ramps-shortened = kontur #{ $contour } är { $length } lång, kortare än sina två ramper: båda förkortade i proportion
 toolpath-path-past-cone = en V-fräs skär inte djupare än sin kon, här { $deepest }, annars skaver skaftet; den här banan går { $depth } djupt: gör den grundare eller använd en pinnfräs
 toolpath-chamfer-past-cone = verktyg { $tool } gör en fas som högst { $widest } bred, annars skaver skaftet; den här är { $width }: gör den smalare eller använd en bredare V-fräs
 toolpath-holes-not-circles = hoppade över { $count ->

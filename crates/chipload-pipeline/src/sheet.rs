@@ -16,8 +16,8 @@ use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Language, Message, Value};
 use chipload_job::{
     Corners, Direction, EdgeSide, Entry, HoleMethod, HolesOp, Job, OpRef, Operation, PocketOp,
-    Register, Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn, Units, WorkZero, ZZero,
-    find_tool,
+    RampShape, Register, Side, Spindle, StockCorner, Tool, ToolChange, ToolType, Turn, Units,
+    WorkZero, ZZero, find_tool,
 };
 use chipload_toolpath::ToolGroup;
 use chipload_toolpath::model::{MoveKind, Program};
@@ -739,6 +739,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Vcarve(v) => (v.feed, v.plunge_feed),
         Operation::Path(p) => (p.feed, p.plunge_feed),
         Operation::Chamfer(c) => (c.feed, c.plunge_feed),
+        Operation::Flute(f) => (f.feed, f.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
         Operation::Surface(f) => (f.feed, f.plunge_feed),
         Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -783,6 +784,16 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                 EdgeSide::Inside => "sheet-side-inside",
             }),
             direction_message(c.direction),
+        ],
+        // "flute, ramps 20 / 20 mm, straight" (docs/specs/fluting.md §8).
+        Operation::Flute(f) => vec![
+            Message::new("sheet-kind-flute")
+                .arg("start", len(f.ramp_start))
+                .arg("end", len(f.ramp_end)),
+            Message::new(match f.ramp_shape {
+                RampShape::Straight => "sheet-ramp-straight",
+                RampShape::Curved => "sheet-ramp-curved",
+            }),
         ],
         Operation::Holes(h) => match h.method {
             HoleMethod::Drill { .. } => vec![Message::new("sheet-kind-holes-drilled")],
@@ -858,6 +869,7 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         Operation::Vcarve(_) => None,
         Operation::Path(p) => Some(p.step_down),
         Operation::Chamfer(c) => c.step_down,
+        Operation::Flute(f) => f.step_down,
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
         // In one pass along the model (docs/specs/stl-relief.md §5).

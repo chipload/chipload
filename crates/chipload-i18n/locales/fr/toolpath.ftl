@@ -91,6 +91,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] gravure en V
     [path] suivi de tracé
     [chamfer] chanfrein
+    [flute] cannelure
     [holes] perçages
     [relief] relief
    *[surface] surfaçage
@@ -195,6 +196,9 @@ toolpath-plug-floor-left = bouchon de marqueterie : sa passe de fond laisse une 
 toolpath-path-too-short = le contour #{ $contour } est trop court pour être suivi ({ $length }) ; ignoré
 toolpath-groove-no-angle = l'outil { $tool } est une fraise en V sans angle : la largeur de la rainure est inconnue
 toolpath-groove-width = la rainure en V fait { $width } de large en haut
+toolpath-flute-width = la cannelure fait { $width } de large en haut
+toolpath-flute-closed = contour fermé #{ $contour } ignoré : une cannelure suit des formes ouvertes (un suivi de tracé taille une rainure fermée)
+toolpath-flute-ramps-shortened = le contour #{ $contour } fait { $length }, moins que ses deux rampes : toutes deux raccourcies en proportion
 toolpath-path-past-cone = une fraise en V ne coupe pas plus profond que son cône, ici { $deepest }, sinon sa queue frotte ; ce tracé descend à { $depth } : réduisez la profondeur ou prenez une fraise droite
 toolpath-chamfer-past-cone = l'outil { $tool } fait un chanfrein d'au plus { $widest }, sinon sa queue frotte ; celui-ci fait { $width } : réduisez-le ou prenez une fraise en V plus large
 toolpath-holes-not-circles = { $count ->

@@ -237,6 +237,7 @@ pub(in crate::app) fn op_form(
         Operation::Vcarve(_) => t!(ui, "forms-kind-vcarve"),
         Operation::Path(_) => t!(ui, "forms-kind-path"),
         Operation::Chamfer(_) => t!(ui, "forms-kind-chamfer"),
+        Operation::Flute(_) => t!(ui, "forms-kind-flute"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),
@@ -550,6 +551,7 @@ pub(in crate::app) fn op_form(
             });
         }
         Operation::Chamfer(c) => chamfer_sections(ui, index, c, op_tool),
+        Operation::Flute(f) => flute_sections(ui, f, op_tool),
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
@@ -1711,6 +1713,81 @@ fn chamfer_sections(
     folded_section(ui, "op-entry", &title, &entry_text, |ui| {
         entry_rows(ui, index, &mut c.entry, None);
     });
+}
+
+/// A flute's sections (docs/specs/fluting.md §8): its depths, with the width at the top
+/// beneath, passes, ramps; feeds. Its ramps are its entry.
+fn flute_sections(ui: &mut egui::Ui, f: &mut chipload_job::FluteOp, tool: Option<&Tool>) {
+    use chipload_job::RampShape;
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let with_unit = |mm: f64| format!("{} {len_unit}", len_in(units, mm));
+    let shape_name = |ui: &egui::Ui, shape: RampShape| match shape {
+        RampShape::Straight => t!(ui, "forms-ramp-straight"),
+        RampShape::Curved => t!(ui, "forms-ramp-curved"),
+    };
+    let summary = t!(
+        ui,
+        "forms-flute-cut-summary",
+        depth = with_unit(f.end_depth - f.start_depth),
+        start = with_unit(f.ramp_start),
+        end = with_unit(f.ramp_end),
+        shape = shape_name(ui, f.ramp_shape)
+    );
+    folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &summary, |ui| {
+        ui.label(t!(ui, "forms-start-depth"))
+            .on_hover_text(t!(ui, "forms-flute-start-hover"));
+        flag(ui.add(mm(&mut f.start_depth)), ui, "start_depth");
+        ui.end_row();
+        ui.label(t!(ui, "forms-flute-depth"))
+            .on_hover_text(t!(ui, "forms-flute-depth-hover"));
+        flag(ui.add(mm(&mut f.end_depth)), ui, "end_depth");
+        ui.end_row();
+        let depth = f.end_depth - f.start_depth;
+        if let Some(tool) = tool
+            && let Some(width) = chipload_toolpath::flute::flute_width_mm(tool, depth)
+        {
+            ui.label("");
+            ui.label(t!(ui, "forms-flute-width-value", width = with_unit(width)));
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-step-down"))
+            .on_hover_text(t!(ui, "forms-flute-passes-hover"));
+        let mut passes = f.step_down.is_some();
+        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
+        if flag(tick, ui, "step_down").changed() {
+            f.step_down = passes.then(|| (depth / 2.0).max(0.1));
+        }
+        ui.end_row();
+        if let Some(step) = &mut f.step_down {
+            ui.label(format!("  {}", t!(ui, "forms-step-down")));
+            flag(ui.add(mm(step)), ui, "step_down");
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-flute-ramp-start"))
+            .on_hover_text(t!(ui, "forms-flute-ramp-start-hover"));
+        flag(ui.add(mm(&mut f.ramp_start)), ui, "ramp_start");
+        ui.end_row();
+        ui.label(t!(ui, "forms-flute-ramp-end"))
+            .on_hover_text(t!(ui, "forms-flute-ramp-end-hover"));
+        flag(ui.add(mm(&mut f.ramp_end)), ui, "ramp_end");
+        ui.end_row();
+        ui.label(t!(ui, "forms-flute-ramp"))
+            .on_hover_text(t!(ui, "forms-flute-ramp-hover"));
+        let combo = ComboBox::from_id_salt("flute-ramp-shape")
+            .selected_text(shape_name(ui, f.ramp_shape))
+            .show_ui(ui, |ui| {
+                for shape in [RampShape::Straight, RampShape::Curved] {
+                    let label = shape_name(ui, shape);
+                    if ui.selectable_label(f.ramp_shape == shape, label).clicked() {
+                        f.ramp_shape = shape;
+                    }
+                }
+            });
+        flag(combo.response, ui, "ramp_shape");
+        ui.end_row();
+    });
+    feeds_section(ui, &mut f.feed, &mut f.plunge_feed, tool);
 }
 
 /// A pocket's lead-in and lead-out (docs/specs/helix-and-leads.md part B): on or off, and

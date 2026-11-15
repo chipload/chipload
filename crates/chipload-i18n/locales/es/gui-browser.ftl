@@ -141,3 +141,5 @@ browser-roughing = Desbaste
 browser-roughing-hover = Una pasada de desbaste: el material quitado por niveles antes del relieve, con sobrematerial sobre el modelo
 browser-smoothing = Alisado
 browser-smoothing-hover = Una pasada de alisado: tras el desbaste, la superficie seguida una vez, quita los escalones que el desbaste deja en las pendientes
+browser-flute = Acanalado
+browser-flute-hover = Una ranura a lo largo de las formas abiertas seleccionadas que entra y sale en rampa en sus extremos

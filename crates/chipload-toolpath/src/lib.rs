@@ -12,6 +12,7 @@ pub mod chamfer;
 pub mod corners;
 pub mod drop;
 mod floor;
+pub mod flute;
 pub mod fuller;
 pub mod geom;
 pub mod helix;

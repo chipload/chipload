@@ -637,6 +637,7 @@ pipeline-name-pocket = Tasca { $number }
 pipeline-name-vcarve = Incisione a V { $number }
 pipeline-name-path = Segui percorso { $number }
 pipeline-name-chamfer = Smusso { $number }
+pipeline-name-flute = Scanalatura { $number }
 pipeline-name-holes = Fori { $number }
 pipeline-name-surface = Spianatura { $number }
 pipeline-name-relief = Rilievo { $number }

@@ -4,3 +4,4 @@ quick-select-first = Seleziona prima delle forme, poi S
 quick-needs-circles = I fori forano cerchi: seleziona almeno un cerchio
 quick-needs-closed = Serve una forma chiusa: selezionane almeno una
 quick-hint = S: aggiungi un’operazione per la selezione
+quick-needs-open = Serve una forma aperta: seleziona almeno una linea, un arco o una polilinea aperta

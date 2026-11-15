@@ -10,9 +10,9 @@ use chipload_core::chain::Contour;
 use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
-    ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, HoleMethod, HolesOp, Job,
-    Operation, PathOp, PocketOp, ProfileOp, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp,
-    Tabs, Tool, ToolType, VcarveOp,
+    ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, FluteOp, HoleMethod, HolesOp,
+    Job, Operation, PathOp, PocketOp, ProfileOp, RampShape, ReliefOp, SURFACE_STEPOVER, Selector,
+    Side, SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
 };
 
 /// A new relief's lines, as a fraction of the tool, with an end mill or a V-bit
@@ -73,6 +73,10 @@ use crate::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
 pub const DEFAULT_DEPTH: f64 = 1.0;
 /// A new chamfer's width at the surface, mm (docs/specs/chamfer.md §6).
 pub const DEFAULT_CHAMFER_WIDTH: f64 = 1.0;
+/// A new flute's depth with a tool other than a ball nose, mm (docs/specs/fluting.md §8).
+pub const DEFAULT_FLUTE_DEPTH: f64 = 3.0;
+/// A new flute's ramp at each end, mm (docs/specs/fluting.md §8).
+pub const DEFAULT_FLUTE_RAMP: f64 = 20.0;
 /// A new pocket's stepover, as a share of the tool's diameter, when nothing gives one.
 pub const DEFAULT_STEPOVER: f64 = crate::materials::DEFAULT_STEPOVER;
 
@@ -86,6 +90,8 @@ pub enum OpKind {
     Path,
     /// Chamfer: a V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md).
     Chamfer,
+    /// Flute: a groove along open shapes that ramps in and out (docs/specs/fluting.md).
+    Flute,
     /// Holes (docs/specs/holes.md).
     Holes,
     /// Surface: the whole stock (docs/specs/surfacing.md).
@@ -109,6 +115,7 @@ impl OpKind {
                 | (Operation::Vcarve(_), OpKind::Vcarve)
                 | (Operation::Path(_), OpKind::Path)
                 | (Operation::Chamfer(_), OpKind::Chamfer)
+                | (Operation::Flute(_), OpKind::Flute)
                 | (Operation::Holes(_), OpKind::Holes)
                 | (Operation::Surface(_), OpKind::Surface)
                 | (Operation::Relief(_), OpKind::Relief)
@@ -122,6 +129,7 @@ impl OpKind {
             OpKind::Vcarve => "pipeline-name-vcarve",
             OpKind::Path => "pipeline-name-path",
             OpKind::Chamfer => "pipeline-name-chamfer",
+            OpKind::Flute => "pipeline-name-flute",
             OpKind::Holes => "pipeline-name-holes",
             OpKind::Surface => "pipeline-name-surface",
             OpKind::Relief => "pipeline-name-relief",
@@ -182,6 +190,14 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
         && let Some(ball) = job.tools.iter().find(|t| t.kind == ToolType::Ballnose)
     {
         return ball.id;
+    }
+    // A flute takes the first ball nose, else the first V-bit (docs/specs/fluting.md §8).
+    if kind == OpKind::Flute
+        && let Some(round) = [ToolType::Ballnose, ToolType::Vbit]
+            .iter()
+            .find_map(|kind| job.tools.iter().find(|t| t.kind == *kind))
+    {
+        return round.id;
     }
     let suits = |id: i64| {
         job.tools.iter().find(|t| t.id == id).is_some_and(|t| {
@@ -332,6 +348,18 @@ pub fn new_operations(
     }
 }
 
+/// A new flute's depth with `tool`: a ball nose's radius (a half-round flute), otherwise
+/// `DEFAULT_FLUTE_DEPTH`, no deeper than a V-bit's cone (docs/specs/fluting.md §8).
+fn flute_depth(tool: &Tool) -> f64 {
+    match tool.kind {
+        ToolType::Ballnose => tool.diameter / 2.0,
+        _ => chipload_toolpath::plan::vbit_cone_depth(tool)
+            .map_or(DEFAULT_FLUTE_DEPTH, |deepest| {
+                DEFAULT_FLUTE_DEPTH.min(deepest)
+            }),
+    }
+}
+
 /// A chamfer's side for a profile's: inside for holes, outside otherwise.
 fn edge_side(side: Side) -> EdgeSide {
     match side {
@@ -433,6 +461,8 @@ struct Start {
     models: Vec<(u64, f64)>,
     /// A new relief's stepover for the tool (docs/specs/stl-relief.md §15).
     relief_stepover: f64,
+    /// A new flute's depth with the tool (docs/specs/fluting.md §8).
+    flute_depth: f64,
 }
 
 impl Start {
@@ -479,6 +509,7 @@ impl Start {
             plunge_feed,
             stepover,
             relief_stepover: relief_stepover(chosen),
+            flute_depth: chosen.map_or(DEFAULT_FLUTE_DEPTH, flute_depth),
             cutting: tool_cutting(job, library, tool),
             thickness: job.stock().thickness,
             below: job.stock().max_overcut,
@@ -565,6 +596,22 @@ impl Start {
         match kind {
             OpKind::Profile => self.profile(name, &select, Side::Outside, false),
             OpKind::Chamfer => self.chamfer(name, &select, EdgeSide::Outside),
+            OpKind::Flute => Operation::Flute(FluteOp {
+                material: None,
+                name,
+                enabled: true,
+                part: self.part,
+                select,
+                tool: self.tool,
+                start_depth: 0.0,
+                end_depth: self.flute_depth,
+                step_down: Some(self.step_down),
+                ramp_start: DEFAULT_FLUTE_RAMP,
+                ramp_end: DEFAULT_FLUTE_RAMP,
+                ramp_shape: RampShape::Straight,
+                feed: self.feed,
+                plunge_feed: self.plunge_feed,
+            }),
             OpKind::Pocket => Operation::Pocket(PocketOp {
                 material: None,
                 name,
@@ -733,6 +780,7 @@ fn op_step_down(op: &Operation) -> f64 {
         Operation::Path(p) => p.step_down,
         Operation::Surface(f) => f.step_down,
         Operation::Chamfer(c) => c.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
+        Operation::Flute(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Vcarve(_) | Operation::Holes(_) | Operation::Relief(_) => {
             crate::DEFAULT_STEP_DOWN
         }
@@ -746,6 +794,7 @@ fn op_feed(op: &Operation) -> f64 {
         Operation::Vcarve(v) => v.feed,
         Operation::Path(p) => p.feed,
         Operation::Chamfer(c) => c.feed,
+        Operation::Flute(f) => f.feed,
         Operation::Holes(h) => h.feed,
         Operation::Surface(f) => f.feed,
         Operation::Relief(r) => r.feed,
@@ -759,6 +808,7 @@ fn op_plunge(op: &Operation) -> f64 {
         Operation::Vcarve(v) => v.plunge_feed,
         Operation::Path(p) => p.plunge_feed,
         Operation::Chamfer(c) => c.plunge_feed,
+        Operation::Flute(f) => f.plunge_feed,
         Operation::Holes(h) => h.plunge_feed,
         Operation::Surface(f) => f.plunge_feed,
         Operation::Relief(r) => r.plunge_feed,

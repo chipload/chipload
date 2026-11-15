@@ -2893,3 +2893,61 @@ fn op_add_chamfer_takes_a_width_and_a_side_and_finds_the_v_bit() {
     }
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn op_add_flute_takes_ramps_and_finds_the_ball_nose() {
+    // docs/specs/fluting.md §8: the golden flute project's drawing and tools, its
+    // operations removed.
+    let dir = temp_dir("op-add-flute");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let mut json: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(corpus("jobs/v36/flute.chipload")).unwrap())
+            .unwrap();
+    json["operations"] = serde_json::json!([]);
+    std::fs::write(&project, json.to_string()).unwrap();
+    // The 6 mm ball nose (tool 1), as deep as its radius, 20 mm straight ramps.
+    let out = chipload(&["op", "add", p, "flute", "--shapes", "1,2"]);
+    let said = text(&out.stdout);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(
+        said.contains("ramps 20 / 20 mm, straight, 3 mm deep, tool 1"),
+        "{said}"
+    );
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "flute",
+        "--shapes",
+        "3",
+        "--tool",
+        "2",
+        "--depth",
+        "2",
+        "--ramp-start",
+        "0",
+        "--ramp-end",
+        "30",
+        "--ramp-shape",
+        "curved",
+    ]);
+    assert!(
+        text(&out.stdout).contains("ramps 0 / 30 mm, curved, 2 mm deep, tool 2"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", p, "operations.1.ramp_end"]);
+    assert_eq!(text(&out.stdout).trim(), "30.0");
+    let out = chipload(&["run", p, "-o", path(&dir.join("out.nc")), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    // --through, or a ramp on another kind: refused.
+    for args in [
+        &["op", "add", p, "flute", "--shapes", "1", "--through"][..],
+        &["op", "add", p, "pocket", "--shapes", "1", "--ramp", "2"],
+    ] {
+        let out = chipload(args);
+        assert!(!out.status.success(), "{args:?}");
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}

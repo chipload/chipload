@@ -50,6 +50,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [vcarve] V-гравировка
     [path] вдоль линии
     [chamfer] фаска
+    [flute] каннелюра
     [holes] отверстия
     [relief] рельеф
    *[surface] торцевание
@@ -126,6 +127,9 @@ toolpath-plug-floor-left = вставка инкрустации: её прох�
 toolpath-path-too-short = контур №{ $contour } слишком короткий для обработки вдоль линии ({ $length }); пропущен
 toolpath-groove-no-angle = инструмент { $tool } — V-образная фреза без заданного угла: ширина паза неизвестна
 toolpath-groove-width = ширина V-образного паза вверху — { $width }
+toolpath-flute-width = ширина каннелюры вверху — { $width }
+toolpath-flute-closed = замкнутый контур №{ $contour } пропущен: каннелюра идёт вдоль открытых фигур (замкнутый паз режется вдоль линии)
+toolpath-flute-ramps-shortened = контур №{ $contour } длиной { $length } короче двух своих рамп: обе укорочены пропорционально
 toolpath-path-past-cone = V-образная фреза режет не глубже своего конуса, здесь { $deepest }, иначе хвостовик будет тереться; эта линия идёт на { $depth }: уменьшите глубину или возьмите концевую фрезу
 toolpath-chamfer-past-cone = инструмент { $tool } делает фаску шириной не более { $widest }, иначе хвостовик будет тереться; эта — { $width }: уменьшите ширину или возьмите более широкую V-образную фрезу
 toolpath-holes-not-circles = Пропущено { $count ->
