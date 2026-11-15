@@ -708,3 +708,4 @@ pipeline-rule-skipped = calque { $layer } ignoré pour le style « { $style } »
 pipeline-rule-failed = style « { $style } » non appliqué au calque { $layer } : { $reason }
 pipeline-rule-unmatched = aucune règle de calque ne correspond aux calques { $layers }
 pipeline-rule-none = aucun style n’a de règle de calque : donnez d’abord un motif de calque à un style
+pipeline-pieces-not-yet = l’usinage d’un montage en morceaux n’existe pas encore : désactivez Morceaux pour l’usiner en une seule planche

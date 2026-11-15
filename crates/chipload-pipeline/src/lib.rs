@@ -844,6 +844,16 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     let one = job.active_setup_id().map(|id| job.for_setup(id));
     let job = one.as_ref().unwrap_or(job);
     validate_job(job)?;
+    // Cutting in pieces is being built (docs/specs/pieces.md §13, step 5): until each piece
+    // is its own program, a setup in pieces is refused rather than cut as one board, which
+    // is larger than the boards it is meant for.
+    if job
+        .setups
+        .get(job.active_setup_index())
+        .is_some_and(|s| s.pieces.is_some())
+    {
+        return Err(PipelineError::Job(Message::new("pipeline-pieces-not-yet")));
+    }
     let post = posts::job_post(job)?;
     let imported = load_drawing(job)?;
     // Planning is most of a run's progress, the post-processor and the check the rest
@@ -1179,6 +1189,7 @@ pub fn empty_project() -> Job {
                 corner: StockCorner::BottomLeft,
             },
             back_of: None,
+            pieces: None,
         }],
         active_setup: Some(1),
         machine: Machine {

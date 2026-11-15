@@ -703,3 +703,4 @@ pipeline-rule-skipped = Layer { $layer } für Stil „{ $style }“ übersprunge
 pipeline-rule-failed = Stil „{ $style }“ nicht auf Layer { $layer } angewendet: { $reason }
 pipeline-rule-unmatched = keine Layer-Regel passt auf die Layer { $layers }
 pipeline-rule-none = kein Stil hat eine Layer-Regel: zuerst einem Stil ein Layer-Muster geben
+pipeline-pieces-not-yet = eine Aufspannung in Stücken zu fräsen gibt es noch nicht: schalten Sie Stücke aus, um sie als eine Platte zu fräsen

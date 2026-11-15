@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 36. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 37. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 36. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `36` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `37` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -354,6 +354,14 @@ How an inflated shape rises from its edge.
 ## IssueSeverity
 
 One of: `"warning"`, `"error"`.
+
+## Joint
+
+The joint along a seam between two pieces (docs/specs/pieces.md §4).
+
+- `"knobs"`: Round heads on narrower necks, alternating in and out, as on a jigsaw puzzle.
+
+- `"fingers"`: Square teeth with rounded corners.
 
 ## Lead
 
@@ -779,6 +787,39 @@ How a picture model's picture becomes heights (docs/specs/inflated-shapes.md §3
 
 - `"inflate"`: Its black-and-white shapes, each rising from its edge.
 
+## PieceBoard
+
+The size of the boards pieces are cut from, mm.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `x` | number | yes |  |
+| `y` | number | yes |  |
+
+## PieceGrid
+
+A grid of pieces given by hand.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `columns` | integer | yes |  |
+| `rows` | integer | yes |  |
+
+## Pieces
+
+How a setup is cut in pieces (docs/specs/pieces.md §10).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `board` | [PieceBoard](#pieceboard) | yes | The boards the pieces are cut from: each piece, its joints and the setup's margin fit on one. |
+| `clearance` | number | yes | The room between two pieces at a seam, mm, for glue: each side gives half. |
+| `grid` | [PieceGrid](#piecegrid) or null | no | Columns and rows of pieces. Null: the fewest whose pieces fit the board. |
+| `joint` | [Joint](#joint) | yes | The joints along the seams. |
+| `shift_x` | list of number | no | Each inner seam between columns moved along X from its even position, mm, from the left. Missing ones: 0. |
+| `shift_y` | list of number | no | Each inner seam between rows moved along Y from its even position, mm, from the bottom. Missing ones: 0. |
+| `size` | number | yes | The joint's size, mm: a knob's head diameter, a finger's length. |
+| `spacing` | number | yes | How far apart joints are along a seam, mm: knob to knob, or a finger and a gap. |
+
 ## Placement
 
 Where the imported drawing is put: a DXF point p goes to scale · rotate(p) + (dx, dy), turned and scaled about the DXF's origin.
@@ -902,6 +943,7 @@ A setup: one board clamped once on the machine, with its stock and work zero, an
 | `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what parts name it by. |
 | `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
+| `pieces` | [Pieces](#pieces) or null | no | Set: the setup is cut as a puzzle, in pieces that each fit a board, joined by seams with joints; each piece is a program of its own. Null: one board. Since schema 37. |
 | `stock` | [Stock](#stock) | yes | The board. |
 | `work_zero` | [WorkZero](#workzero) | no | The point of the drawing that becomes X0 Y0 in its G-code. Missing: the drawing's origin. |
 

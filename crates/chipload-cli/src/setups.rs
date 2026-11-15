@@ -7,13 +7,13 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_i18n::Language;
-use chipload_job::{Register, Turn};
+use chipload_job::{Joint, PieceBoard, PieceGrid, Pieces, Register, Turn};
 use chipload_pipeline::dowels::{
     DEFAULT_PIN_DEPTH, DEFAULT_PIN_DIAMETER, Dowels, add_dowels, place_dowels_again, remove_dowels,
 };
 use chipload_pipeline::setups::{
     BoardChange, activate_setup, add_back_side, add_setup, move_part_to_setup, remove_setup,
-    set_board, set_setup,
+    set_board, set_pieces, set_setup,
 };
 use chipload_pipeline::two_sided::{PinsRequest, TwoSidedRequest, make_two_sided};
 use clap::Subcommand;
@@ -134,6 +134,50 @@ pub enum SetupAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Cut a setup as a puzzle: pieces that each fit a board, joined at seams with puzzle
+    /// knobs or fingers, each piece a program of its own (docs/specs/pieces.md). Values not
+    /// given stay as they are, or take the joint's defaults the first time.
+    Pieces {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// The setup's id; default: the active setup.
+        #[arg(long)]
+        setup: Option<u64>,
+        /// The boards' size, X×Y, such as 600x400; default: the machine's travel.
+        #[arg(long, value_parser = crate::board_size)]
+        board: Option<(f64, f64)>,
+        /// Columns × rows of pieces, such as 3x2, or `auto`: the fewest that fit the board.
+        #[arg(long)]
+        grid: Option<String>,
+        /// The joint along the seams: knobs (default) or fingers.
+        #[arg(long, value_parser = joint)]
+        joint: Option<Joint>,
+        /// The joint's size: a knob's head diameter (default 30 mm), a finger's length
+        /// (15 mm).
+        #[arg(long, value_parser = crate::lengths::length)]
+        size: Option<f64>,
+        /// How far apart joints are along a seam (default 120 mm for knobs, 60 mm for
+        /// fingers).
+        #[arg(long, value_parser = crate::lengths::length)]
+        spacing: Option<f64>,
+        /// The room between pieces at a seam, for glue; default 0.2 mm.
+        #[arg(long, value_parser = crate::lengths::length)]
+        clearance: Option<f64>,
+        /// Move a seam between columns along X: SEAM=LENGTH, seams counted from the left
+        /// from 1, such as 2=15. Repeat for more.
+        #[arg(long, value_parser = shift)]
+        shift_x: Vec<(usize, f64)>,
+        /// Move a seam between rows along Y: SEAM=LENGTH, seams counted from the bottom.
+        #[arg(long, value_parser = shift)]
+        shift_y: Vec<(usize, f64)>,
+        /// Cut the setup as one board again.
+        #[arg(long, conflicts_with_all = ["board", "grid", "joint", "size", "spacing",
+            "clearance", "shift_x", "shift_y"])]
+        off: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Make a setup the active one: shown, simulated, where new parts go.
     Activate {
         /// The project (.chipload).
@@ -185,6 +229,9 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             project, output, ..
         }
         | SetupAction::Dowels {
+            project, output, ..
+        }
+        | SetupAction::Pieces {
             project, output, ..
         }
         | SetupAction::Part {
@@ -309,6 +356,45 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
             })
         }
         SetupAction::Activate { id, .. } => activate_setup(&job, id),
+        SetupAction::Pieces {
+            setup, off: true, ..
+        } => {
+            let id = setup.or(job.active_setup_id()).unwrap_or(0);
+            set_pieces(&job, id, None)
+                .inspect(|_| out.line(format!("Setup {id} is one board again")))
+        }
+        SetupAction::Pieces {
+            setup,
+            board,
+            grid,
+            joint,
+            size,
+            spacing,
+            clearance,
+            shift_x,
+            shift_y,
+            ..
+        } => {
+            let id = setup.or(job.active_setup_id()).unwrap_or(0);
+            let change = PiecesArgs {
+                board,
+                grid,
+                joint,
+                size,
+                spacing,
+                clearance,
+                shift_x,
+                shift_y,
+            };
+            match change.applied(&job, id) {
+                Ok(pieces) => set_pieces(&job, id, Some(pieces)).inspect(|job| {
+                    if let Some(p) = job.setup(id).and_then(|s| s.pieces.as_ref()) {
+                        out.line(format!("Setup {id} is cut in pieces: {}", pieces_text(p)));
+                    }
+                }),
+                Err(message) => return out.fail(message),
+            }
+        }
         SetupAction::Dowels {
             setup,
             remove: true,
@@ -424,6 +510,10 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
                 b.register.name()
             )
         });
+        let link = match &setup.pieces {
+            Some(p) => format!("{link}, in pieces: {}", pieces_text(p)),
+            None => link,
+        };
         out.line(format!(
             "{} {}{}{}{link}: board {} × {} × {} mm; zero {}; parts {}",
             setup.id,
@@ -452,6 +542,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "board": [x, y, setup.stock.thickness],
             "work_zero": setup.work_zero,
             "back_of": setup.back_of,
+            "pieces": setup.pieces,
             "dowels": dowels.flatten().map(|i| i + 1),
             "missing_dowels": job.missing_dowels(setup.id),
             "parts": parts,
@@ -459,6 +550,134 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
     }
     out.set("setups", Value::Array(rows));
     ExitCode::SUCCESS
+}
+
+/// The values `setup pieces` was given; the rest stay as they are.
+struct PiecesArgs {
+    board: Option<(f64, f64)>,
+    grid: Option<String>,
+    joint: Option<Joint>,
+    size: Option<f64>,
+    spacing: Option<f64>,
+    clearance: Option<f64>,
+    shift_x: Vec<(usize, f64)>,
+    shift_y: Vec<(usize, f64)>,
+}
+
+impl PiecesArgs {
+    /// Setup `id`'s pieces with these values: its own if it has some, else a joint's
+    /// defaults on boards of the given size or the machine's travel.
+    fn applied(self, job: &chipload_job::Job, id: u64) -> Result<Pieces, String> {
+        let current = job.setup(id).and_then(|s| s.pieces.clone());
+        let mut pieces = match current {
+            Some(p) => p,
+            None => {
+                let travel = job.machine.travel.as_ref().map(|t| (t.x, t.y));
+                let Some((x, y)) = self.board.or(travel) else {
+                    return Err("give --board X×Y: the machine has no travel to start from".into());
+                };
+                Pieces::new(PieceBoard { x, y }, self.joint.unwrap_or(Joint::Knobs))
+            }
+        };
+        if let Some((x, y)) = self.board {
+            pieces.board = PieceBoard { x, y };
+        }
+        if let Some(joint) = self.joint
+            && joint != pieces.joint
+        {
+            (pieces.size, pieces.spacing) = joint.defaults();
+            pieces.joint = joint;
+        }
+        if let Some(size) = self.size {
+            pieces.size = size;
+        }
+        if let Some(spacing) = self.spacing {
+            pieces.spacing = spacing;
+        }
+        if let Some(clearance) = self.clearance {
+            pieces.clearance = clearance;
+        }
+        if let Some(grid) = &self.grid {
+            pieces.grid = if grid.trim() == "auto" {
+                None
+            } else {
+                let (columns, rows) = grid
+                    .split_once(['x', 'X', '×'])
+                    .and_then(|(c, r)| Some((c.trim().parse().ok()?, r.trim().parse().ok()?)))
+                    .ok_or_else(|| {
+                        format!("--grid wants columns x rows like 3x2, or auto, got \"{grid}\"")
+                    })?;
+                Some(PieceGrid { columns, rows })
+            };
+        }
+        for (shifts, given) in [
+            (&mut pieces.shift_x, &self.shift_x),
+            (&mut pieces.shift_y, &self.shift_y),
+        ] {
+            for &(seam, value) in given {
+                if shifts.len() < seam {
+                    shifts.resize(seam, 0.0);
+                }
+                shifts[seam - 1] = value;
+            }
+            while shifts.last() == Some(&0.0) {
+                shifts.pop();
+            }
+        }
+        Ok(pieces)
+    }
+}
+
+/// A setup's pieces in a line: "knobs 30 mm every 120 mm, clearance 0.2 mm, on 600 × 400
+/// mm boards, grid automatic".
+fn pieces_text(p: &Pieces) -> String {
+    let mm = chipload_core::text::mm;
+    let grid = match p.grid {
+        Some(g) => format!("{} × {}", g.columns, g.rows),
+        None => "automatic".to_string(),
+    };
+    let mut text = format!(
+        "{} {} mm every {} mm, clearance {} mm, on {} × {} mm boards, grid {grid}",
+        p.joint.name(),
+        mm(p.size),
+        mm(p.spacing),
+        mm(p.clearance),
+        mm(p.board.x),
+        mm(p.board.y),
+    );
+    for (axis, shifts) in [("X", &p.shift_x), ("Y", &p.shift_y)] {
+        if !shifts.is_empty() {
+            let list: Vec<String> = shifts.iter().map(|v| mm(*v)).collect();
+            text.push_str(&format!(
+                ", seams moved along {axis} by {} mm",
+                list.join(", ")
+            ));
+        }
+    }
+    text
+}
+
+/// A joint as the command line writes it.
+fn joint(text: &str) -> Result<Joint, String> {
+    match text {
+        "knobs" => Ok(Joint::Knobs),
+        "fingers" => Ok(Joint::Fingers),
+        _ => Err("knobs or fingers".into()),
+    }
+}
+
+/// A seam's shift: SEAM=LENGTH, the seam counted from 1.
+fn shift(text: &str) -> Result<(usize, f64), String> {
+    let (seam, value) = text
+        .split_once('=')
+        .ok_or_else(|| format!("expected SEAM=LENGTH, such as 2=15, got {text:?}"))?;
+    let seam: usize = seam
+        .trim()
+        .parse()
+        .ok()
+        .filter(|&n| n >= 1)
+        .ok_or_else(|| format!("a seam is counted from 1, got {seam:?}"))?;
+    Ok((seam, crate::lengths::length(value.trim())?))
 }
 
 /// A turn as the command line writes it.

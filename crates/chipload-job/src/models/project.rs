@@ -66,6 +66,107 @@ pub struct Setup {
     // Spec: docs/specs/two-sided.md.
     #[serde(default)]
     pub back_of: Option<BackOf>,
+    /// Set: the setup is cut as a puzzle, in pieces that each fit a board, joined by
+    /// seams with joints; each piece is a program of its own. Null: one board. Since
+    /// schema 37.
+    // Spec: docs/specs/pieces.md.
+    #[serde(default)]
+    pub pieces: Option<Pieces>,
+}
+
+/// How a setup is cut in pieces (docs/specs/pieces.md §10).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Pieces {
+    /// The boards the pieces are cut from: each piece, its joints and the setup's margin
+    /// fit on one.
+    pub board: PieceBoard,
+    /// Columns and rows of pieces. Null: the fewest whose pieces fit the board.
+    #[serde(default)]
+    pub grid: Option<PieceGrid>,
+    /// The joints along the seams.
+    pub joint: Joint,
+    /// The joint's size, mm: a knob's head diameter, a finger's length.
+    pub size: f64,
+    /// How far apart joints are along a seam, mm: knob to knob, or a finger and a gap.
+    pub spacing: f64,
+    /// The room between two pieces at a seam, mm, for glue: each side gives half.
+    pub clearance: f64,
+    /// Each inner seam between columns moved along X from its even position, mm, from the
+    /// left. Missing ones: 0.
+    #[serde(default)]
+    pub shift_x: Vec<f64>,
+    /// Each inner seam between rows moved along Y from its even position, mm, from the
+    /// bottom. Missing ones: 0.
+    #[serde(default)]
+    pub shift_y: Vec<f64>,
+}
+
+/// The size of the boards pieces are cut from, mm.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct PieceBoard {
+    pub x: f64,
+    pub y: f64,
+}
+
+/// A grid of pieces given by hand.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct PieceGrid {
+    pub columns: u32,
+    pub rows: u32,
+}
+
+/// The joint along a seam between two pieces (docs/specs/pieces.md §4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Joint {
+    /// Round heads on narrower necks, alternating in and out, as on a jigsaw puzzle.
+    Knobs,
+    /// Square teeth with rounded corners.
+    Fingers,
+}
+
+impl Joint {
+    pub fn name(self) -> &'static str {
+        match self {
+            Joint::Knobs => "knobs",
+            Joint::Fingers => "fingers",
+        }
+    }
+
+    /// The joint's default size and spacing, mm.
+    pub fn defaults(self) -> (f64, f64) {
+        match self {
+            Joint::Knobs => (30.0, 120.0),
+            Joint::Fingers => (15.0, 60.0),
+        }
+    }
+}
+
+/// The room between pieces at a seam by default, mm (docs/specs/pieces.md §5).
+pub const DEFAULT_PIECE_CLEARANCE: f64 = 0.2;
+
+impl Pieces {
+    /// Pieces with a joint's defaults on boards of this size.
+    pub fn new(board: PieceBoard, joint: Joint) -> Pieces {
+        let (size, spacing) = joint.defaults();
+        Pieces {
+            board,
+            grid: None,
+            joint,
+            size,
+            spacing,
+            clearance: DEFAULT_PIECE_CLEARANCE,
+            shift_x: Vec::new(),
+            shift_y: Vec::new(),
+        }
+    }
 }
 
 /// Which setup a back setup turns over, and how (docs/specs/two-sided.md §3).

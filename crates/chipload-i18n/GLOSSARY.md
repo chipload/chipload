@@ -34,6 +34,7 @@ correction here is a correction everywhere: change the term, then every text usi
 | back side (a setup that is a board turned over) | Rückseite | verso | reverso | retro | baksida |
 | turn over (a board) | wenden | retourner | dar la vuelta | capovolgere | vända |
 | dowel pin / dowel hole | Passstift / Passstiftbohrung | goupille / trou de goupille | pasador / agujero de pasador | spina / foro per spina | styrpinne / styrhål |
+| piece (of a setup cut as a puzzle) / seam / joint / knob / finger | Stück / Naht / Verbindung / Nase / Zinke | morceau / joint / assemblage / tenon / doigt | trozo / junta / unión / lengüeta / dedo | tassello / giunta / incastro / dente / dito | bit / skarv / fog / knopp / tapp |
 | floor pass (V-carve) | Bodendurchgang | passe de fond | pasada de fondo | passata di fondo | bottenpass |
 | operation | Bearbeitung | opération | operación | lavorazione | operation |
 | drawing | Zeichnung | dessin | dibujo | disegno | ritning |
@@ -121,6 +122,7 @@ names unchanged. Numbers display a decimal point; input also accepts a decimal c
 | English | Русский |
 |---|---|
 | project / part / setup / operation | проект / деталь / установ / операция |
+| piece (of a setup cut as a puzzle) / seam / joint / knob / finger | фрагмент / шов / соединение / замок / шип |
 | drawing / layer / shape / contour | чертёж / слой / объект / контур |
 | profile / pocket / island | обработка контура / выборка кармана / остров |
 | slot / clearing | паз / выборка |

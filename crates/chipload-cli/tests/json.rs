@@ -881,3 +881,68 @@ fn layer_rules_apply_on_import_and_on_demand_alike() {
     assert_eq!(again["rules"]["added"], json!(0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_setup_is_cut_in_pieces_changed_and_made_one_board_again() {
+    // docs/specs/pieces.md §10
+    let dir = temp_dir("pieces");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v22/two_parts.chipload"), &project).unwrap();
+    let p = project.to_str().unwrap();
+    let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
+    // Pieces don't take copies yet (§11).
+    let refused = chipload(
+        &dir,
+        &["setup", "pieces", p, "--board", "600x400", "--json"],
+    );
+    assert_eq!(refused.code, Some(1), "{}", refused.stdout);
+    assert!(refused.stdout.contains("copies"), "{}", refused.stdout);
+    run(&["copies", p, "--part", "2", "--off", "--json"]);
+    // Without a board size, the machine's travel.
+    run(&["setup", "pieces", p, "--json"]);
+    let board = run(&["get", p, "setups.0.pieces.board", "--json"]);
+    assert_eq!(board["value"], json!({"x": 800.0, "y": 600.0}), "{board}");
+    run(&["setup", "pieces", p, "--board", "600x400", "--json"]);
+    let pieces = run(&["get", p, "setups.0.pieces", "--json"])["value"].clone();
+    assert_eq!(
+        pieces,
+        json!({"board": {"x": 600.0, "y": 400.0}, "grid": null, "joint": "knobs",
+               "size": 30.0, "spacing": 120.0, "clearance": 0.2,
+               "shift_x": [], "shift_y": []})
+    );
+    // A new joint takes its own defaults; a seam shift fills the seams before it with 0.
+    run(&[
+        "setup",
+        "pieces",
+        p,
+        "--joint",
+        "fingers",
+        "--grid",
+        "3x2",
+        "--shift-x",
+        "2=15",
+        "--json",
+    ]);
+    let listed = run(&["setup", "list", p, "--json"]);
+    let pieces = &listed["setups"][0]["pieces"];
+    assert_eq!(pieces["joint"], json!("fingers"));
+    assert_eq!(pieces["size"], json!(15.0));
+    assert_eq!(pieces["spacing"], json!(60.0));
+    assert_eq!(pieces["grid"], json!({"columns": 3, "rows": 2}));
+    assert_eq!(pieces["shift_x"], json!([0.0, 15.0]));
+    // A third seam between three columns doesn't exist.
+    let refused = chipload(&dir, &["setup", "pieces", p, "--shift-x", "3=1", "--json"]);
+    assert_eq!(refused.code, Some(1), "{}", refused.stdout);
+    assert!(
+        refused.stdout.contains("setups.0.pieces.shift_x"),
+        "{}",
+        refused.stdout
+    );
+    // Joints closer than two sizes are refused.
+    let refused = chipload(&dir, &["setup", "pieces", p, "--spacing", "20", "--json"]);
+    assert_eq!(refused.code, Some(1), "{}", refused.stdout);
+    run(&["setup", "pieces", p, "--off", "--json"]);
+    let off = run(&["get", p, "setups.0.pieces", "--json"]);
+    assert_eq!(off["value"], Value::Null, "{off}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

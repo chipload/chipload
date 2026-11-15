@@ -2571,6 +2571,29 @@ chipload setup dowels <PROJECT> [OPTIONS]
 | `--place` | Place the dowel holes there are again, clear of both sides' cuts as they are now; a work zero at the first pin moves with it. Not once the front is cut: its holes are drilled. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload setup pieces`
+
+Cut a setup as a puzzle: pieces that each fit a board, joined at seams with puzzle knobs or fingers, each piece a program of its own (docs/specs/pieces.md). Values not given stay as they are, or take the joint's defaults the first time
+
+```text
+chipload setup pieces <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--setup <SETUP>` | The setup's id; default: the active setup. |
+| `--board <BOARD>` | The boards' size, X×Y, such as 600x400; default: the machine's travel. |
+| `--grid <GRID>` | Columns × rows of pieces, such as 3x2, or `auto`: the fewest that fit the board. |
+| `--joint <JOINT>` | The joint along the seams: knobs (default) or fingers. |
+| `--size <SIZE>` | The joint's size: a knob's head diameter (default 30 mm), a finger's length (15 mm) |
+| `--spacing <SPACING>` | How far apart joints are along a seam (default 120 mm for knobs, 60 mm for fingers) |
+| `--clearance <CLEARANCE>` | The room between pieces at a seam, for glue; default 0.2 mm. |
+| `--shift-x <SHIFT_X>` | Move a seam between columns along X: SEAM=LENGTH, seams counted from the left from 1, such as 2=15. Repeat for more. Repeatable. |
+| `--shift-y <SHIFT_Y>` | Move a seam between rows along Y: SEAM=LENGTH, seams counted from the bottom. Repeatable. |
+| `--off` | Cut the setup as one board again. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload setup activate`
 
 Make a setup the active one: shown, simulated, where new parts go

@@ -4,7 +4,7 @@
 //! cut from it, each run as a program of its own.
 
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{BackOf, Geometry, Job, Note, Origin, Part, Register, Setup, Turn};
+use chipload_job::{BackOf, Geometry, Job, Note, Origin, Part, Pieces, Register, Setup, Turn};
 
 use crate::PipelineError;
 use crate::parts::free_name;
@@ -57,6 +57,7 @@ pub fn add_setup(
         stock,
         work_zero,
         back_of: None,
+        pieces: None,
     });
     let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
     let part_name = free_name(&job, None)?;
@@ -179,6 +180,15 @@ pub fn set_setup(
     if let Some(enabled) = enabled {
         job.setups[at].enabled = enabled;
     }
+    checked(job)
+}
+
+/// Cut setup `id` in pieces, as `pieces` says, or as one board again with `None`
+/// (docs/specs/pieces.md §10). Refused when the result breaks a project rule.
+pub fn set_pieces(job: &Job, id: u64, pieces: Option<Pieces>) -> Result<Job, PipelineError> {
+    let mut job = job.clone();
+    let at = index_of(&job, id)?;
+    job.setups[at].pieces = pieces;
     checked(job)
 }
 

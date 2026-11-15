@@ -68,6 +68,27 @@ chipload run box.chipload -o box.nc --setup 2
 In paths, a setup's board is `setups.N.stock…` and its zero `setups.N.work_zero`, counting
 from 0. The older `stock.…` and `machine.work_zero` still work and mean the active setup's.
 
+## Pieces (being built)
+
+A shape larger than your boards, such as a round table top or a big sign, can be cut as a
+puzzle: seams split it into pieces that each fit a board, and puzzle knobs or fingers along
+the seams lock the pieces together. Each piece becomes a program of its own, and the
+pockets, V-carving and text follow across the seams.
+
+This is being built. For now the setting can be made and saved, but a setup in pieces is
+not cut yet: generating G-code says so. Turn Pieces off to cut the setup as one board.
+
+```sh
+chipload setup pieces table.chipload --board 600x400            # knobs, the defaults
+chipload setup pieces table.chipload --joint fingers --grid 3x2 # fingers, 3 × 2 pieces
+chipload setup pieces table.chipload --shift-x 2=15             # move the 2nd seam 15 mm
+chipload setup pieces table.chipload --off                      # one board again
+```
+
+Without `--board`, the boards are the size of the machine's travel. Knobs default to 30 mm
+heads every 120 mm, fingers to 15 mm teeth every 60 mm, and the joints are cut 0.2 mm loose
+for glue (`--size`, `--spacing`, `--clearance`).
+
 ## The back side (experimental)
 
 A setup can be the **back of another**: the same board turned over, for parts cut on both

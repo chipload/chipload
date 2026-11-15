@@ -545,3 +545,4 @@ pipeline-rule-skipped = слой { $layer } пропущен для стиля �
 pipeline-rule-failed = стиль «{ $style }» не применён к слою { $layer }: { $reason }
 pipeline-rule-unmatched = ни одно правило слоёв не подходит к слоям { $layers }
 pipeline-rule-none = ни у одного стиля нет правила слоёв: сначала задайте стилю шаблон слоя
+pipeline-pieces-not-yet = обработка установа из фрагментов ещё не готова: выключите «Фрагменты», чтобы обработать его одной заготовкой

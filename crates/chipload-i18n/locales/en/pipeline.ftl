@@ -710,3 +710,4 @@ pipeline-rule-skipped = layer { $layer } skipped for style "{ $style }": an oper
 pipeline-rule-failed = style "{ $style }" not used on layer { $layer }: { $reason }
 pipeline-rule-unmatched = no layer rule matches layers { $layers }
 pipeline-rule-none = no style has a layer rule: give a style a layer pattern first
+pipeline-pieces-not-yet = cutting a setup in pieces isn't built yet: turn Pieces off to cut it as one board

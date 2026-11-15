@@ -152,7 +152,7 @@ fn a_back_side_is_saved_and_read_back() {
         read.setup(2).unwrap().back_of,
         job.setup(2).unwrap().back_of
     );
-    assert_eq!(read.schema_version, 36);
+    assert_eq!(read.schema_version, chipload_job::CURRENT_VERSION);
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

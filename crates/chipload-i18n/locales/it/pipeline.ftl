@@ -705,3 +705,4 @@ pipeline-rule-skipped = layer { $layer } saltato per lo stile «{ $style }»: un
 pipeline-rule-failed = stile «{ $style }» non usato sul layer { $layer }: { $reason }
 pipeline-rule-unmatched = nessuna regola di layer corrisponde ai layer { $layers }
 pipeline-rule-none = nessuno stile ha una regola di layer: dai prima un modello di layer a uno stile
+pipeline-pieces-not-yet = la lavorazione di un piazzamento a tasselli non c’è ancora: disattivi Tasselli per lavorarlo come un’unica tavola

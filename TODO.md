@@ -279,8 +279,11 @@ Smaller follow-ups noted along the way, not in the order above:
      2026-11-15** (docs/specs/moulding.md), **built 2026-11-15** (see *In main*). The form shows the
      section (added on request). Left: a moulding step in the relief wizard (the user's idea), different
      ends per end, linking passes.
-  5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
-     the setup sheet saying how far; probably built on setups.
+  5. **Tiling, as puzzle pieces:** a shape larger than the board split by seams with
+     puzzle knobs or fingers, the operations following (docs/specs/pieces.md, approved
+     2026-11-15). Step 1 built: the model (schema 37), validation, `setup pieces`;
+     generating a setup in pieces is refused until step 5. The other reading, sliding one long board between tiles on
+     pins, is parked in docs/specs/sliding-tiles.md.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced

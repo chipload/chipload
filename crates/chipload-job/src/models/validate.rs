@@ -183,6 +183,7 @@ impl Job {
                 setup.work_zero,
             ));
             problems.extend(self.back_problems(k));
+            problems.extend(self.pieces_problems(k));
         }
         problems.extend(self.dowel_problems());
         for (i, part) in self.parts.iter().enumerate() {
@@ -223,6 +224,81 @@ impl Job {
             }
         };
         vec![Problem::at(at, problem)]
+    }
+
+    /// A setup in pieces (docs/specs/pieces.md §10): positive sizes, joints spaced at
+    /// least two sizes apart, no more shifts than a given grid has seams, and neither
+    /// two-sided nor with copies, which pieces don't handle yet (§11).
+    fn pieces_problems(&self, k: usize) -> Vec<Problem> {
+        let setup = &self.setups[k];
+        let Some(pieces) = &setup.pieces else {
+            return Vec::new();
+        };
+        let at = format!("setups.{k}.pieces");
+        let mut problems: Vec<Problem> = [
+            positive_problem(&format!("{at}.board"), "x", pieces.board.x),
+            positive_problem(&format!("{at}.board"), "y", pieces.board.y),
+            positive_problem(&at, "size", pieces.size),
+            positive_problem(&at, "spacing", pieces.spacing),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        if !(pieces.clearance.is_finite() && pieces.clearance >= 0.0) {
+            problems.push(Problem::at(
+                format!("{at}.clearance"),
+                Message::new("job-must-be-0-or-more")
+                    .arg("got", Value::Length(pieces.clearance, Digits::Shortest)),
+            ));
+        }
+        if pieces.size > 0.0 && pieces.spacing > 0.0 && pieces.spacing < 2.0 * pieces.size {
+            problems.push(Problem::at(
+                format!("{at}.spacing"),
+                Message::new("job-pieces-spacing")
+                    .arg("size", Value::Length(pieces.size, Digits::Shortest)),
+            ));
+        }
+        if let Some(grid) = pieces.grid {
+            for (field, count, shifts) in [
+                ("columns", grid.columns, &pieces.shift_x),
+                ("rows", grid.rows, &pieces.shift_y),
+            ] {
+                if count == 0 {
+                    problems.push(Problem::at(
+                        format!("{at}.grid.{field}"),
+                        Message::new("job-must-be-1-or-more"),
+                    ));
+                } else if shifts.len() > (count - 1) as usize {
+                    let axis = if field == "columns" { "x" } else { "y" };
+                    problems.push(Problem::at(
+                        format!("{at}.shift_{axis}"),
+                        Message::new("job-pieces-shifts")
+                            .arg("count", shifts.len())
+                            .arg("seams", count - 1),
+                    ));
+                }
+            }
+        }
+        let two_sided = setup.back_of.is_some()
+            || self
+                .setups
+                .iter()
+                .any(|s| s.back_of.is_some_and(|b| b.setup == setup.id));
+        if two_sided {
+            problems.push(Problem::at(
+                at.clone(),
+                Message::new("job-pieces-two-sided"),
+            ));
+        }
+        for part in self.parts.iter().filter(|p| p.setup == setup.id) {
+            if part.copies.is_some() {
+                problems.push(Problem::at(
+                    at.clone(),
+                    Message::new("job-pieces-copies").arg("part", part.name.clone()),
+                ));
+            }
+        }
+        problems
     }
 
     /// Dowel holes' rules (docs/specs/two-sided.md §6): cut with the front of a board that

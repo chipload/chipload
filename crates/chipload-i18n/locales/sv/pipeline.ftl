@@ -700,3 +700,4 @@ pipeline-rule-skipped = lager { $layer } hoppades över för stilen ”{ $style 
 pipeline-rule-failed = stilen ”{ $style }” användes inte på lager { $layer }: { $reason }
 pipeline-rule-unmatched = ingen lagerregel matchar lagren { $layers }
 pipeline-rule-none = ingen stil har en lagerregel: ge först en stil ett lagermönster
+pipeline-pieces-not-yet = att fräsa en uppspänning i bitar finns inte än: stäng av Bitar för att fräsa den som en skiva

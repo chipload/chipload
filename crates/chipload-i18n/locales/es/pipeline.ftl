@@ -708,3 +708,4 @@ pipeline-rule-skipped = capa { $layer } omitida para el estilo «{ $style }»: y
 pipeline-rule-failed = estilo «{ $style }» no aplicado en la capa { $layer }: { $reason }
 pipeline-rule-unmatched = ninguna regla de capa coincide con las capas { $layers }
 pipeline-rule-none = ningún estilo tiene una regla de capa: da primero un patrón de capa a un estilo
+pipeline-pieces-not-yet = mecanizar una sujeción en trozos aún no está hecho: desactive Trozos para mecanizarla como un solo tablero
