@@ -3021,3 +3021,61 @@ fn op_add_pattern_takes_its_settings_and_finds_the_v_bit() {
     }
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn op_add_prism_finds_the_v_bit_and_takes_a_max_depth() {
+    // docs/specs/prism.md §5: the golden prism project's drawing and tools, its operations
+    // removed.
+    let dir = temp_dir("op-add-prism");
+    let project = dir.join("part.chipload");
+    let p = path(&project);
+    let mut json: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(corpus("jobs/v36/prism.chipload")).unwrap())
+            .unwrap();
+    json["operations"] = serde_json::json!([]);
+    std::fs::write(&project, json.to_string()).unwrap();
+    let out = chipload(&["op", "add", p, "prism", "--shapes", "1"]);
+    let said = text(&out.stdout);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert!(said.contains("as deep as the shapes need"), "{said}");
+    assert!(said.contains("tool 2"), "{said}");
+    let out = chipload(&[
+        "op",
+        "add",
+        p,
+        "prism",
+        "--shapes",
+        "5",
+        "--tool",
+        "3",
+        "--max-depth",
+        "3",
+    ]);
+    assert!(
+        text(&out.stdout).contains("edges at most 3 mm deep"),
+        "{}",
+        text(&out.stdout)
+    );
+    let out = chipload(&["get", p, "operations.1.max_depth"]);
+    assert_eq!(text(&out.stdout).trim(), "3.0");
+    let out = chipload(&["run", p, "-o", path(&dir.join("out.nc")), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    for args in [
+        &["op", "add", p, "prism", "--shapes", "1", "--depth", "2"][..],
+        &["op", "add", p, "prism", "--shapes", "1", "--through"],
+        &[
+            "op",
+            "add",
+            p,
+            "pocket",
+            "--shapes",
+            "1",
+            "--max-depth",
+            "2",
+        ],
+    ] {
+        let out = chipload(args);
+        assert!(!out.status.success(), "{args:?}");
+    }
+    std::fs::remove_dir_all(&dir).unwrap();
+}

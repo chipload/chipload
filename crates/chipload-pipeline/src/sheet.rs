@@ -741,6 +741,7 @@ fn feeds(op: &Operation) -> (f64, f64) {
         Operation::Chamfer(c) => (c.feed, c.plunge_feed),
         Operation::Flute(f) => (f.feed, f.plunge_feed),
         Operation::Pattern(f) => (f.feed, f.plunge_feed),
+        Operation::Prism(f) => (f.feed, f.plunge_feed),
         Operation::Holes(h) => (h.feed, h.plunge_feed),
         Operation::Surface(f) => (f.feed, f.plunge_feed),
         Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -795,6 +796,11 @@ fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                 RampShape::Straight => "sheet-ramp-straight",
                 RampShape::Curved => "sheet-ramp-curved",
             }),
+        ],
+        // "Prism, climb" (docs/specs/prism.md §5).
+        Operation::Prism(f) => vec![
+            Message::new("sheet-kind-prism"),
+            direction_message(f.direction),
         ],
         // "pattern, cross-hatch 3 mm at 45°, inside the edge" (docs/specs/fill-pattern.md §8).
         Operation::Pattern(f) => {
@@ -914,6 +920,7 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         Operation::Chamfer(c) => c.step_down,
         Operation::Flute(f) => f.step_down,
         Operation::Pattern(f) => f.step_down,
+        Operation::Prism(f) => f.step_down,
         Operation::Holes(_) => None,
         Operation::Surface(f) => Some(f.step_down),
         // In one pass along the model (docs/specs/stl-relief.md §5).
@@ -944,6 +951,17 @@ fn depth_text(op: &Operation, tools: &[Tool], w: Words) -> String {
         }) => vec![
             depths("sheet-depths"),
             Message::new("sheet-per-turn").arg("step", len(*step_down)),
+        ],
+        // Its depth follows from the shapes: at most the cone or the max depth
+        // (docs/specs/prism.md §4).
+        Operation::Prism(_) => vec![
+            depths("sheet-depths-at-most"),
+            match step {
+                Some(step) if step > 0.0 && step < end - start => {
+                    Message::new("sheet-per-pass").arg("step", len(step))
+                }
+                _ => Message::new("sheet-one-pass"),
+            },
         ],
         // docs/specs/v-carve.md decision 12: a number of passes of equal load.
         Operation::Vcarve(v) if v.passes > 1 => vec![

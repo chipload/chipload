@@ -272,8 +272,8 @@ Smaller follow-ups noted along the way, not in the order above:
      cross-hatch, rings or waves engraved inside closed shapes. **Built 2026-11-15**
      (docs/specs/fill-pattern.md; see *In main*).
   3. **Prism carving:** V-bit letters and shapes cut to sharp peaks along their centre
-     instead of a flat floor, from the same medial axis as V-carving. **Spec draft
-     2026-11-15** (docs/specs/prism.md, twelve decisions), for review.
+     instead of a flat floor, from the same medial axis as V-carving. **Built
+     2026-11-15** (docs/specs/prism.md; see *In main*).
   4. **Moulding:** a profile shape swept along a path (frames, edge trim), raster passes
      across the path; check against ADR 0031 first, as it is a surface of its own.
   5. **Tiling:** a job larger than the bed cut in tiles, the board slid between them, with
@@ -303,6 +303,14 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
+- **Prism** (docs/specs/prism.md, approved and built 2026-11-15): closed shapes left
+  standing as roofs with a sharp ridge along their centre line. The V-bit's tip runs round
+  each outline as deep as the largest touching circle allows, so its flank meets the
+  surface on the centre line; capped by the cone (a note) or a max depth (bevelled, flat
+  top); passes cut off at their levels. Notes for open shapes, flat tops and shapes whose
+  trenches reach each other. `op add prism --max-depth`, the S menu's R, the Operation
+  menu, a properties form, the setup sheet, a guide page with a picture; texts in all
+  seven languages. No schema bump.
 - **Ribbon:** the LIBRARY group is gone (the user, 2026-11-15; the Library is in the menu
   bar and the Browser); Flute and Pattern take its room as small buttons beside Chamfer.
 - **Pattern** (docs/specs/fill-pattern.md, approved and built 2026-11-15): grooves of

@@ -598,3 +598,37 @@ fn pattern_rings_are_grooves_one_spacing_apart() {
     near(255.55, 0.0);
     near(259.95, 0.0);
 }
+
+/// A prism (docs/specs/prism.md §7): the golden 12 × 60 rectangle (X 34 … 46, Y 80 … 140)
+/// with a pointed 90° V-bit: its ridge along X 40 at the surface, 3 mm down halfway to the
+/// edge, 6 mm at the edge, and the trench outside rising back to the surface 6 mm out.
+#[test]
+fn a_prism_is_a_roof_with_its_ridge_on_the_centre_line() {
+    let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v36/prism.chipload");
+    let mut job = chipload_job::load_job(&path).unwrap();
+    job.operations.retain(|op| op.name() == "Ridges");
+    if let chipload_job::Operation::Prism(p) = &mut job.operations[0] {
+        p.select.shapes = Some(vec![1]);
+    }
+    let contours = chipload_pipeline::load_drawing(&job).unwrap().contours;
+    let plan = chipload_toolpath::plan_job(&job, &contours).unwrap();
+    let sim = simulate(
+        &job,
+        &plan.program,
+        &plan.groups,
+        Some(CELL),
+        &Cancel::new(),
+    )
+    .unwrap();
+    let near = |x: f64, want: f64| {
+        let got = at(&sim, x, 110.05);
+        assert!((got - want).abs() < 0.08, "at x {x}: {got}, not {want}");
+    };
+    near(40.05, 0.0);
+    near(43.05, -3.0);
+    near(37.05, -3.0);
+    near(45.95, -6.0);
+    near(49.05, -3.0);
+    near(52.15, 0.0);
+}

@@ -145,3 +145,5 @@ browser-flute = Acanalado
 browser-flute-hover = Una ranura a lo largo de las formas abiertas seleccionadas que entra y sale en rampa en sus extremos
 browser-pattern = Patrón
 browser-pattern-hover = Ranuras de líneas, trama cruzada, anillos u ondas grabadas dentro de las formas cerradas seleccionadas
+browser-prism = Prisma
+browser-prism-hover = Las formas cerradas seleccionadas quedan en pie como tejados, con una arista viva en el centro, cortadas con una fresa en V

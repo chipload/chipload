@@ -1077,6 +1077,28 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v36/prism.chipload
+exit 0
+--- stdout
+warning: Operation 1 (Ridges): contour #2 is wider than the V-bit can ridge: its edges go down to 6.35 mm and its middle stays flat
+note: Operation 1 (Ridges): the deepest edge is 6.35 mm
+note: Operation 2 (Bevelled): the deepest edge is 4 mm
+Estimated time: 56 s (cutting 47 s, rapids 3 s, spindle 6 s), plus 1 tool change
+Cut outline: 260.950 × 83.200 mm (X 27.650 … 288.600, Y 68.400 … 151.600, the tool included): the smallest stock that holds the job.
+  Operation 1 (Ridges): 30 s; cutting 637 mm, plunging 16 mm, rapids 229 mm, 4 lifts
+  Operation 2 (Bevelled): 20 s; cutting 484 mm, plunging 1 mm, rapids 52 mm, 1 lift
+  File 1: 33 s
+  File 2: 23 s
+  In all: cutting 1.1 m, plunging 17 mm, rapids 280 mm, 5 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Ridges): 0.042 mm/tooth
+  Operation 2 (Bevelled): 0.042 mm/tooth
+Tool group 1: tool 2, operations 1
+Tool group 2: tool 3, operations 2
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v36/relief_box_rough.chipload
 exit 0
 --- stdout

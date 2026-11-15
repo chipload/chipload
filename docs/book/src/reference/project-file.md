@@ -587,6 +587,25 @@ Pattern: grooves of lines, cross-hatch, rings or waves engraved inside closed sh
 | `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a V-bit, a ball nose or an endmill. |
 
+### `"type": "prism"`
+
+Prism: closed shapes left standing as roofs, a sharp ridge along their centre line.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `direction` | [Direction](#direction) | yes | `climb` or `conventional` milling. |
+| `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
+| `feed` | number | yes | The cutting feed, mm/min. |
+| `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
+| `max_depth` | number or null | no | The deepest an edge goes below the start depth, mm, for bevelled shapes with a flat top. Null: as deep as the shapes and the bit's cone need. |
+| `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). |
+| `plunge_feed` | number | yes | The feed going straight down, mm/min. |
+| `select` | [Selector](#selector) | yes | What the operation carves: closed shapes, the selected shapes inside them as holes. |
+| `start_depth` | number | yes | Where the surface is, mm down from the stock top: 0 for the top. |
+| `step_down` | number or null | no | The deepest each pass goes, mm, in equal passes. Null: one pass. |
+| `tool` | integer | yes | The id of the project tool it cuts with (`tools`): a V-bit with its angle. |
+
 ### `"type": "holes"`
 
 Holes: drilled with a drill, bored with a helix with an endmill.

@@ -93,6 +93,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] fas
     [flute] räffla
     [pattern] mönster
+    [prism] prisma
     [holes] hål
     [relief] relief
    *[surface] planfräsning
@@ -204,6 +205,10 @@ toolpath-pattern-overlap = avståndet ({ $spacing }) är smalare än ett spår (
 toolpath-pattern-too-narrow = kontur #{ $contour } är för smal för mönstret: inget skärs där
 toolpath-pattern-too-many = fler än { $most } spår: gör avståndet större
 toolpath-pattern-width = varje spår är { $width } brett upptill
+toolpath-prism-flat-top = kontur #{ $contour } är bredare än V-fräsen kan forma en ås: kanterna går ned till { $deepest } och mitten förblir plan
+toolpath-prism-close = diket runt kontur #{ $contour } når kontur #{ $other }: dess kant går { $deeper } djupare där; sätt ett största djup eller lägg formerna längre isär
+toolpath-prism-vbit = ett prisma kräver en V-fräs, verktyg { $tool } är av typen { $type }
+toolpath-prism-deepest = den djupaste kanten ligger på { $depth }
 toolpath-path-past-cone = en V-fräs skär inte djupare än sin kon, här { $deepest }, annars skaver skaftet; den här banan går { $depth } djupt: gör den grundare eller använd en pinnfräs
 toolpath-chamfer-past-cone = verktyg { $tool } gör en fas som högst { $widest } bred, annars skaver skaftet; den här är { $width }: gör den smalare eller använd en bredare V-fräs
 toolpath-holes-not-circles = hoppade över { $count ->

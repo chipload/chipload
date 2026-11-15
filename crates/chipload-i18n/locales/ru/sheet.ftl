@@ -102,6 +102,7 @@ sheet-pattern-waves = Узор, волны с шагом { $spacing } под { $
 sheet-pattern-inside = внутри края
 sheet-pattern-on-line = по линии
 sheet-pattern-ramp = концы с рампой { $ramp }
+sheet-kind-prism = Призма
 sheet-kind-holes-drilled = Отверстия, сверление
 sheet-kind-holes-bored = Отверстия, винтовое фрезерование
 sheet-kind-surface = Торцевание, вся заготовка, возвратно-поступательно (попутное и встречное), боковой шаг { $percent } %
@@ -119,6 +120,7 @@ sheet-corner-choices = Индивидуально настроено углов:
    *[other] { $count }
 }
 sheet-depths = от { $start } до { $end }
+sheet-depths-at-most = от { $start } до не более { $end }
 sheet-depths-drill = от { $start } до { $end } (вершина сверла)
 sheet-pecks = сверление с выводом, шаг { $peck }
 sheet-one-go = за один раз

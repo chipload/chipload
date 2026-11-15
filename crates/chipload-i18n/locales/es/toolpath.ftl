@@ -93,6 +93,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] chaflán
     [flute] acanalado
     [pattern] patrón
+    [prism] prisma
     [holes] taladros
     [relief] relieve
    *[surface] planeado
@@ -204,6 +205,10 @@ toolpath-pattern-overlap = la separación ({ $spacing }) es menor que una ranura
 toolpath-pattern-too-narrow = el contorno #{ $contour } es demasiado estrecho para el patrón: no se corta nada ahí
 toolpath-pattern-too-many = más de { $most } ranuras: aumenta la separación
 toolpath-pattern-width = cada ranura tiene { $width } de ancho arriba
+toolpath-prism-flat-top = el contorno #{ $contour } es más ancho de lo que la fresa en V puede formar en arista: sus bordes bajan a { $deepest } y su centro queda plano
+toolpath-prism-close = la zanja del contorno #{ $contour } llega al contorno #{ $other }: su borde baja ahí { $deeper } más; fija una profundidad máxima o separa más las formas
+toolpath-prism-vbit = un prisma necesita una fresa en V, la herramienta { $tool } es { $type }
+toolpath-prism-deepest = el borde más profundo está a { $depth }
 toolpath-path-past-cone = una fresa en V no corta más hondo que su cono, aquí { $deepest }, o su mango rozaría; esta trayectoria baja { $depth }: hazla menos profunda o usa una fresa plana
 toolpath-chamfer-past-cone = la herramienta { $tool } hace un chaflán de { $widest } como mucho, o su mango rozaría; este mide { $width }: hazlo más estrecho o usa una fresa en V más ancha
 toolpath-holes-not-circles = { $count ->

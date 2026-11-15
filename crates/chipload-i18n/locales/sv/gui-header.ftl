@@ -122,3 +122,4 @@ header-polar-array = Polär matris
 header-polar-array-hover = Kopior av de valda ritade formerna runt en mittpunkt du klickar: antal och vinkel under Markering
 header-new-flute = Ny räffla
 header-new-pattern = Nytt mönster
+header-new-prism = Nytt prisma

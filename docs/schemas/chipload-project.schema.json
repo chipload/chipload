@@ -2280,6 +2280,101 @@
         },
         {
           "additionalProperties": false,
+          "description": "Prism: closed shapes left standing as roofs, a sharp ridge along their centre line.",
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/Direction",
+              "description": "`climb` or `conventional` milling."
+            },
+            "enabled": {
+              "default": true,
+              "description": "False: the operation stays in the project but isn't cut. Missing: true.",
+              "type": "boolean"
+            },
+            "feed": {
+              "description": "The cutting feed, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "material": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/MaterialRef"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "The library material its feeds come from. Null: its own values."
+            },
+            "max_depth": {
+              "default": null,
+              "description": "The deepest an edge goes below the start depth, mm, for bevelled shapes with a flat\ntop. Null: as deep as the shapes and the bit's cone need.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "name": {
+              "default": "",
+              "description": "A name for the operation, shown in the list and on the setup sheet. Empty: none.",
+              "type": "string"
+            },
+            "part": {
+              "description": "The id of the part it belongs to (`parts`).",
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plunge_feed": {
+              "description": "The feed going straight down, mm/min.",
+              "format": "double",
+              "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "What the operation carves: closed shapes, the selected shapes inside them as holes."
+            },
+            "start_depth": {
+              "description": "Where the surface is, mm down from the stock top: 0 for the top.",
+              "format": "double",
+              "type": "number"
+            },
+            "step_down": {
+              "default": null,
+              "description": "The deepest each pass goes, mm, in equal passes. Null: one pass.",
+              "format": "double",
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "tool": {
+              "description": "The id of the project tool it cuts with (`tools`): a V-bit with its angle.",
+              "format": "int64",
+              "type": "integer"
+            },
+            "type": {
+              "const": "prism",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "part",
+            "select",
+            "tool",
+            "start_depth",
+            "direction",
+            "feed",
+            "plunge_feed"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
           "description": "Holes: drilled with a drill, bored with a helix with an endmill.",
           "properties": {
             "dowels": {

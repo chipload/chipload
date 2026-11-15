@@ -138,6 +138,7 @@ sheet-pattern-waves = Patrón, ondas separadas { $spacing } a { $angle }°, { $w
 sheet-pattern-inside = dentro del borde
 sheet-pattern-on-line = sobre la línea
 sheet-pattern-ramp = extremos en rampa de { $ramp }
+sheet-kind-prism = Prisma
 sheet-kind-holes-drilled = Taladros, taladrados
 sheet-kind-holes-bored = Taladros, taladrado helicoidal
 sheet-kind-surface = Planeado, todo el material en bruto, en vaivén (en concordancia y en oposición), paso lateral { $percent } %
@@ -158,6 +159,7 @@ sheet-corner-choices = { $count ->
 }
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = de { $start } a { $end }
+sheet-depths-at-most = { $start } a como mucho { $end }
 sheet-depths-drill = de { $start } a { $end } (la punta de la broca)
 sheet-pecks = picoteo { $peck }
 sheet-one-go = de una vez

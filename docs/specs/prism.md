@@ -1,6 +1,7 @@
 # Prism carving: raised shapes with a sharp ridge along their centre
 
-Status: **draft 2026-11-15**, for review (twelve decisions, §12). TODO *Ideas*, "More 2.5D
+Status: **approved 2026-11-15**, every decision as recommended ("Go"); **built
+2026-11-15**, both steps of §8. What building settled is in §13. TODO *Ideas*, "More 2.5D
 toolpaths", item 3; the user asked for it after the fill pattern.
 
 ## 1. What it is for
@@ -193,3 +194,28 @@ Prisms of open shapes (a centre line has no width), and of pictures or models.
     the shapes, as a V-carve's.
 12. **Defaults** (§5): the first V-bit, no max depth, the tool's step down, climb.
     *Recommended.*
+
+## 13. As built
+
+- **Normals:** the inward normal at a ring point is the bisector of its two edges' normals,
+  an edge on an arc giving the arc's exact radius. Two chords of unequal length either side
+  of where two arcs meet (a drawn circle's halves) tilt a chord bisector by about a
+  milliradian, enough to stop the circle search a millimetre early; the radius doesn't.
+- **The circle search** allows `OFFSET_CHECK_SLACK_MM` of slack, so a convex corner comes
+  out at the surface (Z0.000), not a few microns down.
+- **Points** where the depth changes along an edge are added by halving until the depth is
+  within the arc tolerance; points on a straight edge between two of the same slope are
+  dropped again, so a straight side is one move.
+- **Passes** go to the deepest edge actually found (not to the cone), so a shallow prism
+  isn't cut in empty laps.
+- **The trench check** looks along the outward normal, out to where the cone meets the
+  surface, for a point inside a selected shape (its own other side included, as the inside
+  of a U); the note gives the deepest cut into that shape's edge.
+- **The star's inner corners:** the largest circle touching an inner corner is larger than
+  the inscribed circle of the star's middle, so a star whose middle is just narrower than
+  the cone still gets the flat-top note; the golden sample keeps that case.
+- **The setup sheet** gives the depths as "0 to at most …" (the cone or the max depth); the
+  deepest edge actually cut is in the plan's report.
+- **Code:** `chipload-toolpath/src/prism.rs` (rings, depths, notes, moves),
+  `plan_prism_op`; `PrismOp::deepest` in the job model; `OpKind::Prism`;
+  `op add prism --max-depth`; the form's `prism_sections`; `Icon::Prism`.

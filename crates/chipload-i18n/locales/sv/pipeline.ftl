@@ -634,6 +634,7 @@ pipeline-name-path = Följ bana { $number }
 pipeline-name-chamfer = Fas { $number }
 pipeline-name-flute = Räffla { $number }
 pipeline-name-pattern = Mönster { $number }
+pipeline-name-prism = Prisma { $number }
 pipeline-name-holes = Hål { $number }
 pipeline-name-surface = Planfräsning { $number }
 pipeline-name-relief = Relief { $number }

@@ -122,3 +122,4 @@ header-polar-array = Matriz polar
 header-polar-array-hover = Copias de las formas dibujadas seleccionadas alrededor de un centro que pulse: número y ángulo en Selección
 header-new-flute = Nuevo acanalado
 header-new-pattern = Nuevo patrón
+header-new-prism = Nuevo prisma

@@ -410,6 +410,7 @@ pub(super) fn op_icon(op: &Operation) -> Icon {
         Operation::Chamfer(_) => Icon::EdgeChamfer,
         Operation::Flute(_) => Icon::Flute,
         Operation::Pattern(_) => Icon::Hatch,
+        Operation::Prism(_) => Icon::Prism,
         Operation::Holes(_) => Icon::Holes,
         Operation::Surface(_) => Icon::Surface,
         Operation::Relief(_) => Icon::Relief,
@@ -578,7 +579,7 @@ enum Leaf {
 }
 
 /// The kinds of new operation: label, kind and what it does.
-pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 10] {
+pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, String); 11] {
     [
         (
             t!(src, "browser-profile"),
@@ -614,6 +615,11 @@ pub(super) fn new_operations(src: &impl crate::i18n::Lang) -> [(String, OpKind, 
             t!(src, "browser-pattern"),
             OpKind::Pattern,
             t!(src, "browser-pattern-hover"),
+        ),
+        (
+            t!(src, "browser-prism"),
+            OpKind::Prism,
+            t!(src, "browser-prism-hover"),
         ),
         (
             t!(src, "browser-holes"),
@@ -1711,6 +1717,7 @@ impl ChiploadApp {
             Operation::Chamfer(_) => t!(self, "browser-chamfer"),
             Operation::Flute(_) => t!(self, "browser-flute"),
             Operation::Pattern(_) => t!(self, "browser-pattern"),
+            Operation::Prism(_) => t!(self, "browser-prism"),
             Operation::Holes(_) => t!(self, "browser-holes"),
             Operation::Surface(_) => t!(self, "browser-surface"),
             Operation::Relief(_) => t!(self, "browser-relief"),

@@ -13,8 +13,8 @@ use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     ChamferOp, ClearingPass, Copies, CopyOrder, Entry, FillPattern, FluteOp, HoleMethod, HolesOp,
     Job, MAX_LEAD_DIAMETERS, Mirror, Note, OpRef, Operation, Part, PathOp, PatternOp, PocketOp,
-    Problem, ProfileOp, RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
-    ZZero, rest_refusal,
+    PrismOp, Problem, ProfileOp, RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool, ToolType,
+    VcarveOp, ZZero, rest_refusal,
 };
 
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM, DEPTH_TOL_MM, FLOOR_LEFT_MM};
@@ -527,6 +527,8 @@ fn pass_heights(op: &Operation, tools: &[Tool], top_z: f64) -> Result<Vec<f64>, 
             Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
             None => vec![top_z - end_depth],
         },
+        // Its passes follow from its deepest edge (docs/specs/prism.md §3).
+        Operation::Prism(_) => Vec::new(),
         // The same (docs/specs/fill-pattern.md §4).
         Operation::Pattern(f) => match f.step_down {
             Some(step) => heights(pass_depths(start_depth, end_depth, step)?),
@@ -644,6 +646,7 @@ fn plan_step(
         Operation::Path(path) => plan_path_op(path, &context, &shifted, position),
         Operation::Chamfer(chamfer) => plan_chamfer_op(chamfer, &context, &shifted, position),
         Operation::Flute(flute) => plan_flute_op(flute, &context, &shifted, position),
+        Operation::Prism(prism) => plan_prism_op(prism, &context, &shifted, position),
         Operation::Pattern(pattern) => {
             plan_pattern_op(pattern, &context, &shifted, position, shift)
         }
@@ -1522,6 +1525,74 @@ fn plan_flute_op(
         tab_centres: Vec::new(),
         floor_hint: None,
         facts: Vec::new(),
+    })
+}
+
+/// A prism (docs/specs/prism.md): each outline cut as a ring as deep as the shape allows,
+/// in passes to its deepest edge.
+fn plan_prism_op(
+    op: &PrismOp,
+    ctx: &Context,
+    selection: &Selection,
+    start: Point,
+) -> Result<Planned, ToolpathError> {
+    let tool = ctx.tool;
+    let (Some(reach), Some(per_mm)) = (tool.widest_chamfer(), tool.chamfer_depth_for(1.0)) else {
+        // Refused by the tool rule before planning.
+        return Err(job_error(
+            Message::new("toolpath-vbit-no-angle").arg("tool", tool.id),
+        ));
+    };
+    let bit = crate::prism::PrismBit {
+        tan: 1.0 / per_mm,
+        tip: tool.tip_diameter.unwrap_or(0.0),
+        reach,
+    };
+    let found =
+        crate::prism::prism_rings(op, ctx.label_message, &selection.contours, bit, ctx.sense)?;
+    let notes = found
+        .notes
+        .iter()
+        .map(|n| labelled_note(ctx.label_message, n.clone()))
+        .collect();
+    let mut facts = Vec::new();
+    let mut moves = Vec::new();
+    let mut end = start;
+    if found.deepest > DEPTH_TOL_MM {
+        facts.push(labelled_note(
+            ctx.label_message,
+            Message::new("toolpath-prism-deepest").arg("depth", Value::mm(found.deepest)),
+        ));
+        let levels = match op.step_down {
+            Some(step) => pass_depths(0.0, found.deepest, step)?,
+            None => vec![found.deepest],
+        };
+        let cut = crate::prism::PrismCut {
+            levels: &levels,
+            top_z: ctx.top_z,
+            safe_z: ctx.job.machine.safe_z,
+            feed: op.feed,
+            plunge_feed: op.plunge_feed,
+        };
+        for ring in crate::prism::order(found.rings, start) {
+            ctx.cancel.check()?;
+            let (more, at) = crate::prism::prism_moves(&ring, &cut, &found.arcs);
+            moves.extend(more);
+            end = at;
+        }
+    }
+    Ok(Planned {
+        moves,
+        notes,
+        tabs: Vec::new(),
+        pockets: Vec::new(),
+        arcs: found.arcs,
+        end,
+        starts: Vec::new(),
+        unreached: Vec::new(),
+        tab_centres: Vec::new(),
+        floor_hint: None,
+        facts,
     })
 }
 
@@ -2739,6 +2810,7 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
             Operation::Chamfer(c) => (c.feed, c.plunge_feed),
             Operation::Flute(f) => (f.feed, f.plunge_feed),
             Operation::Pattern(f) => (f.feed, f.plunge_feed),
+            Operation::Prism(f) => (f.feed, f.plunge_feed),
             Operation::Holes(h) => (h.feed, h.plunge_feed),
             Operation::Surface(f) => (f.feed, f.plunge_feed),
             Operation::Relief(r) => (r.feed, r.plunge_feed),
@@ -3043,6 +3115,18 @@ fn check_job(job: &Job) -> (Vec<Problem>, Vec<Note>) {
                 flute_tool_rule(tool, f).map_err(|e| (at("tool"), numbered.clone(), e)),
                 Vec::new(),
             ),
+            // A V-bit with its angle (docs/specs/prism.md §4).
+            Operation::Prism(_) => (
+                prism_tool_rule(tool).map_err(|e| {
+                    let path = if tool.kind == ToolType::Vbit {
+                        format!("tools.{k}.angle")
+                    } else {
+                        at("tool")
+                    };
+                    (path, numbered.clone(), e)
+                }),
+                Vec::new(),
+            ),
             // Square ends and rings go straight down (docs/specs/fill-pattern.md §6).
             Operation::Pattern(f) => {
                 let plunges = f.ramp <= 0.0 || matches!(f.pattern, FillPattern::Rings { .. });
@@ -3138,6 +3222,7 @@ fn op_kind_name(op: &Operation) -> &'static str {
         Operation::Chamfer(_) => "chamfer",
         Operation::Flute(_) => "flute",
         Operation::Pattern(_) => "pattern",
+        Operation::Prism(_) => "prism",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",
@@ -4060,6 +4145,20 @@ fn flute_tool_rule(tool: &Tool, op: &FluteOp) -> Result<bool, Message> {
         }
         ToolType::Endmill => Ok(false),
     }
+}
+
+/// A prism takes a V-bit with its angle, which its slopes follow (docs/specs/prism.md §4);
+/// a V-bit goes down on its point.
+fn prism_tool_rule(tool: &Tool) -> Result<bool, Message> {
+    if tool.kind != ToolType::Vbit {
+        return Err(Message::new("toolpath-prism-vbit")
+            .arg("tool", tool.id)
+            .arg("type", tool.kind.name_message()));
+    }
+    if tool.angle.is_none() {
+        return Err(Message::new("toolpath-vbit-no-angle").arg("tool", tool.id));
+    }
+    Ok(false)
 }
 
 /// A drill drills and an endmill bores (docs/specs/holes.md §1, §2): the method must match

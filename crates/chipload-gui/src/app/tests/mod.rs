@@ -39,6 +39,7 @@ mod part_export;
 mod parts;
 mod pattern;
 mod posts;
+mod prism;
 mod profile_form;
 mod properties_sources;
 mod quick_menu;

@@ -138,6 +138,7 @@ sheet-pattern-waves = Motivo, onde distanti { $spacing } a { $angle }°, lunghe 
 sheet-pattern-inside = dentro il bordo
 sheet-pattern-on-line = sulla linea
 sheet-pattern-ramp = estremità in rampa di { $ramp }
+sheet-kind-prism = Prisma
 sheet-kind-holes-drilled = Fori, foratura con punta
 sheet-kind-holes-bored = Fori, foratura elicoidale
 sheet-kind-surface = Spianatura, tutto il grezzo, avanti e indietro (concorde e discorde), passo laterale { $percent } %
@@ -158,6 +159,7 @@ sheet-corner-choices = { $count ->
 }
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = da { $start } a { $end }
+sheet-depths-at-most = da { $start } ad al massimo { $end }
 sheet-depths-drill = da { $start } a { $end } (al vertice della punta)
 sheet-pecks = a passi di { $peck }
 sheet-one-go = in un'unica discesa

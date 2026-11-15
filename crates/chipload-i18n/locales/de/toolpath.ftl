@@ -93,6 +93,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] Fase
     [flute] Kannelur
     [pattern] Muster
+    [prism] Prisma
     [holes] Bohrungen
     [relief] Relief
    *[surface] Planfräsen
@@ -204,6 +205,10 @@ toolpath-pattern-overlap = der Abstand ({ $spacing }) ist kleiner als eine Nut (
 toolpath-pattern-too-narrow = Kontur #{ $contour } ist zu schmal für das Muster: dort wird nichts geschnitten
 toolpath-pattern-too-many = mehr als { $most } Nuten: den Abstand größer machen
 toolpath-pattern-width = jede Nut ist oben { $width } breit
+toolpath-prism-flat-top = Kontur #{ $contour } ist breiter, als die V-Fräse einen Grat bilden kann: ihre Kanten gehen bis { $deepest } hinab und ihre Mitte bleibt flach
+toolpath-prism-close = der Graben von Kontur #{ $contour } reicht bis Kontur #{ $other }: deren Kante geht dort { $deeper } tiefer; eine größte Tiefe setzen oder die Formen weiter auseinander legen
+toolpath-prism-vbit = ein Prisma braucht eine V-Fräse, Werkzeug { $tool } ist vom Typ { $type }
+toolpath-prism-deepest = die tiefste Kante liegt bei { $depth }
 toolpath-path-past-cone = ein V-Fräser schneidet nicht tiefer als sein Kegel, hier { $deepest }, sonst reibt sein Schaft; dieser Pfad geht { $depth } tief: flacher machen oder einen Schaftfräser nehmen
 toolpath-chamfer-past-cone = Werkzeug { $tool } macht eine Fase höchstens { $widest } breit, sonst reibt sein Schaft; diese ist { $width }: schmaler machen oder einen breiteren V-Fräser nehmen
 toolpath-holes-not-circles = { $count ->

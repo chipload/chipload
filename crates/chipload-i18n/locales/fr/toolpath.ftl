@@ -93,6 +93,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] chanfrein
     [flute] cannelure
     [pattern] motif
+    [prism] prisme
     [holes] perçages
     [relief] relief
    *[surface] surfaçage
@@ -204,6 +205,10 @@ toolpath-pattern-overlap = l'espacement ({ $spacing }) est plus étroit qu'une r
 toolpath-pattern-too-narrow = le contour #{ $contour } est trop étroit pour le motif : rien n’y est taillé
 toolpath-pattern-too-many = plus de { $most } rainures : élargissez l'espacement
 toolpath-pattern-width = chaque rainure fait { $width } de large en haut
+toolpath-prism-flat-top = le contour #{ $contour } est plus large que la fraise en V ne peut former d'arête : ses bords descendent à { $deepest } et son milieu reste plat
+toolpath-prism-close = la tranchée du contour #{ $contour } atteint le contour #{ $other } : son bord y descend de { $deeper } de plus ; fixez une profondeur maximale ou écartez les formes
+toolpath-prism-vbit = un prisme demande une fraise en V, l’outil { $tool } est { $type }
+toolpath-prism-deepest = le bord le plus profond est à { $depth }
 toolpath-path-past-cone = une fraise en V ne coupe pas plus profond que son cône, ici { $deepest }, sinon sa queue frotte ; ce tracé descend à { $depth } : réduisez la profondeur ou prenez une fraise droite
 toolpath-chamfer-past-cone = l'outil { $tool } fait un chanfrein d'au plus { $widest }, sinon sa queue frotte ; celui-ci fait { $width } : réduisez-le ou prenez une fraise en V plus large
 toolpath-holes-not-circles = { $count ->

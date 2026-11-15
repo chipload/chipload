@@ -195,7 +195,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `pattern` (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): --pattern, --spacing, --angle), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `pattern` (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): --pattern, --spacing, --angle), `prism` (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): --max-depth), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
 | `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
@@ -219,6 +219,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--wavelength <WAVELENGTH>` | A wave pattern's wavelength; 4 spacings if left out. |
 | `--height <HEIGHT>` | A wave pattern's height, top to bottom; one spacing if left out. |
 | `--on-line` | The grooves run up to the shapes' lines, centred on them, instead of staying inside. |
+| `--max-depth <MAX_DEPTH>` | A prism's deepest edge, for bevelled shapes with a flat top; left out, as deep as the shapes and the V-bit's cone need (docs/specs/prism.md) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op tool`

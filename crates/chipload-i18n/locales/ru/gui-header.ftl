@@ -98,3 +98,4 @@ header-polar-array = Круговой массив
 header-polar-array-hover = Копии выделенных объектов вокруг указанного центра: количество и угол в разделе «Выделение»
 header-new-flute = Новая каннелюра
 header-new-pattern = Новый узор
+header-new-prism = Новая призма

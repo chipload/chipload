@@ -239,6 +239,7 @@ pub(in crate::app) fn op_form(
         Operation::Chamfer(_) => t!(ui, "forms-kind-chamfer"),
         Operation::Flute(_) => t!(ui, "forms-kind-flute"),
         Operation::Pattern(_) => t!(ui, "forms-kind-pattern"),
+        Operation::Prism(_) => t!(ui, "forms-kind-prism"),
         Operation::Holes(_) => t!(ui, "forms-kind-holes"),
         Operation::Surface(_) => t!(ui, "forms-kind-surface"),
         Operation::Relief(_) => t!(ui, "forms-kind-relief"),
@@ -554,6 +555,7 @@ pub(in crate::app) fn op_form(
         Operation::Chamfer(c) => chamfer_sections(ui, index, c, op_tool),
         Operation::Flute(f) => flute_sections(ui, f, op_tool),
         Operation::Pattern(f) => pattern_sections(ui, f, op_tool),
+        Operation::Prism(f) => prism_sections(ui, index, f, op_tool),
         Operation::Holes(h) => holes_sections(ui, index, h, op_tool, stock),
         Operation::Surface(f) => {
             let cut = t!(
@@ -1787,6 +1789,73 @@ fn flute_sections(ui: &mut egui::Ui, f: &mut chipload_job::FluteOp, tool: Option
                 }
             });
         flag(combo.response, ui, "ramp_shape");
+        ui.end_row();
+    });
+    feeds_section(ui, &mut f.feed, &mut f.plunge_feed, tool);
+}
+
+/// A prism's sections (docs/specs/prism.md §5): start depth, max depth (with how deep the
+/// bit's cone reaches), passes and direction; feeds.
+fn prism_sections(
+    ui: &mut egui::Ui,
+    index: usize,
+    f: &mut chipload_job::PrismOp,
+    tool: Option<&Tool>,
+) {
+    let units = crate::units::display(ui.ctx());
+    let len_unit = chipload_pipeline::units::length_unit(units);
+    let with_unit = |mm: f64| format!("{} {len_unit}", len_in(units, mm));
+    let deepest = f.deepest(tool);
+    let summary = t!(
+        ui,
+        "forms-prism-cut-summary",
+        depth = with_unit(deepest),
+        direction = direction_name(ui, f.direction)
+    );
+    folded_section(ui, "op-cut", &t!(ui, "forms-section-cut"), &summary, |ui| {
+        ui.label(t!(ui, "forms-start-depth"))
+            .on_hover_text(t!(ui, "forms-prism-start-hover"));
+        flag(ui.add(mm(&mut f.start_depth)), ui, "start_depth");
+        ui.end_row();
+        ui.label(t!(ui, "forms-prism-max-depth"))
+            .on_hover_text(t!(ui, "forms-prism-max-depth-hover"));
+        let mut capped = f.max_depth.is_some();
+        let tick = ui.checkbox(&mut capped, t!(ui, "forms-prism-flat-top"));
+        if flag(tick, ui, "max_depth").changed() {
+            f.max_depth = capped.then(|| (deepest / 2.0).max(0.5));
+        }
+        ui.end_row();
+        if let Some(max) = &mut f.max_depth {
+            ui.label(format!("  {}", t!(ui, "forms-prism-max-depth")));
+            flag(ui.add(mm(max)), ui, "max_depth");
+            ui.end_row();
+        }
+        ui.label("");
+        match tool.and_then(|t| t.angle) {
+            Some(angle) if tool.is_some_and(|t| t.kind == chipload_job::ToolType::Vbit) => ui
+                .label(t!(
+                    ui,
+                    "forms-prism-deepest-value",
+                    depth = with_unit(deepest),
+                    angle = format!("{:.0}", angle.to_degrees())
+                )),
+            _ => ui.label(t!(ui, "forms-chamfer-needs-vbit")),
+        };
+        ui.end_row();
+        ui.label(t!(ui, "forms-step-down"));
+        let mut passes = f.step_down.is_some();
+        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
+        if flag(tick, ui, "step_down").changed() {
+            f.step_down = passes.then(|| (deepest / 2.0).max(0.1));
+        }
+        ui.end_row();
+        if let Some(step) = &mut f.step_down {
+            ui.label(format!("  {}", t!(ui, "forms-step-down")));
+            flag(ui.add(mm(step)), ui, "step_down");
+            ui.end_row();
+        }
+        ui.label(t!(ui, "forms-direction"));
+        direction_combo(ui, ("direction", index), &mut f.direction);
         ui.end_row();
     });
     feeds_section(ui, &mut f.feed, &mut f.plunge_feed, tool);

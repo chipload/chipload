@@ -135,6 +135,7 @@ sheet-pattern-waves = Pattern, waves { $spacing } apart at { $angle }°, { $wave
 sheet-pattern-inside = inside the edge
 sheet-pattern-on-line = on the line
 sheet-pattern-ramp = ends ramped { $ramp }
+sheet-kind-prism = Prism
 sheet-kind-holes-drilled = Holes, drilled
 sheet-kind-holes-bored = Holes, helical bore
 sheet-kind-surface = Surface, the whole stock, back and forth (climb and conventional), stepover { $percent } %
@@ -155,6 +156,7 @@ sheet-corner-choices = { $count ->
 }
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = { $start } to { $end }
+sheet-depths-at-most = { $start } to at most { $end }
 sheet-depths-drill = { $start } to { $end } (the drill's point)
 sheet-pecks = pecks { $peck }
 sheet-one-go = in one go

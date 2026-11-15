@@ -122,3 +122,4 @@ header-polar-array = Polar array
 header-polar-array-hover = Copies of the selected drawn shapes round a centre you click: count and angle under Selection
 header-new-flute = New Flute
 header-new-pattern = New Pattern
+header-new-prism = New Prism

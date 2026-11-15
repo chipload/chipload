@@ -51,6 +51,10 @@ pub(crate) enum OpAction {
         ramp_shape: Option<RampShapeArg>,
         #[command(flatten)]
         pattern: PatternArgs,
+        /// A prism's deepest edge, for bevelled shapes with a flat top; left out, as deep
+        /// as the shapes and the V-bit's cone need (docs/specs/prism.md).
+        #[arg(long, value_parser = crate::lengths::length)]
+        max_depth: Option<f64>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -476,6 +480,9 @@ pub(crate) enum KindArg {
     /// Grooves of lines, cross-hatch, rings or waves inside closed shapes
     /// (docs/specs/fill-pattern.md): --pattern, --spacing, --angle.
     Pattern,
+    /// Closed shapes left standing as roofs with a ridge along their centre
+    /// (docs/specs/prism.md): --max-depth.
+    Prism,
     Holes,
     /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
     /// model within its outline.
@@ -591,6 +598,7 @@ impl KindArg {
             KindArg::Chamfer => OpKind::Chamfer,
             KindArg::Flute => OpKind::Flute,
             KindArg::Pattern => OpKind::Pattern,
+            KindArg::Prism => OpKind::Prism,
             KindArg::Holes => OpKind::Holes,
             KindArg::Relief => OpKind::Relief,
         }
@@ -713,8 +721,19 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             ramp_end,
             ramp_shape,
             pattern,
+            max_depth,
             output,
         } => {
+            let prism = matches!(kind, KindArg::Prism);
+            if !prism && max_depth.is_some() {
+                return out.fail("--max-depth is for a prism");
+            }
+            if prism && (depth.is_some() || through) {
+                return out.fail(
+                    "a prism's depth follows from its shapes and the V-bit: give --max-depth \
+                     for a flat top",
+                );
+            }
             let flute = matches!(kind, KindArg::Flute);
             let filled = matches!(kind, KindArg::Pattern);
             let ramps = [ramp_start, ramp_end];
@@ -779,6 +798,9 @@ pub(crate) fn op(out: &mut Out, action: OpAction) -> ExitCode {
             );
             for new in &mut made.ops {
                 set_depth(&job, &mut new.op, depth, through);
+                if let Operation::Prism(f) = &mut new.op {
+                    f.max_depth = max_depth;
+                }
                 if let Operation::Pattern(f) = &mut new.op {
                     if let Some(ramp) = ramp {
                         f.ramp = ramp;
@@ -1651,8 +1673,8 @@ pub(crate) fn rest_passes_json(refs: &[chipload_job::OpRef]) -> Value {
 /// `op add`'s --depth and --through over the defaults.
 fn set_depth(job: &Job, op: &mut Operation, depth: Option<f64>, through: bool) {
     // A relief's depth is its model's (docs/specs/stl-relief.md §3): `model set --depth`; a
-    // chamfer's follows from its width (docs/specs/chamfer.md §2).
-    if let Operation::Relief(_) | Operation::Chamfer(_) = op {
+    // chamfer's follows from its width (docs/specs/chamfer.md §2), a prism's from its shapes.
+    if let Operation::Relief(_) | Operation::Chamfer(_) | Operation::Prism(_) = op {
         return;
     }
     if through {
@@ -1682,6 +1704,12 @@ pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
                 chipload_job::EdgeSide::Inside => "inside",
             }
         ));
+    }
+    if let Operation::Prism(f) = op {
+        parts.push(match f.max_depth {
+            Some(max) => format!("edges at most {} mm deep", chipload_core::text::mm(max)),
+            None => "as deep as the shapes need".to_string(),
+        });
     }
     if let Operation::Pattern(f) = op {
         let mm = chipload_core::text::mm;

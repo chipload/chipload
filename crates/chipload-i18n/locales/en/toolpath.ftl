@@ -93,6 +93,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] chamfer
     [flute] flute
     [pattern] pattern
+    [prism] prism
     [holes] holes
     [relief] relief
    *[surface] surface
@@ -205,6 +206,10 @@ toolpath-pattern-overlap = the spacing ({ $spacing }) is narrower than a groove 
 toolpath-pattern-too-narrow = contour #{ $contour } is too narrow for the pattern: nothing cut there
 toolpath-pattern-too-many = more than { $most } grooves: make the spacing wider
 toolpath-pattern-width = each groove is { $width } wide at the top
+toolpath-prism-flat-top = contour #{ $contour } is wider than the V-bit can ridge: its edges go down to { $deepest } and its middle stays flat
+toolpath-prism-close = contour #{ $contour }'s trench reaches contour #{ $other }: its edge goes { $deeper } deeper there; set a max depth, or space the shapes further apart
+toolpath-prism-vbit = a prism needs a V-bit, tool { $tool } is a { $type }
+toolpath-prism-deepest = the deepest edge is { $depth }
 toolpath-path-past-cone = a V-bit cuts no deeper than its cone, { $deepest } here, or its shank would rub; this path goes { $depth } deep: make it shallower, or use an end mill
 toolpath-chamfer-past-cone = tool { $tool } makes a chamfer at most { $widest } wide, or its shank would rub; this one is { $width }: make it narrower, or use a wider V-bit
 toolpath-holes-not-circles = skipped { $count ->

@@ -456,6 +456,7 @@ fn kind_name(op: &Operation) -> &'static str {
         Operation::Chamfer(_) => "chamfer",
         Operation::Flute(_) => "flute",
         Operation::Pattern(_) => "pattern",
+        Operation::Prism(_) => "prism",
         Operation::Holes(_) => "holes",
         Operation::Surface(_) => "surface",
         Operation::Relief(_) => "relief",

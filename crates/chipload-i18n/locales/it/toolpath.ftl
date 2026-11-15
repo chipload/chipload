@@ -93,6 +93,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] smusso
     [flute] scanalatura decorativa
     [pattern] motivo
+    [prism] prisma
     [holes] fori
     [relief] rilievo
    *[surface] spianatura
@@ -204,6 +205,10 @@ toolpath-pattern-overlap = la spaziatura ({ $spacing }) è più stretta di una s
 toolpath-pattern-too-narrow = il contorno #{ $contour } è troppo stretto per il motivo: lì non si taglia nulla
 toolpath-pattern-too-many = più di { $most } scanalature: allarga la spaziatura
 toolpath-pattern-width = ogni scanalatura è larga { $width } in alto
+toolpath-prism-flat-top = il contorno #{ $contour } è più largo di quanto la fresa a V possa formare uno spigolo: i bordi scendono a { $deepest } e il centro resta piatto
+toolpath-prism-close = il solco del contorno #{ $contour } raggiunge il contorno #{ $other }: lì il suo bordo scende di { $deeper } in più; imposta una profondità massima o distanzia le forme
+toolpath-prism-vbit = un prisma richiede una fresa a V, l’utensile { $tool } è { $type }
+toolpath-prism-deepest = il bordo più profondo è a { $depth }
 toolpath-path-past-cone = una fresa a V non taglia più a fondo del suo cono, qui { $deepest }, o il gambo sfregherebbe; questo percorso scende di { $depth }: rendilo meno profondo o usa una fresa cilindrica
 toolpath-chamfer-past-cone = l'utensile { $tool } fa uno smusso largo al massimo { $widest }, o il gambo sfregherebbe; questo è { $width }: restringilo o usa una fresa a V più larga
 toolpath-holes-not-circles = { $count ->

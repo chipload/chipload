@@ -145,3 +145,5 @@ browser-flute = Scanalatura
 browser-flute-hover = Una scanalatura lungo le forme aperte selezionate, che entra ed esce in rampa alle estremità
 browser-pattern = Motivo
 browser-pattern-hover = Scanalature a linee, tratteggio incrociato, anelli o onde incise dentro le forme chiuse selezionate
+browser-prism = Prisma
+browser-prism-hover = Le forme chiuse selezionate restano in piedi come tetti, con uno spigolo vivo al centro, tagliate con una fresa a V

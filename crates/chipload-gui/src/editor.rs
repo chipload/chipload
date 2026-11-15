@@ -372,6 +372,7 @@ impl EditJob {
             Operation::Chamfer(c) => c.select = select,
             Operation::Flute(f) => f.select = select,
             Operation::Pattern(f) => f.select = select,
+            Operation::Prism(f) => f.select = select,
             Operation::Holes(h) => h.select = select,
             Operation::Relief(r) => r.select = select,
             // The whole stock: no shapes to set.

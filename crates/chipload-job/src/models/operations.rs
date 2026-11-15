@@ -121,6 +121,9 @@ pub enum Operation {
     /// Pattern: grooves of lines, cross-hatch, rings or waves engraved inside closed shapes.
     // Spec: docs/specs/fill-pattern.md.
     Pattern(PatternOp),
+    /// Prism: closed shapes left standing as roofs, a sharp ridge along their centre line.
+    // Spec: docs/specs/prism.md.
+    Prism(PrismOp),
     /// Holes: drilled with a drill, bored with a helix with an endmill.
     // Spec: docs/specs/holes.md.
     Holes(HolesOp),
@@ -219,6 +222,12 @@ impl Operation {
                     *step = c.slot_step_down;
                 }
             }
+            Operation::Prism(p) => {
+                (p.feed, p.plunge_feed) = (c.slot_feed, c.plunge_feed);
+                if let Some(step) = &mut p.step_down {
+                    *step = c.slot_step_down;
+                }
+            }
             Operation::Holes(h) => {
                 (h.feed, h.plunge_feed) = (c.slot_feed, c.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = &mut h.method {
@@ -277,6 +286,12 @@ impl Operation {
                     c.slot_step_down = step;
                 }
             }
+            Operation::Prism(p) => {
+                (c.slot_feed, c.plunge_feed) = (p.feed, p.plunge_feed);
+                if let Some(step) = p.step_down {
+                    c.slot_step_down = step;
+                }
+            }
             Operation::Holes(h) => {
                 (c.slot_feed, c.plunge_feed) = (h.feed, h.plunge_feed);
                 if let HoleMethod::Bore { step_down, .. } = h.method {
@@ -312,6 +327,7 @@ impl Operation {
             Operation::Chamfer(op) => &op.name,
             Operation::Flute(op) => &op.name,
             Operation::Pattern(op) => &op.name,
+            Operation::Prism(op) => &op.name,
             Operation::Holes(op) => &op.name,
             Operation::Surface(op) => &op.name,
             Operation::Relief(op) => &op.name,
@@ -327,6 +343,7 @@ impl Operation {
             Operation::Chamfer(op) => &mut op.name,
             Operation::Flute(op) => &mut op.name,
             Operation::Pattern(op) => &mut op.name,
+            Operation::Prism(op) => &mut op.name,
             Operation::Holes(op) => &mut op.name,
             Operation::Surface(op) => &mut op.name,
             Operation::Relief(op) => &mut op.name,
@@ -342,6 +359,7 @@ impl Operation {
             Operation::Chamfer(op) => op.enabled = enabled,
             Operation::Flute(op) => op.enabled = enabled,
             Operation::Pattern(op) => op.enabled = enabled,
+            Operation::Prism(op) => op.enabled = enabled,
             Operation::Holes(op) => op.enabled = enabled,
             Operation::Surface(op) => op.enabled = enabled,
             Operation::Relief(op) => op.enabled = enabled,
@@ -357,6 +375,7 @@ impl Operation {
             Operation::Chamfer(op) => op.enabled,
             Operation::Flute(op) => op.enabled,
             Operation::Pattern(op) => op.enabled,
+            Operation::Prism(op) => op.enabled,
             Operation::Holes(op) => op.enabled,
             Operation::Surface(op) => op.enabled,
             Operation::Relief(op) => op.enabled,
@@ -373,6 +392,7 @@ impl Operation {
             Operation::Chamfer(op) => op.part,
             Operation::Flute(op) => op.part,
             Operation::Pattern(op) => op.part,
+            Operation::Prism(op) => op.part,
             Operation::Holes(op) => op.part,
             Operation::Surface(op) => op.part,
             Operation::Relief(op) => op.part,
@@ -388,6 +408,7 @@ impl Operation {
             Operation::Chamfer(op) => op.part = part,
             Operation::Flute(op) => op.part = part,
             Operation::Pattern(op) => op.part = part,
+            Operation::Prism(op) => op.part = part,
             Operation::Holes(op) => op.part = part,
             Operation::Surface(op) => op.part = part,
             Operation::Relief(op) => op.part = part,
@@ -404,6 +425,7 @@ impl Operation {
             Operation::Chamfer(op) => op.material.as_ref(),
             Operation::Flute(op) => op.material.as_ref(),
             Operation::Pattern(op) => op.material.as_ref(),
+            Operation::Prism(op) => op.material.as_ref(),
             Operation::Holes(op) => op.material.as_ref(),
             Operation::Surface(op) => op.material.as_ref(),
             Operation::Relief(op) => op.material.as_ref(),
@@ -419,6 +441,7 @@ impl Operation {
             Operation::Chamfer(op) => op.material = material,
             Operation::Flute(op) => op.material = material,
             Operation::Pattern(op) => op.material = material,
+            Operation::Prism(op) => op.material = material,
             Operation::Holes(op) => op.material = material,
             Operation::Surface(op) => op.material = material,
             Operation::Relief(op) => op.material = material,
@@ -434,6 +457,7 @@ impl Operation {
             Operation::Chamfer(op) => op.tool,
             Operation::Flute(op) => op.tool,
             Operation::Pattern(op) => op.tool,
+            Operation::Prism(op) => op.tool,
             Operation::Holes(op) => op.tool,
             Operation::Surface(op) => op.tool,
             Operation::Relief(op) => op.tool,
@@ -449,6 +473,7 @@ impl Operation {
             Operation::Chamfer(op) => op.tool = tool,
             Operation::Flute(op) => op.tool = tool,
             Operation::Pattern(op) => op.tool = tool,
+            Operation::Prism(op) => op.tool = tool,
             Operation::Holes(op) => op.tool = tool,
             Operation::Surface(op) => op.tool = tool,
             Operation::Relief(op) => op.tool = tool,
@@ -482,6 +507,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => {}
@@ -524,6 +550,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -562,6 +589,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_) => {}
         }
@@ -574,6 +602,7 @@ impl Operation {
             Operation::Chamfer(_) => {}
             Operation::Flute(op) => op.end_depth = depth,
             Operation::Pattern(op) => op.end_depth = depth,
+            Operation::Prism(_) => {}
             Operation::Profile(op) => op.end_depth = depth,
             Operation::Pocket(op) => op.end_depth = depth,
             Operation::Vcarve(op) => op.end_depth = depth,
@@ -591,6 +620,10 @@ impl Operation {
         match self {
             Operation::Flute(op) => (op.start_depth, op.end_depth),
             Operation::Pattern(op) => (op.start_depth, op.end_depth),
+            Operation::Prism(op) => (
+                op.start_depth,
+                op.start_depth + op.deepest(find_tool(tools, op.tool)),
+            ),
             Operation::Chamfer(op) => {
                 let depth = find_tool(tools, op.tool)
                     .and_then(|t| op.depth_with(t))
@@ -619,6 +652,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         }
@@ -651,6 +685,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         }
@@ -669,6 +704,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
         };
@@ -691,6 +727,7 @@ impl Operation {
             // The ramps are its entry (docs/specs/fluting.md §4).
             Operation::Flute(_) => Entry::Plunge {},
             Operation::Pattern(_) => Entry::Plunge {},
+            Operation::Prism(_) => Entry::Plunge {},
             // Holes go down their own way (docs/specs/holes.md §3, §4).
             Operation::Holes(_) => Entry::Plunge {},
             // Each depth starts beside the stock, in the air (docs/specs/surfacing.md §3).
@@ -709,6 +746,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => &[],
@@ -726,6 +764,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -761,6 +800,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -793,6 +833,7 @@ impl Operation {
             | Operation::Chamfer(_)
             | Operation::Flute(_)
             | Operation::Pattern(_)
+            | Operation::Prism(_)
             | Operation::Holes(_)
             | Operation::Surface(_)
             | Operation::Relief(_) => None,
@@ -811,6 +852,7 @@ impl Operation {
             Operation::Chamfer(_) => 0.0,
             Operation::Flute(_) => 0.0,
             Operation::Pattern(_) => 0.0,
+            Operation::Prism(_) => 0.0,
             // Cut to the drawn size (docs/specs/holes.md decision 9).
             Operation::Holes(_) => 0.0,
             // The whole stock: no wall to clear.
@@ -829,6 +871,7 @@ impl Operation {
             Operation::Chamfer(op) => &op.select,
             Operation::Flute(op) => &op.select,
             Operation::Pattern(op) => &op.select,
+            Operation::Prism(op) => &op.select,
             Operation::Holes(op) => &op.select,
             Operation::Surface(_) => &NO_SELECTOR,
             Operation::Relief(op) => &op.select,
@@ -845,6 +888,7 @@ impl Operation {
             Operation::Chamfer(op) => Some(&mut op.select),
             Operation::Flute(op) => Some(&mut op.select),
             Operation::Pattern(op) => Some(&mut op.select),
+            Operation::Prism(op) => Some(&mut op.select),
             Operation::Holes(op) => Some(&mut op.select),
             Operation::Relief(op) => Some(&mut op.select),
             Operation::Surface(_) => None,
@@ -1597,6 +1641,61 @@ pub struct PatternOp {
     pub feed: f64,
     /// The feed going straight down, mm/min.
     pub plunge_feed: f64,
+}
+
+/// Prism: every selected closed shape left standing as a roof, its sides sloping up from its
+/// edges to a ridge along its centre line, cut with a V-bit's tip running along the outline.
+// Spec: docs/specs/prism.md.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct PrismOp {
+    /// A name for the operation, shown in the list and on the setup sheet. Empty: none.
+    #[serde(default)]
+    pub name: String,
+    /// False: the operation stays in the project but isn't cut. Missing: true.
+    #[serde(default = "enabled_default")]
+    pub enabled: bool,
+    /// The id of the part it belongs to (`parts`).
+    pub part: u64,
+    /// The library material its feeds come from. Null: its own values.
+    #[serde(default)]
+    pub material: Option<MaterialRef>,
+    /// What the operation carves: closed shapes, the selected shapes inside them as holes.
+    pub select: Selector,
+    /// The id of the project tool it cuts with (`tools`): a V-bit with its angle.
+    pub tool: i64,
+    /// Where the surface is, mm down from the stock top: 0 for the top.
+    pub start_depth: f64,
+    /// The deepest an edge goes below the start depth, mm, for bevelled shapes with a flat
+    /// top. Null: as deep as the shapes and the bit's cone need.
+    #[serde(default)]
+    pub max_depth: Option<f64>,
+    /// The deepest each pass goes, mm, in equal passes. Null: one pass.
+    #[serde(default)]
+    pub step_down: Option<f64>,
+    /// `climb` or `conventional` milling.
+    pub direction: Direction,
+    /// The cutting feed, mm/min.
+    pub feed: f64,
+    /// The feed going straight down, mm/min.
+    pub plunge_feed: f64,
+}
+
+impl PrismOp {
+    /// The deepest an edge can go below the start depth with `tool`, mm: its cone's height
+    /// (the shank would rub below it), no deeper than the max depth. With no V-bit with an
+    /// angle, the max depth or 0 (validation refuses the tool anyway).
+    pub fn deepest(&self, tool: Option<&Tool>) -> f64 {
+        let cone = tool
+            .and_then(|t| t.widest_chamfer().zip(t.chamfer_depth_for(1.0)))
+            .map(|(reach, per_mm)| reach * per_mm);
+        match (cone, self.max_depth) {
+            (Some(cone), Some(max)) => cone.min(max),
+            (Some(cone), None) => cone,
+            (None, max) => max.unwrap_or(0.0),
+        }
+    }
 }
 
 /// Holes: every selected circle, drilled with a drill or bored with a helix with an

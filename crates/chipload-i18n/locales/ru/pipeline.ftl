@@ -483,6 +483,7 @@ pipeline-name-path = Вдоль линии { $number }
 pipeline-name-chamfer = Фаска { $number }
 pipeline-name-flute = Каннелюра { $number }
 pipeline-name-pattern = Узор { $number }
+pipeline-name-prism = Призма { $number }
 pipeline-name-holes = Отверстия { $number }
 pipeline-name-surface = Торцевание { $number }
 pipeline-name-relief = Рельеф { $number }

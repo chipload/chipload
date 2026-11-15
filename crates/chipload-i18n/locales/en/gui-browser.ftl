@@ -145,3 +145,5 @@ browser-flute = Flute
 browser-flute-hover = A groove along the selected open shapes that ramps in and out at their ends
 browser-pattern = Pattern
 browser-pattern-hover = Grooves of lines, cross-hatch, rings or waves engraved inside the selected closed shapes
+browser-prism = Prism
+browser-prism-hover = The selected closed shapes left standing as roofs, a sharp ridge along their centre, cut with a V-bit

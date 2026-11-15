@@ -138,6 +138,7 @@ sheet-pattern-waves = Motif, vagues espacées de { $spacing } à { $angle }°, {
 sheet-pattern-inside = à l’intérieur du bord
 sheet-pattern-on-line = sur la ligne
 sheet-pattern-ramp = extrémités en rampe de { $ramp }
+sheet-kind-prism = Prisme
 sheet-kind-holes-drilled = Perçages, percés
 sheet-kind-holes-bored = Perçages, alésage hélicoïdal
 sheet-kind-surface = Surfaçage, tout le brut, en allers-retours (en avalant et en opposition), pas latéral { $percent } %
@@ -158,6 +159,7 @@ sheet-corner-choices = { $count ->
 }
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = { $start } à { $end }
+sheet-depths-at-most = { $start } à au plus { $end }
 sheet-depths-drill = { $start } à { $end } (pointe du foret)
 sheet-pecks = débourrages { $peck }
 sheet-one-go = en une fois

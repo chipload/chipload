@@ -138,6 +138,7 @@ sheet-pattern-waves = Muster, Wellen im Abstand { $spacing } unter { $angle }°,
 sheet-pattern-inside = innerhalb der Kante
 sheet-pattern-on-line = auf der Linie
 sheet-pattern-ramp = Enden mit Rampe { $ramp }
+sheet-kind-prism = Prisma
 sheet-kind-holes-drilled = Bohrungen, gebohrt
 sheet-kind-holes-bored = Bohrungen, Helixbohren
 sheet-kind-surface = Planfräsen, das ganze Rohteil, hin und her (Gleichlauf und Gegenlauf), seitliche Zustellung { $percent } %
@@ -158,6 +159,7 @@ sheet-corner-choices = { $count ->
 }
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = { $start } bis { $end }
+sheet-depths-at-most = { $start } bis höchstens { $end }
 sheet-depths-drill = { $start } bis { $end } (Bohrerspitze)
 sheet-pecks = Entspanen alle { $peck }
 sheet-one-go = in einem Zug

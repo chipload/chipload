@@ -11,8 +11,9 @@ use chipload_i18n::{Language, Message, Units, Value};
 use chipload_job::library::{Cutting, ToolLibrary};
 use chipload_job::{
     ChamferOp, DEFAULT_RAMP_ANGLE_RAD, Direction, EdgeSide, Entry, FillPattern, FluteOp,
-    HoleMethod, HolesOp, Job, Operation, PathOp, PatternOp, PocketOp, ProfileOp, RampShape,
-    ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, Tool, ToolType, VcarveOp,
+    HoleMethod, HolesOp, Job, Operation, PathOp, PatternOp, PocketOp, PrismOp, ProfileOp,
+    RampShape, ReliefOp, SURFACE_STEPOVER, Selector, Side, SurfaceOp, Tabs, Tool, ToolType,
+    VcarveOp,
 };
 
 /// A new relief's lines, as a fraction of the tool, with an end mill or a V-bit
@@ -100,6 +101,8 @@ pub enum OpKind {
     Flute,
     /// Pattern: grooves engraved inside closed shapes (docs/specs/fill-pattern.md).
     Pattern,
+    /// Prism: closed shapes standing as roofs with a ridge (docs/specs/prism.md).
+    Prism,
     /// Holes (docs/specs/holes.md).
     Holes,
     /// Surface: the whole stock (docs/specs/surfacing.md).
@@ -125,6 +128,7 @@ impl OpKind {
                 | (Operation::Chamfer(_), OpKind::Chamfer)
                 | (Operation::Flute(_), OpKind::Flute)
                 | (Operation::Pattern(_), OpKind::Pattern)
+                | (Operation::Prism(_), OpKind::Prism)
                 | (Operation::Holes(_), OpKind::Holes)
                 | (Operation::Surface(_), OpKind::Surface)
                 | (Operation::Relief(_), OpKind::Relief)
@@ -140,6 +144,7 @@ impl OpKind {
             OpKind::Chamfer => "pipeline-name-chamfer",
             OpKind::Flute => "pipeline-name-flute",
             OpKind::Pattern => "pipeline-name-pattern",
+            OpKind::Prism => "pipeline-name-prism",
             OpKind::Holes => "pipeline-name-holes",
             OpKind::Surface => "pipeline-name-surface",
             OpKind::Relief => "pipeline-name-relief",
@@ -212,7 +217,10 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
     let suits = |id: i64| {
         job.tools.iter().find(|t| t.id == id).is_some_and(|t| {
             (t.kind == ToolType::Vbit)
-                == matches!(kind, OpKind::Vcarve | OpKind::Chamfer | OpKind::Pattern)
+                == matches!(
+                    kind,
+                    OpKind::Vcarve | OpKind::Chamfer | OpKind::Pattern | OpKind::Prism
+                )
         })
     };
     let next = next_tool_id(job);
@@ -622,6 +630,20 @@ impl Start {
         match kind {
             OpKind::Profile => self.profile(name, &select, Side::Outside, false),
             OpKind::Chamfer => self.chamfer(name, &select, EdgeSide::Outside),
+            OpKind::Prism => Operation::Prism(PrismOp {
+                material: None,
+                name,
+                enabled: true,
+                part: self.part,
+                select,
+                tool: self.tool,
+                start_depth: 0.0,
+                max_depth: None,
+                step_down: Some(self.step_down),
+                direction: Direction::Climb,
+                feed: self.feed,
+                plunge_feed: self.plunge_feed,
+            }),
             OpKind::Pattern => Operation::Pattern(PatternOp {
                 material: None,
                 name,
@@ -827,6 +849,7 @@ fn op_step_down(op: &Operation) -> f64 {
         Operation::Chamfer(c) => c.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Flute(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Pattern(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
+        Operation::Prism(f) => f.step_down.unwrap_or(crate::DEFAULT_STEP_DOWN),
         Operation::Vcarve(_) | Operation::Holes(_) | Operation::Relief(_) => {
             crate::DEFAULT_STEP_DOWN
         }
@@ -842,6 +865,7 @@ fn op_feed(op: &Operation) -> f64 {
         Operation::Chamfer(c) => c.feed,
         Operation::Flute(f) => f.feed,
         Operation::Pattern(f) => f.feed,
+        Operation::Prism(f) => f.feed,
         Operation::Holes(h) => h.feed,
         Operation::Surface(f) => f.feed,
         Operation::Relief(r) => r.feed,
@@ -857,6 +881,7 @@ fn op_plunge(op: &Operation) -> f64 {
         Operation::Chamfer(c) => c.plunge_feed,
         Operation::Flute(f) => f.plunge_feed,
         Operation::Pattern(f) => f.plunge_feed,
+        Operation::Prism(f) => f.plunge_feed,
         Operation::Holes(h) => h.plunge_feed,
         Operation::Surface(f) => f.plunge_feed,
         Operation::Relief(r) => r.plunge_feed,

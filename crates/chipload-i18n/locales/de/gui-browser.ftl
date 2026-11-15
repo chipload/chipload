@@ -145,3 +145,5 @@ browser-flute = Kannelur
 browser-flute-hover = Eine Nut entlang der gewählten offenen Formen, die an ihren Enden ein- und ausläuft
 browser-pattern = Muster
 browser-pattern-hover = Nuten aus Linien, Kreuzschraffur, Ringen oder Wellen innerhalb der gewählten geschlossenen Formen
+browser-prism = Prisma
+browser-prism-hover = Die gewählten geschlossenen Formen bleiben als Dächer stehen, mit einem scharfen Grat in der Mitte, geschnitten mit einer V-Fräse

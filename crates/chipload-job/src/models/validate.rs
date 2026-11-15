@@ -542,6 +542,16 @@ impl Job {
                     positive(at("feed"), p.feed);
                     positive(at("plunge_feed"), p.plunge_feed);
                 }
+                Operation::Prism(f) => {
+                    if let Some(max) = f.max_depth {
+                        positive(at("max_depth"), max);
+                    }
+                    if let Some(step) = f.step_down {
+                        positive(at("step_down"), step);
+                    }
+                    positive(at("feed"), f.feed);
+                    positive(at("plunge_feed"), f.plunge_feed);
+                }
                 Operation::Pattern(f) => {
                     positive(at("pattern.spacing"), f.pattern.spacing());
                     if let FillPattern::Waves { wavelength, .. } = f.pattern {
@@ -682,7 +692,7 @@ impl Job {
                     Message::new("job-must-be-0-or-more")
                         .arg("got", Value::Length(start, Digits::Shortest)),
                 ));
-            } else if start >= end && !matches!(op, Operation::Chamfer(_)) {
+            } else if start >= end && !matches!(op, Operation::Chamfer(_) | Operation::Prism(_)) {
                 // A chamfer's depth follows from its width, checked above.
                 problems.push(Problem::at(
                     format!("operations.{i}.start_depth"),

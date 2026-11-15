@@ -30,6 +30,7 @@ pub mod pattern;
 pub mod plan;
 pub mod pocket;
 pub mod pocket_finish;
+pub mod prism;
 pub mod profile;
 pub mod ramp;
 pub mod relief;

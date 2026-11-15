@@ -52,6 +52,7 @@ toolpath-operation-kind = { $number } ({ $kind ->
     [chamfer] фаска
     [flute] каннелюра
     [pattern] узор
+    [prism] призма
     [holes] отверстия
     [relief] рельеф
    *[surface] торцевание
@@ -135,6 +136,10 @@ toolpath-pattern-overlap = шаг ({ $spacing }) меньше ширины па�
 toolpath-pattern-too-narrow = контур №{ $contour } слишком узкий для узора: там ничего не режется
 toolpath-pattern-too-many = больше { $most } пазов: увеличьте шаг
 toolpath-pattern-width = ширина каждого паза вверху — { $width }
+toolpath-prism-flat-top = контур №{ $contour } шире, чем V-фреза может свести в ребро: края уходят до { $deepest }, а середина остаётся плоской
+toolpath-prism-close = канавка контура №{ $contour } доходит до контура №{ $other }: его край там на { $deeper } глубже; задайте наибольшую глубину или раздвиньте фигуры
+toolpath-prism-vbit = для призмы нужна V-фреза, инструмент { $tool } — { $type }
+toolpath-prism-deepest = самый глубокий край — { $depth }
 toolpath-path-past-cone = V-образная фреза режет не глубже своего конуса, здесь { $deepest }, иначе хвостовик будет тереться; эта линия идёт на { $depth }: уменьшите глубину или возьмите концевую фрезу
 toolpath-chamfer-past-cone = инструмент { $tool } делает фаску шириной не более { $widest }, иначе хвостовик будет тереться; эта — { $width }: уменьшите ширину или возьмите более широкую V-образную фрезу
 toolpath-holes-not-circles = Пропущено { $count ->

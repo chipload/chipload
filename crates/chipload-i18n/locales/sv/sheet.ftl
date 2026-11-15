@@ -135,6 +135,7 @@ sheet-pattern-waves = Mönster, vågor { $spacing } isär i { $angle }°, { $wav
 sheet-pattern-inside = innanför kanten
 sheet-pattern-on-line = på linjen
 sheet-pattern-ramp = ändar med ramp { $ramp }
+sheet-kind-prism = Prisma
 sheet-kind-holes-drilled = Hål, borrade
 sheet-kind-holes-bored = Hål, helixborrning
 sheet-kind-surface = Planfräsning, hela ämnet, fram och tillbaka (med- och motfräsning), sidosteg { $percent } %
@@ -155,6 +156,7 @@ sheet-corner-choices = { $count ->
 }
 # The depth column, its parts joined with ", ": "0 to 6, 2 per pass".
 sheet-depths = { $start } till { $end }
+sheet-depths-at-most = { $start } till som mest { $end }
 sheet-depths-drill = { $start } till { $end } (borrspetsen)
 sheet-pecks = stegborrning { $peck }
 sheet-one-go = i ett tag

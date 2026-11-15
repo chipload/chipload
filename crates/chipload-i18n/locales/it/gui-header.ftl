@@ -122,3 +122,4 @@ header-polar-array = Serie polare
 header-polar-array-hover = Copie delle forme disegnate selezionate attorno a un centro che clicchi: numero e angolo sotto Selezione
 header-new-flute = Nuova scanalatura
 header-new-pattern = Nuovo motivo
+header-new-prism = Nuovo prisma

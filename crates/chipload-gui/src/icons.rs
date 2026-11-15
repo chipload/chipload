@@ -68,6 +68,9 @@ pub enum Icon {
     /// A square filled with crossing lines: a fill pattern operation
     /// (docs/specs/fill-pattern.md).
     Hatch,
+    /// A raised shape in section, its sides sloping to a ridge: a prism operation
+    /// (docs/specs/prism.md).
+    Prism,
     Holes,
     Surface,
     Eye,
@@ -378,6 +381,10 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 (0.88, 0.85),
             ]);
             pen.line([(0.62, 0.12), (0.96, 0.46)]);
+        }
+        Icon::Prism => {
+            pen.closed(&[(0.08, 0.82), (0.5, 0.18), (0.92, 0.82)]);
+            pen.line([(0.5, 0.18), (0.5, 0.82)]);
         }
         Icon::Hatch => {
             pen.closed(&[(0.12, 0.12), (0.88, 0.12), (0.88, 0.88), (0.12, 0.88)]);
