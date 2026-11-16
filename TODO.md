@@ -9,13 +9,13 @@ below).
 ## Handoff (2026-11-16)
 
 - **Released:** 0.37.0 is the latest, published 2026-11-15 with its guide.
-- **On main, not pushed:** 41 commits after the 0.37.0 commit (46e2ce5): pieces (schema 37),
+- **On main, pushed:** 41 commits after the 0.37.0 commit (46e2ce5): pieces (schema 37),
   two clean-ups after it, the instances spec, instances in five steps (schema 38), the
   handoff at 46570a6, then 26 commits of file splits and long functions broken up
   (0a20196..3ade704, see *Large files and functions* under *Next*, item 13) and this
-  handoff. Each is listed under *Done > In main, not released yet*. All 1,875 tests,
-  clippy, fmt, the wasm check and `cargo deny` passed at 3ade704. Push and the next
-  release (0.38.0) wait for the user.
+  handoff. Each is listed under *Done > In main, not released yet*. CI (Linux, Windows,
+  macOS) passed on 324d936. Then the small follow-ups of 2026-11-16 (*Done*). The next
+  release (0.38.0) waits for the user.
 - **Built, for the user to try:** pieces (puzzle tiling) and instances. The user has not
   tried either yet; findings become items here.
 - **Loose ends of this work:**
@@ -27,8 +27,6 @@ below).
   - guide screenshots are renewed at release time (`packaging/docs/screenshots.sh`); the
     instances page (drawings/instances.md) has no picture yet: a part with a turned and a
     mirrored instance would show it.
-  - the commits since 0.37.0 were not run through CI; the first push runs it (Windows,
-    macOS).
   - the file splits: stopped by the user on 2026-11-16 with files and functions left (listed
     in item 13 of *Next*); the specs' *as built* notes still name some old files
     (`view.rs`, `canvas.rs`, `plan.rs`) and were left as written.
@@ -238,16 +236,6 @@ to a program you trust. It was about four per operation; with the defaults and s
    end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
    a moment once (the user, 2026-11-14), not reproduced.
 13. **Small follow-ups:**
-    - Flaky test (seen twice 2026-11-10, under the full parallel run only):
-      `update_notice::yes_checks_at_once_and_a_newer_version_shows_until_skipped` asserts
-      `checking()` right after starting the background check, which can already be done.
-    - The ignored picture test `materials::material_pictures` fails (seen 2026-11-10,
-      before the Frame move too): it looks for a label containing "safe Z" that the
-      machine form no longer shows.
-    - A pasted shape loses its construction flag: the clipboard carries layer and geometry
-      only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
-    - Materials: import and export in the window (the command line has `material
-      export`/`import`).
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,
       `validate_ops.rs`, the pipeline's `sheet/`, `drawing_edit/` and `lib.rs`, the CLI's
@@ -369,7 +357,15 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
-Not pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
+Pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
+
+- **Small follow-ups** (2026-11-16): a pasted construction shape stays construction (the
+  clipboard, in the app and as text, carries whole shapes); materials' *Import…* and
+  *Export…* in the window, with the tools' preview (`library_transfer::Transfer`); the
+  update-notice test no longer races its background check (the stand-in answers only once
+  the test lets it); the ignored `material_pictures` shows the Stock for the board and
+  material, and the Machine section open (no "safe Z" header to click since Job settings
+  hold the machine alone).
 
 - **Large files split, long functions broken up** (2026-11-16, 0a20196..3ade704, no
   behaviour change: golden G-code, sheets and help text unchanged): `plan/`, `pocket/`,
