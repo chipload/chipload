@@ -11,6 +11,15 @@ fn far_newer() -> Result<String, String> {
         .to_string())
 }
 
+/// Held by a test while it looks at a check under way: [`held_far_newer`] answers only
+/// once it is let go, so the check can't be over before the test looks.
+static GATE: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+fn held_far_newer() -> Result<String, String> {
+    drop(GATE.lock());
+    far_newer()
+}
+
 fn offline() -> Result<String, String> {
     Err("no network".to_string())
 }
@@ -58,11 +67,15 @@ fn yes_checks_at_once_and_a_newer_version_shows_until_skipped() {
     let (mut app, dir) = with_settings("updates-newer");
     let _ = std::fs::remove_file(chipload_pipeline::library::settings_path(&dir));
     app.set_settings_dir(Some(dir.clone()));
-    app.updates.fetch = far_newer;
+    app.updates.fetch = held_far_newer;
     app.answer_update_question(true);
     let ctx = egui::Context::default();
+    let gate = GATE
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
     app.poll_updates(&ctx);
     assert!(app.updates.checking(), "the daily check, at once");
+    drop(gate);
     assert!(settings(&dir).update_checked_at.is_some());
     let (outcome, manual) = app.updates.wait().unwrap();
     assert!(!manual);
