@@ -33,6 +33,9 @@ use chipload_i18n::Message;
 
 mod box_drag;
 mod browser;
+mod browser_ops;
+mod browser_row;
+mod browser_setups;
 mod canvas;
 mod canvas_handles;
 mod canvas_menu;

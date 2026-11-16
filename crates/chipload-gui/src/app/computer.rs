@@ -7,7 +7,7 @@ use chipload_job::Units;
 use chipload_pipeline::posts::{builtin_posts, post_fact_messages};
 use eframe::egui::Id;
 
-use super::browser::{Row, title_line, toggle_folder};
+use super::browser_row::{Row, title_line, toggle_folder};
 use super::menu::language_name;
 use super::*;
 use crate::icons::Icon;
@@ -43,7 +43,7 @@ impl ChiploadApp {
         let posts = self.post_list();
         let id = Id::new(POSTS);
         let open_id = id.with("folder-open");
-        let open = super::browser::folder_open(ui, open_id, false);
+        let open = super::browser_row::folder_open(ui, open_id, false);
         let out = Row::new(id, 1, t!(ui, "computer-posts"))
             .folder(open)
             .icon(Icon::Export)

@@ -113,7 +113,7 @@ pub(in crate::app) fn rest_pass_form(
         ui.visuals().dark_mode,
     );
     set_card_stripe(ui, color);
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Pocket,
         Some(color),
@@ -203,7 +203,7 @@ pub(in crate::app) fn floor_pass_form(
         ui.visuals().dark_mode,
     );
     set_card_stripe(ui, color);
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Pocket,
         Some(color),
@@ -308,7 +308,7 @@ pub(in crate::app) fn roughing_pass_form(
         ui.visuals().dark_mode,
     );
     set_card_stripe(ui, color);
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Relief,
         Some(color),
@@ -439,7 +439,7 @@ pub(in crate::app) fn smoothing_pass_form(
         ui.visuals().dark_mode,
     );
     set_card_stripe(ui, color);
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Relief,
         Some(color),

@@ -111,7 +111,7 @@ pub(in crate::app) fn job_form(
     let mut request = None;
     let mut copies_request = None;
     let title = t!(ui, "forms-job-settings");
-    super::browser::title_line(ui, crate::icons::Icon::Settings, None, &title);
+    super::browser_row::title_line(ui, crate::icons::Icon::Settings, None, &title);
     let labels = job_label_width(ui);
     let job = &mut edit.job;
     machine_section(
@@ -341,7 +341,7 @@ pub(super) fn z_zero_name(ui: &egui::Ui, z: ZZero) -> String {
 /// centre to click, the drawing origin, where it is, and Z zero.
 pub(in crate::app) fn work_zero_form(ui: &mut egui::Ui, edit: &mut EditJob) -> Option<JobRequest> {
     let title = t!(ui, "browser-work-zero");
-    super::browser::title_line(ui, crate::icons::Icon::WorkZero, None, &title);
+    super::browser_row::title_line(ui, crate::icons::Icon::WorkZero, None, &title);
     if let Some(front) = front_of_active(&edit.job) {
         return shared_with_front(ui, &edit.job, front, JobRequest::FrontZero(front));
     }
@@ -604,7 +604,7 @@ pub(in crate::app) fn stock_form(
     library: Option<&Library>,
 ) -> Option<JobRequest> {
     let title = t!(ui, "browser-stock");
-    super::browser::title_line(ui, crate::icons::Icon::Material, None, &title);
+    super::browser_row::title_line(ui, crate::icons::Icon::Material, None, &title);
     if let Some(front) = front_of_active(&edit.job) {
         return shared_with_front(ui, &edit.job, front, JobRequest::FrontStock(front));
     }
@@ -649,7 +649,7 @@ pub(in crate::app) fn setup_form(
         .collect();
     let labels = job_label_width(ui);
     let setup = &mut edit.job.setups[index];
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Rectangle,
         None,
@@ -1110,7 +1110,7 @@ pub(in crate::app) fn part_form(
     let index = edit.job.parts.iter().position(|p| p.id == id)?;
     let several = edit.job.parts.len() > 1;
     let part = &mut edit.job.parts[index];
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Part,
         None,
@@ -1206,7 +1206,7 @@ pub(in crate::app) fn instance_form(
         .iter()
         .position(|i| i.id == id)?;
     let instance = &mut edit.job.parts[index].instances[k];
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Array,
         None,

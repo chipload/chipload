@@ -11,7 +11,8 @@ use chipload_job::{Operation, Side};
 use chipload_pipeline::library::styles_path;
 use eframe::egui::Id;
 
-use super::browser::{Row, op_icon, title_line};
+use super::browser::op_icon;
+use super::browser_row::{Row, title_line};
 use super::library_view::{key_uid, uid_key};
 use super::user_library::library_header;
 use super::*;
@@ -196,7 +197,7 @@ impl ChiploadApp {
         let mut act = None;
         let id = Id::new(FOLDER);
         let open_id = id.with("folder-open");
-        let open = super::browser::folder_open(ui, open_id, true);
+        let open = super::browser_row::folder_open(ui, open_id, true);
         let out = Row::new(id, 1, t!(ui, "styles-folder"))
             .folder(open)
             .icon(Icon::Style)
@@ -204,7 +205,7 @@ impl ChiploadApp {
             .selected(self.focus == Focus::LibraryStyles)
             .show(ui);
         if out.toggled {
-            super::browser::toggle_folder(ui, open_id, true);
+            super::browser_row::toggle_folder(ui, open_id, true);
         }
         if out
             .response

@@ -29,7 +29,7 @@ pub(in crate::app) fn dxf_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> Op
         .filter(|s| s.dxf() == Some(id))
         .count();
     let mut request = None;
-    super::browser::title_line(ui, crate::icons::Icon::Dxf, None, &source.name);
+    super::browser_row::title_line(ui, crate::icons::Icon::Dxf, None, &source.name);
     crate::app::forms::card(ui, |ui| {
         Grid::new(("dxf-facts", id))
             .num_columns(2)
@@ -90,7 +90,7 @@ pub(in crate::app) fn image_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
     let len_unit = chipload_pipeline::units::length_unit(units);
     let image = edit.job.drawing.images.iter().find(|i| i.id == id)?;
     let mut request = None;
-    super::browser::title_line(ui, crate::icons::Icon::Image, None, &image.file);
+    super::browser_row::title_line(ui, crate::icons::Icon::Image, None, &image.file);
     // The fields edit a copy kept between frames; it is sent once the edit is finished.
     let key = egui::Id::new(("image-place", id));
     let stored = ImagePlace {
@@ -228,7 +228,7 @@ pub(in crate::app) fn text_form(
     use chipload_job::{Text, TextAlign, TextAnchor};
     let text = edit.job.drawing.texts.iter().find(|t| t.id == id)?;
     let mut request = None;
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         crate::icons::Icon::Text,
         None,
@@ -699,7 +699,7 @@ pub(in crate::app) fn model_form(ui: &mut egui::Ui, edit: &EditJob, id: u64) -> 
     let len_unit = chipload_pipeline::units::length_unit(units);
     let model = edit.job.drawing.models.iter().find(|m| m.id == id)?;
     let mut request = None;
-    super::browser::title_line(ui, crate::icons::Icon::Model, None, &model.name);
+    super::browser_row::title_line(ui, crate::icons::Icon::Model, None, &model.name);
     // The fields edit a copy kept between frames; it is sent once the edit is finished.
     let key = egui::Id::new(("model-draft", id));
     let stored = model.clone();

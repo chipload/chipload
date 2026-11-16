@@ -11,7 +11,7 @@ use chipload_pipeline::library::{materials_path, tools_path};
 use chipload_pipeline::materials::{use_material, values_to_save};
 use eframe::egui::Id;
 
-use super::browser::{Row, title_line};
+use super::browser_row::{Row, title_line};
 use super::library_view::{key_uid, uid_key};
 use super::user_library::{library_header, unique_name};
 use super::*;
@@ -132,7 +132,7 @@ impl ChiploadApp {
         let mut act = None;
         let id = Id::new(FOLDER);
         let open_id = id.with("folder-open");
-        let open = super::browser::folder_open(ui, open_id, true);
+        let open = super::browser_row::folder_open(ui, open_id, true);
         let out = Row::new(id, 1, t!(ui, "materials-folder"))
             .folder(open)
             .icon(Icon::Material)
@@ -140,7 +140,7 @@ impl ChiploadApp {
             .selected(self.focus == Focus::LibraryMaterials)
             .show(ui);
         if out.toggled {
-            super::browser::toggle_folder(ui, open_id, true);
+            super::browser_row::toggle_folder(ui, open_id, true);
         }
         let response = out.response.on_hover_text(t!(ui, "materials-folder-hover"));
         if response.clicked() {

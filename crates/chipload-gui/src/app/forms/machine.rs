@@ -139,7 +139,7 @@ pub(in crate::app) fn tools_form(
 ) -> Option<JobRequest> {
     let mut request = None;
     let title = t!(ui, "forms-tools");
-    super::browser::title_line(ui, crate::icons::Icon::Tools, None, &title);
+    super::browser_row::title_line(ui, crate::icons::Icon::Tools, None, &title);
     ui.horizontal(|ui| {
         let names: Vec<String> = library
             .map(|l| l.tools.tools.iter().map(|t| t.name.clone()).collect())
@@ -246,7 +246,7 @@ pub(in crate::app) fn tool_form(
         ToolType::Vbit => crate::icons::Icon::Vbit,
         ToolType::Ballnose => crate::icons::Icon::Ballnose,
     };
-    super::browser::title_line(
+    super::browser_row::title_line(
         ui,
         icon,
         None,

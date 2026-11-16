@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use chipload_core::chain::ShapeFrom;
 use chipload_job::Drawing;
 
-use super::browser::Row;
+use super::browser_row::Row;
 use super::*;
 use crate::icons::Icon;
 
@@ -471,7 +471,7 @@ impl ChiploadApp {
         )
         .icon_tinted(Icon::Drawing, crate::style::Tint::Shapes)
         .trailing(shapes.to_string());
-        let (open, folder_row) = super::browser::folder(ui, row, true);
+        let (open, folder_row) = super::browser_row::folder(ui, row, true);
         let mut action: Option<PanelAction> = None;
         folder_row
             .response
@@ -628,7 +628,7 @@ impl ChiploadApp {
         let has_layers =
             !group.layers.is_empty() || !group.members.is_empty() || !group.texts.is_empty();
         let open_first = group.members.is_empty() || group.shapes <= OPEN_GROUP_MOST;
-        let open = has_layers && super::browser::folder_open(ui, open_id, open_first);
+        let open = has_layers && super::browser_row::folder_open(ui, open_id, open_first);
         let shape_group = matches!(group.kind, GroupKind::Shapes(_));
         let mut row = Row::new(id, depth, &group.title);
         // A group has no eye of its own: its shapes show and hide by their layers.
@@ -651,7 +651,7 @@ impl ChiploadApp {
         }
         let out = row.show(ui);
         if out.toggled {
-            super::browser::toggle_folder(ui, open_id, open_first);
+            super::browser_row::toggle_folder(ui, open_id, open_first);
         }
         if out.eye {
             *action = Some(PanelAction::Toggle(group.key.clone()));
@@ -887,7 +887,7 @@ impl ChiploadApp {
             let id = egui::Id::new(("browser-drawn-layer", &key));
             let open_id = id.with("folder-open");
             let open_first = shapes.len() <= OPEN_GROUP_MOST;
-            let open = super::browser::folder_open(ui, open_id, open_first);
+            let open = super::browser_row::folder_open(ui, open_id, open_first);
             let selected = matches!(&self.selection, CanvasSelection::Shapes(s)
                 if s.len() == ids.len() && ids.iter().all(|i| s.contains(i)));
             let out = Row::new(id, 3, layer)
@@ -899,7 +899,7 @@ impl ChiploadApp {
                 .folder(open)
                 .show(ui);
             if out.toggled {
-                super::browser::toggle_folder(ui, open_id, open_first);
+                super::browser_row::toggle_folder(ui, open_id, open_first);
             }
             if out.eye {
                 *action = Some(PanelAction::Toggle(key.clone()));

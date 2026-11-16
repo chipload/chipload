@@ -6,7 +6,8 @@
 use chipload_job::library::same_name;
 use eframe::egui::Id;
 
-use super::browser::{Row, folder, title_line, toggle_folder, tool_icon};
+use super::browser::tool_icon;
+use super::browser_row::{Row, folder, title_line, toggle_folder};
 use super::library_transfer::import_preview;
 use super::user_library::{
     LibraryKind, library_header, library_message, machine_entry_form, machine_summary,
@@ -168,7 +169,7 @@ impl ChiploadApp {
         };
         let id = Id::new(key);
         let open_id = id.with("folder-open");
-        let open = super::browser::folder_open(ui, open_id, true);
+        let open = super::browser_row::folder_open(ui, open_id, true);
         let out = Row::new(id, 1, label)
             .folder(open)
             .icon(icon)

@@ -229,7 +229,7 @@ pub(in crate::app) fn op_form(
     let surface = !op.selects_shapes();
     let color = super::browser::kind_color(&*op, ui.visuals().dark_mode);
     if !choice.style {
-        super::browser::title_line(
+        super::browser_row::title_line(
             ui,
             super::browser::op_icon(&*op),
             Some(color),
