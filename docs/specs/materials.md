@@ -233,7 +233,8 @@ not as a default.
     a material the feeds stay (docs/specs/tool-per-operation.md decision 6).
   - **A bad value refuses the whole file**, as for the tool library, not only that
     material.
-  - **Import and export are on the command line only** for now; the window's Materials
-    folder has *New material*, the form, *Use for all operations* and *Delete*.
+  - **Import and export** were on the command line only at first; since 2026-11-16 the
+    window's Materials folder has *Import…* and *Export…* beside *New material*, with the
+    tools' preview (library-import-export.md §6).
   - The tool's own *Use the tool's values* button shows only when the operation's material
     has no values for the tool.

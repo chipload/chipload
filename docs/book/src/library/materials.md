@@ -89,6 +89,12 @@ chipload material import materials-backup.json [--replace]
 `chipload op tool` on an operation with a material takes the material's values for the new
 tool too.
 
+Export and import work as for [tools](tools.md#sharing): *Import…* and *Export…* on
+*Library > Materials*. Importing shows first what it would add, leave alone and keep, with
+*Import*, *Replace* when some differ, or *Cancel*. A material keeps its id, so the tool rows
+for it on the other computer still match. Only the materials travel: their rows are in the
+tools' file, so export the tools too.
+
 Removing a material removes every tool's row for it. Materials, names only, live in
 `materials.json` in the settings folder, beside the tool library; see the [Materials
 file](../reference/materials-file.md). The rows live in `tools.json`.

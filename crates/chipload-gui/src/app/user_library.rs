@@ -299,7 +299,7 @@ pub(super) struct LibraryState {
     pub(super) style_drafts: BTreeMap<String, chipload_job::Operation>,
     pub(super) error: Option<String>,
     /// What the last import or export did, shown in that folder's properties.
-    pub(super) message: Option<(LibraryKind, String)>,
+    pub(super) message: Option<(super::library_transfer::Transfer, String)>,
     /// A file read for import, waiting for Import or Cancel.
     pub(super) import: Option<PendingImport>,
     /// A Library folder to open in the Browser on its next frame.

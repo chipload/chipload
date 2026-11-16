@@ -11,4 +11,5 @@ library-transfer-import-replace-hover = Prendre aussi les valeurs du fichier là
 library-transfer-library-files = Fichiers de bibliothèque
 library-transfer-exported-tools = Outils exportés : { $count } vers { $file }
 library-transfer-exported-machines = Machines exportées : { $count } vers { $file }
+library-transfer-exported-materials = Matériaux exportés : { $count } vers { $file }
 library-transfer-no-settings-folder = Pas de dossier des réglages

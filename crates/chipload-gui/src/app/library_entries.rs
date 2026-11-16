@@ -266,8 +266,8 @@ pub(super) fn take_machine_values(profile: &mut MachineProfile, machine: Machine
 /// What the last import or export of this window did.
 pub(super) fn library_message(
     ui: &mut egui::Ui,
-    message: Option<&(LibraryKind, String)>,
-    kind: LibraryKind,
+    message: Option<&(super::library_transfer::Transfer, String)>,
+    kind: super::library_transfer::Transfer,
 ) {
     if let Some((_, text)) = message.filter(|(k, _)| *k == kind) {
         ui.separator();

@@ -101,6 +101,34 @@ fn choosing_a_material_fills_the_operations_in_one_undo_step() {
 }
 
 #[test]
+fn materials_are_exported_and_imported_after_a_preview() {
+    use super::super::library_transfer::{ImportChoice, Transfer};
+    let mut old = app_with_library("export");
+    let uid = add_plywood(&mut old);
+    let file = old.user.settings_dir.clone().unwrap().join("backup.json");
+    assert!(old.export_library(Transfer::Materials, &file));
+    let (kind, text) = old.user.library_state.message.clone().unwrap();
+    assert_eq!(kind, Transfer::Materials);
+    assert!(text.contains("Exported materials: 1"), "{text}");
+
+    let mut new = app_with_library("import");
+    assert!(new.preview_library_import(Transfer::Materials, &file));
+    assert!(
+        new.user.library.materials.materials.is_empty(),
+        "not before Import"
+    );
+    assert!(new.finish_library_import(ImportChoice::Keep));
+    let imported = new.user.library.materials.find_uid(&uid).unwrap();
+    assert_eq!(imported.name, "Plywood");
+    let (_, text) = new.user.library_state.message.clone().unwrap();
+    assert!(text.contains("Added: Plywood"), "{text}");
+    // A tools file isn't a materials file.
+    let tools = new.user.settings_dir.clone().unwrap().join("tools.json");
+    assert!(!new.preview_library_import(Transfer::Materials, &tools));
+    assert!(new.user.library_state.import.is_none());
+}
+
+#[test]
 fn a_new_project_starts_with_the_default_material() {
     let mut app = app_with_library("default");
     let uid = add_plywood(&mut app);
@@ -343,20 +371,17 @@ fn material_pictures() {
                     stock.origin = chipload_job::StockOrigin::Drawing;
                     app.commit();
                 }
+                // The board and its material are the Stock's; Job settings hold the
+                // machine alone, its section open.
                 app.focus = match view {
-                    "job" | "job-fit" | "job-machine" => Focus::Job,
+                    "job" | "job-fit" => Focus::Stock,
+                    "job-machine" => Focus::Job,
                     "op" | "through" => Focus::Op(1),
                     _ => Focus::LibraryMaterial(super::super::library_view::uid_key(&uid)),
                 };
                 app
             });
         harness.run_steps(6);
-        if view == "job-machine" {
-            // The machine section opened, as a click on its header does.
-            use egui_kittest::kittest::Queryable;
-            harness.get_by_label_contains("safe Z").click();
-            harness.run_steps(4);
-        }
         let image = harness.render().unwrap();
         image.save(dir.join(format!("{name}.png"))).unwrap();
     }

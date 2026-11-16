@@ -182,7 +182,7 @@ mod library {
             Some("3 mm upcut")
         );
         let (kind, text) = new.user.library_state.message.clone().unwrap();
-        assert_eq!(kind, LibraryKind::Tools);
+        assert_eq!(kind, super::library_transfer::Transfer::Tools);
         assert!(text.contains("Added: 3 mm upcut"), "{text}");
 
         // A file with other values: kept, or replaced when asked.

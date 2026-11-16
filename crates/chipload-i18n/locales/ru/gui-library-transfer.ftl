@@ -6,4 +6,5 @@ library-transfer-import-replace-hover = При различиях также п�
 library-transfer-library-files = Файлы библиотеки
 library-transfer-exported-tools = Экспортировано инструментов: { $count } в { $file }
 library-transfer-exported-machines = Экспортировано станков: { $count } в { $file }
+library-transfer-exported-materials = Экспортировано материалов: { $count } в { $file }
 library-transfer-no-settings-folder = Нет папки настроек

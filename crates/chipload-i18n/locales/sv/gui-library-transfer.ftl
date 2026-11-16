@@ -11,4 +11,5 @@ library-transfer-import-replace-hover = Ta även filens värden där de skiljer 
 library-transfer-library-files = Biblioteksfiler
 library-transfer-exported-tools = Exporterade verktyg: { $count } till { $file }
 library-transfer-exported-machines = Exporterade maskiner: { $count } till { $file }
+library-transfer-exported-materials = Exporterade material: { $count } till { $file }
 library-transfer-no-settings-folder = Ingen inställningsmapp

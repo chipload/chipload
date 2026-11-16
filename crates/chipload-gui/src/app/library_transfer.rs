@@ -1,21 +1,39 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Import and export of the tool library and machine profiles
-//! (docs/specs/library-import-export.md §6): the buttons' dialogs, the import preview and
-//! its buttons. The rules are in `chipload_job::library`.
+//! Import and export of the tool library, machine profiles and materials
+//! (docs/specs/library-import-export.md §6, docs/specs/materials.md): the buttons' dialogs,
+//! the import preview and its buttons. The rules are in `chipload_job::library`.
 
 use chipload_job::library::{
     Collection, ImportPlan, MachineLibrary, ToolLibrary, export, import_into, import_plan,
     read_import, update_library, write_export,
 };
-use chipload_pipeline::library::{machines_path, tools_path, unknown_posts};
+use chipload_job::materials::MaterialLibrary;
+use chipload_pipeline::library::{machines_path, materials_path, tools_path, unknown_posts};
 
 use super::user_library::LibraryKind;
 use super::*;
 
+/// A library file with an import and an export in the window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Transfer {
+    Tools,
+    Machines,
+    Materials,
+}
+
+impl From<LibraryKind> for Transfer {
+    fn from(kind: LibraryKind) -> Self {
+        match kind {
+            LibraryKind::Tools => Transfer::Tools,
+            LibraryKind::Machines => Transfer::Machines,
+        }
+    }
+}
+
 /// A file read for import, waiting for the user's choice.
 #[derive(Debug, Clone)]
 pub(super) struct PendingImport {
-    kind: LibraryKind,
+    kind: Transfer,
     file: PathBuf,
     entries: ImportFile,
     /// What the import would do, and notes (unknown post-processors).
@@ -27,6 +45,7 @@ pub(super) struct PendingImport {
 enum ImportFile {
     Tools(ToolLibrary),
     Machines(MachineLibrary),
+    Materials(MaterialLibrary),
 }
 
 impl PendingImport {
@@ -48,7 +67,7 @@ pub(super) enum ImportChoice {
 pub(super) fn import_preview(
     ui: &mut egui::Ui,
     pending: Option<&PendingImport>,
-    kind: LibraryKind,
+    kind: Transfer,
 ) -> Option<ImportChoice> {
     let pending = pending.filter(|p| p.kind == kind)?;
     let mut choice = None;
@@ -88,10 +107,11 @@ pub(super) fn import_preview(
     choice
 }
 
-fn list_name(kind: LibraryKind) -> &'static str {
+fn list_name(kind: Transfer) -> &'static str {
     match kind {
-        LibraryKind::Tools => ToolLibrary::LIST,
-        LibraryKind::Machines => MachineLibrary::LIST,
+        Transfer::Tools => ToolLibrary::LIST,
+        Transfer::Machines => MachineLibrary::LIST,
+        Transfer::Materials => MaterialLibrary::LIST,
     }
 }
 
@@ -103,10 +123,11 @@ fn plan_for<L: Collection>(library: &L, file: &L) -> (ImportPlan, Vec<Message>) 
 
 impl ChiploadApp {
     /// Export… : all entries of the library to a file the user picks.
-    pub(super) fn export_library_dialog(&mut self, kind: LibraryKind) {
+    pub(super) fn export_library_dialog(&mut self, kind: Transfer) {
         let suggested = match kind {
-            LibraryKind::Tools => "chipload-tools.json",
-            LibraryKind::Machines => "chipload-machines.json",
+            Transfer::Tools => "chipload-tools.json",
+            Transfer::Machines => "chipload-machines.json",
+            Transfer::Materials => "chipload-materials.json",
         };
         let filter = t!(self, "library-transfer-library-files");
         if let Some(file) = super::dialogs::save_dialog(Path::new(suggested), &filter, "json") {
@@ -115,7 +136,7 @@ impl ChiploadApp {
     }
 
     /// Import… : read a file the user picks and show what importing it would do.
-    pub(super) fn import_library_dialog(&mut self, kind: LibraryKind) {
+    pub(super) fn import_library_dialog(&mut self, kind: Transfer) {
         if let Some(file) = rfd::FileDialog::new()
             .add_filter(t!(self, "library-transfer-library-files"), &["json", "bak"])
             .pick_file()
@@ -125,20 +146,23 @@ impl ChiploadApp {
     }
 
     /// Write every entry of the library to `file`; the result shows in the window.
-    pub fn export_library(&mut self, kind: LibraryKind, file: &Path) -> bool {
+    pub fn export_library(&mut self, kind: impl Into<Transfer>, file: &Path) -> bool {
+        let kind = kind.into();
         self.user.library_state.error = None;
         self.reload_library();
         let written = match kind {
-            LibraryKind::Tools => export(&self.user.library.tools, &[])
+            Transfer::Tools => export(&self.user.library.tools, &[])
                 .and_then(|out| write_export(&out, file).map(|()| out.tools.len())),
-            LibraryKind::Machines => export(&self.user.library.machines, &[])
+            Transfer::Machines => export(&self.user.library.machines, &[])
                 .and_then(|out| write_export(&out, file).map(|()| out.machines.len())),
+            Transfer::Materials => export(&self.user.library.materials, &[])
+                .and_then(|out| write_export(&out, file).map(|()| out.materials.len())),
         };
         match written {
             Ok(count) => {
                 let file = file.display().to_string();
                 let text = match kind {
-                    LibraryKind::Tools => {
+                    Transfer::Tools => {
                         t!(
                             self,
                             "library-transfer-exported-tools",
@@ -146,10 +170,18 @@ impl ChiploadApp {
                             file = file
                         )
                     }
-                    LibraryKind::Machines => {
+                    Transfer::Machines => {
                         t!(
                             self,
                             "library-transfer-exported-machines",
+                            count = count,
+                            file = file
+                        )
+                    }
+                    Transfer::Materials => {
+                        t!(
+                            self,
+                            "library-transfer-exported-materials",
                             count = count,
                             file = file
                         )
@@ -166,20 +198,25 @@ impl ChiploadApp {
     }
 
     /// Read `file` and keep it waiting with what importing it would do.
-    pub fn preview_library_import(&mut self, kind: LibraryKind, file: &Path) -> bool {
+    pub fn preview_library_import(&mut self, kind: impl Into<Transfer>, file: &Path) -> bool {
+        let kind = kind.into();
         self.user.library_state.error = None;
         self.user.library_state.message = None;
         self.user.library_state.import = None;
         self.reload_library();
         let read = match kind {
-            LibraryKind::Tools => read_import::<ToolLibrary>(file).map(|from| {
+            Transfer::Tools => read_import::<ToolLibrary>(file).map(|from| {
                 let (plan, lines) = plan_for(&self.user.library.tools, &from);
                 (ImportFile::Tools(from), plan, lines)
             }),
-            LibraryKind::Machines => read_import::<MachineLibrary>(file).map(|from| {
+            Transfer::Machines => read_import::<MachineLibrary>(file).map(|from| {
                 let (plan, mut lines) = plan_for(&self.user.library.machines, &from);
                 lines.extend(unknown_posts(&from, self.user.library.posts.as_deref()));
                 (ImportFile::Machines(from), plan, lines)
+            }),
+            Transfer::Materials => read_import::<MaterialLibrary>(file).map(|from| {
+                let (plan, lines) = plan_for(&self.user.library.materials, &from);
+                (ImportFile::Materials(from), plan, lines)
             }),
         };
         match read {
@@ -220,6 +257,11 @@ impl ChiploadApp {
             }),
             ImportFile::Machines(from) => {
                 update_library(&machines_path(&dir), |l: &mut MachineLibrary| {
+                    Ok(import_into(l, from, replace))
+                })
+            }
+            ImportFile::Materials(from) => {
+                update_library(&materials_path(&dir), |l: &mut MaterialLibrary| {
                     Ok(import_into(l, from, replace))
                 })
             }

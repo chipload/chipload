@@ -11,4 +11,5 @@ library-transfer-import-replace-hover = Auch die Werte der Datei übernehmen, wo
 library-transfer-library-files = Bibliotheksdateien
 library-transfer-exported-tools = Werkzeuge exportiert: { $count } nach { $file }
 library-transfer-exported-machines = Maschinen exportiert: { $count } nach { $file }
+library-transfer-exported-materials = Materialien exportiert: { $count } nach { $file }
 library-transfer-no-settings-folder = Kein Einstellungsordner

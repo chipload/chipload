@@ -359,8 +359,8 @@ impl ChiploadApp {
         ui.add_enabled_ui(path.is_some(), |ui| {
             ui.horizontal_wrapped(|ui| folder_menu(ui, kind, act));
         });
-        let choice = import_preview(ui, self.user.library_state.import.as_ref(), kind);
-        library_message(ui, self.user.library_state.message.as_ref(), kind);
+        let choice = import_preview(ui, self.user.library_state.import.as_ref(), kind.into());
+        library_message(ui, self.user.library_state.message.as_ref(), kind.into());
         if let Some(choice) = choice {
             self.finish_library_import(choice);
         }
@@ -602,14 +602,14 @@ impl ChiploadApp {
                     LibraryKind::Tools => Focus::LibraryTools,
                     LibraryKind::Machines => Focus::LibraryMachines,
                 };
-                self.import_library_dialog(kind);
+                self.import_library_dialog(kind.into());
             }
             Act::Export(kind) => {
                 self.focus = match kind {
                     LibraryKind::Tools => Focus::LibraryTools,
                     LibraryKind::Machines => Focus::LibraryMachines,
                 };
-                self.export_library_dialog(kind);
+                self.export_library_dialog(kind.into());
             }
             Act::Save(kind, uid) => {
                 self.save_library_draft(kind, &uid);

@@ -12,7 +12,8 @@ use chipload_pipeline::materials::{use_material, values_to_save};
 use eframe::egui::Id;
 
 use super::browser_row::{Row, title_line};
-use super::library_entries::library_header;
+use super::library_entries::{library_header, library_message};
+use super::library_transfer::{Transfer, import_preview};
 use super::library_view::{key_uid, uid_key};
 use super::user_library::unique_name;
 use super::*;
@@ -31,6 +32,8 @@ enum MaterialAct {
     MakeDefault(String),
     /// The stock thickness new projects start with (None: 10 mm).
     DefaultThickness(Option<f64>),
+    Import,
+    Export,
 }
 
 impl ChiploadApp {
@@ -232,9 +235,22 @@ impl ChiploadApp {
         }
     }
 
-    fn materials_folder_form(&self, ui: &mut egui::Ui, act: &mut Option<MaterialAct>) {
+    fn materials_folder_form(&mut self, ui: &mut egui::Ui, act: &mut Option<MaterialAct>) {
         self.materials_folder_header(ui, act);
         self.default_thickness_row(ui, act);
+        let choice = import_preview(
+            ui,
+            self.user.library_state.import.as_ref(),
+            Transfer::Materials,
+        );
+        library_message(
+            ui,
+            self.user.library_state.message.as_ref(),
+            Transfer::Materials,
+        );
+        if let Some(choice) = choice {
+            self.finish_library_import(choice);
+        }
     }
 
     /// New projects' stock thickness: off (10 mm) or a value, saved when the field is left.
@@ -272,12 +288,19 @@ impl ChiploadApp {
         ));
         ui.weak(t!(ui, "materials-about"));
         ui.add_space(4.0);
-        if ui
-            .add_enabled(path.is_some(), egui::Button::new(t!(ui, "materials-new")))
-            .clicked()
-        {
-            *act = Some(MaterialAct::New);
-        }
+        ui.add_enabled_ui(path.is_some(), |ui| {
+            ui.horizontal_wrapped(|ui| {
+                if ui.button(t!(ui, "materials-new")).clicked() {
+                    *act = Some(MaterialAct::New);
+                }
+                if ui.button(t!(ui, "library-view-import")).clicked() {
+                    *act = Some(MaterialAct::Import);
+                }
+                if ui.button(t!(ui, "library-view-export")).clicked() {
+                    *act = Some(MaterialAct::Export);
+                }
+            });
+        });
     }
 
     fn material_form(&mut self, ui: &mut egui::Ui, uid: &str, act: &mut Option<MaterialAct>) {
@@ -466,6 +489,8 @@ impl ChiploadApp {
             MaterialAct::DefaultThickness(thickness) => {
                 self.set_default_thickness(thickness);
             }
+            MaterialAct::Import => self.import_library_dialog(Transfer::Materials),
+            MaterialAct::Export => self.export_library_dialog(Transfer::Materials),
         }
     }
 
