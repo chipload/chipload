@@ -902,16 +902,6 @@ pub fn positions(moves: &[Move], start: (f64, f64, f64)) -> Vec<(f64, f64, f64)>
     out
 }
 
-/// The slowest feed among `moves`: an entry's plunge goes no faster than anything the
-/// operation cut.
-pub fn slowest_feed(moves: &[Move]) -> Option<f64> {
-    moves
-        .iter()
-        .filter(|m| m.kind == MoveKind::Feed)
-        .filter_map(|m| m.feed)
-        .reduce(f64::min)
-}
-
 /// One piece of a setup cut as a puzzle.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Piece {

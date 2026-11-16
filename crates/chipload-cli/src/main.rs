@@ -643,15 +643,22 @@ pub enum ZZeroArg {
     Spoilboard,
 }
 
+/// "600x400" (or `X`, `×`) split in its two halves, trimmed.
+fn by(text: &str) -> Option<(&str, &str)> {
+    text.split_once(['x', 'X', '×'])
+        .map(|(a, b)| (a.trim(), b.trim()))
+}
+
 /// "600x400": two lengths.
 fn board_size(text: &str) -> Result<(f64, f64), String> {
-    let (x, y) = text
-        .split_once(['x', 'X', '×'])
-        .ok_or_else(|| format!("expected X×Y, such as 600x400, got {text:?}"))?;
-    Ok((
-        crate::lengths::length(x.trim())?,
-        crate::lengths::length(y.trim())?,
-    ))
+    let (x, y) = by(text).ok_or_else(|| format!("expected X×Y, such as 600x400, got {text:?}"))?;
+    Ok((crate::lengths::length(x)?, crate::lengths::length(y)?))
+}
+
+/// "3x2": columns and rows, whole numbers. None when it isn't.
+fn grid_counts(text: &str) -> Option<(u32, u32)> {
+    let (c, r) = by(text)?;
+    Some((c.parse().ok()?, r.parse().ok()?))
 }
 
 impl StartArgs {

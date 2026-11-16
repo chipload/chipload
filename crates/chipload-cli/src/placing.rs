@@ -182,9 +182,7 @@ pub(crate) fn changed_copies(
         return Err("the part has no copies yet: give --grid (and --pitch or --gap)".into());
     }
     if let Some(grid) = &args.grid {
-        let (columns, rows) = grid
-            .split_once(['x', 'X'])
-            .and_then(|(c, r)| Some((c.trim().parse().ok()?, r.trim().parse().ok()?)))
+        let (columns, rows) = crate::grid_counts(grid)
             .ok_or_else(|| format!("--grid wants columns x rows like 3x2, got \"{grid}\""))?;
         copies.columns = columns;
         copies.rows = rows;

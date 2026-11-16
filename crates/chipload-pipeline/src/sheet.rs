@@ -931,20 +931,7 @@ fn operations_table(
 }
 
 fn feeds(op: &Operation) -> (f64, f64) {
-    match op {
-        Operation::Profile(p) => (p.feed, p.plunge_feed),
-        Operation::Pocket(p) => (p.feed, p.plunge_feed),
-        Operation::Vcarve(v) => (v.feed, v.plunge_feed),
-        Operation::Path(p) => (p.feed, p.plunge_feed),
-        Operation::Chamfer(c) => (c.feed, c.plunge_feed),
-        Operation::Flute(f) => (f.feed, f.plunge_feed),
-        Operation::Pattern(f) => (f.feed, f.plunge_feed),
-        Operation::Prism(f) => (f.feed, f.plunge_feed),
-        Operation::Moulding(m) => (m.feed, m.plunge_feed),
-        Operation::Holes(h) => (h.feed, h.plunge_feed),
-        Operation::Surface(f) => (f.feed, f.plunge_feed),
-        Operation::Relief(r) => (r.feed, r.plunge_feed),
-    }
+    (op.feed(), op.plunge_feed())
 }
 
 fn direction_message(direction: Direction) -> Message {

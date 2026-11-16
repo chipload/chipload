@@ -8,9 +8,7 @@ use chipload_core::Point;
 use chipload_i18n::{Message, Value};
 use chipload_job::{Geometry, Job, Note, Operation, Selector, Shape, StockOrigin, WorkZero};
 use chipload_toolpath::model::Program;
-use chipload_toolpath::pieces::{
-    Piece, PieceSet, Trimmer, bulged, piece_set, positions, reach, slowest_feed,
-};
+use chipload_toolpath::pieces::{Piece, PieceSet, Trimmer, bulged, piece_set, positions, reach};
 use chipload_toolpath::plan::{APPROACH_CLEARANCE_MM, OpSpan, Plan, ToolGroup};
 use chipload_toolpath::{plan_job, validate_job};
 
@@ -193,6 +191,13 @@ fn trimmed(
         {
             let begin = t.moves.len();
             let before = t.split_entries;
+            // The operation's own plunge feed (a rest pass's its own) for every entry.
+            let plunge = one
+                .resolve(chipload_job::OpRef {
+                    operation: span.operation,
+                    pass: span.pass,
+                })
+                .map_or(0.0, |op| op.plunge_feed());
             if set.cut_out.contains(&span.operation) {
                 for s in own
                     .op_spans
@@ -200,7 +205,6 @@ fn trimmed(
                     .filter(|s| s.operation == span.operation && s.pass == span.pass)
                 {
                     let moves = &own.program.moves[s.moves.clone()];
-                    let plunge = slowest_feed(moves).unwrap_or(0.0);
                     t.add(moves, own_at[s.moves.start], None, plunge)?;
                 }
             } else {
@@ -213,7 +217,6 @@ fn trimmed(
                     }
                 };
                 let moves = &whole.program.moves[span.moves.clone()];
-                let plunge = slowest_feed(moves).unwrap_or(0.0);
                 t.add(moves, whole_at[span.moves.start], Some(&ring), plunge)?;
             }
             if t.split_entries > before

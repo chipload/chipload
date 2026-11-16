@@ -384,6 +384,42 @@ impl Operation {
         }
     }
 
+    /// The feed the operation cuts at, mm/min: every kind has one.
+    pub fn feed(&self) -> f64 {
+        match self {
+            Operation::Profile(op) => op.feed,
+            Operation::Pocket(op) => op.feed,
+            Operation::Vcarve(op) => op.feed,
+            Operation::Path(op) => op.feed,
+            Operation::Chamfer(op) => op.feed,
+            Operation::Flute(op) => op.feed,
+            Operation::Pattern(op) => op.feed,
+            Operation::Prism(op) => op.feed,
+            Operation::Moulding(op) => op.feed,
+            Operation::Holes(op) => op.feed,
+            Operation::Surface(op) => op.feed,
+            Operation::Relief(op) => op.feed,
+        }
+    }
+
+    /// The feed the operation plunges at, mm/min: every kind has one.
+    pub fn plunge_feed(&self) -> f64 {
+        match self {
+            Operation::Profile(op) => op.plunge_feed,
+            Operation::Pocket(op) => op.plunge_feed,
+            Operation::Vcarve(op) => op.plunge_feed,
+            Operation::Path(op) => op.plunge_feed,
+            Operation::Chamfer(op) => op.plunge_feed,
+            Operation::Flute(op) => op.plunge_feed,
+            Operation::Pattern(op) => op.plunge_feed,
+            Operation::Prism(op) => op.plunge_feed,
+            Operation::Moulding(op) => op.plunge_feed,
+            Operation::Holes(op) => op.plunge_feed,
+            Operation::Surface(op) => op.plunge_feed,
+            Operation::Relief(op) => op.plunge_feed,
+        }
+    }
+
     pub fn enabled(&self) -> bool {
         match self {
             Operation::Profile(op) => op.enabled,

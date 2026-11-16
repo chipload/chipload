@@ -601,12 +601,9 @@ impl PiecesArgs {
             pieces.grid = if grid.trim() == "auto" {
                 None
             } else {
-                let (columns, rows) = grid
-                    .split_once(['x', 'X', '×'])
-                    .and_then(|(c, r)| Some((c.trim().parse().ok()?, r.trim().parse().ok()?)))
-                    .ok_or_else(|| {
-                        format!("--grid wants columns x rows like 3x2, or auto, got \"{grid}\"")
-                    })?;
+                let (columns, rows) = crate::grid_counts(grid).ok_or_else(|| {
+                    format!("--grid wants columns x rows like 3x2, or auto, got \"{grid}\"")
+                })?;
                 Some(PieceGrid { columns, rows })
             };
         }
