@@ -1,5 +1,5 @@
 # The canvas's legend: what each kind of line on the canvas means
-# (crates/chipload-gui/src/view.rs).
+# (crates/chipload-gui/src/view/).
 
 # A closed contour that is not inside another one.
 view-legend-outline = contour extérieur

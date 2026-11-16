@@ -1,4 +1,4 @@
-# The property forms: an operation, the job settings, tools, DXFs, pictures, texts, parts (crates/chipload-gui/src/app/forms.rs).
+# The property forms: an operation, the job settings, tools, DXFs, pictures, texts, parts (crates/chipload-gui/src/app/forms/).
 
 # Depths, shared by the operations. "Through": a button that sets the end depth through the stock.
 forms-start-depth = Start depth

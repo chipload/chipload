@@ -1,4 +1,4 @@
-# The setup sheet for the operator (crates/chipload-pipeline/src/sheet.rs,
+# The setup sheet for the operator (crates/chipload-pipeline/src/sheet/,
 # docs/specs/setup-sheet.md): an HTML page printed next to the machine. A length argument
 # brings its own unit ("6 mm", "0.25 in"); $start, $end, $x, $y, $width, $step, $radius and
 # $feed are numbers alone, in the sheet's units, as are $z and $peck where said. Names

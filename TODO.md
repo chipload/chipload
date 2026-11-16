@@ -242,10 +242,21 @@ to a program you trust. It was about four per operation; with the defaults and s
       only (`shapes_from_clipboard`, `paste_shapes` set `construction: false`).
     - Materials: import and export in the window (the command line has `material
       export`/`import`).
-    - The remaining large files, split by topic as `forms/` and `models/` were, when next
-      worked on: toolpath `plan.rs` (4,470 lines on 2026-11-16, grown with mirrored parts,
-      pieces and instances), `pocket.rs` (2,070), the canvas `view.rs` (2,540), the window's
-      `app/mod.rs` (2,440), `app/user_library.rs` (1,480).
+    - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
+      per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,
+      `validate_ops.rs`, the pipeline's `sheet/`, `drawing_edit/` and `lib.rs`, the CLI's
+      `ops/`, `shapes/`, `library/` and `main.rs`, the window's `view/`, `app/mod.rs`,
+      browser, canvas, ribbon, user library and forms; long functions broken up
+      (`check_job`, `Job::validate`, `op_form`, `canvas`, `ribbon_groups`, `kind_text`,
+      `shape`); ten files' inline tests moved to `tests.rs`. Left over 1,000 lines:
+      `app/compass.rs` (1,210), `simulate.rs` (1,140), `app/modify.rs`, `app/menu.rs`,
+      `new_ops.rs`, `pieces.rs`, `relief.rs`, the job's `models/project.rs` and
+      `models/shapes.rs`, the checker's `lib.rs`, `app/sources.rs`, `vcarve.rs`, `lap.rs`
+      (1,000 to 1,130 each), and the test files `cli/tests/cli.rs` (3,370),
+      `job/tests/jobs.rs` (2,650), `pipeline/tests/pipeline.rs`, `toolpath/tests/pocket.rs`.
+      Functions still over 150 lines: `icons::paint` (a table of drawings), `plan_pocket`,
+      `properties_panel`, `group_rows`, `screenshot_setup`, `operation_row`, `part_rows`,
+      the CLI's `setup` and `frame` commands, `add_sign`, `plan_profile_op`, and others.
     - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
       stock), if the user wants it (docs/specs/job-settings-layout.md).
     - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
