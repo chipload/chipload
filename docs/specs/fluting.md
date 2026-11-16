@@ -214,6 +214,6 @@ refuses a project with a type it doesn't know.
   Points that fall on an arc are put on its circle, so the arc is still written as G2/G3
   where Z changes evenly.
 - **Code:** `chipload-toolpath/src/flute.rs` (the profile, the points, the order, the
-  moves, the width), `plan_flute_op` in `plan.rs`; `OpKind::Flute` in the pipeline;
+  moves, the width), `plan_flute_op` in `plan/op_shapes.rs`; `OpKind::Flute` in the pipeline;
   `op add flute --ramp/--ramp-start/--ramp-end/--ramp-shape`; the form's
   `flute_sections`; `Icon::Flute`.

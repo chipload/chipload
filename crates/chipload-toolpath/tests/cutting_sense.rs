@@ -9,13 +9,18 @@
 fn only_the_programs_own_spindle_reads_the_machine() {
     let src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
     let mut reads = Vec::new();
-    for entry in std::fs::read_dir(&src).unwrap() {
-        let path = entry.unwrap().path();
-        if path.extension().is_some_and(|e| e == "rs") {
-            let text = std::fs::read_to_string(&path).unwrap();
-            for (n, line) in text.lines().enumerate() {
-                if line.contains("machine.spindle") {
-                    reads.push(format!("{}:{}: {}", path.display(), n + 1, line.trim()));
+    let mut dirs = vec![src];
+    while let Some(dir) = dirs.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                dirs.push(path);
+            } else if path.extension().is_some_and(|e| e == "rs") {
+                let text = std::fs::read_to_string(&path).unwrap();
+                for (n, line) in text.lines().enumerate() {
+                    if line.contains("machine.spindle") {
+                        reads.push(format!("{}:{}: {}", path.display(), n + 1, line.trim()));
+                    }
                 }
             }
         }
