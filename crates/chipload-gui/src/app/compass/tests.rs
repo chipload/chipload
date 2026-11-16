@@ -52,3 +52,42 @@ fn a_turned_box_goes_round_the_centre() {
     );
     assert_eq!(now.rotation, 90.0);
 }
+
+/// An instance turned about a point that isn't its own centre lands where its ghost's
+/// outlines, turned about that point, show it (docs/specs/part-placement.md §5).
+#[test]
+fn an_instance_turns_about_the_compass_wherever_it_is() {
+    let mut app = ChiploadApp::default();
+    let project = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/corpus/jobs/v5/drawn_part.chipload");
+    assert!(app.open(&project));
+    app.add_instance(1, false);
+    let draw = |app: &mut ChiploadApp| {
+        let ctx = egui::Context::default();
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.canvas(ui));
+        output.textures_delta.clear();
+    };
+    draw(&mut app);
+    let before = app.scene.instances[0].outlines.clone();
+    let pivot = (40.0, -25.0);
+    let target = Target::Instance(1, 2);
+    app.compass_apply(&target, pivot, 0.0, Motion::Turn(30.0));
+    draw(&mut app);
+    let after = app.scene.instances[0].outlines.clone();
+    let (s, c) = math::sin_cos(30f64.to_radians());
+    for (a, b) in before.iter().flatten().zip(after.iter().flatten()) {
+        let (x, y) = (a.0 - pivot.0, a.1 - pivot.1);
+        let want = (pivot.0 + x * c - y * s, pivot.1 + x * s + y * c);
+        assert!(
+            (want.0 - b.0).abs() < 1e-6 && (want.1 - b.1).abs() < 1e-6,
+            "{want:?} vs {b:?}"
+        );
+    }
+    // And moved: by as much.
+    app.compass_apply(&target, pivot, 0.0, Motion::Move((5.0, -7.0)));
+    draw(&mut app);
+    let moved = &app.scene.instances[0].outlines;
+    for (a, b) in after.iter().flatten().zip(moved.iter().flatten()) {
+        assert!((a.0 + 5.0 - b.0).abs() < 1e-6 && (a.1 - 7.0 - b.1).abs() < 1e-6);
+    }
+}

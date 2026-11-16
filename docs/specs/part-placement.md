@@ -114,6 +114,18 @@ placed elsewhere, the drawing and the cut are in two places:
 - Dragging the part's own shapes (box drag, Compass on the shapes) still moves the
   definition, and with it every instance, the first too: the same as editing it.
 
+**As built (step 4, 2026-11-16).**
+- The window reads and writes instance 1 through the part's `angle` and `at`
+  (`instance_value`, `set_instance_value`), so dragging, the turn handle, *Turn 90°*, the
+  form and Escape work on it as on any instance. Delete on instance 1 does nothing (it
+  can't be removed); *Reset placement* is in its row's menu and the part's.
+- The dashed box is the part's box with a few pixels' margin, labelled "Part 1: not cut
+  here", in Edit mode only.
+- **The Compass** shows on a selected instance (its ghost or its row), about the ghost's
+  centre: arrows, ring, centre, typed values and the pick menu move and turn it, worked out
+  on its placement (turned about the Compass's centre, the turn adds to its angle). A right
+  drag (copy, array) is refused for instances. This was the loose end of instances.md §4.
+
 ## 7. Command line
 
 - `chipload part place part.chipload --part 1 [--at X,Y] [--angle 90]` (`--reset` back to

@@ -192,3 +192,88 @@ fn a_problem_in_an_instance_marks_its_form() {
     );
     draw_properties(&mut app);
 }
+
+// -- The part itself placed (docs/specs/part-placement.md §6)
+
+fn own(app: &ChiploadApp) -> ([f64; 2], f64) {
+    let part = &app.edit.as_ref().unwrap().job.parts[0];
+    (part.at, part.angle)
+}
+
+#[test]
+fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
+    let mut app = drawn_part();
+    draw_canvas(&mut app);
+    assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
+    // *Place…* opens its form: instance 1.
+    app.place_part(1);
+    assert_eq!(app.focus, Focus::Instance(1, 1));
+    draw_properties(&mut app);
+    let mut placed = app.instance_value(1, 1).unwrap();
+    placed.at = [300.0, 0.0];
+    assert!(app.set_instance_value(1, 1, placed));
+    app.commit();
+    assert_eq!(own(&app), ([300.0, 0.0], 0.0));
+    // A ghost #1 where it is cut, and a dashed box round its shapes, not cut there.
+    draw_canvas(&mut app);
+    let ghost = app.scene.instances.iter().find(|g| g.id == 1).unwrap();
+    assert!(ghost.label == "#1" && ghost.selected);
+    let ((x0, _), _) = app.edit.as_ref().unwrap().job.part_box(1).unwrap();
+    assert!(ghost.outlines.iter().flatten().all(|p| p.0 > x0 + 250.0));
+    assert_eq!(app.scene.elsewhere.len(), 1);
+    assert!(app.scene.elsewhere[0].1.ends_with("not cut here"));
+    // Turned a quarter from its menu; never mirrored, switched off alone or removed.
+    app.turn_instance(1, 1);
+    assert_eq!(own(&app).1, FRAC_PI_2);
+    app.mirror_instance(1, 1);
+    app.remove_instance(1, 1);
+    let part = &app.edit.as_ref().unwrap().job.parts[0];
+    assert!(part.mirror.is_none() && part.enabled && part.is_placed());
+    // Its form: turn and move only.
+    draw_properties(&mut app);
+    // *Reset placement*: back where drawn, as one undo step.
+    app.reset_part_placement(1);
+    assert_eq!(own(&app), ([0.0, 0.0], 0.0));
+    draw_canvas(&mut app);
+    assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
+    app.undo();
+    assert_eq!(own(&app), ([300.0, 0.0], FRAC_PI_2));
+}
+
+#[test]
+fn the_part_itself_is_listed_first_among_its_instances() {
+    let mut h = harness();
+    h.state_mut().focus = Focus::Part(1);
+    h.run_steps(4);
+    use egui_kittest::kittest::Queryable;
+    assert!(h.query_by_label("Instance 1").is_some());
+    assert!(h.query_by_label("Instance 2").is_some());
+}
+
+#[test]
+fn the_compass_moves_and_turns_an_instance() {
+    let mut app = drawn_part();
+    app.add_instance(1, false);
+    draw_canvas(&mut app);
+    let start = instance(&app);
+    let centre = app.scene.instances[0].centre;
+    // Q on the selected instance: the Compass sits on its centre.
+    app.toggle_compass();
+    let (at, angle, _) = app.compass_now().unwrap();
+    assert_eq!((at, angle), (centre, 0.0));
+    // The ring a quarter turn: turned about the Compass's centre, which is its own.
+    let grab = app.view.to_screen((centre.0 + 20.0, centre.1));
+    assert!(app.start_compass_drag(super::super::compass::CompassPart::Ring, grab, false));
+    app.drag_compass_to((centre.0, centre.1 + 20.0), false);
+    app.end_compass_drag(None);
+    let turned = instance(&app);
+    assert!((turned.angle - FRAC_PI_2).abs() < 1e-12, "{turned:?}");
+    assert!(
+        (turned.at[0] - start.at[0]).abs() < 1e-9 && (turned.at[1] - start.at[1]).abs() < 1e-9,
+        "turned in place: {turned:?} vs {start:?}"
+    );
+    // A right drag (copy, array) is not for instances.
+    assert!(!app.start_compass_drag(super::super::compass::CompassPart::X, grab, true));
+    app.undo();
+    assert_eq!(instance(&app), start);
+}

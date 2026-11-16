@@ -96,6 +96,9 @@ pub(super) enum Target {
     Dxf(u64),
     /// A picture, text or 3D model, by its box.
     Placed(Source, PlacedBox),
+    /// A part's instance, by part and number, 1 the part itself
+    /// (docs/specs/part-placement.md §5): moved and turned, never copied.
+    Instance(u64, u32),
 }
 
 /// A drag of the Compass in progress.
@@ -172,6 +175,8 @@ pub struct Compass {
     angle: f64,
     /// The selection it was set up for: another selection starts it afresh.
     selection: Option<CanvasSelection>,
+    /// The instance it was set up for, when one was selected: another starts it afresh.
+    instance: Option<(u64, u32)>,
     pub(super) drag: Option<CompassDrag>,
     pub(super) menu: Option<CompassMenu>,
     /// The menu after a right-click on the centre or an arrow (§15): the part, where.
@@ -206,8 +211,17 @@ impl ChiploadApp {
         self.canvas_tools.compass = Compass {
             shown: true,
             selection: Some(self.selection.clone()),
+            instance: self.focused_instance(),
             ..Compass::default()
         };
+    }
+
+    /// The instance selected (its ghost or its row), if any.
+    fn focused_instance(&self) -> Option<(u64, u32)> {
+        match self.focus {
+            Focus::Instance(part, id) => Some((part, id)),
+            _ => None,
+        }
     }
 
     /// Hide the Compass; whether it was shown.
@@ -241,6 +255,15 @@ impl ChiploadApp {
     /// What the Compass would move, and the middle of it: drawn shapes, a group, a whole
     /// DXF, picture, text or model. None for anything else, or while it can't show.
     fn compass_target(&mut self) -> Option<(Target, Point)> {
+        // An instance selected: its ghost, about its centre where it lies.
+        if let Some((part, id)) = self.focused_instance() {
+            let ghost = self
+                .scene
+                .instances
+                .iter()
+                .find(|g| g.part == part && g.id == id)?;
+            return Some((Target::Instance(part, id), ghost.centre));
+        }
         if let CanvasSelection::Shapes(_) = self.selection {
             let (ids, imported) = self.deletable_shapes();
             if imported || ids.is_empty() {
@@ -268,14 +291,18 @@ impl ChiploadApp {
         if !self.canvas_tools.compass.shown {
             return None;
         }
-        if self.canvas_tools.compass.selection.as_ref() != Some(&self.selection) {
-            if self.selection == CanvasSelection::Nothing {
+        let instance = self.focused_instance();
+        if self.canvas_tools.compass.selection.as_ref() != Some(&self.selection)
+            || self.canvas_tools.compass.instance != instance
+        {
+            if self.selection == CanvasSelection::Nothing && instance.is_none() {
                 self.hide_compass();
                 return None;
             }
             self.canvas_tools.compass = Compass {
                 shown: true,
                 selection: Some(self.selection.clone()),
+                instance,
                 ..Compass::default()
             };
         }
@@ -342,6 +369,10 @@ impl ChiploadApp {
         let Some((target, _)) = self.compass_target() else {
             return false;
         };
+        // An instance is moved and turned, never copied or arrayed.
+        if right && matches!(target, Target::Instance(..)) {
+            return false;
+        }
         self.canvas_tools.compass.menu = None;
         self.canvas_tools.compass.drag = Some(CompassDrag {
             part,
@@ -473,6 +504,7 @@ impl ChiploadApp {
                 self.place_whole(*source, start, &now, true);
                 true
             }
+            Target::Instance(part, id) => self.transform_instance(*part, *id, from, to, degrees),
         };
         if done {
             self.compass_follows(motion, centre, angle);
@@ -483,10 +515,44 @@ impl ChiploadApp {
     fn compass_follows(&mut self, motion: Motion, centre: Point, angle: f64) {
         let (centre, angle) = motion.applied(centre, angle);
         let selection = self.selection.clone();
+        let instance = self.focused_instance();
         let compass = &mut self.canvas_tools.compass;
         compass.centre = Some(centre);
         compass.angle = angle;
         compass.selection = Some(selection);
+        compass.instance = instance;
+    }
+
+    /// Instance `id` of part `part` (1: the part itself) moved and turned as a shape would
+    /// be by `transform_shapes`: each point p to `to` + turn(p − `from`), as one undo step.
+    /// Its placement turns about the part's centre, so the turn adds to its angle and its
+    /// move is worked out to keep it where the Compass puts it.
+    fn transform_instance(
+        &mut self,
+        part: u64,
+        id: u32,
+        from: Point,
+        to: Point,
+        degrees: f64,
+    ) -> bool {
+        let Some(c) = self.edit.as_ref().and_then(|e| e.job.part_centre(part)) else {
+            return false;
+        };
+        let Some(mut instance) = self.instance_value(part, id) else {
+            return false;
+        };
+        let (sin, cos) = math::sin_cos(degrees.to_radians());
+        let (px, py) = (c.0 + instance.at[0] - from.0, c.1 + instance.at[1] - from.1);
+        instance.at = [
+            to.0 + px * cos - py * sin - c.0,
+            to.1 + px * sin + py * cos - c.1,
+        ];
+        instance.angle = super::instances::tidy_angle(instance.angle + degrees.to_radians());
+        if self.set_instance_value(part, id, instance) {
+            self.commit();
+            return true;
+        }
+        false
     }
 
     /// The contours of what the Compass moves, left out of snapping so it never snaps to
@@ -501,6 +567,8 @@ impl ChiploadApp {
                 .unwrap_or_default(),
             Target::Dxf(id) => self.dxf_shapes(*id).into_iter().collect(),
             Target::Placed(..) => return self.selected_ids(),
+            // A ghost is no contour: it never snaps to itself.
+            Target::Instance(..) => return BTreeSet::new(),
         };
         self.contours
             .iter()
@@ -552,6 +620,20 @@ impl ChiploadApp {
             Target::Placed(_, start) => {
                 let c = moved_box(start, from, to, degrees).corners();
                 vec![vec![c[0], c[1], c[2], c[3], c[0]]]
+            }
+            Target::Instance(part, id) => {
+                let (sin, cos) = math::sin_cos(degrees.to_radians());
+                let put = |p: &Point| {
+                    let (x, y) = (p.0 - from.0, p.1 - from.1);
+                    (to.0 + x * cos - y * sin, to.1 + x * sin + y * cos)
+                };
+                self.scene
+                    .instances
+                    .iter()
+                    .filter(|g| g.part == *part && g.id == *id)
+                    .flat_map(|g| &g.outlines)
+                    .map(|outline| outline.iter().map(put).collect())
+                    .collect()
             }
         }
     }

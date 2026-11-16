@@ -79,6 +79,11 @@ browser-instance-hover = La pièce placée encore une fois : les mêmes formes e
 browser-instance-mirror = Miroir
 browser-instance-turn = Tourner de 90°
 browser-instance-remove = Supprimer
+browser-place-part = Placer…
+browser-place-part-hover = Usiner la pièce elle-même ailleurs, déplacée et tournée comme une instance ; ses formes restent là où elles sont dessinées
+browser-reset-placement = Réinitialiser le placement
+browser-reset-placement-hover = Usiner de nouveau la pièce là où ses formes sont dessinées
+browser-instance-one-hover = La pièce elle-même : usinée ici, déplacée et tournée comme une instance, tandis que ses formes restent et se modifient là où elles sont dessinées. Sa case est celle de la pièce.
 browser-part-hover = Cliquer pour ses propriétés et instances ; double-clic pour en faire la pièce active ; clic droit pour plus
 # A verb: make this the active part.
 browser-activate = Activer

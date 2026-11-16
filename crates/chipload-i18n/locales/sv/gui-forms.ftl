@@ -284,6 +284,7 @@ forms-instance-move-x = flyttad X
 forms-instance-move-y = flyttad Y
 forms-instance-move-hover = Hur långt från detaljen som ritad den ligger, efter spegling och vridning. Dra dess skugga i vyn för att flytta den.
 forms-instance-note = Länkad till sin detalj: detaljens former och operationer fräses även här.
+forms-instance-one-note = Själva detaljen, fräst här. Dess former stannar där de är ritade, och där redigerar du dem; dess instanser placeras också därifrån.
 forms-picture-rotation-hover = Grader moturs, valfri vinkel, kring bildens centrum. Bilden spåras som den är, sedan vrids dess former.
 forms-turn-ccw-hover = 90° moturs
 forms-turn-cw-hover = 90° medurs

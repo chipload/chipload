@@ -79,6 +79,11 @@ browser-instance-hover = The part placed again: the same shapes and operations, 
 browser-instance-mirror = Mirror
 browser-instance-turn = Turn 90°
 browser-instance-remove = Remove
+browser-place-part = Place…
+browser-place-part-hover = Cut the part itself somewhere else, moved and turned like an instance; its shapes stay where they are drawn
+browser-reset-placement = Reset placement
+browser-reset-placement-hover = Cut the part where its shapes are drawn again
+browser-instance-one-hover = The part itself: cut here, moved and turned like an instance, while its shapes stay where they are drawn and edited. Its tick is the part's.
 browser-part-hover = Click for its properties and instances; double-click to make it the active part; right-click for more
 # A verb: make this the active part.
 browser-activate = Activate

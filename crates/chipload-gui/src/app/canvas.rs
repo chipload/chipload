@@ -237,6 +237,7 @@ impl ChiploadApp {
         // Each part's instances, as ghosts where they are cut (docs/specs/instances.md §4):
         // the contours its operations cut; the part itself is the drawing.
         self.scene.instances = self.instance_ghosts();
+        self.scene.elsewhere = self.placed_elsewhere();
         self.scene.mirrored = self.mirrored_outlines();
         self.sync_rim_preview(ui.visuals().dark_mode);
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md). A

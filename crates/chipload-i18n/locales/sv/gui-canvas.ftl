@@ -89,3 +89,6 @@ compass-status-pick-centre-axis = Klicka på en form: markeringen flyttas längs
 compass-value-distance = Avstånd
 compass-value-angle = Vinkel
 compass-value-delta = ΔX ΔY
+# A part cut elsewhere than drawn: the label on the dashed box round its shapes
+# (docs/specs/part-placement.md §4).
+canvas-not-cut-here = { $part }: fräses inte här

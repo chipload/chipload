@@ -284,6 +284,7 @@ forms-instance-move-x = movida X
 forms-instance-move-y = movida Y
 forms-instance-move-hover = A qué distancia queda de la pieza tal como está dibujada, tras reflejarla y girarla. Arrastre su sombra en la vista para moverla.
 forms-instance-note = Enlazada con su pieza: las formas y operaciones de la pieza también se cortan aquí.
+forms-instance-one-note = La propia pieza, cortada aquí. Sus formas quedan donde están dibujadas, y ahí se editan; sus instancias también se colocan desde ahí.
 forms-picture-rotation-hover = Grados en sentido antihorario, cualquier ángulo, alrededor del centro de la imagen. La imagen se vectoriza tal cual y luego se giran sus formas.
 forms-turn-ccw-hover = 90° en sentido antihorario
 forms-turn-cw-hover = 90° en sentido horario

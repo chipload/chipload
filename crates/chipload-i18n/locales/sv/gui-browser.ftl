@@ -79,6 +79,11 @@ browser-instance-hover = Detaljen placerad igen: samma former och operationer, f
 browser-instance-mirror = Spegla
 browser-instance-turn = Vrid 90°
 browser-instance-remove = Ta bort
+browser-place-part = Placera…
+browser-place-part-hover = Fräs själva detaljen någon annanstans, flyttad och vriden som en instans; dess former stannar där de är ritade
+browser-reset-placement = Återställ placering
+browser-reset-placement-hover = Fräs detaljen där dess former är ritade igen
+browser-instance-one-hover = Själva detaljen: fräst här, flyttad och vriden som en instans, medan dess former stannar och redigeras där de är ritade. Dess bock är detaljens.
 browser-part-hover = Klicka för dess egenskaper och instanser; dubbelklicka för att göra den aktiv; högerklicka för mer
 # A verb: make this the active part.
 browser-activate = Aktivera

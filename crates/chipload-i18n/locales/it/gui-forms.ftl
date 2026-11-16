@@ -284,6 +284,7 @@ forms-instance-move-x = spostata X
 forms-instance-move-y = spostata Y
 forms-instance-move-hover = A che distanza si trova dal pezzo come disegnato, dopo specchiatura e rotazione. Trascini la sua ombra nella vista per spostarla.
 forms-instance-note = Collegata al suo pezzo: le forme e le lavorazioni del pezzo si tagliano anche qui.
+forms-instance-one-note = Il pezzo stesso, tagliato qui. Le sue forme restano dove sono disegnate, ed è lì che si modificano; anche le sue istanze sono collocate da lì.
 forms-picture-rotation-hover = Gradi in senso antiorario, qualsiasi angolo, attorno al centro dell'immagine. L'immagine viene vettorizzata così com'è, poi le sue forme vengono ruotate.
 forms-turn-ccw-hover = 90° in senso antiorario
 forms-turn-cw-hover = 90° in senso orario

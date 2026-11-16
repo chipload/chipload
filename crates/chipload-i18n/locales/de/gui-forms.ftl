@@ -285,6 +285,7 @@ forms-instance-move-x = verschoben X
 forms-instance-move-y = verschoben Y
 forms-instance-move-hover = Wie weit sie vom Teil, wie gezeichnet, entfernt liegt, nach Spiegeln und Drehen. Ziehen Sie ihren Schatten in der Ansicht, um sie zu verschieben.
 forms-instance-note = Mit ihrem Teil verknüpft: die Formen und Bearbeitungen des Teils werden auch hier gefräst.
+forms-instance-one-note = Das Teil selbst, hier gefräst. Seine Formen bleiben, wo sie gezeichnet sind, und werden dort bearbeitet; auch seine Instanzen werden von dort aus platziert.
 forms-picture-rotation-hover = Grad gegen den Uhrzeigersinn, beliebiger Winkel, um die Bildmitte. Das Bild wird nachgezeichnet, wie es ist, dann werden seine Formen gedreht.
 forms-turn-ccw-hover = 90° gegen den Uhrzeigersinn
 forms-turn-cw-hover = 90° im Uhrzeigersinn

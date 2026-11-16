@@ -284,6 +284,7 @@ forms-instance-move-x = déplacée X
 forms-instance-move-y = déplacée Y
 forms-instance-move-hover = À quelle distance elle se trouve de la pièce telle que dessinée, après miroir et rotation. Faites glisser son fantôme dans la vue pour la déplacer.
 forms-instance-note = Liée à sa pièce : les formes et opérations de la pièce sont aussi usinées ici.
+forms-instance-one-note = La pièce elle-même, usinée ici. Ses formes restent là où elles sont dessinées, et c'est là qu'on les modifie ; ses instances sont aussi placées à partir de là.
 forms-picture-rotation-hover = En degrés, sens anti-horaire, tout angle, autour du centre de l'image. L'image est vectorisée telle quelle, puis ses formes sont tournées.
 forms-turn-ccw-hover = 90° sens anti-horaire
 forms-turn-cw-hover = 90° sens horaire

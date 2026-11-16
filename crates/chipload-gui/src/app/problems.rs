@@ -327,6 +327,10 @@ impl ChiploadApp {
             Focus::Instance(part, id) => {
                 let at = settings.and_then(|s| {
                     let k = s.parts.iter().position(|p| p.id == part)?;
+                    if id == 1 {
+                        // The part itself: its `angle` and `at` (part-placement.md §6).
+                        return Some(format!("parts.{k}.a"));
+                    }
                     let j = s.parts[k].instances.iter().position(|i| i.id == id)?;
                     Some(format!("parts.{k}.instances.{j}."))
                 });

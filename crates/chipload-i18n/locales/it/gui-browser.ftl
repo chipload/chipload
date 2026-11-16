@@ -79,6 +79,11 @@ browser-instance-hover = Il pezzo posizionato di nuovo: le stesse forme e lavora
 browser-instance-mirror = Specchia
 browser-instance-turn = Ruota di 90°
 browser-instance-remove = Rimuovi
+browser-place-part = Colloca…
+browser-place-part-hover = Taglia il pezzo stesso altrove, spostato e ruotato come un'istanza; le sue forme restano dove sono disegnate
+browser-reset-placement = Ripristina collocazione
+browser-reset-placement-hover = Taglia di nuovo il pezzo dove sono disegnate le sue forme
+browser-instance-one-hover = Il pezzo stesso: tagliato qui, spostato e ruotato come un'istanza, mentre le sue forme restano e si modificano dove sono disegnate. La sua spunta è quella del pezzo.
 browser-part-hover = Clic per le sue proprietà e istanze; doppio clic per renderlo il pezzo attivo; clic destro per altro
 # A verb: make this the active part.
 browser-activate = Attiva

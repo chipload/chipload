@@ -285,6 +285,7 @@ forms-instance-move-x = moved X
 forms-instance-move-y = moved Y
 forms-instance-move-hover = How far it lies from the part as drawn, after its mirror and turn. Drag its ghost in the view to move it.
 forms-instance-note = Linked to its part: the part's shapes and operations are cut here too.
+forms-instance-one-note = The part itself, cut here. Its shapes stay where they are drawn, which is where you edit them; its instances are placed from there too.
 forms-picture-rotation-hover = Degrees counter-clockwise, any angle, about the picture's centre. The picture is traced as it is, then its shapes are turned.
 forms-turn-ccw-hover = 90° counter-clockwise
 forms-turn-cw-hover = 90° clockwise

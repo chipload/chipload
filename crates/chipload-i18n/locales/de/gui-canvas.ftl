@@ -89,3 +89,6 @@ compass-status-pick-centre-axis = Eine Form klicken: die Auswahl wird entlang de
 compass-value-distance = Abstand
 compass-value-angle = Winkel
 compass-value-delta = ΔX ΔY
+# A part cut elsewhere than drawn: the label on the dashed box round its shapes
+# (docs/specs/part-placement.md §4).
+canvas-not-cut-here = { $part }: hier nicht gefräst

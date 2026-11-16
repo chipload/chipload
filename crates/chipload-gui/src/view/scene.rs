@@ -98,6 +98,9 @@ pub struct Scene {
     /// picked by their outlines; the selected one with its turn handle
     /// (docs/specs/instances.md §4).
     pub instances: Vec<InstanceGhost>,
+    /// Parts placed elsewhere than drawn: the box round their shapes and its label, "Part
+    /// 1: not cut here", dashed (docs/specs/part-placement.md §4).
+    pub elsewhere: Vec<((Point, Point), String)>,
     /// Mirrored parts' contours where they are cut (docs/specs/mirror-part.md §5): drawn
     /// faded, never picked; the shapes as drawn stay to edit.
     pub mirrored: Vec<Vec<Point>>,
@@ -555,6 +558,20 @@ impl Scene {
                 &ghost.label,
                 eframe::egui::FontId::proportional(12.0),
                 color,
+            );
+        }
+        for ((low, high), label) in &self.elsewhere {
+            let corners = [*low, (high.0, low.1), *high, (low.0, high.1), *low];
+            dashed(
+                corners.iter().map(|&p| view.to_screen(p)).collect(),
+                Stroke::new(1.0, pal.ghost),
+            );
+            painter.text(
+                view.to_screen((low.0, high.1)) + Vec2::new(0.0, -4.0),
+                eframe::egui::Align2::LEFT_BOTTOM,
+                label,
+                eframe::egui::FontId::proportional(12.0),
+                pal.ghost,
             );
         }
         if let Some((color, lines)) = &self.rim {

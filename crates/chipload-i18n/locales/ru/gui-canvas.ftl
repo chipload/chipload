@@ -75,3 +75,6 @@ compass-status-pick-centre-axis = Щёлкните фигуру: выделен�
 compass-value-distance = Расстояние
 compass-value-angle = Угол
 compass-value-delta = ΔX ΔY
+# A part cut elsewhere than drawn: the label on the dashed box round its shapes
+# (docs/specs/part-placement.md §4).
+canvas-not-cut-here = { $part }: здесь не вырезается

@@ -79,6 +79,11 @@ browser-instance-hover = La pieza colocada otra vez: las mismas formas y operaci
 browser-instance-mirror = Reflejar
 browser-instance-turn = Girar 90°
 browser-instance-remove = Quitar
+browser-place-part = Colocar…
+browser-place-part-hover = Cortar la propia pieza en otro lugar, movida y girada como una instancia; sus formas quedan donde están dibujadas
+browser-reset-placement = Restablecer colocación
+browser-reset-placement-hover = Cortar de nuevo la pieza donde están dibujadas sus formas
+browser-instance-one-hover = La propia pieza: cortada aquí, movida y girada como una instancia, mientras sus formas quedan y se editan donde están dibujadas. Su casilla es la de la pieza.
 browser-part-hover = Clic para sus propiedades e instancias; doble clic para hacerla la pieza activa; clic derecho para más
 # A verb: make this the active part.
 browser-activate = Activar

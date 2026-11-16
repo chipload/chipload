@@ -98,56 +98,69 @@ fn mirror_row(ui: &mut egui::Ui, mirror: &mut Option<chipload_job::Mirror>, part
 }
 
 /// Part `part`'s instance `id` (docs/specs/instances.md §4): cut or not, its mirror, its
-/// turn and its move, each a field.
+/// turn and its move, each a field. Instance 1 is the part itself
+/// (docs/specs/part-placement.md §6): its turn and move only, the part's own fields.
 pub(in crate::app) fn instance_form(
     ui: &mut egui::Ui,
     edit: &mut EditJob,
     part: u64,
     id: u32,
 ) -> Option<JobRequest> {
-    use chipload_job::Mirror;
+    use chipload_job::{Instance, Mirror};
     let index = edit.job.parts.iter().position(|p| p.id == part)?;
-    let name = edit.job.parts[index].name.clone();
-    let k = edit.job.parts[index]
-        .instances
-        .iter()
-        .position(|i| i.id == id)?;
-    let instance = &mut edit.job.parts[index].instances[k];
+    let own = &edit.job.parts[index];
+    let name = own.name.clone();
+    // The value edited, and where its problems are reported.
+    let (mut instance, base) = if id == 1 {
+        let value = Instance {
+            id: 1,
+            enabled: own.enabled,
+            mirror: None,
+            angle: own.angle,
+            at: own.at,
+        };
+        (value, format!("parts.{index}"))
+    } else {
+        let k = own.instances.iter().position(|i| i.id == id)?;
+        (own.instances[k], format!("parts.{index}.instances.{k}"))
+    };
     super::browser_row::title_line(
         ui,
         crate::icons::Icon::Array,
         None,
         &format!("{} · {name}", t!(ui, "forms-instance-number", number = id)),
     );
-    let at = |field: &str| format!("parts.{index}.instances.{k}.{field}");
+    let at = |field: &str| format!("{base}.{field}");
     crate::app::forms::card(ui, |ui| {
         Grid::new(("instance-form", part, id))
             .num_columns(2)
             .min_col_width(label_width(ui) + ui.spacing().indent)
             .show(ui, |ui| {
-                ui.label(t!(ui, "forms-part-cut"))
-                    .on_hover_text(t!(ui, "forms-instance-cut-hover"));
-                ui.checkbox(&mut instance.enabled, t!(ui, "forms-instance-cut-check"));
-                ui.end_row();
-                let mirror_name = |ui: &egui::Ui, mirror: Option<Mirror>| match mirror {
-                    None => t!(ui, "forms-part-mirror-none"),
-                    Some(Mirror::LeftRight) => t!(ui, "forms-setup-turn-left-right"),
-                    Some(Mirror::TopBottom) => t!(ui, "forms-setup-turn-top-bottom"),
-                };
-                ui.label(t!(ui, "forms-part-mirror"))
-                    .on_hover_text(t!(ui, "forms-instance-mirror-hover"));
-                ComboBox::from_id_salt(("instance-mirror", part, id))
-                    .selected_text(mirror_name(ui, instance.mirror))
-                    .show_ui(ui, |ui| {
-                        for choice in [None, Some(Mirror::LeftRight), Some(Mirror::TopBottom)] {
-                            ui.selectable_value(
-                                &mut instance.mirror,
-                                choice,
-                                mirror_name(ui, choice),
-                            );
-                        }
-                    });
-                ui.end_row();
+                if id != 1 {
+                    ui.label(t!(ui, "forms-part-cut"))
+                        .on_hover_text(t!(ui, "forms-instance-cut-hover"));
+                    ui.checkbox(&mut instance.enabled, t!(ui, "forms-instance-cut-check"));
+                    ui.end_row();
+                    let mirror_name = |ui: &egui::Ui, mirror: Option<Mirror>| match mirror {
+                        None => t!(ui, "forms-part-mirror-none"),
+                        Some(Mirror::LeftRight) => t!(ui, "forms-setup-turn-left-right"),
+                        Some(Mirror::TopBottom) => t!(ui, "forms-setup-turn-top-bottom"),
+                    };
+                    ui.label(t!(ui, "forms-part-mirror"))
+                        .on_hover_text(t!(ui, "forms-instance-mirror-hover"));
+                    ComboBox::from_id_salt(("instance-mirror", part, id))
+                        .selected_text(mirror_name(ui, instance.mirror))
+                        .show_ui(ui, |ui| {
+                            for choice in [None, Some(Mirror::LeftRight), Some(Mirror::TopBottom)] {
+                                ui.selectable_value(
+                                    &mut instance.mirror,
+                                    choice,
+                                    mirror_name(ui, choice),
+                                );
+                            }
+                        });
+                    ui.end_row();
+                }
                 ui.label(t!(ui, "forms-rotation"))
                     .on_hover_text(t!(ui, "forms-instance-angle-hover"));
                 ui.horizontal(|ui| {
@@ -183,7 +196,21 @@ pub(in crate::app) fn instance_form(
             })
     });
     ui.add_space(4.0);
-    ui.weak(t!(ui, "forms-instance-note"));
+    if id == 1 {
+        ui.weak(t!(ui, "forms-instance-one-note"));
+        let target = &mut edit.job.parts[index];
+        target.angle = instance.angle;
+        target.at = instance.at;
+    } else {
+        ui.weak(t!(ui, "forms-instance-note"));
+        if let Some(target) = edit.job.parts[index]
+            .instances
+            .iter_mut()
+            .find(|i| i.id == id)
+        {
+            *target = instance;
+        }
+    }
     None
 }
 

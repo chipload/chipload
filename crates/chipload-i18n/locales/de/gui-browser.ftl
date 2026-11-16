@@ -79,6 +79,11 @@ browser-instance-hover = Das Teil noch einmal platziert: dieselben Formen und Be
 browser-instance-mirror = Spiegeln
 browser-instance-turn = 90° drehen
 browser-instance-remove = Entfernen
+browser-place-part = Platzieren…
+browser-place-part-hover = Das Teil selbst woanders fräsen, verschoben und gedreht wie eine Instanz; seine Formen bleiben, wo sie gezeichnet sind
+browser-reset-placement = Platzierung zurücksetzen
+browser-reset-placement-hover = Das Teil wieder dort fräsen, wo seine Formen gezeichnet sind
+browser-instance-one-hover = Das Teil selbst: hier gefräst, verschoben und gedreht wie eine Instanz, während seine Formen dort bleiben und bearbeitet werden, wo sie gezeichnet sind. Sein Häkchen ist das des Teils.
 browser-part-hover = Klicken für seine Eigenschaften und Instanzen; Doppelklick macht es zum aktiven Teil; Rechtsklick für mehr
 # A verb: make this the active part.
 browser-activate = Aktivieren

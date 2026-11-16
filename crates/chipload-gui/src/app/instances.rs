@@ -3,6 +3,9 @@
 //! menu, drawn as numbered ghosts where they are cut, picked with a click, moved by a drag
 //! and turned by a handle (quarter turns snap within 3°, Alt turns freely). A drag
 //! changes the instance as it goes and is one undo step when it ends; Escape puts it back.
+//! Instance 1 is the part itself (docs/specs/part-placement.md §6): its placement is the
+//! part's `angle` and `at`, its ghost shows once it is placed elsewhere than drawn, and it
+//! is never mirrored, switched off alone or removed.
 
 use chipload_core::{Point, math};
 use chipload_job::{Instance, Mirror};
@@ -39,17 +42,68 @@ pub(super) struct InstanceDrag {
 }
 
 impl ChiploadApp {
-    /// The instance `id` of part `part` in the project being edited.
-    fn instance_mut(&mut self, part: u64, id: u32) -> Option<&mut Instance> {
-        self.edit
-            .as_mut()?
-            .job
-            .parts
-            .iter_mut()
-            .find(|p| p.id == part)?
-            .instances
-            .iter_mut()
-            .find(|i| i.id == id)
+    /// Instance `id` of part `part` in the project being edited; 1 is the part itself, its
+    /// placement as an instance (on when the part is).
+    pub(super) fn instance_value(&self, part: u64, id: u32) -> Option<Instance> {
+        let part = self.edit.as_ref()?.job.part(part)?;
+        if id == 1 {
+            return Some(Instance {
+                id: 1,
+                enabled: part.enabled,
+                mirror: None,
+                angle: part.angle,
+                at: part.at,
+            });
+        }
+        part.instances.iter().find(|i| i.id == id).copied()
+    }
+
+    /// Instance `id` of part `part` made `value`; for the part itself only its turn and
+    /// move are taken. Whether there was one.
+    pub(super) fn set_instance_value(&mut self, part: u64, id: u32, value: Instance) -> bool {
+        let Some(part) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == part))
+        else {
+            return false;
+        };
+        if id == 1 {
+            part.angle = value.angle;
+            part.at = value.at;
+            return true;
+        }
+        match part.instances.iter_mut().find(|i| i.id == id) {
+            Some(instance) => {
+                *instance = Instance { id, ..value };
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Place part `part` itself: its instance 1's form, to move and turn it
+    /// (docs/specs/part-placement.md §6, *Place…*).
+    pub(super) fn place_part(&mut self, part: u64) {
+        self.focus = Focus::Instance(part, 1);
+    }
+
+    /// Part `part` cut where drawn again, as one undo step (*Reset placement*).
+    pub(super) fn reset_part_placement(&mut self, part: u64) {
+        let reset = Instance {
+            id: 1,
+            enabled: true,
+            mirror: None,
+            angle: 0.0,
+            at: [0.0, 0.0],
+        };
+        if self
+            .instance_value(part, 1)
+            .is_some_and(|now| now.angle != 0.0 || now.at != [0.0, 0.0])
+            && self.set_instance_value(part, 1, reset)
+        {
+            self.commit();
+        }
     }
 
     /// A new instance of part `part` beside what it cuts, mirrored left to right with
@@ -94,8 +148,12 @@ impl ChiploadApp {
         }
     }
 
-    /// Instance `id` of part `part` removed; the others keep their numbers.
+    /// Instance `id` of part `part` removed; the others keep their numbers. The part itself
+    /// (1) can't be removed (docs/specs/part-placement.md §7): nothing happens.
     pub(super) fn remove_instance(&mut self, part: u64, id: u32) {
+        if id == 1 {
+            return;
+        }
         if let Some(p) = self
             .edit
             .as_mut()
@@ -109,29 +167,40 @@ impl ChiploadApp {
         }
     }
 
-    /// Instance `id` turned on or off.
+    /// Instance `id` turned on or off; the part itself is switched with its part.
     pub(super) fn toggle_instance(&mut self, part: u64, id: u32) {
-        if let Some(instance) = self.instance_mut(part, id) {
+        if id == 1 {
+            self.toggle_part(part);
+            return;
+        }
+        if let Some(mut instance) = self.instance_value(part, id) {
             instance.enabled = !instance.enabled;
+            self.set_instance_value(part, id, instance);
             self.commit();
         }
     }
 
-    /// Instance `id` mirrored left to right, or back as the part is.
+    /// Instance `id` mirrored left to right, or back as the part is. The part itself has
+    /// no mirror of its own.
     pub(super) fn mirror_instance(&mut self, part: u64, id: u32) {
-        if let Some(instance) = self.instance_mut(part, id) {
+        if id == 1 {
+            return;
+        }
+        if let Some(mut instance) = self.instance_value(part, id) {
             instance.mirror = match instance.mirror {
                 None => Some(Mirror::LeftRight),
                 Some(_) => None,
             };
+            self.set_instance_value(part, id, instance);
             self.commit();
         }
     }
 
     /// Instance `id` turned a quarter counter-clockwise.
     pub(super) fn turn_instance(&mut self, part: u64, id: u32) {
-        if let Some(instance) = self.instance_mut(part, id) {
+        if let Some(mut instance) = self.instance_value(part, id) {
             instance.angle = tidy_angle(instance.angle + std::f64::consts::FRAC_PI_2);
+            self.set_instance_value(part, id, instance);
             self.commit();
         }
     }
@@ -141,7 +210,12 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        if edit.job.parts.iter().all(|p| p.instances.is_empty()) {
+        if edit
+            .job
+            .parts
+            .iter()
+            .all(|p| p.instances.is_empty() && !p.is_placed())
+        {
             return Vec::new();
         }
         let setup = edit.job.active_setup_id();
@@ -151,11 +225,7 @@ impl ChiploadApp {
             .filter(|i| setup.is_none() || edit.job.part(i.part).map(|p| p.setup) == setup)
             .map(|i| {
                 let selected = self.focus == Focus::Instance(i.part, i.id);
-                let angle = edit
-                    .job
-                    .part(i.part)
-                    .and_then(|p| p.instances.iter().find(|k| k.id == i.id))
-                    .map_or(0.0, |k| k.angle);
+                let angle = self.instance_value(i.part, i.id).map_or(0.0, |k| k.angle);
                 let reach = i
                     .outlines
                     .iter()
@@ -195,6 +265,30 @@ impl ChiploadApp {
                     centre: i.centre,
                     handle: selected.then_some(handle),
                 }
+            })
+            .collect()
+    }
+
+    /// In Edit mode, the box round the shapes of each part of the active setup that is cut
+    /// elsewhere than drawn, with "Part 1: not cut here" (docs/specs/part-placement.md §4,
+    /// decision 4).
+    pub(super) fn placed_elsewhere(&self) -> Vec<((Point, Point), String)> {
+        let Some(edit) = self.edit.as_ref().filter(|_| !self.display.simulate) else {
+            return Vec::new();
+        };
+        let setup = edit.job.active_setup_id();
+        let margin = 6.0 / self.view.scale.max(f64::MIN_POSITIVE);
+        edit.job
+            .parts
+            .iter()
+            .filter(|p| p.is_placed() && (setup.is_none() || Some(p.setup) == setup))
+            .filter_map(|p| {
+                let ((x0, y0), (x1, y1)) = edit.job.part_box(p.id)?;
+                let label = t!(self, "canvas-not-cut-here", part = p.name.as_str());
+                Some((
+                    ((x0 - margin, y0 - margin), (x1 + margin, y1 + margin)),
+                    label,
+                ))
             })
             .collect()
     }
@@ -244,7 +338,7 @@ impl ChiploadApp {
             .iter()
             .find(|g| g.part == part && g.id == id)
             .map(|g| g.centre);
-        let (Some(start), Some(centre)) = (self.instance_mut(part, id).copied(), centre) else {
+        let (Some(start), Some(centre)) = (self.instance_value(part, id), centre) else {
             return false;
         };
         self.focus = Focus::Instance(part, id);
@@ -269,16 +363,16 @@ impl ChiploadApp {
     pub(super) fn drag_instance_to(&mut self, at: Point, free: bool) -> Option<String> {
         let drag = self.drag.instance?;
         let units = self.prefs.units;
-        let instance = self.instance_mut(drag.part, drag.id)?;
-        match drag.grip {
+        let mut instance = self.instance_value(drag.part, drag.id)?;
+        let label = match drag.grip {
             InstanceGrip::Move => {
                 let (dx, dy) = (at.0 - drag.grab.0, at.1 - drag.grab.1);
                 instance.at = [drag.start.at[0] + dx, drag.start.at[1] + dy];
-                Some(format!(
+                format!(
                     "X {}  Y {}",
                     crate::draw::fixed(instance.at[0], units),
                     crate::draw::fixed(instance.at[1], units)
-                ))
+                )
             }
             InstanceGrip::Turn => {
                 let c = drag.centre;
@@ -289,9 +383,11 @@ impl ChiploadApp {
                 // Turned about its centre where it lies: the move keeps that centre still.
                 let angle = tidy_angle(angle);
                 instance.angle = angle;
-                Some(format!("{:.1}°", angle.to_degrees()))
+                format!("{:.1}°", angle.to_degrees())
             }
-        }
+        };
+        self.set_instance_value(drag.part, drag.id, instance);
+        Some(label)
     }
 
     /// The drag ends: the instance stays where it was dropped, as one undo step.
@@ -299,7 +395,7 @@ impl ChiploadApp {
         let Some(drag) = self.drag.instance.take() else {
             return;
         };
-        let now = self.instance_mut(drag.part, drag.id).copied();
+        let now = self.instance_value(drag.part, drag.id);
         if now.is_some_and(|now| now != drag.start) {
             self.commit();
         }
@@ -311,15 +407,13 @@ impl ChiploadApp {
         let Some(drag) = self.drag.instance.take() else {
             return false;
         };
-        if let Some(instance) = self.instance_mut(drag.part, drag.id) {
-            *instance = drag.start;
-        }
+        self.set_instance_value(drag.part, drag.id, drag.start);
         true
     }
 }
 
 /// An angle in −π…π.
-fn tidy_angle(angle: f64) -> f64 {
+pub(super) fn tidy_angle(angle: f64) -> f64 {
     use std::f64::consts::{PI, TAU};
     let a = (angle + PI).rem_euclid(TAU) - PI;
     // −π and π are the same turn: keep the one written as 180°.

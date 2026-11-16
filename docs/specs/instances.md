@@ -109,7 +109,8 @@ same result comes more safely the way mirrored parts are cut (docs/specs/mirror-
 - A new instance goes beside what the part cuts. When the part can't be planned yet (one
   of its operations has a problem), it goes beside the boxes round its shapes as drawn
   and placed, so a part being worked on still takes instances.
-- Not built: moving and turning an instance with the Compass.
+- Not built: moving and turning an instance with the Compass. Built 2026-11-16 with the
+  part's own placement (docs/specs/part-placement.md §6).
 
 ## 5. Command line
 
