@@ -17,6 +17,7 @@ mod selector;
 mod shapes;
 mod sources;
 mod validate;
+mod validate_ops;
 
 pub use drawing::*;
 pub use machine::*;
