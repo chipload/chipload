@@ -3,48 +3,44 @@
 //! grid and the pitch for a gap between copies.
 
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Copies, CopyOrder, Job, Units};
+use chipload_job::{InstanceOrder, Job, Part, Units};
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::plan_job;
 
 use crate::{PipelineError, load_drawing};
 
-/// "3 × 2 copies, pitch 120.000 × 80.000 mm, operation by operation".
-pub fn grid_text(c: &Copies) -> String {
-    grid_message(c, Units::Mm).english()
+/// "3 in all, operation by operation": a part with its instances (docs/specs/instances.md
+/// §7).
+pub fn instances_text(part: &Part) -> String {
+    instances_message(part).english()
 }
 
-/// [`grid_text`] as a message, the pitch in `units` (docs/specs/inch-units.md §5.1): 3
-/// decimals in mm and 4 in inches, kept even when they are zeros, so the pitch is converted
-/// here.
-pub fn grid_message(c: &Copies, units: Units) -> Message {
-    let d = crate::units::decimals(units);
-    let n = |mm: f64| Value::Number(crate::units::from_mm(mm, units), Digits::Fixed(d));
-    Message::new("pipeline-copies-grid")
-        .arg("columns", c.columns)
-        .arg("rows", c.rows)
-        .arg("dx", n(c.dx))
-        .arg("dy", n(c.dy))
-        .arg("unit", crate::units::length_unit(units))
-        .arg("order", order_message(c.order))
+/// [`instances_text`] as a message.
+pub fn instances_message(part: &Part) -> Message {
+    let on = || part.instances.iter().filter(|i| i.enabled);
+    Message::new("pipeline-instances")
+        .arg("count", part.count())
+        .arg("turned", on().filter(|i| i.angle != 0.0).count())
+        .arg("mirrored", on().filter(|i| i.mirror.is_some()).count())
+        .arg("order", order_message(part.order))
 }
 
-/// The copies of a project with one part, as before parts came: None without a grid or
-/// with two parts or more (then [`parts_lines`] tells them).
+/// The instances of a project with one part: None when it has none, or with two parts or
+/// more (then [`parts_lines`] tells them).
 pub fn copies_text(job: &Job) -> Option<String> {
     copies_message(job, Units::Mm).map(|m| m.english())
 }
 
-/// [`copies_text`] as a message, in `units`.
-pub fn copies_message(job: &Job, units: Units) -> Option<Message> {
+/// [`copies_text`] as a message.
+pub fn copies_message(job: &Job, _units: Units) -> Option<Message> {
     match job.parts.as_slice() {
-        [part] => part.copies.as_ref().map(|c| grid_message(c, units)),
+        [part] if !part.instances.is_empty() => Some(instances_message(part)),
         _ => None,
     }
 }
 
-/// With two parts or more, one line each: "Part 2 box: 2 × 1 copies, …" or "Part 1 lid:
-/// one, off" (docs/specs/parts.md §6). Empty with one part.
+/// With two parts or more, one line each: "Part 2 box: 2 in all, …" or "Part 1 lid: one,
+/// off" (docs/specs/parts.md §6). Empty with one part.
 pub fn parts_lines(job: &Job) -> Vec<String> {
     parts_messages(job, Units::Mm)
         .iter()
@@ -52,8 +48,8 @@ pub fn parts_lines(job: &Job) -> Vec<String> {
         .collect()
 }
 
-/// [`parts_lines`] as messages, in `units`.
-pub fn parts_messages(job: &Job, units: Units) -> Vec<Message> {
+/// [`parts_lines`] as messages.
+pub fn parts_messages(job: &Job, _units: Units) -> Vec<Message> {
     if job.parts.len() < 2 {
         return Vec::new();
     }
@@ -61,10 +57,11 @@ pub fn parts_messages(job: &Job, units: Units) -> Vec<Message> {
         .iter()
         .enumerate()
         .map(|(i, part)| {
-            let copies = part.copies.as_ref().map_or_else(
-                || Message::new("pipeline-copies-one"),
-                |c| grid_message(c, units),
-            );
+            let copies = if part.instances.is_empty() {
+                Message::new("pipeline-copies-one")
+            } else {
+                instances_message(part)
+            };
             let id = if part.enabled {
                 "pipeline-copies-part"
             } else {
@@ -78,11 +75,11 @@ pub fn parts_messages(job: &Job, units: Units) -> Vec<Message> {
         .collect()
 }
 
-/// How the copies are cut: "operation by operation", "copy by copy".
-pub fn order_message(order: CopyOrder) -> Message {
+/// How a part's instances are cut: "operation by operation", "instance by instance".
+pub fn order_message(order: InstanceOrder) -> Message {
     Message::new(match order {
-        CopyOrder::ByOperation => "pipeline-copies-by-operation",
-        CopyOrder::ByCopy => "pipeline-copies-by-copy",
+        InstanceOrder::ByOperation => "pipeline-copies-by-operation",
+        InstanceOrder::ByInstance => "pipeline-instances-by-instance",
     })
 }
 
@@ -92,7 +89,7 @@ pub fn cut_size(job: &Job, part: u64) -> Result<(f64, f64), PipelineError> {
     let mut one = job.clone();
     for p in &mut one.parts {
         p.enabled = p.id == part;
-        p.copies = None;
+        p.instances.clear();
     }
     let imported = load_drawing(&one)?;
     let plan = plan_job(&one, &imported.contours)?;

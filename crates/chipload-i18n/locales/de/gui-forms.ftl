@@ -414,8 +414,8 @@ forms-activate = Aktivieren
 forms-operations = Bearbeitungen
 forms-operations-none = noch keine
 forms-copies-one = eine
-forms-copies = Kopien
-forms-parts-note = Teile werden nacheinander gefräst, jedes mit seinen Kopien.
+forms-copies = Instanzen
+forms-parts-note = Teile werden nacheinander gefräst, jedes mit seinen Instanzen.
 forms-setup = Aufspannung
 forms-setup-cut = Fräsen
 forms-setup-cut-hover = Aus: bleibt erhalten, aber keines ihrer Teile wird gefräst
@@ -453,14 +453,16 @@ forms-open-front = { $front } öffnen
 forms-thinner-after-surfacing = Das Brett ist nach dem Planfräsen von { $front } { $thickness } dick.
 forms-setup-make-active = Zur aktiven Aufspannung machen, um Platte und Nullpunkt zu ändern
 forms-remove-setup = Aufspannung entfernen
-forms-copies-hover = Das Teil mehrmals in einem Raster fräsen. Die Kopien sind blass gezeichnet; nur die Zeichnung selbst kann ausgewählt werden.
-forms-copies-grid = mehrere, im Raster
-forms-columns-rows = Spalten × Zeilen
-# Copy to copy distance, in X and Y.
-forms-pitch = Teilung X Y
+forms-copies-hover = Das Teil noch einmal platziert: jede Instanz fräst dieselben Formen und Bearbeitungen, verschoben. Ein Raster unten erzeugt sie. Die Instanzen sind blass gezeichnet; nur das Teil selbst kann ausgewählt werden.
+forms-instances-none = Alle entfernen
+forms-instances-grid = Raster erzeugen
+forms-grid-columns = Spalten
+forms-grid-rows = Zeilen
+# Instance to instance distance, in X and in Y.
+forms-pitch-x = Teilung X
+forms-pitch-y = Teilung Y
 forms-gap = Abstand
-forms-gap-hover = Setzt die Teilung einmalig so, dass so viel zwischen den Schnitten benachbarter Kopien bleibt. Das Projekt behält die Teilung.
-forms-set-pitch = Teilung setzen
+forms-gap-hover = Erzeugt das Raster mit der Teilung, die so viel zwischen den Schnitten der Nachbarn lässt.
 forms-order = Reihenfolge
 
 # The machine. "Post": the post-processor that writes the G-code.

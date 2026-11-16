@@ -397,10 +397,7 @@ toolpath-error-outline-unreadable = ein Umriss, den die Geometriebibliothek nich
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Kopien überlappen: mit Spalten muss die Teilung dx mindestens { $width } sein (der Schnitt ist { $width } breit), ist { $got }
-toolpath-error-copies-dy = Kopien überlappen: mit Zeilen muss die Teilung dy mindestens { $height } sein (der Schnitt ist { $height } hoch), ist { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Kopien überlappen: die Kopien { $other } und { $copy } schneiden ineinander; rücken Sie sie auseinander (Teilung dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
 toolpath-error-parts-overlap = Teil „{ $part }“ Kopie { $copy } überlappt Teil „{ $other_part }“ Kopie { $other_copy } (X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }): rücken Sie die Kopien auseinander oder ändern Sie das Raster
 
@@ -439,3 +436,5 @@ toolpath-pieces-no-cut-out = eine Aufspannung in Stücken braucht eine Außenkon
 toolpath-pieces-board-too-small = selbst { $max } × { $max } Stücke passen nicht auf Platten von { $x } × { $y }: geben Sie größere Platten oder ein Raster an
 toolpath-pieces-no-seam = Naht { $seam } entlang { $axis } ist verschoben, aber in dieser Richtung gibt es nur { $seams } Nähte
 toolpath-pieces-seams-close = zwei Nähte, oder eine Naht und der Rand des Umrisses, kommen sich näher als { $least } (drei Verbindungsgrößen): verschieben Sie die Nähte auseinander oder nehmen Sie weniger Stücke
+toolpath-error-instances-overlap = { $part }: die Instanzen { $other } und { $instance } schneiden ineinander; rücken Sie sie auseinander
+toolpath-instance-turned-not-yet = { $part }: Instanz { $instance } ist gedreht oder gespiegelt, was noch nicht gefräst wird; nur verschobene Instanzen

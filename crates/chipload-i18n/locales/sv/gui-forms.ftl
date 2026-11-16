@@ -413,8 +413,8 @@ forms-activate = Aktivera
 forms-operations = Operationer
 forms-operations-none = inga än
 forms-copies-one = en
-forms-copies = Kopior
-forms-parts-note = Detaljerna fräses en i taget, var och en med sina kopior.
+forms-copies = Instanser
+forms-parts-note = Detaljerna fräses en i taget, var och en med sina instanser.
 forms-setup = Uppspänning
 forms-setup-cut = Fräs den
 forms-setup-cut-hover = Av: behålls, men ingen av dess detaljer fräses
@@ -452,14 +452,16 @@ forms-open-front = Öppna { $front }
 forms-thinner-after-surfacing = Skivan är { $thickness } tjock efter planfräsningen i { $front }.
 forms-setup-make-active = Gör den till aktiv uppspänning, för att ändra skiva och arbetsnollpunkt
 forms-remove-setup = Ta bort uppspänning
-forms-copies-hover = Fräs detaljen flera gånger i ett rutnät. Kopiorna ritas tonade; bara själva ritningen kan markeras.
-forms-copies-grid = flera, i ett rutnät
-forms-columns-rows = kolumner × rader
-# Copy to copy distance, in X and Y.
-forms-pitch = delning X Y
+forms-copies-hover = Detaljen placerad igen: varje instans fräser samma former och operationer, flyttad. Ett rutnät nedan skapar dem. Instanserna ritas tonade; bara detaljen själv kan markeras.
+forms-instances-none = Ta bort alla
+forms-instances-grid = Skapa rutnätet
+forms-grid-columns = kolumner
+forms-grid-rows = rader
+# Instance to instance distance, in X and in Y.
+forms-pitch-x = delning X
+forms-pitch-y = delning Y
 forms-gap = mellanrum
-forms-gap-hover = Sätter delningen en gång så att så här mycket blir kvar mellan spåren hos intilliggande kopior. Projektet behåller delningen.
-forms-set-pitch = Sätt delning
+forms-gap-hover = Skapar rutnätet med den delning som lämnar så här mycket mellan grannarnas spår.
 forms-order = ordning
 
 # The machine. "Post": the post-processor that writes the G-code.

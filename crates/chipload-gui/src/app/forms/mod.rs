@@ -27,7 +27,7 @@ use crate::editor::DEFAULT_STEP_DOWN;
 use crate::i18n::{Lang, Language};
 use chipload_job::library::{Cutting, MachineProfile};
 use chipload_job::{ClearingPass, ImageTrace, MaterialRef, Placement, Units};
-use chipload_job::{Copies, CopyOrder, Corners, DEFAULT_CORNER_ANGLE_RAD, MAX_COPIES_PER_SIDE};
+use chipload_job::{Copies, Corners, DEFAULT_CORNER_ANGLE_RAD, InstanceOrder, MAX_COPIES_PER_SIDE};
 use chipload_job::{
     DEFAULT_RAMP_ANGLE_RAD, Entry, Lead, MAX_RAMP_ANGLE_RAD, Machine, Tool, rest_refusal,
 };
@@ -74,9 +74,9 @@ pub(super) enum JobRequest {
     AddSmoothingPass(usize),
     /// Remove relief i's smoothing pass.
     RemoveSmoothingPass(usize),
-    /// Set part `id`'s pitch so this many mm are left between its copies' cuts
-    /// (docs/specs/copies-grid.md decision 2).
-    CopiesGap(u64, f64),
+    /// Part `id`'s instances made a grid's (docs/specs/instances.md §5): with a gap, the
+    /// pitch that leaves this many mm between neighbours' cuts, else the grid's own.
+    CopiesGrid(u64, Copies, Option<f64>),
     /// Make part `id` the active part (docs/specs/parts.md §8).
     Activate(u64),
     /// The open tool was removed: show the tools instead.

@@ -33,7 +33,31 @@ fn all_corpus_jobs() -> Vec<PathBuf> {
 }
 
 fn raw(rel: &str) -> Value {
-    serde_json::from_str(&std::fs::read_to_string(corpus().join(rel)).unwrap()).unwrap()
+    let mut data: Value =
+        serde_json::from_str(&std::fs::read_to_string(corpus().join(rel)).unwrap()).unwrap();
+    // A grid's pitch along a side with one copy is never used, and the copies' move to
+    // instances (v38) doesn't keep it: 0 there, so samples compare after a round trip.
+    let unused_pitch = |copies: &mut Value| {
+        if copies.is_object() {
+            if copies["columns"] == json!(1) {
+                copies["dx"] = json!(0.0);
+            }
+            if copies["rows"] == json!(1) {
+                copies["dy"] = json!(0.0);
+            }
+        }
+    };
+    if let Some(copies) = data.get_mut("copies") {
+        unused_pitch(copies);
+    }
+    if let Some(Value::Array(parts)) = data.get_mut("parts") {
+        for part in parts {
+            if let Some(copies) = part.get_mut("copies") {
+                unused_pitch(copies);
+            }
+        }
+    }
+    data
 }
 
 #[test]
@@ -858,77 +882,117 @@ fn v26_drops_the_clearing_settings_and_removed_strategies_become_rings_pockets()
 
 #[test]
 fn copies_round_trip_default_to_one_part_and_are_checked() {
-    let with_copies = |copies: Value| {
-        let mut data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
-        data["parts"][0]["copies"] = copies;
-        data
-    };
-    // None: one copy, written explicitly as null.
+    // docs/specs/instances.md §6: none, written explicitly, with the order.
     let data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
-    let job = parse_job(data, "p").unwrap();
-    assert_eq!(job.parts[0].copies, None);
+    let job = parse_job(data.clone(), "p").unwrap();
+    assert!(job.parts[0].instances.is_empty());
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["parts"][0]["copies"], Value::Null);
+    assert_eq!(saved["parts"][0]["instances"], json!([]));
+    assert_eq!(saved["parts"][0]["order"], json!("by_operation"));
 
-    // A missing order is by operation, written explicitly.
-    let job = parse_job(
-        with_copies(json!({"columns": 3, "rows": 2, "dx": 120.5, "dy": -80})),
-        "p",
-    )
-    .unwrap();
+    // An instance round-trips exactly, every field written.
+    let one = json!({"id": 2, "enabled": true, "mirror": "left_right", "angle": 0.5,
+                     "at": [120.5, -80.0]});
+    let mut with = data.clone();
+    with["parts"][0]["instances"] = json!([one.clone()]);
+    with["parts"][0]["order"] = json!("by_instance");
+    let job = parse_job(with.clone(), "p").unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    assert_eq!(saved["parts"][0]["instances"], json!([one]));
+    assert_eq!(job.parts[0].count(), 2);
+
+    // A grid makes instances numbered row by row and listed in its serpentine cut order.
+    let grid = chipload_job::Copies {
+        columns: 3,
+        rows: 2,
+        dx: 10.0,
+        dy: 20.0,
+    };
+    let ids: Vec<(u32, [f64; 2])> = grid.instances().iter().map(|i| (i.id, i.at)).collect();
     assert_eq!(
-        saved["parts"][0]["copies"],
-        json!({"columns": 3, "rows": 2, "dx": 120.5, "dy": -80.0, "order": "by_operation"})
+        ids,
+        [
+            (2, [10.0, 0.0]),
+            (3, [20.0, 0.0]),
+            (6, [20.0, 20.0]),
+            (5, [10.0, 20.0]),
+            (4, [0.0, 20.0]),
+        ]
     );
-    let by_copy = json!({"columns": 1, "rows": 1, "dx": 0.0, "dy": 0.0, "order": "by_copy"});
-    let job = parse_job(with_copies(by_copy.clone()), "p").unwrap();
-    let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["parts"][0]["copies"], by_copy);
-    // Renamed in schema 22 (docs/specs/parts.md §4): the old name is refused in a current file.
-    let by_part = json!({"columns": 1, "rows": 1, "dx": 0.0, "dy": 0.0, "order": "by_part"});
-    assert!(parse_job(with_copies(by_part), "p").is_err());
 
-    // Copies numbered row by row, cut in a serpentine.
-    let grid = job.parts[0].copies.map(|mut c| {
-        c.columns = 3;
-        c.rows = 2;
-        c.dx = 10.0;
-        c.dy = 20.0;
-        c
-    });
-    let order = grid.unwrap().in_cut_order();
+    // Refused: number 1 (the part), a number twice, the old grid in a current file, an
+    // unknown order.
+    for (bad, why) in [
+        (
+            json!([{"id": 1, "enabled": true, "mirror": null, "angle": 0, "at": [0, 0]}]),
+            "instances.0.id",
+        ),
+        (
+            json!([{"id": 2, "enabled": true, "mirror": null, "angle": 0, "at": [0, 0]},
+                {"id": 2, "enabled": true, "mirror": null, "angle": 0, "at": [9, 0]}]),
+            "instances.1.id",
+        ),
+    ] {
+        let mut data = with.clone();
+        data["parts"][0]["instances"] = bad;
+        let err = parse_job(data, "p").unwrap_err().to_string();
+        assert!(err.contains(why), "{why}: {err}");
+    }
+    let mut old = with.clone();
+    old["parts"][0]["copies"] = json!(null);
+    assert!(parse_job(old, "p").is_err());
+    let mut odd = with;
+    odd["parts"][0]["order"] = json!("by_copy");
+    assert!(parse_job(odd, "p").is_err());
+    // A grid's own rules.
+    for bad in [
+        (0, 1, 10.0, 10.0),
+        (101, 1, 10.0, 10.0),
+        (40, 26, 10.0, 10.0),
+        (2, 1, 0.0, 10.0),
+        (1, 2, 10.0, 0.0),
+    ] {
+        let grid = chipload_job::Copies {
+            columns: bad.0,
+            rows: bad.1,
+            dx: bad.2,
+            dy: bad.3,
+        };
+        assert!(!grid.problems("g").is_empty(), "{bad:?}");
+    }
+}
+
+/// docs/specs/instances.md §6: a v37 grid of copies becomes instances, numbered and listed
+/// as the copies were cut, the order renamed; a part without copies gets none.
+#[test]
+fn v37_to_v38_turns_copies_into_instances() {
+    let mut v37 = as_v37(project(json!([square_shape(1)]), 2, json!({"shapes": [1]})));
+    v37["parts"][0]["copies"] =
+        json!({"columns": 3, "rows": 2, "dx": 10.0, "dy": -20.0, "order": "by_copy"});
+    let job = parse_job(migrate(v37.clone()).unwrap(), "p").unwrap();
+    let part = &job.parts[0];
+    assert_eq!(part.order, chipload_job::InstanceOrder::ByInstance);
+    let placed: Vec<(u32, (f64, f64))> = part.in_cut_order();
     assert_eq!(
-        order,
+        placed,
         [
             (1, (0.0, 0.0)),
             (2, (10.0, 0.0)),
             (3, (20.0, 0.0)),
-            (6, (20.0, 20.0)),
-            (5, (10.0, 20.0)),
-            (4, (0.0, 20.0)),
+            (6, (20.0, -20.0)),
+            (5, (10.0, -20.0)),
+            (4, (0.0, -20.0)),
         ]
     );
-
-    for bad in [
-        json!({"columns": 0, "rows": 1, "dx": 10, "dy": 10}),
-        json!({"columns": 101, "rows": 1, "dx": 10, "dy": 10}),
-        json!({"columns": 40, "rows": 26, "dx": 10, "dy": 10}),
-        json!({"columns": 2, "rows": 1, "dx": 0, "dy": 10}),
-        json!({"columns": 1, "rows": 2, "dx": 10, "dy": 0}),
-        json!({"columns": -1, "rows": 1, "dx": 10, "dy": 10}),
-        json!({"columns": 2, "rows": 1, "dx": 10, "dy": 10, "order": "random"}),
-        json!({"columns": 2, "rows": 1, "dx": 10, "dy": 10, "gap": 3}),
-    ] {
-        assert!(parse_job(with_copies(bad.clone()), "p").is_err(), "{bad}");
-    }
-    // At the limits.
-    for good in [
-        json!({"columns": 100, "rows": 10, "dx": 10, "dy": 10}),
-        json!({"columns": 2, "rows": 1, "dx": 10, "dy": 0}),
-    ] {
-        assert!(parse_job(with_copies(good.clone()), "p").is_ok(), "{good}");
-    }
+    assert!(
+        part.instances
+            .iter()
+            .all(|i| i.enabled && i.angle == 0.0 && i.mirror.is_none())
+    );
+    v37["parts"][0]["copies"] = Value::Null;
+    let job = parse_job(migrate(v37).unwrap(), "p").unwrap();
+    assert!(job.parts[0].instances.is_empty());
+    assert_eq!(job.parts[0].order, chipload_job::InstanceOrder::ByOperation);
 }
 
 // -- parts (docs/specs/parts.md)
@@ -990,11 +1054,9 @@ fn v21_to_v22_puts_every_operation_in_one_part_with_the_copies() {
         (part.id, part.name.as_str(), part.enabled),
         (1, "Part 1", true)
     );
-    let copies = part.copies.unwrap();
-    assert_eq!(
-        (copies.columns, copies.order),
-        (2, chipload_job::CopyOrder::ByCopy)
-    );
+    // Its copies became instances at v38: the second copy, cut copy by copy.
+    assert_eq!(part.in_cut_order(), [(1, (0.0, 0.0)), (2, (50.0, 0.0))]);
+    assert_eq!(part.order, chipload_job::InstanceOrder::ByInstance);
     assert!(job.operations.iter().all(|op| op.part() == 1));
     assert_eq!(job.active_part, None);
     assert_eq!(job.active_part_id(), Some(1));
@@ -1009,8 +1071,10 @@ fn part_rules_are_enforced() {
     let two = || {
         let mut data = lower_job();
         data["parts"] = json!([
-            {"id": 1, "name": "lid", "enabled": true, "copies": null, "setup": 1},
-            {"id": 2, "name": "box", "enabled": true, "copies": null, "setup": 1},
+            {"id": 1, "name": "lid", "enabled": true, "instances": [],
+             "order": "by_operation", "setup": 1},
+            {"id": 2, "name": "box", "enabled": true, "instances": [],
+             "order": "by_operation", "setup": 1},
         ]);
         data["operations"][1]["part"] = json!(2);
         data
@@ -1040,8 +1104,9 @@ fn part_rules_are_enforced() {
         "operations.1.part: part 1's operations must all come before part 2's",
     );
     let mut data = two();
-    data["parts"][0]["copies"] = json!({"columns": 0, "rows": 1, "dx": 10, "dy": 10});
-    refused(data, "parts.0.copies.columns");
+    data["parts"][0]["instances"] =
+        json!([{"id": 0, "enabled": true, "mirror": null, "angle": 0, "at": [10, 0]}]);
+    refused(data, "parts.0.instances.0.id");
     // A part without operations is fine; an active part that doesn't exist means the first.
     let mut data = two();
     data["operations"][1]["part"] = json!(1);
@@ -1644,8 +1709,8 @@ fn as_v33(data: Value) -> Value {
 
 /// Current-version data in v34's layout: a V-carve's passes back as a step down, the depth
 /// split evenly (v35 doesn't keep the old step down: a sample with one puts it back).
-fn as_v34(mut data: Value) -> Value {
-    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+fn as_v34(data: Value) -> Value {
+    let mut data = as_v37(data);
     for op in data["operations"].as_array_mut().unwrap() {
         let op = op.as_object_mut().unwrap();
         if op["type"] != json!("vcarve") {
@@ -1661,6 +1726,49 @@ fn as_v34(mut data: Value) -> Value {
         op.insert("step_down".into(), step);
     }
     data["schema_version"] = json!(34);
+    data
+}
+
+/// Current-version data in v37's layout (docs/specs/instances.md §6): a part's instances
+/// back as the grid of copies they came from (numbered row by row, as the migration
+/// numbers them), its order renamed back.
+fn as_v37(mut data: Value) -> Value {
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    for part in data["parts"].as_array_mut().unwrap() {
+        let part = part.as_object_mut().unwrap();
+        let instances = part.remove("instances").unwrap();
+        let order = part.remove("order").unwrap();
+        let list = instances.as_array().unwrap();
+        if list.is_empty() {
+            part.insert("copies".into(), Value::Null);
+            continue;
+        }
+        let at = |id: u64| -> (f64, f64) {
+            let i = list.iter().find(|i| i["id"] == json!(id)).unwrap();
+            (i["at"][0].as_f64().unwrap(), i["at"][1].as_f64().unwrap())
+        };
+        let count = list.len() as u64 + 1;
+        // The first of the second row sits straight above copy 1.
+        let columns = list
+            .iter()
+            .filter(|i| i["at"][0].as_f64() == Some(0.0) && i["at"][1].as_f64() != Some(0.0))
+            .map(|i| i["id"].as_u64().unwrap() - 1)
+            .min()
+            .unwrap_or(count);
+        let rows = count / columns;
+        let dx = if columns > 1 { at(2).0 } else { 0.0 };
+        let dy = if rows > 1 { at(columns + 1).1 } else { 0.0 };
+        let order = if order == json!("by_instance") {
+            "by_copy"
+        } else {
+            "by_operation"
+        };
+        part.insert(
+            "copies".into(),
+            json!({"columns": columns, "rows": rows, "dx": dx, "dy": dy, "order": order}),
+        );
+    }
+    data["schema_version"] = json!(37);
     data
 }
 

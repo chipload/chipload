@@ -72,17 +72,12 @@ fn a_parts_properties_edit_its_copies_and_the_browser_draws_the_parts() {
     app.focus = Focus::Part(1);
     draw_properties(&mut app);
     draw_sidebar(&mut app);
-    // A problem in part 1's copies marks part 1's form.
-    app.edit.as_mut().unwrap().job.parts[0].copies = Some(chipload_job::Copies {
-        columns: 0,
-        rows: 1,
-        dx: 10.0,
-        dy: 10.0,
-        order: chipload_job::CopyOrder::ByOperation,
-    });
+    // A problem in part 1's instances marks part 1's form.
+    app.edit.as_mut().unwrap().job.parts[0].instances =
+        vec![chipload_job::Instance::moved(1, [10.0, 10.0])];
     app.commit();
     let fields = app.form_problem_map(Focus::Part(1));
-    assert!(fields.contains_key("parts.0.copies.columns"), "{fields:?}");
+    assert!(fields.contains_key("parts.0.instances.0.id"), "{fields:?}");
     assert!(app.form_problem_map(Focus::Part(2)).is_empty());
     draw_properties(&mut app);
     draw_sidebar(&mut app);

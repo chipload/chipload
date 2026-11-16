@@ -890,13 +890,13 @@ fn a_setup_is_cut_in_pieces_changed_and_made_one_board_again() {
     std::fs::copy(corpus("jobs/v22/two_parts.chipload"), &project).unwrap();
     let p = project.to_str().unwrap();
     let run = |args: &[&str]| json_of(&chipload(&dir, args), args);
-    // Pieces don't take copies yet (§11).
+    // Pieces don't take instances yet (§11).
     let refused = chipload(
         &dir,
         &["setup", "pieces", p, "--board", "600x400", "--json"],
     );
     assert_eq!(refused.code, Some(1), "{}", refused.stdout);
-    assert!(refused.stdout.contains("copies"), "{}", refused.stdout);
+    assert!(refused.stdout.contains("instances"), "{}", refused.stdout);
     run(&["copies", p, "--part", "2", "--off", "--json"]);
     // Without a board size, the machine's travel.
     run(&["setup", "pieces", p, "--json"]);

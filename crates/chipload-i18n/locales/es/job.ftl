@@ -161,7 +161,7 @@ job-dowels-no-back = los agujeros de pasador se hacen con el anverso de un table
 job-pieces-spacing = las uniones deben estar separadas al menos dos tamaños: al menos el doble de { $size }
 job-pieces-shifts = { $count } desplazamientos de junta, pero la cuadrícula tiene { $seams } juntas ahí
 job-pieces-two-sided = una sujeción en trozos aún no puede ser a dos caras
-job-pieces-copies = una sujeción en trozos aún no puede tener copias, y «{ $part }» las tiene
+job-pieces-copies = una sujeción en trozos aún no puede tener instancias, y «{ $part }» las tiene
 job-dowels-not-through = los agujeros de pasador atraviesan el tablero hasta el tablero de sacrificio: pon «Bajo el material» a la profundidad de los pasadores
 job-dowel-not-circle = la forma { $shape } no es un círculo dibujado: un agujero de pasador lo es
 job-dowel-off-axis = el agujero de pasador { $shape } está a { $off } de la línea sobre la que se da la vuelta al tablero: en el tablero vuelto no encontraría su pasador
@@ -376,3 +376,5 @@ job-style-tool-not-in-library = la herramienta { $tool } no está en tu bibliote
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = estos ajustes
 job-style-other-settings = otros ajustes
+job-instance-id = el número de una instancia es 2 o más: 1 es la pieza tal como está dibujada
+job-instance-twice = dos instancias tienen el número { $id }

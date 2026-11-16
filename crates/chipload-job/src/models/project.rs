@@ -245,9 +245,14 @@ pub struct Part {
     pub name: String,
     /// False: the part and all its operations stay in the project but aren't cut.
     pub enabled: bool,
-    /// Cut the part several times in a grid. Null: once.
-    // Spec: docs/specs/copies-grid.md.
-    pub copies: Option<Copies>,
+    /// The part placed again: each instance the same shapes and operations moved, turned
+    /// and perhaps mirrored (instance 1 is the part as drawn and isn't listed). Empty: cut
+    /// once. Since schema 38, in place of a grid of copies.
+    // Spec: docs/specs/instances.md.
+    pub instances: Vec<Instance>,
+    /// `by_operation`: each operation on every instance, then the next; `by_instance`:
+    /// every operation on one instance, then the next instance. Since schema 38.
+    pub order: InstanceOrder,
     /// The id of the setup it is cut in (`setups`). Since schema 34.
     // Spec: docs/specs/setups.md.
     pub setup: u64,
@@ -279,56 +284,137 @@ impl Mirror {
 }
 
 impl Part {
-    /// How many times the part is cut.
+    /// How many times the part is cut: itself and its instances that are on.
     pub fn count(&self) -> u32 {
-        self.copies.map_or(1, |c| c.count())
+        let on = self.instances.iter().filter(|i| i.enabled).count();
+        u32::try_from(on).unwrap_or(u32::MAX).saturating_add(1)
     }
 
-    /// Its copies as (number, shift) in cut order; one, unshifted, without a grid.
+    /// The part and its instances that are on, as (number, placement), in cut order: the
+    /// part as drawn first (number 1, no move), then its instances as listed.
+    pub fn spots(&self) -> Vec<(u32, Spot)> {
+        let mut out = vec![(1, Spot::default())];
+        out.extend(
+            self.instances
+                .iter()
+                .filter(|i| i.enabled)
+                .map(|i| (i.id, i.spot())),
+        );
+        out
+    }
+
+    /// [`Part::spots`] as (number, shift): for instances that are only moved.
     pub fn in_cut_order(&self) -> Vec<(u32, (f64, f64))> {
-        self.copies
-            .map_or_else(|| vec![(1, (0.0, 0.0))], |c| c.in_cut_order())
+        self.spots()
+            .into_iter()
+            .map(|(n, p)| (n, (p.at[0], p.at[1])))
+            .collect()
+    }
+
+    /// A free number for a new instance: one more than the largest, from 2.
+    pub fn next_instance_id(&self) -> u32 {
+        self.instances.iter().map(|i| i.id).max().unwrap_or(1) + 1
     }
 }
 
-/// Most columns or rows of copies, and most copies in all.
-pub const MAX_COPIES_PER_SIDE: u32 = 100;
-pub const MAX_COPIES: u32 = 1000;
-
-/// A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)
-/// mm.
+/// The part placed again (docs/specs/instances.md §2): mirrored, then turned, about the
+/// part's centre, then moved.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
-pub struct Copies {
-    /// Copies along X, at least 1.
-    pub columns: u32,
-    /// Copies along Y, at least 1.
-    pub rows: u32,
-    /// Distance from copy to copy along X, mm; negative grows to the left.
-    pub dx: f64,
-    /// Distance from copy to copy along Y, mm; negative grows downwards.
-    pub dy: f64,
-    /// `by_operation`: each operation on every copy, then the next; `by_copy`: every
-    /// operation on one copy, then the next copy.
-    #[serde(default)]
-    pub order: CopyOrder,
+pub struct Instance {
+    /// Its number in the part, from 2 (1 is the part as drawn).
+    pub id: u32,
+    /// False: kept, but not cut.
+    pub enabled: bool,
+    /// Mirrored about the part's centre line first. Null: as drawn.
+    pub mirror: Option<Mirror>,
+    /// Then turned about the part's centre, radians, counter-clockwise.
+    pub angle: f64,
+    /// Then moved, mm.
+    pub at: [f64; 2],
 }
 
-/// In which order the copies are cut.
+impl Instance {
+    /// An instance only moved.
+    pub fn moved(id: u32, at: [f64; 2]) -> Instance {
+        Instance {
+            id,
+            enabled: true,
+            mirror: None,
+            angle: 0.0,
+            at,
+        }
+    }
+
+    pub fn spot(&self) -> Spot {
+        Spot {
+            mirror: self.mirror,
+            angle: self.angle,
+            at: self.at,
+        }
+    }
+}
+
+/// Where an instance lies relative to its part: mirrored, then turned, about the part's
+/// centre, then moved. The default leaves the part as drawn.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Spot {
+    pub mirror: Option<Mirror>,
+    pub angle: f64,
+    pub at: [f64; 2],
+}
+
+impl Spot {
+    /// Only moved: no mirror, no turn.
+    pub fn is_move(&self) -> bool {
+        self.mirror.is_none() && self.angle == 0.0
+    }
+}
+
+/// In which order a part and its instances are cut.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(rename_all = "snake_case")]
-pub enum CopyOrder {
-    /// Each operation on every copy, then the next operation.
+pub enum InstanceOrder {
+    /// Each operation on every instance, then the next operation.
     #[default]
     ByOperation,
-    /// Every operation on one copy, then the next copy. Called `by_part` before parts
-    /// came (schema 22).
-    ByCopy,
+    /// Every operation on one instance, then the next instance. Called `by_copy` before
+    /// schema 38, and `by_part` before parts came (schema 22).
+    ByInstance,
+}
+
+/// Most columns or rows of a grid, and most instances of a part in all.
+pub const MAX_COPIES_PER_SIDE: u32 = 100;
+pub const MAX_COPIES: u32 = 1000;
+
+/// A grid that makes instances (docs/specs/instances.md §5, `part instance array`): the
+/// part at (column c, row r) moved by (c·dx, r·dy) mm. Not saved: the instances are.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Copies {
+    /// Along X, at least 1.
+    pub columns: u32,
+    /// Along Y, at least 1.
+    pub rows: u32,
+    /// From one to the next along X, mm; negative grows to the left.
+    pub dx: f64,
+    /// From one to the next along Y, mm; negative grows downwards.
+    pub dy: f64,
 }
 
 impl Copies {
+    /// The grid's instances, the part itself (copy 1) left out, numbered as the grid's
+    /// copies were (row by row from 1) and listed in the order they are cut: row by row,
+    /// alternating direction (2, 3, then 6, 5, 4).
+    pub fn instances(&self) -> Vec<Instance> {
+        self.in_cut_order()
+            .into_iter()
+            .skip(1)
+            .map(|(number, (dx, dy))| Instance::moved(number, [dx, dy]))
+            .collect()
+    }
+
     pub fn count(&self) -> u32 {
         self.columns.saturating_mul(self.rows)
     }
@@ -354,8 +440,7 @@ impl Copies {
         out
     }
 
-    /// What is wrong with the grid, as "{at}.field: message" (`at` is its path, e.g.
-    /// "parts.0.copies").
+    /// What is wrong with the grid, as "{at}.field: message" (`at` is where it was given).
     pub fn problems(&self, at: &str) -> Vec<Problem> {
         let mut problems = Vec::new();
         for (name, n) in [("columns", self.columns), ("rows", self.rows)] {

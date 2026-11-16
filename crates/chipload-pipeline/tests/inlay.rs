@@ -388,13 +388,7 @@ fn a_plug_part_with_copies_is_refused() {
         .iter_mut()
         .find(|p| p.id == made.part)
         .unwrap()
-        .copies = Some(chipload_job::Copies {
-        columns: 2,
-        rows: 1,
-        dx: 100.0,
-        dy: 0.0,
-        order: chipload_job::CopyOrder::ByCopy,
-    });
+        .instances = vec![chipload_job::Instance::moved(2, [100.0, 0.0])];
     let path = format!("operations.{}.part", made.plug);
     assert!(
         problems(&job).iter().any(|(p, _)| *p == path),

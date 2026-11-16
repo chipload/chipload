@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::Mirror;
-use chipload_pipeline::copies::grid_text;
+use chipload_pipeline::copies::instances_text;
 use chipload_pipeline::parts::{activate_part, add_part, remove_part, set_part, set_part_mirror};
 use clap::Subcommand;
 use serde_json::{Value, json};
@@ -156,7 +156,11 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .filter(|i| job.operations[*i].part() == part.id)
             .collect();
         let numbers: Vec<String> = operations.iter().map(|i| (i + 1).to_string()).collect();
-        let copies = part.copies.as_ref().map_or("one".to_string(), grid_text);
+        let copies = if part.instances.is_empty() {
+            "one".to_string()
+        } else {
+            instances_text(part)
+        };
         out.line(format!(
             "{} {}{}{}: {copies}; operations {}",
             part.id,
@@ -180,7 +184,8 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "name": part.name,
             "enabled": part.enabled,
             "active": Some(part.id) == active,
-            "copies": part.copies,
+            "instances": part.instances,
+            "order": part.order,
             "mirror": part.mirror,
             "count": part.count(),
             "operations": operations,

@@ -2673,7 +2673,7 @@ chipload copies <PROJECT> [OPTIONS]
 | `--grid <GRID>` | Columns x rows, e.g. "3x2". |
 | `--pitch <PITCH>` | Pitch "DX,DY" in mm, copy to copy; negative grows left or down. |
 | `--gap <GAP>` | Set the pitch so that this many mm are left between the cuts of neighbours. |
-| `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every copy, then the next operation), `by-copy` (Every operation on one copy, then the next copy (was `by-part`)). |
+| `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
 | `--off` | Back to one copy. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 

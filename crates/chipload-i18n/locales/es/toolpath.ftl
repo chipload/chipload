@@ -396,10 +396,7 @@ toolpath-error-outline-unreadable = un contorno que la biblioteca de geometría 
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Las copias se solapan: con columnas, el paso dx debe ser al menos { $width } (el corte mide { $width } de ancho), es { $got }
-toolpath-error-copies-dy = Las copias se solapan: con filas, el paso dy debe ser al menos { $height } (el corte mide { $height } de alto), es { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Las copias se solapan: las copias { $other } y { $copy } se cortan entre sí; sepáralas (paso dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
 toolpath-error-parts-overlap = La copia { $copy } de la pieza "{ $part }" se solapa con la copia { $other_copy } de la pieza "{ $other_part }" (X{ $x0 } a { $x1 }, Y{ $y0 } a { $y1 }): separa las copias o cambia la cuadrícula
 
@@ -438,3 +435,5 @@ toolpath-pieces-no-cut-out = una sujeción en trozos necesita un perfilado exter
 toolpath-pieces-board-too-small = ni siquiera { $max } × { $max } trozos caben en tableros de { $x } × { $y }: indique tableros más grandes o una cuadrícula
 toolpath-pieces-no-seam = la junta { $seam } a lo largo de { $axis } está desplazada, pero solo hay { $seams } juntas en ese sentido
 toolpath-pieces-seams-close = dos juntas, o una junta y el borde del contorno, quedan a menos de { $least } (tres tamaños de unión): separe las juntas o use menos trozos
+toolpath-error-instances-overlap = { $part }: las instancias { $other } y { $instance } se cortan entre sí; sepárelas
+toolpath-instance-turned-not-yet = { $part }: la instancia { $instance } está girada o en espejo, lo que aún no se mecaniza; solo las instancias movidas

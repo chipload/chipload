@@ -393,10 +393,7 @@ toolpath-error-outline-unreadable = en kontur som geometribiblioteket inte kan l
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Kopiorna överlappar: med kolumner måste delningen dx vara minst { $width } (fräsningen är { $width } bred), fick { $got }
-toolpath-error-copies-dy = Kopiorna överlappar: med rader måste delningen dy vara minst { $height } (fräsningen är { $height } hög), fick { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Kopiorna överlappar: kopiorna { $other } och { $copy } fräser in i varandra; flytta isär dem (delning dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
 toolpath-error-parts-overlap = Detaljen "{ $part }" kopia { $copy } överlappar detaljen "{ $other_part }" kopia { $other_copy } (X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }): flytta isär kopiorna eller ändra rutnätet
 
@@ -435,3 +432,5 @@ toolpath-pieces-no-cut-out = en uppspänning i bitar behöver en utvändig profi
 toolpath-pieces-board-too-small = inte ens { $max } × { $max } bitar får plats på skivor på { $x } × { $y }: ange större skivor eller ett rutnät
 toolpath-pieces-no-seam = skarv { $seam } längs { $axis } är förskjuten, men det finns bara { $seams } skarvar åt det hållet
 toolpath-pieces-seams-close = två skarvar, eller en skarv och konturens kant, kommer närmare än { $least } (tre fogstorlekar): flytta isär skarvarna eller använd färre bitar
+toolpath-error-instances-overlap = { $part }: instanserna { $other } och { $instance } skär in i varandra; flytta isär dem
+toolpath-instance-turned-not-yet = { $part }: instans { $instance } är vriden eller speglad, vilket inte fräses än; bara flyttade instanser gör det

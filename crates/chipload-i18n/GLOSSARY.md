@@ -30,6 +30,7 @@ correction here is a correction everywhere: change the term, then every text usi
 |---|---|---|---|---|---|
 | project | Projekt | projet | proyecto | progetto | projekt |
 | part (a group of operations) | Teil | pièce | pieza | pezzo | detalj |
+| instance (a part placed again: moved, turned or mirrored) | Instanz | instance | instancia | istanza | instans |
 | setup (one board clamped once, a program of its own) | Aufspannung | montage | sujeción | piazzamento | uppspänning |
 | back side (a setup that is a board turned over) | Rückseite | verso | reverso | retro | baksida |
 | turn over (a board) | wenden | retourner | dar la vuelta | capovolgere | vända |
@@ -122,6 +123,7 @@ names unchanged. Numbers display a decimal point; input also accepts a decimal c
 | English | Русский |
 |---|---|
 | project / part / setup / operation | проект / деталь / установ / операция |
+| instance (a part placed again) | экземпляр |
 | piece (of a setup cut as a puzzle) / seam / joint / knob / finger | фрагмент / шов / соединение / замок / шип |
 | drawing / layer / shape / contour | чертёж / слой / объект / контур |
 | profile / pocket / island | обработка контура / выборка кармана / остров |

@@ -413,8 +413,8 @@ forms-activate = Activar
 forms-operations = Operaciones
 forms-operations-none = ninguna todavía
 forms-copies-one = una
-forms-copies = Copias
-forms-parts-note = Las piezas se cortan una tras otra, cada una con sus copias.
+forms-copies = Instancias
+forms-parts-note = Las piezas se cortan una tras otra, cada una con sus instancias.
 forms-setup = Sujeción
 forms-setup-cut = Cortarla
 forms-setup-cut-hover = Desactivada: se conserva, pero no se corta ninguna de sus piezas
@@ -452,14 +452,16 @@ forms-open-front = Abrir { $front }
 forms-thinner-after-surfacing = Su tablero tiene { $thickness } de grosor tras el planeado de { $front }.
 forms-setup-make-active = Hacerla la sujeción activa, para cambiar su tablero y su cero
 forms-remove-setup = Quitar sujeción
-forms-copies-hover = Cortar la pieza varias veces en una cuadrícula. Las copias se dibujan atenuadas; solo se puede seleccionar el dibujo original.
-forms-copies-grid = varias, en cuadrícula
-forms-columns-rows = columnas × filas
-# Copy to copy distance, in X and Y.
-forms-pitch = paso X Y
+forms-copies-hover = La pieza colocada otra vez: cada instancia corta las mismas formas y operaciones, movida. Una cuadrícula abajo las crea. Las instancias se dibujan atenuadas; solo se puede seleccionar la pieza misma.
+forms-instances-none = Quitar todas
+forms-instances-grid = Crear la cuadrícula
+forms-grid-columns = columnas
+forms-grid-rows = filas
+# Instance to instance distance, in X and in Y.
+forms-pitch-x = paso X
+forms-pitch-y = paso Y
 forms-gap = separación
-forms-gap-hover = Fija el paso una vez para que quede esta distancia entre los cortes de copias vecinas. El proyecto guarda el paso.
-forms-set-pitch = Fijar paso
+forms-gap-hover = Crea la cuadrícula con el paso que deja esta distancia entre los cortes de las vecinas.
 forms-order = orden
 
 # The machine. "Post": the post-processor that writes the G-code.

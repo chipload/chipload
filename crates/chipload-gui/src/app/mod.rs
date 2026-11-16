@@ -1127,63 +1127,69 @@ impl ChiploadApp {
         }
     }
 
-    pub fn set_copies_gap(&mut self, id: u64, gap: f64) {
+    /// Part `id`'s instances made `grid`'s (docs/specs/instances.md §5), at its pitch, or
+    /// with `gap`, at the pitch that leaves that much between neighbours' cuts.
+    pub fn set_copies_grid(&mut self, id: u64, mut grid: chipload_job::Copies, gap: Option<f64>) {
         self.commit();
         let Some(edit) = &self.edit else {
             return;
         };
-        // The part alone: the grid being set may not be valid yet (a pitch of 0).
-        let mut part = edit.clone();
-        for p in &mut part.job.parts {
-            p.copies = None;
-        }
-        let job = match part.to_job() {
-            Ok(job) => job,
-            Err(problems) => {
-                self.error_report(Report::of_problems(
-                    &t!(self, "app-project-incomplete"),
-                    &problems,
-                ));
-                return;
+        if let Some(gap) = gap {
+            // The part alone, without its instances, to measure one cut.
+            let mut part = edit.clone();
+            for p in &mut part.job.parts {
+                p.instances.clear();
             }
-        };
-        let current = edit
-            .job
-            .part(id)
-            .and_then(|p| p.copies)
-            .map_or((0.0, 0.0), |c| (c.dx, c.dy));
-        match chipload_pipeline::copies::pitch_for_gap(&job, id, gap, current) {
-            Ok((dx, dy)) => {
-                let copies = self.edit.as_mut().and_then(|e| {
-                    e.job
-                        .parts
-                        .iter_mut()
-                        .find(|p| p.id == id)
-                        .and_then(|p| p.copies.as_mut())
-                });
-                if let Some(copies) = copies {
-                    copies.dx = dx;
-                    copies.dy = dy;
+            let job = match part.to_job() {
+                Ok(job) => job,
+                Err(problems) => {
+                    self.error_report(Report::of_problems(
+                        &t!(self, "app-project-incomplete"),
+                        &problems,
+                    ));
+                    return;
                 }
-                self.commit();
-                let (units, unit) = (
-                    self.prefs.units,
-                    chipload_pipeline::units::length_unit(self.prefs.units),
-                );
-                let text = t!(
-                    self,
-                    "app-pitch-set",
-                    dx = crate::draw::fixed(dx, units),
-                    dy = format!("{} {unit}", crate::draw::fixed(dy, units)),
-                    gap = format!("{} {unit}", crate::draw::fixed(gap, units))
-                );
-                self.set_status(text, STATUS_SECONDS);
+            };
+            let current = (grid.dx, grid.dy);
+            match chipload_pipeline::copies::pitch_for_gap(&job, id, gap, current) {
+                Ok((dx, dy)) => (grid.dx, grid.dy) = (dx, dy),
+                Err(err) => {
+                    self.error_report(Report::failed(
+                        t!(self, "app-pitch-needs-plan"),
+                        err.message(),
+                    ));
+                    return;
+                }
             }
-            Err(err) => self.error_report(Report::failed(
-                t!(self, "app-pitch-needs-plan"),
-                err.message(),
-            )),
         }
+        let problems = grid.problems("grid");
+        if !problems.is_empty() {
+            self.error_report(Report::of_problems(
+                &t!(self, "app-project-incomplete"),
+                &problems,
+            ));
+            return;
+        }
+        if let Some(part) = self
+            .edit
+            .as_mut()
+            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == id))
+        {
+            part.instances = grid.instances();
+        }
+        self.commit();
+        let (units, unit) = (
+            self.prefs.units,
+            chipload_pipeline::units::length_unit(self.prefs.units),
+        );
+        let text = t!(
+            self,
+            "app-pitch-set",
+            dx = crate::draw::fixed(grid.dx, units),
+            dy = format!("{} {unit}", crate::draw::fixed(grid.dy, units)),
+            gap = format!("{} {unit}", crate::draw::fixed(gap.unwrap_or(0.0), units))
+        );
+        self.set_status(text, STATUS_SECONDS);
     }
 
     /// Give the selected operation the current canvas selection as its geometry.

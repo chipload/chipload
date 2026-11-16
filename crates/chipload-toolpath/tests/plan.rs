@@ -387,8 +387,26 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
 
 fn with_copies(ops: Value, copies: Value) -> Job {
     let mut job = job(ops);
-    job.parts[0].copies = serde_json::from_value(copies).unwrap();
+    set_grid(&mut job.parts[0], &copies);
     job
+}
+
+/// The part's instances as a grid {columns, rows, dx, dy, order?}; null leaves none.
+fn set_grid(part: &mut chipload_job::Part, grid: &Value) {
+    if grid.is_null() {
+        part.instances.clear();
+        return;
+    }
+    let copies = chipload_job::Copies {
+        columns: grid["columns"].as_u64().unwrap() as u32,
+        rows: grid["rows"].as_u64().unwrap() as u32,
+        dx: grid["dx"].as_f64().unwrap(),
+        dy: grid["dy"].as_f64().unwrap(),
+    };
+    part.instances = copies.instances();
+    if grid["order"] == "by_copy" {
+        part.order = chipload_job::InstanceOrder::ByInstance;
+    }
 }
 
 /// The inside then the outside profile of the part.
@@ -470,14 +488,14 @@ fn overlapping_copies_are_refused_at_the_boundary() {
     let err = ok(2, 1, 111.9, 0.0).unwrap_err();
     assert!(
         err.to_string()
-            .contains("Copies overlap: with columns the pitch dx must be at least 112.000 mm"),
+            .contains("Part 1: instances 1 and 2 cut into each other"),
         "{err}"
     );
     assert!(ok(1, 2, 0.0, 72.0).is_ok());
     let err = ok(1, 2, 0.0, -71.0).unwrap_err();
     assert!(
         err.to_string()
-            .contains("pitch dy must be at least 72.000 mm"),
+            .contains("instances 1 and 2 cut into each other"),
         "{err}"
     );
     // One column: dx doesn't matter.
@@ -529,15 +547,18 @@ fn two_parts(b_at: f64, a_copies: Value, b_copies: Value) -> (Job, Vec<Contour>)
     b["select"] = json!({"layer": "B"});
     ops.as_array_mut().unwrap().push(b);
     let mut job = job(ops);
-    job.parts[0].copies = serde_json::from_value(a_copies).unwrap();
-    job.parts.push(chipload_job::Part {
+    set_grid(&mut job.parts[0], &a_copies);
+    let mut b = chipload_job::Part {
         id: 2,
         name: "B".into(),
         enabled: true,
-        copies: serde_json::from_value(b_copies).unwrap(),
+        instances: Vec::new(),
+        order: chipload_job::InstanceOrder::ByOperation,
         setup: 1,
         mirror: None,
-    });
+    };
+    set_grid(&mut b, &b_copies);
+    job.parts.push(b);
     job.operations[1].set_part(2);
     assert!(job.validate().is_empty(), "{:?}", job.validate());
     let contours = vec![
@@ -699,8 +720,10 @@ fn a_copy_in_another_parts_notch_is_allowed_when_the_cuts_keep_apart() {
     // notch's paths at X 33 and 67 and Y 23.
     plan_job(&job, &contours(&job)).unwrap_or_else(|e| panic!("{e}"));
     let mut tight = job.clone();
-    tight.parts[1].copies =
-        serde_json::from_value(json!({"columns": 2, "rows": 1, "dx": -175, "dy": 0})).unwrap();
+    set_grid(
+        &mut tight.parts[1],
+        &json!({"columns": 2, "rows": 1, "dx": -175, "dy": 0}),
+    );
     // At X 28..42 its path at 25..45 crosses A's path along the arm, at X 33.
     let err = plan_job(&tight, &contours(&tight)).unwrap_err();
     assert!(

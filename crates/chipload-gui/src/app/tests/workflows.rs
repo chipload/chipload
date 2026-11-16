@@ -112,23 +112,24 @@ fn a_new_project_is_drawn_in_and_gets_its_dxf_later() {
 }
 
 #[test]
-fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
+fn instances_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     // docs/specs/copies-grid.md §6
     let mut app = lower_part();
     assert!(app.generate_and_wait(), "{:?}", app.report);
     let one = app.scene.toolpath.clone().unwrap();
     assert!(one.ghost_feeds.is_empty());
 
-    app.edit.as_mut().unwrap().job.parts[0].copies = Some(chipload_job::Copies {
+    let grid = chipload_job::Copies {
         columns: 2,
         rows: 2,
         dx: 0.0,
         dy: 0.0,
-        order: chipload_job::CopyOrder::ByOperation,
-    });
-    app.set_copies_gap(1, 5.0);
-    let copies = app.edit.as_ref().unwrap().job.parts[0].copies.unwrap();
-    assert!(copies.dx > 5.0 && copies.dy > 5.0, "{copies:?}");
+    };
+    app.set_copies_grid(1, grid, Some(5.0));
+    let instances = app.edit.as_ref().unwrap().job.parts[0].instances.clone();
+    assert_eq!(instances.len(), 3);
+    let [dx, dy] = instances[1].at;
+    assert!(dx > 5.0 && dy > 5.0, "{instances:?}");
     // Generating again: the copies are cut, the gap leaves them apart.
     app.edit.as_mut().unwrap().job.stock_mut().x = 1000.0;
     app.edit.as_mut().unwrap().job.stock_mut().y = 1000.0;
@@ -143,20 +144,23 @@ fn copies_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     assert_eq!(path.ghost_feeds.len(), 3 * one.feeds.len());
     assert_eq!(path.starts.len(), one.starts.len());
     assert_eq!(
-        app.edit.as_ref().unwrap().to_job().unwrap().parts[0].copies,
-        Some(copies)
+        app.edit.as_ref().unwrap().to_job().unwrap().parts[0].instances,
+        instances
     );
 
     // An overlapping pitch is refused with the size it needs.
-    app.edit.as_mut().unwrap().job.parts[0]
-        .copies
-        .as_mut()
-        .unwrap()
-        .dx = 10.0;
-    app.commit();
+    app.set_copies_grid(
+        1,
+        chipload_job::Copies {
+            dx: 10.0,
+            dy,
+            ..grid
+        },
+        None,
+    );
     assert!(!app.generate_and_wait());
     assert!(
-        app.report.iter().any(|l| l.contains("Copies overlap")),
+        app.report.iter().any(|l| l.contains("cut into each other")),
         "{:?}",
         app.report
     );

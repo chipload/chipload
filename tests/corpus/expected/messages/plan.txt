@@ -389,7 +389,7 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
-Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, copy by copy
+Copies: 6 in all, instance by instance
 Estimated time: 10 min 10 s (cutting 9 min 47 s, rapids 20 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.2 m, 12 lifts
@@ -444,7 +444,7 @@ Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Operation 4: a ring starts at (320.000, 12.000) (default)
 Part 1 simple part: one
-Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
+Part 2 part B: 2 in all, operation by operation
 Estimated time: 3 min 48 s (cutting 3 min 28 s, rapids 10 s, spindle 9 s), plus 2 tool changes
 Cut outline: 417.000 × 196.800 mm (X 4.000 … 421.000, Y 4.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s; cutting 3.5 m, plunging 33 mm, rapids 566 mm, 12 lifts
@@ -479,7 +479,7 @@ Operation 1: a ring starts at (31.000, 103.000) (default)
 Operation 2: a ring starts at (19.000, 7.000) (default)
 Operation 4: a ring starts at (340.000, 2.000) (default)
 Part 1 simple part: one
-Part 2 part B: 2 × 1 copies, pitch 82.000 × 122.000 mm, operation by operation
+Part 2 part B: 2 in all, operation by operation
 Estimated time: 3 min 49 s (cutting 3 min 28 s, rapids 12 s, spindle 9 s), plus 2 tool changes
 Cut outline: 479.000 × 201.800 mm (X 4.000 … 483.000, Y -1.000 … 200.800, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 2 min 23 s; cutting 3.5 m, plunging 33 mm, rapids 566 mm, 12 lifts
@@ -650,7 +650,7 @@ Operation 2: a ring starts at (31.000, 103.000) (default)
 Operation 3: a ring starts at (19.000, 7.000) (default)
 Operation 5: a ring starts at (320.000, 12.000) (default)
 Part 1 simple part: one
-Part 2 part B: 1 × 2 copies, pitch 122.000 × 82.000 mm, operation by operation
+Part 2 part B: 2 in all, operation by operation
 Estimated time: 8 min 23 s (cutting 7 min 59 s, rapids 11 s, spindle 12 s), plus 3 tool changes
 Cut outline: 530.000 × 232.500 mm (X -25.000 … 505.000, Y -6.250 … 226.250, the tool included): the smallest stock that holds the job.
   Part 1 (simple part): 6 min 55 s; cutting 17.1 m, plunging 35 mm, rapids 658 mm, 13 lifts
@@ -1343,6 +1343,26 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v37/copies.chipload
+exit 0
+--- stdout
+warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboard)
+Operation 1: a ring starts at (68.607, 73.384) (default)
+Operation 1: a ring starts at (118.737, 76.213) (default)
+Operation 2: a ring starts at (47.857, 26.889) (default)
+Copies: 6 in all, instance by instance
+Estimated time: 10 min 10 s (cutting 9 min 47 s, rapids 20 s, spindle 3 s)
+Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
+  Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.2 m, 12 lifts
+  Operation 2 (Outline): 5 min 58 s; cutting 10.5 m, plunging 6 mm, rapids 525 mm, 6 lifts
+  In all: cutting 15.1 m, plunging 54 mm, rapids 1.7 m, 18 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Holes): 0.033 mm/tooth
+  Operation 2 (Outline): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v37/pieces.chipload
 exit 0
 --- stdout
@@ -1524,7 +1544,7 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
-Copies: 3 × 2 copies, pitch 160.000 × 130.000 mm, operation by operation
+Copies: 6 in all, operation by operation
 Estimated time: 10 min 15 s (cutting 9 min 47 s, rapids 25 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.1 m, 12 lifts

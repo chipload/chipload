@@ -146,6 +146,48 @@ impl Tool {
     }
 }
 
+/// A part's instances (docs/specs/instances.md §6): ids unique and 2 or more, at most
+/// [`MAX_COPIES`] in all, angles and moves finite.
+fn instance_problems(part: &Part, i: usize) -> Vec<Problem> {
+    let mut problems = Vec::new();
+    if part.instances.len() >= MAX_COPIES as usize {
+        problems.push(Problem::at(
+            format!("parts.{i}.instances"),
+            Message::new("job-copies-too-many")
+                .arg("most", MAX_COPIES)
+                .arg("got", part.instances.len() + 1),
+        ));
+    }
+    for (k, instance) in part.instances.iter().enumerate() {
+        let at = format!("parts.{i}.instances.{k}");
+        if instance.id < 2 {
+            problems.push(Problem::at(
+                format!("{at}.id"),
+                Message::new("job-instance-id"),
+            ));
+        } else if part.instances[..k].iter().any(|o| o.id == instance.id) {
+            problems.push(Problem::at(
+                format!("{at}.id"),
+                Message::new("job-instance-twice").arg("id", instance.id),
+            ));
+        }
+        for (field, value) in [
+            ("angle", instance.angle),
+            ("at.0", instance.at[0]),
+            ("at.1", instance.at[1]),
+        ] {
+            if !value.is_finite() {
+                problems.push(Problem::at(
+                    format!("{at}.{field}"),
+                    Message::new("job-must-be-number")
+                        .arg("got", Value::LengthNumber(value, Digits::Shortest)),
+                ));
+            }
+        }
+    }
+    problems
+}
+
 impl Job {
     /// The parts' rules (docs/specs/parts.md §4): at least one, unique ids and names,
     /// valid copies, every operation in a part, and the operations grouped by part in the
@@ -291,7 +333,7 @@ impl Job {
             ));
         }
         for part in self.parts.iter().filter(|p| p.setup == setup.id) {
-            if part.copies.is_some() {
+            if !part.instances.is_empty() {
                 problems.push(Problem::at(
                     at.clone(),
                     Message::new("job-pieces-copies").arg("part", part.name.clone()),
@@ -390,9 +432,7 @@ impl Job {
                     Message::new("job-part-name-taken").arg("name", name),
                 ));
             }
-            if let Some(copies) = &part.copies {
-                problems.extend(copies.problems(&format!("parts.{i}.copies")));
-            }
+            problems.extend(instance_problems(part, i));
         }
         let rank = |id: u64| self.parts.iter().position(|p| p.id == id);
         let mut last: Option<(usize, u64)> = None;

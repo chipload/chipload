@@ -394,10 +394,7 @@ toolpath-error-outline-unreadable = an outline the geometry library can't read
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Copies overlap: with columns the pitch dx must be at least { $width } (the cut is { $width } wide), got { $got }
-toolpath-error-copies-dy = Copies overlap: with rows the pitch dy must be at least { $height } (the cut is { $height } high), got { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Copies overlap: copies { $other } and { $copy } cut into each other; move them apart (pitch dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
 toolpath-error-parts-overlap = Part "{ $part }" copy { $copy } overlaps part "{ $other_part }" copy { $other_copy } (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }): move the copies apart or change the grid
 
@@ -439,3 +436,5 @@ toolpath-pieces-no-cut-out = a setup in pieces needs an outside profile that cut
 toolpath-pieces-board-too-small = even { $max } × { $max } pieces don't fit boards of { $x } × { $y }: give larger boards or a grid
 toolpath-pieces-no-seam = seam { $seam } along { $axis } is shifted, but there are only { $seams } seams that way
 toolpath-pieces-seams-close = two seams, or a seam and the outline's edge, come closer than { $least } (three joint sizes): shift the seams apart or use fewer pieces
+toolpath-error-instances-overlap = { $part }: instances { $other } and { $instance } cut into each other; move them apart
+toolpath-instance-turned-not-yet = { $part }: instance { $instance } is turned or mirrored, which isn't cut yet; only moved instances are

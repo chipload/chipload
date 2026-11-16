@@ -220,7 +220,7 @@ The **Properties** panel on the right shows what is open, under a title:
 - **A picture:** its width, lower-left corner and layer. A change applies when you finish
   the edit, and traces the picture again. *Trace settings…* opens its
   [window](drawings/images.md).
-- **A part:** its name, on or off, and its [copies](drawings/copies.md).
+- **A part:** its name, on or off, and its [instances](drawings/copies.md).
 - **An operation:** its settings, under its kind and number ("Pocket · Operation 1"): its
   name, shapes, tool and side, then its sections (*Cut*, *Feeds*, *Holding*, …) folded,
   each with what it holds in a few words beside its title. Click a title to open it; it

@@ -11,8 +11,8 @@ use chipload_core::primitives::{Line, Primitive};
 use chipload_core::text::mm;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    ChamferOp, ClearingPass, Copies, CopyOrder, Entry, FillPattern, FluteOp, HoleMethod, HolesOp,
-    Job, MAX_LEAD_DIAMETERS, Mirror, MouldingOp, Note, OpRef, Operation, Part, PathOp, PatternOp,
+    ChamferOp, ClearingPass, Entry, FillPattern, FluteOp, HoleMethod, HolesOp, InstanceOrder, Job,
+    MAX_LEAD_DIAMETERS, Mirror, MouldingOp, Note, OpRef, Operation, Part, PathOp, PatternOp,
     PocketOp, PrismOp, Problem, ProfileOp, RestRefusal, Side, Spindle, SurfaceOp, Tabs, Tool,
     ToolType, VcarveOp, ZZero, rest_refusal,
 };
@@ -456,6 +456,20 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
         let group = groups.len();
         for run in runs {
             let part = job.part_of(&chosen[run[0]].op);
+            // Turned and mirrored instances are planned from step 2 of
+            // docs/specs/instances.md; until then they are refused, never cut as moved.
+            if let Some((p, (id, _))) = part.and_then(|p| {
+                p.spots()
+                    .into_iter()
+                    .find(|(_, spot)| !spot.is_move())
+                    .map(|found| (p, found))
+            }) {
+                return Err(job_error(
+                    Message::new("toolpath-instance-turned-not-yet")
+                        .arg("part", p.name.as_str())
+                        .arg("instance", id),
+                ));
+            }
             let copies = part.map_or_else(|| vec![(1, (0.0, 0.0))], Part::in_cut_order);
             let step = |i: usize, (copy, shift): (u32, Point)| Step {
                 chosen: i,
@@ -471,8 +485,8 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
                     _ => copies.clone(),
                 }
             };
-            match part.and_then(|p| p.copies).map(|c| c.order) {
-                Some(CopyOrder::ByCopy) => {
+            match part.map(|p| p.order) {
+                Some(InstanceOrder::ByInstance) => {
                     for &copy in &copies {
                         steps.extend(
                             run.iter()
@@ -2662,9 +2676,7 @@ fn check_parts_apart(job: &Job, moves: &[Move], spans: &[OpSpan]) -> Result<(), 
             })
             .cloned()
             .collect();
-        if let Some(grid) = &part.copies {
-            check_copies_apart(grid, moves, &mine)?;
-        }
+        check_instances_apart(part, moves, &mine)?;
         for (number, _) in part.in_cut_order() {
             if let Some(area) = cut_area(moves, &mine, number) {
                 areas.push((p, number, area));
@@ -2704,49 +2716,29 @@ fn boxes_overlap(a: (Point, Point), b: (Point, Point)) -> bool {
         && by0 + CHAIN_TOL_MM < ay1
 }
 
-/// Copies of a part must not cut into each other (docs/specs/copies-grid.md §4): the
-/// tools' paths are compared, so copies whose boxes overlap but whose cuts don't (shapes
-/// that interleave) are allowed. The message says what pitch would keep two copies in a
-/// row or a column apart for sure: the cut's width or height.
-fn check_copies_apart(
-    grid: &Copies,
+/// A part's instances must not cut into each other (docs/specs/instances.md §3): the
+/// tools' paths are compared, so instances whose boxes overlap but whose cuts don't (shapes
+/// that interleave) are allowed.
+fn check_instances_apart(
+    part: &Part,
     moves: &[Move],
     spans: &[OpSpan],
 ) -> Result<(), ToolpathError> {
-    let copies: Vec<(u32, Point, CutArea)> = grid
-        .in_cut_order()
+    let cut: Vec<(u32, CutArea)> = part
+        .spots()
         .into_iter()
-        .filter_map(|(number, shift)| cut_area(moves, spans, number).map(|a| (number, shift, a)))
+        .filter_map(|(number, _)| cut_area(moves, spans, number).map(|a| (number, a)))
         .collect();
-    let Some((_, _, first)) = copies.first() else {
-        return Ok(());
-    };
-    let ((x0, y0), (x1, y1)) = first.extent;
-    let (width, height) = (x1 - x0, y1 - y0);
-    for (k, (number, shift, a)) in copies.iter().enumerate() {
-        for (other, shift_other, b) in &copies[..k] {
-            if !areas_overlap(a, b) {
-                continue;
+    for (k, (number, a)) in cut.iter().enumerate() {
+        for (other, b) in &cut[..k] {
+            if areas_overlap(a, b) {
+                return Err(ToolpathError::Overlap(
+                    Message::new("toolpath-error-instances-overlap")
+                        .arg("part", part.name.as_str())
+                        .arg("instance", *number)
+                        .arg("other", *other),
+                ));
             }
-            let same_row = (shift.1 - shift_other.1).abs() <= CHAIN_TOL_MM;
-            let same_column = (shift.0 - shift_other.0).abs() <= CHAIN_TOL_MM;
-            let fixed = |v: f64| Value::LengthNumber(v, Digits::Fixed(3));
-            let text = if same_row {
-                Message::new("toolpath-error-copies-dx")
-                    .arg("width", Value::Length(width, Digits::Fixed(3)))
-                    .arg("got", fixed(grid.dx.abs()))
-            } else if same_column {
-                Message::new("toolpath-error-copies-dy")
-                    .arg("height", Value::Length(height, Digits::Fixed(3)))
-                    .arg("got", fixed(grid.dy.abs()))
-            } else {
-                Message::new("toolpath-error-copies-overlap")
-                    .arg("other", *other)
-                    .arg("copy", *number)
-                    .arg("dx", fixed(grid.dx.abs()))
-                    .arg("dy", fixed(grid.dy.abs()))
-            };
-            return Err(ToolpathError::Overlap(text));
         }
     }
     Ok(())

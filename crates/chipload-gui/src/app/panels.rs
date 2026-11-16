@@ -304,7 +304,7 @@ impl ChiploadApp {
                 self.add_smoothing(i);
             }
             Some(JobRequest::RemoveSmoothingPass(i)) => self.remove_smoothing(i),
-            Some(JobRequest::CopiesGap(part, gap)) => self.set_copies_gap(part, gap),
+            Some(JobRequest::CopiesGrid(part, grid, gap)) => self.set_copies_grid(part, grid, gap),
             Some(JobRequest::Activate(part)) => self.activate_part(part),
             Some(JobRequest::Post(name)) => {
                 self.choose_project_post(&name);

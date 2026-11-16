@@ -396,10 +396,7 @@ toolpath-error-outline-unreadable = un contour que la bibliothèque de géométr
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Les copies se chevauchent : avec des colonnes, le pas dx doit être au moins { $width } (la coupe fait { $width } de large), reçu { $got }
-toolpath-error-copies-dy = Les copies se chevauchent : avec des rangées, le pas dy doit être au moins { $height } (la coupe fait { $height } de haut), reçu { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Les copies se chevauchent : les copies { $other } et { $copy } empiètent l'une sur l'autre ; écartez-les (pas dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
 toolpath-error-parts-overlap = La copie { $copy } de la pièce "{ $part }" chevauche la copie { $other_copy } de la pièce "{ $other_part }" (X{ $x0 } à { $x1 }, Y{ $y0 } à { $y1 }) : écartez les copies ou modifiez la grille
 
@@ -438,3 +435,5 @@ toolpath-pieces-no-cut-out = un montage en morceaux demande un contournage exté
 toolpath-pieces-board-too-small = même { $max } × { $max } morceaux ne tiennent pas sur des planches de { $x } × { $y } : indiquez des planches plus grandes ou une grille
 toolpath-pieces-no-seam = le joint { $seam } selon { $axis } est décalé, mais il n’y a que { $seams } joints dans ce sens
 toolpath-pieces-seams-close = deux joints, ou un joint et le bord du contour, sont à moins de { $least } (trois tailles d’assemblage) : écartez les joints ou prenez moins de morceaux
+toolpath-error-instances-overlap = { $part } : les instances { $other } et { $instance } se coupent ; écartez-les
+toolpath-instance-turned-not-yet = { $part } : l’instance { $instance } est tournée ou en miroir, ce qui ne s’usine pas encore ; seules les instances déplacées s’usinent

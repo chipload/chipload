@@ -161,7 +161,7 @@ job-dowels-no-back = styrhål borras med framsidan av en skiva som har en baksid
 job-pieces-spacing = fogarna måste sitta minst två storlekar isär: minst två gånger { $size }
 job-pieces-shifts = { $count } skarvförskjutningar, men rutnätet har { $seams } skarvar där
 job-pieces-two-sided = en uppspänning i bitar kan inte vara dubbelsidig än
-job-pieces-copies = en uppspänning i bitar kan inte ha kopior än, och "{ $part }" har kopior
+job-pieces-copies = en uppspänning i bitar kan inte ha instanser än, och "{ $part }" har instanser
 job-dowels-not-through = styrhål går genom skivan ner i offerskivan: sätt Under ämnet till styrpinnarnas djup
 job-dowel-not-circle = form { $shape } är ingen ritad cirkel: ett styrhål är en
 job-dowel-off-axis = styrhål { $shape } ligger { $off } från linjen skivan vänds kring, så på den vända skivan skulle det missa sin styrpinne
@@ -375,3 +375,5 @@ job-style-tool-not-in-library = verktyg { $tool } finns inte i ditt bibliotek: s
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = de här inställningarna
 job-style-other-settings = andra inställningar
+job-instance-id = en instans nummer är 2 eller mer: 1 är detaljen som den är ritad
+job-instance-twice = två instanser har nummer { $id }

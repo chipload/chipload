@@ -5,7 +5,7 @@
 
 mod common;
 
-use chipload_job::{Copies, CopyOrder, Job, Mirror, Turn};
+use chipload_job::{Copies, InstanceOrder, Job, Mirror, Turn};
 use chipload_pipeline::run_job;
 use chipload_pipeline::setups::add_back_side;
 use chipload_toolpath::model::Program;
@@ -109,15 +109,16 @@ fn each_copy_of_a_mirrored_part_is_mirrored_in_place() {
         rows: 1,
         dx: 230.0,
         dy: 0.0,
-        order: CopyOrder::ByCopy,
     };
     let mirror = Mirror::LeftRight;
     let mut job = every_direction(None);
     let at = axis(&job, mirror);
     job.parts[0].mirror = Some(mirror);
-    job.parts[0].copies = Some(copies);
+    job.parts[0].instances = copies.instances();
+    job.parts[0].order = InstanceOrder::ByInstance;
     let mut by_hand = every_direction(Some((turn_of(mirror), at)));
-    by_hand.parts[0].copies = Some(copies);
+    by_hand.parts[0].instances = copies.instances();
+    by_hand.parts[0].order = InstanceOrder::ByInstance;
     for job in [&mut job, &mut by_hand] {
         job.setups[0].stock.fit = None;
         job.setups[0].stock.x = 520.0;
@@ -266,8 +267,8 @@ fn bones_beside_another_part() -> Job {
     data["drawing"]["next_shape_id"] = json!(4);
     data["drawing"]["dxfs"] = json!([]);
     data["parts"] = json!([
-        {"id": 1, "name": "Box", "enabled": true, "copies": null, "setup": 1},
-        {"id": 2, "name": "Dot", "enabled": true, "copies": null, "setup": 1}]);
+        {"id": 1, "name": "Box", "enabled": true, "instances": [], "order": "by_operation", "setup": 1},
+        {"id": 2, "name": "Dot", "enabled": true, "instances": [], "order": "by_operation", "setup": 1}]);
     let template = data["operations"][1].clone();
     let profile = |part: u64, layer: &str, side: &str, corners: serde_json::Value| {
         let mut op = template.clone();

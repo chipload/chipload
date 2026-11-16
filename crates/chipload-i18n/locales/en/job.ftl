@@ -161,7 +161,7 @@ job-dowels-no-back = dowel holes are cut with the front of a board that has a ba
 job-pieces-spacing = joints must be at least two sizes apart: at least twice { $size }
 job-pieces-shifts = { $count } seam shifts, but the grid has { $seams } seams there
 job-pieces-two-sided = a setup in pieces can't be two-sided yet
-job-pieces-copies = a setup in pieces can't have copies yet, and "{ $part }" has copies
+job-pieces-copies = a setup in pieces can't have instances yet, and "{ $part }" has instances
 job-dowels-not-through = dowel holes go through the board into the spoilboard: set Below stock to the pins' depth
 job-dowel-not-circle = shape { $shape } isn't a drawn circle: a dowel hole is one
 job-dowel-off-axis = dowel hole { $shape } is { $off } off the line the board turns about, so on the turned board it would miss its pin
@@ -379,3 +379,5 @@ job-style-tool-not-in-library = tool { $tool } isn't in your library: save it to
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = these settings
 job-style-other-settings = other settings
+job-instance-id = an instance's number is 2 or more: 1 is the part as drawn
+job-instance-twice = two instances are number { $id }

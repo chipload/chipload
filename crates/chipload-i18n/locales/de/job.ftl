@@ -161,7 +161,7 @@ job-dowels-no-back = Passstiftbohrungen werden mit der Vorderseite eines Bretts 
 job-pieces-spacing = Verbindungen müssen mindestens zwei Größen auseinander liegen: mindestens das Doppelte von { $size }
 job-pieces-shifts = { $count } Nahtverschiebungen, aber das Raster hat dort { $seams } Nähte
 job-pieces-two-sided = eine Aufspannung in Stücken kann noch nicht zweiseitig sein
-job-pieces-copies = eine Aufspannung in Stücken kann noch keine Kopien haben, und „{ $part }“ hat Kopien
+job-pieces-copies = eine Aufspannung in Stücken kann noch keine Instanzen haben, und „{ $part }“ hat Instanzen
 job-dowels-not-through = Passstiftbohrungen gehen durch das Brett bis in die Opferplatte: „Unter Rohteil“ auf die Tiefe der Stifte setzen
 job-dowel-not-circle = Form { $shape } ist kein gezeichneter Kreis: eine Passstiftbohrung ist einer
 job-dowel-off-axis = Passstiftbohrung { $shape } liegt { $off } neben der Linie, um die das Brett gewendet wird, und träfe auf dem gewendeten Brett ihren Stift nicht
@@ -375,3 +375,5 @@ job-style-tool-not-in-library = Werkzeug { $tool } ist nicht in Ihrer Bibliothek
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = diese Einstellungen
 job-style-other-settings = andere Einstellungen
+job-instance-id = die Nummer einer Instanz ist 2 oder mehr: 1 ist das Teil wie gezeichnet
+job-instance-twice = zwei Instanzen haben die Nummer { $id }

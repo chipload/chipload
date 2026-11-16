@@ -66,7 +66,8 @@ pub fn add_setup(
         id: part,
         name: part_name,
         enabled: true,
-        copies: None,
+        instances: Vec::new(),
+        order: chipload_job::InstanceOrder::ByOperation,
         setup: id,
         mirror: None,
     });

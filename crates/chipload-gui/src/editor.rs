@@ -420,7 +420,8 @@ impl EditJob {
             id,
             name,
             enabled: true,
-            copies: None,
+            instances: Vec::new(),
+            order: chipload_job::InstanceOrder::ByOperation,
             setup: self.job.active_setup_id().unwrap_or(1),
             mirror: None,
         });

@@ -1154,11 +1154,13 @@ pub(in crate::app) fn part_form(
                 ui.end_row();
             })
     });
-    let copies = part.copies.map_or(t!(ui, "forms-copies-one"), |c| {
-        format!("{} × {} = {}", c.columns, c.rows, c.count())
-    });
+    let copies = if part.instances.is_empty() {
+        t!(ui, "forms-copies-one")
+    } else {
+        part.count().to_string()
+    };
     section(ui, "part-copies", &t!(ui, "forms-copies"), &copies, |ui| {
-        copies_rows(ui, &mut part.copies, &mut request, &at("copies"), id);
+        copies_rows(ui, part, &mut request, id);
     });
     if several {
         ui.add_space(4.0);
@@ -1188,93 +1190,94 @@ fn mirror_row(ui: &mut egui::Ui, mirror: &mut Option<chipload_job::Mirror>, part
     ui.end_row();
 }
 
-/// A part cut several times in a grid (docs/specs/copies-grid.md); `at` is the copies'
-/// path, for the problems at its fields.
+/// A part's instances (docs/specs/instances.md §4): how many, their cut order, and a grid
+/// that makes them: columns × rows at a pitch, or at a gap between the cuts.
 pub(super) fn copies_rows(
     ui: &mut egui::Ui,
-    copies: &mut Option<Copies>,
+    part: &mut chipload_job::Part,
     request: &mut Option<JobRequest>,
-    at: &str,
-    part: u64,
+    id: u64,
 ) {
     ui.label(t!(ui, "forms-copies"))
         .on_hover_text(t!(ui, "forms-copies-hover"));
-    let mut on = copies.is_some();
-    if ui.checkbox(&mut on, t!(ui, "forms-copies-grid")).changed() {
-        *copies = on.then_some(Copies {
-            columns: 2,
-            rows: 1,
-            dx: 0.0,
-            dy: 0.0,
-            order: CopyOrder::ByOperation,
-        });
-        if on {
-            *request = Some(JobRequest::CopiesGap(part, DEFAULT_COPIES_GAP));
+    ui.horizontal(|ui| {
+        ui.label(part.count().to_string());
+        if !part.instances.is_empty() && ui.button(t!(ui, "forms-instances-none")).clicked() {
+            part.instances.clear();
         }
+    });
+    ui.end_row();
+    if !part.instances.is_empty() {
+        ui.label(format!("  {}", t!(ui, "forms-order")));
+        ComboBox::from_id_salt(("copies-order", id))
+            .selected_text(order_name(ui, part.order))
+            .show_ui(ui, |ui| {
+                for order in [InstanceOrder::ByOperation, InstanceOrder::ByInstance] {
+                    let name = order_name(ui, order);
+                    ui.selectable_value(&mut part.order, order, name);
+                }
+            });
+        ui.end_row();
     }
-    ui.end_row();
-    let Some(grid) = copies else {
-        return;
-    };
-    ui.label(format!("  {}", t!(ui, "forms-columns-rows")));
-    ui.horizontal(|ui| {
-        let count = 1..=MAX_COPIES_PER_SIDE;
-        flag(
-            ui.add(crate::units::number(ui, &mut grid.columns).range(count.clone())),
-            ui,
-            &format!("{at}.columns"),
-        );
-        flag(
-            ui.add(crate::units::number(ui, &mut grid.rows).range(count)),
-            ui,
-            &format!("{at}.rows"),
-        );
-        ui.label(format!("= {}", grid.count()));
+    // The grid being set up, kept in the window's memory: it makes instances when asked.
+    let key = egui::Id::new(("copies-grid", id));
+    let mut grid = ui.data_mut(|d| {
+        *d.get_temp_mut_or(
+            key,
+            Copies {
+                columns: 2,
+                rows: 1,
+                dx: 0.0,
+                dy: 0.0,
+            },
+        )
     });
-    ui.end_row();
-    ui.label(format!("  {}", t!(ui, "forms-pitch")))
-        .on_hover_text(t!(
-            ui,
-            "units-text-pitch-hover",
-            unit = crate::units::unit(ui.ctx())
-        ));
-    ui.horizontal(|ui| {
-        for (name, value) in [("dx", &mut grid.dx), ("dy", &mut grid.dy)] {
-            let response = ui.add(
-                crate::units::length(value)
-                    .speed(0.1)
-                    .range(-100_000.0..=100_000.0),
-            );
-            flag(response, ui, &format!("{at}.{name}"));
-        }
-    });
+    let count = 1..=MAX_COPIES_PER_SIDE;
+    let columns = t!(ui, "forms-grid-columns");
+    let rows = t!(ui, "forms-grid-rows");
+    for (label, value) in [(columns, &mut grid.columns), (rows, &mut grid.rows)] {
+        ui.label(format!("  {label}"));
+        ui.add(crate::units::number(ui, value).range(count.clone()));
+        ui.end_row();
+    }
+    let pitch_x = t!(ui, "forms-pitch-x");
+    let pitch_y = t!(ui, "forms-pitch-y");
+    let hover = t!(
+        ui,
+        "units-text-pitch-hover",
+        unit = crate::units::unit(ui.ctx())
+    );
+    for (label, value) in [(pitch_x, &mut grid.dx), (pitch_y, &mut grid.dy)] {
+        ui.label(format!("  {label}")).on_hover_text(&hover);
+        ui.add(
+            crate::units::length(value)
+                .speed(0.1)
+                .range(-100_000.0..=100_000.0),
+        );
+        ui.end_row();
+    }
+    ui.label("");
+    if ui.button(t!(ui, "forms-instances-grid")).clicked() {
+        *request = Some(JobRequest::CopiesGrid(id, grid, None));
+    }
     ui.end_row();
     ui.label(format!("  {}", t!(ui, "forms-gap")))
         .on_hover_text(t!(ui, "forms-gap-hover"));
-    ui.horizontal(|ui| {
-        let id = egui::Id::new(("copies-gap", part));
-        let mut gap = ui.data_mut(|d| *d.get_temp_mut_or(id, DEFAULT_COPIES_GAP));
-        ui.add(mm(&mut gap));
-        ui.data_mut(|d| d.insert_temp(id, gap));
-        if ui.button(t!(ui, "forms-set-pitch")).clicked() {
-            *request = Some(JobRequest::CopiesGap(part, gap));
-        }
-    });
+    let gap_key = egui::Id::new(("copies-gap", id));
+    let mut gap = ui.data_mut(|d| *d.get_temp_mut_or(gap_key, DEFAULT_COPIES_GAP));
+    ui.add(mm(&mut gap));
+    ui.data_mut(|d| d.insert_temp(gap_key, gap));
     ui.end_row();
-    ui.label(format!("  {}", t!(ui, "forms-order")));
-    ComboBox::from_id_salt("copies-order")
-        .selected_text(order_name(ui, grid.order))
-        .show_ui(ui, |ui| {
-            for order in [CopyOrder::ByOperation, CopyOrder::ByCopy] {
-                let name = order_name(ui, order);
-                ui.selectable_value(&mut grid.order, order, name);
-            }
-        });
+    ui.label("");
+    if ui.button(t!(ui, "forms-instances-grid")).clicked() {
+        *request = Some(JobRequest::CopiesGrid(id, grid, Some(gap)));
+    }
     ui.end_row();
+    ui.data_mut(|d| d.insert_temp(key, grid));
 }
 
 /// How the copies of a part are cut, in the app's language.
-pub(super) fn order_name(ui: &egui::Ui, order: CopyOrder) -> String {
+pub(super) fn order_name(ui: &egui::Ui, order: InstanceOrder) -> String {
     let units = crate::units::display(ui.ctx()).into();
     chipload_pipeline::copies::order_message(order).render(ui.lang(), units)
 }

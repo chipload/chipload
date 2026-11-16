@@ -413,8 +413,8 @@ forms-activate = Activer
 forms-operations = Opérations
 forms-operations-none = aucune pour l'instant
 forms-copies-one = une
-forms-copies = Copies
-forms-parts-note = Les pièces sont usinées l'une après l'autre, chacune avec ses copies.
+forms-copies = Instances
+forms-parts-note = Les pièces sont usinées l'une après l'autre, chacune avec ses instances.
 forms-setup = Montage
 forms-setup-cut = Usiner
 forms-setup-cut-hover = Désactivé : gardé, mais aucune de ses pièces n'est usinée
@@ -452,14 +452,16 @@ forms-open-front = Ouvrir { $front }
 forms-thinner-after-surfacing = Sa planche fait { $thickness } d'épaisseur après le surfaçage de { $front }.
 forms-setup-make-active = En faire le montage actif, pour modifier son panneau et son origine
 forms-remove-setup = Retirer le montage
-forms-copies-hover = Usiner la pièce plusieurs fois en grille. Les copies sont dessinées en transparence ; seul le dessin lui-même peut être sélectionné.
-forms-copies-grid = plusieurs, en grille
-forms-columns-rows = colonnes × rangées
-# Copy to copy distance, in X and Y.
-forms-pitch = pas X Y
+forms-copies-hover = La pièce placée encore : chaque instance usine les mêmes formes et opérations, déplacée. Une grille ci-dessous les crée. Les instances sont dessinées en transparence ; seule la pièce elle-même peut être sélectionnée.
+forms-instances-none = Tout retirer
+forms-instances-grid = Créer la grille
+forms-grid-columns = colonnes
+forms-grid-rows = rangées
+# Instance to instance distance, in X and in Y.
+forms-pitch-x = pas X
+forms-pitch-y = pas Y
 forms-gap = écart
-forms-gap-hover = Règle le pas une fois pour laisser cet écart entre les coupes des copies voisines. Le projet garde le pas.
-forms-set-pitch = Régler le pas
+forms-gap-hover = Crée la grille au pas qui laisse cet écart entre les coupes des voisines.
 forms-order = ordre
 
 # The machine. "Post": the post-processor that writes the G-code.

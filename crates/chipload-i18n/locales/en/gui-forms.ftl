@@ -414,8 +414,8 @@ forms-activate = Activate
 forms-operations = Operations
 forms-operations-none = none yet
 forms-copies-one = one
-forms-copies = Copies
-forms-parts-note = Parts are cut one after the other, each with its copies.
+forms-copies = Instances
+forms-parts-note = Parts are cut one after the other, each with its instances.
 forms-setup = Setup
 forms-setup-cut = Cut it
 forms-setup-cut-hover = Off: kept, but none of its parts is cut
@@ -453,14 +453,16 @@ forms-open-front = Open { $front }
 forms-thinner-after-surfacing = Its board is { $thickness } thick after { $front }'s surfacing.
 forms-setup-make-active = Make it the active setup, to change its board and zero
 forms-remove-setup = Remove setup
-forms-copies-hover = Cut the part several times in a grid. The copies are drawn faded; only the drawing itself can be selected.
-forms-copies-grid = several, in a grid
-forms-columns-rows = columns × rows
-# Copy to copy distance, in X and Y.
-forms-pitch = pitch X Y
+forms-copies-hover = The part placed again: each instance cuts the same shapes and operations, moved. A grid below makes them. The instances are drawn faded; only the part itself can be selected.
+forms-instances-none = Remove all
+forms-instances-grid = Make the grid
+forms-grid-columns = columns
+forms-grid-rows = rows
+# Instance to instance distance, in X and in Y.
+forms-pitch-x = pitch X
+forms-pitch-y = pitch Y
 forms-gap = gap
-forms-gap-hover = Sets the pitch once so this much is left between the cuts of neighbouring copies. The project keeps the pitch.
-forms-set-pitch = Set pitch
+forms-gap-hover = Makes the grid with the pitch that leaves this much between the cuts of neighbours.
 forms-order = order
 
 # The machine. "Post": the post-processor that writes the G-code.

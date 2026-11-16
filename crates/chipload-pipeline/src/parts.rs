@@ -77,7 +77,8 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
         id,
         name,
         enabled: true,
-        copies: None,
+        instances: Vec::new(),
+        order: chipload_job::InstanceOrder::ByOperation,
         setup,
         mirror: None,
     });

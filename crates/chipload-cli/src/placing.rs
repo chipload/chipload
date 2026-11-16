@@ -30,11 +30,20 @@ pub(crate) enum ZArg {
 
 #[derive(Clone, Copy, ValueEnum)]
 pub(crate) enum OrderArg {
-    /// Each operation on every copy, then the next operation.
+    /// Each operation on every instance, then the next operation.
     ByOperation,
-    /// Every operation on one copy, then the next copy (was `by-part`).
-    #[value(alias = "by-part")]
-    ByCopy,
+    /// Every operation on one instance, then the next (was `by-copy`, `by-part`).
+    #[value(alias = "by-copy", alias = "by-part")]
+    ByInstance,
+}
+
+impl OrderArg {
+    pub(crate) fn value(self) -> InstanceOrder {
+        match self {
+            OrderArg::ByOperation => InstanceOrder::ByOperation,
+            OrderArg::ByInstance => InstanceOrder::ByInstance,
+        }
+    }
 }
 
 /// What `chipload copies` was asked to change.
@@ -135,7 +144,14 @@ pub(crate) fn copies(
         return out.fail(format!("no part {part} in the project (see `part list`)"));
     };
     match changed_copies(&job, part, args) {
-        Ok(copies) => job.parts[at].copies = copies,
+        Ok((instances, order)) => {
+            if let Some(instances) = instances {
+                job.parts[at].instances = instances;
+            }
+            if let Some(order) = order {
+                job.parts[at].order = order;
+            }
+        }
         Err(err) => return out.fail(err),
     }
     let problems = job.validate();
@@ -146,9 +162,10 @@ pub(crate) fn copies(
     if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
-    match job.parts[at].copies.as_ref().map(grid_text) {
-        Some(text) => out.line(format!("Copies: {text}")),
-        None => out.line("Copies: off (one copy)"),
+    if job.parts[at].instances.is_empty() {
+        out.line("Instances: none (cut once)");
+    } else {
+        out.line(format!("Instances: {}", instances_text(&job.parts[at])));
     }
     // Overlap is refused when the project is run; say so now.
     if job.parts[at].count() > 1
@@ -162,47 +179,48 @@ pub(crate) fn copies(
     ExitCode::SUCCESS
 }
 
+/// What `copies` makes of a part (docs/specs/instances.md §5): with --grid, the grid's
+/// instances in place of the part's; with --order, its cut order; with --off, none.
 pub(crate) fn changed_copies(
     job: &Job,
     part: u64,
     args: CopiesArgs,
-) -> Result<Option<Copies>, String> {
+) -> Result<(Option<Vec<Instance>>, Option<InstanceOrder>), String> {
     if args.off {
-        return Ok(None);
+        return Ok((Some(Vec::new()), None));
     }
-    let current = job.part(part).and_then(|p| p.copies);
-    let mut copies = current.unwrap_or(Copies {
-        columns: 1,
-        rows: 1,
+    let order = args.order.map(OrderArg::value);
+    let Some(grid) = &args.grid else {
+        if args.pitch.is_some() || args.gap.is_some() {
+            return Err("a grid's spacing goes with its --grid COLUMNSxROWS".into());
+        }
+        if order.is_none() {
+            return Err("give --grid (and --pitch or --gap), --order or --off".into());
+        }
+        return Ok((None, order));
+    };
+    let (columns, rows) = crate::grid_counts(grid)
+        .ok_or_else(|| format!("--grid wants columns x rows like 3x2, got \"{grid}\""))?;
+    let mut copies = Copies {
+        columns,
+        rows,
         dx: 0.0,
         dy: 0.0,
-        order: CopyOrder::ByOperation,
-    });
-    if current.is_none() && args.grid.is_none() {
-        return Err("the part has no copies yet: give --grid (and --pitch or --gap)".into());
-    }
-    if let Some(grid) = &args.grid {
-        let (columns, rows) = crate::grid_counts(grid)
-            .ok_or_else(|| format!("--grid wants columns x rows like 3x2, got \"{grid}\""))?;
-        copies.columns = columns;
-        copies.rows = rows;
-    }
+    };
     if let Some(pitch) = &args.pitch {
         [copies.dx, copies.dy] = point_arg(pitch).map_err(|e| format!("--pitch: {e}"))?;
     }
-    if let Some(order) = args.order {
-        copies.order = match order {
-            OrderArg::ByOperation => CopyOrder::ByOperation,
-            OrderArg::ByCopy => CopyOrder::ByCopy,
-        };
-    }
     if let Some(gap) = args.gap {
         (copies.dx, copies.dy) =
-            pitch_for_gap(job, part, gap, (copies.dx, copies.dy)).map_err(|e| e.to_string())?;
-    } else if current.is_none() && args.pitch.is_none() && copies.count() > 1 {
+            pitch_for_gap(job, part, gap, (1.0, 1.0)).map_err(|e| e.to_string())?;
+    } else if args.pitch.is_none() && copies.count() > 1 {
         return Err("give the spacing with --pitch DX,DY or --gap MM".into());
     }
-    Ok(Some(copies))
+    let problems = copies.problems("--grid");
+    if let Some(problem) = problems.first() {
+        return Err(problem.to_string());
+    }
+    Ok((Some(copies.instances()), order))
 }
 
 /// What `chipload place` was asked to do.

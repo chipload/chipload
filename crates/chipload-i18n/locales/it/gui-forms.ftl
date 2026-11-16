@@ -413,8 +413,8 @@ forms-activate = Attiva
 forms-operations = Lavorazioni
 forms-operations-none = ancora nessuna
 forms-copies-one = una
-forms-copies = Copie
-forms-parts-note = I pezzi vengono lavorati uno dopo l'altro, ciascuno con le sue copie.
+forms-copies = Istanze
+forms-parts-note = I pezzi vengono lavorati uno dopo l'altro, ciascuno con le sue istanze.
 forms-setup = Piazzamento
 forms-setup-cut = Lavoralo
 forms-setup-cut-hover = Disattivato: resta, ma nessuno dei suoi pezzi viene lavorato
@@ -452,14 +452,16 @@ forms-open-front = Apri { $front }
 forms-thinner-after-surfacing = La sua tavola è spessa { $thickness } dopo la spianatura di { $front }.
 forms-setup-make-active = Rendilo il piazzamento attivo, per cambiare pannello e zero
 forms-remove-setup = Rimuovi piazzamento
-forms-copies-hover = Lavora il pezzo più volte in una griglia. Le copie sono disegnate sbiadite; solo il disegno stesso si può selezionare.
-forms-copies-grid = più, in griglia
-forms-columns-rows = colonne × righe
-# Copy to copy distance, in X and Y.
-forms-pitch = passo X Y
+forms-copies-hover = Il pezzo posato di nuovo: ogni istanza lavora le stesse forme e lavorazioni, spostata. Una griglia qui sotto le crea. Le istanze sono disegnate sbiadite; si può selezionare solo il pezzo stesso.
+forms-instances-none = Togli tutte
+forms-instances-grid = Crea la griglia
+forms-grid-columns = colonne
+forms-grid-rows = righe
+# Instance to instance distance, in X and in Y.
+forms-pitch-x = passo X
+forms-pitch-y = passo Y
 forms-gap = distanza
-forms-gap-hover = Imposta il passo una volta in modo che resti questa distanza tra i tagli di copie vicine. Il progetto conserva il passo.
-forms-set-pitch = Imposta passo
+forms-gap-hover = Crea la griglia con il passo che lascia questa distanza tra i tagli delle vicine.
 forms-order = ordine
 
 # The machine. "Post": the post-processor that writes the G-code.

@@ -155,61 +155,6 @@
       ],
       "type": "object"
     },
-    "Copies": {
-      "additionalProperties": false,
-      "description": "A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy)\nmm.",
-      "properties": {
-        "columns": {
-          "description": "Copies along X, at least 1.",
-          "format": "uint32",
-          "minimum": 0,
-          "type": "integer"
-        },
-        "dx": {
-          "description": "Distance from copy to copy along X, mm; negative grows to the left.",
-          "format": "double",
-          "type": "number"
-        },
-        "dy": {
-          "description": "Distance from copy to copy along Y, mm; negative grows downwards.",
-          "format": "double",
-          "type": "number"
-        },
-        "order": {
-          "$ref": "#/$defs/CopyOrder",
-          "default": "by_operation",
-          "description": "`by_operation`: each operation on every copy, then the next; `by_copy`: every\noperation on one copy, then the next copy."
-        },
-        "rows": {
-          "description": "Copies along Y, at least 1.",
-          "format": "uint32",
-          "minimum": 0,
-          "type": "integer"
-        }
-      },
-      "required": [
-        "columns",
-        "rows",
-        "dx",
-        "dy"
-      ],
-      "type": "object"
-    },
-    "CopyOrder": {
-      "description": "In which order the copies are cut.",
-      "oneOf": [
-        {
-          "const": "by_operation",
-          "description": "Each operation on every copy, then the next operation.",
-          "type": "string"
-        },
-        {
-          "const": "by_copy",
-          "description": "Every operation on one copy, then the next copy. Called `by_part` before parts\ncame (schema 22).",
-          "type": "string"
-        }
-      ]
-    },
     "CornerChoice": {
       "additionalProperties": false,
       "description": "A corner with its own bone, chosen by the user.",
@@ -1206,6 +1151,70 @@
         {
           "const": "straight",
           "description": "A straight rise: a ridge along narrow strokes.",
+          "type": "string"
+        }
+      ]
+    },
+    "Instance": {
+      "additionalProperties": false,
+      "description": "The part placed again (docs/specs/instances.md §2): mirrored, then turned, about the\npart's centre, then moved.",
+      "properties": {
+        "angle": {
+          "description": "Then turned about the part's centre, radians, counter-clockwise.",
+          "format": "double",
+          "type": "number"
+        },
+        "at": {
+          "description": "Then moved, mm.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        "enabled": {
+          "description": "False: kept, but not cut.",
+          "type": "boolean"
+        },
+        "id": {
+          "description": "Its number in the part, from 2 (1 is the part as drawn).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "mirror": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Mirror"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Mirrored about the part's centre line first. Null: as drawn."
+        }
+      },
+      "required": [
+        "id",
+        "enabled",
+        "angle",
+        "at"
+      ],
+      "type": "object"
+    },
+    "InstanceOrder": {
+      "description": "In which order a part and its instances are cut.",
+      "oneOf": [
+        {
+          "const": "by_operation",
+          "description": "Each operation on every instance, then the next operation.",
+          "type": "string"
+        },
+        {
+          "const": "by_instance",
+          "description": "Every operation on one instance, then the next instance. Called `by_copy` before\nschema 38, and `by_part` before parts came (schema 22).",
           "type": "string"
         }
       ]
@@ -3162,17 +3171,6 @@
       "additionalProperties": false,
       "description": "A part: a named group of operations, cut together, with its own copies\n(docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.",
       "properties": {
-        "copies": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Copies"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Cut the part several times in a grid. Null: once."
-        },
         "enabled": {
           "description": "False: the part and all its operations stay in the project but aren't cut.",
           "type": "boolean"
@@ -3182,6 +3180,13 @@
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
+        },
+        "instances": {
+          "description": "The part placed again: each instance the same shapes and operations moved, turned\nand perhaps mirrored (instance 1 is the part as drawn and isn't listed). Empty: cut\nonce. Since schema 38, in place of a grid of copies.",
+          "items": {
+            "$ref": "#/$defs/Instance"
+          },
+          "type": "array"
         },
         "mirror": {
           "anyOf": [
@@ -3198,6 +3203,10 @@
           "description": "Its name, unique in the project, shown in the Browser, the report and the sheet.",
           "type": "string"
         },
+        "order": {
+          "$ref": "#/$defs/InstanceOrder",
+          "description": "`by_operation`: each operation on every instance, then the next; `by_instance`:\nevery operation on one instance, then the next instance. Since schema 38."
+        },
         "setup": {
           "description": "The id of the setup it is cut in (`setups`). Since schema 34.",
           "format": "uint64",
@@ -3209,6 +3218,8 @@
         "id",
         "name",
         "enabled",
+        "instances",
+        "order",
         "setup"
       ],
       "type": "object"
@@ -4669,7 +4680,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 37. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 38. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -4714,7 +4725,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 37,
+      "const": 38,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "setups": {

@@ -41,7 +41,7 @@ use chipload_i18n::{Digits, Message, Value};
 use serde::{Deserialize, Serialize};
 
 /// The schema version this code reads and writes.
-pub const CURRENT_VERSION: i64 = 37;
+pub const CURRENT_VERSION: i64 = 38;
 
 /// The most depth passes a V-carve takes (docs/specs/v-carve.md decision 12).
 pub const MAX_VCARVE_PASSES: u32 = 100;

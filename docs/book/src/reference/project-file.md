@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 37. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 38. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 37. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `37` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `38` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -75,26 +75,6 @@ A clearing pass with its own end mill, inside an operation's shapes and depths: 
 | `step_down` | number | yes | The deepest each pass goes, mm. |
 | `stepover` | number | yes | The distance between the clearing rings, as a fraction of the tool diameter. |
 | `tool` | integer | yes | The id of the project tool it cuts with (`tools`): an end mill. |
-
-## Copies
-
-A grid of copies of a part: copy (column c, row r) is the part moved by (c·dx, r·dy) mm.
-
-| Field | Type | Required | Meaning |
-|---|---|---|---|
-| `columns` | integer | yes | Copies along X, at least 1. |
-| `dx` | number | yes | Distance from copy to copy along X, mm; negative grows to the left. |
-| `dy` | number | yes | Distance from copy to copy along Y, mm; negative grows downwards. |
-| `order` | [CopyOrder](#copyorder) | no | `by_operation`: each operation on every copy, then the next; `by_copy`: every operation on one copy, then the next copy. |
-| `rows` | integer | yes | Copies along Y, at least 1. |
-
-## CopyOrder
-
-In which order the copies are cut.
-
-- `"by_operation"`: Each operation on every copy, then the next operation.
-
-- `"by_copy"`: Every operation on one copy, then the next copy. Called `by_part` before parts came (schema 22).
 
 ## CornerChoice
 
@@ -350,6 +330,26 @@ How an inflated shape rises from its edge.
 - `"round"`: A quarter circle: steep at the edge, flat on top.
 
 - `"straight"`: A straight rise: a ridge along narrow strokes.
+
+## Instance
+
+The part placed again (docs/specs/instances.md §2): mirrored, then turned, about the part's centre, then moved.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `angle` | number | yes | Then turned about the part's centre, radians, counter-clockwise. |
+| `at` | 2 × number | yes | Then moved, mm. |
+| `enabled` | boolean | yes | False: kept, but not cut. |
+| `id` | integer | yes | Its number in the part, from 2 (1 is the part as drawn). |
+| `mirror` | [Mirror](#mirror) or null | no | Mirrored about the part's centre line first. Null: as drawn. |
+
+## InstanceOrder
+
+In which order a part and its instances are cut.
+
+- `"by_operation"`: Each operation on every instance, then the next operation.
+
+- `"by_instance"`: Every operation on one instance, then the next instance. Called `by_copy` before schema 38, and `by_part` before parts came (schema 22).
 
 ## IssueSeverity
 
@@ -750,11 +750,12 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `copies` | [Copies](#copies) or null | no | Cut the part several times in a grid. Null: once. |
 | `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what operations name it by. |
+| `instances` | list of [Instance](#instance) | yes | The part placed again: each instance the same shapes and operations moved, turned and perhaps mirrored (instance 1 is the part as drawn and isn't listed). Empty: cut once. Since schema 38, in place of a grid of copies. |
 | `mirror` | [Mirror](#mirror) or null | no | Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as drawn. Left out when missing. |
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
+| `order` | [InstanceOrder](#instanceorder) | yes | `by_operation`: each operation on every instance, then the next; `by_instance`: every operation on one instance, then the next instance. Since schema 38. |
 | `setup` | integer | yes | The id of the setup it is cut in (`setups`). Since schema 34. |
 
 ## PathSegment

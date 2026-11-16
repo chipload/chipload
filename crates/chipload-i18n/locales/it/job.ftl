@@ -161,7 +161,7 @@ job-dowels-no-back = i fori per spina si fanno con il fronte di una tavola che h
 job-pieces-spacing = gli incastri devono distare almeno due misure: almeno il doppio di { $size }
 job-pieces-shifts = { $count } spostamenti di giunta, ma la griglia ha { $seams } giunte in quel senso
 job-pieces-two-sided = un piazzamento a tasselli non può ancora essere a due facce
-job-pieces-copies = un piazzamento a tasselli non può ancora avere copie, e «{ $part }» ne ha
+job-pieces-copies = un piazzamento a tasselli non può ancora avere istanze, e «{ $part }» ne ha
 job-dowels-not-through = i fori per spina attraversano la tavola fino al piano di sacrificio: imposta «Sotto il grezzo» alla profondità delle spine
 job-dowel-not-circle = la forma { $shape } non è un cerchio disegnato: un foro per spina lo è
 job-dowel-off-axis = il foro per spina { $shape } è a { $off } dalla linea attorno a cui si capovolge la tavola: sulla tavola capovolta mancherebbe la sua spina
@@ -375,3 +375,5 @@ job-style-tool-not-in-library = l'utensile { $tool } non è nella tua libreria: 
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = queste impostazioni
 job-style-other-settings = altre impostazioni
+job-instance-id = il numero di un’istanza è 2 o più: 1 è il pezzo come disegnato
+job-instance-twice = due istanze hanno il numero { $id }

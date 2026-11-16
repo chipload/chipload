@@ -27,12 +27,36 @@ fn read(rel: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(corpus(rel)).unwrap()).unwrap()
 }
 
+/// A grid of copies as the part's instances and their order; null is none.
+fn grid_instances(grid: &Value) -> (Value, Value) {
+    if grid.is_null() {
+        return (json!([]), json!("by_operation"));
+    }
+    let copies = chipload_job::Copies {
+        columns: grid["columns"].as_u64().unwrap() as u32,
+        rows: grid["rows"].as_u64().unwrap() as u32,
+        dx: grid["dx"].as_f64().unwrap(),
+        dy: grid["dy"].as_f64().unwrap(),
+    };
+    let order = match grid["order"].as_str() {
+        Some("by_copy") => "by_instance",
+        _ => "by_operation",
+    };
+    (
+        serde_json::to_value(copies.instances()).unwrap(),
+        json!(order),
+    )
+}
+
 /// `base` with `changes` merged in: objects one level deep are updated, the rest replaced.
 fn with(mut base: Value, changes: Value) -> Job {
     for (key, value) in changes.as_object().unwrap() {
         // The copies belong to the one part (docs/specs/parts.md §4).
+        // Given as a grid {columns, rows, dx, dy, order}, they are the part's instances.
         if key == "copies" {
-            base["parts"][0]["copies"] = value.clone();
+            let (instances, order) = grid_instances(value);
+            base["parts"][0]["instances"] = instances;
+            base["parts"][0]["order"] = order;
             continue;
         }
         // The stock and the work zero belong to the one setup (docs/specs/setups.md §6).

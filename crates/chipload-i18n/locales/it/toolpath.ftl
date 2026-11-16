@@ -393,10 +393,7 @@ toolpath-error-outline-unreadable = un contorno che la libreria geometrica non r
 ## Errors: copies and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-toolpath-error-copies-dx = Copie sovrapposte: con più colonne il passo dx deve essere almeno { $width } (il taglio è largo { $width }), trovato { $got }
-toolpath-error-copies-dy = Copie sovrapposte: con più righe il passo dy deve essere almeno { $height } (il taglio è alto { $height }), trovato { $got }
 # $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
-toolpath-error-copies-overlap = Copie sovrapposte: le copie { $other } e { $copy } si tagliano a vicenda; allontanale (passo dx { $dx }, dy { $dy })
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
 toolpath-error-parts-overlap = Il pezzo "{ $part }" copia { $copy } si sovrappone al pezzo "{ $other_part }" copia { $other_copy } (da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }): allontana le copie o cambia la griglia
 
@@ -435,3 +432,5 @@ toolpath-pieces-no-cut-out = un piazzamento a tasselli richiede una contornatura
 toolpath-pieces-board-too-small = nemmeno { $max } × { $max } tasselli stanno su tavole di { $x } × { $y }: indichi tavole più grandi o una griglia
 toolpath-pieces-no-seam = la giunta { $seam } lungo { $axis } è spostata, ma in quel senso ci sono solo { $seams } giunte
 toolpath-pieces-seams-close = due giunte, o una giunta e il bordo del contorno, sono più vicine di { $least } (tre misure di incastro): allontani le giunte o usi meno tasselli
+toolpath-error-instances-overlap = { $part }: le istanze { $other } e { $instance } si tagliano a vicenda; le allontani
+toolpath-instance-turned-not-yet = { $part }: l’istanza { $instance } è ruotata o specchiata, cosa che non si lavora ancora; solo le istanze spostate
