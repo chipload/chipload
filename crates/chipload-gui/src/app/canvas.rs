@@ -335,6 +335,9 @@ impl ChiploadApp {
             let at = self.view.to_world(origin);
             if self.on_zero_handle(origin) && self.start_zero_drag() {
                 // Dragged below.
+            } else if let Some(part) = self.compass_part_at(origin) {
+                // The Compass is drawn over everything, an instance's ghost too.
+                self.start_compass_drag(part, origin, false);
             } else if let Some(instance) = self.instance_handle_at(origin).filter(|_| flat) {
                 self.start_instance_drag(instance, super::instances::InstanceGrip::Turn, at);
             } else if let Some(instance) = self
@@ -342,8 +345,6 @@ impl ChiploadApp {
                 .filter(|_| flat && self.scene.pick(&self.view, origin).is_none())
             {
                 self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
-            } else if let Some(part) = self.compass_part_at(origin) {
-                self.start_compass_drag(part, origin, false);
             } else if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);
             } else if let Some(handle) = on_box_handle(origin) {
@@ -681,6 +682,10 @@ impl ChiploadApp {
         let view = self.view;
         let on_handle = |pos: egui::Pos2| grips.shape_at(&view, pos);
         let on_box_handle = |pos: egui::Pos2| grips.box_at(&view, pos);
+        // Built afresh each frame: the move and Compass previews are added after this.
+        self.scene.preview.clear();
+        self.scene.sketch_points.clear();
+        self.scene.measure = None;
         // A corner marker opens its menu (docs/specs/dogbone-per-corner.md §6).
         let corner = (editing && response.clicked())
             .then(|| response.interact_pointer_pos())

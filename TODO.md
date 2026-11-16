@@ -372,6 +372,11 @@ Smaller follow-ups noted along the way, not in the order above:
 Pushed up to 324d936 (2026-11-16); the commits after it are not. 0.37 can't open a project
 from these (schemas 37, 38 and 39).
 
+- **Compass drags leave no trail** (2026-11-16, the user: dragging an instance with the
+  Compass left its outlines behind): the canvas split (1c38dc3) had dropped the select
+  mode's clearing of the preview, sketch points and measure, so every frame's preview
+  stayed drawn (any Compass or move drag of shapes too); and a press on the Compass now
+  goes to it before an instance's ghost under it, which took the ring and the Y arrow.
 - **The part itself placed** (docs/specs/part-placement.md, approved and built 2026-11-16,
   c842367..): schema 39, a part's `angle` and `at` place instance 1 as instances are
   placed; its shapes stay where drawn, the definition. Planning, overlap (a placed part

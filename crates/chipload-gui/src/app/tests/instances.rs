@@ -277,3 +277,50 @@ fn the_compass_moves_and_turns_an_instance() {
     app.undo();
     assert_eq!(instance(&app), start);
 }
+
+/// A Compass drag on an instance in the window: the Compass takes the press over the ghost
+/// under it, the project stays as it is until the drop (so nothing is planned again
+/// mid-drag), and the preview is drawn afresh each frame, never piled up.
+#[test]
+fn a_compass_drag_on_an_instance_previews_without_trails() {
+    use super::super::compass::CompassPart;
+    for (part, offset) in [
+        (
+            CompassPart::Ring,
+            egui::vec2(crate::view::COMPASS_RING_PX, 0.0),
+        ),
+        (CompassPart::Y, egui::vec2(0.0, -45.0)),
+    ] {
+        let mut h = harness();
+        h.state_mut().focus = Focus::Instance(1, 2);
+        h.run_steps(3);
+        h.state_mut().toggle_compass();
+        h.run_steps(3);
+        let start = instance(h.state());
+        let (c, _, _) = h.state_mut().compass_now().unwrap();
+        let from = h.state().view.to_screen(c) + offset;
+        assert_eq!(h.state_mut().compass_part_at(from), Some(part));
+        h.hover_at(from);
+        h.run_steps(2);
+        h.drag_at(from);
+        h.run_steps(2);
+        let mut sizes = Vec::new();
+        for k in 1..=6 {
+            h.hover_at(from + egui::vec2(8.0 * k as f32, 8.0 * k as f32));
+            h.run_steps(2);
+            let app = h.state();
+            assert!(
+                app.dragging_compass() && !app.dragging_instance(),
+                "{part:?}"
+            );
+            assert_eq!(instance(app), start, "{part:?}: unchanged until the drop");
+            sizes.push(app.scene.preview.len());
+        }
+        assert!(sizes[0] > 0, "{part:?}: {sizes:?}");
+        assert!(sizes.iter().all(|n| *n == sizes[0]), "{part:?}: {sizes:?}");
+        h.drop_at(from + egui::vec2(48.0, 48.0));
+        h.run_steps(3);
+        assert_ne!(instance(h.state()), start, "{part:?}: moved on the drop");
+        assert!(h.state().scene.preview.is_empty(), "{part:?}");
+    }
+}
