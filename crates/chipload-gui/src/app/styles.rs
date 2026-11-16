@@ -13,8 +13,8 @@ use eframe::egui::Id;
 
 use super::browser::op_icon;
 use super::browser_row::{Row, title_line};
+use super::library_entries::library_header;
 use super::library_view::{key_uid, uid_key};
-use super::user_library::library_header;
 use super::*;
 use crate::icons::Icon;
 

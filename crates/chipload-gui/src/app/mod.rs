@@ -31,6 +31,7 @@ use crate::shape_form::{ShapeAction, ShapeDraft, imported_lines, shape_form};
 use crate::view::{Highlight, Scene, StartMarker, ToolpathShape, View};
 use chipload_i18n::Message;
 
+mod app_settings;
 mod box_drag;
 mod browser;
 mod browser_ops;
@@ -63,6 +64,8 @@ mod images;
 mod inlay;
 mod instances;
 mod layout;
+mod library_entries;
+mod library_store;
 mod library_transfer;
 mod library_view;
 mod materials;

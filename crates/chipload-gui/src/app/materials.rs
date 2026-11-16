@@ -12,8 +12,9 @@ use chipload_pipeline::materials::{use_material, values_to_save};
 use eframe::egui::Id;
 
 use super::browser_row::{Row, title_line};
+use super::library_entries::library_header;
 use super::library_view::{key_uid, uid_key};
-use super::user_library::{library_header, unique_name};
+use super::user_library::unique_name;
 use super::*;
 use crate::icons::Icon;
 

@@ -8,11 +8,12 @@ use eframe::egui::Id;
 
 use super::browser::tool_icon;
 use super::browser_row::{Row, folder, title_line, toggle_folder};
-use super::library_transfer::import_preview;
-use super::user_library::{
-    LibraryKind, library_header, library_message, machine_entry_form, machine_summary,
-    tool_entry_form, tool_summary,
+use super::library_entries::{
+    library_header, library_message, machine_entry_form, machine_summary, tool_entry_form,
+    tool_summary,
 };
+use super::library_transfer::import_preview;
+use super::user_library::LibraryKind;
 use super::*;
 use crate::icons::Icon;
 

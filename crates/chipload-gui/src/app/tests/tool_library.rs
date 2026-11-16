@@ -71,7 +71,7 @@ mod library {
         machine.max_feed = Some(3000.0);
         machine.travel = None;
         machine.tool_change = ToolChange::Program;
-        user_library::take_machine_values(&mut profile, machine.clone());
+        library_entries::take_machine_values(&mut profile, machine.clone());
         assert_eq!(profile.machine(), machine);
     }
 
