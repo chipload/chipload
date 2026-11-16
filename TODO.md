@@ -115,6 +115,11 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
+000. **Surfaces on the board and on a part** (the user, 2026-11-16: a part's surface faced
+    where another part, moved away, is cut; "if it is on the part level i must select an
+    outline, if i create the surface on the setup level it is valid for the whole board").
+    Spec **drafted 2026-11-16, for review:** docs/specs/surface-levels.md (schema 40; the
+    selection decides the level; a part surface cut as a pocket's clearing; six decisions).
 00. **The part itself placed, then nesting** (the user, 2026-11-16, trying instances: move
     and turn the original part, toward nesting on a fixed-size sheet; nesting brought into
     scope, ADR 0017; shapes are edited where drawn). docs/specs/part-placement.md
