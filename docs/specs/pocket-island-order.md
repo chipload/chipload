@@ -1,7 +1,7 @@
 # Spec: a pocket's rings, one island at a time
 
 Status: **approved 2026-10-16** ("i agree, go ahead"), decisions as recommended (§5).
-Built the same day (`cut_order` in crates/chipload-toolpath/src/pocket.rs). As built:
+Built the same day (`cut_order` in crates/chipload-toolpath/src/pocket/order.rs). As built:
 - §6: on the test's rectangle with two islands, lifts went from 14 to 7 and step-outs from
   1 to 8. The 7 lifts left are between separate deep lobes (the corners and between the
   islands), which no order can join.
