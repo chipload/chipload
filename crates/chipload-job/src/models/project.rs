@@ -690,6 +690,14 @@ impl Job {
             .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
     }
 
+    /// The point a part's instances are mirrored and turned about (docs/specs/instances.md
+    /// §2): the middle of [`Job::part_box`], worked out each time so the instances follow
+    /// the part's shapes. None when the part selects no shapes.
+    pub fn part_centre(&self, id: u64) -> Option<(f64, f64)> {
+        let ((x0, y0), (x1, y1)) = self.part_box(id)?;
+        Some(((x0 + x1) / 2.0, (y0 + y1) / 2.0))
+    }
+
     /// Whether an operation goes with its part's mirror: everything but what belongs to the
     /// board, a surface pass and dowel holes (docs/specs/mirror-part.md §2).
     fn mirrors(op: &Operation) -> bool {

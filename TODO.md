@@ -296,7 +296,10 @@ Smaller follow-ups noted along the way, not in the order above:
   (id, on/off, mirror, angle, position) and `order` instead of `copies`, the migration
   listing a grid's copies in their cut order (G-code unchanged, golden v37_copies), the
   Instances section making a grid, `copies` making instances; turned or mirrored instances
-  refused until step 2. Next: step 2, planning on turned and mirrored outlines.
+  refused until step 2. Step 2 built: turned and mirrored instances cut, planned on the part
+  as drawn and then placed (mirrored ones with the cutting sense turned), drawn faded where
+  they are cut in the view and on the sheet, property and pipeline tests. Next: step 3,
+  `part instance add|set|remove|list|array`.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced

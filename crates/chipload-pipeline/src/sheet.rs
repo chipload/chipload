@@ -1457,6 +1457,11 @@ fn picture(html: &mut String, job: &Job, result: &RunResult, w: Words) {
             path_data(&mut parts, &moved, contour.closed);
         }
     }
+    // Turned and mirrored instances, where they are cut (docs/specs/instances.md §3).
+    for (points, closed) in crate::parts::placed_outlines(job, &result.contours) {
+        let placed: Vec<Point> = points.into_iter().map(turned).collect();
+        path_data(&mut parts, &placed, closed);
+    }
     let _ = writeln!(
         html,
         "<path d=\"{}\" fill=\"none\" stroke=\"#999\" stroke-width=\"1\" \
@@ -1598,11 +1603,16 @@ fn cutting_path(program: &Program, group: &ToolGroup) -> String {
 }
 
 /// Each contour with the shifts it is drawn at: every copy of the parts that cut it
-/// (docs/specs/parts.md §6). With one part, every contour at every copy, as before parts.
+/// (docs/specs/parts.md §6), the part itself and its instances only moved. With one part, every contour at every copy, as before parts.
 /// A contour no part cuts is drawn once, where it is.
 pub fn contour_copies<'a>(job: &Job, contours: &'a [Contour]) -> Vec<(&'a Contour, Vec<Point>)> {
+    // Turned and mirrored instances are drawn by crate::parts::placed_outlines.
     let shifts_of = |part: &chipload_job::Part| -> Vec<Point> {
-        part.in_cut_order().into_iter().map(|(_, s)| s).collect()
+        part.spots()
+            .into_iter()
+            .filter(|(_, spot)| spot.is_move())
+            .map(|(_, spot)| (spot.at[0], spot.at[1]))
+            .collect()
     };
     if let [part] = job.parts.as_slice() {
         let shifts = shifts_of(part);

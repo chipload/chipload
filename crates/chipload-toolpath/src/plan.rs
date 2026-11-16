@@ -34,6 +34,7 @@ use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_m
 use crate::lead::MIN_LEAD_DIAMETERS;
 use crate::model::{Move, MoveKind, Program};
 use crate::path::{PathCut, order_paths, path_moves};
+use crate::place::Placement;
 use crate::pocket::{
     Choices, PocketCut, PocketPiece, PocketRequest, PocketRing, plan_pocket, pocket_moves,
 };
@@ -418,8 +419,12 @@ struct Step {
     chosen: usize,
     /// Which copy of the part (docs/specs/copies-grid.md): 1 is the drawing as drawn.
     copy: u32,
-    /// How far the copy is moved from the drawing.
+    /// How far the copy is moved from the drawing: an instance only moved is planned on
+    /// its moved contours.
     shift: Point,
+    /// A turned or mirrored instance (docs/specs/instances.md §3): planned on the part as
+    /// drawn, then put in its place. None for the part and instances only moved.
+    place: Option<Placement>,
     /// Index in the tool groups.
     group: usize,
 }
@@ -456,32 +461,19 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
         let group = groups.len();
         for run in runs {
             let part = job.part_of(&chosen[run[0]].op);
-            // Turned and mirrored instances are planned from step 2 of
-            // docs/specs/instances.md; until then they are refused, never cut as moved.
-            if let Some((p, (id, _))) = part.and_then(|p| {
-                p.spots()
-                    .into_iter()
-                    .find(|(_, spot)| !spot.is_move())
-                    .map(|found| (p, found))
-            }) {
-                return Err(job_error(
-                    Message::new("toolpath-instance-turned-not-yet")
-                        .arg("part", p.name.as_str())
-                        .arg("instance", id),
-                ));
-            }
-            let copies = part.map_or_else(|| vec![(1, (0.0, 0.0))], Part::in_cut_order);
-            let step = |i: usize, (copy, shift): (u32, Point)| Step {
+            let copies = part.map_or_else(|| vec![(1, (0.0, 0.0), None)], |p| spots_of(job, p));
+            let step = |i: usize, (copy, shift, place): Spotted| Step {
                 chosen: i,
                 copy,
                 shift,
+                place,
                 group,
             };
             // A surface faces the stock once, whatever the part's copies
             // (docs/specs/surfacing.md §2).
-            let copies_of = |i: usize| -> Vec<(u32, Point)> {
+            let copies_of = |i: usize| -> Vec<Spotted> {
                 match chosen[i].op {
-                    Operation::Surface(_) => vec![(1, (0.0, 0.0))],
+                    Operation::Surface(_) => vec![(1, (0.0, 0.0), None)],
                     _ => copies.clone(),
                 }
             };
@@ -490,7 +482,7 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
                     for &copy in &copies {
                         steps.extend(
                             run.iter()
-                                .filter(|&&i| copies_of(i).contains(&copy))
+                                .filter(|&&i| copies_of(i).iter().any(|c| c.0 == copy.0))
                                 .map(|&i| step(i, copy)),
                         );
                     }
@@ -509,6 +501,27 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
         });
     }
     Ok((steps, groups))
+}
+
+/// A part or one of its instances in cut order: its number, the move it is planned with,
+/// and for a turned or mirrored instance where it is put after planning.
+type Spotted = (u32, Point, Option<Placement>);
+
+/// The part and its instances that are on, in cut order (docs/specs/instances.md §2). An
+/// instance only moved is planned on its moved contours, as copies were, so its G-code
+/// stays as it was; a turned or mirrored one is placed about the part's centre.
+fn spots_of(job: &Job, part: &Part) -> Vec<Spotted> {
+    let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
+    part.spots()
+        .into_iter()
+        .map(|(number, spot)| {
+            if spot.is_move() {
+                (number, (spot.at[0], spot.at[1]), None)
+            } else {
+                (number, (0.0, 0.0), Some(Placement::new(&spot, centre)))
+            }
+        })
+        .collect()
 }
 
 /// The Z of every depth pass of `op`, going down from the stock top at `top_z`.
@@ -575,6 +588,11 @@ fn plan_step(
     let pass_z = pass_heights(op, &job.tools, top_z).map_err(|err| err.at(index))?;
     let (start_depth, _) = op.depths(&job.tools);
     let shift = step.shift;
+    // A turned or mirrored instance is planned on the part as drawn, then put in its place
+    // (docs/specs/instances.md §3): where the tool is, seen from the part.
+    let place = step.place;
+    let position = place.map_or(position, |p| p.inverse(position));
+    let placed_from = position;
     // A mirrored part is planned as drawn with the cutting sense turned, then mirrored about
     // its copy's centre line (docs/specs/mirror-part.md §3).
     let mirror = job.mirror_of(op).map(|(mirror, at)| match mirror {
@@ -592,11 +610,14 @@ fn plan_step(
             .iter()
             .filter(|c| cut.ids.contains(&c.id))
             .map(|c| {
-                let moved = c.translated(shift);
+                let theirs = !own.is_some_and(|ids| ids.contains(&c.id));
+                // What other parts cut, seen from the instance's part as drawn.
+                let moved = match place {
+                    Some(p) if theirs => p.inverse_contour(c),
+                    _ => c.translated(shift),
+                };
                 match mirror {
-                    Some((m, at)) if !own.is_some_and(|ids| ids.contains(&c.id)) => {
-                        moved.mirrored(m == Mirror::LeftRight, at)
-                    }
+                    Some((m, at)) if theirs => moved.mirrored(m == Mirror::LeftRight, at),
                     _ => moved,
                 }
             })
@@ -637,7 +658,12 @@ fn plan_step(
             .is_relief_pass(chosen.at)
             .then(|| job.tool(job.operations[chosen.at.operation].tool()))
             .flatten(),
-        sense: job.cutting_sense_of(op),
+        // A mirrored instance is mirrored after planning, as a mirrored part is: planned
+        // the other way round, climb stays climb.
+        sense: match place.is_some_and(|p| p.mirrors()) {
+            true => turned_sense(job.cutting_sense_of(op)),
+            false => job.cutting_sense_of(op),
+        },
     };
     let mut moved: Vec<Contour> = chosen
         .selection
@@ -677,6 +703,10 @@ fn plan_step(
     };
     let planned = planned.map(|planned| match mirror {
         Some(mirror) => mirrored_planned(planned, mirror),
+        None => planned,
+    });
+    let planned = planned.map(|planned| match &place {
+        Some(place) => placed_planned(planned, place, placed_from),
         None => planned,
     });
     planned.map_err(|err| {
@@ -838,6 +868,67 @@ fn mirrored_planned(mut planned: Planned, mirror: (Mirror, f64)) -> Planned {
         }
     }
     planned.end = flip(planned.end);
+    planned
+}
+
+/// The other cutting sense.
+fn turned_sense(sense: Spindle) -> Spindle {
+    match sense {
+        Spindle::Cw => Spindle::Ccw,
+        Spindle::Ccw => Spindle::Cw,
+    }
+}
+
+/// One step's plan, made on the part as drawn, put where its instance lies
+/// (docs/specs/instances.md §3): the moves, their arcs, the tabs and pocket pieces shown
+/// with them, and where the tool ends. Turning mixes X and Y, so a move that gave only one
+/// of them gets both, from where the tool was; `from` is where the step started, on the
+/// part as drawn. A mirrored instance's arcs and helixes turn the other way. The markers the
+/// user moves stay on the part (copy 1).
+fn placed_planned(mut planned: Planned, place: &Placement, from: Point) -> Planned {
+    let put = |p: Point| place.apply(p);
+    let mirrors = place.mirrors();
+    let (mut x, mut y) = from;
+    for m in &mut planned.moves {
+        if m.x.is_some() || m.y.is_some() {
+            x = m.x.unwrap_or(x);
+            y = m.y.unwrap_or(y);
+            let (px, py) = put((x, y));
+            (m.x, m.y) = (Some(px), Some(py));
+        }
+        if let Some(circle) = &mut m.circle {
+            circle.center = put(circle.center);
+        }
+        if mirrors {
+            m.kind = match m.kind {
+                MoveKind::ArcCw => MoveKind::ArcCcw,
+                MoveKind::ArcCcw => MoveKind::ArcCw,
+                kind => kind,
+            };
+        }
+    }
+    planned.arcs = planned.arcs.mapped(put);
+    for tab in &mut planned.tabs {
+        for p in tab.iter_mut() {
+            *p = put(*p);
+        }
+    }
+    for piece in &mut planned.pockets {
+        for ring in &mut piece.rings {
+            for p in &mut ring.points {
+                *p = put(*p);
+            }
+            for p in ring.unstepped.iter_mut().flatten() {
+                *p = put(*p);
+            }
+        }
+        if let Some(helix) = &mut piece.helix {
+            helix.circle.center = put(helix.circle.center);
+            helix.start = put(helix.start);
+            helix.clockwise ^= mirrors;
+        }
+    }
+    planned.end = put(planned.end);
     planned
 }
 

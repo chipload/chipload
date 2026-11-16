@@ -436,4 +436,3 @@ toolpath-pieces-board-too-small = ni siquiera { $max } × { $max } trozos caben 
 toolpath-pieces-no-seam = la junta { $seam } a lo largo de { $axis } está desplazada, pero solo hay { $seams } juntas en ese sentido
 toolpath-pieces-seams-close = dos juntas, o una junta y el borde del contorno, quedan a menos de { $least } (tres tamaños de unión): separe las juntas o use menos trozos
 toolpath-error-instances-overlap = { $part }: las instancias { $other } y { $instance } se cortan entre sí; sepárelas
-toolpath-instance-turned-not-yet = { $part }: la instancia { $instance } está girada o en espejo, lo que aún no se mecaniza; solo las instancias movidas

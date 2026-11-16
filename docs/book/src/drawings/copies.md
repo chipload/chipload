@@ -34,8 +34,14 @@ chipload copies part.chipload --part 2 --grid 2x1 --gap 10   # with several part
 - **Display:** the canvas draws the instances faded: each part's instances of the shapes it
   cuts. The setup sheet and the playback say which instance is being cut.
 
-Instances only move for now. They aren't nested: to fit different parts on one sheet, give
-each its own part and grid, or arrange them in CAD.
+- **Turned and mirrored:** an instance can also be turned by any angle and mirrored, about
+  the middle of the part's box: its `angle` and `mirror` in the project file, for example
+  `chipload set part.chipload parts.0.instances.0.angle=1.5708` (radians). It is cut like
+  the part, put in its place. A mirrored instance is still cut climb where the part is,
+  and the canvas and the setup sheet draw it faded where it is cut.
+
+Instances aren't nested: to fit different parts on one sheet, give each its own part, or
+arrange them in CAD.
 
 Projects saved before Chipload 0.38 kept a grid of copies; they open with that grid as
 instances, cut in the same order, so the G-code stays the same.

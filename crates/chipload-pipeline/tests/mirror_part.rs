@@ -10,7 +10,6 @@ use chipload_pipeline::run_job;
 use chipload_pipeline::setups::add_back_side;
 use chipload_toolpath::model::Program;
 use common::{every_direction, loops, turning};
-use serde_json::json;
 
 fn turn_of(mirror: Mirror) -> Turn {
     match mirror {
@@ -245,57 +244,6 @@ fn switching_an_operation_off_doesnt_move_the_rest() {
     assert!(close(pocket_box(&job), before));
 }
 
-/// A 40 × 20 hole cut with dogbones in part 1, a 10 mm square far up and right in part 1
-/// too (so the part's box is 0 … 110 wide), and a circle 0.6 mm across beside the hole's
-/// bottom-left corner, cut by part 2.
-fn bones_beside_another_part() -> Job {
-    let line = |a: [f64; 2], b: [f64; 2]| json!({"line": {"start": a, "end": b}});
-    let rect = |id: u64, layer: &str, x0: f64, y0: f64, x1: f64, y1: f64| {
-        json!({"id": id, "layer": layer, "kind": "path", "closed": true, "segments": [
-            line([x0, y0], [x1, y0]), line([x1, y0], [x1, y1]),
-            line([x1, y1], [x0, y1]), line([x0, y1], [x0, y0])]})
-    };
-    let circle = json!({"id": 3, "layer": "B", "kind": "path", "closed": true, "segments": [
-        {"arc": {"center": [-0.6, 1.5], "radius": 0.3, "start_angle": 0.0,
-                 "sweep": std::f64::consts::TAU}}]});
-    let mut data = common::corpus_value("jobs/v35/op_add.chipload");
-    data["drawing"]["shapes"] = json!([
-        rect(1, "A", 0.0, 0.0, 40.0, 20.0),
-        rect(2, "FAR", 100.0, 100.0, 110.0, 110.0),
-        circle
-    ]);
-    data["drawing"]["next_shape_id"] = json!(4);
-    data["drawing"]["dxfs"] = json!([]);
-    data["parts"] = json!([
-        {"id": 1, "name": "Box", "enabled": true, "instances": [], "order": "by_operation", "setup": 1},
-        {"id": 2, "name": "Dot", "enabled": true, "instances": [], "order": "by_operation", "setup": 1}]);
-    let template = data["operations"][1].clone();
-    let profile = |part: u64, layer: &str, side: &str, corners: serde_json::Value| {
-        let mut op = template.clone();
-        op["part"] = json!(part);
-        op["name"] = json!(layer);
-        op["select"] = json!({"layer": layer});
-        op["side"] = json!(side);
-        op["corners"] = corners;
-        op["end_depth"] = json!(4.0);
-        op["through"] = json!(null);
-        op
-    };
-    data["operations"] = json!([
-        profile(
-            1,
-            "A",
-            "inside",
-            json!({"type": "dogbone", "max_angle": 1.75})
-        ),
-        profile(1, "FAR", "outside", json!(null)),
-        profile(2, "B", "on", json!(null)),
-    ]);
-    let job = chipload_job::parse_job(data, "test").unwrap();
-    assert!(job.validate().is_empty(), "{:?}", job.validate());
-    job
-}
-
 #[test]
 fn a_mirrored_parts_bones_mind_the_other_parts_where_they_are() {
     let warned = |job: &Job| {
@@ -305,7 +253,7 @@ fn a_mirrored_parts_bones_mind_the_other_parts_where_they_are() {
             .iter()
             .any(|n| n.message.id.starts_with("toolpath-corner-cuts"))
     };
-    let mut job = bones_beside_another_part();
+    let mut job = common::bones_beside_another_part([-0.6, 1.5]);
     // As drawn, the circle is a thin web beside the hole's corner.
     assert!(warned(&job), "the circle is close as drawn");
     // Mirrored about X 55, the hole lies at X 70 … 110, far from the circle: nothing to

@@ -2,10 +2,10 @@
 //! 2D primitives in millimetres. Angles in radians, counter-clockwise positive.
 
 use crate::math;
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 use crate::Point;
-use crate::tolerances::ARC_APPROX_TOL_MM;
+use crate::tolerances::{ANGLE_TOL_RAD, ARC_APPROX_TOL_MM};
 
 /// Never approximate a full circle with fewer segments than this, however small.
 pub const MIN_SEGMENTS_PER_CIRCLE: f64 = 4.0;
@@ -70,7 +70,51 @@ impl Arc {
     }
 }
 
+/// The cosine and sine of a turn by `angle` radians, exact on quarter turns: a part turned
+/// 90° lands on round numbers, not 6e-17 off them.
+pub fn rotation(angle: f64) -> (f64, f64) {
+    let quarters = angle / FRAC_PI_2;
+    let nearest = quarters.round();
+    if (quarters - nearest).abs() * FRAC_PI_2 <= ANGLE_TOL_RAD {
+        // rem_euclid keeps the quarter in 0..4 for negative turns too.
+        return match nearest.rem_euclid(4.0) as u8 {
+            0 => (1.0, 0.0),
+            1 => (0.0, 1.0),
+            2 => (-1.0, 0.0),
+            _ => (0.0, -1.0),
+        };
+    }
+    let (sin, cos) = math::sin_cos(angle);
+    (cos, sin)
+}
+
+/// `p` turned about `centre` by the turn `(cos, sin)` ([`rotation`]), counter-clockwise.
+pub fn rotate_point(p: Point, centre: Point, (cos, sin): (f64, f64)) -> Point {
+    let (dx, dy) = (p.0 - centre.0, p.1 - centre.1);
+    (
+        centre.0 + dx * cos - dy * sin,
+        centre.1 + dx * sin + dy * cos,
+    )
+}
+
 impl Primitive {
+    /// The same primitive turned about `centre` by `angle` radians, counter-clockwise. An
+    /// arc stays an arc: its centre turns and its start angle grows by `angle`.
+    pub fn rotated(&self, centre: Point, angle: f64) -> Primitive {
+        let turn = rotation(angle);
+        match *self {
+            Primitive::Line(l) => Primitive::Line(Line {
+                start: rotate_point(l.start, centre, turn),
+                end: rotate_point(l.end, centre, turn),
+            }),
+            Primitive::Arc(a) => Primitive::Arc(Arc {
+                center: rotate_point(a.center, centre, turn),
+                start_angle: a.start_angle + angle,
+                ..a
+            }),
+        }
+    }
+
     /// The same primitive moved by `(dx, dy)`.
     pub fn translated(&self, (dx, dy): Point) -> Primitive {
         match *self {

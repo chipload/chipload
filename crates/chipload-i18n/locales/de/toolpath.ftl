@@ -437,4 +437,3 @@ toolpath-pieces-board-too-small = selbst { $max } × { $max } Stücke passen nic
 toolpath-pieces-no-seam = Naht { $seam } entlang { $axis } ist verschoben, aber in dieser Richtung gibt es nur { $seams } Nähte
 toolpath-pieces-seams-close = zwei Nähte, oder eine Naht und der Rand des Umrisses, kommen sich näher als { $least } (drei Verbindungsgrößen): verschieben Sie die Nähte auseinander oder nehmen Sie weniger Stücke
 toolpath-error-instances-overlap = { $part }: die Instanzen { $other } und { $instance } schneiden ineinander; rücken Sie sie auseinander
-toolpath-instance-turned-not-yet = { $part }: Instanz { $instance } ist gedreht oder gespiegelt, was noch nicht gefräst wird; nur verschobene Instanzen

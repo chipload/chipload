@@ -151,8 +151,61 @@ pub fn mirrored_outlines(job: &Job, contours: &[Contour]) -> Vec<Vec<Point>> {
         };
         for contour in contours.iter().filter(|c| ids.contains(&c.id)) {
             let points: Vec<Point> = contour.points().into_iter().map(flip).collect();
-            for (_, (dx, dy)) in part.in_cut_order() {
+            for (_, spot) in part.spots().into_iter().filter(|(_, s)| s.is_move()) {
+                let (dx, dy) = (spot.at[0], spot.at[1]);
                 out.push(points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect());
+            }
+        }
+    }
+    out
+}
+
+/// Where turned and mirrored instances are cut (docs/specs/instances.md §3): the contours
+/// each part's operations cut, mirrored with the part if it is, then placed as each such
+/// instance lies, with whether each is closed. Instances only moved are drawn at their
+/// shift instead ([`crate::sheet::contour_copies`], [`mirrored_outlines`]).
+pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool)> {
+    let mut out = Vec::new();
+    for part in &job.parts {
+        let spots: Vec<chipload_job::Spot> = part
+            .spots()
+            .into_iter()
+            .map(|(_, spot)| spot)
+            .filter(|spot| !spot.is_move())
+            .collect();
+        if spots.is_empty() {
+            continue;
+        }
+        let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
+        let mut line = None;
+        let mut ids: Vec<usize> = Vec::new();
+        for op in job
+            .operations
+            .iter()
+            .filter(|op| op.part() == part.id && op.selects_shapes())
+        {
+            line = line.or(job.mirror_of(op));
+            let select = op.select().resolved(&job.drawing);
+            let label = op.label_message(0);
+            let picked = match op {
+                Operation::Path(_) | Operation::Holes(_) => select_paths(contours, &select, &label),
+                _ => select_contours(contours, &select, &label),
+            };
+            if let Ok(selection) = picked {
+                ids.extend(selection.contours.iter().map(|c| c.id));
+            }
+        }
+        let flip = |p: Point| match line {
+            Some((Mirror::LeftRight, at)) => (2.0 * at - p.0, p.1),
+            Some((Mirror::TopBottom, at)) => (p.0, 2.0 * at - p.1),
+            None => p,
+        };
+        for contour in contours.iter().filter(|c| ids.contains(&c.id)) {
+            let points: Vec<Point> = contour.points().into_iter().map(flip).collect();
+            for spot in &spots {
+                let place = chipload_toolpath::place::Placement::new(spot, centre);
+                let placed = points.iter().map(|&p| place.apply(p)).collect();
+                out.push((placed, contour.closed));
             }
         }
     }

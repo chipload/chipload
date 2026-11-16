@@ -68,14 +68,29 @@ impl ChiploadApp {
             .collect()
     }
 
-    /// Mirrored parts where they are cut, faded (docs/specs/mirror-part.md §5).
+    /// Mirrored parts and turned or mirrored instances where they are cut, faded
+    /// (docs/specs/mirror-part.md §5, instances.md §3).
     fn mirrored_outlines(&self) -> Vec<Vec<Point>> {
-        match &self.edit {
-            Some(edit) if edit.job.parts.iter().any(|p| p.mirror.is_some()) => {
-                chipload_pipeline::parts::mirrored_outlines(&edit.job, &self.contours)
-            }
-            _ => Vec::new(),
+        let Some(edit) = &self.edit else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        if edit.job.parts.iter().any(|p| p.mirror.is_some()) {
+            out = chipload_pipeline::parts::mirrored_outlines(&edit.job, &self.contours);
         }
+        let placed = edit
+            .job
+            .parts
+            .iter()
+            .any(|p| p.instances.iter().any(|i| !i.spot().is_move()));
+        if placed {
+            out.extend(
+                chipload_pipeline::parts::placed_outlines(&edit.job, &self.contours)
+                    .into_iter()
+                    .map(|(points, _)| points),
+            );
+        }
+        out
     }
 
     /// What the 3D view turns around: the stock's centre, else the drawing origin.

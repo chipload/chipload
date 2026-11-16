@@ -437,4 +437,3 @@ toolpath-pieces-board-too-small = even { $max } × { $max } pieces don't fit boa
 toolpath-pieces-no-seam = seam { $seam } along { $axis } is shifted, but there are only { $seams } seams that way
 toolpath-pieces-seams-close = two seams, or a seam and the outline's edge, come closer than { $least } (three joint sizes): shift the seams apart or use fewer pieces
 toolpath-error-instances-overlap = { $part }: instances { $other } and { $instance } cut into each other; move them apart
-toolpath-instance-turned-not-yet = { $part }: instance { $instance } is turned or mirrored, which isn't cut yet; only moved instances are

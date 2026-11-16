@@ -58,6 +58,32 @@ toolpath copied and turned:
   names the two instances.
 - A free angle is planned exactly. Arcs stay arcs: turning and mirroring keep them circles.
 
+**As built (step 2, 2026-11-16).** Planning the transformed contours would mean turning
+every place and direction each operation reads (tab spots, starts, corner choices, tabs
+along X or Y, a pattern's lines and origin, a relief's model) inside every planner. The
+same result comes more safely the way mirrored parts are cut (docs/specs/mirror-part.md
+§3):
+- An instance only moved is planned on its moved contours, as copies were, so its G-code
+  is what it was.
+- A turned or mirrored instance is planned on the part as drawn, then the planned path is
+  mirrored, turned about the part's centre and moved (`chipload-toolpath` `place.rs`).
+  Mirrored, it is planned with the cutting sense turned first, so climb stays climb.
+- Everything in §3 follows: hand-placed and axis-laid things go with the instance. A turn
+  and a mirror keep every distance, so each offset that was verified stays verified.
+- What other parts cut is brought back into the part's own frame for the dogbone check,
+  as for mirrored parts.
+- Turning mixes X and Y, so a placed move always gives both. A quarter turn is exact
+  (cos and sin 0 or ±1).
+- Tests: a property test (`chipload-toolpath/tests/instances.rs`) checks that an instance
+  turned and moved cuts the part's profile point for point. A mirrored instance turned
+  matches the same mirrored instance unturned, and either way it cuts the part's area,
+  turning the same way. Through the pipeline (`chipload-pipeline/tests/instances.rs`),
+  five kinds of operation, a mirrored part too, keep climb and pass the independent
+  checker. A pocket starts near where the tool is, as copies always have, so pockets are
+  compared by area.
+- The setup sheet and the window draw turned and mirrored instances where they are cut,
+  faded, as mirrored parts are (`parts::placed_outlines`).
+
 ## 4. In the window
 
 - A part's right-click menu: **Add instance** and **Add mirrored instance** (left to right).

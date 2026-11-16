@@ -433,4 +433,3 @@ toolpath-pieces-board-too-small = inte ens { $max } × { $max } bitar får plats
 toolpath-pieces-no-seam = skarv { $seam } längs { $axis } är förskjuten, men det finns bara { $seams } skarvar åt det hållet
 toolpath-pieces-seams-close = två skarvar, eller en skarv och konturens kant, kommer närmare än { $least } (tre fogstorlekar): flytta isär skarvarna eller använd färre bitar
 toolpath-error-instances-overlap = { $part }: instanserna { $other } och { $instance } skär in i varandra; flytta isär dem
-toolpath-instance-turned-not-yet = { $part }: instans { $instance } är vriden eller speglad, vilket inte fräses än; bara flyttade instanser gör det

@@ -436,4 +436,3 @@ toolpath-pieces-board-too-small = même { $max } × { $max } morceaux ne tiennen
 toolpath-pieces-no-seam = le joint { $seam } selon { $axis } est décalé, mais il n’y a que { $seams } joints dans ce sens
 toolpath-pieces-seams-close = deux joints, ou un joint et le bord du contour, sont à moins de { $least } (trois tailles d’assemblage) : écartez les joints ou prenez moins de morceaux
 toolpath-error-instances-overlap = { $part } : les instances { $other } et { $instance } se coupent ; écartez-les
-toolpath-instance-turned-not-yet = { $part } : l’instance { $instance } est tournée ou en miroir, ce qui ne s’usine pas encore ; seules les instances déplacées s’usinent

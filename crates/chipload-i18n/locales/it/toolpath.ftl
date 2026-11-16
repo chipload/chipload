@@ -433,4 +433,3 @@ toolpath-pieces-board-too-small = nemmeno { $max } × { $max } tasselli stanno s
 toolpath-pieces-no-seam = la giunta { $seam } lungo { $axis } è spostata, ma in quel senso ci sono solo { $seams } giunte
 toolpath-pieces-seams-close = due giunte, o una giunta e il bordo del contorno, sono più vicine di { $least } (tre misure di incastro): allontani le giunte o usi meno tasselli
 toolpath-error-instances-overlap = { $part }: le istanze { $other } e { $instance } si tagliano a vicenda; le allontani
-toolpath-instance-turned-not-yet = { $part }: l’istanza { $instance } è ruotata o specchiata, cosa che non si lavora ancora; solo le istanze spostate

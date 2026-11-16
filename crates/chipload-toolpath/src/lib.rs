@@ -29,6 +29,7 @@ mod parallel;
 pub mod path;
 pub mod pattern;
 pub mod pieces;
+pub mod place;
 pub mod plan;
 pub mod pocket;
 pub mod pocket_finish;

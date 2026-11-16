@@ -308,4 +308,3 @@ toolpath-pieces-board-too-small = даже { $max } × { $max } фрагмент
 toolpath-pieces-no-seam = шов { $seam } вдоль { $axis } сдвинут, но в этом направлении всего { $seams } швов
 toolpath-pieces-seams-close = два шва или шов и край контура ближе { $least } (три размера соединения): раздвиньте швы или возьмите меньше фрагментов
 toolpath-error-instances-overlap = { $part }: экземпляры { $other } и { $instance } врезаются друг в друга; разнесите их
-toolpath-instance-turned-not-yet = { $part }: экземпляр { $instance } повёрнут или отражён, такое пока не обрабатывается; только сдвинутые экземпляры
