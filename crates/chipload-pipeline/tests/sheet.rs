@@ -197,6 +197,31 @@ fn z_zero_on_the_spoilboard_is_said_so() {
 }
 
 #[test]
+fn a_part_cut_elsewhere_than_drawn_says_where() {
+    // docs/specs/part-placement.md §5
+    let mut job = load_job(&corpus("jobs/v11/two_tools.chipload")).unwrap();
+    job.setups[0].stock.fit = None;
+    job.setups[0].stock.x = 1000.0;
+    job.setups[0].stock.y = 1000.0;
+    job.parts[0].at = [400.0, 25.5];
+    let result = run_job(&job).unwrap();
+    let sheet = setup_sheet(&job, &result, Path::new("part.nc"), &info("placed"));
+    assert!(
+        sheet.contains("is cut moved 400, 25.5 mm from where it is drawn."),
+        "moved"
+    );
+    job.parts[0].angle = std::f64::consts::FRAC_PI_2;
+    let result = run_job(&job).unwrap();
+    let sheet = setup_sheet(&job, &result, Path::new("part.nc"), &info("placed"));
+    assert!(
+        sheet.contains(
+            "is cut turned 90&#xb0; about the middle of its shapes and moved 400, 25.5 mm"
+        ),
+        "turned"
+    );
+}
+
+#[test]
 fn names_from_the_drawing_are_escaped() {
     let mut job = load_job(&corpus("jobs/v11/two_tools.chipload")).unwrap();
     *job.operations[0].name_mut() = "<b>Holes & \"slots\"</b> \u{e5}".into();

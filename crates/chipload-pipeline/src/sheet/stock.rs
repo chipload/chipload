@@ -65,6 +65,34 @@ pub(super) fn setup(html: &mut String, job: &Job, w: Words) {
             &w.text(&Message::new(id).arg("part", part.name.as_str())),
         );
     }
+    // Parts cut elsewhere than drawn (docs/specs/part-placement.md §5): where, so the
+    // operator doesn't look for them where the drawing has them.
+    for part in job
+        .parts
+        .iter()
+        .filter(|p| p.enabled && p.is_placed() && Some(p.setup) == job.active_setup_id())
+    {
+        let message = if part.angle == 0.0 {
+            Message::new("sheet-placed-moved")
+        } else {
+            Message::new("sheet-placed-turned").arg(
+                "angle",
+                chipload_i18n::Value::Number(
+                    part.angle.to_degrees(),
+                    chipload_i18n::Digits::Trim(3),
+                ),
+            )
+        };
+        let message = message
+            .arg("part", part.name.as_str())
+            .arg("dx", len(part.at[0]))
+            .arg("dy", len_u(part.at[1]));
+        fact(
+            html,
+            &w.text(&Message::new("sheet-placed")),
+            &w.text(&message),
+        );
+    }
     // An inlay's plug: what to do with it once cut (docs/specs/vcarve-inlay.md §7).
     for op in job.operations.iter().filter(|op| {
         op.enabled()

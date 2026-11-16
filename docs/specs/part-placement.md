@@ -1,7 +1,7 @@
 # Spec: the part itself placed, as its instances are
 
 Status: **approved 2026-11-16**, all decisions as recommended (the user: "go ahead as
-recommended"). Follows the user's finding while trying instances
+recommended"). **Built 2026-11-16**, all five steps, with as-built notes in §3, §6 and §7. Follows the user's finding while trying instances
 (2026-11-16): "explore the possibility of also moving/rotating the "original" part. This
 would allow for nesting on a fixed size sheet". Decided by the user already: nesting is in
 scope (ADR 0017, 2026-11-16), and **shapes are edited at their original location**. The
@@ -133,6 +133,12 @@ placed elsewhere, the drawing and the cut are in two places:
 - `part instance set --part 1 1 --at …` works on instance 1 as on the others; `part
   instance remove 1` is refused (the part itself).
 - `get`/`set` paths: `parts.0.angle`, `parts.0.at`.
+
+**As built (step 5, 2026-11-16).** The setup sheet has a *Placed* fact per placed part
+("Part 1 is cut turned 90° about the middle of its shapes and moved 400, 25.5 mm from
+where it is drawn"); the instances' summary counts the part itself when it is turned; the
+guide's instances page has *The part itself*, for the window and the command line. Its
+screenshot comes with the release's renewed pictures.
 
 ## 8. The file (schema 39)
 

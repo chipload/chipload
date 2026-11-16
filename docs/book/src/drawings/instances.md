@@ -62,7 +62,8 @@ chipload part set part.chipload 1 --order by-instance     # every operation on o
   - instances have to fit the stock and the machine like anything else.
 - **Limits:** up to 100 columns or rows in a grid, and 1 000 instances.
 - **Display:** the canvas and the setup sheet draw the instances faded where they are cut.
-  The setup sheet and the playback say which instance is being cut.
+  The setup sheet and the playback say which instance is being cut, and the sheet says
+  where a part placed elsewhere than drawn is cut.
 
 ## The part itself
 
@@ -70,6 +71,19 @@ The part itself, instance 1, can be placed too: cut moved and turned like an ins
 while its shapes stay where they are drawn. Its shapes are what you edit; every instance,
 the first included, is a placement of them. This lets you lay parts out on a sheet without
 moving the drawing, for instance when several parts come from one DXF.
+
+In the window:
+- **Right-click the part** in the Browser and choose *Place…*: its form opens as
+  **Instance 1**, with its rotation and how far it is moved. *Reset placement* puts it back
+  where drawn.
+- **On the canvas**, once placed, it is a ghost `#1` where it is cut, picked, dragged and
+  turned like any instance. Its shapes, where they are drawn, get a dashed box saying
+  "not cut here"; edit them there, and every instance follows.
+- **In the Browser**, a part with instances or a placement lists itself first, as
+  Instance 1; its tick is the part's.
+- **The Compass** (Q) works on a selected instance, the first included: drag an arrow to
+  move it along, the ring to turn it, the centre to put it on a point, or type a value.
+  It moves and turns instances only; copies and arrays are for shapes.
 
 ```sh
 chipload part place part.chipload --at 300,0 --angle 90   # the part cut 300 mm right, turned

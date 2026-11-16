@@ -16,14 +16,14 @@ below).
   handoff. Each is listed under *Done > In main, not released yet*. CI (Linux, Windows,
   macOS) passed on 324d936. Then the small follow-ups of 2026-11-16 (*Done*). The next
   release (0.38.0) waits for the user.
-- **Built, for the user to try:** pieces (puzzle tiling) and instances. The user has not
-  tried either yet; findings become items here.
+- **Built, for the user to try:** pieces (puzzle tiling), instances (tried 2026-11-16: the
+  fitted board missed them, fixed) and the part itself placed with the Compass on
+  instances (2026-11-16). Findings become items here.
 - **Loose ends of this work:**
-  - instances: moving and turning an instance with the Compass (instances.md §4, decision
-    7's Compass half) is not built;
   - pieces: dragging a seam in the view, and `plan --piece` (plan still plans one board);
-  - the next release's notes must say 0.37 can't open a project with pieces (schema 37) or
-    instances (schema 38), and that the G-code part comment now reads "cut N times";
+  - the next release's notes must say 0.37 can't open a project with pieces (schema 37),
+    instances (schema 38) or a placed part (schema 39), that the G-code part comment now
+    reads "cut N times", and that dowel holes are no longer repeated per instance;
   - guide screenshots are renewed at release time (`packaging/docs/screenshots.sh`); the
     instances page (drawings/instances.md) has no picture yet: a part with a turned and a
     mirrored instance would show it.
@@ -117,10 +117,10 @@ to a program you trust. It was about four per operation; with the defaults and s
 
 00. **The part itself placed, then nesting** (the user, 2026-11-16, trying instances: move
     and turn the original part, toward nesting on a fixed-size sheet; nesting brought into
-    scope, ADR 0017; shapes are edited where drawn). Specs **drafted 2026-11-16, for
-    review:** docs/specs/part-placement.md (instance 1 gets `angle` and `at`, schema 39;
-    seven decisions) and docs/specs/nesting.md (an outline: by boxes with MaxRects, then by
-    shape with no-fit polygons). Part placement first; the Compass on instances with it.
+    scope, ADR 0017; shapes are edited where drawn). docs/specs/part-placement.md
+    **approved and built 2026-11-16** (all five steps, see *In main*); next the user tries
+    it. Then docs/specs/nesting.md, an outline (by boxes with MaxRects, then by shape with
+    no-fit polygons), to be written out in full and reviewed.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
@@ -337,7 +337,7 @@ Smaller follow-ups noted along the way, not in the order above:
      tiles on pins, is parked in docs/specs/sliding-tiles.md.
 - **Instances** (the user, 2026-11-16): a part placed again, moved, turned or mirrored,
   linked; replaces copies. **Built 2026-11-16** (docs/specs/instances.md; see *In main*).
-  Left: the Compass on an instance; the user to try it.
+  The Compass on an instance came with part placement (2026-11-16); the user to try it.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced
@@ -369,7 +369,19 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
-Pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
+Pushed up to 324d936 (2026-11-16); the commits after it are not. 0.37 can't open a project
+from these (schemas 37, 38 and 39).
+
+- **The part itself placed** (docs/specs/part-placement.md, approved and built 2026-11-16,
+  c842367..): schema 39, a part's `angle` and `at` place instance 1 as instances are
+  placed; its shapes stay where drawn, the definition. Planning, overlap (a placed part
+  is checked against other parts as an instance is), the fitted board (holds what is cut,
+  not a placed part's shapes), dowel holes never placed nor repeated per instance, `part
+  place`, instance 1 in `part instance list/set`, the window (*Place…*, *Reset placement*,
+  Instance 1's row and form, its ghost, the "not cut here" box), the Compass on instances
+  (the loose end of instances.md), the setup sheet's *Placed* fact, the guide. Frozen
+  sample v38/instances with its golden, unchanged through the migration. No golden
+  changed. Release notes: 0.38 can't open a project with a placed part (schema 39).
 
 - **A fitted board holds the instances** (2026-11-16, the user's finding while trying
   instances: a turned instance was cut off the board and missing from the simulation):
@@ -407,7 +419,8 @@ Pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
   instance form. "Copies" reads "instances" everywhere (sheet, report, status bar,
   errors, seven languages); the G-code part comment reads "(Part 2: B, cut 2 times)", the
   only golden change (comment lines); the guide page is drawings/instances.md.
-  copies-grid.md is marked superseded. Left: the Compass on an instance.
+  copies-grid.md is marked superseded. The Compass on an instance came later the same day
+  with part placement.
 - **Clean-ups after pieces** (59b014e, 0989cd6): an operation's feeds read in one place
   (`Operation::feed`, `plunge_feed`), a piece's trimmed cuts entering at the operation's
   own plunge feed; one parser for "3x2" and "600x400" (`copies --grid` takes `×` too); a
