@@ -68,7 +68,7 @@ fn rect_of(harness: &Harness<'_, ChiploadApp>, label: &str) -> egui::Rect {
 
 /// Whether the ribbon's large buttons show their names (not their icons alone).
 fn names_shown(harness: &Harness<'_, ChiploadApp>, button: &str) -> bool {
-    rect_of(harness, button).width() > super::super::header::RIBBON_COMPACT_WIDTH + 0.5
+    rect_of(harness, button).width() > super::super::ribbon::RIBBON_COMPACT_WIDTH + 0.5
 }
 
 #[test]

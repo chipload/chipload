@@ -6,8 +6,9 @@
 use chipload_core::math;
 use eframe::egui::{Align2, FontId, Pos2, Rect, Shape, Stroke, Vec2, pos2, vec2};
 
-use super::header::{plain_icon_button, ribbon_button};
+use super::header::plain_icon_button;
 use super::menu::simulation_hint;
+use super::ribbon::ribbon_button;
 use super::shortcuts::{Action, hover_keys};
 use super::*;
 use crate::i18n::{Lang, Language};

@@ -82,6 +82,7 @@ mod quick_menu;
 mod recovery;
 mod relief_wizard;
 mod report;
+mod ribbon;
 mod rulers;
 mod saving;
 mod select_drag;
