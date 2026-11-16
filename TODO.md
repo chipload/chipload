@@ -290,6 +290,9 @@ Smaller follow-ups noted along the way, not in the order above:
      export, the guide page (concepts/pieces.md). Left: dragging a seam in the view,
      `plan --piece` (plan still plans one board), the user to try it. The other reading, sliding one long board between tiles on
      pins, is parked in docs/specs/sliding-tiles.md.
+- **Instances** (the user, 2026-11-16): a part placed again, moved, turned or mirrored,
+  linked; replaces copies (docs/specs/instances.md, approved, all decisions as
+  recommended). Next to build, in the spec's five steps.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced
