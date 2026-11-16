@@ -11,13 +11,13 @@ mod edit;
 mod passes;
 mod summary;
 
-pub(crate) use summary::describe;
 use add::{AddArgs, AddSurfaceArgs};
 use edit::{CornerArgs, CornersArgs, PartArgs, TabArgs, TabsArgs, ToolArgs};
 use passes::{
     AddFloorArgs, AddInlayArgs, AddRestArgs, AddRoughingArgs, AddSmoothingArgs, MakeRestPassArgs,
     RemoveFloorArgs, RemoveRoughingArgs, RemoveSmoothingArgs, RestArgs, RestPassArgs,
 };
+pub(crate) use summary::describe;
 
 #[derive(Subcommand)]
 // Parsed once from the command line: the size of `Add`'s many options doesn't matter.
