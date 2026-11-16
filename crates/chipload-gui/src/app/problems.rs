@@ -324,6 +324,14 @@ impl ChiploadApp {
                 let k = settings.and_then(|s| s.parts.iter().position(|p| p.id == id));
                 Box::new(self.problems_under(index_of(k, "parts")))
             }
+            Focus::Instance(part, id) => {
+                let at = settings.and_then(|s| {
+                    let k = s.parts.iter().position(|p| p.id == part)?;
+                    let j = s.parts[k].instances.iter().position(|i| i.id == id)?;
+                    Some(format!("parts.{k}.instances.{j}."))
+                });
+                Box::new(self.problems_under(at))
+            }
             Focus::Setup(id) => {
                 // Its board's problems, by the field names its sections use (`stock.x`).
                 let k = settings.and_then(|s| s.setups.iter().position(|p| p.id == id));

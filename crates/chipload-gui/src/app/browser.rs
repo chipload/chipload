@@ -490,6 +490,16 @@ enum OpAction {
     NewIn(OpKind, u64),
     /// Part `0` into setup `1` (docs/specs/setups.md §7).
     PartToSetup(u64, u64),
+    /// A new instance of part `0`, mirrored left to right with `1`
+    /// (docs/specs/instances.md §4).
+    InstanceAdd(u64, bool),
+    /// Part `0`'s instance `1`: open it, turn it on or off, mirror it, turn it a quarter,
+    /// remove it.
+    InstanceFocus(u64, u32),
+    InstanceToggle(u64, u32),
+    InstanceMirror(u64, u32),
+    InstanceTurn(u64, u32),
+    InstanceRemove(u64, u32),
 }
 
 /// What a setup's rows ask for.
@@ -1131,6 +1141,12 @@ impl ChiploadApp {
                 self.add_operation(kind);
             }
             Some(OpAction::PartToSetup(part, setup)) => self.move_part_to_setup(part, setup),
+            Some(OpAction::InstanceAdd(part, mirrored)) => self.add_instance(part, mirrored),
+            Some(OpAction::InstanceFocus(part, id)) => self.focus = Focus::Instance(part, id),
+            Some(OpAction::InstanceToggle(part, id)) => self.toggle_instance(part, id),
+            Some(OpAction::InstanceMirror(part, id)) => self.mirror_instance(part, id),
+            Some(OpAction::InstanceTurn(part, id)) => self.turn_instance(part, id),
+            Some(OpAction::InstanceRemove(part, id)) => self.remove_instance(part, id),
             None => {}
         }
     }
@@ -1231,6 +1247,20 @@ impl ChiploadApp {
             {
                 action = Some(OpAction::PartExport(part.id));
             }
+            if ui
+                .button(t!(ui, "browser-add-instance"))
+                .on_hover_text(t!(ui, "browser-add-instance-hover"))
+                .clicked()
+            {
+                action = Some(OpAction::InstanceAdd(part.id, false));
+            }
+            if ui
+                .button(t!(ui, "browser-add-mirrored-instance"))
+                .on_hover_text(t!(ui, "browser-add-mirrored-instance-hover"))
+                .clicked()
+            {
+                action = Some(OpAction::InstanceAdd(part.id, true));
+            }
             if setups.len() > 1 {
                 super::header::submenu(ui, t!(ui, "browser-move-to-setup"), |ui| {
                     for (id, name) in &setups {
@@ -1304,6 +1334,61 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
+        for instance in &part.instances {
+            if let Some(a) = self.instance_row(ui, part, instance, in_active_setup) {
+                action = Some(a);
+            }
+        }
+        action
+    }
+
+    /// Instance `instance` of `part`'s row (docs/specs/instances.md §4): its number, on or
+    /// off, how it is turned and mirrored; its menu mirrors, turns or removes it.
+    fn instance_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        part: &chipload_job::Part,
+        instance: &chipload_job::Instance,
+        in_active_setup: bool,
+    ) -> Option<OpAction> {
+        let (p, id) = (part.id, instance.id);
+        let mut trailing = Vec::new();
+        if instance.angle != 0.0 {
+            trailing.push(format!("{:.1}°", instance.angle.to_degrees()));
+        }
+        if instance.mirror.is_some() {
+            trailing.push(t!(ui, "browser-part-mirrored"));
+        }
+        let flagged = !self.form_problem_map(Focus::Instance(p, id)).is_empty();
+        let label = t!(ui, "forms-instance-number", number = id);
+        let out = Row::new(Id::new(("browser-instance", p, id)), 4, label)
+            .tick(instance.enabled)
+            .icon(Icon::Array)
+            .trailing(trailing.join(" · "))
+            .selected(self.focus == Focus::Instance(p, id))
+            .dim(!instance.enabled || !part.enabled || !in_active_setup)
+            .alert(flagged)
+            .show(ui);
+        let mut action = None;
+        if out.tick {
+            action = Some(OpAction::InstanceToggle(p, id));
+        } else if out.response.clicked() {
+            action = Some(OpAction::InstanceFocus(p, id));
+        }
+        out.response
+            .on_hover_text(t!(ui, "browser-instance-hover"))
+            .context_menu(|ui| {
+                if ui.button(t!(ui, "browser-instance-mirror")).clicked() {
+                    action = Some(OpAction::InstanceMirror(p, id));
+                }
+                if ui.button(t!(ui, "browser-instance-turn")).clicked() {
+                    action = Some(OpAction::InstanceTurn(p, id));
+                }
+                ui.separator();
+                if ui.button(t!(ui, "browser-instance-remove")).clicked() {
+                    action = Some(OpAction::InstanceRemove(p, id));
+                }
+            });
         action
     }
 

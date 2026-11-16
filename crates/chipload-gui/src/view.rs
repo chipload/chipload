@@ -1025,6 +1025,24 @@ pub struct CompassShape {
     pub hot: Option<usize>,
 }
 
+/// One instance of a part drawn where it is cut (docs/specs/instances.md §4).
+#[derive(Debug, Clone, Default)]
+pub struct InstanceGhost {
+    pub part: u64,
+    pub id: u32,
+    /// The part's cut contours, placed as the instance lies.
+    pub outlines: Vec<Vec<Point>>,
+    /// Its number, "#2", written above its top left.
+    pub label: String,
+    pub label_at: Point,
+    pub selected: bool,
+    pub enabled: bool,
+    /// The point it turns about.
+    pub centre: Point,
+    /// Its turn handle, when selected.
+    pub handle: Option<Point>,
+}
+
 /// Everything on the canvas, in world coordinates.
 #[derive(Debug, Clone, Default)]
 pub struct Scene {
@@ -1064,9 +1082,10 @@ pub struct Scene {
     pub compass: Option<CompassShape>,
     /// The stock's (top, bottom) Z, for the 3D view.
     pub stock_z: Option<(f64, f64)>,
-    /// The copies (copy 1 excluded): a contour's id and a shift, one for each copy of each
-    /// part that cuts it. Drawn faded, never picked (docs/specs/copies-grid.md, parts.md).
-    pub copies: Vec<(usize, Point)>,
+    /// The active setup's parts' instances, as ghosts where they are cut: faded, numbered,
+    /// picked by their outlines; the selected one with its turn handle
+    /// (docs/specs/instances.md §4).
+    pub instances: Vec<InstanceGhost>,
     /// Mirrored parts' contours where they are cut (docs/specs/mirror-part.md §5): drawn
     /// faded, never picked; the shapes as drawn stay to edit.
     pub mirrored: Vec<Vec<Point>>,
@@ -1187,14 +1206,8 @@ impl Scene {
                 .iter()
                 .flat_map(|c| c.points.iter().map(|&p| on_top(p))),
         );
-        for &(id, shift) in &self.copies {
-            if let Some(c) = self.contours.iter().find(|c| c.id == id) {
-                points.extend(
-                    c.points
-                        .iter()
-                        .map(|&p| on_top((p.0 + shift.0, p.1 + shift.1))),
-                );
-            }
+        for ghost in &self.instances {
+            points.extend(ghost.outlines.iter().flatten().map(|&p| on_top(p)));
         }
         if let Some(((x0, y0), (x1, y1))) = self.stock {
             let (top, bottom) = self.stock_z.unwrap_or((top_z, top_z));
@@ -1507,11 +1520,30 @@ impl Scene {
         let dashed = |pts: Vec<Pos2>, stroke: Stroke| {
             painter.extend(Shape::dashed_line(&pts, stroke, DASH_PX, GAP_PX));
         };
-        for &(id, (dx, dy)) in &self.copies {
-            if let Some(c) = self.contours.iter().find(|c| c.id == id) {
-                let moved: Vec<Point> = c.points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect();
-                painter.add(Shape::line(screen(&moved), Stroke::new(1.0, pal.ghost)));
+        for ghost in &self.instances {
+            let (color, width) = if ghost.selected {
+                (pal.selected, 1.5)
+            } else {
+                (pal.ghost, 1.0)
+            };
+            for outline in &ghost.outlines {
+                // An instance that is off is kept, not cut: dashed.
+                if ghost.enabled {
+                    painter.add(Shape::line(screen(outline), Stroke::new(width, color)));
+                } else {
+                    dashed(
+                        screen(outline),
+                        Stroke::new(width, color.gamma_multiply(0.6)),
+                    );
+                }
             }
+            painter.text(
+                view.to_screen(ghost.label_at) + Vec2::new(0.0, -4.0),
+                eframe::egui::Align2::LEFT_BOTTOM,
+                &ghost.label,
+                eframe::egui::FontId::proportional(12.0),
+                color,
+            );
         }
         if let Some((color, lines)) = &self.rim {
             for (line, width) in lines {
@@ -1670,6 +1702,15 @@ impl Scene {
             } else {
                 painter.circle_filled(at, ZERO_HANDLE_PX, pal.handle_fill);
                 painter.circle_stroke(at, ZERO_HANDLE_PX, Stroke::new(1.5, pal.axis_x));
+            }
+        }
+        // The selected instance's turn handle, on a line from the centre it turns about.
+        for ghost in self.instances.iter().filter(|_| flat && !self.hide_drawing) {
+            if let Some(handle) = ghost.handle {
+                let (from, to) = (view.to_screen(ghost.centre), view.to_screen(handle));
+                painter.line_segment([from, to], Stroke::new(1.0, pal.selected));
+                painter.circle_filled(to, 5.0, pal.handle_fill);
+                painter.circle_stroke(to, 5.0, Stroke::new(1.5, pal.selected));
             }
         }
         if let Some(compass) = self.compass.filter(|_| flat) {
@@ -2420,8 +2461,11 @@ pub fn legend(scene: &Scene, lang: &impl Lang) -> Vec<(Swatch, String)> {
         ),
         (Swatch::Dashed(pal.stock), t!(lang, "view-legend-stock")),
     ];
-    if !scene.copies.is_empty() {
-        items.push((Swatch::Line(pal.ghost, 1.0), t!(lang, "view-legend-copies")));
+    if !scene.instances.is_empty() {
+        items.push((
+            Swatch::Line(pal.ghost, 1.0),
+            t!(lang, "view-legend-instances"),
+        ));
     }
     if !scene.mirrored.is_empty() {
         items.push((Swatch::Dashed(pal.ghost), t!(lang, "view-legend-mirrored")));

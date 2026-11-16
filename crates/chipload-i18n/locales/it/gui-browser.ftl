@@ -71,6 +71,14 @@ browser-new-part = Nuovo pezzo
 browser-part-active = attivo
 browser-part-active-hover = Il pezzo attivo: qui vanno le nuove lavorazioni. Clic per le sue copie; clic destro per altro
 browser-part-mirrored = specchiato
+browser-add-instance = Aggiungi istanza
+browser-add-instance-hover = Posiziona di nuovo il pezzo accanto a ciò che taglia, collegato: modifichi il pezzo e l’istanza lo segue. La trascini per spostarla, la sua maniglia tonda per ruotarla.
+browser-add-mirrored-instance = Aggiungi istanza specchiata
+browser-add-mirrored-instance-hover = Lo stesso, specchiato da sinistra a destra: l’altro lato di una scatola. Sempre tagliato in concordanza.
+browser-instance-hover = Il pezzo posizionato di nuovo: le stesse forme e lavorazioni, spostate, ruotate o specchiate. Clicchi per modificarla, o clicchi la sua ombra nella vista.
+browser-instance-mirror = Specchia
+browser-instance-turn = Ruota di 90°
+browser-instance-remove = Rimuovi
 browser-part-hover = Clic per le sue copie; doppio clic per renderlo il pezzo attivo; clic destro per altro
 # A verb: make this the active part.
 browser-activate = Attiva

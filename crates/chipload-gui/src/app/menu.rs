@@ -74,6 +74,8 @@ impl ChiploadApp {
         if ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape)) {
             if self.cancel_zero_drag() {
                 // The zero stays where it was (docs/specs/work-zero-marker.md §3).
+            } else if self.cancel_instance_drag() {
+                // The instance goes back (docs/specs/instances.md §4).
             } else if self.close_compass_menu() {
                 // Nothing moved (docs/specs/compass.md §6).
             } else if self.tool_active() {

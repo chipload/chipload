@@ -12,7 +12,7 @@ view-legend-operation = Konturen der Bearbeitung
 # The material block the part is cut from.
 view-legend-stock = Rohteil
 # Copies of the part laid out in a grid.
-view-legend-copies = Kopien
+view-legend-instances = Instanzen
 view-legend-mirrored = gespiegeltes Teil, wie gefräst
 view-legend-rim = Rand: aufgefüllter Umriss, Fläche, oberer Rand der Rampe
 view-legend-cutting = Schnittbewegung

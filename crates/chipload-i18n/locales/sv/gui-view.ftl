@@ -12,7 +12,7 @@ view-legend-operation = operationens konturer
 # The material block the part is cut from.
 view-legend-stock = ämne
 # Copies of the part laid out in a grid.
-view-legend-copies = kopior
+view-legend-instances = instanser
 view-legend-mirrored = spegelvänd del, som den fräses
 view-legend-rim = kant: utfylld kontur, plan, rampens överkant
 view-legend-cutting = skärande rörelse

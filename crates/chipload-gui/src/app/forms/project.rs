@@ -1190,6 +1190,96 @@ fn mirror_row(ui: &mut egui::Ui, mirror: &mut Option<chipload_job::Mirror>, part
     ui.end_row();
 }
 
+/// Part `part`'s instance `id` (docs/specs/instances.md §4): cut or not, its mirror, its
+/// turn and its move, each a field.
+pub(in crate::app) fn instance_form(
+    ui: &mut egui::Ui,
+    edit: &mut EditJob,
+    part: u64,
+    id: u32,
+) -> Option<JobRequest> {
+    use chipload_job::Mirror;
+    let index = edit.job.parts.iter().position(|p| p.id == part)?;
+    let name = edit.job.parts[index].name.clone();
+    let k = edit.job.parts[index]
+        .instances
+        .iter()
+        .position(|i| i.id == id)?;
+    let instance = &mut edit.job.parts[index].instances[k];
+    super::browser::title_line(
+        ui,
+        crate::icons::Icon::Array,
+        None,
+        &format!("{} · {name}", t!(ui, "forms-instance-number", number = id)),
+    );
+    let at = |field: &str| format!("parts.{index}.instances.{k}.{field}");
+    crate::app::forms::card(ui, |ui| {
+        Grid::new(("instance-form", part, id))
+            .num_columns(2)
+            .min_col_width(label_width(ui) + ui.spacing().indent)
+            .show(ui, |ui| {
+                ui.label(t!(ui, "forms-part-cut"))
+                    .on_hover_text(t!(ui, "forms-instance-cut-hover"));
+                ui.checkbox(&mut instance.enabled, t!(ui, "forms-instance-cut-check"));
+                ui.end_row();
+                let mirror_name = |ui: &egui::Ui, mirror: Option<Mirror>| match mirror {
+                    None => t!(ui, "forms-part-mirror-none"),
+                    Some(Mirror::LeftRight) => t!(ui, "forms-setup-turn-left-right"),
+                    Some(Mirror::TopBottom) => t!(ui, "forms-setup-turn-top-bottom"),
+                };
+                ui.label(t!(ui, "forms-part-mirror"))
+                    .on_hover_text(t!(ui, "forms-instance-mirror-hover"));
+                ComboBox::from_id_salt(("instance-mirror", part, id))
+                    .selected_text(mirror_name(ui, instance.mirror))
+                    .show_ui(ui, |ui| {
+                        for choice in [None, Some(Mirror::LeftRight), Some(Mirror::TopBottom)] {
+                            ui.selectable_value(
+                                &mut instance.mirror,
+                                choice,
+                                mirror_name(ui, choice),
+                            );
+                        }
+                    });
+                ui.end_row();
+                ui.label(t!(ui, "forms-rotation"))
+                    .on_hover_text(t!(ui, "forms-instance-angle-hover"));
+                ui.horizontal(|ui| {
+                    let current = instance.angle.to_degrees();
+                    let salt = egui::Id::new(("instance-angle", part, id));
+                    if let Some(degrees) = finished_number(ui, salt, current, |ui, v| {
+                        ui.add(
+                            crate::units::number(ui, v)
+                                .speed(1.0)
+                                .suffix("°")
+                                .max_decimals(3),
+                        )
+                    }) {
+                        instance.angle = degrees.to_radians();
+                    }
+                    if let Some(by) = quarter_turn_buttons(ui) {
+                        let turned = (current + by + 180.0).rem_euclid(360.0) - 180.0;
+                        instance.angle = turned.to_radians();
+                    }
+                });
+                ui.end_row();
+                for axis in [0, 1] {
+                    let text = match axis {
+                        0 => t!(ui, "forms-instance-move-x"),
+                        _ => t!(ui, "forms-instance-move-y"),
+                    };
+                    ui.label(text)
+                        .on_hover_text(t!(ui, "forms-instance-move-hover"));
+                    let response = ui.add(mm_field(&mut instance.at[axis]));
+                    flag(response, ui, &at(&format!("at.{axis}")));
+                    ui.end_row();
+                }
+            })
+    });
+    ui.add_space(4.0);
+    ui.weak(t!(ui, "forms-instance-note"));
+    None
+}
+
 /// A part's instances (docs/specs/instances.md §4): how many, their cut order, and a grid
 /// that makes them: columns × rows at a pitch, or at a gap between the cuts.
 pub(super) fn copies_rows(

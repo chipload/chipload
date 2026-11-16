@@ -225,3 +225,22 @@ fn a_new_instance_goes_beside_what_the_part_cuts() {
         assert!((low - one.0.1).abs() < 1e-6, "{one:?} {low}");
     }
 }
+
+#[test]
+fn a_part_that_cant_be_planned_yet_gets_its_instance_beside_its_shapes() {
+    use chipload_pipeline::instances::{INSTANCE_GAP_MM, add_instance};
+    let mut job = with_instance(Spot::default(), None);
+    job.parts[0].instances.clear();
+    // A tool far too big for the pocket: the part can't be planned.
+    for tool in &mut job.tools {
+        tool.diameter = 400.0;
+    }
+    let drawing = chipload_pipeline::load_drawing(&job).unwrap();
+    assert!(chipload_toolpath::plan_job(&job, &drawing.contours).is_err());
+    let (job, id) = add_instance(&job, 1, None, 0.0, None).unwrap();
+    let ((x0, _), (x1, _)) = job.part_box(1).unwrap();
+    let at = job.part(1).unwrap().instances[0].at;
+    assert_eq!(id, 2);
+    assert!((at[0] - (x1 - x0 + INSTANCE_GAP_MM)).abs() < 1e-9, "{at:?}");
+    assert_eq!(at[1], 0.0);
+}

@@ -12,7 +12,7 @@ view-legend-operation = contornos de la operación
 # The material block the part is cut from.
 view-legend-stock = material en bruto
 # Copies of the part laid out in a grid.
-view-legend-copies = copias
+view-legend-instances = instancias
 view-legend-mirrored = pieza reflejada, tal como se corta
 view-legend-rim = borde: contorno rellenado, zona plana, alto de la rampa
 view-legend-cutting = movimiento de corte

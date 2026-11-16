@@ -48,49 +48,15 @@ impl ChiploadApp {
         self.view.orient(0.0, 0.0, pivot);
     }
 
-    /// Each contour's copies, as (contour id, shift), copy 1 left out.
-    fn copy_shifts(&self) -> Vec<(usize, Point)> {
-        let Some(edit) = &self.edit else {
-            return Vec::new();
-        };
-        if edit.job.parts.iter().all(|p| p.count() < 2) {
-            return Vec::new();
-        }
-        let job = edit.job.clone();
-        chipload_pipeline::sheet::contour_copies(&job, &self.contours)
-            .into_iter()
-            .flat_map(|(c, shifts)| {
-                shifts
-                    .into_iter()
-                    .filter(|s| *s != (0.0, 0.0))
-                    .map(move |s| (c.id, s))
-            })
-            .collect()
-    }
-
-    /// Mirrored parts and turned or mirrored instances where they are cut, faded
-    /// (docs/specs/mirror-part.md §5, instances.md §3).
+    /// Mirrored parts where they are cut, faded (docs/specs/mirror-part.md §5); their
+    /// instances are ghosts of their own.
     fn mirrored_outlines(&self) -> Vec<Vec<Point>> {
-        let Some(edit) = &self.edit else {
-            return Vec::new();
-        };
-        let mut out = Vec::new();
-        if edit.job.parts.iter().any(|p| p.mirror.is_some()) {
-            out = chipload_pipeline::parts::mirrored_outlines(&edit.job, &self.contours);
+        match &self.edit {
+            Some(edit) if edit.job.parts.iter().any(|p| p.mirror.is_some()) => {
+                chipload_pipeline::parts::mirrored_outlines(&edit.job, &self.contours)
+            }
+            _ => Vec::new(),
         }
-        let placed = edit
-            .job
-            .parts
-            .iter()
-            .any(|p| p.instances.iter().any(|i| !i.spot().is_move()));
-        if placed {
-            out.extend(
-                chipload_pipeline::parts::placed_outlines(&edit.job, &self.contours)
-                    .into_iter()
-                    .map(|(points, _)| points),
-            );
-        }
-        out
     }
 
     /// What the 3D view turns around: the stock's centre, else the drawing origin.
@@ -203,9 +169,9 @@ impl ChiploadApp {
         self.scene.palette = crate::view::Palette::of(ui.visuals().dark_mode);
         self.scene.work_zero = self.shown_zero_xy();
         self.scene.turn_axis = self.turn_axis_line(ui);
-        // Copies of each part, faded (docs/specs/copies-grid.md, parts.md §8): the contours
-        // its operations cut; copy 1 is the drawing.
-        self.scene.copies = self.copy_shifts();
+        // Each part's instances, as ghosts where they are cut (docs/specs/instances.md §4):
+        // the contours its operations cut; the part itself is the drawing.
+        self.scene.instances = self.instance_ghosts();
         self.scene.mirrored = self.mirrored_outlines();
         self.sync_rim_preview(ui.visuals().dark_mode);
         // Heights for the 3D view: 2D items sit on the stock top (docs/specs/3d-view.md). A
@@ -313,8 +279,17 @@ impl ChiploadApp {
             && !self.compass_picking()
             && let Some(origin) = ui.input(|i| i.pointer.press_origin())
         {
+            let flat = !self.display.three_d;
+            let at = self.view.to_world(origin);
             if self.on_zero_handle(origin) && self.start_zero_drag() {
                 // Dragged below.
+            } else if let Some(instance) = self.instance_handle_at(origin).filter(|_| flat) {
+                self.start_instance_drag(instance, super::instances::InstanceGrip::Turn, at);
+            } else if let Some(instance) = self
+                .instance_at(origin)
+                .filter(|_| flat && self.scene.pick(&self.view, origin).is_none())
+            {
+                self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
             } else if let Some(part) = self.compass_part_at(origin) {
                 self.start_compass_drag(part, origin, false);
             } else if let Some(handle) = on_handle(origin) {
@@ -357,6 +332,7 @@ impl ChiploadApp {
                 }
             }
             self.end_zero_drag();
+            self.end_instance_drag();
             self.end_handle_drag();
             self.end_box_drag();
             self.end_move_drag();
@@ -385,6 +361,13 @@ impl ChiploadApp {
             {
                 let at = self.view.to_world(pos);
                 zero_label = self.drag_zero_to(at, alt).map(|text| (at, text));
+            }
+        } else if self.dragging_instance() {
+            if response.dragged()
+                && let Some(pos) = response.interact_pointer_pos()
+            {
+                let at = self.view.to_world(pos);
+                zero_label = self.drag_instance_to(at, alt).map(|text| (at, text));
             }
         } else if let Some(marker) = self.drag.start {
             if response.dragged()
@@ -673,8 +656,11 @@ impl ChiploadApp {
                     .then_some(picked)
                     .flatten()
                     .filter(|id| self.group_of_contour(*id).is_some() || self.dxf_contour(*id));
+                let instance = picked.is_none().then(|| self.instance_at(pos)).flatten();
                 if let Some(contour) = inside {
                     self.pick_alone(contour);
+                } else if let Some((part, id)) = instance {
+                    self.focus = Focus::Instance(part, id);
                 } else if picked.is_none() && !toggle && self.on_stock_edge(pos) {
                     // The board's edge, where no shape is, opens its stock (the user,
                     // 2026-11-03).

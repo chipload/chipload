@@ -376,6 +376,7 @@ impl ChiploadApp {
             Focus::Text(id) => {
                 self.remove_text(id);
             }
+            Focus::Instance(part, id) => self.remove_instance(part, id),
             Focus::Tool(id) => {
                 self.delete_project_tool(id);
             }

@@ -5,9 +5,21 @@ Each [part](../operations/parts.md) can be cut several times. Every extra time i
 turned and perhaps mirrored. Instances are linked to the part: change the part, and every
 instance follows.
 
-In the window, click the part in the Browser and make a grid under **Instances** in its
-properties. On the command line, `chipload part instance` places them one by one. With
-several parts, give `--part`.
+In the window:
+- **Right-click the part** in the Browser: *Add instance* places it again beside what it
+  cuts, 10 mm away; *Add mirrored instance* does the same, mirrored left to right.
+- **On the canvas**, each instance is drawn faded where it is cut, with its number (`#2`);
+  one that is off is dashed. Click one to select it, drag it to move it, and drag its
+  round handle to turn it about its middle. Turning snaps to quarter turns within 3°; hold
+  Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
+- **In the Browser**, each instance has a row under its part, with its tick. Right-click
+  it to *Mirror* it, *Turn 90°* or *Remove* it; Delete removes the selected one.
+- **Its properties** set whether it is cut, its mirror, its rotation (any angle) and how
+  far it is moved.
+- **A grid:** the part's properties make one under **Instances**.
+
+On the command line, `chipload part instance` places them one by one. With several parts,
+give `--part`.
 
 ```sh
 chipload part instance add part.chipload                  # beside the part, 10 mm from its cut

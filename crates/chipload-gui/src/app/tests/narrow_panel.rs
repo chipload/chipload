@@ -60,12 +60,15 @@ fn every_properties_page_fits_the_narrowest_panel() {
     // Generated, so the pages show their results too (the holes find no circle: a problem
     // on their page, which must fit as well).
     app.generate_and_wait();
+    app.add_instance(1, true);
+    assert_eq!(app.focus, Focus::Instance(1, 2), "{:?}", app.report);
     select(&mut app, &[4, 6]);
     let edit = app.edit.as_ref().unwrap();
     let part = edit.job.parts[0].id;
     let mut pages = vec![
         Focus::Job,
         Focus::Part(part),
+        Focus::Instance(part, 2),
         Focus::Tools,
         Focus::Tool(1),
         Focus::Tool(2),

@@ -98,6 +98,18 @@ same result comes more safely the way mirrored parts are cut (docs/specs/mirror-
 - **The form** of an instance: its mirror, angle and position, each a field.
 - **Generate and the simulation** show every instance cut, as copies are now.
 
+**As built (step 4, 2026-11-16).**
+- Every instance of the active setup's parts is a numbered ghost that can be picked,
+  dragged and turned, not only the active part's: one way to draw them all, in place of
+  the faded copies.
+- An instance that is off stays as a dashed ghost, so it can be found and turned on.
+- The turn handle sits beyond the ghost's outlines, on the line from its centre that
+  turns with it.
+- A new instance goes beside what the part cuts. When the part can't be planned yet (one
+  of its operations has a problem), it goes beside the boxes round its shapes as drawn
+  and placed, so a part being worked on still takes instances.
+- Not built: moving and turning an instance with the Compass.
+
 ## 5. Command line
 
 - `chipload part instance add part.chipload --part 1 [--at 120,0] [--angle 90] [--mirror

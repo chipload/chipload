@@ -69,7 +69,7 @@ The **Browser** on the left holds your library and the whole project as a tree:
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
   - **Setups**, each with its **Stock**, its **Work zero** and its **parts** under it, each part
-    with its operations, in cutting order. A line marks each tool change. A floor pass is
+    with its operations, in cutting order, then its [instances](drawings/copies.md). A line marks each tool change. A floor pass is
     cut before its V-carve and a rest pass after its pockets, so the line above them names
     their tools in the order they are cut: *tool change → T2 → T1*. See
     [Setups](concepts/setups.md) and [Parts](operations/parts.md).
@@ -100,8 +100,10 @@ operations; the first DXF's placement window is open](images/drawing.png)
     with it (its hover says which).
   - **The Drawing folder:** *Add DXF or SVG…*, *Import image…* and *Add 3D model…*.
   - **A 3D model:** *Select*, *Hide* or *Show*, *New relief*, *Properties* and *Remove*.
-  - **A part:** *Activate*, *New operation* (for the selected shapes), *Move up*, *Move
-    down*, *Move to setup ▸* and *Delete part* (with its operations).
+  - **A part:** *Activate*, *Export G-code of this part…*, *Add instance*, *Add mirrored instance*, *New
+    operation* (for the selected shapes), *Move up*, *Move down*, *Move to setup ▸* and
+    *Delete part* (with its operations).
+  - **An instance:** *Mirror*, *Turn 90°* and *Remove*.
   - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
     setup*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**
@@ -118,8 +120,9 @@ operations; the first DXF's placement window is open](images/drawing.png)
 **The eye** hides a DXF, layer, picture or kind of drawn shape on the canvas: it isn't
 drawn and can't be clicked. **Hidden shapes are still cut.**
 
-**The tick** in front of an operation or a part turns it on or off. One that is off isn't
-in the program, and its row is dimmed; a part that is off takes its operations with it.
+**The tick** in front of an operation, a part or an instance turns it on or off. One that is
+off isn't in the program, and its row is dimmed; a part that is off takes its operations and
+instances with it.
 
 **The active part** is in bold, marked *active*. New operations from the ribbon go into
 it, whatever is open. Its name is also in the status bar.
@@ -221,6 +224,7 @@ The **Properties** panel on the right shows what is open, under a title:
   the edit, and traces the picture again. *Trace settings…* opens its
   [window](drawings/images.md).
 - **A part:** its name, on or off, and its [instances](drawings/copies.md).
+- **An instance:** on or off, its mirror, its rotation and how far it is moved.
 - **An operation:** its settings, under its kind and number ("Pocket · Operation 1"): its
   name, shapes, tool and side, then its sections (*Cut*, *Feeds*, *Holding*, …) folded,
   each with what it holds in a few words beside its title. Click a title to open it; it

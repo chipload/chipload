@@ -71,6 +71,14 @@ browser-new-part = Ny detalj
 browser-part-active = aktiv
 browser-part-active-hover = Den aktiva detaljen: nya operationer hamnar här. Klicka för dess kopior; högerklicka för mer
 browser-part-mirrored = spegelvänd
+browser-add-instance = Lägg till instans
+browser-add-instance-hover = Placera detaljen igen bredvid det den fräser, länkad: ändra detaljen så följer instansen med. Dra den för att flytta den, i det runda handtaget för att vrida den.
+browser-add-mirrored-instance = Lägg till spegelvänd instans
+browser-add-mirrored-instance-hover = Samma sak, spegelvänd vänster–höger: andra sidan av en låda. Fräses fortfarande medfräsning.
+browser-instance-hover = Detaljen placerad igen: samma former och operationer, flyttade, vridna eller spegelvända. Klicka för att ändra den, eller klicka på dess skugga i vyn.
+browser-instance-mirror = Spegla
+browser-instance-turn = Vrid 90°
+browser-instance-remove = Ta bort
 browser-part-hover = Klicka för dess kopior; dubbelklicka för att göra den aktiv; högerklicka för mer
 # A verb: make this the active part.
 browser-activate = Aktivera

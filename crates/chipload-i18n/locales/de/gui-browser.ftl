@@ -71,6 +71,14 @@ browser-new-part = Neues Teil
 browser-part-active = aktiv
 browser-part-active-hover = Das aktive Teil: neue Bearbeitungen kommen hierher. Klicken für seine Kopien; Rechtsklick für mehr
 browser-part-mirrored = gespiegelt
+browser-add-instance = Instanz hinzufügen
+browser-add-instance-hover = Das Teil noch einmal platzieren, neben dem, was es fräst, verknüpft: ändern Sie das Teil, folgt die Instanz. Ziehen verschiebt sie, ihr runder Griff dreht sie.
+browser-add-mirrored-instance = Gespiegelte Instanz hinzufügen
+browser-add-mirrored-instance-hover = Dasselbe, links-rechts gespiegelt: die andere Seite einer Kiste. Weiterhin im Gleichlauf gefräst.
+browser-instance-hover = Das Teil noch einmal platziert: dieselben Formen und Bearbeitungen, verschoben, gedreht oder gespiegelt. Klicken zum Ändern, oder klicken Sie ihren Schatten in der Ansicht.
+browser-instance-mirror = Spiegeln
+browser-instance-turn = 90° drehen
+browser-instance-remove = Entfernen
 browser-part-hover = Klicken für seine Kopien; Doppelklick macht es zum aktiven Teil; Rechtsklick für mehr
 # A verb: make this the active part.
 browser-activate = Aktivieren

@@ -71,6 +71,14 @@ browser-new-part = New part
 browser-part-active = active
 browser-part-active-hover = The active part: new operations go here. Click for its copies; right-click for more
 browser-part-mirrored = mirrored
+browser-add-instance = Add instance
+browser-add-instance-hover = Place the part again beside what it cuts, linked: change the part and the instance follows. Drag it to move it, its round handle to turn it.
+browser-add-mirrored-instance = Add mirrored instance
+browser-add-mirrored-instance-hover = The same, mirrored left to right: the other side of a box. Still cut climb.
+browser-instance-hover = The part placed again: the same shapes and operations, moved, turned or mirrored. Click to change it, or click its ghost in the view.
+browser-instance-mirror = Mirror
+browser-instance-turn = Turn 90°
+browser-instance-remove = Remove
 browser-part-hover = Click for its copies; double-click to make it the active part; right-click for more
 # A verb: make this the active part.
 browser-activate = Activate

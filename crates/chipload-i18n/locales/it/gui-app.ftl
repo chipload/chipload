@@ -30,6 +30,7 @@ app-could-not-move-drawing = Impossibile spostare il disegno:
 # The distance between copies of a part; $dy and $gap carry their unit.
 app-pitch-set = Passo { $dx } × { $dy } (distanza { $gap })
 app-pitch-needs-plan = Impossibile impostare il passo da una distanza: prima va pianificato il pezzo.
+app-instance-needs-plan = Impossibile posizionare la nuova istanza: prima va pianificato il pezzo.
 
 app-deleted-part = { $count ->
     [0] Eliminato il pezzo { $name } (Ctrl+Z lo ripristina)

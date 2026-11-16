@@ -12,7 +12,7 @@ view-legend-operation = the operation's contours
 # The material block the part is cut from.
 view-legend-stock = stock
 # Copies of the part laid out in a grid.
-view-legend-copies = copies
+view-legend-instances = instances
 view-legend-mirrored = mirrored part, as cut
 view-legend-rim = rim: outline filled out, flat, top of the ramp
 view-legend-cutting = cutting move

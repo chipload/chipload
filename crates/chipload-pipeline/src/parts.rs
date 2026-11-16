@@ -120,8 +120,8 @@ pub fn set_part_mirror(
 }
 
 /// Where mirrored parts are cut (docs/specs/mirror-part.md §5): the contours each mirrored
-/// part's operations cut, mirrored about its box's centre line, at every copy. For drawing
-/// them faded where the cut is; the drawing stays as drawn.
+/// part's operations cut, mirrored about its box's centre line. For drawing them faded
+/// where the cut is; the drawing stays as drawn. Its instances are [`instance_outlines`].
 pub fn mirrored_outlines(job: &Job, contours: &[Contour]) -> Vec<Vec<Point>> {
     let mut out = Vec::new();
     for part in job.parts.iter().filter(|p| p.mirror.is_some()) {
@@ -151,31 +151,33 @@ pub fn mirrored_outlines(job: &Job, contours: &[Contour]) -> Vec<Vec<Point>> {
         };
         for contour in contours.iter().filter(|c| ids.contains(&c.id)) {
             let points: Vec<Point> = contour.points().into_iter().map(flip).collect();
-            for (_, spot) in part.spots().into_iter().filter(|(_, s)| s.is_move()) {
-                let (dx, dy) = (spot.at[0], spot.at[1]);
-                out.push(points.iter().map(|p| (p.0 + dx, p.1 + dy)).collect());
-            }
+            out.push(points);
         }
     }
     out
 }
 
-/// Where turned and mirrored instances are cut (docs/specs/instances.md §3): the contours
-/// each part's operations cut, mirrored with the part if it is, then placed as each such
-/// instance lies, with whether each is closed. Instances only moved are drawn at their
-/// shift instead ([`crate::sheet::contour_copies`], [`mirrored_outlines`]).
-pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool)> {
+/// One instance of a part where it is cut (docs/specs/instances.md §4): what the window
+/// draws as its ghost and picks it by.
+#[derive(Debug, Clone, PartialEq)]
+pub struct InstanceOutline {
+    pub part: u64,
+    pub id: u32,
+    pub enabled: bool,
+    /// The point it is mirrored and turned about, where it lies on the instance: its turn
+    /// handle goes round it.
+    pub centre: Point,
+    /// The contours the part's operations cut, mirrored with the part if it is, then put
+    /// where the instance lies; each with whether it is closed.
+    pub outlines: Vec<(Vec<Point>, bool)>,
+}
+
+/// Every instance of every part (on or off), where it is cut. An instance only moved is
+/// its outlines moved by its shift exactly; a turned or mirrored one is placed about the
+/// part's centre.
+pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline> {
     let mut out = Vec::new();
-    for part in &job.parts {
-        let spots: Vec<chipload_job::Spot> = part
-            .spots()
-            .into_iter()
-            .map(|(_, spot)| spot)
-            .filter(|spot| !spot.is_move())
-            .collect();
-        if spots.is_empty() {
-            continue;
-        }
+    for part in job.parts.iter().filter(|p| !p.instances.is_empty()) {
         let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
         let mut line = None;
         let mut ids: Vec<usize> = Vec::new();
@@ -200,16 +202,50 @@ pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool
             Some((Mirror::TopBottom, at)) => (p.0, 2.0 * at - p.1),
             None => p,
         };
-        for contour in contours.iter().filter(|c| ids.contains(&c.id)) {
-            let points: Vec<Point> = contour.points().into_iter().map(flip).collect();
-            for spot in &spots {
-                let place = chipload_toolpath::place::Placement::new(spot, centre);
-                let placed = points.iter().map(|&p| place.apply(p)).collect();
-                out.push((placed, contour.closed));
-            }
+        let drawn: Vec<(Vec<Point>, bool)> = contours
+            .iter()
+            .filter(|c| ids.contains(&c.id))
+            .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
+            .collect();
+        for instance in &part.instances {
+            let spot = instance.spot();
+            let place = chipload_toolpath::place::Placement::new(&spot, centre);
+            let (dx, dy) = (spot.at[0], spot.at[1]);
+            let put = |p: Point| {
+                if spot.is_move() {
+                    (p.0 + dx, p.1 + dy)
+                } else {
+                    place.apply(p)
+                }
+            };
+            out.push(InstanceOutline {
+                part: part.id,
+                id: instance.id,
+                enabled: instance.enabled,
+                centre: put(centre),
+                outlines: drawn
+                    .iter()
+                    .map(|(points, closed)| (points.iter().map(|&p| put(p)).collect(), *closed))
+                    .collect(),
+            });
         }
     }
     out
+}
+
+/// Where turned and mirrored instances that are on are cut, with whether each outline is
+/// closed: what the setup sheet draws besides the shifts of [`crate::sheet::contour_copies`].
+pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool)> {
+    let turned = |part: u64, id: u32| {
+        job.part(part)
+            .and_then(|p| p.instances.iter().find(|i| i.id == id))
+            .is_some_and(|i| !i.spot().is_move())
+    };
+    instance_outlines(job, contours)
+        .into_iter()
+        .filter(|i| i.enabled && turned(i.part, i.id))
+        .flat_map(|i| i.outlines)
+        .collect()
 }
 
 /// The project with only the parts `ids` cut, every other one switched off: what exporting

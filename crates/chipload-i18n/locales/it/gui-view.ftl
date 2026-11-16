@@ -12,7 +12,7 @@ view-legend-operation = i contorni della lavorazione
 # The material block the part is cut from.
 view-legend-stock = grezzo
 # Copies of the part laid out in a grid.
-view-legend-copies = copie
+view-legend-instances = istanze
 view-legend-mirrored = pezzo specchiato, come lavorato
 view-legend-rim = bordo: contorno riempito, piano, cima della rampa
 view-legend-cutting = movimento di taglio

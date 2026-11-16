@@ -27,6 +27,7 @@ mod header;
 mod holding;
 mod images;
 mod inlay;
+mod instances;
 mod layout;
 mod leave_out_shapes;
 mod live_problems;

@@ -30,6 +30,7 @@ app-could-not-move-drawing = Impossible de déplacer le dessin :
 # The distance between copies of a part; $dy and $gap carry their unit.
 app-pitch-set = Pas { $dx } × { $dy } (écart { $gap })
 app-pitch-needs-plan = Impossible de régler le pas d'après un écart : la pièce doit d'abord être calculée.
+app-instance-needs-plan = Impossible de placer la nouvelle instance : la pièce doit d'abord être calculée.
 
 app-deleted-part = { $count ->
     [0] Pièce { $name } supprimée (Ctrl+Z la rétablit)

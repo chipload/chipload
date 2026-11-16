@@ -30,6 +30,7 @@ app-could-not-move-drawing = No se pudo mover el dibujo:
 # The distance between copies of a part; $dy and $gap carry their unit.
 app-pitch-set = Paso { $dx } × { $dy } (separación { $gap })
 app-pitch-needs-plan = No se pudo fijar el paso a partir de una separación: primero hay que planificar la pieza.
+app-instance-needs-plan = No se pudo colocar la nueva instancia: primero hay que planificar la pieza.
 
 app-deleted-part = { $count ->
     [0] Pieza { $name } eliminada (Ctrl+Z la recupera)

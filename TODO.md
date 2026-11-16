@@ -300,8 +300,11 @@ Smaller follow-ups noted along the way, not in the order above:
   as drawn and then placed (mirrored ones with the cutting sense turned), drawn faded where
   they are cut in the view and on the sheet, property and pipeline tests. Step 3 built:
   `part instance add|set|remove|list|array` (a new instance goes beside what the part
-  cuts, 10 mm away), `part set --order`, `copies` kept as the old name. Next: step 4, the
-  window.
+  cuts, 10 mm away), `part set --order`, `copies` kept as the old name. Step 4 built: the
+  window (part menu *Add instance* / *Add mirrored instance*, numbered ghosts picked,
+  dragged and turned by a handle with quarter-turn snapping, Escape and undo, Browser rows
+  with Mirror / Turn 90° / Remove, the instance form). Left: the Compass on an instance.
+  Next: step 5, the sheet, report, guide page renamed, schemas.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced

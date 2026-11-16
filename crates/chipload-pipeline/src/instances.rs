@@ -4,6 +4,7 @@
 //! the project checked, or why it was refused.
 
 use chipload_core::Point;
+use chipload_core::tolerances::PLACEMENT_ROUNDING_MM;
 use chipload_i18n::Message;
 use chipload_job::{Copies, Instance, InstanceOrder, Job, Mirror, Spot};
 use chipload_toolpath::place::Placement;
@@ -75,46 +76,88 @@ pub fn add_instance(
 
 /// Where a new instance mirrored and turned so goes (docs/specs/instances.md §4): its cut
 /// [`INSTANCE_GAP_MM`] right of everything the part cuts now, its instances included, its
-/// bottom level with the part's. Plans the part alone; refused when that fails.
+/// bottom level with the part's. Plans the part alone; when that fails (a part still being
+/// worked on), the boxes round its shapes as drawn and placed stand for the cuts.
 pub fn beside(
     job: &Job,
     part: u64,
     mirror: Option<Mirror>,
     angle: f64,
 ) -> Result<[f64; 2], PipelineError> {
-    part_index(job, part)?;
+    let index = part_index(job, part)?;
+    let centre = job.part_centre(part).unwrap_or((0.0, 0.0));
+    let ((x0, y0), (x1, y1), all_x1) = match planned_boxes(job, part) {
+        Some(boxes) => boxes,
+        None => {
+            let (low, high) = job
+                .part_box(part)
+                .ok_or_else(|| refused(Message::new("pipeline-part-cuts-nothing")))?;
+            let right = job.parts[index]
+                .spots()
+                .into_iter()
+                .map(|(_, spot)| placed_box(&spot, centre, (low, high)).1.0)
+                .fold(high.0, f64::max);
+            (low, high, right)
+        }
+    };
+    let spot = Spot {
+        mirror,
+        angle,
+        at: [0.0, 0.0],
+    };
+    let (low, _) = placed_box(&spot, centre, ((x0, y0), (x1, y1)));
+    Ok([tidy(all_x1 + INSTANCE_GAP_MM - low.0), tidy(y0 - low.1)])
+}
+
+/// A placement without the last bits a turn leaves (`PLACEMENT_ROUNDING_MM`), and never a
+/// negative zero: 0, not -1e-14.
+fn tidy(mm: f64) -> f64 {
+    let step = PLACEMENT_ROUNDING_MM;
+    (mm / step).round() * step + 0.0
+}
+
+/// The part's own cut box and the right edge of everything it cuts, its instances
+/// included, planned with the part alone; None when it can't be planned.
+fn planned_boxes(job: &Job, part: u64) -> Option<(Point, Point, f64)> {
     let mut alone = job.clone();
     for p in &mut alone.parts {
         p.enabled = p.id == part;
     }
-    let drawing = load_drawing(&alone)?;
-    let plan = plan_job(&alone, &drawing.contours)?;
-    let nothing = || refused(Message::new("pipeline-part-cuts-nothing"));
-    let (_, (all_x1, _)) =
-        cut_extent(&plan.program.moves, &plan.op_spans, None).ok_or_else(nothing)?;
-    let ((x0, y0), (x1, y1)) =
-        cut_extent(&plan.program.moves, &plan.op_spans, Some(1)).ok_or_else(nothing)?;
-    // The part's cut box placed as the new instance would be before its move: the turned
-    // box holds the turned cut.
-    let centre = job.part_centre(part).unwrap_or((0.0, 0.0));
-    let place = Placement::new(
-        &Spot {
-            mirror,
-            angle,
-            at: [0.0, 0.0],
-        },
-        centre,
-    );
-    // Only moved, the box is as it is (no rounding through a turn by nothing).
-    let unturned = mirror.is_none() && angle == 0.0;
-    let corners: Vec<Point> = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+    let drawing = load_drawing(&alone).ok()?;
+    let plan = plan_job(&alone, &drawing.contours).ok()?;
+    let (_, (all_x1, _)) = cut_extent(&plan.program.moves, &plan.op_spans, None)?;
+    let (low, high) = cut_extent(&plan.program.moves, &plan.op_spans, Some(1))?;
+    Some((low, high, all_x1))
+}
+
+/// The box round `(low, high)` placed at `spot` about `centre`: the turned box holds the
+/// turned cut. Only moved, the box is moved exactly (no rounding through a turn by nothing).
+fn placed_box(spot: &Spot, centre: Point, (low, high): (Point, Point)) -> (Point, Point) {
+    let corners = [low, (high.0, low.1), high, (low.0, high.1)];
+    let place = Placement::new(spot, centre);
+    let placed: Vec<Point> = corners
         .into_iter()
-        .map(|p| if unturned { p } else { place.apply(p) })
+        .map(|p| {
+            if spot.is_move() {
+                (p.0 + spot.at[0], p.1 + spot.at[1])
+            } else {
+                place.apply(p)
+            }
+        })
         .collect();
-    let low_x = corners.iter().map(|p| p.0).fold(f64::INFINITY, f64::min);
-    let low_y = corners.iter().map(|p| p.1).fold(f64::INFINITY, f64::min);
-    // + 0.0: never a negative zero.
-    Ok([all_x1 + INSTANCE_GAP_MM - low_x + 0.0, y0 - low_y + 0.0])
+    let fold = |f: fn(f64, f64) -> f64, start: f64, pick: fn(&Point) -> f64| {
+        placed.iter().map(pick).fold(start, f)
+    };
+    (
+        (
+            fold(f64::min, f64::INFINITY, |p| p.0),
+            fold(f64::min, f64::INFINITY, |p| p.1),
+        ),
+        (
+            fold(f64::max, f64::NEG_INFINITY, |p| p.0),
+            fold(f64::max, f64::NEG_INFINITY, |p| p.1),
+        ),
+    )
 }
 
 /// What to change on an instance; None leaves it.

@@ -161,6 +161,7 @@ impl ChiploadApp {
             Focus::Job => request = job_form(ui, edit, library),
             Focus::WorkZero => request = forms::work_zero_form(ui, edit),
             Focus::Part(id) => request = forms::part_form(ui, edit, id),
+            Focus::Instance(part, id) => request = forms::instance_form(ui, edit, part, id),
             Focus::Stock => {
                 if std::mem::take(&mut self.focus_thickness) {
                     ui.data_mut(|d| d.insert_temp(egui::Id::new(forms::FOCUS_THICKNESS), true));

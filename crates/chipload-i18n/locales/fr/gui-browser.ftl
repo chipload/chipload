@@ -71,6 +71,14 @@ browser-new-part = Nouvelle pièce
 browser-part-active = active
 browser-part-active-hover = La pièce active : les nouvelles opérations y vont. Cliquer pour ses copies ; clic droit pour plus
 browser-part-mirrored = en miroir
+browser-add-instance = Ajouter une instance
+browser-add-instance-hover = Placer la pièce encore une fois à côté de ce qu'elle usine, liée : modifiez la pièce et l'instance suit. Faites-la glisser pour la déplacer, sa poignée ronde pour la tourner.
+browser-add-mirrored-instance = Ajouter une instance en miroir
+browser-add-mirrored-instance-hover = La même, en miroir gauche-droite : l'autre côté d'une boîte. Toujours usinée en avalant.
+browser-instance-hover = La pièce placée encore une fois : les mêmes formes et opérations, déplacées, tournées ou en miroir. Cliquez pour la modifier, ou cliquez son fantôme dans la vue.
+browser-instance-mirror = Miroir
+browser-instance-turn = Tourner de 90°
+browser-instance-remove = Supprimer
 browser-part-hover = Cliquer pour ses copies ; double-clic pour en faire la pièce active ; clic droit pour plus
 # A verb: make this the active part.
 browser-activate = Activer

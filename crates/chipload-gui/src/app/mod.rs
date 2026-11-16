@@ -61,6 +61,7 @@ pub(crate) mod header;
 mod history;
 mod images;
 mod inlay;
+mod instances;
 mod layout;
 mod library_transfer;
 mod library_view;
@@ -147,6 +148,8 @@ pub enum Focus {
     SmoothingPass(usize),
     /// A part, by id (docs/specs/parts.md §8).
     Part(u64),
+    /// Part `0`'s instance `1` (docs/specs/instances.md §4).
+    Instance(u64, u32),
     /// A setup, by id (docs/specs/setups.md §7).
     Setup(u64),
     /// The project's tools; one tool, by id; an imported DXF; a picture
@@ -331,6 +334,8 @@ struct Drag {
     boxed: Option<box_drag::BoxDrag>,
     /// The work zero being dragged (docs/specs/work-zero-marker.md §3).
     zero: Option<zero_drag::ZeroDrag>,
+    /// An instance being moved or turned (docs/specs/instances.md §4).
+    instance: Option<instances::InstanceDrag>,
     /// The start marker being dragged (index in `scene.start_markers`).
     start: Option<usize>,
     /// The start marker right-clicked, for its context menu.
