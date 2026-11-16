@@ -143,32 +143,32 @@ impl Default for Palette {
 }
 
 /// How far a stale toolpath and the copies are faded.
-pub(super) const GHOST_FADE: f32 = 0.65;
+const GHOST_FADE: f32 = 0.65;
 
 /// Distance between direction arrows along the cutting path.
 pub const ARROW_SPACING_MM: f64 = 40.0;
-pub(super) const AXIS_LENGTH_MM: f64 = 15.0;
+const AXIS_LENGTH_MM: f64 = 15.0;
 /// The radius of the work zero's handle at the foot of the axes, pixels.
-pub(super) const ZERO_HANDLE_PX: f32 = 5.0;
+const ZERO_HANDLE_PX: f32 = 5.0;
 /// More lines than this across the area and the finer ones are left out.
-pub(super) const GRID_MAX_LINES: usize = 400;
+const GRID_MAX_LINES: usize = 400;
 /// In 3D the grid reaches at least this far past the stock.
-pub(super) const GRID_MARGIN_MM: f64 = 50.0;
+const GRID_MARGIN_MM: f64 = 50.0;
 /// The axis lines across the grid, against the short strokes at the zero.
-pub(super) const AXIS_LINE_FADE: f32 = 0.55;
+const AXIS_LINE_FADE: f32 = 0.55;
 /// How close (on screen) a click must be to a contour line.
 pub const PICK_TOLERANCE_PX: f32 = 6.0;
 
 /// The circle at an operation's first plunge, screen pixels; its number sits up and right.
-pub(super) const OP_LABEL_RADIUS: f32 = 5.0;
-pub(super) const OP_LABEL_TEXT_OFFSET: Vec2 = Vec2::new(7.0, -19.0);
-pub(super) const DASH_PX: f32 = 6.0;
+const OP_LABEL_RADIUS: f32 = 5.0;
+const OP_LABEL_TEXT_OFFSET: Vec2 = Vec2::new(7.0, -19.0);
+const DASH_PX: f32 = 6.0;
 /// How far the turn axis runs past the board at each end, points.
-pub(super) const TURN_AXIS_OVERHANG_PX: f32 = 14.0;
-pub(super) const GAP_PX: f32 = 4.0;
+const TURN_AXIS_OVERHANG_PX: f32 = 14.0;
+const GAP_PX: f32 = 4.0;
 /// Construction geometry's dots, screen pixels (docs/specs/dxf-export.md §B3).
-pub(super) const CONSTRUCTION_DASH_PX: f32 = 2.0;
-pub(super) const CONSTRUCTION_GAP_PX: f32 = 4.0;
+const CONSTRUCTION_DASH_PX: f32 = 2.0;
+const CONSTRUCTION_GAP_PX: f32 = 4.0;
 
 /// A point in 3D, mm (X, Y as drawn, Z as the program uses it).
 pub type Point3 = (f64, f64, f64);

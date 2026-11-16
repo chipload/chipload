@@ -120,7 +120,7 @@ pub struct PocketPiece {
 
 /// How far the tool lifts off the floor just cut to move back between depth passes
 /// (docs/specs/pocket-stay-down.md decision 2).
-pub(super) const BACK_LINK_LIFT_MM: f64 = 0.5;
+const BACK_LINK_LIFT_MM: f64 = 0.5;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PocketPlan {
@@ -132,11 +132,11 @@ pub struct PocketPlan {
 }
 
 /// A length with 3 decimals, for notes.
-pub(super) fn fixed3(mm: f64) -> Value {
+fn fixed3(mm: f64) -> Value {
     Value::Length(mm, Digits::Fixed(3))
 }
 
-pub(super) fn ids_text(ids: &[usize]) -> String {
+fn ids_text(ids: &[usize]) -> String {
     ids.iter()
         .map(|i| format!("#{i}"))
         .collect::<Vec<_>>()
@@ -216,7 +216,7 @@ pub struct Choices<'a> {
 }
 
 /// One piece's paths before its links are chosen and it is verified.
-pub(super) struct Draft {
+struct Draft {
     region: Area,
     ids: Vec<usize>,
     rings: Vec<PocketRing>,

@@ -858,7 +858,7 @@ impl Gathered {
 }
 
 /// What every operation needs from the job.
-pub(super) struct Context<'a> {
+struct Context<'a> {
     label_message: &'a Message,
     tool: &'a Tool,
     job: &'a Job,
@@ -884,7 +884,7 @@ pub(super) struct Context<'a> {
 }
 
 /// One operation's moves, warnings and tabs, and where the tool ends up (above that point).
-pub(super) struct Planned {
+struct Planned {
     moves: Vec<Move>,
     notes: Vec<Message>,
     tabs: Vec<Vec<Point>>,
@@ -905,7 +905,7 @@ pub(super) struct Planned {
     facts: Vec<Message>,
 }
 
-pub(super) fn job_error(message: Message) -> ToolpathError {
+fn job_error(message: Message) -> ToolpathError {
     ToolpathError::Job(message)
 }
 
