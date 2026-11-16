@@ -1,14 +1,21 @@
 # Surface
 
-**Surface** takes the whole stock top down flat with a wide endmill. Use it to flatten
-your spoilboard, or to face a board before cutting it. It needs no selection: click
-**Surface** (ribbon, OPERATION), or right-click a part, *New operation ▸ Surface*. On the
-command line, `chipload op add-surface part.chipload`.
+**Surface** takes a top down flat with a wide endmill. It comes in two kinds:
 
-A new surface goes **first** in the active part, since it faces the stock before anything
-else is cut. It takes the project's widest endmill and 0.5 mm off the top in one pass.
+- **The whole board** (a board surface): flatten your spoilboard, or face a board before
+  cutting it. It needs no selection. Right-click the setup, *Face the board…*; on the
+  command line, `chipload op add-surface part.chipload`. It goes **first** in its setup,
+  since it faces the stock before anything else is cut, and is cut **once**, whatever parts
+  and [instances](../drawings/instances.md) the setup has.
+- **A part's area** (a part surface): select the part's outline (closed shapes) and add a
+  Surface, as you would a pocket. It faces each selected shape grown by a **margin**, and
+  is cut under every instance of the part, moving and turning with it. Other parts' areas
+  are left alone.
 
-## How it cuts
+A new surface takes the project's widest endmill and 0.5 mm off the top in one pass; a part
+surface's margin starts at the tool's radius.
+
+## How the whole board is cut
 
 - **Back and forth** along the stock's longer side, in straight passes one stepover apart.
   Half the passes climb, half are conventional: usual for a shallow facing pass, and about
@@ -25,6 +32,14 @@ else is cut. It takes the project's widest endmill and 0.5 mm off the top in one
 
 The setup sheet says how far the tool runs past the stock's ends (its radius): keep clamps
 and fences clear of that.
+
+## How a part's area is cut
+
+- **The area:** each selected closed shape grown by the margin; areas that overlap are
+  joined, and a shape inside another is faced over, not left standing.
+- **Rings, as a pocket:** the area is cleared in rings one stepover apart, the tool going
+  down each depth by a helix, never plunging. Its edge reaches the grown outline.
+- **Under each instance:** cut for the part and each of its instances, where they lie.
 
 ## Settings
 
@@ -57,6 +72,8 @@ are in mm, feeds in mm/min.
 | `name` | Name |
 | `enabled` | the tick on the operation's row in the Browser |
 | `part` | the [part](parts.md) it belongs to |
+| `select` | the shapes a part surface faces; none for the whole board |
+| `margin` | Margin: how far a part surface's area reaches past its shapes, mm |
 | `tool` | Tool: an endmill, the project tool's id |
 | `start_depth` | Start depth |
 | `end_depth` | End depth: how much comes off |

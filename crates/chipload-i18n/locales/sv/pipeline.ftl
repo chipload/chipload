@@ -353,6 +353,7 @@ pipeline-rest-not-smaller = verktyg { $tool } ({ $diameter }) är inte mindre ä
 pipeline-update-which-dxf = projektet har { $count } DXF:er ({ $dxfs }): ange vilken som ska uppdateras
 # `tool use` is a command of the command line: keep it as written.
 pipeline-surface-no-endmill = projektet har ingen pinnfräs: en planfräsning behöver en (kopiera in en med `tool use`)
+pipeline-setup-no-parts = Uppspänningen har ingen detalj att lägga planfräsningen i: lägg först till en detalj
 # $type is the tool's type as written in the project file (drill, vbit).
 pipeline-surface-not-endmill = verktyg { $tool } är av typen { $type }; en planfräsning behöver en pinnfräs
 

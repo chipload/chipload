@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 82] = [
+const GOLDEN: [(&str, &str); 83] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -287,6 +287,13 @@ const GOLDEN: [(&str, &str); 82] = [
     // 180`): v39 gives the part itself angle 0 and at (0, 0), so it is cut where drawn
     // and the G-code stays the same (docs/specs/part-placement.md §8).
     ("v38_instances", "jobs/v38/instances.chipload"),
+    // v38_instances frozen at v39 with a surface of the whole stock added first (`op
+    // add-surface --depth 0.5`): v40 makes it a board surface, cut once whatever the
+    // instances, so the G-code stays the same (docs/specs/surface-levels.md §4).
+    (
+        "v39_surface_instances",
+        "jobs/v39/surface_instances.chipload",
+    ),
 ];
 
 /// Projects in pieces (docs/specs/pieces.md): a program per piece, run as `chipload run`

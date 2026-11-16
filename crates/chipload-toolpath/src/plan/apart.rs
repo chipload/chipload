@@ -5,7 +5,7 @@ use chipload_core::Point;
 use chipload_core::primitives::{Line, Primitive};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Job, Operation, Part};
+use chipload_job::{Job, Part};
 
 use super::OpSpan;
 use crate::ToolpathError;
@@ -114,7 +114,7 @@ pub(super) fn check_parts_apart(
             .filter(|s| {
                 job.operations
                     .get(s.operation)
-                    .is_some_and(|op| op.part() == part.id && !matches!(op, Operation::Surface(_)))
+                    .is_some_and(|op| op.part() == part.id && !op.is_board_surface())
             })
             .cloned()
             .collect();

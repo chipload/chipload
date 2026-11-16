@@ -251,6 +251,7 @@ pipeline-rest-before-not-endmill = предыдущий инструмент { $
 pipeline-rest-not-smaller = инструмент { $tool } ({ $diameter }) не меньше предыдущего инструмента { $before } ({ $before_diameter })
 pipeline-update-which-dxf = в проекте { $count } DXF ({ $dxfs }): укажите, какой обновить
 pipeline-surface-no-endmill = в проекте нет концевой фрезы для торцевания (скопируйте командой `tool use`)
+pipeline-setup-no-parts = В установе нет детали для фрезерования плоскости: сначала добавьте деталь
 pipeline-surface-not-endmill = инструмент { $tool } — { $type }; для торцевания нужна концевая фреза
 pipeline-shape-not-drawable = можно начертить только окружности, прямоугольники и полилинии
 pipeline-shape-kind = объект { $id } имеет тип { $kind }; изменить тип нельзя

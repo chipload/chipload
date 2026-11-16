@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! Adding a surface (docs/specs/surfacing.md): the whole stock taken down flat, first in its
-//! part.
+//! Adding a board surface (docs/specs/surfacing.md, surface-levels.md): the whole stock taken
+//! down flat, first in its setup.
 
 use chipload_i18n::Message;
 use chipload_job::library::Cutting;
@@ -15,6 +15,10 @@ pub const DEFAULT_SURFACE_DEPTH: f64 = 0.5;
 /// A new surface's stepover, as a fraction of the tool diameter (docs/specs/surfacing.md §4).
 pub const DEFAULT_SURFACE_STEPOVER: f64 = 0.75;
 
+/// A new part surface's stepover: its rings leave nothing uncut up to half the tool, as a
+/// pocket's (docs/specs/pocket.md §3, surface-levels.md §3).
+pub const DEFAULT_PART_SURFACE_STEPOVER: f64 = 0.5;
+
 /// The tool a new surface takes: the project's widest endmill.
 pub fn surface_tool(job: &Job) -> Option<i64> {
     job.tools
@@ -24,20 +28,23 @@ pub fn surface_tool(job: &Job) -> Option<i64> {
         .map(|t| t.id)
 }
 
-/// Where a surface goes in part `part`: before its first operation (it faces the stock
-/// before anything is cut, docs/specs/surfacing.md §6), or where the part's operations go
-/// when it has none.
-pub fn surface_index(job: &Job, part: u64) -> usize {
-    job.operations
+/// Where a board surface of setup `setup` goes: its part (the setup's first) and its index,
+/// before the setup's first operation, so it faces the stock before anything is cut
+/// (docs/specs/surface-levels.md §2, decision 3). None for a setup without parts.
+pub fn board_surface_place(job: &Job, setup: u64) -> Option<(u64, usize)> {
+    let part = job.parts.iter().find(|p| p.setup == setup)?.id;
+    let index = job
+        .operations
         .iter()
-        .position(|op| op.part() == part)
-        .unwrap_or_else(|| job.insert_index(part))
+        .position(|op| job.part_of(op).is_some_and(|p| p.setup == setup))
+        .unwrap_or_else(|| job.insert_index(part));
+    Some((part, index))
 }
 
-/// A new surface in the active part, first among its operations, with `tool` (default: the
-/// widest endmill) taking `depth` mm off (default 0.5 mm, in one pass). Feeds and step down
-/// from `cutting` (the tool's library values), else from the tool's diameter. Returns its
-/// index.
+/// A new board surface in the active setup, first among its operations, with `tool`
+/// (default: the widest endmill) taking `depth` mm off (default 0.5 mm, in one pass). Feeds
+/// and step down from `cutting` (the tool's library values), else from the tool's diameter.
+/// Returns its index.
 pub fn add_surface(
     job: &mut Job,
     tool: Option<i64>,
@@ -68,20 +75,23 @@ pub fn add_surface(
         Some(c) => (c.feed, c.plunge_feed, c.step_down.max(depth)),
         None => (default_feed(diameter), default_plunge_feed(diameter), depth),
     };
-    let part = job.active_part_id().unwrap_or(1);
+    let setup = job.active_setup_id().unwrap_or(1);
+    let (part, index) = board_surface_place(job, setup)
+        .ok_or_else(|| PipelineError::Job(Message::new("pipeline-setup-no-parts")))?;
     let number = job
         .operations
         .iter()
         .filter(|op| matches!(op, Operation::Surface(_)))
         .count()
         + 1;
-    let index = surface_index(job, part);
     job.operations.insert(
         index,
         Operation::Surface(SurfaceOp {
             name: format!("Surface {number}"),
             enabled: true,
             part,
+            select: chipload_job::Selector::default(),
+            margin: diameter / 2.0,
             material: None,
             tool: id,
             start_depth: 0.0,

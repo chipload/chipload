@@ -30,7 +30,7 @@ pub(super) fn surface_order_note(job: &Job, index: usize, label: &Message) -> Op
     let part = job.operations.get(index)?.part();
     let before: Vec<Message> = (0..index)
         .filter(|&i| job.cuts(i) && job.operations[i].part() == part)
-        .filter(|&i| !matches!(job.operations[i], Operation::Surface(_)))
+        .filter(|&i| !job.operations[i].is_board_surface())
         .map(|i| Message::new("toolpath-number").arg("number", i + 1))
         .collect();
     let count = before.len();

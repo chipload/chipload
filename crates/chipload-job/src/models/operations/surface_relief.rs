@@ -3,9 +3,11 @@
 
 use super::*;
 
-/// Surface: the whole stock top taken down flat by a wide flat endmill, in straight passes
-/// back and forth along the stock's longer side, each depth started beside the stock.
-// Spec: docs/specs/surfacing.md.
+/// Surface: a top taken down flat by a wide flat endmill. With no shapes selected, a board
+/// surface: the whole stock, in straight passes back and forth along its longer side, each
+/// depth started beside the stock, cut once. With shapes, a part surface: each selected
+/// closed shape grown by `margin`, cleared as a pocket under every instance of the part.
+// Spec: docs/specs/surfacing.md, surface-levels.md.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
@@ -16,10 +18,16 @@ pub struct SurfaceOp {
     /// False: the operation stays in the project but isn't cut. Missing: true.
     #[serde(default = "enabled_default")]
     pub enabled: bool,
-    /// The id of the part it belongs to (`parts`). The stock is faced once, whatever copies
-    /// the part has.
+    /// The id of the part it belongs to (`parts`). A board surface is faced once, whatever
+    /// instances the part has; its part only says where it stands in the list.
     // Spec: docs/specs/parts.md.
     pub part: u64,
+    /// The closed shapes a part surface faces. Empty: a board surface, the whole stock.
+    /// Since schema 40.
+    // Spec: docs/specs/surface-levels.md.
+    pub select: Selector,
+    /// How far a part surface's area reaches past its shapes, mm: 0 or more. Since schema 40.
+    pub margin: f64,
     /// The library material its feeds come from. Null: its own values.
     // Spec: docs/specs/materials.md §2 (optional, no schema bump).
     #[serde(default)]

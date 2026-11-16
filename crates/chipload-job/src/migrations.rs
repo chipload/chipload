@@ -13,12 +13,12 @@ use crate::models::{CURRENT_VERSION, MAX_VCARVE_PASSES, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 35] = [
+const MIGRATIONS: [Migration; 36] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
     v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
     v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33, v33_to_v34, v34_to_v35, v35_to_v36,
-    v36_to_v37, v37_to_v38, v38_to_v39,
+    v36_to_v37, v37_to_v38, v38_to_v39, v39_to_v40,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -702,6 +702,43 @@ fn v38_to_v39(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 39))
+}
+
+/// v40: a surface faces the whole board (no shapes) or a part's selected shapes grown by a
+/// margin (`select`, `margin`, docs/specs/surface-levels.md §4). Every older surface faced
+/// the whole board: it gets no shapes, so it stays a board surface, cut as before, and a
+/// margin of its tool's radius (the default, used only once shapes are chosen). The bump
+/// makes an older Chipload refuse a part surface instead of facing the whole board.
+fn v39_to_v40(mut data: Value) -> Result<Value, String> {
+    let radii: Vec<(i64, f64)> = data
+        .get("tools")
+        .and_then(Value::as_array)
+        .map(|tools| {
+            tools
+                .iter()
+                .filter_map(|t| Some((t.get("id")?.as_i64()?, t.get("diameter")?.as_f64()? / 2.0)))
+                .collect()
+        })
+        .unwrap_or_default();
+    if let Some(Value::Array(ops)) = data.get_mut("operations") {
+        for op in ops.iter_mut().filter_map(Value::as_object_mut) {
+            if op.get("type").and_then(Value::as_str) != Some("surface") {
+                continue;
+            }
+            let tool = op.get("tool").and_then(Value::as_i64);
+            let radius = radii
+                .iter()
+                .find(|(id, _)| Some(*id) == tool)
+                .map(|(_, r)| *r)
+                .ok_or("a surface's tool is not in the project")?;
+            op.insert(
+                "select".into(),
+                serde_json::json!({"layer": null, "shapes": null}),
+            );
+            op.insert("margin".into(), Value::from(radius));
+        }
+    }
+    Ok(set_version(data, 40))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

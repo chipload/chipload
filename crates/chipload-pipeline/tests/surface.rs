@@ -160,7 +160,7 @@ fn problems_name_their_field() {
 }
 
 #[test]
-fn a_new_surface_goes_first_in_the_active_part_with_the_widest_endmill() {
+fn a_new_board_surface_goes_first_in_the_setup_with_the_widest_endmill() {
     let mut job = sample();
     job.operations.remove(0);
     job.active_part = Some(job.parts[0].id);
@@ -176,11 +176,13 @@ fn a_new_surface_goes_first_in_the_active_part_with_the_widest_endmill() {
     );
     assert_eq!(f.feed, chipload_pipeline::chip_load::default_feed(25.0));
     run_job(&job).unwrap();
-    // In part B: before its outline.
+    // With part B active: still first in the setup, in its first part
+    // (docs/specs/surface-levels.md §2).
     job.active_part = Some(job.parts[1].id);
     let index = add_surface(&mut job, Some(1), Some(0.3), None).unwrap();
-    assert_eq!(index, 4);
-    assert_eq!(job.operations[4].part(), job.parts[1].id);
+    assert_eq!(index, 0);
+    assert_eq!(job.operations[0].part(), job.parts[0].id);
+    assert!(job.operations[0].is_board_surface());
     // Refused: a V-bit, a tool not in the project, and no endmill at all.
     let err = add_surface(&mut job, Some(2), None, None).unwrap_err();
     assert!(err.to_string().contains("needs an endmill"), "{err}");
@@ -189,4 +191,148 @@ fn a_new_surface_goes_first_in_the_active_part_with_the_widest_endmill() {
     job.tools.retain(|t| t.kind != ToolType::Endmill);
     let err = add_surface(&mut job, None, None, None).unwrap_err();
     assert!(err.to_string().contains("no endmill"), "{err}");
+}
+
+// -- A part surface (docs/specs/surface-levels.md §3)
+
+/// The sample with only a part surface of part B's outline (shape 8, a 6 mm endmill, 0.5 mm
+/// in one pass, a 3 mm margin) cut, part B cut twice (its instance 2 at 0, 82).
+fn part_surface_only() -> (Job, usize) {
+    let mut job = sample();
+    for op in job.operations.iter_mut() {
+        op.set_enabled(false);
+    }
+    let index = job.insert_index(2);
+    job.operations.insert(
+        index,
+        Operation::Surface(SurfaceOp {
+            name: "Face B".into(),
+            enabled: true,
+            part: 2,
+            select: chipload_job::Selector {
+                shapes: Some(vec![8]),
+                ..Default::default()
+            },
+            margin: 3.0,
+            material: None,
+            tool: 1,
+            start_depth: 0.0,
+            end_depth: 0.5,
+            step_down: 0.5,
+            stepover: 0.5,
+            feed: 1500.0,
+            plunge_feed: 500.0,
+        }),
+    );
+    assert!(job.validate().is_empty(), "{:?}", job.validate());
+    (job, index)
+}
+
+#[test]
+fn a_part_surface_faces_its_shapes_under_each_instance_and_nothing_else() {
+    let (job, index) = part_surface_only();
+    // run_job refuses a program the independent checker doesn't pass.
+    let result = run_job(&job).unwrap();
+    let sim = chipload_pipeline::simulate::simulate(
+        &job,
+        &result.program,
+        &result.groups,
+        Some(1.0),
+        &Cancel::new(),
+    )
+    .unwrap();
+    let height = |x: f64, y: f64| {
+        let i = ((x - sim.origin.0) / sim.cell) as usize;
+        let j = ((y - sim.origin.1) / sim.cell) as usize;
+        sim.height(i, j)
+    };
+    let ((x0, y0), (x1, y1)) = job.part_box(2).unwrap();
+    let floor = sim.top - 0.5;
+    let at = job.parts[1].instances[0].at;
+    // Each instance's area: faced, flat at 0.5 mm, inside the outline and 1 mm past the
+    // middle of each side (the margin is 3 mm); the outline's own corners are rounded.
+    let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    let mut points = vec![
+        (cx, y0 - 1.0),
+        (cx, y1 + 1.0),
+        (x0 - 1.0, cy),
+        (x1 + 1.0, cy),
+    ];
+    let mut x = x0 + 12.0;
+    while x <= x1 - 12.0 {
+        let mut y = y0 + 12.0;
+        while y <= y1 - 12.0 {
+            points.push((x, y));
+            y += 2.0;
+        }
+        x += 2.0;
+    }
+    for (dx, dy) in [(0.0, 0.0), (at[0], at[1])] {
+        for &(x, y) in &points {
+            let h = height(x + dx, y + dy);
+            assert!((h - floor).abs() < 1e-3, "({x}, {y}) + ({dx}, {dy}): {h}");
+        }
+    }
+    // Part 1's area, and the board beyond the margin: untouched.
+    let ((a0, b0), (a1, b1)) = job.part_box(1).unwrap();
+    for (x, y) in [
+        (a0 + 5.0, b0 + 5.0),
+        ((a0 + a1) / 2.0, (b0 + b1) / 2.0),
+        (a1 - 5.0, b1 - 5.0),
+    ] {
+        assert_eq!(height(x, y), sim.top, "part 1 at ({x}, {y})");
+    }
+    assert_eq!(
+        height(x1 + 6.0, (y0 + y1) / 2.0),
+        sim.top,
+        "past the margin"
+    );
+    // Never a plunge: every move going down also moves across (a helix or a ramp).
+    let mut last: (Option<f64>, Option<f64>, Option<f64>) = (None, None, None);
+    for span in result.op_spans.iter().filter(|s| s.operation == index) {
+        for m in &result.program.moves[span.moves.clone()] {
+            let now = (m.x.or(last.0), m.y.or(last.1), m.z.or(last.2));
+            if m.kind == chipload_toolpath::model::MoveKind::Feed
+                && let (Some(z0), Some(z1)) = (last.2, now.2)
+                && z1 < z0 - 1e-9
+                && z1 < sim.top
+            {
+                assert!(now.0 != last.0 || now.1 != last.1, "a plunge to Z{z1}");
+            }
+            last = now;
+        }
+    }
+}
+
+#[test]
+fn a_part_surface_needs_an_endmill_and_faces_over_holes() {
+    let (mut job, index) = part_surface_only();
+    // Its tool must be an endmill, as a pocket's.
+    if let Operation::Surface(f) = &mut job.operations[index] {
+        f.tool = 2;
+    }
+    let err = run_job(&job).unwrap_err().to_string();
+    assert!(err.contains("endmill"), "{err}");
+    // A hole selected with its outline is faced over, not left standing as a pocket's
+    // island would be.
+    let (mut both, index) = part_surface_only();
+    if let Operation::Surface(f) = &mut both.operations[index] {
+        f.select.shapes = Some(vec![8, 9]);
+    }
+    let result = run_job(&both).unwrap();
+    let sim = chipload_pipeline::simulate::simulate(
+        &both,
+        &result.program,
+        &result.groups,
+        Some(1.0),
+        &Cancel::new(),
+    )
+    .unwrap();
+    let ((hx0, hy0), (hx1, hy1)) = both.drawing.extents_of(|s| s.id == 9).unwrap();
+    let (hx, hy) = ((hx0 + hx1) / 2.0, (hy0 + hy1) / 2.0);
+    let (i, j) = ((hx - sim.origin.0) as usize, (hy - sim.origin.1) as usize);
+    assert!(
+        (sim.height(i, j) - (sim.top - 0.5)).abs() < 1e-3,
+        "the hole at ({hx}, {hy})"
+    );
 }

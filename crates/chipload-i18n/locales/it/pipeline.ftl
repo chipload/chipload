@@ -358,6 +358,7 @@ pipeline-rest-not-smaller = l'utensile { $tool } ({ $diameter }) non è più pic
 pipeline-update-which-dxf = il progetto ha { $count } DXF ({ $dxfs }): indica quale aggiornare
 # `tool use` is a command of the command line: keep it as written.
 pipeline-surface-no-endmill = il progetto non ha una fresa: una spianatura ne richiede una (copiane una con `tool use`)
+pipeline-setup-no-parts = Il piazzamento non ha un pezzo in cui mettere la spianatura: aggiungi prima un pezzo
 # $type is the tool's type as written in the project file (drill, vbit).
 pipeline-surface-not-endmill = l'utensile { $tool } è di tipo { $type }; una spianatura richiede una fresa
 

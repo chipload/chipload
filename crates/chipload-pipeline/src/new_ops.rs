@@ -67,7 +67,7 @@ pub fn ridge_stepover(tool: Option<&Tool>, ridge: f64) -> Option<f64> {
 }
 
 use crate::chip_load::{default_feed, default_plunge_feed};
-use crate::surface::{DEFAULT_SURFACE_DEPTH, DEFAULT_SURFACE_STEPOVER};
+use crate::surface::{DEFAULT_PART_SURFACE_STEPOVER, DEFAULT_SURFACE_DEPTH};
 
 /// The depth of a new pocket, V-carve or path with nothing to take it from, and of a
 /// profile of open shapes: a shallow test cut (decision 2026-10-09).
@@ -989,16 +989,20 @@ impl Start {
             }
             OpKind::Surface => {
                 let (lo, hi) = SURFACE_STEPOVER;
+                // A part surface: the selected shapes, grown by the tool's radius
+                // (docs/specs/surface-levels.md §3).
                 Operation::Surface(SurfaceOp {
                     material: None,
                     name,
                     enabled: true,
                     part: self.part,
+                    select,
+                    margin: self.diameter / 2.0,
                     tool: self.tool,
                     start_depth: 0.0,
                     end_depth: DEFAULT_SURFACE_DEPTH,
                     step_down: self.step_down.max(DEFAULT_SURFACE_DEPTH),
-                    stepover: DEFAULT_SURFACE_STEPOVER.clamp(lo, hi),
+                    stepover: DEFAULT_PART_SURFACE_STEPOVER.clamp(lo, hi),
                     feed: self.feed,
                     plunge_feed: self.plunge_feed,
                 })

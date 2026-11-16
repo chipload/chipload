@@ -660,6 +660,12 @@ impl<'a> OpCheck<'a> {
                     .map_err(at_tool),
                 Vec::new(),
             ),
+            // A part surface clears as a pocket, down by a helix
+            // (docs/specs/surface-levels.md §3).
+            Operation::Surface(_) if !self.op.is_board_surface() => (
+                pocket_tool_notes(tool, Entry::default_helix(tool.diameter)).map_err(at_tool),
+                Vec::new(),
+            ),
             // It goes down beside the stock: no plunge into material.
             Operation::Surface(_) => (
                 surface_tool_rule(tool).map_err(at_tool),

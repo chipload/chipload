@@ -2964,6 +2964,11 @@
               "format": "double",
               "type": "number"
             },
+            "margin": {
+              "description": "How far a part surface's area reaches past its shapes, mm: 0 or more. Since schema 40.",
+              "format": "double",
+              "type": "number"
+            },
             "material": {
               "anyOf": [
                 {
@@ -2982,7 +2987,7 @@
               "type": "string"
             },
             "part": {
-              "description": "The id of the part it belongs to (`parts`). The stock is faced once, whatever copies\nthe part has.",
+              "description": "The id of the part it belongs to (`parts`). A board surface is faced once, whatever\ninstances the part has; its part only says where it stands in the list.",
               "format": "uint64",
               "minimum": 0,
               "type": "integer"
@@ -2991,6 +2996,10 @@
               "description": "The feed going down beside the stock to each depth, mm/min.",
               "format": "double",
               "type": "number"
+            },
+            "select": {
+              "$ref": "#/$defs/Selector",
+              "description": "The closed shapes a part surface faces. Empty: a board surface, the whole stock.\nSince schema 40."
             },
             "start_depth": {
               "description": "Where the cut starts, mm down from the stock top: 0 for the top.",
@@ -3020,6 +3029,8 @@
           "required": [
             "type",
             "part",
+            "select",
+            "margin",
             "tool",
             "start_depth",
             "end_depth",
@@ -4697,7 +4708,7 @@
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
-  "description": "Schema version 39. Older files load through Chipload's migrations; this schema describes only the current version.",
+  "description": "Schema version 40. Older files load through Chipload's migrations; this schema describes only the current version.",
   "properties": {
     "active_part": {
       "default": null,
@@ -4742,7 +4753,7 @@
       "type": "array"
     },
     "schema_version": {
-      "const": 39,
+      "const": 40,
       "description": "The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones."
     },
     "setups": {

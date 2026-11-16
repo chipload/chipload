@@ -31,6 +31,7 @@ mod check;
 mod check_passes;
 mod check_tools;
 mod op_holes;
+mod op_part_surface;
 mod op_pocket;
 mod op_profile;
 mod op_relief;
@@ -376,8 +377,9 @@ fn select_all<'a>(job: &Job, contours: &'a [Contour]) -> Result<Vec<Chosen<'a>>,
                 &op.select().resolved(&job.drawing),
                 &label_message,
             ),
-            // The whole stock, no shapes (docs/specs/surfacing.md §2).
-            Operation::Surface(_) => Ok(Selection {
+            // The whole stock, no shapes (docs/specs/surfacing.md §2); a part surface selects
+            // closed shapes as a pocket does (docs/specs/surface-levels.md §3).
+            Operation::Surface(_) if op.is_board_surface() => Ok(Selection {
                 contours: Vec::new(),
                 notes: Vec::new(),
             }),
@@ -477,12 +479,12 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
                 place,
                 group,
             };
-            // A surface faces the stock once, whatever the part's copies
+            // A board surface faces the stock once, whatever the part's copies
             // (docs/specs/surfacing.md §2); dowel holes belong to the board, cut once where
             // drawn, never placed (docs/specs/part-placement.md §5).
             let copies_of = |i: usize| -> Vec<Spotted> {
                 match &chosen[i].op {
-                    Operation::Surface(_) => vec![(1, (0.0, 0.0), None)],
+                    op if op.is_board_surface() => vec![(1, (0.0, 0.0), None)],
                     op if op.is_dowels() => vec![(1, (0.0, 0.0), None)],
                     _ => copies.clone(),
                 }
@@ -709,7 +711,12 @@ fn plan_step(
             plan_pattern_op(pattern, &context, &shifted, position, shift)
         }
         Operation::Holes(holes) => plan_holes_op(holes, &context, &shifted, position),
-        Operation::Surface(surface) => Ok(plan_surface_op(surface, &context, position)),
+        Operation::Surface(surface) if surface.select.is_empty() => {
+            Ok(plan_surface_op(surface, &context, position))
+        }
+        Operation::Surface(surface) => {
+            op_part_surface::plan_part_surface_op(surface, &context, &shifted, position)
+        }
         Operation::Relief(relief) => plan_relief_op(relief, &context, &shifted, position, shift),
     };
     let planned = planned.map(|planned| match mirror {

@@ -1751,10 +1751,27 @@ fn as_v34(data: Value) -> Value {
     data
 }
 
+/// Current-version data in v39's layout (docs/specs/surface-levels.md §4): every surface a
+/// board surface, its selection and margin gone.
+fn as_v39(mut data: Value) -> Value {
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    for op in data["operations"].as_array_mut().unwrap() {
+        if op["type"] != json!("surface") {
+            continue;
+        }
+        let op = op.as_object_mut().unwrap();
+        let select = op.remove("select").unwrap();
+        assert!(select.get("shapes").is_none_or(Value::is_null), "{select}");
+        op.remove("margin").unwrap();
+    }
+    data["schema_version"] = json!(39);
+    data
+}
+
 /// Current-version data in v38's layout (docs/specs/part-placement.md §8): no part placed,
 /// the placement fields gone.
-fn as_v38(mut data: Value) -> Value {
-    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+fn as_v38(data: Value) -> Value {
+    let mut data = as_v39(data);
     for part in data["parts"].as_array_mut().unwrap() {
         let part = part.as_object_mut().unwrap();
         assert_eq!(part.remove("angle"), Some(json!(0.0)));
@@ -2476,21 +2493,25 @@ fn a_polygon_is_saved_loaded_and_checked() {
     }
 }
 
+/// docs/specs/surface-levels.md §4: an older surface becomes a board surface (no shapes)
+/// with its tool's radius as margin; shapes make it a part surface; a negative margin is
+/// refused.
 #[test]
-fn a_surface_is_saved_and_loaded_without_a_selector() {
+fn v39_to_v40_makes_every_surface_a_board_surface() {
     let job = load_job(&corpus().join("v29/surface.chipload")).unwrap();
     let chipload_job::Operation::Surface(surface) = &job.operations[0] else {
         panic!("the sample starts with its surface");
     };
     assert_eq!((surface.tool, surface.end_depth), (3, 1.0));
-    assert!(job.operations[0].select().is_empty());
-    let text = serde_json::to_value(&job).unwrap();
-    assert!(text["operations"][0].get("select").is_none());
-    // A selector isn't one of its fields: refused, as any unknown field.
-    let mut data = migrate(raw("v29/surface.chipload")).unwrap();
+    assert!(job.operations[0].is_board_surface());
+    assert_eq!(surface.margin, job.tool(3).unwrap().diameter / 2.0);
+    let mut data: Value = serde_json::to_value(&job).unwrap();
     data["operations"][0]["select"] = json!({"layer": "L"});
+    let part = parse_job(data.clone(), "p").unwrap();
+    assert!(!part.operations[0].is_board_surface() && part.operations[0].selects_shapes());
+    data["operations"][0]["margin"] = json!(-1.0);
     let err = parse_job(data, "p").unwrap_err().to_string();
-    assert!(err.contains("select"), "{err}");
+    assert!(err.contains("operations.0.margin"), "{err}");
 }
 
 /// A drawn shape's name is kept, and left out of the file when there is none; an empty

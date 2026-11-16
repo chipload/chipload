@@ -153,3 +153,141 @@ proptest! {
         }
     }
 }
+
+// -- A part surface (docs/specs/surface-levels.md §3)
+
+/// A part surface of the shapes on layer L: 6 mm endmill, 1 mm off, in `steps` passes.
+fn part_surface_job(margin: f64, stepover: f64, step_down: f64) -> chipload_job::Job {
+    use serde_json::json;
+    chipload_job::parse_job(
+        chipload_job::migrations::migrate(json!({
+            "schema_version": 21,
+            "drawing": {"shapes": [], "next_shape_id": 1, "dxfs": []},
+            "stock": {"x": 1000, "y": 1000, "thickness": 18, "origin": "bottom_left",
+                      "max_overcut": 0.5},
+            "machine": {"post": "grbl", "safe_z": 5, "spindle": "cw", "tool_change": "files"},
+            "tools": [{"id": 1, "diameter": 6, "rpm": 18000}],
+            "operations": [{"type": "pocket", "select": {"layer": "L"}, "tool": 1,
+                "start_depth": 0, "direction": "climb", "end_depth": 1, "step_down": step_down,
+                "stepover": stepover, "feed": 1500, "plunge_feed": 500, "clearance": 0}],
+        }))
+        .map(|mut data| {
+            // The pocket made a part surface: the same shapes, its stepover and depths.
+            let op = &mut data["operations"][0];
+            *op = json!({"type": "surface", "part": op["part"].clone(), "tool": 1,
+                "select": {"layer": "L", "shapes": null}, "margin": margin,
+                "start_depth": 0, "end_depth": 1, "step_down": step_down,
+                "stepover": stepover, "feed": 1500, "plunge_feed": 500});
+            data
+        })
+        .unwrap(),
+        "test.json",
+    )
+    .unwrap()
+}
+
+proptest! {
+    #![proptest_config(common::proptest_config(32))]
+
+    /// A part surface of a rectangle (docs/specs/surface-levels.md §8): the whole
+    /// rectangle grown by the margin is faced (every point within the tool's reach of a
+    /// feed move at the end depth), the tool's edge never goes past the grown rectangle, and
+    /// it never plunges (every move down also moves across).
+    #[test]
+    fn a_part_surface_faces_its_grown_area_and_nothing_past_it(
+        w in 20.0f64..120.0,
+        h in 20.0f64..80.0,
+        margin in 0.0f64..6.0,
+        stepover in 0.1f64..=0.5,
+        two_steps in any::<bool>(),
+    ) {
+        let (x0, y0) = (100.0, 100.0);
+        let (x1, y1) = (x0 + w, y0 + h);
+        let job = part_surface_job(margin, stepover, if two_steps { 0.5 } else { 1.0 });
+        let contours = vec![common::rect(1, x0, y0, x1, y1)];
+        let plan = chipload_toolpath::plan_job(&job, &contours).unwrap();
+        prop_assert!(
+            !plan.notes.iter().any(|n| n.message.english().contains("uncut material")),
+            "{:?}",
+            plan.notes
+        );
+        let r = 3.0;
+        let tol = 1e-3;
+        let mut feeds: Vec<(Point, Point)> = Vec::new();
+        let mut at = (0.0, 0.0, 5.0);
+        // The deepest the tool has fed down to so far: the stock top at first.
+        let mut deepest = 0.0_f64;
+        for m in &plan.program.moves {
+            let next = (m.x.unwrap_or(at.0), m.y.unwrap_or(at.1), m.z.unwrap_or(at.2));
+            if m.kind == MoveKind::Feed {
+                // The tool's edge within the grown rectangle (its corners rounded by the
+                // margin lie inside the box too).
+                prop_assert!(
+                    next.0 - r >= x0 - margin - tol && next.0 + r <= x1 + margin + tol
+                        && next.1 - r >= y0 - margin - tol && next.1 + r <= y1 + margin + tol,
+                    "{:?} past the area", next
+                );
+                // Straight down only onto a floor already cleared, never into material.
+                if next.2 < at.2 - 1e-9 && next.2 < deepest - 1e-9 {
+                    prop_assert!(next.0 != at.0 || next.1 != at.1, "a plunge to {:?}", next);
+                }
+                deepest = deepest.min(next.2);
+                if (next.2 + 1.0).abs() < 1e-9 && (at.2 + 1.0).abs() < 1e-9 {
+                    feeds.push(((at.0, at.1), (next.0, next.1)));
+                }
+            }
+            at = next;
+        }
+        // Every point of the rectangle (and of the margin along the sides' middles) is
+        // within the tool's radius of a feed move at the end depth.
+        let reach = |p: Point| {
+            feeds.iter().any(|&(a, b)| {
+                let (dx, dy) = (b.0 - a.0, b.1 - a.1);
+                let len = dx * dx + dy * dy;
+                let t = if len > 0.0 {
+                    (((p.0 - a.0) * dx + (p.1 - a.1) * dy) / len).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let (qx, qy) = (a.0 + t * dx - p.0, a.1 + t * dy - p.1);
+                (qx * qx + qy * qy).sqrt() <= r + 0.02
+            })
+        };
+        // A round tool leaves the corners of the grown area: with a margin under its radius,
+        // the rectangle's own corners (within r − margin of two sides) can't all be reached,
+        // as in any pocket. That is why the margin starts at the radius.
+        let corner = (r - margin).max(0.0);
+        let in_corner = |p: Point| {
+            let near_x = p.0 - x0 < corner || x1 - p.0 < corner;
+            let near_y = p.1 - y0 < corner || y1 - p.1 < corner;
+            near_x && near_y
+        };
+        let n = 12;
+        for i in 0..=n {
+            for j in 0..=n {
+                let p = (x0 + w * f64::from(i) / f64::from(n), y0 + h * f64::from(j) / f64::from(n));
+                prop_assert!(in_corner(p) || reach(p), "{:?} not faced", p);
+            }
+        }
+        let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+        for p in [(cx, y0 - margin), (cx, y1 + margin), (x0 - margin, cy), (x1 + margin, cy)] {
+            prop_assert!(reach(p), "{:?} at the margin not faced", p);
+        }
+    }
+}
+
+/// Above half the tool, a part surface's rings can leave material in the corners and the
+/// middle, as a pocket's: said with the pocket's warning.
+#[test]
+fn a_part_surface_with_a_wide_stepover_says_it_leaves_material() {
+    let job = part_surface_job(3.0, 0.9, 1.0);
+    let plan =
+        chipload_toolpath::plan_job(&job, &[common::rect(1, 100.0, 100.0, 190.0, 160.0)]).unwrap();
+    assert!(
+        plan.notes
+            .iter()
+            .any(|n| n.message.english().contains("uncut material")),
+        "{:?}",
+        plan.notes
+    );
+}

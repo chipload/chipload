@@ -671,9 +671,13 @@ impl Job {
         let active = self.active_setup_id()?;
         let mut deepest: Option<(usize, f64)> = None;
         for (i, op) in self.operations.iter().enumerate() {
+            // A board surface faces over the pins; a part's faces only its shapes.
             let Operation::Surface(surface) = op else {
                 continue;
             };
+            if !op.is_board_surface() {
+                continue;
+            }
             if !self.cuts(i) || self.setup_of(op).map(|s| s.id) != Some(active) {
                 continue;
             }
@@ -759,7 +763,7 @@ impl Job {
             .iter()
             .enumerate()
             .filter(|(i, op)| {
-                matches!(op, Operation::Surface(_))
+                op.is_board_surface()
                     && self.cuts(*i)
                     && self.part_of(op).is_some_and(|p| p.setup == id)
             })

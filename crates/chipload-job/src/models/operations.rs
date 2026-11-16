@@ -149,14 +149,6 @@ pub enum Operation {
     Relief(ReliefOp),
 }
 
-/// The selector of an operation that selects nothing (a surface faces the whole stock).
-pub(super) static NO_SELECTOR: Selector = Selector {
-    layer: None,
-    shapes: None,
-    source: None,
-    exclude: Vec::new(),
-};
-
 pub(super) fn enabled_default() -> bool {
     true
 }
@@ -964,12 +956,12 @@ impl Operation {
             Operation::Prism(op) => &op.select,
             Operation::Moulding(op) => &op.select,
             Operation::Holes(op) => &op.select,
-            Operation::Surface(_) => &NO_SELECTOR,
+            Operation::Surface(op) => &op.select,
             Operation::Relief(op) => &op.select,
         }
     }
 
-    /// None for an operation that selects no shapes (a surface).
+    /// None for an operation that selects no shapes (none since schema 40).
     pub fn select_mut(&mut self) -> Option<&mut Selector> {
         match self {
             Operation::Profile(op) => Some(&mut op.select),
@@ -983,12 +975,18 @@ impl Operation {
             Operation::Moulding(op) => Some(&mut op.select),
             Operation::Holes(op) => Some(&mut op.select),
             Operation::Relief(op) => Some(&mut op.select),
-            Operation::Surface(_) => None,
+            Operation::Surface(op) => Some(&mut op.select),
         }
     }
 
-    /// Whether it cuts shapes of the drawing; a surface faces the stock instead.
+    /// Whether it cuts shapes of the drawing; a board surface faces the stock instead.
     pub fn selects_shapes(&self) -> bool {
-        !matches!(self, Operation::Surface(_))
+        !self.is_board_surface()
+    }
+
+    /// A surface with no shapes: the whole board, cut once, whatever its part's instances
+    /// (docs/specs/surface-levels.md §2).
+    pub fn is_board_surface(&self) -> bool {
+        matches!(self, Operation::Surface(op) if op.select.is_empty())
     }
 }

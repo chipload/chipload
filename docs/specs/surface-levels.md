@@ -1,6 +1,6 @@
 # Spec: surfaces on the board and on a part
 
-Status: **draft 2026-11-16**, for review. From the user's finding while trying instances
+Status: **approved 2026-11-16**, all decisions as recommended (the user: "i approve"). From the user's finding while trying instances
 (2026-11-16): "if i create two parts from the same geometry and move one part away to a
 fresh part of the board, the surface operation in the first part still affects the second
 part, this is not so good". The user's rule: **"if it is on the part level i must select
@@ -39,6 +39,30 @@ part's.
 - **Checked:** the area must fit the tool (a shape too small for it is refused, naming
   it, as a pocket refuses); instances of a part with a part surface are kept apart as for
   any operation (the margin counts).
+
+**As built (steps 1-2, 2026-11-16).**
+- `Operation::is_board_surface()` (a surface with an empty selection) is what "faces the
+  whole board" means everywhere: cut once per setup, left out of the parts' overlap check,
+  over the dowel pins, thinning a back's board, the order warning. `selects_shapes()` is
+  true for a part surface, so everything that follows an operation's shapes (instances'
+  ghosts, the part's box, the active part's preview, styles) takes it in.
+- Planning (`plan/op_part_surface.rs`): the selected loops that no other selected loop
+  encloses, each grown by the margin with `Area::grown` and verified (every point of the
+  grown outline `margin` from the shape and outside it), joined with `merge_overlaps`, then
+  planned by `plan_pocket_op` as a pocket of the grown loops: clearance 0, climb, the
+  default helix for the tool, the surface's depths, step down, stepover and feeds. The tool
+  rule is a pocket's with that helix.
+- **Stepover:** a pocket's rings leave nothing uncut up to half the tool (pocket.md §3).
+  A new part surface starts at 0.5; a larger stepover gets the pocket's "uncut material"
+  warning, as a pocket does. (A board surface keeps 0.75: its passes are straight.)
+- A margin under the tool's radius leaves the shape's sharp corners, as any pocket does;
+  the default (the radius) reaches them.
+- Tests: a property test (`toolpath/tests/surface.rs`) on random rectangles, margins and
+  stepovers up to 0.5: the whole area is faced, the tool's edge never past the grown area,
+  never a plunge into material; through the pipeline (`pipeline/tests/surface.rs`) the
+  user's case, part B faced under each instance and part 1 untouched, a hole selected
+  with its outline faced over; frozen sample `v39/surface_instances` with its golden,
+  byte-identical to what the v39 build wrote.
 
 ## 4. The file (schema 40)
 

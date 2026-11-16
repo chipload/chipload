@@ -365,7 +365,7 @@ fn cuts(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Cut> {
             continue;
         };
         // A surface pass faces the board shallowly, edge to edge, before the holes are made.
-        let counts = |op: &Operation| !op.is_dowels() && !matches!(op, Operation::Surface(_));
+        let counts = |op: &Operation| !op.is_dowels() && !op.is_board_surface();
         if !job.operations.get(span.operation).is_some_and(counts) {
             continue;
         }
@@ -658,7 +658,7 @@ pub fn add_dowels(
     let at = out
         .operations
         .iter()
-        .position(|e| e.part() == part && !matches!(e, Operation::Surface(_)))
+        .position(|e| e.part() == part && !e.is_board_surface())
         .unwrap_or_else(|| out.insert_index(part));
     out.operations.insert(at, op);
     if dowels.zero {

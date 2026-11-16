@@ -356,6 +356,7 @@ pipeline-rest-not-smaller = Werkzeug { $tool } ({ $diameter }) ist nicht kleiner
 pipeline-update-which-dxf = das Projekt hat { $count } DXFs ({ $dxfs }): geben Sie an, welche aktualisiert werden soll
 # `tool use` is a command of the command line: keep it as written.
 pipeline-surface-no-endmill = das Projekt hat keinen Schaftfräser: Planfräsen braucht einen (kopieren Sie einen mit `tool use` hinein)
+pipeline-setup-no-parts = Die Aufspannung hat kein Teil für die Fläche: füge zuerst ein Teil hinzu
 # $type is the tool's type as written in the project file (drill, vbit).
 pipeline-surface-not-endmill = Werkzeug { $tool } ist ein { $type }; Planfräsen braucht einen Schaftfräser
 

@@ -361,6 +361,7 @@ pipeline-rest-not-smaller = la herramienta { $tool } ({ $diameter }) no es más 
 pipeline-update-which-dxf = el proyecto tiene { $count } DXF ({ $dxfs }): indica cuál actualizar
 # `tool use` is a command of the command line: keep it as written.
 pipeline-surface-no-endmill = el proyecto no tiene ninguna fresa: un planeado necesita una (cópiala con `tool use`)
+pipeline-setup-no-parts = La sujeción no tiene pieza donde poner el planeado: añade primero una pieza
 # $type is the tool's type as written in the project file (drill, vbit).
 pipeline-surface-not-endmill = la herramienta { $tool } es { $type }; un planeado necesita una fresa
 

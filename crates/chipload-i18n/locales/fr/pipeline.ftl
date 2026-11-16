@@ -361,6 +361,7 @@ pipeline-rest-not-smaller = l'outil { $tool } ({ $diameter }) n'est pas plus pet
 pipeline-update-which-dxf = le projet a { $count } DXF ({ $dxfs }) : indiquez lequel mettre à jour
 # `tool use` is a command of the command line: keep it as written.
 pipeline-surface-no-endmill = le projet n'a pas de fraise : un surfaçage en demande une (copiez-en une avec `tool use`)
+pipeline-setup-no-parts = Le montage n'a pas de pièce où mettre le surfaçage : ajoutez-y d'abord une pièce
 # $type is the tool's type as written in the project file (drill, vbit).
 pipeline-surface-not-endmill = l'outil { $tool } est de type { $type } ; un surfaçage demande une fraise
 

@@ -547,6 +547,17 @@ impl Values {
         }
     }
 
+    /// A length in mm that may be 0 but not less.
+    fn not_negative(&mut self, field: &str, value: f64) {
+        if value < 0.0 || !value.is_finite() {
+            self.count(
+                field,
+                Message::new("job-must-be-0-or-more")
+                    .arg("got", Value::Length(value, Digits::Shortest)),
+            );
+        }
+    }
+
     fn positive_if_set(&mut self, field: &str, value: Option<f64>) {
         if let Some(value) = value {
             self.positive(field, value);
@@ -592,6 +603,7 @@ impl Values {
                 self.positive("end_depth", f.end_depth);
                 self.positive("step_down", f.step_down);
                 self.feeds(f.feed, f.plunge_feed);
+                self.not_negative("margin", f.margin);
             }
             Operation::Relief(r) => self.relief(r),
             Operation::Holes(h) => self.holes(h),

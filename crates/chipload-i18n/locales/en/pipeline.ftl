@@ -350,6 +350,7 @@ pipeline-rest-not-smaller = tool { $tool } ({ $diameter }) is not smaller than t
 pipeline-update-which-dxf = the project has { $count } DXFs ({ $dxfs }): say which to update
 # `tool use` is a command of the command line: keep it as written.
 pipeline-surface-no-endmill = the project has no endmill: a surface needs one (copy one in with `tool use`)
+pipeline-setup-no-parts = The setup has no part to put the surface in: add a part to it first
 # $type is the tool's type as written in the project file (drill, vbit).
 pipeline-surface-not-endmill = tool { $tool } is a { $type }; a surface needs an endmill
 

@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 39. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 40. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 39. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `39` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `40` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -711,10 +711,12 @@ Surface: the whole stock top taken down flat, in straight passes back and forth.
 | `enabled` | boolean | no | False: the operation stays in the project but isn't cut. Missing: true. |
 | `end_depth` | number | yes | How far down the stock top is taken, mm. At most the stock thickness. |
 | `feed` | number | yes | The cutting feed, mm/min. |
+| `margin` | number | yes | How far a part surface's area reaches past its shapes, mm: 0 or more. Since schema 40. |
 | `material` | [MaterialRef](#materialref) or null | no | The library material its feeds come from. Null: its own values. |
 | `name` | string | no | A name for the operation, shown in the list and on the setup sheet. Empty: none. |
-| `part` | integer | yes | The id of the part it belongs to (`parts`). The stock is faced once, whatever copies the part has. |
+| `part` | integer | yes | The id of the part it belongs to (`parts`). A board surface is faced once, whatever instances the part has; its part only says where it stands in the list. |
 | `plunge_feed` | number | yes | The feed going down beside the stock to each depth, mm/min. |
+| `select` | [Selector](#selector) | yes | The closed shapes a part surface faces. Empty: a board surface, the whole stock. Since schema 40. |
 | `start_depth` | number | yes | Where the cut starts, mm down from the stock top: 0 for the top. |
 | `step_down` | number | yes | The deepest each pass goes, mm. The passes are equal, and the last one ends exactly at the end depth. |
 | `stepover` | number | yes | The distance between passes, as a fraction of the tool diameter: at least 0.1, at most 0.9. |
