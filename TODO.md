@@ -9,10 +9,13 @@ below).
 ## Handoff (2026-11-16)
 
 - **Released:** 0.37.0 is the latest, published 2026-11-15 with its guide.
-- **On main, not pushed:** 14 commits after the 0.37.0 commit (46e2ce5): pieces (schema 37),
-  two clean-ups after it, the instances spec, instances in five steps (schema 38) and this
-  handoff. Each is listed under *Done > In main, not released yet*. All tests, clippy, fmt and the wasm
-  check passed at db88a17. Push and the next release (0.38.0) wait for the user.
+- **On main, not pushed:** 41 commits after the 0.37.0 commit (46e2ce5): pieces (schema 37),
+  two clean-ups after it, the instances spec, instances in five steps (schema 38), the
+  handoff at 46570a6, then 26 commits of file splits and long functions broken up
+  (0a20196..3ade704, see *Large files and functions* under *Next*, item 13) and this
+  handoff. Each is listed under *Done > In main, not released yet*. All 1,875 tests,
+  clippy, fmt, the wasm check and `cargo deny` passed at 3ade704. Push and the next
+  release (0.38.0) wait for the user.
 - **Built, for the user to try:** pieces (puzzle tiling) and instances. The user has not
   tried either yet; findings become items here.
 - **Loose ends of this work:**
@@ -26,6 +29,9 @@ below).
     mirrored instance would show it.
   - the commits since 0.37.0 were not run through CI; the first push runs it (Windows,
     macOS).
+  - the file splits: stopped by the user on 2026-11-16 with files and functions left (listed
+    in item 13 of *Next*); the specs' *as built* notes still name some old files
+    (`view.rs`, `canvas.rs`, `plan.rs`) and were left as written.
 - **Open questions for the user** (unchanged, listed in *Next*): 11 laser and plasma; 13's
   `stock.origin`; 14's chip-load warning.
 
@@ -257,6 +263,13 @@ to a program you trust. It was about four per operation; with the defaults and s
       Functions still over 150 lines: `icons::paint` (a table of drawings), `plan_pocket`,
       `properties_panel`, `group_rows`, `screenshot_setup`, `operation_row`, `part_rows`,
       the CLI's `setup` and `frame` commands, `add_sign`, `plan_profile_op`, and others.
+      How it was done, to keep alike: code moved as is (one commit per file, its tests run,
+      golden files untouched); a split file keeps its public paths by re-exporting from the
+      parent; the window's methods go in `impl ChiploadApp` blocks by topic (as `app/` did
+      already); the CLI and `models/` keep their `use super::*`; tests move to `foo/tests.rs`
+      beside `foo.rs`; GUI texts stay literal `t!(ui, "id")` calls (the texts test reads
+      them); a child sees its parent's private items, so moved helpers need no `pub(super)`
+      in the parent.
     - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
       stock), if the user wants it (docs/specs/job-settings-layout.md).
     - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
@@ -358,6 +371,15 @@ Smaller follow-ups noted along the way, not in the order above:
 
 Not pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
 
+- **Large files split, long functions broken up** (2026-11-16, 0a20196..3ade704, no
+  behaviour change: golden G-code, sheets and help text unchanged): `plan/`, `pocket/`,
+  the job's `operations/`, `library/` and `validate_ops.rs`, the pipeline's `sheet/`,
+  `drawing_edit/` and modules out of `lib.rs`, the CLI's `ops/` (one clap `Args` struct
+  per subcommand), `shapes/`, `library/` and modules out of `main.rs`, the window's
+  `view/`, `app/mod.rs` (impl blocks by topic), browser, canvas, ribbon, user library and
+  forms; `check_job`, `Job::validate`, `op_form`, `canvas`, `ribbon_groups`, `kind_text`
+  and the CLI's `shape` broken into one-job functions; ten files' inline tests moved to
+  `tests.rs` beside them. The cutting-sense source scan now walks subfolders.
 - **Instances** (docs/specs/instances.md, approved and built 2026-11-16, five steps,
   7803778..db88a17): a part placed again, linked: moved, turned by any angle, mirrored left
   to right, each on or off. Schema 38: a part's `instances` (id, on/off, mirror, angle,
