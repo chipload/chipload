@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The property forms, by what they are for: an operation (`operation`, the kinds' sections
-//! in `op_profile_pocket`, `op_grooves` and `op_shaping`, and `passes`), the
-//! project (`project`), the machine and tools (`machine`), the drawing sources (`sources`),
-//! an operation's numbers from the last run (`statistics`), and the pieces they share
-//! (`widgets`).
+//! in `op_profile_pocket`, `op_grooves` and `op_shaping`, and `passes`), the project
+//! (`project`, its setups in `setups`, its parts and instances in `parts`), the machine and
+//! tools (`machine`), the drawing sources (`sources`), an operation's numbers from the last
+//! run (`statistics`), and the pieces they share (`widgets`).
 
 mod machine;
 mod op_grooves;
 mod op_profile_pocket;
 mod op_shaping;
 mod operation;
+mod parts;
 mod passes;
 mod project;
+mod setups;
 mod sources;
 mod statistics;
 mod widgets;
@@ -21,8 +23,10 @@ use op_grooves::*;
 pub(super) use op_profile_pocket::*;
 use op_shaping::*;
 pub(super) use operation::*;
+pub(super) use parts::*;
 pub(super) use passes::*;
 pub(super) use project::*;
+pub(super) use setups::*;
 pub(super) use sources::*;
 pub(super) use statistics::*;
 pub(super) use widgets::*;
