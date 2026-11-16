@@ -115,6 +115,12 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
+00. **The part itself placed, then nesting** (the user, 2026-11-16, trying instances: move
+    and turn the original part, toward nesting on a fixed-size sheet; nesting brought into
+    scope, ADR 0017; shapes are edited where drawn). Specs **drafted 2026-11-16, for
+    review:** docs/specs/part-placement.md (instance 1 gets `angle` and `at`, schema 39;
+    seven decisions) and docs/specs/nesting.md (an outline: by boxes with MaxRects, then by
+    shape with no-fit polygons). Part placement first; the Compass on instances with it.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
@@ -298,7 +304,7 @@ Smaller follow-ups noted along the way, not in the order above:
   panel with the current line during playback.
 - **More 2.5D toolpaths** (the user, 2026-11-14, after comparing with another CAM program;
   each needs its own spec and decisions; all stay inside ADR 0017's 2.5D
-  scope, no 3D modelling, nesting or rotary), in this order:
+  scope, no 3D modelling or rotary; nesting came in 2026-11-16), in this order:
   1. **Chamfer any outline:** a V-bit chamfer of a width on any closed shape's edge, not
      only a sign's (*New sign…* cuts one as a follow path on the line today); outside or
      inside, the tool's flank on the edge. **Built 2026-11-15** (docs/specs/chamfer.md;

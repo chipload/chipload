@@ -28,8 +28,17 @@ the project file are first-class) as well as in the GUI.
   2026-10-13 with the user's approval (docs/specs/image-arcs-centrelines.md): the same
   argument, and they reuse V-carving's medial axis.
 
+- **Nesting** parts on a sheet (taken in 2026-11-16, the user: "Bring nesting into scope",
+  after instances, which place a part again, moved and turned). Out until then because
+  dedicated nesters do it; in because only Chipload knows what each instance really cuts
+  (the toolpath with the tool, tabs and leads, not the drawing), which a nester working on
+  the drawing can't, and the result is placements its checker and simulation then verify.
+  First the original part placed like its instances (docs/specs/part-placement.md), then
+  nesting itself (docs/specs/nesting.md). Built from published algorithms only (the
+  clean-room rule in CLAUDE.md); a whole-sheet production nester with remnants and
+  stock management stays out.
+
 ## Out of scope (another tool does it better)
-- **Nesting** parts on a sheet: dedicated nesters (Deepnest and the like) or CAD.
 - **3D surface machining**: real 3D CAM.
   - 2026-11-12, accepted: **relief carving from an STL model**, top down in 3 axes, as a
     bounded exception (ADR 0031, docs/specs/stl-relief.md). The rest of 3D CAM stays out.
