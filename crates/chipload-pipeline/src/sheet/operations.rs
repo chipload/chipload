@@ -66,6 +66,12 @@ pub(super) fn kind_text(op: &Operation, tools: &[Tool], w: Words) -> String {
                 direction_message(direction),
             ],
         },
+        // A part surface's area and rings (docs/specs/surface-levels.md §7).
+        Operation::Surface(f) if !f.select.is_empty() => vec![
+            Message::new("sheet-kind-surface-part")
+                .arg("margin", len_u(f.margin))
+                .arg("percent", num(f.stepover * 100.0)),
+        ],
         // docs/specs/surfacing.md §3, §5.
         Operation::Surface(f) => {
             let kind = Message::new("sheet-kind-surface").arg("percent", num(f.stepover * 100.0));

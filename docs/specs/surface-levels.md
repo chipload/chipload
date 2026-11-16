@@ -1,6 +1,8 @@
 # Spec: surfaces on the board and on a part
 
-Status: **approved 2026-11-16**, all decisions as recommended (the user: "i approve"). From the user's finding while trying instances
+Status: **approved 2026-11-16**, all decisions as recommended (the user: "i approve").
+**Built 2026-11-16**, all five steps, with as-built notes after §3 and §5; the setup sheet
+says "Surface, its shapes plus 3 mm, rings, stepover 50 %" for a part surface. From the user's finding while trying instances
 (2026-11-16): "if i create two parts from the same geometry and move one part away to a
 fresh part of the board, the surface operation in the first part still affects the second
 part, this is not so good". The user's rule: **"if it is on the part level i must select

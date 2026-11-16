@@ -160,6 +160,7 @@ sheet-stepover-mm = stepover { $stepover }
 sheet-kind-holes-drilled = Holes, drilled
 sheet-kind-holes-bored = Holes, helical bore
 sheet-kind-surface = Surface, the whole stock, back and forth (climb and conventional), stepover { $percent } %
+sheet-kind-surface-part = Surface, its shapes plus { $margin }, rings, stepover { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; runs { $distance } past the stock ends: keep clamps clear
 sheet-kind-relief-zigzag = Relief of model { $model }, lines at { $angle }° back and forth, stepover { $percent } %

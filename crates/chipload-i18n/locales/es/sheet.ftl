@@ -160,6 +160,7 @@ sheet-stepover-mm = paso de { $stepover }
 sheet-kind-holes-drilled = Taladros, taladrados
 sheet-kind-holes-bored = Taladros, taladrado helicoidal
 sheet-kind-surface = Planeado, todo el material en bruto, en vaivén (en concordancia y en oposición), paso lateral { $percent } %
+sheet-kind-surface-part = Planeado, sus formas más { $margin }, anillos, paso lateral { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; sobrepasa { $distance } los extremos del material en bruto: mantén las sujeciones fuera del recorrido
 sheet-kind-relief-zigzag = Relieve del modelo { $model }, líneas a { $angle }° de ida y vuelta, paso lateral { $percent } %

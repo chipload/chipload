@@ -22,8 +22,10 @@ below).
 - **Loose ends of this work:**
   - pieces: dragging a seam in the view, and `plan --piece` (plan still plans one board);
   - the next release's notes must say 0.37 can't open a project with pieces (schema 37),
-    instances (schema 38) or a placed part (schema 39), that the G-code part comment now
-    reads "cut N times", and that dowel holes are no longer repeated per instance;
+    instances (schema 38), a placed part (schema 39) or a part surface (schema 40), that
+    the G-code part comment now reads "cut N times", that dowel holes are no longer
+    repeated per instance, and that a surface is the whole board (the setup's) or a part's
+    shapes;
   - guide screenshots are renewed at release time (`packaging/docs/screenshots.sh`); the
     instances page (drawings/instances.md) has no picture yet: a part with a turned and a
     mirrored instance would show it.
@@ -115,11 +117,8 @@ streamlined, quick and efficient workflow". The yardstick is the direction revie
 to a program you trust. It was about four per operation; with the defaults and styles of
 0.33 the aim is none beyond choosing a style.
 
-000. **Surfaces on the board and on a part** (the user, 2026-11-16: a part's surface faced
-    where another part, moved away, is cut; "if it is on the part level i must select an
-    outline, if i create the surface on the setup level it is valid for the whole board").
-    Spec **drafted 2026-11-16, for review:** docs/specs/surface-levels.md (schema 40; the
-    selection decides the level; a part surface cut as a pocket's clearing; six decisions).
+000. **Surfaces on the board and on a part** (the user, 2026-11-16): docs/specs/surface-levels.md
+    **approved and built 2026-11-16** (see *In main*); next the user tries it.
 00. **The part itself placed, then nesting** (the user, 2026-11-16, trying instances: move
     and turn the original part, toward nesting on a fixed-size sheet; nesting brought into
     scope, ADR 0017; shapes are edited where drawn). docs/specs/part-placement.md
@@ -377,6 +376,17 @@ Smaller follow-ups noted along the way, not in the order above:
 Pushed up to 324d936 (2026-11-16); the commits after it are not. 0.37 can't open a project
 from these (schemas 37, 38 and 39).
 
+- **Surfaces on the board and on a part** (docs/specs/surface-levels.md, approved and built
+  2026-11-16, 9a5dec1..): schema 40, a surface's `select` and `margin`. No shapes: a board
+  surface, the whole stock once per setup, under the setup in the Browser, *Face the
+  board…* on the setup's menu, `op add-surface [--setup]`. Shapes: a part surface, each
+  selected closed shape grown by the margin, cleared as a pocket (rings, helix entry)
+  under every instance, `op add surface --shapes … --margin`; starts at a 0.5 stepover. A
+  second board surface in a setup is warned about. Frozen sample v39/surface_instances,
+  its golden unchanged through the migration. No golden changed. Release notes: 0.38 can't
+  open a project with schema 40.
+- **Show placement instance** (c3addb5, 2026-11-16): the part itself shown as instance 1
+  to place it without a second instance.
 - **Compass drags leave no trail** (2026-11-16, the user: dragging an instance with the
   Compass left its outlines behind): the canvas split (1c38dc3) had dropped the select
   mode's clearing of the preview, sketch points and measure, so every frame's preview

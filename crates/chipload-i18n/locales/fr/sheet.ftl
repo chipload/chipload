@@ -160,6 +160,7 @@ sheet-stepover-mm = pas de { $stepover }
 sheet-kind-holes-drilled = Perçages, percés
 sheet-kind-holes-bored = Perçages, alésage hélicoïdal
 sheet-kind-surface = Surfaçage, tout le brut, en allers-retours (en avalant et en opposition), pas latéral { $percent } %
+sheet-kind-surface-part = Surfaçage, ses formes plus { $margin }, anneaux, pas latéral { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface } ; dépasse de { $distance } les bords du brut : écarter les brides
 sheet-kind-relief-zigzag = Relief du modèle { $model }, lignes à { $angle }° en aller-retour, pas latéral { $percent } %

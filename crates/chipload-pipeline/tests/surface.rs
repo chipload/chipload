@@ -365,3 +365,25 @@ fn two_board_surfaces_in_one_setup_are_warned_about() {
         result.notes
     );
 }
+
+#[test]
+fn the_setup_sheet_says_a_part_surface_faces_its_shapes() {
+    let (job, _) = part_surface_only();
+    let result = run_job(&job).unwrap();
+    let sheet = chipload_pipeline::sheet::setup_sheet(
+        &job,
+        &result,
+        std::path::Path::new("part.nc"),
+        &chipload_pipeline::sheet::SheetInfo {
+            project: "surface".into(),
+            written_by: "chipload (test)".into(),
+            units: chipload_job::Units::Mm,
+            language: chipload_i18n::Language::En,
+            parts: Vec::new(),
+        },
+    );
+    assert!(
+        sheet.contains("Surface, its shapes plus 3 mm, rings, stepover 50 %"),
+        "a part surface"
+    );
+}

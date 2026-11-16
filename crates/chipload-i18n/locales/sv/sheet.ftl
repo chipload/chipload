@@ -157,6 +157,7 @@ sheet-stepover-mm = stegning { $stepover }
 sheet-kind-holes-drilled = Hål, borrade
 sheet-kind-holes-bored = Hål, helixborrning
 sheet-kind-surface = Planfräsning, hela ämnet, fram och tillbaka (med- och motfräsning), sidosteg { $percent } %
+sheet-kind-surface-part = Planfräsning, dess former plus { $margin }, ringar, sidosteg { $percent } %
 # $surface is the text above; $distance half the tool's diameter.
 sheet-kind-surface-past = { $surface }; går { $distance } förbi ämnets kanter: håll fästen ur vägen
 sheet-kind-relief-zigzag = Relief av modell { $model }, banor i { $angle }° fram och tillbaka, sidosteg { $percent } %
