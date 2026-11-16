@@ -247,34 +247,21 @@ pub fn copy_shapes(
     ids: &[u64],
     by: (f64, f64),
 ) -> Result<(Job, Vec<u64>), PipelineError> {
-    let originals = drawn_shapes(job, ids)?;
-    let copies: Vec<(String, Geometry)> = originals
-        .iter()
-        .map(|s| (s.layer.clone(), s.geometry.clone()))
-        .collect();
-    let (mut out, new_ids) = add_moved(job, &copies, by)?;
-    // A copy of construction geometry is construction too.
-    for (original, id) in originals.iter().zip(&new_ids) {
-        if let Some(copy) = out.drawing.shapes.iter_mut().find(|s| s.id == *id) {
-            copy.construction = original.construction;
-        }
-    }
-    Ok((out, new_ids))
+    let copies = shapes_to_copy(job, ids)?;
+    add_moved(job, &copies, by)
 }
 
-/// The drawn shapes a copy keeps (the GUI's clipboard): layer and geometry of each.
-pub fn shapes_to_copy(job: &Job, ids: &[u64]) -> Result<Vec<(String, Geometry)>, PipelineError> {
-    Ok(drawn_shapes(job, ids)?
-        .into_iter()
-        .map(|s| (s.layer.clone(), s.geometry.clone()))
-        .collect())
+/// The drawn shapes a copy keeps (the GUI's clipboard): layer, geometry and construction
+/// flag of each; ids and names are not kept when they are pasted.
+pub fn shapes_to_copy(job: &Job, ids: &[u64]) -> Result<Vec<Shape>, PipelineError> {
+    Ok(drawn_shapes(job, ids)?.into_iter().cloned().collect())
 }
 
 /// Paste copied shapes: with `at`, the middle of the box round them goes there; without,
 /// they go 10 mm right and 10 mm up from where they were (§4). Returns the new ids.
 pub fn paste_shapes(
     job: &Job,
-    shapes: &[(String, Geometry)],
+    shapes: &[Shape],
     at: Option<(f64, f64)>,
 ) -> Result<(Job, Vec<u64>), PipelineError> {
     let by = match at {
@@ -299,16 +286,14 @@ const CLIPBOARD_KEY: &str = "chipload_shapes";
 /// Copied shapes as text for the system clipboard, so they can be pasted (§4): JSON,
 /// `{"chipload_shapes": 1, "shapes": [...]}`, each shape as in a project file (its id is
 /// not used when pasting).
-pub fn clipboard_text(shapes: &[(String, Geometry)]) -> String {
+pub fn clipboard_text(shapes: &[Shape]) -> String {
     let list: Vec<Shape> = shapes
         .iter()
         .zip(1..)
-        .map(|((layer, geometry), id)| Shape {
-            construction: false,
+        .map(|(shape, id)| Shape {
             id,
-            layer: layer.clone(),
             name: None,
-            geometry: geometry.clone(),
+            ..shape.clone()
         })
         .collect();
     serde_json::json!({ CLIPBOARD_KEY: 1, "shapes": list }).to_string()
@@ -316,22 +301,22 @@ pub fn clipboard_text(shapes: &[(String, Geometry)]) -> String {
 
 /// The shapes in clipboard text written by [`clipboard_text`]; None for any other text.
 /// Their values are checked when they are pasted.
-pub fn shapes_from_clipboard(text: &str) -> Option<Vec<(String, Geometry)>> {
+pub fn shapes_from_clipboard(text: &str) -> Option<Vec<Shape>> {
     let value: serde_json::Value = serde_json::from_str(text).ok()?;
     if value.get(CLIPBOARD_KEY)?.as_i64()? != 1 {
         return None;
     }
-    let shapes: Vec<Shape> = serde_json::from_value(value.get("shapes")?.clone()).ok()?;
-    Some(shapes.into_iter().map(|s| (s.layer, s.geometry)).collect())
+    serde_json::from_value(value.get("shapes")?.clone()).ok()
 }
 
 /// How far a paste without a place moves the copies, right and up, mm.
 pub const PASTE_SHIFT_MM: f64 = 10.0;
 
-/// Add `shapes` moved by `by`, with new ids. Imported paths are refused.
+/// Add `shapes` moved by `by`, with new ids and no names; a copy of construction geometry
+/// is construction too. Imported paths are refused.
 fn add_moved(
     job: &Job,
-    shapes: &[(String, Geometry)],
+    shapes: &[Shape],
     by: (f64, f64),
 ) -> Result<(Job, Vec<u64>), PipelineError> {
     if shapes.is_empty() {
@@ -339,15 +324,15 @@ fn add_moved(
     }
     let mut out = job.clone();
     let mut new_ids = Vec::new();
-    for (layer, geometry) in shapes {
-        let geometry = translated(geometry, [by.0, by.1])
+    for shape in shapes {
+        let geometry = translated(&shape.geometry, [by.0, by.1])
             .ok_or_else(|| refused(Message::new("pipeline-shapes-copy-imported")))?;
         let id = out.drawing.next_shape_id;
         out.drawing.next_shape_id += 1;
         out.drawing.shapes.push(Shape {
-            construction: false,
+            construction: shape.construction,
             id,
-            layer: layer.clone(),
+            layer: shape.layer.clone(),
             name: None,
             geometry,
         });
@@ -633,11 +618,36 @@ mod tests {
     }
 
     #[test]
+    fn a_pasted_construction_shape_stays_construction() {
+        let (job, _) = set_construction(&project(), &[2], true).unwrap();
+        let clip = shapes_to_copy(&job, &[2, 3]).unwrap();
+        let through_text = shapes_from_clipboard(&clipboard_text(&clip)).unwrap();
+        for shapes in [&clip, &through_text] {
+            let (pasted, ids) = paste_shapes(&job, shapes, None).unwrap();
+            let flags: Vec<bool> = ids
+                .iter()
+                .map(|id| pasted.drawing.shapes.iter().find(|s| s.id == *id).unwrap())
+                .map(|s| s.construction)
+                .collect();
+            assert_eq!(flags, [true, false]);
+        }
+    }
+
+    #[test]
     fn copied_shapes_go_through_the_clipboard_as_text() {
         let job = project();
         let clip = shapes_to_copy(&job, &[1, 2, 3]).unwrap();
         let text = clipboard_text(&clip);
-        assert_eq!(shapes_from_clipboard(&text), Some(clip));
+        let kept = |shapes: &[Shape]| -> Vec<(String, Geometry, bool)> {
+            shapes
+                .iter()
+                .map(|s| (s.layer.clone(), s.geometry.clone(), s.construction))
+                .collect()
+        };
+        assert_eq!(
+            shapes_from_clipboard(&text).as_deref().map(kept),
+            Some(kept(&clip))
+        );
         assert_eq!(shapes_from_clipboard("hello"), None);
         assert_eq!(shapes_from_clipboard(r#"{"layer": "x"}"#), None);
         assert_eq!(

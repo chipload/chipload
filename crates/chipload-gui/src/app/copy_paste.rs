@@ -164,8 +164,8 @@ impl ChiploadApp {
 /// The drawn shapes copied last.
 #[derive(Default)]
 pub struct Clipboard {
-    /// The drawn shapes copied last (layer, geometry), for Ctrl+V.
-    pub(super) shapes: Vec<(String, Geometry)>,
+    /// The drawn shapes copied last (layer, geometry, construction), for Ctrl+V.
+    pub(super) shapes: Vec<chipload_job::Shape>,
     /// The shapes copied were a whole group: they paste as a new group
     /// (docs/specs/shape-groups.md, decision 6).
     pub(super) group: bool,

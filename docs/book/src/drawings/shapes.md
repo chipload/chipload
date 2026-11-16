@@ -161,7 +161,7 @@ holes on, a guide at 45°) and are **never cut**.
 - **It is never cut:** it never joins other shapes into a contour, an operation never picks
   it up from a layer, and an operation that names it by its number is refused until it
   cuts something else. Trim and extend can use it as the edge to cut back to; offsets,
-  copies and arrays of it are construction geometry too.
+  copies, pasted copies and arrays of it are construction geometry too.
 - **Exported** only when you ask (`chipload dxf export … --construction`, or the
   checkbox), on a layer of its own named after its layer with `_construction`.
 - On the command line: `chipload shape add P polyline --points "0,0 100,0" --open
