@@ -63,29 +63,25 @@ pub fn write_setup_sheet(
 }
 
 /// [`write_setup_sheet`], or for a setup in pieces its one sheet for all its pieces
-/// (docs/specs/pieces.md §8), the pieces planned again for it: the window's export, whose
-/// result is the pieces put together. Returns its path.
+/// (docs/specs/pieces.md §8), from the pieces' own programs that `result` carries: the
+/// window's export, whose result is the pieces put together. Returns its path.
 pub fn write_sheet_for(
     job: &Job,
     result: &RunResult,
     output: &Path,
     info: &SheetInfo,
 ) -> std::io::Result<PathBuf> {
-    let in_pieces = job
-        .setups
-        .get(job.active_setup_index())
-        .is_some_and(|s| s.pieces.is_some());
-    if !in_pieces {
+    if result.pieces.is_empty() {
         return write_setup_sheet(job, result, output, info);
     }
-    let failed = |e: crate::PipelineError| std::io::Error::other(e.to_string());
     let one = job
         .active_setup_id()
         .map_or_else(|| job.clone(), |id| job.for_setup(id));
+    // The map is the pieces' outlines alone: no planning.
     let map = crate::pieces::piece_map(&one)
-        .map_err(failed)?
+        .map_err(|e| std::io::Error::other(e.to_string()))?
         .ok_or_else(|| std::io::Error::other("not in pieces"))?;
-    let mut runs = crate::pieces::run_pieces(&one, None).map_err(failed)?;
+    let mut runs = result.pieces.clone();
     for run in &mut runs {
         for file in &mut run.result.files {
             let tail = file.suffix.take().unwrap_or_default();

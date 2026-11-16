@@ -58,6 +58,7 @@ pub fn add_setup(
         work_zero,
         back_of: None,
         pieces: None,
+        placed: None,
     });
     let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
     let part_name = free_name(&job, None)?;

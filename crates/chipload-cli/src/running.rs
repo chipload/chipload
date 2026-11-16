@@ -32,41 +32,25 @@ fn load_and_run_pieces(
     sets: &[String],
     piece: Option<&str>,
 ) -> Result<(Job, RunResult, Vec<String>), ExitCode> {
-    let (job, _) = load_parts(out, project, sets, &[])?;
-    let in_pieces = job
-        .setups
-        .get(job.active_setup_index())
-        .is_some_and(|s| s.pieces.is_some());
-    if !in_pieces {
-        if piece.is_some() {
-            out.err("error: --piece: the setup is not cut in pieces (setup pieces)");
-            return Err(ExitCode::from(EXIT_FAILED));
-        }
-        return load_and_run(out, project, None, sets, &[]);
-    }
-    let runs = chipload_pipeline::pieces::run_pieces(&job, piece).map_err(|err| {
-        out.err(format!("error: {err}"));
-        ExitCode::from(EXIT_FAILED)
-    })?;
-    if piece.is_some() {
-        let Some(run) = runs.into_iter().next() else {
-            out.err("error: the piece has nothing to cut");
-            return Err(ExitCode::from(EXIT_FAILED));
-        };
-        return Ok((run.job, run.result, Vec::new()));
-    }
-    let Some((program, groups)) = chipload_pipeline::pieces::assembled(&runs) else {
-        out.err("error: the setup's pieces have nothing to cut");
-        return Err(ExitCode::from(EXIT_FAILED));
+    // A setup in pieces runs as the pieces put together, each piece's own run inside.
+    let (job, mut result, names) = load_and_run(out, project, None, sets, &[])?;
+    let Some(name) = piece else {
+        return Ok((job, result, names));
     };
-    let mut result = runs[0].result.clone();
-    result.program = program;
-    result.groups = groups;
-    result.op_spans = Vec::new();
-    let one = job
-        .active_setup_id()
-        .map_or(job.clone(), |id| job.for_setup(id));
-    Ok((one, result, Vec::new()))
+    if result.pieces.is_empty() {
+        out.err("error: --piece: the setup is not cut in pieces (setup pieces)");
+        return Err(ExitCode::from(EXIT_FAILED));
+    }
+    match std::mem::take(&mut result.pieces)
+        .into_iter()
+        .find(|run| run.name == name)
+    {
+        Some(run) => Ok((run.job, run.result, names)),
+        None => {
+            out.err(format!("error: there is no piece {name}"));
+            Err(ExitCode::from(EXIT_FAILED))
+        }
+    }
 }
 
 pub(crate) fn sheet(

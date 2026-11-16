@@ -6,7 +6,7 @@
 
 use chipload_core::Point;
 use chipload_i18n::{Message, Value};
-use chipload_job::{Geometry, Job, Note, Operation, Selector, Shape, StockOrigin, WorkZero};
+use chipload_job::{Geometry, Job, Note, Operation, Selector, Shape, WorkZero};
 use chipload_toolpath::model::Program;
 use chipload_toolpath::pieces::{Piece, PieceSet, Trimmer, bulged, piece_set, positions, reach};
 use chipload_toolpath::plan::{APPROACH_CLEARANCE_MM, OpSpan, Plan, ToolGroup};
@@ -96,18 +96,18 @@ pub fn pieces_of(job: &Job) -> Result<Option<PieceSet>, PipelineError> {
     Ok(piece_set(job, &imported.contours)?)
 }
 
-/// The project as piece `piece` is cut: its drawing only the piece's loops, the cut-out
-/// operations cutting them and nothing else on, its board fitted round them with the
-/// setup's margin, and the setup's work zero on that board. A zero off the piece's board
-/// moves to its bottom-left corner, with a note.
+/// The project as piece `piece` is cut: the piece's loops added as drawn shapes, the
+/// cut-out operations cutting them and nothing else on, its board placed round them with
+/// the setup's margin ([`chipload_job::Setup::placed`]), and the setup's work zero on that
+/// board. A zero off the piece's board moves to its bottom-left corner, with a note.
 fn piece_job(one: &Job, set: &PieceSet, piece: &Piece) -> (Job, Vec<Note>) {
     let mut job = one.clone();
     let mut notes = Vec::new();
-    job.drawing.shapes.clear();
     let mut ids = Vec::new();
-    for (k, region) in piece.regions.iter().enumerate() {
+    for region in &piece.regions {
         let (points, bulges) = bulged(region);
-        let id = k as u64 + 1;
+        let id = job.drawing.next_shape_id;
+        job.drawing.next_shape_id += 1;
         ids.push(id);
         job.drawing.shapes.push(Shape {
             id,
@@ -121,7 +121,6 @@ fn piece_job(one: &Job, set: &PieceSet, piece: &Piece) -> (Job, Vec<Note>) {
             construction: false,
         });
     }
-    job.drawing.next_shape_id = ids.len() as u64 + 1;
     for (i, op) in job.operations.iter_mut().enumerate() {
         if set.cut_out.contains(&i) {
             if let Some(select) = op.select_mut() {
@@ -139,17 +138,18 @@ fn piece_job(one: &Job, set: &PieceSet, piece: &Piece) -> (Job, Vec<Note>) {
         .stock
         .fit
         .unwrap_or(chipload_job::DEFAULT_PIECE_MARGIN);
-    job.setups[at].stock.origin = StockOrigin::Drawing;
-    job.setups[at].stock.fit = Some(margin);
-    let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    let ((x0, y0), (x1, y1)) = region_bounds(&piece.regions);
+    let board = ((x0 - margin, y0 - margin), (x1 + margin, y1 + margin));
+    job.setups[at].placed = Some(board);
     let zero = job.work_zero();
     let off = match zero {
         WorkZero::Stock { .. } => None,
         WorkZero::DrawingOrigin {} => Some((0.0, 0.0)),
         WorkZero::Point { x, y } => Some((x, y)),
     };
+    let ((bx0, by0), (bx1, by1)) = board;
     if let Some((x, y)) = off
-        && !(x0..=x1).contains(&x) | !(y0..=y1).contains(&y)
+        && (!(bx0..=bx1).contains(&x) || !(by0..=by1).contains(&y))
     {
         job.setups[at].work_zero = WorkZero::Stock {
             corner: chipload_job::StockCorner::BottomLeft,
@@ -159,6 +159,18 @@ fn piece_job(one: &Job, set: &PieceSet, piece: &Piece) -> (Job, Vec<Note>) {
         ));
     }
     (job, notes)
+}
+
+/// The box round a piece's loops.
+fn region_bounds(regions: &[Vec<chipload_core::primitives::Primitive>]) -> (Point, Point) {
+    let mut lo = (f64::INFINITY, f64::INFINITY);
+    let mut hi = (f64::NEG_INFINITY, f64::NEG_INFINITY);
+    for p in regions.iter().flatten() {
+        let (a, b) = p.bounds();
+        lo = (lo.0.min(a.0), lo.1.min(a.1));
+        hi = (hi.0.max(b.0), hi.1.max(b.1));
+    }
+    (lo, hi)
 }
 
 /// Piece `piece`'s moves: the whole plan's, each operation's kept within the piece's cell
@@ -372,6 +384,7 @@ pub fn run_pieces(job: &Job, only: Option<&str>) -> Result<Vec<PieceRun>, Pipeli
                 facts: whole.facts.clone(),
                 check_warnings: checked.warnings,
                 check_notes: checked.notes,
+                pieces: Vec::new(),
             },
             job: piece_job,
         });
@@ -473,12 +486,18 @@ pub fn run_assembled(job: &Job, cancel: &crate::Cancel) -> Result<RunResult, Pip
     }
     let first = &runs[0].result;
     let estimate = estimate::estimate(one, &program, &spans, &groups, first.post.spindle_dwell_s);
+    let (post, import_report, contours) = (
+        first.post.clone(),
+        first.import_report.clone(),
+        first.contours.clone(),
+    );
+    let (floor_hints, facts) = (first.floor_hints.clone(), first.facts.clone());
     Ok(RunResult {
         estimate,
         files,
-        post: first.post.clone(),
-        import_report: first.import_report.clone(),
-        contours: first.contours.clone(),
+        post,
+        import_report,
+        contours,
         program,
         tabs,
         pockets: Vec::new(),
@@ -487,10 +506,13 @@ pub fn run_assembled(job: &Job, cancel: &crate::Cancel) -> Result<RunResult, Pip
         ring_starts: Vec::new(),
         unreached_corners: Vec::new(),
         tab_centres: Vec::new(),
-        floor_hints: first.floor_hints.clone(),
+        floor_hints,
         notes,
-        facts: first.facts.clone(),
+        facts,
         check_warnings,
         check_notes,
+        // Each piece's own program; its files are named by tool only, and get the piece's
+        // name where they are written (`run_setups_pieces`).
+        pieces: runs,
     })
 }

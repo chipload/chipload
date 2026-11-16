@@ -187,6 +187,10 @@ pub struct RunResult {
     pub check_warnings: Vec<CheckIssue>,
     /// The checker's plain lines: moves below the stock bottom within the allowed overcut.
     pub check_notes: Vec<CheckIssue>,
+    /// A setup cut in pieces: each piece's own program, from which this result's (the
+    /// pieces put together, every piece's files) is made (docs/specs/pieces.md §7). Empty
+    /// for a setup cut as one board.
+    pub pieces: Vec<pieces::PieceRun>,
 }
 
 /// What the checker said about a run's programs besides errors, each line naming its file
@@ -841,14 +845,23 @@ pub fn run_setups_pieces(
         if several && only.is_none() && !(0..one.operations.len()).any(|i| one.cuts(i)) {
             continue;
         }
-        let results: Vec<(Option<String>, Job, RunResult)> = if setup.pieces.is_some() {
-            pieces::run_pieces(&one, piece)?
+        // One run of the setup; a setup in pieces gives each piece's program in it.
+        let mut result = run_job(&one)?;
+        let results: Vec<(Option<String>, Job, RunResult)> = if result.pieces.is_empty() {
+            vec![(None, one.clone(), result)]
+        } else {
+            if let Some(name) = piece
+                && !result.pieces.iter().any(|p| p.name == name)
+            {
+                return Err(PipelineError::Job(
+                    Message::new("pipeline-pieces-no-such").arg("piece", name.to_string()),
+                ));
+            }
+            std::mem::take(&mut result.pieces)
                 .into_iter()
+                .filter(|run| piece.is_none_or(|n| n == run.name))
                 .map(|run| (Some(run.name), run.job, run.result))
                 .collect()
-        } else {
-            let result = run_job(&one)?;
-            vec![(None, one.clone(), result)]
         };
         for (name, cut, mut result) in results {
             let tail_name = name.as_ref().map_or(String::new(), |n| format!("-{n}"));
@@ -962,6 +975,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
             .collect(),
         check_warnings: checked.warnings,
         check_notes: checked.notes,
+        pieces: Vec::new(),
     })
 }
 
@@ -1238,6 +1252,7 @@ pub fn empty_project() -> Job {
             },
             back_of: None,
             pieces: None,
+            placed: None,
         }],
         active_setup: Some(1),
         machine: Machine {

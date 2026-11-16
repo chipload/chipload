@@ -37,6 +37,22 @@ fn raw(rel: &str) -> Value {
 }
 
 #[test]
+fn a_placed_board_overrides_the_stock_and_is_never_saved() {
+    // docs/specs/pieces.md §7: a piece's board, placed by Chipload for one run.
+    let mut job = load_job(&corpus().join("v37/pieces.chipload")).unwrap();
+    let fitted = job.stock_bounds();
+    let board = ((400.0, -10.0), (910.0, 510.0));
+    job.setups[0].placed = Some(board);
+    assert_eq!(job.stock_bounds(), board);
+    assert_eq!(job.stock_size(), (510.0, 520.0));
+    let text = serde_json::to_string(&job).unwrap();
+    assert!(!text.contains("placed"), "never written");
+    let read = parse_job(serde_json::from_str(&text).unwrap(), "placed").unwrap();
+    assert_eq!(read.setups[0].placed, None);
+    assert_eq!(read.stock_bounds(), fitted);
+}
+
+#[test]
 fn every_frozen_project_loads_as_the_current_version() {
     let files = all_corpus_jobs();
     assert!(files.len() >= 6, "expected the corpus, found {files:?}");

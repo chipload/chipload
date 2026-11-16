@@ -72,6 +72,13 @@ pub struct Setup {
     // Spec: docs/specs/pieces.md.
     #[serde(default)]
     pub pieces: Option<Pieces>,
+    /// A board Chipload placed itself for one run, its (min, max) corners in drawing
+    /// coordinates: a piece's board, fitted round the piece (docs/specs/pieces.md §7). It
+    /// overrides where the stock would be and its size; the thickness, material and the
+    /// rest stay the stock's. Never saved, never read from a file.
+    #[serde(skip)]
+    #[cfg_attr(feature = "schema", schemars(skip))]
+    pub placed: Option<((f64, f64), (f64, f64))>,
 }
 
 /// How a setup is cut in pieces (docs/specs/pieces.md §10).
@@ -810,6 +817,11 @@ impl Job {
         board
     }
 
+    /// The active setup's board placed for one run ([`Setup::placed`]), if any.
+    pub fn placed_board(&self) -> Option<((f64, f64), (f64, f64))> {
+        self.setups.get(self.active_setup_index())?.placed
+    }
+
     /// The stock's (min, max) corners in drawing coordinates, wherever it is placed: at the
     /// drawing origin, or centred on the drawing (its setup's part of it).
     pub fn stock_bounds(&self) -> ((f64, f64), (f64, f64)) {
@@ -821,6 +833,9 @@ impl Job {
         &self,
         board: Option<((f64, f64), (f64, f64))>,
     ) -> ((f64, f64), (f64, f64)) {
+        if let Some(placed) = self.placed_board() {
+            return placed;
+        }
         let centre = board.map_or((0.0, 0.0), |((x0, y0), (x1, y1))| {
             ((x0 + x1) / 2.0, (y0 + y1) / 2.0)
         });
@@ -836,6 +851,9 @@ impl Job {
 
     /// [`Job::stock_size`] around these board extents ([`Job::board_extents`]).
     pub fn stock_size_around(&self, board: Option<((f64, f64), (f64, f64))>) -> (f64, f64) {
+        if let Some(((x0, y0), (x1, y1))) = self.placed_board() {
+            return (x1 - x0, y1 - y0);
+        }
         match (self.stock().origin, self.stock().fit, board) {
             (StockOrigin::Drawing, Some(margin), Some(((x0, y0), (x1, y1)))) => {
                 (x1 - x0 + 2.0 * margin, y1 - y0 + 2.0 * margin)
