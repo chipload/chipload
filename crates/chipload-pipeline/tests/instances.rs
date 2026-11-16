@@ -265,3 +265,98 @@ fn a_part_that_cant_be_planned_yet_gets_its_instance_beside_its_shapes() {
     assert!((at[0] - (x1 - x0 + INSTANCE_GAP_MM)).abs() < 1e-9, "{at:?}");
     assert_eq!(at[1], 0.0);
 }
+
+// -- The part itself placed (docs/specs/part-placement.md)
+
+/// The part as drawn on a large board, its own placement `spot` (no mirror of its own).
+fn placed(spot: Spot, part_mirror: Option<Mirror>) -> (Job, Job) {
+    let mut drawn = with_instance(Spot::default(), part_mirror);
+    drawn.parts[0].instances.clear();
+    let mut placed = drawn.clone();
+    placed.parts[0].angle = spot.angle;
+    placed.parts[0].at = spot.at;
+    assert!(placed.validate().is_empty(), "{:?}", placed.validate());
+    (drawn, placed)
+}
+
+#[test]
+fn the_part_itself_placed_cuts_every_operation_as_drawn_put_in_its_place() {
+    for (angle, part_mirror) in [
+        (0.0, None),
+        (0.5, None),
+        (FRAC_PI_2, None),
+        (-2.0, Some(Mirror::LeftRight)),
+        (FRAC_PI_2, Some(Mirror::TopBottom)),
+    ] {
+        let spot = Spot {
+            mirror: None,
+            angle,
+            at: [400.0, 300.0],
+        };
+        let what = format!("turned {angle}, part mirrored {part_mirror:?}");
+        let (drawn, placed) = placed(spot, part_mirror);
+        // run_job refuses a program the independent checker doesn't pass.
+        let before = run_job(&drawn).unwrap();
+        let after = run_job(&placed).unwrap_or_else(|e| panic!("{what}: {e}"));
+        let (want, got) = (
+            shares(&before.program, &before.op_spans, 1),
+            shares(&after.program, &after.op_spans, 1),
+        );
+        assert_eq!(want.len(), 5, "{what}: every operation cut: {want:?}");
+        assert_eq!(want.len(), got.len(), "{what}");
+        for (w, g) in want.iter().zip(&got) {
+            assert_eq!(w.0, g.0, "{what}");
+            // Climb stays climb; the area as drawn (where each ring starts moves its ramp's
+            // overlap a little).
+            assert!((w.1 - g.1).abs() < 0.01, "{what}: {w:?} vs {g:?}");
+            assert!((w.2 - g.2).abs() < 0.1 * w.2, "{what}: {w:?} vs {g:?}");
+        }
+        let place = Placement::new(&spot, placed.part_centre(1).unwrap());
+        let back: Vec<Point> = feed_ends(&after.program, &after.op_spans, 1)
+            .into_iter()
+            .map(|p| place.inverse(p))
+            .collect();
+        let (g, w) = (
+            extent(&back),
+            extent(&feed_ends(&before.program, &before.op_spans, 1)),
+        );
+        for (a, b) in [(g.0, w.0), (g.1, w.1), (g.2, w.2), (g.3, w.3)] {
+            assert!((a - b).abs() < 0.05, "{what}: {g:?} vs {w:?}");
+        }
+    }
+}
+
+#[test]
+fn a_fitted_board_holds_the_part_where_it_is_cut_not_where_it_is_drawn() {
+    let spot = Spot {
+        mirror: None,
+        angle: 0.5,
+        at: [400.0, 300.0],
+    };
+    let (_, mut job) = placed(spot, None);
+    job.setups[0].stock.fit = Some(5.0);
+    let run = run_job(&job).unwrap();
+    let ((x0, y0), (x1, y1)) = job.stock_bounds();
+    let (a0, b0, a1, b1) = extent(&feed_ends(&run.program, &run.op_spans, 1));
+    assert!(
+        a0 >= x0 && b0 >= y0 && a1 <= x1 && b1 <= y1,
+        "cut {a0:.1}, {b0:.1} … {a1:.1}, {b1:.1} off the board {x0:.1}, {y0:.1} … {x1:.1}, {y1:.1}"
+    );
+    // The shapes as drawn aren't on it: they aren't cut there.
+    let ((_, _), (drawn_x1, drawn_y1)) = job.part_box(1).unwrap();
+    assert!(x0 > drawn_x1 || y0 > drawn_y1, "{x0} {y0}");
+}
+
+#[test]
+fn the_part_itself_placed_may_not_cut_into_another_part() {
+    // As a_turned_instance_may_not_cut_into_another_part, with the part itself turned
+    // half round and moved 200 right.
+    let mut job = common::bones_beside_another_part([310.6, 108.5]);
+    job.setups[0].stock.fit = None;
+    job.setups[0].stock.x = 1000.0;
+    job.setups[0].stock.y = 1000.0;
+    job.parts[0].angle = std::f64::consts::PI;
+    job.parts[0].at = [200.0, 0.0];
+    let err = run_job(&job).unwrap_err().to_string();
+    assert!(err.contains("part \"Box\" instance 1"), "{err}");
+}

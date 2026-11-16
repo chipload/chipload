@@ -116,8 +116,9 @@ fn tidy(mm: f64) -> f64 {
     (mm / step).round() * step + 0.0
 }
 
-/// The part's own cut box and the right edge of everything it cuts, its instances
-/// included, planned with the part alone; None when it can't be planned.
+/// The part's own cut box, as drawn, and the right edge of everything it cuts, itself and
+/// its instances where they are placed, planned with the part alone; None when it can't be
+/// planned.
 fn planned_boxes(job: &Job, part: u64) -> Option<(Point, Point, f64)> {
     let mut alone = job.clone();
     for p in &mut alone.parts {
@@ -126,6 +127,16 @@ fn planned_boxes(job: &Job, part: u64) -> Option<(Point, Point, f64)> {
     let drawing = load_drawing(&alone).ok()?;
     let plan = plan_job(&alone, &drawing.contours).ok()?;
     let (_, (all_x1, _)) = cut_extent(&plan.program.moves, &plan.op_spans, None)?;
+    // Instances are placed relative to the part as drawn (part-placement.md decision 1).
+    let index = alone.parts.iter().position(|p| p.id == part)?;
+    if alone.parts[index].is_placed() {
+        alone.parts[index].angle = 0.0;
+        alone.parts[index].at = [0.0, 0.0];
+        alone.parts[index].instances.clear();
+        let plan = plan_job(&alone, &drawing.contours).ok()?;
+        let (low, high) = cut_extent(&plan.program.moves, &plan.op_spans, Some(1))?;
+        return Some((low, high, all_x1));
+    }
     let (low, high) = cut_extent(&plan.program.moves, &plan.op_spans, Some(1))?;
     Some((low, high, all_x1))
 }

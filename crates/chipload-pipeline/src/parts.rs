@@ -81,6 +81,8 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
         order: chipload_job::InstanceOrder::ByOperation,
         setup,
         mirror: None,
+        angle: 0.0,
+        at: [0.0, 0.0],
     });
     job.active_part = Some(id);
     Ok((checked(job)?, id))
@@ -172,12 +174,17 @@ pub struct InstanceOutline {
     pub outlines: Vec<(Vec<Point>, bool)>,
 }
 
-/// Every instance of every part (on or off), where it is cut. An instance only moved is
-/// its outlines moved by its shift exactly; a turned or mirrored one is placed about the
-/// part's centre.
+/// Every instance of every part (on or off), where it is cut, the part itself (number 1)
+/// first when it is placed elsewhere than drawn (docs/specs/part-placement.md §4). An
+/// instance only moved is its outlines moved by its shift exactly; a turned or mirrored one
+/// is placed about the part's centre.
 pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline> {
     let mut out = Vec::new();
-    for part in job.parts.iter().filter(|p| !p.instances.is_empty()) {
+    for part in job
+        .parts
+        .iter()
+        .filter(|p| !p.instances.is_empty() || p.is_placed())
+    {
         let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
         let mut line = None;
         let mut ids: Vec<usize> = Vec::new();
@@ -207,8 +214,9 @@ pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline
             .filter(|c| ids.contains(&c.id))
             .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
             .collect();
-        for instance in &part.instances {
-            let spot = instance.spot();
+        let own = part.is_placed().then_some((1, part.enabled, part.spot()));
+        let others = part.instances.iter().map(|i| (i.id, i.enabled, i.spot()));
+        for (id, enabled, spot) in own.into_iter().chain(others) {
             let place = chipload_toolpath::place::Placement::new(&spot, centre);
             let (dx, dy) = (spot.at[0], spot.at[1]);
             let put = |p: Point| {
@@ -220,8 +228,8 @@ pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline
             };
             out.push(InstanceOutline {
                 part: part.id,
-                id: instance.id,
-                enabled: instance.enabled,
+                id,
+                enabled,
                 centre: put(centre),
                 outlines: drawn
                     .iter()
@@ -238,8 +246,8 @@ pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline
 pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool)> {
     let turned = |part: u64, id: u32| {
         job.part(part)
-            .and_then(|p| p.instances.iter().find(|i| i.id == id))
-            .is_some_and(|i| !i.spot().is_move())
+            .and_then(|p| p.spots().into_iter().find(|(n, _)| *n == id))
+            .is_some_and(|(_, spot)| !spot.is_move())
     };
     instance_outlines(job, contours)
         .into_iter()

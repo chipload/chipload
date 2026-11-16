@@ -1,6 +1,7 @@
 # Spec: the part itself placed, as its instances are
 
-Status: **draft 2026-11-16**, for review. Follows the user's finding while trying instances
+Status: **approved 2026-11-16**, all decisions as recommended (the user: "go ahead as
+recommended"). Follows the user's finding while trying instances
 (2026-11-16): "explore the possibility of also moving/rotating the "original" part. This
 would allow for nesting on a fixed size sheet". Decided by the user already: nesting is in
 scope (ADR 0017, 2026-11-16), and **shapes are edited at their original location**. The
@@ -48,6 +49,22 @@ drawn. To put it elsewhere the shapes must move, and that isn't always possible 
   instances.
 - A part's own `mirror` and instance 1's turn compose as for instances: mirrored about the
   part's centre line first, then turned, then moved.
+
+**As built (steps 1-2, 2026-11-16).**
+- `Part::spots()` gives instance 1 the part's own placement, so everything that plans or
+  draws instances follows: planning (`spots_of`), the overlap checks, the setup sheet's
+  placed outlines, a new instance's place.
+- **Overlap:** parts cut where drawn may still overlap each other (parts.md §5), but a part
+  placed elsewhere is checked as an instance is (`check_parts_apart`); a test found it
+  wasn't at first.
+- **Dowel holes** are cut once where drawn, never placed nor repeated per instance, as a
+  surface (they were repeated per instance before, a bug no sample showed).
+- `copies::cut_size` and a new instance's place measure the part as drawn.
+- Tests: a property test (`toolpath/tests/instances.rs`) that the part placed cuts its
+  profile as drawn, put in place, and that its instances stay; through the pipeline five
+  kinds of operation with the part mirrored or not, the fitted board, the overlap, a back
+  setup, dowel holes. Frozen sample `jobs/v38/instances.chipload` (two instances, turned
+  and mirrored), its golden byte-identical to what 0.38 wrote.
 
 ## 4. Where things are: the drawing and the cut (the user's decision)
 

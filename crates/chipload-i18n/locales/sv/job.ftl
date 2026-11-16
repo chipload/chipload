@@ -162,6 +162,7 @@ job-pieces-spacing = fogarna måste sitta minst två storlekar isär: minst två
 job-pieces-shifts = { $count } skarvförskjutningar, men rutnätet har { $seams } skarvar där
 job-pieces-two-sided = en uppspänning i bitar kan inte vara dubbelsidig än
 job-pieces-copies = en uppspänning i bitar kan inte ha instanser än, och "{ $part }" har instanser
+job-pieces-placed = en uppspänning i bitar kan inte ha en del placerad någon annanstans än ritad än, och "{ $part }" är det
 job-dowels-not-through = styrhål går genom skivan ner i offerskivan: sätt Under ämnet till styrpinnarnas djup
 job-dowel-not-circle = form { $shape } är ingen ritad cirkel: ett styrhål är en
 job-dowel-off-axis = styrhål { $shape } ligger { $off } från linjen skivan vänds kring, så på den vända skivan skulle det missa sin styrpinne

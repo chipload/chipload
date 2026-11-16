@@ -162,6 +162,7 @@ job-pieces-spacing = les assemblages doivent être espacés d’au moins deux ta
 job-pieces-shifts = { $count } décalages de joint, mais la grille n’a que { $seams } joints dans ce sens
 job-pieces-two-sided = un montage en morceaux ne peut pas encore être double face
 job-pieces-copies = un montage en morceaux ne peut pas encore avoir d'instances, et « { $part } » en a
+job-pieces-placed = un montage en morceaux ne peut pas encore avoir de pièce placée ailleurs que dessinée, et « { $part } » l'est
 job-dowels-not-through = les trous de goupille traversent la planche jusque dans le plateau martyr : réglez « Sous le brut » sur la profondeur des goupilles
 job-dowel-not-circle = la forme { $shape } n'est pas un cercle dessiné : un trou de goupille en est un
 job-dowel-off-axis = le trou de goupille { $shape } est à { $off } de la ligne autour de laquelle la planche est retournée : sur la planche retournée, il manquerait sa goupille

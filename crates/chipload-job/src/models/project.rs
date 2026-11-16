@@ -246,8 +246,8 @@ pub struct Part {
     /// False: the part and all its operations stay in the project but aren't cut.
     pub enabled: bool,
     /// The part placed again: each instance the same shapes and operations moved, turned
-    /// and perhaps mirrored (instance 1 is the part as drawn and isn't listed). Empty: cut
-    /// once. Since schema 38, in place of a grid of copies.
+    /// and perhaps mirrored (instance 1 is the part itself, placed by `angle` and `at`, and
+    /// isn't listed). Empty: cut once. Since schema 38, in place of a grid of copies.
     // Spec: docs/specs/instances.md.
     pub instances: Vec<Instance>,
     /// `by_operation`: each operation on every instance, then the next; `by_instance`:
@@ -261,6 +261,12 @@ pub struct Part {
     // Spec: docs/specs/mirror-part.md (optional, no schema bump).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mirror: Option<Mirror>,
+    /// Instance 1, the part itself, turned about the part's centre, radians,
+    /// counter-clockwise, as an instance is; 0: as drawn. Since schema 39.
+    // Spec: docs/specs/part-placement.md.
+    pub angle: f64,
+    /// Instance 1 then moved, mm; (0, 0): where drawn. Since schema 39.
+    pub at: [f64; 2],
 }
 
 /// How a part is cut mirrored: about the vertical or the horizontal centre line of its box.
@@ -284,6 +290,21 @@ impl Mirror {
 }
 
 impl Part {
+    /// Instance 1's placement (docs/specs/part-placement.md): the part's turn and move, no
+    /// mirror of its own (the part's `mirror` mirrors the definition).
+    pub fn spot(&self) -> Spot {
+        Spot {
+            mirror: None,
+            angle: self.angle,
+            at: self.at,
+        }
+    }
+
+    /// Whether the part itself is cut elsewhere than drawn: turned or moved.
+    pub fn is_placed(&self) -> bool {
+        self.angle != 0.0 || self.at != [0.0, 0.0]
+    }
+
     /// How many times the part is cut: itself and its instances that are on.
     pub fn count(&self) -> u32 {
         let on = self.instances.iter().filter(|i| i.enabled).count();
@@ -291,9 +312,9 @@ impl Part {
     }
 
     /// The part and its instances that are on, as (number, placement), in cut order: the
-    /// part as drawn first (number 1, no move), then its instances as listed.
+    /// part itself first (number 1, at its own placement), then its instances as listed.
     pub fn spots(&self) -> Vec<(u32, Spot)> {
-        let mut out = vec![(1, Spot::default())];
+        let mut out = vec![(1, self.spot())];
         out.extend(
             self.instances
                 .iter()
@@ -855,8 +876,11 @@ impl Job {
     /// A relief's rim reaches past its shapes, and a fitted board grows round it
     /// (docs/specs/stl-relief.md §16); so do the parts' instances.
     pub fn board_extents(&self) -> Option<((f64, f64), (f64, f64))> {
+        // A part placed elsewhere isn't cut where its shapes are drawn: they don't count,
+        // its placed box does (docs/specs/part-placement.md §4, decision 5).
+        let elsewhere = self.cut_only_elsewhere();
         let drawing = if self.setups.len() < 2 {
-            self.drawing.extents()
+            self.drawing.extents_of(|shape| !elsewhere(shape))
         } else {
             let board = self.board_setups();
             let selectors: Vec<Selector> = self
@@ -869,8 +893,9 @@ impl Job {
                 })
                 .map(|op| op.select().resolved(&self.drawing))
                 .collect();
-            self.drawing
-                .extents_of(|shape| selectors.iter().any(|s| s.may_pick(shape)))
+            self.drawing.extents_of(|shape| {
+                selectors.iter().any(|s| s.may_pick(shape)) && !elsewhere(shape)
+            })
         };
         let board = self.board_setups();
         let rims = self.operations.iter().filter_map(|op| match op {
@@ -898,7 +923,7 @@ impl Job {
 
     /// The box round each enabled instance of the board's parts, placed: its part's box
     /// turned about the part's centre and moved (docs/specs/instances.md §2), so a board that
-    /// fits the drawing holds them too. A mirror keeps the box. A free angle gives the box
+    /// fits the drawing holds them too; the part itself too when it is placed. A mirror keeps the box. A free angle gives the box
     /// round the turned box, a little larger than the shapes need.
     fn instance_boxes(&self, board: &[u64]) -> Vec<((f64, f64), (f64, f64))> {
         let mut boxes = Vec::new();
@@ -910,13 +935,17 @@ impl Job {
                 continue;
             };
             let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
-            for instance in part.instances.iter().filter(|i| i.enabled) {
-                let (sin, cos) = (math::sin(instance.angle), math::cos(instance.angle));
+            for (_, spot) in part.spots() {
+                if spot == Spot::default() {
+                    // Cut where drawn: its shapes count already.
+                    continue;
+                }
+                let (sin, cos) = (math::sin(spot.angle), math::cos(spot.angle));
                 let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)].map(|(x, y)| {
                     let (dx, dy) = (x - cx, y - cy);
                     (
-                        cx + dx * cos - dy * sin + instance.at[0],
-                        cy + dx * sin + dy * cos + instance.at[1],
+                        cx + dx * cos - dy * sin + spot.at[0],
+                        cy + dx * sin + dy * cos + spot.at[1],
                     )
                 });
                 let (mut lo, mut hi) = (corners[0], corners[0]);
@@ -928,6 +957,27 @@ impl Job {
             }
         }
         boxes
+    }
+
+    /// Whether a shape is cut only by parts placed elsewhere than drawn: picked by an
+    /// operation of a placed part and by none of a part cut where drawn. Always false when
+    /// no part is placed.
+    fn cut_only_elsewhere(&self) -> impl Fn(&Shape) -> bool + '_ {
+        let mut placed = Vec::new();
+        let mut drawn = Vec::new();
+        if self.parts.iter().any(Part::is_placed) {
+            for op in self.operations.iter().filter(|op| op.selects_shapes()) {
+                let select = op.select().resolved(&self.drawing);
+                match self.part_of(op) {
+                    // Dowel holes belong to the board: never placed.
+                    Some(part) if part.is_placed() && !op.is_dowels() => placed.push(select),
+                    _ => drawn.push(select),
+                }
+            }
+        }
+        move |shape: &Shape| {
+            placed.iter().any(|s| s.may_pick(shape)) && !drawn.iter().any(|s| s.may_pick(shape))
+        }
     }
 
     /// Whether `op` cuts one of the setups `board`.

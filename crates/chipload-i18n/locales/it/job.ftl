@@ -162,6 +162,7 @@ job-pieces-spacing = gli incastri devono distare almeno due misure: almeno il do
 job-pieces-shifts = { $count } spostamenti di giunta, ma la griglia ha { $seams } giunte in quel senso
 job-pieces-two-sided = un piazzamento a tasselli non può ancora essere a due facce
 job-pieces-copies = un piazzamento a tasselli non può ancora avere istanze, e «{ $part }» ne ha
+job-pieces-placed = un piazzamento a tasselli non può ancora avere un pezzo collocato altrove rispetto al disegno, e «{ $part }» lo è
 job-dowels-not-through = i fori per spina attraversano la tavola fino al piano di sacrificio: imposta «Sotto il grezzo» alla profondità delle spine
 job-dowel-not-circle = la forma { $shape } non è un cerchio disegnato: un foro per spina lo è
 job-dowel-off-axis = il foro per spina { $shape } è a { $off } dalla linea attorno a cui si capovolge la tavola: sulla tavola capovolta mancherebbe la sua spina

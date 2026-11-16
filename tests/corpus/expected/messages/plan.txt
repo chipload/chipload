@@ -1389,6 +1389,28 @@ Tool group 2: tool 2, operations 3
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v38/instances.chipload
+exit 0
+--- stdout
+warning: Operation 2 (Badge outline): cuts 0.300 mm below the stock (into the spoilboard)
+warning: Operation 1 (Leaf round the eye): contours #2, #3: lead radius reduced to 1.000 mm (no room for 2.000 mm)
+warning: Operation 2 (Badge outline), contour #1: tabs 1 and 2, 2 and 3, 3 and 4, 4 and 1 meet below their top (flanks at 3.0°): they hold as one longer tab
+Operation 1: a ring starts at (47.671, 34.209) (default)
+Operation 1: a ring starts at (68.814, 49.376) (default)
+Operation 2: a ring starts at (18.000, 6.700) (default)
+Instances: 3 in all, 2 turned, 1 mirrored, operation by operation
+Estimated time: 4 min 58 s (cutting 4 min 40 s, rapids 15 s, spindle 3 s)
+Cut outline: 317.800 × 112.600 mm (X 3.700 … 321.500, Y 3.700 … 116.300, the tool included): the smallest stock that holds the job.
+  Operation 1 (Leaf round the eye): 2 min 30 s; cutting 2.7 m, plunging 60 mm, rapids 670 mm, 15 lifts
+  Operation 2 (Badge outline): 2 min 25 s; cutting 4.1 m, plunging 3 mm, rapids 588 mm, 3 lifts
+  In all: cutting 6.8 m, plunging 63 mm, rapids 1.3 m, 18 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Leaf round the eye): 0.033 mm/tooth
+  Operation 2 (Badge outline): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v4/example_job.chipload
 exit 0
 --- stdout

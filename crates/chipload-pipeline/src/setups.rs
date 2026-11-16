@@ -70,6 +70,8 @@ pub fn add_setup(
         order: chipload_job::InstanceOrder::ByOperation,
         setup: id,
         mirror: None,
+        angle: 0.0,
+        at: [0.0, 0.0],
     });
     job.active_setup = Some(id);
     job.active_part = Some(part);

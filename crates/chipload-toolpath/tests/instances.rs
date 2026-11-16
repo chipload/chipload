@@ -191,6 +191,57 @@ proptest! {
     }
 }
 
+proptest! {
+    #![proptest_config(common::proptest_config(24))]
+
+    /// The part itself placed (docs/specs/part-placement.md §3) cuts its toolpath as drawn
+    /// put in its place: every feed of the placed part, brought back, is one of the
+    /// unplaced part's, as many, arcs still arcs and going round the same way; mirrored
+    /// parts too, and its instances stay where they were.
+    #[test]
+    fn the_part_itself_placed_cuts_its_toolpath_put_in_its_place(
+        angle in -3.2f64..3.2,
+        mirror in 0u8..3,
+        x in -300.0f64..300.0,
+        y in -300.0f64..300.0,
+    ) {
+        let tabs = json!({"count": 3, "width": 8, "height": 3, "flank_angle": 1.0});
+        let ops = json!([pocket(), profile("outside", tabs)]);
+        let instance = Spot { mirror: None, angle: 0.0, at: [800.0, 0.0] };
+        let mut drawn = with_instance(ops, instance);
+        drawn.parts[0].mirror = mirror_of(mirror);
+        let mut placed = drawn.clone();
+        placed.parts[0].angle = angle;
+        placed.parts[0].at = [x, y];
+        let (before, after) = (
+            plan_job(&drawn, &part()).unwrap(),
+            plan_job(&placed, &part()).unwrap(),
+        );
+        let place = Placement::new(&placed.parts[0].spot(), (0.0, 0.0));
+        let reference = feed_ends_of(&before, 1, Some(1));
+        let profile_ends = feed_ends_of(&after, 1, Some(1));
+        prop_assert_eq!(reference.len(), profile_ends.len());
+        for p in &profile_ends {
+            prop_assert!(near(place.inverse(*p), &reference, 1e-6), "{:?}", p);
+        }
+        let arcs = |plan: &Plan| plan.op_spans.iter()
+            .filter(|s| s.copy == 1 && s.operation == 1)
+            .flat_map(|s| &plan.program.moves[s.moves.clone()])
+            .filter(|m| m.circle.is_some())
+            .count();
+        prop_assert_eq!(arcs(&before), arcs(&after));
+        let profile_only = |plan: &Plan| {
+            let mut only = plan.clone();
+            only.op_spans.retain(|s| s.operation == 1);
+            swept_area(&only, 1)
+        };
+        prop_assert!(profile_only(&before) * profile_only(&after) > 0.0);
+        // Instance 2 is placed relative to the part as drawn, not to the part placed. (Its
+        // pocket starts near where the tool is, so only its profile is compared.)
+        prop_assert_eq!(feed_ends_of(&before, 2, Some(1)), feed_ends_of(&after, 2, Some(1)));
+    }
+}
+
 #[test]
 fn a_quarter_turned_instance_lies_turned_about_the_centre_and_moved() {
     let spot = Spot {

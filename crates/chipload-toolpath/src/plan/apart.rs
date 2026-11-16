@@ -97,13 +97,15 @@ fn areas_overlap(a: &CutArea, b: &CutArea) -> bool {
 }
 
 /// Copies must not cut into each other or into other parts (docs/specs/copies-grid.md
-/// §4, docs/specs/parts.md §5). Copies 1, the parts as drawn, may overlap each other.
+/// §4, docs/specs/parts.md §5). Copies 1 cut where drawn may overlap each other; a part
+/// placed elsewhere is placed as an instance is (docs/specs/part-placement.md §3).
 pub(super) fn check_parts_apart(
     job: &Job,
     moves: &[Move],
     spans: &[OpSpan],
 ) -> Result<(), ToolpathError> {
-    let mut areas: Vec<(usize, u32, CutArea)> = Vec::new();
+    // (part, copy, cut where drawn, its cut)
+    let mut areas: Vec<(usize, u32, bool, CutArea)> = Vec::new();
     for (p, part) in job.parts.iter().enumerate() {
         // A surface covers the whole stock, every part's copies included
         // (docs/specs/surfacing.md §2): it overlaps them by design.
@@ -119,13 +121,14 @@ pub(super) fn check_parts_apart(
         check_instances_apart(part, moves, &mine)?;
         for (number, _) in part.in_cut_order() {
             if let Some(area) = cut_area(moves, &mine, number) {
-                areas.push((p, number, area));
+                let as_drawn = number == 1 && !part.is_placed();
+                areas.push((p, number, as_drawn, area));
             }
         }
     }
-    for (k, (p, number, a)) in areas.iter().enumerate() {
-        for (q, other, b) in &areas[..k] {
-            let generated = *number > 1 || *other > 1;
+    for (k, (p, number, drawn, a)) in areas.iter().enumerate() {
+        for (q, other, other_drawn, b) in &areas[..k] {
+            let generated = !drawn || !other_drawn;
             if p == q || !generated || !areas_overlap(a, b) {
                 continue;
             }

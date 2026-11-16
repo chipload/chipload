@@ -90,6 +90,9 @@ pub fn cut_size(job: &Job, part: u64) -> Result<(f64, f64), PipelineError> {
     for p in &mut one.parts {
         p.enabled = p.id == part;
         p.instances.clear();
+        // One copy as drawn: a turn would change its width and height.
+        p.angle = 0.0;
+        p.at = [0.0, 0.0];
     }
     let imported = load_drawing(&one)?;
     let plan = plan_job(&one, &imported.contours)?;

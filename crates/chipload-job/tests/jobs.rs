@@ -995,6 +995,28 @@ fn v37_to_v38_turns_copies_into_instances() {
     assert_eq!(job.parts[0].order, chipload_job::InstanceOrder::ByOperation);
 }
 
+/// docs/specs/part-placement.md §8: every part is cut where drawn (angle 0, at (0, 0)),
+/// nothing else changes; a placement must be numbers.
+#[test]
+fn v38_to_v39_places_every_part_where_drawn() {
+    let v38 = raw("v38/instances.chipload");
+    let current = migrate(v38.clone()).unwrap();
+    assert_eq!(as_v38(current.clone()), v38);
+    let job = parse_job(current, "p").unwrap();
+    assert!(job.parts.iter().all(|p| !p.is_placed()));
+    let mut placed: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
+    placed["parts"][0]["angle"] = json!(1.5);
+    let back = parse_job(placed, "p").unwrap();
+    assert!(back.parts[0].is_placed());
+    let mut bad = job.clone();
+    bad.parts[0].at = [f64::NAN, 0.0];
+    let problems = bad.validate();
+    assert!(
+        problems.iter().any(|p| p.path == "parts.0.at.0"),
+        "{problems:?}"
+    );
+}
+
 // -- parts (docs/specs/parts.md)
 
 /// docs/specs/library-in-browser.md §2: a named tool or machine is linked to the library
@@ -1072,9 +1094,9 @@ fn part_rules_are_enforced() {
         let mut data = lower_job();
         data["parts"] = json!([
             {"id": 1, "name": "lid", "enabled": true, "instances": [],
-             "order": "by_operation", "setup": 1},
+             "order": "by_operation", "setup": 1, "angle": 0.0, "at": [0.0, 0.0]},
             {"id": 2, "name": "box", "enabled": true, "instances": [],
-             "order": "by_operation", "setup": 1},
+             "order": "by_operation", "setup": 1, "angle": 0.0, "at": [0.0, 0.0]},
         ]);
         data["operations"][1]["part"] = json!(2);
         data
@@ -1729,11 +1751,24 @@ fn as_v34(data: Value) -> Value {
     data
 }
 
+/// Current-version data in v38's layout (docs/specs/part-placement.md §8): no part placed,
+/// the placement fields gone.
+fn as_v38(mut data: Value) -> Value {
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    for part in data["parts"].as_array_mut().unwrap() {
+        let part = part.as_object_mut().unwrap();
+        assert_eq!(part.remove("angle"), Some(json!(0.0)));
+        assert_eq!(part.remove("at"), Some(json!([0.0, 0.0])));
+    }
+    data["schema_version"] = json!(38);
+    data
+}
+
 /// Current-version data in v37's layout (docs/specs/instances.md §6): a part's instances
 /// back as the grid of copies they came from (numbered row by row, as the migration
 /// numbers them), its order renamed back.
-fn as_v37(mut data: Value) -> Value {
-    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+fn as_v37(data: Value) -> Value {
+    let mut data = as_v38(data);
     for part in data["parts"].as_array_mut().unwrap() {
         let part = part.as_object_mut().unwrap();
         let instances = part.remove("instances").unwrap();

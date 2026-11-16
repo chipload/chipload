@@ -478,10 +478,12 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
                 group,
             };
             // A surface faces the stock once, whatever the part's copies
-            // (docs/specs/surfacing.md §2).
+            // (docs/specs/surfacing.md §2); dowel holes belong to the board, cut once where
+            // drawn, never placed (docs/specs/part-placement.md §5).
             let copies_of = |i: usize| -> Vec<Spotted> {
-                match chosen[i].op {
+                match &chosen[i].op {
                     Operation::Surface(_) => vec![(1, (0.0, 0.0), None)],
+                    op if op.is_dowels() => vec![(1, (0.0, 0.0), None)],
                     _ => copies.clone(),
                 }
             };
@@ -515,9 +517,10 @@ fn cut_order(job: &Job, chosen: &[Chosen]) -> Result<(Vec<Step>, Vec<ToolGroup>)
 /// and for a turned or mirrored instance where it is put after planning.
 type Spotted = (u32, Point, Option<Placement>);
 
-/// The part and its instances that are on, in cut order (docs/specs/instances.md §2). An
-/// instance only moved is planned on its moved contours, as copies were, so its G-code
-/// stays as it was; a turned or mirrored one is placed about the part's centre.
+/// The part and its instances that are on, in cut order (docs/specs/instances.md §2), the
+/// part itself at its own placement (docs/specs/part-placement.md §3). An instance only
+/// moved is planned on its moved contours, as copies were, so its G-code stays as it was;
+/// a turned or mirrored one is placed about the part's centre.
 fn spots_of(job: &Job, part: &Part) -> Vec<Spotted> {
     let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
     part.spots()

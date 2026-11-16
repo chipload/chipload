@@ -162,6 +162,7 @@ job-pieces-spacing = joints must be at least two sizes apart: at least twice { $
 job-pieces-shifts = { $count } seam shifts, but the grid has { $seams } seams there
 job-pieces-two-sided = a setup in pieces can't be two-sided yet
 job-pieces-copies = a setup in pieces can't have instances yet, and "{ $part }" has instances
+job-pieces-placed = a setup in pieces can't have a part placed elsewhere than drawn yet, and "{ $part }" is
 job-dowels-not-through = dowel holes go through the board into the spoilboard: set Below stock to the pins' depth
 job-dowel-not-circle = shape { $shape } isn't a drawn circle: a dowel hole is one
 job-dowel-off-axis = dowel hole { $shape } is { $off } off the line the board turns about, so on the turned board it would miss its pin

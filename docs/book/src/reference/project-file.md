@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 38. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 39. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 38. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `38` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `39` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -750,9 +750,11 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
+| `angle` | number | yes | Instance 1, the part itself, turned about the part's centre, radians, counter-clockwise, as an instance is; 0: as drawn. Since schema 39. |
+| `at` | 2 × number | yes | Instance 1 then moved, mm; (0, 0): where drawn. Since schema 39. |
 | `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what operations name it by. |
-| `instances` | list of [Instance](#instance) | yes | The part placed again: each instance the same shapes and operations moved, turned and perhaps mirrored (instance 1 is the part as drawn and isn't listed). Empty: cut once. Since schema 38, in place of a grid of copies. |
+| `instances` | list of [Instance](#instance) | yes | The part placed again: each instance the same shapes and operations moved, turned and perhaps mirrored (instance 1 is the part itself, placed by `angle` and `at`, and isn't listed). Empty: cut once. Since schema 38, in place of a grid of copies. |
 | `mirror` | [Mirror](#mirror) or null | no | Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as drawn. Left out when missing. |
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
 | `order` | [InstanceOrder](#instanceorder) | yes | `by_operation`: each operation on every instance, then the next; `by_instance`: every operation on one instance, then the next instance. Since schema 38. |

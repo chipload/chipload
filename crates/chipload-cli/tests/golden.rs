@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 81] = [
+const GOLDEN: [(&str, &str); 82] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -282,6 +282,11 @@ const GOLDEN: [(&str, &str); 81] = [
     // grid five instances listed in the order they were cut (2, 3, 6, 5, 4) and the order
     // `by_instance`; the G-code stays the same (docs/specs/instances.md).
     ("v37_copies", "jobs/v37/copies.chipload"),
+    // The SVG badge frozen at v38 with two instances, one turned 90°, one mirrored left to
+    // right and turned 180° (`part instance add --angle 90`, `--mirror left-right --angle
+    // 180`): v39 gives the part itself angle 0 and at (0, 0), so it is cut where drawn
+    // and the G-code stays the same (docs/specs/part-placement.md §8).
+    ("v38_instances", "jobs/v38/instances.chipload"),
 ];
 
 /// Projects in pieces (docs/specs/pieces.md): a program per piece, run as `chipload run`

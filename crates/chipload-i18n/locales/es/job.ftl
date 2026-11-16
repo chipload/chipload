@@ -162,6 +162,7 @@ job-pieces-spacing = las uniones deben estar separadas al menos dos tamaños: al
 job-pieces-shifts = { $count } desplazamientos de junta, pero la cuadrícula tiene { $seams } juntas ahí
 job-pieces-two-sided = una sujeción en trozos aún no puede ser a dos caras
 job-pieces-copies = una sujeción en trozos aún no puede tener instancias, y «{ $part }» las tiene
+job-pieces-placed = una sujeción en trozos aún no puede tener una pieza colocada fuera de donde está dibujada, y «{ $part }» lo está
 job-dowels-not-through = los agujeros de pasador atraviesan el tablero hasta el tablero de sacrificio: pon «Bajo el material» a la profundidad de los pasadores
 job-dowel-not-circle = la forma { $shape } no es un círculo dibujado: un agujero de pasador lo es
 job-dowel-off-axis = el agujero de pasador { $shape } está a { $off } de la línea sobre la que se da la vuelta al tablero: en el tablero vuelto no encontraría su pasador

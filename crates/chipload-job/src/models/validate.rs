@@ -148,7 +148,7 @@ impl Tool {
 }
 
 /// A part's instances (docs/specs/instances.md §6): ids unique and 2 or more, at most
-/// [`MAX_COPIES`] in all, angles and moves finite.
+/// [`MAX_COPIES`] in all, angles and moves finite, the part's own placement too.
 fn instance_problems(part: &Part, i: usize) -> Vec<Problem> {
     let mut problems = Vec::new();
     if part.instances.len() >= MAX_COPIES as usize {
@@ -158,6 +158,20 @@ fn instance_problems(part: &Part, i: usize) -> Vec<Problem> {
                 .arg("most", MAX_COPIES)
                 .arg("got", part.instances.len() + 1),
         ));
+    }
+    // Instance 1, the part itself (docs/specs/part-placement.md §8).
+    for (field, value) in [
+        ("angle", part.angle),
+        ("at.0", part.at[0]),
+        ("at.1", part.at[1]),
+    ] {
+        if !value.is_finite() {
+            problems.push(Problem::at(
+                format!("parts.{i}.{field}"),
+                Message::new("job-must-be-number")
+                    .arg("got", Value::LengthNumber(value, Digits::Shortest)),
+            ));
+        }
     }
     for (k, instance) in part.instances.iter().enumerate() {
         let at = format!("parts.{i}.instances.{k}");
@@ -338,6 +352,11 @@ impl Job {
                 problems.push(Problem::at(
                     at.clone(),
                     Message::new("job-pieces-copies").arg("part", part.name.clone()),
+                ));
+            } else if part.is_placed() {
+                problems.push(Problem::at(
+                    at.clone(),
+                    Message::new("job-pieces-placed").arg("part", part.name.clone()),
                 ));
             }
         }

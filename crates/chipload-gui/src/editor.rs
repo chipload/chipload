@@ -424,6 +424,8 @@ impl EditJob {
             order: chipload_job::InstanceOrder::ByOperation,
             setup: self.job.active_setup_id().unwrap_or(1),
             mirror: None,
+            angle: 0.0,
+            at: [0.0, 0.0],
         });
         self.job.active_part = Some(id);
         id

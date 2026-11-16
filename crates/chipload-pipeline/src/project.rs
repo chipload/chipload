@@ -111,6 +111,8 @@ pub fn empty_project() -> Job {
             order: chipload_job::InstanceOrder::ByOperation,
             setup: 1,
             mirror: None,
+            angle: 0.0,
+            at: [0.0, 0.0],
         }],
         active_part: Some(1),
         operations: Vec::new(),

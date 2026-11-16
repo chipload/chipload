@@ -223,6 +223,48 @@ fn climb_stays_climb_on_the_back_face() {
 }
 
 #[test]
+fn a_part_placed_on_the_back_face_keeps_climb() {
+    // docs/specs/part-placement.md §5: placed in the front's coordinates, then turned over
+    // with the board.
+    for turn in [Turn::LeftRight, Turn::TopBottom] {
+        let mut front = every_direction(None);
+        front.setups[0].stock.fit = None;
+        front.setups[0].stock.x = 1000.0;
+        front.setups[0].stock.y = 1000.0;
+        let (mut two, back, _) = add_back_side(&front, 1, turn, None).unwrap();
+        for part in &mut two.parts {
+            part.setup = back;
+        }
+        two.follow_thickness();
+        let drawn = two.for_setup(back);
+        let mut placed = drawn.clone();
+        placed.parts[0].angle = 0.7;
+        placed.parts[0].at = [400.0, 350.0];
+        // run_job refuses a program the independent checker doesn't pass.
+        let (before, after) = (
+            chipload_pipeline::run_job(&drawn).unwrap(),
+            chipload_pipeline::run_job(&placed).unwrap(),
+        );
+        let share = |(_, ccw, cw): &(usize, f64, f64)| ccw / (ccw - cw);
+        let want = turning(&loops(
+            &chipload_pipeline::on_the_board(&drawn, &before.program),
+            &before.op_spans,
+        ));
+        let got = turning(&loops(
+            &chipload_pipeline::on_the_board(&placed, &after.program),
+            &after.op_spans,
+        ));
+        assert_eq!(got.len(), 5, "{turn:?}: {got:?}");
+        for (g, w) in got.iter().zip(&want) {
+            assert!(
+                (share(g) - share(w)).abs() < 0.01,
+                "{turn:?}: {g:?} vs {w:?}"
+            );
+        }
+    }
+}
+
+#[test]
 fn the_back_is_as_thick_as_the_front_leaves_the_board() {
     // docs/specs/two-sided.md §5: the corpus sample surfaces its 10 mm board 0.5 mm on the
     // front, and cuts its outline through from the back.
@@ -375,6 +417,33 @@ fn dowels_at(y: f64) -> Job {
         }
     }
     job
+}
+
+#[test]
+fn dowel_holes_stay_where_drawn_when_their_part_is_placed() {
+    // docs/specs/part-placement.md §5: they belong to the board. Turned half round about
+    // its own centre, the front's part keeps its board, so the holes stay on its axis.
+    let job = sample_two_sided().for_setup(1);
+    let mut placed = job.clone();
+    placed.parts[0].angle = std::f64::consts::PI;
+    assert_eq!(placed.stock_bounds(), job.stock_bounds());
+    let (before, after) = (
+        chipload_pipeline::run_job(&job).unwrap(),
+        chipload_pipeline::run_job(&placed).unwrap(),
+    );
+    let dowels = |result: &chipload_pipeline::RunResult| -> Vec<(f64, f64)> {
+        let mut at = (0.0, 0.0);
+        let mut ends = Vec::new();
+        for span in result.op_spans.iter().filter(|s| s.operation == 1) {
+            for m in &result.program.moves[span.moves.clone()] {
+                at = (m.x.unwrap_or(at.0), m.y.unwrap_or(at.1));
+                ends.push(at);
+            }
+        }
+        ends
+    };
+    assert!(!dowels(&before).is_empty());
+    assert_eq!(dowels(&before), dowels(&after));
 }
 
 #[test]

@@ -162,6 +162,7 @@ job-pieces-spacing = Verbindungen müssen mindestens zwei Größen auseinander l
 job-pieces-shifts = { $count } Nahtverschiebungen, aber das Raster hat dort { $seams } Nähte
 job-pieces-two-sided = eine Aufspannung in Stücken kann noch nicht zweiseitig sein
 job-pieces-copies = eine Aufspannung in Stücken kann noch keine Instanzen haben, und „{ $part }“ hat Instanzen
+job-pieces-placed = eine Aufspannung in Stücken kann noch kein anderswo platziertes Teil haben, und „{ $part }“ ist es
 job-dowels-not-through = Passstiftbohrungen gehen durch das Brett bis in die Opferplatte: „Unter Rohteil“ auf die Tiefe der Stifte setzen
 job-dowel-not-circle = Form { $shape } ist kein gezeichneter Kreis: eine Passstiftbohrung ist einer
 job-dowel-off-axis = Passstiftbohrung { $shape } liegt { $off } neben der Linie, um die das Brett gewendet wird, und träfe auf dem gewendeten Brett ihren Stift nicht
