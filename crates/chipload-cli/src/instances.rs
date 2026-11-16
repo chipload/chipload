@@ -54,7 +54,8 @@ pub enum InstanceAction {
         /// Which part; needed when the project has several.
         #[arg(long)]
         part: Option<u64>,
-        /// The instances' numbers (as `part instance list` shows them).
+        /// The instances' numbers (as `part instance list` shows them); 1 is the part
+        /// itself, which is moved and turned only.
         #[arg(required = true)]
         ids: Vec<u32>,
         /// Its move "DX,DY" from the part as drawn; one instance only.
@@ -197,7 +198,7 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
             match made {
                 Ok((job, id, number)) => {
                     if let Some(instance) = instance_of(&job, id, number) {
-                        out.line(format!("Added instance {}", describe(instance)));
+                        out.line(format!("Added instance {}", describe(&instance)));
                     }
                     out.set("instance", json!(number));
                     finish(out, &job, id, output.as_deref().unwrap_or(&project))
@@ -242,7 +243,7 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
                 Ok((job, id)) => {
                     for &number in &ids {
                         if let Some(instance) = instance_of(&job, id, number) {
-                            out.line(format!("Instance {}", describe(instance)));
+                            out.line(format!("Instance {}", describe(&instance)));
                         }
                     }
                     finish(out, &job, id, output.as_deref().unwrap_or(&project))
@@ -300,8 +301,74 @@ fn finish(out: &mut Out, job: &Job, part: u64, target: &Path) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn instance_of(job: &Job, part: u64, number: u32) -> Option<&Instance> {
-    job.part(part)?.instances.iter().find(|i| i.id == number)
+/// Instance `number` of the part; 1 is the part itself, with its own placement.
+fn instance_of(job: &Job, part: u64, number: u32) -> Option<Instance> {
+    let part = job.part(part)?;
+    if number == 1 {
+        return Some(Instance {
+            id: 1,
+            enabled: part.enabled,
+            mirror: None,
+            angle: part.angle,
+            at: part.at,
+        });
+    }
+    part.instances.iter().find(|i| i.id == number).copied()
+}
+
+/// ", placed at 120.000, 0.000 mm, turned 90°" for a part placed elsewhere than drawn
+/// (docs/specs/part-placement.md); nothing for one cut where drawn.
+pub(crate) fn placed_text(part: &chipload_job::Part) -> String {
+    if !part.is_placed() {
+        return String::new();
+    }
+    let mut text = format!(", placed at {}, {} mm", mm3(part.at[0]), mm3(part.at[1]));
+    if part.angle != 0.0 {
+        text += &format!(", turned {}°", degrees_text(part.angle));
+    }
+    text
+}
+
+/// `part place`: the part itself moved and turned, or back where drawn.
+pub(crate) fn place(
+    out: &mut Out,
+    project: &Path,
+    part: Option<u64>,
+    at: Option<&str>,
+    angle: Option<f64>,
+    reset: bool,
+    target: &Path,
+) -> ExitCode {
+    let job = match load(out, project) {
+        Ok(job) => job,
+        Err(code) => return code,
+    };
+    let placed = (|| {
+        let id = part_of(&job, part)?;
+        if at.is_none() && angle.is_none() && !reset {
+            return Err("give --at, --angle or --reset".to_string());
+        }
+        let at = at_arg(at)?;
+        let angle = angle.map(radians).transpose()?;
+        let job = chipload_pipeline::instances::place_part(&job, id, at, angle, reset)
+            .map_err(|e| e.to_string())?;
+        Ok((job, id))
+    })();
+    match placed {
+        Ok((job, id)) => {
+            if let Some(part) = job.part(id) {
+                let text = placed_text(part);
+                out.line(match text.strip_prefix(", ") {
+                    Some(placed) => format!("Part {} {}: {placed}", part.id, part.name),
+                    None => format!("Part {} {}: cut where drawn", part.id, part.name),
+                });
+                out.set("angle", json!(part.angle));
+                out.set("at", json!(part.at));
+            }
+            finish(out, &job, id, target)
+        }
+        Err(err) => out.fail(err),
+    }
 }
 
 /// "3 at 120.000, 0.000 mm, turned 90°, mirrored left-right, off".
@@ -365,6 +432,12 @@ fn list(out: &mut Out, project: &Path, part: Option<u64>) -> ExitCode {
             chipload_pipeline::copies::instances_text(part)
         ));
     }
+    // The part itself, once it has instances or a placement of its own.
+    if (!part.instances.is_empty() || part.is_placed())
+        && let Some(own) = instance_of(&job, part.id, 1)
+    {
+        out.line(format!("  {} (the part itself)", describe(&own)));
+    }
     for instance in &part.instances {
         out.line(format!("  {}", describe(instance)));
     }
@@ -382,6 +455,7 @@ fn list(out: &mut Out, project: &Path, part: Option<u64>) -> ExitCode {
         })
         .collect();
     out.set("part", json!(part.id));
+    out.set("itself", json!({"angle": part.angle, "at": part.at}));
     out.set("order", json!(part.order));
     out.set("instances", Value::Array(rows));
     ExitCode::SUCCESS

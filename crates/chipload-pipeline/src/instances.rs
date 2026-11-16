@@ -171,6 +171,27 @@ fn placed_box(spot: &Spot, centre: Point, (low, high): (Point, Point)) -> (Point
     )
 }
 
+/// Part `part` itself placed (docs/specs/part-placement.md §7): moved to `at` and turned to
+/// `angle` where given; `reset` puts it back where drawn.
+pub fn place_part(
+    job: &Job,
+    part: u64,
+    at: Option<[f64; 2]>,
+    angle: Option<f64>,
+    reset: bool,
+) -> Result<Job, PipelineError> {
+    let index = part_index(job, part)?;
+    let mut job = job.clone();
+    let own = &mut job.parts[index];
+    if reset {
+        own.at = [0.0, 0.0];
+        own.angle = 0.0;
+    }
+    own.at = at.unwrap_or(own.at);
+    own.angle = angle.unwrap_or(own.angle);
+    checked(job)
+}
+
 /// What to change on an instance; None leaves it.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct InstanceChange {
@@ -181,7 +202,9 @@ pub struct InstanceChange {
     pub enabled: Option<bool>,
 }
 
-/// Instances `ids` of part `part` changed as asked.
+/// Instances `ids` of part `part` changed as asked. Instance 1, the part itself
+/// (docs/specs/part-placement.md §7), is moved and turned only: it has no mirror of its own
+/// and is switched off with its part.
 pub fn set_instances(
     job: &Job,
     part: u64,
@@ -191,6 +214,23 @@ pub fn set_instances(
     let index = part_index(job, part)?;
     let mut job = job.clone();
     for &id in ids {
+        if id == 1 {
+            let name = job.parts[index].name.clone();
+            if change.mirror.is_some() {
+                return Err(refused(
+                    Message::new("pipeline-instance-one-mirror").arg("part", name),
+                ));
+            }
+            if change.enabled.is_some() {
+                return Err(refused(
+                    Message::new("pipeline-instance-one-off").arg("part", name),
+                ));
+            }
+            let own = &mut job.parts[index];
+            own.at = change.at.unwrap_or(own.at);
+            own.angle = change.angle.unwrap_or(own.angle);
+            continue;
+        }
         let k = instance_index(&job, index, id)?;
         let instance = &mut job.parts[index].instances[k];
         if let Some(at) = change.at {
@@ -212,6 +252,12 @@ pub fn set_instances(
 /// Part `part` without instances `ids`; the others keep their numbers.
 pub fn remove_instances(job: &Job, part: u64, ids: &[u32]) -> Result<Job, PipelineError> {
     let index = part_index(job, part)?;
+    if ids.contains(&1) {
+        return Err(refused(
+            Message::new("pipeline-instance-one-remove")
+                .arg("part", job.parts[index].name.as_str()),
+        ));
+    }
     for &id in ids {
         instance_index(job, index, id)?;
     }

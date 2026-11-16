@@ -32,8 +32,8 @@ chipload part instance array part.chipload --grid 3x2 --gap 10   # a grid in pla
 chipload part set part.chipload 1 --order by-instance     # every operation on one instance, then the next
 ```
 
-- **Numbers:** the part as drawn is instance 1; the others are numbered from 2 and keep
-  their numbers when one is removed.
+- **Numbers:** the part itself is instance 1 ([placed](#the-part-itself) or where drawn);
+  the others are numbered from 2 and keep their numbers when one is removed.
 - **Place:** an instance is mirrored first (`left-right` or `top-bottom`), then turned
   (`--angle`, degrees counter-clockwise), both about the middle of the part's box, then
   moved by `--at` from where the part is drawn. A new instance without `--at` goes
@@ -64,8 +64,34 @@ chipload part set part.chipload 1 --order by-instance     # every operation on o
 - **Display:** the canvas and the setup sheet draw the instances faded where they are cut.
   The setup sheet and the playback say which instance is being cut.
 
-Instances aren't nested automatically: to fit different parts on one sheet, place each
-part's instances, or arrange them in CAD.
+## The part itself
+
+The part itself, instance 1, can be placed too: cut moved and turned like an instance,
+while its shapes stay where they are drawn. Its shapes are what you edit; every instance,
+the first included, is a placement of them. This lets you lay parts out on a sheet without
+moving the drawing, for instance when several parts come from one DXF.
+
+```sh
+chipload part place part.chipload --at 300,0 --angle 90   # the part cut 300 mm right, turned
+chipload part place part.chipload --reset                 # back where drawn
+chipload part instance set part.chipload 1 --at 350,0     # the same, as instance 1
+```
+
+- **Turned and moved only:** the part's own mirror (`part set --mirror`) mirrors its
+  shapes, so every instance; instance 1 has no mirror of its own, can't be switched off
+  alone (switch the part off) and can't be removed.
+- **Its instances stay** where they were: they are placed from the part as drawn, not from
+  instance 1.
+- **The board:** a board that fits the drawing holds the part where it is cut, not its
+  shapes where they are drawn.
+- **Dowel holes** belong to the board: they are cut where drawn, once, never placed or
+  repeated per instance.
+- **Checked** like an instance: a placed part may not cut into another part. Parts cut
+  where they are drawn may still overlap each other, as before.
+- In a setup cut in [pieces](../concepts/pieces.md) the part can't be placed yet.
+
+Instances aren't nested automatically yet: to fit different parts on one sheet, place each
+part and its instances, or arrange them in CAD.
 
 Projects saved before Chipload 0.38 kept a grid of copies; they open with that grid as
 instances, cut in the same order, so the G-code stays the same.

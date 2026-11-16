@@ -2467,6 +2467,23 @@ chipload part set <PROJECT> <ID> [OPTIONS]
 | `--order <ORDER>` | The order its instances are cut in (docs/specs/instances.md §2) One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload part place`
+
+Place the part itself (instance 1): cut moved and turned, as an instance is, its shapes staying where they are drawn (docs/specs/part-placement.md)
+
+```text
+chipload part place <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part (as `part list` shows it); needed when the project has several. |
+| `--at <AT>` | Its move "DX,DY" from where it is drawn (any length unit; plain numbers are mm) |
+| `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
+| `--reset` | Back where drawn: not moved, not turned (then --at and --angle, if given) |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload part instance`
 
 A part's instances: the part placed again, moved, turned and perhaps mirrored (docs/specs/instances.md)
@@ -2513,7 +2530,7 @@ chipload part instance set <PROJECT> <IDS>... [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `--part <PART>` | Which part; needed when the project has several. |
-| `<IDS>` | The instances' numbers (as `part instance list` shows them) |
+| `<IDS>` | The instances' numbers (as `part instance list` shows them); 1 is the part itself, which is moved and turned only. |
 | `--at <AT>` | Its move "DX,DY" from the part as drawn; one instance only. |
 | `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
 | `--mirror <MIRROR>` | Mirrored: left-right, top-bottom or none. |

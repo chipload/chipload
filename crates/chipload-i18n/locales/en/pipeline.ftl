@@ -385,6 +385,9 @@ pipeline-shape-imported-change = shape { $id } was imported from the DXF and can
 pipeline-no-part = No part { $id } in the project
 # $id is an instance's number in the part (2 on).
 pipeline-no-instance = Part "{ $part }" has no instance { $id }
+pipeline-instance-one-mirror = Instance 1 is part "{ $part }" itself: it has no mirror of its own; mirror the part instead
+pipeline-instance-one-off = Instance 1 is part "{ $part }" itself: it can't be switched off alone; switch the part off instead
+pipeline-instance-one-remove = Instance 1 is part "{ $part }" itself: it can't be removed
 pipeline-part-name-empty = A part's name can't be empty
 pipeline-part-name-taken = Another part is named "{ $name }"
 pipeline-last-part = A project needs at least one part: this is the last one

@@ -60,6 +60,27 @@ pub enum PartAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Place the part itself (instance 1): cut moved and turned, as an instance is, its
+    /// shapes staying where they are drawn (docs/specs/part-placement.md).
+    Place {
+        /// The project (.chipload).
+        project: PathBuf,
+        /// Which part (as `part list` shows it); needed when the project has several.
+        #[arg(long)]
+        part: Option<u64>,
+        /// Its move "DX,DY" from where it is drawn (any length unit; plain numbers are mm).
+        #[arg(long, allow_hyphen_values = true)]
+        at: Option<String>,
+        /// Turned about the middle of the part's box, degrees counter-clockwise.
+        #[arg(long, allow_hyphen_values = true)]
+        angle: Option<f64>,
+        /// Back where drawn: not moved, not turned (then --at and --angle, if given).
+        #[arg(long)]
+        reset: bool,
+        /// Where to write the result; default: the project itself.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// A part's instances: the part placed again, moved, turned and perhaps mirrored
     /// (docs/specs/instances.md).
     Instance {
@@ -100,6 +121,25 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
             };
             return crate::instances::instance(out, action);
         }
+        PartAction::Place {
+            project,
+            part,
+            at,
+            angle,
+            reset,
+            output,
+        } => {
+            let target = output.as_deref().unwrap_or(project);
+            return crate::instances::place(
+                out,
+                project,
+                *part,
+                at.as_deref(),
+                *angle,
+                *reset,
+                target,
+            );
+        }
         PartAction::Add {
             project, output, ..
         }
@@ -118,7 +158,9 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
         Err(code) => return code,
     };
     let changed = match action {
-        PartAction::List { .. } | PartAction::Instance { .. } => return ExitCode::SUCCESS,
+        PartAction::List { .. } | PartAction::Instance { .. } | PartAction::Place { .. } => {
+            return ExitCode::SUCCESS;
+        }
         PartAction::Add { name, .. } => add_part(&job, name.as_deref()).map(|(job, id)| {
             out.line(format!("Added part {id}, now the active part"));
             out.set("part", json!(id));
@@ -194,6 +236,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             },
             part.mirror
                 .map_or(String::new(), |m| format!(", mirrored {}", m.name()))
+                + &crate::instances::placed_text(part)
                 + if part.enabled { "" } else { ", off" },
             if numbers.is_empty() {
                 "none".to_string()
@@ -209,6 +252,8 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "instances": part.instances,
             "order": part.order,
             "mirror": part.mirror,
+            "angle": part.angle,
+            "at": part.at,
             "count": part.count(),
             "operations": operations,
         }));

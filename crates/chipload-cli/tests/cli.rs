@@ -684,6 +684,69 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
 }
 
 #[test]
+fn the_part_itself_is_placed_from_the_command_line() {
+    // docs/specs/part-placement.md §7
+    let dir = temp_dir("part-place");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let part = || {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        job["parts"][0].clone()
+    };
+    let (code, _, err) = run(&["part", "place", p]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("give --at, --angle or --reset"), "{err}");
+    let (code, out, err) = run(&["part", "place", p, "--at", "300,0", "--angle", "90"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(
+        out.contains("placed at 300.000, 0.000 mm, turned 90°"),
+        "{out}"
+    );
+    assert_eq!(part()["at"], serde_json::json!([300.0, 0.0]));
+    // Listed as instance 1 once it has instances; set like one, but never mirrored,
+    // switched off alone or removed.
+    run(&["part", "instance", "add", p, "--at", "0,0"]);
+    let (_, out, _) = run(&["part", "instance", "list", p]);
+    assert!(
+        out.contains("  1 at 300.000, 0.000 mm, turned 90° (the part itself)")
+            && out.contains("2 in all, 1 turned"),
+        "{out}"
+    );
+    let (code, _, err) = run(&["part", "instance", "set", p, "1", "--at", "350,0"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(part()["at"], serde_json::json!([350.0, 0.0]));
+    for args in [
+        vec!["part", "instance", "set", p, "1", "--mirror", "left-right"],
+        vec!["part", "instance", "set", p, "1", "--off"],
+        vec!["part", "instance", "remove", p, "1"],
+    ] {
+        let (code, _, err) = run(&args);
+        assert_eq!(code, Some(1), "{args:?}");
+        assert!(
+            err.contains("is part \"") && err.contains("itself"),
+            "{err}"
+        );
+    }
+    // Placed, it runs, checked; the part as drawn and its instance at 0, 0 are apart.
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
+    assert_eq!(code, Some(0), "{err}");
+    let (code, out, _) = run(&["get", p, "parts.0.angle"]);
+    assert_eq!(code, Some(0));
+    assert!(out.starts_with("1.57"), "{out}");
+    let (code, out, _) = run(&["part", "place", p, "--reset"]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains("cut where drawn"), "{out}");
+    assert_eq!(part()["angle"], serde_json::json!(0.0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn parts_are_added_changed_and_removed_from_the_command_line() {
     // docs/specs/parts.md §7
     let dir = temp_dir("parts");

@@ -17,11 +17,18 @@ pub fn instances_text(part: &Part) -> String {
 
 /// [`instances_text`] as a message.
 pub fn instances_message(part: &Part) -> Message {
-    let on = || part.instances.iter().filter(|i| i.enabled);
+    // The part itself counts as turned when it is (docs/specs/part-placement.md).
+    let spots = part.spots();
     Message::new("pipeline-instances")
         .arg("count", part.count())
-        .arg("turned", on().filter(|i| i.angle != 0.0).count())
-        .arg("mirrored", on().filter(|i| i.mirror.is_some()).count())
+        .arg(
+            "turned",
+            spots.iter().filter(|(_, s)| s.angle != 0.0).count(),
+        )
+        .arg(
+            "mirrored",
+            spots.iter().filter(|(_, s)| s.mirror.is_some()).count(),
+        )
         .arg("order", order_message(part.order))
 }
 
