@@ -49,7 +49,7 @@ browser-job-settings-problems-hover = Maschine, Postprozessor, Einheiten und Ver
 browser-tools = Werkzeuge
 browser-tools-hover = Die Werkzeuge des Projekts: klicken, um alle zu sehen und eines hinzuzufügen
 
-# Parts: groups of operations, each cut with its copies before the next.
+# Parts: groups of operations, each cut with its instances before the next.
 browser-setups = Aufspannungen
 browser-setups-hover = Die Platten, aus denen das Projekt nacheinander gefräst wird: jede ein eigenes Programm, mit ihrem Rohteil und Nullpunkt. Klicken macht eine zur aktiven
 browser-add-setup = Aufspannung hinzufügen
@@ -69,7 +69,7 @@ browser-export-setup-hover = Ihr Programm und Einrichteblatt, benannt -S1, -S2 b
 browser-new-part = Neues Teil
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv
-browser-part-active-hover = Das aktive Teil: neue Bearbeitungen kommen hierher. Klicken für seine Kopien; Rechtsklick für mehr
+browser-part-active-hover = Das aktive Teil: neue Bearbeitungen kommen hierher. Klicken für seine Eigenschaften und Instanzen; Rechtsklick für mehr
 browser-part-mirrored = gespiegelt
 browser-add-instance = Instanz hinzufügen
 browser-add-instance-hover = Das Teil noch einmal platzieren, neben dem, was es fräst, verknüpft: ändern Sie das Teil, folgt die Instanz. Ziehen verschiebt sie, ihr runder Griff dreht sie.
@@ -79,7 +79,7 @@ browser-instance-hover = Das Teil noch einmal platziert: dieselben Formen und Be
 browser-instance-mirror = Spiegeln
 browser-instance-turn = 90° drehen
 browser-instance-remove = Entfernen
-browser-part-hover = Klicken für seine Kopien; Doppelklick macht es zum aktiven Teil; Rechtsklick für mehr
+browser-part-hover = Klicken für seine Eigenschaften und Instanzen; Doppelklick macht es zum aktiven Teil; Rechtsklick für mehr
 # A verb: make this the active part.
 browser-activate = Aktivieren
 browser-activate-hover = Neue Bearbeitungen kommen in das aktive Teil

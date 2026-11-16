@@ -8,11 +8,11 @@ pipeline-post-units = Postprozessor { $post } schreibt nur G-Code in mm (seine K
 ## Planning notes
 
 pipeline-drawing-outside-stock = Die Zeichnung ragt über das Rohteil hinaus
-# $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
+# $count is how many times the part is cut. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = Die { $count } Kopien fräsen X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }, über das Rohteil hinaus ({ $stock_x } × { $stock_y }); prüfen Sie das Rohteil oder die Kopien des Teils.
+pipeline-copies-beyond-stock = Die { $count } Instanzen fräsen X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }, über das Rohteil hinaus ({ $stock_x } × { $stock_y }); prüfen Sie das Rohteil oder die Instanzen des Teils.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Teil { $part }: Die { $count } Kopien fräsen X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }, über das Rohteil hinaus ({ $stock_x } × { $stock_y }); prüfen Sie das Rohteil oder die Kopien des Teils.
+pipeline-part-copies-beyond-stock = Teil { $part }: Die { $count } Instanzen fräsen X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }, über das Rohteil hinaus ({ $stock_x } × { $stock_y }); prüfen Sie das Rohteil oder die Instanzen des Teils.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
 pipeline-layer-clash = { $label }: Layer "{ $layer }" ist in { $sources }; die Bearbeitung fräst alle davon. Beschränken Sie sie auf eines (wählen Sie den Layer unter dieser DXF im Browser)
@@ -386,7 +386,7 @@ pipeline-shapes-copy-imported = nur gezeichnete Formen können kopiert werden, k
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = Form { $id } wurde aus der DXF importiert und kann hier nicht geändert werden; ändern Sie die Zeichnung und verwenden Sie Zeichnung aus DXF aktualisieren
 
-## Errors: parts and copies
+## Errors: parts and instances
 
 pipeline-no-part = Kein Teil { $id } im Projekt
 # $id is an instance's number in the part (2 on).

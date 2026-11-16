@@ -1,4 +1,4 @@
-# Copies
+# Instances
 
 Each [part](../operations/parts.md) can be cut several times. Every extra time is an
 **instance** of the part: the same shapes and operations, cut again somewhere else, moved,

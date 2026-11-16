@@ -43,7 +43,7 @@ forms-operation-number = Операция { $number }
 forms-name = Имя
 forms-geometry = Геометрия
 forms-whole-stock = Вся заготовка
-forms-whole-stock-hover = Торцевание обрабатывает всю заготовку один раз, независимо от копий
+forms-whole-stock-hover = Торцевание обрабатывает всю заготовку один раз, независимо от экземпляров
 forms-use-selection = Использовать выделение
 forms-use-selection-count = Использовать выделение ({ $count })
 forms-use-selection-hover = Заменить геометрию контурами, выделенными в рабочей области.
@@ -403,7 +403,7 @@ forms-open-front = Открыть { $front }
 forms-thinner-after-surfacing = После торцевания в { $front } толщина заготовки { $thickness }.
 forms-setup-make-active = Сделать установ активным для изменения заготовки и нуля
 forms-remove-setup = Удалить установ
-forms-copies-hover = Деталь, размещённая ещё раз: каждый экземпляр режет те же формы и операции, сдвинутый. Сетка ниже создаёт их. Экземпляры показаны бледным цветом; выделить можно только саму деталь.
+forms-copies-hover = Деталь, размещённая ещё раз: каждый экземпляр режет те же формы и операции, сдвинутый, повёрнутый или отражённый. Добавьте его из контекстного меню детали или создайте сетку ниже. Щёлкните экземпляр в виде, чтобы сдвинуть или повернуть его.
 forms-instances-none = Убрать все
 forms-instances-grid = Создать сетку
 forms-grid-columns = столбцы
@@ -496,9 +496,9 @@ forms-statistics-rapids-hover = Быстрые ходы (G0), включая х�
 forms-statistics-lifts = Подъёмы
 forms-statistics-lifts-hover = Сколько раз инструмент поднимается на быстром ходу: между траекториями и при каждом выводе при сверлении с выводом
 forms-statistics-copies = Для { $copies ->
-    [one] { $copies } копии
-   *[other] { $copies } копий
-}.
+    [one] { $copies } экземпляра
+   *[other] { $copies } экземпляров
+}, включая саму деталь.
 forms-statistics-generate = Выполните генерацию (F5), чтобы увидеть статистику.
 forms-statistics-generating = Генерация…
 forms-statistics-failed = Не сгенерировано: см. отчёт.

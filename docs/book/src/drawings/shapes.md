@@ -124,9 +124,9 @@ DXF first, [Explode](several.md)).
   columns and rows and spaces them centre to centre (negative goes left or down). A polar
   array counts the originals too: over 360° the copies spread evenly round, over a
   smaller angle the first and last sit at its ends; each copy turns with its place unless
-  you say not to. This adds shapes to the drawing; the project's
-  [grid of copies](copies.md) is different, it repeats the whole part with
-  its operations. In the window: select the shapes, choose *Array* or *Polar array*,
+  you say not to. This adds shapes to the drawing; a part's
+  [instances](instances.md) are different: they repeat the whole part with its
+  operations. In the window: select the shapes, choose *Array* or *Polar array*,
   and set the copies under *Selection*; for a polar array click the centre on the canvas
   (it snaps as drawing does). The preview shows the copies; *Create* adds them and ends
   the tool. *Cancel*, Esc or the tool's button again ends it without copies. On the

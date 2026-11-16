@@ -77,11 +77,11 @@ job-angle-below-180 = must be more than 0 and less than 180 degrees, got { $got 
 job-ramp-angle-range = must be more than 0 and at most 30 degrees, got { $got } degrees
 job-flank-angle-range = must be more than 0 and at most 90 degrees, got { $got } degrees
 
-## Copies in a grid
+## Instances and grids of them
 
 job-copies-per-side = must be from 1 to { $most }, got { $got }
-job-copies-too-many = at most { $most } copies in all, got { $got }
-job-copies-pitch-zero = must not be 0 with more than one copy that way
+job-copies-too-many = at most { $most } instances in all, got { $got }
+job-copies-pitch-zero = must not be 0 with more than one cell that way
 
 ## Pictures and texts
 

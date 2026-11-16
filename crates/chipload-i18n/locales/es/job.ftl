@@ -77,11 +77,11 @@ job-angle-below-180 = debe ser más de 0 y menos de 180 grados, es { $got } grad
 job-ramp-angle-range = debe ser más de 0 y como máximo 30 grados, es { $got } grados
 job-flank-angle-range = debe ser más de 0 y como máximo 90 grados, es { $got } grados
 
-## Copies in a grid
+## Instances and grids of them
 
 job-copies-per-side = debe ser de 1 a { $most }, es { $got }
-job-copies-too-many = como máximo { $most } copias en total, son { $got }
-job-copies-pitch-zero = no debe ser 0 con más de una copia en esa dirección
+job-copies-too-many = como máximo { $most } instancias en total, son { $got }
+job-copies-pitch-zero = no debe ser 0 con más de una celda en esa dirección
 
 ## Pictures and texts
 

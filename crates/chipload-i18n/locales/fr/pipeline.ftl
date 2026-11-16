@@ -10,11 +10,11 @@ pipeline-post-units = le post-processeur { $post } n'écrit que du G-code en mm 
 ## Planning notes
 
 pipeline-drawing-outside-stock = Le dessin dépasse du brut
-# $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
+# $count is how many times the part is cut. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = Les { $count } copies usinent de X{ $x0 } à { $x1 }, de Y{ $y0 } à { $y1 }, au-delà du brut ({ $stock_x } × { $stock_y }) ; vérifiez le brut ou les copies de la pièce.
+pipeline-copies-beyond-stock = Les { $count } instances usinent de X{ $x0 } à { $x1 }, de Y{ $y0 } à { $y1 }, au-delà du brut ({ $stock_x } × { $stock_y }) ; vérifiez le brut ou les instances de la pièce.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Pièce { $part } : les { $count } copies usinent de X{ $x0 } à { $x1 }, de Y{ $y0 } à { $y1 }, au-delà du brut ({ $stock_x } × { $stock_y }) ; vérifiez le brut ou les copies de la pièce.
+pipeline-part-copies-beyond-stock = Pièce { $part } : les { $count } instances usinent de X{ $x0 } à { $x1 }, de Y{ $y0 } à { $y1 }, au-delà du brut ({ $stock_x } × { $stock_y }) ; vérifiez le brut ou les instances de la pièce.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
 pipeline-layer-clash = { $label } : le calque "{ $layer }" est dans { $sources } ; l'opération les usine tous. Limitez-la à un seul (sélectionnez le calque sous ce DXF dans le Navigateur)
@@ -391,7 +391,7 @@ pipeline-shapes-copy-imported = seules les formes dessinées peuvent être copi�
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = la forme { $id } a été importée du DXF et ne peut pas être modifiée ici ; modifiez le dessin et utilisez Mettre à jour le dessin depuis un DXF
 
-## Errors: parts and copies
+## Errors: parts and instances
 
 pipeline-no-part = Aucune pièce { $id } dans le projet
 # $id is an instance's number in the part (2 on).

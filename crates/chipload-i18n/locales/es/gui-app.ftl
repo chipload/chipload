@@ -27,7 +27,7 @@ app-could-not-update-drawing = No se pudo actualizar el dibujo:
 app-could-not-add = No se pudo añadir { $file }:
 app-could-not-move-drawing = No se pudo mover el dibujo:
 
-# The distance between copies of a part; $dy and $gap carry their unit.
+# The distance between a grid's cells; $dy and $gap carry their unit.
 app-pitch-set = Paso { $dx } × { $dy } (separación { $gap })
 app-pitch-needs-plan = No se pudo fijar el paso a partir de una separación: primero hay que planificar la pieza.
 app-instance-needs-plan = No se pudo colocar la nueva instancia: primero hay que planificar la pieza.

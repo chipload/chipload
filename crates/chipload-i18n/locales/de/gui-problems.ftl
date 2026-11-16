@@ -11,7 +11,7 @@ problems-field-max-overcut = Max. Tiefe unter Rohteil
 problems-field-safe-z = Sicherheitshöhe
 # The machine's travel: how far its axes can move.
 problems-field-travel = Verfahrweg
-problems-field-copies = Kopien
+problems-field-copies = Instanzen
 problems-field-part-name = Name des Teils
 problems-field-parts = Teile
 problems-field-tool-diameter = Werkzeugdurchmesser

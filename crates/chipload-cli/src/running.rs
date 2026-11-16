@@ -684,7 +684,7 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
             ));
         }
         if let Some(text) = copies_text(&job) {
-            out.line(format!("Copies: {text}"));
+            out.line(format!("Instances: {text}"));
         }
         // Numbered as in the project.
         for (line, part) in parts_lines(&job).into_iter().zip(&job.parts) {

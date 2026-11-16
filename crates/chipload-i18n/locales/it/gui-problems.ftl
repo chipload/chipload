@@ -11,7 +11,7 @@ problems-field-max-overcut = Prof. max sotto grezzo
 problems-field-safe-z = Z sicura
 # The machine's travel: how far its axes can move.
 problems-field-travel = Corse
-problems-field-copies = Copie
+problems-field-copies = Istanze
 problems-field-part-name = Nome pezzo
 problems-field-parts = Pezzi
 problems-field-tool-diameter = Diametro utensile

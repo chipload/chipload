@@ -41,7 +41,7 @@ sheet-inlay-steps-no-pocket = Nach dem Fräsen: den Stopfen mit der Stirnseite n
 sheet-turn-no-dowels = { $front } hat keine Passstiftbohrungen für die Stifte: sie vorher hinzufügen oder das Brett an einer Ecke anlegen.
 sheet-turn-corner = Das Brett in dieselbe Ecke des Anschlags schieben wie bei { $front }. Es muss genau { $width } × { $length } groß sein.
 sheet-turn-picture = Das Bild zeigt das Brett, wie es auf der Maschine liegt, Rückseite oben.
-sheet-copies = Kopien
+sheet-copies = Instanzen
 sheet-part = Teil
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
@@ -108,8 +108,8 @@ sheet-column-time = Zeit
 # A part's row over its operations, numbered from 1.
 sheet-part-row = Teil { $number }: { $name }
 sheet-part-row-copies = Teil { $number }: { $name }, { $count ->
-    [one] { $count } Kopie
-   *[other] { $count } Kopien
+    [one] einmal gefräst
+   *[other] { $count }-mal gefräst
 }
 # An operation without a name.
 sheet-operation = Bearbeitung { $number }

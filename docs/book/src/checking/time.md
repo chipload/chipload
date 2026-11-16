@@ -33,14 +33,14 @@ does, from the last run. Folded, it shows the operation's time. Open, it shows:
 - **Lifts:** how many times the tool goes up at rapid: between paths, and at each peck of
   a peck drill. Many lifts in an operation can mean time spent in the air.
 
-The numbers are for all of the part's copies, and a rest pass or floor pass has its own.
+The numbers are for all of the part's instances, and a rest pass or floor pass has its own.
 After a change they are out of date: the section asks you to generate (F5), and says
 *Generating…* while the live preview runs. An operation that is off says so.
 
 ## Statistics of a part
 
 A part's properties end with the same **Statistics** section: the sum of its operations'
-numbers (and their rest and floor passes'), all of its copies included, and how many
+numbers (and their rest and floor passes'), all of its instances included, and how many
 operations were counted. It's what one part costs in time, cutting and lifts, without
 adding up its operations by hand. The moves from one operation to the next and the tool
 changes aren't in it; they are in the job's total in the report.

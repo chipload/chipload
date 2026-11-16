@@ -27,7 +27,7 @@ app-could-not-update-drawing = Kunde inte uppdatera ritningen:
 app-could-not-add = Kunde inte lägga till { $file }:
 app-could-not-move-drawing = Kunde inte flytta ritningen:
 
-# The distance between copies of a part; $dy and $gap carry their unit.
+# The distance between a grid's cells; $dy and $gap carry their unit.
 app-pitch-set = Delning { $dx } × { $dy } ({ $gap } mellanrum)
 app-pitch-needs-plan = Kunde inte sätta delningen från ett mellanrum: detaljen måste planeras först.
 app-instance-needs-plan = Kunde inte placera den nya instansen: detaljen måste planeras först.

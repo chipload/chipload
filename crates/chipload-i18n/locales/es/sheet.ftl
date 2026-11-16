@@ -41,7 +41,7 @@ sheet-inlay-steps-no-pocket = Una vez cortado: encolar el tapón boca abajo en s
 sheet-turn-no-dowels = { $front } no tiene agujeros de pasador: añádelos antes de mecanizarla, o apoya el tablero en una esquina.
 sheet-turn-corner = Empuja el tablero contra la misma esquina del tope que para { $front }. Debe medir exactamente { $width } × { $length }.
 sheet-turn-picture = La imagen muestra el tablero tal como queda en la máquina, con el reverso arriba.
-sheet-copies = Copias
+sheet-copies = Instancias
 sheet-part = Pieza
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
@@ -108,8 +108,8 @@ sheet-column-time = Tiempo
 # A part's row over its operations, numbered from 1.
 sheet-part-row = Pieza { $number }: { $name }
 sheet-part-row-copies = Pieza { $number }: { $name }, { $count ->
-    [one] { $count } copia
-   *[other] { $count } copias
+    [one] cortada una vez
+   *[other] cortada { $count } veces
 }
 # An operation without a name.
 sheet-operation = Operación { $number }

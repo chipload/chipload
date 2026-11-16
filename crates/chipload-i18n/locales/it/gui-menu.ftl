@@ -124,8 +124,8 @@ menu-status-pieces = { $count ->
    *[other] { $count } pezzi
 }
 menu-status-copies = { $count ->
-    [one] { $count } copia
-   *[other] { $count } copie
+    [one] tagliato una volta
+   *[other] tagliato { $count } volte
 }
 # The cursor in program coordinates (from the work zero), after the drawing's X and Y.
 menu-status-work = (pezzo X { $x }  Y { $y })

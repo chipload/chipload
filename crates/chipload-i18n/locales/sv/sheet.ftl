@@ -41,7 +41,7 @@ sheet-inlay-steps-no-pocket = När den är fräst: limma pluggen med framsidan n
 sheet-turn-no-dowels = { $front } har inga styrhål för pinnarna: lägg till dem innan den fräses, eller lägg skivan mot ett hörn.
 sheet-turn-corner = Skjut in skivan i samma hörn av anslaget som för { $front }. Den måste vara exakt { $width } × { $length }.
 sheet-turn-picture = Bilden visar skivan som den ligger på maskinen, baksidan upp.
-sheet-copies = Kopior
+sheet-copies = Instanser
 sheet-part = Detalj
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
@@ -104,9 +104,9 @@ sheet-column-tabs = Bryggor
 sheet-column-time = Tid
 # A part's row over its operations, numbered from 1.
 sheet-part-row = Detalj { $number }: { $name }
-sheet-part-row-copies = { $count ->
-    [one] Detalj { $number }: { $name }, { $count } kopia
-   *[other] Detalj { $number }: { $name }, { $count } kopior
+sheet-part-row-copies = Detalj { $number }: { $name }, { $count ->
+    [one] fräses en gång
+   *[other] fräses { $count } gånger
 }
 # An operation without a name.
 sheet-operation = Operation { $number }

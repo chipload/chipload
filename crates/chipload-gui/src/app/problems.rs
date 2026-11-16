@@ -154,7 +154,7 @@ fn field_label(src: &impl crate::i18n::Lang, field: &str) -> String {
         ["stock", "max_overcut"] => Some(t!(src, "problems-field-max-overcut")),
         ["machine", "safe_z"] => Some(t!(src, "problems-field-safe-z")),
         ["machine", "travel", ..] => Some(t!(src, "problems-field-travel")),
-        ["parts", _, "copies", ..] => Some(t!(src, "problems-field-copies")),
+        ["parts", _, "instances", ..] => Some(t!(src, "problems-field-copies")),
         ["parts", _, "name"] => Some(t!(src, "problems-field-part-name")),
         ["parts", ..] => Some(t!(src, "problems-field-parts")),
         ["tools", _, "diameter"] => Some(t!(src, "problems-field-tool-diameter")),

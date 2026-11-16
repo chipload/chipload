@@ -18,7 +18,7 @@ use crate::{load, write_project};
 
 #[derive(Subcommand)]
 pub enum PartAction {
-    /// The project's parts: id, name, on or off, copies and operations.
+    /// The project's parts: id, name, on or off, instances and operations.
     List {
         /// The project (.chipload).
         project: PathBuf,

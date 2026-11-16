@@ -27,7 +27,7 @@ app-could-not-update-drawing = Die Zeichnung konnte nicht aktualisiert werden:
 app-could-not-add = { $file } konnte nicht hinzugefügt werden:
 app-could-not-move-drawing = Die Zeichnung konnte nicht verschoben werden:
 
-# The distance between copies of a part; $dy and $gap carry their unit.
+# The distance between a grid's cells; $dy and $gap carry their unit.
 app-pitch-set = Teilung { $dx } × { $dy } (Abstand { $gap })
 app-pitch-needs-plan = Die Teilung konnte nicht aus einem Abstand bestimmt werden: das Teil muss zuerst geplant werden.
 app-instance-needs-plan = Die neue Instanz konnte nicht platziert werden: das Teil muss zuerst geplant werden.

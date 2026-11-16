@@ -104,9 +104,9 @@ menu-status-pieces = { $count ->
    *[other] { $count } деталей
 }
 menu-status-copies = { $count ->
-    [one] { $count } копия
-    [few] { $count } копии
-   *[other] { $count } копий
+    [one] { $count } экземпляр
+    [few] { $count } экземпляра
+   *[other] { $count } экземпляров
 }
 menu-status-work = (от нуля детали X { $x }  Y { $y })
 menu-snapped-to = — привязка: { $target }

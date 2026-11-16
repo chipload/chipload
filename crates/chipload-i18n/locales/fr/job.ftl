@@ -77,11 +77,11 @@ job-angle-below-180 = doit être plus grand que 0 et moins de 180 degrés, reçu
 job-ramp-angle-range = doit être plus grand que 0 et au plus 30 degrés, reçu { $got } degrés
 job-flank-angle-range = doit être plus grand que 0 et au plus 90 degrés, reçu { $got } degrés
 
-## Copies in a grid
+## Instances and grids of them
 
 job-copies-per-side = doit aller de 1 à { $most }, reçu { $got }
-job-copies-too-many = au plus { $most } copies en tout, reçu { $got }
-job-copies-pitch-zero = ne doit pas être 0 avec plus d'une copie dans ce sens
+job-copies-too-many = au plus { $most } instances en tout, reçu { $got }
+job-copies-pitch-zero = ne doit pas être 0 avec plus d'une case dans ce sens
 
 ## Pictures and texts
 

@@ -21,7 +21,7 @@ else is cut. It takes the project's widest endmill and 0.5 mm off the top in one
   than entered.
 - **Depths:** with a step down smaller than the end depth, each depth comes back the other
   way, going down beside the stock where the one before ended.
-- **Once:** the stock is faced once, even when the part has [copies](../drawings/copies.md).
+- **Once:** the stock is faced once, even when the part has [instances](../drawings/instances.md).
 
 The setup sheet says how far the tool runs past the stock's ends (its radius): keep clamps
 and fences clear of that.

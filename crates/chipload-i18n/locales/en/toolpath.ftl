@@ -184,7 +184,7 @@ toolpath-vcarve-floor-cleared-none = contours { $contours }: with the { $diamete
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contours { $contours }: { $narrow } of centre line is narrower than the tip ({ $tip }) and isn't carved
 toolpath-plug-too-deep = an inlay plug at most { $deepest } deep fits V-bit { $tool }, got { $got }
-toolpath-plug-copies = an inlay plug carves the whole board, so its part can't have copies
+toolpath-plug-copies = an inlay plug carves the whole board, so its part can't have instances
 toolpath-plug-floor-wide = the floor pass's end mill (tool { $tool }) is wider than V-bit { $bit }: round the plug board's edges it would cut off the board. Use a smaller end mill
 toolpath-plug-no-floor = inlay plug without a floor pass: the board between the walls is left standing and the plug won't go in. Add a floor pass
 toolpath-plug-no-pocket = inlay plug: no pocket for it in another setup (a V-carve of the same shapes with a { $angle }° bit)
@@ -249,9 +249,9 @@ toolpath-error-cancelled = Generation cancelled
 # context texts below.
 toolpath-error-context = { $context }: { $error }
 toolpath-error-label-contour = { $label }, contour #{ $contour }
-# $part is a part's name, $copy the copy's number.
-toolpath-error-part-copy = part { $part }, copy { $copy }
-toolpath-error-copy = copy { $copy }
+# $part is a part's name, $copy the instance's number.
+toolpath-error-part-copy = part { $part }, instance { $copy }
+toolpath-error-copy = instance { $copy }
 # $at is an operation's number in the cut list ("3", "3.1" for a rest pass).
 toolpath-error-no-operation = No operation { $at } in the job
 
@@ -391,12 +391,12 @@ toolpath-error-join-changed = joining overlapping outlines changed what is fille
 toolpath-error-joined-cross = joined outlines cross each other
 toolpath-error-outline-unreadable = an outline the geometry library can't read
 
-## Errors: copies and parts
+## Errors: instances and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-# $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
+# $copy and $other_copy are instances' numbers; the X and Y numbers are without their unit.
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
-toolpath-error-parts-overlap = Part "{ $part }" copy { $copy } overlaps part "{ $other_part }" copy { $other_copy } (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }): move the copies apart or change the grid
+toolpath-error-parts-overlap = Part "{ $part }" instance { $copy } overlaps part "{ $other_part }" instance { $other_copy } (X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }): move them apart
 
 ## Errors: inside the geometry library
 

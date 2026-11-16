@@ -1,4 +1,4 @@
-# Copies of a part in a grid (crates/chipload-pipeline, docs/specs/copies-grid.md and
+# A part's instances, from a grid or placed one by one (crates/chipload-pipeline, docs/specs/instances.md and
 # parts.md), as the command line and the setup sheet tell them.
 
 # A part with its instances (docs/specs/instances.md): $count in all, the part itself
@@ -12,9 +12,9 @@ pipeline-instances = { $count } insgesamt{ $turned ->
 }, { $order }
 pipeline-copies-by-operation = Bearbeitung für Bearbeitung
 pipeline-instances-by-instance = Instanz für Instanz
-# A part without a grid: one copy.
+# A part without instances: cut once.
 pipeline-copies-one = eine
-# A part of the project, numbered from 1, with its name and its copies.
+# A part of the project, numbered from 1, with its name and its instances.
 pipeline-copies-part = Teil { $number } { $name }: { $copies }
 # The same, for a part switched off.
 pipeline-copies-part-off = Teil { $number } { $name }: { $copies }, aus: wird nicht gefräst

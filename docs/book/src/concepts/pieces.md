@@ -84,4 +84,4 @@ and `--clearance` set the joints. `chipload plan` still plans a setup in pieces 
 
 - Laying several pieces out on one board: each piece gets a board of its own.
 - Seams along a line you draw, and joints other than knobs and fingers.
-- Pieces together with a back side (two-sided work) or with copies.
+- Pieces together with a back side (two-sided work) or with instances.

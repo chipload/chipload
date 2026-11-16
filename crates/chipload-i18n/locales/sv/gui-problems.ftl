@@ -11,7 +11,7 @@ problems-field-max-overcut = Max djup under ämnet
 problems-field-safe-z = Säker Z
 # The machine's travel: how far its axes can move.
 problems-field-travel = Slaglängd
-problems-field-copies = Kopior
+problems-field-copies = Instanser
 problems-field-part-name = Detaljnamn
 problems-field-parts = Detaljer
 problems-field-tool-diameter = Verktygsdiameter

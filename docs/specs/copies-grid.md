@@ -1,5 +1,9 @@
 # Spec: copies in a grid (basic nesting)
 
+**Superseded (2026-11-16) by docs/specs/instances.md:** a part's copies are instances since
+schema 38; a grid is now a way to make them (`part instance array`, `copies`). Kept for its
+history.
+
 Status: **approved and implemented 2026-10-10.** Decisions 2-4 as recommended; decision
 1 changed by the user: the cut order is a setting ("there should be an user option
 between operation by operation or part by part").

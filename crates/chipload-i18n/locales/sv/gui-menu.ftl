@@ -124,8 +124,8 @@ menu-status-pieces = { $count ->
    *[other] { $count } st
 }
 menu-status-copies = { $count ->
-    [one] { $count } kopia
-   *[other] { $count } kopior
+    [one] fräses en gång
+   *[other] fräses { $count } gånger
 }
 # The cursor in program coordinates (from the work zero), after the drawing's X and Y.
 menu-status-work = (arbete X { $x }  Y { $y })

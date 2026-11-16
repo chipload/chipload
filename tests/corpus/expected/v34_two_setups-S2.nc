@@ -4,7 +4,7 @@
 G21 G90 G17 G94
 M3 S18000
 G4 P3.000
-(Part 2: part B, 2 copies)
+(Part 2: part B, cut 2 times)
 G0 Z5.000
 G0 X20.000 Y12.000
 G0 Z1.000

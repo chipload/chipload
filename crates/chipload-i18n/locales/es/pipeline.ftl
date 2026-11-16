@@ -10,11 +10,11 @@ pipeline-post-units = el postprocesador { $post } solo escribe código G en mm (
 ## Planning notes
 
 pipeline-drawing-outside-stock = El dibujo se sale del material en bruto
-# $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
+# $count is how many times the part is cut. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = Las { $count } copias cortan de X{ $x0 } a { $x1 }, de Y{ $y0 } a { $y1 }, fuera del material en bruto ({ $stock_x } × { $stock_y }); revisa el material en bruto o las copias de la pieza.
+pipeline-copies-beyond-stock = Las { $count } instancias cortan de X{ $x0 } a { $x1 }, de Y{ $y0 } a { $y1 }, fuera del material en bruto ({ $stock_x } × { $stock_y }); revise el material en bruto o las instancias de la pieza.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Pieza { $part }: las { $count } copias cortan de X{ $x0 } a { $x1 }, de Y{ $y0 } a { $y1 }, fuera del material en bruto ({ $stock_x } × { $stock_y }); revisa el material en bruto o las copias de la pieza.
+pipeline-part-copies-beyond-stock = Pieza { $part }: las { $count } instancias cortan de X{ $x0 } a { $x1 }, de Y{ $y0 } a { $y1 }, fuera del material en bruto ({ $stock_x } × { $stock_y }); revise el material en bruto o las instancias de la pieza.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
 pipeline-layer-clash = { $label }: la capa "{ $layer }" está en { $sources }; se cortan todas. Limítala a una (selecciona la capa bajo ese DXF en el Navegador)
@@ -391,7 +391,7 @@ pipeline-shapes-copy-imported = solo se pueden copiar las formas dibujadas, no l
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = la forma { $id } se importó del DXF y no se puede cambiar aquí; cambia el dibujo y usa Actualizar dibujo desde DXF
 
-## Errors: parts and copies
+## Errors: parts and instances
 
 pipeline-no-part = No hay pieza { $id } en el proyecto
 # $id is an instance's number in the part (2 on).

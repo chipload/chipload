@@ -6,7 +6,7 @@ playback-play-hover = Reproducir el programa a la velocidad elegida
 # $time and $total: durations, e.g. "12 min 30 s of 41 min".
 playback-time-of = { $time } de { $total }
 # $operation: the operation's number and name, e.g. "Operation 3 (Outline)".
-playback-operation-copy = { $operation }, copia { $copy }
+playback-operation-copy = { $operation }, instancia { $copy }
 # $position: where the tool is, e.g. "X 10.000 Y 5.000 Z -2.000 mm".
 playback-rapid = { $position }, rápido
 # $feed: the feed rate, a number in the display units.

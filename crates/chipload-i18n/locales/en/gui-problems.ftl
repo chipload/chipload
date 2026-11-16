@@ -11,7 +11,7 @@ problems-field-max-overcut = Max depth below stock
 problems-field-safe-z = Safe Z
 # The machine's travel: how far its axes can move.
 problems-field-travel = Travel
-problems-field-copies = Copies
+problems-field-copies = Instances
 problems-field-part-name = Part name
 problems-field-parts = Parts
 problems-field-tool-diameter = Tool diameter

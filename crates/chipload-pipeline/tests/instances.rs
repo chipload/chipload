@@ -162,7 +162,7 @@ fn a_turned_instance_may_not_cut_into_another_part() {
     }];
     let err = run_job(&job).unwrap_err().to_string();
     assert!(
-        err.contains("Part \"Dot\" copy 1 overlaps part \"Box\" copy 2"),
+        err.contains("Part \"Dot\" instance 1 overlaps part \"Box\" instance 2"),
         "{err}"
     );
 }

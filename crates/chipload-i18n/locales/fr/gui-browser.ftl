@@ -49,7 +49,7 @@ browser-job-settings-problems-hover = Machine, post-processeur, unités et cours
 browser-tools = Outils
 browser-tools-hover = Les outils du projet : cliquer pour les voir tous et en ajouter un
 
-# Parts: groups of operations, each cut with its copies before the next.
+# Parts: groups of operations, each cut with its instances before the next.
 browser-setups = Montages
 browser-setups-hover = Les panneaux dans lesquels le projet est usiné, l'un après l'autre : chacun un programme à lui, avec son brut et son origine pièce. Un clic le rend actif
 browser-add-setup = Ajouter un montage
@@ -69,7 +69,7 @@ browser-export-setup-hover = Son programme et sa fiche de réglage, nommés -S1,
 browser-new-part = Nouvelle pièce
 # At a part row's right end: the part new operations go into.
 browser-part-active = active
-browser-part-active-hover = La pièce active : les nouvelles opérations y vont. Cliquer pour ses copies ; clic droit pour plus
+browser-part-active-hover = La pièce active : les nouvelles opérations y vont. Cliquer pour ses propriétés et instances ; clic droit pour plus
 browser-part-mirrored = en miroir
 browser-add-instance = Ajouter une instance
 browser-add-instance-hover = Placer la pièce encore une fois à côté de ce qu'elle usine, liée : modifiez la pièce et l'instance suit. Faites-la glisser pour la déplacer, sa poignée ronde pour la tourner.
@@ -79,7 +79,7 @@ browser-instance-hover = La pièce placée encore une fois : les mêmes formes e
 browser-instance-mirror = Miroir
 browser-instance-turn = Tourner de 90°
 browser-instance-remove = Supprimer
-browser-part-hover = Cliquer pour ses copies ; double-clic pour en faire la pièce active ; clic droit pour plus
+browser-part-hover = Cliquer pour ses propriétés et instances ; double-clic pour en faire la pièce active ; clic droit pour plus
 # A verb: make this the active part.
 browser-activate = Activer
 browser-activate-hover = Les nouvelles opérations vont dans la pièce active

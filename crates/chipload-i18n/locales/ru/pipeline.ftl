@@ -1,7 +1,7 @@
 pipeline-post-units = постпроцессор { $post } записывает G-code только в мм (в конфигурации нет «{ $units }» в units)
 pipeline-drawing-outside-stock = Чертёж выходит за пределы заготовки
-pipeline-copies-beyond-stock = Копии ({ $count }) обрабатывают X{ $x0 } … { $x1 }, Y{ $y0 } … { $y1 }, за пределами заготовки ({ $stock_x } × { $stock_y }); проверьте заготовку или копии детали.
-pipeline-part-copies-beyond-stock = Деталь { $part }: копии ({ $count }) обрабатывают X{ $x0 } … { $x1 }, Y{ $y0 } … { $y1 }, за пределами заготовки ({ $stock_x } × { $stock_y }); проверьте заготовку или копии детали.
+pipeline-copies-beyond-stock = Экземпляры ({ $count }) обрабатывают X{ $x0 } … { $x1 }, Y{ $y0 } … { $y1 }, за пределами заготовки ({ $stock_x } × { $stock_y }); проверьте заготовку или экземпляры детали.
+pipeline-part-copies-beyond-stock = Деталь { $part }: экземпляры ({ $count }) обрабатывают X{ $x0 } … { $x1 }, Y{ $y0 } … { $y1 }, за пределами заготовки ({ $stock_x } × { $stock_y }); проверьте заготовку или экземпляры детали.
 pipeline-layer-clash = { $label }: слой «{ $layer }» есть в { $sources }; обрабатываются все эти источники. Ограничьте одним (выберите слой под нужным DXF в дереве проекта)
 pipeline-and = { $list } и { $last }
 pipeline-source-named = { $name }

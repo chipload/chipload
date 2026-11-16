@@ -2424,7 +2424,7 @@ A project's parts: groups of operations, each cut with its instances before the 
 
 ### `chipload part list`
 
-The project's parts: id, name, on or off, copies and operations
+The project's parts: id, name, on or off, instances and operations
 
 ```text
 chipload part list <PROJECT>

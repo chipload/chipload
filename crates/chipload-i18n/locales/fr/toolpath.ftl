@@ -183,7 +183,7 @@ toolpath-vcarve-floor-cleared-none = contours { $contours } : avec la fraise dro
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contours { $contours } : { $narrow } de ligne médiane sont plus étroits que la pointe ({ $tip }) et ne sont pas gravés
 toolpath-plug-too-deep = un bouchon de marqueterie tient au plus { $deepest } de profondeur avec la fraise en V { $tool }, reçu { $got }
-toolpath-plug-copies = un bouchon de marqueterie usine toute la planche, sa pièce ne peut donc pas avoir de copies
+toolpath-plug-copies = un bouchon de marqueterie usine toute la planche, sa pièce ne peut donc pas avoir d'instances
 toolpath-plug-floor-wide = la fraise droite de la passe de fond (outil { $tool }) est plus large que la fraise en V { $bit } : aux bords de la planche du bouchon, elle usinerait hors de la planche. Prenez une fraise plus petite
 toolpath-plug-no-floor = bouchon de marqueterie sans passe de fond : la planche entre les parois reste debout et le bouchon n’entrera pas. Ajoutez une passe de fond
 toolpath-plug-no-pocket = bouchon de marqueterie : aucune poche pour lui dans un autre montage (une gravure en V des mêmes formes avec une fraise à { $angle }°)
@@ -248,9 +248,9 @@ toolpath-error-cancelled = Calcul annulé
 # context texts below.
 toolpath-error-context = { $context } : { $error }
 toolpath-error-label-contour = { $label }, contour #{ $contour }
-# $part is a part's name, $copy the copy's number.
-toolpath-error-part-copy = pièce { $part }, copie { $copy }
-toolpath-error-copy = copie { $copy }
+# $part is a part's name, $copy the instance's number.
+toolpath-error-part-copy = pièce { $part }, instance { $copy }
+toolpath-error-copy = instance { $copy }
 # $at is an operation's number in the cut list ("3", "3.1" for a rest pass).
 toolpath-error-no-operation = Aucune opération { $at } dans le projet
 
@@ -393,12 +393,12 @@ toolpath-error-join-changed = la fusion de contours qui se chevauchent a changé
 toolpath-error-joined-cross = les contours fusionnés se croisent
 toolpath-error-outline-unreadable = un contour que la bibliothèque de géométrie ne peut pas lire
 
-## Errors: copies and parts
+## Errors: instances and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-# $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
+# $copy and $other_copy are instances' numbers; the X and Y numbers are without their unit.
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
-toolpath-error-parts-overlap = La copie { $copy } de la pièce "{ $part }" chevauche la copie { $other_copy } de la pièce "{ $other_part }" (X{ $x0 } à { $x1 }, Y{ $y0 } à { $y1 }) : écartez les copies ou modifiez la grille
+toolpath-error-parts-overlap = L’instance { $copy } de la pièce "{ $part }" chevauche l’instance { $other_copy } de la pièce "{ $other_part }" (X{ $x0 } à { $x1 }, Y{ $y0 } à { $y1 }) : écartez-les
 
 ## Errors: inside the geometry library
 

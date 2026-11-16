@@ -389,7 +389,7 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
-Copies: 6 in all, instance by instance
+Instances: 6 in all, instance by instance
 Estimated time: 10 min 10 s (cutting 9 min 47 s, rapids 20 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.2 m, 12 lifts
@@ -1350,7 +1350,7 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
-Copies: 6 in all, instance by instance
+Instances: 6 in all, instance by instance
 Estimated time: 10 min 10 s (cutting 9 min 47 s, rapids 20 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.2 m, 12 lifts
@@ -1544,7 +1544,7 @@ warning: Operation 2 (Outline): cuts 0.300 mm below the stock (into the spoilboa
 Operation 1: a ring starts at (68.607, 73.384) (default)
 Operation 1: a ring starts at (118.737, 76.213) (default)
 Operation 2: a ring starts at (47.857, 26.889) (default)
-Copies: 6 in all, operation by operation
+Instances: 6 in all, operation by operation
 Estimated time: 10 min 15 s (cutting 9 min 47 s, rapids 25 s, spindle 3 s)
 Cut outline: 464.665 × 242.221 mm (X 27.667 … 492.333, Y 23.889 … 266.110, the tool included): the smallest stock that holds the job.
   Operation 1 (Holes): 4 min 9 s; cutting 4.6 m, plunging 48 mm, rapids 1.1 m, 12 lifts

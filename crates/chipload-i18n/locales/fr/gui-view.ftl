@@ -11,7 +11,7 @@ view-legend-selected = sélectionné
 view-legend-operation = les contours de l'opération
 # The material block the part is cut from.
 view-legend-stock = brut
-# Copies of the part laid out in a grid.
+# A part's instances, drawn faded where they are cut.
 view-legend-instances = instances
 view-legend-mirrored = pièce en miroir, telle qu’usinée
 view-legend-rim = bord : contour rempli, plat, haut de la rampe

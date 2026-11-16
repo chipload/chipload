@@ -69,7 +69,7 @@ The **Browser** on the left holds your library and the whole project as a tree:
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
   - **Setups**, each with its **Stock**, its **Work zero** and its **parts** under it, each part
-    with its operations, in cutting order, then its [instances](drawings/copies.md). A line marks each tool change. A floor pass is
+    with its operations, in cutting order, then its [instances](drawings/instances.md). A line marks each tool change. A floor pass is
     cut before its V-carve and a rest pass after its pockets, so the line above them names
     their tools in the order they are cut: *tool change → T2 → T1*. See
     [Setups](concepts/setups.md) and [Parts](operations/parts.md).
@@ -223,7 +223,7 @@ The **Properties** panel on the right shows what is open, under a title:
 - **A picture:** its width, lower-left corner and layer. A change applies when you finish
   the edit, and traces the picture again. *Trace settings…* opens its
   [window](drawings/images.md).
-- **A part:** its name, on or off, and its [instances](drawings/copies.md).
+- **A part:** its name, on or off, and its [instances](drawings/instances.md).
 - **An instance:** on or off, its mirror, its rotation and how far it is moved.
 - **An operation:** its settings, under its kind and number ("Pocket · Operation 1"): its
   name, shapes, tool and side, then its sections (*Cut*, *Feeds*, *Holding*, …) folded,

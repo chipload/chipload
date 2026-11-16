@@ -183,7 +183,7 @@ toolpath-vcarve-floor-cleared-none = konturer { $contours }: med pinnfräsen på
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = konturerna { $contours }: { $narrow } av mittlinjen är smalare än spetsen ({ $tip }) och graveras inte
 toolpath-plug-too-deep = en inläggningsplugg passar V-fräs { $tool } högst { $deepest } djupt, fick { $got }
-toolpath-plug-copies = en inläggningsplugg fräser hela skivan, så dess del kan inte ha kopior
+toolpath-plug-copies = en inläggningsplugg fräser hela skivan, så dess detalj kan inte ha instanser
 toolpath-plug-floor-wide = bottenpassets pinnfräs (verktyg { $tool }) är bredare än V-fräs { $bit }: vid pluggskivans kanter skulle den fräsa utanför skivan. Ta en mindre pinnfräs
 toolpath-plug-no-floor = inläggningsplugg utan bottenpass: skivan mellan väggarna står kvar och pluggen går inte i. Lägg till ett bottenpass
 toolpath-plug-no-pocket = inläggningsplugg: ingen ficka till den i en annan uppspänning (en V-gravering av samma former med en { $angle }°-fräs)
@@ -248,9 +248,9 @@ toolpath-error-cancelled = Beräkningen avbröts
 # context texts below.
 toolpath-error-context = { $context }: { $error }
 toolpath-error-label-contour = { $label }, kontur #{ $contour }
-# $part is a part's name, $copy the copy's number.
-toolpath-error-part-copy = detalj { $part }, kopia { $copy }
-toolpath-error-copy = kopia { $copy }
+# $part is a part's name, $copy the instance's number.
+toolpath-error-part-copy = detalj { $part }, instans { $copy }
+toolpath-error-copy = instans { $copy }
 # $at is an operation's number in the cut list ("3", "3.1" for a rest pass).
 toolpath-error-no-operation = Det finns ingen operation { $at } i jobbet
 
@@ -390,12 +390,12 @@ toolpath-error-join-changed = sammanfogningen av överlappande konturer ändrade
 toolpath-error-joined-cross = sammanfogade konturer korsar varandra
 toolpath-error-outline-unreadable = en kontur som geometribiblioteket inte kan läsa
 
-## Errors: copies and parts
+## Errors: instances and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-# $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
+# $copy and $other_copy are instances' numbers; the X and Y numbers are without their unit.
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
-toolpath-error-parts-overlap = Detaljen "{ $part }" kopia { $copy } överlappar detaljen "{ $other_part }" kopia { $other_copy } (X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }): flytta isär kopiorna eller ändra rutnätet
+toolpath-error-parts-overlap = Detaljen "{ $part }" instans { $copy } överlappar detaljen "{ $other_part }" instans { $other_copy } (X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }): flytta isär dem
 
 ## Errors: inside the geometry library
 

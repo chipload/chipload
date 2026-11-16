@@ -303,8 +303,11 @@ Smaller follow-ups noted along the way, not in the order above:
   cuts, 10 mm away), `part set --order`, `copies` kept as the old name. Step 4 built: the
   window (part menu *Add instance* / *Add mirrored instance*, numbered ghosts picked,
   dragged and turned by a handle with quarter-turn snapping, Escape and undo, Browser rows
-  with Mirror / Turn 90° / Remove, the instance form). Left: the Compass on an instance.
-  Next: step 5, the sheet, report, guide page renamed, schemas.
+  with Mirror / Turn 90° / Remove, the instance form). Step 5 built: "copies" is
+  "instances" everywhere a user reads it (sheet, report, status bar, G-code part comment
+  "cut N times", errors, seven languages), the guide's page is Instances
+  (drawings/instances.md). All five steps done; the user to try it. Left: the Compass on
+  an instance.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced

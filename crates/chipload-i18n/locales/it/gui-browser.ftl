@@ -49,7 +49,7 @@ browser-job-settings-problems-hover = Macchina, post-processore, unità e corse.
 browser-tools = Utensili
 browser-tools-hover = Gli utensili del progetto: fai clic per vederli tutti e aggiungerne uno
 
-# Parts: groups of operations, each cut with its copies before the next.
+# Parts: groups of operations, each cut with its instances before the next.
 browser-setups = Piazzamenti
 browser-setups-hover = I pannelli da cui si ricava il progetto, uno dopo l'altro: ognuno un programma a sé, con il suo grezzo e il suo zero pezzo. Un clic lo rende attivo
 browser-add-setup = Aggiungi un piazzamento
@@ -69,7 +69,7 @@ browser-export-setup-hover = Il suo programma e il foglio di attrezzaggio, chiam
 browser-new-part = Nuovo pezzo
 # At a part row's right end: the part new operations go into.
 browser-part-active = attivo
-browser-part-active-hover = Il pezzo attivo: qui vanno le nuove lavorazioni. Clic per le sue copie; clic destro per altro
+browser-part-active-hover = Il pezzo attivo: qui vanno le nuove lavorazioni. Clic per le sue proprietà e istanze; clic destro per altro
 browser-part-mirrored = specchiato
 browser-add-instance = Aggiungi istanza
 browser-add-instance-hover = Posiziona di nuovo il pezzo accanto a ciò che taglia, collegato: modifichi il pezzo e l’istanza lo segue. La trascini per spostarla, la sua maniglia tonda per ruotarla.
@@ -79,7 +79,7 @@ browser-instance-hover = Il pezzo posizionato di nuovo: le stesse forme e lavora
 browser-instance-mirror = Specchia
 browser-instance-turn = Ruota di 90°
 browser-instance-remove = Rimuovi
-browser-part-hover = Clic per le sue copie; doppio clic per renderlo il pezzo attivo; clic destro per altro
+browser-part-hover = Clic per le sue proprietà e istanze; doppio clic per renderlo il pezzo attivo; clic destro per altro
 # A verb: make this the active part.
 browser-activate = Attiva
 browser-activate-hover = Le nuove lavorazioni vanno nel pezzo attivo

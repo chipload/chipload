@@ -27,7 +27,7 @@ app-could-not-update-drawing = Impossibile aggiornare il disegno:
 app-could-not-add = Impossibile aggiungere { $file }:
 app-could-not-move-drawing = Impossibile spostare il disegno:
 
-# The distance between copies of a part; $dy and $gap carry their unit.
+# The distance between a grid's cells; $dy and $gap carry their unit.
 app-pitch-set = Passo { $dx } × { $dy } (distanza { $gap })
 app-pitch-needs-plan = Impossibile impostare il passo da una distanza: prima va pianificato il pezzo.
 app-instance-needs-plan = Impossibile posizionare la nuova istanza: prima va pianificato il pezzo.

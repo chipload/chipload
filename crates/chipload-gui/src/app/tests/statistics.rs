@@ -189,5 +189,9 @@ fn a_parts_section_is_last_in_its_properties() {
         .top();
     assert!(statistics > note, "{statistics} under {note}");
     assert!(harness.query_by_label("Lifts").is_some());
-    assert!(harness.query_by_label_contains("For 2 copies.").is_some());
+    assert!(
+        harness
+            .query_by_label_contains("For 2 instances, the part included.")
+            .is_some()
+    );
 }

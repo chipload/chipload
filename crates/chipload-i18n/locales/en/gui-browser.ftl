@@ -49,7 +49,7 @@ browser-job-settings-problems-hover = Machine, post-processor, units and travel.
 browser-tools = Tools
 browser-tools-hover = The project's tools: click to see them all and add one
 
-# Parts: groups of operations, each cut with its copies before the next.
+# Parts: groups of operations, each cut with its instances before the next.
 browser-setups = Setups
 browser-setups-hover = The boards the project is cut from, one after the other: each its own program, with its stock and work zero. Click one to make it the active one
 browser-add-setup = Add a setup
@@ -69,7 +69,7 @@ browser-export-setup-hover = Its program and setup sheet, named -S1, -S2 when th
 browser-new-part = New part
 # At a part row's right end: the part new operations go into.
 browser-part-active = active
-browser-part-active-hover = The active part: new operations go here. Click for its copies; right-click for more
+browser-part-active-hover = The active part: new operations go here. Click for its properties and instances; right-click for more
 browser-part-mirrored = mirrored
 browser-add-instance = Add instance
 browser-add-instance-hover = Place the part again beside what it cuts, linked: change the part and the instance follows. Drag it to move it, its round handle to turn it.
@@ -79,7 +79,7 @@ browser-instance-hover = The part placed again: the same shapes and operations, 
 browser-instance-mirror = Mirror
 browser-instance-turn = Turn 90°
 browser-instance-remove = Remove
-browser-part-hover = Click for its copies; double-click to make it the active part; right-click for more
+browser-part-hover = Click for its properties and instances; double-click to make it the active part; right-click for more
 # A verb: make this the active part.
 browser-activate = Activate
 browser-activate-hover = New operations go into the active part

@@ -587,7 +587,7 @@ fn parts_are_cut_one_after_the_other_each_with_its_copies() {
     // A comment where each part starts.
     assert_eq!(
         plan.program.comments,
-        ["Part 1: Part 1, 2 copies", "Part 2: B, 2 copies"]
+        ["Part 1: Part 1, cut 2 times", "Part 2: B, cut 2 times"]
     );
     let marked: Vec<usize> = plan
         .program
@@ -634,7 +634,7 @@ fn a_copy_may_not_cut_into_another_part_but_the_parts_as_drawn_may_overlap() {
     assert_eq!(refused(-148.0), None);
     let err = refused(-148.1).unwrap();
     assert!(
-        err.contains("Part \"B\" copy 2 overlaps part \"Part 1\" copy 1"),
+        err.contains("Part \"B\" instance 2 overlaps part \"Part 1\" instance 1"),
         "{err}"
     );
     // Drawn on top of each other, without copies: allowed (an engraving over a cut-out).
@@ -728,7 +728,7 @@ fn a_copy_in_another_parts_notch_is_allowed_when_the_cuts_keep_apart() {
     let err = plan_job(&tight, &contours(&tight)).unwrap_err();
     assert!(
         err.to_string()
-            .contains("Part \"B\" copy 2 overlaps part \"Part 1\" copy 1"),
+            .contains("Part \"B\" instance 2 overlaps part \"Part 1\" instance 1"),
         "{err}"
     );
 }

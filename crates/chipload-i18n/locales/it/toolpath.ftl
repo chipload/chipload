@@ -183,7 +183,7 @@ toolpath-vcarve-floor-cleared-none = contorni { $contours }: con la fresa piatta
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = contorni { $contours }: { $narrow } di linea mediana sono più stretti della punta ({ $tip }) e non vengono incisi
 toolpath-plug-too-deep = un tassello d’intarsio è al massimo profondo { $deepest } con la fresa a V { $tool }, trovato { $got }
-toolpath-plug-copies = un tassello d’intarsio lavora tutta la tavola, quindi il suo pezzo non può avere copie
+toolpath-plug-copies = un tassello d’intarsio lavora tutta la tavola, quindi il suo pezzo non può avere istanze
 toolpath-plug-floor-wide = la fresa cilindrica della passata di fondo (utensile { $tool }) è più larga della fresa a V { $bit }: ai bordi della tavola del tassello taglierebbe fuori dalla tavola. Usa una fresa più piccola
 toolpath-plug-no-floor = tassello d’intarsio senza passata di fondo: la tavola tra le pareti resta in piedi e il tassello non entra. Aggiungi una passata di fondo
 toolpath-plug-no-pocket = tassello d’intarsio: nessuna tasca per lui in un altro piazzamento (un intaglio a V delle stesse forme con una fresa a { $angle }°)
@@ -248,9 +248,9 @@ toolpath-error-cancelled = Generazione annullata
 # context texts below.
 toolpath-error-context = { $context }: { $error }
 toolpath-error-label-contour = { $label }, contorno #{ $contour }
-# $part is a part's name, $copy the copy's number.
-toolpath-error-part-copy = pezzo { $part }, copia { $copy }
-toolpath-error-copy = copia { $copy }
+# $part is a part's name, $copy the instance's number.
+toolpath-error-part-copy = pezzo { $part }, istanza { $copy }
+toolpath-error-copy = istanza { $copy }
 # $at is an operation's number in the cut list ("3", "3.1" for a rest pass).
 toolpath-error-no-operation = Nessuna lavorazione { $at } nel lavoro
 
@@ -390,12 +390,12 @@ toolpath-error-join-changed = l'unione di contorni sovrapposti ha cambiato ciò 
 toolpath-error-joined-cross = i contorni uniti si attraversano
 toolpath-error-outline-unreadable = un contorno che la libreria geometrica non riesce a leggere
 
-## Errors: copies and parts
+## Errors: instances and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-# $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
+# $copy and $other_copy are instances' numbers; the X and Y numbers are without their unit.
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
-toolpath-error-parts-overlap = Il pezzo "{ $part }" copia { $copy } si sovrappone al pezzo "{ $other_part }" copia { $other_copy } (da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }): allontana le copie o cambia la griglia
+toolpath-error-parts-overlap = Il pezzo "{ $part }" istanza { $copy } si sovrappone al pezzo "{ $other_part }" istanza { $other_copy } (da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }): le allontani
 
 ## Errors: inside the geometry library
 

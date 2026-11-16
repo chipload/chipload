@@ -11,7 +11,7 @@ problems-field-max-overcut = Prof. máx. bajo el material
 problems-field-safe-z = Z segura
 # The machine's travel: how far its axes can move.
 problems-field-travel = Recorrido
-problems-field-copies = Copias
+problems-field-copies = Instancias
 problems-field-part-name = Nombre de la pieza
 problems-field-parts = Piezas
 problems-field-tool-diameter = Diámetro de la herramienta

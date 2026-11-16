@@ -183,7 +183,7 @@ toolpath-vcarve-floor-cleared-none = Konturen { $contours }: mit dem Schaftfräs
 # $narrow is a length of centre line, $tip the V-bit's tip diameter.
 toolpath-vcarve-narrow = Konturen { $contours }: { $narrow } Mittellinie sind schmaler als die Spitze ({ $tip }) und werden nicht graviert
 toolpath-plug-too-deep = ein Intarsien-Stopfen passt zu V-Fräser { $tool } bis { $deepest } tief, ist { $got }
-toolpath-plug-copies = ein Intarsien-Stopfen fräst das ganze Brett, sein Teil kann daher keine Kopien haben
+toolpath-plug-copies = ein Intarsien-Stopfen fräst das ganze Brett, sein Teil kann daher keine Instanzen haben
 toolpath-plug-floor-wide = der Schaftfräser des Bodendurchgangs (Werkzeug { $tool }) ist breiter als V-Fräser { $bit }: an den Rändern des Stopfenbretts würde er neben dem Brett fräsen. Nimm einen kleineren Schaftfräser
 toolpath-plug-no-floor = Intarsien-Stopfen ohne Bodendurchgang: das Brett zwischen den Wänden bleibt stehen und der Stopfen geht nicht hinein. Füge einen Bodendurchgang hinzu
 toolpath-plug-no-pocket = Intarsien-Stopfen: keine Tasche dafür in einer anderen Aufspannung (ein V-Carving derselben Formen mit einem { $angle }°-Fräser)
@@ -248,9 +248,9 @@ toolpath-error-cancelled = Berechnung abgebrochen
 # context texts below.
 toolpath-error-context = { $context }: { $error }
 toolpath-error-label-contour = { $label }, Kontur #{ $contour }
-# $part is a part's name, $copy the copy's number.
-toolpath-error-part-copy = Teil { $part }, Kopie { $copy }
-toolpath-error-copy = Kopie { $copy }
+# $part is a part's name, $copy the instance's number.
+toolpath-error-part-copy = Teil { $part }, Instanz { $copy }
+toolpath-error-copy = Instanz { $copy }
 # $at is an operation's number in the cut list ("3", "3.1" for a rest pass).
 toolpath-error-no-operation = Keine Bearbeitung { $at } im Job
 
@@ -394,12 +394,12 @@ toolpath-error-join-changed = das Vereinigen überlappender Umrisse hat bei { $a
 toolpath-error-joined-cross = vereinigte Umrisse kreuzen sich
 toolpath-error-outline-unreadable = ein Umriss, den die Geometriebibliothek nicht lesen kann
 
-## Errors: copies and parts
+## Errors: instances and parts
 
 # $width is the cut's width; $got the pitch, without its unit.
-# $other and $copy are copies' numbers; $dx and $dy the pitch, without its unit.
+# $copy and $other_copy are instances' numbers; the X and Y numbers are without their unit.
 # $part and $other_part are parts' names; $x0 and $y0 are without their unit.
-toolpath-error-parts-overlap = Teil „{ $part }“ Kopie { $copy } überlappt Teil „{ $other_part }“ Kopie { $other_copy } (X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }): rücken Sie die Kopien auseinander oder ändern Sie das Raster
+toolpath-error-parts-overlap = Teil „{ $part }“ Instanz { $copy } überlappt Teil „{ $other_part }“ Instanz { $other_copy } (X{ $x0 } bis { $x1 }, Y{ $y0 } bis { $y1 }): rücken Sie sie auseinander
 
 ## Errors: inside the geometry library
 

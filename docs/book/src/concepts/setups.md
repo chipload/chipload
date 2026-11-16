@@ -18,7 +18,7 @@ crashes come from.
   [Stock and work zero](stock.md) describes. A board that fits the drawing fits **its own
   parts**: the shapes its operations cut.
 - **Its work zero.**
-- **Its parts**, each with its operations and copies ([Parts](../operations/parts.md)).
+- **Its parts**, each with its operations and instances ([Parts](../operations/parts.md)).
 
 The drawing, the machine, the tools and the materials are the project's, shared by every
 setup: you draw all parts in one drawing, a layer per part, and each setup's board is placed

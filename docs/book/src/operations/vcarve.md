@@ -211,7 +211,7 @@ take up. Refused:
 
 - a plug deeper than its V-bit cuts with its cone;
 - a plug that ignores kinks;
-- copies of the plug's part (the plug carves its whole board);
+- instances of the plug's part (the plug carves its whole board);
 - a floor end mill wider than the V-bit (it would cut off the board's edges).
 
 **Steps:**

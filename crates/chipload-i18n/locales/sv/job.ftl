@@ -77,11 +77,11 @@ job-angle-below-180 = måste vara mer än 0 och mindre än 180 grader, fick { $g
 job-ramp-angle-range = måste vara mer än 0 och högst 30 grader, fick { $got } grader
 job-flank-angle-range = måste vara mer än 0 och högst 90 grader, fick { $got } grader
 
-## Copies in a grid
+## Instances and grids of them
 
 job-copies-per-side = måste vara från 1 till { $most }, fick { $got }
-job-copies-too-many = högst { $most } kopior totalt, fick { $got }
-job-copies-pitch-zero = får inte vara 0 med mer än en kopia i den riktningen
+job-copies-too-many = högst { $most } instanser totalt, fick { $got }
+job-copies-pitch-zero = får inte vara 0 med mer än en cell i den riktningen
 
 ## Pictures and texts
 

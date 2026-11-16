@@ -27,7 +27,7 @@ app-could-not-update-drawing = Could not update the drawing:
 app-could-not-add = Could not add { $file }:
 app-could-not-move-drawing = Could not move the drawing:
 
-# The distance between copies of a part; $dy and $gap carry their unit.
+# The distance between a grid's cells; $dy and $gap carry their unit.
 app-pitch-set = Pitch { $dx } × { $dy } ({ $gap } gap)
 app-pitch-needs-plan = Could not set the pitch from a gap: the part has to be planned first.
 app-instance-needs-plan = Could not place the new instance: the part has to be planned first.

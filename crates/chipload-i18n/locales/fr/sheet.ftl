@@ -41,7 +41,7 @@ sheet-inlay-steps-no-pocket = Une fois usiné : coller le bouchon face en bas da
 sheet-turn-no-dowels = { $front } n'a pas de trous de goupille : ajoutez-les avant de l'usiner, ou calez la planche dans un coin.
 sheet-turn-corner = Poussez la planche dans le même coin de la butée que pour { $front }. Elle doit mesurer exactement { $width } × { $length }.
 sheet-turn-picture = L'image montre la planche telle qu'elle repose sur la machine, verso dessus.
-sheet-copies = Copies
+sheet-copies = Instances
 sheet-part = Pièce
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
@@ -108,8 +108,8 @@ sheet-column-time = Temps
 # A part's row over its operations, numbered from 1.
 sheet-part-row = Pièce { $number } : { $name }
 sheet-part-row-copies = Pièce { $number } : { $name }, { $count ->
-    [one] { $count } copie
-   *[other] { $count } copies
+    [one] usinée une fois
+   *[other] usinée { $count } fois
 }
 # An operation without a name.
 sheet-operation = Opération { $number }

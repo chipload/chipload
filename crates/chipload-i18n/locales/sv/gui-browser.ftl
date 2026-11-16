@@ -49,7 +49,7 @@ browser-job-settings-problems-hover = Maskin, postprocessor, enheter och rörels
 browser-tools = Verktyg
 browser-tools-hover = Projektets verktyg: klicka för att se alla och lägga till ett
 
-# Parts: groups of operations, each cut with its copies before the next.
+# Parts: groups of operations, each cut with its instances before the next.
 browser-setups = Uppspänningar
 browser-setups-hover = Skivorna projektet fräses ur, den ena efter den andra: var och en ett eget program, med sitt ämne och sin arbetsnollpunkt. Klicka för att göra en aktiv
 browser-add-setup = Lägg till en uppspänning
@@ -69,7 +69,7 @@ browser-export-setup-hover = Dess program och riggblad, med namnet -S1, -S2 när
 browser-new-part = Ny detalj
 # At a part row's right end: the part new operations go into.
 browser-part-active = aktiv
-browser-part-active-hover = Den aktiva detaljen: nya operationer hamnar här. Klicka för dess kopior; högerklicka för mer
+browser-part-active-hover = Den aktiva detaljen: nya operationer hamnar här. Klicka för dess egenskaper och instanser; högerklicka för mer
 browser-part-mirrored = spegelvänd
 browser-add-instance = Lägg till instans
 browser-add-instance-hover = Placera detaljen igen bredvid det den fräser, länkad: ändra detaljen så följer instansen med. Dra den för att flytta den, i det runda handtaget för att vrida den.
@@ -79,7 +79,7 @@ browser-instance-hover = Detaljen placerad igen: samma former och operationer, f
 browser-instance-mirror = Spegla
 browser-instance-turn = Vrid 90°
 browser-instance-remove = Ta bort
-browser-part-hover = Klicka för dess kopior; dubbelklicka för att göra den aktiv; högerklicka för mer
+browser-part-hover = Klicka för dess egenskaper och instanser; dubbelklicka för att göra den aktiv; högerklicka för mer
 # A verb: make this the active part.
 browser-activate = Aktivera
 browser-activate-hover = Nya operationer hamnar i den aktiva detaljen

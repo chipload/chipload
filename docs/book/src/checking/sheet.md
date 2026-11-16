@@ -5,7 +5,7 @@ it, `part-sheet.html`. Open it in a browser, or print it. It holds:
 
 - **Time:** the estimated cycle time.
 - **Stock and zero:** the stock's size and thickness, where X0 Y0 and Z0 are, and the
-  copies. With several [parts](../operations/parts.md), each part with its copies. Which
+  instances. With several [parts](../operations/parts.md), each part with its instances. Which
   parts are cut [mirrored](../operations/parts.md#mirrored-parts), and for an
   [inlay's plug](../operations/vcarve.md#inlays) how to glue it into its pocket and take its
   back off.

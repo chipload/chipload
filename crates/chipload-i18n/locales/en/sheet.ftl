@@ -41,7 +41,7 @@ sheet-inlay-steps-no-pocket = Once it is cut: glue the plug face down into its p
 sheet-turn-no-dowels = { $front } has no dowel holes for the pins: add them before cutting it, or locate the board by a corner.
 sheet-turn-corner = Push the board into the same corner of the fence as for { $front }. Its size must be exactly { $width } × { $length }.
 sheet-turn-picture = The picture shows the board as it lies on the machine, back face up.
-sheet-copies = Copies
+sheet-copies = Instances
 sheet-part = Part
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
@@ -107,7 +107,10 @@ sheet-column-tabs = Tabs
 sheet-column-time = Time
 # A part's row over its operations, numbered from 1.
 sheet-part-row = Part { $number }: { $name }
-sheet-part-row-copies = Part { $number }: { $name }, { $count } copies
+sheet-part-row-copies = Part { $number }: { $name }, { $count ->
+    [one] cut once
+   *[other] cut { $count } times
+}
 # An operation without a name.
 sheet-operation = Operation { $number }
 # A drill's one feed: $feed is a number alone.

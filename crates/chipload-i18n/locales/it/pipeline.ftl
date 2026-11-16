@@ -10,11 +10,11 @@ pipeline-post-units = il post-processore { $post } scrive solo G-code in mm (la 
 ## Planning notes
 
 pipeline-drawing-outside-stock = Il disegno esce dal grezzo
-# $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
+# $count is how many times the part is cut. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = Le { $count } copie tagliano da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }, oltre il grezzo ({ $stock_x } × { $stock_y }); controlla il grezzo o le copie del pezzo.
+pipeline-copies-beyond-stock = Le { $count } istanze tagliano da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }, oltre il grezzo ({ $stock_x } × { $stock_y }); controlli il grezzo o le istanze del pezzo.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Pezzo { $part }: le { $count } copie tagliano da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }, oltre il grezzo ({ $stock_x } × { $stock_y }); controlla il grezzo o le copie del pezzo.
+pipeline-part-copies-beyond-stock = Pezzo { $part }: le { $count } istanze tagliano da X{ $x0 } a { $x1 }, da Y{ $y0 } a { $y1 }, oltre il grezzo ({ $stock_x } × { $stock_y }); controlli il grezzo o le istanze del pezzo.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
 pipeline-layer-clash = { $label }: il layer "{ $layer }" è in { $sources }; li taglia tutti. Limitalo a uno (seleziona il layer sotto quel DXF nel Browser)
@@ -388,7 +388,7 @@ pipeline-shapes-copy-imported = si possono copiare solo le forme disegnate, non 
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = la forma { $id } è stata importata dal DXF e non si può cambiare qui; cambia il disegno e usa Aggiorna disegno da DXF
 
-## Errors: parts and copies
+## Errors: parts and instances
 
 pipeline-no-part = Nessun pezzo { $id } nel progetto
 # $id is an instance's number in the part (2 on).

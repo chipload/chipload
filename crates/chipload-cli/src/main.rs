@@ -1467,7 +1467,7 @@ fn inspect(out: &mut Out, path: &Path, units: Option<Units>, px: Option<f64>) ->
                 work_zero = Some(format!("Work zero: {}", job.work_zero_text()));
             }
             copies_line = copies_text(&job)
-                .map(|text| format!("Copies: {text}"))
+                .map(|text| format!("Instances: {text}"))
                 .into_iter()
                 .chain(parts_lines(&job))
                 .collect();

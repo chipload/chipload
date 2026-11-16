@@ -28,7 +28,7 @@ sheet-inlay-steps-no-pocket = После фрезеровки: вклеить в
 sheet-turn-no-dowels = У { $front } нет отверстий под штифты: добавьте их до обработки или упирайте заготовку в угол.
 sheet-turn-corner = Прижмите заготовку к тому же углу упора, что и для { $front }. Её размер должен быть ровно { $width } × { $length }.
 sheet-turn-picture = На рисунке заготовка так, как лежит на станке, обратной стороной вверх.
-sheet-copies = Копии
+sheet-copies = Экземпляры
 sheet-part = Деталь
 sheet-dxf = DXF { $id }
 sheet-dxf-placed = { $name } ({ $file }), { $placement }
@@ -78,7 +78,11 @@ sheet-column-entry = Врезание
 sheet-column-tabs = Перемычки
 sheet-column-time = Время
 sheet-part-row = Деталь { $number }: { $name }
-sheet-part-row-copies = Деталь { $number }: { $name }, копий: { $count }
+sheet-part-row-copies = Деталь { $number }: { $name }, { $count ->
+    [one] { $count } экземпляр
+    [few] { $count } экземпляра
+   *[other] { $count } экземпляров
+}
 sheet-operation = Операция { $number }
 sheet-feed-down = { $feed } вниз
 sheet-kind-profile = Обработка контура

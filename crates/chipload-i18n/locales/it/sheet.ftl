@@ -41,7 +41,7 @@ sheet-inlay-steps-no-pocket = Una volta lavorato: incollare il tassello a faccia
 sheet-turn-no-dowels = { $front } non ha fori per spina: aggiungili prima di lavorarlo, o appoggia la tavola in un angolo.
 sheet-turn-corner = Spingi la tavola nello stesso angolo della battuta usato per { $front }. Deve misurare esattamente { $width } × { $length }.
 sheet-turn-picture = L'immagine mostra la tavola come sta sulla macchina, con il retro in alto.
-sheet-copies = Copie
+sheet-copies = Istanze
 sheet-part = Pezzo
 sheet-dxf = DXF { $id }
 # $placement says how the drawing was moved, turned and scaled.
@@ -108,8 +108,8 @@ sheet-column-time = Tempo
 # A part's row over its operations, numbered from 1.
 sheet-part-row = Pezzo { $number }: { $name }
 sheet-part-row-copies = Pezzo { $number }: { $name }, { $count ->
-    [one] { $count } copia
-   *[other] { $count } copie
+    [one] tagliato una volta
+   *[other] tagliato { $count } volte
 }
 # An operation without a name.
 sheet-operation = Lavorazione { $number }

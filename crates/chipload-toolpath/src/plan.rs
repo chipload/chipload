@@ -1067,9 +1067,11 @@ impl Gathered {
             && let (Some(part), Some(start)) = (job.part_of(op), self.moves.get_mut(first))
         {
             self.part_started = Some(op.part());
+            // How many times it is cut: the part and its instances that are on
+            // (docs/specs/instances.md §7).
             let copies = match part.count() {
                 1 => String::new(),
-                n => format!(", {n} copies"),
+                n => format!(", cut {n} times"),
             };
             let number = job.parts.iter().position(|p| p.id == part.id).unwrap_or(0) + 1;
             start.comment = u32::try_from(self.comments.len()).ok();

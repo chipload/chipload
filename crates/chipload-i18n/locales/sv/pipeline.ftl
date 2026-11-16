@@ -8,11 +8,11 @@ pipeline-post-units = postprocessorn { $post } skriver bara G-kod i mm (dess kon
 ## Planning notes
 
 pipeline-drawing-outside-stock = Ritningen sträcker sig utanför ämnet
-# $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
+# $count is how many times the part is cut. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = De { $count } kopiorna fräser X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }, utanför ämnet ({ $stock_x } × { $stock_y }); kontrollera ämnet eller detaljens kopior.
+pipeline-copies-beyond-stock = De { $count } instanserna fräser X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }, utanför ämnet ({ $stock_x } × { $stock_y }); kontrollera ämnet eller detaljens instanser.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Detalj { $part }: de { $count } kopiorna fräser X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }, utanför ämnet ({ $stock_x } × { $stock_y }); kontrollera ämnet eller detaljens kopior.
+pipeline-part-copies-beyond-stock = Detalj { $part }: de { $count } instanserna fräser X{ $x0 } till { $x1 }, Y{ $y0 } till { $y1 }, utanför ämnet ({ $stock_x } × { $stock_y }); kontrollera ämnet eller detaljens instanser.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
 pipeline-layer-clash = { $label }: lagret "{ $layer }" finns i { $sources }; operationen fräser alla. Begränsa den till ett (markera lagret under den DXF:en i bläddraren)
@@ -383,7 +383,7 @@ pipeline-shapes-copy-imported = bara ritade former kan kopieras, inte importerad
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = formen { $id } importerades från DXF:en och kan inte ändras här; ändra ritningen och använd Uppdatera ritning från DXF
 
-## Errors: parts and copies
+## Errors: parts and instances
 
 pipeline-no-part = Det finns ingen detalj { $id } i projektet
 # $id is an instance's number in the part (2 on).

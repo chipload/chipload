@@ -10,11 +10,11 @@ pipeline-post-units = post { $post } writes only mm G-code (its config doesn't l
 ## Planning notes
 
 pipeline-drawing-outside-stock = The drawing extends outside the stock
-# $count is the number of copies. $x0 and $y0 are numbers without their unit; $x1, $y1
+# $count is how many times the part is cut. $x0 and $y0 are numbers without their unit; $x1, $y1
 # and $stock_y bring it; $stock_x is a number without it.
-pipeline-copies-beyond-stock = The { $count } copies cut X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }, beyond the stock ({ $stock_x } × { $stock_y }); check the stock or the part's copies.
+pipeline-copies-beyond-stock = The { $count } instances cut X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }, beyond the stock ({ $stock_x } × { $stock_y }); check the stock or the part's instances.
 # As pipeline-copies-beyond-stock, for one part of several; $part is its name.
-pipeline-part-copies-beyond-stock = Part { $part }: the { $count } copies cut X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }, beyond the stock ({ $stock_x } × { $stock_y }); check the stock or the part's copies.
+pipeline-part-copies-beyond-stock = Part { $part }: the { $count } instances cut X{ $x0 } to { $x1 }, Y{ $y0 } to { $y1 }, beyond the stock ({ $stock_x } × { $stock_y }); check the stock or the part's instances.
 # $label is an operation's label, $layer a layer's name, $sources where the layer's shapes
 # come from (DXF and picture names, joined with pipeline-and).
 pipeline-layer-clash = { $label }: layer "{ $layer }" is in { $sources }; it cuts all of them. Limit it to one (select the layer under that DXF in the Browser)
@@ -380,7 +380,7 @@ pipeline-shapes-copy-imported = only drawn shapes can be copied, not imported on
 # "Update drawing from DXF" is the command in the app's File menu.
 pipeline-shape-imported-change = shape { $id } was imported from the DXF and can't be changed here; change the drawing and use Update drawing from DXF
 
-## Errors: parts and copies
+## Errors: parts and instances
 
 pipeline-no-part = No part { $id } in the project
 # $id is an instance's number in the part (2 on).
