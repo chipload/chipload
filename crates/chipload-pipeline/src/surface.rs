@@ -41,16 +41,33 @@ pub fn board_surface_place(job: &Job, setup: u64) -> Option<(u64, usize)> {
     Some((part, index))
 }
 
-/// A new board surface in the active setup, first among its operations, with `tool`
-/// (default: the widest endmill) taking `depth` mm off (default 0.5 mm, in one pass). Feeds
-/// and step down from `cutting` (the tool's library values), else from the tool's diameter.
-/// Returns its index.
+/// A new board surface in the active setup: [`add_board_surface`].
 pub fn add_surface(
     job: &mut Job,
     tool: Option<i64>,
     depth: Option<f64>,
     cutting: Option<&Cutting>,
 ) -> Result<usize, PipelineError> {
+    let setup = job.active_setup_id().unwrap_or(1);
+    add_board_surface(job, setup, tool, depth, cutting)
+}
+
+/// A new board surface in setup `setup`, first among its operations, with `tool` (default:
+/// the widest endmill) taking `depth` mm off (default 0.5 mm, in one pass). Feeds and step
+/// down from `cutting` (the tool's library values), else from the tool's diameter. Returns
+/// its index.
+pub fn add_board_surface(
+    job: &mut Job,
+    setup: u64,
+    tool: Option<i64>,
+    depth: Option<f64>,
+    cutting: Option<&Cutting>,
+) -> Result<usize, PipelineError> {
+    if job.setup(setup).is_none() {
+        return Err(PipelineError::Job(
+            Message::new("pipeline-no-setup").arg("id", setup),
+        ));
+    }
     let id = match tool.or_else(|| surface_tool(job)) {
         Some(id) => id,
         None => {
@@ -75,7 +92,6 @@ pub fn add_surface(
         Some(c) => (c.feed, c.plunge_feed, c.step_down.max(depth)),
         None => (default_feed(diameter), default_plunge_feed(diameter), depth),
     };
-    let setup = job.active_setup_id().unwrap_or(1);
     let (part, index) = board_surface_place(job, setup)
         .ok_or_else(|| PipelineError::Job(Message::new("pipeline-setup-no-parts")))?;
     let number = job

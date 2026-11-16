@@ -118,9 +118,11 @@ pub enum OpKind {
 }
 
 impl OpKind {
-    /// Whether it cuts selected shapes; a surface faces the whole stock.
+    /// Whether it cuts selected shapes: every kind, a surface too, which faces the selected
+    /// shapes of its part (the whole board is the setup's *Face the board…*,
+    /// docs/specs/surface-levels.md §5).
     pub fn needs_selection(self) -> bool {
-        self != OpKind::Surface
+        true
     }
 
     /// Whether `op` is of this kind.
@@ -252,15 +254,15 @@ pub fn tool_for(job: &Job, kind: OpKind) -> i64 {
 }
 
 /// Where an operation of `kind` added to the active part goes: after the part's
-/// operations; a surface first in it (it faces the stock before anything is cut,
-/// docs/specs/surfacing.md §6).
+/// operations; a part surface first in it, after any board surface (it faces the part's top
+/// before anything of it is cut, docs/specs/surface-levels.md §2).
 pub fn insert_index(job: &Job, kind: OpKind) -> usize {
     let part = job.active_part_id().unwrap_or(1);
     match kind {
         OpKind::Surface => job
             .operations
             .iter()
-            .position(|e| e.part() == part)
+            .position(|e| e.part() == part && !e.is_board_surface())
             .unwrap_or_else(|| job.insert_index(part)),
         _ => job.insert_index(part),
     }

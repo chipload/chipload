@@ -197,7 +197,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `pattern` (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): --pattern, --spacing, --angle), `prism` (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): --max-depth), `moulding` (A profile swept along paths (docs/specs/moulding.md): --profile, --radius, --side, --ends), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline). |
+| `<KIND>` | What to add. One of: `profile`, `pocket`, `vcarve`, `path`, `chamfer` (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): --width), `flute` (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): --depth, --ramp), `pattern` (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): --pattern, --spacing, --angle), `prism` (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): --max-depth), `moulding` (A profile swept along paths (docs/specs/moulding.md): --profile, --radius, --side, --ends), `holes`, `relief` (A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that model within its outline), `surface` (The part's top faced flat over closed shapes grown by --margin, under each of its instances (docs/specs/surface-levels.md); the whole board is `op add-surface`). |
 | `--layer <LAYER>` | Every shape on this layer (with --dxf: on that DXF's layer) |
 | `--shapes <SHAPES>` | These shapes, by id (as `inspect` lists them) Repeatable. |
 | `--dxf <DXF>` | All of this DXF or SVG (an id from `dxf list`) |
@@ -232,6 +232,7 @@ chipload op add <PROJECT> <KIND> [OPTIONS]
 | `--ends <ENDS>` | How a moulding ends on open paths: square, round, or taper (--taper long) One of: `square`, `round`, `taper`. |
 | `--taper <TAPER>` | A tapered end's length; 30 mm if left out. |
 | `--stepover <STEPOVER>` | The distance between a moulding's passes across its profile. |
+| `--margin <MARGIN>` | A surface's margin past its shapes, in place of the tool's radius (docs/specs/surface-levels.md §3) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op tool`
@@ -381,7 +382,7 @@ chipload op remove-floor <PROJECT> [OPTIONS]
 
 ### `chipload op add-surface`
 
-Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in the active part. Flattens the spoilboard or faces the stock
+Add a board surface (docs/specs/surfacing.md, surface-levels.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in its setup, cut once. Flattens the spoilboard or faces the stock. A part's area is `op add surface` with its shapes
 
 ```text
 chipload op add-surface <PROJECT> [OPTIONS]
@@ -392,6 +393,7 @@ chipload op add-surface <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--tool <TOOL>` | The endmill's id in the project; default: the widest endmill. |
 | `--depth <DEPTH>` | How much comes off the top; default 0.5 mm. |
+| `--setup <SETUP>` | The setup whose board it faces (as `setup list` shows it); default: the active one. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload op rest-pass`

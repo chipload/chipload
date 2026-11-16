@@ -4,11 +4,12 @@
 
 - **The whole board** (a board surface): flatten your spoilboard, or face a board before
   cutting it. It needs no selection. Right-click the setup, *Face the board…*; on the
-  command line, `chipload op add-surface part.chipload`. It goes **first** in its setup,
+  command line, `chipload op add-surface part.chipload` (`--setup ID` for another setup). It goes **first** in its setup,
   since it faces the stock before anything else is cut, and is cut **once**, whatever parts
   and [instances](../drawings/instances.md) the setup has.
 - **A part's area** (a part surface): select the part's outline (closed shapes) and add a
-  Surface, as you would a pocket. It faces each selected shape grown by a **margin**, and
+  Surface, as you would a pocket; on the command line, `chipload op add part.chipload
+  surface --shapes 1 --margin 3`. It faces each selected shape grown by a **margin**, and
   is cut under every instance of the part, moving and turning with it. Other parts' areas
   are left alone.
 

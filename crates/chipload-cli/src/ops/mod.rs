@@ -58,9 +58,10 @@ pub(crate) enum OpAction {
     RemoveRoughing(RemoveRoughingArgs),
     /// Take a V-carve's floor pass away (docs/specs/vcarve-wide-strokes.md §4).
     RemoveFloor(RemoveFloorArgs),
-    /// Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide
-    /// endmill, in straight passes back and forth, first in the active part. Flattens the
-    /// spoilboard or faces the stock.
+    /// Add a board surface (docs/specs/surfacing.md, surface-levels.md): the whole stock
+    /// taken down flat with a wide endmill, in straight passes back and forth, first in its
+    /// setup, cut once. Flattens the spoilboard or faces the stock. A part's area is `op add
+    /// surface` with its shapes.
     AddSurface(AddSurfaceArgs),
     /// A pocket's rest passes (docs/specs/rest-passes.md): without --pass, list them; with
     /// it, change, turn off or on, or remove one.
@@ -178,6 +179,9 @@ pub(crate) enum KindArg {
     /// A 3D model carved from the top (docs/specs/stl-relief.md): with --model, of that
     /// model within its outline.
     Relief,
+    /// The part's top faced flat over closed shapes grown by --margin, under each of its
+    /// instances (docs/specs/surface-levels.md); the whole board is `op add-surface`.
+    Surface,
 }
 
 /// A pattern's settings for `op add pattern` (docs/specs/fill-pattern.md §8).
@@ -501,6 +505,7 @@ impl KindArg {
             KindArg::Moulding => OpKind::Moulding,
             KindArg::Holes => OpKind::Holes,
             KindArg::Relief => OpKind::Relief,
+            KindArg::Surface => OpKind::Surface,
         }
     }
 }

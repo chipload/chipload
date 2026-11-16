@@ -49,6 +49,13 @@ pub(crate) fn describe(op: &Operation, tools: &[chipload_job::Tool]) -> String {
         }
         parts.push(format!("stepover {} mm", mm(m.stepover)));
     }
+    if let Operation::Surface(f) = op {
+        parts.push(if f.select.is_empty() {
+            "the whole board".to_string()
+        } else {
+            format!("its shapes + {} mm", chipload_core::text::mm(f.margin))
+        });
+    }
     if let Operation::Prism(f) = op {
         parts.push(match f.max_depth {
             Some(max) => format!("edges at most {} mm deep", chipload_core::text::mm(max)),

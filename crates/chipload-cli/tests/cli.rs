@@ -684,6 +684,64 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
 }
 
 #[test]
+fn surfaces_face_the_board_or_a_parts_shapes_from_the_command_line() {
+    // docs/specs/surface-levels.md §6
+    let dir = temp_dir("surface-levels");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v29/surface.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let ops = || {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        job["operations"].as_array().unwrap().clone()
+    };
+    // A part surface of part B's outline (shape 8), its margin given.
+    let (code, out, err) = run(&[
+        "op", "add", p, "surface", "--shapes", "8", "--margin", "3", "--tool", "1",
+    ]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(out.contains("its shapes + 3 mm"), "{out}");
+    let made = ops()
+        .into_iter()
+        .find(|o| o["name"] == "Surface 2")
+        .unwrap();
+    assert_eq!(made["select"]["shapes"], serde_json::json!([8]));
+    assert_eq!(made["margin"], serde_json::json!(3.0));
+    // Without shapes, no part surface: the board is `op add-surface`.
+    let (code, _, err) = run(&["op", "add", p, "surface"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("say what to cut"), "{err}");
+    for (args, why) in [
+        (
+            vec!["op", "add", p, "surface", "--shapes", "8", "--through"],
+            "give --depth",
+        ),
+        (
+            vec!["op", "add", p, "pocket", "--shapes", "8", "--margin", "2"],
+            "--margin is for",
+        ),
+        (vec!["op", "add-surface", p, "--setup", "7"], "no setup 7"),
+    ] {
+        let (code, _, err) = run(&args);
+        assert_eq!(code, Some(1), "{args:?}");
+        assert!(err.contains(why), "{err}");
+    }
+    // A board surface: first in the setup, the whole board.
+    let (code, out, err) = run(&["op", "add-surface", p, "--setup", "1"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(out.contains("Added operation 1:"), "{out}");
+    assert_eq!(ops()[0]["select"]["shapes"], serde_json::Value::Null);
+    // Both run, checked.
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
+    assert_eq!(code, Some(0), "{err}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn the_part_itself_is_placed_from_the_command_line() {
     // docs/specs/part-placement.md §7
     let dir = temp_dir("part-place");

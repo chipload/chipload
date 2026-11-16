@@ -52,6 +52,10 @@ pub(crate) struct AddArgs {
     max_depth: Option<f64>,
     #[command(flatten)]
     moulding: MouldingArgs,
+    /// A surface's margin past its shapes, in place of the tool's radius
+    /// (docs/specs/surface-levels.md §3).
+    #[arg(long, value_parser = crate::lengths::length)]
+    margin: Option<f64>,
     /// Where to write the result; default: the project itself.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -75,8 +79,16 @@ impl AddArgs {
             pattern,
             max_depth,
             moulding,
+            margin,
             output,
         } = self;
+        let surface = matches!(kind, KindArg::Surface);
+        if !surface && margin.is_some() {
+            return out.fail("--margin is for a surface");
+        }
+        if surface && through {
+            return out.fail("a surface faces the top: give --depth");
+        }
         let moulds = matches!(kind, KindArg::Moulding);
         if !moulds && moulding.given() {
             return out.fail(
@@ -180,6 +192,9 @@ impl AddArgs {
             if let Operation::Prism(f) = &mut new.op {
                 f.max_depth = max_depth;
             }
+            if let (Operation::Surface(f), Some(margin)) = (&mut new.op, margin) {
+                f.margin = margin;
+            }
             if let Operation::Moulding(m) = &mut new.op {
                 let given = (pattern.radius_given(), width, depth);
                 if let Err(why) = moulding.apply(m, given, side, ramp_shape) {
@@ -262,6 +277,9 @@ pub(crate) struct AddSurfaceArgs {
     /// How much comes off the top; default 0.5 mm.
     #[arg(long, value_parser = crate::lengths::length)]
     depth: Option<f64>,
+    /// The setup whose board it faces (as `setup list` shows it); default: the active one.
+    #[arg(long)]
+    setup: Option<u64>,
     /// Where to write the result; default: the project itself.
     #[arg(short, long)]
     output: Option<PathBuf>,
@@ -273,6 +291,7 @@ impl AddSurfaceArgs {
             project,
             tool,
             depth,
+            setup,
             output,
         } = self;
         let mut job = match load(out, &project) {
@@ -293,8 +312,10 @@ impl AddSurfaceArgs {
             .and_then(|t| {
                 chipload_job::library::linked_cutting(&library.tools, t, material.as_deref())
             });
-        let index = match chipload_pipeline::surface::add_surface(
+        let setup = setup.or(job.active_setup_id()).unwrap_or(1);
+        let index = match chipload_pipeline::surface::add_board_surface(
             &mut job,
+            setup,
             tool,
             depth,
             cutting.as_ref(),

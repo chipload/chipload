@@ -133,7 +133,8 @@ cargo run -p chipload-cli -- sheet part.chipload -o sheet.html   # the operator'
 cargo run -p chipload-cli -- op tool part.chipload --op 2 --tool 3   # operation 2 cuts with project tool 3
 cargo run -p chipload-cli -- op rest part.chipload --op 3 --after-tool 1   # pocket 3 clears only what tool 1 leaves (--none: whole pocket)
 cargo run -p chipload-cli -- op add-rest part.chipload --op 1 --tool 2   # a rest pocket after pocket 1: same shapes and depths, tool 2
-cargo run -p chipload-cli -- op add-surface part.chipload --depth 0.5   # face the whole stock (spoilboard), first in the active part
+cargo run -p chipload-cli -- op add-surface part.chipload --depth 0.5   # face the whole board (spoilboard), first in the setup (--setup ID)
+cargo run -p chipload-cli -- op add part.chipload surface --shapes 1 --margin 3   # face a part's shapes, under each instance
 cargo run -p chipload-cli -- op add part.chipload profile --dxf 1   # a new operation with the app's defaults (also --layer/--shapes/--group, --depth, --through)
 cargo run -p chipload-cli -- style save part.chipload --op 2 --name "Cut out"   # a style; also style use/list/show/rename/remove/set/export/import
 cargo run -p chipload-cli -- plan part.chipload --json    # toolpath, time estimate and chip load, no G-code
