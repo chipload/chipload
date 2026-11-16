@@ -1,8 +1,9 @@
 # Spec: instances, a part placed again
 
 Status: **approved 2026-11-16**, all decisions as recommended (the user: "I agree with all
-recommendations"). Follows the user's idea: right-click a part, *Add instance*, and a linked,
-ghosted copy appears that can be moved and turned; *Add mirrored instance* does the same,
+recommendations"). **Built 2026-11-16**, all five steps (7803778..db88a17), with as-built
+notes in §3 and §4. Not built: the Compass on an instance (§4). Follows the user's idea:
+right-click a part, *Add instance*, and a linked, ghosted copy appears that can be moved and turned; *Add mirrored instance* does the same,
 mirrored. More flexible than copies in a grid (docs/specs/copies-grid.md), which this
 replaces (decision 1).
 

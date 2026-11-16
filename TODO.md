@@ -3,7 +3,31 @@
 What's planned. Each item gets a spec in `docs/specs/` that is reviewed before it's built
 (see `CLAUDE.md`). Reviewed and put in order 2026-11-02 and twice on 2026-11-03 (the user:
 "go through todo again and make sure it is tidy and up to date"); *Next* puts usability and
-a quick workflow first.
+a quick workflow first. Brought up to date again for a handoff on 2026-11-16 (see *Handoff*
+below).
+
+## Handoff (2026-11-16)
+
+- **Released:** 0.37.0 is the latest, published 2026-11-15 with its guide.
+- **On main, not pushed:** 14 commits after the 0.37.0 commit (46e2ce5): pieces (schema 37),
+  two clean-ups after it, the instances spec, instances in five steps (schema 38) and this
+  handoff. Each is listed under *Done > In main, not released yet*. All tests, clippy, fmt and the wasm
+  check passed at db88a17. Push and the next release (0.38.0) wait for the user.
+- **Built, for the user to try:** pieces (puzzle tiling) and instances. The user has not
+  tried either yet; findings become items here.
+- **Loose ends of this work:**
+  - instances: moving and turning an instance with the Compass (instances.md §4, decision
+    7's Compass half) is not built;
+  - pieces: dragging a seam in the view, and `plan --piece` (plan still plans one board);
+  - the next release's notes must say 0.37 can't open a project with pieces (schema 37) or
+    instances (schema 38), and that the G-code part comment now reads "cut N times";
+  - guide screenshots are renewed at release time (`packaging/docs/screenshots.sh`); the
+    instances page (drawings/instances.md) has no picture yet: a part with a turned and a
+    mirrored instance would show it.
+  - the commits since 0.37.0 were not run through CI; the first push runs it (Windows,
+    macOS).
+- **Open questions for the user** (unchanged, listed in *Next*): 11 laser and plasma; 13's
+  `stock.origin`; 14's chip-load warning.
 
 ## In progress
 
@@ -26,7 +50,7 @@ a quick workflow first.
     "Text", startup errors before the window opens. A rare English slip kept word for
     word: "the centre line centre line" in `toolpath-error-medial-name`.
 
-## State to remember (2026-11-03)
+## State to remember (2026-11-03, releases updated 2026-11-16)
 
 - **Released in 0.33.0** (published 2026-11-03, its guide online): styles (saved, applied,
   shown and edited), new operations that start from the selection, tabs along X or Y,
@@ -42,8 +66,9 @@ a quick workflow first.
   feedback"; draft, for the user to try and publish): two-sided work (schema 36) with its
   wizard, mirrored parts, V-carve inlays, the sign maker and frames, a standard menu bar,
   the 3D view turning the model with the mouse (issue #16). Branch `signs` merged into main.
-- **Releases**: the latest published is **0.33.1** (2026-11-04), then 0.33.0 (2026-11-03). Before it 0.32.0
-  (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
+- **Releases**: the latest published is **0.37.0** (2026-11-15), then 0.36.0 (2026-11-14),
+  0.35.0 (2026-11-12), 0.34.1 (2026-11-08), 0.34.0 (2026-11-07), 0.33.1 (2026-11-04), 0.33.0
+  (2026-11-03), 0.32.0 (2026-11-03), 0.31.0 (2026-11-02), 0.30.0 (2026-10-31), 0.29.1 (2026-10-30), 0.28.1
   (2026-10-29), 0.27.1, 0.25.1, 0.25.0, 0.24.0, 0.23.0, 0.22.2. Tagged but never published:
   0.22.0 (withdrawn), 0.26.0, 0.26.1, 0.27.0, 0.28.0, 0.29.0. Old tags remain (`v0.3.0` on,
   the guide-only tags `guide-0.21.0-1`, `-2`, `guide-0.22.0-1`). Built by Actions from a
@@ -124,6 +149,7 @@ to a program you trust. It was about four per operation; with the defaults and s
    did (a DXF part through with tabs and pockets; a V-carved sign; a sheet of copies) and
    count the edits and clicks. Each that remains becomes an item here.
 4. **For the user to try** (built, not yet tried by hand; findings become items here):
+   - pieces (puzzle tiling, 0.38) and instances (0.38): see *Handoff*;
    - the 0.33 Windows build: no terminal windows at startup;
    - on the router: tabs along X or Y; V-carve lifting less, with the script font (0.30);
      slot and clearing values in the tools' cutting data (the user, 2026-11-03: "it works
@@ -217,8 +243,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     - Materials: import and export in the window (the command line has `material
       export`/`import`).
     - The remaining large files, split by topic as `forms/` and `models/` were, when next
-      worked on: toolpath `plan.rs` (2,560 lines), `pocket.rs` (2,060), the canvas `view.rs`
-      (1,940), the window's `app/mod.rs` (2,270), `app/user_library.rs` (1,470).
+      worked on: toolpath `plan.rs` (4,470 lines on 2026-11-16, grown with mirrored parts,
+      pieces and instances), `pocket.rs` (2,070), the canvas `view.rs` (2,540), the window's
+      `app/mod.rs` (2,440), `app/user_library.rs` (1,480).
     - Drop `stock.origin` bottom-left/center from the format (a migration that moves the
       stock), if the user wants it (docs/specs/job-settings-layout.md).
     - Image fuzzing got slow (2026-10-13): 38 inputs a second with arcs and centre lines;
@@ -280,34 +307,13 @@ Smaller follow-ups noted along the way, not in the order above:
      section (added on request). Left: a moulding step in the relief wizard (the user's idea), different
      ends per end, linking passes.
   5. **Tiling, as puzzle pieces:** a shape larger than the board split by seams with
-     puzzle knobs or fingers, the operations following (docs/specs/pieces.md, approved
-     2026-11-15). Step 1 built: the model (schema 37), validation, `setup pieces`;
-     generating a setup in pieces is refused until step 5. Step 2 built: seams, knobs,
-     fingers and cells (`chipload-toolpath` `pieces.rs`). Steps 3–6 built: piece outlines,
-     a program per piece (`run --piece`), cuts trimmed to each piece, the sheet with its
-     map, `simulate --piece` or put together, `dxf export --pieces`, a golden. Steps 7–8
-     built: the setup's Pieces section, pieces drawn and named in the view, preview and
-     export, the guide page (concepts/pieces.md). Left: dragging a seam in the view,
-     `plan --piece` (plan still plans one board), the user to try it. The other reading, sliding one long board between tiles on
-     pins, is parked in docs/specs/sliding-tiles.md.
+     puzzle knobs or fingers, the operations following. **Built 2026-11-15**
+     (docs/specs/pieces.md; see *In main*). Left: dragging a seam in the view, `plan
+     --piece`, the user to try it. The other reading, sliding one long board between
+     tiles on pins, is parked in docs/specs/sliding-tiles.md.
 - **Instances** (the user, 2026-11-16): a part placed again, moved, turned or mirrored,
-  linked; replaces copies (docs/specs/instances.md, approved, all decisions as
-  recommended), in the spec's five steps. Step 1 built: schema 38, a part's `instances`
-  (id, on/off, mirror, angle, position) and `order` instead of `copies`, the migration
-  listing a grid's copies in their cut order (G-code unchanged, golden v37_copies), the
-  Instances section making a grid, `copies` making instances; turned or mirrored instances
-  refused until step 2. Step 2 built: turned and mirrored instances cut, planned on the part
-  as drawn and then placed (mirrored ones with the cutting sense turned), drawn faded where
-  they are cut in the view and on the sheet, property and pipeline tests. Step 3 built:
-  `part instance add|set|remove|list|array` (a new instance goes beside what the part
-  cuts, 10 mm away), `part set --order`, `copies` kept as the old name. Step 4 built: the
-  window (part menu *Add instance* / *Add mirrored instance*, numbered ghosts picked,
-  dragged and turned by a handle with quarter-turn snapping, Escape and undo, Browser rows
-  with Mirror / Turn 90° / Remove, the instance form). Step 5 built: "copies" is
-  "instances" everywhere a user reads it (sheet, report, status bar, G-code part comment
-  "cut N times", errors, seven languages), the guide's page is Instances
-  (drawings/instances.md). All five steps done; the user to try it. Left: the Compass on
-  an instance.
+  linked; replaces copies. **Built 2026-11-16** (docs/specs/instances.md; see *In main*).
+  Left: the Compass on an instance; the user to try it.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced
@@ -339,9 +345,42 @@ Smaller follow-ups noted along the way, not in the order above:
 
 ### In main, not released yet
 
-- Nothing yet.
+Not pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
 
-### In 0.37.0 (prepared 2026-11-15: version bumped, notices and screenshots renewed; not tagged)
+- **Instances** (docs/specs/instances.md, approved and built 2026-11-16, five steps,
+  7803778..db88a17): a part placed again, linked: moved, turned by any angle, mirrored left
+  to right, each on or off. Schema 38: a part's `instances` (id, on/off, mirror, angle,
+  position) and `order` replace `copies`; the migration lists a grid's copies in their cut
+  order, so the G-code is unchanged (golden v37_copies). A moved instance is planned on
+  shifted contours as copies were; a turned or mirrored one is planned on the part as drawn
+  (a mirrored one with the cutting sense turned) and then placed (`chipload-toolpath`
+  `place.rs`), with property tests. `part instance add|set|remove|list|array` and `part set
+  --order` (`copies` stays as the old name of a grid); a new instance goes beside what the
+  part cuts, 10 mm away. The window: *Add instance* / *Add mirrored instance* in a part's
+  menu, numbered ghosts picked, dragged and turned by a handle (quarter turns snap within
+  3°, Alt free), Escape and undo, Browser rows with Mirror / Turn 90° / Remove, the
+  instance form. "Copies" reads "instances" everywhere (sheet, report, status bar,
+  errors, seven languages); the G-code part comment reads "(Part 2: B, cut 2 times)", the
+  only golden change (comment lines); the guide page is drawings/instances.md.
+  copies-grid.md is marked superseded. Left: the Compass on an instance.
+- **Clean-ups after pieces** (59b014e, 0989cd6): an operation's feeds read in one place
+  (`Operation::feed`, `plunge_feed`), a piece's trimmed cuts entering at the operation's
+  own plunge feed; one parser for "3x2" and "600x400" (`copies --grid` takes `×` too); a
+  board placed for one run (`Setup::placed`, never saved); a run of a setup in pieces
+  carries each piece's run (`RunResult::pieces`), so export and `simulate --piece` don't
+  plan again. No golden changed.
+- **Pieces** (docs/specs/pieces.md, approved and built 2026-11-15, 674979f..98d6a84): a
+  setup cut in pieces, a puzzle of boards for a shape larger than the board. Schema 37:
+  `pieces` on a setup (a grid or seam shifts, knobs or fingers, their size and
+  clearance), `setup pieces`. Seams with puzzle knobs or fingers and cells
+  (`chipload-toolpath` `pieces.rs`); a program per piece (files `-A1`, `-A2`…; `run --piece A2`),
+  cuts trimmed to each piece entering at their plunge feed; one setup sheet with a map of
+  the pieces; `simulate --piece` or all put together; `dxf export --pieces`. The window:
+  the setup's Pieces section, pieces dashed and named in the view, preview and export.
+  Guide page concepts/pieces.md; golden for a setup in pieces. Left: dragging a seam in the
+  view, `plan --piece`.
+
+### In 0.37.0 (published 2026-11-15, guide published)
 
 - **Small things:** Simulate starts in 3D with only the simulation shown the first time;
   the moulding form draws its section with the tool and opens its Profile section; a

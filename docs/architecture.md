@@ -94,7 +94,8 @@ other.
    repaired goes into the `ImportReport`.
 3. **Plan.** Each part's operations select contours and become one machine-neutral
    `Program` in mm (`toolpath::plan::plan_job_cancellable`): profiles, pockets, V-carves,
-   follow paths, holes, surfacing. Parts are cut one after the other with their copies, and
+   follow paths, holes, surfacing. Parts are cut one after the other with their instances (moved, turned or
+   mirrored placements, `toolpath::place`), and
    moves are grouped by tool. Every offset is verified after it is built.
 4. **Post.** The program is moved into work coordinates and rendered through the
    controller's template, in mm (G21) or inch (G20): one file per tool, or one file with

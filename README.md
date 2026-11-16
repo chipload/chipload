@@ -44,7 +44,8 @@ with a 2 mm ball nose.</sub>
   drawn and edited in the app (snapping, offset, fillet, trim, union and subtract, arrays,
   construction lines, and the Compass: one handle to move, turn, copy and array); a new version of a DXF keeps the operations, and the drawing exports
   as a DXF.
-- **A sheet of parts:** several parts with their own operations and grids of copies; export
+- **A sheet of parts:** several parts with their own operations, each placed again as instances that can be
+  moved, turned and mirrored; export
   the whole sheet or one part.
 - **The work zero where you want it:** a stock corner, its centre, the drawing origin or any
   point, dragged in the view.

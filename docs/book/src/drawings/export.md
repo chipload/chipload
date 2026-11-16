@@ -23,7 +23,7 @@ In the window: *File > Export drawing as DXF…*, then the choices and the file 
   *Only the selected shapes* in the window.
 - **Construction geometry** only when you ask (`--construction`, or the checkbox), each on
   a layer named after its own with `_construction`.
-- **Not written:** toolpaths (that's the G-code), the stock, the job's copies, operations.
+- **Not written:** toolpaths (that's the G-code), the stock, the parts' instances, operations.
 
 ## Units
 

@@ -41,7 +41,7 @@ units, language, colour theme, the setup sheet) and **Help** (the user guide, ke
 shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.
 
 The **status bar** at the bottom gives hints on the left. On the right it shows the
-cursor's position, the number of copies, the cycle time once generated, the
+cursor's position, how many times the part is cut (its instances), the cycle time once generated, the
 post-processor and the units.
 
 ## The Browser
