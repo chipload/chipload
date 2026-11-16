@@ -336,3 +336,32 @@ fn a_part_surface_needs_an_endmill_and_faces_over_holes() {
         "the hole at ({hx}, {hy})"
     );
 }
+
+#[test]
+fn two_board_surfaces_in_one_setup_are_warned_about() {
+    // docs/specs/surface-levels.md decision 4
+    let mut job = sample();
+    let again = job.operations[0].clone();
+    job.operations.insert(1, again);
+    let result = run_job(&job).unwrap();
+    assert!(
+        result.notes.iter().any(|n| n
+            .text
+            .contains("faces the whole board again after operation 1")),
+        "{:?}",
+        result.notes
+    );
+    // One board surface and a part surface: no such warning.
+    let (part, _) = part_surface_only();
+    let mut both = part;
+    both.operations[0].set_enabled(true);
+    let result = run_job(&both).unwrap();
+    assert!(
+        !result
+            .notes
+            .iter()
+            .any(|n| n.text.contains("whole board again")),
+        "{:?}",
+        result.notes
+    );
+}

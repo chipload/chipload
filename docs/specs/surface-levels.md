@@ -93,6 +93,19 @@ part's.
 - **Warning** (decision 4): two board surfaces in one setup that overlap in depth face
   the same top twice: "Operations 1 and 5 both face the whole board".
 
+**As built (step 4, 2026-11-16).**
+- The setup's menu has *Face the board…* (`face_board`: the widest endmill with its library
+  values, first in the setup, selected). In the window a Surface with nothing selected is
+  that too, so every way of adding one gives the same; the ribbon's Surface button and the
+  New operation menus are greyed without a selection, their hover pointing at the setup.
+- The Browser lists board surfaces under their setup after Stock and Work zero, before
+  the parts, and leaves them out of their part's list.
+- A part surface's form has its selection row and a *Margin* row in its Cut section; a
+  board surface's says "The whole stock".
+- The warning for a second board surface in a setup sits beside the order warning.
+- A part surface on a part whose instances lie close together can make them cut into each
+  other through the margin: refused as any overlap, naming the instances (§3).
+
 ## 6. Command line
 
 - `chipload op add-surface part.chipload [--setup ID] [--depth 0.5]`: a board surface, as

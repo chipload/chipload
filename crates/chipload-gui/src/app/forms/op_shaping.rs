@@ -560,6 +560,13 @@ pub(super) fn surface_sections(
         );
         flag(stepover, ui, "stepover");
         ui.end_row();
+        // A part surface's area reaches this far past its shapes (surface-levels.md §3).
+        if !f.select.is_empty() {
+            ui.label(t!(ui, "forms-surface-margin"))
+                .on_hover_text(t!(ui, "forms-surface-margin-hover"));
+            flag(ui.add(mm(&mut f.margin)), ui, "margin");
+            ui.end_row();
+        }
     });
     feeds_section(ui, &mut f.feed, &mut f.plunge_feed, op_tool);
 }

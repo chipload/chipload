@@ -99,6 +99,8 @@ forms-stepover = Pas latéral
 forms-stepover-hover = De combien chaque tour avance, en fraction du diamètre de l'outil
 forms-surface-stepover-hover = De combien chaque passe avance latéralement, en fraction du diamètre de l'outil
 forms-surface-end-depth-hover = Combien est enlevé sur le dessus, vers le bas depuis le dessus du brut
+forms-surface-margin = Marge
+forms-surface-margin-hover = Jusqu'où la surface dressée dépasse les formes sélectionnées : le rayon de l'outil atteint leurs coins
 forms-section-entry-lead = Entrée et approche
 forms-section-entry = Entrée
 

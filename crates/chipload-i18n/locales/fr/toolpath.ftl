@@ -116,6 +116,7 @@ toolpath-surface-after = { $label } surface le brut après que { $count ->
     [one] l'opération { $operations } l'a usiné
    *[other] les opérations { $operations } l'ont usiné
 } : le surfaçage vient d'habitude en premier
+toolpath-surface-twice = { $label } surface toute la planche de nouveau après l'opération { $other } : un surfaçage de planche par montage suffit d'habitude
 # $tool is the number of the larger tool the pocket rests after.
 toolpath-rest-no-earlier = reprise après l'outil { $tool }, mais aucune poche précédente n'usine ces formes avec lui aussi profond ; le reste de la poche ne sera pas usiné
 toolpath-rest-pass-plunge = plonge à la verticale avec l'outil { $tool }, qui n'est pas marqué comme coupant au centre ; utilisez une hélice ou une rampe s'il ne coupe pas au centre

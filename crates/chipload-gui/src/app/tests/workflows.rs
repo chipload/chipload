@@ -600,8 +600,9 @@ fn a_surface_needs_no_selection_and_goes_first_in_its_part() {
     app.selection = Default::default();
     let first_part = app.edit.as_ref().unwrap().job.parts[0].id;
     app.edit.as_mut().unwrap().job.active_part = Some(first_part);
+    // Nothing selected: the whole board, first in the setup (surface-levels.md §5).
     let i = app.add_operation(OpKind::Surface).unwrap();
-    assert_eq!(i, 0, "first in part 1");
+    assert_eq!(i, 0, "first in the setup, in part 1");
     let edit = app.edit.as_ref().unwrap();
     let Operation::Surface(f) = &edit.job.operations[i] else {
         panic!("a surface");
@@ -609,7 +610,8 @@ fn a_surface_needs_no_selection_and_goes_first_in_its_part() {
     assert_eq!(f.name, "Surface 1");
     assert_eq!(f.part, first_part);
     // The project's only endmill; 0.5 mm off in one pass.
-    assert_eq!((f.tool, f.end_depth, f.step_down), (1, 0.5, 1.0));
+    assert_eq!((f.tool, f.end_depth, f.step_down), (1, 0.5, 0.5));
+    assert!(edit.job.operations[i].is_board_surface());
     assert_eq!(
         crate::editor::geometry_summary(
             &edit.job.operations[i],
@@ -1067,4 +1069,40 @@ fn generation_and_simulation_show_their_progress_while_they_run() {
     );
     assert!(app.wait_for_simulation(&ctx));
     assert_eq!(app.simulation_progress(), None);
+}
+
+#[test]
+fn the_board_is_faced_from_its_setup_and_a_part_surface_needs_shapes() {
+    // docs/specs/surface-levels.md §5
+    let mut app = two_parts();
+    app.selection = Default::default();
+    assert!(!super::super::browser::can_add(
+        OpKind::Surface,
+        false,
+        false
+    ));
+    let i = app.face_board(1).unwrap();
+    assert_eq!(i, 0);
+    assert!(app.edit.as_ref().unwrap().job.operations[0].is_board_surface());
+    assert_eq!(app.focus, Focus::Op(0));
+    // Listed under the setup: the sidebar draws it once.
+    draw_sidebar(&mut app);
+    // A part surface of a selected outline: its form has the margin.
+    // In part 1, which has no instances: part B's lie close together, and a margin past
+    // their outlines would make them cut into each other (refused, §3).
+    let first = app.edit.as_ref().unwrap().job.parts[0].id;
+    app.edit.as_mut().unwrap().job.active_part = Some(first);
+    let outline = app.contours.iter().find(|c| c.closed).unwrap().id;
+    app.click(Some(outline), false);
+    let k = app.add_operation(OpKind::Surface).unwrap();
+    let edit = app.edit.as_ref().unwrap();
+    let Operation::Surface(f) = &edit.job.operations[k] else {
+        panic!("a surface");
+    };
+    assert!(!f.select.is_empty());
+    assert!(k > 0, "after the board surface");
+    let radius = edit.job.tool(f.tool).unwrap().diameter / 2.0;
+    assert_eq!((f.margin, f.stepover), (radius, 0.5));
+    draw_properties(&mut app);
+    assert!(app.generate_and_wait(), "{:?}", app.report);
 }

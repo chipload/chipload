@@ -99,6 +99,8 @@ forms-stepover = Seitl. Zustellung
 forms-stepover-hover = Wie weit jeder Ring weiterrückt, als Anteil des Werkzeugdurchmessers
 forms-surface-stepover-hover = Wie weit jede Bahn seitlich weiterrückt, als Anteil des Werkzeugdurchmessers
 forms-surface-end-depth-hover = Wie viel oben abgetragen wird, gemessen von der Rohteiloberkante nach unten
+forms-surface-margin = Rand
+forms-surface-margin-hover = Wie weit die geplante Fläche über die gewählten Formen hinausreicht: der Werkzeugradius erreicht ihre Ecken
 forms-section-entry-lead = Eintauchen und Anfahrt
 forms-section-entry = Eintauchen
 

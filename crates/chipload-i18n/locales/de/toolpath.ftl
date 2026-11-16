@@ -116,6 +116,7 @@ toolpath-surface-after = { $label } plant das Rohteil, nachdem { $count ->
     [one] Bearbeitung { $operations } es bereits gefräst hat
    *[other] die Bearbeitungen { $operations } es bereits gefräst haben
 }: Planfräsen kommt normalerweise zuerst
+toolpath-surface-twice = { $label } plant das ganze Brett nach Operation { $other } noch einmal: eine Brettfläche je Aufspannung reicht meist
 # $tool is the number of the larger tool the pocket rests after.
 toolpath-rest-no-earlier = Rest nach Werkzeug { $tool }, aber keine frühere Tasche fräst diese Formen damit so tief; der Rest der Tasche bleibt ungefräst
 toolpath-rest-pass-plunge = taucht mit Werkzeug { $tool } senkrecht ein, das nicht als über Mitte schneidend markiert ist; verwenden Sie eine Helix oder eine Rampe, falls es nicht über Mitte schneidet

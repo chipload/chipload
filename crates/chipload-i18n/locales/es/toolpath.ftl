@@ -116,6 +116,7 @@ toolpath-surface-after = { $label } planea el material después de que { $count 
     [one] la operación { $operations } lo haya cortado
    *[other] las operaciones { $operations } lo hayan cortado
 }: el planeado suele ir primero
+toolpath-surface-twice = { $label } planea todo el tablero otra vez después de la operación { $other }: suele bastar un planeado del tablero por sujeción
 # $tool is the number of the larger tool the pocket rests after.
 toolpath-rest-no-earlier = restos tras la herramienta { $tool }, pero ninguna cajera anterior corta estas formas con ella a esa profundidad; el resto de la cajera quedará sin cortar
 toolpath-rest-pass-plunge = penetra en vertical con la herramienta { $tool }, que no está marcada como de corte al centro; usa una hélice o una rampa si no lo es

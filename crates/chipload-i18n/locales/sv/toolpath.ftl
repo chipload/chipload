@@ -116,6 +116,7 @@ toolpath-surface-after = { $label } planfräser ämnet efter att { $count ->
     [one] operation { $operations } har
    *[other] operationerna { $operations } har
 } fräst i det: planfräsning kommer oftast först
+toolpath-surface-twice = { $label } planfräser hela skivan igen efter operation { $other }: en planfräsning av skivan per uppspänning räcker oftast
 # $tool is the number of the larger tool the pocket rests after.
 toolpath-rest-no-earlier = rest efter verktyg { $tool }, men ingen tidigare ficka fräser dessa former lika djupt med det; resten av fickan lämnas ofräst
 toolpath-rest-pass-plunge = matar rakt ned med verktyg { $tool }, som inte är markerat som centrumskärande; använd en helix eller en ramp om det inte är det

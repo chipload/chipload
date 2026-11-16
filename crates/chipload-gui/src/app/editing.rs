@@ -31,6 +31,14 @@ impl ChiploadApp {
     /// profile of outlines with their holes; docs/specs/styles.md §2) and select the first.
     pub fn add_operation(&mut self, kind: OpKind) -> Option<usize> {
         let selection = self.op_selection();
+        // A surface without shapes is the whole board: the setup's
+        // (docs/specs/surface-levels.md §5).
+        if kind == OpKind::Surface && matches!(&selection, CanvasSelection::Nothing)
+            || matches!(&selection, CanvasSelection::Shapes(ids) if ids.is_empty())
+        {
+            let setup = self.edit.as_ref()?.job.active_setup_id().unwrap_or(1);
+            return self.face_board(setup);
+        }
         let library = self.library().map(|l| l.tools.clone());
         let lang = self.prefs.language;
         let edit = self.edit.as_mut()?;
@@ -42,6 +50,37 @@ impl ChiploadApp {
             self.set_report(Report::of_messages(messages));
         }
         Some(index)
+    }
+
+    /// A board surface first in setup `setup`, with the widest endmill and its library
+    /// values for the setup's material, selected, as one undo step
+    /// (docs/specs/surface-levels.md §5). Refused, with the reason, without an endmill.
+    pub fn face_board(&mut self, setup: u64) -> Option<usize> {
+        self.commit();
+        let tool = chipload_pipeline::surface::surface_tool(&self.edit.as_ref()?.job);
+        let cutting = tool.and_then(|id| self.tool_cutting(id));
+        let edit = self.edit.as_mut()?;
+        match chipload_pipeline::surface::add_board_surface(
+            &mut edit.job,
+            setup,
+            None,
+            None,
+            cutting.as_ref(),
+        ) {
+            Ok(index) => {
+                self.activate_setup(setup);
+                self.focus = Focus::Op(index);
+                self.commit();
+                Some(index)
+            }
+            Err(err) => {
+                self.error_report(Report::failed(
+                    t!(self, "app-face-board-failed"),
+                    err.message(),
+                ));
+                None
+            }
+        }
     }
 
     /// Set the copies' pitch so `gap` mm are left between their cuts (docs/specs/

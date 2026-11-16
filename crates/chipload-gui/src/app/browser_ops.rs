@@ -20,6 +20,9 @@ pub(super) struct PartRows<'a> {
     pub(super) parts: &'a [chipload_job::Part],
     pub(super) active: Option<u64>,
     pub(super) op_parts: &'a [u64],
+    /// Which operations are board surfaces, listed under their setup, not their part
+    /// (docs/specs/surface-levels.md §5).
+    pub(super) board: &'a [bool],
     pub(super) count: usize,
     /// The tool changes shown above an operation's row ([`tool_changes`]).
     pub(super) tool_before: &'a std::collections::BTreeMap<usize, Vec<i64>>,
@@ -183,10 +186,13 @@ impl ChiploadApp {
             parts,
             active,
             op_parts,
+            board,
             count,
             tool_before,
         } = rows;
-        let mine: Vec<usize> = (0..count).filter(|i| op_parts[*i] == part.id).collect();
+        let mine: Vec<usize> = (0..count)
+            .filter(|i| op_parts[*i] == part.id && !board[*i])
+            .collect();
         let flagged = mine.iter().any(|i| {
             self.problems.iter().any(|p| p.operation() == Some(*i)) || self.error_ops.contains(i)
         }) || !self.form_problem_map(Focus::Part(part.id)).is_empty();
@@ -377,7 +383,7 @@ impl ChiploadApp {
         }
         for i in mine {
             let changes = tool_before.get(&i).map_or(&[][..], Vec::as_slice);
-            if let Some(a) = self.operation_row(ui, i, count, changes) {
+            if let Some(a) = self.operation_row(ui, i, count, changes, 4) {
                 action = Some(a);
             }
         }
@@ -473,12 +479,13 @@ impl ChiploadApp {
 
     /// Operation `i`'s row (and the tool change line above it). `changes`: the tools changed
     /// to above it ([`tool_changes`]).
-    fn operation_row(
+    pub(super) fn operation_row(
         &mut self,
         ui: &mut egui::Ui,
         i: usize,
         count: usize,
         changes: &[i64],
+        depth: usize,
     ) -> Option<OpAction> {
         let edit = self.edit.as_ref()?;
         let entry = edit.job.operations.get(i)?;
@@ -549,15 +556,19 @@ impl ChiploadApp {
             _ => Vec::new(),
         };
         let dark = ui.visuals().dark_mode;
-        let row = Row::new(Id::new(("browser-op", i)), 4, format!("{}  {name}", i + 1))
-            .tick(op.enabled())
-            .icon_colored(op_icon(op), kind_color(op, dark))
-            .trailing(trailing)
-            .selected(self.focus == Focus::Op(i))
-            .dim(!is_cut)
-            .alert(flagged)
-            .draggable()
-            .show(ui);
+        let row = Row::new(
+            Id::new(("browser-op", i)),
+            depth,
+            format!("{}  {name}", i + 1),
+        )
+        .tick(op.enabled())
+        .icon_colored(op_icon(op), kind_color(op, dark))
+        .trailing(trailing)
+        .selected(self.focus == Focus::Op(i))
+        .dim(!is_cut)
+        .alert(flagged)
+        .draggable()
+        .show(ui);
         let mut action = None;
         if row.tick {
             action = Some(OpAction::Toggle(i));

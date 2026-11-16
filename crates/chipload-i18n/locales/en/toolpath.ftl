@@ -116,6 +116,7 @@ toolpath-surface-after = { $label } faces the stock after { $count ->
     [one] operation { $operations } has
    *[other] operations { $operations } have
 } cut it: surfacing usually comes first
+toolpath-surface-twice = { $label } faces the whole board again after operation { $other }: one board surface per setup is usually enough
 # $tool is the number of the larger tool the pocket rests after.
 toolpath-rest-no-earlier = rests after tool { $tool }, but no earlier pocket cuts these shapes with it as deep; the rest of the pocket will be left uncut
 toolpath-rest-pass-plunge = plunges straight down with tool { $tool }, which isn't marked centre-cutting; use a helix or a ramp if it isn't

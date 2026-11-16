@@ -99,6 +99,8 @@ forms-stepover = Sidosteg
 forms-stepover-hover = Hur långt varje slinga flyttas, som andel av verktygsdiametern
 forms-surface-stepover-hover = Hur långt varje skär flyttas i sidled, som andel av verktygsdiametern
 forms-surface-end-depth-hover = Hur mycket som tas bort från toppen, nedåt från ämnets ovansida
+forms-surface-margin = Marginal
+forms-surface-margin-hover = Hur långt den planfrästa ytan når utanför de valda formerna: verktygets radie når deras hörn
 forms-section-entry-lead = Nedgång och inkörning
 forms-section-entry = Nedgång
 

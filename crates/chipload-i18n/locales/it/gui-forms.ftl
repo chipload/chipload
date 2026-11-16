@@ -99,6 +99,8 @@ forms-stepover = Passo laterale
 forms-stepover-hover = Di quanto si sposta ogni anello, come frazione del diametro dell'utensile
 forms-surface-stepover-hover = Di quanto si sposta di lato ogni passata, come frazione del diametro dell'utensile
 forms-surface-end-depth-hover = Quanto si toglie dalla superficie, in giù dalla superficie del grezzo
+forms-surface-margin = Margine
+forms-surface-margin-hover = Quanto l'area spianata va oltre le forme selezionate: il raggio dell'utensile ne raggiunge gli angoli
 forms-section-entry-lead = Ingresso e raccordo
 forms-section-entry = Ingresso
 

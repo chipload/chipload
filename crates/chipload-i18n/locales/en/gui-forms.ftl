@@ -99,6 +99,8 @@ forms-stepover = Stepover
 forms-stepover-hover = How far each ring moves on, as a fraction of the tool diameter
 forms-surface-stepover-hover = How far each pass moves across, as a fraction of the tool diameter
 forms-surface-end-depth-hover = How much comes off the top, down from the stock top
+forms-surface-margin = Margin
+forms-surface-margin-hover = How far the faced area reaches past the selected shapes: the tool's radius reaches their corners
 forms-section-entry-lead = Entry and lead
 forms-section-entry = Entry
 

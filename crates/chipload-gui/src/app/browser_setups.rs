@@ -33,6 +33,8 @@ pub(super) enum SetupAction {
     NewPart(u64),
     Remove(u64),
     Export(u64),
+    /// A board surface first in this setup (docs/specs/surface-levels.md §5).
+    FaceBoard(u64),
 }
 
 impl ChiploadApp {
@@ -46,6 +48,12 @@ impl ChiploadApp {
         let active = edit.job.active_part_id();
         let count = edit.job.operations.len();
         let op_parts: Vec<u64> = edit.job.operations.iter().map(|e| e.part()).collect();
+        let board: Vec<bool> = edit
+            .job
+            .operations
+            .iter()
+            .map(Operation::is_board_surface)
+            .collect();
         let tool_before = self
             .edited_job()
             .map(|job| tool_changes(&job))
@@ -105,6 +113,15 @@ impl ChiploadApp {
                 if let Some(a) = self.work_zero_row(ui, setup.id) {
                     setup_action = Some(a);
                 }
+                // The setup's board surfaces, before its parts (surface-levels.md §5).
+                for i in
+                    (0..count).filter(|&i| board[i] && mine.iter().any(|p| p.id == op_parts[i]))
+                {
+                    let changes = tool_before.get(&i).map_or(&[][..], Vec::as_slice);
+                    if let Some(a) = self.operation_row(ui, i, count, changes, 3) {
+                        action = Some(a);
+                    }
+                }
                 for part in &mine {
                     let k = parts.iter().position(|p| p.id == part.id).unwrap_or(0);
                     let rows = PartRows {
@@ -112,6 +129,7 @@ impl ChiploadApp {
                         parts: &parts,
                         active,
                         op_parts: &op_parts,
+                        board: &board,
                         count,
                         tool_before: &tool_before,
                     };
@@ -196,6 +214,13 @@ impl ChiploadApp {
                 action = Some(SetupAction::Export(setup.id));
             }
             ui.separator();
+            if ui
+                .button(t!(ui, "browser-face-board"))
+                .on_hover_text(t!(ui, "browser-face-board-hover"))
+                .clicked()
+            {
+                action = Some(SetupAction::FaceBoard(setup.id));
+            }
             if ui.button(t!(ui, "browser-new-part")).clicked() {
                 action = Some(SetupAction::NewPart(setup.id));
             }
@@ -250,6 +275,9 @@ impl ChiploadApp {
             }
             SetupAction::Remove(id) => self.remove_setup(id),
             SetupAction::Export(id) => self.ask_export_setup(id),
+            SetupAction::FaceBoard(id) => {
+                self.face_board(id);
+            }
         }
     }
 

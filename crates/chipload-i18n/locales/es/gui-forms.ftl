@@ -99,6 +99,8 @@ forms-stepover = Paso lateral
 forms-stepover-hover = Cuánto avanza cada anillo, como fracción del diámetro de la herramienta
 forms-surface-stepover-hover = Cuánto se desplaza cada pasada, como fracción del diámetro de la herramienta
 forms-surface-end-depth-hover = Cuánto se rebaja de la parte superior, medido hacia abajo desde la cara superior del material
+forms-surface-margin = Margen
+forms-surface-margin-hover = Cuánto se extiende el área planeada más allá de las formas seleccionadas: el radio de la herramienta alcanza sus esquinas
 forms-section-entry-lead = Entrada y aproximación
 forms-section-entry = Entrada
 

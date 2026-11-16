@@ -11,8 +11,8 @@ use chipload_job::{
 };
 
 use super::check_passes::{
-    floor_pass_checks, plug_checks, rest_check, rest_pass_checks, surface_order_note,
-    surface_tool_rule,
+    board_twice_note, floor_pass_checks, plug_checks, rest_check, rest_pass_checks,
+    surface_order_note, surface_tool_rule,
 };
 use super::check_tools::{
     chamfer_tool_rule, flank_notes, flute_tool_rule, holes_tool_notes, moulding_tool_rule,
@@ -671,6 +671,7 @@ impl<'a> OpCheck<'a> {
                 surface_tool_rule(tool).map_err(at_tool),
                 surface_order_note(self.job, self.index, &self.label)
                     .into_iter()
+                    .chain(board_twice_note(self.job, self.index, &self.label))
                     .collect(),
             ),
             Operation::Relief(_) => (relief_tool_rule(tool).map_err(at_tool), Vec::new()),

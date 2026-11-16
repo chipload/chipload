@@ -371,19 +371,30 @@ fn operation_group(app: &mut ChiploadApp, ui: &mut egui::Ui) {
     // default width.
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = vec2(2.0, 2.0);
-        if let Some((label, hover)) = surface
-            && small_ribbon_button(
+        // A part's area: its selected outline (docs/specs/surface-levels.md §5).
+        if let Some((label, hover)) = surface {
+            let enabled = super::browser::can_add(OpKind::Surface, selected, app.has_models());
+            let hover = if enabled {
+                format!("{label}: {hover}")
+            } else {
+                format!(
+                    "{label}: {}",
+                    super::browser::cannot_add(ui, OpKind::Surface)
+                )
+            };
+            if small_ribbon_button(
                 ui,
                 Icon::Surface,
                 &label,
-                true,
+                enabled,
                 false,
                 tint(OpKind::Surface),
             )
-            .on_hover_text(format!("{label}: {hover}"))
+            .on_hover_text(hover)
             .clicked()
-        {
-            app.add_operation(OpKind::Surface);
+            {
+                app.add_operation(OpKind::Surface);
+            }
         }
         // A relief of the selected model, or the first one (needs a model).
         if let Some((label, hover)) = relief {

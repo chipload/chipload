@@ -204,6 +204,8 @@ pub(super) fn can_add(kind: OpKind, selected: bool, models: bool) -> bool {
 pub(super) fn cannot_add(src: &impl crate::i18n::Lang, kind: OpKind) -> String {
     match kind {
         OpKind::Relief => t!(src, "browser-relief-needs-model"),
+        // The whole board is the setup's (docs/specs/surface-levels.md §5).
+        OpKind::Surface => t!(src, "browser-surface-needs-shapes"),
         _ => t!(src, "header-select-shapes-first"),
     }
 }

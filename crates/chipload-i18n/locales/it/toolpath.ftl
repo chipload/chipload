@@ -116,6 +116,7 @@ toolpath-surface-after = { $label } spiana il grezzo dopo che { $count ->
     [one] la lavorazione { $operations } l'ha tagliato
    *[other] le lavorazioni { $operations } l'hanno tagliato
 }: di solito la spianatura viene per prima
+toolpath-surface-twice = { $label } spiana di nuovo tutta la tavola dopo l'operazione { $other }: di solito basta una spianatura della tavola per piazzamento
 # $tool is the number of the larger tool the pocket rests after.
 toolpath-rest-no-earlier = ripresa dopo l'utensile { $tool }, ma nessuna tasca precedente taglia queste forme con esso alla stessa profondità; il resto della tasca resterà non lavorato
 toolpath-rest-pass-plunge = affonda in verticale con l'utensile { $tool }, che non è indicato come utensile che taglia al centro; usa un'elica o una rampa se non lo è

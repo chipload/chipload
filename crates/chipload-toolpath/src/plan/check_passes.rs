@@ -43,6 +43,22 @@ pub(super) fn surface_order_note(job: &Job, index: usize, label: &Message) -> Op
     )
 }
 
+/// A board surface after another one of the same setup faces the same top twice
+/// (docs/specs/surface-levels.md decision 4): a warning naming the first.
+pub(super) fn board_twice_note(job: &Job, index: usize, label: &Message) -> Option<Message> {
+    let op = job.operations.get(index)?;
+    let setup = job.setup_of(op)?.id;
+    let first = (0..index).find(|&i| {
+        let other = &job.operations[i];
+        job.cuts(i) && other.is_board_surface() && job.setup_of(other).map(|s| s.id) == Some(setup)
+    })?;
+    Some(
+        Message::new("toolpath-surface-twice")
+            .arg("label", label.clone())
+            .arg("other", first + 1),
+    )
+}
+
 /// Rest machining's rules (docs/specs/rest-machining.md §5) for the pocket at `index`,
 /// which cuts with `tool`: a problem's text, or the warnings.
 pub(super) fn rest_check(
