@@ -14,7 +14,7 @@ The machine, shared by every setup, is under **Machine**.
 | Setting | |
 |---|---|
 | **Thickness** | first, as every job needs it. Depths count down from the stock top, so set this to the real board. |
-| **Size: Outline + margin** | new projects: the stock is the drawing's outline (its size in brackets) plus the **margin** on every side, centred on it, and follows the drawing as it changes. |
+| **Size: Outline + margin** | new projects: the stock is the drawing's outline (its size in brackets) plus the **margin** on every side, centred on it, and follows the drawing as it changes. It grows round the parts' [instances](../drawings/instances.md) too. |
 | **Size: Fixed size, centred** | a size you type, for a board you want to use, centred on the drawing's outline; it starts at the size the stock had. The drawing's size is shown under it, to check the board against. |
 
 A project from before 28 October 2026 may have its stock's corner or centre at the drawing's

@@ -853,7 +853,7 @@ impl Job {
     /// The drawing a board is placed on (docs/specs/setups.md §3): with one setup the whole
     /// drawing, as always; with several, the shapes the active setup's operations select.
     /// A relief's rim reaches past its shapes, and a fitted board grows round it
-    /// (docs/specs/stl-relief.md §16).
+    /// (docs/specs/stl-relief.md §16); so do the parts' instances.
     pub fn board_extents(&self) -> Option<((f64, f64), (f64, f64))> {
         let drawing = if self.setups.len() < 2 {
             self.drawing.extents()
@@ -884,12 +884,50 @@ impl Job {
             }
             _ => None,
         });
-        rims.fold(drawing, |all, ((x0, y0), (x1, y1))| {
-            Some(match all {
-                None => ((x0, y0), (x1, y1)),
-                Some(((a0, b0), (a1, b1))) => ((a0.min(x0), b0.min(y0)), (a1.max(x1), b1.max(y1))),
+        let instances = self.instance_boxes(&board);
+        rims.chain(instances)
+            .fold(drawing, |all, ((x0, y0), (x1, y1))| {
+                Some(match all {
+                    None => ((x0, y0), (x1, y1)),
+                    Some(((a0, b0), (a1, b1))) => {
+                        ((a0.min(x0), b0.min(y0)), (a1.max(x1), b1.max(y1)))
+                    }
+                })
             })
-        })
+    }
+
+    /// The box round each enabled instance of the board's parts, placed: its part's box
+    /// turned about the part's centre and moved (docs/specs/instances.md §2), so a board that
+    /// fits the drawing holds them too. A mirror keeps the box. A free angle gives the box
+    /// round the turned box, a little larger than the shapes need.
+    fn instance_boxes(&self, board: &[u64]) -> Vec<((f64, f64), (f64, f64))> {
+        let mut boxes = Vec::new();
+        for part in &self.parts {
+            if !part.enabled || (self.setups.len() >= 2 && !board.contains(&part.setup)) {
+                continue;
+            }
+            let Some(((x0, y0), (x1, y1))) = self.part_box(part.id) else {
+                continue;
+            };
+            let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+            for instance in part.instances.iter().filter(|i| i.enabled) {
+                let (sin, cos) = (math::sin(instance.angle), math::cos(instance.angle));
+                let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1)].map(|(x, y)| {
+                    let (dx, dy) = (x - cx, y - cy);
+                    (
+                        cx + dx * cos - dy * sin + instance.at[0],
+                        cy + dx * sin + dy * cos + instance.at[1],
+                    )
+                });
+                let (mut lo, mut hi) = (corners[0], corners[0]);
+                for (x, y) in &corners[1..] {
+                    lo = (lo.0.min(*x), lo.1.min(*y));
+                    hi = (hi.0.max(*x), hi.1.max(*y));
+                }
+                boxes.push((lo, hi));
+            }
+        }
+        boxes
     }
 
     /// Whether `op` cuts one of the setups `board`.

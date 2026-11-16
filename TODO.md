@@ -359,6 +359,10 @@ Smaller follow-ups noted along the way, not in the order above:
 
 Pushed (2026-11-16). 0.37 can't open a project from these (schemas 37 and 38).
 
+- **A fitted board holds the instances** (2026-11-16, the user's finding while trying
+  instances: a turned instance was cut off the board and missing from the simulation):
+  `Job::board_extents` grows round each enabled instance's placed part box. No golden
+  changed.
 - **Small follow-ups** (2026-11-16): a pasted construction shape stays construction (the
   clipboard, in the app and as text, carries whole shapes); materials' *Import…* and
   *Export…* in the window, with the tools' preview (`library_transfer::Transfer`); the

@@ -126,6 +126,27 @@ fn turned_and_mirrored_instances_cut_every_operation_like_the_part() {
 }
 
 #[test]
+fn a_board_fitted_to_the_drawing_holds_every_instance() {
+    for angle in [0.0, FRAC_PI_2, 0.5] {
+        let spot = Spot {
+            mirror: Some(Mirror::LeftRight),
+            angle,
+            at: [400.0, 300.0],
+        };
+        let mut job = with_instance(spot, None);
+        job.setups[0].stock.fit = Some(5.0);
+        let run = run_job(&job).unwrap();
+        let ((x0, y0), (x1, y1)) = job.stock_bounds();
+        let (a0, b0, a1, b1) = extent(&feed_ends(&run.program, &run.op_spans, 2));
+        assert!(
+            a0 >= x0 && b0 >= y0 && a1 <= x1 && b1 <= y1,
+            "turned {angle}: instance 2 cuts {a0:.1}, {b0:.1} … {a1:.1}, {b1:.1} \
+             off the board {x0:.1}, {y0:.1} … {x1:.1}, {y1:.1}"
+        );
+    }
+}
+
+#[test]
 fn a_mirrored_parts_instances_are_the_mirrored_part_placed() {
     // The part's own mirror goes with every instance; an instance's mirror on top of it
     // brings the drawing back, still cut climb.
