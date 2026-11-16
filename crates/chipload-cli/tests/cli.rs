@@ -580,6 +580,110 @@ fn copies_are_set_from_the_command_line() {
 }
 
 #[test]
+fn instances_are_added_changed_and_removed_from_the_command_line() {
+    // docs/specs/instances.md §5
+    let dir = temp_dir("instances");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let part = || {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        job["parts"][0].clone()
+    };
+
+    let (code, out, _) = run(&["part", "instance", "list", p]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains("no instances, cut once"), "{out}");
+    // Beside the part by default: its cut is 154.665 mm wide with the tool, so 10 mm
+    // past it, level with its bottom.
+    let (code, out, _) = run(&["part", "instance", "add", p]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Added instance 2 at 154.665, 0.000 mm"),
+        "{out}"
+    );
+    // Turned and mirrored, beside the instances too; the angle in degrees.
+    let (code, out, _) = run(&[
+        "part",
+        "instance",
+        "add",
+        p,
+        "--angle",
+        "90",
+        "--mirror",
+        "left-right",
+    ]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Added instance 3 at") && out.contains("turned 90°, mirrored left-right"),
+        "{out}"
+    );
+    assert_eq!(part()["instances"][1]["mirror"], "left_right");
+    let angle = part()["instances"][1]["angle"].as_f64().unwrap();
+    assert!(
+        (angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12,
+        "{angle}"
+    );
+    let (code, out, _) = run(&[
+        "part", "instance", "add", p, "--at", "0,1in", "--angle", "-30",
+    ]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Added instance 4 at 0.000, 25.400 mm, turned -30°"),
+        "{out}"
+    );
+    // Added where it overlaps the part: written, with a warning; running refuses it.
+    let (code, _, err) = run(&["part", "instance", "set", p, "4", "--at", "1,1"]);
+    assert_eq!(code, Some(0));
+    assert!(
+        err.contains("warning:") && err.contains("cut into each other"),
+        "{err}"
+    );
+    let (code, _, err) = run(&["part", "instance", "set", p, "2", "3", "--at", "1,1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("--at moves one instance"), "{err}");
+    let (code, _, err) = run(&["part", "instance", "remove", p, "9"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("has no instance 9"), "{err}");
+    run(&["part", "instance", "remove", p, "4"]);
+    // The others keep their numbers; one can be off and still kept.
+    let (code, out, _) = run(&["part", "instance", "set", p, "3", "--off"]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains(", off"), "{out}");
+    let (_, out, _) = run(&["part", "instance", "list", p]);
+    assert!(out.contains("2 in all, operation by operation"), "{out}");
+    assert!(
+        out.contains("  2 at 154.665") && out.contains("  3 at"),
+        "{out}"
+    );
+    run(&["part", "instance", "set", p, "3", "--on"]);
+    run(&["part", "set", p, "1", "--order", "by-instance"]);
+    assert_eq!(part()["order"], "by_instance");
+    // Placed beside each other, they run, checked.
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
+    assert_eq!(code, Some(0), "{err}");
+    // A grid in place of them, as `copies` makes it.
+    let (code, out, _) = run(&[
+        "part", "instance", "array", p, "--grid", "2x1", "--gap", "5",
+    ]);
+    assert_eq!(code, Some(0), "{out}");
+    assert!(
+        out.contains("Instances: 2 in all, instance by instance"),
+        "{out}"
+    );
+    let (code, out, _) = run(&["part", "instance", "remove", p, "--all"]);
+    assert_eq!(code, Some(0));
+    assert!(out.contains("Removed instance 2"), "{out}");
+    assert_eq!(part()["instances"], serde_json::json!([]));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn parts_are_added_changed_and_removed_from_the_command_line() {
     // docs/specs/parts.md §7
     let dir = temp_dir("parts");

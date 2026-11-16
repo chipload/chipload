@@ -383,6 +383,8 @@ pipeline-shape-imported-change = shape { $id } was imported from the DXF and can
 ## Errors: parts and copies
 
 pipeline-no-part = No part { $id } in the project
+# $id is an instance's number in the part (2 on).
+pipeline-no-instance = Part "{ $part }" has no instance { $id }
 pipeline-part-name-empty = A part's name can't be empty
 pipeline-part-name-taken = Another part is named "{ $name }"
 pipeline-last-part = A project needs at least one part: this is the last one

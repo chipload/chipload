@@ -386,6 +386,8 @@ pipeline-shape-imported-change = formen { $id } importerades från DXF:en och ka
 ## Errors: parts and copies
 
 pipeline-no-part = Det finns ingen detalj { $id } i projektet
+# $id is an instance's number in the part (2 on).
+pipeline-no-instance = Detaljen "{ $part }" har ingen instans { $id }
 pipeline-part-name-empty = En detalj måste ha ett namn
 pipeline-part-name-taken = En annan detalj heter "{ $name }"
 pipeline-last-part = Ett projekt behöver minst en detalj: det här är den sista

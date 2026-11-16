@@ -9,6 +9,7 @@ mod dxfs;
 mod frames;
 mod groups;
 mod images;
+mod instances;
 mod lengths;
 mod library;
 mod materials;
@@ -399,8 +400,8 @@ enum Command {
         #[command(subcommand)]
         action: library::PostAction,
     },
-    /// A project's parts: groups of operations, each cut with its copies before the next
-    /// (docs/specs/parts.md).
+    /// A project's parts: groups of operations, each cut with its instances before the next
+    /// (docs/specs/parts.md), and the instances themselves (`part instance`).
     Part {
         #[command(subcommand)]
         action: parts::PartAction,
@@ -433,7 +434,8 @@ enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Cut a part several times in a grid (docs/specs/copies-grid.md).
+    /// Cut a part several times in a grid: its instances made a grid, the same as `part
+    /// instance array`; --off is `part instance remove --all` (docs/specs/instances.md §5).
     Copies {
         /// The project (.chipload).
         project: PathBuf,
@@ -443,7 +445,7 @@ enum Command {
         /// Columns x rows, e.g. "3x2".
         #[arg(long)]
         grid: Option<String>,
-        /// Pitch "DX,DY" in mm, copy to copy; negative grows left or down.
+        /// Pitch "DX,DY" in mm, from cell to cell; negative grows left or down.
         #[arg(long, allow_hyphen_values = true, conflicts_with = "gap")]
         pitch: Option<String>,
         /// Set the pitch so that this many mm are left between the cuts of neighbours.
@@ -452,7 +454,7 @@ enum Command {
         /// The cut order.
         #[arg(long)]
         order: Option<OrderArg>,
-        /// Back to one copy.
+        /// No instances: the part is cut once.
         #[arg(long, conflicts_with_all = ["grid", "pitch", "gap", "order"])]
         off: bool,
         /// Where to write the result; default: the project itself.

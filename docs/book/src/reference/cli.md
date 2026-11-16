@@ -2420,7 +2420,7 @@ chipload post use <PROJECT> [OPTIONS]
 
 ## `chipload part`
 
-A project's parts: groups of operations, each cut with its copies before the next (docs/specs/parts.md)
+A project's parts: groups of operations, each cut with its instances before the next (docs/specs/parts.md), and the instances themselves (`part instance`)
 
 ### `chipload part list`
 
@@ -2464,6 +2464,95 @@ chipload part set <PROJECT> <ID> [OPTIONS]
 | `--off` | Leave the part and its operations out of the program. |
 | `--on` | Cut the part again. |
 | `--mirror <MIRROR>` | Cut the part mirrored about the centre line of its box, the drawing as drawn: left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb. |
+| `--order <ORDER>` | The order its instances are cut in (docs/specs/instances.md §2) One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part instance`
+
+A part's instances: the part placed again, moved, turned and perhaps mirrored (docs/specs/instances.md)
+
+### `chipload part instance list`
+
+A part's instances: number, position, turn, mirror, on or off
+
+```text
+chipload part instance list <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part (as `part list` shows it); needed when the project has several. |
+
+### `chipload part instance add`
+
+Place the part again: a new instance, linked to the part. Prints its number
+
+```text
+chipload part instance add <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part; needed when the project has several. |
+| `--at <AT>` | Its move "DX,DY" from the part as drawn (any length unit; plain numbers are mm); default: beside everything the part cuts, 10 mm away. |
+| `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
+| `--mirror <MIRROR>` | Mirrored about the middle of the part's box first: left-right, top-bottom or none. Climb stays climb. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part instance set`
+
+Move, turn, mirror, or turn off or on, instances of a part
+
+```text
+chipload part instance set <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part; needed when the project has several. |
+| `<IDS>` | The instances' numbers (as `part instance list` shows them) |
+| `--at <AT>` | Its move "DX,DY" from the part as drawn; one instance only. |
+| `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
+| `--mirror <MIRROR>` | Mirrored: left-right, top-bottom or none. |
+| `--off` | Keep it, but don't cut it. |
+| `--on` | Cut it again. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part instance remove`
+
+Remove instances of a part; the others keep their numbers
+
+```text
+chipload part instance remove <PROJECT> <IDS>... [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part; needed when the project has several. |
+| `<IDS>` | The instances' numbers. |
+| `--all` | Every instance: the part is cut once. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+### `chipload part instance array`
+
+The part's instances made a grid: its cells but the first, in place of the instances it has, numbered row by row from 2 (what `chipload copies` does)
+
+```text
+chipload part instance array <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part; needed when the project has several. |
+| `--grid <GRID>` | Columns x rows, e.g. "3x2". Required. |
+| `--pitch <PITCH>` | Pitch "DX,DY" from cell to cell; negative grows left or down. |
+| `--gap <GAP>` | Set the pitch so that this many mm are left between the cuts of neighbours. |
+| `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part activate`
@@ -2660,7 +2749,7 @@ chipload zero <PROJECT> [OPTIONS]
 
 ## `chipload copies`
 
-Cut a part several times in a grid (docs/specs/copies-grid.md)
+Cut a part several times in a grid: its instances made a grid, the same as `part instance array`; --off is `part instance remove --all` (docs/specs/instances.md §5)
 
 ```text
 chipload copies <PROJECT> [OPTIONS]
@@ -2671,10 +2760,10 @@ chipload copies <PROJECT> [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--part <PART>` | Which part (as `part list` shows it); needed when the project has several. |
 | `--grid <GRID>` | Columns x rows, e.g. "3x2". |
-| `--pitch <PITCH>` | Pitch "DX,DY" in mm, copy to copy; negative grows left or down. |
+| `--pitch <PITCH>` | Pitch "DX,DY" in mm, from cell to cell; negative grows left or down. |
 | `--gap <GAP>` | Set the pitch so that this many mm are left between the cuts of neighbours. |
 | `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
-| `--off` | Back to one copy. |
+| `--off` | No instances: the part is cut once. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload place`

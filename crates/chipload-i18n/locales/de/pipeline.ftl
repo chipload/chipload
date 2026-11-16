@@ -389,6 +389,8 @@ pipeline-shape-imported-change = Form { $id } wurde aus der DXF importiert und k
 ## Errors: parts and copies
 
 pipeline-no-part = Kein Teil { $id } im Projekt
+# $id is an instance's number in the part (2 on).
+pipeline-no-instance = Teil „{ $part }“ hat keine Instanz { $id }
 pipeline-part-name-empty = Der Name eines Teils darf nicht leer sein
 pipeline-part-name-taken = Ein anderes Teil heißt „{ $name }“
 pipeline-last-part = Ein Projekt braucht mindestens ein Teil: dies ist das letzte

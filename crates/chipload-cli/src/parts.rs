@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! `chipload part …`: a project's parts, each a group of operations cut together with its
-//! own copies (docs/specs/parts.md §7). `op part` moves an operation between them and
-//! `copies --part` sets a part's grid.
+//! own instances (docs/specs/parts.md §7). `op part` moves an operation between them and
+//! `part instance` places a part again (instances.rs).
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use chipload_job::Mirror;
 use chipload_pipeline::copies::instances_text;
+use chipload_pipeline::instances::set_order;
 use chipload_pipeline::parts::{activate_part, add_part, remove_part, set_part, set_part_mirror};
 use clap::Subcommand;
 use serde_json::{Value, json};
@@ -52,9 +53,18 @@ pub enum PartAction {
         /// left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb.
         #[arg(long, value_parser = mirror)]
         mirror: Option<MirrorChoice>,
+        /// The order its instances are cut in (docs/specs/instances.md §2).
+        #[arg(long)]
+        order: Option<crate::placing::OrderArg>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
+    },
+    /// A part's instances: the part placed again, moved, turned and perhaps mirrored
+    /// (docs/specs/instances.md).
+    Instance {
+        #[command(subcommand)]
+        action: crate::instances::InstanceAction,
     },
     /// Make a part the active one: where the app adds new operations.
     Activate {
@@ -84,6 +94,12 @@ pub enum PartAction {
 pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
     let (project, output) = match &action {
         PartAction::List { project } => return list(out, project),
+        PartAction::Instance { .. } => {
+            let PartAction::Instance { action } = action else {
+                return ExitCode::SUCCESS;
+            };
+            return crate::instances::instance(out, action);
+        }
         PartAction::Add {
             project, output, ..
         }
@@ -102,7 +118,7 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
         Err(code) => return code,
     };
     let changed = match action {
-        PartAction::List { .. } => return ExitCode::SUCCESS,
+        PartAction::List { .. } | PartAction::Instance { .. } => return ExitCode::SUCCESS,
         PartAction::Add { name, .. } => add_part(&job, name.as_deref()).map(|(job, id)| {
             out.line(format!("Added part {id}, now the active part"));
             out.set("part", json!(id));
@@ -114,6 +130,7 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
             off,
             on,
             mirror,
+            order,
             ..
         } => {
             let enabled = match (off, on) {
@@ -121,10 +138,15 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
                 (_, true) => Some(true),
                 _ => None,
             };
-            set_part(&job, id, name.as_deref(), enabled).and_then(|job| match mirror {
-                Some(MirrorChoice(mirror)) => set_part_mirror(&job, id, mirror),
-                None => Ok(job),
-            })
+            set_part(&job, id, name.as_deref(), enabled)
+                .and_then(|job| match mirror {
+                    Some(MirrorChoice(mirror)) => set_part_mirror(&job, id, mirror),
+                    None => Ok(job),
+                })
+                .and_then(|job| match order {
+                    Some(order) => set_order(&job, id, order.value()),
+                    None => Ok(job),
+                })
         }
         PartAction::Activate { id, .. } => activate_part(&job, id),
         PartAction::Remove {
@@ -197,10 +219,10 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
 
 /// A part's mirror as `--mirror` sets it: None for none.
 #[derive(Clone, Copy)]
-pub struct MirrorChoice(Option<Mirror>);
+pub struct MirrorChoice(pub(crate) Option<Mirror>);
 
 /// A part's mirror as the command line writes it.
-fn mirror(text: &str) -> Result<MirrorChoice, String> {
+pub(crate) fn mirror(text: &str) -> Result<MirrorChoice, String> {
     match text {
         "left-right" => Ok(MirrorChoice(Some(Mirror::LeftRight))),
         "top-bottom" => Ok(MirrorChoice(Some(Mirror::TopBottom))),

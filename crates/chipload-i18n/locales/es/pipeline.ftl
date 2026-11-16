@@ -394,6 +394,8 @@ pipeline-shape-imported-change = la forma { $id } se importó del DXF y no se pu
 ## Errors: parts and copies
 
 pipeline-no-part = No hay pieza { $id } en el proyecto
+# $id is an instance's number in the part (2 on).
+pipeline-no-instance = La pieza «{ $part }» no tiene la instancia { $id }
 pipeline-part-name-empty = El nombre de una pieza no puede estar vacío
 pipeline-part-name-taken = Otra pieza se llama "{ $name }"
 pipeline-last-part = Un proyecto necesita al menos una pieza: esta es la última

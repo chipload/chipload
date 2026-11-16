@@ -15,6 +15,7 @@ pub mod frames;
 pub mod groups;
 pub mod images;
 pub mod inlay;
+pub mod instances;
 pub mod library;
 pub mod materials;
 pub mod models;

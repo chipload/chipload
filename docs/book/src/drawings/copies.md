@@ -1,24 +1,41 @@
 # Copies
 
 Each [part](../operations/parts.md) can be cut several times. Every extra time is an
-**instance** of the part: the same operations, cut again at another spot. Click the part in
-the Browser and make a grid under **Instances** in its properties, or use `chipload copies`.
-With several parts, give `--part`.
+**instance** of the part: the same shapes and operations, cut again somewhere else, moved,
+turned and perhaps mirrored. Instances are linked to the part: change the part, and every
+instance follows.
+
+In the window, click the part in the Browser and make a grid under **Instances** in its
+properties. On the command line, `chipload part instance` places them one by one. With
+several parts, give `--part`.
 
 ```sh
-chipload copies part.chipload --grid 3x2 --gap 10     # 3 columns, 2 rows, 10 mm between cuts
-chipload copies part.chipload --grid 3x2 --pitch 120,80
-chipload copies part.chipload --order by-instance     # every operation on one instance, then the next
-chipload copies part.chipload --off                   # no instances: the part is cut once
-chipload copies part.chipload --part 2 --grid 2x1 --gap 10   # with several parts
+chipload part instance add part.chipload                  # beside the part, 10 mm from its cut
+chipload part instance add part.chipload --angle 90 --mirror left-right
+chipload part instance add part.chipload --at 300,0       # moved 300 mm right of the part
+chipload part instance list part.chipload                 # their numbers, places and turns
+chipload part instance set part.chipload 3 --angle 45     # turn instance 3 (also --at, --mirror, --off, --on)
+chipload part instance remove part.chipload 3             # or --all: the part is cut once
+chipload part instance array part.chipload --grid 3x2 --gap 10   # a grid in place of them
+chipload part set part.chipload 1 --order by-instance     # every operation on one instance, then the next
 ```
 
-- **A grid makes instances:** the part is the grid's first cell, and the other cells
-  become its instances, numbered row by row from 2. Making a grid again replaces them.
-  `--pitch` and `--gap` go with `--grid`.
-- **Pitch:** the distance from cell to cell. *Gap* works the pitch out from the part's
-  real cut, tool included, so the cuts of neighbours stay that far apart. A negative pitch
-  grows the grid left or down.
+- **Numbers:** the part as drawn is instance 1; the others are numbered from 2 and keep
+  their numbers when one is removed.
+- **Place:** an instance is mirrored first (`left-right` or `top-bottom`), then turned
+  (`--angle`, degrees counter-clockwise), both about the middle of the part's box, then
+  moved by `--at` from where the part is drawn. A new instance without `--at` goes
+  beside everything the part cuts, 10 mm away, its bottom level with the part's.
+- **Climb stays climb:** a mirrored instance is cut in the same direction as the part,
+  not as a plain mirror image would be. Tabs, starts, tabs along X or Y and a pattern's
+  lines turn with the instance, so every instance comes out the same.
+- **A grid:** `part instance array` (or the **Instances** section) makes the part the
+  grid's first cell and the other cells its instances, numbered row by row from 2, in
+  place of the instances it had. *Pitch* is the distance from cell to cell; *gap* works
+  the pitch out from the part's real cut, tool included. A negative pitch grows the grid
+  left or down. `chipload copies` is the same command under its old name, kept for
+  scripts: `copies --grid 3x2 --gap 10`, `copies --order by-instance`, and `copies --off`
+  removes every instance.
 - **Order:**
   - **by operation** (the default): each operation on every instance, then the next, so
     tool changes happen once;
@@ -28,20 +45,15 @@ chipload copies part.chipload --part 2 --grid 2x1 --gap 10   # with several part
     work.
 - **Checked:**
   - every instance is planned and checked like the part;
-  - instances whose cuts would overlap each other, or another part, are refused;
+  - instances whose cuts would overlap each other, or another part, are refused when the
+    project is run, and the commands warn as soon as you place one there;
   - instances have to fit the stock and the machine like anything else.
-- **Limits:** up to 100 columns or rows, and 1 000 instances.
-- **Display:** the canvas draws the instances faded: each part's instances of the shapes it
-  cuts. The setup sheet and the playback say which instance is being cut.
+- **Limits:** up to 100 columns or rows in a grid, and 1 000 instances.
+- **Display:** the canvas and the setup sheet draw the instances faded where they are cut.
+  The setup sheet and the playback say which instance is being cut.
 
-- **Turned and mirrored:** an instance can also be turned by any angle and mirrored, about
-  the middle of the part's box: its `angle` and `mirror` in the project file, for example
-  `chipload set part.chipload parts.0.instances.0.angle=1.5708` (radians). It is cut like
-  the part, put in its place. A mirrored instance is still cut climb where the part is,
-  and the canvas and the setup sheet draw it faded where it is cut.
-
-Instances aren't nested: to fit different parts on one sheet, give each its own part, or
-arrange them in CAD.
+Instances aren't nested automatically: to fit different parts on one sheet, place each
+part's instances, or arrange them in CAD.
 
 Projects saved before Chipload 0.38 kept a grid of copies; they open with that grid as
 instances, cut in the same order, so the G-code stays the same.

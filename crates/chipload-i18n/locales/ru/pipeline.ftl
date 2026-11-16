@@ -275,6 +275,8 @@ pipeline-transform-not-numbers = смещение, угол поворота и 
 pipeline-shapes-copy-imported = копировать можно только начерченную геометрию, не импортированную
 pipeline-shape-imported-change = объект { $id } импортирован из DXF и здесь не редактируется; измените чертёж и используйте «Обновить чертёж из DXF»
 pipeline-no-part = В проекте нет детали { $id }
+# $id is an instance's number in the part (2 on).
+pipeline-no-instance = У детали «{ $part }» нет экземпляра { $id }
 pipeline-part-name-empty = Имя детали не может быть пустым
 pipeline-part-name-taken = Другая деталь уже называется «{ $name }»
 pipeline-last-part = В проекте должна быть хотя бы одна деталь: это последняя

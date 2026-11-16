@@ -167,16 +167,20 @@ pub(crate) fn copies(
     } else {
         out.line(format!("Instances: {}", instances_text(&job.parts[at])));
     }
-    // Overlap is refused when the project is run; say so now.
-    if job.parts[at].count() > 1
-        && let Ok(drawing) = load_drawing(&job)
-        && let Err(err) = plan_job(&job, &drawing.contours)
+    warn_overlap(out, &job, part);
+    out.wrote(target, "");
+    ExitCode::SUCCESS
+}
+
+/// Overlap is refused when the project is run: with `part` cut more than once, say so now.
+pub(crate) fn warn_overlap(out: &mut Out, job: &Job, part: u64) {
+    if job.part(part).is_some_and(|p| p.count() > 1)
+        && let Ok(drawing) = load_drawing(job)
+        && let Err(err) = plan_job(job, &drawing.contours)
         && matches!(err.cause(), ToolpathError::Overlap(_))
     {
         out.err(format!("warning: {err}"));
     }
-    out.wrote(target, "");
-    ExitCode::SUCCESS
 }
 
 /// What `copies` makes of a part (docs/specs/instances.md §5): with --grid, the grid's

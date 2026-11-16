@@ -298,8 +298,10 @@ Smaller follow-ups noted along the way, not in the order above:
   Instances section making a grid, `copies` making instances; turned or mirrored instances
   refused until step 2. Step 2 built: turned and mirrored instances cut, planned on the part
   as drawn and then placed (mirrored ones with the cutting sense turned), drawn faded where
-  they are cut in the view and on the sheet, property and pipeline tests. Next: step 3,
-  `part instance add|set|remove|list|array`.
+  they are cut in the view and on the sheet, property and pipeline tests. Step 3 built:
+  `part instance add|set|remove|list|array` (a new instance goes beside what the part
+  cuts, 10 mm away), `part set --order`, `copies` kept as the old name. Next: step 4, the
+  window.
 - **Copy imported shapes** (as drawn polylines); today only drawn shapes copy.
 - **A traced outline that crosses itself** (the user, 2026-11-15: a prism of a traced
   picture was refused, "path crossed over itself or something like that"; not reproduced

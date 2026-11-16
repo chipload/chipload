@@ -198,3 +198,30 @@ fn turned_instances_are_drawn_where_they_are_cut() {
     moved.parts[0].instances[0].angle = 0.0;
     assert!(chipload_pipeline::parts::placed_outlines(&moved, &contours).is_empty());
 }
+
+#[test]
+fn a_new_instance_goes_beside_what_the_part_cuts() {
+    use chipload_pipeline::instances::{INSTANCE_GAP_MM, add_instance};
+    use chipload_toolpath::plan::cut_extent;
+    let mut job = with_instance(Spot::default(), None);
+    job.parts[0].instances.clear();
+    // A quarter turn: the turned box is exactly the turned cut's.
+    let (job, two) = add_instance(&job, 1, None, FRAC_PI_2, None).unwrap();
+    let (job, three) = add_instance(&job, 1, None, 0.0, Some(Mirror::TopBottom)).unwrap();
+    assert_eq!((two, three), (2, 3));
+    let result = run_job(&job).unwrap();
+    let extent = |copy| cut_extent(&result.program.moves, &result.op_spans, Some(copy)).unwrap();
+    let (one, two, three) = (extent(1), extent(2), extent(3));
+    // Each 10 mm right of what was cut before it, its bottom level with the part's.
+    assert!(
+        (two.0.0 - (one.1.0 + INSTANCE_GAP_MM)).abs() < 1e-6,
+        "{one:?} {two:?}"
+    );
+    assert!(
+        (three.0.0 - (two.1.0 + INSTANCE_GAP_MM)).abs() < 1e-6,
+        "{two:?} {three:?}"
+    );
+    for low in [two.0.1, three.0.1] {
+        assert!((low - one.0.1).abs() < 1e-6, "{one:?} {low}");
+    }
+}
