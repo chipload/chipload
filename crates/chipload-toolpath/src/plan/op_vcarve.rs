@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Planning V-carves, and the V-groove facts.
 
-use crate::ToolpathError;
-use crate::arcs::ArcTable;
-use crate::profile::labelled_note;
-use crate::select::Selection;
-use crate::vcarve::{VBit, carve_levels, plan_vcarve_at, vcarve_moves};
 use chipload_core::Point;
 use chipload_core::math;
 use chipload_core::tolerances::FLOOR_LEFT_MM;
@@ -14,6 +9,11 @@ use chipload_job::{Tool, ToolType, VcarveOp};
 
 use super::check_passes::plug_face;
 use super::{Context, Planned, job_error};
+use crate::ToolpathError;
+use crate::arcs::ArcTable;
+use crate::profile::labelled_note;
+use crate::select::Selection;
+use crate::vcarve::{VBit, carve_levels, plan_vcarve_at, vcarve_moves};
 
 /// How wide a V-bit's groove is at the top, `depth` deep (docs/specs/follow-path.md §5): a
 /// plain note. None for another tool, or a V-bit without an angle.

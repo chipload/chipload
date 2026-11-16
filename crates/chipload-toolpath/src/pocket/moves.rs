@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! A planned pocket piece into moves: rings, links and slot laps.
 
+use chipload_core::Point;
+use chipload_core::tolerances::DEPTH_TOL_MM;
+use chipload_job::Entry;
+
 use super::{BACK_LINK_LIFT_MM, PocketPiece, PocketRing};
 use crate::ToolpathError;
 use crate::helix::helix_moves;
 use crate::model::Move;
-use chipload_core::Point;
-use chipload_core::tolerances::DEPTH_TOL_MM;
-use chipload_job::Entry;
 
 /// The depths and feeds a piece is cut at (docs/specs/ramp-entry.md).
 #[derive(Debug, Clone, Copy)]

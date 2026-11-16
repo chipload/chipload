@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Where each operation cuts, and parts and instances kept apart.
 
-use super::OpSpan;
-use crate::ToolpathError;
-use crate::geom::PrimIndex;
-use crate::model::{Move, MoveKind};
 use chipload_core::Point;
 use chipload_core::primitives::{Line, Primitive};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Job, Operation, Part};
+
+use super::OpSpan;
+use crate::ToolpathError;
+use crate::geom::PrimIndex;
+use crate::model::{Move, MoveKind};
 
 /// The XY extent the tool cuts in one copy (or in all, with None): every feed move's end
 /// points, plus the radius of the tool that made them. None if it cuts nothing.

@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Planning reliefs (pictures and models).
 
-use crate::ToolpathError;
-use crate::arcs::ArcTable;
-use crate::model::Move;
-use crate::profile::labelled_note;
-use crate::rim::{Area, Ramp};
-use crate::select::Selection;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
@@ -16,6 +10,12 @@ use chipload_job::{Entry, Job, Note, OpRef, Problem, Side, Tool, ToolType};
 use super::check::labelled;
 use super::check_tools::plunge_unknown;
 use super::{Context, Planned, job_error};
+use crate::ToolpathError;
+use crate::arcs::ArcTable;
+use crate::model::Move;
+use crate::profile::labelled_note;
+use crate::rim::{Area, Ramp};
+use crate::select::Selection;
 
 /// A relief (docs/specs/stl-relief.md §5, §7): its model placed and indexed, finishing lines
 /// across the area, and the path checked against the model.

@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Planning follow paths, chamfers, flutes, mouldings, prisms, patterns and surfaces.
 
-use crate::ToolpathError;
-use crate::arcs::ArcTable;
-use crate::path::{PathCut, order_paths, path_moves};
-use crate::profile::{contour_context, cut_clockwise, labelled_note, pass_depths};
-use crate::select::Selection;
-use crate::surface::{SurfaceCut, surface_moves};
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::tolerances::DEPTH_TOL_MM;
@@ -18,6 +12,12 @@ use chipload_job::{
 
 use super::check_tools::short_ramp_refusal;
 use super::{Context, Planned, job_error};
+use crate::ToolpathError;
+use crate::arcs::ArcTable;
+use crate::path::{PathCut, order_paths, path_moves};
+use crate::profile::{contour_context, cut_clockwise, labelled_note, pass_depths};
+use crate::select::Selection;
+use crate::surface::{SurfaceCut, surface_moves};
 
 pub(super) fn plan_path_op(
     op: &PathOp,

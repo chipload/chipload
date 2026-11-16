@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Moving planned cuts: the plug board, mirrored and turned instances, approaches.
 
-use super::{APPROACH_CLEARANCE_MM, Planned};
-use crate::model::{Move, MoveKind};
-use crate::place::Placement;
 use chipload_core::Point;
 use chipload_core::chain::Contour;
 use chipload_core::math;
 use chipload_core::tolerances::DEPTH_TOL_MM;
 use chipload_job::{Job, Mirror, Operation, Spindle};
+
+use super::{APPROACH_CLEARANCE_MM, Planned};
+use crate::model::{Move, MoveKind};
+use crate::place::Placement;
 
 /// The board an inlay plug at operation `index` carves, as a contour round the artwork in
 /// the frame the part is planned in (mirrored back for a mirrored part): the stock grown by

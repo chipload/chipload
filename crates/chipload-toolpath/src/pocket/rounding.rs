@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Rounded rings, each clearing attempt verified, the stepover shrunk until it is.
 
-use crate::ToolpathError;
-use crate::arcs::{ArcTable, arc_midpoint};
-use crate::cancel::{self, Cancel};
-use crate::cavalier::{Area, geometry};
-use crate::geom::PrimIndex;
-use crate::retry::{Failure, Nudge, nudged_or_tight};
-use crate::start::nearest_ties;
 use chipload_core::Point;
 use chipload_core::order::Ordered;
 use chipload_core::primitives::{distance, signed_area};
@@ -19,6 +12,13 @@ use super::order::{Reach, cut_order};
 use super::region::{Node, ring_tree};
 use super::verify::{clear_of, cutting_segments, min_clearance, uncut_material};
 use super::{PocketRing, ids_text};
+use crate::ToolpathError;
+use crate::arcs::{ArcTable, arc_midpoint};
+use crate::cancel::{self, Cancel};
+use crate::cavalier::{Area, geometry};
+use crate::geom::PrimIndex;
+use crate::retry::{Failure, Nudge, nudged_or_tight};
+use crate::start::nearest_ties;
 
 /// Rounds of the uncut check, each halving the radii of the rings near material left.
 const ROUNDING_ROUNDS: usize = 12;

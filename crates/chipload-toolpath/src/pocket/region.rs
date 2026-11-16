@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! The pocket's region (outline less islands) and the tree of rings offset inside it.
 
-use super::{MAX_RING_LEVELS, PocketArea, ids_text};
-use crate::ToolpathError;
-use crate::cancel::{self, Cancel};
-use crate::cavalier::{Area, boolean, ccw, cw, encloses, first_point, geometry, step, too_small};
-use crate::offset::{contour_pline, dedupe_ring};
-use crate::retry::{Failure, Nudge};
 use cavalier_contours::polyline::{
     BooleanOp, PlineContainsResult, PlineSource, PlineSourceMut, Polyline,
 };
@@ -14,6 +8,13 @@ use chipload_core::chain::Contour;
 use chipload_core::nesting::{Ring, contains};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Message, Value};
+
+use super::{MAX_RING_LEVELS, PocketArea, ids_text};
+use crate::ToolpathError;
+use crate::cancel::{self, Cancel};
+use crate::cavalier::{Area, boolean, ccw, cw, encloses, first_point, geometry, step, too_small};
+use crate::offset::{contour_pline, dedupe_ring};
+use crate::retry::{Failure, Nudge};
 
 /// Areas to clear from selected closed contours, sorted by (y, x).
 ///

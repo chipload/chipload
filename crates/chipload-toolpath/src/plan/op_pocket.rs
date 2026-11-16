@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Planning pocket and follow-path operations.
 
+use chipload_core::Point;
+use chipload_core::chain::Contour;
+use chipload_i18n::{Message, Value};
+use chipload_job::{Entry, PocketOp, Side};
+
 use super::{Context, Planned, job_error};
 use crate::ToolpathError;
 use crate::corners::{
@@ -11,10 +16,6 @@ use crate::pocket::{
 };
 use crate::profile::{PathRing, labelled_note, pass_depths};
 use crate::select::Selection;
-use chipload_core::Point;
-use chipload_core::chain::Contour;
-use chipload_i18n::{Message, Value};
-use chipload_job::{Entry, PocketOp, Side};
 
 pub(super) fn plan_pocket_op(
     op: &PocketOp,

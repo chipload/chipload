@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Tool groups and the rules each tool type has to follow.
 
-use crate::profile::labelled_note;
 use chipload_core::tolerances::{ANGLE_TOL_RAD, CHAIN_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{Entry, FluteOp, HoleMethod, Job, Note, Operation, ProfileOp, Tool, ToolType};
+
+use crate::profile::labelled_note;
 
 /// The enabled operations in tool groups: runs of operations next to each other (disabled
 /// ones skipped) that use the same tool (docs/specs/tool-per-operation.md §2). Indexes in

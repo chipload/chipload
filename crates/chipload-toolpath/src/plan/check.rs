@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Generation-time rules: every operation against its own tool and the stock.
 
-use crate::ToolpathError;
-use crate::profile::labelled_note;
 use std::collections::BTreeMap;
 
 use chipload_core::tolerances::DEPTH_TOL_MM;
@@ -24,6 +22,8 @@ use super::check_tools::{
 use super::job_error;
 use super::op_relief::relief_pass_checks;
 use super::op_vcarve::vbit_cone_depth;
+use crate::ToolpathError;
+use crate::profile::labelled_note;
 
 /// Generation-time rules from the specs, each operation against its own tool. Returns
 /// warnings.

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Rules for surfaces, rest passes, V-carve plugs and floor passes.
 
-use crate::profile::labelled_note;
 use chipload_core::math;
 use chipload_core::tolerances::{ANGLE_TOL_RAD, DEPTH_TOL_MM};
 use chipload_i18n::{Digits, Message, Value};
@@ -12,6 +11,7 @@ use chipload_job::{
 
 use super::check::{and_list, labelled, length};
 use super::check_tools::pocket_tool_notes;
+use crate::profile::labelled_note;
 
 /// A surface needs an endmill (docs/specs/surfacing.md §4). It never plunges into
 /// material.

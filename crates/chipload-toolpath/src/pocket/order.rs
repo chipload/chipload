@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Rings into loops in cut order, stepped out from one to the next.
 
-use crate::arcs::{ArcTable, Circle};
-use crate::cavalier::Area;
-use crate::geom::PrimIndex;
-use crate::offset::{flatten_tagged, pline_segments};
-use crate::profile::cut_clockwise;
-use crate::start::{nearest_ties, onto, restart};
 use cavalier_contours::polyline::Polyline;
 use chipload_core::Point;
 use chipload_core::fit::fit_path;
@@ -18,6 +12,12 @@ use super::PocketRing;
 use super::region::Node;
 use super::rounding::orient_from;
 use super::verify::{clear_of, min_clearance};
+use crate::arcs::{ArcTable, Circle};
+use crate::cavalier::Area;
+use crate::geom::PrimIndex;
+use crate::offset::{flatten_tagged, pline_segments};
+use crate::profile::cut_clockwise;
+use crate::start::{nearest_ties, onto, restart};
 
 /// One ring of the level tree: a node's outer ring, or the ring round one of its islands.
 struct Loop {

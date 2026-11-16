@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Links kept clear of the walls, and the finished cut verified: material left uncut.
 
-use crate::ToolpathError;
-use crate::arcs::ArcTable;
-use crate::cancel::{self, Cancel};
-use crate::cavalier::Area;
-use crate::geom::PrimIndex;
+use std::f64::consts::SQRT_2;
+
 use cavalier_contours::polyline::PlineSource;
 use chipload_core::Point;
 use chipload_core::order::Ordered;
@@ -14,10 +11,14 @@ use chipload_core::tolerances::{
     ARC_APPROX_TOL_MM, CHAIN_TOL_MM, OFFSET_CHECK_SLACK_MM, REST_TOL_MM,
 };
 use chipload_i18n::{Digits, Message, Value};
-use std::f64::consts::SQRT_2;
 
 use super::rounding::{UNCUT_CELLS_PER_CHECK, segment_is_clear, verification_failed};
 use super::{PocketRing, ids_text};
+use crate::ToolpathError;
+use crate::arcs::ArcTable;
+use crate::cancel::{self, Cancel};
+use crate::cavalier::Area;
+use crate::geom::PrimIndex;
 
 pub(super) fn min_clearance(radius: f64) -> f64 {
     radius - ARC_APPROX_TOL_MM - OFFSET_CHECK_SLACK_MM

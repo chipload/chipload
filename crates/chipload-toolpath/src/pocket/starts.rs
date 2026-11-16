@@ -1,13 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Where each piece starts: helix fits, chosen starts, and rest pieces.
 
-use crate::ToolpathError;
-use crate::arcs::{ArcTable, Circle};
-use crate::cavalier::{Area, first_point, shrunk_farther};
-use crate::geom::PrimIndex;
-use crate::helix::Helix;
-use crate::left::{cleared, left_by, rest_areas};
-use crate::start::{assign, nearest_ties, point_value, restart};
 use cavalier_contours::polyline::PlineSource;
 use chipload_core::Point;
 use chipload_core::order::Ordered;
@@ -17,6 +10,13 @@ use chipload_i18n::{Digits, Message, Value};
 
 use super::verify::{clear_of, min_clearance};
 use super::{Draft, MAX_RING_LEVELS, PocketArea, PocketRing, fixed3, ids_text};
+use crate::ToolpathError;
+use crate::arcs::{ArcTable, Circle};
+use crate::cavalier::{Area, first_point, shrunk_farther};
+use crate::geom::PrimIndex;
+use crate::helix::Helix;
+use crate::left::{cleared, left_by, rest_areas};
+use crate::start::{assign, nearest_ties, point_value, restart};
 
 /// What a helix must fit: the piece, its walls, and how far the tool centre keeps from them.
 pub(super) struct HelixFit<'a> {

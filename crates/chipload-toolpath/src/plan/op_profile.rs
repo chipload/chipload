@@ -1,16 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Planning profiles and their tabs.
 
-use crate::ToolpathError;
-use crate::corners::{CornerCut, unreached_note};
-use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_moves, wall_lap};
-use crate::profile::{
-    PathRing, contour_context, contour_note, labelled_note, pass_depths, plan_profile,
-};
-use crate::select::Selection;
-use crate::tabs::{
-    TabLayout, along_tabs, arc_position, place_tabs, point_at_arc, tab_polylines, tabs_at,
-};
 use chipload_core::Point;
 use chipload_core::math;
 use chipload_core::tolerances::CHAIN_TOL_MM;
@@ -21,6 +11,16 @@ use super::check::comma_list;
 use super::check_tools::short_ramp_refusal;
 use super::op_pocket::profile_legs;
 use super::{Context, Planned, job_error};
+use crate::ToolpathError;
+use crate::corners::{CornerCut, unreached_note};
+use crate::lap::{RingCut, TabSurface, WallLap, carry_tabs, farthest_from, ring_moves, wall_lap};
+use crate::profile::{
+    PathRing, contour_context, contour_note, labelled_note, pass_depths, plan_profile,
+};
+use crate::select::Selection;
+use crate::tabs::{
+    TabLayout, along_tabs, arc_position, place_tabs, point_at_arc, tab_polylines, tabs_at,
+};
 
 pub(super) fn plan_profile_op(
     op: &ProfileOp,

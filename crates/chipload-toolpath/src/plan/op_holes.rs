@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Planning holes operations: drill cycles and helical bores.
 
+use chipload_core::Point;
+use chipload_core::text::mm;
+use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
+use chipload_i18n::{Message, Value};
+use chipload_job::{HoleMethod, HolesOp};
+
 use super::{Context, Planned, job_error};
 use crate::ToolpathError;
 use crate::arcs::ArcTable;
@@ -10,11 +16,6 @@ use crate::holes::{
 use crate::lead::MIN_LEAD_DIAMETERS;
 use crate::profile::{contour_context, labelled_note};
 use crate::select::Selection;
-use chipload_core::Point;
-use chipload_core::text::mm;
-use chipload_core::tolerances::{CHAIN_TOL_MM, DEPTH_TOL_MM};
-use chipload_i18n::{Message, Value};
-use chipload_job::{HoleMethod, HolesOp};
 
 /// A hole drilled in one go deeper than this many diameters gets a note to drill in pecks.
 const DEEP_HOLE_DIAMETERS: f64 = 3.0;
