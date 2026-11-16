@@ -73,9 +73,11 @@ the first included, is a placement of them. This lets you lay parts out on a she
 moving the drawing, for instance when several parts come from one DXF.
 
 In the window:
-- **Right-click the part** in the Browser and choose *Place…*: its form opens as
-  **Instance 1**, with its rotation and how far it is moved. *Reset placement* puts it back
-  where drawn.
+- **Right-click the part** in the Browser and tick *Show placement instance*: the part
+  itself shows as **Instance 1**, selected, a ghost `#1` on its shapes with its round turn
+  handle, and its form opens with its rotation and how far it is moved. Drag the ghost by
+  its outline, turn it by its handle, or press Q for the Compass. *Reset placement* puts it
+  back where drawn; untick to hide it again (a placed part always shows it).
 - **On the canvas**, once placed, it is a ghost `#1` where it is cut, picked, dragged and
   turned like any instance. Its shapes, where they are drawn, get a dashed box saying
   "not cut here"; edit them there, and every instance follows.

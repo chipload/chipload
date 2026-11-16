@@ -235,7 +235,12 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     app.reset_part_placement(1);
     assert_eq!(own(&app), ([0.0, 0.0], 0.0));
     draw_canvas(&mut app);
-    assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
+    // Still shown, to place again, but cut where drawn: no "not cut here".
+    assert!(app.scene.elsewhere.is_empty());
+    app.hide_own_instance(1);
+    assert_eq!(app.focus, Focus::Part(1));
+    draw_canvas(&mut app);
+    assert!(app.scene.instances.is_empty());
     app.undo();
     assert_eq!(own(&app), ([300.0, 0.0], FRAC_PI_2));
 }
@@ -323,4 +328,47 @@ fn a_compass_drag_on_an_instance_previews_without_trails() {
         assert_ne!(instance(h.state()), start, "{part:?}: moved on the drop");
         assert!(h.state().scene.preview.is_empty(), "{part:?}");
     }
+}
+
+/// *Show placement instance* on a part without instances (docs/specs/part-placement.md §6):
+/// its row and ghost #1 where it is drawn, selected with its turn handle; Q shows the
+/// Compass on it; a drag on its outline moves it, though the part's shapes lie under it.
+#[test]
+fn the_part_itself_is_shown_to_place_without_instances() {
+    let mut h = Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .build_eframe(|_| {
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
+            app.fit_pending = true;
+            app
+        });
+    h.run_steps(6);
+    assert!(h.state().scene.instances.is_empty());
+    h.state_mut().place_part(1);
+    h.run_steps(4);
+    {
+        use egui_kittest::kittest::Queryable;
+        assert!(h.query_by_label("Instance 1").is_some());
+    }
+    let ghost = h.state().scene.instances[0].clone();
+    assert!(ghost.id == 1 && ghost.selected && ghost.handle.is_some());
+    // Where the part is drawn: on its shapes.
+    let ((x0, y0), (x1, y1)) = h.state().edit.as_ref().unwrap().job.part_box(1).unwrap();
+    let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
+    assert!((ghost.centre.0 - cx).abs() < 1e-9 && (ghost.centre.1 - cy).abs() < 1e-9);
+    // Q: the Compass on it.
+    h.state_mut().toggle_compass();
+    h.run_steps(2);
+    assert_eq!(h.state_mut().compass_now().map(|c| c.0), Some(ghost.centre));
+    h.state_mut().hide_compass();
+    h.run_steps(2);
+    // Dragged by its outline, over the shapes: it moves; the shapes stay.
+    let shapes = h.state().edit.as_ref().unwrap().job.drawing.shapes.clone();
+    let on = screen(&h, on_ghost(&h));
+    drag(&mut h, on, on + egui::vec2(60.0, 0.0), false);
+    let (at, _) = own(h.state());
+    let scale = h.state().view.scale;
+    assert!((at[0] - 60.0 / scale).abs() < 1.0 / scale, "{at:?}");
+    assert_eq!(h.state().edit.as_ref().unwrap().job.drawing.shapes, shapes);
 }

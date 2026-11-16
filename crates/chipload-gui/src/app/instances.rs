@@ -82,10 +82,27 @@ impl ChiploadApp {
         }
     }
 
-    /// Place part `part` itself: its instance 1's form, to move and turn it
-    /// (docs/specs/part-placement.md §6, *Place…*).
+    /// Place part `part` itself: its instance 1 shown and selected, its form open, to move
+    /// and turn it (docs/specs/part-placement.md §6, *Show placement instance*).
     pub(super) fn place_part(&mut self, part: u64) {
+        self.display.own_instances.insert(part);
         self.focus = Focus::Instance(part, 1);
+    }
+
+    /// *Show placement instance* switched off: its row and ghost go while it is cut where
+    /// drawn (a placed part always shows them).
+    pub(super) fn hide_own_instance(&mut self, part: u64) {
+        self.display.own_instances.remove(&part);
+        if self.focus == Focus::Instance(part, 1) {
+            self.focus = Focus::Part(part);
+        }
+    }
+
+    /// Whether part `part`'s instance 1 is shown: placed, asked for, or selected.
+    pub(super) fn own_instance_shown(&self, part: &chipload_job::Part) -> bool {
+        part.is_placed()
+            || self.display.own_instances.contains(&part.id)
+            || self.focus == Focus::Instance(part.id, 1)
     }
 
     /// Part `part` cut where drawn again, as one undo step (*Reset placement*).
@@ -210,17 +227,19 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        if edit
+        let shown: Vec<u64> = edit
             .job
             .parts
             .iter()
-            .all(|p| p.instances.is_empty() && !p.is_placed())
-        {
+            .filter(|p| self.own_instance_shown(p))
+            .map(|p| p.id)
+            .collect();
+        if shown.is_empty() && edit.job.parts.iter().all(|p| p.instances.is_empty()) {
             return Vec::new();
         }
         let setup = edit.job.active_setup_id();
         let scale = self.view.scale.max(f64::MIN_POSITIVE);
-        chipload_pipeline::parts::instance_outlines(&edit.job, &self.contours)
+        chipload_pipeline::parts::instance_outlines_showing(&edit.job, &self.contours, &shown)
             .into_iter()
             .filter(|i| setup.is_none() || edit.job.part(i.part).map(|p| p.setup) == setup)
             .map(|i| {

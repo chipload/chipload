@@ -88,6 +88,7 @@ pub(super) enum OpAction {
     /// Part `0` itself placed: its instance 1's form; or put back where drawn
     /// (docs/specs/part-placement.md §6).
     PartPlace(u64),
+    PartHideOwn(u64),
     PartResetPlacement(u64),
 }
 
@@ -165,6 +166,7 @@ impl ChiploadApp {
             OpAction::InstanceTurn(part, id) => self.turn_instance(part, id),
             OpAction::InstanceRemove(part, id) => self.remove_instance(part, id),
             OpAction::PartPlace(part) => self.place_part(part),
+            OpAction::PartHideOwn(part) => self.hide_own_instance(part),
             OpAction::PartResetPlacement(part) => self.reset_part_placement(part),
         }
     }
@@ -279,12 +281,22 @@ impl ChiploadApp {
             {
                 action = Some(OpAction::InstanceAdd(part.id, true));
             }
+            // Shown while placed, asked for or selected; a placed part always shows it.
+            let mut shown = self.own_instance_shown(part);
             if ui
-                .button(t!(ui, "browser-place-part"))
+                .add_enabled(
+                    !part.is_placed(),
+                    egui::Checkbox::new(&mut shown, t!(ui, "browser-place-part")),
+                )
                 .on_hover_text(t!(ui, "browser-place-part-hover"))
+                .on_disabled_hover_text(t!(ui, "browser-place-part-placed-hover"))
                 .clicked()
             {
-                action = Some(OpAction::PartPlace(part.id));
+                action = Some(if shown {
+                    OpAction::PartPlace(part.id)
+                } else {
+                    OpAction::PartHideOwn(part.id)
+                });
             }
             if ui
                 .add_enabled(
@@ -369,16 +381,17 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
-        // The part itself as instance 1, once it has instances or a placement of its own
+        // The part itself as instance 1, once it has instances, a placement or is shown
         // (docs/specs/part-placement.md §6): its tick is the part's.
-        let own =
-            (!part.instances.is_empty() || part.is_placed()).then_some(chipload_job::Instance {
+        let own = (!part.instances.is_empty() || self.own_instance_shown(part)).then_some(
+            chipload_job::Instance {
                 id: 1,
                 enabled: part.enabled,
                 mirror: None,
                 angle: part.angle,
                 at: part.at,
-            });
+            },
+        );
         for instance in own.iter().chain(&part.instances) {
             if let Some(a) = self.instance_row(ui, part, instance, in_active_setup) {
                 action = Some(a);

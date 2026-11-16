@@ -107,8 +107,10 @@ placed elsewhere, the drawing and the cut are in two places:
 
 - The part's instance rows in the Browser start with **Instance 1** once the part has a
   placement or instances, with its form: angle and position (its on/off box is the part's).
-- A part's right-click: **Place…** opens instance 1's form; **Reset placement** puts it back
-  where drawn (one undo step).
+- A part's right-click: **Show placement instance** (a tick, this session only) shows
+  instance 1 where it is, unplaced too, selected with its form open; **Reset placement**
+  puts it back where drawn (one undo step). (Named *Place…* at first; the user, 2026-11-16:
+  the part itself must be placeable without adding a second instance.)
 - Instance 1's ghost, once moved, is dragged and turned like the others (the turn handle,
   quarter turns snapping within 3°, Alt free).
 - Dragging the part's own shapes (box drag, Compass on the shapes) still moves the
@@ -119,6 +121,10 @@ placed elsewhere, the drawing and the cut are in two places:
   (`instance_value`, `set_instance_value`), so dragging, the turn handle, *Turn 90°*, the
   form and Escape work on it as on any instance. Delete on instance 1 does nothing (it
   can't be removed); *Reset placement* is in its row's menu and the part's.
+- Instance 1 shows (row and ghost) when the part is placed, has instances (row only, ghost
+  once placed), is ticked *Show placement instance*, or is selected; so selecting its row
+  always gives the ghost, its turn handle and the Compass (Q). Unplaced, the ghost lies on
+  the part's shapes: a press on its outline drags it when it is the selected one.
 - The dashed box is the part's box with a few pixels' margin, labelled "Part 1: not cut
   here", in Edit mode only.
 - **The Compass** shows on a selected instance (its ghost or its row), about the ghost's
@@ -187,6 +193,6 @@ screenshot comes with the release's renewed pictures.
 6. **Not in a setup cut in pieces**, as instances. **Recommended.**
 7. **Order of work** (each step a commit): (1) the model, schema 39, migration, sample,
    validation; (2) planning, board extents, overlap, property and pipeline tests; (3) the
-   command line; (4) the window: Instance 1 row and form, ghost, drag and turn, *Place…*,
+   command line; (4) the window: Instance 1 row and form, ghost, drag and turn, *Show placement instance*,
    *Reset placement*, the "not cut here" box, the Compass on instances; (5) the sheet,
    guide, schemas, translations. **Recommended.**

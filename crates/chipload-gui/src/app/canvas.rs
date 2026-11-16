@@ -340,10 +340,12 @@ impl ChiploadApp {
                 self.start_compass_drag(part, origin, false);
             } else if let Some(instance) = self.instance_handle_at(origin).filter(|_| flat) {
                 self.start_instance_drag(instance, super::instances::InstanceGrip::Turn, at);
-            } else if let Some(instance) = self
-                .instance_at(origin)
-                .filter(|_| flat && self.scene.pick(&self.view, origin).is_none())
-            {
+            } else if let Some(instance) = self.instance_at(origin).filter(|i| {
+                // Over the shapes, only the selected one: instance 1 where it is drawn lies
+                // on them (docs/specs/part-placement.md §6).
+                flat && (self.scene.pick(&self.view, origin).is_none()
+                    || self.focus == Focus::Instance(i.0, i.1))
+            }) {
                 self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
             } else if let Some(handle) = on_handle(origin) {
                 self.start_handle_drag(handle);

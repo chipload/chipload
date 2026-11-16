@@ -179,11 +179,22 @@ pub struct InstanceOutline {
 /// instance only moved is its outlines moved by its shift exactly; a turned or mirrored one
 /// is placed about the part's centre.
 pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline> {
+    instance_outlines_showing(job, contours, &[])
+}
+
+/// [`instance_outlines`], the part itself also for parts `shown` when it is cut where drawn
+/// (the window shows it on request, to place it: docs/specs/part-placement.md §6).
+pub fn instance_outlines_showing(
+    job: &Job,
+    contours: &[Contour],
+    shown: &[u64],
+) -> Vec<InstanceOutline> {
     let mut out = Vec::new();
+    let own_shown = |p: &chipload_job::Part| p.is_placed() || shown.contains(&p.id);
     for part in job
         .parts
         .iter()
-        .filter(|p| !p.instances.is_empty() || p.is_placed())
+        .filter(|p| !p.instances.is_empty() || own_shown(p))
     {
         let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
         let mut line = None;
@@ -214,7 +225,7 @@ pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline
             .filter(|c| ids.contains(&c.id))
             .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
             .collect();
-        let own = part.is_placed().then_some((1, part.enabled, part.spot()));
+        let own = own_shown(part).then_some((1, part.enabled, part.spot()));
         let others = part.instances.iter().map(|i| (i.id, i.enabled, i.spot()));
         for (id, enabled, spot) in own.into_iter().chain(others) {
             let place = chipload_toolpath::place::Placement::new(&spot, centre);

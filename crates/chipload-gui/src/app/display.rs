@@ -27,6 +27,10 @@ pub struct Display {
     /// view settings to be remembered between Edit mode and Simulation mode"). None until
     /// the mode is first left: the other mode then starts from this one's.
     pub other: Option<ModeView>,
+    /// Parts whose instance 1, the part itself, is shown as a row and a ghost even where it
+    /// is drawn, to place it (*Show placement instance*, docs/specs/part-placement.md §6;
+    /// this session only).
+    pub own_instances: std::collections::BTreeSet<u64>,
 }
 
 /// What one mode shows: top or 3D, the toolpath, the drawing (Simulate only: Edit always
@@ -48,6 +52,7 @@ impl Default for Display {
             toolpath: true,
             turned: false,
             turn_axis: true,
+            own_instances: std::collections::BTreeSet::new(),
             all_parts: false,
             legend_open: true,
             other: None,
