@@ -54,6 +54,7 @@ mod select_drag;
 mod setups;
 mod shape_library;
 mod sign;
+mod simple_case;
 mod statistics;
 mod stock;
 mod styles;
@@ -171,6 +172,20 @@ fn draw_sidebar(app: &mut ChiploadApp) {
     let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.sidebar(ui));
     // The font atlas a first frame makes isn't painted anywhere here.
     output.textures_delta.clear();
+}
+
+/// The Browser's rows as drawn in one frame, every folder as it is: (depth, label) from the
+/// project's row on (the library above it left out).
+fn browser_rows(app: &mut ChiploadApp) -> Vec<(usize, String)> {
+    let ctx = egui::Context::default();
+    let mut output = ctx.run_ui(egui::RawInput::default(), |ui| app.sidebar(ui));
+    output.textures_delta.clear();
+    let rows: Vec<(usize, String)> = ctx.data_mut(|d| {
+        d.get_temp(egui::Id::new("browser-rows-drawn"))
+            .unwrap_or_default()
+    });
+    let project = rows.iter().rposition(|(depth, _)| *depth == 0).unwrap_or(0);
+    rows[project..].to_vec()
 }
 
 /// Change operation 1's feed and record it as an edit.

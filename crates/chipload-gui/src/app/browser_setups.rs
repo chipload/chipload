@@ -21,6 +21,17 @@ struct SetupRows<'a> {
     is_active: bool,
 }
 
+/// What a board's rows need from the project ([`ChiploadApp::board_contents`]).
+#[derive(Clone, Copy)]
+struct BoardRows<'a> {
+    parts: &'a [chipload_job::Part],
+    active: Option<u64>,
+    op_parts: &'a [u64],
+    board: &'a [bool],
+    count: usize,
+    tool_before: &'a std::collections::BTreeMap<usize, Vec<i64>>,
+}
+
 /// What a setup's rows ask for.
 pub(super) enum SetupAction {
     Add,
@@ -72,78 +83,61 @@ impl ChiploadApp {
             .map(|s| s.id)
             .collect();
         let active_setup = edit.job.active_setup_id();
-        let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
-            .icon_tinted(Icon::Rectangle, Tint::Board)
-            .trailing(setups.len().to_string());
-        let (open, folder_row) = folder(ui, row, true);
         let mut setup_action: Option<SetupAction> = None;
-        folder_row
-            .response
-            .on_hover_text(t!(ui, "browser-setups-hover"))
-            .context_menu(|ui| {
-                if ui
-                    .button(t!(ui, "browser-add-setup"))
-                    .on_hover_text(t!(ui, "browser-add-setup-hover"))
-                    .clicked()
-                {
-                    setup_action = Some(SetupAction::Add);
-                }
-            });
-        if open {
-            for setup in &setups {
-                let is_active = active_setup == Some(setup.id);
-                let on: Vec<u64> = self
-                    .edit
-                    .as_ref()
-                    .map(|e| e.job.parts_on(setup.id))
-                    .unwrap_or_default();
-                let mine: Vec<chipload_job::Part> = parts
-                    .iter()
-                    .filter(|p| on.contains(&p.id))
-                    .cloned()
-                    .collect();
-                let rows = SetupRows {
-                    setups: &setups,
-                    parts: mine.len(),
-                    missing: missing_dowels.contains(&setup.id),
-                    is_active,
-                };
-                let (setup_open, asked) = self.setup_row(ui, setup, rows);
-                if asked.is_some() {
-                    setup_action = asked;
-                }
-                if !setup_open {
-                    continue;
-                }
-                if let Some(a) = self.stock_row(ui, setup.id) {
-                    setup_action = Some(a);
-                }
-                if let Some(a) = self.work_zero_row(ui, setup.id) {
-                    setup_action = Some(a);
-                }
-                // The setup's board surfaces, before its parts (surface-levels.md §5).
-                for i in
-                    (0..count).filter(|&i| board[i] && mine.iter().any(|p| p.id == op_parts[i]))
-                {
-                    let changes = tool_before.get(&i).map_or(&[][..], Vec::as_slice);
-                    if let Some(a) = self.operation_row(ui, i, count, changes, 3) {
-                        action = Some(a);
+        let rows = BoardRows {
+            parts: &parts,
+            active,
+            op_parts: &op_parts,
+            board: &board,
+            count,
+            tool_before: &tool_before,
+        };
+        // One board: no Setups branch; its stock, zero and parts are the project's rows
+        // (docs/specs/parts-and-setups.md §2a).
+        if let [setup] = setups.as_slice() {
+            let (a, b) = self.board_contents(ui, setup.id, 1, rows);
+            setup_action = a.or(setup_action);
+            action = b.or(action);
+        } else {
+            let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
+                .icon_tinted(Icon::Rectangle, Tint::Board)
+                .trailing(setups.len().to_string());
+            let (open, folder_row) = folder(ui, row, true);
+            folder_row
+                .response
+                .on_hover_text(t!(ui, "browser-setups-hover"))
+                .context_menu(|ui| {
+                    if ui
+                        .button(t!(ui, "browser-add-setup"))
+                        .on_hover_text(t!(ui, "browser-add-setup-hover"))
+                        .clicked()
+                    {
+                        setup_action = Some(SetupAction::Add);
                     }
-                }
-                for part in &mine {
-                    let k = parts.iter().position(|p| p.id == part.id).unwrap_or(0);
-                    let rows = PartRows {
-                        k,
-                        parts: &parts,
-                        active,
-                        op_parts: &op_parts,
-                        board: &board,
-                        count,
-                        tool_before: &tool_before,
+                });
+            if open {
+                for setup in &setups {
+                    let on: Vec<u64> = self
+                        .edit
+                        .as_ref()
+                        .map(|e| e.job.parts_on(setup.id))
+                        .unwrap_or_default();
+                    let setup_rows = SetupRows {
+                        setups: &setups,
+                        parts: on.len(),
+                        missing: missing_dowels.contains(&setup.id),
+                        is_active: active_setup == Some(setup.id),
                     };
-                    if let Some(a) = self.part_rows(ui, part, rows) {
-                        action = Some(a);
+                    let (setup_open, asked) = self.setup_row(ui, setup, setup_rows);
+                    if asked.is_some() {
+                        setup_action = asked;
                     }
+                    if !setup_open {
+                        continue;
+                    }
+                    let (a, b) = self.board_contents(ui, setup.id, 3, rows);
+                    setup_action = a.or(setup_action);
+                    action = b.or(action);
                 }
             }
         }
@@ -153,6 +147,61 @@ impl ChiploadApp {
         if let Some(action) = action {
             self.apply_op_action(action);
         }
+    }
+
+    /// What is on board `id`, its rows at `depth`: its stock, work zero and board surfaces,
+    /// then its parts with their operations (docs/specs/setups.md §7). Under its setup's row,
+    /// or under the project with one board (docs/specs/parts-and-setups.md §2a).
+    fn board_contents(
+        &mut self,
+        ui: &mut egui::Ui,
+        id: u64,
+        depth: usize,
+        rows: BoardRows,
+    ) -> (Option<SetupAction>, Option<OpAction>) {
+        let BoardRows {
+            parts,
+            active,
+            op_parts,
+            board,
+            count,
+            tool_before,
+        } = rows;
+        let (mut setup_action, mut action) = (None, None);
+        let on: Vec<u64> = self
+            .edit
+            .as_ref()
+            .map(|e| e.job.parts_on(id))
+            .unwrap_or_default();
+        if let Some(a) = self.stock_row(ui, id, depth) {
+            setup_action = Some(a);
+        }
+        if let Some(a) = self.work_zero_row(ui, id, depth) {
+            setup_action = Some(a);
+        }
+        // The board surfaces, before its parts (surface-levels.md §5).
+        for i in (0..count).filter(|&i| board[i] && on.contains(&op_parts[i])) {
+            let changes = tool_before.get(&i).map_or(&[][..], Vec::as_slice);
+            if let Some(a) = self.operation_row(ui, i, count, changes, depth) {
+                action = Some(a);
+            }
+        }
+        for (k, part) in parts.iter().enumerate().filter(|(_, p)| on.contains(&p.id)) {
+            let rows = PartRows {
+                k,
+                depth,
+                parts,
+                active,
+                op_parts,
+                board,
+                count,
+                tool_before,
+            };
+            if let Some(a) = self.part_rows(ui, part, rows) {
+                action = Some(a);
+            }
+        }
+        (setup_action, action)
     }
 
     /// One setup's row, with its menu: the active one in full colour, a back marked as the
@@ -272,8 +321,62 @@ impl ChiploadApp {
         (setup_open, action)
     }
 
+    /// The project's menu when it has one board (docs/specs/parts-and-setups.md §2a): what
+    /// the setup's row offers with several, its own settings (pieces, back side) included.
+    pub(super) fn board_menu(&self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+        let mut action = None;
+        if ui.button(t!(ui, "browser-new-part")).clicked() {
+            action = Some(SetupAction::NewPart(id));
+        }
+        if ui
+            .button(t!(ui, "browser-face-board"))
+            .on_hover_text(t!(ui, "browser-face-board-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::FaceBoard(id));
+        }
+        if ui
+            .button(t!(ui, "nest-menu"))
+            .on_hover_text(t!(ui, "nest-menu-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::Nest(id));
+        }
+        if self.was_nested(id)
+            && ui
+                .button(t!(ui, "nest-again"))
+                .on_hover_text(t!(ui, "nest-again-hover"))
+                .clicked()
+        {
+            action = Some(SetupAction::NestAgain(id));
+        }
+        ui.separator();
+        if ui
+            .button(t!(ui, "browser-board-settings"))
+            .on_hover_text(t!(ui, "browser-board-settings-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::Open(id));
+        }
+        if ui
+            .button(t!(ui, "browser-add-back-side"))
+            .on_hover_text(t!(ui, "browser-add-back-side-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::AddBack(id));
+        }
+        if ui
+            .button(t!(ui, "browser-add-setup"))
+            .on_hover_text(t!(ui, "browser-add-setup-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::Add);
+        }
+        action
+    }
+
     /// Do what a setup's row asked.
-    fn apply_setup_action(&mut self, action: SetupAction) {
+    pub(super) fn apply_setup_action(&mut self, action: SetupAction) {
         match action {
             SetupAction::Add => {
                 self.add_setup();
@@ -309,7 +412,12 @@ impl ChiploadApp {
     /// Setup `id`'s board, its thickness and material beside it, a leaf under the setup
     /// above its work zero (the user, 2026-11-03). A click opens it, its setup made the
     /// active one first.
-    pub(super) fn stock_row(&mut self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+    pub(super) fn stock_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        id: u64,
+        depth: usize,
+    ) -> Option<SetupAction> {
         let edit = self.edit.as_ref()?;
         let job = edit.job.for_setup(id);
         let active = edit.job.active_setup_id() == Some(id);
@@ -319,13 +427,17 @@ impl ChiploadApp {
         } else {
             0
         };
-        let row = Row::new(Id::new(("browser-stock", id)), 3, t!(ui, "browser-stock"))
-            .icon_tinted(Icon::Material, Tint::Board)
-            .trailing(summary)
-            .selected(active && self.focus == Focus::Stock)
-            .dim(!active)
-            .alert(problems > 0)
-            .show(ui);
+        let row = Row::new(
+            Id::new(("browser-stock", id)),
+            depth,
+            t!(ui, "browser-stock"),
+        )
+        .icon_tinted(Icon::Material, Tint::Board)
+        .trailing(summary)
+        .selected(active && self.focus == Focus::Stock)
+        .dim(!active)
+        .alert(problems > 0)
+        .show(ui);
         row.response
             .on_hover_text(t!(ui, "browser-stock-hover"))
             .clicked()
@@ -335,7 +447,12 @@ impl ChiploadApp {
     /// Setup `id`'s G-code zero, with where it is (docs/specs/work-zero-marker.md §2), a
     /// leaf under the setup (docs/specs/setups.md §7). A click opens it, its setup made the
     /// active one first.
-    pub(super) fn work_zero_row(&mut self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+    pub(super) fn work_zero_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        id: u64,
+        depth: usize,
+    ) -> Option<SetupAction> {
         let edit = self.edit.as_ref()?;
         let job = edit.job.for_setup(id);
         let active = edit.job.active_setup_id() == Some(id);
@@ -348,7 +465,7 @@ impl ChiploadApp {
         };
         let row = Row::new(
             Id::new(("browser-work-zero", id)),
-            3,
+            depth,
             t!(ui, "browser-work-zero"),
         )
         .icon(Icon::WorkZero)

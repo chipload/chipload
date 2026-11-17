@@ -100,6 +100,7 @@ nest-menu-hover = Nest…: every instance of the setup's parts placed on its boa
 nest-again = Nest again
 nest-again-hover = Nest the setup again with the gap, margin and turns it was nested with last, no dialog
 nest-title = Nest: { $setup }
+nest-title-one = Nest
 nest-board-follows = The board follows the drawing: nesting gives it this size, its corner at the drawing's origin.
 nest-board = Board
 nest-gap = Gap

@@ -100,6 +100,7 @@ nest-menu-hover = Verschachteln…: jede Instanz der Teile der Aufspannung so di
 nest-again = Erneut verschachteln
 nest-again-hover = Die Aufspannung erneut verschachteln, mit Abstand, Rand und Drehungen vom letzten Mal, ohne Dialog
 nest-title = Verschachteln: { $setup }
+nest-title-one = Verschachteln
 nest-board-follows = Das Brett folgt der Zeichnung: Verschachteln gibt ihm diese Größe, seine Ecke im Ursprung der Zeichnung.
 nest-board = Brett
 nest-gap = Abstand

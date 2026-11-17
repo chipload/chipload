@@ -100,6 +100,7 @@ nest-menu-hover = Annida…: ogni istanza dei pezzi del piazzamento posta sulla 
 nest-again = Annida di nuovo
 nest-again-hover = Annida di nuovo il piazzamento con distanza, margine e rotazioni dell’ultima volta, senza finestra
 nest-title = Annida: { $setup }
+nest-title-one = Annida
 nest-board-follows = La tavola segue il disegno: annidare le dà questa misura, con l’angolo nell’origine del disegno.
 nest-board = Tavola
 nest-gap = Distanza

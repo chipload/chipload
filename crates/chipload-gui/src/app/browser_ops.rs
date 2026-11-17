@@ -14,9 +14,22 @@ use crate::i18n::Lang;
 use crate::icons::Icon;
 
 /// What a part's rows need besides the part.
+/// What a leaf under an operation needs from it: whether the operation is cut, its kind's
+/// colour, and the leaf's depth.
+#[derive(Clone, Copy)]
+struct Under {
+    cut: bool,
+    color: Color32,
+    depth: usize,
+}
+
 pub(super) struct PartRows<'a> {
     /// Its place among the parts.
     pub(super) k: usize,
+    /// The part row's depth in the tree: under its setup, or under the project when the
+    /// project has one board (docs/specs/parts-and-setups.md §2a). Its operations and
+    /// instances are one deeper.
+    pub(super) depth: usize,
     pub(super) parts: &'a [chipload_job::Part],
     pub(super) active: Option<u64>,
     pub(super) op_parts: &'a [u64],
@@ -183,6 +196,7 @@ impl ChiploadApp {
     ) -> Option<OpAction> {
         let PartRows {
             k,
+            depth,
             parts,
             active,
             op_parts,
@@ -240,7 +254,7 @@ impl ChiploadApp {
         let id = Id::new(("browser-part", part.id));
         let open_id = id.with("folder-open");
         let open = folder_open(ui, open_id, true);
-        let out = Row::new(id, 3, &part.name)
+        let out = Row::new(id, depth, &part.name)
             .folder(open)
             .tick(part.enabled)
             .icon(Icon::Part)
@@ -396,7 +410,7 @@ impl ChiploadApp {
         }
         if mine.is_empty() {
             ui.horizontal(|ui| {
-                ui.add_space(PAD + 5.0 * INDENT);
+                ui.add_space(PAD + (depth + 2) as f32 * INDENT);
                 ui.weak(if is_active {
                     t!(ui, "browser-part-empty-active")
                 } else {
@@ -406,7 +420,7 @@ impl ChiploadApp {
         }
         for i in mine {
             let changes = tool_before.get(&i).map_or(&[][..], Vec::as_slice);
-            if let Some(a) = self.operation_row(ui, i, count, changes, 4) {
+            if let Some(a) = self.operation_row(ui, i, count, changes, depth + 1) {
                 action = Some(a);
             }
         }
@@ -424,7 +438,7 @@ impl ChiploadApp {
             }
         });
         for instance in listed.collect::<Vec<_>>().iter() {
-            if let Some(a) = self.instance_row(ui, part, instance, in_active_setup) {
+            if let Some(a) = self.instance_row(ui, part, instance, in_active_setup, depth + 1) {
                 action = Some(a);
             }
         }
@@ -439,6 +453,7 @@ impl ChiploadApp {
         part: &chipload_job::Part,
         instance: &chipload_job::Instance,
         in_active_setup: bool,
+        depth: usize,
     ) -> Option<OpAction> {
         let (p, id) = (part.id, instance.id);
         let placed = self.edit.as_ref().is_some_and(|e| e.job.is_placed(p));
@@ -451,7 +466,7 @@ impl ChiploadApp {
         }
         let flagged = !self.form_problem_map(Focus::Instance(p, id)).is_empty();
         let label = t!(ui, "forms-instance-number", number = id);
-        let out = Row::new(Id::new(("browser-instance", p, id)), 4, label)
+        let out = Row::new(Id::new(("browser-instance", p, id)), depth, label)
             .tick(instance.enabled)
             .icon(Icon::Array)
             .trailing(trailing.join(" · "))
@@ -725,40 +740,30 @@ impl ChiploadApp {
                 action = Some(OpAction::Delete(i));
             }
         });
-        let color = kind_color(op, dark);
+        let under = Under {
+            cut: is_cut,
+            color: kind_color(op, dark),
+            depth: depth + 1,
+        };
         for (k, pass) in passes.iter().enumerate() {
-            if let Some(a) = self.rest_pass_row(ui, i, k, pass, is_cut, color) {
+            if let Some(a) = self.rest_pass_row(ui, i, k, pass, under) {
                 action = Some(a);
             }
         }
         // Cut before the operation: a floor pass, or a roughing and a smoothing pass.
         if let Some(pass) = &floor
-            && let Some(a) =
-                self.pass_leaf(ui, i, Leaf::Floor, (pass.enabled, pass.tool), is_cut, color)
+            && let Some(a) = self.pass_leaf(ui, i, Leaf::Floor, (pass.enabled, pass.tool), under)
         {
             action = Some(a);
         }
         if let Some(pass) = &roughing
-            && let Some(a) = self.pass_leaf(
-                ui,
-                i,
-                Leaf::Roughing,
-                (pass.enabled, pass.tool),
-                is_cut,
-                color,
-            )
+            && let Some(a) = self.pass_leaf(ui, i, Leaf::Roughing, (pass.enabled, pass.tool), under)
         {
             action = Some(a);
         }
         if let Some(pass) = &smoothing
-            && let Some(a) = self.pass_leaf(
-                ui,
-                i,
-                Leaf::Smoothing,
-                (pass.enabled, pass.tool),
-                is_cut,
-                color,
-            )
+            && let Some(a) =
+                self.pass_leaf(ui, i, Leaf::Smoothing, (pass.enabled, pass.tool), under)
         {
             action = Some(a);
         }
@@ -774,9 +779,13 @@ impl ChiploadApp {
         i: usize,
         leaf: Leaf,
         (enabled, tool): (bool, i64),
-        op_cut: bool,
-        color: Color32,
+        under: Under,
     ) -> Option<OpAction> {
+        let Under {
+            cut: op_cut,
+            color,
+            depth,
+        } = under;
         let at = chipload_job::OpRef::pass(i, usize::from(matches!(leaf, Leaf::Smoothing)));
         let smoothed = matches!(
             self.edit.as_ref().and_then(|e| e.job.operations.get(i)),
@@ -818,14 +827,18 @@ impl ChiploadApp {
                 let time = chipload_pipeline::estimate::duration_message(*s);
                 format!("{} · ", time.render(ui.lang(), self.prefs.units.into()))
             });
-        let row = Row::new(Id::new(("browser-", field, i)), 5, format!("{at}  {name}"))
-            .tick(enabled)
-            .icon_colored(icon, color)
-            .trailing(format!("{time}T{tool}"))
-            .selected(self.focus == focus)
-            .dim(!(op_cut && enabled))
-            .alert(flagged)
-            .show(ui);
+        let row = Row::new(
+            Id::new(("browser-", field, i)),
+            depth,
+            format!("{at}  {name}"),
+        )
+        .tick(enabled)
+        .icon_colored(icon, color)
+        .trailing(format!("{time}T{tool}"))
+        .selected(self.focus == focus)
+        .dim(!(op_cut && enabled))
+        .alert(flagged)
+        .show(ui);
         let (toggle, open, remove) = match leaf {
             Leaf::Floor => (
                 OpAction::FloorToggle(i),
@@ -873,9 +886,13 @@ impl ChiploadApp {
         i: usize,
         k: usize,
         pass: &chipload_job::ClearingPass,
-        pocket_cut: bool,
-        color: Color32,
+        under: Under,
     ) -> Option<OpAction> {
+        let Under {
+            cut: pocket_cut,
+            color,
+            depth,
+        } = under;
         let at = chipload_job::OpRef::pass(i, k);
         let flagged = self.problems.iter().any(|p| {
             p.operation() == Some(i) && p.field().starts_with(&format!("rest_passes.{k}"))
@@ -891,7 +908,7 @@ impl ChiploadApp {
             });
         let row = Row::new(
             Id::new(("browser-pass", i, k)),
-            5,
+            depth,
             format!("{at}  {}", t!(ui, "browser-rest")),
         )
         .tick(pass.enabled)

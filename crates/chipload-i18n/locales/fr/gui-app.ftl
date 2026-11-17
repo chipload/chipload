@@ -100,6 +100,7 @@ nest-menu-hover = Imbriquer… : chaque instance des pièces du montage placée 
 nest-again = Imbriquer à nouveau
 nest-again-hover = Imbriquer le montage à nouveau avec l’écart, la marge et les rotations de la dernière fois, sans boîte de dialogue
 nest-title = Imbriquer : { $setup }
+nest-title-one = Imbriquer
 nest-board-follows = La planche suit le dessin : l’imbrication lui donne cette taille, son coin à l’origine du dessin.
 nest-board = Planche
 nest-gap = Écart

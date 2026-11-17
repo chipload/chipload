@@ -236,7 +236,24 @@ impl ChiploadApp {
             .as_deref()
             .map_or_else(|| t!(ui, "browser-new-project"), file_name);
         let root = Row::new(Id::new("browser-project"), 0, name).icon(Icon::Project);
-        let (open, _) = folder(ui, root, true);
+        let (open, root) = folder(ui, root, true);
+        // One board: its menu is the project's, as there is no setup row
+        // (docs/specs/parts-and-setups.md §2a).
+        let only = self
+            .edit
+            .as_ref()
+            .and_then(|e| match e.job.setups.as_slice() {
+                [setup] => Some(setup.id),
+                _ => None,
+            });
+        if let Some(id) = only {
+            let mut asked = None;
+            root.response
+                .context_menu(|ui| asked = self.board_menu(ui, id));
+            if let Some(action) = asked {
+                self.apply_setup_action(action);
+            }
+        }
         if !open {
             return;
         }

@@ -323,13 +323,16 @@ impl ChiploadApp {
             self.nest = Some(dialog);
             return;
         }
-        let title = {
-            let name = self
-                .edit
-                .as_ref()
-                .and_then(|e| e.job.setup(dialog.setup))
-                .map_or(String::new(), |s| s.name.clone());
-            t!(ctx, "nest-title", setup = name)
+        // With one board, no setup's name (docs/specs/parts-and-setups.md §2a).
+        let title = match self.edit.as_ref().map(|e| e.job.setups.as_slice()) {
+            Some([_]) | None => t!(ctx, "nest-title-one"),
+            Some(setups) => {
+                let name = setups
+                    .iter()
+                    .find(|s| s.id == dialog.setup)
+                    .map_or(String::new(), |s| s.name.clone());
+                t!(ctx, "nest-title", setup = name)
+            }
         };
         let mut open = true;
         let mut action: Option<NestAction> = None;

@@ -171,6 +171,12 @@ impl Row {
         let response = ui.interact(rect, self.id, sense);
         let label = self.label.clone();
         let selected = self.selected;
+        // Tests read back the tree as drawn: each row's depth and label, in order.
+        #[cfg(test)]
+        ui.ctx().data_mut(|d| {
+            d.get_temp_mut_or_default::<Vec<(usize, String)>>(Id::new("browser-rows-drawn"))
+                .push((self.depth, label.clone()));
+        });
         response.widget_info(|| {
             WidgetInfo::selected(WidgetType::SelectableLabel, true, selected, &label)
         });

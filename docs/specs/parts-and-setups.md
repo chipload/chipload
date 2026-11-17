@@ -2,7 +2,7 @@
 
 Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
 we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
-the user says otherwise. **Step 1 built** (§11). The user's idea (2026-11-17, after nesting): "each
+the user says otherwise. **Steps 1 and 1b built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -235,7 +235,13 @@ Each step a commit with its tests, shippable on its own:
    instance without `--setup` goes on the board the part is cut from (else the active
    one), so a part on one board never needs it.
 1b. **The simple case (§2a):** one board shows no Setups branch, a part once where drawn
-   no instance rows; the row count and click walk measured against 0.37.
+   no instance rows; the row count and click walk measured against 0.37. **Built
+   2026-11-17.** The window test counts the Browser's rows as drawn: one board is two rows
+   fewer than with the branch (0.37's *Setups › Setup 1*), and a second board brings the
+   branch back. The walk from import to export is unchanged: nothing on it moved or was
+   added. The setup row's menu (new part, face the board, nest, add a board, back side) is
+   the project row's with one board, with *Pieces and back side…* for the board's own form;
+   the Nest window's title names no setup.
 2. **A part's stock:** the field, moving a part to a matching board (made when there is
    none, removed when emptied), the warning for parts placed by hand, the form and `part
    set`; the user's two-thickness example as a pipeline and a window test.

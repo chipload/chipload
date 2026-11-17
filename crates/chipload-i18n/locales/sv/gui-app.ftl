@@ -100,6 +100,7 @@ nest-menu-hover = Nästla…: varje instans av uppspänningens detaljer placeras
 nest-again = Nästla igen
 nest-again-hover = Nästla uppspänningen igen med mellanrum, kant och vridningar från förra gången, utan dialog
 nest-title = Nästla: { $setup }
+nest-title-one = Nästla
 nest-board-follows = Skivan följer ritningen: nästlingen ger den den här storleken, med hörnet i ritningens origo.
 nest-board = Skiva
 nest-gap = Mellanrum

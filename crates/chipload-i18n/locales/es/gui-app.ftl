@@ -100,6 +100,7 @@ nest-menu-hover = Anidar…: cada instancia de las piezas de la sujeción coloca
 nest-again = Anidar de nuevo
 nest-again-hover = Anidar la sujeción de nuevo con la separación, el margen y los giros de la última vez, sin diálogo
 nest-title = Anidar: { $setup }
+nest-title-one = Anidar
 nest-board-follows = El tablero sigue al dibujo: anidar le da este tamaño, con su esquina en el origen del dibujo.
 nest-board = Tablero
 nest-gap = Separación

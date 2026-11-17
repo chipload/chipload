@@ -68,8 +68,10 @@ The **Browser** on the left holds your library and the whole project as a tree:
   - **Drawing:** what the shapes come from. Each DXF has its layers under it; then come
     each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
     polylines). See [Several drawings](drawings/several.md).
-  - **Setups**, each with its **Stock**, its **Work zero** and its **parts** under it, each part
-    with its operations, in cutting order, then its [instances](drawings/instances.md). A line marks each tool change. A floor pass is
+  - **Stock**, **Work zero** and the **parts**, each part with its operations, in cutting
+    order, then its [instances](drawings/instances.md) once it has more than one. With two
+    boards or more they move under **Setups**, each setup with its own stock, work zero and
+    parts. A line marks each tool change. A floor pass is
     cut before its V-carve and a rest pass after its pockets, so the line above them names
     their tools in the order they are cut: *tool change → T2 → T1*. See
     [Setups](concepts/setups.md) and [Parts](operations/parts.md).
@@ -104,6 +106,8 @@ operations; the first DXF's placement window is open](images/drawing.png)
     operation* (for the selected shapes), *Move up*, *Move down*, *Move to setup ▸* and
     *Delete part* (with its operations).
   - **An instance:** *Mirror*, *Turn 90°* and *Remove*.
+  - **The project**, with one board: *New part*, *Face the board…*, *Nest…*, *Pieces and
+    back side…* (the board's own settings), *Add the back side* and *Add a setup*.
   - **A setup:** *Export G-code of this setup…*, *New part*, *Add a setup* and *Delete*. **The Setups folder:** *Add a
     setup*.
   - **A library tool:** *Add to project*, *Make default*, *Delete*. **A library machine:**

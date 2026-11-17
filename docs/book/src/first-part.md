@@ -12,10 +12,10 @@ outside profile. The same steps follow in the app and on the command line.
      real thickness: depths are measured from the board's top. Enter creates the project.
    - The report under the canvas lists what was imported, and anything skipped or
      repaired: duplicate lines, gaps it closed, splines turned into arcs.
-2. **Check the setup and the machine:** the project opens on **Setup 1** under *Setups* in
-   the [Browser](window.md#the-browser) on the left, with the board you chose; **Machine**
-   shows the machine. [Work zero](concepts/stock.md#work-zero) is at the stock's bottom-left
-   corner (the *Work zero* row under the setup; drag it in the view to move it). Without a
+2. **Check the stock and the machine:** **Stock** in the [Browser](window.md#the-browser) on
+   the left is the board you chose; **Machine** shows the machine.
+   [Work zero](concepts/stock.md#work-zero) is at the stock's bottom-left corner (the *Work
+   zero* row; drag it in the view to move it). Without a
    [tool library](library/tools.md) and [machine profiles](library/machines.md), a project
    has the GRBL post, a safe height of 5 mm and a 6 mm endmill at 18 000 rpm.
 3. **Select what to cut:**

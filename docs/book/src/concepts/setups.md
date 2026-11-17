@@ -33,11 +33,14 @@ them (`part-S2-sheet.html`). `run` writes every setup that is on; `--setup N` on
 
 ## In the window
 
-The Browser shows **Setups**, always, each with its **Stock**, its **Work zero** and its
-parts beneath it. Click a setup for its name, whether it is cut and its parts; its board and
-zero are the two items beneath it. Right-click *Setups* or a setup for **Add a setup**, another board: it starts like the
-active one, with a part of its own, and both become active. Right-click a setup for **New
-part** in it.
+With one board, the Browser has no setups to show: **Stock**, **Work zero** and the parts
+are the project's rows, and right-clicking the project offers what a setup's menu would,
+**Pieces and back side…** for the board's own settings among them. Right-click the project
+for **Add a setup**, another board: it starts like the first, with a part of its own, and
+both become active. From then on the Browser shows **Setups**, each with its **Stock**, its
+**Work zero** and its parts beneath it; deleting the second board brings the simple view
+back. Click a setup for its name, whether it is cut and its parts. Right-click *Setups* or
+a setup for **Add a setup**, a setup for **New part** in it.
 
 With two or more, the setup you click is the **active setup**: it is shown in full colour,
 generated, simulated and exported, while the other boards and their shapes are ghosts, faint
