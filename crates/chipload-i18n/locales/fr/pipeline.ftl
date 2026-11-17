@@ -733,3 +733,13 @@ pipeline-nest-done = { $placed } sur { $count } placées, la planche utilisée j
 pipeline-nest-unplaced = { $part }, instance { $instance } n’a pas trouvé place : désactivée
 pipeline-nest-board-fixed = La planche suivait le dessin ; elle fait maintenant { $width } × { $height }, son coin à l’origine du dessin
 pipeline-nest-travel = La planche mesure { $board } en { $axis }, la machine se déplace de { $travel } : seule cette partie est utilisée
+
+# A part's stock picks its board (docs/specs/parts-and-setups.md §4).
+pipeline-stock-thickness = { $thickness }
+pipeline-stock-material = { $material }
+pipeline-stock-both = { $thickness } { $material }
+pipeline-stock-any = n'importe quel brut
+pipeline-part-stock-moved = { $part } est usinée dans { $stock } : { $board }
+pipeline-part-stock-made = { $board } ({ $stock }) créé pour { $part }
+pipeline-part-stock-removed = { $board } supprimé : plus rien n'y est usiné
+pipeline-part-wrong-stock = { $part } doit être usinée dans { $wants }, mais ce brut est { $board }

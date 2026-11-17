@@ -39,6 +39,7 @@ mod narrow_panel;
 mod nesting;
 mod new_project;
 mod part_export;
+mod part_stock;
 mod parts;
 mod pattern;
 mod pieces;

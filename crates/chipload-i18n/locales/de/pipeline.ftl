@@ -728,3 +728,13 @@ pipeline-nest-done = { $placed } von { $count } platziert, das Brett bis { $used
 pipeline-nest-unplaced = { $part }, Instanz { $instance } passte nicht: ausgeschaltet
 pipeline-nest-board-fixed = Das Brett folgte der Zeichnung; es ist jetzt { $width } × { $height }, seine Ecke im Ursprung der Zeichnung
 pipeline-nest-travel = Das Brett ist { $board } lang in { $axis }, die Maschine fährt { $travel }: nur so viel davon wird genutzt
+
+# A part's stock picks its board (docs/specs/parts-and-setups.md §4).
+pipeline-stock-thickness = { $thickness }
+pipeline-stock-material = { $material }
+pipeline-stock-both = { $thickness } { $material }
+pipeline-stock-any = jedes Rohteil
+pipeline-part-stock-moved = { $part } wird aus { $stock } gefräst: { $board }
+pipeline-part-stock-made = { $board } ({ $stock }) für { $part } angelegt
+pipeline-part-stock-removed = { $board } entfernt: nichts wird mehr daraus gefräst
+pipeline-part-wrong-stock = { $part } soll aus { $wants } gefräst werden, dieses Rohteil ist aber { $board }

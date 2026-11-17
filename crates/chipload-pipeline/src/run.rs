@@ -282,6 +282,7 @@ pub fn run_job_cancellable(job: &Job, cancel: &Cancel) -> Result<RunResult, Pipe
     ));
     notes.extend(crate::setups::surface_over_pins_warning(job));
     notes.extend(crate::dowels::missing_dowels_warning(job));
+    notes.extend(crate::part_stock::stock_mismatch_notes(job));
     notes.extend(
         copies_notes(job, &plan.program, &plan.op_spans)
             .into_iter()

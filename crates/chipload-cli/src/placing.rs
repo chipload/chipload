@@ -78,6 +78,7 @@ pub(crate) fn zero(
         Err(err) => return out.fail(err),
     };
     let before = (job.work_zero(), job.stock().z_zero);
+    let original = job.clone();
     if let Some(corner) = args.stock {
         let corner = match corner {
             CornerArg::BottomLeft => StockCorner::BottomLeft,
@@ -118,6 +119,8 @@ pub(crate) fn zero(
     if (job.work_zero(), job.stock().z_zero) == before && output.is_none() {
         return ExitCode::SUCCESS;
     }
+    // Set by hand: a board made for a part's stock is the user's now.
+    job.keep_made_flags(&original);
     let problems = job.validate();
     if !problems.is_empty() {
         return out.fail(chipload_pipeline::joined(&problems));

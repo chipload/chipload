@@ -441,6 +441,7 @@ impl EditJob {
             order: chipload_job::InstanceOrder::ByOperation,
             mirror: None,
             turns: None,
+            stock: None,
         });
         // Once, where it is drawn, on the active setup (docs/specs/parts-and-setups.md §2).
         let setup = self.job.active_setup_id().unwrap_or(1);

@@ -3239,6 +3239,17 @@
           "$ref": "#/$defs/InstanceOrder",
           "description": "`by_operation`: each operation on every instance, then the next; `by_instance`:\nevery operation on one instance, then the next instance. Since schema 38."
         },
+        "stock": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartStock"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The stock it is cut from: a material, a thickness, or both. Setting it moves the\npart to a board that has it (docs/specs/parts-and-setups.md §4). Missing: any board.\nLeft out when missing."
+        },
         "turns": {
           "anyOf": [
             {
@@ -3257,6 +3268,32 @@
         "enabled",
         "order"
       ],
+      "type": "object"
+    },
+    "PartStock": {
+      "additionalProperties": false,
+      "description": "The stock a part is cut from (docs/specs/parts-and-setups.md §4): either may be missing.",
+      "properties": {
+        "material": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MaterialRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The library material. Null: any."
+        },
+        "thickness": {
+          "description": "The board's thickness, mm. Null: any.",
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
       "type": "object"
     },
     "PathSegment": {
@@ -3860,6 +3897,10 @@
             "$ref": "#/$defs/Instance"
           },
           "type": "array"
+        },
+        "made_for_stock": {
+          "description": "True: Chipload made this board because a part's stock asked for one, and removes it\nagain when it is left empty; changed by hand, it is the user's and stays. Missing:\nfalse. Left out when false.",
+          "type": "boolean"
         },
         "name": {
           "description": "Its name, shown in the Browser, the report and the setup sheet.",

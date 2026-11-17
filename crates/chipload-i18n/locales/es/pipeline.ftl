@@ -733,3 +733,13 @@ pipeline-nest-done = { $placed } de { $count } colocadas, el tablero usado hasta
 pipeline-nest-unplaced = { $part }, instancia { $instance } no cupo: desactivada
 pipeline-nest-board-fixed = El tablero seguía al dibujo; ahora mide { $width } × { $height }, con su esquina en el origen del dibujo
 pipeline-nest-travel = El tablero mide { $board } en { $axis } y la máquina recorre { $travel }: solo se usa esa parte
+
+# A part's stock picks its board (docs/specs/parts-and-setups.md §4).
+pipeline-stock-thickness = { $thickness }
+pipeline-stock-material = { $material }
+pipeline-stock-both = { $thickness } { $material }
+pipeline-stock-any = cualquier material en bruto
+pipeline-part-stock-moved = { $part } se corta de { $stock }: { $board }
+pipeline-part-stock-made = { $board } ({ $stock }) creada para { $part }
+pipeline-part-stock-removed = { $board } quitada: ya no se corta nada de ella
+pipeline-part-wrong-stock = { $part } debe cortarse de { $wants }, pero este material en bruto es { $board }

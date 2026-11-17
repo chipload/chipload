@@ -60,6 +60,7 @@ pub fn add_setup(
         pieces: None,
         nest: None,
         instances: Vec::new(),
+        made_for_stock: false,
         placed: None,
     });
     let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
@@ -71,6 +72,7 @@ pub fn add_setup(
         order: chipload_job::InstanceOrder::ByOperation,
         mirror: None,
         turns: None,
+        stock: None,
     });
     job.place_part(part, id);
     job.active_setup = Some(id);
@@ -124,6 +126,7 @@ pub struct BoardChange {
 /// are given (new: left to right, pins); a setup unlinked keeps the board and zero it had
 /// as a back. A turn or a way of locating for a setup that isn't a back is refused.
 pub fn set_board(job: &Job, id: u64, change: BoardChange) -> Result<Job, PipelineError> {
+    let before = job;
     let mut job = job.clone();
     let at = index_of(&job, id)?;
     let old = job.setups[at].back_of;
@@ -155,6 +158,8 @@ pub fn set_board(job: &Job, id: u64, change: BoardChange) -> Result<Job, Pipelin
         },
     };
     set_back_of(&mut job, id, back)?;
+    // Changed by hand: a board made for a part's stock is the user's now.
+    job.keep_made_flags(before);
     checked(job)
 }
 
@@ -173,6 +178,7 @@ pub fn set_setup(
     name: Option<&str>,
     enabled: Option<bool>,
 ) -> Result<Job, PipelineError> {
+    let before = job;
     let mut job = job.clone();
     let at = index_of(&job, id)?;
     if let Some(name) = name {
@@ -184,15 +190,20 @@ pub fn set_setup(
     if let Some(enabled) = enabled {
         job.setups[at].enabled = enabled;
     }
+    // Changed by hand: a board made for a part's stock is the user's now.
+    job.keep_made_flags(before);
     checked(job)
 }
 
 /// Cut setup `id` in pieces, as `pieces` says, or as one board again with `None`
 /// (docs/specs/pieces.md §10). Refused when the result breaks a project rule.
 pub fn set_pieces(job: &Job, id: u64, pieces: Option<Pieces>) -> Result<Job, PipelineError> {
+    let before = job;
     let mut job = job.clone();
     let at = index_of(&job, id)?;
     job.setups[at].pieces = pieces;
+    // Changed by hand: a board made for a part's stock is the user's now.
+    job.keep_made_flags(before);
     checked(job)
 }
 

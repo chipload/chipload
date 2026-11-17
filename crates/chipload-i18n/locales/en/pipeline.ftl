@@ -735,3 +735,13 @@ pipeline-nest-done = { $placed } of { $count } placed, the board used to { $used
 pipeline-nest-unplaced = { $part }, instance { $instance } didn't fit: switched off
 pipeline-nest-board-fixed = The board followed the drawing; it is now { $width } × { $height }, its corner at the drawing's origin
 pipeline-nest-travel = The board is { $board } along { $axis }, the machine travels { $travel }: only that much of it is used
+
+# A part's stock picks its board (docs/specs/parts-and-setups.md §4).
+pipeline-stock-thickness = { $thickness }
+pipeline-stock-material = { $material }
+pipeline-stock-both = { $thickness } { $material }
+pipeline-stock-any = any stock
+pipeline-part-stock-moved = { $part } is cut from { $stock }: { $board }
+pipeline-part-stock-made = Made { $board } ({ $stock }) for { $part }
+pipeline-part-stock-removed = { $board } removed: nothing is cut from it any more
+pipeline-part-wrong-stock = { $part } is to be cut from { $wants }, but this board is { $board }

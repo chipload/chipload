@@ -767,7 +767,17 @@ A part: a named group of operations, cut together (docs/specs/parts.md §2). It 
 | `mirror` | [Mirror](#mirror) or null | no | Cut mirrored about the centre line of its box, the drawing as drawn: every instance with it. Missing: as drawn. Left out when missing. |
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
 | `order` | [InstanceOrder](#instanceorder) | yes | `by_operation`: each operation on every instance, then the next; `by_instance`: every operation on one instance, then the next instance. Since schema 38. |
+| `stock` | [PartStock](#partstock) or null | no | The stock it is cut from: a material, a thickness, or both. Setting it moves the part to a board that has it (docs/specs/parts-and-setups.md §4). Missing: any board. Left out when missing. |
 | `turns` | [Turns](#turns) or null | no | How it may be turned when nested. Missing: a quarter turn at a time. Left out when missing. |
+
+## PartStock
+
+The stock a part is cut from (docs/specs/parts-and-setups.md §4): either may be missing.
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `material` | [MaterialRef](#materialref) or null | no | The library material. Null: any. |
+| `thickness` | number or null | no | The board's thickness, mm. Null: any. |
 
 ## PathSegment
 
@@ -955,6 +965,7 @@ A setup: one board clamped once on the machine, with its stock and work zero, an
 | `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what parts name it by. |
 | `instances` | list of [Instance](#instance) | yes | The parts cut from this board, each placed: a part once where it is drawn, or moved, turned, mirrored, several times. Cut grouped by part in the project's order, each part's instances in this order. Since schema 41, in place of each part's own placement and instances. |
+| `made_for_stock` | boolean | no | True: Chipload made this board because a part's stock asked for one, and removes it again when it is left empty; changed by hand, it is the user's and stays. Missing: false. Left out when false. |
 | `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
 | `nest` | [Nest](#nest) or null | no | How the setup was last nested: its gap and margin, kept so *Nest again* needs no questions. Missing: never nested. Left out when missing. |
 | `pieces` | [Pieces](#pieces) or null | no | Set: the setup is cut as a puzzle, in pieces that each fit a board, joined by seams with joints; each piece is a program of its own. Null: one board. Since schema 37. |

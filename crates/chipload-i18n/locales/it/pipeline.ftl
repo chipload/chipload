@@ -730,3 +730,13 @@ pipeline-nest-done = { $placed } su { $count } posizionati, la tavola usata fino
 pipeline-nest-unplaced = { $part }, istanza { $instance } non è entrata: disattivata
 pipeline-nest-board-fixed = La tavola seguiva il disegno; ora misura { $width } × { $height }, con l’angolo nell’origine del disegno
 pipeline-nest-travel = La tavola misura { $board } in { $axis }, la macchina corre { $travel }: se ne usa solo quella parte
+
+# A part's stock picks its board (docs/specs/parts-and-setups.md §4).
+pipeline-stock-thickness = { $thickness }
+pipeline-stock-material = { $material }
+pipeline-stock-both = { $thickness } { $material }
+pipeline-stock-any = qualsiasi grezzo
+pipeline-part-stock-moved = { $part } si taglia da { $stock }: { $board }
+pipeline-part-stock-made = Creato { $board } ({ $stock }) per { $part }
+pipeline-part-stock-removed = { $board } rimosso: non si taglia più nulla da esso
+pipeline-part-wrong-stock = { $part } va tagliato da { $wants }, ma questo grezzo è { $board }

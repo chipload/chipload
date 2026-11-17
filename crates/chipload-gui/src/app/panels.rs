@@ -160,7 +160,7 @@ impl ChiploadApp {
             Focus::Selection => {}
             Focus::Job => request = job_form(ui, edit, library),
             Focus::WorkZero => request = forms::work_zero_form(ui, edit),
-            Focus::Part(id) => request = forms::part_form(ui, edit, id),
+            Focus::Part(id) => request = forms::part_form(ui, edit, id, library),
             Focus::Instance(part, id) => request = forms::instance_form(ui, edit, part, id),
             Focus::Stock => {
                 if std::mem::take(&mut self.focus_thickness) {
@@ -306,6 +306,7 @@ impl ChiploadApp {
             }
             Some(JobRequest::RemoveSmoothingPass(i)) => self.remove_smoothing(i),
             Some(JobRequest::CopiesGrid(part, grid, gap)) => self.set_copies_grid(part, grid, gap),
+            Some(JobRequest::PartStock(part, stock)) => self.set_part_stock(part, stock),
             Some(JobRequest::Activate(part)) => self.activate_part(part),
             Some(JobRequest::Post(name)) => {
                 self.choose_project_post(&name);

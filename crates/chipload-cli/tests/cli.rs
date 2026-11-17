@@ -3579,3 +3579,46 @@ fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
     assert!(out.contains("300"), "{out}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_parts_stock_picks_its_board_from_the_command_line() {
+    // docs/specs/parts-and-setups.md §4, §10
+    let dir = temp_dir("part-stock");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v22/two_parts.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let job = || -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap()
+    };
+    // Part B's outline cut through the board, whatever its thickness.
+    let (code, _, err) = run(&["set", p, "operations.3.through=0"]);
+    assert_eq!(code, Some(0), "{err}");
+    let (code, out, err) = run(&["part", "set", p, "2", "--thickness", "6mm"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(out.contains("Made Setup 2 (6 mm) for part B"), "{out}");
+    assert_eq!(job()["operations"][3]["end_depth"], 6.0);
+    assert_eq!(job()["setups"][1]["stock"]["thickness"], 6.0);
+    assert_eq!(job()["setups"][1]["made_for_stock"], true);
+    assert_eq!(job()["parts"][1]["stock"]["thickness"], 6.0);
+    let (_, out, _) = run(&["part", "list", p]);
+    assert!(out.contains("part B (active), from 6 mm"), "{out}");
+    // Two programs.
+    let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(dir.join("x-S2.nc").exists());
+    // Any board again: back on the first, the made board gone.
+    let (code, out, err) = run(&["part", "set", p, "2", "--stock", "none"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(out.contains("Setup 2 removed"), "{out}");
+    assert_eq!(job()["setups"].as_array().unwrap().len(), 1);
+    assert!(job()["parts"][1].get("stock").is_none());
+    // A material the library hasn't is refused.
+    let (code, _, err) = run(&["part", "set", p, "2", "--material", "Unobtainium"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("no material \"Unobtainium\""), "{err}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

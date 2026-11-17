@@ -88,6 +88,9 @@ pub(super) enum JobRequest {
     /// Part `id`'s instances made a grid's (docs/specs/instances.md §5): with a gap, the
     /// pitch that leaves this many mm between neighbours' cuts, else the grid's own.
     CopiesGrid(u64, Copies, Option<f64>),
+    /// Part `id` cut from this stock, None for any board: it moves to a board that has it
+    /// (docs/specs/parts-and-setups.md §4).
+    PartStock(u64, Option<chipload_job::PartStock>),
     /// Make part `id` the active part (docs/specs/parts.md §8).
     Activate(u64),
     /// The open tool was removed: show the tools instead.

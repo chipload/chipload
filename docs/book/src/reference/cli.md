@@ -2468,6 +2468,9 @@ chipload part set <PROJECT> <ID> [OPTIONS]
 | `--mirror <MIRROR>` | Cut the part mirrored about the centre line of its box, the drawing as drawn: left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb. |
 | `--order <ORDER>` | The order its instances are cut in (docs/specs/instances.md §2) One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
 | `--turns <TURNS>` | How it may be turned when nested: none, half, quarter or every-15 (docs/specs/nesting.md §3) |
+| `--material <MATERIAL>` | The library material it is cut from (docs/specs/parts-and-setups.md §4): it moves to a board of that material, made like its own when there is none. |
+| `--thickness <THICKNESS>` | The thickness it is cut from (any length unit; plain numbers are mm): it moves to a board that thick, made like its own when there is none. |
+| `--stock <STOCK>` | "none": cut from any board again; a board made for its stock goes when empty. One of: `none`. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part place`

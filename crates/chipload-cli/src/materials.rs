@@ -433,6 +433,18 @@ fn import(out: &mut Out, path: &Path, file: &Path, replace: bool) -> ExitCode {
     }
 }
 
+/// A library material by name, as a project names it (a part's stock, `part set
+/// --material`).
+pub(crate) fn material_by_name(name: &str) -> Result<chipload_job::MaterialRef, String> {
+    let dir = dir().map_err(|e| e.to_string())?;
+    let library =
+        load_library::<MaterialLibrary>(&materials_path(&dir)).map_err(|e| e.to_string())?;
+    library
+        .find(name)
+        .map(chipload_pipeline::materials::material_ref)
+        .ok_or_else(|| format!("no material \"{name}\" in your library (see `material list`)"))
+}
+
 /// After operation `index`'s tool changed: it takes its material's values for the new
 /// tool. The material's name when the feeds changed. Without a materials file to read,
 /// the feeds stay.

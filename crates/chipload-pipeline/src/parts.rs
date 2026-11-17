@@ -80,6 +80,7 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
         order: chipload_job::InstanceOrder::ByOperation,
         mirror: None,
         turns: None,
+        stock: None,
     });
     // Once, where it is drawn (docs/specs/parts-and-setups.md §2).
     job.place_part(id, setup);

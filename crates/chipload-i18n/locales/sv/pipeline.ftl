@@ -725,3 +725,13 @@ pipeline-nest-done = { $placed } av { $count } placerade, skivan använd till { 
 pipeline-nest-unplaced = { $part }, instans { $instance } fick inte plats: avstängd
 pipeline-nest-board-fixed = Skivan följde ritningen; den är nu { $width } × { $height }, med hörnet i ritningens origo
 pipeline-nest-travel = Skivan är { $board } längs { $axis }, maskinen rör sig { $travel }: bara så mycket av den används
+
+# A part's stock picks its board (docs/specs/parts-and-setups.md §4).
+pipeline-stock-thickness = { $thickness }
+pipeline-stock-material = { $material }
+pipeline-stock-both = { $thickness } { $material }
+pipeline-stock-any = vilket ämne som helst
+pipeline-part-stock-moved = { $part } skärs ur { $stock }: { $board }
+pipeline-part-stock-made = Skapade { $board } ({ $stock }) för { $part }
+pipeline-part-stock-removed = { $board } borttagen: inget skärs ur den längre
+pipeline-part-wrong-stock = { $part } ska skäras ur { $wants }, men det här ämnet är { $board }

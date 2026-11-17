@@ -556,6 +556,7 @@ fn two_parts(b_at: f64, a_copies: Value, b_copies: Value) -> (Job, Vec<Contour>)
         order: chipload_job::InstanceOrder::ByOperation,
         mirror: None,
         turns: None,
+        stock: None,
     });
     job.place_part(2, 1);
     set_grid(&mut job, 2, &b_copies);

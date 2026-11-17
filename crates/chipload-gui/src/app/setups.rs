@@ -36,6 +36,34 @@ impl ChiploadApp {
         }
     }
 
+    /// Part `id` cut from `stock`, None for any board (docs/specs/parts-and-setups.md §4):
+    /// moved to a board of that stock as one undo step, the status saying where.
+    pub fn set_part_stock(&mut self, id: u64, stock: Option<chipload_job::PartStock>) {
+        let Some(edit) = self.edit.as_ref() else {
+            return;
+        };
+        match chipload_pipeline::part_stock::set_part_stock(&edit.job, id, stock) {
+            Ok((job, moved)) => {
+                let text: Vec<String> = moved
+                    .map(|m| m.messages(&job, id))
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|m| m.render(self.prefs.language, self.prefs.units.into()))
+                    .collect();
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.job = job;
+                }
+                self.commit();
+                if !text.is_empty() {
+                    self.set_status(text.join(" · "), super::STATUS_SECONDS);
+                }
+            }
+            Err(err) => {
+                self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]);
+            }
+        }
+    }
+
     /// A new setup, a board like the active one's, with a part of its own; both become
     /// active, and its form opens.
     pub fn add_setup(&mut self) -> Option<u64> {

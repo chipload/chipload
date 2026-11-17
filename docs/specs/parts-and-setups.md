@@ -2,7 +2,7 @@
 
 Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
 we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
-the user says otherwise. **Steps 1 and 1b built** (§11). The user's idea (2026-11-17, after nesting): "each
+the user says otherwise. **Steps 1, 1b and 2 built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -244,7 +244,18 @@ Each step a commit with its tests, shippable on its own:
    the Nest window's title names no setup.
 2. **A part's stock:** the field, moving a part to a matching board (made when there is
    none, removed when emptied), the warning for parts placed by hand, the form and `part
-   set`; the user's two-thickness example as a pipeline and a window test.
+   set`; the user's two-thickness example as a pipeline and a window test. **Built
+   2026-11-17**, with three differences from §4, for the user to confirm:
+   - A part made by a wizard or with a new setup does **not** get its board's stock yet:
+     the usual next step, setting that board's thickness, would at once warn that the part
+     wants the old one.
+   - The warning for a part placed by hand on a board of another stock is a note in the
+     run's report ("*Bottom* is to be cut from 6 mm, but this board is 18 mm"), not yet a
+     mark on the instance's row.
+   - Nesting choosing boards by stock comes with overflow (step 5): nesting one board
+     places what is on it, as before.
+   A board made for a stock is the user's once changed by hand: renamed, its board, zero,
+   back or pieces changed, in the window, `setup set`, `zero` or `set`.
 3. **Sheets side by side** in the view (§7).
 4. **The window's placing:** drag a part onto a board, *Move to board…*, the part form's
    instances by board.

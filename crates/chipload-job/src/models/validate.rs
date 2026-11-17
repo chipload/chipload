@@ -178,6 +178,15 @@ fn instance_problems(job: &Job) -> Vec<Problem> {
         }
     }
     for (i, part) in job.parts.iter().enumerate() {
+        // A part's stock thickness (docs/specs/parts-and-setups.md §4).
+        if let Some(t) = part.stock.as_ref().and_then(|s| s.thickness)
+            && !(t.is_finite() && t > 0.0)
+        {
+            problems.push(Problem::at(
+                format!("parts.{i}.stock.thickness"),
+                Message::new("job-must-be-positive").arg("got", Value::Length(t, Digits::Shortest)),
+            ));
+        }
         let count = job.instances_of(part.id).len();
         if count > MAX_COPIES as usize {
             problems.push(Problem::at(

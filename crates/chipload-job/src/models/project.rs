@@ -83,6 +83,12 @@ pub struct Setup {
     /// placement and instances.
     // Spec: docs/specs/parts-and-setups.md §2.
     pub instances: Vec<Instance>,
+    /// True: Chipload made this board because a part's stock asked for one, and removes it
+    /// again when it is left empty; changed by hand, it is the user's and stays. Missing:
+    /// false. Left out when false.
+    // Spec: docs/specs/parts-and-setups.md §4 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub made_for_stock: bool,
     /// A board Chipload placed itself for one run, its (min, max) corners in drawing
     /// coordinates: a piece's board, fitted round the piece (docs/specs/pieces.md §7). It
     /// overrides where the stock would be and its size; the thickness, material and the
@@ -335,6 +341,45 @@ pub struct Part {
     // Spec: docs/specs/nesting.md §10 (optional, no schema bump).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub turns: Option<Turns>,
+    /// The stock it is cut from: a material, a thickness, or both. Setting it moves the
+    /// part to a board that has it (docs/specs/parts-and-setups.md §4). Missing: any board.
+    /// Left out when missing.
+    // Spec: docs/specs/parts-and-setups.md §4 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stock: Option<PartStock>,
+}
+
+/// The stock a part is cut from (docs/specs/parts-and-setups.md §4): either may be missing.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct PartStock {
+    /// The library material. Null: any.
+    pub material: Option<MaterialRef>,
+    /// The board's thickness, mm. Null: any.
+    pub thickness: Option<f64>,
+}
+
+impl PartStock {
+    /// Neither a material nor a thickness: the part goes on any board.
+    pub fn is_empty(&self) -> bool {
+        self.material.is_none() && self.thickness.is_none()
+    }
+
+    /// Whether a board of `stock` is what the part asks for: the same thickness (within
+    /// the depth tolerance) and the same library material, where the part names them.
+    pub fn fits(&self, stock: &Stock) -> bool {
+        let thickness = self
+            .thickness
+            .is_none_or(|t| (t - stock.thickness).abs() <= DEPTH_TOL_MM);
+        let material = self.material.as_ref().is_none_or(|m| {
+            stock
+                .material
+                .as_ref()
+                .is_some_and(|b| b.library_uid == m.library_uid)
+        });
+        thickness && material
+    }
 }
 
 /// How a part is cut mirrored: about the vertical or the horizontal centre line of its box.
@@ -1011,6 +1056,38 @@ impl Job {
             list.push(instance);
         }
         self.set_instances_here(id, list);
+    }
+
+    /// The parts on setup `setup` whose stock the board isn't (docs/specs/parts-and-setups.md
+    /// §4): placed there by hand, or the board changed since. In the project's order.
+    pub fn stock_mismatches(&self, setup: u64) -> Vec<u64> {
+        let Some(board) = self.setup(setup) else {
+            return Vec::new();
+        };
+        self.parts
+            .iter()
+            .filter(|p| self.part_on(p.id, setup))
+            .filter(|p| p.stock.as_ref().is_some_and(|s| !s.fits(&board.stock)))
+            .map(|p| p.id)
+            .collect()
+    }
+
+    /// A board Chipload made for a part's stock is the user's once changed by hand: its
+    /// name, board, work zero, back or pieces differ from `before`'s
+    /// (docs/specs/parts-and-setups.md §4). Called after an edit by hand.
+    pub fn keep_made_flags(&mut self, before: &Job) {
+        for setup in self.setups.iter_mut().filter(|s| s.made_for_stock) {
+            let changed = before.setup(setup.id).is_some_and(|old| {
+                old.name != setup.name
+                    || old.stock != setup.stock
+                    || old.work_zero != setup.work_zero
+                    || old.back_of != setup.back_of
+                    || old.pieces != setup.pieces
+            });
+            if changed {
+                setup.made_for_stock = false;
+            }
+        }
     }
 
     /// Every instance of part `id` removed, from every board.

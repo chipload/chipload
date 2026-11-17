@@ -208,6 +208,10 @@ pub fn set_all(job: &Job, assignments: &[(String, Value)]) -> Result<Job, String
             return Err(refused);
         }
     }
+    // Set by hand: a board made for a part's stock is the user's now
+    // (docs/specs/parts-and-setups.md §4).
+    let mut changed = changed;
+    changed.keep_made_flags(job);
     Ok(changed)
 }
 

@@ -7,6 +7,7 @@ pub(in crate::app) fn part_form(
     ui: &mut egui::Ui,
     edit: &mut EditJob,
     id: u64,
+    library: Option<&Library>,
 ) -> Option<JobRequest> {
     let mut request = None;
     let active = edit.job.active_part_id() == Some(id);
@@ -20,6 +21,12 @@ pub(in crate::app) fn part_form(
     let count = edit.job.count_all(id);
     let has_instances = edit.job.instances_of(id).len() > 1;
     let mut clear = false;
+    // The board it is cut from, for a thickness newly ticked.
+    let board = edit
+        .job
+        .home_setup(id)
+        .and_then(|s| edit.job.setup(s))
+        .map_or(0.0, |s| s.stock.thickness);
     let part = &mut edit.job.parts[index];
     super::browser_row::title_line(
         ui,
@@ -74,6 +81,10 @@ pub(in crate::app) fn part_form(
         let instances = (count, has_instances, &mut clear);
         copies_rows(ui, part, instances, &mut request, id);
     });
+    let materials = library.map(|l| &l.materials);
+    if let Some(asked) = stock_section(ui, id, part.stock.as_ref(), board, materials) {
+        request = Some(asked);
+    }
     if clear {
         // Cut once: its first instance on its board stays.
         let active = edit.job.active_setup;
@@ -87,6 +98,86 @@ pub(in crate::app) fn part_form(
         ui.weak(t!(ui, "forms-parts-note"));
     }
     request
+}
+
+/// The stock part `id` is cut from (docs/specs/parts-and-setups.md §4), folded, "Any
+/// board" until set: a library material and a thickness, each "any" when not chosen. A
+/// change asks to move the part to a board of that stock; a thickness being dragged waits
+/// until it is let go.
+fn stock_section(
+    ui: &mut egui::Ui,
+    id: u64,
+    current: Option<&chipload_job::PartStock>,
+    board: f64,
+    materials: Option<&chipload_job::materials::MaterialLibrary>,
+) -> Option<JobRequest> {
+    let units = crate::units::display(ui.ctx()).into();
+    let summary = current.map_or_else(
+        || t!(ui, "forms-part-stock-any"),
+        |s| chipload_pipeline::part_stock::stock_message(s).render(ui.lang(), units),
+    );
+    let mut wanted = current.cloned().unwrap_or_default();
+    let mut changed = false;
+    section(
+        ui,
+        "part-stock",
+        &t!(ui, "forms-part-stock"),
+        &summary,
+        |ui| {
+            ui.label(t!(ui, "forms-material"))
+                .on_hover_text(t!(ui, "forms-part-stock-hover"));
+            let shown = wanted.material.as_ref().map_or_else(
+                || t!(ui, "forms-part-stock-any-material"),
+                |m| m.name.clone(),
+            );
+            ComboBox::from_id_salt(("part-material", id))
+                .selected_text(shown)
+                .width(field_width(ui, 160.0))
+                .show_ui(ui, |ui| {
+                    let any = t!(ui, "forms-part-stock-any-material");
+                    if ui
+                        .selectable_label(wanted.material.is_none(), any)
+                        .clicked()
+                        && wanted.material.is_some()
+                    {
+                        wanted.material = None;
+                        changed = true;
+                    }
+                    for m in materials.map_or(&[][..], |l| l.materials.as_slice()) {
+                        let on = wanted
+                            .material
+                            .as_ref()
+                            .is_some_and(|c| c.library_uid == m.uid);
+                        if ui.selectable_label(on, &m.name).clicked() && !on {
+                            wanted.material = Some(chipload_pipeline::materials::material_ref(m));
+                            changed = true;
+                        }
+                    }
+                });
+            ui.end_row();
+            ui.label(t!(ui, "forms-thickness"))
+                .on_hover_text(t!(ui, "forms-part-stock-thickness-hover"));
+            ui.horizontal(|ui| {
+                let mut ticked = wanted.thickness.is_some();
+                if ui
+                    .checkbox(&mut ticked, "")
+                    .on_hover_text(t!(ui, "forms-part-stock-thickness-hover"))
+                    .changed()
+                {
+                    wanted.thickness = ticked.then_some(board);
+                    changed = true;
+                }
+                if let Some(thickness) = wanted.thickness.as_mut() {
+                    let response = ui.add(crate::units::length(thickness).range(0.01..=10_000.0));
+                    if response.drag_stopped() || (response.changed() && !response.dragged()) {
+                        changed = true;
+                    }
+                }
+            });
+            ui.end_row();
+        },
+    );
+    changed.then(|| JobRequest::PartStock(id, (!wanted.is_empty()).then_some(wanted)))
 }
 
 /// A part cut mirrored about its box's centre line, or as drawn

@@ -18,6 +18,11 @@ impl ChiploadApp {
     pub fn commit(&mut self) {
         if self.edit != self.history.committed {
             self.follow_frames();
+            // Changed by hand: a board made for a part's stock is the user's now
+            // (docs/specs/parts-and-setups.md §4).
+            if let (Some(edit), Some(before)) = (self.edit.as_mut(), &self.history.committed) {
+                edit.job.keep_made_flags(&before.job);
+            }
             self.history.undo.push(self.history.committed.take());
             self.history.redo.clear();
             self.history.committed.clone_from(&self.edit);

@@ -60,6 +60,17 @@ pub enum PartAction {
         /// (docs/specs/nesting.md §3).
         #[arg(long, value_parser = crate::nesting::turns_value)]
         turns: Option<chipload_job::Turns>,
+        /// The library material it is cut from (docs/specs/parts-and-setups.md §4): it moves
+        /// to a board of that material, made like its own when there is none.
+        #[arg(long, conflicts_with = "stock")]
+        material: Option<String>,
+        /// The thickness it is cut from (any length unit; plain numbers are mm): it moves to
+        /// a board that thick, made like its own when there is none.
+        #[arg(long, value_parser = crate::lengths::length, conflicts_with = "stock")]
+        thickness: Option<f64>,
+        /// "none": cut from any board again; a board made for its stock goes when empty.
+        #[arg(long, value_parser = ["none"])]
+        stock: Option<String>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -165,11 +176,13 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
         PartAction::List { .. } | PartAction::Instance { .. } | PartAction::Place { .. } => {
             return ExitCode::SUCCESS;
         }
-        PartAction::Add { name, .. } => add_part(&job, name.as_deref()).map(|(job, id)| {
-            out.line(format!("Added part {id}, now the active part"));
-            out.set("part", json!(id));
-            job
-        }),
+        PartAction::Add { name, .. } => add_part(&job, name.as_deref())
+            .map(|(job, id)| {
+                out.line(format!("Added part {id}, now the active part"));
+                out.set("part", json!(id));
+                job
+            })
+            .map_err(|e| e.to_string()),
         PartAction::Set {
             id,
             name,
@@ -178,6 +191,9 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
             mirror,
             order,
             turns,
+            material,
+            thickness,
+            stock,
             ..
         } => {
             let enabled = match (off, on) {
@@ -198,18 +214,52 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
                     Some(turns) => chipload_pipeline::parts::set_part_turns(&job, id, turns),
                     None => Ok(job),
                 })
+                .map_err(|e| e.to_string())
+                .and_then(|job| {
+                    if material.is_none() && thickness.is_none() && stock.is_none() {
+                        return Ok(job);
+                    }
+                    let wanted = match stock {
+                        Some(_) => None,
+                        None => {
+                            let mut wanted = job
+                                .part(id)
+                                .and_then(|p| p.stock.clone())
+                                .unwrap_or_default();
+                            if let Some(name) = &material {
+                                wanted.material = Some(crate::materials::material_by_name(name)?);
+                            }
+                            if thickness.is_some() {
+                                wanted.thickness = thickness;
+                            }
+                            Some(wanted)
+                        }
+                    };
+                    let (job, moved) =
+                        chipload_pipeline::part_stock::set_part_stock(&job, id, wanted)
+                            .map_err(|e| e.to_string())?;
+                    if let Some(moved) = moved {
+                        for message in moved.messages(&job, id) {
+                            out.line(message.english());
+                        }
+                        out.set("setup", json!(moved.to));
+                    }
+                    Ok(job)
+                })
         }
-        PartAction::Activate { id, .. } => activate_part(&job, id),
+        PartAction::Activate { id, .. } => activate_part(&job, id).map_err(|e| e.to_string()),
         PartAction::Remove {
             id,
             with_operations,
             ..
-        } => remove_part(&job, id, with_operations).map(|(job, lines)| {
-            for line in lines {
-                out.line(line);
-            }
-            job
-        }),
+        } => remove_part(&job, id, with_operations)
+            .map(|(job, lines)| {
+                for line in lines {
+                    out.line(line);
+                }
+                job
+            })
+            .map_err(|e| e.to_string()),
     };
     match changed {
         Ok(job) => write_project(out, &job, output.as_deref().unwrap_or(&project)),
@@ -246,6 +296,12 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             part.mirror
                 .map_or(String::new(), |m| format!(", mirrored {}", m.name()))
                 + &crate::instances::placed_text(&job, part)
+                + &part.stock.as_ref().map_or(String::new(), |s| {
+                    format!(
+                        ", from {}",
+                        chipload_pipeline::part_stock::stock_message(s).english()
+                    )
+                })
                 + if part.enabled { "" } else { ", off" },
             if numbers.is_empty() {
                 "none".to_string()
@@ -261,6 +317,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "order": part.order,
             "mirror": part.mirror,
             "setups": job.setups_of_part(part.id),
+            "stock": part.stock,
             "count": job.count_all(part.id),
             "operations": operations,
         }));
