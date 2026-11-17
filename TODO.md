@@ -123,8 +123,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     and turn the original part, toward nesting on a fixed-size sheet; nesting brought into
     scope, ADR 0017; shapes are edited where drawn). docs/specs/part-placement.md
     **approved and built 2026-11-16** (all five steps, see *In main*); next the user tries
-    it. Then docs/specs/nesting.md, an outline (by boxes with MaxRects, then by shape with
-    no-fit polygons), to be written out in full and reviewed.
+    it. Then nesting: docs/specs/nesting.md **written out 2026-11-17, for review** (bottom-left
+    fill on a raster of each instance's real footprint, recommended in place of the outline's
+    MaxRects then no-fit polygons; nine decisions).
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
