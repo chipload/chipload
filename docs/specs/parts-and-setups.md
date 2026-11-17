@@ -1,0 +1,231 @@
+# Spec: parts as definitions, setups hold their instances
+
+Status: **draft 2026-11-17, for review.** The user's idea (2026-11-17, after nesting): "each
+part should have a stock and not be a node under setup … a project has many parts and then
+setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
+2026-10-30 for later) into this scope, and a second board for what nesting can't fit
+(docs/specs/nesting.md §11.1). The three questions asked before writing it were left to
+this review; their recommended answers are decisions 2, 3 and 9.
+
+## 1. Why
+
+Today a part belongs to one setup (`part.setup`), and its placements belong to the part:
+instance 1 is the part's own `angle` and `at`, instances 2… are `part.instances`. That
+leaves four things awkward:
+
+- **A part can't be cut on two boards.** "Instances 1–3 of *Side* on board 1, instance 4 on
+  board 2" can't be written, so nesting switches off what doesn't fit (nesting.md decision
+  10) instead of putting it on a second board, as a slicer adds plates.
+- **Instance 1 is a special case.** It is the part's own fields, can't be off alone
+  (part-placement.md decision 3), can't be removed, and the window needs *Show placement
+  instance* to show it. Every placement should be the same kind of thing.
+- **Boards lie on top of each other** in the view: every setup's board is in the same
+  drawing coordinates (setups.md decision 2), so two boards of the same size around the
+  same shapes cover each other.
+- **What a part needs isn't said.** A 6 mm bottom and an 18 mm side can be put in the same
+  setup; nothing knows the bottom wants 6 mm plywood.
+
+## 2. The model
+
+- **A part is a definition:** a name, its operations (which select shapes in the drawing),
+  its mirror (mirror-part.md), its cut order (by operation or by instance), its turns for
+  nesting, and **the stock it is cut from** (§4). It no longer belongs to a setup and has
+  no placement of its own.
+- **A setup is a board:** its stock, its work zero, its back or pieces as today, and **its
+  instances**: each one a part placed on this board, moved, turned, perhaps mirrored, on or
+  off. Every instance is the same kind of thing; none is special.
+- **The drawing stays one design space** shared by every setup (decision 3): shapes are
+  drawn and edited where they are, as today.
+- **An instance** is: the part, its number, on/off, mirror, angle, at. The transform is
+  today's (instances.md §2): mirrored and turned about the part's centre, then moved by `at`
+  in drawing coordinates. A setup's board is in drawing coordinates as today, so a program
+  is planned exactly as now.
+- **Numbers are per part, across the project:** *Side* #1, #2 on board 1 and *Side* #3 on
+  board 2. A number is never reused while the instance exists, and is kept when an instance
+  moves to another board.
+- **A part with no instance** anywhere is a definition not cut (yet), shown in the Browser
+  as such. A new part gets one instance, #1, on the active setup, where it is drawn: the
+  same as today.
+- **The cut order in a setup:** parts in the project's order; each part's instances on this
+  board in their listed order, by operation or by instance as the part says. For a project
+  migrated from schema 40 this is exactly today's order (§5).
+
+## 3. What moves where
+
+| Today (schema 40) | Then (schema 41) |
+|---|---|
+| `part.setup` | gone: a part is on the boards that hold its instances |
+| `part.angle`, `part.at` (instance 1) | `setups[k].instances[]` entry `{part, id: 1, …}` |
+| `part.instances[]` | `setups[k].instances[]`, each with `part` |
+| `part.enabled` | stays: off switches off every instance of the part, on every board |
+| `part.mirror`, `part.order`, `part.turns` | stay on the part |
+| — | `part.stock`: the stock it is cut from (§4) |
+| board surfaces and dowel holes, operations of the setup's first part | unchanged in this spec (decision 8) |
+
+## 4. A part's stock (decision 2)
+
+- **Optional, on the part:** `stock: { material, thickness }`, either may be missing.
+  Missing: the part goes on any board.
+- **Checked, not enforced:** an instance on a board of another material or thickness is a
+  warning on the instance ("*Bottom* wants 6 mm, the board is 18 mm"), as other placement
+  problems are. Depths given as *through* still follow the board's thickness.
+- **Nesting** places a part only on boards whose stock matches it, and a new board for
+  overflow (§9) takes the stock its parts ask for.
+- **Set** in the part's form, from the library's materials, and with `part set --material
+  … --thickness …`. A part made by a wizard (two-sided, inlay, sign) or from a setup gets
+  the stock of the board it was made on.
+
+## 5. The file (schema 41) and the migration
+
+```json
+"parts": [
+  { "id": 1, "name": "Side", "enabled": true, "mirror": null, "order": "by_operation",
+    "turns": "none", "stock": { "material": { … }, "thickness": 18.0 } } ],
+"setups": [
+  { "id": 1, "name": "Board 1", "stock": { … }, "work_zero": { … },
+    "instances": [
+      { "part": 1, "id": 1, "enabled": true, "mirror": null, "angle": 0.0, "at": [0.0, 0.0] },
+      { "part": 1, "id": 2, "enabled": true, "mirror": "left_right", "angle": 3.14159…, "at": [400.0, 0.0] } ] } ]
+```
+
+- **Migration 40 → 41**, pure and step by step as always: for each part in project order,
+  its setup gets `{part, id: 1, enabled: true, mirror: null, angle, at}` from the part's own
+  placement, then each of `part.instances` with `part` added, in their order. `part.setup`,
+  `angle`, `at` and `instances` go. `part.stock` is left missing (no check, as today).
+- **Nothing cut changes:** every frozen project v4…v40 must give byte-identical G-code after
+  the migration (the golden test), and a frozen v40 sample with instances on a placed part,
+  a mirrored instance, a back setup and a nested setup is added with its golden.
+- **Paths change:** `parts.0.instances.1.at` becomes `setups.0.instances.2.at` for `get`,
+  `set`, problems and the JSON Schema; the reference page and scripting guide say so.
+- **Validation:** an instance names a part that exists; `(part, id)` unique in the
+  project; a setup in pieces holds each part at most once (as today); a back setup holds
+  only its own parts' instances (two-sided.md, as today).
+
+## 6. Planning and checking
+
+- A setup's program is planned from its instances, grouped by part in project order: the
+  same loops as today with the instance list read from the setup instead of the part.
+- Everything keyed by "the part's setup" reads "the setups holding the part": the fitted
+  board, the overlap check (per setup, as today), dogbone checks against other parts, the
+  sheet, the simulation.
+- **Instance 1 is no longer special:** it can be off, removed or moved to another board like
+  any other. The rules part-placement.md made for it (no own mirror, can't be off alone)
+  go; `part.mirror` still mirrors the definition and every instance with it.
+- **Two-sided:** a back setup's instances are placed in its front's coordinates as today;
+  the wizard places the back's parts on the back setup.
+- **Pieces:** a setup in pieces still refuses more than one instance of a part.
+
+## 7. Sheets side by side (decision 4)
+
+- **The active setup is shown in place**, on the drawing, as today: its board, its
+  instances as ghosts, the shapes where drawn. Editing works exactly as now.
+- **Every other setup is a sheet beside it:** its board, its instances' outlines and its
+  toolpath, ghosted, in a row to the right of the active board (by setup number, 50 mm
+  apart, backs beside their fronts), labelled with its name. A click on a sheet makes it
+  the active one, and it moves into place; the view keeps the board under the pointer.
+  Sheets are not edited where they lie.
+- **Only the view moves them:** a sheet's offset is worked out when drawn, never saved, and
+  never reaches the G-code, the sheet or the simulation.
+- **Rulers and the cursor readout** are the active setup's (drawing) coordinates.
+
+## 8. In the window
+
+- **The Browser** has two branches:
+  - **Parts:** each part with its operations, its stock, how many instances it has and on
+    how many boards; a part with none says "not placed".
+  - **Setups:** each board with Stock, Work zero, its board surfaces (as today), and its instances
+    listed by part ("*Side* #1", "*Side* #3"), each with its tick and menu (*Mirror*, *Turn
+    90°*, *Move to board…*, *Remove*).
+- **Placing a part on a board:** drag a part's row onto a setup, or a part's menu *Place on
+  board…*: a new instance where the part is drawn, selected for the Compass.
+- **Moving an instance to another board:** *Move to board…* in its menu, or dragging its row
+  onto another setup: it keeps its number and placement.
+- **The part's form** gains *Stock* (material, thickness), its instances listed by board.
+- *Show placement instance* goes: instance #1 is an instance like the others, always listed
+  and drawn.
+
+## 9. Nesting onto more boards (decision 6)
+
+- `nest` with **overflow**: what doesn't fit on the board goes to the next setup with the
+  same stock, or to a new one made like it ("Board 2", the same stock and work zero), and
+  so on until everything is placed or a part is larger than any board (reported, switched
+  off as now). Instances keep their numbers when they move board.
+- In the Nest window: *Overflow: switch off / onto more boards*; the preview shows each
+  board as a sheet (§7). On the command line: `nest --overflow new-boards` (default
+  `off`, today's behaviour).
+- Only boards that match a part's stock (§4) take it; overflow boards are never two-sided
+  or in pieces.
+
+## 10. Command line
+
+- `part instance add|set|remove|list|array` keep working; each takes `--setup ID` (default:
+  the active setup), and `list` says each instance's board.
+- `part instance move PROJECT --part ID N --setup ID`: an instance to another board.
+- `part place` becomes `part instance set … 1`, kept as an alias with a note.
+- `setup list` shows each board's instances by part; `part list` shows each part's boards.
+- `part set --material NAME --thickness 6mm` (or `--stock none`).
+
+## 11. Order of work (decision 9)
+
+Each step a commit with its tests, shippable on its own:
+
+1. **The model:** schema 41, the migration, the frozen v40 sample and its golden, planning
+   and checks reading instances from setups, every golden unchanged; the CLI with
+   `--setup` and `instance move`; the window showing it as today (one Parts and one Setups
+   branch).
+2. **A part's stock:** the field, the warning, the form and `part set`.
+3. **Sheets side by side** in the view (§7).
+4. **The window's placing:** drag a part onto a board, *Move to board…*, the part form's
+   instances by board.
+5. **Nesting overflow** onto more boards (§9).
+6. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
+   part-placement.md marked superseded where they differ).
+
+## 12. Tests
+
+- **Golden:** every frozen project gives the same G-code through the new migration; a new
+  frozen v40 sample (placed part, mirrored instance, back setup, nested setup) and its
+  golden.
+- **Pipeline:** one part with instances on two boards gives two programs, each with only its
+  instances; switching the part off empties both; moving an instance keeps its number;
+  overlap is checked per board.
+- **Stock:** a part wanting 6 mm on an 18 mm board warns; nesting skips a board of the wrong
+  stock; an overflow board takes the part's stock.
+- **Nesting overflow:** nothing is switched off while a board can be added; the boards made
+  are like the first; numbers kept; deterministic.
+- **Window:** sheets side by side, a click activates a sheet; drag a part onto a board;
+  *Move to board…*; undo.
+- **CLI:** `instance move`, `--setup`, the old paths refused with the new ones named.
+
+## 13. Decisions
+
+1. **Parts are definitions; setups hold the instances** (§2). **Recommended:** the user's
+   model; a part on several boards, overflow, every instance alike. Alternative: keep parts
+   in setups and let an instance name another setup (nesting.md §11.1, first way): smaller,
+   but instance 1 stays special and a part still "belongs" somewhere.
+2. **A part's stock is material and thickness, optional, checked as a warning** (§4).
+   **Recommended:** says what the part needs without stopping work in progress. Alternative:
+   enforced (an instance on a wrong board is a problem that stops the run); or a full stock
+   (size too) on the part, which a board already has.
+3. **One drawing as the design space**, shapes edited where drawn (§2). **Recommended:** how
+   the user draws (a DXF, a layer per part) and how every operation selects shapes today.
+   Alternative: each part's shapes move into the part, in its own coordinates: a cleaner
+   definition, but every import, selection and shape command changes.
+4. **Sheets side by side, the active one in place** (§7). **Recommended:** editing and the
+   rulers stay as today; the other boards are seen, not stacked. Alternative: every setup
+   on its own sheet in a fixed row with the drawing apart from all of them (a slicer's
+   layout exactly); switching boards wouldn't move anything, but a migrated project's
+   board would no longer sit on its shapes.
+5. **Numbers per part across the project**, kept when an instance moves board (§2).
+   **Recommended:** *Side* #3 is the same piece wherever it is cut. Alternative: numbers
+   per board.
+6. **Nesting overflow onto more boards, off by default** (§9). **Recommended:** today's
+   behaviour unless asked; boards made like the first. Alternative: on by default.
+7. **The paths change without aliases** in `get`/`set` (§5), the old ones refused with the
+   new one named. **Recommended:** one way to say it (no worse options). Alternative: the
+   old paths kept as aliases.
+8. **Board surfaces and dowel holes stay as they are** (operations of the setup's first
+   part) in this spec. **Recommended:** moving them to the setup is a cleanup of its own, and
+   doing it so no program changes needs its own migration rules (a board surface that isn't
+   first in its setup). Alternative: move them now, with that migration.
+9. **Order of work** as §11, the model first with no visible change. **Recommended.**

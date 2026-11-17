@@ -120,6 +120,14 @@ to a program you trust. It was about four per operation; with the defaults and s
     (nesting.md §11): a second board for what doesn't fit, as a slicer's plates (§11.1,
     with *Setups on sheets of their own*), small parts in holes, `dxf export --as-cut`,
     nesting a front and back together.
+000a. **Parts as definitions, setups hold their instances** (the user, 2026-11-17, after
+    nesting: "a project has many parts and then setups only hold instances"; and "we should
+    bring in that todo in this scope": *Setups on sheets of their own*, item 14). Spec
+    docs/specs/parts-and-setups.md, **draft 2026-11-17, for review**: schema 41 moves every
+    placement into its setup (instance 1 no longer special), a part's optional stock
+    (material, thickness) checked as a warning, sheets side by side with the active one in
+    place, a part on several boards, nesting overflow onto more boards; nine decisions; six
+    steps, the model first with every golden unchanged.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
@@ -278,7 +286,8 @@ to a program you trust. It was about four per operation; with the defaults and s
     - A JSON Schema for `styles.json` (`chipload schema`), as the other library files have.
 14. **Later, the user's ideas for when the above is done**, each with its own spec:
     - **Setups on sheets of their own** (chosen 2026-10-30 for later; docs/specs/setups.md
-      decision 2's alternative): each setup with its own coordinates, its parts placed onto
+      decision 2's alternative; **brought into docs/specs/parts-and-setups.md 2026-11-17**,
+      see 000a): each setup with its own coordinates, its parts placed onto
       its board, setups side by side like PrusaSlicer's plates, the active in colour, the
       others as ghosts. Spec: where a part's shapes are placed per setup, picking and
       editing in the view, migration from one shared drawing.
