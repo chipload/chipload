@@ -241,9 +241,15 @@ impl ChiploadApp {
         } else if out.response.clicked() {
             action = Some(OpAction::PartFocus(part.id));
         }
+        // A board surface belongs to its setup: no part takes it (surface-levels.md §2).
+        let board_dragged = |from: usize| board.get(from).copied().unwrap_or(false);
         if let Some(from) = out.response.dnd_release_payload::<usize>() {
             action = Some(OpAction::ToPart(*from, part.id));
-        } else if out.response.dnd_hover_payload::<usize>().is_some() {
+        } else if out
+            .response
+            .dnd_hover_payload::<usize>()
+            .is_some_and(|from| !board_dragged(*from))
+        {
             ui.painter().rect_stroke(
                 out.response.rect,
                 0.0,
@@ -556,6 +562,9 @@ impl ChiploadApp {
             _ => Vec::new(),
         };
         let dark = ui.visuals().dark_mode;
+        // A board surface stays first in its setup (surface-levels.md §2): no dragging,
+        // nothing dropped on it, no moving up or down.
+        let board = op.is_board_surface();
         let row = Row::new(
             Id::new(("browser-op", i)),
             depth,
@@ -566,19 +575,27 @@ impl ChiploadApp {
         .trailing(trailing)
         .selected(self.focus == Focus::Op(i))
         .dim(!is_cut)
-        .alert(flagged)
-        .draggable()
-        .show(ui);
+        .alert(flagged);
+        let row = if board { row } else { row.draggable() }.show(ui);
         let mut action = None;
         if row.tick {
             action = Some(OpAction::Toggle(i));
         } else if row.response.clicked() {
             action = Some(OpAction::Focus(i));
         }
-        row.response.dnd_set_drag_payload(i);
-        if let Some(from) = row.response.dnd_release_payload::<usize>() {
+        let dragged_board = |from: usize| edit.is_board_surface(from);
+        if !board {
+            row.response.dnd_set_drag_payload(i);
+        }
+        if board {
+            // Not a drop target: whatever is dropped here would go before it.
+        } else if let Some(from) = row.response.dnd_release_payload::<usize>() {
             action = Some(OpAction::Move(*from, i));
-        } else if row.response.dnd_hover_payload::<usize>().is_some() {
+        } else if row
+            .response
+            .dnd_hover_payload::<usize>()
+            .is_some_and(|from| !dragged_board(*from))
+        {
             ui.painter().hline(
                 row.response.rect.x_range(),
                 row.response.rect.top(),
@@ -589,7 +606,7 @@ impl ChiploadApp {
         response.context_menu(|ui| {
             if ui
                 .add_enabled(
-                    i > 0,
+                    i > 0 && !board,
                     egui::Button::new(with_keys(
                         &t!(ui, "browser-move-up"),
                         shortcuts::Action::MoveUp,
@@ -601,7 +618,7 @@ impl ChiploadApp {
             }
             if ui
                 .add_enabled(
-                    i + 1 < count,
+                    i + 1 < count && !board,
                     egui::Button::new(with_keys(
                         &t!(ui, "browser-move-down"),
                         shortcuts::Action::MoveDown,

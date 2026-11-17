@@ -384,25 +384,43 @@ impl EditJob {
         }
     }
 
-    /// Move the operation at `from` so it ends up at position `to` (cut order).
-    /// Move operation `from` to `to`. It takes the part of the operation it lands on, so
-    /// moving past the first or last operation of a part moves it into the next part and
-    /// the list stays grouped by part (docs/specs/parts.md §8).
-    pub fn move_op(&mut self, from: usize, to: usize) {
+    /// Move operation `from` to `to` (cut order). It takes the part of the operation it
+    /// lands on, so moving past the first or last operation of a part moves it into the
+    /// next part and the list stays grouped by part (docs/specs/parts.md §8). A board
+    /// surface stays where it is, first in its setup, and nothing moves onto its place
+    /// (docs/specs/surface-levels.md §2): false then, and nothing changes.
+    pub fn move_op(&mut self, from: usize, to: usize) -> bool {
         let len = self.job.operations.len();
-        if from < len && to < len && from != to {
-            let part = self.job.operations[to].part();
-            self.reorder(|ops| {
-                let mut moved = ops.remove(from);
-                moved.0.set_part(part);
-                ops.insert(to, moved);
-            });
+        if from >= len || to >= len || from == to {
+            return false;
         }
+        if self.is_board_surface(from) || self.is_board_surface(to) {
+            return false;
+        }
+        let part = self.job.operations[to].part();
+        self.reorder(|ops| {
+            let mut moved = ops.remove(from);
+            moved.0.set_part(part);
+            ops.insert(to, moved);
+        });
+        true
     }
 
-    /// Move operation `from` to the end of part `id`'s operations. Returns its new index.
+    /// Whether operation `i` is a surface of the whole board (surface-levels.md).
+    pub fn is_board_surface(&self, i: usize) -> bool {
+        self.job
+            .operations
+            .get(i)
+            .is_some_and(Operation::is_board_surface)
+    }
+
+    /// Move operation `from` to the end of part `id`'s operations. Returns its new index;
+    /// None for a board surface, which belongs to its setup, not to a part.
     pub fn move_op_to_part(&mut self, from: usize, id: u64) -> Option<usize> {
-        if from >= self.job.operations.len() || self.job.part(id).is_none() {
+        if from >= self.job.operations.len()
+            || self.job.part(id).is_none()
+            || self.is_board_surface(from)
+        {
             return None;
         }
         let mut moved = self.reorder(|ops| ops.remove(from));

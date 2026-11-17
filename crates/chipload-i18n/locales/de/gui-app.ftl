@@ -38,6 +38,7 @@ app-deleted-part = { $count ->
    *[other] Teil { $name } und seine { $count } Bearbeitungen gelöscht (Ctrl+Z holt sie zurück)
 }
 app-part-needed = Ein Projekt braucht mindestens ein Teil
+app-board-surface-stays = Das Planen des ganzen Bretts gehört zur Aufspannung und bleibt darin zuerst
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Restdurchgang konnte nicht hinzugefügt werden: { $error }

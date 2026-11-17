@@ -38,6 +38,7 @@ app-deleted-part = { $count ->
    *[other] Pièce { $name } et ses { $count } opérations supprimées (Ctrl+Z les rétablit)
 }
 app-part-needed = Un projet doit avoir au moins une pièce
+app-board-surface-stays = Le surfaçage de toute la planche appartient au montage et y reste en premier
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Impossible d'ajouter une passe de reprise : { $error }

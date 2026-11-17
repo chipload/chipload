@@ -37,6 +37,33 @@ fn operations_move_between_parts_and_the_list_stays_grouped() {
 }
 
 #[test]
+fn a_board_surface_stays_first_in_its_setup() {
+    // The user's finding (2026-11-17): a board surface could be dragged into a part.
+    let mut app = two_parts();
+    app.selection = Default::default();
+    let board = app.add_operation(OpKind::Surface).unwrap();
+    assert_eq!(board, 0);
+    let before = op_parts(&app);
+    let names = |app: &ChiploadApp| -> Vec<String> {
+        let ops = &app.edit.as_ref().unwrap().job.operations;
+        ops.iter().map(|o| o.name().to_string()).collect()
+    };
+    let order = names(&app);
+    // Dragged down, moved by Alt+↓, dropped on a part's row: it stays.
+    app.move_operation(0, 2);
+    app.move_operation(0, 1);
+    app.move_operation_to_part(0, 2);
+    // Nothing moves onto its place either.
+    app.move_operation(1, 0);
+    assert_eq!(names(&app), order);
+    assert_eq!(op_parts(&app), before);
+    assert!(app.edit.as_ref().unwrap().job.operations[0].is_board_surface());
+    // The other operations still move.
+    app.move_operation(2, 1);
+    assert_ne!(names(&app), order);
+}
+
+#[test]
 fn a_part_is_added_turned_off_and_deleted_with_its_operations_and_undo_brings_it_back() {
     let mut app = two_parts();
     let id = app.add_part().unwrap();

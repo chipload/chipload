@@ -38,6 +38,7 @@ app-deleted-part = { $count ->
    *[other] Deleted part { $name } and its { $count } operations (Ctrl+Z brings it back)
 }
 app-part-needed = A project needs at least one part
+app-board-surface-stays = A surface of the whole board belongs to its setup and stays first in it
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Could not add a rest pass: { $error }

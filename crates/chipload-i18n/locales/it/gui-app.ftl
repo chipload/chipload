@@ -38,6 +38,7 @@ app-deleted-part = { $count ->
    *[other] Eliminati il pezzo { $name } e le sue { $count } lavorazioni (Ctrl+Z li ripristina)
 }
 app-part-needed = Un progetto richiede almeno un pezzo
+app-board-surface-stays = La spianatura di tutta la tavola appartiene al piazzamento e vi resta per prima
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Impossibile aggiungere una passata di ripresa: { $error }

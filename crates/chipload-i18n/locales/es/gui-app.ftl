@@ -38,6 +38,7 @@ app-deleted-part = { $count ->
    *[other] Pieza { $name } y sus { $count } operaciones eliminadas (Ctrl+Z las recupera)
 }
 app-part-needed = Un proyecto necesita al menos una pieza
+app-board-surface-stays = El planeado de todo el tablero es de la sujeción y queda el primero en ella
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = No se pudo añadir una pasada de restos: { $error }

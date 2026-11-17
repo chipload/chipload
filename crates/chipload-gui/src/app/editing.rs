@@ -247,13 +247,15 @@ impl ChiploadApp {
 
     /// Move the operation at `from` to position `to` in the cut order.
     pub fn move_operation(&mut self, from: usize, to: usize) {
-        if let Some(edit) = self.edit.as_mut()
-            && from < edit.job.operations.len()
-            && to < edit.job.operations.len()
-        {
-            edit.move_op(from, to);
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let board = edit.is_board_surface(from) || edit.is_board_surface(to);
+        if edit.move_op(from, to) {
             self.focus = Focus::Op(to);
             self.commit();
+        } else if board {
+            self.set_status(t!(self, "app-board-surface-stays"), STATUS_SECONDS);
         }
     }
 
@@ -311,9 +313,15 @@ impl ChiploadApp {
 
     /// Move operation `from` to the end of part `id`.
     pub fn move_operation_to_part(&mut self, from: usize, id: u64) {
-        if let Some(at) = self.edit.as_mut().and_then(|e| e.move_op_to_part(from, id)) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let board = edit.is_board_surface(from);
+        if let Some(at) = edit.move_op_to_part(from, id) {
             self.focus = Focus::Op(at);
             self.commit();
+        } else if board {
+            self.set_status(t!(self, "app-board-surface-stays"), STATUS_SECONDS);
         }
     }
 

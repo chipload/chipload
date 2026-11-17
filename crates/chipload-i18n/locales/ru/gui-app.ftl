@@ -26,6 +26,7 @@ app-deleted-part = { $count ->
    *[other] Деталь { $name } и { $count } её операций удалены (Ctrl+Z восстановит их)
 }
 app-part-needed = В проекте должна быть хотя бы одна деталь
+app-board-surface-stays = Фрезерование плоскости всей заготовки относится к установу и остаётся в нём первым
 app-could-not-add-rest-pass = Не удалось добавить доработку остатка: { $error }
 app-could-not-add-floor-pass = Не удалось добавить обработку дна: { $error }
 app-setup-refused = Не удалось изменить установы: { $error }

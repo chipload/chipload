@@ -38,6 +38,7 @@ app-deleted-part = { $count ->
    *[other] Raderade detaljen { $name } och dess { $count } operationer (Ctrl+Z tar tillbaka den)
 }
 app-part-needed = Ett projekt behöver minst en detalj
+app-board-surface-stays = Planfräsning av hela skivan hör till uppspänningen och ligger kvar först i den
 
 # A rest pass clears what a larger tool left in a pocket.
 app-could-not-add-rest-pass = Kunde inte lägga till restbearbetning: { $error }
