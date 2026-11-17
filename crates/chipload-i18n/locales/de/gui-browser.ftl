@@ -101,6 +101,7 @@ browser-place-part-hover = Wählt, wo das Teil gefräst wird: ein Geist zum Vers
 browser-reset-placement = Platzierung zurücksetzen
 browser-reset-placement-hover = Das Teil wieder dort fräsen, wo seine Formen gezeichnet sind
 browser-part-hover = Klicken für seine Eigenschaften und Instanzen; Doppelklick macht es zum aktiven Teil; Rechtsklick für mehr
+browser-part-drag-hover = Auf eine Aufspannung ziehen, um es dort zu fräsen; mit Strg (⌘) zusätzlich dort
 # A verb: make this the active part.
 browser-activate = Aktivieren
 browser-activate-hover = Neue Bearbeitungen kommen in das aktive Teil

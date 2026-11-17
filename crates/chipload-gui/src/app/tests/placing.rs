@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Placing in the window (docs/specs/parts-and-setups.md §8): with two setups the Browser
-//! shows the parts as definitions and each setup's instances; a part dropped on a setup is
-//! placed there, an instance moved to another keeps its number; the part's form lists its
+//! shows the parts as definitions and each setup's instances; a part dropped on a setup
+//! moves there (with Ctrl it is placed there too), an instance moved to another keeps its number; the part's form lists its
 //! instances by setup.
 use super::*;
 use egui_kittest::Harness;
@@ -67,8 +67,9 @@ fn a_part_is_placed_on_a_setup_and_an_instance_moved_as_one_undo_step_each() {
     assert!(on(&app, 2).iter().all(|(s, _)| *s == 2));
 }
 
+/// Dropped, a part moves; with Ctrl (⌘) it is placed there too (the user, 2026-11-17).
 #[test]
-fn a_parts_row_dropped_on_a_setup_places_it_there() {
+fn a_parts_row_dropped_on_a_setup_moves_it_there() {
     let mut h = Harness::builder()
         .with_size(egui::vec2(1200.0, 900.0))
         .build_eframe(|_| two_setups());
@@ -85,5 +86,25 @@ fn a_parts_row_dropped_on_a_setup_places_it_there() {
     }
     h.drop_at(to);
     h.run_steps(4);
-    assert_eq!(on(h.state(), 1), [(1, 1), (2, 2)]);
+    // Every instance of it on the other board, its number kept.
+    assert_eq!(on(h.state(), 1), [(2, 1)]);
+    use crate::app::browser_setups::{SetupAction, part_dropped};
+    assert_eq!(part_dropped(1, 2, false), SetupAction::MovePart(1, 2));
+    assert_eq!(part_dropped(1, 2, true), SetupAction::PlacePart(1, 2));
+}
+
+/// A part moved to a thinner board: its cuts through the stock go through that board, in
+/// the same undo step.
+#[test]
+fn a_moved_parts_cuts_through_follow_its_new_board() {
+    let mut app = two_setups();
+    if let Some(t) = app.edit.as_mut().unwrap().job.operations[1].through_mut() {
+        *t = Some(0.0);
+    }
+    app.commit();
+    app.move_part_to_setup(1, 2);
+    let depth = |app: &ChiploadApp| app.edit.as_ref().unwrap().job.operations[1].depths(&[]).1;
+    assert!((depth(&app) - 6.0).abs() < 1e-9, "{}", depth(&app));
+    app.undo();
+    assert!((depth(&app) - 12.0).abs() < 1e-9, "{}", depth(&app));
 }

@@ -101,6 +101,7 @@ browser-place-part-hover = Selecciona dónde se corta la pieza: un fantasma para
 browser-reset-placement = Restablecer colocación
 browser-reset-placement-hover = Cortar de nuevo la pieza donde están dibujadas sus formas
 browser-part-hover = Clic para sus propiedades e instancias; doble clic para hacerla la pieza activa; clic derecho para más
+browser-part-drag-hover = Arrástrela a una sujeción para cortarla allí; con Ctrl (⌘), también allí
 # A verb: make this the active part.
 browser-activate = Activar
 browser-activate-hover = Las operaciones nuevas van a la pieza activa

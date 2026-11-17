@@ -39,7 +39,8 @@ are the project's rows, and right-clicking the project offers what a setup's men
 for **Add a setup**, another board: it starts like the first, empty, and becomes the active
 one. From then on the Browser shows **Parts**, each part with its operations, and
 **Setups**, each with its **Stock**, its **Work zero** and the instances cut from it ("Side
-#2"): drag a part onto a setup to place it there, an instance onto another to cut it there.
+#2"): drag a part onto a setup to cut it there (with Ctrl, to cut it there too), an instance
+onto another to cut it there.
 To separate parts onto boards before adding one, right-click the project for **Show
 setups**: the board is listed as *Setup 1*. Once listed, the setups stay listed, even when
 you delete the other boards; right-click the last setup for **Simple view** to fold it back

@@ -26,6 +26,11 @@ impl ChiploadApp {
                     edit.job.setups_shown = changed.setups_shown;
                     edit.job.parts = changed.parts;
                     edit.job.active_part = changed.active_part;
+                    // Depths through the stock that followed a new board (the same
+                    // operations, so their side marks stay right).
+                    if changed.operations.len() == edit.job.operations.len() {
+                        edit.job.operations = changed.operations;
+                    }
                 }
                 self.commit();
                 true

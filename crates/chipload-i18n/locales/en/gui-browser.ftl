@@ -101,6 +101,7 @@ browser-place-part-hover = Select where the part is cut: a ghost to move and tur
 browser-reset-placement = Reset placement
 browser-reset-placement-hover = Cut the part where its shapes are drawn again
 browser-part-hover = Click for its properties and instances; double-click to make it the active part; right-click for more
+browser-part-drag-hover = Drag it onto a setup to cut it there; hold Ctrl (⌘) to cut it there too
 # A verb: make this the active part.
 browser-activate = Activate
 browser-activate-hover = New operations go into the active part

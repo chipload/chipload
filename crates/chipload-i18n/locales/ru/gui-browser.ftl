@@ -88,6 +88,7 @@ browser-place-part-hover = Выбирает, где вырезается дет�
 browser-reset-placement = Сбросить размещение
 browser-reset-placement-hover = Снова вырезать деталь там, где нарисованы её фигуры
 browser-part-hover = Нажмите для свойств и экземпляров; двойной щелчок — сделать активной; правая кнопка — дополнительные действия
+browser-part-drag-hover = Перетащите её на установ, чтобы вырезать там; с Ctrl (⌘) — ещё и там
 browser-activate = Активировать
 browser-activate-hover = Новые операции добавляются в активную деталь
 browser-export-part = Экспортировать G-code этой детали…

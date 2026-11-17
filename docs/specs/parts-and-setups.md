@@ -205,8 +205,11 @@ it), but **the window and the command line show neither until they matter**:
   - **Setups:** each board with Stock, Work zero, its board surfaces (as today), and its instances
     listed by part ("*Side* #1", "*Side* #3"), each with its tick and menu (*Mirror*, *Turn
     90°*, *Move to board…*, *Remove*).
-- **Placing a part on a board:** drag a part's row onto a setup, or a part's menu *Place on
-  board…*: a new instance where the part is drawn, selected for the Compass.
+- **Moving a part to a board:** drag a part's row onto a setup, or its menu *Move to
+  setup ▸*: every instance of it moves there, numbers and places kept, its cuts through
+  the stock following that board (the user, 2026-11-17: a drag means move).
+- **Placing a part on a board too:** Ctrl+drag (⌘ on a Mac), or the part's menu *Place on
+  setup ▸*: a new instance where the part is drawn, selected for the Compass.
 - **Moving an instance to another board:** *Move to board…* in its menu, or dragging its row
   onto another setup: it keeps its number and placement.
 - **The part's form** gains *Stock* (material, thickness), its instances listed by board.

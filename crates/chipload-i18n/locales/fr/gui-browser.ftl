@@ -101,6 +101,7 @@ browser-place-part-hover = Sélectionne l'endroit où la pièce est usinée : un
 browser-reset-placement = Réinitialiser le placement
 browser-reset-placement-hover = Usiner de nouveau la pièce là où ses formes sont dessinées
 browser-part-hover = Cliquer pour ses propriétés et instances ; double-clic pour en faire la pièce active ; clic droit pour plus
+browser-part-drag-hover = Glissez-la sur un montage pour l’y usiner ; avec Ctrl (⌘), aussi là
 # A verb: make this the active part.
 browser-activate = Activer
 browser-activate-hover = Les nouvelles opérations vont dans la pièce active

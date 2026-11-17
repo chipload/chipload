@@ -293,7 +293,8 @@ impl ChiploadApp {
             .dim(!part.enabled || (simple && !in_active_setup))
             .alert(flagged)
             .strong(is_active && parts.len() > 1);
-        // Dragged onto a setup, it is placed there (docs/specs/parts-and-setups.md §8).
+        // Dragged onto a setup, it moves there; with Ctrl it is placed there too
+        // (docs/specs/parts-and-setups.md §8).
         let out = if simple { row } else { row.draggable() }.show(ui);
         if !simple {
             out.response.dnd_set_drag_payload(DraggedPart(part.id));
@@ -331,6 +332,11 @@ impl ChiploadApp {
             t!(ui, "browser-part-active-hover")
         } else {
             t!(ui, "browser-part-hover")
+        };
+        let hover = if simple {
+            hover
+        } else {
+            format!("{hover}\n\n{}", t!(ui, "browser-part-drag-hover"))
         };
         out.response.on_hover_text(hover).context_menu(|ui| {
             if ui

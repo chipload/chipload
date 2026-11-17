@@ -22,8 +22,9 @@ In the window:
   *Place…* lists them for you; they stay listed until you choose *Simple view* in the last
   setup's menu. Right-click it to *Mirror* it, *Turn
   90°*, *Move to setup ▸* or *Remove* it; Delete removes the selected one.
-- **Several setups:** drag a part's row onto a setup (or right-click the part, *Place on
-  setup ▸*) to place it there too, a new instance where the part is drawn; drag an
+- **Several setups:** drag a part's row onto a setup to cut it there, every instance of it
+  moved (right-click it for *Move to setup ▸*); hold Ctrl (⌘ on a Mac) as you drop to
+  place it there too, a new instance where the part is drawn (*Place on setup ▸*). Drag an
   instance's row onto another setup to cut it there, its number and place kept. The part's
   properties list *Where it is cut*, its instances by setup.
 - **Its properties** set whether it is cut, its mirror, its rotation (any angle) and how

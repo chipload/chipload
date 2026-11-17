@@ -101,6 +101,7 @@ browser-place-part-hover = Markerar var detaljen skärs: ett spöke att flytta o
 browser-reset-placement = Återställ placering
 browser-reset-placement-hover = Fräs detaljen där dess former är ritade igen
 browser-part-hover = Klicka för dess egenskaper och instanser; dubbelklicka för att göra den aktiv; högerklicka för mer
+browser-part-drag-hover = Dra den till en uppspänning för att fräsa den där; håll Ctrl (⌘) för att fräsa den där också
 # A verb: make this the active part.
 browser-activate = Aktivera
 browser-activate-hover = Nya operationer hamnar i den aktiva detaljen

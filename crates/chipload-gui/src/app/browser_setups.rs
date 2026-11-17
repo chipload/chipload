@@ -33,6 +33,7 @@ struct BoardRows<'a> {
 }
 
 /// What a setup's rows ask for.
+#[derive(Debug, PartialEq)]
 pub(super) enum SetupAction {
     Add,
     /// A back side for this setup (docs/specs/two-sided.md §3).
@@ -49,13 +50,26 @@ pub(super) enum SetupAction {
     /// Nest its instances on its board (docs/specs/nesting.md §7).
     Nest(u64),
     NestAgain(u64),
-    /// A part's row dropped on this setup: placed there (docs/specs/parts-and-setups.md §8).
+    /// A part's row dropped on this setup: every instance of it moved there
+    /// (docs/specs/parts-and-setups.md §8).
+    MovePart(u64, u64),
+    /// A part's row dropped on this setup with Ctrl (⌘): placed there too, a new instance.
     PlacePart(u64, u64),
     /// An instance's row dropped on this setup: cut there.
     MoveInstance(u64, u32, u64),
     /// List the setups even with one board (true), or go back to the simple view (false;
     /// docs/specs/parts-and-setups.md §2a).
     ShowSetups(bool),
+}
+
+/// What a part's row dropped on setup `setup` does (the user, 2026-11-17): it moves there,
+/// every instance of it; with Ctrl (⌘ on a Mac) it is placed there too, a new instance.
+pub(super) fn part_dropped(part: u64, setup: u64, copy: bool) -> SetupAction {
+    if copy {
+        SetupAction::PlacePart(part, setup)
+    } else {
+        SetupAction::MovePart(part, setup)
+    }
 }
 
 impl ChiploadApp {
@@ -322,7 +336,8 @@ impl ChiploadApp {
         }
         // A part or an instance dropped here (docs/specs/parts-and-setups.md §8).
         if let Some(part) = out.response.dnd_release_payload::<DraggedPart>() {
-            action = Some(SetupAction::PlacePart(part.0, setup.id));
+            let copy = ui.input(|i| i.modifiers.command);
+            action = Some(part_dropped(part.0, setup.id, copy));
         } else if let Some(i) = out.response.dnd_release_payload::<DraggedInstance>() {
             action = Some(SetupAction::MoveInstance(i.0, i.1, setup.id));
         } else if out.response.dnd_hover_payload::<DraggedPart>().is_some()
@@ -512,6 +527,7 @@ impl ChiploadApp {
             }
             SetupAction::Nest(id) => self.start_nest(Some(id)),
             SetupAction::NestAgain(id) => self.nest_again(id),
+            SetupAction::MovePart(part, setup) => self.move_part_to_setup(part, setup),
             SetupAction::PlacePart(part, setup) => self.place_part_on(part, setup),
             SetupAction::MoveInstance(part, id, setup) => self.instance_to_setup(part, id, setup),
             SetupAction::ShowSetups(shown) => self.show_setups(shown),
