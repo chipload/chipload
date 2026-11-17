@@ -305,7 +305,7 @@ const GOLDEN: [(&str, &str); 84] = [
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with
 /// these arguments, then `chipload run`. Nesting is deterministic, so the G-code pins the
 /// placer too. The frozen file is the project before nesting.
-const NEST_GOLDEN: [(&str, &str, &[&str]); 1] = [
+const NEST_GOLDEN: [(&str, &str, &[&str]); 2] = [
     // v38_instances frozen at v40 on a 400 × 300 board (`set setups.0.stock.x=400
     // setups.0.stock.y=300`): its three instances (one turned 90°, one mirrored and turned
     // 180°) and two more (`--count 1=5`), quarter turns allowed, the default gap and margin.
@@ -313,6 +313,29 @@ const NEST_GOLDEN: [(&str, &str, &[&str]); 1] = [
         "v40_nest_badge",
         "jobs/v40/nest_badge.chipload",
         &["--count", "1=5"],
+    ),
+    // A test project for the user (2026-11-17), made with `new`, `set` (a 600 × 400 × 18 mm
+    // board), `shape add`, `part add`, `op add profile` and `part set 6 --thickness 6mm`:
+    // six parts each cut out, two with holes, the last asking for 6 mm. Nested with counts
+    // and onto more boards (docs/specs/parts-and-setups.md §9): the overflow on Setup 2,
+    // like the first, and Bottom on Setup 3 of 6 mm; a program for each.
+    (
+        "v41_nesting_demo",
+        "jobs/v41/nesting_demo.chipload",
+        &[
+            "--count",
+            "1=4",
+            "--count",
+            "2=8",
+            "--count",
+            "3=6",
+            "--count",
+            "4=6",
+            "--count",
+            "5=10",
+            "--overflow",
+            "new-boards",
+        ],
     ),
 ];
 

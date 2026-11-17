@@ -1568,6 +1568,70 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v41/nesting_demo.chipload
+exit 0
+--- stdout
+warning: Operation 2: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+warning: Operation 4: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+warning: Operation 5: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+warning: Operation 6: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+warning: Operation 7: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+warning: Operation 8: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+warning: Operation 6 (Profile 6): some tabs on contours #7 sit on a corner or curve (no straight stretch nearby)
+warning: Operation 7 (Profile 7): some tabs on contours #8 sit on a corner or curve (no straight stretch nearby)
+note: Operation 1 (Profile 1 (holes)): cuts through, 0.500 mm into the spoilboard
+note: Operation 2 (Profile 2 (outline)): cuts through, 0.500 mm into the spoilboard
+note: Operation 3 (Profile 3 (holes)): cuts through, 0.500 mm into the spoilboard
+note: Operation 4 (Profile 4 (outline)): cuts through, 0.500 mm into the spoilboard
+note: Operation 5 (Profile 5): cuts through, 0.500 mm into the spoilboard
+note: Operation 6 (Profile 6): cuts through, 0.500 mm into the spoilboard
+note: Operation 7 (Profile 7): cuts through, 0.500 mm into the spoilboard
+note: Operation 8 (Profile 8): cuts through, 0.500 mm into the spoilboard
+Operation 1: a ring starts at (60.000, 119.000) (default)
+Operation 1: a ring starts at (160.000, 119.000) (default)
+Operation 2: a ring starts at (26.000, 57.000) (default)
+Operation 3: a ring starts at (260.000, 39.000) (default)
+Operation 4: a ring starts at (250.000, 27.000) (default)
+Operation 5: a ring starts at (397.500, 48.029) (default)
+Operation 6: a ring starts at (330.000, 207.000) (default)
+Operation 7: a ring starts at (480.000, 282.000) (default)
+Operation 8: a ring starts at (53.000, 242.000) (default)
+Part 1 Side panel: one
+Part 2 Bracket: one
+Part 3 Coaster: one
+Part 4 Disc: one
+Part 5 Tag: one
+Part 6 Bottom: one
+Estimated time: 29 min 52 s (cutting 29 min 31 s, rapids 18 s, spindle 3 s)
+Cut outline: 527.000 × 337.000 mm (X 14.000 … 541.000, Y 24.000 … 361.000, the tool included): the smallest stock that holds the job.
+  Part 1 (Side panel): 8 min 19 s; cutting 12.4 m, plunging 3 mm, rapids 275 mm, 3 lifts
+    Operation 1 (Profile 1 (holes)): 32 s; cutting 766 mm, plunging 2 mm, rapids 118 mm, 2 lifts
+    Operation 2 (Profile 2 (outline)): 7 min 47 s; cutting 11.6 m, plunging 1 mm, rapids 156 mm, 1 lift
+  Part 2 (Bracket): 4 min 38 s; cutting 6.8 m, plunging 2 mm, rapids 279 mm, 2 lifts
+    Operation 3 (Profile 3 (holes)): 19 s; cutting 383 mm, plunging 1 mm, rapids 255 mm, 1 lift
+    Operation 4 (Profile 4 (outline)): 4 min 19 s; cutting 6.5 m, plunging 1 mm, rapids 24 mm, 1 lift
+  Part 3 (Coaster): 3 min 44 s; cutting 5.5 m, plunging 1 mm, rapids 160 mm, 1 lift
+    Operation 5 (Profile 5): 3 min 44 s; cutting 5.5 m, plunging 1 mm, rapids 160 mm, 1 lift
+  Part 4 (Disc): 3 min 29 s; cutting 5.2 m, plunging 1 mm, rapids 158 mm, 1 lift
+    Operation 6 (Profile 6): 3 min 29 s; cutting 5.2 m, plunging 1 mm, rapids 158 mm, 1 lift
+  Part 5 (Tag): 2 min 31 s; cutting 3.7 m, plunging 1 mm, rapids 195 mm, 1 lift
+    Operation 7 (Profile 7): 2 min 31 s; cutting 3.7 m, plunging 1 mm, rapids 195 mm, 1 lift
+  Part 6 (Bottom): 7 min 8 s; cutting 10.6 m, plunging 1 mm, rapids 422 mm, 1 lift
+    Operation 8 (Profile 8): 7 min 8 s; cutting 10.6 m, plunging 1 mm, rapids 422 mm, 1 lift
+  In all: cutting 44.2 m, plunging 9 mm, rapids 1.5 m, 9 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Profile 1 (holes)): set the tool's flutes to see the chip load
+  Operation 2 (Profile 2 (outline)): set the tool's flutes to see the chip load
+  Operation 3 (Profile 3 (holes)): set the tool's flutes to see the chip load
+  Operation 4 (Profile 4 (outline)): set the tool's flutes to see the chip load
+  Operation 5 (Profile 5): set the tool's flutes to see the chip load
+  Operation 6 (Profile 6): set the tool's flutes to see the chip load
+  Operation 7 (Profile 7): set the tool's flutes to see the chip load
+  Operation 8 (Profile 8): set the tool's flutes to see the chip load
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v5/drawn_part.chipload
 exit 0
 --- stdout

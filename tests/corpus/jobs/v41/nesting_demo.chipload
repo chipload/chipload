@@ -1,0 +1,569 @@
+{
+  "schema_version": 41,
+  "written_by": "chipload 0.37.0",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "side",
+        "kind": "rectangle",
+        "center": [
+          110.0,
+          120.0
+        ],
+        "length": 180.0,
+        "width": 120.0,
+        "angle": 0.0,
+        "corner_radius": 6.0
+      },
+      {
+        "id": 2,
+        "layer": "side",
+        "kind": "circle",
+        "center": [
+          60.0,
+          120.0
+        ],
+        "radius": 4.0
+      },
+      {
+        "id": 3,
+        "layer": "side",
+        "kind": "circle",
+        "center": [
+          160.0,
+          120.0
+        ],
+        "radius": 4.0
+      },
+      {
+        "id": 4,
+        "layer": "bracket",
+        "kind": "polyline",
+        "closed": true,
+        "points": [
+          [
+            250.0,
+            30.0
+          ],
+          [
+            330.0,
+            30.0
+          ],
+          [
+            330.0,
+            50.0
+          ],
+          [
+            270.0,
+            50.0
+          ],
+          [
+            270.0,
+            110.0
+          ],
+          [
+            250.0,
+            110.0
+          ]
+        ],
+        "bulges": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "id": 5,
+        "layer": "bracket",
+        "kind": "circle",
+        "center": [
+          260.0,
+          40.0
+        ],
+        "radius": 4.0
+      },
+      {
+        "id": 6,
+        "layer": "coaster",
+        "kind": "polygon",
+        "center": [
+          420.0,
+          90.0
+        ],
+        "radius": 45.0,
+        "sides": 6,
+        "angle": 0.0
+      },
+      {
+        "id": 7,
+        "layer": "disc",
+        "kind": "circle",
+        "center": [
+          330.0,
+          250.0
+        ],
+        "radius": 40.0
+      },
+      {
+        "id": 8,
+        "layer": "tag",
+        "kind": "rectangle",
+        "center": [
+          500.0,
+          300.0
+        ],
+        "length": 70.0,
+        "width": 30.0,
+        "angle": 0.0,
+        "corner_radius": 15.0
+      },
+      {
+        "id": 9,
+        "layer": "bottom",
+        "kind": "rectangle",
+        "center": [
+          130.0,
+          300.0
+        ],
+        "length": 160.0,
+        "width": 110.0,
+        "angle": 0.0,
+        "corner_radius": 3.0
+      }
+    ],
+    "next_shape_id": 10,
+    "dxfs": [],
+    "images": [],
+    "hidden": []
+  },
+  "setups": [
+    {
+      "id": 1,
+      "name": "Birch 18 mm",
+      "enabled": true,
+      "stock": {
+        "x": 600.0,
+        "y": 400.0,
+        "thickness": 18.0,
+        "origin": "bottom_left",
+        "fit": null,
+        "z_zero": "top",
+        "max_overcut": 0.5,
+        "material": null
+      },
+      "work_zero": {
+        "at": "stock",
+        "corner": "bottom_left"
+      },
+      "back_of": null,
+      "pieces": null,
+      "instances": [
+        {
+          "part": 1,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "part": 2,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "part": 3,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "part": 4,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "part": 5,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "part": 6,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  ],
+  "active_setup": 1,
+  "machine": {
+    "name": null,
+    "library_uid": null,
+    "post": "grbl",
+    "gcode_units": "mm",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": null,
+    "travel": null,
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "library_uid": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": null,
+      "center_cutting": null,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "parts": [
+    {
+      "id": 1,
+      "name": "Side panel",
+      "enabled": true,
+      "order": "by_operation"
+    },
+    {
+      "id": 2,
+      "name": "Bracket",
+      "enabled": true,
+      "order": "by_operation"
+    },
+    {
+      "id": 3,
+      "name": "Coaster",
+      "enabled": true,
+      "order": "by_operation"
+    },
+    {
+      "id": 4,
+      "name": "Disc",
+      "enabled": true,
+      "order": "by_operation"
+    },
+    {
+      "id": 5,
+      "name": "Tag",
+      "enabled": true,
+      "order": "by_operation"
+    },
+    {
+      "id": 6,
+      "name": "Bottom",
+      "enabled": true,
+      "order": "by_operation",
+      "stock": {
+        "material": null,
+        "thickness": 6.0
+      }
+    }
+  ],
+  "active_part": 6,
+  "operations": [
+    {
+      "type": "profile",
+      "name": "Profile 1 (holes)",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          2,
+          3
+        ]
+      },
+      "side": "inside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": null,
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 2 (outline)",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 3 (holes)",
+      "enabled": true,
+      "part": 2,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          5
+        ]
+      },
+      "side": "inside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": null,
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 4 (outline)",
+      "enabled": true,
+      "part": 2,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          4
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 5",
+      "enabled": true,
+      "part": 3,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          6
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 6",
+      "enabled": true,
+      "part": 4,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          7
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 7",
+      "enabled": true,
+      "part": 5,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          8
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    },
+    {
+      "type": "profile",
+      "name": "Profile 8",
+      "enabled": true,
+      "part": 6,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          9
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 18.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    }
+  ]
+}
