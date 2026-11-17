@@ -94,13 +94,36 @@ it), but **the window and the command line show neither until they matter**:
 
 - **Optional, on the part:** `stock: { material, thickness }`, either may be missing.
   Missing: the part goes on any board.
-- **Checked, not enforced:** an instance on a board of another material or thickness is a
-  warning on the instance ("*Bottom* wants 6 mm, the board is 18 mm"), as other placement
-  problems are. Depths given as *through* still follow the board's thickness.
+- **A part's stock picks its board (decision 11).** Setting a part's stock to one its board
+  doesn't have moves the part, every instance of it, to a board that has it: an existing
+  board with that material and thickness, else a new one made like the board it leaves
+  (its material, margin and fit, its work zero rule, Z zero and overcut, the new thickness,
+  fitted round the part when the old one was fitted). One undo step; the status bar says
+  "*Bottom* is cut from 6 mm: board 2". The instances keep their numbers and placements.
+- **Back again:** clearing the part's stock, or setting it to its first board's, moves it
+  back the same way. A board that was **made this way** (marked `made_for_stock` in the
+  file, optional, no bump) and is left empty is removed; one the user made, renamed or
+  changed by hand is kept. With one board left the simple view returns (§2a).
+- **The user's example** (2026-11-17): a DXF with *Side* and *Bottom*, the bottom to be cut
+  from 6 mm, the rest from 18 mm. Import (one board, 18 mm, no Setups branch); set
+  *Bottom*'s thickness to 6 mm in its form; Chipload makes board 2 of 6 mm and moves
+  *Bottom* there; the Setups branch shows the two boards; export writes `-S1` and `-S2`
+  programs with a setup sheet each; *through* depths follow each board. In 0.37 the same
+  takes adding a setup, setting its thickness, moving the part and checking the zero.
+- **Placed by hand, checked:** an instance put by hand (dragged, *Move to board…*,
+  `instance move`) on a board of another material or thickness stays where it is put, with
+  a warning on the instance ("*Bottom* wants 6 mm, the board is 18 mm"). Only changing the
+  stock moves a part by itself.
+- **No stock set:** the part stays where it is and is cut from whatever its board is.
+  Depths given as *through* always follow the board's thickness.
+- **Not for every board:** a part on a two-sided board or a board in pieces isn't moved by
+  its stock (those boards are made on purpose); a mismatch there is the warning. A
+  board's own thickness changed by hand doesn't move parts either: parts whose stock no
+  longer matches are warned about.
 - **Nesting** places a part only on boards whose stock matches it, and a new board for
   overflow (§9) takes the stock its parts ask for.
 - **Set** in the part's form, from the library's materials, and with `part set --material
-  … --thickness …`. A part made by a wizard (two-sided, inlay, sign) or from a setup gets
+  … --thickness …` ("made board 2 (6 mm) for *Bottom*" when it moves). A part made by a wizard (two-sided, inlay, sign) or from a setup gets
   the stock of the board it was made on.
 
 ## 5. The file (schema 41) and the migration
@@ -125,6 +148,9 @@ it), but **the window and the command line show neither until they matter**:
   a mirrored instance, a back setup and a nested setup is added with its golden.
 - **Paths change:** `parts.0.instances.1.at` becomes `setups.0.instances.2.at` for `get`,
   `set`, problems and the JSON Schema; the reference page and scripting guide say so.
+- **New, optional:** `part.stock` (material, thickness; missing: none) and a setup's
+  `made_for_stock` (true for a board made because a part's stock asked for it, §4; missing:
+  false). Neither needs its own bump: they come with 41.
 - **Validation:** an instance names a part that exists; `(part, id)` unique in the
   project; a setup in pieces holds each part at most once (as today); a back setup holds
   only its own parts' instances (two-sided.md, as today).
@@ -204,7 +230,9 @@ Each step a commit with its tests, shippable on its own:
    today.
 1b. **The simple case (§2a):** one board shows no Setups branch, a part once where drawn
    no instance rows; the row count and click walk measured against 0.37.
-2. **A part's stock:** the field, the warning, the form and `part set`.
+2. **A part's stock:** the field, moving a part to a matching board (made when there is
+   none, removed when emptied), the warning for parts placed by hand, the form and `part
+   set`; the user's two-thickness example as a pipeline and a window test.
 3. **Sheets side by side** in the view (§7).
 4. **The window's placing:** drag a part onto a board, *Move to board…*, the part form's
    instances by board.
@@ -220,8 +248,12 @@ Each step a commit with its tests, shippable on its own:
 - **Pipeline:** one part with instances on two boards gives two programs, each with only its
   instances; switching the part off empties both; moving an instance keeps its number;
   overlap is checked per board.
-- **Stock:** a part wanting 6 mm on an 18 mm board warns; nesting skips a board of the wrong
-  stock; an overflow board takes the part's stock.
+- **Stock:** the user's example: *Side* and *Bottom* imported on one 18 mm board, *Bottom*
+  set to 6 mm moves to a new 6 mm board made like the first (fit, zero, material), two
+  programs, *through* depths 18 and 6; set back, it returns and the made board goes; a
+  second part set to 6 mm joins the same board; a board renamed by hand isn't removed when
+  emptied; a part dragged onto a mismatched board stays there with a warning; nesting skips
+  a board of the wrong stock; an overflow board takes the part's stock.
 - **Nesting overflow:** nothing is switched off while a board can be added; the boards made
   are like the first; numbers kept; deterministic.
 - **Window:** sheets side by side, a click activates a sheet; drag a part onto a board;
@@ -238,10 +270,9 @@ Each step a commit with its tests, shippable on its own:
    model; a part on several boards, overflow, every instance alike. Alternative: keep parts
    in setups and let an instance name another setup (nesting.md §11.1, first way): smaller,
    but instance 1 stays special and a part still "belongs" somewhere.
-2. **A part's stock is material and thickness, optional, checked as a warning** (§4).
-   **Recommended:** says what the part needs without stopping work in progress. Alternative:
-   enforced (an instance on a wrong board is a problem that stops the run); or a full stock
-   (size too) on the part, which a board already has.
+2. **A part's stock is material and thickness, optional** (§4). **Recommended:** says what
+   the part needs; empty, it asks nothing. Alternative: a full stock (size too) on the part,
+   which a board already has.
 3. **One drawing as the design space**, shapes edited where drawn (§2). **Recommended:** how
    the user draws (a DXF, a layer per part) and how every operation selects shapes today.
    Alternative: each part's shapes move into the part, in its own coordinates: a cleaner
@@ -269,3 +300,9 @@ Each step a commit with its tests, shippable on its own:
     instance rows. **Recommended:** the user's rule; simpler than today, where a one-board
     project already shows *Setups › Setup 1*. Alternative: always show the Setups branch,
     as now, for one shape of the Browser in every project.
+11. **A part's stock picks its board** (§4): changing it moves the part to a matching board,
+    made like its board when there is none and removed again when a board made so is
+    emptied; placing by hand onto a mismatched board is a warning, not a move.
+    **Recommended:** the user's two-thickness DXF is one field, and the user never has to
+    choose "a setup". Alternatives: only a warning, the user adds the board and moves the
+    part (as 0.37); or a mismatch refused outright.
