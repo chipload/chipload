@@ -552,8 +552,15 @@ impl ChiploadApp {
             {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
             }
+            // Another setup's sheet lights up: a click makes it the active one
+            // (docs/specs/parts-and-setups.md §7).
+            self.scene.hot_sheet = self.sheet_under(pos);
+            if self.scene.hot_sheet.is_some() && !self.dragging_instance() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            }
         } else {
             self.cursor = None;
+            self.scene.hot_sheet = None;
         }
     }
 
@@ -787,6 +794,12 @@ impl ChiploadApp {
                 self.pick_alone(contour);
             } else if let Some((part, id)) = instance {
                 self.focus = Focus::Instance(part, id);
+            } else if picked.is_none()
+                && !toggle
+                && let Some(setup) = self.sheet_under(pos)
+            {
+                // Another setup's sheet: it becomes the active one, moved into place.
+                self.activate_sheet(setup, pos);
             } else if picked.is_none() && !toggle && self.on_stock_edge(pos) {
                 // The board's edge, where no shape is, opens its stock (the user,
                 // 2026-11-03).

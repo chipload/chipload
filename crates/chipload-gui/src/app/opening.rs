@@ -10,8 +10,8 @@ use chipload_pipeline::{PipelineError, empty_project, load_drawing, new_project}
 use super::ChiploadApp;
 use super::report::{DrawingFacts, Report};
 use super::{
-    ERROR_STATUS_SECONDS, Focus, Prompt, UnitsFor, file_name, ghost_boards, ghost_contours,
-    is_drawing_file, raw_schema_version,
+    ERROR_STATUS_SECONDS, Focus, Prompt, UnitsFor, file_name, ghost_contours, is_drawing_file,
+    raw_schema_version, sheets,
 };
 use crate::draw::{Snapper, snapper};
 use crate::editor::{CanvasSelection, EditJob};
@@ -95,7 +95,10 @@ impl ChiploadApp {
     pub(super) fn update_ghosts(&mut self) {
         let job = self.edited_job();
         self.scene.stock = job.as_ref().map(chipload_job::Job::stock_bounds);
-        self.scene.ghost_boards = job.as_ref().map(ghost_boards).unwrap_or_default();
+        self.scene.sheets = job
+            .as_ref()
+            .map(|job| sheets(job, &self.contours))
+            .unwrap_or_default();
         // The pieces of a setup cut in pieces (docs/specs/pieces.md §9); none while they
         // can't be worked out (the report says why once it generates).
         self.scene.pieces = job

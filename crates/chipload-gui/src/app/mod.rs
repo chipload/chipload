@@ -888,15 +888,47 @@ impl ChiploadApp {
     }
 }
 
-/// The boards of the setups that aren't active, for the view's ghosts
-/// (docs/specs/setups.md §5): none with one setup.
-fn ghost_boards(job: &chipload_job::Job) -> Vec<(chipload_core::Point, chipload_core::Point)> {
+/// How far apart the sheets lie, and the first from the active board, mm
+/// (docs/specs/parts-and-setups.md §7).
+const SHEET_GAP_MM: f64 = 50.0;
+
+/// The setups that aren't active, as sheets in a row to the right of the active board, in
+/// their order (a back after its front), their bottoms level with its bottom: each its
+/// board and its instances' outlines, moved there for the view only
+/// (docs/specs/parts-and-setups.md §7). None with one setup.
+fn sheets(
+    job: &chipload_job::Job,
+    contours: &[chipload_core::chain::Contour],
+) -> Vec<crate::view::Sheet> {
     let active = job.active_setup_id();
-    job.setups
-        .iter()
-        .filter(|s| Some(s.id) != active)
-        .map(|s| job.for_setup(s.id).stock_bounds())
-        .collect()
+    let ((_, bottom), (right, _)) = job.stock_bounds();
+    let mut x = right + SHEET_GAP_MM;
+    let mut out = Vec::new();
+    for setup in job.setups.iter().filter(|s| Some(s.id) != active) {
+        let one = job.for_setup(setup.id);
+        let ((x0, y0), (x1, y1)) = one.stock_bounds();
+        let (dx, dy) = (x - x0, bottom - y0);
+        let shift = |p: &chipload_core::Point| (p.0 + dx, p.1 + dy);
+        let outlines = chipload_pipeline::parts::setup_outlines(&one, contours, setup.id)
+            .into_iter()
+            .map(|(points, closed)| {
+                let mut moved: Vec<chipload_core::Point> = points.iter().map(shift).collect();
+                if let (true, Some(&first)) = (closed, moved.first()) {
+                    moved.push(first);
+                }
+                moved
+            })
+            .collect();
+        out.push(crate::view::Sheet {
+            setup: setup.id,
+            name: setup.name.clone(),
+            board: ((x0 + dx, y0 + dy), (x1 + dx, y1 + dy)),
+            outlines,
+            offset: (dx, dy),
+        });
+        x += x1 - x0 + SHEET_GAP_MM;
+    }
+    out
 }
 
 /// The contours only another setup's operations cut (every shape of them picked by one,

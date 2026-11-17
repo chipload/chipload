@@ -147,12 +147,39 @@ pub struct InstanceGhost {
 }
 
 /// Everything on the canvas, in world coordinates.
+/// Another setup, drawn as a sheet beside the active board (docs/specs/parts-and-setups.md
+/// §7). Everything in it is moved by `offset` for the view only: never saved, never cut.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Sheet {
+    pub setup: u64,
+    pub name: String,
+    /// Its board, moved beside the active one.
+    pub board: (Point, Point),
+    /// Its instances' outlines, moved with it, closed ones closed.
+    pub outlines: Vec<Vec<Point>>,
+    /// How far it is drawn from where it lies in the drawing.
+    pub offset: (f64, f64),
+}
+
+impl Scene {
+    /// The sheet whose board holds drawing point `p`.
+    pub fn sheet_at(&self, p: Point) -> Option<&Sheet> {
+        self.sheets.iter().find(|s| {
+            let ((x0, y0), (x1, y1)) = s.board;
+            (x0..=x1).contains(&p.0) && (y0..=y1).contains(&p.1)
+        })
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct Scene {
     pub contours: Vec<ContourShape>,
     pub stock: Option<(Point, Point)>,
-    /// The other setups' boards, drawn as ghosts (docs/specs/setups.md §5).
-    pub ghost_boards: Vec<(Point, Point)>,
+    /// The other setups as sheets beside the active board (docs/specs/parts-and-setups.md
+    /// §7): each its board and its instances' outlines, moved there for the view only.
+    pub sheets: Vec<Sheet>,
+    /// The sheet under the pointer: drawn lit, a click makes it the active setup.
+    pub hot_sheet: Option<u64>,
     /// Contours only another setup's parts cut: drawn as ghosts.
     pub ghost_contours: std::collections::BTreeSet<usize>,
     /// The active setup's pieces when it is cut in pieces: each one's name and loops
@@ -329,6 +356,11 @@ impl Scene {
         if let Some(path) = &self.toolpath {
             points.extend(path.lines3.iter().flat_map(|(a, b, _)| [*a, *b]));
             points.extend(path.starts.iter().map(|s| on_top(s.at)));
+        }
+        // The other setups' sheets beside the board (docs/specs/parts-and-setups.md §7).
+        for sheet in &self.sheets {
+            let ((x0, y0), (x1, y1)) = sheet.board;
+            points.extend([on_top((x0, y0)), on_top((x1, y1))]);
         }
         points
     }
@@ -520,11 +552,29 @@ impl Scene {
         };
 
         let flat = view.is_top();
-        for &((x0, y0), (x1, y1)) in &self.ghost_boards {
+        for sheet in &self.sheets {
+            let hot = self.hot_sheet == Some(sheet.setup);
+            let fade = if hot { 1.0 } else { 0.6 };
+            let ((x0, y0), (x1, y1)) = sheet.board;
             let corners = [(x0, y0), (x1, y0), (x1, y1), (x0, y1), (x0, y0)];
+            let width = if hot { 1.5 } else { 1.0 };
             dashed(
                 screen(&corners),
-                Stroke::new(1.0, pal.ghost.gamma_multiply(0.6)),
+                Stroke::new(width, pal.ghost.gamma_multiply(fade)),
+            );
+            for outline in &sheet.outlines {
+                painter.add(Shape::line(
+                    screen(outline),
+                    Stroke::new(1.0, pal.ghost.gamma_multiply(fade * 0.8)),
+                ));
+            }
+            // Its name above its top left corner.
+            painter.text(
+                view.to_screen((x0, y1)) + Vec2::new(0.0, -4.0),
+                Align2::LEFT_BOTTOM,
+                &sheet.name,
+                FontId::proportional(12.0),
+                pal.ghost.gamma_multiply(fade),
             );
         }
         if let Some(((x0, y0), (x1, y1))) = self.stock {

@@ -10,7 +10,7 @@ fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     let job = app.edited_job().unwrap();
     assert_eq!(job.active_setup_id(), Some(1));
     // Setup 2's board is a ghost, and part B's shapes too.
-    assert_eq!(app.scene.ghost_boards.len(), 1);
+    assert_eq!(app.scene.sheets.len(), 1);
     assert!(!app.scene.ghost_contours.is_empty());
     draw_sidebar(&mut app);
     // Its row makes setup 2 the active one: its board, its part.

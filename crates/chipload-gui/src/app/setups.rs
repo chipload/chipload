@@ -36,6 +36,33 @@ impl ChiploadApp {
         }
     }
 
+    /// The setup whose sheet is under screen point `pos` (docs/specs/parts-and-setups.md
+    /// §7), in the top view.
+    pub(super) fn sheet_under(&self, pos: eframe::egui::Pos2) -> Option<u64> {
+        if !self.view.is_top() {
+            return None;
+        }
+        let p = self.view.to_world(pos);
+        self.scene.sheet_at(p).map(|s| s.setup)
+    }
+
+    /// Setup `id`'s sheet clicked at `pos`: the setup becomes the active one and its board
+    /// moves into place, the view keeping the point under the pointer there (§7).
+    pub(super) fn activate_sheet(&mut self, id: u64, pos: eframe::egui::Pos2) {
+        let Some(offset) = self
+            .scene
+            .sheets
+            .iter()
+            .find(|s| s.setup == id)
+            .map(|s| s.offset)
+        else {
+            return;
+        };
+        let p = self.view.to_world(pos);
+        self.activate_setup(id);
+        self.view.keep_at((p.0 - offset.0, p.1 - offset.1), pos);
+    }
+
     /// Part `id` cut from `stock`, None for any board (docs/specs/parts-and-setups.md §4):
     /// moved to a board of that stock as one undo step, the status saying where.
     pub fn set_part_stock(&mut self, id: u64, stock: Option<chipload_job::PartStock>) {

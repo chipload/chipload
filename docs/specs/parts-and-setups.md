@@ -2,7 +2,7 @@
 
 Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
 we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
-the user says otherwise. **Steps 1, 1b and 2 built** (§11). The user's idea (2026-11-17, after nesting): "each
+the user says otherwise. **Steps 1, 1b, 2 and 3 built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -256,7 +256,11 @@ Each step a commit with its tests, shippable on its own:
      places what is on it, as before.
    A board made for a stock is the user's once changed by hand: renamed, its board, zero,
    back or pieces changed, in the window, `setup set`, `zero` or `set`.
-3. **Sheets side by side** in the view (§7).
+3. **Sheets side by side** in the view (§7). **Built 2026-11-17**: each other setup's board
+   and its instances' outlines (on, placed), named, in a row right of the active board;
+   hovered it lights up, a click activates it keeping the point under the pointer; a fit
+   (F) shows them; top view only. Not yet: a sheet's toolpath (the window plans the active
+   setup only); the shapes only another setup cuts still show faint where drawn, as before.
 4. **The window's placing:** drag a part onto a board, *Move to board…*, the part form's
    instances by board.
 5. **Nesting overflow** onto more boards (§9).

@@ -269,6 +269,27 @@ pub fn instance_outlines_showing(
     out
 }
 
+/// The outlines of every instance on setup `setup` that is on, where it is cut, with
+/// whether each is closed: the setup's sheet beside the active board
+/// (docs/specs/parts-and-setups.md §7).
+pub fn setup_outlines(job: &Job, contours: &[Contour], setup: u64) -> Vec<(Vec<Point>, bool)> {
+    let Some(board) = job.setup(setup) else {
+        return Vec::new();
+    };
+    let on: Vec<(u64, u32)> = board
+        .instances
+        .iter()
+        .filter(|i| i.enabled && job.part(i.part).is_some_and(|p| p.enabled))
+        .map(|i| (i.part, i.id))
+        .collect();
+    let parts: Vec<u64> = on.iter().map(|(p, _)| *p).collect();
+    instance_outlines_showing(job, contours, &parts)
+        .into_iter()
+        .filter(|i| on.contains(&(i.part, i.id)))
+        .flat_map(|i| i.outlines)
+        .collect()
+}
+
 /// Where turned and mirrored instances that are on are cut, with whether each outline is
 /// closed: what the setup sheet draws besides the shifts of [`crate::sheet::contour_copies`].
 pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool)> {

@@ -54,6 +54,7 @@ mod screenshots;
 mod select_drag;
 mod setups;
 mod shape_library;
+mod sheets;
 mod sign;
 mod simple_case;
 mod statistics;

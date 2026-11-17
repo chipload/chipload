@@ -19,7 +19,7 @@ pub use legend::{Swatch, legend, paint_swatch};
 pub use progress::{Progress, ToolLook};
 pub use scene::{
     COMPASS_ARM_END_PX, COMPASS_ARM_START_PX, COMPASS_CENTRE_PX, COMPASS_RING_PX, CompassShape,
-    CornerMarker, InstanceGhost, Scene, StartMarker, TURN_HANDLE_PX, TabMarker, badge_rect,
+    CornerMarker, InstanceGhost, Scene, Sheet, StartMarker, TURN_HANDLE_PX, TabMarker, badge_rect,
 };
 pub use shapes::{ContourShape, Highlight, Kind, ToolpathShape};
 pub use sim::{PictureLayer, SimLayer, SimSurface};
@@ -418,7 +418,7 @@ impl View {
     }
 
     /// Move the offset so the stock-top point `world` lands on `screen`.
-    fn keep_at(&mut self, world: Point, screen: Pos2) {
+    pub fn keep_at(&mut self, world: Point, screen: Pos2) {
         let (across, up) = self.camera((world.0, world.1, self.top_z));
         self.offset = (
             f64::from(screen.x) - across * self.scale,
