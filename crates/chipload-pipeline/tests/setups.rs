@@ -111,6 +111,8 @@ fn setups_are_added_activated_moved_and_removed() {
     assert_eq!(job.stock().thickness, 6.0);
     assert_eq!(job.parts.len(), 2);
     assert!(job.setup(3).unwrap().instances.is_empty());
+    // Made by hand: the setups stay listed, even when one is left.
+    assert!(job.setups_shown);
     assert_eq!(
         (job.active_setup_id(), job.active_part_id()),
         (Some(3), before)
@@ -144,8 +146,9 @@ fn setups_are_added_activated_moved_and_removed() {
             .all(|p| !fewer.setups_of_part(p.id).is_empty())
     );
     assert!(fewer.operations.iter().all(|op| op.part() != 2));
-    // An empty one goes without asking.
+    // An empty one goes without asking; the last stays listed as a setup.
     let (one, _) = remove_setup(&fewer, 3, false).unwrap();
+    assert!(one.setups_shown && one.lists_setups());
     assert!(remove_setup(&one, 1, true).is_err());
 }
 

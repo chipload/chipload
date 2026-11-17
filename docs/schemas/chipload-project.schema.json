@@ -4855,6 +4855,10 @@
       },
       "type": "array"
     },
+    "setups_shown": {
+      "description": "True: the window lists the setups even with one board, as the user asked when making\none; false (missing): one board is the simple view, its stock, zero and parts the\nproject's rows. Only the app reads it; it changes nothing that is cut. Left out when\nfalse.",
+      "type": "boolean"
+    },
     "tools": {
       "description": "The tools the operations cut with.",
       "items": {

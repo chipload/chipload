@@ -18,6 +18,7 @@ Schema version 41. Older files load through Chipload's migrations; this schema d
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
 | `schema_version` | `41` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
+| `setups_shown` | boolean | no | True: the window lists the setups even with one board, as the user asked when making one; false (missing): one board is the simple view, its stock, zero and parts the project's rows. Only the app reads it; it changes nothing that is cut. Left out when false. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
 

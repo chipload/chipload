@@ -24,6 +24,13 @@ pub struct Job {
     /// such setup: the first. Only the app and the command line read it.
     #[serde(default)]
     pub active_setup: Option<u64>,
+    /// True: the window lists the setups even with one board, as the user asked when making
+    /// one; false (missing): one board is the simple view, its stock, zero and parts the
+    /// project's rows. Only the app reads it; it changes nothing that is cut. Left out when
+    /// false.
+    // Spec: docs/specs/parts-and-setups.md §2a (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub setups_shown: bool,
     /// The machine: post-processor, safe height, limits.
     pub machine: Machine,
     /// The tools the operations cut with.
@@ -1110,6 +1117,12 @@ impl Job {
         let at = at.min(setup.instances.len());
         let placed = instances.into_iter().map(|i| Instance { part: id, ..i });
         setup.instances.splice(at..at, placed);
+    }
+
+    /// Whether the window lists the setups: with several boards, or with one when the user
+    /// asked for them (`setups_shown`; docs/specs/parts-and-setups.md §2a).
+    pub fn lists_setups(&self) -> bool {
+        self.setups_shown || self.setups.len() > 1
     }
 
     /// The id of the active setup: `active_setup` when it names a setup, else the first.

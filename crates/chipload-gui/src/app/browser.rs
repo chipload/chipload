@@ -242,6 +242,7 @@ impl ChiploadApp {
         let only = self
             .edit
             .as_ref()
+            .filter(|e| !e.job.lists_setups())
             .and_then(|e| match e.job.setups.as_slice() {
                 [setup] => Some(setup.id),
                 _ => None,

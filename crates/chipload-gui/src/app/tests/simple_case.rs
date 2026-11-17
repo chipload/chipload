@@ -58,12 +58,45 @@ fn one_board_shows_no_setups_and_a_part_cut_once_no_instances() {
     app.instance_to_setup(2, 1, 1);
     assert_eq!(app.edit.as_ref().unwrap().job.setups_of_part(2), [1]);
 
-    // Removed again: the simple view is back.
+    // Removed again: Setup 1 stays listed (the user, 2026-11-17: only gone when asked).
     app.remove_setup(added);
     assert_eq!(app.edit.as_ref().unwrap().job.setups.len(), 1);
     let rows = browser_rows(&mut app);
+    assert!(has_setups_branch(&rows), "{rows:?}");
+    assert_eq!(depth_of(&rows, "Setup 1"), Some(2));
+    assert_eq!(depth_of(&rows, "Part 2 #1"), Some(3));
+    // Simple view, asked for: the project's rows again, one undo step.
+    app.show_setups(false);
+    let rows = browser_rows(&mut app);
     assert!(!has_setups_branch(&rows), "{rows:?}");
     assert_eq!(rows.len(), simple);
+    app.undo();
+    assert!(has_setups_branch(&browser_rows(&mut app)));
+}
+
+#[test]
+fn setup_1_can_be_shown_by_hand_and_stays_until_the_simple_view_is_asked_for() {
+    // Parts drawn apart, to be cut from separate boards: Show setups first.
+    let mut app = lower_part();
+    app.add_part().unwrap();
+    let simple = browser_rows(&mut app).len();
+    app.show_setups(true);
+    let job = app.edit.as_ref().unwrap().job.clone();
+    assert_eq!(job.setups.len(), 1);
+    assert!(job.setups_shown && job.lists_setups());
+    let rows = browser_rows(&mut app);
+    assert!(has_setups_branch(&rows), "{rows:?}");
+    assert_eq!(depth_of(&rows, "Setup 1"), Some(2));
+    assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3));
+    // Saved with the project, read back.
+    let dir = temp_dir("setups-shown");
+    let file = dir.join("p.chipload");
+    chipload_job::save_job(&job, &file).unwrap();
+    assert!(chipload_job::load_job(&file).unwrap().setups_shown);
+    // The project's own menu is a setup's now, not the board's.
+    app.show_setups(false);
+    assert_eq!(browser_rows(&mut app).len(), simple);
+    assert!(!app.edit.as_ref().unwrap().job.setups_shown);
 }
 
 #[test]

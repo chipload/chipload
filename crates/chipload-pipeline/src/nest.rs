@@ -510,6 +510,8 @@ fn make_board_like(
         .cloned()
         .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-setup").arg("id", like)))?;
     let id = job.setups.iter().map(|s| s.id).max().unwrap_or(0) + 1;
+    // Boards the user asked for: listed as setups from now on.
+    job.setups_shown = true;
     job.setups.push(chipload_job::Setup {
         id,
         name: format!("Setup {}", job.setups.len() + 1),

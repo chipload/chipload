@@ -66,8 +66,15 @@ it), but **the window and the command line show neither until they matter**:
 - **One board: no Setups branch.** The Browser shows the project, the drawing, the tools,
   **Stock** and **Work zero** as rows of the project, and the parts with their operations,
   as projects did before setups. *Add board* (the project's menu, *Wizards > Two-sided…*,
-  nesting overflow) makes the second board; from then on the Setups branch shows. Removing
-  the second board again brings the simple view back.
+  nesting overflow) makes the second board; from then on the Setups branch shows.
+- **Setups by hand stay** (the user, 2026-11-17: "the simple view only works if I have
+  drawn the parts in place … Setup 1 should not be deleted after that if I don't do it
+  explicitly"): *Show setups* in the project's menu lists the one board as *Setup 1*, to
+  separate parts onto more boards, and adding a setup does the same. The project remembers
+  it (`setups_shown`, optional, no bump): removing the other boards leaves *Setup 1*
+  listed, and only *Simple view*, in the last setup's menu where *Delete* would be, folds
+  it back into the project's rows. Neither changes anything that is cut. On the command
+  line: `chipload set p.chipload setups_shown=true`.
 - **A part once, where drawn: no instance rows,** no ghost, no badge: the part is just the
   part, its shapes are what is cut. Instances show when a part has a second one, or is moved
   or turned (*Place…* in its menu, as today), or the project has a second board.

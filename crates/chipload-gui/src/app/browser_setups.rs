@@ -53,6 +53,9 @@ pub(super) enum SetupAction {
     PlacePart(u64, u64),
     /// An instance's row dropped on this setup: cut there.
     MoveInstance(u64, u32, u64),
+    /// List the setups even with one board (true), or go back to the simple view (false;
+    /// docs/specs/parts-and-setups.md §2a).
+    ShowSetups(bool),
 }
 
 impl ChiploadApp {
@@ -98,7 +101,8 @@ impl ChiploadApp {
         };
         // One board: no Setups branch; its stock, zero and parts are the project's rows
         // (docs/specs/parts-and-setups.md §2a).
-        if let [setup] = setups.as_slice() {
+        let simple = !edit.job.lists_setups();
+        if let ([setup], true) = (setups.as_slice(), simple) {
             let (a, b) = self.board_contents(ui, setup.id, 1, rows, true);
             setup_action = a.or(setup_action);
             action = b.or(action);
@@ -396,11 +400,17 @@ impl ChiploadApp {
                 action = Some(SetupAction::AddBack(setup.id));
             }
             ui.separator();
-            if ui
-                .add_enabled(several, egui::Button::new(t!(ui, "browser-delete")))
+            // The last board isn't deleted: it can go back to being the project's.
+            if several {
+                if ui.button(t!(ui, "browser-delete")).clicked() {
+                    action = Some(SetupAction::Remove(setup.id));
+                }
+            } else if ui
+                .button(t!(ui, "browser-simple-view"))
+                .on_hover_text(t!(ui, "browser-simple-view-hover"))
                 .clicked()
             {
-                action = Some(SetupAction::Remove(setup.id));
+                action = Some(SetupAction::ShowSetups(false));
             }
         });
         (setup_open, action)
@@ -457,6 +467,13 @@ impl ChiploadApp {
         {
             action = Some(SetupAction::Add);
         }
+        if ui
+            .button(t!(ui, "browser-show-setups"))
+            .on_hover_text(t!(ui, "browser-show-setups-hover"))
+            .clicked()
+        {
+            action = Some(SetupAction::ShowSetups(true));
+        }
         action
     }
 
@@ -493,6 +510,7 @@ impl ChiploadApp {
             SetupAction::NestAgain(id) => self.nest_again(id),
             SetupAction::PlacePart(part, setup) => self.place_part_on(part, setup),
             SetupAction::MoveInstance(part, id, setup) => self.instance_to_setup(part, id, setup),
+            SetupAction::ShowSetups(shown) => self.show_setups(shown),
         }
     }
 
