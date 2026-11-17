@@ -93,6 +93,22 @@ impl Sweep {
         }
     }
 
+    /// The sweep moved by `by`, mm.
+    pub fn moved(&self, by: Point) -> Sweep {
+        let shift = |p: Point| (p.0 + by.0, p.1 + by.1);
+        Sweep {
+            capsules: self
+                .capsules
+                .iter()
+                .map(|c| Capsule {
+                    a: shift(c.a),
+                    b: shift(c.b),
+                    radius: c.radius,
+                })
+                .collect(),
+        }
+    }
+
     /// The box round everything swept, radii included; None when nothing is.
     pub fn extent(&self) -> Option<(Point, Point)> {
         self.capsules.iter().fold(None, |extent, c| {

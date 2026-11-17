@@ -477,6 +477,15 @@ Which side of the path a moulding's profile lies on (docs/specs/moulding.md §4)
 
 - `"outside"`: Outside a closed path.
 
+## Nest
+
+A setup's nesting settings (docs/specs/nesting.md §10).
+
+| Field | Type | Required | Meaning |
+|---|---|---|---|
+| `gap` | number | yes | The least distance between what two instances cut, mm. |
+| `margin` | number | yes | The least distance from what an instance cuts to the board's edge, mm. |
+
 ## Operation
 
 ### `"type": "profile"`
@@ -761,6 +770,7 @@ A part: a named group of operations, cut together, with its own copies (docs/spe
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
 | `order` | [InstanceOrder](#instanceorder) | yes | `by_operation`: each operation on every instance, then the next; `by_instance`: every operation on one instance, then the next instance. Since schema 38. |
 | `setup` | integer | yes | The id of the setup it is cut in (`setups`). Since schema 34. |
+| `turns` | [Turns](#turns) or null | no | How it may be turned when nested. Missing: a quarter turn at a time. Left out when missing. |
 
 ## PathSegment
 
@@ -948,6 +958,7 @@ A setup: one board clamped once on the machine, with its stock and work zero, an
 | `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what parts name it by. |
 | `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
+| `nest` | [Nest](#nest) or null | no | How the setup was last nested: its gap and margin, kept so *Nest again* needs no questions. Missing: never nested. Left out when missing. |
 | `pieces` | [Pieces](#pieces) or null | no | Set: the setup is cut as a puzzle, in pieces that each fit a board, joined by seams with joints; each piece is a program of its own. Null: one board. Since schema 37. |
 | `stock` | [Stock](#stock) | yes | The board. |
 | `work_zero` | [WorkZero](#workzero) | no | The point of the drawing that becomes X0 Y0 in its G-code. Missing: the drawing's origin. |
@@ -1137,6 +1148,18 @@ How a board is turned over: about its vertical or its horizontal centre line.
 - `"left_right"`: About the vertical centre line: the left edge goes to the right, X is mirrored.
 
 - `"top_bottom"`: About the horizontal centre line: the bottom edge goes to the top, Y is mirrored.
+
+## Turns
+
+How a part may be turned when it is nested (docs/specs/nesting.md §3): wood grain is the usual reason for none or half.
+
+- `"none"`: As it lies.
+
+- `"half"`: As it lies or turned 180°.
+
+- `"quarter"`: A quarter turn at a time.
+
+- `"every_15"`: 15° at a time.
 
 ## Units
 

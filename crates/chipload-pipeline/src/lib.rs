@@ -20,6 +20,7 @@ pub mod instances;
 pub mod library;
 pub mod materials;
 pub mod models;
+pub mod nest;
 pub mod new_ops;
 pub mod notices;
 pub mod parts;

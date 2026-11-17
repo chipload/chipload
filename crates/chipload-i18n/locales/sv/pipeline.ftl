@@ -712,3 +712,16 @@ pipeline-pieces-no-such = det finns ingen bit { $piece }
 pipeline-pieces-split = { $label } delas vid en skarv i bit { $piece }: fräsen sänks ner i spåret där
 pipeline-pieces-board-larger = bit { $piece } behöver en skiva på { $x } × { $y }, större än skivorna på { $board_x } × { $board_y }
 pipeline-pieces-none = uppspänningen fräses inte i bitar
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = En uppspänning som fräses i bitar kan inte nästlas: dess bitar tar inga instanser
+pipeline-nest-two-sided = En dubbelsidig uppspänning kan inte nästlas än: baksidans detaljer ligger efter framsidans och skulle bli kvar
+pipeline-nest-no-parts = Uppspänningen har ingen påslagen detalj att nästla
+pipeline-nest-needs-board = Skivan följer ritningen; nästling behöver en skiva med fast storlek: ange storleken (--board 1220x610)
+pipeline-nest-no-room = Det finns ingen plats kvar på skivan att nästla på: en kant på { $margin } lämnar ingenting
+pipeline-nest-count = { $part } fräses minst en gång: stäng av detaljen i stället
+pipeline-nest-not-verified = Nästlingen klarade inte kontrollerna, ett fel i nästlingen, och ingenting ändrades: { $reason }
+pipeline-nest-done = { $placed } av { $count } placerade, skivan använd till { $used } av { $length } ({ $share } %)
+pipeline-nest-unplaced = { $part }, instans { $instance } fick inte plats: avstängd
+pipeline-nest-board-fixed = Skivan följde ritningen; den är nu { $width } × { $height }, med hörnet i ritningens origo
+pipeline-nest-travel = Skivan är { $board } längs { $axis }, maskinen rör sig { $travel }: bara så mycket av den används

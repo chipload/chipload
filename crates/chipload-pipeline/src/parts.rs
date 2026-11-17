@@ -83,6 +83,7 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
         mirror: None,
         angle: 0.0,
         at: [0.0, 0.0],
+        turns: None,
     });
     job.active_part = Some(id);
     Ok((checked(job)?, id))

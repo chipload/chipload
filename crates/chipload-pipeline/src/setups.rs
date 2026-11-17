@@ -58,6 +58,7 @@ pub fn add_setup(
         work_zero,
         back_of: None,
         pieces: None,
+        nest: None,
         placed: None,
     });
     let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
@@ -72,6 +73,7 @@ pub fn add_setup(
         mirror: None,
         angle: 0.0,
         at: [0.0, 0.0],
+        turns: None,
     });
     job.active_setup = Some(id);
     job.active_part = Some(part);

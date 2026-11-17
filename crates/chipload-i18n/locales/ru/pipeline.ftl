@@ -557,3 +557,16 @@ pipeline-pieces-no-such = фрагмента { $piece } нет
 pipeline-pieces-split = { $label } разрезается по шву фрагмента { $piece }: фреза там врезается в проход
 pipeline-pieces-board-larger = фрагменту { $piece } нужна заготовка { $x } × { $y }, больше заготовок { $board_x } × { $board_y }
 pipeline-pieces-none = установ не обрабатывается фрагментами
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = Установ, режущийся фрагментами, нельзя раскроить: фрагменты не принимают экземпляры
+pipeline-nest-two-sided = Двусторонний установ пока нельзя раскроить: детали обратной стороны расставлены по лицевой и остались бы на месте
+pipeline-nest-no-parts = В установе нет включённой детали для раскроя
+pipeline-nest-needs-board = Заготовка следует за чертежом; для раскроя нужна заготовка постоянного размера: укажите размер (--board 1220x610)
+pipeline-nest-no-room = На заготовке не осталось места для раскроя: отступ { $margin } ничего не оставляет
+pipeline-nest-count = { $part } режется хотя бы раз: вместо этого выключите деталь
+pipeline-nest-not-verified = Раскрой не прошёл проверки — это ошибка раскроя, ничего не изменено: { $reason }
+pipeline-nest-done = Размещено { $placed } из { $count }, заготовка занята до { $used } из { $length } ({ $share } %)
+pipeline-nest-unplaced = { $part }, экземпляр { $instance } не поместился: выключен
+pipeline-nest-board-fixed = Заготовка следовала за чертежом; теперь она { $width } × { $height }, угол в начале координат чертежа
+pipeline-nest-travel = Заготовка { $board } по { $axis }, ход станка { $travel }: используется только эта часть

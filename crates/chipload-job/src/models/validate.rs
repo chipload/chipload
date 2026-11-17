@@ -241,6 +241,17 @@ impl Job {
             ));
             problems.extend(self.back_problems(k));
             problems.extend(self.pieces_problems(k));
+            if let Some(nest) = setup.nest {
+                for (field, value) in [("gap", nest.gap), ("margin", nest.margin)] {
+                    if !(value.is_finite() && value >= 0.0) {
+                        problems.push(Problem::at(
+                            format!("{at}.nest.{field}"),
+                            Message::new("job-must-be-0-or-more")
+                                .arg("got", Value::Length(value, Digits::Shortest)),
+                        ));
+                    }
+                }
+            }
         }
         problems.extend(self.dowel_problems());
         for (i, part) in self.parts.iter().enumerate() {

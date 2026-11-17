@@ -720,3 +720,16 @@ pipeline-pieces-no-such = no hay ningún trozo { $piece }
 pipeline-pieces-split = { $label } se divide en una junta del trozo { $piece }: la fresa entra en el corte ahí
 pipeline-pieces-board-larger = el trozo { $piece } necesita un tablero de { $x } × { $y }, más grande que los tableros de { $board_x } × { $board_y }
 pipeline-pieces-none = la sujeción no se mecaniza en trozos
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = Una sujeción cortada en trozos no se puede anidar: sus trozos no admiten instancias
+pipeline-nest-two-sided = Una sujeción a dos caras aún no se puede anidar: las piezas del reverso se colocan según las del anverso y quedarían atrás
+pipeline-nest-no-parts = La sujeción no tiene ninguna pieza activa que anidar
+pipeline-nest-needs-board = El tablero sigue al dibujo; anidar necesita un tablero de tamaño fijo: indica su tamaño (--board 1220x610)
+pipeline-nest-no-room = No queda sitio en el tablero para anidar: un margen de { $margin } no deja nada
+pipeline-nest-count = { $part } se corta al menos una vez: desactiva la pieza en su lugar
+pipeline-nest-not-verified = El anidado no pasó las comprobaciones, un fallo del anidado, y no se cambió nada: { $reason }
+pipeline-nest-done = { $placed } de { $count } colocadas, el tablero usado hasta { $used } de { $length } ({ $share } %)
+pipeline-nest-unplaced = { $part }, instancia { $instance } no cupo: desactivada
+pipeline-nest-board-fixed = El tablero seguía al dibujo; ahora mide { $width } × { $height }, con su esquina en el origen del dibujo
+pipeline-nest-travel = El tablero mide { $board } en { $axis } y la máquina recorre { $travel }: solo se usa esa parte

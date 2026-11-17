@@ -722,3 +722,16 @@ pipeline-pieces-no-such = there is no piece { $piece }
 pipeline-pieces-split = { $label } is split at a seam of piece { $piece }: the cutter plunges into the cut there
 pipeline-pieces-board-larger = piece { $piece } needs a board of { $x } × { $y }, larger than the { $board_x } × { $board_y } boards
 pipeline-pieces-none = the setup is not cut in pieces
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = A setup cut in pieces can't be nested: its pieces don't take instances
+pipeline-nest-two-sided = A two-sided setup can't be nested yet: the back's parts are placed by the front's and would be left behind
+pipeline-nest-no-parts = The setup has no part that is on to nest
+pipeline-nest-needs-board = The board follows the drawing; nesting needs a board of a fixed size: give its size (--board 1220x610)
+pipeline-nest-no-room = No room is left on the board to nest on: a margin of { $margin } leaves nothing
+pipeline-nest-count = { $part } is cut at least once: switch the part off instead
+pipeline-nest-not-verified = The nest didn't pass the checks, a fault in nesting, and nothing was changed: { $reason }
+pipeline-nest-done = { $placed } of { $count } placed, the board used to { $used } of { $length } ({ $share } %)
+pipeline-nest-unplaced = { $part }, instance { $instance } didn't fit: switched off
+pipeline-nest-board-fixed = The board followed the drawing; it is now { $width } × { $height }, its corner at the drawing's origin
+pipeline-nest-travel = The board is { $board } along { $axis }, the machine travels { $travel }: only that much of it is used

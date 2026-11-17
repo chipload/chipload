@@ -444,6 +444,7 @@ impl EditJob {
             mirror: None,
             angle: 0.0,
             at: [0.0, 0.0],
+            turns: None,
         });
         self.job.active_part = Some(id);
         id

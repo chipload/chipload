@@ -125,10 +125,10 @@ to a program you trust. It was about four per operation; with the defaults and s
     **approved and built 2026-11-16** (all five steps, see *In main*); next the user tries
     it. Then nesting: docs/specs/nesting.md **written out 2026-11-17, for review** (bottom-left
     fill on a raster of each instance's real footprint, recommended in place of the outline's
-    MaxRects then no-fit polygons; ten decisions, approved 2026-11-17). Steps 1-2 of 6 built
+    MaxRects then no-fit polygons; ten decisions, approved 2026-11-17). Steps 1-3 of 6 built
     2026-11-17 (footprints and the raster, the bottom-left placer, `chipload-toolpath`
-    `nest/`); next step 3, the pipeline (`nest_setup`, counts, refusals, the two optional
-    fields).
+    `nest/`); Step 3 built 2026-11-17 (`chipload_pipeline::nest::nest_setup`); next step 4,
+    `chipload nest` on the command line.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
@@ -254,7 +254,9 @@ to a program you trust. It was about four per operation; with the defaults and s
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on
       5ee72272, so older than part placement): kind 3, size 14.009968037188523, r
       2.709730661055996, ball nose, c 12.554779909949778 ("below at d 14.01:
-      -0.0064 < 0"). A gouge of 6 µm at the section's end; find whether the drop cutter
+      -0.0064 < 0"). Found again 2026-11-17, deeper: kind 3, size 11.659449711444985, r 1.0,
+      ball nose, c 10.956349851748659 ("below at d 11.66: -0.0100 < 0"), again at the
+      section's end. A gouge of 6 µm at the section's end; find whether the drop cutter
       misses the end point and add the case to `moulding.proptest-regressions` with the fix.
     - Large files and functions (started 2026-11-16, aim: files under 1,000 lines, one job
       per function): split so far `plan/`, `pocket/`, the job's `operations/` and `library/`,

@@ -268,6 +268,27 @@ and one that let parts overhang by 5 mm, each broken on purpose. Timing (release
 instances of five parts with quarter turns on a 2440 × 1220 board, 0.39 s in all, every
 one placed, 1503 mm of the board used.
 
+**As built (step 3, 2026-11-17).** `chipload_pipeline::nest::nest_setup(job, request,
+cancel)` with a `NestRequest` (setup, board, gap, margin, turns for all or per part,
+counts) gives a `NestResult` (the project, what went where, what was switched off, the
+length used, whether the board was fixed, the travel's limits) with a `summary` and
+`notes` as messages in seven languages. Each part is planned alone once, as drawn, with
+one extra instance per mirror its instances use, set far to the right; board surfaces and
+dowel holes are left out of its sweep, the dowel holes kept out of the board. Where a
+part's instance 1 doesn't fit but another unmirrored instance of it did, instance 1 takes
+that place and the other is switched off, so the part stays on and is cut as many times.
+The result is checked by `run_setups` for the setup; a placement broken on purpose was
+refused there. Turns are stored in −180°…180° (a quarter turn back is −90°, not 270°).
+- **One change from §5:** a board that followed the drawing becomes a fixed board with its
+  bottom-left corner at the drawing's origin (`origin: bottom_left`), not where its corner
+  was. A fixed board can only sit at the origin (by its corner or its centre); the one
+  form that sits elsewhere, centred on the drawing, follows the drawing. Since every
+  instance, the part itself included, is placed anew, where the drawing lies doesn't
+  matter, and the drawing doesn't move.
+- `Nest` on a setup and `Turns` on a part; the JSON Schema and the reference page are
+  regenerated. A glossary word: *nest* (verschachteln, imbriquer, anidar, annidare,
+  nästla, раскроить).
+
 **Later, each with its own decision:** small parts in holes (§9.2), a second board for what
 doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.
 

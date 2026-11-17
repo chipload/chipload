@@ -72,6 +72,11 @@ pub struct Setup {
     // Spec: docs/specs/pieces.md.
     #[serde(default)]
     pub pieces: Option<Pieces>,
+    /// How the setup was last nested: its gap and margin, kept so *Nest again* needs no
+    /// questions. Missing: never nested. Left out when missing.
+    // Spec: docs/specs/nesting.md §10 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub nest: Option<Nest>,
     /// A board Chipload placed itself for one run, its (min, max) corners in drawing
     /// coordinates: a piece's board, fitted round the piece (docs/specs/pieces.md §7). It
     /// overrides where the stock would be and its size; the thickness, material and the
@@ -79,6 +84,70 @@ pub struct Setup {
     #[serde(skip)]
     #[cfg_attr(feature = "schema", schemars(skip))]
     pub placed: Option<((f64, f64), (f64, f64))>,
+}
+
+/// A setup's nesting settings (docs/specs/nesting.md §10).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(deny_unknown_fields)]
+pub struct Nest {
+    /// The least distance between what two instances cut, mm.
+    pub gap: f64,
+    /// The least distance from what an instance cuts to the board's edge, mm.
+    pub margin: f64,
+}
+
+/// How a part may be turned when it is nested (docs/specs/nesting.md §3): wood grain is
+/// the usual reason for none or half.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum Turns {
+    /// As it lies.
+    None,
+    /// As it lies or turned 180°.
+    Half,
+    /// A quarter turn at a time.
+    #[default]
+    Quarter,
+    /// 15° at a time.
+    #[serde(rename = "every_15")]
+    Every15,
+}
+
+impl Turns {
+    pub const ALL: [Turns; 4] = [Turns::None, Turns::Half, Turns::Quarter, Turns::Every15];
+
+    /// The name in the file and on the command line.
+    pub fn name(self) -> &'static str {
+        match self {
+            Turns::None => "none",
+            Turns::Half => "half",
+            Turns::Quarter => "quarter",
+            Turns::Every15 => "every_15",
+        }
+    }
+
+    /// The turns tried, radians counter-clockwise, as it lies first; each in −π…π
+    /// (270° is −90°), counter-clockwise ones before clockwise.
+    pub fn angles(self) -> Vec<f64> {
+        let steps: u32 = match self {
+            Turns::None => 1,
+            Turns::Half => 2,
+            Turns::Quarter => 4,
+            Turns::Every15 => 24,
+        };
+        let step = std::f64::consts::TAU / f64::from(steps);
+        (0..steps)
+            .map(|k| {
+                if 2 * k <= steps {
+                    f64::from(k) * step
+                } else {
+                    -f64::from(steps - k) * step
+                }
+            })
+            .collect()
+    }
 }
 
 /// How a setup is cut in pieces (docs/specs/pieces.md §10).
@@ -267,6 +336,11 @@ pub struct Part {
     pub angle: f64,
     /// Instance 1 then moved, mm; (0, 0): where drawn. Since schema 39.
     pub at: [f64; 2],
+    /// How it may be turned when nested. Missing: a quarter turn at a time. Left out when
+    /// missing.
+    // Spec: docs/specs/nesting.md §10 (optional, no schema bump).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub turns: Option<Turns>,
 }
 
 /// How a part is cut mirrored: about the vertical or the horizontal centre line of its box.

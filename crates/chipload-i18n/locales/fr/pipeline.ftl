@@ -720,3 +720,16 @@ pipeline-pieces-no-such = il n’y a pas de morceau { $piece }
 pipeline-pieces-split = { $label } est coupé à un joint du morceau { $piece } : la fraise plonge dans la passe à cet endroit
 pipeline-pieces-board-larger = le morceau { $piece } demande une planche de { $x } × { $y }, plus grande que les planches de { $board_x } × { $board_y }
 pipeline-pieces-none = le montage n’est pas usiné en morceaux
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = Un montage usiné en morceaux ne peut pas être imbriqué : ses morceaux ne prennent pas d’instances
+pipeline-nest-two-sided = Un montage recto verso ne peut pas encore être imbriqué : les pièces du verso sont placées d’après celles du recto et resteraient en arrière
+pipeline-nest-no-parts = Le montage n’a aucune pièce activée à imbriquer
+pipeline-nest-needs-board = La planche suit le dessin ; l’imbrication demande une planche de taille fixe : donnez sa taille (--board 1220x610)
+pipeline-nest-no-room = Il ne reste pas de place sur la planche pour imbriquer : une marge de { $margin } ne laisse rien
+pipeline-nest-count = { $part } est usinée au moins une fois : désactivez plutôt la pièce
+pipeline-nest-not-verified = L’imbrication n’a pas passé les vérifications, un défaut de l’imbrication, et rien n’a été changé : { $reason }
+pipeline-nest-done = { $placed } sur { $count } placées, la planche utilisée jusqu’à { $used } sur { $length } ({ $share } %)
+pipeline-nest-unplaced = { $part }, instance { $instance } n’a pas trouvé place : désactivée
+pipeline-nest-board-fixed = La planche suivait le dessin ; elle fait maintenant { $width } × { $height }, son coin à l’origine du dessin
+pipeline-nest-travel = La planche mesure { $board } en { $axis }, la machine se déplace de { $travel } : seule cette partie est utilisée

@@ -558,6 +558,7 @@ fn two_parts(b_at: f64, a_copies: Value, b_copies: Value) -> (Job, Vec<Contour>)
         mirror: None,
         angle: 0.0,
         at: [0.0, 0.0],
+        turns: None,
     };
     set_grid(&mut b, &b_copies);
     job.parts.push(b);

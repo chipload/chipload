@@ -715,3 +715,16 @@ pipeline-pieces-no-such = es gibt kein Stück { $piece }
 pipeline-pieces-split = { $label } wird an einer Naht von Stück { $piece } geteilt: der Fräser taucht dort in die Bahn ein
 pipeline-pieces-board-larger = Stück { $piece } braucht eine Platte von { $x } × { $y }, größer als die Platten von { $board_x } × { $board_y }
 pipeline-pieces-none = die Aufspannung wird nicht in Stücken gefräst
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = Eine in Stücken gefräste Aufspannung kann nicht verschachtelt werden: ihre Stücke nehmen keine Instanzen
+pipeline-nest-two-sided = Eine beidseitige Aufspannung kann noch nicht verschachtelt werden: die Teile der Rückseite liegen nach denen der Vorderseite und blieben zurück
+pipeline-nest-no-parts = Die Aufspannung hat kein eingeschaltetes Teil zum Verschachteln
+pipeline-nest-needs-board = Das Brett folgt der Zeichnung; zum Verschachteln braucht es eine feste Größe: gib sie an (--board 1220x610)
+pipeline-nest-no-room = Auf dem Brett bleibt kein Platz zum Verschachteln: ein Rand von { $margin } lässt nichts übrig
+pipeline-nest-count = { $part } wird mindestens einmal gefräst: schalte das Teil stattdessen aus
+pipeline-nest-not-verified = Das Verschachteln hat die Prüfungen nicht bestanden, ein Fehler beim Verschachteln, und nichts wurde geändert: { $reason }
+pipeline-nest-done = { $placed } von { $count } platziert, das Brett bis { $used } von { $length } genutzt ({ $share } %)
+pipeline-nest-unplaced = { $part }, Instanz { $instance } passte nicht: ausgeschaltet
+pipeline-nest-board-fixed = Das Brett folgte der Zeichnung; es ist jetzt { $width } × { $height }, seine Ecke im Ursprung der Zeichnung
+pipeline-nest-travel = Das Brett ist { $board } lang in { $axis }, die Maschine fährt { $travel }: nur so viel davon wird genutzt

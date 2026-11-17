@@ -717,3 +717,16 @@ pipeline-pieces-no-such = non c’è nessun tassello { $piece }
 pipeline-pieces-split = { $label } è diviso a una giunta del tassello { $piece }: la fresa entra nel taglio lì
 pipeline-pieces-board-larger = il tassello { $piece } richiede una tavola di { $x } × { $y }, più grande delle tavole di { $board_x } × { $board_y }
 pipeline-pieces-none = il piazzamento non si lavora a tasselli
+
+# Nesting (docs/specs/nesting.md)
+pipeline-nest-pieces = Un piazzamento tagliato in tasselli non si può annidare: i suoi tasselli non accettano istanze
+pipeline-nest-two-sided = Un piazzamento a due facce non si può ancora annidare: i pezzi del retro sono posti secondo quelli del fronte e resterebbero indietro
+pipeline-nest-no-parts = Il piazzamento non ha nessun pezzo attivo da annidare
+pipeline-nest-needs-board = La tavola segue il disegno; annidare richiede una tavola di misura fissa: indicane la misura (--board 1220x610)
+pipeline-nest-no-room = Sulla tavola non resta spazio per annidare: un margine di { $margin } non lascia nulla
+pipeline-nest-count = { $part } si taglia almeno una volta: disattiva invece il pezzo
+pipeline-nest-not-verified = L’annidamento non ha superato i controlli, un difetto dell’annidamento, e nulla è stato cambiato: { $reason }
+pipeline-nest-done = { $placed } su { $count } posizionati, la tavola usata fino a { $used } su { $length } ({ $share } %)
+pipeline-nest-unplaced = { $part }, istanza { $instance } non è entrata: disattivata
+pipeline-nest-board-fixed = La tavola seguiva il disegno; ora misura { $width } × { $height }, con l’angolo nell’origine del disegno
+pipeline-nest-travel = La tavola misura { $board } in { $axis }, la macchina corre { $travel }: se ne usa solo quella parte

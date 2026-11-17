@@ -1724,6 +1724,27 @@
         }
       ]
     },
+    "Nest": {
+      "additionalProperties": false,
+      "description": "A setup's nesting settings (docs/specs/nesting.md §10).",
+      "properties": {
+        "gap": {
+          "description": "The least distance between what two instances cut, mm.",
+          "format": "double",
+          "type": "number"
+        },
+        "margin": {
+          "description": "The least distance from what an instance cuts to the board's edge, mm.",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "required": [
+        "gap",
+        "margin"
+      ],
+      "type": "object"
+    },
     "Operation": {
       "oneOf": [
         {
@@ -3238,6 +3259,17 @@
           "format": "uint64",
           "minimum": 0,
           "type": "integer"
+        },
+        "turns": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Turns"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How it may be turned when nested. Missing: a quarter turn at a time. Left out when\nmissing."
         }
       },
       "required": [
@@ -3850,6 +3882,17 @@
         "name": {
           "description": "Its name, shown in the Browser, the report and the setup sheet.",
           "type": "string"
+        },
+        "nest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nest"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How the setup was last nested: its gap and margin, kept so *Nest again* needs no\nquestions. Missing: never nested. Left out when missing."
         },
         "pieces": {
           "anyOf": [
@@ -4601,6 +4644,31 @@
         {
           "const": "top_bottom",
           "description": "About the horizontal centre line: the bottom edge goes to the top, Y is mirrored.",
+          "type": "string"
+        }
+      ]
+    },
+    "Turns": {
+      "description": "How a part may be turned when it is nested (docs/specs/nesting.md §3): wood grain is\nthe usual reason for none or half.",
+      "oneOf": [
+        {
+          "const": "none",
+          "description": "As it lies.",
+          "type": "string"
+        },
+        {
+          "const": "half",
+          "description": "As it lies or turned 180°.",
+          "type": "string"
+        },
+        {
+          "const": "quarter",
+          "description": "A quarter turn at a time.",
+          "type": "string"
+        },
+        {
+          "const": "every_15",
+          "description": "15° at a time.",
           "type": "string"
         }
       ]
