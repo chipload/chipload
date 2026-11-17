@@ -2475,7 +2475,7 @@ chipload part set <PROJECT> <ID> [OPTIONS]
 
 ### `chipload part place`
 
-Place the part itself (instance 1): cut moved and turned, as an instance is, its shapes staying where they are drawn (docs/specs/part-placement.md)
+Place instance 1, the part as first placed: cut moved and turned, its shapes staying where they are drawn (docs/specs/part-placement.md); the same as `part instance set … 1`
 
 ```text
 chipload part place <PROJECT> [OPTIONS]
@@ -2537,7 +2537,7 @@ chipload part instance set <PROJECT> <IDS>... [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `--part <PART>` | Which part; needed when the project has several. |
-| `<IDS>` | The instances' numbers (as `part instance list` shows them); 1 is the part itself, which is moved and turned only. |
+| `<IDS>` | The instances' numbers (as `part instance list` shows them) |
 | `--at <AT>` | Its move "DX,DY" from the part as drawn; one instance only. |
 | `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
 | `--mirror <MIRROR>` | Mirrored: left-right, top-bottom or none. |
@@ -2558,7 +2558,7 @@ chipload part instance remove <PROJECT> <IDS>... [OPTIONS]
 | `<PROJECT>` | The project (.chipload) |
 | `--part <PART>` | Which part; needed when the project has several. |
 | `<IDS>` | The instances' numbers. |
-| `--all` | Every instance: the part is cut once. |
+| `--all` | Every instance but the first: the part is cut once. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part instance move`

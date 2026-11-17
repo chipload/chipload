@@ -392,9 +392,6 @@ pipeline-shape-imported-change = Form { $id } wurde aus der DXF importiert und k
 pipeline-no-part = Kein Teil { $id } im Projekt
 # $id is an instance's number in the part (2 on).
 pipeline-no-instance = Teil „{ $part }“ hat keine Instanz { $id }
-pipeline-instance-one-mirror = Instanz 1 ist Teil „{ $part }“ selbst: sie hat keine eigene Spiegelung; spiegle stattdessen das Teil
-pipeline-instance-one-off = Instanz 1 ist Teil „{ $part }“ selbst: sie kann nicht allein ausgeschaltet werden; schalte stattdessen das Teil aus
-pipeline-instance-one-remove = Instanz 1 ist Teil „{ $part }“ selbst: sie kann nicht entfernt werden
 pipeline-part-name-empty = Der Name eines Teils darf nicht leer sein
 pipeline-part-name-taken = Ein anderes Teil heißt „{ $name }“
 pipeline-last-part = Ein Projekt braucht mindestens ein Teil: dies ist das letzte

@@ -21,6 +21,24 @@ pub(in crate::app) fn part_form(
     let count = edit.job.count_all(id);
     let has_instances = edit.job.instances_of(id).len() > 1;
     let mut clear = false;
+    // Its instances by board, once there are several (docs/specs/parts-and-setups.md §8).
+    let boards: Vec<(String, Vec<u32>)> = if edit.job.setups.len() > 1 {
+        edit.job
+            .setups
+            .iter()
+            .map(|s| {
+                let numbers = s
+                    .instances
+                    .iter()
+                    .filter(|i| i.part == id)
+                    .map(|i| i.id)
+                    .collect();
+                (s.name.clone(), numbers)
+            })
+            .collect()
+    } else {
+        Vec::new()
+    };
     // The board it is cut from, for a thickness newly ticked.
     let board = edit
         .job
@@ -81,6 +99,32 @@ pub(in crate::app) fn part_form(
         let instances = (count, has_instances, &mut clear);
         copies_rows(ui, part, instances, &mut request, id);
     });
+    if !boards.is_empty() {
+        let on: Vec<&(String, Vec<u32>)> = boards.iter().filter(|(_, n)| !n.is_empty()).collect();
+        let summary = match on.as_slice() {
+            [] => t!(ui, "forms-part-boards-none"),
+            [(name, _)] => name.clone(),
+            more => t!(ui, "forms-part-boards-count", count = more.len()),
+        };
+        section(
+            ui,
+            "part-boards",
+            &t!(ui, "forms-part-boards"),
+            &summary,
+            |ui| {
+                for (name, numbers) in &boards {
+                    ui.label(name);
+                    let text: Vec<String> = numbers.iter().map(|n| format!("#{n}")).collect();
+                    if text.is_empty() {
+                        ui.weak("–");
+                    } else {
+                        ui.label(text.join(", "));
+                    }
+                    ui.end_row();
+                }
+            },
+        );
+    }
     let materials = library.map(|l| &l.materials);
     if let Some(asked) = stock_section(ui, id, part.stock.as_ref(), board, materials) {
         request = Some(asked);
@@ -213,7 +257,6 @@ pub(in crate::app) fn instance_form(
     use chipload_job::{Instance, Mirror};
     let own = edit.job.part(part)?;
     let name = own.name.clone();
-    let enabled = own.enabled;
     // The value edited, and where its problems are reported: in its setup
     // (docs/specs/parts-and-setups.md §5).
     let (j, k) = edit.job.setups.iter().enumerate().find_map(|(j, s)| {
@@ -223,10 +266,8 @@ pub(in crate::app) fn instance_form(
             .map(|k| (j, k))
     })?;
     let mut instance: Instance = edit.job.setups[j].instances[k];
-    if id == 1 {
-        // The part itself is on with its part.
-        instance.enabled = enabled;
-    }
+    // Its board, named once there are several (docs/specs/parts-and-setups.md §8).
+    let board = (edit.job.setups.len() > 1).then(|| edit.job.setups[j].name.clone());
     // Problems are keyed by field, without the setup's place.
     let base = format!("instances.{k}");
     super::browser_row::title_line(
@@ -241,31 +282,34 @@ pub(in crate::app) fn instance_form(
             .num_columns(2)
             .min_col_width(label_width(ui) + ui.spacing().indent)
             .show(ui, |ui| {
-                if id != 1 {
-                    ui.label(t!(ui, "forms-part-cut"))
-                        .on_hover_text(t!(ui, "forms-instance-cut-hover"));
-                    ui.checkbox(&mut instance.enabled, t!(ui, "forms-instance-cut-check"));
-                    ui.end_row();
-                    let mirror_name = |ui: &egui::Ui, mirror: Option<Mirror>| match mirror {
-                        None => t!(ui, "forms-part-mirror-none"),
-                        Some(Mirror::LeftRight) => t!(ui, "forms-setup-turn-left-right"),
-                        Some(Mirror::TopBottom) => t!(ui, "forms-setup-turn-top-bottom"),
-                    };
-                    ui.label(t!(ui, "forms-part-mirror"))
-                        .on_hover_text(t!(ui, "forms-instance-mirror-hover"));
-                    ComboBox::from_id_salt(("instance-mirror", part, id))
-                        .selected_text(mirror_name(ui, instance.mirror))
-                        .show_ui(ui, |ui| {
-                            for choice in [None, Some(Mirror::LeftRight), Some(Mirror::TopBottom)] {
-                                ui.selectable_value(
-                                    &mut instance.mirror,
-                                    choice,
-                                    mirror_name(ui, choice),
-                                );
-                            }
-                        });
+                if let Some(board) = &board {
+                    ui.label(t!(ui, "forms-instance-setup"));
+                    ui.label(board);
                     ui.end_row();
                 }
+                ui.label(t!(ui, "forms-part-cut"))
+                    .on_hover_text(t!(ui, "forms-instance-cut-hover"));
+                ui.checkbox(&mut instance.enabled, t!(ui, "forms-instance-cut-check"));
+                ui.end_row();
+                let mirror_name = |ui: &egui::Ui, mirror: Option<Mirror>| match mirror {
+                    None => t!(ui, "forms-part-mirror-none"),
+                    Some(Mirror::LeftRight) => t!(ui, "forms-setup-turn-left-right"),
+                    Some(Mirror::TopBottom) => t!(ui, "forms-setup-turn-top-bottom"),
+                };
+                ui.label(t!(ui, "forms-part-mirror"))
+                    .on_hover_text(t!(ui, "forms-instance-mirror-hover"));
+                ComboBox::from_id_salt(("instance-mirror", part, id))
+                    .selected_text(mirror_name(ui, instance.mirror))
+                    .show_ui(ui, |ui| {
+                        for choice in [None, Some(Mirror::LeftRight), Some(Mirror::TopBottom)] {
+                            ui.selectable_value(
+                                &mut instance.mirror,
+                                choice,
+                                mirror_name(ui, choice),
+                            );
+                        }
+                    });
+                ui.end_row();
                 ui.label(t!(ui, "forms-rotation"))
                     .on_hover_text(t!(ui, "forms-instance-angle-hover"));
                 ui.horizontal(|ui| {
@@ -302,14 +346,8 @@ pub(in crate::app) fn instance_form(
     });
     ui.add_space(4.0);
     let target = &mut edit.job.setups[j].instances[k];
-    if id == 1 {
-        ui.weak(t!(ui, "forms-instance-one-note"));
-        target.angle = instance.angle;
-        target.at = instance.at;
-    } else {
-        ui.weak(t!(ui, "forms-instance-note"));
-        *target = instance;
-    }
+    ui.weak(t!(ui, "forms-instance-note"));
+    *target = instance;
     None
 }
 

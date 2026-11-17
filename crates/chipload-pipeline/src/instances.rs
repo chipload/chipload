@@ -244,9 +244,8 @@ pub struct InstanceChange {
     pub enabled: Option<bool>,
 }
 
-/// Instances `ids` of part `part` changed as asked. Instance 1, the part itself
-/// (docs/specs/part-placement.md §7), is moved and turned only: it has no mirror of its own
-/// and is switched off with its part.
+/// Instances `ids` of part `part` changed as asked; instance 1 like any other
+/// (docs/specs/parts-and-setups.md §6).
 pub fn set_instances(
     job: &Job,
     part: u64,
@@ -256,19 +255,6 @@ pub fn set_instances(
     let index = part_index(job, part)?;
     let mut job = job.clone();
     for &id in ids {
-        if id == 1 {
-            let name = job.parts[index].name.clone();
-            if change.mirror.is_some() {
-                return Err(refused(
-                    Message::new("pipeline-instance-one-mirror").arg("part", name),
-                ));
-            }
-            if change.enabled.is_some() {
-                return Err(refused(
-                    Message::new("pipeline-instance-one-off").arg("part", name),
-                ));
-            }
-        }
         instance_exists(&job, index, id)?;
         let Some(instance) = job.instance_mut(part, id) else {
             continue;
@@ -289,15 +275,10 @@ pub fn set_instances(
     checked(job)
 }
 
-/// Part `part` without instances `ids`; the others keep their numbers.
+/// Part `part` without instances `ids`, instance 1 too; the others keep their numbers. A
+/// part left with none is placed nowhere: not cut, kept (docs/specs/parts-and-setups.md §2).
 pub fn remove_instances(job: &Job, part: u64, ids: &[u32]) -> Result<Job, PipelineError> {
     let index = part_index(job, part)?;
-    if ids.contains(&1) {
-        return Err(refused(
-            Message::new("pipeline-instance-one-remove")
-                .arg("part", job.parts[index].name.as_str()),
-        ));
-    }
     for &id in ids {
         instance_exists(job, index, id)?;
     }

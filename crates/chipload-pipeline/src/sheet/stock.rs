@@ -73,8 +73,8 @@ pub(super) fn setup(html: &mut String, job: &Job, w: Words) {
         .iter()
         .filter(|p| p.enabled && job.is_placed(p.id))
     {
-        // The part itself, instance 1, on this board.
-        let Some(own) = job.instances_here(part.id).into_iter().find(|i| i.id == 1) else {
+        // Its first instance on this board.
+        let Some(own) = job.instances_here(part.id).into_iter().next() else {
             continue;
         };
         let message = if own.angle == 0.0 {

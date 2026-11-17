@@ -39,7 +39,29 @@ pub(super) struct PartRows<'a> {
     pub(super) count: usize,
     /// The tool changes shown above an operation's row ([`tool_changes`]).
     pub(super) tool_before: &'a std::collections::BTreeMap<usize, Vec<i64>>,
+    /// One board: the part's instances are listed under it. With several they are listed
+    /// under their setups, and the part can be dragged onto one
+    /// (docs/specs/parts-and-setups.md §8).
+    pub(super) simple: bool,
 }
+
+/// How an instance's row is drawn: whether its setup is the active one, its depth, named
+/// with its part (under its setup), and the setups it can be moved to.
+#[derive(Clone, Copy)]
+pub(super) struct InstanceLook<'a> {
+    pub(super) in_active_setup: bool,
+    pub(super) depth: usize,
+    pub(super) named: bool,
+    pub(super) setups: &'a [(u64, String)],
+}
+
+/// A part's row dragged in the Browser: dropped on a setup, the part is placed there.
+#[derive(Clone, Copy)]
+pub(super) struct DraggedPart(pub u64);
+
+/// An instance's row dragged in the Browser: dropped on a setup, it is cut there.
+#[derive(Clone, Copy)]
+pub(super) struct DraggedInstance(pub u64, pub u32);
 
 /// What a click in the operation rows asks for, done after they are drawn.
 pub(super) enum OpAction {
@@ -101,10 +123,14 @@ pub(super) enum OpAction {
     InstanceMirror(u64, u32),
     InstanceTurn(u64, u32),
     InstanceRemove(u64, u32),
+    /// Part `.0` placed on setup `.1` where it is drawn, a new instance
+    /// (docs/specs/parts-and-setups.md §8).
+    PartPlaceOn(u64, u64),
+    /// Instance (`.0`, `.1`) cut on setup `.2`, keeping its number and placement.
+    InstanceToSetup(u64, u32, u64),
     /// Part `0` itself placed: its instance 1's form; or put back where drawn
     /// (docs/specs/part-placement.md §6).
     PartPlace(u64),
-    PartHideOwn(u64),
     PartResetPlacement(u64),
 }
 
@@ -182,7 +208,8 @@ impl ChiploadApp {
             OpAction::InstanceTurn(part, id) => self.turn_instance(part, id),
             OpAction::InstanceRemove(part, id) => self.remove_instance(part, id),
             OpAction::PartPlace(part) => self.place_part(part),
-            OpAction::PartHideOwn(part) => self.hide_own_instance(part),
+            OpAction::PartPlaceOn(part, setup) => self.place_part_on(part, setup),
+            OpAction::InstanceToSetup(part, id, setup) => self.instance_to_setup(part, id, setup),
             OpAction::PartResetPlacement(part) => self.reset_part_placement(part),
         }
     }
@@ -203,6 +230,7 @@ impl ChiploadApp {
             board,
             count,
             tool_before,
+            simple,
         } = rows;
         let mine: Vec<usize> = (0..count)
             .filter(|i| op_parts[*i] == part.id && !board[*i])
@@ -245,7 +273,9 @@ impl ChiploadApp {
         if is_active && parts.len() > 1 {
             trailing.push(t!(ui, "browser-part-active"));
         }
-        if times > 1 {
+        if instances.is_empty() {
+            trailing.push(t!(ui, "browser-part-not-placed"));
+        } else if times > 1 {
             trailing.push(format!("×{times}"));
         }
         if part.mirror.is_some() {
@@ -254,16 +284,20 @@ impl ChiploadApp {
         let id = Id::new(("browser-part", part.id));
         let open_id = id.with("folder-open");
         let open = folder_open(ui, open_id, true);
-        let out = Row::new(id, depth, &part.name)
+        let row = Row::new(id, depth, &part.name)
             .folder(open)
             .tick(part.enabled)
             .icon(Icon::Part)
             .trailing(trailing.join(" · "))
             .selected(self.focus == Focus::Part(part.id))
-            .dim(!part.enabled || !in_active_setup)
+            .dim(!part.enabled || (simple && !in_active_setup))
             .alert(flagged)
-            .strong(is_active && parts.len() > 1)
-            .show(ui);
+            .strong(is_active && parts.len() > 1);
+        // Dragged onto a setup, it is placed there (docs/specs/parts-and-setups.md §8).
+        let out = if simple { row } else { row.draggable() }.show(ui);
+        if !simple {
+            out.response.dnd_set_drag_payload(DraggedPart(part.id));
+        }
         let mut action = None;
         if out.toggled {
             toggle_folder(ui, open_id, true);
@@ -327,22 +361,16 @@ impl ChiploadApp {
             {
                 action = Some(OpAction::InstanceAdd(part.id, true));
             }
-            // Shown while placed, asked for or selected; a placed part always shows it.
-            let mut shown = self.own_instance_shown(part);
+            // Its first instance selected, to move and turn it.
             if ui
                 .add_enabled(
-                    !placed,
-                    egui::Checkbox::new(&mut shown, t!(ui, "browser-place-part")),
+                    !instances.is_empty(),
+                    egui::Button::new(t!(ui, "browser-place-part")),
                 )
                 .on_hover_text(t!(ui, "browser-place-part-hover"))
-                .on_disabled_hover_text(t!(ui, "browser-place-part-placed-hover"))
                 .clicked()
             {
-                action = Some(if shown {
-                    OpAction::PartPlace(part.id)
-                } else {
-                    OpAction::PartHideOwn(part.id)
-                });
+                action = Some(OpAction::PartPlace(part.id));
             }
             if ui
                 .add_enabled(placed, egui::Button::new(t!(ui, "browser-reset-placement")))
@@ -352,6 +380,17 @@ impl ChiploadApp {
                 action = Some(OpAction::PartResetPlacement(part.id));
             }
             if setups.len() > 1 {
+                super::header::submenu(ui, t!(ui, "browser-place-on-setup"), |ui| {
+                    for (id, name) in &setups {
+                        if ui
+                            .button(name)
+                            .on_hover_text(t!(ui, "browser-place-on-setup-hover"))
+                            .clicked()
+                        {
+                            action = Some(OpAction::PartPlaceOn(part.id, *id));
+                        }
+                    }
+                });
                 super::header::submenu(ui, t!(ui, "browser-move-to-setup"), |ui| {
                     for (id, name) in &setups {
                         if ui
@@ -424,39 +463,45 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
-        // The part itself as instance 1, once it has instances, a placement or is shown
-        // (docs/specs/part-placement.md §6): its tick is the part's.
-        let shown = instances.len() > 1 || self.own_instance_shown(part);
-        let listed = instances.iter().filter(|i| shown || i.id != 1).map(|i| {
-            if i.id == 1 {
-                chipload_job::Instance {
-                    enabled: part.enabled,
-                    ..*i
+        // One board: its instances under it, once it is cut more than once, elsewhere than
+        // drawn, or one of them is selected (docs/specs/parts-and-setups.md §2a). With
+        // several boards they are under their setups.
+        let selected_here = matches!(self.focus, Focus::Instance(p, _) if p == part.id);
+        let listed = simple && (instances.len() > 1 || placed || selected_here);
+        if listed {
+            let look = InstanceLook {
+                in_active_setup,
+                depth: depth + 1,
+                named: false,
+                setups: &setups,
+            };
+            for instance in &instances {
+                if let Some(a) = self.instance_row(ui, part, instance, look) {
+                    action = Some(a);
                 }
-            } else {
-                *i
-            }
-        });
-        for instance in listed.collect::<Vec<_>>().iter() {
-            if let Some(a) = self.instance_row(ui, part, instance, in_active_setup, depth + 1) {
-                action = Some(a);
             }
         }
         action
     }
 
     /// Instance `instance` of `part`'s row (docs/specs/instances.md §4): its number, on or
-    /// off, how it is turned and mirrored; its menu mirrors, turns or removes it.
-    fn instance_row(
+    /// off, how it is turned and mirrored; its menu mirrors, turns, moves it to another setup
+    /// or removes it. Under its setup it is named with its part, and can be dragged onto
+    /// another setup (docs/specs/parts-and-setups.md §8).
+    pub(super) fn instance_row(
         &mut self,
         ui: &mut egui::Ui,
         part: &chipload_job::Part,
         instance: &chipload_job::Instance,
-        in_active_setup: bool,
-        depth: usize,
+        look: InstanceLook,
     ) -> Option<OpAction> {
+        let InstanceLook {
+            in_active_setup,
+            depth,
+            named,
+            setups,
+        } = look;
         let (p, id) = (part.id, instance.id);
-        let placed = self.edit.as_ref().is_some_and(|e| e.job.is_placed(p));
         let mut trailing = Vec::new();
         if instance.angle != 0.0 {
             trailing.push(format!("{:.1}°", instance.angle.to_degrees()));
@@ -465,47 +510,58 @@ impl ChiploadApp {
             trailing.push(t!(ui, "browser-part-mirrored"));
         }
         let flagged = !self.form_problem_map(Focus::Instance(p, id)).is_empty();
-        let label = t!(ui, "forms-instance-number", number = id);
-        let out = Row::new(Id::new(("browser-instance", p, id)), depth, label)
+        let label = if named {
+            t!(
+                ui,
+                "browser-instance-of",
+                part = part.name.as_str(),
+                number = id
+            )
+        } else {
+            t!(ui, "forms-instance-number", number = id)
+        };
+        let row = Row::new(Id::new(("browser-instance", p, id)), depth, label)
             .tick(instance.enabled)
             .icon(Icon::Array)
             .trailing(trailing.join(" · "))
             .selected(self.focus == Focus::Instance(p, id))
             .dim(!instance.enabled || !part.enabled || !in_active_setup)
-            .alert(flagged)
-            .show(ui);
+            .alert(flagged);
+        let several = setups.len() > 1;
+        let out = if several { row.draggable() } else { row }.show(ui);
+        if several {
+            out.response.dnd_set_drag_payload(DraggedInstance(p, id));
+        }
         let mut action = None;
         if out.tick {
             action = Some(OpAction::InstanceToggle(p, id));
         } else if out.response.clicked() {
             action = Some(OpAction::InstanceFocus(p, id));
         }
-        let hover = if id == 1 {
-            t!(ui, "browser-instance-one-hover")
-        } else {
-            t!(ui, "browser-instance-hover")
-        };
+        let hover = t!(ui, "browser-instance-hover");
         out.response.on_hover_text(hover).context_menu(|ui| {
-            if id == 1 {
-                // The part itself: turned and moved only.
-                if ui.button(t!(ui, "browser-instance-turn")).clicked() {
-                    action = Some(OpAction::InstanceTurn(p, id));
-                }
-                ui.separator();
-                if ui
-                    .add_enabled(placed, egui::Button::new(t!(ui, "browser-reset-placement")))
-                    .on_hover_text(t!(ui, "browser-reset-placement-hover"))
-                    .clicked()
-                {
-                    action = Some(OpAction::PartResetPlacement(p));
-                }
-                return;
-            }
             if ui.button(t!(ui, "browser-instance-mirror")).clicked() {
                 action = Some(OpAction::InstanceMirror(p, id));
             }
             if ui.button(t!(ui, "browser-instance-turn")).clicked() {
                 action = Some(OpAction::InstanceTurn(p, id));
+            }
+            if several {
+                let here = self
+                    .edit
+                    .as_ref()
+                    .and_then(|e| e.job.instances_of(p).into_iter().find(|(_, i)| i.id == id))
+                    .map(|(s, _)| s);
+                super::header::submenu(ui, t!(ui, "browser-move-to-setup"), |ui| {
+                    for (setup, name) in setups {
+                        if ui
+                            .add_enabled(here != Some(*setup), egui::Button::new(name))
+                            .clicked()
+                        {
+                            action = Some(OpAction::InstanceToSetup(p, id, *setup));
+                        }
+                    }
+                });
             }
             ui.separator();
             if ui.button(t!(ui, "browser-instance-remove")).clicked() {

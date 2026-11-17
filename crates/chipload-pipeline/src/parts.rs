@@ -187,27 +187,27 @@ pub struct InstanceOutline {
     pub outlines: Vec<(Vec<Point>, bool)>,
 }
 
-/// Every instance of every part (on or off), where it is cut, the part itself (number 1)
-/// first when it is placed elsewhere than drawn (docs/specs/part-placement.md §4). An
+/// Every instance of every part (on or off) that isn't cut where its part is drawn, where it
+/// is cut (docs/specs/part-placement.md §4): one where drawn is its shapes themselves. An
 /// instance only moved is its outlines moved by its shift exactly; a turned or mirrored one
 /// is placed about the part's centre.
 pub fn instance_outlines(job: &Job, contours: &[Contour]) -> Vec<InstanceOutline> {
     instance_outlines_showing(job, contours, &[])
 }
 
-/// [`instance_outlines`], the part itself also for parts `shown` when it is cut where drawn
-/// (the window shows it on request, to place it: docs/specs/part-placement.md §6).
+/// [`instance_outlines`], and also the instances `shown` (part, number) that are cut where
+/// drawn: the one selected, to place it (docs/specs/part-placement.md §6), or every one of
+/// a sheet (docs/specs/parts-and-setups.md §7).
 pub fn instance_outlines_showing(
     job: &Job,
     contours: &[Contour],
-    shown: &[u64],
+    shown: &[(u64, u32)],
 ) -> Vec<InstanceOutline> {
     let mut out = Vec::new();
-    let own_shown = |p: &chipload_job::Part| job.is_placed(p.id) || shown.contains(&p.id);
     let listed = |p: &chipload_job::Part| {
         job.instances_of(p.id)
             .into_iter()
-            .filter(|(_, i)| i.id != 1 || own_shown(p))
+            .filter(|(_, i)| !i.is_drawn() || shown.contains(&(p.id, i.id)))
             .map(|(_, i)| (i.id, i.enabled, i.spot()))
             .collect::<Vec<_>>()
     };
@@ -241,10 +241,8 @@ pub fn instance_outlines_showing(
             .filter(|c| ids.contains(&c.id))
             .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
             .collect();
-        // The part itself (number 1) is on with its part: it can't be off alone
-        // (docs/specs/part-placement.md decision 3).
         for (id, enabled, spot) in listed(part) {
-            let enabled = if id == 1 { part.enabled } else { enabled };
+            let enabled = enabled && part.enabled;
             let place = chipload_toolpath::place::Placement::new(&spot, centre);
             let (dx, dy) = (spot.at[0], spot.at[1]);
             let put = |p: Point| {
@@ -282,8 +280,7 @@ pub fn setup_outlines(job: &Job, contours: &[Contour], setup: u64) -> Vec<(Vec<P
         .filter(|i| i.enabled && job.part(i.part).is_some_and(|p| p.enabled))
         .map(|i| (i.part, i.id))
         .collect();
-    let parts: Vec<u64> = on.iter().map(|(p, _)| *p).collect();
-    instance_outlines_showing(job, contours, &parts)
+    instance_outlines_showing(job, contours, &on)
         .into_iter()
         .filter(|i| on.contains(&(i.part, i.id)))
         .flat_map(|i| i.outlines)

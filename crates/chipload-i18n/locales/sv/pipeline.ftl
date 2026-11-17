@@ -389,9 +389,6 @@ pipeline-shape-imported-change = formen { $id } importerades från DXF:en och ka
 pipeline-no-part = Det finns ingen detalj { $id } i projektet
 # $id is an instance's number in the part (2 on).
 pipeline-no-instance = Detaljen "{ $part }" har ingen instans { $id }
-pipeline-instance-one-mirror = Instans 1 är detaljen "{ $part }" själv: den har ingen egen spegling; spegla detaljen i stället
-pipeline-instance-one-off = Instans 1 är detaljen "{ $part }" själv: den kan inte stängas av ensam; stäng av detaljen i stället
-pipeline-instance-one-remove = Instans 1 är detaljen "{ $part }" själv: den kan inte tas bort
 pipeline-part-name-empty = En detalj måste ha ett namn
 pipeline-part-name-taken = En annan detalj heter "{ $name }"
 pipeline-last-part = Ett projekt behöver minst en detalj: det här är den sista

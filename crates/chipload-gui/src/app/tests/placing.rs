@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+//! Placing in the window (docs/specs/parts-and-setups.md §8): with two setups the Browser
+//! shows the parts as definitions and each setup's instances; a part dropped on a setup is
+//! placed there, an instance moved to another keeps its number; the part's form lists its
+//! instances by setup.
+use super::*;
+use egui_kittest::Harness;
+use egui_kittest::kittest::Queryable;
+
+fn two_setups() -> ChiploadApp {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
+    app
+}
+
+fn on(app: &ChiploadApp, part: u64) -> Vec<(u64, u32)> {
+    app.edit
+        .as_ref()
+        .unwrap()
+        .job
+        .instances_of(part)
+        .into_iter()
+        .map(|(s, i)| (s, i.id))
+        .collect()
+}
+
+#[test]
+fn the_browser_shows_parts_and_each_setups_instances() {
+    let mut app = two_setups();
+    let rows = browser_rows(&mut app);
+    let at = |label: &str| rows.iter().position(|(_, l)| l == label);
+    let depth = |label: &str| rows.iter().find(|(_, l)| l == label).map(|(d, _)| *d);
+    assert_eq!(depth("Parts"), Some(1));
+    assert_eq!(depth("simple part"), Some(2));
+    assert_eq!(depth("part B"), Some(2));
+    // Under setup 2: part B's instances, named with their part.
+    assert!(
+        at("6 mm bottom").unwrap() < at("part B #1").unwrap(),
+        "{rows:?}"
+    );
+    assert_eq!(depth("part B #1"), Some(3));
+    assert!(at("12 mm sides").unwrap() < at("simple part #1").unwrap());
+}
+
+#[test]
+fn a_part_is_placed_on_a_setup_and_an_instance_moved_as_one_undo_step_each() {
+    let mut app = two_setups();
+    assert_eq!(on(&app, 1), [(1, 1)]);
+    // *Place on setup ▸ 6 mm bottom*: a new instance there, where drawn, selected.
+    app.place_part_on(1, 2);
+    assert_eq!(on(&app, 1), [(1, 1), (2, 2)]);
+    assert_eq!(app.focus, Focus::Instance(1, 2));
+    let fresh = app.instance_value(1, 2).unwrap();
+    assert!(fresh.is_drawn());
+    app.undo();
+    assert_eq!(on(&app, 1), [(1, 1)]);
+    // *Move to setup ▸*: the same number and place on the other board.
+    let before = app.instance_value(2, 1).unwrap();
+    app.instance_to_setup(2, 1, 1);
+    let moved: Vec<(u64, u32)> = on(&app, 2);
+    assert!(moved.contains(&(1, 1)), "{moved:?}");
+    assert_eq!(app.instance_value(2, 1).unwrap(), before);
+    // The part's form lists its instances by setup.
+    app.focus = Focus::Part(2);
+    draw_properties(&mut app);
+    app.undo();
+    assert!(on(&app, 2).iter().all(|(s, _)| *s == 2));
+}
+
+#[test]
+fn a_parts_row_dropped_on_a_setup_places_it_there() {
+    let mut h = Harness::builder()
+        .with_size(egui::vec2(1200.0, 900.0))
+        .build_eframe(|_| two_setups());
+    h.run_steps(4);
+    let from = h.get_by_label("simple part").rect().center();
+    let to = h.get_by_label("6 mm bottom").rect().center();
+    h.hover_at(from);
+    h.run_steps(2);
+    h.drag_at(from);
+    h.run_steps(2);
+    for k in 1..=5 {
+        h.hover_at(from + (to - from) * (k as f32 / 5.0));
+        h.run_steps(2);
+    }
+    h.drop_at(to);
+    h.run_steps(4);
+    assert_eq!(on(h.state(), 1), [(1, 1), (2, 2)]);
+}

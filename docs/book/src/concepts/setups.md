@@ -37,8 +37,9 @@ With one board, the Browser has no setups to show: **Stock**, **Work zero** and 
 are the project's rows, and right-clicking the project offers what a setup's menu would,
 **Pieces and back side…** for the board's own settings among them. Right-click the project
 for **Add a setup**, another board: it starts like the first, with a part of its own, and
-both become active. From then on the Browser shows **Setups**, each with its **Stock**, its
-**Work zero** and its parts beneath it; deleting the second board brings the simple view
+both become active. From then on the Browser shows **Parts**, each part with its operations, and
+**Setups**, each with its **Stock**, its **Work zero** and the instances cut from it ("Side
+#2"): drag a part onto a setup to place it there, an instance onto another to cut it there; deleting the second board brings the simple view
 back. Click a setup for its name, whether it is cut and its parts. Right-click *Setups* or
 a setup for **Add a setup**, a setup for **New part** in it.
 

@@ -260,8 +260,13 @@ impl ChiploadApp {
             .filter(|p| preview.part_on(p.id, result.setup))
             .map(|p| p.id)
             .collect();
+        // Every instance on the board, those where drawn too.
+        let every: Vec<(u64, u32)> = preview
+            .setup(result.setup)
+            .map(|s| s.instances.iter().map(|i| (i.part, i.id)).collect())
+            .unwrap_or_default();
         let ghosts =
-            chipload_pipeline::parts::instance_outlines_showing(&preview, &self.contours, &parts)
+            chipload_pipeline::parts::instance_outlines_showing(&preview, &self.contours, &every)
                 .into_iter()
                 .filter(|i| i.enabled && parts.contains(&i.part))
                 .map(|i| {

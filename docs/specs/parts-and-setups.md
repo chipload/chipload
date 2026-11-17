@@ -2,7 +2,7 @@
 
 Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
 we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
-the user says otherwise. **Steps 1, 1b, 2 and 3 built** (§11). The user's idea (2026-11-17, after nesting): "each
+the user says otherwise. **Steps 1 to 4 built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -262,7 +262,12 @@ Each step a commit with its tests, shippable on its own:
    (F) shows them; top view only. Not yet: a sheet's toolpath (the window plans the active
    setup only); the shapes only another setup cuts still show faint where drawn, as before.
 4. **The window's placing:** drag a part onto a board, *Move to board…*, the part form's
-   instances by board.
+   instances by board. **Built 2026-11-17**, with §6's rule: instance 1 is like any other
+   (mirrored, off alone, moved, removed; in the pipeline, the command line, nesting and the
+   window). *Show placement instance* is gone: *Place…* selects the part's first instance,
+   and a selected instance shows its ghost even where its part is drawn; one where drawn
+   and not selected is its shapes, no ghost. In the window the boards are called setups,
+   as everywhere else in it (*Place on setup ▸*, *Move to setup ▸*).
 5. **Nesting overflow** onto more boards (§9).
 6. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
    part-placement.md marked superseded where they differ).

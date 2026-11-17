@@ -31,16 +31,19 @@ fn one_board_shows_no_setups_and_a_part_cut_once_no_instances() {
     assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
     let simple = rows.len();
 
-    // A second board: the branch, both boards with their rows. Board 1's rows cost the
-    // branch and its own setup row: two more than the simple view, as 0.37 drew one board.
+    // A second board: Parts and Setups (docs/specs/parts-and-setups.md §8). The parts are
+    // definitions with their operations; each setup lists its stock, zero and instances.
     let added = app.add_setup().unwrap();
     let rows = browser_rows(&mut app);
     assert!(has_setups_branch(&rows), "{rows:?}");
+    assert_eq!(depth_of(&rows, "Parts"), Some(1));
     assert_eq!(depth_of(&rows, "Setups"), Some(1));
+    assert_eq!(depth_of(&rows, "Part 1"), Some(2));
     assert_eq!(depth_of(&rows, "Stock"), Some(3));
-    assert_eq!(depth_of(&rows, "Part 1"), Some(3));
-    // + Setups, Setup 1; + Setup 2 with its stock, zero and part.
-    assert_eq!(rows.len(), simple + 2 + 4, "{rows:?}");
+    assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3));
+    assert_eq!(depth_of(&rows, "Part 2 #1"), Some(3));
+    // + Parts, Part 2; + Setups, Setup 1, Part 1 #1; + Setup 2, its stock, zero and Part 2 #1.
+    assert_eq!(rows.len(), simple + 2 + 3 + 4, "{rows:?}");
 
     // Removed again: the simple view is back.
     app.remove_setup(added);

@@ -3,8 +3,8 @@
 //! menu, drawn as numbered ghosts where they are cut, picked with a click, moved by a drag
 //! and turned by a handle (quarter turns snap within 3°, Alt turns freely). A drag
 //! changes the instance as it goes and is one undo step when it ends; Escape puts it back.
-//! Instance 1 is the part itself (docs/specs/part-placement.md §6): its ghost shows once it
-//! is placed elsewhere than drawn, and it is never mirrored, switched off alone or removed.
+//! Every instance is alike, instance 1 too (docs/specs/parts-and-setups.md §6): its ghost
+//! shows where it is cut once that isn't where its part is drawn, or while it is selected.
 //! The setups hold every instance (docs/specs/parts-and-setups.md §2).
 
 use chipload_core::{Point, math};
@@ -42,19 +42,12 @@ pub(super) struct InstanceDrag {
 }
 
 impl ChiploadApp {
-    /// Instance `id` of part `part` in the project being edited; 1 is the part itself, its
-    /// placement as an instance (on when the part is).
+    /// Instance `id` of part `part` in the project being edited.
     pub(super) fn instance_value(&self, part: u64, id: u32) -> Option<Instance> {
-        let job = &self.edit.as_ref()?.job;
-        let mut instance = *job.instance(part, id)?;
-        if id == 1 {
-            instance.enabled = job.part(part)?.enabled;
-        }
-        Some(instance)
+        self.edit.as_ref()?.job.instance(part, id).copied()
     }
 
-    /// Instance `id` of part `part` made `value`; for the part itself only its turn and
-    /// move are taken. Whether there was one.
+    /// Instance `id` of part `part` made `value`. Whether there was one.
     pub(super) fn set_instance_value(&mut self, part: u64, id: u32, value: Instance) -> bool {
         let Some(instance) = self
             .edit
@@ -63,53 +56,71 @@ impl ChiploadApp {
         else {
             return false;
         };
-        if id == 1 {
-            instance.angle = value.angle;
-            instance.at = value.at;
-            return true;
-        }
         *instance = Instance { part, id, ..value };
         true
     }
 
-    /// Place part `part` itself: its instance 1 shown and selected, its form open, to move
-    /// and turn it (docs/specs/part-placement.md §6, *Show placement instance*).
-    pub(super) fn place_part(&mut self, part: u64) {
-        self.display.own_instances.insert(part);
-        self.focus = Focus::Instance(part, 1);
+    /// The number of part `part`'s first instance: on the active setup, else anywhere.
+    pub(super) fn first_instance(&self, part: u64) -> Option<u32> {
+        let job = &self.edit.as_ref()?.job;
+        job.instances_here(part)
+            .first()
+            .map(|i| i.id)
+            .or_else(|| job.instances_of(part).first().map(|(_, i)| i.id))
     }
 
-    /// *Show placement instance* switched off: its row and ghost go while it is cut where
-    /// drawn (a placed part always shows them).
-    pub(super) fn hide_own_instance(&mut self, part: u64) {
-        self.display.own_instances.remove(&part);
-        if self.focus == Focus::Instance(part, 1) {
-            self.focus = Focus::Part(part);
+    /// *Place…*: part `part`'s first instance selected, its ghost shown where it is cut and
+    /// its form open, to move and turn it (docs/specs/part-placement.md §6).
+    pub(super) fn place_part(&mut self, part: u64) {
+        if let Some(id) = self.first_instance(part) {
+            self.focus = Focus::Instance(part, id);
         }
     }
 
-    /// Whether part `part`'s instance 1 is shown: placed, asked for, or selected.
-    pub(super) fn own_instance_shown(&self, part: &chipload_job::Part) -> bool {
-        self.edit.as_ref().is_some_and(|e| e.job.is_placed(part.id))
-            || self.display.own_instances.contains(&part.id)
-            || self.focus == Focus::Instance(part.id, 1)
+    /// Part `part` placed on setup `setup` where it is drawn, a new instance, selected, as one
+    /// undo step (docs/specs/parts-and-setups.md §8: a part's row dropped on a setup, or
+    /// *Place on setup ▸*).
+    pub(super) fn place_part_on(&mut self, part: u64, setup: u64) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
+        };
+        let id = edit.job.next_instance_id(part);
+        if edit.job.place_part(part, setup) {
+            edit.job.follow_thickness();
+            self.focus = Focus::Instance(part, id);
+            self.commit();
+        }
     }
 
-    /// Part `part` cut where drawn again, as one undo step (*Reset placement*).
-    pub(super) fn reset_part_placement(&mut self, part: u64) {
-        let reset = Instance {
-            part,
-            id: 1,
-            enabled: true,
-            mirror: None,
-            angle: 0.0,
-            at: [0.0, 0.0],
+    /// Instance `id` of part `part` cut on setup `setup`, keeping its number and placement,
+    /// as one undo step (§8: its row dropped on a setup, or *Move to setup ▸*).
+    pub(super) fn instance_to_setup(&mut self, part: u64, id: u32, setup: u64) {
+        let Some(edit) = self.edit.as_mut() else {
+            return;
         };
-        if self
-            .instance_value(part, 1)
-            .is_some_and(|now| now.angle != 0.0 || now.at != [0.0, 0.0])
-            && self.set_instance_value(part, 1, reset)
+        match chipload_pipeline::instances::move_instance(&edit.job, part, id, setup) {
+            Ok(mut moved) => {
+                moved.follow_thickness();
+                edit.job.setups = moved.setups;
+                edit.job.operations = moved.operations;
+                self.commit();
+            }
+            Err(err) => self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]),
+        }
+    }
+
+    /// Part `part`'s first instance cut where drawn again, as one undo step (*Reset
+    /// placement*); its mirror and on or off stay.
+    pub(super) fn reset_part_placement(&mut self, part: u64) {
+        let Some(id) = self.first_instance(part) else {
+            return;
+        };
+        if let Some(mut now) = self.instance_value(part, id)
+            && (now.angle != 0.0 || now.at != [0.0, 0.0])
         {
+            now.angle = 0.0;
+            now.at = [0.0, 0.0];
+            self.set_instance_value(part, id, now);
             self.commit();
         }
     }
@@ -152,12 +163,9 @@ impl ChiploadApp {
         }
     }
 
-    /// Instance `id` of part `part` removed; the others keep their numbers. The part itself
-    /// (1) can't be removed (docs/specs/part-placement.md §7): nothing happens.
+    /// Instance `id` of part `part` removed, instance 1 as any other; the others keep their
+    /// numbers. A part left with none is placed nowhere (docs/specs/parts-and-setups.md §2).
     pub(super) fn remove_instance(&mut self, part: u64, id: u32) {
-        if id == 1 {
-            return;
-        }
         if let Some(edit) = self.edit.as_mut() {
             for setup in &mut edit.job.setups {
                 setup.instances.retain(|i| i.part != part || i.id != id);
@@ -169,12 +177,8 @@ impl ChiploadApp {
         }
     }
 
-    /// Instance `id` turned on or off; the part itself is switched with its part.
+    /// Instance `id` turned on or off.
     pub(super) fn toggle_instance(&mut self, part: u64, id: u32) {
-        if id == 1 {
-            self.toggle_part(part);
-            return;
-        }
         if let Some(mut instance) = self.instance_value(part, id) {
             instance.enabled = !instance.enabled;
             self.set_instance_value(part, id, instance);
@@ -182,12 +186,8 @@ impl ChiploadApp {
         }
     }
 
-    /// Instance `id` mirrored left to right, or back as the part is. The part itself has
-    /// no mirror of its own.
+    /// Instance `id` mirrored left to right, or back as the part is.
     pub(super) fn mirror_instance(&mut self, part: u64, id: u32) {
-        if id == 1 {
-            return;
-        }
         if let Some(mut instance) = self.instance_value(part, id) {
             instance.mirror = match instance.mirror {
                 None => Some(Mirror::LeftRight),
@@ -212,15 +212,18 @@ impl ChiploadApp {
         let Some(edit) = &self.edit else {
             return Vec::new();
         };
-        let shown: Vec<u64> = edit
-            .job
-            .parts
-            .iter()
-            .filter(|p| self.own_instance_shown(p))
-            .map(|p| p.id)
-            .collect();
-        let several = |p: &chipload_job::Part| edit.job.instances_of(p.id).len() > 1;
-        if shown.is_empty() && !edit.job.parts.iter().any(several) {
+        // The selected instance shows even where its part is drawn, to be placed.
+        let shown: Vec<(u64, u32)> = match self.focus {
+            Focus::Instance(part, id) => vec![(part, id)],
+            _ => Vec::new(),
+        };
+        let placed = |p: &chipload_job::Part| {
+            edit.job
+                .instances_of(p.id)
+                .iter()
+                .any(|(_, i)| !i.is_drawn())
+        };
+        if shown.is_empty() && !edit.job.parts.iter().any(placed) {
             return Vec::new();
         }
         // The active setup's instances (docs/specs/parts-and-setups.md §7).

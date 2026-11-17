@@ -2,7 +2,7 @@
 
 **Nesting** places every [instance](instances.md) of a setup's parts on its board, as close
 together as they fit, so a sheet holds as many parts as it can. Every part that is on takes
-part, the part itself (instance 1) included.
+part, instance 1 included.
 
 Chipload nests what the tools really cut: each instance's toolpath with the width of its
 tool, tabs and ramps included, not only the drawing. Between two cuts it leaves the **gap**,
@@ -42,7 +42,7 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
 - **Turns:** `none`, `half` (0° or 180°), `quarter` (the default) or `every-15`, for every
   part (`--turns quarter`) or one (`--turns 2=none`). They are kept in the project.
 - **Counts:** `--count ID=N` cuts part ID N times: instances are added (not mirrored), or
-  the highest-numbered ones removed. The part itself always stays.
+  the highest-numbered ones that are on removed; at least one stays.
 - **Mirrored instances** stay mirrored; nesting turns and moves them, never mirrors them.
 - **What doesn't fit** is switched off, kept where it was, and named ("Part 2, instance 4
   didn't fit: switched off"). Make the board larger, allow turns, or move the part to a

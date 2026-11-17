@@ -1023,20 +1023,16 @@ impl Job {
     }
 
     /// Part `id` cut as a grid on the active setup (`part instance array`,
-    /// docs/specs/instances.md §5): its instance 1 stays as it is (made where drawn when the
-    /// part has none), its other instances here are replaced by the grid's, numbered as
-    /// the grid numbers them; a number already used on another board gets a free one.
+    /// docs/specs/instances.md §5): its first instance here stays as it is (made where drawn
+    /// when it has none here), its other instances here are replaced by the grid's,
+    /// numbered as the grid numbers them; a number already used gets a free one.
     pub fn set_grid_here(&mut self, id: u64, grid: &Copies) {
         let first = self
             .instances_here(id)
-            .into_iter()
-            .find(|i| i.id == 1)
-            .copied()
-            .or_else(|| {
-                self.instance(id, 1)
-                    .is_none()
-                    .then(|| Instance::drawn(id, 1))
-            });
+            .first()
+            .map(|i| **i)
+            .unwrap_or_else(|| Instance::drawn(id, self.next_instance_id(id)));
+        let first = Some(first);
         let elsewhere: Vec<u32> = {
             let here = self.active_setup_id();
             self.instances_of(id)

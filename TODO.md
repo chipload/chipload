@@ -15,7 +15,8 @@ below).
   2026-11-17 (board surface drag, instance handles) and nesting (six steps, 0fb5085..).
   The next release (0.38.0) waits for the user. **Branch `parts-and-setups`** (worktree
   `.worktrees/parts`, git-ignored locally): item 000a steps 1 (schema 41) and 1b (the
-  simple view), 2 (a part's stock) and 3 (sheets side by side), not merged.
+  simple view), 2 (a part's stock), 3 (sheets side by side) and 4 (placing in the window),
+  not merged.
 - **For the user to try** (said 2026-11-17: "will test after all is done"): nesting (the
   window and `chipload nest`), the instance handles, the part itself placed, surfaces on
   the board and on a part; pieces and instances from before. Findings become items here.
@@ -131,8 +132,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     every golden unchanged, `part instance move`, `--setup`, old paths refused) and **step
     1b built** (one board: no Setups branch, its menu on the project row), **step 2
     built** (a part's stock picks its board; three differences from the spec for the user
-    to confirm, listed in its §11), **step 3 built** (sheets side by side); next 4, the
-    window's placing (drag a part onto a board, *Move to board…*). The guide's Browser screenshots still show *Setups › Setup 1*: renew
+    to confirm, listed in its §11), **step 3 built** (sheets side by side), **step 4 built**
+    (Parts and Setups in the Browser, drag to place and move, instance 1 like any other);
+    next 5, nesting onto more boards. The guide's Browser screenshots still show *Setups › Setup 1*: renew
     them when this merges. Spec: schema 41 moves every
     placement into its setup (instance 1 no longer special), a part's optional stock
     (material, thickness) checked as a warning, sheets side by side with the active one in

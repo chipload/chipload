@@ -16,8 +16,13 @@ In the window:
   instance's outline thickens and the pointer becomes a hand, so you see what a drag
   takes. Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
-- **In the Browser**, each instance has a row under its part, with its tick. Right-click
-  it to *Mirror* it, *Turn 90°* or *Remove* it; Delete removes the selected one.
+- **In the Browser**, each instance has a row with its tick: under its part with one
+  board, under its setup ("Side #2") with several. Right-click it to *Mirror* it, *Turn
+  90°*, *Move to setup ▸* or *Remove* it; Delete removes the selected one.
+- **Several setups:** drag a part's row onto a setup (or right-click the part, *Place on
+  setup ▸*) to place it there too, a new instance where the part is drawn; drag an
+  instance's row onto another setup to cut it there, its number and place kept. The part's
+  properties list *Where it is cut*, its instances by setup.
 - **Its properties** set whether it is cut, its mirror, its rotation (any angle) and how
   far it is moved.
 - **A grid:** the part's properties make one under **Instances**.
@@ -42,8 +47,10 @@ chipload part set part.chipload 1 --order by-instance     # every operation on o
   an instance on another board, keeping its number and place. With several setups,
   `list` says each instance's board.
 
-- **Numbers:** the part itself is instance 1 ([placed](#the-part-itself) or where drawn);
-  the others are numbered from 2 and keep their numbers when one is removed.
+- **Numbers:** the part as first placed is instance 1 ([placed](#placing-the-part) or where
+  drawn); the others are numbered from 2. Every instance is alike: instance 1 too can be
+  mirrored, switched off, moved to another setup or removed, and numbers are kept when one
+  is removed or moved.
 - **Place:** an instance is mirrored first (`left-right` or `top-bottom`), then turned
   (`--angle`, degrees counter-clockwise), both about the middle of the part's box, then
   moved by `--at` from where the part is drawn. A new instance without `--at` goes
@@ -75,25 +82,24 @@ chipload part set part.chipload 1 --order by-instance     # every operation on o
   The setup sheet and the playback say which instance is being cut, and the sheet says
   where a part placed elsewhere than drawn is cut.
 
-## The part itself
+## Placing the part
 
-The part itself, instance 1, can be placed too: cut moved and turned like an instance,
-while its shapes stay where they are drawn. Its shapes are what you edit; every instance,
+The part's first instance can be placed too: cut moved and turned, while its shapes stay
+where they are drawn. Its shapes are what you edit; every instance,
 the first included, is a placement of them. This lets you lay parts out on a sheet without
 moving the drawing, for instance when several parts come from one DXF.
 
 In the window:
-- **Right-click the part** in the Browser and tick *Show placement instance*: the part
-  itself shows as **Instance 1**, selected, a ghost `#1` on its shapes with its round turn
-  handle, and its form opens with its rotation and how far it is moved. Drag it by its
-  badge `#1` (above its shapes, so the shapes underneath aren't in the way), turn it by its
-  handle, or press Q for the Compass. *Reset placement* puts it
-  back where drawn; untick to hide it again (a placed part always shows it).
+- **Right-click the part** in the Browser, *Place…*: its first instance is selected, a
+  ghost `#1` on its shapes with its round turn handle, and its form opens with its
+  rotation and how far it is moved. Drag it by its badge `#1` (above its shapes, so the
+  shapes underneath aren't in the way), turn it by its handle, or press Q for the Compass.
+  *Reset placement* puts it back where drawn.
 - **On the canvas**, once placed, it is a ghost `#1` where it is cut, picked, dragged and
   turned like any instance. Its shapes, where they are drawn, get a dashed box saying
   "not cut here"; edit them there, and every instance follows.
-- **In the Browser**, a part with instances or a placement lists itself first, as
-  Instance 1; its tick is the part's.
+- **In the Browser**, a part with instances or a placement lists them all, Instance 1
+  first.
 - **The Compass** (Q) works on a selected instance, the first included: drag an arrow to
   move it along, the ring to turn it, the centre to put it on a point, or type a value.
   It moves and turns instances only; copies and arrays are for shapes.
@@ -104,9 +110,8 @@ chipload part place part.chipload --reset                 # back where drawn
 chipload part instance set part.chipload 1 --at 350,0     # the same, as instance 1
 ```
 
-- **Turned and moved only:** the part's own mirror (`part set --mirror`) mirrors its
-  shapes, so every instance; instance 1 has no mirror of its own, can't be switched off
-  alone (switch the part off) and can't be removed.
+- **The part's own mirror** (`part set --mirror`) mirrors its shapes, so every instance;
+  an instance's mirror mirrors that one only.
 - **Its instances stay** where they were: they are placed from the part as drawn, not from
   instance 1.
 - **The board:** a board that fits the drawing holds the part where it is cut, not its

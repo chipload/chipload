@@ -75,8 +75,9 @@ pub enum PartAction {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-    /// Place the part itself (instance 1): cut moved and turned, as an instance is, its
-    /// shapes staying where they are drawn (docs/specs/part-placement.md).
+    /// Place instance 1, the part as first placed: cut moved and turned, its shapes staying
+    /// where they are drawn (docs/specs/part-placement.md); the same as `part instance set
+    /// … 1`.
     Place {
         /// The project (.chipload).
         project: PathBuf,

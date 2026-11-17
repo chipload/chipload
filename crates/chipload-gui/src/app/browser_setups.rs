@@ -4,7 +4,7 @@
 use eframe::egui::Id;
 
 use super::browser::tool_changes;
-use super::browser_ops::{OpAction, PartRows};
+use super::browser_ops::{DraggedInstance, DraggedPart, InstanceLook, OpAction, PartRows};
 use super::browser_row::{Row, folder, folder_open, toggle_folder};
 use super::*;
 use crate::icons::Icon;
@@ -49,6 +49,10 @@ pub(super) enum SetupAction {
     /// Nest its instances on its board (docs/specs/nesting.md §7).
     Nest(u64),
     NestAgain(u64),
+    /// A part's row dropped on this setup: placed there (docs/specs/parts-and-setups.md §8).
+    PlacePart(u64, u64),
+    /// An instance's row dropped on this setup: cut there.
+    MoveInstance(u64, u32, u64),
 }
 
 impl ChiploadApp {
@@ -95,10 +99,37 @@ impl ChiploadApp {
         // One board: no Setups branch; its stock, zero and parts are the project's rows
         // (docs/specs/parts-and-setups.md §2a).
         if let [setup] = setups.as_slice() {
-            let (a, b) = self.board_contents(ui, setup.id, 1, rows);
+            let (a, b) = self.board_contents(ui, setup.id, 1, rows, true);
             setup_action = a.or(setup_action);
             action = b.or(action);
         } else {
+            // The parts as definitions, each with its operations; their instances are under
+            // the setups (docs/specs/parts-and-setups.md §8).
+            let row = Row::new(Id::new("browser-parts"), 1, t!(ui, "browser-parts"))
+                .icon(Icon::Part)
+                .trailing(parts.len().to_string());
+            let (parts_open, parts_row) = folder(ui, row, true);
+            parts_row
+                .response
+                .on_hover_text(t!(ui, "browser-parts-hover"));
+            if parts_open {
+                for (k, part) in parts.iter().enumerate() {
+                    let rows = PartRows {
+                        k,
+                        depth: 2,
+                        parts: &parts,
+                        active,
+                        op_parts: &op_parts,
+                        board: &board,
+                        count,
+                        tool_before: &tool_before,
+                        simple: false,
+                    };
+                    if let Some(a) = self.part_rows(ui, part, rows) {
+                        action = Some(a);
+                    }
+                }
+            }
             let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
                 .icon_tinted(Icon::Rectangle, Tint::Board)
                 .trailing(setups.len().to_string());
@@ -135,7 +166,7 @@ impl ChiploadApp {
                     if !setup_open {
                         continue;
                     }
-                    let (a, b) = self.board_contents(ui, setup.id, 3, rows);
+                    let (a, b) = self.board_contents(ui, setup.id, 3, rows, false);
                     setup_action = a.or(setup_action);
                     action = b.or(action);
                 }
@@ -158,6 +189,7 @@ impl ChiploadApp {
         id: u64,
         depth: usize,
         rows: BoardRows,
+        simple: bool,
     ) -> (Option<SetupAction>, Option<OpAction>) {
         let BoardRows {
             parts,
@@ -186,6 +218,40 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
+        if !simple {
+            // Its instances, by part in the project's order, each named with its part.
+            let (setups, instances, active_setup) = self.edit.as_ref().map_or_else(
+                || (Vec::new(), Vec::new(), None),
+                |e| {
+                    let setups: Vec<(u64, String)> = e
+                        .job
+                        .setups
+                        .iter()
+                        .map(|s| (s.id, s.name.clone()))
+                        .collect();
+                    let mine = e
+                        .job
+                        .setup(id)
+                        .map(|s| s.instances.clone())
+                        .unwrap_or_default();
+                    (setups, mine, e.job.active_setup_id())
+                },
+            );
+            let look = InstanceLook {
+                in_active_setup: active_setup == Some(id),
+                depth,
+                named: true,
+                setups: &setups,
+            };
+            for part in parts.iter().filter(|p| on.contains(&p.id)) {
+                for instance in instances.iter().filter(|i| i.part == part.id) {
+                    if let Some(a) = self.instance_row(ui, part, instance, look) {
+                        action = Some(a);
+                    }
+                }
+            }
+            return (setup_action, action);
+        }
         for (k, part) in parts.iter().enumerate().filter(|(_, p)| on.contains(&p.id)) {
             let rows = PartRows {
                 k,
@@ -196,6 +262,7 @@ impl ChiploadApp {
                 board,
                 count,
                 tool_before,
+                simple,
             };
             if let Some(a) = self.part_rows(ui, part, rows) {
                 action = Some(a);
@@ -248,6 +315,24 @@ impl ChiploadApp {
         let out = row.show(ui);
         if out.toggled {
             toggle_folder(ui, open_id, true);
+        }
+        // A part or an instance dropped here (docs/specs/parts-and-setups.md §8).
+        if let Some(part) = out.response.dnd_release_payload::<DraggedPart>() {
+            action = Some(SetupAction::PlacePart(part.0, setup.id));
+        } else if let Some(i) = out.response.dnd_release_payload::<DraggedInstance>() {
+            action = Some(SetupAction::MoveInstance(i.0, i.1, setup.id));
+        } else if out.response.dnd_hover_payload::<DraggedPart>().is_some()
+            || out
+                .response
+                .dnd_hover_payload::<DraggedInstance>()
+                .is_some()
+        {
+            ui.painter().rect_stroke(
+                out.response.rect,
+                0.0,
+                egui::Stroke::new(2.0, ui.visuals().selection.stroke.color),
+                egui::StrokeKind::Inside,
+            );
         }
         if out.tick {
             action = Some(SetupAction::Toggle(setup.id));
@@ -406,6 +491,8 @@ impl ChiploadApp {
             }
             SetupAction::Nest(id) => self.start_nest(Some(id)),
             SetupAction::NestAgain(id) => self.nest_again(id),
+            SetupAction::PlacePart(part, setup) => self.place_part_on(part, setup),
+            SetupAction::MoveInstance(part, id, setup) => self.instance_to_setup(part, id, setup),
         }
     }
 

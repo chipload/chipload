@@ -145,11 +145,6 @@ impl NestResult {
             };
             let at = [x - bx0, y0 - by0];
             x += bx1 - bx0 + PARK_GAP_MM;
-            if number == 1
-                && let Some(p) = job.parts.iter_mut().find(|p| p.id == part)
-            {
-                p.enabled = true;
-            }
             if let Some(i) = job.instance_mut(part, number) {
                 i.enabled = true;
                 i.angle = 0.0;
@@ -286,7 +281,8 @@ pub fn nest_setup(
         .iter()
         .filter_map(|&k| items.get(k).map(|(part, number, _)| (*part, *number)))
         .collect();
-    keep_parts_on(&one, &mut placed, &mut unplaced);
+    // In part and number order, as reported.
+    unplaced.sort_unstable();
     for put in &placed {
         place(&mut job, put.part, put.instance, put.angle, put.at);
     }
@@ -367,7 +363,7 @@ fn set_turns(job: &mut Job, setup: u64, request: &NestRequest) -> Result<(), Pip
 }
 
 /// Each part asked for cut `count` times (§6): unmirrored instances added, or the
-/// highest-numbered enabled ones removed; never instance 1. Disabled instances stay.
+/// highest-numbered enabled ones removed. Disabled instances stay.
 fn set_counts(job: &mut Job, setup: u64, counts: &[(u64, u32)]) -> Result<(), PipelineError> {
     for &(id, count) in counts {
         let part = job
@@ -397,11 +393,7 @@ fn set_counts(job: &mut Job, setup: u64, counts: &[(u64, u32)]) -> Result<(), Pi
             let Some(s) = job.setup_mut(setup) else {
                 break;
             };
-            let Some(last) = s
-                .instances
-                .iter()
-                .rposition(|i| i.part == id && i.enabled && i.id != 1)
-            else {
+            let Some(last) = s.instances.iter().rposition(|i| i.part == id && i.enabled) else {
                 break;
             };
             s.instances.remove(last);
@@ -555,36 +547,10 @@ fn place(job: &mut Job, part: u64, number: u32, angle: f64, at: [f64; 2]) {
     }
 }
 
-/// A part whose instance 1 didn't fit while an unmirrored instance of it did: instance 1
-/// takes that place and the other is switched off instead, so the part stays on and is
-/// cut as many times (switching instance 1 off switches off the whole part).
-fn keep_parts_on(one: &Job, placed: &mut [NestPut], unplaced: &mut [(u64, u32)]) {
-    for left in unplaced.iter_mut() {
-        if left.1 != 1 {
-            continue;
-        }
-        let part = left.0;
-        let unmirrored = |n: u32| one.instance(part, n).is_some_and(|i| i.mirror.is_none());
-        if let Some(put) = placed
-            .iter_mut()
-            .filter(|p| p.part == part && unmirrored(p.instance))
-            .max_by_key(|p| p.instance)
-        {
-            left.1 = put.instance;
-            put.instance = 1;
-        }
-    }
-    unplaced.sort_unstable();
-}
-
-/// What didn't fit switched off (decision 10): the instance, or for instance 1 the whole
-/// part. It keeps its place.
+/// What didn't fit switched off (decision 10): the instance, instance 1 as any other
+/// (docs/specs/parts-and-setups.md §6). It keeps its place.
 fn switch_off(job: &mut Job, part: u64, number: u32) {
-    if number == 1 {
-        if let Some(p) = job.parts.iter_mut().find(|p| p.id == part) {
-            p.enabled = false;
-        }
-    } else if let Some(i) = job.instance_mut(part, number) {
+    if let Some(i) = job.instance_mut(part, number) {
         i.enabled = false;
     }
 }

@@ -803,13 +803,12 @@ fn the_part_itself_is_placed_from_the_command_line() {
         "{out}"
     );
     assert_eq!(own()["at"], serde_json::json!([300.0, 0.0]));
-    // Listed as instance 1 once it has instances; set like one, but never mirrored,
-    // switched off alone or removed.
+    // Listed as instance 1 once it has instances, and set like any other: mirrored and
+    // back, off and on again (docs/specs/parts-and-setups.md §6).
     run(&["part", "instance", "add", p, "--at", "0,0"]);
     let (_, out, _) = run(&["part", "instance", "list", p]);
     assert!(
-        out.contains("  1 at 300.000, 0.000 mm, turned 90° (the part itself)")
-            && out.contains("2 in all, 1 turned"),
+        out.contains("  1 at 300.000, 0.000 mm, turned 90°") && out.contains("2 in all, 1 turned"),
         "{out}"
     );
     let (code, _, err) = run(&["part", "instance", "set", p, "1", "--at", "350,0"]);
@@ -817,16 +816,14 @@ fn the_part_itself_is_placed_from_the_command_line() {
     assert_eq!(own()["at"], serde_json::json!([350.0, 0.0]));
     for args in [
         vec!["part", "instance", "set", p, "1", "--mirror", "left-right"],
+        vec!["part", "instance", "set", p, "1", "--mirror", "none"],
         vec!["part", "instance", "set", p, "1", "--off"],
-        vec!["part", "instance", "remove", p, "1"],
+        vec!["part", "instance", "set", p, "1", "--on"],
     ] {
         let (code, _, err) = run(&args);
-        assert_eq!(code, Some(1), "{args:?}");
-        assert!(
-            err.contains("is part \"") && err.contains("itself"),
-            "{err}"
-        );
+        assert_eq!(code, Some(0), "{args:?}: {err}");
     }
+    assert_eq!(own()["enabled"], true);
     // Placed, it runs, checked; the part as drawn and its instance at 0, 0 are apart.
     let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
     assert_eq!(code, Some(0), "{err}");
@@ -837,6 +834,10 @@ fn the_part_itself_is_placed_from_the_command_line() {
     assert_eq!(code, Some(0));
     assert!(out.contains("cut where drawn"), "{out}");
     assert_eq!(own()["angle"], serde_json::json!(0.0));
+    // Removed like any instance: number 2 is left.
+    let (code, _, err) = run(&["part", "instance", "remove", p, "1"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(own()["id"], 2);
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -3558,7 +3559,7 @@ fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
     assert_eq!(job()["setups"][0]["instances"][0]["id"], 2);
     let (_, out, _) = run(&["part", "instance", "list", p, "--part", "1"]);
     assert!(
-        out.contains("(the part itself)") && out.contains(", setup 2"),
+        out.contains("2 in all") && out.contains("  1 at 0.000, 0.000 mm, setup 2"),
         "{out}"
     );
     assert!(out.contains("  2 at 300.000, 0.000 mm, setup 1"), "{out}");

@@ -60,8 +60,7 @@ pub enum InstanceAction {
         /// Which part; needed when the project has several.
         #[arg(long)]
         part: Option<u64>,
-        /// The instances' numbers (as `part instance list` shows them); 1 is the part
-        /// itself, which is moved and turned only.
+        /// The instances' numbers (as `part instance list` shows them).
         #[arg(required = true)]
         ids: Vec<u32>,
         /// Its move "DX,DY" from the part as drawn; one instance only.
@@ -93,7 +92,7 @@ pub enum InstanceAction {
         /// The instances' numbers.
         #[arg(required_unless_present = "all")]
         ids: Vec<u32>,
-        /// Every instance: the part is cut once.
+        /// Every instance but the first: the part is cut once.
         #[arg(long, conflicts_with = "ids")]
         all: bool,
         /// Where to write the result; default: the project itself.
@@ -321,11 +320,12 @@ pub fn instance(out: &mut Out, action: InstanceAction) -> ExitCode {
             let removed = (|| {
                 let id = part_of(&job, part)?;
                 let ids: Vec<u32> = match all {
+                    // Every one but the first: the part is cut once.
                     true => job
                         .instances_of(id)
                         .iter()
                         .map(|(_, i)| i.id)
-                        .filter(|n| *n != 1)
+                        .skip(1)
                         .collect(),
                     false => ids,
                 };
@@ -359,13 +359,9 @@ fn finish(out: &mut Out, job: &Job, part: u64, target: &Path) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-/// Instance `number` of the part; 1, the part itself, is on with its part.
+/// Instance `number` of the part, on whichever board it is.
 fn instance_of(job: &Job, part: u64, number: u32) -> Option<Instance> {
-    let mut instance = *job.instance(part, number)?;
-    if number == 1 {
-        instance.enabled = job.part(part)?.enabled;
-    }
-    Some(instance)
+    job.instance(part, number).copied()
 }
 
 /// ", placed at 120.000, 0.000 mm, turned 90°" for a part placed elsewhere than drawn
@@ -472,12 +468,7 @@ fn list(out: &mut Out, project: &Path, part: Option<u64>) -> ExitCode {
         return out.fail(format!("no part {id} in the project (see `part list`)"));
     };
     let all = job.instances_of(part.id);
-    let others: Vec<(u64, Instance)> = all
-        .iter()
-        .filter(|(_, i)| i.id != 1)
-        .map(|(s, i)| (*s, **i))
-        .collect();
-    if others.is_empty() {
+    if all.len() < 2 && !job.is_placed(part.id) {
         out.line(format!(
             "Part {} {}: no instances, cut once",
             part.id, part.name
@@ -487,7 +478,7 @@ fn list(out: &mut Out, project: &Path, part: Option<u64>) -> ExitCode {
             "Part {} {}: {}",
             part.id,
             part.name,
-            chipload_pipeline::copies::instances_text(&job, part)
+            chipload_pipeline::copies::instances_message_everywhere(&job, part).english()
         ));
     }
     // Each instance's board, once there are several (docs/specs/parts-and-setups.md §10).
@@ -498,21 +489,13 @@ fn list(out: &mut Out, project: &Path, part: Option<u64>) -> ExitCode {
             String::new()
         }
     };
-    // The part itself, once it has instances or a placement of its own.
-    let own = all.iter().find(|(_, i)| i.id == 1).map(|(s, _)| *s);
-    if let (Some(setup), true) = (own, !others.is_empty() || job.is_placed(part.id))
-        && let Some(own) = instance_of(&job, part.id, 1)
-    {
-        out.line(format!(
-            "  {}{} (the part itself)",
-            describe(&own),
-            board(setup)
-        ));
+    // Every instance alike, once there is more than the part where drawn.
+    if all.len() > 1 || job.is_placed(part.id) {
+        for (setup, instance) in &all {
+            out.line(format!("  {}{}", describe(instance), board(*setup)));
+        }
     }
-    for (setup, instance) in &others {
-        out.line(format!("  {}{}", describe(instance), board(*setup)));
-    }
-    let rows: Vec<Value> = others
+    let rows: Vec<Value> = all
         .iter()
         .map(|(setup, i)| {
             json!({
@@ -526,15 +509,6 @@ fn list(out: &mut Out, project: &Path, part: Option<u64>) -> ExitCode {
         })
         .collect();
     out.set("part", json!(part.id));
-    let itself = job.instance(part.id, 1);
-    out.set(
-        "itself",
-        json!({
-            "angle": itself.map_or(0.0, |i| i.angle),
-            "at": itself.map_or([0.0, 0.0], |i| i.at),
-            "setup": own,
-        }),
-    );
     out.set("order", json!(part.order));
     out.set("instances", Value::Array(rows));
     ExitCode::SUCCESS

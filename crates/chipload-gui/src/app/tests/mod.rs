@@ -43,6 +43,7 @@ mod part_stock;
 mod parts;
 mod pattern;
 mod pieces;
+mod placing;
 mod posts;
 mod prism;
 mod profile_form;

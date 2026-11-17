@@ -278,9 +278,6 @@ pipeline-shape-imported-change = объект { $id } импортирован �
 pipeline-no-part = В проекте нет детали { $id }
 # $id is an instance's number in the part (2 on).
 pipeline-no-instance = У детали «{ $part }» нет экземпляра { $id }
-pipeline-instance-one-mirror = Экземпляр 1 — это сама деталь «{ $part }»: у него нет своего отражения; отразите саму деталь
-pipeline-instance-one-off = Экземпляр 1 — это сама деталь «{ $part }»: его нельзя отключить отдельно; отключите саму деталь
-pipeline-instance-one-remove = Экземпляр 1 — это сама деталь «{ $part }»: его нельзя удалить
 pipeline-part-name-empty = Имя детали не может быть пустым
 pipeline-part-name-taken = Другая деталь уже называется «{ $name }»
 pipeline-last-part = В проекте должна быть хотя бы одна деталь: это последняя

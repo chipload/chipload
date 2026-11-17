@@ -397,9 +397,6 @@ pipeline-shape-imported-change = la forma { $id } se importó del DXF y no se pu
 pipeline-no-part = No hay pieza { $id } en el proyecto
 # $id is an instance's number in the part (2 on).
 pipeline-no-instance = La pieza «{ $part }» no tiene la instancia { $id }
-pipeline-instance-one-mirror = La instancia 1 es la propia pieza «{ $part }»: no tiene simetría propia; refleja la pieza en su lugar
-pipeline-instance-one-off = La instancia 1 es la propia pieza «{ $part }»: no se puede desactivar sola; desactiva la pieza en su lugar
-pipeline-instance-one-remove = La instancia 1 es la propia pieza «{ $part }»: no se puede quitar
 pipeline-part-name-empty = El nombre de una pieza no puede estar vacío
 pipeline-part-name-taken = Otra pieza se llama "{ $name }"
 pipeline-last-part = Un proyecto necesita al menos una pieza: esta es la última

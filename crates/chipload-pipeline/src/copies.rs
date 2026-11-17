@@ -17,17 +17,29 @@ pub fn instances_text(job: &Job, part: &Part) -> String {
 
 /// [`instances_text`] as a message.
 pub fn instances_message(job: &Job, part: &Part) -> Message {
-    // The part itself counts as turned when it is (docs/specs/part-placement.md).
-    let spots = job.spots(part.id);
+    let spots: Vec<chipload_job::Spot> = job.spots(part.id).into_iter().map(|(_, s)| s).collect();
+    spots_message(&spots, part)
+}
+
+/// "3 in all, …" for the instances that are on, on every board: what `part instance list`
+/// says of a part cut from several (docs/specs/parts-and-setups.md §10).
+pub fn instances_message_everywhere(job: &Job, part: &Part) -> Message {
+    let spots: Vec<chipload_job::Spot> = job
+        .instances_of(part.id)
+        .into_iter()
+        .filter(|(_, i)| i.enabled)
+        .map(|(_, i)| i.spot())
+        .collect();
+    spots_message(&spots, part)
+}
+
+fn spots_message(spots: &[chipload_job::Spot], part: &Part) -> Message {
     Message::new("pipeline-instances")
         .arg("count", spots.len())
-        .arg(
-            "turned",
-            spots.iter().filter(|(_, s)| s.angle != 0.0).count(),
-        )
+        .arg("turned", spots.iter().filter(|s| s.angle != 0.0).count())
         .arg(
             "mirrored",
-            spots.iter().filter(|(_, s)| s.mirror.is_some()).count(),
+            spots.iter().filter(|s| s.mirror.is_some()).count(),
         )
         .arg("order", order_message(part.order))
 }

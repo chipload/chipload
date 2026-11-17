@@ -225,29 +225,34 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     assert!(ghost.outlines.iter().flatten().all(|p| p.0 > x0 + 250.0));
     assert_eq!(app.scene.elsewhere.len(), 1);
     assert!(app.scene.elsewhere[0].1.ends_with("not cut here"));
-    // Turned a quarter from its menu; never mirrored, switched off alone or removed.
+    // Turned a quarter from its menu.
     app.turn_instance(1, 1);
     assert_eq!(own(&app).1, FRAC_PI_2);
-    app.mirror_instance(1, 1);
-    app.remove_instance(1, 1);
-    let job = &app.edit.as_ref().unwrap().job;
-    let part = &job.parts[0];
-    assert!(part.mirror.is_none() && part.enabled && job.is_placed(1));
-    assert!(job.instance(1, 1).is_some_and(|i| i.mirror.is_none()));
-    // Its form: turn and move only.
-    draw_properties(&mut app);
     // *Reset placement*: back where drawn, as one undo step.
     app.reset_part_placement(1);
     assert_eq!(own(&app), ([0.0, 0.0], 0.0));
     draw_canvas(&mut app);
-    // Still shown, to place again, but cut where drawn: no "not cut here".
+    // Still shown while selected, but cut where drawn: no "not cut here".
     assert!(app.scene.elsewhere.is_empty());
-    app.hide_own_instance(1);
-    assert_eq!(app.focus, Focus::Part(1));
+    assert!(app.scene.instances.iter().any(|g| g.id == 1));
+    // Selected elsewhere: cut where drawn, it is its shapes, no ghost.
+    app.focus = Focus::Part(1);
     draw_canvas(&mut app);
     assert!(app.scene.instances.is_empty());
     app.undo();
     assert_eq!(own(&app), ([300.0, 0.0], FRAC_PI_2));
+    // Like any instance (docs/specs/parts-and-setups.md §6): mirrored, off alone, removed.
+    app.mirror_instance(1, 1);
+    assert!(app.instance_value(1, 1).unwrap().mirror.is_some());
+    app.toggle_instance(1, 1);
+    let job = &app.edit.as_ref().unwrap().job;
+    assert!(job.parts[0].enabled && !job.instance(1, 1).unwrap().enabled);
+    app.remove_instance(1, 1);
+    let job = &app.edit.as_ref().unwrap().job;
+    assert!(job.instances_of(1).is_empty());
+    // Placed nowhere: not cut, listed as such.
+    assert!(!job.cuts(0));
+    draw_sidebar(&mut app);
 }
 
 #[test]
@@ -410,11 +415,9 @@ fn an_instance_is_moved_by_its_badge() {
         "{moved:?}"
     );
     assert_eq!(h.state().focus, Focus::Instance(1, 2));
-    // Instance 1 shown where the part is drawn, then not selected: its badge still takes
+    // Instance 1 selected with *Place…*: its ghost on the part as drawn, its badge takes
     // it, and the shapes stay.
     h.state_mut().place_part(1);
-    h.run_steps(3);
-    h.state_mut().focus = Focus::Job;
     h.run_steps(3);
     let shapes = h.state().edit.as_ref().unwrap().job.drawing.shapes.clone();
     let from = badge(&h, 1);
