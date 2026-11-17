@@ -20,6 +20,9 @@ below).
 - **For the user to try** (said 2026-11-17: "will test after all is done"): nesting (the
   window and `chipload nest`), the instance handles, the part itself placed, surfaces on
   the board and on a part; pieces and instances from before. Findings become items here.
+- **0.38 is one release** (the user, 2026-11-17): nesting (on main) and parts and setups
+  (branch `parts-and-setups`) go out together; no release from main before the branch is
+  merged. Its notes cover both.
 - **Release notes for 0.38** must say: 0.37 can't open a project with pieces (schema 37),
   instances (38), a placed part (39) or a part surface (40); the G-code part comment reads
   "cut N times"; dowel holes are no longer repeated per instance; a surface is the whole
