@@ -3,7 +3,8 @@
 Status: **draft 2026-11-17, for review.** Reviewed by the user 2026-11-17: "the spec looks
 good", with a fitted board made a fixed size and the machine's travel respected (§5,
 folded in), and with what doesn't fit switched off, not left off the board (§4, decision
-10, new). It replaces the outline of 2026-11-16. Nesting came
+10: the user, "yes, but let's explore pushing them to a second platter, like in a 3D
+printer slicer"; explored in §11.1). It replaces the outline of 2026-11-16. Nesting came
 into scope on 2026-11-16 (ADR 0017; the user: "Bring nesting into scope"). It builds on
 instances (docs/specs/instances.md) and the part itself placed
 (docs/specs/part-placement.md), both built.
@@ -238,8 +239,33 @@ Each step is a commit, with its tests:
 5. **The window:** the dialog, the preview in the background, *Apply*, *Nest again*.
 6. **Setup sheet, guide page** (`drawings/nesting.md`), schemas, translations.
 
-**Later, each with its own decision:** small parts in holes (§9.2), several boards as
-setups for what doesn't fit, `dxf export --as-cut`, nesting a front and back together.
+**Later, each with its own decision:** small parts in holes (§9.2), a second board for what
+doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.
+
+### 11.1 A second board for what doesn't fit (to explore)
+
+The user's idea (2026-11-17): what doesn't fit goes onto a second platter, as a 3D printer
+slicer adds plates, rather than being switched off. Perhaps out of reach now. What it would
+take:
+- **A second board is a setup:** the same stock, its own program and setup sheet. That
+  part is easy: setups exist.
+- **The hard part is that a part belongs to one setup** (`part.setup`), and its instances go
+  with it. Instance 3 of "side" on board 2 while instances 1 and 2 stay on board 1 can't be
+  written today. Two ways:
+  - **an instance names its setup** (an optional `setup` on an instance, the part's
+    otherwise): the part stays one definition, cut on several boards. This needs a schema
+    bump (an older Chipload would cut every instance on the first board), and planning,
+    the overlap check, the sheet and the Browser would all go per setup and instance;
+  - **the nest copies the part into the new setup** with the instances that didn't fit:
+    no new field, but two parts to keep in step after every later edit. That works against
+    what instances are for.
+- **The slicer's view** (boards side by side, the active one in colour, the others as
+  ghosts) is TODO's *Setups on sheets of their own*. Today every setup's board lies on the
+  same drawing coordinates, so a second board would sit on top of the first.
+
+**Recommended:** the first way, as its own spec after nesting is built and tried, together
+with sheets of their own, since a second board is only clear when the boards are side by
+side. Until then, *Apply* switches off what doesn't fit (decision 10).
 
 ## 12. Clean room
 
