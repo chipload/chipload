@@ -296,6 +296,20 @@ const GOLDEN: [(&str, &str); 83] = [
     ),
 ];
 
+/// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with
+/// these arguments, then `chipload run`. Nesting is deterministic, so the G-code pins the
+/// placer too. The frozen file is the project before nesting.
+const NEST_GOLDEN: [(&str, &str, &[&str]); 1] = [
+    // v38_instances frozen at v40 on a 400 × 300 board (`set setups.0.stock.x=400
+    // setups.0.stock.y=300`): its three instances (one turned 90°, one mirrored and turned
+    // 180°) and two more (`--count 1=5`), quarter turns allowed, the default gap and margin.
+    (
+        "v40_nest_badge",
+        "jobs/v40/nest_badge.chipload",
+        &["--count", "1=5"],
+    ),
+];
+
 /// Projects in pieces (docs/specs/pieces.md): a program per piece, run as `chipload run`
 /// does. Kept apart from GOLDEN, whose other tests plan a project as one program.
 const PIECES_GOLDEN: [(&str, &str); 1] = [
@@ -421,6 +435,41 @@ fn golden_pieces_gcode() {
     );
 }
 
+#[test]
+fn golden_nest_gcode() {
+    let base = std::env::temp_dir().join(format!("chipload-golden-nest-{}", std::process::id()));
+    let update = std::env::var_os("CHIPLOAD_UPDATE_GOLDEN").is_some();
+    let mut mismatches = Vec::new();
+    for (name, project, args) in NEST_GOLDEN {
+        let mut runs = Vec::new();
+        for side in ["a", "b"] {
+            let dir = base.join(format!("{name}-{side}"));
+            std::fs::create_dir_all(&dir).unwrap();
+            let nested = dir.join(format!("{name}.chipload"));
+            std::fs::copy(corpus(project), &nested).unwrap();
+            let mut nest: Vec<&OsStr> = vec!["nest".as_ref(), nested.as_os_str()];
+            nest.extend(args.iter().map(|a| OsStr::new(*a)));
+            chipload(&nest);
+            runs.push(run(&nested, &dir, name));
+        }
+        assert_eq!(runs[0], runs[1], "{name}: output differs between runs");
+        assert!(!runs[0].is_empty(), "{name}: no G-code written");
+        for (file, text) in &runs[0] {
+            let expected = corpus(&format!("expected/{file}"));
+            if update {
+                std::fs::write(&expected, text).unwrap();
+            } else if std::fs::read_to_string(&expected).ok().as_ref() != Some(text) {
+                mismatches.push(file.clone());
+            }
+        }
+    }
+    std::fs::remove_dir_all(&base).unwrap();
+    assert!(
+        mismatches.is_empty(),
+        "golden G-code differs for {mismatches:?}; if intended, regenerate with          CHIPLOAD_UPDATE_GOLDEN=1 and explain the change in the commit message"
+    );
+}
+
 /// The same project rendered with its post but `arcs = false`: what run_job does, with
 /// that one setting changed. (file name, G-code) for each file, as `run` names them.
 fn render_without_arcs(project: &Path, name: &str) -> Vec<(String, String)> {
@@ -468,10 +517,16 @@ fn golden_files() -> Vec<String> {
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
         .filter(|f| {
-            GOLDEN.iter().chain(&PIECES_GOLDEN).any(|(name, _)| {
-                f == &format!("{name}.nc")
-                    || (f.starts_with(&format!("{name}-")) && f.ends_with(".nc"))
-            })
+            let nested = NEST_GOLDEN.iter().map(|(name, _, _)| name);
+            GOLDEN
+                .iter()
+                .chain(&PIECES_GOLDEN)
+                .map(|(name, _)| name)
+                .chain(nested)
+                .any(|name| {
+                    f == &format!("{name}.nc")
+                        || (f.starts_with(&format!("{name}-")) && f.ends_with(".nc"))
+                })
         })
         .collect();
     files.sort();

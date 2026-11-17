@@ -123,6 +123,7 @@ cargo run -p chipload-cli -- new -o part.chipload                   # empty proj
 cargo run -p chipload-cli -- copies part.chipload --grid 3x2 --gap 10   # a grid of instances of the part (--part ID with several); = part instance array
 cargo run -p chipload-cli -- part instance add part.chipload --angle 90 --mirror left-right   # the part placed again (also part instance list/set/remove/array)
 cargo run -p chipload-cli -- part place part.chipload --at 300,0 --angle 90   # the part itself cut elsewhere than drawn (--reset); its shapes stay where drawn
+cargo run -p chipload-cli -- nest part.chipload --count 2=4 --turns 2=none   # every instance placed on the board, apart by the gap (--board, --gap, --margin, --dry-run)
 cargo run -p chipload-cli -- part add part.chipload --name box   # parts: groups of operations cut one after the other (also part list/set/activate/remove, op part)
 cargo run -p chipload-cli -- place part.chipload --align bottom-left --margin 10   # move the imported drawing onto the stock
 cargo run -p chipload-cli -- place part.chipload --rotate 30  # turn it in place, any angle (also --at X,Y: the box's corner)

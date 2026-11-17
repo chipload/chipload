@@ -289,6 +289,28 @@ refused there. Turns are stored in −180°…180° (a quarter turn back is −9
   regenerated. A glossary word: *nest* (verschachteln, imbriquer, anidar, annidare,
   nästla, раскроить).
 
+**As built (step 4, 2026-11-17).** `chipload nest PROJECT [--setup ID] [--board XxY]
+[--gap L] [--margin L] [--turns TURNS|ID=TURNS]… [--count ID=N]… [--dry-run] [-o OUT]`
+and `part set --turns`. Changes from §8:
+- **Per part as `ID=VALUE`:** `--turns 2=none` and `--count 2=4`, repeatable, in place of
+  `--part ID --turns … --count N` groups, which clap can't pair reliably. `--turns
+  quarter` without an id sets every part. Turns are `none`, `half`, `quarter`,
+  `every-15` (also `every_15`, `15`).
+- **`--json`** has `setup`, `placed` (part, instance, angle in radians, at), `unplaced`,
+  `used`, `length`, `used_pct`, `board_fixed`, `travel`; the notes are in the envelope's
+  `notes` with every printed line.
+- **A slack along the board (§4.3):** a part may go up to 5 mm farther along the board
+  (`ALONG_SLACK_MM`) when that puts it lower across. The strict rule sent the badge's
+  fourth instance to the top of the second column for a 1 mm gain, leaving the bottom
+  free; with the slack it takes the bottom. The property tests and the timing (0.35 s for
+  50 instances) are unchanged.
+- **The guide page** `drawings/nesting.md` came with this step (the command line), as the
+  guide test asks of every command; step 6 adds the window to it.
+- **Golden:** `jobs/v40/nest_badge.chipload`, the badge of v38 on a 400 × 300 board before
+  nesting; `golden_nest_gcode` nests it (`--count 1=5`) and runs it, twice, against
+  `expected/v40_nest_badge.nc`, so the golden pins the placer. The frozen messages gain
+  the sample's plan.
+
 **Later, each with its own decision:** small parts in holes (§9.2), a second board for what
 doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.
 

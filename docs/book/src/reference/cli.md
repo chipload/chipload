@@ -2467,6 +2467,7 @@ chipload part set <PROJECT> <ID> [OPTIONS]
 | `--on` | Cut the part again. |
 | `--mirror <MIRROR>` | Cut the part mirrored about the centre line of its box, the drawing as drawn: left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb. |
 | `--order <ORDER>` | The order its instances are cut in (docs/specs/instances.md §2) One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
+| `--turns <TURNS>` | How it may be turned when nested: none, half, quarter or every-15 (docs/specs/nesting.md §3) |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload part place`
@@ -2783,6 +2784,26 @@ chipload copies <PROJECT> [OPTIONS]
 | `--gap <GAP>` | Set the pitch so that this many mm are left between the cuts of neighbours. |
 | `--order <ORDER>` | The cut order. One of: `by-operation` (Each operation on every instance, then the next operation), `by-instance` (Every operation on one instance, then the next (was `by-copy`, `by-part`)). |
 | `--off` | No instances: the part is cut once. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
+## `chipload nest`
+
+Nest a setup: every instance of its parts placed on its board as close as they fit, apart by the gap, what doesn't fit switched off (docs/specs/nesting.md)
+
+```text
+chipload nest <PROJECT> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--setup <SETUP>` | The setup (as `setup list` shows it); default: the active one. |
+| `--board <BOARD>` | The board's size "X×Y", such as 1220x610 (any length unit; plain numbers are mm). Needed when the board follows the drawing: it becomes this size, its corner at the drawing's origin. |
+| `--gap <GAP>` | The least distance between what two instances cut (default: as last nested, else 3 mm) |
+| `--margin <MARGIN>` | The room left at the board's edge (default: as last nested, else 10 mm) |
+| `--turns <TURNS>` | How parts may be turned: none, half, quarter or every-15, for every part; "ID=TURNS" for one part, such as 2=none (wood grain). Kept in the project. Default: as set, else quarter. Repeatable. |
+| `--count <COUNT>` | How many times part ID is cut, "ID=N", such as 2=4: instances added or removed before nesting (never the part itself) Repeatable. |
+| `--dry-run` | Report what would be placed without writing the project. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ## `chipload place`

@@ -36,6 +36,7 @@
 - [The shape library](drawings/shape-library.md)
 - [Groups](drawings/groups.md)
 - [Instances](drawings/instances.md)
+- [Nesting](drawings/nesting.md)
 
 # Operations
 

@@ -109,6 +109,19 @@ pub fn set_part(
     checked(job)
 }
 
+/// The project with part `id` turned as `turns` allows when nested
+/// (docs/specs/nesting.md §3).
+pub fn set_part_turns(
+    job: &Job,
+    id: u64,
+    turns: chipload_job::Turns,
+) -> Result<Job, PipelineError> {
+    let mut job = job.clone();
+    let at = index_of(&job, id)?;
+    job.parts[at].turns = Some(turns);
+    checked(job)
+}
+
 /// The project with part `id` cut mirrored, or as drawn with None
 /// (docs/specs/mirror-part.md §6).
 pub fn set_part_mirror(

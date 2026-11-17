@@ -365,6 +365,9 @@ pub(crate) enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
+    /// Nest a setup: every instance of its parts placed on its board as close as they fit,
+    /// apart by the gap, what doesn't fit switched off (docs/specs/nesting.md).
+    Nest(crate::nesting::NestArgs),
     /// Move, turn or scale the imported drawing (docs/specs/drawing-placement.md,
     /// drawing-rotation.md, drawing-scale.md). Without an option, print where it is.
     Place {

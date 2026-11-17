@@ -56,6 +56,10 @@ pub enum PartAction {
         /// The order its instances are cut in (docs/specs/instances.md §2).
         #[arg(long)]
         order: Option<crate::placing::OrderArg>,
+        /// How it may be turned when nested: none, half, quarter or every-15
+        /// (docs/specs/nesting.md §3).
+        #[arg(long, value_parser = crate::nesting::turns_value)]
+        turns: Option<chipload_job::Turns>,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -173,6 +177,7 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
             on,
             mirror,
             order,
+            turns,
             ..
         } => {
             let enabled = match (off, on) {
@@ -187,6 +192,10 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
                 })
                 .and_then(|job| match order {
                     Some(order) => set_order(&job, id, order.value()),
+                    None => Ok(job),
+                })
+                .and_then(|job| match turns {
+                    Some(turns) => chipload_pipeline::parts::set_part_turns(&job, id, turns),
                     None => Ok(job),
                 })
         }

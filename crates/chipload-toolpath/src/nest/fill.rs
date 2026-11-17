@@ -20,6 +20,10 @@ use super::grid::Grid;
 use super::sweep::Sweep;
 use crate::{Cancel, ToolpathError};
 
+/// How much farther along the board a part may go to lie lower across it, mm
+/// (nesting.md §4.3, as built).
+pub const ALONG_SLACK_MM: f64 = 5.0;
+
 /// Runs of occupied cells along one line, (first, last) inclusive, sorted, apart.
 type Runs = Vec<(i64, i64)>;
 
@@ -154,14 +158,49 @@ impl Filling<'_> {
     /// The lowest place for `lie`: the first cell along where it fits anywhere across,
     /// and there the lowest across. None when it fits nowhere.
     fn place(&self, lie: &Lie) -> Option<(i64, i64)> {
-        let (side_along, side_across) = self.sheet.lengths();
-        let (length_along, length_across) = self.sheet.footprint_lengths(&lie.footprint);
-        let last_along = self.sheet.last_start(length_along, side_along)?;
-        let last_across = self.sheet.last_start(length_across, side_across)?;
+        let (last_along, last_across) = self.limits(lie)?;
         (0..=last_along).find_map(|along| {
             self.lowest_across(lie, along, last_across)
                 .map(|across| (along, across))
         })
+    }
+
+    /// The last cells along and across `lie` may start at; None when it is larger than the
+    /// sheet.
+    fn limits(&self, lie: &Lie) -> Option<(i64, i64)> {
+        let (side_along, side_across) = self.sheet.lengths();
+        let (length_along, length_across) = self.sheet.footprint_lengths(&lie.footprint);
+        Some((
+            self.sheet.last_start(length_along, side_along)?,
+            self.sheet.last_start(length_across, side_across)?,
+        ))
+    }
+
+    /// The best place for any of `lies` (nesting.md §4.3): the lowest along where one fits
+    /// anywhere, but up to [`ALONG_SLACK_MM`] farther along when that is lower across, so a
+    /// part doesn't go to the top of the board for a millimetre's gain. Then the lowest
+    /// across, the lowest along, the first lie.
+    fn best(&self, lies: &[Lie]) -> Option<((i64, i64), usize)> {
+        let firsts: Vec<Option<(i64, i64)>> = lies.iter().map(|lie| self.place(lie)).collect();
+        let first = firsts.iter().flatten().map(|&(along, _)| along).min()?;
+        let reach = first + (ALONG_SLACK_MM / self.sheet.cell).floor() as i64;
+        let mut best: Option<((i64, i64), usize)> = None;
+        for (l, (lie, found)) in lies.iter().zip(&firsts).enumerate() {
+            let (Some((start, _)), Some((last_along, last_across))) = (found, self.limits(lie))
+            else {
+                continue;
+            };
+            for along in *start..=reach.min(last_along) {
+                let Some(across) = self.lowest_across(lie, along, last_across) else {
+                    continue;
+                };
+                let better = best.is_none_or(|((a, c), b)| (across, along, l) < (c, a, b));
+                if better {
+                    best = Some(((along, across), l));
+                }
+            }
+        }
+        best
     }
 
     /// The lowest cell across, up to `last`, where `lie` fits at cell `along`.
@@ -280,14 +319,7 @@ fn fill_in_order(
             return Err(ToolpathError::Cancelled);
         }
         let Some(item) = items.get(k) else { continue };
-        // Every lie tried: the lowest place along, then across, then the first lie.
-        let best = item
-            .lies
-            .iter()
-            .enumerate()
-            .filter_map(|(l, lie)| filling.place(lie).map(|at| (at, l)))
-            .min_by_key(|&(at, l)| (at, l));
-        let Some(((along, across), l)) = best else {
+        let Some(((along, across), l)) = filling.best(&item.lies) else {
             unplaced.push(k);
             continue;
         };

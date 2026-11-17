@@ -392,7 +392,7 @@ fn describe(instance: &Instance) -> String {
 }
 
 /// A length with 3 decimals; one that rounds to nothing is 0.000, never -0.000.
-fn mm3(value: f64) -> String {
+pub(crate) fn mm3(value: f64) -> String {
     let text = format!("{value:.3}");
     if text == "-0.000" {
         "0.000".to_string()
@@ -402,7 +402,7 @@ fn mm3(value: f64) -> String {
 }
 
 /// An angle in degrees, with as few decimals as it needs (at most 3).
-fn degrees_text(radians: f64) -> String {
+pub(crate) fn degrees_text(radians: f64) -> String {
     let text = format!("{:.3}", radians.to_degrees());
     text.trim_end_matches('0').trim_end_matches('.').to_string()
 }

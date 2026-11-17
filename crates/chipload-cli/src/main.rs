@@ -14,6 +14,7 @@ mod lengths;
 mod library;
 mod materials;
 mod models;
+mod nesting;
 mod parts;
 mod reliefs;
 mod setups;
@@ -293,6 +294,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
         Command::Machine { action } => library::machine(out, action),
         Command::Post { action } => library::post(out, action),
         Command::Part { action } => parts::part(out, action),
+        Command::Nest(args) => nesting::nest(out, args),
         Command::Setup { action } => setups::setup(out, action),
         Command::Zero {
             project,
