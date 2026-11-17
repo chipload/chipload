@@ -229,6 +229,19 @@ impl ChiploadApp {
         {
             self.export_as_when_ready();
         }
+        // Every setup at once (docs/specs/parts-and-setups.md §8).
+        if self.edit.as_ref().is_some_and(|e| e.job.setups.len() > 1)
+            && ui
+                .add_enabled(
+                    self.can_export_all(),
+                    egui::Button::new(t!(ui, "menu-export-all")),
+                )
+                .on_hover_text(t!(ui, "menu-export-all-hover"))
+                .clicked()
+        {
+            self.ask_export_all();
+            ui.close();
+        }
         if ui
             .add_enabled(has_result, egui::Button::new(t!(ui, "menu-export-path")))
             .clicked()

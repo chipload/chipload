@@ -66,6 +66,10 @@ app-sheet-for-operator = Scheda di attrezzaggio per l'operatore: { $path }
 app-exported-files = Esportati { $count } file accanto a { $path }
 app-exported-files-sheet = Esportati { $count } file e la scheda di attrezzaggio { $sheet } accanto a { $path }
 app-exported = Esportato { $path }
+app-export-all-running = Calcolo e scrittura di ogni piazzamento…
+app-exported-all = { $setups } piazzamenti esportati, { $count } file, accanto a { $path }
+app-export-all-failed = Non è stato possibile esportare i piazzamenti; non è stato scritto nulla
+app-export-all-stopped = L’esportazione di tutti i piazzamenti si è fermata inaspettatamente; forse non è stato scritto nulla
 app-exported-sheet = Esportati { $path } e la scheda di attrezzaggio { $sheet }
 
 app-cannot-save-yet = Il progetto non può ancora essere salvato:

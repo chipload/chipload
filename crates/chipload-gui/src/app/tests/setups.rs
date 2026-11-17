@@ -374,3 +374,38 @@ fn the_turn_axis_shows_and_missing_dowels_are_warned_in_both_forms() {
             .any(|op| op.is_dowels())
     );
 }
+
+/// *Export all setups…* (docs/specs/parts-and-setups.md §8): every setup's programs and
+/// sheets at once, on a worker thread; the project is left as it was.
+#[test]
+fn every_setup_is_exported_at_once() {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v34/two_setups.chipload")));
+    assert!(app.can_export_all());
+    let before = app.edited_job().unwrap();
+    let dir = temp_dir("export-all");
+    assert!(app.start_export_all(&dir.join("box.nc")));
+    assert!(!app.can_export_all(), "one at a time");
+    app.wait_for_export_all();
+    assert!(dir.join("box-S1.nc").exists() || dir.join("box-S1-1-T1.nc").exists());
+    assert!(dir.join("box-S2.nc").exists() || dir.join("box-S2-1-T1.nc").exists());
+    let names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(
+        names.iter().filter(|n| n.ends_with(".html")).count(),
+        2,
+        "{names:?}"
+    );
+    assert!(
+        app.report
+            .lines
+            .iter()
+            .any(|l| l.text.contains("Exported 2 setups"))
+    );
+    assert_eq!(app.edited_job().unwrap(), before);
+    // One board: nothing to do.
+    let one = lower_part();
+    assert!(!one.can_export_all());
+}

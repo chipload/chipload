@@ -66,6 +66,10 @@ app-sheet-for-operator = Hoja de preparación para el operario: { $path }
 app-exported-files = Se exportaron { $count } archivos junto a { $path }
 app-exported-files-sheet = Se exportaron { $count } archivos y la hoja de preparación { $sheet } junto a { $path }
 app-exported = Exportado { $path }
+app-export-all-running = Calculando y escribiendo cada sujeción…
+app-exported-all = { $setups } sujeciones exportadas, { $count } archivos, junto a { $path }
+app-export-all-failed = No se pudieron exportar las sujeciones; no se escribió nada
+app-export-all-stopped = La exportación de todas las sujeciones se detuvo de forma inesperada; puede que no se escribiera nada
 app-exported-sheet = Exportados { $path } y la hoja de preparación { $sheet }
 
 app-cannot-save-yet = El proyecto todavía no se puede guardar:

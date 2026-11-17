@@ -66,6 +66,10 @@ app-sheet-for-operator = Uppsättningsblad för operatören: { $path }
 app-exported-files = Exporterade { $count } filer bredvid { $path }
 app-exported-files-sheet = Exporterade { $count } filer och uppsättningsbladet { $sheet } bredvid { $path }
 app-exported = Exporterade { $path }
+app-export-all-running = Beräknar och skriver varje uppspänning…
+app-exported-all = Exporterade { $setups } uppspänningar, { $count } filer, bredvid { $path }
+app-export-all-failed = Uppspänningarna kunde inte exporteras; inget skrevs
+app-export-all-stopped = Exporten av alla uppspänningar avbröts oväntat; kanske skrevs inget
 app-exported-sheet = Exporterade { $path } och uppsättningsbladet { $sheet }
 
 app-cannot-save-yet = Projektet kan inte sparas än:

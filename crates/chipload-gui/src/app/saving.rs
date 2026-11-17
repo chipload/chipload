@@ -94,6 +94,22 @@ impl ChiploadApp {
         false
     }
 
+    /// The words of a setup sheet the window writes: in the app's language and display
+    /// units (docs/specs/translations.md step 3); `parts` as for `write_export`.
+    pub(super) fn sheet_info(&self, parts: Vec<String>) -> SheetInfo {
+        SheetInfo {
+            project: self
+                .file
+                .path
+                .as_deref()
+                .map_or_else(|| t!(self, "export-untitled-project"), file_name),
+            written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
+            units: self.prefs.units,
+            language: self.lang(),
+            parts,
+        }
+    }
+
     /// Write the last generation's G-code files, and its setup sheet when the setting asks
     /// for one; `parts` names the parts when only those were planned.
     fn write_export(&mut self, path: &Path, parts: Vec<String>) -> bool {
@@ -141,17 +157,7 @@ impl ChiploadApp {
             (Some(job), true) => {
                 // In the app's language and display units (docs/specs/translations.md
                 // step 3).
-                let info = SheetInfo {
-                    project: self
-                        .file
-                        .path
-                        .as_deref()
-                        .map_or_else(|| t!(self, "export-untitled-project"), file_name),
-                    written_by: format!("chipload {}", env!("CARGO_PKG_VERSION")),
-                    units: self.prefs.units,
-                    language: self.lang(),
-                    parts,
-                };
+                let info = self.sheet_info(parts);
                 match write_sheet_for(job, result, path, &info) {
                     Ok(sheet) => Some(sheet),
                     Err(err) => {

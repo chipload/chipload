@@ -66,6 +66,10 @@ app-sheet-for-operator = Einrichteblatt für den Bediener: { $path }
 app-exported-files = { $count } Dateien neben { $path } exportiert
 app-exported-files-sheet = { $count } Dateien und das Einrichteblatt { $sheet } neben { $path } exportiert
 app-exported = { $path } exportiert
+app-export-all-running = Jede Aufspannung wird berechnet und geschrieben…
+app-exported-all = { $setups } Aufspannungen exportiert, { $count } Dateien, neben { $path }
+app-export-all-failed = Die Aufspannungen konnten nicht exportiert werden; nichts wurde geschrieben
+app-export-all-stopped = Der Export aller Aufspannungen wurde unerwartet abgebrochen; womöglich wurde nichts geschrieben
 app-exported-sheet = { $path } und das Einrichteblatt { $sheet } exportiert
 
 app-cannot-save-yet = Das Projekt kann noch nicht gespeichert werden:

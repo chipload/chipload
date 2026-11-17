@@ -45,6 +45,8 @@ pub(super) enum SetupAction {
     NewPart(u64),
     Remove(u64),
     Export(u64),
+    /// Every setup's programs and sheets at once (docs/specs/parts-and-setups.md §8).
+    ExportAll,
     /// A board surface first in this setup (docs/specs/surface-levels.md §5).
     FaceBoard(u64),
     /// Nest its instances on its board (docs/specs/nesting.md §7).
@@ -162,6 +164,14 @@ impl ChiploadApp {
                         .clicked()
                     {
                         setup_action = Some(SetupAction::Add);
+                    }
+                    if setups.len() > 1
+                        && ui
+                            .button(t!(ui, "menu-export-all"))
+                            .on_hover_text(t!(ui, "menu-export-all-hover"))
+                            .clicked()
+                    {
+                        setup_action = Some(SetupAction::ExportAll);
                     }
                 });
             if open {
@@ -522,6 +532,7 @@ impl ChiploadApp {
             }
             SetupAction::Remove(id) => self.remove_setup(id),
             SetupAction::Export(id) => self.ask_export_setup(id),
+            SetupAction::ExportAll => self.ask_export_all(),
             SetupAction::FaceBoard(id) => {
                 self.face_board(id);
             }

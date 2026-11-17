@@ -11,6 +11,7 @@ pub mod dxfs;
 mod error;
 pub mod estimate;
 pub mod explode;
+pub mod export_all;
 pub mod fonts;
 pub mod frames;
 pub mod groups;

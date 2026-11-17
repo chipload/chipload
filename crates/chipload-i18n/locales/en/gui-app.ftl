@@ -66,6 +66,10 @@ app-sheet-for-operator = Setup sheet for the operator: { $path }
 app-exported-files = Exported { $count } files next to { $path }
 app-exported-files-sheet = Exported { $count } files and the setup sheet { $sheet } next to { $path }
 app-exported = Exported { $path }
+app-export-all-running = Planning and writing every setup…
+app-exported-all = Exported { $setups } setups, { $count } files, next to { $path }
+app-export-all-failed = Every setup could not be exported; nothing was written
+app-export-all-stopped = The export of every setup stopped unexpectedly; nothing may have been written
 app-exported-sheet = Exported { $path } and the setup sheet { $sheet }
 
 app-cannot-save-yet = The project can't be saved yet:

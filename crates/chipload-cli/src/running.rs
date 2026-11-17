@@ -336,7 +336,8 @@ pub(crate) fn run(
                 let info = sheet_info(project, words, names.clone());
                 let mine: Vec<&chipload_pipeline::SetupRun> =
                     runs.iter().filter(|r| r.setup == run.setup).collect();
-                match write_pieces_sheet(&one, &mine, output, &info) {
+                match chipload_pipeline::export_all::write_pieces_sheet(&one, &mine, output, &info)
+                {
                     Ok(path) => {
                         out.wrote(&path, " (setup sheet)");
                         let shown = std::path::absolute(&path).unwrap_or(path);
@@ -450,33 +451,6 @@ fn pieces_sheet_only(
     }
     out.wrote(output, "");
     Some(ExitCode::SUCCESS)
-}
-
-/// The sheet of a setup in pieces, from its pieces' runs, next to the G-code: written where
-/// a setup's sheet goes (docs/specs/pieces.md §8).
-fn write_pieces_sheet(
-    one: &chipload_job::Job,
-    runs: &[&chipload_pipeline::SetupRun],
-    output: &Path,
-    info: &chipload_pipeline::sheet::SheetInfo,
-) -> Result<std::path::PathBuf, String> {
-    let map = chipload_pipeline::pieces::piece_map(one)
-        .map_err(|e| e.to_string())?
-        .ok_or("the setup is not in pieces")?;
-    let pieces: Vec<chipload_pipeline::sheet::PieceSheet> = runs
-        .iter()
-        .filter_map(|r| {
-            Some(chipload_pipeline::sheet::PieceSheet {
-                name: r.piece.as_deref()?,
-                job: &r.job,
-                result: &r.result,
-            })
-        })
-        .collect();
-    let html = chipload_pipeline::sheet::pieces_sheet(one, &map, &pieces, output, info);
-    let path = chipload_pipeline::sheet::setup_sheet_path(one, output);
-    chipload_pipeline::write_atomically(&path, &html).map_err(|e| e.to_string())?;
-    Ok(path)
 }
 
 pub(crate) fn render(out: &mut Out, program_path: &Path, post_name: &str) -> ExitCode {

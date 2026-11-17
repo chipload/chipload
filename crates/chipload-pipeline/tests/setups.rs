@@ -196,3 +196,62 @@ fn every_operation_is_checked_against_its_own_board() {
         "{problems:?}"
     );
 }
+
+/// *Export all setups* (docs/specs/parts-and-setups.md §8): every setup's programs, as
+/// `run_setups` makes them, and a sheet each; nothing written when a setup fails.
+#[test]
+fn every_setup_is_exported_at_once_or_nothing_is() {
+    use chipload_pipeline::export_all::{ExportError, export_all};
+    use chipload_pipeline::sheet::SheetInfo;
+    let dir = std::env::temp_dir().join(format!("chipload-export-all-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let job = two_boards();
+    let info = SheetInfo {
+        project: "box.chipload".into(),
+        written_by: "chipload test".into(),
+        units: chipload_job::Units::Mm,
+        language: chipload_i18n::Language::En,
+        parts: Vec::new(),
+    };
+    let output = dir.join("box.nc");
+    let done = export_all(&job, &output, Some(&info)).unwrap();
+    assert_eq!(
+        done.setups.iter().map(|(id, _)| *id).collect::<Vec<_>>(),
+        [1, 2]
+    );
+    assert_eq!(done.sheets.len(), 2);
+    let runs = run_setups(&job, None).unwrap();
+    let want: Vec<_> = runs
+        .iter()
+        .flat_map(|(_, r)| r.files.iter().map(|f| (f.path(&output), f.gcode.clone())))
+        .collect();
+    assert_eq!(
+        done.files,
+        want.iter().map(|(p, _)| p.clone()).collect::<Vec<_>>()
+    );
+    for (path, gcode) in &want {
+        assert_eq!(&std::fs::read_to_string(path).unwrap(), gcode);
+    }
+    for sheet in &done.sheets {
+        assert!(sheet.exists(), "{}", sheet.display());
+    }
+    // A machine too small for the boards: refused, nothing written.
+    let mut small = job.clone();
+    small.machine.travel = Some(chipload_job::Travel {
+        x: 10.0,
+        y: 10.0,
+        z: 100.0,
+    });
+    let other = dir.join("small.nc");
+    assert!(matches!(
+        export_all(&small, &other, Some(&info)),
+        Err(ExportError::Run(_))
+    ));
+    let names: Vec<String> = std::fs::read_dir(&dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .collect();
+    assert!(names.iter().all(|n| !n.starts_with("small")), "{names:?}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

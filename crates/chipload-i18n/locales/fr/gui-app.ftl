@@ -66,6 +66,10 @@ app-sheet-for-operator = Fiche de réglage pour l'opérateur : { $path }
 app-exported-files = { $count } fichiers exportés à côté de { $path }
 app-exported-files-sheet = { $count } fichiers et la fiche de réglage { $sheet } exportés à côté de { $path }
 app-exported = { $path } exporté
+app-export-all-running = Calcul et écriture de chaque montage…
+app-exported-all = { $setups } montages exportés, { $count } fichiers, à côté de { $path }
+app-export-all-failed = Les montages n’ont pas pu être exportés ; rien n’a été écrit
+app-export-all-stopped = L’export de tous les montages s’est arrêté de façon inattendue ; rien n’a peut-être été écrit
 app-exported-sheet = { $path } et la fiche de réglage { $sheet } exportés
 
 app-cannot-save-yet = Le projet ne peut pas encore être enregistré :

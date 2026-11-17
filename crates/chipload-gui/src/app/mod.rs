@@ -54,6 +54,7 @@ mod drawing;
 mod dropping;
 mod dxf_export;
 mod editing;
+mod export_all;
 mod forms;
 mod frames;
 mod generation;
@@ -458,6 +459,8 @@ pub struct ChiploadApp {
     pub image_dialog: Option<images::ImageDialog>,
     /// The Nest window, or a Nest again running (docs/specs/nesting.md §7).
     nest: Option<Box<nesting::NestDialog>>,
+    /// *Export all setups…* running (docs/specs/parts-and-setups.md §8).
+    export_all: Option<export_all::ExportAllRun>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
@@ -529,6 +532,7 @@ impl Default for ChiploadApp {
             user: user_library::UserFiles::default(),
             image_dialog: None,
             nest: None,
+            export_all: None,
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),
             drawing_hidden: None,
@@ -836,6 +840,7 @@ impl eframe::App for ChiploadApp {
         self.next_drop();
         self.image_window(&ctx);
         self.nest_window(&ctx);
+        self.poll_export_all(&ctx);
         self.sync_pictures(&ctx);
         self.sync_models(ui.visuals().dark_mode);
         self.recovery_window(&ctx);

@@ -60,7 +60,9 @@ every setup, is under **Machine**.
 Right-click a setup for **Export G-code of this setup…**: it becomes the active setup, is
 planned if it isn't shown already, and its program and sheet are written. **Export G-code**
 writes the active setup's program, named `-S1`, `-S2` as `run` names them,
-with its own sheet. Make the next setup active and export it too. A setup whose parts still
+with its own sheet. **File › Export all setups…** (also in the *Setups* menu) writes every
+setup's programs and sheets at once, as `chipload run` does: each setup is planned and
+checked first, and nothing is written unless all of them pass. A setup whose parts still
 have operations can't be removed: move them or delete them first.
 
 ![Two setups: the 6 mm bottom active, the 12 mm sides a ghost](../images/setups.png)

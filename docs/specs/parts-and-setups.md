@@ -212,6 +212,10 @@ it), but **the window and the command line show neither until they matter**:
   setup ▸*: a new instance where the part is drawn, selected for the Compass.
 - **Moving an instance to another board:** *Move to board…* in its menu, or dragging its row
   onto another setup: it keeps its number and placement.
+- **Export all setups…** (File menu and the *Setups* row's menu, with two setups or
+  more; the user, 2026-11-17): every setup's programs and sheets at once, named as `run`
+  names them, planned on a worker thread; nothing is written unless every setup plans
+  and passes the checker (`chipload_pipeline::export_all`).
 - **The part's form** gains *Stock* (material, thickness), its instances listed by board.
 - *Show placement instance* goes: instance #1 is an instance like the others, always listed
   and drawn.
