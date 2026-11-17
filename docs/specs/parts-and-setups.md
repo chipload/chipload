@@ -50,6 +50,34 @@ leaves four things awkward:
   board in their listed order, by operation or by instance as the part says. For a project
   migrated from schema 40 this is exactly today's order (§5).
 
+## 2a. The simple case first (decision 10)
+
+The user, reviewing this spec (2026-11-17): "the workflow for the user should work for a
+simple part without Setups at all. So we don't add extra complexity for simple use cases
+and workflows." The model always has a board and instances in the file (one way to say
+it), but **the window and the command line show neither until they matter**:
+
+- **A simple project** is one board, each part on it once where it is drawn. That is what
+  *New*, *Import* and `chipload import` make, silently: the user opens a DXF, adds
+  operations, generates, exports, and never meets the words *setup*, *board list* or
+  *instance*.
+- **One board: no Setups branch.** The Browser shows the project, the drawing, the tools,
+  **Stock** and **Work zero** as rows of the project, and the parts with their operations,
+  as projects did before setups. *Add board* (the project's menu, *Wizards > Two-sided…*,
+  nesting overflow) makes the second board; from then on the Setups branch shows. Removing
+  the second board again brings the simple view back.
+- **A part once, where drawn: no instance rows,** no ghost, no badge: the part is just the
+  part, its shapes are what is cut. Instances show when a part has a second one, or is moved
+  or turned (*Place…* in its menu, as today), or the project has a second board.
+- **A part's stock** stays out of the way: folded in the part's form, empty, never warned
+  about until set (§4).
+- **Nothing to choose:** every command that takes a board (`--setup`) defaults to the only
+  one, every new part goes on it once, where drawn. File names, the setup sheet and the
+  G-code are as today for one board.
+- **Measured:** the usual simple job (import a DXF, a profile with tabs, a pocket, generate,
+  export) takes no more clicks and shows no more Browser rows than in 0.37, and fewer (no
+  *Setups › Setup 1* level). A window test counts the rows.
+
 ## 3. What moves where
 
 | Today (schema 40) | Then (schema 41) |
@@ -130,7 +158,8 @@ leaves four things awkward:
 
 ## 8. In the window
 
-- **The Browser** has two branches:
+- **The Browser**, once there are two boards (§2a; with one, Stock and Work zero are the
+  project's rows and there is no Setups branch), has two branches:
   - **Parts:** each part with its operations, its stock, how many instances it has and on
     how many boards; a part with none says "not placed".
   - **Setups:** each board with Stock, Work zero, its board surfaces (as today), and its instances
@@ -171,8 +200,10 @@ Each step a commit with its tests, shippable on its own:
 
 1. **The model:** schema 41, the migration, the frozen v40 sample and its golden, planning
    and checks reading instances from setups, every golden unchanged; the CLI with
-   `--setup` and `instance move`; the window showing it as today (one Parts and one Setups
-   branch).
+   `--setup` (defaulting to the only board) and `instance move`; the window showing it as
+   today.
+1b. **The simple case (§2a):** one board shows no Setups branch, a part once where drawn
+   no instance rows; the row count and click walk measured against 0.37.
 2. **A part's stock:** the field, the warning, the form and `part set`.
 3. **Sheets side by side** in the view (§7).
 4. **The window's placing:** drag a part onto a board, *Move to board…*, the part form's
@@ -195,6 +226,10 @@ Each step a commit with its tests, shippable on its own:
   are like the first; numbers kept; deterministic.
 - **Window:** sheets side by side, a click activates a sheet; drag a part onto a board;
   *Move to board…*; undo.
+- **The simple case (§2a):** an imported DXF with a profile and a pocket shows no Setups
+  branch and no instance rows, its Browser has fewer rows than 0.37's, and the walk from
+  import to export takes no more clicks; adding a second board shows the branch, removing
+  it hides it again; `chipload import`, `op add`, `run` need no `--setup`.
 - **CLI:** `instance move`, `--setup`, the old paths refused with the new ones named.
 
 ## 13. Decisions
@@ -229,3 +264,8 @@ Each step a commit with its tests, shippable on its own:
    doing it so no program changes needs its own migration rules (a board surface that isn't
    first in its setup). Alternative: move them now, with that migration.
 9. **Order of work** as §11, the model first with no visible change. **Recommended.**
+10. **The simple case shows no boards and no instances** (§2a): one board means no Setups
+    branch (Stock and Work zero are the project's rows), a part once where drawn has no
+    instance rows. **Recommended:** the user's rule; simpler than today, where a one-board
+    project already shows *Setups › Setup 1*. Alternative: always show the Setups branch,
+    as now, for one shape of the Browser in every project.
