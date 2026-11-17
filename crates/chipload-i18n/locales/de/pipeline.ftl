@@ -723,6 +723,8 @@ pipeline-nest-count = { $part } wird mindestens einmal gefräst: schalte das Tei
 pipeline-nest-not-verified = Das Verschachteln hat die Prüfungen nicht bestanden, ein Fehler beim Verschachteln, und nichts wurde geändert: { $reason }
 pipeline-nest-done = { $placed } von { $count } platziert, das Brett bis { $used } von { $length } genutzt ({ $share } %)
 pipeline-nest-unplaced = { $part }, Instanz { $instance } passte nicht: ausgeschaltet
+pipeline-nest-overflow = { $count } weitere auf { $board }
+pipeline-nest-overflow-made = { $count } weitere auf { $board }, einem neuen Rohteil wie dem ersten
 pipeline-nest-board-fixed = Das Brett folgte der Zeichnung; es ist jetzt { $width } × { $height }, seine Ecke im Ursprung der Zeichnung
 pipeline-nest-travel = Das Brett ist { $board } lang in { $axis }, die Maschine fährt { $travel }: nur so viel davon wird genutzt
 

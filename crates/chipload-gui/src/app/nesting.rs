@@ -17,7 +17,10 @@ use super::*;
 type Outcome = Result<Result<NestResult, PipelineError>, String>;
 
 /// Each instance's closed outlines in a preview, parked (true) when it didn't fit.
-type Ghosts = Vec<(Vec<Vec<Point>>, bool)>;
+pub(super) type Ghosts = Vec<(Vec<Vec<Point>>, bool)>;
+
+/// The boards a preview shows: the one nested, and those that took what didn't fit.
+pub(super) type Boards = (Option<(Point, Point)>, Vec<(Point, Point)>);
 
 /// A nest being computed.
 struct NestRun {
@@ -41,6 +44,8 @@ pub(super) struct NestPreview {
     ghosts: Ghosts,
     /// The board nested on.
     board: (Point, Point),
+    /// The boards that took what didn't fit, moved right of it for the view.
+    more: Vec<(Point, Point)>,
 }
 
 /// The Nest window's state, or a Nest again running without it.
@@ -52,6 +57,8 @@ pub(super) struct NestDialog {
     pub(super) gap: f64,
     pub(super) margin: f64,
     pub(super) rows: Vec<NestRow>,
+    /// What doesn't fit goes onto more boards (docs/specs/parts-and-setups.md §9).
+    pub(super) overflow: bool,
     run: Option<NestRun>,
     pub(super) preview: Option<Result<NestPreview, String>>,
     /// Apply the nest when the run in progress ends.
@@ -71,6 +78,7 @@ impl NestDialog {
             turns: None,
             part_turns: self.rows.iter().map(|r| (r.part, r.turns)).collect(),
             counts: self.rows.iter().map(|r| (r.part, r.count)).collect(),
+            overflow: self.overflow,
         }
     }
 
@@ -121,6 +129,7 @@ impl ChiploadApp {
             gap: s.nest.map_or(NEST_GAP_MM, |n| n.gap),
             margin: s.nest.map_or(NEST_MARGIN_MM, |n| n.margin),
             rows,
+            overflow: false,
             run: None,
             preview: None,
             apply_when_done: false,
@@ -145,6 +154,7 @@ impl ChiploadApp {
             gap: s.nest.map_or(NEST_GAP_MM, |n| n.gap),
             margin: s.nest.map_or(NEST_MARGIN_MM, |n| n.margin),
             rows: Vec::new(),
+            overflow: false,
             run: None,
             preview: None,
             apply_when_done: true,
@@ -253,42 +263,62 @@ impl ChiploadApp {
     fn nest_preview(&self, result: NestResult) -> NestPreview {
         let shown = result.job.for_setup(result.setup);
         let board = shown.stock_bounds();
-        let preview = result.preview_job();
-        let parts: Vec<u64> = preview
-            .parts
-            .iter()
-            .filter(|p| preview.part_on(p.id, result.setup))
-            .map(|p| p.id)
-            .collect();
-        // Every instance on the board, those where drawn too.
-        let every: Vec<(u64, u32)> = preview
-            .setup(result.setup)
-            .map(|s| s.instances.iter().map(|i| (i.part, i.id)).collect())
-            .unwrap_or_default();
-        let ghosts =
-            chipload_pipeline::parts::instance_outlines_showing(&preview, &self.contours, &every)
-                .into_iter()
-                .filter(|i| i.enabled && parts.contains(&i.part))
-                .map(|i| {
-                    let parked = result.unplaced.contains(&(i.part, i.id));
-                    let outlines = i
-                        .outlines
-                        .into_iter()
-                        .map(|(mut points, closed)| {
-                            if let (true, Some(&first)) = (closed, points.first()) {
-                                points.push(first);
-                            }
-                            points
-                        })
-                        .collect();
-                    (outlines, parked)
-                })
-                .collect();
+        let ((_, bottom), (right, _)) = board;
+        // The boards that took what didn't fit, in a row right of it
+        // (docs/specs/parts-and-setups.md §9), then what still didn't fit, parked.
+        let mut x = right + chipload_pipeline::nest::PARK_GAP_MM;
+        let mut more = Vec::new();
+        let mut ghosts: Ghosts = Vec::new();
+        for extra in &result.overflow {
+            let ((x0, y0), (x1, y1)) = result.job.for_setup(extra.setup).stock_bounds();
+            let (dx, dy) = (x - x0, bottom - y0);
+            more.push(((x0 + dx, y0 + dy), (x1 + dx, y1 + dy)));
+            let on = instances_on(&result.job, extra.setup);
+            for (outlines, _) in self.preview_outlines(&result.job, &on, &[]) {
+                let moved = outlines
+                    .into_iter()
+                    .map(|o| o.into_iter().map(|p| (p.0 + dx, p.1 + dy)).collect())
+                    .collect();
+                ghosts.push((moved, false));
+            }
+            x += x1 - x0 + chipload_pipeline::nest::PARK_GAP_MM;
+        }
+        let preview = result.preview_job_from(x);
+        let on = instances_on(&preview, result.setup);
+        ghosts.extend(self.preview_outlines(&preview, &on, &result.unplaced));
         NestPreview {
             result,
             ghosts,
             board,
+            more,
         }
+    }
+
+    /// The closed outlines of instances `on` that are on, each with whether it is one of
+    /// `parked`.
+    fn preview_outlines(
+        &self,
+        job: &chipload_job::Job,
+        on: &[(u64, u32)],
+        parked: &[(u64, u32)],
+    ) -> Ghosts {
+        chipload_pipeline::parts::instance_outlines_showing(job, &self.contours, on)
+            .into_iter()
+            .filter(|i| i.enabled && on.contains(&(i.part, i.id)))
+            .map(|i| {
+                let outlines = i
+                    .outlines
+                    .into_iter()
+                    .map(|(mut points, closed)| {
+                        if let (true, Some(&first)) = (closed, points.first()) {
+                            points.push(first);
+                        }
+                        points
+                    })
+                    .collect();
+                (outlines, parked.contains(&(i.part, i.id)))
+            })
+            .collect()
     }
 
     /// The nest applied as one undo step, its summary in the status bar and its notes in
@@ -309,10 +339,10 @@ impl ChiploadApp {
     }
 
     /// The preview's ghosts and board for the canvas; nothing while none is shown.
-    pub(super) fn nest_scene(&self) -> (Ghosts, Option<(Point, Point)>) {
+    pub(super) fn nest_scene(&self) -> (Ghosts, Boards) {
         match self.nest.as_ref().and_then(|d| d.preview.as_ref()) {
-            Some(Ok(p)) => (p.ghosts.clone(), Some(p.board)),
-            _ => (Vec::new(), None),
+            Some(Ok(p)) => (p.ghosts.clone(), (Some(p.board), p.more.clone())),
+            _ => (Vec::new(), (None, Vec::new())),
         }
     }
 
@@ -435,6 +465,26 @@ fn nest_form(
                 .add(crate::units::length(&mut dialog.margin).range(0.0..=1000.0))
                 .changed();
             ui.end_row();
+            // What doesn't fit (docs/specs/parts-and-setups.md §9).
+            ui.label(t!(ui, "nest-overflow"))
+                .on_hover_text(t!(ui, "nest-overflow-hover"));
+            let text = |ui: &egui::Ui, on: bool| {
+                if on {
+                    t!(ui, "nest-overflow-boards")
+                } else {
+                    t!(ui, "nest-overflow-off")
+                }
+            };
+            egui::ComboBox::from_id_salt("nest-overflow")
+                .selected_text(text(ui, dialog.overflow))
+                .show_ui(ui, |ui| {
+                    for on in [false, true] {
+                        changed |= ui
+                            .selectable_value(&mut dialog.overflow, on, text(ui, on))
+                            .changed();
+                    }
+                });
+            ui.end_row();
         });
     ui.add_space(6.0);
     egui::Grid::new("nest-parts")
@@ -517,4 +567,11 @@ fn turns_text(ui: &egui::Ui, turns: Turns) -> String {
         Turns::Quarter => t!(ui, "nest-turns-quarter"),
         Turns::Every15 => t!(ui, "nest-turns-every-15"),
     }
+}
+
+/// The instances on setup `setup`, as (part, number).
+fn instances_on(job: &chipload_job::Job, setup: u64) -> Vec<(u64, u32)> {
+    job.setup(setup)
+        .map(|s| s.instances.iter().map(|i| (i.part, i.id)).collect())
+        .unwrap_or_default()
 }

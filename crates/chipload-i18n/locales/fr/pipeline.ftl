@@ -728,6 +728,8 @@ pipeline-nest-count = { $part } est usinée au moins une fois : désactivez plut
 pipeline-nest-not-verified = L’imbrication n’a pas passé les vérifications, un défaut de l’imbrication, et rien n’a été changé : { $reason }
 pipeline-nest-done = { $placed } sur { $count } placées, la planche utilisée jusqu’à { $used } sur { $length } ({ $share } %)
 pipeline-nest-unplaced = { $part }, instance { $instance } n’a pas trouvé place : désactivée
+pipeline-nest-overflow = { $count } de plus sur { $board }
+pipeline-nest-overflow-made = { $count } de plus sur { $board }, un nouveau brut comme le premier
 pipeline-nest-board-fixed = La planche suivait le dessin ; elle fait maintenant { $width } × { $height }, son coin à l’origine du dessin
 pipeline-nest-travel = La planche mesure { $board } en { $axis }, la machine se déplace de { $travel } : seule cette partie est utilisée
 

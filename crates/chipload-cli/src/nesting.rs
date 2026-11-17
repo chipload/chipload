@@ -44,12 +44,26 @@ pub struct NestArgs {
     /// before nesting (never the part itself).
     #[arg(long, value_parser = count_arg)]
     count: Vec<(u64, u32)>,
+    /// What doesn't fit: switched off (`off`, the default), or onto more boards
+    /// (`new-boards`): the next setup with the same stock, else a new one like this one
+    /// (docs/specs/parts-and-setups.md §9).
+    #[arg(long, value_enum, default_value_t = Overflow::Off)]
+    overflow: Overflow,
     /// Report what would be placed without writing the project.
     #[arg(long)]
     dry_run: bool,
     /// Where to write the result; default: the project itself.
     #[arg(short, long)]
     output: Option<PathBuf>,
+}
+
+/// `--overflow`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum Overflow {
+    /// What doesn't fit is switched off.
+    Off,
+    /// What doesn't fit goes onto more boards.
+    NewBoards,
 }
 
 /// `--turns`: for every part, or for one.
@@ -124,6 +138,7 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
             .filter_map(|t| t.part.map(|p| (p, t.turns)))
             .collect(),
         counts: args.count.clone(),
+        overflow: args.overflow == Overflow::NewBoards,
     };
     let nested = match nest_setup(&job, &request, &Cancel::new()) {
         Ok(nested) => nested,
@@ -136,20 +151,34 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
         nested.setup,
         nested.summary().english()
     ));
-    for put in &nested.placed {
+    let put_line = |put: &chipload_pipeline::nest::NestPut| {
         let part = nested.job.part(put.part).map_or("", |p| p.name.as_str());
         let turned = if put.angle == 0.0 {
             String::new()
         } else {
             format!(", turned {}°", degrees_text(put.angle))
         };
-        out.line(format!(
+        format!(
             "  Part {} \"{part}\" instance {}: at {}, {} mm{turned}",
             put.part,
             put.instance,
             mm3(put.at[0]),
             mm3(put.at[1])
-        ));
+        )
+    };
+    for put in &nested.placed {
+        out.line(put_line(put));
+    }
+    for board in &nested.overflow {
+        let name = nested
+            .job
+            .setup(board.setup)
+            .map_or("", |s| s.name.as_str());
+        let made = if board.made { ", made" } else { "" };
+        out.line(format!("Setup {} \"{name}\"{made}:", board.setup));
+        for put in &board.placed {
+            out.line(put_line(put));
+        }
     }
     let notes: Vec<String> = nested.notes().iter().map(|m| m.english()).collect();
     for note in &notes {
@@ -178,6 +207,20 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
                 .unplaced
                 .iter()
                 .map(|&(part, instance)| json!({"part": part, "instance": instance}))
+                .collect::<Vec<_>>()
+        ),
+    );
+    out.set(
+        "overflow",
+        json!(
+            nested
+                .overflow
+                .iter()
+                .map(|b| json!({
+                    "setup": b.setup,
+                    "made": b.made,
+                    "placed": b.placed.iter().map(|p| json!({"part": p.part, "instance": p.instance, "angle": p.angle, "at": p.at})).collect::<Vec<_>>(),
+                }))
                 .collect::<Vec<_>>()
         ),
     );

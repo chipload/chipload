@@ -221,6 +221,9 @@ pub struct Scene {
     pub nest_preview: Vec<(Vec<Vec<Point>>, bool)>,
     /// The board the preview is nested on, when it differs from the stock shown.
     pub nest_board: Option<(Point, Point)>,
+    /// The boards that take what didn't fit, in a row right of it, moved there for the view
+    /// only (docs/specs/parts-and-setups.md §9).
+    pub nest_more_boards: Vec<(Point, Point)>,
     /// Parts placed elsewhere than drawn: the box round their shapes and its label, "Part
     /// 1: not cut here", dashed (docs/specs/part-placement.md §4).
     pub elsewhere: Vec<((Point, Point), String)>,
@@ -724,7 +727,7 @@ impl Scene {
                 painter.add(Shape::line(screen(outline), Stroke::new(1.5, color)));
             }
         }
-        if let Some((low, high)) = self.nest_board {
+        for &(low, high) in self.nest_board.iter().chain(&self.nest_more_boards) {
             let corners = [low, (high.0, low.1), high, (low.0, high.1), low];
             dashed(
                 corners.iter().map(|&p| view.to_screen(p)).collect(),

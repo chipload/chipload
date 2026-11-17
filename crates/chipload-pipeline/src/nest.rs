@@ -39,7 +39,22 @@ pub struct NestRequest {
     pub part_turns: Vec<(u64, Turns)>,
     /// How many times a part is cut (§6): instances added or removed first.
     pub counts: Vec<(u64, u32)>,
+    /// What doesn't fit goes onto more boards instead of being switched off
+    /// (docs/specs/parts-and-setups.md §9).
+    pub overflow: bool,
 }
+
+/// A board that took what didn't fit on the one before (docs/specs/parts-and-setups.md §9).
+#[derive(Debug, Clone, PartialEq)]
+pub struct OverflowBoard {
+    pub setup: u64,
+    /// Made for it, like the board nested first.
+    pub made: bool,
+    pub placed: Vec<NestPut>,
+}
+
+/// The most boards one nest adds or fills after the first.
+pub const MAX_OVERFLOW_BOARDS: usize = 50;
 
 /// Where one instance went.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -72,12 +87,19 @@ pub struct NestResult {
     /// The board followed the drawing and was given a fixed size (§5).
     pub board_fixed: bool,
     pub travel: Vec<TravelLimit>,
+    /// The boards that took what didn't fit, in order; empty without overflow.
+    pub overflow: Vec<OverflowBoard>,
 }
 
 impl NestResult {
     /// How many instances there were to place.
     pub fn count(&self) -> usize {
-        self.placed.len() + self.unplaced.len()
+        self.placed_count() + self.unplaced.len()
+    }
+
+    /// How many were placed, on every board.
+    pub fn placed_count(&self) -> usize {
+        self.placed.len() + self.overflow.iter().map(|b| b.placed.len()).sum::<usize>()
     }
 
     /// "8 of 8 placed, the board used to 742 mm of 1220 mm (61 %)".
@@ -88,7 +110,7 @@ impl NestResult {
             0.0
         };
         Message::new("pipeline-nest-done")
-            .arg("placed", self.placed.len())
+            .arg("placed", self.placed_count())
             .arg("count", self.count())
             .arg("used", Value::Length(self.used, Digits::Fixed(0)))
             .arg("length", Value::Length(self.length, Digits::Fixed(0)))
@@ -118,6 +140,19 @@ impl NestResult {
                     .arg("travel", Value::Length(limit.travel, Digits::Shortest)),
             );
         }
+        for board in &self.overflow {
+            let name = self.job.setup(board.setup).map_or("", |s| s.name.as_str());
+            let id = if board.made {
+                "pipeline-nest-overflow-made"
+            } else {
+                "pipeline-nest-overflow"
+            };
+            notes.push(
+                Message::new(id)
+                    .arg("count", board.placed.len())
+                    .arg("board", name),
+            );
+        }
         for &(part, instance) in &self.unplaced {
             let name = self.job.part(part).map_or("", |p| p.name.as_str());
             notes.push(
@@ -135,10 +170,17 @@ impl NestResult {
     /// back on and parked in a row right of the board, unturned, its box [`PARK_GAP_MM`]
     /// from the board and from the one before. Only for showing: never planned or saved.
     pub fn preview_job(&self) -> Job {
+        let ((_, _), (x1, _)) = self.job.for_setup(self.setup).stock_bounds();
+        self.preview_job_from(x1 + PARK_GAP_MM)
+    }
+
+    /// [`NestResult::preview_job`], parking from `x` on: right of the boards shown beside
+    /// the first.
+    pub fn preview_job_from(&self, x: f64) -> Job {
         let mut job = self.job.clone();
         let one = job.for_setup(self.setup);
-        let ((_, y0), (x1, _)) = one.stock_bounds();
-        let mut x = x1 + PARK_GAP_MM;
+        let ((_, y0), (_, _)) = one.stock_bounds();
+        let mut x = x;
         for &(part, number) in &self.unplaced {
             let Some(((bx0, by0), (bx1, _))) = job.part_box(part) else {
                 continue;
@@ -165,8 +207,23 @@ fn refused(id: &'static str) -> PipelineError {
 /// Nest setup `request.setup` (docs/specs/nesting.md §4): its enabled parts' instances
 /// placed on its board, what doesn't fit switched off, the result planned and checked in
 /// full before it is returned. Refused for a setup in pieces or with a back, one with no
-/// part on, or a board that follows the drawing without a size given.
+/// part on, or a board that follows the drawing without a size given. With `overflow`,
+/// what doesn't fit goes onto more boards ([`overflow`]).
 pub fn nest_setup(
+    job: &Job,
+    request: &NestRequest,
+    cancel: &Cancel,
+) -> Result<NestResult, PipelineError> {
+    let first = nest_one(job, request, cancel)?;
+    if !request.overflow || first.unplaced.is_empty() {
+        return Ok(first);
+    }
+    overflow(first, cancel)
+}
+
+/// One board nested, with its parts whose stock isn't its own left out when `by_stock`
+/// (they go to a board of their stock, §4).
+fn nest_one(
     job: &Job,
     request: &NestRequest,
     cancel: &Cancel,
@@ -199,15 +256,26 @@ pub fn nest_setup(
     set_turns(&mut job, id, request)?;
     set_counts(&mut job, id, &request.counts)?;
     let mut job = checked(job)?;
-    let parts: Vec<u64> = job
+    let all: Vec<u64> = job
         .parts
         .iter()
         .filter(|p| p.enabled && job.part_on(p.id, id))
         .map(|p| p.id)
         .collect();
-    if parts.is_empty() {
+    if all.is_empty() {
         return Err(refused("pipeline-nest-no-parts"));
     }
+    // With overflow, a part that asks for another stock goes to a board of it (§9).
+    let mismatched = if request.overflow {
+        job.stock_mismatches(id)
+    } else {
+        Vec::new()
+    };
+    let parts: Vec<u64> = all
+        .iter()
+        .copied()
+        .filter(|p| !mismatched.contains(p))
+        .collect();
     let one = job.for_setup(id);
     let (low, high, travel) = usable_area(&one, margin);
     let size = (high.0 - low.0, high.1 - low.1);
@@ -281,6 +349,14 @@ pub fn nest_setup(
         .iter()
         .filter_map(|&k| items.get(k).map(|(part, number, _)| (*part, *number)))
         .collect();
+    for &part in &mismatched {
+        unplaced.extend(
+            one.instances_here(part)
+                .into_iter()
+                .filter(|i| i.enabled)
+                .map(|i| (part, i.id)),
+        );
+    }
     // In part and number order, as reported.
     unplaced.sort_unstable();
     for put in &placed {
@@ -303,7 +379,169 @@ pub fn nest_setup(
         length,
         board_fixed,
         travel,
+        overflow: Vec::new(),
     })
+}
+
+/// The stock what part `part` is cut from on a board like setup `like`'s: that board's,
+/// with the part's own thickness and material where it asks for them (§4).
+fn wanted_stock(job: &Job, like: u64, part: u64) -> Option<chipload_job::Stock> {
+    let mut stock = job.setup(like)?.stock.clone();
+    if let Some(wanted) = job.part(part).and_then(|p| p.stock.as_ref()) {
+        if let Some(t) = wanted.thickness {
+            stock.thickness = t;
+        }
+        if let Some(m) = &wanted.material {
+            stock.material = Some(m.clone());
+        }
+    }
+    Some(stock)
+}
+
+/// The same board for a part: thickness within the depth tolerance, the same material.
+fn same_stock(a: &chipload_job::Stock, b: &chipload_job::Stock) -> bool {
+    (a.thickness - b.thickness).abs() <= chipload_core::tolerances::DEPTH_TOL_MM
+        && a.material.as_ref().map(|m| &m.library_uid)
+            == b.material.as_ref().map(|m| &m.library_uid)
+}
+
+/// What didn't fit on the first board, onto more (docs/specs/parts-and-setups.md §9): by
+/// the stock each asks for, onto the next setup with that stock and a size of its own (not
+/// two-sided, not in pieces, not tried yet), else onto a new one made like the first; each
+/// nested in turn, what doesn't fit there going on. Instances keep their numbers. What
+/// doesn't fit even an empty board goes back to the first board, switched off.
+fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineError> {
+    let start = first.setup;
+    let mut job = first.job.clone();
+    let nest = job.setup(start).and_then(|s| s.nest);
+    let mut left = first.unplaced.clone();
+    let mut tried = vec![start];
+    let mut boards: Vec<OverflowBoard> = Vec::new();
+    let mut too_large: Vec<(u64, u32)> = Vec::new();
+    while let Some(&(lead, _)) = left.first() {
+        cancel.check()?;
+        if boards.len() >= MAX_OVERFLOW_BOARDS {
+            break;
+        }
+        let wanted = wanted_stock(&job, start, lead).ok_or_else(|| {
+            PipelineError::Job(Message::new("pipeline-no-setup").arg("id", start))
+        })?;
+        let group: Vec<(u64, u32)> = left
+            .iter()
+            .copied()
+            .filter(|(p, _)| wanted_stock(&job, start, *p).is_some_and(|s| same_stock(&s, &wanted)))
+            .collect();
+        left.retain(|i| !group.contains(i));
+        let existing = job
+            .setups
+            .iter()
+            .find(|s| {
+                !tried.contains(&s.id)
+                    && s.back_of.is_none()
+                    && s.pieces.is_none()
+                    && job.back_of(s.id).is_none()
+                    && s.stock.fit.is_none()
+                    && s.stock.origin != StockOrigin::Drawing
+                    && same_stock(&s.stock, &wanted)
+            })
+            .map(|s| s.id);
+        let (target, made) = match existing {
+            Some(id) => (id, false),
+            None => (make_board_like(&mut job, start, wanted)?, true),
+        };
+        tried.push(target);
+        for &(part, number) in &group {
+            move_instance_to(&mut job, part, number, target);
+        }
+        // Cuts through the stock go through the board they are on now.
+        job.follow_thickness();
+        let request = NestRequest {
+            setup: Some(target),
+            gap: nest.map(|n| n.gap),
+            margin: nest.map(|n| n.margin),
+            overflow: true,
+            ..NestRequest::default()
+        };
+        let next = nest_one(&job, &request, cancel)?;
+        let took = next
+            .placed
+            .iter()
+            .any(|p| group.contains(&(p.part, p.instance)));
+        if made && !took {
+            // Larger than an empty board: back where it was, switched off.
+            for &(part, number) in &group {
+                move_instance_to(&mut job, part, number, start);
+                switch_off(&mut job, part, number);
+            }
+            job.setups.retain(|s| s.id != target);
+            job.follow_thickness();
+            too_large.extend(group);
+            continue;
+        }
+        job = next.job;
+        left.extend(next.unplaced.iter().copied());
+        boards.push(OverflowBoard {
+            setup: target,
+            made,
+            placed: next.placed,
+        });
+    }
+    let mut unplaced = too_large;
+    unplaced.extend(left);
+    unplaced.sort_unstable();
+    let job = checked(job)?;
+    Ok(NestResult {
+        job,
+        unplaced,
+        overflow: boards,
+        ..first
+    })
+}
+
+/// A new setup like `like`: its board (fixed by the nest) with `stock`, its work zero and
+/// nest settings; named as a new setup is. Returns its id.
+fn make_board_like(
+    job: &mut Job,
+    like: u64,
+    stock: chipload_job::Stock,
+) -> Result<u64, PipelineError> {
+    let model = job
+        .setup(like)
+        .cloned()
+        .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-setup").arg("id", like)))?;
+    let id = job.setups.iter().map(|s| s.id).max().unwrap_or(0) + 1;
+    job.setups.push(chipload_job::Setup {
+        id,
+        name: format!("Setup {}", job.setups.len() + 1),
+        enabled: true,
+        stock,
+        work_zero: model.work_zero,
+        back_of: None,
+        pieces: None,
+        nest: model.nest,
+        instances: Vec::new(),
+        made_for_stock: false,
+        placed: None,
+    });
+    Ok(id)
+}
+
+/// Instance `number` of part `part` onto setup `to`, on again, keeping its number and place.
+fn move_instance_to(job: &mut Job, part: u64, number: u32, to: u64) {
+    let mut moved = None;
+    for s in &mut job.setups {
+        if let Some(k) = s
+            .instances
+            .iter()
+            .position(|i| i.part == part && i.id == number)
+        {
+            moved = Some(s.instances.remove(k));
+        }
+    }
+    if let (Some(mut instance), Some(s)) = (moved, job.setup_mut(to)) {
+        instance.enabled = true;
+        s.instances.push(instance);
+    }
 }
 
 fn checked(job: Job) -> Result<Job, PipelineError> {

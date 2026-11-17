@@ -2,7 +2,7 @@
 
 Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
 we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
-the user says otherwise. **Steps 1 to 4 built** (§11). The user's idea (2026-11-17, after nesting): "each
+the user says otherwise. **Steps 1 to 5 built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -268,7 +268,13 @@ Each step a commit with its tests, shippable on its own:
    and a selected instance shows its ghost even where its part is drawn; one where drawn
    and not selected is its shapes, no ghost. In the window the boards are called setups,
    as everywhere else in it (*Place on setup ▸*, *Move to setup ▸*).
-5. **Nesting overflow** onto more boards (§9).
+5. **Nesting overflow** onto more boards (§9). **Built 2026-11-17**: `nest --overflow
+   new-boards`, the window's *What doesn't fit*; what doesn't fit goes by the stock it asks
+   for to the next setup with that stock and a size of its own (not two-sided, not in
+   pieces), which is nested again with it, else to a new setup made like the first; at most
+   50 boards a nest. A part larger than an empty board goes back, switched off. With
+   overflow, a part on the board whose stock isn't its own goes to a board of its stock
+   (step 2's third difference, done). Nest again doesn't keep the overflow choice.
 6. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
    part-placement.md marked superseded where they differ).
 

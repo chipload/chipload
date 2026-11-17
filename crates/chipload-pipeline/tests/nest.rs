@@ -325,3 +325,124 @@ fn the_setup_sheet_says_it_was_nested_and_how_much_board_is_used() {
     // The sheet is HTML: the apostrophe is escaped.
     assert!(sheet.contains(" of the board&#39;s 1000 mm."), "{sheet}");
 }
+
+// -- Nesting onto more boards (docs/specs/parts-and-setups.md §9)
+
+fn overflowing(job: &Job, count: u32) -> NestResult {
+    nest(
+        job,
+        NestRequest {
+            counts: vec![(1, count)],
+            overflow: true,
+            ..Default::default()
+        },
+    )
+}
+
+#[test]
+fn what_doesnt_fit_goes_onto_new_boards_like_the_first() {
+    // About two fit on a 300 × 200 board: six take three boards.
+    let job = part_on_board(300.0, 200.0);
+    let nested = overflowing(&job, 6);
+    assert!(nested.unplaced.is_empty(), "{:?}", nested.unplaced);
+    assert_eq!(nested.placed_count(), 6);
+    assert!(!nested.overflow.is_empty());
+    assert!(
+        nested
+            .overflow
+            .iter()
+            .all(|b| b.made && !b.placed.is_empty())
+    );
+    let first = nested.job.setup(nested.setup).unwrap().clone();
+    for board in &nested.overflow {
+        let setup = nested.job.setup(board.setup).unwrap();
+        // Made like the first: its board, its zero, its nest settings.
+        assert_eq!(setup.stock, first.stock);
+        assert_eq!((setup.work_zero, setup.nest), (first.work_zero, first.nest));
+        // Every instance on it is on, inside it, the program checked.
+        let one = nested.job.for_setup(board.setup);
+        assert_cut_inside(&one, 10.0);
+    }
+    // Every instance on, each number once, kept by the ones that moved.
+    let all = nested.job.instances_of(1);
+    assert_eq!(all.len(), 6);
+    assert!(all.iter().all(|(_, i)| i.enabled));
+    let mut numbers: Vec<u32> = all.iter().map(|(_, i)| i.id).collect();
+    numbers.sort_unstable();
+    numbers.dedup();
+    assert_eq!(numbers.len(), 6);
+    // The same every time.
+    let again = overflowing(&job, 6);
+    assert_eq!(again.job, nested.job);
+    let notes: Vec<String> = nested.notes().iter().map(|m| m.english()).collect();
+    assert!(
+        notes
+            .iter()
+            .any(|n| n.contains("a new board like the first")),
+        "{notes:?}"
+    );
+    // Every board's program runs.
+    assert_eq!(
+        chipload_pipeline::run_setups(&nested.job, None)
+            .unwrap()
+            .len(),
+        nested.job.setups.len()
+    );
+}
+
+#[test]
+fn without_overflow_nothing_is_added() {
+    let job = part_on_board(300.0, 200.0);
+    let nested = nest(
+        &job,
+        NestRequest {
+            counts: vec![(1, 6)],
+            ..Default::default()
+        },
+    );
+    assert!(nested.overflow.is_empty() && !nested.unplaced.is_empty());
+    assert_eq!(nested.job.setups.len(), 1);
+}
+
+#[test]
+fn a_part_larger_than_any_board_is_switched_off_and_no_board_is_left() {
+    // The part doesn't fit a 60 × 60 board at all.
+    let job = part_on_board(60.0, 60.0);
+    let nested = overflowing(&job, 2);
+    assert!(nested.overflow.is_empty());
+    assert_eq!(nested.job.setups.len(), 1);
+    assert_eq!(nested.unplaced.len(), 2);
+    assert!(
+        nested
+            .job
+            .instances_of(1)
+            .iter()
+            .all(|(s, i)| *s == nested.setup && !i.enabled)
+    );
+}
+
+#[test]
+fn a_part_of_another_stock_goes_to_a_board_of_its_own_stock() {
+    // The part asks for 6 mm; its board is 12 mm (placed there by hand).
+    let mut job = part_on_board(1000.0, 600.0);
+    job.parts[0].stock = Some(chipload_job::PartStock {
+        material: None,
+        thickness: Some(6.0),
+    });
+    for op in &mut job.operations {
+        if let Some(t) = op.through_mut() {
+            *t = Some(0.0);
+        }
+    }
+    job.follow_thickness();
+    assert!(job.setups[0].stock.thickness > 6.0);
+    let nested = overflowing(&job, 2);
+    assert!(nested.placed.is_empty(), "the 12 mm board takes none");
+    let [board] = nested.overflow.as_slice() else {
+        panic!("{:?}", nested.overflow);
+    };
+    let made = nested.job.setup(board.setup).unwrap();
+    assert!(board.made && made.stock.thickness == 6.0);
+    assert_eq!(board.placed.len(), 2);
+    assert_eq!(nested.job.setups_of_part(1), [board.setup]);
+}

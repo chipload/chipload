@@ -728,6 +728,8 @@ pipeline-nest-count = { $part } se corta al menos una vez: desactiva la pieza en
 pipeline-nest-not-verified = El anidado no pasó las comprobaciones, un fallo del anidado, y no se cambió nada: { $reason }
 pipeline-nest-done = { $placed } de { $count } colocadas, el tablero usado hasta { $used } de { $length } ({ $share } %)
 pipeline-nest-unplaced = { $part }, instancia { $instance } no cupo: desactivada
+pipeline-nest-overflow = { $count } más en { $board }
+pipeline-nest-overflow-made = { $count } más en { $board }, un material en bruto nuevo como el primero
 pipeline-nest-board-fixed = El tablero seguía al dibujo; ahora mide { $width } × { $height }, con su esquina en el origen del dibujo
 pipeline-nest-travel = El tablero mide { $board } en { $axis } y la máquina recorre { $travel }: solo se usa esa parte
 

@@ -159,3 +159,42 @@ fn bad_turns_and_counts_are_refused_before_anything_is_read() {
     let turns = chipload(&dir, &["get", "b.chipload", "parts.0.turns"]);
     assert_eq!(turns.stdout.trim(), "\"half\"");
 }
+
+/// docs/specs/parts-and-setups.md §9: `--overflow new-boards` puts what doesn't fit onto
+/// more boards; every board's program runs.
+#[test]
+fn overflow_puts_what_doesnt_fit_onto_new_boards() {
+    let dir = badge("overflow");
+    let run = chipload(
+        &dir,
+        &[
+            "nest",
+            "b.chipload",
+            "--board",
+            "200x150",
+            "--count",
+            "1=4",
+            "--overflow",
+            "new-boards",
+        ],
+    );
+    assert_eq!(run.code, Some(0), "{}", run.stderr);
+    assert!(run.stdout.contains("4 of 4 placed"), "{}", run.stdout);
+    assert!(run.stdout.contains(", made:"), "{}", run.stdout);
+    let out = json(&chipload(
+        &dir,
+        &[
+            "nest",
+            "b.chipload",
+            "--overflow",
+            "new-boards",
+            "--dry-run",
+            "--json",
+        ],
+    ));
+    assert_eq!(out["unplaced"], serde_json::json!([]));
+    let run = chipload(&dir, &["run", "b.chipload", "-o", "b.nc", "--no-sheet"]);
+    assert_eq!(run.code, Some(0), "{}", run.stderr);
+    assert!(dir.join("b-S2.nc").exists());
+    std::fs::remove_dir_all(&dir).unwrap();
+}

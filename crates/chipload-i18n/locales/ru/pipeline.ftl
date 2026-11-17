@@ -565,6 +565,8 @@ pipeline-nest-count = { $part } режется хотя бы раз: вмест�
 pipeline-nest-not-verified = Раскрой не прошёл проверки — это ошибка раскроя, ничего не изменено: { $reason }
 pipeline-nest-done = Размещено { $placed } из { $count }, заготовка занята до { $used } из { $length } ({ $share } %)
 pipeline-nest-unplaced = { $part }, экземпляр { $instance } не поместился: выключен
+pipeline-nest-overflow = Ещё { $count } на { $board }
+pipeline-nest-overflow-made = Ещё { $count } на { $board }, новой заготовке как первая
 pipeline-nest-board-fixed = Заготовка следовала за чертежом; теперь она { $width } × { $height }, угол в начале координат чертежа
 pipeline-nest-travel = Заготовка { $board } по { $axis }, ход станка { $travel }: используется только эта часть
 

@@ -184,9 +184,10 @@ fn nest_pictures() {
     };
     let dir = std::path::PathBuf::from(dir);
     std::fs::create_dir_all(&dir).unwrap();
-    for (name, board, count) in [
-        ("nest", (400.0, 300.0), 5),
-        ("nest-parked", (260.0, 180.0), 5),
+    for (name, board, count, overflow) in [
+        ("nest", (400.0, 300.0), 5, false),
+        ("nest-parked", (260.0, 180.0), 5, false),
+        ("nest-overflow", (200.0, 150.0), 6, true),
     ] {
         let mut h = Harness::builder()
             .with_size(egui::vec2(1280.0, 800.0))
@@ -202,6 +203,7 @@ fn nest_pictures() {
                     let dialog = app.nest.as_mut().unwrap();
                     dialog.board = board;
                     dialog.rows[0].count = count;
+                    dialog.overflow = overflow;
                 }
                 app.start_nest_run();
                 app.wait_for_nest();
@@ -212,4 +214,42 @@ fn nest_pictures() {
         let image = h.render().unwrap();
         image.save(dir.join(format!("{name}.png"))).unwrap();
     }
+}
+
+/// docs/specs/parts-and-setups.md §9: what doesn't fit goes onto more boards, previewed
+/// beside the first, applied as one undo step.
+#[test]
+fn what_doesnt_fit_goes_onto_more_boards_previewed_beside_the_first() {
+    let mut app = badge();
+    app.start_nest(None);
+    {
+        let dialog = app.nest.as_mut().unwrap();
+        dialog.board = (200.0, 150.0);
+        dialog.rows[0].count = 6;
+        dialog.overflow = true;
+    }
+    app.start_nest_run();
+    app.wait_for_nest();
+    let result = match app.nest.as_ref().unwrap().preview.as_ref().unwrap() {
+        Ok(p) => p.result.clone(),
+        Err(e) => panic!("{e}"),
+    };
+    assert!(result.unplaced.is_empty(), "{:?}", result.unplaced);
+    assert!(!result.overflow.is_empty());
+    assert_eq!(result.placed_count(), 6);
+    draw_canvas(&mut app);
+    // Each extra board right of the first, none parked.
+    let ((_, _), (x1, _)) = app.scene.nest_board.unwrap();
+    assert_eq!(app.scene.nest_more_boards.len(), result.overflow.len());
+    assert!(app.scene.nest_more_boards.iter().all(|b| b.0.0 > x1));
+    assert_eq!(app.scene.nest_preview.len(), 6);
+    assert!(app.scene.nest_preview.iter().all(|(_, parked)| !parked));
+    let before = app.edit.as_ref().unwrap().job.setups.len();
+    app.apply_nest(result.clone());
+    assert_eq!(
+        app.edit.as_ref().unwrap().job.setups.len(),
+        before + result.overflow.len()
+    );
+    app.undo();
+    assert_eq!(app.edit.as_ref().unwrap().job.setups.len(), before);
 }

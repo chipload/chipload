@@ -45,8 +45,17 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
   the highest-numbered ones that are on removed; at least one stays.
 - **Mirrored instances** stay mirrored; nesting turns and moves them, never mirrors them.
 - **What doesn't fit** is switched off, kept where it was, and named ("Part 2, instance 4
-  didn't fit: switched off"). Make the board larger, allow turns, or move the part to a
-  setup of its own, switch it on and nest again.
+  didn't fit: switched off"). Make the board larger, allow turns, or let it go onto more
+  boards.
+- **Onto more boards** (*What doesn't fit: Onto more boards* in the window, `--overflow
+  new-boards` on the command line), as a slicer adds plates: what doesn't fit goes to the
+  next [setup](../concepts/setups.md) with the same stock and a size of its own, else to a
+  new one made like this board (its size, work zero, gap and margin), nested there in
+  turn, and so on until everything is placed. The preview shows each board in a row to the
+  right; the Report says "2 more on Setup 2, a new board like the first". Instances keep
+  their numbers. A part larger than an empty board is still switched off. A part whose
+  [stock](../operations/parts.md#a-parts-stock) isn't this board's goes to a board of its
+  own stock instead.
 - **The board** must have a size of its own. A board that follows the drawing (fitted to it
   or centred on it) is given one with `--board 1220x610`: it becomes that size, its corner
   at the drawing's origin.

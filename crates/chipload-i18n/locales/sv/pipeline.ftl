@@ -720,6 +720,8 @@ pipeline-nest-count = { $part } fräses minst en gång: stäng av detaljen i st�
 pipeline-nest-not-verified = Nästlingen klarade inte kontrollerna, ett fel i nästlingen, och ingenting ändrades: { $reason }
 pipeline-nest-done = { $placed } av { $count } placerade, skivan använd till { $used } av { $length } ({ $share } %)
 pipeline-nest-unplaced = { $part }, instans { $instance } fick inte plats: avstängd
+pipeline-nest-overflow = { $count } till på { $board }
+pipeline-nest-overflow-made = { $count } till på { $board }, ett nytt ämne som det första
 pipeline-nest-board-fixed = Skivan följde ritningen; den är nu { $width } × { $height }, med hörnet i ritningens origo
 pipeline-nest-travel = Skivan är { $board } längs { $axis }, maskinen rör sig { $travel }: bara så mycket av den används
 

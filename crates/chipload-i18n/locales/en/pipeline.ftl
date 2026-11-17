@@ -730,6 +730,8 @@ pipeline-nest-count = { $part } is cut at least once: switch the part off instea
 pipeline-nest-not-verified = The nest didn't pass the checks, a fault in nesting, and nothing was changed: { $reason }
 pipeline-nest-done = { $placed } of { $count } placed, the board used to { $used } of { $length } ({ $share } %)
 pipeline-nest-unplaced = { $part }, instance { $instance } didn't fit: switched off
+pipeline-nest-overflow = { $count } more on { $board }
+pipeline-nest-overflow-made = { $count } more on { $board }, a new board like the first
 pipeline-nest-board-fixed = The board followed the drawing; it is now { $width } × { $height }, its corner at the drawing's origin
 pipeline-nest-travel = The board is { $board } along { $axis }, the machine travels { $travel }: only that much of it is used
 

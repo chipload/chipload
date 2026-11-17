@@ -725,6 +725,8 @@ pipeline-nest-count = { $part } si taglia almeno una volta: disattiva invece il 
 pipeline-nest-not-verified = L’annidamento non ha superato i controlli, un difetto dell’annidamento, e nulla è stato cambiato: { $reason }
 pipeline-nest-done = { $placed } su { $count } posizionati, la tavola usata fino a { $used } su { $length } ({ $share } %)
 pipeline-nest-unplaced = { $part }, istanza { $instance } non è entrata: disattivata
+pipeline-nest-overflow = { $count } in più su { $board }
+pipeline-nest-overflow-made = { $count } in più su { $board }, un nuovo grezzo come il primo
 pipeline-nest-board-fixed = La tavola seguiva il disegno; ora misura { $width } × { $height }, con l’angolo nell’origine del disegno
 pipeline-nest-travel = La tavola misura { $board } in { $axis }, la macchina corre { $travel }: se ne usa solo quella parte
 
