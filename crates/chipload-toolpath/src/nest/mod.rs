@@ -5,13 +5,17 @@
 //! Step 1 (§11): the swept cut of a planned part ([`Sweep`]), turned as an instance is;
 //! its footprint rasterised so that every cell it touches is occupied and its holes are
 //! filled ([`Footprint`]); the footprint grown by the gap; keep-out areas on a board grid.
+//! Step 2: bottom-left fill of the usable area ([`Sheet`], [`fill`]), several orders tried,
+//! the board's edges checked in mm.
 //! The raster representation follows Bennell & Oliveira, *The geometry of nesting
 //! problems: A tutorial*, European Journal of Operational Research 184 (2008).
 
+mod fill;
 mod footprint;
 mod grid;
 mod sweep;
 
+pub use fill::{Item, Layout, Lie, Put, Sheet, fill};
 pub use footprint::{Dilated, Footprint, Frame};
 pub use grid::Grid;
 pub use sweep::{Capsule, Sweep};

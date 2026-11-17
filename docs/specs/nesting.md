@@ -253,6 +253,21 @@ capsules at every column along a row (a test that tried random places missed a h
 so it scans now); growing from the edge equals growing from every cell; the word-wise grid
 equals cell-by-cell; a quarter turn swaps width and height exactly.
 
+**As built (step 2, 2026-11-17).** `nest/fill.rs`: `Sheet` (the usable area, its keep-outs,
+packed along its longer side), `Item` with one `Lie` per allowed turn, `fill` giving a
+`Layout` (each `Put`: the item, its lie, where its footprint's low corner goes; what didn't
+fit; how far along the board it reaches). The board is kept as runs of occupied cells per
+line across it; a footprint is tried at each cell along, slid across, jumping past every
+run it meets, so the first cell along where it fits anywhere ends the search (the
+bottom-left rule needs no more). The far edges are compared in mm (`PLACEMENT_ROUNDING_MM`).
+The four orders of §4.4 are tried, repeats once; the best has the most placed, then the
+least length used, then the smallest box. Property test: every layout keeps its parts at
+least the gap apart and clear of a keep-out hole (exactly, on the capsules), inside the
+usable area, loses nothing, and is the same twice; it caught a placer that ignored the gap
+and one that let parts overhang by 5 mm, each broken on purpose. Timing (release): 50
+instances of five parts with quarter turns on a 2440 × 1220 board, 0.39 s in all, every
+one placed, 1503 mm of the board used.
+
 **Later, each with its own decision:** small parts in holes (§9.2), a second board for what
 doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.
 

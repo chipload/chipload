@@ -160,3 +160,147 @@ fn an_arc_move_is_swept_round_its_bulge() {
     assert!(y1 >= 11.0, "{y1}");
     assert!(y0 > -1.1, "nothing below the chord but the tool: {y0}");
 }
+
+// -- Step 2: the placer (nesting.md §4.2-4.5)
+
+/// A rectangle's outline cut by a 3 mm tool: its footprint is (w + 3) × (h + 3).
+fn rect(w: f64, h: f64) -> Sweep {
+    let corners = [(0.0, 0.0), (w, 0.0), (w, h), (0.0, h)];
+    Sweep {
+        capsules: (0..4)
+            .map(|k| line(corners[k], corners[(k + 1) % 4], 1.5))
+            .collect(),
+    }
+}
+
+fn item(sheet: &Sheet, sweep: &Sweep, angles: &[f64], gap: f64) -> Item {
+    let centre = sweep
+        .extent()
+        .map(|(l, h)| ((l.0 + h.0) / 2.0, (l.1 + h.1) / 2.0))
+        .unwrap();
+    Item {
+        lies: angles
+            .iter()
+            .map(|&a| {
+                let f = Footprint::new(&sweep.turned(a, centre), sheet.cell).unwrap();
+                sheet.lie(a, f, gap)
+            })
+            .collect(),
+    }
+}
+
+fn run(sheet: &Sheet, items: &[Item]) -> Layout {
+    fill(sheet, items, &crate::Cancel::new()).unwrap()
+}
+
+#[test]
+fn one_part_goes_in_the_low_corner() {
+    let sheet = Sheet::new((10.0, 20.0), (610.0, 320.0), 0.5, &[]).unwrap();
+    let layout = run(&sheet, &[item(&sheet, &rect(100.0, 50.0), &[0.0], 3.0)]);
+    assert_eq!(layout.placed.len(), 1);
+    assert_eq!(layout.placed[0].low, (10.0, 20.0));
+    assert!((layout.used - 103.0).abs() < 1e-9);
+}
+
+#[test]
+fn parts_go_along_the_longer_side_a_gap_apart() {
+    for (high, along_x) in [((600.0, 300.0), true), ((300.0, 600.0), false)] {
+        let sheet = Sheet::new((0.0, 0.0), high, 0.5, &[]).unwrap();
+        // Each 103 wide and 203 long across: two can't lie across a 300 board.
+        let tall = if along_x {
+            rect(100.0, 200.0)
+        } else {
+            rect(200.0, 100.0)
+        };
+        let items = vec![
+            item(&sheet, &tall, &[0.0], 3.0),
+            item(&sheet, &tall, &[0.0], 3.0),
+        ];
+        let layout = run(&sheet, &items);
+        assert_eq!(layout.placed.len(), 2);
+        let (a, b) = (layout.placed[0].low, layout.placed[1].low);
+        let (step, beside) = if along_x {
+            (b.0 - a.0, b.1 - a.1)
+        } else {
+            (b.1 - a.1, b.0 - a.0)
+        };
+        assert_eq!(beside, 0.0, "{a:?} {b:?}");
+        // 103 + a 3 mm gap, up to one cell more for the rounding.
+        assert!((106.0..=106.5).contains(&step), "{step}");
+    }
+}
+
+#[test]
+fn a_part_too_large_is_left_out_and_one_exactly_as_wide_fits() {
+    let sheet = Sheet::new((0.0, 0.0), (400.0, 203.0), 0.5, &[]).unwrap();
+    let items = vec![
+        // Small, but no room is left beside the exact fit.
+        item(&sheet, &rect(50.0, 50.0), &[0.0], 3.0),
+        // 200.2 + 3 across: wider than the board.
+        item(&sheet, &rect(397.0, 200.2), &[0.0], 3.0),
+        // 397 + 3 = 400 and 200 + 3 = 203: exactly the board.
+        item(&sheet, &rect(397.0, 200.0), &[0.0], 3.0),
+    ];
+    let layout = run(&sheet, &items);
+    assert_eq!(layout.unplaced, vec![0, 1]);
+    assert_eq!(layout.placed.len(), 1, "{layout:?}");
+    assert_eq!(
+        (layout.placed[0].item, layout.placed[0].low),
+        (2, (0.0, 0.0))
+    );
+}
+
+#[test]
+fn a_part_that_fits_only_turned_is_turned() {
+    let sheet = Sheet::new((0.0, 0.0), (600.0, 120.0), 0.5, &[]).unwrap();
+    let quarter = [0.0, std::f64::consts::FRAC_PI_2];
+    let layout = run(&sheet, &[item(&sheet, &rect(60.0, 200.0), &quarter, 3.0)]);
+    assert_eq!(layout.placed.len(), 1);
+    assert_eq!(layout.placed[0].lie, 1);
+    // Not allowed to turn: it doesn't fit.
+    let layout = run(&sheet, &[item(&sheet, &rect(60.0, 200.0), &[0.0], 3.0)]);
+    assert_eq!(layout.unplaced, vec![0]);
+}
+
+#[test]
+fn a_dowel_hole_is_kept_out_of() {
+    // A 6 mm hole drilled at (20, 20): the part goes beside it.
+    let hole = Sweep {
+        capsules: vec![line((20.0, 20.0), (20.0, 20.0), 3.0)],
+    };
+    let sheet = Sheet::new((0.0, 0.0), (600.0, 300.0), 0.5, &[hole]).unwrap();
+    let layout = run(&sheet, &[item(&sheet, &rect(50.0, 50.0), &[0.0], 3.0)]);
+    let low = layout.placed[0].low;
+    // The hole reaches 23 along X and across; 3 mm gap: 26 at least, one way or the other.
+    assert!(low.0 >= 26.0 || low.1 >= 26.0, "{low:?}");
+    assert_eq!(
+        low.0, 0.0,
+        "across first, at the start of the board: {low:?}"
+    );
+}
+
+#[test]
+fn small_parts_fill_in_beside_large_ones() {
+    // A 300 deep board: a 203 deep part leaves 94 mm across, enough for the small ones.
+    let sheet = Sheet::new((0.0, 0.0), (800.0, 300.0), 0.5, &[]).unwrap();
+    let items = vec![
+        item(&sheet, &rect(400.0, 200.0), &[0.0], 3.0),
+        item(&sheet, &rect(80.0, 80.0), &[0.0], 3.0),
+        item(&sheet, &rect(80.0, 80.0), &[0.0], 3.0),
+    ];
+    let layout = run(&sheet, &items);
+    assert!(layout.unplaced.is_empty());
+    assert!((layout.used - 403.0).abs() < 1e-9, "{layout:?}");
+}
+
+#[test]
+fn a_cancelled_fill_stops() {
+    let sheet = Sheet::new((0.0, 0.0), (600.0, 300.0), 0.5, &[]).unwrap();
+    let cancel = crate::Cancel::new();
+    cancel.cancel();
+    let items = [item(&sheet, &rect(10.0, 10.0), &[0.0], 3.0)];
+    assert!(matches!(
+        fill(&sheet, &items, &cancel),
+        Err(crate::ToolpathError::Cancelled)
+    ));
+}
