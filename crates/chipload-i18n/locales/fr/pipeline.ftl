@@ -740,5 +740,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = n'importe quel brut
 pipeline-part-stock-moved = { $part } est usinée dans { $stock } : { $board }
 pipeline-part-stock-made = { $board } ({ $stock }) créé pour { $part }
-pipeline-part-stock-removed = { $board } supprimé : plus rien n'y est usiné
+pipeline-part-stock-nowhere = La pièce { $id } n’a aucun montage de son brut où aller : elle n’en demande aucun ou y est déjà
 pipeline-part-wrong-stock = { $part } doit être usinée dans { $wants }, mais ce brut est { $board }

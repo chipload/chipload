@@ -3585,7 +3585,7 @@ fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
 }
 
 #[test]
-fn a_parts_stock_picks_its_board_from_the_command_line() {
+fn a_parts_stock_is_recorded_and_moved_when_asked_from_the_command_line() {
     // docs/specs/parts-and-setups.md §4, §10
     let dir = temp_dir("part-stock");
     let project = dir.join("p.chipload");
@@ -3601,25 +3601,35 @@ fn a_parts_stock_picks_its_board_from_the_command_line() {
     // Part B's outline cut through the board, whatever its thickness.
     let (code, _, err) = run(&["set", p, "operations.3.through=0"]);
     assert_eq!(code, Some(0), "{err}");
+    // Recorded: nothing moves; a note says the board differs.
     let (code, out, err) = run(&["part", "set", p, "2", "--thickness", "6mm"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(
+        out.contains("note: part 2 is on a board of another stock"),
+        "{out}"
+    );
+    assert_eq!(job()["setups"].as_array().unwrap().len(), 1);
+    assert_eq!(job()["parts"][1]["stock"]["thickness"], 6.0);
+    // --move: a board made for it.
+    let (code, out, err) = run(&["part", "set", p, "2", "--move"]);
     assert_eq!(code, Some(0), "{err}");
     assert!(out.contains("Made Setup 2 (6 mm) for part B"), "{out}");
     assert_eq!(job()["operations"][3]["end_depth"], 6.0);
     assert_eq!(job()["setups"][1]["stock"]["thickness"], 6.0);
-    assert_eq!(job()["setups"][1]["made_for_stock"], true);
-    assert_eq!(job()["parts"][1]["stock"]["thickness"], 6.0);
     let (_, out, _) = run(&["part", "list", p]);
     assert!(out.contains("part B (active), from 6 mm"), "{out}");
     // Two programs.
     let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
     assert_eq!(code, Some(0), "{err}");
     assert!(dir.join("x-S2.nc").exists());
-    // Any board again: back on the first, the made board gone.
-    let (code, out, err) = run(&["part", "set", p, "2", "--stock", "none"]);
+    // Any board again: nothing moves, nothing is removed; --move has nowhere to go.
+    let (code, _, err) = run(&["part", "set", p, "2", "--stock", "none"]);
     assert_eq!(code, Some(0), "{err}");
-    assert!(out.contains("Setup 2 removed"), "{out}");
-    assert_eq!(job()["setups"].as_array().unwrap().len(), 1);
+    assert_eq!(job()["setups"].as_array().unwrap().len(), 2);
     assert!(job()["parts"][1].get("stock").is_none());
+    let (code, _, err) = run(&["part", "set", p, "2", "--move"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("no setup of its stock"), "{err}");
     // A material the library hasn't is refused.
     let (code, _, err) = run(&["part", "set", p, "2", "--material", "Unobtainium"]);
     assert_eq!(code, Some(1));

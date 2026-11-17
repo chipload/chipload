@@ -60,17 +60,21 @@ pub enum PartAction {
         /// (docs/specs/nesting.md §3).
         #[arg(long, value_parser = crate::nesting::turns_value)]
         turns: Option<chipload_job::Turns>,
-        /// The library material it is cut from (docs/specs/parts-and-setups.md §4): it moves
-        /// to a board of that material, made like its own when there is none.
+        /// The library material it is cut from (docs/specs/parts-and-setups.md §4); a
+        /// board of another material gets a note (--move moves it).
         #[arg(long, conflicts_with = "stock")]
         material: Option<String>,
-        /// The thickness it is cut from (any length unit; plain numbers are mm): it moves to
-        /// a board that thick, made like its own when there is none.
+        /// The thickness it is cut from (any length unit; plain numbers are mm); a board
+        /// of another thickness gets a note (--move moves it).
         #[arg(long, value_parser = crate::lengths::length, conflicts_with = "stock")]
         thickness: Option<f64>,
-        /// "none": cut from any board again; a board made for its stock goes when empty.
+        /// "none": cut from any board again.
         #[arg(long, value_parser = ["none"])]
         stock: Option<String>,
+        /// Move it, every instance, to a setup of its stock: the first that has it, else a
+        /// new one made like its board.
+        #[arg(long = "move")]
+        move_to_stock: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,
@@ -195,6 +199,7 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
             material,
             thickness,
             stock,
+            move_to_stock,
             ..
         } => {
             let enabled = match (off, on) {
@@ -236,15 +241,24 @@ pub fn part(out: &mut Out, action: PartAction) -> ExitCode {
                             Some(wanted)
                         }
                     };
-                    let (job, moved) =
-                        chipload_pipeline::part_stock::set_part_stock(&job, id, wanted)
-                            .map_err(|e| e.to_string())?;
-                    if let Some(moved) = moved {
-                        for message in moved.messages(&job, id) {
-                            out.line(message.english());
+                    chipload_pipeline::part_stock::set_part_stock(&job, id, wanted)
+                        .map_err(|e| e.to_string())
+                })
+                .and_then(|job| {
+                    use chipload_pipeline::part_stock::{move_to_stock_board, stock_board};
+                    if !move_to_stock {
+                        if stock_board(&job, id).is_some() {
+                            out.line(format!(
+                                "note: part {id} is on a board of another stock; --move moves it"
+                            ));
                         }
-                        out.set("setup", json!(moved.to));
+                        return Ok(job);
                     }
+                    let (job, moved) = move_to_stock_board(&job, id).map_err(|e| e.to_string())?;
+                    if let Some(message) = moved.message(&job, id) {
+                        out.line(message.english());
+                    }
+                    out.set("setup", json!(moved.to));
                     Ok(job)
                 })
         }

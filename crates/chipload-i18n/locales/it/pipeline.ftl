@@ -737,5 +737,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = qualsiasi grezzo
 pipeline-part-stock-moved = { $part } si taglia da { $stock }: { $board }
 pipeline-part-stock-made = Creato { $board } ({ $stock }) per { $part }
-pipeline-part-stock-removed = { $board } rimosso: non si taglia più nulla da esso
+pipeline-part-stock-nowhere = Il pezzo { $id } non ha un piazzamento del suo grezzo in cui andare: non ne chiede o è già su uno
 pipeline-part-wrong-stock = { $part } va tagliato da { $wants }, ma questo grezzo è { $board }

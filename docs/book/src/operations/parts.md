@@ -66,26 +66,25 @@ A part can say what it is cut from: a material from your [library](../library/ma
 a thickness, or both. Set it in the part's properties under **Stock**, or with `part set
 --material` and `--thickness`. Left as *Any board*, as it starts, it asks for nothing.
 
-- **It picks the board:** a part whose board isn't that stock moves, with every instance of
-  it, to the first board that is. With none, Chipload makes one like the board it leaves
-  (its size or fit, its work zero, Z zero and overcut), with the new thickness or material,
-  and the Browser shows the two [setups](../concepts/setups.md). The status bar says where
-  it went: "Made Setup 2 (6 mm) for Bottom". One undo puts it back.
+- **Nothing moves by itself:** setting it only records it. When the part's board isn't of
+  that stock, its properties say so, *This part's board isn't of its stock*, with one
+  button: **Move to Setup 2 (6 mm)** when a setup has it, else **Move to a new 6 mm
+  setup**, made like the part's board (its size or fit, its work zero, Z zero and
+  overcut). Every instance moves; the status bar says where it went: "Made Setup 2 (6 mm)
+  for Bottom". One undo puts it back. On the command line, `part set … --move`.
 - **Through cuts follow:** a cut *through the stock* goes through the new board.
-- **Back again:** *Any board* (or `--stock none`) takes it back to the first board; a board
-  Chipload made and nothing is cut from any more goes with it. A board you renamed or
-  changed is yours, and stays.
-- **By hand:** a part moved by hand onto a board of another stock stays there; the report
-  says so: "Bottom is to be cut from 6 mm, but this board is 18 mm". A two-sided board or
-  one in pieces never moves a part.
+- **Boards are yours:** Chipload never removes a board; set the part back to *Any board*
+  and it stays where it is. The report notes a part on a board of another stock: "Bottom is
+  to be cut from 6 mm, but this board is 18 mm". A two-sided board or one in pieces never
+  offers the move.
+- **Nesting** onto more boards puts each part on a board of its stock.
 
 A DXF with a side and a bottom, the bottom from 6 mm plywood, the rest from 18 mm:
 
 ```sh
 chipload import box.dxf -o box.chipload                 # one board, 18 mm
-chipload part set box.chipload 2 --thickness 6mm        # "Made Setup 2 (6 mm) for Bottom"
+chipload part set box.chipload 2 --thickness 6mm --move # "Made Setup 2 (6 mm) for Bottom"
 chipload run box.chipload -o box.nc                     # box-S1.nc and box-S2.nc, a sheet each
-chipload part set box.chipload 2 --stock none           # back on the 18 mm board
 ```
 
 ## Mirrored parts

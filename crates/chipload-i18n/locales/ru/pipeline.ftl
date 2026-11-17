@@ -577,5 +577,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = любая заготовка
 pipeline-part-stock-moved = { $part } вырезается из { $stock }: { $board }
 pipeline-part-stock-made = Создан { $board } ({ $stock }) для { $part }
-pipeline-part-stock-removed = { $board } удалён: из него больше ничего не вырезается
+pipeline-part-stock-nowhere = Детали { $id } некуда переносить: она не требует материала или уже на нужной заготовке
 pipeline-part-wrong-stock = { $part } нужно вырезать из { $wants }, но эта заготовка — { $board }

@@ -522,7 +522,6 @@ fn make_board_like(
         pieces: None,
         nest: model.nest,
         instances: Vec::new(),
-        made_for_stock: false,
         placed: None,
     });
     Ok(id)

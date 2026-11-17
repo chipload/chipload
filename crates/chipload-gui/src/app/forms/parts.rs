@@ -129,6 +129,10 @@ pub(in crate::app) fn part_form(
     if let Some(asked) = stock_section(ui, id, part.stock.as_ref(), board, materials) {
         request = Some(asked);
     }
+    // On a board of another stock: the move offered, never made unasked (§4).
+    if let Some(asked) = stock_move_offer(ui, &edit.job, id) {
+        request = Some(asked);
+    }
     if clear {
         // Cut once: its first instance on its board stays.
         let active = edit.job.active_setup;
@@ -146,8 +150,7 @@ pub(in crate::app) fn part_form(
 
 /// The stock part `id` is cut from (docs/specs/parts-and-setups.md §4), folded, "Any
 /// board" until set: a library material and a thickness, each "any" when not chosen. A
-/// change asks to move the part to a board of that stock; a thickness being dragged waits
-/// until it is let go.
+/// change is recorded, nothing moves; a thickness being dragged waits until it is let go.
 fn stock_section(
     ui: &mut egui::Ui,
     id: u64,
@@ -222,6 +225,39 @@ fn stock_section(
         },
     );
     changed.then(|| JobRequest::PartStock(id, (!wanted.is_empty()).then_some(wanted)))
+}
+
+/// When part `id` is on a board of another stock than its own: a note and the button that
+/// moves it to a setup of its stock, or to a new one (docs/specs/parts-and-setups.md §4).
+fn stock_move_offer(ui: &mut egui::Ui, job: &chipload_job::Job, id: u64) -> Option<JobRequest> {
+    use chipload_pipeline::part_stock::{StockBoard, board_message, stock_board, stock_message};
+    let target = stock_board(job, id)?;
+    let wanted = job.part(id)?.stock.as_ref()?;
+    let units = crate::units::display(ui.ctx()).into();
+    let label = match target {
+        StockBoard::Existing(setup) => {
+            let board = job.setup(setup)?;
+            t!(
+                ui,
+                "forms-part-stock-move-to",
+                setup = board.name.as_str(),
+                stock = board_message(&board.stock).render(ui.lang(), units)
+            )
+        }
+        StockBoard::New => t!(
+            ui,
+            "forms-part-stock-move-new",
+            stock = stock_message(wanted).render(ui.lang(), units)
+        ),
+    };
+    ui.add_space(2.0);
+    ui.label(
+        egui::RichText::new(t!(ui, "forms-part-stock-elsewhere")).color(ui.visuals().warn_fg_color),
+    );
+    ui.button(label)
+        .on_hover_text(t!(ui, "forms-part-stock-move-hover"))
+        .clicked()
+        .then_some(JobRequest::MoveToStockBoard(id))
 }
 
 /// A part cut mirrored about its box's centre line, or as drawn

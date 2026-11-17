@@ -735,5 +735,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = jedes Rohteil
 pipeline-part-stock-moved = { $part } wird aus { $stock } gefräst: { $board }
 pipeline-part-stock-made = { $board } ({ $stock }) für { $part } angelegt
-pipeline-part-stock-removed = { $board } entfernt: nichts wird mehr daraus gefräst
+pipeline-part-stock-nowhere = Teil { $id } hat keine Aufspannung seines Materials, in die es könnte: es verlangt keines oder ist schon auf einer
 pipeline-part-wrong-stock = { $part } soll aus { $wants } gefräst werden, dieses Rohteil ist aber { $board }

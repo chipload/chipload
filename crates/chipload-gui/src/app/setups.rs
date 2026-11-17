@@ -70,25 +70,41 @@ impl ChiploadApp {
     }
 
     /// Part `id` cut from `stock`, None for any board (docs/specs/parts-and-setups.md §4):
-    /// moved to a board of that stock as one undo step, the status saying where.
+    /// recorded as one undo step; nothing moves.
     pub fn set_part_stock(&mut self, id: u64, stock: Option<chipload_job::PartStock>) {
         let Some(edit) = self.edit.as_ref() else {
             return;
         };
         match chipload_pipeline::part_stock::set_part_stock(&edit.job, id, stock) {
-            Ok((job, moved)) => {
-                let text: Vec<String> = moved
-                    .map(|m| m.messages(&job, id))
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|m| m.render(self.prefs.language, self.prefs.units.into()))
-                    .collect();
+            Ok(job) => {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.job = job;
                 }
                 self.commit();
-                if !text.is_empty() {
-                    self.set_status(text.join(" · "), super::STATUS_SECONDS);
+            }
+            Err(err) => {
+                self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]);
+            }
+        }
+    }
+
+    /// Part `id` moved to a setup of its stock, made like its board when none has it
+    /// (docs/specs/parts-and-setups.md §4): one undo step, the status saying where.
+    pub fn move_to_stock_board(&mut self, id: u64) {
+        let Some(edit) = self.edit.as_ref() else {
+            return;
+        };
+        match chipload_pipeline::part_stock::move_to_stock_board(&edit.job, id) {
+            Ok((job, moved)) => {
+                let text = moved
+                    .message(&job, id)
+                    .map(|m| m.render(self.prefs.language, self.prefs.units.into()));
+                if let Some(edit) = self.edit.as_mut() {
+                    edit.job = job;
+                }
+                self.commit();
+                if let Some(text) = text {
+                    self.set_status(text, super::STATUS_SECONDS);
                 }
             }
             Err(err) => {

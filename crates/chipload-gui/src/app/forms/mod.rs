@@ -91,6 +91,8 @@ pub(super) enum JobRequest {
     /// Part `id` cut from this stock, None for any board: it moves to a board that has it
     /// (docs/specs/parts-and-setups.md §4).
     PartStock(u64, Option<chipload_job::PartStock>),
+    /// Part `id` moved to a setup of its stock (docs/specs/parts-and-setups.md §4).
+    MoveToStockBoard(u64),
     /// Make part `id` the active part (docs/specs/parts.md §8).
     Activate(u64),
     /// The open tool was removed: show the tools instead.

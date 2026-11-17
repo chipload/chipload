@@ -732,5 +732,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = vilket ämne som helst
 pipeline-part-stock-moved = { $part } skärs ur { $stock }: { $board }
 pipeline-part-stock-made = Skapade { $board } ({ $stock }) för { $part }
-pipeline-part-stock-removed = { $board } borttagen: inget skärs ur den längre
+pipeline-part-stock-nowhere = Detalj { $id } har ingen uppspänning av sitt ämne att flytta till: den kräver inget eller ligger redan på en
 pipeline-part-wrong-stock = { $part } ska skäras ur { $wants }, men det här ämnet är { $board }

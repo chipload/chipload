@@ -740,5 +740,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = cualquier material en bruto
 pipeline-part-stock-moved = { $part } se corta de { $stock }: { $board }
 pipeline-part-stock-made = { $board } ({ $stock }) creada para { $part }
-pipeline-part-stock-removed = { $board } quitada: ya no se corta nada de ella
+pipeline-part-stock-nowhere = La pieza { $id } no tiene a qué sujeción de su material ir: no pide ninguno o ya está en una
 pipeline-part-wrong-stock = { $part } debe cortarse de { $wants }, pero este material en bruto es { $board }

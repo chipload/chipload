@@ -90,12 +90,6 @@ pub struct Setup {
     /// placement and instances.
     // Spec: docs/specs/parts-and-setups.md §2.
     pub instances: Vec<Instance>,
-    /// True: Chipload made this board because a part's stock asked for one, and removes it
-    /// again when it is left empty; changed by hand, it is the user's and stays. Missing:
-    /// false. Left out when false.
-    // Spec: docs/specs/parts-and-setups.md §4 (optional, no schema bump).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub made_for_stock: bool,
     /// A board Chipload placed itself for one run, its (min, max) corners in drawing
     /// coordinates: a piece's board, fitted round the piece (docs/specs/pieces.md §7). It
     /// overrides where the stock would be and its size; the thickness, material and the
@@ -1073,24 +1067,6 @@ impl Job {
             .filter(|p| p.stock.as_ref().is_some_and(|s| !s.fits(&board.stock)))
             .map(|p| p.id)
             .collect()
-    }
-
-    /// A board Chipload made for a part's stock is the user's once changed by hand: its
-    /// name, board, work zero, back or pieces differ from `before`'s
-    /// (docs/specs/parts-and-setups.md §4). Called after an edit by hand.
-    pub fn keep_made_flags(&mut self, before: &Job) {
-        for setup in self.setups.iter_mut().filter(|s| s.made_for_stock) {
-            let changed = before.setup(setup.id).is_some_and(|old| {
-                old.name != setup.name
-                    || old.stock != setup.stock
-                    || old.work_zero != setup.work_zero
-                    || old.back_of != setup.back_of
-                    || old.pieces != setup.pieces
-            });
-            if changed {
-                setup.made_for_stock = false;
-            }
-        }
     }
 
     /// Every instance of part `id` removed, from every board.

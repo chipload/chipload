@@ -145,9 +145,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     setups made by hand stay listed until *Simple view* (`setups_shown`). Review of the
     workflow (2026-11-17, all agreed): copies and placing are setups' work (no instances
     under a part), a part's drag moves it (Ctrl places a copy), *Export all setups…*, a
-    shape inside another part's outline is an outline of its own: built. Next: a part's
-    stock asks before making a board; then step 6 with the remembered overflow choice and
-    the setup/board wording.
+    shape inside another part's outline is an outline of its own, a part's stock recorded
+    with the move offered (no boards made or removed unasked): built. Next: step 6 with the
+    remembered overflow choice and the setup/board wording.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved

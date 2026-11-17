@@ -77,7 +77,6 @@ pub fn empty_project() -> Job {
             pieces: None,
             nest: None,
             instances: vec![chipload_job::Instance::drawn(1, 1)],
-            made_for_stock: false,
             placed: None,
         }],
         active_setup: Some(1),

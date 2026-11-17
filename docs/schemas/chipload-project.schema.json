@@ -3898,10 +3898,6 @@
           },
           "type": "array"
         },
-        "made_for_stock": {
-          "description": "True: Chipload made this board because a part's stock asked for one, and removes it\nagain when it is left empty; changed by hand, it is the user's and stays. Missing:\nfalse. Left out when false.",
-          "type": "boolean"
-        },
         "name": {
           "description": "Its name, shown in the Browser, the report and the setup sheet.",
           "type": "string"

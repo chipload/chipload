@@ -966,7 +966,6 @@ A setup: one board clamped once on the machine, with its stock and work zero, an
 | `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what parts name it by. |
 | `instances` | list of [Instance](#instance) | yes | The parts cut from this board, each placed: a part once where it is drawn, or moved, turned, mirrored, several times. Cut grouped by part in the project's order, each part's instances in this order. Since schema 41, in place of each part's own placement and instances. |
-| `made_for_stock` | boolean | no | True: Chipload made this board because a part's stock asked for one, and removes it again when it is left empty; changed by hand, it is the user's and stays. Missing: false. Left out when false. |
 | `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
 | `nest` | [Nest](#nest) or null | no | How the setup was last nested: its gap and margin, kept so *Nest again* needs no questions. Missing: never nested. Left out when missing. |
 | `pieces` | [Pieces](#pieces) or null | no | Set: the setup is cut as a puzzle, in pieces that each fit a board, joined by seams with joints; each piece is a program of its own. Null: one board. Since schema 37. |

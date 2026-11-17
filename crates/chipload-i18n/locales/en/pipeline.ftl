@@ -742,5 +742,5 @@ pipeline-stock-both = { $thickness } { $material }
 pipeline-stock-any = any stock
 pipeline-part-stock-moved = { $part } is cut from { $stock }: { $board }
 pipeline-part-stock-made = Made { $board } ({ $stock }) for { $part }
-pipeline-part-stock-removed = { $board } removed: nothing is cut from it any more
+pipeline-part-stock-nowhere = Part { $id } has no setup of its stock to go to: it asks for none, or is already on one
 pipeline-part-wrong-stock = { $part } is to be cut from { $wants }, but this board is { $board }
