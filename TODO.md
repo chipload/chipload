@@ -23,7 +23,10 @@ below).
 - **Release notes for 0.38** must say: 0.37 can't open a project with pieces (schema 37),
   instances (38), a placed part (39) or a part surface (40); the G-code part comment reads
   "cut N times"; dowel holes are no longer repeated per instance; a surface is the whole
-  board (the setup's) or a part's shapes; nesting is new.
+  board (the setup's) or a part's shapes; nesting is new, and the notes refer to issue
+  #6 ("Request Nesting function", julienrat, closed 2026-10-26 as out of scope; asked for
+  something like deepnest.io). When the release is out, ask the user before commenting on
+  #6 to say nesting has arrived.
 - **Loose ends:** guide screenshots renewed at release time (the instances page has no
   picture yet; the nesting page neither); pieces: dragging a seam, `plan --piece`; the
   moulding gouge (item 13, found again 2026-11-17); the file splits stopped by the user
