@@ -189,6 +189,11 @@ pub struct Scene {
     /// picked by their outlines; the selected one with its turn handle
     /// (docs/specs/instances.md §4).
     pub instances: Vec<InstanceGhost>,
+    /// A nest's preview (docs/specs/nesting.md §7): each instance's closed outlines where
+    /// the nest would put it, parked (true) right of the board when it didn't fit.
+    pub nest_preview: Vec<(Vec<Vec<Point>>, bool)>,
+    /// The board the preview is nested on, when it differs from the stock shown.
+    pub nest_board: Option<(Point, Point)>,
     /// Parts placed elsewhere than drawn: the box round their shapes and its label, "Part
     /// 1: not cut here", dashed (docs/specs/part-placement.md §4).
     pub elsewhere: Vec<((Point, Point), String)>,
@@ -661,6 +666,19 @@ impl Scene {
                 badge,
                 pal.handle_fill,
                 stroke,
+            );
+        }
+        for (outlines, parked) in &self.nest_preview {
+            let color = if *parked { pal.open } else { pal.selected };
+            for outline in outlines {
+                painter.add(Shape::line(screen(outline), Stroke::new(1.5, color)));
+            }
+        }
+        if let Some((low, high)) = self.nest_board {
+            let corners = [low, (high.0, low.1), high, (low.0, high.1), low];
+            dashed(
+                corners.iter().map(|&p| view.to_screen(p)).collect(),
+                Stroke::new(1.5, pal.selected),
             );
         }
         for ((low, high), label) in &self.elsewhere {

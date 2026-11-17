@@ -93,3 +93,29 @@ app-import-dxf-into-project-path = Importera DXF eller SVG till projektet från 
 # File menu, a new version of the project's drawing.
 app-update-drawing-from-dxf = Uppdatera ritning från DXF eller SVG…
 app-update-drawing-from-path = Uppdatera ritning från sökväg…
+
+# The Nest window (docs/specs/nesting.md §7)
+nest-menu = Nästla…
+nest-menu-hover = Nästla…: varje instans av uppspänningens detaljer placeras på skivan så tätt det går, åtskilda av mellanrummet; först en förhandsvisning, i en dialog
+nest-again = Nästla igen
+nest-again-hover = Nästla uppspänningen igen med mellanrum, kant och vridningar från förra gången, utan dialog
+nest-title = Nästla: { $setup }
+nest-board-follows = Skivan följer ritningen: nästlingen ger den den här storleken, med hörnet i ritningens origo.
+nest-board = Skiva
+nest-gap = Mellanrum
+nest-gap-hover = Minsta avståndet mellan det två instanser fräser: en remsa skiva som håller plattan styv och flikarna kvar
+nest-margin = Kant
+nest-margin-hover = Platsen som lämnas vid skivans kant, för skruvar eller tvingar
+nest-part = Detalj
+nest-count = Antal
+nest-count-hover = Hur många gånger detaljen fräses: instanser läggs till eller tas bort först, aldrig själva detaljen
+nest-turns = Vridning
+nest-turns-none = Som den ligger
+nest-turns-half = Halva varv
+nest-turns-quarter = Kvarts varv
+nest-turns-every-15 = Var 15:e grad
+nest-running = Nästlar…
+nest-stale = Inställningarna ändrade: Förhandsvisa för att se nästlingen
+nest-apply = Verkställ
+nest-preview = Förhandsvisa
+nest-stopped-unexpectedly = Nästlingen stannade oväntat

@@ -11,6 +11,20 @@ leaves the **margin**, room for screws or clamps. Only the instances' places cha
 drawing stays where it is, and every operation follows its instances. The result is
 planned and checked as any project is before it is kept.
 
+In the window:
+- **Right-click the setup** in the Browser and choose *Nest…*, or *Wizards > Nest…* for the
+  active setup. The window shows the board's size, the gap and the margin, and a row per
+  part with how many times it is cut and how it may turn.
+- **The preview** is worked out as soon as the window opens, and again with *Preview*
+  after a change: the instances show on the board where they would go, outlined in the
+  selection colour, the board dashed; what didn't fit is parked to the right of the board
+  in amber and named in the window. Nothing changes until you choose *Apply*.
+- **Apply** places them as one undo step (Ctrl+Z puts everything back) and lists what was
+  switched off in the Report. *Apply* before a preview nests and applies in one go.
+- **Nest again**, in the setup's right-click menu once it has been nested, nests it again
+  with the same gap and margin and each part's turns, the instances there are now, without
+  the window: after you change a part, or moved instances by hand.
+
 On the command line:
 
 ```sh

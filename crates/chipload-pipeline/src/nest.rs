@@ -130,6 +130,41 @@ impl NestResult {
     }
 }
 
+impl NestResult {
+    /// The project as a preview shows it (docs/specs/nesting.md §7): what didn't fit turned
+    /// back on and parked in a row right of the board, unturned, its box [`PARK_GAP_MM`]
+    /// from the board and from the one before. Only for showing: never planned or saved.
+    pub fn preview_job(&self) -> Job {
+        let mut job = self.job.clone();
+        let one = job.for_setup(self.setup);
+        let ((_, y0), (x1, _)) = one.stock_bounds();
+        let mut x = x1 + PARK_GAP_MM;
+        for &(part, number) in &self.unplaced {
+            let Some(((bx0, by0), (bx1, _))) = job.part_box(part) else {
+                continue;
+            };
+            let at = [x - bx0, y0 - by0];
+            x += bx1 - bx0 + PARK_GAP_MM;
+            let Some(p) = job.parts.iter_mut().find(|p| p.id == part) else {
+                continue;
+            };
+            if number == 1 {
+                p.enabled = true;
+                p.angle = 0.0;
+                p.at = at;
+            } else if let Some(i) = p.instances.iter_mut().find(|i| i.id == number) {
+                i.enabled = true;
+                i.angle = 0.0;
+                i.at = at;
+            }
+        }
+        job
+    }
+}
+
+/// How far apart parked instances lie in a preview, and from the board, mm.
+pub const PARK_GAP_MM: f64 = 20.0;
+
 fn refused(id: &'static str) -> PipelineError {
     PipelineError::Job(Message::new(id))
 }

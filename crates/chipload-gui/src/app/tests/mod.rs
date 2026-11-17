@@ -36,6 +36,7 @@ mod menu_bar;
 mod models;
 mod moulding;
 mod narrow_panel;
+mod nesting;
 mod new_project;
 mod part_export;
 mod parts;

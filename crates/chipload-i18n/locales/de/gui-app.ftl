@@ -93,3 +93,29 @@ app-import-dxf-into-project-path = DXF oder SVG ins Projekt aus Pfad importieren
 # File menu, a new version of the project's drawing.
 app-update-drawing-from-dxf = Zeichnung aus DXF oder SVG aktualisieren…
 app-update-drawing-from-path = Zeichnung aus Pfad aktualisieren…
+
+# The Nest window (docs/specs/nesting.md §7)
+nest-menu = Verschachteln…
+nest-menu-hover = Verschachteln…: jede Instanz der Teile der Aufspannung so dicht wie möglich auf ihr Brett gelegt, getrennt durch den Abstand; erst eine Vorschau, in einem Dialog
+nest-again = Erneut verschachteln
+nest-again-hover = Die Aufspannung erneut verschachteln, mit Abstand, Rand und Drehungen vom letzten Mal, ohne Dialog
+nest-title = Verschachteln: { $setup }
+nest-board-follows = Das Brett folgt der Zeichnung: Verschachteln gibt ihm diese Größe, seine Ecke im Ursprung der Zeichnung.
+nest-board = Brett
+nest-gap = Abstand
+nest-gap-hover = Der kleinste Abstand zwischen dem, was zwei Instanzen fräsen: ein Steg, der die Platte steif hält und die Haltestege halten lässt
+nest-margin = Rand
+nest-margin-hover = Der Platz am Rand des Bretts, für Schrauben oder Zwingen
+nest-part = Teil
+nest-count = Anzahl
+nest-count-hover = Wie oft das Teil gefräst wird: zuerst werden Instanzen hinzugefügt oder entfernt, nie das Teil selbst
+nest-turns = Drehen
+nest-turns-none = Wie es liegt
+nest-turns-half = Halbe Drehungen
+nest-turns-quarter = Vierteldrehungen
+nest-turns-every-15 = Alle 15°
+nest-running = Verschachteln…
+nest-stale = Einstellungen geändert: Vorschau zeigt das Ergebnis
+nest-apply = Übernehmen
+nest-preview = Vorschau
+nest-stopped-unexpectedly = Das Verschachteln hat unerwartet aufgehört

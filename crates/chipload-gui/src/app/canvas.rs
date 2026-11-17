@@ -237,6 +237,14 @@ impl ChiploadApp {
         // Each part's instances, as ghosts where they are cut (docs/specs/instances.md §4):
         // the contours its operations cut; the part itself is the drawing.
         self.scene.instances = self.instance_ghosts();
+        // A nest's preview stands in for the instances while it is shown
+        // (docs/specs/nesting.md §7).
+        let (nest, board) = self.nest_scene();
+        if !nest.is_empty() {
+            self.scene.instances.clear();
+        }
+        self.scene.nest_preview = nest;
+        self.scene.nest_board = board;
         self.scene.elsewhere = self.placed_elsewhere();
         self.scene.mirrored = self.mirrored_outlines();
         self.sync_rim_preview(ui.visuals().dark_mode);

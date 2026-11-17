@@ -311,6 +311,24 @@ and `part set --turns`. Changes from §8:
   `expected/v40_nest_badge.nc`, so the golden pins the placer. The frozen messages gain
   the sample's plan.
 
+**As built (step 5, 2026-11-17).** `chipload-gui` `app/nesting.rs`: the Nest window (a
+window, not a modal, so the canvas shows the preview beside it), opened from the setup's
+right-click *Nest…* and *Wizards > Nest…*; *Nest again* in the setup's menu once nested.
+Changes from §7:
+- **Not on the ribbon:** a sixth WIZARDS button left the ribbon no room for its names at
+  the usual 1280 px window (the layout test caught it), so *Nest…* is in the Wizards menu.
+- **The preview starts when the window opens**, and again with *Preview* after a change;
+  a change stops a run for the old settings. *Apply* before a preview nests and applies.
+  There is no progress bar: nesting reports no progress, so a spinner shows while it runs.
+- **Ghosts:** each instance's outlines where it would go in the selection colour, the
+  board nested on dashed, the instances' own ghosts hidden meanwhile; what didn't fit
+  parked right of the board in amber (`NestResult::preview_job`, `PARK_GAP_MM` 20 mm
+  apart). The window lists the summary and every note.
+- **Apply** is one undo step; the summary goes to the status bar, the notes to the Report.
+- **Nest again** keeps the instances there are (no counts) and each part's turns.
+Tests: preview and apply with undo, parking, Nest again, a refusal in the window, the
+window's rows; an ignored picture test draws it.
+
 **Later, each with its own decision:** small parts in holes (§9.2), a second board for what
 doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.
 

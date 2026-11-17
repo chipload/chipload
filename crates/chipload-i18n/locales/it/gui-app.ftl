@@ -93,3 +93,29 @@ app-import-dxf-into-project-path = Importa DXF o SVG nel progetto da percorso…
 # File menu, a new version of the project's drawing.
 app-update-drawing-from-dxf = Aggiorna disegno da DXF o SVG…
 app-update-drawing-from-path = Aggiorna disegno da percorso…
+
+# The Nest window (docs/specs/nesting.md §7)
+nest-menu = Annida…
+nest-menu-hover = Annida…: ogni istanza dei pezzi del piazzamento posta sulla sua tavola il più vicino possibile, separata dalla distanza; prima un’anteprima, in una finestra
+nest-again = Annida di nuovo
+nest-again-hover = Annida di nuovo il piazzamento con distanza, margine e rotazioni dell’ultima volta, senza finestra
+nest-title = Annida: { $setup }
+nest-board-follows = La tavola segue il disegno: annidare le dà questa misura, con l’angolo nell’origine del disegno.
+nest-board = Tavola
+nest-gap = Distanza
+nest-gap-hover = La minima distanza tra ciò che tagliano due istanze: una striscia di tavola che tiene rigido il pannello e salde le linguette
+nest-margin = Margine
+nest-margin-hover = Lo spazio lasciato al bordo della tavola, per viti o morsetti
+nest-part = Pezzo
+nest-count = Volte
+nest-count-hover = Quante volte si taglia il pezzo: prima si aggiungono o tolgono istanze, mai il pezzo stesso
+nest-turns = Rotazioni
+nest-turns-none = Com’è
+nest-turns-half = Mezzi giri
+nest-turns-quarter = Quarti di giro
+nest-turns-every-15 = Ogni 15°
+nest-running = Annidamento…
+nest-stale = Impostazioni cambiate: Anteprima per vedere l’annidamento
+nest-apply = Applica
+nest-preview = Anteprima
+nest-stopped-unexpectedly = L’annidamento si è fermato inaspettatamente

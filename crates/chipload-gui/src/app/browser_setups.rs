@@ -35,6 +35,9 @@ pub(super) enum SetupAction {
     Export(u64),
     /// A board surface first in this setup (docs/specs/surface-levels.md §5).
     FaceBoard(u64),
+    /// Nest its instances on its board (docs/specs/nesting.md §7).
+    Nest(u64),
+    NestAgain(u64),
 }
 
 impl ChiploadApp {
@@ -221,6 +224,21 @@ impl ChiploadApp {
             {
                 action = Some(SetupAction::FaceBoard(setup.id));
             }
+            if ui
+                .button(t!(ui, "nest-menu"))
+                .on_hover_text(t!(ui, "nest-menu-hover"))
+                .clicked()
+            {
+                action = Some(SetupAction::Nest(setup.id));
+            }
+            if self.was_nested(setup.id)
+                && ui
+                    .button(t!(ui, "nest-again"))
+                    .on_hover_text(t!(ui, "nest-again-hover"))
+                    .clicked()
+            {
+                action = Some(SetupAction::NestAgain(setup.id));
+            }
             if ui.button(t!(ui, "browser-new-part")).clicked() {
                 action = Some(SetupAction::NewPart(setup.id));
             }
@@ -278,6 +296,8 @@ impl ChiploadApp {
             SetupAction::FaceBoard(id) => {
                 self.face_board(id);
             }
+            SetupAction::Nest(id) => self.start_nest(Some(id)),
+            SetupAction::NestAgain(id) => self.nest_again(id),
         }
     }
 

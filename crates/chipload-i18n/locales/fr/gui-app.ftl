@@ -93,3 +93,29 @@ app-import-dxf-into-project-path = Importer un DXF ou SVG dans le projet depuis 
 # File menu, a new version of the project's drawing.
 app-update-drawing-from-dxf = Mettre à jour le dessin depuis un DXF ou SVG…
 app-update-drawing-from-path = Mettre à jour le dessin depuis un chemin…
+
+# The Nest window (docs/specs/nesting.md §7)
+nest-menu = Imbriquer…
+nest-menu-hover = Imbriquer… : chaque instance des pièces du montage placée sur sa planche aussi serrée que possible, séparée par l’écart ; d’abord un aperçu, dans une boîte de dialogue
+nest-again = Imbriquer à nouveau
+nest-again-hover = Imbriquer le montage à nouveau avec l’écart, la marge et les rotations de la dernière fois, sans boîte de dialogue
+nest-title = Imbriquer : { $setup }
+nest-board-follows = La planche suit le dessin : l’imbrication lui donne cette taille, son coin à l’origine du dessin.
+nest-board = Planche
+nest-gap = Écart
+nest-gap-hover = La plus petite distance entre ce qu’usinent deux instances : une bande de planche qui garde le panneau rigide et les attaches solides
+nest-margin = Marge
+nest-margin-hover = La place laissée au bord de la planche, pour les vis ou les serre-joints
+nest-part = Pièce
+nest-count = Fois
+nest-count-hover = Combien de fois la pièce est usinée : des instances sont d’abord ajoutées ou retirées, jamais la pièce elle-même
+nest-turns = Rotations
+nest-turns-none = Telle quelle
+nest-turns-half = Demi-tours
+nest-turns-quarter = Quarts de tour
+nest-turns-every-15 = Tous les 15°
+nest-running = Imbrication…
+nest-stale = Réglages modifiés : Aperçu pour voir l’imbrication
+nest-apply = Appliquer
+nest-preview = Aperçu
+nest-stopped-unexpectedly = L’imbrication s’est arrêtée de façon inattendue

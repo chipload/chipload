@@ -93,3 +93,29 @@ app-import-dxf-into-project-path = Import DXF or SVG into project from path…
 # File menu, a new version of the project's drawing.
 app-update-drawing-from-dxf = Update drawing from DXF or SVG…
 app-update-drawing-from-path = Update drawing from path…
+
+# The Nest window (docs/specs/nesting.md §7)
+nest-menu = Nest…
+nest-menu-hover = Nest…: every instance of the setup's parts placed on its board as close as they fit, apart by the gap; a preview first, in a dialog
+nest-again = Nest again
+nest-again-hover = Nest the setup again with the gap, margin and turns it was nested with last, no dialog
+nest-title = Nest: { $setup }
+nest-board-follows = The board follows the drawing: nesting gives it this size, its corner at the drawing's origin.
+nest-board = Board
+nest-gap = Gap
+nest-gap-hover = The least distance between what two instances cut: a web of board that keeps the sheet stiff and the tabs holding
+nest-margin = Margin
+nest-margin-hover = The room left at the board's edge, for screws or clamps
+nest-part = Part
+nest-count = Times
+nest-count-hover = How many times the part is cut: instances are added or removed first, never the part itself
+nest-turns = Turns
+nest-turns-none = As it lies
+nest-turns-half = Half turns
+nest-turns-quarter = Quarter turns
+nest-turns-every-15 = Every 15°
+nest-running = Nesting…
+nest-stale = Settings changed: Preview to see the nest
+nest-apply = Apply
+nest-preview = Preview
+nest-stopped-unexpectedly = Nesting stopped unexpectedly

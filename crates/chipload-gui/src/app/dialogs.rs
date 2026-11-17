@@ -711,7 +711,7 @@ fn gap_field(gap: &mut f64) -> crate::units::Field<'_> {
 }
 
 /// The dialog's main button, in the accent colour.
-fn accent_button(ui: &mut egui::Ui, text: &str) -> egui::Response {
+pub(super) fn accent_button(ui: &mut egui::Ui, text: &str) -> egui::Response {
     let accent = ui.visuals().selection.bg_fill;
     let on_accent = ui.visuals().selection.stroke.color;
     ui.add(egui::Button::new(RichText::new(text).color(on_accent)).fill(accent))

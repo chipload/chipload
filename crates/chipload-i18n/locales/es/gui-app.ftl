@@ -93,3 +93,29 @@ app-import-dxf-into-project-path = Importar DXF o SVG al proyecto desde ruta…
 # File menu, a new version of the project's drawing.
 app-update-drawing-from-dxf = Actualizar dibujo desde DXF o SVG…
 app-update-drawing-from-path = Actualizar dibujo desde ruta…
+
+# The Nest window (docs/specs/nesting.md §7)
+nest-menu = Anidar…
+nest-menu-hover = Anidar…: cada instancia de las piezas de la sujeción colocada en su tablero lo más junta posible, apartada por la separación; primero una vista previa, en un diálogo
+nest-again = Anidar de nuevo
+nest-again-hover = Anidar la sujeción de nuevo con la separación, el margen y los giros de la última vez, sin diálogo
+nest-title = Anidar: { $setup }
+nest-board-follows = El tablero sigue al dibujo: anidar le da este tamaño, con su esquina en el origen del dibujo.
+nest-board = Tablero
+nest-gap = Separación
+nest-gap-hover = La menor distancia entre lo que cortan dos instancias: una franja de tablero que mantiene la plancha rígida y las pestañas sujetas
+nest-margin = Margen
+nest-margin-hover = El espacio que queda en el borde del tablero, para tornillos o sargentos
+nest-part = Pieza
+nest-count = Veces
+nest-count-hover = Cuántas veces se corta la pieza: primero se añaden o quitan instancias, nunca la pieza misma
+nest-turns = Giros
+nest-turns-none = Como está
+nest-turns-half = Medias vueltas
+nest-turns-quarter = Cuartos de vuelta
+nest-turns-every-15 = Cada 15°
+nest-running = Anidando…
+nest-stale = Ajustes cambiados: Vista previa para ver el anidado
+nest-apply = Aplicar
+nest-preview = Vista previa
+nest-stopped-unexpectedly = El anidado se detuvo inesperadamente

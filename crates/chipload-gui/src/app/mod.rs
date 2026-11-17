@@ -74,6 +74,7 @@ mod menu;
 mod models;
 mod modify;
 mod navigation;
+mod nesting;
 mod new_project;
 mod opening;
 mod panels;
@@ -455,6 +456,8 @@ pub struct ChiploadApp {
     pub user: user_library::UserFiles,
     /// The image window, while open (docs/specs/image-trace.md §6).
     pub image_dialog: Option<images::ImageDialog>,
+    /// The Nest window, or a Nest again running (docs/specs/nesting.md §7).
+    nest: Option<Box<nesting::NestDialog>>,
     /// Dropped files still to bring in, one at a time (docs/specs/drawing-sources.md §3).
     pub(super) drops: std::collections::VecDeque<PathBuf>,
     /// Contours not drawn because their group or layer is hidden (drawing-sources.md §4).
@@ -525,6 +528,7 @@ impl Default for ChiploadApp {
             allow_close: false,
             user: user_library::UserFiles::default(),
             image_dialog: None,
+            nest: None,
             drops: std::collections::VecDeque::new(),
             hidden_contours: BTreeSet::new(),
             drawing_hidden: None,
@@ -831,6 +835,7 @@ impl eframe::App for ChiploadApp {
         self.file_drops(&ctx);
         self.next_drop();
         self.image_window(&ctx);
+        self.nest_window(&ctx);
         self.sync_pictures(&ctx);
         self.sync_models(ui.visuals().dark_mode);
         self.recovery_window(&ctx);
