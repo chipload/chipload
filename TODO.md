@@ -141,6 +141,10 @@ to a program you trust. It was about four per operation; with the defaults and s
     (material, thickness) checked as a warning, sheets side by side with the active one in
     place, a part on several boards, nesting overflow onto more boards; nine decisions; six
     steps, the model first with every golden unchanged.
+    Found testing (2026-11-17), fixed: a new setup made a part of its own (now empty);
+    setups made by hand stay listed until *Simple view* (`setups_shown`). Parked by the
+    user: a part's profile defaults to inside (no tabs) when its shape lies inside another
+    part's outline; the side comes from the drawing's nesting, not the part's own shapes.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
