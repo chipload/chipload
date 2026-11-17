@@ -340,6 +340,9 @@ impl ChiploadApp {
                 self.start_compass_drag(part, origin, false);
             } else if let Some(instance) = self.instance_handle_at(origin).filter(|_| flat) {
                 self.start_instance_drag(instance, super::instances::InstanceGrip::Turn, at);
+            } else if let Some(instance) = self.instance_badge_at(origin).filter(|_| flat) {
+                // Its badge, above it, outside the shapes: always the instance.
+                self.start_instance_drag(instance, super::instances::InstanceGrip::Move, at);
             } else if let Some(instance) = self.instance_at(origin).filter(|i| {
                 // Over the shapes, only the selected one: instance 1 where it is drawn lies
                 // on them (docs/specs/part-placement.md §6).
@@ -533,6 +536,14 @@ impl ChiploadApp {
                 self.view.zoom_at(pos, factor);
             }
             self.cursor = Some(self.view.to_world(pos));
+            // An instance's badge and turn handle show they can be taken.
+            if self.dragging_instance() {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+            } else if self.instance_handle_at(pos).is_some()
+                || self.instance_badge_at(pos).is_some()
+            {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+            }
         } else {
             self.cursor = None;
         }
@@ -759,8 +770,12 @@ impl ChiploadApp {
                 .then_some(picked)
                 .flatten()
                 .filter(|id| self.group_of_contour(*id).is_some() || self.dxf_contour(*id));
+            let badge = self.instance_badge_at(pos);
             let instance = picked.is_none().then(|| self.instance_at(pos)).flatten();
-            if let Some(contour) = inside {
+            if let Some((part, id)) = badge {
+                // An instance's badge is taken before any shape under it.
+                self.focus = Focus::Instance(part, id);
+            } else if let Some(contour) = inside {
                 self.pick_alone(contour);
             } else if let Some((part, id)) = instance {
                 self.focus = Focus::Instance(part, id);

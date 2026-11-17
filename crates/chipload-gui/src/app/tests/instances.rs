@@ -372,3 +372,90 @@ fn the_part_itself_is_shown_to_place_without_instances() {
     assert!((at[0] - 60.0 / scale).abs() < 1.0 / scale, "{at:?}");
     assert_eq!(h.state().edit.as_ref().unwrap().job.drawing.shapes, shapes);
 }
+
+/// The user's finding (2026-11-17): no clear handles. Each ghost has a badge, its number
+/// with a move mark above its top, outside the shapes: hovered it lights up, dragged it
+/// moves the instance, unselected too, and instance 1 though the part's shapes lie there.
+#[test]
+fn an_instance_is_moved_by_its_badge() {
+    let mut h = harness();
+    let badge = |h: &Harness<'_, ChiploadApp>, id: u32| {
+        let state = h.state();
+        let ghost = state.scene.instances.iter().find(|g| g.id == id).unwrap();
+        crate::view::badge_rect(&state.view, ghost).center()
+    };
+    assert_eq!(h.state().focus, Focus::Job, "not selected");
+    // Hovered: lit up, nothing else.
+    h.hover_at(badge(&h, 2));
+    h.run_steps(3);
+    let ghost = h.state().scene.instances[0].clone();
+    assert!(ghost.hot && !ghost.selected, "{ghost:?}");
+    // Dragged by it: moved and selected.
+    let start = instance(h.state());
+    let from = badge(&h, 2);
+    drag(&mut h, from, from + egui::vec2(50.0, -30.0), false);
+    let moved = instance(h.state());
+    let scale = h.state().view.scale;
+    assert!(
+        (moved.at[0] - start.at[0] - 50.0 / scale).abs() < 1.0 / scale,
+        "{moved:?}"
+    );
+    assert!(
+        (moved.at[1] - start.at[1] - 30.0 / scale).abs() < 1.0 / scale,
+        "{moved:?}"
+    );
+    assert_eq!(h.state().focus, Focus::Instance(1, 2));
+    // Instance 1 shown where the part is drawn, then not selected: its badge still takes
+    // it, and the shapes stay.
+    h.state_mut().place_part(1);
+    h.run_steps(3);
+    h.state_mut().focus = Focus::Job;
+    h.run_steps(3);
+    let shapes = h.state().edit.as_ref().unwrap().job.drawing.shapes.clone();
+    let from = badge(&h, 1);
+    drag(&mut h, from, from + egui::vec2(-40.0, 0.0), false);
+    let (at, _) = own(h.state());
+    assert!((at[0] + 40.0 / scale).abs() < 1.0 / scale, "{at:?}");
+    assert_eq!(h.state().edit.as_ref().unwrap().job.drawing.shapes, shapes);
+    assert_eq!(h.state().focus, Focus::Instance(1, 1));
+}
+
+/// The handles as drawn, for a look by eye: instance 1 shown, instance 2 selected with its
+/// turn handle, instance 3 hovered.
+/// `CHIPLOAD_PICTURES=dir cargo test -p chipload-gui pictures -- --ignored`.
+#[test]
+#[ignore = "writes pictures; needs CHIPLOAD_PICTURES"]
+fn instance_handles_pictures() {
+    let Ok(dir) = std::env::var("CHIPLOAD_PICTURES") else {
+        panic!("set CHIPLOAD_PICTURES to the folder to write to");
+    };
+    let dir = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut h = Harness::builder()
+        .with_size(egui::vec2(1200.0, 800.0))
+        .wgpu()
+        .build_eframe(|cc| {
+            let mut fonts = crate::fonts::ui_fonts();
+            crate::fonts::add_text_fonts(&mut fonts);
+            cc.egui_ctx.set_fonts(fonts);
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            assert!(app.open(&corpus("jobs/v5/drawn_part.chipload")));
+            app.add_instance(1, false);
+            app.add_instance(1, true);
+            app.place_part(1);
+            app.focus = Focus::Instance(1, 2);
+            app.fit_pending = true;
+            app
+        });
+    h.run_steps(6);
+    let hover = {
+        let state = h.state();
+        let ghost = state.scene.instances.iter().find(|g| g.id == 3).unwrap();
+        crate::view::badge_rect(&state.view, ghost).center()
+    };
+    h.hover_at(hover);
+    h.run_steps(4);
+    let image = h.render().unwrap();
+    image.save(dir.join("instance-handles.png")).unwrap();
+}

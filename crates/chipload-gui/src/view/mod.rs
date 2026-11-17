@@ -19,7 +19,7 @@ pub use legend::{Swatch, legend, paint_swatch};
 pub use progress::{Progress, ToolLook};
 pub use scene::{
     COMPASS_ARM_END_PX, COMPASS_ARM_START_PX, COMPASS_CENTRE_PX, COMPASS_RING_PX, CompassShape,
-    CornerMarker, InstanceGhost, Scene, StartMarker, TabMarker,
+    CornerMarker, InstanceGhost, Scene, StartMarker, TURN_HANDLE_PX, TabMarker, badge_rect,
 };
 pub use shapes::{ContourShape, Highlight, Kind, ToolpathShape};
 pub use sim::{PictureLayer, SimLayer, SimSurface};

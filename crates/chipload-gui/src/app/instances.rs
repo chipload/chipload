@@ -239,6 +239,11 @@ impl ChiploadApp {
         }
         let setup = edit.job.active_setup_id();
         let scale = self.view.scale.max(f64::MIN_POSITIVE);
+        // What a press at the pointer would take, lit up (decision 13 of the handles).
+        let hot = self
+            .cursor
+            .filter(|_| !self.dragging_instance())
+            .and_then(|c| self.instance_grip_at(self.view.to_screen(c)));
         chipload_pipeline::parts::instance_outlines_showing(&edit.job, &self.contours, &shown)
             .into_iter()
             .filter(|i| setup.is_none() || edit.job.part(i.part).map(|p| p.setup) == setup)
@@ -254,13 +259,15 @@ impl ChiploadApp {
                 let r = reach + TURN_HANDLE_GAP_PX / scale;
                 let (s, c) = math::sin_cos(angle + std::f64::consts::FRAC_PI_2);
                 let handle = (i.centre.0 + r * c, i.centre.1 + r * s);
+                // Its badge above the top left of its box, outside the shapes: a turned
+                // ghost's top point may be a far corner, next to a neighbour.
                 let label_at = i
                     .outlines
                     .iter()
                     .flat_map(|(points, _)| points)
                     .fold(None, |top: Option<Point>, &p| match top {
-                        Some(t) if t.1 > p.1 || (t.1 == p.1 && t.0 <= p.0) => Some(t),
-                        _ => Some(p),
+                        Some(t) => Some((t.0.min(p.0), t.1.max(p.1))),
+                        None => Some(p),
                     })
                     .unwrap_or(i.centre);
                 crate::view::InstanceGhost {
@@ -283,6 +290,8 @@ impl ChiploadApp {
                     enabled: i.enabled,
                     centre: i.centre,
                     handle: selected.then_some(handle),
+                    hot: hot == Some((i.part, i.id))
+                        || self.dragged_instance() == Some((i.part, i.id)),
                 }
             })
             .collect()
@@ -336,11 +345,45 @@ impl ChiploadApp {
 
     /// The selected instance, when `pos` is on its turn handle.
     pub(super) fn instance_handle_at(&self, pos: egui::Pos2) -> Option<(u64, u32)> {
+        if self.scene.hide_drawing || self.display.three_d {
+            return None;
+        }
+        let reach = crate::view::TURN_HANDLE_PX.max(crate::view::PICK_TOLERANCE_PX) + 1.0;
         self.scene.instances.iter().find_map(|ghost| {
             let handle = ghost.handle?;
-            (self.view.to_screen(handle).distance(pos) <= crate::view::PICK_TOLERANCE_PX)
+            (self.view.to_screen(handle).distance(pos) <= reach).then_some((ghost.part, ghost.id))
+        })
+    }
+
+    /// The instance whose badge (its number, above its ghost) is under `pos`: the handle
+    /// that moves it, taken before any shape under it.
+    pub(super) fn instance_badge_at(&self, pos: egui::Pos2) -> Option<(u64, u32)> {
+        if self.scene.hide_drawing || self.display.three_d {
+            return None;
+        }
+        // The last drawn is on top.
+        self.scene.instances.iter().rev().find_map(|ghost| {
+            crate::view::badge_rect(&self.view, ghost)
+                .expand(1.0)
+                .contains(pos)
                 .then_some((ghost.part, ghost.id))
         })
+    }
+
+    /// The instance a press at `pos` would take: its turn handle, its badge, or its outline
+    /// where no shape lies under it (or it is the selected one).
+    pub(super) fn instance_grip_at(&self, pos: egui::Pos2) -> Option<(u64, u32)> {
+        self.instance_handle_at(pos)
+            .or_else(|| self.instance_badge_at(pos))
+            .or_else(|| {
+                (!self.display.three_d)
+                    .then(|| self.instance_at(pos))
+                    .flatten()
+                    .filter(|i| {
+                        self.scene.pick(&self.view, pos).is_none()
+                            || self.focus == Focus::Instance(i.0, i.1)
+                    })
+            })
     }
 
     /// A drag of instance `id` of part `part` begins at `at`, grabbed by `grip`. It selects
@@ -374,6 +417,11 @@ impl ChiploadApp {
 
     pub(super) fn dragging_instance(&self) -> bool {
         self.drag.instance.is_some()
+    }
+
+    /// The instance being dragged, part and number.
+    fn dragged_instance(&self) -> Option<(u64, u32)> {
+        self.drag.instance.map(|d| (d.part, d.id))
     }
 
     /// The dragged instance with the pointer at `at`: moved by as much as the pointer, or

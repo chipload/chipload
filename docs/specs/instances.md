@@ -106,6 +106,13 @@ same result comes more safely the way mirrored parts are cut (docs/specs/mirror-
 - An instance that is off stays as a dashed ghost, so it can be found and turned on.
 - The turn handle sits beyond the ghost's outlines, on the line from its centre that
   turns with it.
+- **Handles made clear** (the user's finding, 2026-11-17: "no clear drag handles,
+  especially the original instance"): each ghost has a badge above the top left of its
+  box, outside the shapes, with its number and a four-way arrow. It is the move handle,
+  taken before any shape under it, selected or not, so instance 1 lying on its part's
+  shapes is easy to grab; the outline still drags too. The turn handle is larger (7 px)
+  with a curved arrow. Under the pointer, a ghost's outline and badge thicken in its own
+  colour and the pointer becomes a hand (grabbing while dragged).
 - A new instance goes beside what the part cuts. When the part can't be planned yet (one
   of its operations has a problem), it goes beside the boxes round its shapes as drawn
   and placed, so a part being worked on still takes instances.

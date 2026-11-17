@@ -8,9 +8,13 @@ instance follows.
 In the window:
 - **Right-click the part** in the Browser: *Add instance* places it again beside what it
   cuts, 10 mm away; *Add mirrored instance* does the same, mirrored left to right.
-- **On the canvas**, each instance is drawn faded where it is cut, with its number (`#2`);
-  one that is off is dashed. Click one to select it, drag it to move it, and drag its
-  round handle to turn it about its middle. Turning snaps to quarter turns within 3°; hold
+- **On the canvas**, each instance is drawn faded where it is cut, with a badge above its
+  top left: its number (`#2`) and a four-way arrow. One that is off is dashed. The badge is
+  the handle: click it to select the instance, drag it to move it (the outline can be
+  dragged too, where no shape lies under it). A selected instance has a round turn handle
+  with a curved arrow: drag it to turn the instance about its middle. Under the pointer an
+  instance's outline thickens and the pointer becomes a hand, so you see what a drag
+  takes. Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
 - **In the Browser**, each instance has a row under its part, with its tick. Right-click
   it to *Mirror* it, *Turn 90°* or *Remove* it; Delete removes the selected one.
@@ -75,8 +79,9 @@ moving the drawing, for instance when several parts come from one DXF.
 In the window:
 - **Right-click the part** in the Browser and tick *Show placement instance*: the part
   itself shows as **Instance 1**, selected, a ghost `#1` on its shapes with its round turn
-  handle, and its form opens with its rotation and how far it is moved. Drag the ghost by
-  its outline, turn it by its handle, or press Q for the Compass. *Reset placement* puts it
+  handle, and its form opens with its rotation and how far it is moved. Drag it by its
+  badge `#1` (above its shapes, so the shapes underneath aren't in the way), turn it by its
+  handle, or press Q for the Compass. *Reset placement* puts it
   back where drawn; untick to hide it again (a placed part always shows it).
 - **On the canvas**, once placed, it is a ghost `#1` where it is cut, picked, dragged and
   turned like any instance. Its shapes, where they are drawn, get a dashed box saying

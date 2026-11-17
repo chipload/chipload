@@ -27,6 +27,95 @@ pub const COMPASS_ARM_END_PX: f32 = 64.0;
 pub const COMPASS_RING_PX: f32 = 18.0;
 pub const COMPASS_CENTRE_PX: f32 = 6.0;
 
+/// An instance's badge (docs/specs/instances.md §4): its number with a move mark, above the
+/// top of its ghost, outside the shapes, the handle that drags it. Height, padding, the move
+/// mark's size and a character's width, px.
+pub const BADGE_HEIGHT_PX: f32 = 18.0;
+const BADGE_PAD_PX: f32 = 5.0;
+const BADGE_MARK_PX: f32 = 10.0;
+const BADGE_CHAR_PX: f32 = 7.5;
+/// The selected instance's turn handle's radius, px.
+pub const TURN_HANDLE_PX: f32 = 7.0;
+
+/// Where instance `ghost`'s badge is on the screen: its bottom left just above the
+/// ghost's top point. Drawn in the view, picked in the app.
+pub fn badge_rect(view: &View, ghost: &InstanceGhost) -> Rect {
+    let corner = view.to_screen(ghost.label_at) + Vec2::new(0.0, -4.0);
+    let chars = ghost.label.chars().count() as f32;
+    let width = 3.0 * BADGE_PAD_PX + BADGE_MARK_PX + chars * BADGE_CHAR_PX;
+    Rect::from_min_max(
+        corner - Vec2::new(0.0, BADGE_HEIGHT_PX),
+        corner + Vec2::new(width, 0.0),
+    )
+}
+
+/// The badge: a rounded box with a four-way arrow and the instance's number.
+fn paint_badge(
+    painter: &Painter,
+    rect: Rect,
+    label: &str,
+    color: Color32,
+    fill: Color32,
+    width: f32,
+) {
+    painter.rect_filled(rect, 4.0, fill);
+    painter.rect_stroke(
+        rect,
+        4.0,
+        Stroke::new(width, color),
+        eframe::egui::StrokeKind::Inside,
+    );
+    let mark = Pos2::new(
+        rect.left() + BADGE_PAD_PX + BADGE_MARK_PX / 2.0,
+        rect.center().y,
+    );
+    paint_move_mark(painter, mark, BADGE_MARK_PX / 2.0, Stroke::new(1.2, color));
+    painter.text(
+        Pos2::new(
+            rect.left() + 2.0 * BADGE_PAD_PX + BADGE_MARK_PX,
+            rect.center().y,
+        ),
+        Align2::LEFT_CENTER,
+        label,
+        FontId::proportional(12.0),
+        color,
+    );
+}
+
+/// A four-way arrow of arm `r` about `c`: moves it.
+fn paint_move_mark(painter: &Painter, c: Pos2, r: f32, stroke: Stroke) {
+    let head = r * 0.45;
+    for dir in [Vec2::X, -Vec2::X, Vec2::Y, -Vec2::Y] {
+        let tip = c + dir * r;
+        let side = Vec2::new(-dir.y, dir.x) * head;
+        painter.line_segment([c, tip], stroke);
+        painter.line_segment([tip, tip - dir * head + side], stroke);
+        painter.line_segment([tip, tip - dir * head - side], stroke);
+    }
+}
+
+/// A curved arrow round `c` of radius `r`: turns it.
+fn paint_turn_mark(painter: &Painter, c: Pos2, r: f32, stroke: Stroke) {
+    let (start, end) = (0.6_f32, 5.2_f32);
+    let steps = 12;
+    let at = |a: f32| {
+        c + Vec2::new(
+            math::cos(f64::from(a)) as f32,
+            -(math::sin(f64::from(a)) as f32),
+        ) * r
+    };
+    let points: Vec<Pos2> = (0..=steps)
+        .map(|k| at(start + (end - start) * k as f32 / steps as f32))
+        .collect();
+    painter.add(Shape::line(points, stroke));
+    // The head at the end, along the turn.
+    let tip = at(end);
+    let along = (at(end) - at(end - 0.3)).normalized();
+    let side = Vec2::new(-along.y, along.x) * (r * 0.6);
+    painter.line_segment([tip, tip - along * r * 0.6 + side], stroke);
+    painter.line_segment([tip, tip - along * r * 0.6 - side], stroke);
+}
+
 /// The Compass as drawn: its centre, its X axis's angle (degrees), whether it is unlocked
 /// (grey), and the part to highlight (X, Y, ring, centre).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -53,6 +142,8 @@ pub struct InstanceGhost {
     pub centre: Point,
     /// Its turn handle, when selected.
     pub handle: Option<Point>,
+    /// Under the pointer: its badge, turn handle or outline would take a press.
+    pub hot: bool,
 }
 
 /// Everything on the canvas, in world coordinates.
@@ -536,10 +627,11 @@ impl Scene {
             painter.extend(Shape::dashed_line(&pts, stroke, DASH_PX, GAP_PX));
         };
         for ghost in &self.instances {
-            let (color, width) = if ghost.selected {
-                (pal.selected, 1.5)
-            } else {
-                (pal.ghost, 1.0)
+            let (color, width) = match (ghost.selected, ghost.hot) {
+                (true, hot) => (pal.selected, if hot { 2.5 } else { 1.5 }),
+                // Hovered: thicker in its own colour, never mistaken for the selected one.
+                (false, true) => (pal.ghost, 2.5),
+                (false, false) => (pal.ghost, 1.0),
             };
             for outline in &ghost.outlines {
                 // An instance that is off is kept, not cut: dashed.
@@ -552,12 +644,23 @@ impl Scene {
                     );
                 }
             }
-            painter.text(
-                view.to_screen(ghost.label_at) + Vec2::new(0.0, -4.0),
-                eframe::egui::Align2::LEFT_BOTTOM,
+            let badge = if ghost.enabled {
+                color
+            } else {
+                color.gamma_multiply(0.6)
+            };
+            let stroke = if ghost.selected || ghost.hot {
+                1.5
+            } else {
+                1.0
+            };
+            paint_badge(
+                painter,
+                badge_rect(view, ghost),
                 &ghost.label,
-                eframe::egui::FontId::proportional(12.0),
-                color,
+                badge,
+                pal.handle_fill,
+                stroke,
             );
         }
         for ((low, high), label) in &self.elsewhere {
@@ -738,8 +841,14 @@ impl Scene {
             if let Some(handle) = ghost.handle {
                 let (from, to) = (view.to_screen(ghost.centre), view.to_screen(handle));
                 painter.line_segment([from, to], Stroke::new(1.0, pal.selected));
-                painter.circle_filled(to, 5.0, pal.handle_fill);
-                painter.circle_stroke(to, 5.0, Stroke::new(1.5, pal.selected));
+                painter.circle_filled(to, TURN_HANDLE_PX, pal.handle_fill);
+                painter.circle_stroke(to, TURN_HANDLE_PX, Stroke::new(1.5, pal.selected));
+                paint_turn_mark(
+                    painter,
+                    to,
+                    TURN_HANDLE_PX * 0.55,
+                    Stroke::new(1.2, pal.selected),
+                );
             }
         }
         if let Some(compass) = self.compass.filter(|_| flat) {
