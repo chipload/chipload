@@ -5,7 +5,7 @@ use chipload_core::Point;
 use chipload_core::primitives::{Line, Primitive};
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{Job, Part};
+use chipload_job::{Job, Part, Spot};
 
 use super::OpSpan;
 use crate::ToolpathError;
@@ -118,10 +118,10 @@ pub(super) fn check_parts_apart(
             })
             .cloned()
             .collect();
-        check_instances_apart(part, moves, &mine)?;
-        for (number, _) in part.in_cut_order() {
+        check_instances_apart(job, part, moves, &mine)?;
+        for (number, spot) in job.spots(part.id) {
             if let Some(area) = cut_area(moves, &mine, number) {
-                let as_drawn = number == 1 && !part.is_placed();
+                let as_drawn = spot == Spot::default();
                 areas.push((p, number, as_drawn, area));
             }
         }
@@ -163,12 +163,13 @@ fn boxes_overlap(a: (Point, Point), b: (Point, Point)) -> bool {
 /// tools' paths are compared, so instances whose boxes overlap but whose cuts don't (shapes
 /// that interleave) are allowed.
 fn check_instances_apart(
+    job: &Job,
     part: &Part,
     moves: &[Move],
     spans: &[OpSpan],
 ) -> Result<(), ToolpathError> {
-    let cut: Vec<(u32, CutArea)> = part
-        .spots()
+    let cut: Vec<(u32, CutArea)> = job
+        .spots(part.id)
         .into_iter()
         .filter_map(|(number, _)| cut_area(moves, spans, number).map(|a| (number, a)))
         .collect();

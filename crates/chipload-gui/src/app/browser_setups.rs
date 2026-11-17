@@ -92,9 +92,14 @@ impl ChiploadApp {
         if open {
             for setup in &setups {
                 let is_active = active_setup == Some(setup.id);
+                let on: Vec<u64> = self
+                    .edit
+                    .as_ref()
+                    .map(|e| e.job.parts_on(setup.id))
+                    .unwrap_or_default();
                 let mine: Vec<chipload_job::Part> = parts
                     .iter()
-                    .filter(|p| p.setup == setup.id)
+                    .filter(|p| on.contains(&p.id))
                     .cloned()
                     .collect();
                 let rows = SetupRows {

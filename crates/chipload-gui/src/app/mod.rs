@@ -912,7 +912,7 @@ fn ghost_contours(
     let active = job.active_setup_id();
     let picks = |mine: bool, shape: &chipload_job::Shape| {
         job.operations.iter().any(|op| {
-            let here = job.part_of(op).map(|p| p.setup) == active;
+            let here = active.is_some_and(|s| job.part_on(op.part(), s));
             here == mine
                 && op.selects_shapes()
                 && op.select().resolved(&job.drawing).may_pick(shape)

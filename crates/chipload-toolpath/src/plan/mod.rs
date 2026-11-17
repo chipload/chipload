@@ -525,7 +525,7 @@ type Spotted = (u32, Point, Option<Placement>);
 /// a turned or mirrored one is placed about the part's centre.
 fn spots_of(job: &Job, part: &Part) -> Vec<Spotted> {
     let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
-    part.spots()
+    job.spots(part.id)
         .into_iter()
         .map(|(number, spot)| {
             if spot.is_move() {
@@ -729,7 +729,7 @@ fn plan_step(
     });
     planned.map_err(|err| {
         let part = job.part_of(op);
-        let several = part.is_some_and(|p| p.count() > 1);
+        let several = part.is_some_and(|p| job.count(p.id) > 1);
         let err = if several && job.parts.len() > 1 {
             let name = part.map_or("", |p| p.name.as_str());
             err.with_context(
@@ -855,7 +855,7 @@ impl Gathered {
             self.part_started = Some(op.part());
             // How many times it is cut: the part and its instances that are on
             // (docs/specs/instances.md §7).
-            let copies = match part.count() {
+            let copies = match job.count(part.id) {
                 1 => String::new(),
                 n => format!(", cut {n} times"),
             };

@@ -178,12 +178,8 @@ impl ChiploadApp {
             return;
         };
         if let Some(gap) = gap {
-            // The part alone, without its instances, to measure one cut.
-            let mut part = edit.clone();
-            for p in &mut part.job.parts {
-                p.instances.clear();
-            }
-            let job = match part.to_job() {
+            // One cut of the part alone is measured (copies::cut_size).
+            let job = match edit.to_job() {
                 Ok(job) => job,
                 Err(problems) => {
                     self.error_report(Report::of_problems(
@@ -213,12 +209,12 @@ impl ChiploadApp {
             ));
             return;
         }
-        if let Some(part) = self
-            .edit
-            .as_mut()
-            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == id))
-        {
-            part.instances = grid.instances();
+        if let Some(edit) = self.edit.as_mut() {
+            // On the board the part is cut from; the active setup stays.
+            let active = edit.job.active_setup;
+            edit.job.active_setup = edit.job.home_setup(id).or(active);
+            edit.job.set_grid_here(id, &grid);
+            edit.job.active_setup = active;
         }
         self.commit();
         let (units, unit) = (
@@ -272,7 +268,7 @@ impl ChiploadApp {
     /// Make part `id` the one new operations go into.
     pub fn activate_part(&mut self, id: u64) {
         if let Some(edit) = self.edit.as_mut()
-            && let Some(setup) = edit.job.part(id).map(|p| p.setup)
+            && let Some(setup) = edit.job.home_setup(id)
         {
             edit.job.active_part = Some(id);
             // Its setup is the one shown (docs/specs/setups.md §7).

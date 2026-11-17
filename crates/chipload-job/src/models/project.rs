@@ -77,6 +77,12 @@ pub struct Setup {
     // Spec: docs/specs/nesting.md §10 (optional, no schema bump).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub nest: Option<Nest>,
+    /// The parts cut from this board, each placed: a part once where it is drawn, or moved,
+    /// turned, mirrored, several times. Cut grouped by part in the project's order, each
+    /// part's instances in this order. Since schema 41, in place of each part's own
+    /// placement and instances.
+    // Spec: docs/specs/parts-and-setups.md §2.
+    pub instances: Vec<Instance>,
     /// A board Chipload placed itself for one run, its (min, max) corners in drawing
     /// coordinates: a piece's board, fitted round the piece (docs/specs/pieces.md §7). It
     /// overrides where the stock would be and its size; the thickness, material and the
@@ -302,40 +308,28 @@ impl Register {
     }
 }
 
-/// A part: a named group of operations, cut together, with its own copies
-/// (docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.
+/// A part: a named group of operations, cut together (docs/specs/parts.md §2). It owns no
+/// geometry, its operations select the shapes, and no placement: the setups hold its
+/// instances (docs/specs/parts-and-setups.md §2).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Part {
-    /// Its number, unique in the project: what operations name it by.
+    /// Its number, unique in the project: what operations and instances name it by.
     pub id: u64,
     /// Its name, unique in the project, shown in the Browser, the report and the sheet.
     pub name: String,
-    /// False: the part and all its operations stay in the project but aren't cut.
+    /// False: the part and all its operations stay in the project but aren't cut, on any
+    /// board.
     pub enabled: bool,
-    /// The part placed again: each instance the same shapes and operations moved, turned
-    /// and perhaps mirrored (instance 1 is the part itself, placed by `angle` and `at`, and
-    /// isn't listed). Empty: cut once. Since schema 38, in place of a grid of copies.
-    // Spec: docs/specs/instances.md.
-    pub instances: Vec<Instance>,
     /// `by_operation`: each operation on every instance, then the next; `by_instance`:
     /// every operation on one instance, then the next instance. Since schema 38.
     pub order: InstanceOrder,
-    /// The id of the setup it is cut in (`setups`). Since schema 34.
-    // Spec: docs/specs/setups.md.
-    pub setup: u64,
-    /// Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as
-    /// drawn. Left out when missing.
+    /// Cut mirrored about the centre line of its box, the drawing as drawn: every instance
+    /// with it. Missing: as drawn. Left out when missing.
     // Spec: docs/specs/mirror-part.md (optional, no schema bump).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mirror: Option<Mirror>,
-    /// Instance 1, the part itself, turned about the part's centre, radians,
-    /// counter-clockwise, as an instance is; 0: as drawn. Since schema 39.
-    // Spec: docs/specs/part-placement.md.
-    pub angle: f64,
-    /// Instance 1 then moved, mm; (0, 0): where drawn. Since schema 39.
-    pub at: [f64; 2],
     /// How it may be turned when nested. Missing: a quarter turn at a time. Left out when
     /// missing.
     // Spec: docs/specs/nesting.md §10 (optional, no schema bump).
@@ -363,62 +357,16 @@ impl Mirror {
     }
 }
 
-impl Part {
-    /// Instance 1's placement (docs/specs/part-placement.md): the part's turn and move, no
-    /// mirror of its own (the part's `mirror` mirrors the definition).
-    pub fn spot(&self) -> Spot {
-        Spot {
-            mirror: None,
-            angle: self.angle,
-            at: self.at,
-        }
-    }
-
-    /// Whether the part itself is cut elsewhere than drawn: turned or moved.
-    pub fn is_placed(&self) -> bool {
-        self.angle != 0.0 || self.at != [0.0, 0.0]
-    }
-
-    /// How many times the part is cut: itself and its instances that are on.
-    pub fn count(&self) -> u32 {
-        let on = self.instances.iter().filter(|i| i.enabled).count();
-        u32::try_from(on).unwrap_or(u32::MAX).saturating_add(1)
-    }
-
-    /// The part and its instances that are on, as (number, placement), in cut order: the
-    /// part itself first (number 1, at its own placement), then its instances as listed.
-    pub fn spots(&self) -> Vec<(u32, Spot)> {
-        let mut out = vec![(1, self.spot())];
-        out.extend(
-            self.instances
-                .iter()
-                .filter(|i| i.enabled)
-                .map(|i| (i.id, i.spot())),
-        );
-        out
-    }
-
-    /// [`Part::spots`] as (number, shift): for instances that are only moved.
-    pub fn in_cut_order(&self) -> Vec<(u32, (f64, f64))> {
-        self.spots()
-            .into_iter()
-            .map(|(n, p)| (n, (p.at[0], p.at[1])))
-            .collect()
-    }
-
-    /// A free number for a new instance: one more than the largest, from 2.
-    pub fn next_instance_id(&self) -> u32 {
-        self.instances.iter().map(|i| i.id).max().unwrap_or(1) + 1
-    }
-}
-
-/// The part placed again (docs/specs/instances.md §2): mirrored, then turned, about the
-/// part's centre, then moved.
+/// A part placed on a board (docs/specs/parts-and-setups.md §2, instances.md §2): mirrored,
+/// then turned, about the part's centre, then moved.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 #[serde(deny_unknown_fields)]
 pub struct Instance {
-    /// Its number in the part, from 2 (1 is the part as drawn).
+    /// The part placed (`parts`).
+    pub part: u64,
+    /// Its number, from 1, unique among the part's instances on every board; kept when it
+    /// moves to another board.
     pub id: u32,
     /// False: kept, but not cut.
     pub enabled: bool,
@@ -431,9 +379,15 @@ pub struct Instance {
 }
 
 impl Instance {
+    /// Part `part` placed where it is drawn, as instance `id`.
+    pub fn drawn(part: u64, id: u32) -> Instance {
+        Instance::moved(part, id, [0.0, 0.0])
+    }
+
     /// An instance only moved.
-    pub fn moved(id: u32, at: [f64; 2]) -> Instance {
+    pub fn moved(part: u64, id: u32, at: [f64; 2]) -> Instance {
         Instance {
+            part,
             id,
             enabled: true,
             mirror: None,
@@ -448,6 +402,18 @@ impl Instance {
             angle: self.angle,
             at: self.at,
         }
+    }
+
+    /// Set to a placement.
+    pub fn set_spot(&mut self, spot: Spot) {
+        self.mirror = spot.mirror;
+        self.angle = spot.angle;
+        self.at = spot.at;
+    }
+
+    /// Cut where its part is drawn: not mirrored, turned or moved.
+    pub fn is_drawn(&self) -> bool {
+        self.spot() == Spot::default()
     }
 }
 
@@ -502,11 +468,11 @@ impl Copies {
     /// The grid's instances, the part itself (copy 1) left out, numbered as the grid's
     /// copies were (row by row from 1) and listed in the order they are cut: row by row,
     /// alternating direction (2, 3, then 6, 5, 4).
-    pub fn instances(&self) -> Vec<Instance> {
+    pub fn instances(&self, part: u64) -> Vec<Instance> {
         self.in_cut_order()
             .into_iter()
             .skip(1)
-            .map(|(number, (dx, dy))| Instance::moved(number, [dx, dy]))
+            .map(|(number, (dx, dy))| Instance::moved(part, number, [dx, dy]))
             .collect()
     }
 
@@ -839,15 +805,238 @@ impl Job {
             .filter(|(i, op)| {
                 op.is_board_surface()
                     && self.cuts(*i)
-                    && self.part_of(op).is_some_and(|p| p.setup == id)
+                    && self.setups_of_part(op.part()).contains(&id)
             })
             .map(|(_, op)| op.depths(&self.tools).1)
             .fold(0.0, f64::max)
     }
 
-    /// The setup operation `op` is cut in: its part's.
+    /// The setup operation `op` is cut in: its part's ([`Job::home_setup`]).
     pub fn setup_of(&self, op: &Operation) -> Option<&Setup> {
-        self.setup(self.part_of(op)?.setup)
+        self.setup(self.home_setup(op.part())?)
+    }
+
+    /// Every instance of part `id`, on every board, as (setup id, instance): setups in their
+    /// order, each setup's in its order (docs/specs/parts-and-setups.md §2).
+    pub fn instances_of(&self, id: u64) -> Vec<(u64, &Instance)> {
+        self.setups
+            .iter()
+            .flat_map(|s| {
+                s.instances
+                    .iter()
+                    .filter(move |i| i.part == id)
+                    .map(move |i| (s.id, i))
+            })
+            .collect()
+    }
+
+    /// The setups that hold an instance of part `id`, in their order.
+    pub fn setups_of_part(&self, id: u64) -> Vec<u64> {
+        self.setups
+            .iter()
+            .filter(|s| s.instances.iter().any(|i| i.part == id))
+            .map(|s| s.id)
+            .collect()
+    }
+
+    /// Whether part `id` has an instance, on or off, on setup `setup`.
+    pub fn part_on(&self, id: u64, setup: u64) -> bool {
+        self.setup(setup)
+            .is_some_and(|s| s.instances.iter().any(|i| i.part == id))
+    }
+
+    /// The ids of the parts with an instance on setup `setup`, in the project's order.
+    pub fn parts_on(&self, setup: u64) -> Vec<u64> {
+        self.parts
+            .iter()
+            .filter(|p| self.part_on(p.id, setup))
+            .map(|p| p.id)
+            .collect()
+    }
+
+    /// The board part `id` is cut from, where one board is meant: the active setup when it
+    /// holds the part, else the first setup that does. None: the part isn't placed anywhere.
+    pub fn home_setup(&self, id: u64) -> Option<u64> {
+        let holds = self.setups_of_part(id);
+        self.active_setup_id()
+            .filter(|a| holds.contains(a))
+            .or_else(|| holds.first().copied())
+    }
+
+    /// The instances of part `id` on the active setup, on or off, in their order.
+    pub fn instances_here(&self, id: u64) -> Vec<&Instance> {
+        self.setups
+            .get(self.active_setup_index())
+            .map(|s| s.instances.iter().filter(|i| i.part == id).collect())
+            .unwrap_or_default()
+    }
+
+    /// The instances of part `id` that are on, on the active setup, as (number, placement),
+    /// in cut order. [`Job::for_setup`] makes a setup the active one for planning.
+    pub fn spots(&self, id: u64) -> Vec<(u32, Spot)> {
+        self.instances_here(id)
+            .into_iter()
+            .filter(|i| i.enabled)
+            .map(|i| (i.id, i.spot()))
+            .collect()
+    }
+
+    /// [`Job::spots`] as (number, shift): for instances that are only moved.
+    pub fn in_cut_order(&self, id: u64) -> Vec<(u32, (f64, f64))> {
+        self.spots(id)
+            .into_iter()
+            .map(|(n, p)| (n, (p.at[0], p.at[1])))
+            .collect()
+    }
+
+    /// How many times part `id` is cut on the active setup: its instances there that are on.
+    pub fn count(&self, id: u64) -> u32 {
+        u32::try_from(self.spots(id).len()).unwrap_or(u32::MAX)
+    }
+
+    /// How many instances part `id` has that are on, on every board.
+    pub fn count_all(&self, id: u64) -> u32 {
+        let on = self
+            .instances_of(id)
+            .iter()
+            .filter(|(_, i)| i.enabled)
+            .count();
+        u32::try_from(on).unwrap_or(u32::MAX)
+    }
+
+    /// Whether part `id` is cut only elsewhere than drawn: none of its instances that are
+    /// on, on any board, lies where the part is drawn (docs/specs/part-placement.md §4).
+    pub fn is_placed(&self, id: u64) -> bool {
+        !self
+            .instances_of(id)
+            .iter()
+            .any(|(_, i)| i.enabled && i.is_drawn())
+    }
+
+    /// Instance `number` of part `id`, on whichever board it is.
+    pub fn instance(&self, id: u64, number: u32) -> Option<&Instance> {
+        self.setups
+            .iter()
+            .flat_map(|s| &s.instances)
+            .find(|i| i.part == id && i.id == number)
+    }
+
+    /// Instance `number` of part `id`, to change.
+    pub fn instance_mut(&mut self, id: u64, number: u32) -> Option<&mut Instance> {
+        self.setups
+            .iter_mut()
+            .flat_map(|s| &mut s.instances)
+            .find(|i| i.part == id && i.id == number)
+    }
+
+    /// A free number for a new instance of part `id`: one more than the largest on any
+    /// board, from 1.
+    pub fn next_instance_id(&self, id: u64) -> u32 {
+        self.instances_of(id)
+            .iter()
+            .map(|(_, i)| i.id)
+            .max()
+            .unwrap_or(0)
+            + 1
+    }
+
+    /// The setup with this id, to change.
+    pub fn setup_mut(&mut self, id: u64) -> Option<&mut Setup> {
+        self.setups.iter_mut().find(|s| s.id == id)
+    }
+
+    /// Part `id` placed on setup `setup` where it is drawn, as a new instance; false when
+    /// there is no such setup.
+    pub fn place_part(&mut self, id: u64, setup: u64) -> bool {
+        let number = self.next_instance_id(id);
+        match self.setup_mut(setup) {
+            Some(s) => {
+                s.instances.push(Instance::drawn(id, number));
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Every instance of part `id` moved onto setup `setup`, keeping its number and
+    /// placement, after the instances there; false when there is no such setup.
+    pub fn move_part_to(&mut self, id: u64, setup: u64) -> bool {
+        if self.setup(setup).is_none() {
+            return false;
+        }
+        let mut moved = Vec::new();
+        for s in &mut self.setups {
+            if s.id != setup {
+                moved.extend(s.instances.iter().filter(|i| i.part == id).copied());
+                s.instances.retain(|i| i.part != id);
+            }
+        }
+        if let Some(s) = self.setup_mut(setup) {
+            s.instances.extend(moved);
+        }
+        true
+    }
+
+    /// Part `id` cut as a grid on the active setup (`part instance array`,
+    /// docs/specs/instances.md §5): its instance 1 stays as it is (made where drawn when the
+    /// part has none), its other instances here are replaced by the grid's, numbered as
+    /// the grid numbers them; a number already used on another board gets a free one.
+    pub fn set_grid_here(&mut self, id: u64, grid: &Copies) {
+        let first = self
+            .instances_here(id)
+            .into_iter()
+            .find(|i| i.id == 1)
+            .copied()
+            .or_else(|| {
+                self.instance(id, 1)
+                    .is_none()
+                    .then(|| Instance::drawn(id, 1))
+            });
+        let elsewhere: Vec<u32> = {
+            let here = self.active_setup_id();
+            self.instances_of(id)
+                .iter()
+                .filter(|(s, _)| Some(*s) != here)
+                .map(|(_, i)| i.id)
+                .collect()
+        };
+        let mut used: Vec<u32> = elsewhere.clone();
+        used.extend(first.map(|f| f.id));
+        let mut list: Vec<Instance> = first.into_iter().collect();
+        for mut instance in grid.instances(id) {
+            if used.contains(&instance.id) {
+                instance.id = used.iter().max().copied().unwrap_or(0) + 1;
+            }
+            used.push(instance.id);
+            list.push(instance);
+        }
+        self.set_instances_here(id, list);
+    }
+
+    /// Every instance of part `id` removed, from every board.
+    pub fn remove_part_instances(&mut self, id: u64) {
+        for s in &mut self.setups {
+            s.instances.retain(|i| i.part != id);
+        }
+    }
+
+    /// The instances of part `id` on the active setup replaced by `instances` (each given
+    /// the part), where they were in the list; the instances of the part on other boards
+    /// stay.
+    pub fn set_instances_here(&mut self, id: u64, instances: Vec<Instance>) {
+        let index = self.active_setup_index();
+        let Some(setup) = self.setups.get_mut(index) else {
+            return;
+        };
+        let at = setup
+            .instances
+            .iter()
+            .position(|i| i.part == id)
+            .unwrap_or(setup.instances.len());
+        setup.instances.retain(|i| i.part != id);
+        let at = at.min(setup.instances.len());
+        let placed = instances.into_iter().map(|i| Instance { part: id, ..i });
+        setup.instances.splice(at..at, placed);
     }
 
     /// The id of the active setup: `active_setup` when it names a setup, else the first.
@@ -891,13 +1080,23 @@ impl Job {
     }
 
     /// This project as setup `id` alone (docs/specs/setups.md §4): `id` is the active setup,
-    /// and the parts of the other setups are off, so planning cuts only its parts with its
+    /// and the parts with no instance on there are off, so planning cuts only its parts with its
     /// stock and zero. Operation numbers stay as they are.
     pub fn for_setup(&self, id: u64) -> Job {
         let mut job = self.clone();
         job.active_setup = Some(id);
+        let holds: Vec<u64> = self
+            .setup(id)
+            .map(|s| {
+                s.instances
+                    .iter()
+                    .filter(|i| i.enabled)
+                    .map(|i| i.part)
+                    .collect()
+            })
+            .unwrap_or_default();
         for part in &mut job.parts {
-            if part.setup != id {
+            if !holds.contains(&part.id) {
                 part.enabled = false;
             }
         }
@@ -1006,14 +1205,19 @@ impl Job {
     fn instance_boxes(&self, board: &[u64]) -> Vec<((f64, f64), (f64, f64))> {
         let mut boxes = Vec::new();
         for part in &self.parts {
-            if !part.enabled || (self.setups.len() >= 2 && !board.contains(&part.setup)) {
+            if !part.enabled {
                 continue;
             }
             let Some(((x0, y0), (x1, y1))) = self.part_box(part.id) else {
                 continue;
             };
             let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);
-            for (_, spot) in part.spots() {
+            let spots = self
+                .instances_of(part.id)
+                .into_iter()
+                .filter(|(s, i)| i.enabled && (self.setups.len() < 2 || board.contains(s)))
+                .map(|(_, i)| i.spot());
+            for spot in spots {
                 if spot == Spot::default() {
                     // Cut where drawn: its shapes count already.
                     continue;
@@ -1043,12 +1247,12 @@ impl Job {
     fn cut_only_elsewhere(&self) -> impl Fn(&Shape) -> bool + '_ {
         let mut placed = Vec::new();
         let mut drawn = Vec::new();
-        if self.parts.iter().any(Part::is_placed) {
+        if self.parts.iter().any(|p| self.is_placed(p.id)) {
             for op in self.operations.iter().filter(|op| op.selects_shapes()) {
                 let select = op.select().resolved(&self.drawing);
                 match self.part_of(op) {
                     // Dowel holes belong to the board: never placed.
-                    Some(part) if part.is_placed() && !op.is_dowels() => placed.push(select),
+                    Some(part) if self.is_placed(part.id) && !op.is_dowels() => placed.push(select),
                     _ => drawn.push(select),
                 }
             }
@@ -1060,7 +1264,9 @@ impl Job {
 
     /// Whether `op` cuts one of the setups `board`.
     fn on_board(&self, op: &Operation, board: &[u64]) -> bool {
-        self.part_of(op).is_some_and(|p| board.contains(&p.setup))
+        self.setups_of_part(op.part())
+            .iter()
+            .any(|s| board.contains(s))
     }
 
     /// The setups that cut the active setup's board: it, and its front or its back

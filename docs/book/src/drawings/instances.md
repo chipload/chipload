@@ -33,8 +33,14 @@ chipload part instance list part.chipload                 # their numbers, place
 chipload part instance set part.chipload 3 --angle 45     # turn instance 3 (also --at, --mirror, --off, --on)
 chipload part instance remove part.chipload 3             # or --all: the part is cut once
 chipload part instance array part.chipload --grid 3x2 --gap 10   # a grid in place of them
+chipload part instance move part.chipload 3 --setup 2     # instance 3 cut from setup 2's board instead
 chipload part set part.chipload 1 --order by-instance     # every operation on one instance, then the next
 ```
+
+- **Boards:** each instance is cut from one setup's board. `add` and `array` put new
+  instances on the board the part is cut from, or on the one `--setup` names; `move` puts
+  an instance on another board, keeping its number and place. With several setups,
+  `list` says each instance's board.
 
 - **Numbers:** the part itself is instance 1 ([placed](#the-part-itself) or where drawn);
   the others are numbered from 2 and keep their numbers when one is removed.

@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 83] = [
+const GOLDEN: [(&str, &str); 84] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -294,6 +294,12 @@ const GOLDEN: [(&str, &str); 83] = [
         "v39_surface_instances",
         "jobs/v39/surface_instances.chipload",
     ),
+    // nest_badge frozen at v40 after `nest --board 600x400` (so the part itself is placed
+    // at 6.3, 82.3 and instance 3 stays mirrored, the setup keeps its nest), then `setup
+    // add --back-of 1` and on the back's part `op add pocket --layer Pocket --depth 2`.
+    // v41 moves every placement into its setup as instances; the G-code, written by the
+    // schema 40 Chipload, stays the same (docs/specs/parts-and-setups.md §5).
+    ("v40_placed_back", "jobs/v40/placed_back.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with

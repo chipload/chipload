@@ -688,7 +688,7 @@ pub(crate) fn plan(out: &mut Out, project: &Path, sets: &[String], parts: &[u64]
         }
         // Numbered as in the project.
         for (line, part) in parts_lines(&job).into_iter().zip(&job.parts) {
-            if job.setups.len() < 2 || Some(part.setup) == active {
+            if job.setups.len() < 2 || active.is_some_and(|s| job.part_on(part.id, s)) {
                 out.line(line);
             }
         }

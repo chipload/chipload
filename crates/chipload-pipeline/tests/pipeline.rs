@@ -27,7 +27,7 @@ fn read(rel: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(corpus(rel)).unwrap()).unwrap()
 }
 
-/// A grid of copies as the part's instances and their order; null is none.
+/// A grid of copies as the part's instances besides itself and their order; null is none.
 fn grid_instances(grid: &Value) -> (Value, Value) {
     if grid.is_null() {
         return (json!([]), json!("by_operation"));
@@ -43,7 +43,7 @@ fn grid_instances(grid: &Value) -> (Value, Value) {
         _ => "by_operation",
     };
     (
-        serde_json::to_value(copies.instances()).unwrap(),
+        serde_json::to_value(copies.instances(1)).unwrap(),
         json!(order),
     )
 }
@@ -55,7 +55,16 @@ fn with(mut base: Value, changes: Value) -> Job {
         // Given as a grid {columns, rows, dx, dy, order}, they are the part's instances.
         if key == "copies" {
             let (instances, order) = grid_instances(value);
-            base["parts"][0]["instances"] = instances;
+            let part = base["parts"][0]["id"].clone();
+            let mut list: Vec<Value> = base["setups"][0]["instances"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|i| i["part"] != part || i["id"] == json!(1))
+                .cloned()
+                .collect();
+            list.extend(instances.as_array().unwrap().iter().cloned());
+            base["setups"][0]["instances"] = Value::Array(list);
             base["parts"][0]["order"] = order;
             continue;
         }
@@ -1463,7 +1472,7 @@ fn a_parts_statistics_are_its_operations_summed() {
         );
     }
     // Part 2 has two copies: they are in its operations' numbers, so in its own.
-    assert_eq!(job.part(2).unwrap().count(), 2);
+    assert_eq!(job.count(2), 2);
     // `plan`'s part line has the lengths too, the Report's doesn't.
     let each = estimate_lines(&job, e, false, Lengths::PerOperation);
     assert!(

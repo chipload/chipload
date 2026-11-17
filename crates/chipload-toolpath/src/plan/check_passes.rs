@@ -204,7 +204,7 @@ fn pairs(job: &Job, a: &VcarveOp, angle: f64, b: &VcarveOp) -> bool {
 /// Planned as its own setup, the job has the other setups' parts off (`Job::for_setup`),
 /// so their switch isn't asked.
 pub(super) fn plug_face(job: &Job, pocket: &VcarveOp, angle: f64) -> Option<f64> {
-    let setup = job.part(pocket.part).map(|p| p.setup);
+    let setup = job.home_setup(pocket.part);
     job.operations
         .iter()
         .filter(|op| {
@@ -263,7 +263,7 @@ pub(super) fn plug_checks(
     }
     if job
         .part_of(&job.operations[index])
-        .is_some_and(|p| p.count() > 1)
+        .is_some_and(|p| job.count(p.id) > 1)
     {
         problems.push(labelled(
             at("part"),

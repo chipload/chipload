@@ -13,10 +13,11 @@ fn badge() -> ChiploadApp {
 }
 
 fn placements(app: &ChiploadApp) -> Vec<(f64, [f64; 2])> {
-    let part = &app.edit.as_ref().unwrap().job.parts[0];
-    let mut out = vec![(part.angle, part.at)];
-    out.extend(part.instances.iter().map(|i| (i.angle, i.at)));
-    out
+    let job = &app.edit.as_ref().unwrap().job;
+    job.instances_of(1)
+        .iter()
+        .map(|(_, i)| (i.angle, i.at))
+        .collect()
 }
 
 #[test]
@@ -58,7 +59,7 @@ fn a_nest_is_previewed_as_ghosts_and_applied_as_one_undo_step() {
     app.apply_nest(result);
     assert!(app.nest.is_none());
     let job = &app.edit.as_ref().unwrap().job;
-    assert_eq!(job.parts[0].count(), 5);
+    assert_eq!(job.count(1), 5);
     assert!(job.setups[0].nest.is_some());
     draw_canvas(&mut app);
     assert!(app.scene.nest_preview.is_empty());
@@ -117,7 +118,13 @@ fn nest_again_uses_the_kept_settings_without_the_window() {
     assert!(app.was_nested(1));
     // Moved by hand, then nested again: back to the nest, with the 6 mm gap.
     let nested = placements(&app);
-    app.edit.as_mut().unwrap().job.parts[0].at = [5.0, 5.0];
+    app.edit
+        .as_mut()
+        .unwrap()
+        .job
+        .instance_mut(1, 1)
+        .unwrap()
+        .at = [5.0, 5.0];
     app.commit();
     app.nest_again(1);
     assert!(app.nest.is_some());

@@ -32,11 +32,11 @@ pub fn surface_tool(job: &Job) -> Option<i64> {
 /// before the setup's first operation, so it faces the stock before anything is cut
 /// (docs/specs/surface-levels.md §2, decision 3). None for a setup without parts.
 pub fn board_surface_place(job: &Job, setup: u64) -> Option<(u64, usize)> {
-    let part = job.parts.iter().find(|p| p.setup == setup)?.id;
+    let part = *job.parts_on(setup).first()?;
     let index = job
         .operations
         .iter()
-        .position(|op| job.part_of(op).is_some_and(|p| p.setup == setup))
+        .position(|op| job.part_on(op.part(), setup))
         .unwrap_or_else(|| job.insert_index(part));
     Some((part, index))
 }

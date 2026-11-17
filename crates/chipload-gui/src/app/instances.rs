@@ -3,9 +3,9 @@
 //! menu, drawn as numbered ghosts where they are cut, picked with a click, moved by a drag
 //! and turned by a handle (quarter turns snap within 3°, Alt turns freely). A drag
 //! changes the instance as it goes and is one undo step when it ends; Escape puts it back.
-//! Instance 1 is the part itself (docs/specs/part-placement.md §6): its placement is the
-//! part's `angle` and `at`, its ghost shows once it is placed elsewhere than drawn, and it
-//! is never mirrored, switched off alone or removed.
+//! Instance 1 is the part itself (docs/specs/part-placement.md §6): its ghost shows once it
+//! is placed elsewhere than drawn, and it is never mirrored, switched off alone or removed.
+//! The setups hold every instance (docs/specs/parts-and-setups.md §2).
 
 use chipload_core::{Point, math};
 use chipload_job::{Instance, Mirror};
@@ -45,41 +45,31 @@ impl ChiploadApp {
     /// Instance `id` of part `part` in the project being edited; 1 is the part itself, its
     /// placement as an instance (on when the part is).
     pub(super) fn instance_value(&self, part: u64, id: u32) -> Option<Instance> {
-        let part = self.edit.as_ref()?.job.part(part)?;
+        let job = &self.edit.as_ref()?.job;
+        let mut instance = *job.instance(part, id)?;
         if id == 1 {
-            return Some(Instance {
-                id: 1,
-                enabled: part.enabled,
-                mirror: None,
-                angle: part.angle,
-                at: part.at,
-            });
+            instance.enabled = job.part(part)?.enabled;
         }
-        part.instances.iter().find(|i| i.id == id).copied()
+        Some(instance)
     }
 
     /// Instance `id` of part `part` made `value`; for the part itself only its turn and
     /// move are taken. Whether there was one.
     pub(super) fn set_instance_value(&mut self, part: u64, id: u32, value: Instance) -> bool {
-        let Some(part) = self
+        let Some(instance) = self
             .edit
             .as_mut()
-            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == part))
+            .and_then(|e| e.job.instance_mut(part, id))
         else {
             return false;
         };
         if id == 1 {
-            part.angle = value.angle;
-            part.at = value.at;
+            instance.angle = value.angle;
+            instance.at = value.at;
             return true;
         }
-        match part.instances.iter_mut().find(|i| i.id == id) {
-            Some(instance) => {
-                *instance = Instance { id, ..value };
-                true
-            }
-            None => false,
-        }
+        *instance = Instance { part, id, ..value };
+        true
     }
 
     /// Place part `part` itself: its instance 1 shown and selected, its form open, to move
@@ -100,7 +90,7 @@ impl ChiploadApp {
 
     /// Whether part `part`'s instance 1 is shown: placed, asked for, or selected.
     pub(super) fn own_instance_shown(&self, part: &chipload_job::Part) -> bool {
-        part.is_placed()
+        self.edit.as_ref().is_some_and(|e| e.job.is_placed(part.id))
             || self.display.own_instances.contains(&part.id)
             || self.focus == Focus::Instance(part.id, 1)
     }
@@ -108,6 +98,7 @@ impl ChiploadApp {
     /// Part `part` cut where drawn again, as one undo step (*Reset placement*).
     pub(super) fn reset_part_placement(&mut self, part: u64) {
         let reset = Instance {
+            part,
             id: 1,
             enabled: true,
             mirror: None,
@@ -142,16 +133,12 @@ impl ChiploadApp {
             }
         };
         let mirror = mirrored.then_some(Mirror::LeftRight);
-        match chipload_pipeline::instances::add_instance(&job, part, None, 0.0, mirror) {
+        match chipload_pipeline::instances::add_instance(&job, part, None, None, 0.0, mirror) {
             Ok((made, id)) => {
-                let instances = made.part(part).map(|p| p.instances.clone());
-                if let (Some(instances), Some(target)) = (
-                    instances,
-                    self.edit
-                        .as_mut()
-                        .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == part)),
-                ) {
-                    target.instances = instances;
+                if let Some(edit) = self.edit.as_mut() {
+                    for (setup, target) in made.setups.iter().zip(edit.job.setups.iter_mut()) {
+                        target.instances = setup.instances.clone();
+                    }
                     self.focus = Focus::Instance(part, id);
                     self.commit();
                 }
@@ -171,12 +158,10 @@ impl ChiploadApp {
         if id == 1 {
             return;
         }
-        if let Some(p) = self
-            .edit
-            .as_mut()
-            .and_then(|e| e.job.parts.iter_mut().find(|p| p.id == part))
-        {
-            p.instances.retain(|i| i.id != id);
+        if let Some(edit) = self.edit.as_mut() {
+            for setup in &mut edit.job.setups {
+                setup.instances.retain(|i| i.part != part || i.id != id);
+            }
             if self.focus == Focus::Instance(part, id) {
                 self.focus = Focus::Part(part);
             }
@@ -234,10 +219,12 @@ impl ChiploadApp {
             .filter(|p| self.own_instance_shown(p))
             .map(|p| p.id)
             .collect();
-        if shown.is_empty() && edit.job.parts.iter().all(|p| p.instances.is_empty()) {
+        let several = |p: &chipload_job::Part| edit.job.instances_of(p.id).len() > 1;
+        if shown.is_empty() && !edit.job.parts.iter().any(several) {
             return Vec::new();
         }
-        let setup = edit.job.active_setup_id();
+        // The active setup's instances (docs/specs/parts-and-setups.md §7).
+        let here = |part: u64, id: u32| edit.job.instances_here(part).iter().any(|i| i.id == id);
         let scale = self.view.scale.max(f64::MIN_POSITIVE);
         // What a press at the pointer would take, lit up (decision 13 of the handles).
         let hot = self
@@ -246,7 +233,7 @@ impl ChiploadApp {
             .and_then(|c| self.instance_grip_at(self.view.to_screen(c)));
         chipload_pipeline::parts::instance_outlines_showing(&edit.job, &self.contours, &shown)
             .into_iter()
-            .filter(|i| setup.is_none() || edit.job.part(i.part).map(|p| p.setup) == setup)
+            .filter(|i| here(i.part, i.id))
             .map(|i| {
                 let selected = self.focus == Focus::Instance(i.part, i.id);
                 let angle = self.instance_value(i.part, i.id).map_or(0.0, |k| k.angle);
@@ -309,7 +296,7 @@ impl ChiploadApp {
         edit.job
             .parts
             .iter()
-            .filter(|p| p.is_placed() && (setup.is_none() || Some(p.setup) == setup))
+            .filter(|p| edit.job.is_placed(p.id) && setup.is_none_or(|s| edit.job.part_on(p.id, s)))
             .filter_map(|p| {
                 let ((x0, y0), (x1, y1)) = edit.job.part_box(p.id)?;
                 let label = t!(self, "canvas-not-cut-here", part = p.name.as_str());

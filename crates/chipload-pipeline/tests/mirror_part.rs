@@ -113,10 +113,10 @@ fn each_copy_of_a_mirrored_part_is_mirrored_in_place() {
     let mut job = every_direction(None);
     let at = axis(&job, mirror);
     job.parts[0].mirror = Some(mirror);
-    job.parts[0].instances = copies.instances();
+    job.set_grid_here(1, &copies);
     job.parts[0].order = InstanceOrder::ByInstance;
     let mut by_hand = every_direction(Some((turn_of(mirror), at)));
-    by_hand.parts[0].instances = copies.instances();
+    by_hand.set_grid_here(1, &copies);
     by_hand.parts[0].order = InstanceOrder::ByInstance;
     for job in [&mut job, &mut by_hand] {
         job.setups[0].stock.fit = None;
@@ -144,8 +144,11 @@ fn a_mirrored_part_on_a_back_turns_twice() {
         let front = every_direction(None);
         let (two, back, _) = add_back_side(&front, 1, turn, None).unwrap();
         let mut two = two;
+        let ids: Vec<u64> = two.parts.iter().map(|p| p.id).collect();
+        for id in ids {
+            two.move_part_to(id, back);
+        }
         for part in &mut two.parts {
-            part.setup = back;
             part.mirror = Some(mirror);
         }
         two.follow_thickness();

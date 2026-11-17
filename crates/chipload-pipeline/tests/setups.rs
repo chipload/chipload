@@ -129,7 +129,13 @@ fn setups_are_added_activated_moved_and_removed() {
     assert!(remove_setup(&job, 2, false).is_err());
     let (fewer, _) = remove_setup(&job, 2, true).unwrap();
     assert_eq!(fewer.setups.len(), 2);
-    assert!(fewer.parts.iter().all(|p| p.setup != 2));
+    assert!(fewer.setups.iter().all(|s| s.id != 2));
+    assert!(
+        fewer
+            .parts
+            .iter()
+            .all(|p| !fewer.setups_of_part(p.id).is_empty())
+    );
     assert!(fewer.operations.iter().all(|op| op.part() != 2));
     let (one, _) = remove_setup(&fewer, 3, true).unwrap();
     assert!(remove_setup(&one, 1, true).is_err());

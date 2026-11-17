@@ -184,7 +184,7 @@ impl ChiploadApp {
             e.job
                 .operations
                 .iter()
-                .any(|entry| e.job.part(entry.part()).is_some_and(|p| p.setup == id))
+                .any(|entry| e.job.setups_of_part(entry.part()) == [id])
         });
         if has_operations {
             self.error(vec![t!(self, "app-setup-has-operations")]);

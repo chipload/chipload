@@ -145,7 +145,13 @@ fn tabs_move_with_the_start() {
 #[test]
 fn copies_use_the_point_moved_with_them() {
     let mut job = job(profile("outside", json!([[60, 76]]), Value::Null));
-    job.parts[0].instances = vec![chipload_job::Instance::moved(2, [150.0, 0.0])];
+    job.set_instances_here(
+        1,
+        vec![
+            chipload_job::Instance::drawn(1, 1),
+            chipload_job::Instance::moved(1, 2, [150.0, 0.0]),
+        ],
+    );
     let plan = plan_job(&job, &part()).unwrap();
     let rapids = rapids(&plan);
     assert!(rapids.iter().any(|&p| close(p, (60.0, 73.0))), "{rapids:?}");

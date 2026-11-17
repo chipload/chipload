@@ -196,7 +196,7 @@ fn operations_table(
                 .find(|(_, p)| p.id == op.part())
         {
             part_shown = Some(part.id);
-            let row = match part.count() {
+            let row = match job.count(part.id) {
                 1 => Message::new("sheet-part-row"),
                 n => Message::new("sheet-part-row-copies").arg("count", n),
             };

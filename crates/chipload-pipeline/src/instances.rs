@@ -27,18 +27,29 @@ fn part_index(job: &Job, part: u64) -> Result<usize, PipelineError> {
         .ok_or_else(|| refused(Message::new("pipeline-no-part").arg("id", part)))
 }
 
-fn instance_index(job: &Job, at: usize, id: u32) -> Result<usize, PipelineError> {
+fn instance_exists(job: &Job, at: usize, id: u32) -> Result<(), PipelineError> {
     let part = &job.parts[at];
-    part.instances
-        .iter()
-        .position(|i| i.id == id)
-        .ok_or_else(|| {
-            refused(
-                Message::new("pipeline-no-instance")
-                    .arg("part", part.name.as_str())
-                    .arg("id", id),
-            )
-        })
+    match job.instance(part.id, id) {
+        Some(_) => Ok(()),
+        None => Err(refused(
+            Message::new("pipeline-no-instance")
+                .arg("part", part.name.as_str())
+                .arg("id", id),
+        )),
+    }
+}
+
+/// The setup a new instance of part `part` goes on: `setup` when given (it must exist),
+/// else the board the part is cut from ([`Job::home_setup`]), else the active one.
+fn target_setup(job: &Job, part: u64, setup: Option<u64>) -> Result<u64, PipelineError> {
+    match setup {
+        Some(id) if job.setup(id).is_some() => Ok(id),
+        Some(id) => Err(refused(Message::new("pipeline-no-setup").arg("id", id))),
+        None => job
+            .home_setup(part)
+            .or_else(|| job.active_setup_id())
+            .ok_or_else(|| refused(Message::new("pipeline-no-setup").arg("id", 0))),
+    }
 }
 
 fn checked(job: Job) -> Result<Job, PipelineError> {
@@ -53,25 +64,55 @@ fn checked(job: Job) -> Result<Job, PipelineError> {
 pub fn add_instance(
     job: &Job,
     part: u64,
+    setup: Option<u64>,
     at: Option<[f64; 2]>,
     angle: f64,
     mirror: Option<Mirror>,
 ) -> Result<(Job, u32), PipelineError> {
-    let index = part_index(job, part)?;
+    part_index(job, part)?;
+    let setup = target_setup(job, part, setup)?;
     let at = match at {
         Some(at) => at,
         None => beside(job, part, mirror, angle)?,
     };
     let mut job = job.clone();
-    let id = job.parts[index].next_instance_id();
-    job.parts[index].instances.push(Instance {
-        id,
-        enabled: true,
-        mirror,
-        angle,
-        at,
-    });
+    let id = job.next_instance_id(part);
+    if let Some(s) = job.setup_mut(setup) {
+        s.instances.push(Instance {
+            part,
+            id,
+            enabled: true,
+            mirror,
+            angle,
+            at,
+        });
+    }
     Ok((checked(job)?, id))
+}
+
+/// Instance `id` of part `part` moved onto setup `setup` (docs/specs/parts-and-setups.md
+/// §10), after the instances there, keeping its number and placement.
+pub fn move_instance(job: &Job, part: u64, id: u32, setup: u64) -> Result<Job, PipelineError> {
+    let index = part_index(job, part)?;
+    instance_exists(job, index, id)?;
+    if job.setup(setup).is_none() {
+        return Err(refused(Message::new("pipeline-no-setup").arg("id", setup)));
+    }
+    let mut job = job.clone();
+    let mut moved = None;
+    for s in &mut job.setups {
+        if let Some(k) = s
+            .instances
+            .iter()
+            .position(|i| i.part == part && i.id == id)
+        {
+            moved = Some(s.instances.remove(k));
+        }
+    }
+    if let (Some(instance), Some(s)) = (moved, job.setup_mut(setup)) {
+        s.instances.push(instance);
+    }
+    checked(job)
 }
 
 /// Where a new instance mirrored and turned so goes (docs/specs/instances.md §4): its cut
@@ -84,7 +125,7 @@ pub fn beside(
     mirror: Option<Mirror>,
     angle: f64,
 ) -> Result<[f64; 2], PipelineError> {
-    let index = part_index(job, part)?;
+    part_index(job, part)?;
     let centre = job.part_centre(part).unwrap_or((0.0, 0.0));
     let ((x0, y0), (x1, y1), all_x1) = match planned_boxes(job, part) {
         Some(boxes) => boxes,
@@ -92,9 +133,11 @@ pub fn beside(
             let (low, high) = job
                 .part_box(part)
                 .ok_or_else(|| refused(Message::new("pipeline-part-cuts-nothing")))?;
-            let right = job.parts[index]
-                .spots()
+            let right = job
+                .instances_of(part)
                 .into_iter()
+                .filter(|(_, i)| i.enabled)
+                .map(|(_, i)| (i.id, i.spot()))
                 .map(|(_, spot)| placed_box(&spot, centre, (low, high)).1.0)
                 .fold(high.0, f64::max);
             (low, high, right)
@@ -120,7 +163,7 @@ fn tidy(mm: f64) -> f64 {
 /// its instances where they are placed, planned with the part alone; None when it can't be
 /// planned.
 fn planned_boxes(job: &Job, part: u64) -> Option<(Point, Point, f64)> {
-    let mut alone = job.clone();
+    let mut alone = job.for_setup(job.home_setup(part)?);
     for p in &mut alone.parts {
         p.enabled = p.id == part;
     }
@@ -128,11 +171,8 @@ fn planned_boxes(job: &Job, part: u64) -> Option<(Point, Point, f64)> {
     let plan = plan_job(&alone, &drawing.contours).ok()?;
     let (_, (all_x1, _)) = cut_extent(&plan.program.moves, &plan.op_spans, None)?;
     // Instances are placed relative to the part as drawn (part-placement.md decision 1).
-    let index = alone.parts.iter().position(|p| p.id == part)?;
-    if alone.parts[index].is_placed() {
-        alone.parts[index].angle = 0.0;
-        alone.parts[index].at = [0.0, 0.0];
-        alone.parts[index].instances.clear();
+    if alone.is_placed(part) {
+        alone.set_instances_here(part, vec![Instance::drawn(part, 1)]);
         let plan = plan_job(&alone, &drawing.contours).ok()?;
         let (low, high) = cut_extent(&plan.program.moves, &plan.op_spans, Some(1))?;
         return Some((low, high, all_x1));
@@ -181,14 +221,16 @@ pub fn place_part(
     reset: bool,
 ) -> Result<Job, PipelineError> {
     let index = part_index(job, part)?;
+    instance_exists(job, index, 1)?;
     let mut job = job.clone();
-    let own = &mut job.parts[index];
-    if reset {
-        own.at = [0.0, 0.0];
-        own.angle = 0.0;
+    if let Some(own) = job.instance_mut(part, 1) {
+        if reset {
+            own.at = [0.0, 0.0];
+            own.angle = 0.0;
+        }
+        own.at = at.unwrap_or(own.at);
+        own.angle = angle.unwrap_or(own.angle);
     }
-    own.at = at.unwrap_or(own.at);
-    own.angle = angle.unwrap_or(own.angle);
     checked(job)
 }
 
@@ -226,13 +268,11 @@ pub fn set_instances(
                     Message::new("pipeline-instance-one-off").arg("part", name),
                 ));
             }
-            let own = &mut job.parts[index];
-            own.at = change.at.unwrap_or(own.at);
-            own.angle = change.angle.unwrap_or(own.angle);
-            continue;
         }
-        let k = instance_index(&job, index, id)?;
-        let instance = &mut job.parts[index].instances[k];
+        instance_exists(&job, index, id)?;
+        let Some(instance) = job.instance_mut(part, id) else {
+            continue;
+        };
         if let Some(at) = change.at {
             instance.at = at;
         }
@@ -259,23 +299,36 @@ pub fn remove_instances(job: &Job, part: u64, ids: &[u32]) -> Result<Job, Pipeli
         ));
     }
     for &id in ids {
-        instance_index(job, index, id)?;
+        instance_exists(job, index, id)?;
     }
     let mut job = job.clone();
-    job.parts[index].instances.retain(|i| !ids.contains(&i.id));
+    for s in &mut job.setups {
+        s.instances
+            .retain(|i| i.part != part || !ids.contains(&i.id));
+    }
     checked(job)
 }
 
-/// Part `part`'s instances made a grid (docs/specs/instances.md §5): the grid's cells but
-/// the first, in place of the instances it had, numbered row by row from 2 and listed in
+/// Part `part`'s instances on setup `setup` (default: the board it is cut from) made a
+/// grid (docs/specs/instances.md §5, [`Job::set_grid_here`]): the grid's cells but the
+/// first, in place of the instances it had there, numbered row by row from 2 and listed in
 /// the order they are cut.
-pub fn array_instances(job: &Job, part: u64, grid: Copies) -> Result<Job, PipelineError> {
-    let index = part_index(job, part)?;
+pub fn array_instances(
+    job: &Job,
+    part: u64,
+    setup: Option<u64>,
+    grid: Copies,
+) -> Result<Job, PipelineError> {
+    part_index(job, part)?;
     if let Some(problem) = grid.problems("grid").into_iter().next() {
         return Err(refused(problem.text_message));
     }
+    let setup = target_setup(job, part, setup)?;
     let mut job = job.clone();
-    job.parts[index].instances = grid.instances();
+    let active = job.active_setup;
+    job.active_setup = Some(setup);
+    job.set_grid_here(part, &grid);
+    job.active_setup = active;
     checked(job)
 }
 

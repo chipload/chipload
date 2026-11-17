@@ -20,13 +20,9 @@ use std::f64::consts::FRAC_PI_2;
 fn with_instance(spot: Spot, part_mirror: Option<Mirror>) -> Job {
     let mut job = every_direction(None);
     job.parts[0].mirror = part_mirror;
-    job.parts[0].instances = vec![Instance {
-        id: 2,
-        enabled: true,
-        mirror: spot.mirror,
-        angle: spot.angle,
-        at: spot.at,
-    }];
+    let mut second = Instance::drawn(1, 2);
+    second.set_spot(spot);
+    job.set_instances_here(1, vec![Instance::drawn(1, 1), second]);
     job.setups[0].stock.fit = None;
     job.setups[0].stock.x = 1000.0;
     job.setups[0].stock.y = 1000.0;
@@ -174,13 +170,9 @@ fn a_turned_instance_may_not_cut_into_another_part() {
     job.setups[0].stock.x = 1000.0;
     job.setups[0].stock.y = 1000.0;
     assert!(run_job(&job).is_ok());
-    job.parts[0].instances = vec![Instance {
-        id: 2,
-        enabled: true,
-        mirror: None,
-        angle: std::f64::consts::PI,
-        at: [200.0, 0.0],
-    }];
+    let mut second = Instance::moved(1, 2, [200.0, 0.0]);
+    second.angle = std::f64::consts::PI;
+    job.set_instances_here(1, vec![Instance::drawn(1, 1), second]);
     let err = run_job(&job).unwrap_err().to_string();
     assert!(
         err.contains("Part \"Dot\" instance 1 overlaps part \"Box\" instance 2"),
@@ -215,8 +207,8 @@ fn turned_instances_are_drawn_where_they_are_cut() {
     }
     // The part alone and its moved instances are drawn at their shifts, not here.
     let mut moved = job.clone();
-    moved.parts[0].instances[0].mirror = None;
-    moved.parts[0].instances[0].angle = 0.0;
+    moved.instance_mut(1, 2).unwrap().mirror = None;
+    moved.instance_mut(1, 2).unwrap().angle = 0.0;
     assert!(chipload_pipeline::parts::placed_outlines(&moved, &contours).is_empty());
 }
 
@@ -225,10 +217,10 @@ fn a_new_instance_goes_beside_what_the_part_cuts() {
     use chipload_pipeline::instances::{INSTANCE_GAP_MM, add_instance};
     use chipload_toolpath::plan::cut_extent;
     let mut job = with_instance(Spot::default(), None);
-    job.parts[0].instances.clear();
+    job.set_instances_here(1, vec![Instance::drawn(1, 1)]);
     // A quarter turn: the turned box is exactly the turned cut's.
-    let (job, two) = add_instance(&job, 1, None, FRAC_PI_2, None).unwrap();
-    let (job, three) = add_instance(&job, 1, None, 0.0, Some(Mirror::TopBottom)).unwrap();
+    let (job, two) = add_instance(&job, 1, None, None, FRAC_PI_2, None).unwrap();
+    let (job, three) = add_instance(&job, 1, None, None, 0.0, Some(Mirror::TopBottom)).unwrap();
     assert_eq!((two, three), (2, 3));
     let result = run_job(&job).unwrap();
     let extent = |copy| cut_extent(&result.program.moves, &result.op_spans, Some(copy)).unwrap();
@@ -251,16 +243,16 @@ fn a_new_instance_goes_beside_what_the_part_cuts() {
 fn a_part_that_cant_be_planned_yet_gets_its_instance_beside_its_shapes() {
     use chipload_pipeline::instances::{INSTANCE_GAP_MM, add_instance};
     let mut job = with_instance(Spot::default(), None);
-    job.parts[0].instances.clear();
+    job.set_instances_here(1, vec![Instance::drawn(1, 1)]);
     // A tool far too big for the pocket: the part can't be planned.
     for tool in &mut job.tools {
         tool.diameter = 400.0;
     }
     let drawing = chipload_pipeline::load_drawing(&job).unwrap();
     assert!(chipload_toolpath::plan_job(&job, &drawing.contours).is_err());
-    let (job, id) = add_instance(&job, 1, None, 0.0, None).unwrap();
+    let (job, id) = add_instance(&job, 1, None, None, 0.0, None).unwrap();
     let ((x0, _), (x1, _)) = job.part_box(1).unwrap();
-    let at = job.part(1).unwrap().instances[0].at;
+    let at = job.instance(1, 2).unwrap().at;
     assert_eq!(id, 2);
     assert!((at[0] - (x1 - x0 + INSTANCE_GAP_MM)).abs() < 1e-9, "{at:?}");
     assert_eq!(at[1], 0.0);
@@ -271,10 +263,10 @@ fn a_part_that_cant_be_planned_yet_gets_its_instance_beside_its_shapes() {
 /// The part as drawn on a large board, its own placement `spot` (no mirror of its own).
 fn placed(spot: Spot, part_mirror: Option<Mirror>) -> (Job, Job) {
     let mut drawn = with_instance(Spot::default(), part_mirror);
-    drawn.parts[0].instances.clear();
+    drawn.set_instances_here(1, vec![Instance::drawn(1, 1)]);
     let mut placed = drawn.clone();
-    placed.parts[0].angle = spot.angle;
-    placed.parts[0].at = spot.at;
+    placed.instance_mut(1, 1).unwrap().angle = spot.angle;
+    placed.instance_mut(1, 1).unwrap().at = spot.at;
     assert!(placed.validate().is_empty(), "{:?}", placed.validate());
     (drawn, placed)
 }
@@ -355,8 +347,8 @@ fn the_part_itself_placed_may_not_cut_into_another_part() {
     job.setups[0].stock.fit = None;
     job.setups[0].stock.x = 1000.0;
     job.setups[0].stock.y = 1000.0;
-    job.parts[0].angle = std::f64::consts::PI;
-    job.parts[0].at = [200.0, 0.0];
+    job.instance_mut(1, 1).unwrap().angle = std::f64::consts::PI;
+    job.instance_mut(1, 1).unwrap().at = [200.0, 0.0];
     let err = run_job(&job).unwrap_err().to_string();
     assert!(err.contains("part \"Box\" instance 1"), "{err}");
 }

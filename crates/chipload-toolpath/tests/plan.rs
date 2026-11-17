@@ -387,14 +387,14 @@ fn a_ramp_steeper_than_30_degrees_is_refused() {
 
 fn with_copies(ops: Value, copies: Value) -> Job {
     let mut job = job(ops);
-    set_grid(&mut job.parts[0], &copies);
+    set_grid(&mut job, 1, &copies);
     job
 }
 
-/// The part's instances as a grid {columns, rows, dx, dy, order?}; null leaves none.
-fn set_grid(part: &mut chipload_job::Part, grid: &Value) {
+/// Part `part`'s instances as a grid {columns, rows, dx, dy, order?}; null leaves it once.
+fn set_grid(job: &mut Job, part: u64, grid: &Value) {
     if grid.is_null() {
-        part.instances.clear();
+        job.set_instances_here(part, vec![chipload_job::Instance::drawn(part, 1)]);
         return;
     }
     let copies = chipload_job::Copies {
@@ -403,9 +403,10 @@ fn set_grid(part: &mut chipload_job::Part, grid: &Value) {
         dx: grid["dx"].as_f64().unwrap(),
         dy: grid["dy"].as_f64().unwrap(),
     };
-    part.instances = copies.instances();
+    job.set_grid_here(part, &copies);
     if grid["order"] == "by_copy" {
-        part.order = chipload_job::InstanceOrder::ByInstance;
+        let p = job.parts.iter_mut().find(|p| p.id == part).unwrap();
+        p.order = chipload_job::InstanceOrder::ByInstance;
     }
 }
 
@@ -547,21 +548,17 @@ fn two_parts(b_at: f64, a_copies: Value, b_copies: Value) -> (Job, Vec<Contour>)
     b["select"] = json!({"layer": "B"});
     ops.as_array_mut().unwrap().push(b);
     let mut job = job(ops);
-    set_grid(&mut job.parts[0], &a_copies);
-    let mut b = chipload_job::Part {
+    set_grid(&mut job, 1, &a_copies);
+    job.parts.push(chipload_job::Part {
         id: 2,
         name: "B".into(),
         enabled: true,
-        instances: Vec::new(),
         order: chipload_job::InstanceOrder::ByOperation,
-        setup: 1,
         mirror: None,
-        angle: 0.0,
-        at: [0.0, 0.0],
         turns: None,
-    };
-    set_grid(&mut b, &b_copies);
-    job.parts.push(b);
+    });
+    job.place_part(2, 1);
+    set_grid(&mut job, 2, &b_copies);
     job.operations[1].set_part(2);
     assert!(job.validate().is_empty(), "{:?}", job.validate());
     let contours = vec![
@@ -724,7 +721,8 @@ fn a_copy_in_another_parts_notch_is_allowed_when_the_cuts_keep_apart() {
     plan_job(&job, &contours(&job)).unwrap_or_else(|e| panic!("{e}"));
     let mut tight = job.clone();
     set_grid(
-        &mut tight.parts[1],
+        &mut tight,
+        2,
         &json!({"columns": 2, "rows": 1, "dx": -175, "dy": 0}),
     );
     // At X 28..42 its path at 25..45 crosses A's path along the arm, at X 33.

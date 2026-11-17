@@ -145,6 +145,20 @@ pub(super) fn section_has_problem(ui: &egui::Ui, key: &str) -> bool {
 
 /// What the form calls a field: of an operation (`feed`), or of the job (`machine.safe_z`).
 /// Empty for a field without a name of its own.
+/// Where part `part`'s instances are in the project, "setups.J.instances.K.", each one or
+/// only number `id`.
+fn instance_paths(job: &chipload_job::Job, part: u64, id: Option<u32>) -> Vec<String> {
+    let mut out = Vec::new();
+    for (j, setup) in job.setups.iter().enumerate() {
+        for (k, i) in setup.instances.iter().enumerate() {
+            if i.part == part && id.is_none_or(|id| i.id == id) {
+                out.push(format!("setups.{j}.instances.{k}."));
+            }
+        }
+    }
+    out
+}
+
 fn field_label(src: &impl crate::i18n::Lang, field: &str) -> String {
     let parts: Vec<&str> = field.split('.').collect();
     let label = match parts.as_slice() {
@@ -322,19 +336,32 @@ impl ChiploadApp {
             | Focus::Selection => Box::new(std::iter::empty()),
             Focus::Part(id) => {
                 let k = settings.and_then(|s| s.parts.iter().position(|p| p.id == id));
-                Box::new(self.problems_under(index_of(k, "parts")))
+                // Its own fields, and its instances' in the setups
+                // (docs/specs/parts-and-setups.md §5).
+                let mut prefixes: Vec<String> = index_of(k, "parts").into_iter().collect();
+                prefixes.extend(
+                    settings
+                        .map(|s| instance_paths(s, id, None))
+                        .unwrap_or_default(),
+                );
+                Box::new(self.job_problems().filter(move |p| {
+                    prefixes
+                        .iter()
+                        .any(|prefix| p.path.starts_with(prefix.as_str()))
+                        || k.is_some_and(|k| p.path == format!("parts.{k}.instances"))
+                }))
             }
             Focus::Instance(part, id) => {
-                let at = settings.and_then(|s| {
-                    let k = s.parts.iter().position(|p| p.id == part)?;
-                    if id == 1 {
-                        // The part itself: its `angle` and `at` (part-placement.md §6).
-                        return Some(format!("parts.{k}.a"));
-                    }
-                    let j = s.parts[k].instances.iter().position(|i| i.id == id)?;
-                    Some(format!("parts.{k}.instances.{j}."))
-                });
-                Box::new(self.problems_under(at))
+                // In its setup (docs/specs/parts-and-setups.md §5); by field, without the
+                // setup's place: `instances.1.at.0`.
+                let prefixes = settings
+                    .map(|s| instance_paths(s, part, Some(id)))
+                    .unwrap_or_default();
+                Box::new(self.job_problems().filter(move |p| {
+                    prefixes
+                        .iter()
+                        .any(|prefix| p.path.starts_with(prefix.as_str()))
+                }))
             }
             Focus::Setup(id) => {
                 // Its board's problems, by the field names its sections use (`stock.x`).

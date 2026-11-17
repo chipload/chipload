@@ -94,8 +94,8 @@ impl ChiploadApp {
                 operations: None,
                 copies: job
                     .and_then(|job| job.operations.get(at.operation).map(|op| (job, op)))
-                    .and_then(|(job, op)| job.part_of(op))
-                    .map_or(1, |p| p.count()),
+                    .and_then(|(job, op)| job.part_of(op).map(|p| job.count(p.id)))
+                    .unwrap_or(1),
             },
             // Not in this run: another part's preview, or another setup.
             None => Statistics::OutOfDate,
@@ -132,7 +132,7 @@ impl ChiploadApp {
             Some(part) => Statistics::Counted {
                 counts: part.counts,
                 operations: Some(part.operations),
-                copies: job.part(id).map_or(1, |p| p.count()),
+                copies: job.part(id).map_or(1, |p| job.count(p.id)),
             },
             // Not in this run: another part's preview, or another setup.
             None => Statistics::OutOfDate,
@@ -169,7 +169,8 @@ impl ChiploadApp {
         let edit = self.edit.as_ref()?;
         let settings = &edit.job;
         let setup = settings.active_setup_id();
-        let in_setup = |p: &chipload_job::Part| p.enabled && Some(p.setup) == setup;
+        let in_setup =
+            |p: &chipload_job::Part| p.enabled && setup.is_some_and(|s| settings.part_on(p.id, s));
         let cut = settings.parts.iter().filter(|p| in_setup(p)).count();
         let active = settings.active_part_id()?;
         let on = settings.part(active).is_some_and(in_setup);

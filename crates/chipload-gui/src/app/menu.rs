@@ -779,7 +779,7 @@ impl ChiploadApp {
                         .parts
                         .iter()
                         .filter(|p| p.enabled)
-                        .map(|p| p.count())
+                        .map(|p| e.job.count_all(p.id))
                         .sum::<u32>()
                 })
                 .filter(|&n| n > 1);

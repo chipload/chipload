@@ -32,8 +32,8 @@ use chipload_dxf::{
 use chipload_i18n::{Language, Message};
 use chipload_job::edit::Mirror;
 use chipload_job::{
-    Copies, Geometry, Instance, InstanceOrder, Job, Placement, Spindle, StockCorner, Units,
-    WorkZero, ZZero, load_job, polyline_segment_count, save_job,
+    Copies, Geometry, InstanceOrder, Job, Placement, Spindle, StockCorner, Units, WorkZero, ZZero,
+    load_job, polyline_segment_count, save_job,
 };
 use chipload_pipeline::chip_load::{chip_load, chip_load_lines};
 use chipload_pipeline::copies::{copies_text, instances_text, parts_lines, pitch_for_gap};
@@ -328,6 +328,7 @@ fn execute(out: &mut Out, command: Command) -> ExitCode {
             &project,
             CopiesArgs {
                 part,
+                setup: None,
                 grid,
                 pitch,
                 gap,

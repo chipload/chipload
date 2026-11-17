@@ -244,6 +244,7 @@ job-error-no-backup = die vorherige Version kann nicht als .bak behalten werden:
 # On the command line, after `set`: $paths are the values set, as paths in the project file.
 job-set-would-not-load = das Projekt ließe sich nach dem Setzen von { $paths } nicht mehr laden: { $reason }
 job-set-back-follows-front = { $path } kann nicht gesetzt werden: { $back } ist { $front } umgedreht und teilt dessen Rohteil und Werkstücknullpunkt. Setze stattdessen { $instead }.
+job-path-moved = { $path } gibt es im Projekt nicht mehr: Die Platzierungen eines Teils liegen seit Schema 41 in seinen Aufspannungen. Verwende { $instead }.
 
 ## The tool library and machine profiles
 
@@ -376,5 +377,4 @@ job-style-tool-not-in-library = Werkzeug { $tool } ist nicht in Ihrer Bibliothek
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = diese Einstellungen
 job-style-other-settings = andere Einstellungen
-job-instance-id = die Nummer einer Instanz ist 2 oder mehr: 1 ist das Teil wie gezeichnet
 job-instance-twice = zwei Instanzen haben die Nummer { $id }

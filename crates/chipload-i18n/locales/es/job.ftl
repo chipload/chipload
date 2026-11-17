@@ -245,6 +245,7 @@ job-error-no-backup = no se puede conservar la versión anterior como .bak: { $e
 # On the command line, after `set`: $paths are the values set, as paths in the project file.
 job-set-would-not-load = el proyecto no se cargaría tras asignar { $paths }: { $reason }
 job-set-back-follows-front = { $path } no se puede cambiar: { $back } es { $front } dado la vuelta y comparte su tablero y su cero pieza. Cambia { $instead } en su lugar.
+job-path-moved = { $path } ya no existe en un proyecto: desde el esquema 41, las colocaciones de una pieza están en sus sujeciones. Usa { $instead }.
 
 ## The tool library and machine profiles
 
@@ -377,5 +378,4 @@ job-style-tool-not-in-library = la herramienta { $tool } no está en tu bibliote
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = estos ajustes
 job-style-other-settings = otros ajustes
-job-instance-id = el número de una instancia es 2 o más: 1 es la pieza tal como está dibujada
 job-instance-twice = dos instancias tienen el número { $id }

@@ -83,6 +83,16 @@ fn temp_dir(name: &str) -> PathBuf {
     dir
 }
 
+/// Part `part`'s instances besides itself (number 1), on every board, in order
+/// (docs/specs/parts-and-setups.md §2).
+fn others(job: &chipload_job::Job, part: u64) -> Vec<chipload_job::Instance> {
+    job.instances_of(part)
+        .into_iter()
+        .map(|(_, i)| *i)
+        .filter(|i| i.id != 1)
+        .collect()
+}
+
 fn select(app: &mut ChiploadApp, ids: &[usize]) {
     app.selection =
         CanvasSelection::of_contours(&ids.iter().copied().collect(), &app.contours, &app.twins);

@@ -1,6 +1,8 @@
 # Spec: parts as definitions, setups hold their instances
 
-Status: **draft 2026-11-17, for review.** The user's idea (2026-11-17, after nesting): "each
+Status: **started 2026-11-17** on the user's word ("start the work in a feature branch so
+we can work in parallel"), on branch `parts-and-setups`, the decisions as recommended until
+the user says otherwise. **Step 1 built** (§11). The user's idea (2026-11-17, after nesting): "each
 part should have a stock and not be a node under setup … a project has many parts and then
 setups only hold instances". It brings TODO's *Setups on sheets of their own* (chosen
 2026-10-30 for later) into this scope, and a second board for what nesting can't fit
@@ -227,7 +229,11 @@ Each step a commit with its tests, shippable on its own:
 1. **The model:** schema 41, the migration, the frozen v40 sample and its golden, planning
    and checks reading instances from setups, every golden unchanged; the CLI with
    `--setup` (defaulting to the only board) and `instance move`; the window showing it as
-   today.
+   today. **Built 2026-11-17.** As today in this step, instance 1 is still refused a
+   mirror, being off alone and removal (part-placement.md); §6's "instance 1 is no longer
+   special" comes with step 4, when the window lists every instance alike. A new
+   instance without `--setup` goes on the board the part is cut from (else the active
+   one), so a part on one board never needs it.
 1b. **The simple case (§2a):** one board shows no Setups branch, a part once where drawn
    no instance rows; the row count and click walk measured against 0.37.
 2. **A part's stock:** the field, moving a part to a matching board (made when there is

@@ -108,11 +108,74 @@ pub fn alias(job: &Job, path: &str) -> Option<String> {
     rest("machine.work_zero").map(|r| format!("setups.{k}.work_zero{r}"))
 }
 
+/// Why an old path to a part's placement is refused (docs/specs/parts-and-setups.md §5,
+/// decision 7): since schema 41 the setups hold the instances, so `parts.N.angle`, `at`,
+/// `instances` and `setup` are gone; the message names where the value is now. None for
+/// any other path.
+pub fn moved(job: &Job, path: &str) -> Option<String> {
+    let mut keys = path.splitn(4, '.');
+    if keys.next() != Some("parts") {
+        return None;
+    }
+    let part = job.parts.get(keys.next()?.parse::<usize>().ok()?)?.id;
+    let field = keys.next()?;
+    let rest = keys.next();
+    // Where instance `number` of the part is now, as "setups.J.instances.K".
+    let at = |number: u32| {
+        job.setups.iter().enumerate().find_map(|(j, s)| {
+            s.instances
+                .iter()
+                .position(|i| i.part == part && i.id == number)
+                .map(|k| format!("setups.{j}.instances.{k}"))
+        })
+    };
+    let first = job
+        .setups
+        .iter()
+        .position(|s| s.instances.iter().any(|i| i.part == part))
+        .unwrap_or(0);
+    let instead = match field {
+        "angle" | "at" => {
+            let tail = rest.map_or(String::new(), |r| format!(".{r}"));
+            format!("{}.{field}{tail}", at(1)?)
+        }
+        "instances" => match rest.and_then(|r| r.split_once('.').map_or(Some((r, "")), Some)) {
+            Some((index, tail)) => {
+                let index: usize = index.parse().ok()?;
+                let number = job
+                    .instances_of(part)
+                    .into_iter()
+                    .map(|(_, i)| i.id)
+                    .filter(|n| *n != 1)
+                    .nth(index)?;
+                let tail = if tail.is_empty() {
+                    String::new()
+                } else {
+                    format!(".{tail}")
+                };
+                format!("{}{tail}", at(number)?)
+            }
+            None => format!("setups.{first}.instances"),
+        },
+        "setup" => format!("setups.{first}.instances"),
+        _ => return None,
+    };
+    Some(
+        Message::new("job-path-moved")
+            .arg("path", path)
+            .arg("instead", instead)
+            .english(),
+    )
+}
+
 /// The job with each value set, loaded and validated again as the current version; the
 /// error names the first path that couldn't be set, or why the result doesn't load.
 /// Setting an operation's end depth stops it following the thickness (`through`), unless
 /// `through` is set too (docs/specs/job-settings-layout.md §5).
 pub fn set_all(job: &Job, assignments: &[(String, Value)]) -> Result<Job, String> {
+    if let Some(refused) = assignments.iter().find_map(|(path, _)| moved(job, path)) {
+        return Err(refused);
+    }
     let mut value = serde_json::to_value(job).map_err(|e| e.to_string())?;
     let assignments: Vec<(String, Value)> = assignments
         .iter()

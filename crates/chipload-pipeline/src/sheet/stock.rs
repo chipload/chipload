@@ -53,7 +53,7 @@ pub(super) fn setup(html: &mut String, job: &Job, w: Words) {
     for part in job
         .parts
         .iter()
-        .filter(|p| p.enabled && Some(p.setup) == job.active_setup_id())
+        .filter(|p| p.enabled && job.active_setup_id().is_some_and(|s| job.part_on(p.id, s)))
     {
         let id = match part.mirror {
             Some(chipload_job::Mirror::LeftRight) => "sheet-mirrored-left-right",
@@ -71,23 +71,27 @@ pub(super) fn setup(html: &mut String, job: &Job, w: Words) {
     for part in job
         .parts
         .iter()
-        .filter(|p| p.enabled && p.is_placed() && Some(p.setup) == job.active_setup_id())
+        .filter(|p| p.enabled && job.is_placed(p.id))
     {
-        let message = if part.angle == 0.0 {
+        // The part itself, instance 1, on this board.
+        let Some(own) = job.instances_here(part.id).into_iter().find(|i| i.id == 1) else {
+            continue;
+        };
+        let message = if own.angle == 0.0 {
             Message::new("sheet-placed-moved")
         } else {
             Message::new("sheet-placed-turned").arg(
                 "angle",
                 chipload_i18n::Value::Number(
-                    part.angle.to_degrees(),
+                    own.angle.to_degrees(),
                     chipload_i18n::Digits::Trim(3),
                 ),
             )
         };
         let message = message
             .arg("part", part.name.as_str())
-            .arg("dx", len(part.at[0]))
-            .arg("dy", len_u(part.at[1]));
+            .arg("dx", len(own.at[0]))
+            .arg("dy", len_u(own.at[1]));
         fact(
             html,
             &w.text(&Message::new("sheet-placed")),
@@ -97,9 +101,9 @@ pub(super) fn setup(html: &mut String, job: &Job, w: Words) {
     // An inlay's plug: what to do with it once cut (docs/specs/vcarve-inlay.md §7).
     for op in job.operations.iter().filter(|op| {
         op.enabled()
-            && job
-                .part_of(op)
-                .is_some_and(|p| p.enabled && Some(p.setup) == job.active_setup_id())
+            && job.part_of(op).is_some_and(|p| {
+                p.enabled && job.active_setup_id().is_some_and(|s| job.part_on(p.id, s))
+            })
     }) {
         let chipload_job::Operation::Vcarve(plug) = op else {
             continue;
@@ -311,8 +315,8 @@ pub(super) fn nested(html: &mut String, job: &Job, result: &RunResult, w: Words)
     let count: u32 = job
         .parts
         .iter()
-        .filter(|p| p.enabled && p.setup == setup.id)
-        .map(chipload_job::Part::count)
+        .filter(|p| p.enabled && job.part_on(p.id, setup.id))
+        .map(|p| job.count(p.id))
         .sum();
     let ((bx0, by0), (bx1, by1)) = job.stock_bounds();
     let along_x = bx1 - bx0 >= by1 - by0;

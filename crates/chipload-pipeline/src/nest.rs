@@ -145,14 +145,12 @@ impl NestResult {
             };
             let at = [x - bx0, y0 - by0];
             x += bx1 - bx0 + PARK_GAP_MM;
-            let Some(p) = job.parts.iter_mut().find(|p| p.id == part) else {
-                continue;
-            };
-            if number == 1 {
+            if number == 1
+                && let Some(p) = job.parts.iter_mut().find(|p| p.id == part)
+            {
                 p.enabled = true;
-                p.angle = 0.0;
-                p.at = at;
-            } else if let Some(i) = p.instances.iter_mut().find(|i| i.id == number) {
+            }
+            if let Some(i) = job.instance_mut(part, number) {
                 i.enabled = true;
                 i.angle = 0.0;
                 i.at = at;
@@ -209,7 +207,7 @@ pub fn nest_setup(
     let parts: Vec<u64> = job
         .parts
         .iter()
-        .filter(|p| p.setup == id && p.enabled)
+        .filter(|p| p.enabled && job.part_on(p.id, id))
         .map(|p| p.id)
         .collect();
     if parts.is_empty() {
@@ -246,7 +244,7 @@ pub fn nest_setup(
         let angles = p.turns.unwrap_or_default().angles();
         // One item per mirror, cloned for each instance that lies so.
         let mut made: Vec<(Option<Mirror>, Item)> = Vec::new();
-        for (number, mirror) in instances_of(p) {
+        for (number, mirror) in instances_of(&one, *part) {
             let item = match made.iter().find(|(m, _)| *m == mirror) {
                 Some((_, item)) => item.clone(),
                 None => {
@@ -353,7 +351,8 @@ fn fix_board(
 /// The turns asked for, kept on the setup's parts.
 fn set_turns(job: &mut Job, setup: u64, request: &NestRequest) -> Result<(), PipelineError> {
     if let Some(turns) = request.turns {
-        for part in job.parts.iter_mut().filter(|p| p.setup == setup) {
+        let on = job.parts_on(setup);
+        for part in job.parts.iter_mut().filter(|p| on.contains(&p.id)) {
             part.turns = Some(turns);
         }
     }
@@ -372,30 +371,40 @@ fn set_turns(job: &mut Job, setup: u64, request: &NestRequest) -> Result<(), Pip
 fn set_counts(job: &mut Job, setup: u64, counts: &[(u64, u32)]) -> Result<(), PipelineError> {
     for &(id, count) in counts {
         let part = job
-            .parts
-            .iter_mut()
-            .find(|p| p.id == id && p.setup == setup)
+            .part(id)
+            .filter(|_| job.part_on(id, setup))
             .ok_or_else(|| PipelineError::Job(Message::new("pipeline-no-part").arg("id", id)))?;
         if count == 0 {
             return Err(PipelineError::Job(
                 Message::new("pipeline-nest-count").arg("part", part.name.as_str()),
             ));
         }
-        while part.count() < count {
-            let next = part.next_instance_id();
-            part.instances.push(Instance {
-                id: next,
-                enabled: true,
-                mirror: None,
-                angle: 0.0,
-                at: [0.0, 0.0],
-            });
+        let here = |job: &Job| -> usize {
+            job.setup(setup).map_or(0, |s| {
+                s.instances
+                    .iter()
+                    .filter(|i| i.part == id && i.enabled)
+                    .count()
+            })
+        };
+        while here(job) < count as usize {
+            let next = job.next_instance_id(id);
+            if let Some(s) = job.setup_mut(setup) {
+                s.instances.push(Instance::drawn(id, next));
+            }
         }
-        while part.count() > count {
-            let Some(last) = part.instances.iter().rposition(|i| i.enabled) else {
+        while here(job) > count as usize {
+            let Some(s) = job.setup_mut(setup) else {
                 break;
             };
-            part.instances.remove(last);
+            let Some(last) = s
+                .instances
+                .iter()
+                .rposition(|i| i.part == id && i.enabled && i.id != 1)
+            else {
+                break;
+            };
+            s.instances.remove(last);
         }
     }
     Ok(())
@@ -446,17 +455,14 @@ struct PlannedPart {
     dowels: Vec<Sweep>,
 }
 
-/// The mirrors part `part`'s instances lie in, instance 1 first (unmirrored: the part's own
-/// mirror is its definition's), each with its number.
-fn instances_of(part: &chipload_job::Part) -> Vec<(u32, Option<Mirror>)> {
-    let mut out = vec![(1, None)];
-    out.extend(
-        part.instances
-            .iter()
-            .filter(|i| i.enabled)
-            .map(|i| (i.id, i.mirror)),
-    );
-    out
+/// The mirrors part `part`'s instances that are on lie in, on the active setup, each with
+/// its number (the part's own mirror is its definition's).
+fn instances_of(one: &Job, part: u64) -> Vec<(u32, Option<Mirror>)> {
+    one.instances_here(part)
+        .into_iter()
+        .filter(|i| i.enabled)
+        .map(|i| (i.id, i.mirror))
+        .collect()
 }
 
 /// Plan part `part` alone (§3): instance 1 where drawn, and one instance for each other
@@ -474,31 +480,27 @@ fn plan_part(
         .map_or(0.0, |((x0, _), (x1, _))| x1 - x0);
     let pitch = 2.0 * width + 1000.0;
     let mut mirrors: Vec<Option<Mirror>> = vec![None];
+    for (_, mirror) in instances_of(one, part) {
+        if !mirrors.contains(&mirror) {
+            mirrors.push(mirror);
+        }
+    }
     for p in &mut alone.parts {
         p.enabled = p.id == part;
-        if p.id != part {
-            continue;
-        }
-        for (_, mirror) in instances_of(p) {
-            if !mirrors.contains(&mirror) {
-                mirrors.push(mirror);
-            }
-        }
-        p.angle = 0.0;
-        p.at = [0.0, 0.0];
-        p.instances = mirrors
-            .iter()
-            .enumerate()
-            .skip(1)
-            .map(|(k, &mirror)| Instance {
-                id: k as u32 + 1,
-                enabled: true,
-                mirror,
-                angle: 0.0,
-                at: [pitch * k as f64, 0.0],
-            })
-            .collect();
     }
+    let planned = mirrors
+        .iter()
+        .enumerate()
+        .map(|(k, &mirror)| Instance {
+            part,
+            id: k as u32 + 1,
+            enabled: true,
+            mirror,
+            angle: 0.0,
+            at: [pitch * k as f64, 0.0],
+        })
+        .collect();
+    alone.set_instances_here(part, planned);
     let plan = plan_job(&alone, contours)?;
     let operation = |s: &OpSpan| alone.operations.get(s.operation);
     let cut = |s: &OpSpan| operation(s).is_some_and(|op| !op.is_board_surface() && !op.is_dowels());
@@ -547,13 +549,7 @@ fn lies(
 /// Instance `number` of part `part` placed: turned by `angle`, moved by `at`; instance 1
 /// is the part's own placement.
 fn place(job: &mut Job, part: u64, number: u32, angle: f64, at: [f64; 2]) {
-    let Some(p) = job.parts.iter_mut().find(|p| p.id == part) else {
-        return;
-    };
-    if number == 1 {
-        p.angle = angle;
-        p.at = at;
-    } else if let Some(i) = p.instances.iter_mut().find(|i| i.id == number) {
+    if let Some(i) = job.instance_mut(part, number) {
         i.angle = angle;
         i.at = at;
     }
@@ -568,11 +564,7 @@ fn keep_parts_on(one: &Job, placed: &mut [NestPut], unplaced: &mut [(u64, u32)])
             continue;
         }
         let part = left.0;
-        let unmirrored = |n: u32| {
-            one.part(part)
-                .and_then(|p| p.instances.iter().find(|i| i.id == n))
-                .is_some_and(|i| i.mirror.is_none())
-        };
+        let unmirrored = |n: u32| one.instance(part, n).is_some_and(|i| i.mirror.is_none());
         if let Some(put) = placed
             .iter_mut()
             .filter(|p| p.part == part && unmirrored(p.instance))
@@ -588,12 +580,11 @@ fn keep_parts_on(one: &Job, placed: &mut [NestPut], unplaced: &mut [(u64, u32)])
 /// What didn't fit switched off (decision 10): the instance, or for instance 1 the whole
 /// part. It keeps its place.
 fn switch_off(job: &mut Job, part: u64, number: u32) {
-    let Some(p) = job.parts.iter_mut().find(|p| p.id == part) else {
-        return;
-    };
     if number == 1 {
-        p.enabled = false;
-    } else if let Some(i) = p.instances.iter_mut().find(|i| i.id == number) {
+        if let Some(p) = job.parts.iter_mut().find(|p| p.id == part) {
+            p.enabled = false;
+        }
+    } else if let Some(i) = job.instance_mut(part, number) {
         i.enabled = false;
     }
 }

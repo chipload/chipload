@@ -482,12 +482,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
     for setup in &job.setups {
         let one = job.for_setup(setup.id);
         let (x, y) = one.stock_size();
-        let parts: Vec<u64> = job
-            .parts
-            .iter()
-            .filter(|p| p.setup == setup.id)
-            .map(|p| p.id)
-            .collect();
+        let parts: Vec<u64> = job.parts_on(setup.id);
         let numbers: Vec<String> = parts.iter().map(u64::to_string).collect();
         let mm = chipload_core::text::mm;
         // A back put back by pins: its front's dowel holes, or a warning that there are none.

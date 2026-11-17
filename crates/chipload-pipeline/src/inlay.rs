@@ -176,7 +176,7 @@ pub fn add_inlay(
 /// setups' parts off (`Job::for_setup`). None without one.
 pub fn pocket_setup<'a>(job: &'a Job, plug: &VcarveOp) -> Option<&'a Setup> {
     let angle = job.tool(plug.tool)?.angle?;
-    let own = job.part(plug.part).map(|p| p.setup);
+    let own = job.home_setup(plug.part);
     job.operations
         .iter()
         .filter(|op| op.enabled())
@@ -189,7 +189,7 @@ pub fn pocket_setup<'a>(job: &'a Job, plug: &VcarveOp) -> Option<&'a Setup> {
                 .and_then(|t| t.angle)
                 .is_some_and(|a| (a - angle).abs() <= chipload_core::tolerances::ANGLE_TOL_RAD)
         })
-        .filter_map(|v| job.part(v.part).map(|p| p.setup))
+        .filter_map(|v| job.home_setup(v.part))
         .filter(|&setup| Some(setup) != own)
         .find_map(|id| job.setups.iter().find(|s| s.id == id && s.enabled))
 }

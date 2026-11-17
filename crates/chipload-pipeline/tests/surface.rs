@@ -248,7 +248,7 @@ fn a_part_surface_faces_its_shapes_under_each_instance_and_nothing_else() {
     };
     let ((x0, y0), (x1, y1)) = job.part_box(2).unwrap();
     let floor = sim.top - 0.5;
-    let at = job.parts[1].instances[0].at;
+    let at = job.instances_of(2)[1].1.at;
     // Each instance's area: faced, flat at 0.5 mm, inside the outline and 1 mm past the
     // middle of each side (the margin is 3 mm); the outline's own corners are rounded.
     let (cx, cy) = ((x0 + x1) / 2.0, (y0 + y1) / 2.0);

@@ -59,6 +59,7 @@ pub fn add_setup(
         back_of: None,
         pieces: None,
         nest: None,
+        instances: Vec::new(),
         placed: None,
     });
     let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
@@ -67,14 +68,11 @@ pub fn add_setup(
         id: part,
         name: part_name,
         enabled: true,
-        instances: Vec::new(),
         order: chipload_job::InstanceOrder::ByOperation,
-        setup: id,
         mirror: None,
-        angle: 0.0,
-        at: [0.0, 0.0],
         turns: None,
     });
+    job.place_part(part, id);
     job.active_setup = Some(id);
     job.active_part = Some(part);
     Ok((checked(job)?, id, part))
@@ -204,18 +202,24 @@ pub fn activate_setup(job: &Job, id: u64) -> Result<Job, PipelineError> {
     index_of(job, id)?;
     let mut job = job.clone();
     job.active_setup = Some(id);
-    let in_it = |part: Option<u64>| {
-        part.and_then(|p| job.part(p))
-            .is_some_and(|p| p.setup == id)
-    };
-    if !in_it(job.active_part) {
-        job.active_part = job.parts.iter().find(|p| p.setup == id).map(|p| p.id);
+    let held: Vec<u64> = job
+        .setup(id)
+        .map(|s| s.instances.iter().map(|i| i.part).collect())
+        .unwrap_or_default();
+    if !job.active_part.is_some_and(|p| held.contains(&p)) {
+        job.active_part = job
+            .parts
+            .iter()
+            .find(|p| held.contains(&p.id))
+            .map(|p| p.id);
     }
     Ok(job)
 }
 
 /// Remove a setup. Refused for the last one, and while it has parts unless `with_parts`,
-/// which removes them and their operations too. Returns what was done, for the report.
+/// which removes them and their operations too: the parts cut only from this board; a part
+/// also cut from another board keeps its instances there. Returns what was done, for the
+/// report.
 pub fn remove_setup(
     job: &Job,
     id: u64,
@@ -226,19 +230,23 @@ pub fn remove_setup(
         return Err(refused(Message::new("pipeline-last-setup")));
     }
     let name = job.setups[at].name.clone();
-    let parts: Vec<u64> = job
+    let here: Vec<u64> = job
         .parts
         .iter()
-        .filter(|p| p.setup == id)
+        .filter(|p| job.setups_of_part(p.id).contains(&id))
         .map(|p| p.id)
         .collect();
-    if !parts.is_empty() && !with_parts {
+    if !here.is_empty() && !with_parts {
         return Err(refused(
             Message::new("pipeline-setup-has-parts")
                 .arg("name", name)
-                .arg("count", parts.len()),
+                .arg("count", here.len()),
         ));
     }
+    let parts: Vec<u64> = here
+        .into_iter()
+        .filter(|p| job.setups_of_part(*p) == [id])
+        .collect();
     let mut job = job.clone();
     let mut lines = vec![format!("Removed setup {name}")];
     // Its back keeps the board and zero it had: a copy, now its own.
@@ -251,7 +259,7 @@ pub fn remove_setup(
         lines.push(format!("{} has a board of its own now", back.name));
     }
     job.setups.remove(at);
-    job.parts.retain(|p| p.setup != id);
+    job.parts.retain(|p| !parts.contains(&p.id));
     job.operations.retain(|op| !parts.contains(&op.part()));
     if job.active_setup == Some(id) {
         job.active_setup = job.setups.first().map(|s| s.id);
@@ -271,14 +279,21 @@ pub fn remove_setup(
     Ok((checked(job)?, lines))
 }
 
-/// Move part `part` into setup `id`: it is cut there, from that board, with its zero.
+/// Move part `part` into setup `id`: it is cut there, from that board, with its zero, every
+/// instance of it.
 pub fn move_part_to_setup(job: &Job, part: u64, id: u64) -> Result<Job, PipelineError> {
     index_of(job, id)?;
     let mut job = job.clone();
-    let Some(p) = job.parts.iter_mut().find(|p| p.id == part) else {
+    if job.part(part).is_none() {
         return Err(refused(Message::new("pipeline-no-part").arg("id", part)));
-    };
-    p.setup = id;
+    }
+    // Every instance of it, keeping its number and placement
+    // (docs/specs/parts-and-setups.md §8); placed where drawn when it had none.
+    if job.instances_of(part).is_empty() {
+        job.place_part(part, id);
+    } else {
+        job.move_part_to(part, id);
+    }
     // Its cuts through the stock go through its new board.
     job.follow_thickness();
     checked(job)

@@ -246,6 +246,7 @@ job-error-no-backup = cannot keep the previous version as .bak: { $error }
 job-set-would-not-load = the project wouldn't load after setting { $paths }: { $reason }
 # On the command line, after `set`: $path is a back setup's stock or work zero; $back and $front are setup names; $instead the front's path.
 job-set-back-follows-front = { $path } can't be set: { $back } is { $front } turned over and shares its board and work zero. Set { $instead } instead.
+job-path-moved = { $path } is no longer in a project: a part's placements are in its setups since schema 41. Use { $instead }.
 
 ## The tool library and machine profiles
 
@@ -380,5 +381,4 @@ job-style-tool-not-in-library = tool { $tool } isn't in your library: save it to
 # What differs between two styles of the same name: theirs and the other one's.
 job-style-these-settings = these settings
 job-style-other-settings = other settings
-job-instance-id = an instance's number is 2 or more: 1 is the part as drawn
 job-instance-twice = two instances are number { $id }

@@ -226,7 +226,7 @@ fn cutting_path(program: &Program, group: &ToolGroup) -> String {
 pub fn contour_copies<'a>(job: &Job, contours: &'a [Contour]) -> Vec<(&'a Contour, Vec<Point>)> {
     // Turned and mirrored instances are drawn by crate::parts::placed_outlines.
     let shifts_of = |part: &chipload_job::Part| -> Vec<Point> {
-        part.spots()
+        job.spots(part.id)
             .into_iter()
             .filter(|(_, spot)| spot.is_move())
             .map(|(_, spot)| (spot.at[0], spot.at[1]))

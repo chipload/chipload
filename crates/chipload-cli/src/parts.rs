@@ -229,10 +229,10 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             .filter(|i| job.operations[*i].part() == part.id)
             .collect();
         let numbers: Vec<String> = operations.iter().map(|i| (i + 1).to_string()).collect();
-        let copies = if part.instances.is_empty() {
+        let copies = if job.instances_of(part.id).len() < 2 {
             "one".to_string()
         } else {
-            instances_text(part)
+            instances_text(&job, part)
         };
         out.line(format!(
             "{} {}{}{}: {copies}; operations {}",
@@ -245,7 +245,7 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             },
             part.mirror
                 .map_or(String::new(), |m| format!(", mirrored {}", m.name()))
-                + &crate::instances::placed_text(part)
+                + &crate::instances::placed_text(&job, part)
                 + if part.enabled { "" } else { ", off" },
             if numbers.is_empty() {
                 "none".to_string()
@@ -258,12 +258,10 @@ fn list(out: &mut Out, project: &Path) -> ExitCode {
             "name": part.name,
             "enabled": part.enabled,
             "active": Some(part.id) == active,
-            "instances": part.instances,
             "order": part.order,
             "mirror": part.mirror,
-            "angle": part.angle,
-            "at": part.at,
-            "count": part.count(),
+            "setups": job.setups_of_part(part.id),
+            "count": job.count_all(part.id),
             "operations": operations,
         }));
     }

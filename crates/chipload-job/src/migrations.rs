@@ -13,12 +13,12 @@ use crate::models::{CURRENT_VERSION, MAX_VCARVE_PASSES, OLDEST_VERSION};
 type Migration = fn(Value) -> Result<Value, String>;
 
 /// `MIGRATIONS[n - OLDEST_VERSION]` upgrades version n to n + 1.
-const MIGRATIONS: [Migration; 36] = [
+const MIGRATIONS: [Migration; 37] = [
     v4_to_v5, v5_to_v6, v6_to_v7, v7_to_v8, v8_to_v9, v9_to_v10, v10_to_v11, v11_to_v12,
     v12_to_v13, v13_to_v14, v14_to_v15, v15_to_v16, v16_to_v17, v17_to_v18, v18_to_v19, v19_to_v20,
     v20_to_v21, v21_to_v22, v22_to_v23, v23_to_v24, v24_to_v25, v25_to_v26, v26_to_v27, v27_to_v28,
     v28_to_v29, v29_to_v30, v30_to_v31, v31_to_v32, v32_to_v33, v33_to_v34, v34_to_v35, v35_to_v36,
-    v36_to_v37, v37_to_v38, v38_to_v39, v39_to_v40,
+    v36_to_v37, v37_to_v38, v38_to_v39, v39_to_v40, v40_to_v41,
 ];
 
 /// Apply migrations step by step. Missing, non-integer (including `true`) and newer versions
@@ -739,6 +739,73 @@ fn v39_to_v40(mut data: Value) -> Result<Value, String> {
         }
     }
     Ok(set_version(data, 40))
+}
+
+/// v41: a part is a definition and the setups hold its instances
+/// (docs/specs/parts-and-setups.md §5). For each part in the project's order, its setup is
+/// given instance 1 from the part's own placement (on, not mirrored: the part's `mirror`
+/// stays on the part), then the part's listed instances in their order, each naming the
+/// part. `setup`, `angle`, `at` and `instances` leave the part. Every setup is cut as
+/// before: its parts in the project's order, each part's instances in the same order.
+fn v40_to_v41(mut data: Value) -> Result<Value, String> {
+    // A style's operation is migrated alone, in a project without parts or setups.
+    let Some(Value::Array(parts)) = data.get_mut("parts") else {
+        return Ok(set_version(data, 41));
+    };
+    let mut placed: Vec<(u64, Value)> = Vec::new();
+    for part in parts.iter_mut() {
+        let part = part.as_object_mut().ok_or("a part is not an object")?;
+        let id = part
+            .get("id")
+            .and_then(Value::as_u64)
+            .ok_or("a part's id is not a whole number")?;
+        let setup = part
+            .remove("setup")
+            .and_then(|s| s.as_u64())
+            .ok_or("a part's setup is not a whole number")?;
+        let angle = part.remove("angle").unwrap_or(Value::from(0.0));
+        let at = part
+            .remove("at")
+            .unwrap_or_else(|| serde_json::json!([0.0, 0.0]));
+        placed.push((
+            setup,
+            serde_json::json!({
+                "part": id, "id": 1, "enabled": true, "mirror": null, "angle": angle, "at": at,
+            }),
+        ));
+        let listed = match part.remove("instances") {
+            Some(Value::Array(list)) => list,
+            None | Some(Value::Null) => Vec::new(),
+            Some(_) => return Err("a part's instances are not a list".into()),
+        };
+        for instance in listed {
+            let Value::Object(mut instance) = instance else {
+                return Err("an instance is not an object".into());
+            };
+            let mut entry = Map::new();
+            entry.insert("part".into(), Value::from(id));
+            entry.append(&mut instance);
+            placed.push((setup, Value::Object(entry)));
+        }
+    }
+    let Some(Value::Array(setups)) = data.get_mut("setups") else {
+        return Err("setups is not a list".into());
+    };
+    for setup in setups.iter_mut() {
+        let setup = setup.as_object_mut().ok_or("a setup is not an object")?;
+        setup.insert("instances".into(), Value::Array(Vec::new()));
+    }
+    for (setup, instance) in placed {
+        let target = setups
+            .iter_mut()
+            .filter_map(Value::as_object_mut)
+            .find(|s| s.get("id").and_then(Value::as_u64) == Some(setup))
+            .ok_or_else(|| format!("a part is in setup {setup}, which is not in setups"))?;
+        if let Some(Value::Array(list)) = target.get_mut("instances") {
+            list.push(instance);
+        }
+    }
+    Ok(set_version(data, 41))
 }
 
 /// A DXF's name from its file: the file's name without its extension.

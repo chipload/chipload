@@ -165,8 +165,9 @@ fn climb_stays_climb_on_the_back_face() {
         // The same shapes cut from the back: the whole part in setup 2, the back of 1.
         let (two, back, _) = add_back_side(&front, 1, turn, None).unwrap();
         let mut two = two;
-        for part in &mut two.parts {
-            part.setup = back;
+        let ids: Vec<u64> = two.parts.iter().map(|p| p.id).collect();
+        for id in ids {
+            two.move_part_to(id, back);
         }
         two.follow_thickness();
         let one = two.for_setup(back);
@@ -232,14 +233,16 @@ fn a_part_placed_on_the_back_face_keeps_climb() {
         front.setups[0].stock.x = 1000.0;
         front.setups[0].stock.y = 1000.0;
         let (mut two, back, _) = add_back_side(&front, 1, turn, None).unwrap();
-        for part in &mut two.parts {
-            part.setup = back;
+        let ids: Vec<u64> = two.parts.iter().map(|p| p.id).collect();
+        for id in ids {
+            two.move_part_to(id, back);
         }
         two.follow_thickness();
         let drawn = two.for_setup(back);
         let mut placed = drawn.clone();
-        placed.parts[0].angle = 0.7;
-        placed.parts[0].at = [400.0, 350.0];
+        let id = placed.parts[0].id;
+        placed.instance_mut(id, 1).unwrap().angle = 0.7;
+        placed.instance_mut(id, 1).unwrap().at = [400.0, 350.0];
         // run_job refuses a program the independent checker doesn't pass.
         let (before, after) = (
             chipload_pipeline::run_job(&drawn).unwrap(),
@@ -425,7 +428,8 @@ fn dowel_holes_stay_where_drawn_when_their_part_is_placed() {
     // its own centre, the front's part keeps its board, so the holes stay on its axis.
     let job = sample_two_sided().for_setup(1);
     let mut placed = job.clone();
-    placed.parts[0].angle = std::f64::consts::PI;
+    let id = placed.parts[0].id;
+    placed.instance_mut(id, 1).unwrap().angle = std::f64::consts::PI;
     assert_eq!(placed.stock_bounds(), job.stock_bounds());
     let (before, after) = (
         chipload_pipeline::run_job(&job).unwrap(),

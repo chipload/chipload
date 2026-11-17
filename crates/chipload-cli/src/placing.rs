@@ -49,6 +49,9 @@ impl OrderArg {
 /// What `chipload copies` was asked to change.
 pub(crate) struct CopiesArgs {
     pub(crate) part: Option<u64>,
+    /// The setup whose instances of the part make the grid; default: the board the part
+    /// is cut from.
+    pub(crate) setup: Option<u64>,
     pub(crate) grid: Option<String>,
     pub(crate) pitch: Option<String>,
     pub(crate) gap: Option<f64>,
@@ -143,11 +146,27 @@ pub(crate) fn copies(
     let Some(at) = job.parts.iter().position(|p| p.id == part) else {
         return out.fail(format!("no part {part} in the project (see `part list`)"));
     };
+    let setup = match args.setup {
+        Some(id) if job.setup(id).is_none() => {
+            return out.fail(format!("no setup {id} in the project (see `setup list`)"));
+        }
+        Some(id) => Some(id),
+        None => job.home_setup(part).or_else(|| job.active_setup_id()),
+    };
     match changed_copies(&job, part, args) {
-        Ok((instances, order)) => {
-            if let Some(instances) = instances {
-                job.parts[at].instances = instances;
+        Ok((grid, order)) => {
+            // The grid is made on its board; the active setup stays as it was.
+            let active = job.active_setup;
+            job.active_setup = setup;
+            match grid {
+                Some(GridChange::Grid(copies)) => job.set_grid_here(part, &copies),
+                Some(GridChange::Off) => {
+                    let own = job.instances_here(part).first().map(|i| **i);
+                    job.set_instances_here(part, own.into_iter().collect());
+                }
+                None => {}
             }
+            job.active_setup = active;
             if let Some(order) = order {
                 job.parts[at].order = order;
             }
@@ -162,10 +181,14 @@ pub(crate) fn copies(
     if let Err(err) = crate::save_project(out, &job, target) {
         return out.fail(err);
     }
-    if job.parts[at].instances.is_empty() {
+    let shown = setup.map_or_else(|| job.clone(), |id| job.for_setup(id));
+    if shown.instances_here(part).len() < 2 {
         out.line("Instances: none (cut once)");
     } else {
-        out.line(format!("Instances: {}", instances_text(&job.parts[at])));
+        out.line(format!(
+            "Instances: {}",
+            instances_text(&shown, &job.parts[at])
+        ));
     }
     warn_overlap(out, &job, part);
     out.wrote(target, "");
@@ -174,7 +197,7 @@ pub(crate) fn copies(
 
 /// Overlap is refused when the project is run: with `part` cut more than once, say so now.
 pub(crate) fn warn_overlap(out: &mut Out, job: &Job, part: u64) {
-    if job.part(part).is_some_and(|p| p.count() > 1)
+    if job.count_all(part) > 1
         && let Ok(drawing) = load_drawing(job)
         && let Err(err) = plan_job(job, &drawing.contours)
         && matches!(err.cause(), ToolpathError::Overlap(_))
@@ -183,15 +206,23 @@ pub(crate) fn warn_overlap(out: &mut Out, job: &Job, part: u64) {
     }
 }
 
+/// What `copies` does to a part's instances on its board.
+pub(crate) enum GridChange {
+    /// The part's instances there but its first made this grid.
+    Grid(Copies),
+    /// Only its first instance there left: cut once.
+    Off,
+}
+
 /// What `copies` makes of a part (docs/specs/instances.md §5): with --grid, the grid's
 /// instances in place of the part's; with --order, its cut order; with --off, none.
 pub(crate) fn changed_copies(
     job: &Job,
     part: u64,
     args: CopiesArgs,
-) -> Result<(Option<Vec<Instance>>, Option<InstanceOrder>), String> {
+) -> Result<(Option<GridChange>, Option<InstanceOrder>), String> {
     if args.off {
-        return Ok((Some(Vec::new()), None));
+        return Ok((Some(GridChange::Off), None));
     }
     let order = args.order.map(OrderArg::value);
     let Some(grid) = &args.grid else {
@@ -224,7 +255,7 @@ pub(crate) fn changed_copies(
     if let Some(problem) = problems.first() {
         return Err(problem.to_string());
     }
-    Ok((Some(copies.instances()), order))
+    Ok((Some(GridChange::Grid(copies)), order))
 }
 
 /// What `chipload place` was asked to do.

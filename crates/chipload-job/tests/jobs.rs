@@ -882,24 +882,33 @@ fn v26_drops_the_clearing_settings_and_removed_strategies_become_rings_pockets()
 
 #[test]
 fn copies_round_trip_default_to_one_part_and_are_checked() {
-    // docs/specs/instances.md §6: none, written explicitly, with the order.
+    // docs/specs/parts-and-setups.md §5: the part once where drawn, in its setup, written
+    // explicitly, the order on the part.
     let data = project(json!([square_shape(1)]), 2, json!({"shapes": [1]}));
     let job = parse_job(data.clone(), "p").unwrap();
-    assert!(job.parts[0].instances.is_empty());
+    assert_eq!(
+        job.setups[0].instances,
+        [chipload_job::Instance::drawn(1, 1)]
+    );
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["parts"][0]["instances"], json!([]));
+    assert_eq!(
+        saved["setups"][0]["instances"],
+        json!([{"part": 1, "id": 1, "enabled": true, "mirror": null, "angle": 0.0,
+                "at": [0.0, 0.0]}])
+    );
     assert_eq!(saved["parts"][0]["order"], json!("by_operation"));
 
     // An instance round-trips exactly, every field written.
-    let one = json!({"id": 2, "enabled": true, "mirror": "left_right", "angle": 0.5,
-                     "at": [120.5, -80.0]});
+    let own = saved["setups"][0]["instances"][0].clone();
+    let one = json!({"part": 1, "id": 2, "enabled": true, "mirror": "left_right",
+                     "angle": 0.5, "at": [120.5, -80.0]});
     let mut with = data.clone();
-    with["parts"][0]["instances"] = json!([one.clone()]);
+    with["setups"][0]["instances"] = json!([own.clone(), one.clone()]);
     with["parts"][0]["order"] = json!("by_instance");
     let job = parse_job(with.clone(), "p").unwrap();
     let saved: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    assert_eq!(saved["parts"][0]["instances"], json!([one]));
-    assert_eq!(job.parts[0].count(), 2);
+    assert_eq!(saved["setups"][0]["instances"], json!([own.clone(), one]));
+    assert_eq!(job.count(1), 2);
 
     // A grid makes instances numbered row by row and listed in its serpentine cut order.
     let grid = chipload_job::Copies {
@@ -908,7 +917,7 @@ fn copies_round_trip_default_to_one_part_and_are_checked() {
         dx: 10.0,
         dy: 20.0,
     };
-    let ids: Vec<(u32, [f64; 2])> = grid.instances().iter().map(|i| (i.id, i.at)).collect();
+    let ids: Vec<(u32, [f64; 2])> = grid.instances(1).iter().map(|i| (i.id, i.at)).collect();
     assert_eq!(
         ids,
         [
@@ -920,23 +929,31 @@ fn copies_round_trip_default_to_one_part_and_are_checked() {
         ]
     );
 
-    // Refused: number 1 (the part), a number twice, the old grid in a current file, an
-    // unknown order.
+    // Refused: number 0, a number twice, a part that isn't there.
     for (bad, why) in [
         (
-            json!([{"id": 1, "enabled": true, "mirror": null, "angle": 0, "at": [0, 0]}]),
-            "instances.0.id",
+            json!({"part": 1, "id": 0, "enabled": true, "mirror": null, "angle": 0, "at": [0, 0]}),
+            "instances.1.id",
         ),
         (
-            json!([{"id": 2, "enabled": true, "mirror": null, "angle": 0, "at": [0, 0]},
-                {"id": 2, "enabled": true, "mirror": null, "angle": 0, "at": [9, 0]}]),
+            json!({"part": 1, "id": 1, "enabled": true, "mirror": null, "angle": 0, "at": [9, 0]}),
             "instances.1.id",
+        ),
+        (
+            json!({"part": 7, "id": 1, "enabled": true, "mirror": null, "angle": 0, "at": [9, 0]}),
+            "instances.1.part",
         ),
     ] {
         let mut data = with.clone();
-        data["parts"][0]["instances"] = bad;
+        data["setups"][0]["instances"] = json!([own.clone(), bad]);
         let err = parse_job(data, "p").unwrap_err().to_string();
         assert!(err.contains(why), "{why}: {err}");
+    }
+    // The old placement on the part is refused in a current file.
+    for old in ["instances", "setup", "angle", "at"] {
+        let mut data = with.clone();
+        data["parts"][0][old] = json!([]);
+        assert!(parse_job(data, "p").is_err(), "{old}");
     }
     let mut old = with.clone();
     old["parts"][0]["copies"] = json!(null);
@@ -972,7 +989,7 @@ fn v37_to_v38_turns_copies_into_instances() {
     let job = parse_job(migrate(v37.clone()).unwrap(), "p").unwrap();
     let part = &job.parts[0];
     assert_eq!(part.order, chipload_job::InstanceOrder::ByInstance);
-    let placed: Vec<(u32, (f64, f64))> = part.in_cut_order();
+    let placed: Vec<(u32, (f64, f64))> = job.in_cut_order(1);
     assert_eq!(
         placed,
         [
@@ -985,13 +1002,14 @@ fn v37_to_v38_turns_copies_into_instances() {
         ]
     );
     assert!(
-        part.instances
+        job.setups[0]
+            .instances
             .iter()
             .all(|i| i.enabled && i.angle == 0.0 && i.mirror.is_none())
     );
     v37["parts"][0]["copies"] = Value::Null;
     let job = parse_job(migrate(v37).unwrap(), "p").unwrap();
-    assert!(job.parts[0].instances.is_empty());
+    assert_eq!(job.setups[0].instances.len(), 1);
     assert_eq!(job.parts[0].order, chipload_job::InstanceOrder::ByOperation);
 }
 
@@ -1003,18 +1021,57 @@ fn v38_to_v39_places_every_part_where_drawn() {
     let current = migrate(v38.clone()).unwrap();
     assert_eq!(as_v38(current.clone()), v38);
     let job = parse_job(current, "p").unwrap();
-    assert!(job.parts.iter().all(|p| !p.is_placed()));
+    assert!(job.parts.iter().all(|p| !job.is_placed(p.id)));
     let mut placed: Value = serde_json::from_str(&chipload_job::dump_job(&job).unwrap()).unwrap();
-    placed["parts"][0]["angle"] = json!(1.5);
+    placed["setups"][0]["instances"][0]["angle"] = json!(1.5);
     let back = parse_job(placed, "p").unwrap();
-    assert!(back.parts[0].is_placed());
+    assert!(back.is_placed(back.parts[0].id));
     let mut bad = job.clone();
-    bad.parts[0].at = [f64::NAN, 0.0];
+    bad.setups[0].instances[0].at = [f64::NAN, 0.0];
     let problems = bad.validate();
     assert!(
-        problems.iter().any(|p| p.path == "parts.0.at.0"),
+        problems
+            .iter()
+            .any(|p| p.path == "setups.0.instances.0.at.0"),
         "{problems:?}"
     );
+}
+
+/// docs/specs/parts-and-setups.md §5: each part's own placement becomes instance 1 in its
+/// setup, its listed instances follow it there naming it, parts in the project's order;
+/// nothing else changes. A part in a setup that isn't there can't be carried forward.
+#[test]
+fn v40_to_v41_moves_placements_into_the_setups() {
+    let mut v40 = as_v40(migrate(raw("v38/instances.chipload")).unwrap());
+    v40["parts"][0]["angle"] = json!(0.25);
+    v40["parts"][0]["at"] = json!([5.0, 6.0]);
+    let current = migrate(v40.clone()).unwrap();
+    assert_eq!(as_v40(current.clone()), v40, "nothing else changes");
+    let job = parse_job(current, "p").unwrap();
+    let first = &job.setups[0].instances[0];
+    assert_eq!(
+        (first.part, first.id, first.angle, first.at, first.enabled),
+        (job.parts[0].id, 1, 0.25, [5.0, 6.0], true)
+    );
+    // Grouped by part in the parts' order, each part's own first.
+    let order: Vec<(u64, u32)> = job.setups[0]
+        .instances
+        .iter()
+        .map(|i| (i.part, i.id))
+        .collect();
+    let mut expected = Vec::new();
+    for part in &v40["parts"].as_array().unwrap().clone() {
+        let id = part["id"].as_u64().unwrap();
+        expected.push((id, 1));
+        for i in part["instances"].as_array().unwrap() {
+            expected.push((id, i["id"].as_u64().unwrap() as u32));
+        }
+    }
+    assert_eq!(order, expected);
+    let mut lost = v40;
+    lost["parts"][0]["setup"] = json!(99);
+    let err = migrate(lost).unwrap_err().to_string();
+    assert!(err.contains("setup 99"), "{err}");
 }
 
 // -- parts (docs/specs/parts.md)
@@ -1077,7 +1134,7 @@ fn v21_to_v22_puts_every_operation_in_one_part_with_the_copies() {
         (1, "Part 1", true)
     );
     // Its copies became instances at v38: the second copy, cut copy by copy.
-    assert_eq!(part.in_cut_order(), [(1, (0.0, 0.0)), (2, (50.0, 0.0))]);
+    assert_eq!(job.in_cut_order(1), [(1, (0.0, 0.0)), (2, (50.0, 0.0))]);
     assert_eq!(part.order, chipload_job::InstanceOrder::ByInstance);
     assert!(job.operations.iter().all(|op| op.part() == 1));
     assert_eq!(job.active_part, None);
@@ -1093,10 +1150,12 @@ fn part_rules_are_enforced() {
     let two = || {
         let mut data = lower_job();
         data["parts"] = json!([
-            {"id": 1, "name": "lid", "enabled": true, "instances": [],
-             "order": "by_operation", "setup": 1, "angle": 0.0, "at": [0.0, 0.0]},
-            {"id": 2, "name": "box", "enabled": true, "instances": [],
-             "order": "by_operation", "setup": 1, "angle": 0.0, "at": [0.0, 0.0]},
+            {"id": 1, "name": "lid", "enabled": true, "order": "by_operation"},
+            {"id": 2, "name": "box", "enabled": true, "order": "by_operation"},
+        ]);
+        data["setups"][0]["instances"] = json!([
+            {"part": 1, "id": 1, "enabled": true, "mirror": null, "angle": 0.0, "at": [0.0, 0.0]},
+            {"part": 2, "id": 1, "enabled": true, "mirror": null, "angle": 0.0, "at": [0.0, 0.0]},
         ]);
         data["operations"][1]["part"] = json!(2);
         data
@@ -1126,9 +1185,13 @@ fn part_rules_are_enforced() {
         "operations.1.part: part 1's operations must all come before part 2's",
     );
     let mut data = two();
-    data["parts"][0]["instances"] =
-        json!([{"id": 0, "enabled": true, "mirror": null, "angle": 0, "at": [10, 0]}]);
-    refused(data, "parts.0.instances.0.id");
+    data["setups"][0]["instances"][0]["id"] = json!(0);
+    refused(data, "setups.0.instances.0.id");
+    // A part placed nowhere is a definition not cut (docs/specs/parts-and-setups.md §2).
+    let mut data = two();
+    data["setups"][0]["instances"] = json!([data["setups"][0]["instances"][0].clone()]);
+    let job = parse_job(data, "p").unwrap();
+    assert!(job.cuts(0) && !job.cuts(1));
     // A part without operations is fine; an active part that doesn't exist means the first.
     let mut data = two();
     data["operations"][1]["part"] = json!(1);
@@ -1751,10 +1814,53 @@ fn as_v34(data: Value) -> Value {
     data
 }
 
+/// Current-version data in v40's layout (docs/specs/parts-and-setups.md §5): each part
+/// back in the one setup holding its instances, instance 1 as the part's own placement
+/// (never off or mirrored), the others listed on the part without naming it.
+fn as_v40(mut data: Value) -> Value {
+    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+    let mut placed: Vec<(u64, u64, Value)> = Vec::new();
+    for setup in data["setups"].as_array_mut().unwrap() {
+        let setup_id = setup["id"].as_u64().unwrap();
+        let list = setup.as_object_mut().unwrap().remove("instances").unwrap();
+        for instance in list.as_array().unwrap() {
+            let part = instance["part"].as_u64().unwrap();
+            placed.push((setup_id, part, instance.clone()));
+        }
+    }
+    for part in data["parts"].as_array_mut().unwrap() {
+        let id = part["id"].as_u64().unwrap();
+        let part = part.as_object_mut().unwrap();
+        let mine: Vec<&(u64, u64, Value)> = placed.iter().filter(|p| p.1 == id).collect();
+        let setups: Vec<u64> = mine.iter().map(|p| p.0).collect();
+        assert!(setups.iter().all(|s| *s == setups[0]), "one setup per part");
+        let own = &mine.iter().find(|p| p.2["id"] == json!(1)).unwrap().2;
+        assert_eq!(
+            (own["enabled"].clone(), own["mirror"].clone()),
+            (json!(true), Value::Null)
+        );
+        part.insert("setup".into(), json!(setups[0]));
+        part.insert("angle".into(), own["angle"].clone());
+        part.insert("at".into(), own["at"].clone());
+        let others: Vec<Value> = mine
+            .iter()
+            .filter(|p| p.2["id"] != json!(1))
+            .map(|p| {
+                let mut i = p.2.clone();
+                i.as_object_mut().unwrap().remove("part");
+                i
+            })
+            .collect();
+        part.insert("instances".into(), Value::Array(others));
+    }
+    data["schema_version"] = json!(40);
+    data
+}
+
 /// Current-version data in v39's layout (docs/specs/surface-levels.md §4): every surface a
 /// board surface, its selection and margin gone.
-fn as_v39(mut data: Value) -> Value {
-    assert_eq!(data["schema_version"], json!(CURRENT_VERSION));
+fn as_v39(data: Value) -> Value {
+    let mut data = as_v40(data);
     for op in data["operations"].as_array_mut().unwrap() {
         if op["type"] != json!("surface") {
             continue;
@@ -2651,12 +2757,19 @@ fn v33_to_v34_moves_the_stock_and_zero_into_one_setup() {
     );
     assert_eq!(setup["stock"], v33["stock"]);
     assert_eq!(setup["work_zero"], v33["machine"]["work_zero"]);
+    // Every part in it (since v41 as its instances there).
+    let held: Vec<&Value> = setup["instances"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|i| &i["part"])
+        .collect();
     assert!(
         current["parts"]
             .as_array()
             .unwrap()
             .iter()
-            .all(|p| p["setup"] == json!(1))
+            .all(|p| held.contains(&&p["id"]))
     );
     // Back to v33's layout, nothing else changed.
     assert_eq!(with_step_downs(as_v33(current), &v33), v33);

@@ -100,11 +100,14 @@ fn a_parts_properties_edit_its_copies_and_the_browser_draws_the_parts() {
     draw_properties(&mut app);
     draw_sidebar(&mut app);
     // A problem in part 1's instances marks part 1's form.
-    app.edit.as_mut().unwrap().job.parts[0].instances =
-        vec![chipload_job::Instance::moved(1, [10.0, 10.0])];
+    // Too many instances of part 1: its form is marked.
+    let many: Vec<chipload_job::Instance> = (1..=chipload_job::MAX_COPIES + 1)
+        .map(|n| chipload_job::Instance::moved(1, n, [f64::from(n) * 100.0, 0.0]))
+        .collect();
+    app.edit.as_mut().unwrap().job.set_instances_here(1, many);
     app.commit();
     let fields = app.form_problem_map(Focus::Part(1));
-    assert!(fields.contains_key("parts.0.instances.0.id"), "{fields:?}");
+    assert!(fields.contains_key("parts.0.instances"), "{fields:?}");
     assert!(app.form_problem_map(Focus::Part(2)).is_empty());
     draw_properties(&mut app);
     draw_sidebar(&mut app);

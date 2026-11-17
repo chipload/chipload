@@ -13,6 +13,11 @@ pub(crate) fn get(out: &mut Out, project: &Path, path: &str) -> ExitCode {
         Ok(value) => value,
         Err(err) => return out.fail(err),
     };
+    // A part's placement is in its setup since schema 41: the old path is refused, the new
+    // one named.
+    if let Some(refused) = chipload_job::paths::moved(&job, path) {
+        return out.fail(refused);
+    }
     // `stock…` and `machine.work_zero…` are the active setup's since schema 34.
     let aliased = chipload_job::paths::alias(&job, path);
     let path = aliased.as_deref().unwrap_or(path);

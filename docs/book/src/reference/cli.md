@@ -2516,6 +2516,7 @@ chipload part instance add <PROJECT> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `--part <PART>` | Which part; needed when the project has several. |
+| `--setup <SETUP>` | The setup (board) it goes on, as `setup list` shows it; default: the one the part is cut from. |
 | `--at <AT>` | Its move "DX,DY" from the part as drawn (any length unit; plain numbers are mm); default: beside everything the part cuts, 10 mm away. |
 | `--angle <ANGLE>` | Turned about the middle of the part's box, degrees counter-clockwise. |
 | `--mirror <MIRROR>` | Mirrored about the middle of the part's box first: left-right, top-bottom or none. Climb stays climb. |
@@ -2557,6 +2558,22 @@ chipload part instance remove <PROJECT> <IDS>... [OPTIONS]
 | `--all` | Every instance: the part is cut once. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
+### `chipload part instance move`
+
+An instance onto another setup (board), keeping its number and placement (docs/specs/parts-and-setups.md §10)
+
+```text
+chipload part instance move <PROJECT> <ID> [OPTIONS]
+```
+
+| Argument | Meaning |
+|---|---|
+| `<PROJECT>` | The project (.chipload) |
+| `--part <PART>` | Which part; needed when the project has several. |
+| `<ID>` | The instance's number. |
+| `--setup <SETUP>` | The setup it goes on, as `setup list` shows it. Required. |
+| `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
+
 ### `chipload part instance array`
 
 The part's instances made a grid: its cells but the first, in place of the instances it has, numbered row by row from 2 (what `chipload copies` does)
@@ -2569,6 +2586,7 @@ chipload part instance array <PROJECT> [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `--part <PART>` | Which part; needed when the project has several. |
+| `--setup <SETUP>` | The setup (board) it goes on, as `setup list` shows it; default: the one the part is cut from. |
 | `--grid <GRID>` | Columns x rows, e.g. "3x2". Required. |
 | `--pitch <PITCH>` | Pitch "DX,DY" from cell to cell; negative grows left or down. |
 | `--gap <GAP>` | Set the pitch so that this many mm are left between the cuts of neighbours. |

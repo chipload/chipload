@@ -520,9 +520,24 @@ fn copies_are_set_from_the_command_line() {
             serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
         job["parts"][0].clone()
     };
+    // The part's instances besides itself (number 1), in its setup
+    // (docs/specs/parts-and-setups.md §5).
+    let placed = |others: bool| {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        let list: Vec<serde_json::Value> = job["setups"][0]["instances"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|i| (i["id"] != 1) == others)
+            .cloned()
+            .collect();
+        serde_json::Value::Array(list)
+    };
+    let others = || placed(true);
     let at = |k: usize| {
-        let p = part();
-        let at = &p["instances"][k]["at"];
+        let p = others();
+        let at = &p[k]["at"];
         (at[0].as_f64().unwrap(), at[1].as_f64().unwrap())
     };
 
@@ -535,7 +550,12 @@ fn copies_are_set_from_the_command_line() {
     let (code, _, err) = run(&["copies", p, "--grid", "3by2", "--pitch", "1,1"]);
     assert_eq!(code, Some(1));
     assert!(err.contains("columns x rows like 3x2"), "{err}");
-    assert!(part()["instances"].is_null(), "refused: nothing written");
+    let file: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+    assert_eq!(
+        file["schema_version"], 7,
+        "refused: nothing written, still the v7 file"
+    );
 
     let (code, out, _) = run(&["copies", p, "--grid", "3x2", "--pitch", "200,-150"]);
     assert_eq!(code, Some(0));
@@ -544,7 +564,7 @@ fn copies_are_set_from_the_command_line() {
         "{out}"
     );
     // Five instances in the order the grid is cut: 2, 3, then 6, 5, 4.
-    let ids: Vec<u64> = part()["instances"]
+    let ids: Vec<u64> = others()
         .as_array()
         .unwrap()
         .iter()
@@ -575,7 +595,7 @@ fn copies_are_set_from_the_command_line() {
     assert!(err.contains("cut into each other"), "{err}");
     let (_, out, _) = run(&["copies", p, "--off"]);
     assert!(out.contains("Instances: none (cut once)"), "{out}");
-    assert_eq!(part()["instances"], serde_json::json!([]));
+    assert_eq!(others(), serde_json::json!([]));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -595,6 +615,21 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
             serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
         job["parts"][0].clone()
     };
+    // The part's instances besides itself (number 1), in its setup
+    // (docs/specs/parts-and-setups.md §5).
+    let placed = |others: bool| {
+        let job: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
+        let list: Vec<serde_json::Value> = job["setups"][0]["instances"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|i| (i["id"] != 1) == others)
+            .cloned()
+            .collect();
+        serde_json::Value::Array(list)
+    };
+    let others = || placed(true);
 
     let (code, out, _) = run(&["part", "instance", "list", p]);
     assert_eq!(code, Some(0));
@@ -623,8 +658,8 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
         out.contains("Added instance 3 at") && out.contains("turned 90°, mirrored left-right"),
         "{out}"
     );
-    assert_eq!(part()["instances"][1]["mirror"], "left_right");
-    let angle = part()["instances"][1]["angle"].as_f64().unwrap();
+    assert_eq!(others()[1]["mirror"], "left_right");
+    let angle = others()[1]["angle"].as_f64().unwrap();
     assert!(
         (angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12,
         "{angle}"
@@ -679,7 +714,7 @@ fn instances_are_added_changed_and_removed_from_the_command_line() {
     let (code, out, _) = run(&["part", "instance", "remove", p, "--all"]);
     assert_eq!(code, Some(0));
     assert!(out.contains("Removed instance 2"), "{out}");
-    assert_eq!(part()["instances"], serde_json::json!([]));
+    assert_eq!(others(), serde_json::json!([]));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -752,10 +787,11 @@ fn the_part_itself_is_placed_from_the_command_line() {
         let out = chipload(args);
         (out.status.code(), text(&out.stdout), text(&out.stderr))
     };
-    let part = || {
+    // The part itself, number 1, in its setup (docs/specs/parts-and-setups.md §5).
+    let own = || {
         let job: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap();
-        job["parts"][0].clone()
+        job["setups"][0]["instances"][0].clone()
     };
     let (code, _, err) = run(&["part", "place", p]);
     assert_eq!(code, Some(1));
@@ -766,7 +802,7 @@ fn the_part_itself_is_placed_from_the_command_line() {
         out.contains("placed at 300.000, 0.000 mm, turned 90°"),
         "{out}"
     );
-    assert_eq!(part()["at"], serde_json::json!([300.0, 0.0]));
+    assert_eq!(own()["at"], serde_json::json!([300.0, 0.0]));
     // Listed as instance 1 once it has instances; set like one, but never mirrored,
     // switched off alone or removed.
     run(&["part", "instance", "add", p, "--at", "0,0"]);
@@ -778,7 +814,7 @@ fn the_part_itself_is_placed_from_the_command_line() {
     );
     let (code, _, err) = run(&["part", "instance", "set", p, "1", "--at", "350,0"]);
     assert_eq!(code, Some(0), "{err}");
-    assert_eq!(part()["at"], serde_json::json!([350.0, 0.0]));
+    assert_eq!(own()["at"], serde_json::json!([350.0, 0.0]));
     for args in [
         vec!["part", "instance", "set", p, "1", "--mirror", "left-right"],
         vec!["part", "instance", "set", p, "1", "--off"],
@@ -794,13 +830,13 @@ fn the_part_itself_is_placed_from_the_command_line() {
     // Placed, it runs, checked; the part as drawn and its instance at 0, 0 are apart.
     let (code, _, err) = run(&["run", p, "-o", path(&dir.join("x.nc")), "--no-sheet"]);
     assert_eq!(code, Some(0), "{err}");
-    let (code, out, _) = run(&["get", p, "parts.0.angle"]);
+    let (code, out, _) = run(&["get", p, "setups.0.instances.0.angle"]);
     assert_eq!(code, Some(0));
     assert!(out.starts_with("1.57"), "{out}");
     let (code, out, _) = run(&["part", "place", p, "--reset"]);
     assert_eq!(code, Some(0));
     assert!(out.contains("cut where drawn"), "{out}");
-    assert_eq!(part()["angle"], serde_json::json!(0.0));
+    assert_eq!(own()["angle"], serde_json::json!(0.0));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -941,7 +977,7 @@ fn an_inlay_is_made_from_the_command_line() {
     assert_eq!(plug["floor"]["tool"], 1);
     assert_eq!(plug["part"], 2);
     assert_eq!(job["parts"][1]["mirror"], "left_right");
-    assert_eq!(job["parts"][1]["setup"], 2);
+    assert_eq!(job["setups"][1]["instances"][0]["part"], 2);
     assert_eq!(job["setups"][1]["stock"]["thickness"], 12.0);
     assert_eq!(job["setups"][1]["stock"]["fit"], 10.0);
     // Both programs pass the checker; the plug's check finds its pocket.
@@ -3483,5 +3519,63 @@ fn op_add_moulding_takes_a_profile_side_and_ends() {
         let out = chipload(args);
         assert!(!out.status.success(), "{args:?}");
     }
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
+    // docs/specs/parts-and-setups.md §5, §10, decision 7
+    let dir = temp_dir("instance-move");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v7/ramp_entry.chipload"), &project).unwrap();
+    let p = path(&project);
+    let run = |args: &[&str]| {
+        let out = chipload(args);
+        (out.status.code(), text(&out.stdout), text(&out.stderr))
+    };
+    let job = || -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(&project).unwrap()).unwrap()
+    };
+    let (code, _, err) = run(&["setup", "add", p, "--name", "Second"]);
+    assert_eq!(code, Some(0), "{err}");
+    // Part 1, instance 1 onto setup 2: kept as number 1, after part 2's.
+    let (code, out, err) = run(&[
+        "part", "instance", "move", p, "--part", "1", "1", "--setup", "2",
+    ]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(
+        out.contains("Instance 1 is cut on setup 2 \"Second\""),
+        "{out}"
+    );
+    assert_eq!(job()["setups"][0]["instances"], serde_json::json!([]));
+    assert_eq!(job()["setups"][1]["instances"][1]["part"], 1);
+    assert_eq!(job()["setups"][1]["instances"][1]["id"], 1);
+    // A new instance goes on the part's board, or on the one named.
+    let (code, _, err) = run(&[
+        "part", "instance", "add", p, "--part", "1", "--setup", "1", "--at", "300,0",
+    ]);
+    assert_eq!(code, Some(0), "{err}");
+    assert_eq!(job()["setups"][0]["instances"][0]["id"], 2);
+    let (_, out, _) = run(&["part", "instance", "list", p, "--part", "1"]);
+    assert!(
+        out.contains("(the part itself)") && out.contains(", setup 2"),
+        "{out}"
+    );
+    assert!(out.contains("  2 at 300.000, 0.000 mm, setup 1"), "{out}");
+    let (code, _, err) = run(&[
+        "part", "instance", "move", p, "--part", "1", "1", "--setup", "9",
+    ]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("no setup 9"), "{err}");
+    // The old paths name the new ones.
+    let (code, _, err) = run(&["get", p, "parts.0.at"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("Use setups.1.instances.1.at"), "{err}");
+    let (code, _, err) = run(&["set", p, "parts.0.instances.0.angle=1"]);
+    assert_eq!(code, Some(1));
+    assert!(err.contains("Use setups.0.instances.0.angle"), "{err}");
+    let (code, out, err) = run(&["get", p, "setups.0.instances.0.at"]);
+    assert_eq!(code, Some(0), "{err}");
+    assert!(out.contains("300"), "{out}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

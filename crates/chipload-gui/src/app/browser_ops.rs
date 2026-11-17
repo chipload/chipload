@@ -198,21 +198,41 @@ impl ChiploadApp {
         }) || !self.form_problem_map(Focus::Part(part.id)).is_empty();
         let is_active = active == Some(part.id);
         // Parts of another setup are ghosts too (docs/specs/setups.md §7).
-        let (setups, in_active_setup) = self.edit.as_ref().map_or((Vec::new(), true), |e| {
-            let setups: Vec<(u64, String)> = e
-                .job
-                .setups
-                .iter()
-                .map(|s| (s.id, s.name.clone()))
-                .collect();
-            (setups, e.job.active_setup_id() == Some(part.setup))
-        });
+        // Its placement: where it is cut, how often, whether elsewhere than drawn
+        // (docs/specs/parts-and-setups.md §2).
+        let (setups, in_active_setup, own_setups, times, placed, instances) = self
+            .edit
+            .as_ref()
+            .map_or((Vec::new(), true, Vec::new(), 1, false, Vec::new()), |e| {
+                let setups: Vec<(u64, String)> = e
+                    .job
+                    .setups
+                    .iter()
+                    .map(|s| (s.id, s.name.clone()))
+                    .collect();
+                let instances: Vec<chipload_job::Instance> = e
+                    .job
+                    .instances_of(part.id)
+                    .into_iter()
+                    .map(|(_, i)| *i)
+                    .collect();
+                (
+                    setups,
+                    e.job
+                        .active_setup_id()
+                        .is_some_and(|s| e.job.part_on(part.id, s)),
+                    e.job.setups_of_part(part.id),
+                    e.job.count_all(part.id),
+                    e.job.is_placed(part.id),
+                    instances,
+                )
+            });
         let mut trailing = Vec::new();
         if is_active && parts.len() > 1 {
             trailing.push(t!(ui, "browser-part-active"));
         }
-        if part.count() > 1 {
-            trailing.push(format!("×{}", part.count()));
+        if times > 1 {
+            trailing.push(format!("×{times}"));
         }
         if part.mirror.is_some() {
             trailing.push(t!(ui, "browser-part-mirrored"));
@@ -297,7 +317,7 @@ impl ChiploadApp {
             let mut shown = self.own_instance_shown(part);
             if ui
                 .add_enabled(
-                    !part.is_placed(),
+                    !placed,
                     egui::Checkbox::new(&mut shown, t!(ui, "browser-place-part")),
                 )
                 .on_hover_text(t!(ui, "browser-place-part-hover"))
@@ -311,10 +331,7 @@ impl ChiploadApp {
                 });
             }
             if ui
-                .add_enabled(
-                    part.is_placed(),
-                    egui::Button::new(t!(ui, "browser-reset-placement")),
-                )
+                .add_enabled(placed, egui::Button::new(t!(ui, "browser-reset-placement")))
                 .on_hover_text(t!(ui, "browser-reset-placement-hover"))
                 .clicked()
             {
@@ -324,7 +341,7 @@ impl ChiploadApp {
                 super::header::submenu(ui, t!(ui, "browser-move-to-setup"), |ui| {
                     for (id, name) in &setups {
                         if ui
-                            .add_enabled(*id != part.setup, egui::Button::new(name))
+                            .add_enabled(own_setups != [*id], egui::Button::new(name))
                             .clicked()
                         {
                             action = Some(OpAction::PartToSetup(part.id, *id));
@@ -395,16 +412,18 @@ impl ChiploadApp {
         }
         // The part itself as instance 1, once it has instances, a placement or is shown
         // (docs/specs/part-placement.md §6): its tick is the part's.
-        let own = (!part.instances.is_empty() || self.own_instance_shown(part)).then_some(
-            chipload_job::Instance {
-                id: 1,
-                enabled: part.enabled,
-                mirror: None,
-                angle: part.angle,
-                at: part.at,
-            },
-        );
-        for instance in own.iter().chain(&part.instances) {
+        let shown = instances.len() > 1 || self.own_instance_shown(part);
+        let listed = instances.iter().filter(|i| shown || i.id != 1).map(|i| {
+            if i.id == 1 {
+                chipload_job::Instance {
+                    enabled: part.enabled,
+                    ..*i
+                }
+            } else {
+                *i
+            }
+        });
+        for instance in listed.collect::<Vec<_>>().iter() {
             if let Some(a) = self.instance_row(ui, part, instance, in_active_setup) {
                 action = Some(a);
             }
@@ -422,6 +441,7 @@ impl ChiploadApp {
         in_active_setup: bool,
     ) -> Option<OpAction> {
         let (p, id) = (part.id, instance.id);
+        let placed = self.edit.as_ref().is_some_and(|e| e.job.is_placed(p));
         let mut trailing = Vec::new();
         if instance.angle != 0.0 {
             trailing.push(format!("{:.1}°", instance.angle.to_degrees()));
@@ -458,10 +478,7 @@ impl ChiploadApp {
                 }
                 ui.separator();
                 if ui
-                    .add_enabled(
-                        part.is_placed(),
-                        egui::Button::new(t!(ui, "browser-reset-placement")),
-                    )
+                    .add_enabled(placed, egui::Button::new(t!(ui, "browser-reset-placement")))
                     .on_hover_text(t!(ui, "browser-reset-placement-hover"))
                     .clicked()
                 {

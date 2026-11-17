@@ -23,7 +23,7 @@ fn harness() -> Harness<'static, ChiploadApp> {
 }
 
 fn instance(app: &ChiploadApp) -> Instance {
-    app.edit.as_ref().unwrap().job.parts[0].instances[0]
+    others(&app.edit.as_ref().unwrap().job, 1)[0]
 }
 
 fn screen(h: &Harness<'_, ChiploadApp>, p: (f64, f64)) -> egui::Pos2 {
@@ -73,7 +73,7 @@ fn an_instance_is_added_beside_the_part_drawn_numbered_and_undone() {
     let mut app = drawn_part();
     app.add_instance(1, false);
     let job = &app.edit.as_ref().unwrap().job;
-    assert_eq!(job.parts[0].instances.len(), 1);
+    assert_eq!(others(job, 1).len(), 1);
     assert_eq!(app.focus, Focus::Instance(1, 2));
     draw_canvas(&mut app);
     let ghost = &app.scene.instances[0];
@@ -96,12 +96,12 @@ fn an_instance_is_added_beside_the_part_drawn_numbered_and_undone() {
     // A mirrored one goes beside both.
     app.add_instance(1, true);
     let job = &app.edit.as_ref().unwrap().job;
-    assert_eq!(job.parts[0].instances[1].mirror, Some(Mirror::LeftRight));
+    assert_eq!(others(job, 1)[1].mirror, Some(Mirror::LeftRight));
     assert_eq!(app.focus, Focus::Instance(1, 3));
     // Each is one undo step.
     app.undo();
     app.undo();
-    assert!(app.edit.as_ref().unwrap().job.parts[0].instances.is_empty());
+    assert!(others(&app.edit.as_ref().unwrap().job, 1).is_empty());
     draw_canvas(&mut app);
     assert!(app.scene.instances.is_empty());
 }
@@ -175,7 +175,7 @@ fn an_instance_is_changed_from_the_browser_menu_and_removed_with_delete() {
     draw_properties(&mut app);
     app.focus = Focus::Instance(1, 2);
     app.delete_key();
-    assert!(app.edit.as_ref().unwrap().job.parts[0].instances.is_empty());
+    assert!(others(&app.edit.as_ref().unwrap().job, 1).is_empty());
     assert_eq!(app.focus, Focus::Part(1));
 }
 
@@ -183,21 +183,24 @@ fn an_instance_is_changed_from_the_browser_menu_and_removed_with_delete() {
 fn a_problem_in_an_instance_marks_its_form() {
     let mut app = drawn_part();
     app.add_instance(1, false);
-    app.edit.as_mut().unwrap().job.parts[0].instances[0].at[0] = f64::NAN;
+    app.edit
+        .as_mut()
+        .unwrap()
+        .job
+        .instance_mut(1, 2)
+        .unwrap()
+        .at[0] = f64::NAN;
     app.commit();
     let fields = app.form_problem_map(Focus::Instance(1, 2));
-    assert!(
-        fields.contains_key("parts.0.instances.0.at.0"),
-        "{fields:?}"
-    );
+    assert!(fields.contains_key("instances.1.at.0"), "{fields:?}");
     draw_properties(&mut app);
 }
 
 // -- The part itself placed (docs/specs/part-placement.md §6)
 
 fn own(app: &ChiploadApp) -> ([f64; 2], f64) {
-    let part = &app.edit.as_ref().unwrap().job.parts[0];
-    (part.at, part.angle)
+    let own = app.edit.as_ref().unwrap().job.instance(1, 1).unwrap();
+    (own.at, own.angle)
 }
 
 #[test]
@@ -227,8 +230,10 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     assert_eq!(own(&app).1, FRAC_PI_2);
     app.mirror_instance(1, 1);
     app.remove_instance(1, 1);
-    let part = &app.edit.as_ref().unwrap().job.parts[0];
-    assert!(part.mirror.is_none() && part.enabled && part.is_placed());
+    let job = &app.edit.as_ref().unwrap().job;
+    let part = &job.parts[0];
+    assert!(part.mirror.is_none() && part.enabled && job.is_placed(1));
+    assert!(job.instance(1, 1).is_some_and(|i| i.mirror.is_none()));
     // Its form: turn and move only.
     draw_properties(&mut app);
     // *Reset placement*: back where drawn, as one undo step.

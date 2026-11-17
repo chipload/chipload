@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 40. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 41. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 40. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `40` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `41` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -333,15 +333,16 @@ How an inflated shape rises from its edge.
 
 ## Instance
 
-The part placed again (docs/specs/instances.md §2): mirrored, then turned, about the part's centre, then moved.
+A part placed on a board (docs/specs/parts-and-setups.md §2, instances.md §2): mirrored, then turned, about the part's centre, then moved.
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `angle` | number | yes | Then turned about the part's centre, radians, counter-clockwise. |
 | `at` | 2 × number | yes | Then moved, mm. |
 | `enabled` | boolean | yes | False: kept, but not cut. |
-| `id` | integer | yes | Its number in the part, from 2 (1 is the part as drawn). |
+| `id` | integer | yes | Its number, from 1, unique among the part's instances on every board; kept when it moves to another board. |
 | `mirror` | [Mirror](#mirror) or null | no | Mirrored about the part's centre line first. Null: as drawn. |
+| `part` | integer | yes | The part placed (`parts`). |
 
 ## InstanceOrder
 
@@ -757,19 +758,15 @@ Relief: a 3D model carved from the top with the drop cutter, in parallel lines.
 
 ## Part
 
-A part: a named group of operations, cut together, with its own copies (docs/specs/parts.md §2). It owns no geometry: its operations select the shapes.
+A part: a named group of operations, cut together (docs/specs/parts.md §2). It owns no geometry, its operations select the shapes, and no placement: the setups hold its instances (docs/specs/parts-and-setups.md §2).
 
 | Field | Type | Required | Meaning |
 |---|---|---|---|
-| `angle` | number | yes | Instance 1, the part itself, turned about the part's centre, radians, counter-clockwise, as an instance is; 0: as drawn. Since schema 39. |
-| `at` | 2 × number | yes | Instance 1 then moved, mm; (0, 0): where drawn. Since schema 39. |
-| `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut. |
-| `id` | integer | yes | Its number, unique in the project: what operations name it by. |
-| `instances` | list of [Instance](#instance) | yes | The part placed again: each instance the same shapes and operations moved, turned and perhaps mirrored (instance 1 is the part itself, placed by `angle` and `at`, and isn't listed). Empty: cut once. Since schema 38, in place of a grid of copies. |
-| `mirror` | [Mirror](#mirror) or null | no | Cut mirrored about the centre line of its box, the drawing as drawn. Missing: as drawn. Left out when missing. |
+| `enabled` | boolean | yes | False: the part and all its operations stay in the project but aren't cut, on any board. |
+| `id` | integer | yes | Its number, unique in the project: what operations and instances name it by. |
+| `mirror` | [Mirror](#mirror) or null | no | Cut mirrored about the centre line of its box, the drawing as drawn: every instance with it. Missing: as drawn. Left out when missing. |
 | `name` | string | yes | Its name, unique in the project, shown in the Browser, the report and the sheet. |
 | `order` | [InstanceOrder](#instanceorder) | yes | `by_operation`: each operation on every instance, then the next; `by_instance`: every operation on one instance, then the next instance. Since schema 38. |
-| `setup` | integer | yes | The id of the setup it is cut in (`setups`). Since schema 34. |
 | `turns` | [Turns](#turns) or null | no | How it may be turned when nested. Missing: a quarter turn at a time. Left out when missing. |
 
 ## PathSegment
@@ -957,6 +954,7 @@ A setup: one board clamped once on the machine, with its stock and work zero, an
 | `back_of` | [BackOf](#backof) or null | no | Set: this setup is the back of another, the same board turned over. Its stock and work zero then follow that setup's ([`Job::follow_fronts`]), and its cuts are mirrored about the board's centre line. Null: a board of its own. Since schema 36. |
 | `enabled` | boolean | no | False: the setup and its parts stay in the project but aren't cut. |
 | `id` | integer | yes | Its number, unique in the project: what parts name it by. |
+| `instances` | list of [Instance](#instance) | yes | The parts cut from this board, each placed: a part once where it is drawn, or moved, turned, mirrored, several times. Cut grouped by part in the project's order, each part's instances in this order. Since schema 41, in place of each part's own placement and instances. |
 | `name` | string | yes | Its name, shown in the Browser, the report and the setup sheet. |
 | `nest` | [Nest](#nest) or null | no | How the setup was last nested: its gap and margin, kept so *Nest again* needs no questions. Missing: never nested. Left out when missing. |
 | `pieces` | [Pieces](#pieces) or null | no | Set: the setup is cut as a puzzle, in pieces that each fit a board, joined by seams with joints; each piece is a program of its own. Null: one board. Since schema 37. |

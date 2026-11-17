@@ -126,7 +126,7 @@ fn instances_get_a_pitch_from_a_gap_and_are_drawn_faded() {
         dy: 0.0,
     };
     app.set_copies_grid(1, grid, Some(5.0));
-    let instances = app.edit.as_ref().unwrap().job.parts[0].instances.clone();
+    let instances = others(&app.edit.as_ref().unwrap().job, 1);
     assert_eq!(instances.len(), 3);
     let [dx, dy] = instances[1].at;
     assert!(dx > 5.0 && dy > 5.0, "{instances:?}");
@@ -144,7 +144,7 @@ fn instances_get_a_pitch_from_a_gap_and_are_drawn_faded() {
     assert_eq!(path.ghost_feeds.len(), 3 * one.feeds.len());
     assert_eq!(path.starts.len(), one.starts.len());
     assert_eq!(
-        app.edit.as_ref().unwrap().to_job().unwrap().parts[0].instances,
+        others(&app.edit.as_ref().unwrap().to_job().unwrap(), 1),
         instances
     );
 

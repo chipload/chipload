@@ -19,7 +19,7 @@ pub(in crate::app) fn setup_form(
         .job
         .parts
         .iter()
-        .filter(|p| p.setup == id)
+        .filter(|p| edit.job.part_on(p.id, id))
         .map(|p| p.name.clone())
         .collect();
     let labels = job_label_width(ui);

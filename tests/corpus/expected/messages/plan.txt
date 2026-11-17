@@ -1550,6 +1550,24 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v40/placed_back.chipload
+exit 0
+--- stdout
+Operation 3: a ring starts at (53.992, 39.679) (default)
+Operation 3: a ring starts at (51.833, 30.642) (default)
+Setup 2 (Setup 1 back) of 2: the other setups are planned on their own (--setup N)
+Part 2 Part 2: one
+Estimated time: 16 s (cutting 13 s, rapids 0 s, spindle 3 s)
+Cut outline: 48.974 × 26.999 mm (X 35.513 … 84.487, Y 26.499 … 53.498, the tool included): the smallest stock that holds the job.
+  Part 2 (Part 2): 13 s; cutting 379 mm, plunging 2 mm, rapids 31 mm, 2 lifts
+    Operation 3 (Pocket 2): 13 s; cutting 379 mm, plunging 2 mm, rapids 31 mm, 2 lifts
+  In all: cutting 379 mm, plunging 2 mm, rapids 31 mm, 2 lifts.
+  At the programmed feeds (rapids at the machine's max feed, 5000 mm/min); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 3 (Pocket 2): 0.050 mm/tooth
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v5/drawn_part.chipload
 exit 0
 --- stdout

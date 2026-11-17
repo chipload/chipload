@@ -106,11 +106,11 @@ impl ChiploadApp {
         let rows = job
             .parts
             .iter()
-            .filter(|p| p.setup == id && p.enabled)
+            .filter(|p| p.enabled && job.part_on(p.id, id))
             .map(|p| NestRow {
                 part: p.id,
                 name: p.name.clone(),
-                count: p.count(),
+                count: job.for_setup(id).count(p.id),
                 turns: p.turns.unwrap_or_default(),
             })
             .collect();
@@ -257,7 +257,7 @@ impl ChiploadApp {
         let parts: Vec<u64> = preview
             .parts
             .iter()
-            .filter(|p| p.setup == result.setup)
+            .filter(|p| preview.part_on(p.id, result.setup))
             .map(|p| p.id)
             .collect();
         let ghosts =

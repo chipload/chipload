@@ -18,7 +18,7 @@ fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     app.focus = Focus::Setup(2);
     let job = app.edited_job().unwrap();
     assert_eq!(job.active_setup_id(), Some(2));
-    assert_eq!(job.part(job.active_part_id().unwrap()).unwrap().setup, 2);
+    assert_eq!(job.setups_of_part(job.active_part_id().unwrap()), [2]);
     assert_eq!(job.stock().thickness, 6.0);
     draw_properties(&mut app);
     draw_sidebar(&mut app);
@@ -39,7 +39,7 @@ fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     assert!(dir.join("box-S2.nc").exists());
     // A part moves to the other setup; one with operations can't be removed.
     app.move_part_to_setup(2, 1);
-    assert_eq!(app.edited_job().unwrap().part(2).unwrap().setup, 1);
+    assert_eq!(app.edited_job().unwrap().setups_of_part(2), [1]);
     app.remove_setup(1);
     assert_eq!(app.edited_job().unwrap().setups.len(), 2);
     // A new setup: active, with a part of its own; removed again, empty.

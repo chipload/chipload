@@ -72,7 +72,7 @@ fn five_of_a_part_are_nested_apart_on_the_board_and_checked() {
     );
     assert_eq!(nested.count(), 5);
     assert!(nested.unplaced.is_empty(), "{:?}", nested.unplaced);
-    assert_eq!(nested.job.parts[0].count(), 5);
+    assert_eq!(nested.job.count(1), 5);
     // Kept for Nest again: the defaults.
     let kept = nested.job.setups[0].nest.unwrap();
     assert_eq!((kept.gap, kept.margin), (3.0, 10.0));
@@ -123,17 +123,13 @@ fn turns_are_kept_per_part_and_none_keeps_it_as_it_lies() {
 #[test]
 fn a_mirrored_instance_stays_mirrored() {
     let mut job = part_on_board(1000.0, 600.0);
-    job.parts[0].instances = vec![Instance {
-        id: 2,
-        enabled: true,
-        mirror: Some(Mirror::LeftRight),
-        angle: 0.0,
-        at: [0.0, 0.0],
-    }];
+    let mut second = Instance::drawn(1, 2);
+    second.mirror = Some(Mirror::LeftRight);
+    job.set_instances_here(1, vec![Instance::drawn(1, 1), second]);
     let nested = nest(&job, NestRequest::default());
     assert_eq!(nested.placed.len(), 2);
     assert_eq!(
-        nested.job.parts[0].instances[0].mirror,
+        nested.job.instance(1, 2).unwrap().mirror,
         Some(Mirror::LeftRight)
     );
     assert_cut_inside(&nested.job, 10.0);
@@ -142,22 +138,16 @@ fn a_mirrored_instance_stays_mirrored() {
 #[test]
 fn counts_add_and_remove_instances_never_the_part_itself() {
     let mut job = part_on_board(1000.0, 600.0);
-    job.parts[0].instances = vec![
-        Instance {
-            id: 2,
-            enabled: true,
-            mirror: None,
-            angle: 0.0,
-            at: [300.0, 0.0],
-        },
-        Instance {
-            id: 3,
-            enabled: false,
-            mirror: None,
-            angle: 0.0,
-            at: [600.0, 0.0],
-        },
-    ];
+    let mut off = Instance::moved(1, 3, [600.0, 0.0]);
+    off.enabled = false;
+    job.set_instances_here(
+        1,
+        vec![
+            Instance::drawn(1, 1),
+            Instance::moved(1, 2, [300.0, 0.0]),
+            off,
+        ],
+    );
     // Fewer: the highest-numbered enabled one goes; the one that is off stays.
     let nested = nest(
         &job,
@@ -166,9 +156,13 @@ fn counts_add_and_remove_instances_never_the_part_itself() {
             ..Default::default()
         },
     );
-    let ids: Vec<u32> = nested.job.parts[0].instances.iter().map(|i| i.id).collect();
-    assert_eq!(ids, vec![3]);
-    assert_eq!(nested.job.parts[0].count(), 1);
+    let ids: Vec<u32> = nested.job.setups[0]
+        .instances
+        .iter()
+        .map(|i| i.id)
+        .collect();
+    assert_eq!(ids, vec![1, 3]);
+    assert_eq!(nested.job.count(1), 1);
     // None at all: refused.
     let err = refusal(
         &job,
@@ -202,9 +196,9 @@ fn what_doesnt_fit_is_switched_off_and_the_part_stays_on() {
         nested.unplaced
     );
     for &(_, n) in &nested.unplaced {
-        assert!(!part.instances.iter().find(|i| i.id == n).unwrap().enabled);
+        assert!(!nested.job.instance(part.id, n).unwrap().enabled);
     }
-    assert_eq!(part.count() as usize, nested.placed.len());
+    assert_eq!(nested.job.count(part.id) as usize, nested.placed.len());
     assert_cut_inside(&nested.job, 10.0);
     let notes: Vec<String> = nested.notes().iter().map(|m| m.english()).collect();
     assert!(

@@ -3,24 +3,24 @@
 //! grid and the pitch for a gap between copies.
 
 use chipload_i18n::{Digits, Message, Value};
-use chipload_job::{InstanceOrder, Job, Part, Units};
+use chipload_job::{Instance, InstanceOrder, Job, Part, Units};
 use chipload_toolpath::plan::cut_extent;
 use chipload_toolpath::plan_job;
 
 use crate::{PipelineError, load_drawing};
 
-/// "3 in all, operation by operation": a part with its instances (docs/specs/instances.md
-/// §7).
-pub fn instances_text(part: &Part) -> String {
-    instances_message(part).english()
+/// "3 in all, operation by operation": a part with its instances on the active setup
+/// (docs/specs/instances.md §7).
+pub fn instances_text(job: &Job, part: &Part) -> String {
+    instances_message(job, part).english()
 }
 
 /// [`instances_text`] as a message.
-pub fn instances_message(part: &Part) -> Message {
+pub fn instances_message(job: &Job, part: &Part) -> Message {
     // The part itself counts as turned when it is (docs/specs/part-placement.md).
-    let spots = part.spots();
+    let spots = job.spots(part.id);
     Message::new("pipeline-instances")
-        .arg("count", part.count())
+        .arg("count", spots.len())
         .arg(
             "turned",
             spots.iter().filter(|(_, s)| s.angle != 0.0).count(),
@@ -41,7 +41,7 @@ pub fn copies_text(job: &Job) -> Option<String> {
 /// [`copies_text`] as a message.
 pub fn copies_message(job: &Job, _units: Units) -> Option<Message> {
     match job.parts.as_slice() {
-        [part] if !part.instances.is_empty() => Some(instances_message(part)),
+        [part] if several(job, part) => Some(instances_message(job, part)),
         _ => None,
     }
 }
@@ -64,10 +64,10 @@ pub fn parts_messages(job: &Job, _units: Units) -> Vec<Message> {
         .iter()
         .enumerate()
         .map(|(i, part)| {
-            let copies = if part.instances.is_empty() {
-                Message::new("pipeline-copies-one")
+            let copies = if several(job, part) {
+                instances_message(job, part)
             } else {
-                instances_message(part)
+                Message::new("pipeline-copies-one")
             };
             let id = if part.enabled {
                 "pipeline-copies-part"
@@ -82,6 +82,12 @@ pub fn parts_messages(job: &Job, _units: Units) -> Vec<Message> {
         .collect()
 }
 
+/// Whether the part has instances on the active setup besides one, on or off: what used to
+/// be "instances listed on the part".
+fn several(job: &Job, part: &Part) -> bool {
+    job.instances_here(part.id).len() > 1
+}
+
 /// How a part's instances are cut: "operation by operation", "instance by instance".
 pub fn order_message(order: InstanceOrder) -> Message {
     Message::new(match order {
@@ -93,14 +99,13 @@ pub fn order_message(order: InstanceOrder) -> Message {
 /// Width and height the tool cuts for one copy of part `part` (the toolpath plus the tool
 /// radius): the project planned with that part alone, once.
 pub fn cut_size(job: &Job, part: u64) -> Result<(f64, f64), PipelineError> {
-    let mut one = job.clone();
+    let home = job.home_setup(part).or_else(|| job.active_setup_id());
+    let mut one = home.map_or_else(|| job.clone(), |id| job.for_setup(id));
     for p in &mut one.parts {
         p.enabled = p.id == part;
-        p.instances.clear();
-        // One copy as drawn: a turn would change its width and height.
-        p.angle = 0.0;
-        p.at = [0.0, 0.0];
     }
+    // One copy as drawn: a turn would change its width and height.
+    one.set_instances_here(part, vec![Instance::drawn(part, 1)]);
     let imported = load_drawing(&one)?;
     let plan = plan_job(&one, &imported.contours)?;
     let ((x0, y0), (x1, y1)) = cut_extent(&plan.program.moves, &plan.op_spans, None)

@@ -16,6 +16,10 @@ pub(in crate::app) fn part_form(
         .collect();
     let index = edit.job.parts.iter().position(|p| p.id == id)?;
     let several = edit.job.parts.len() > 1;
+    // Its instances, on every board (docs/specs/parts-and-setups.md §2).
+    let count = edit.job.count_all(id);
+    let has_instances = edit.job.instances_of(id).len() > 1;
+    let mut clear = false;
     let part = &mut edit.job.parts[index];
     super::browser_row::title_line(
         ui,
@@ -61,14 +65,23 @@ pub(in crate::app) fn part_form(
                 ui.end_row();
             })
     });
-    let copies = if part.instances.is_empty() {
-        t!(ui, "forms-copies-one")
+    let copies = if has_instances {
+        count.to_string()
     } else {
-        part.count().to_string()
+        t!(ui, "forms-copies-one")
     };
     section(ui, "part-copies", &t!(ui, "forms-copies"), &copies, |ui| {
-        copies_rows(ui, part, &mut request, id);
+        let instances = (count, has_instances, &mut clear);
+        copies_rows(ui, part, instances, &mut request, id);
     });
+    if clear {
+        // Cut once: its first instance on its board stays.
+        let active = edit.job.active_setup;
+        edit.job.active_setup = edit.job.home_setup(id).or(active);
+        let first = edit.job.instances_here(id).first().map(|i| **i);
+        edit.job.set_instances_here(id, first.into_iter().collect());
+        edit.job.active_setup = active;
+    }
     if several {
         ui.add_space(4.0);
         ui.weak(t!(ui, "forms-parts-note"));
@@ -107,23 +120,24 @@ pub(in crate::app) fn instance_form(
     id: u32,
 ) -> Option<JobRequest> {
     use chipload_job::{Instance, Mirror};
-    let index = edit.job.parts.iter().position(|p| p.id == part)?;
-    let own = &edit.job.parts[index];
+    let own = edit.job.part(part)?;
     let name = own.name.clone();
-    // The value edited, and where its problems are reported.
-    let (mut instance, base) = if id == 1 {
-        let value = Instance {
-            id: 1,
-            enabled: own.enabled,
-            mirror: None,
-            angle: own.angle,
-            at: own.at,
-        };
-        (value, format!("parts.{index}"))
-    } else {
-        let k = own.instances.iter().position(|i| i.id == id)?;
-        (own.instances[k], format!("parts.{index}.instances.{k}"))
-    };
+    let enabled = own.enabled;
+    // The value edited, and where its problems are reported: in its setup
+    // (docs/specs/parts-and-setups.md §5).
+    let (j, k) = edit.job.setups.iter().enumerate().find_map(|(j, s)| {
+        s.instances
+            .iter()
+            .position(|i| i.part == part && i.id == id)
+            .map(|k| (j, k))
+    })?;
+    let mut instance: Instance = edit.job.setups[j].instances[k];
+    if id == 1 {
+        // The part itself is on with its part.
+        instance.enabled = enabled;
+    }
+    // Problems are keyed by field, without the setup's place.
+    let base = format!("instances.{k}");
     super::browser_row::title_line(
         ui,
         crate::icons::Icon::Array,
@@ -196,42 +210,40 @@ pub(in crate::app) fn instance_form(
             })
     });
     ui.add_space(4.0);
+    let target = &mut edit.job.setups[j].instances[k];
     if id == 1 {
         ui.weak(t!(ui, "forms-instance-one-note"));
-        let target = &mut edit.job.parts[index];
         target.angle = instance.angle;
         target.at = instance.at;
     } else {
         ui.weak(t!(ui, "forms-instance-note"));
-        if let Some(target) = edit.job.parts[index]
-            .instances
-            .iter_mut()
-            .find(|i| i.id == id)
-        {
-            *target = instance;
-        }
+        *target = instance;
     }
     None
 }
 
 /// A part's instances (docs/specs/instances.md §4): how many, their cut order, and a grid
 /// that makes them: columns × rows at a pitch, or at a gap between the cuts.
+/// `instances`: how many times it is cut, whether it has instances besides one, and set
+/// when they are to go.
 pub(super) fn copies_rows(
     ui: &mut egui::Ui,
     part: &mut chipload_job::Part,
+    instances: (u32, bool, &mut bool),
     request: &mut Option<JobRequest>,
     id: u64,
 ) {
+    let (count, several, clear) = instances;
     ui.label(t!(ui, "forms-copies"))
         .on_hover_text(t!(ui, "forms-copies-hover"));
     ui.horizontal(|ui| {
-        ui.label(part.count().to_string());
-        if !part.instances.is_empty() && ui.button(t!(ui, "forms-instances-none")).clicked() {
-            part.instances.clear();
+        ui.label(count.to_string());
+        if several && ui.button(t!(ui, "forms-instances-none")).clicked() {
+            *clear = true;
         }
     });
     ui.end_row();
-    if !part.instances.is_empty() {
+    if several {
         ui.label(format!("  {}", t!(ui, "forms-order")));
         ComboBox::from_id_salt(("copies-order", id))
             .selected_text(order_name(ui, part.order))

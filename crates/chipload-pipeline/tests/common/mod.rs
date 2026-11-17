@@ -187,10 +187,11 @@ pub fn bones_beside_another_part(circle_at: [f64; 2]) -> Job {
     data["drawing"]["next_shape_id"] = json!(4);
     data["drawing"]["dxfs"] = json!([]);
     data["parts"] = json!([
-        {"id": 1, "name": "Box", "enabled": true, "instances": [], "order": "by_operation", "setup": 1,
-         "angle": 0.0, "at": [0.0, 0.0]},
-        {"id": 2, "name": "Dot", "enabled": true, "instances": [], "order": "by_operation", "setup": 1,
-         "angle": 0.0, "at": [0.0, 0.0]}]);
+        {"id": 1, "name": "Box", "enabled": true, "order": "by_operation"},
+        {"id": 2, "name": "Dot", "enabled": true, "order": "by_operation"}]);
+    data["setups"][0]["instances"] = json!([
+        {"part": 1, "id": 1, "enabled": true, "mirror": null, "angle": 0.0, "at": [0.0, 0.0]},
+        {"part": 2, "id": 1, "enabled": true, "mirror": null, "angle": 0.0, "at": [0.0, 0.0]}]);
     let template = data["operations"][1].clone();
     let profile = |part: u64, layer: &str, side: &str, corners: serde_json::Value| {
         let mut op = template.clone();

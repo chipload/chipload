@@ -616,7 +616,7 @@ pub fn add_dowels(
             Message::new("pipeline-dowels-there").arg("number", i + 1),
         ));
     }
-    let Some(part) = job.parts.iter().find(|p| p.setup == front).map(|p| p.id) else {
+    let Some(part) = job.parts_on(front).first().copied() else {
         return Err(refused(Message::new("pipeline-no-setup").arg("id", front)));
     };
     let mut out = job.clone();

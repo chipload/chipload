@@ -77,14 +77,12 @@ pub fn add_part(job: &Job, name: Option<&str>) -> Result<(Job, u64), PipelineErr
         id,
         name,
         enabled: true,
-        instances: Vec::new(),
         order: chipload_job::InstanceOrder::ByOperation,
-        setup,
         mirror: None,
-        angle: 0.0,
-        at: [0.0, 0.0],
         turns: None,
     });
+    // Once, where it is drawn (docs/specs/parts-and-setups.md §2).
+    job.place_part(id, setup);
     job.active_part = Some(id);
     Ok((checked(job)?, id))
 }
@@ -204,12 +202,15 @@ pub fn instance_outlines_showing(
     shown: &[u64],
 ) -> Vec<InstanceOutline> {
     let mut out = Vec::new();
-    let own_shown = |p: &chipload_job::Part| p.is_placed() || shown.contains(&p.id);
-    for part in job
-        .parts
-        .iter()
-        .filter(|p| !p.instances.is_empty() || own_shown(p))
-    {
+    let own_shown = |p: &chipload_job::Part| job.is_placed(p.id) || shown.contains(&p.id);
+    let listed = |p: &chipload_job::Part| {
+        job.instances_of(p.id)
+            .into_iter()
+            .filter(|(_, i)| i.id != 1 || own_shown(p))
+            .map(|(_, i)| (i.id, i.enabled, i.spot()))
+            .collect::<Vec<_>>()
+    };
+    for part in job.parts.iter().filter(|p| !listed(p).is_empty()) {
         let centre = job.part_centre(part.id).unwrap_or((0.0, 0.0));
         let mut line = None;
         let mut ids: Vec<usize> = Vec::new();
@@ -239,9 +240,10 @@ pub fn instance_outlines_showing(
             .filter(|c| ids.contains(&c.id))
             .map(|c| (c.points().into_iter().map(flip).collect(), c.closed))
             .collect();
-        let own = own_shown(part).then_some((1, part.enabled, part.spot()));
-        let others = part.instances.iter().map(|i| (i.id, i.enabled, i.spot()));
-        for (id, enabled, spot) in own.into_iter().chain(others) {
+        // The part itself (number 1) is on with its part: it can't be off alone
+        // (docs/specs/part-placement.md decision 3).
+        for (id, enabled, spot) in listed(part) {
+            let enabled = if id == 1 { part.enabled } else { enabled };
             let place = chipload_toolpath::place::Placement::new(&spot, centre);
             let (dx, dy) = (spot.at[0], spot.at[1]);
             let put = |p: Point| {
@@ -269,9 +271,11 @@ pub fn instance_outlines_showing(
 /// Where turned and mirrored instances that are on are cut, with whether each outline is
 /// closed: what the setup sheet draws besides the shifts of [`crate::sheet::contour_copies`].
 pub fn placed_outlines(job: &Job, contours: &[Contour]) -> Vec<(Vec<Point>, bool)> {
+    // Only the active setup's: the sheet is one board's.
     let turned = |part: u64, id: u32| {
-        job.part(part)
-            .and_then(|p| p.spots().into_iter().find(|(n, _)| *n == id))
+        job.spots(part)
+            .into_iter()
+            .find(|(n, _)| *n == id)
             .is_some_and(|(_, spot)| !spot.is_move())
     };
     instance_outlines(job, contours)
@@ -331,6 +335,7 @@ pub fn remove_part(
     }
     let mut job = job.clone();
     job.parts.remove(at);
+    job.remove_part_instances(id);
     job.operations.retain(|op| op.part() != id);
     if job.active_part == Some(id) {
         job.active_part = job.parts.first().map(|p| p.id);

@@ -202,7 +202,7 @@ fn an_inlay_sign_makes_the_pocket_here_and_the_plug_in_its_own_board() {
             _ => None,
         })
         .unwrap();
-    assert_eq!(job.part(plug.part).unwrap().setup, setup);
+    assert_eq!(job.setups_of_part(plug.part), [setup]);
     assert_eq!(job.active_part, Some(sign.part));
     assert_eq!(run_setups(&job, None).unwrap().len(), 2);
 }

@@ -64,13 +64,9 @@ fn part() -> Vec<Contour> {
 
 fn with_instance(ops: Value, spot: Spot) -> Job {
     let mut job = job(ops);
-    job.parts[0].instances = vec![Instance {
-        id: 2,
-        enabled: true,
-        mirror: spot.mirror,
-        angle: spot.angle,
-        at: spot.at,
-    }];
+    let mut second = Instance::drawn(1, 2);
+    second.set_spot(spot);
+    job.set_instances_here(1, vec![Instance::drawn(1, 1), second]);
     job
 }
 
@@ -211,13 +207,14 @@ proptest! {
         let mut drawn = with_instance(ops, instance);
         drawn.parts[0].mirror = mirror_of(mirror);
         let mut placed = drawn.clone();
-        placed.parts[0].angle = angle;
-        placed.parts[0].at = [x, y];
+        let own = placed.instance_mut(1, 1).unwrap();
+        own.angle = angle;
+        own.at = [x, y];
         let (before, after) = (
             plan_job(&drawn, &part()).unwrap(),
             plan_job(&placed, &part()).unwrap(),
         );
-        let place = Placement::new(&placed.parts[0].spot(), (0.0, 0.0));
+        let place = Placement::new(&placed.instance(1, 1).unwrap().spot(), (0.0, 0.0));
         let reference = feed_ends_of(&before, 1, Some(1));
         let profile_ends = feed_ends_of(&after, 1, Some(1));
         prop_assert_eq!(reference.len(), profile_ends.len());
@@ -312,7 +309,7 @@ fn an_instance_that_is_off_is_not_cut() {
         at: [400.0, 400.0],
     };
     let mut job = with_instance(json!([profile("outside", Value::Null)]), spot);
-    job.parts[0].instances[0].enabled = false;
+    job.instance_mut(1, 2).unwrap().enabled = false;
     let plan = plan_job(&job, &part()).unwrap();
     assert!(plan.op_spans.iter().all(|s| s.copy == 1));
 }

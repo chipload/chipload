@@ -530,7 +530,7 @@ pub fn shown_on_board(job: &Job, program: &Program) -> Program {
 /// parts.md §5).
 fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Message> {
     let mut notes = Vec::new();
-    for part in job.parts.iter().filter(|p| p.count() > 1) {
+    for part in job.parts.iter().filter(|p| job.count(p.id) > 1) {
         let mine: Vec<OpSpan> = spans
             .iter()
             .filter(|s| {
@@ -557,7 +557,7 @@ fn copies_notes(job: &Job, program: &Program, spans: &[OpSpan]) -> Vec<Message> 
         let number = |mm: f64| Value::LengthNumber(mm, Digits::Fixed(3));
         let length = |mm: f64| Value::Length(mm, Digits::Fixed(3));
         notes.push(
-            note.arg("count", part.count())
+            note.arg("count", job.count(part.id))
                 .arg("x0", number(x0))
                 .arg("x1", length(x1))
                 .arg("y0", number(y0))

@@ -243,7 +243,7 @@ fn the_pair_is_a_pocket_and_a_mirrored_plug_on_a_board_of_its_own() {
     assert_eq!(plug.select, pocket.select);
     let part = job.part(made.part).unwrap();
     assert_eq!(part.mirror, Some(chipload_job::Mirror::LeftRight));
-    assert_eq!(part.setup, made.setup);
+    assert_eq!(job.setups_of_part(part.id), [made.setup]);
     let setup = job.setups.iter().find(|s| s.id == made.setup).unwrap();
     assert_eq!(setup.stock.thickness, 10.0);
     assert_eq!(setup.stock.fit, Some(10.0));
@@ -384,11 +384,15 @@ fn a_plug_as_deep_as_its_v_bit_cuts_and_no_deeper() {
 #[test]
 fn a_plug_part_with_copies_is_refused() {
     let (mut job, made) = inlay_of(2, 1, 0.0);
-    job.parts
-        .iter_mut()
-        .find(|p| p.id == made.part)
-        .unwrap()
-        .instances = vec![chipload_job::Instance::moved(2, [100.0, 0.0])];
+    let part = made.part;
+    job.active_setup = Some(made.setup);
+    job.set_instances_here(
+        part,
+        vec![
+            chipload_job::Instance::drawn(part, 1),
+            chipload_job::Instance::moved(part, 2, [100.0, 0.0]),
+        ],
+    );
     let path = format!("operations.{}.part", made.plug);
     assert!(
         problems(&job).iter().any(|(p, _)| *p == path),

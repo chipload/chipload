@@ -438,14 +438,13 @@ impl EditJob {
             id,
             name,
             enabled: true,
-            instances: Vec::new(),
             order: chipload_job::InstanceOrder::ByOperation,
-            setup: self.job.active_setup_id().unwrap_or(1),
             mirror: None,
-            angle: 0.0,
-            at: [0.0, 0.0],
             turns: None,
         });
+        // Once, where it is drawn, on the active setup (docs/specs/parts-and-setups.md §2).
+        let setup = self.job.active_setup_id().unwrap_or(1);
+        self.job.place_part(id, setup);
         self.job.active_part = Some(id);
         id
     }
@@ -458,6 +457,7 @@ impl EditJob {
         }
         let at = self.job.parts.iter().position(|p| p.id == id)?;
         self.job.parts.remove(at);
+        self.job.remove_part_instances(id);
         let before = self.job.operations.len();
         self.reorder(|ops| ops.retain(|(op, _)| op.part() != id));
         if self.job.active_part == Some(id) {

@@ -66,6 +66,12 @@ The stock and the work zero belong to a setup (`setups.0.stock.thickness`,
 `setups.0.work_zero`); `stock.…` and `machine.work_zero` still work and mean the active
 setup's, so older scripts keep working.
 
+A part's instances belong to the setups too, each naming its part and number
+(`setups.0.instances.1.at`, `setups.0.instances.1.angle`); the part itself is its
+instance 1. The paths of Chipload 0.37 and before (`parts.0.at`, `parts.0.angle`,
+`parts.0.instances.0.at`, `parts.0.setup`) are refused, with the path that holds the value
+now.
+
 ```sh
 chipload get part.chipload operations.1.end_depth          # 6.0
 chipload set part.chipload operations.1.end_depth=6.5 operations.1.name=Corners
