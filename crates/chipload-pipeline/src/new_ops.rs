@@ -308,7 +308,7 @@ pub fn new_operations(
     let mut messages = Vec::new();
     let made: Vec<(Operation, bool)> = match kind {
         OpKind::Profile => {
-            let sides = profile_sides(job, &request.select, contours);
+            let sides = profile_sides(job, start.part, &request.select, contours);
             match sides {
                 Sides::One(side) => vec![(
                     start.profile(name(number), &request.select, side, true),
@@ -342,7 +342,7 @@ pub fn new_operations(
         // A moulding's profile lies where a profile's waste would be: round outlines,
         // within holes; left of open paths (docs/specs/moulding.md §4).
         OpKind::Moulding => {
-            let side = match profile_sides(job, &request.select, contours) {
+            let side = match profile_sides(job, start.part, &request.select, contours) {
                 Sides::One(Side::Inside) => MouldSide::Inside,
                 Sides::One(_) | Sides::Split { .. } => MouldSide::Outside,
                 Sides::Unknown => MouldSide::Left,
@@ -351,7 +351,7 @@ pub fn new_operations(
         }
         // A chamfer's waste is where a profile's would be: around outlines, within holes
         // (docs/specs/chamfer.md §6).
-        OpKind::Chamfer => match profile_sides(job, &request.select, contours) {
+        OpKind::Chamfer => match profile_sides(job, start.part, &request.select, contours) {
             Sides::One(side) => vec![(
                 start.chamfer(name(number), &request.select, edge_side(side)),
                 true,
@@ -574,7 +574,18 @@ enum Sides {
     Unknown,
 }
 
-fn profile_sides(job: &Job, select: &Selector, contours: &[Contour]) -> Sides {
+/// The side a profile of part `part` on `select` defaults to: inside for holes only,
+/// outside for outlines only, None (the user chooses) for a mix or nothing
+/// (docs/specs/styles.md §2.1). A shape inside an outline only other parts cut is an
+/// outline (docs/specs/parts-and-setups.md §2a).
+pub fn default_side(job: &Job, part: u64, select: &Selector, contours: &[Contour]) -> Option<Side> {
+    match profile_sides(job, part, select, contours) {
+        Sides::One(side) => Some(side),
+        Sides::Split { .. } | Sides::Unknown => None,
+    }
+}
+
+fn profile_sides(job: &Job, part: u64, select: &Selector, contours: &[Contour]) -> Sides {
     // Nothing selected yet: an empty selector would match every contour.
     if select.is_empty() {
         return Sides::Unknown;
@@ -588,8 +599,12 @@ fn profile_sides(job: &Job, select: &Selector, contours: &[Contour]) -> Sides {
         return Sides::Unknown;
     };
     // Open contours matched (centre lines on a cutting layer) are skipped by a profile and
-    // don't change its side.
-    let is_hole = |c: &Contour| c.nesting_depth.unwrap_or(0) % 2 == 1;
+    // don't change its side. An outline only other parts cut doesn't make a hole of what
+    // lies in it: that is a part of its own, drawn there (docs/specs/parts-and-setups.md
+    // §2a, the user, 2026-11-17).
+    let picked: BTreeSet<usize> = selection.contours.iter().map(|c| c.id).collect();
+    let passed = others_outlines(job, part, contours, &picked);
+    let is_hole = |c: &Contour| depth_without(c, contours, &passed) % 2 == 1;
     let (holes, outlines): (Vec<&Contour>, Vec<&Contour>) =
         selection.contours.iter().partition(|c| is_hole(c));
     match (holes.is_empty(), outlines.is_empty()) {
@@ -601,6 +616,57 @@ fn profile_sides(job: &Job, select: &Selector, contours: &[Contour]) -> Sides {
             _ => Sides::Unknown,
         },
     }
+}
+
+/// The closed contours (ids) that only the operations of parts other than `part` cut: not
+/// cut by `part`, nor in `picked`, the selection.
+fn others_outlines(
+    job: &Job,
+    part: u64,
+    contours: &[Contour],
+    picked: &BTreeSet<usize>,
+) -> BTreeSet<usize> {
+    let label = Message::new("toolpath-error-no-operation").arg("at", "new");
+    let mut mine = BTreeSet::new();
+    let mut theirs = BTreeSet::new();
+    for op in &job.operations {
+        if !op.selects_shapes() {
+            continue;
+        }
+        let Ok(selection) = chipload_toolpath::select::select_contours(
+            contours,
+            &op.select().resolved(&job.drawing),
+            &label,
+        ) else {
+            continue;
+        };
+        let into = if op.part() == part {
+            &mut mine
+        } else {
+            &mut theirs
+        };
+        into.extend(selection.contours.iter().filter(|c| c.closed).map(|c| c.id));
+    }
+    theirs
+        .into_iter()
+        .filter(|id| !mine.contains(id) && !picked.contains(id))
+        .collect()
+}
+
+/// Contour `inner`'s nesting depth among the drawing's closed contours, those in `passed`
+/// left out; its depth from the drawing when none are.
+fn depth_without(inner: &Contour, contours: &[Contour], passed: &BTreeSet<usize>) -> usize {
+    let depth = inner.nesting_depth.unwrap_or(0);
+    if depth == 0 || passed.is_empty() {
+        return depth;
+    }
+    let ring = |c: &Contour| chipload_core::nesting::Ring::from_points(c.points());
+    let me = ring(inner);
+    contours
+        .iter()
+        .filter(|c| c.id != inner.id && c.nesting_depth.is_some() && !passed.contains(&c.id))
+        .filter(|c| chipload_core::nesting::contains(&ring(c), &me))
+        .count()
 }
 
 /// A selector of these contours' shapes; None when one has a part without a shape id (a

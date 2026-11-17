@@ -142,9 +142,12 @@ to a program you trust. It was about four per operation; with the defaults and s
     place, a part on several boards, nesting overflow onto more boards; nine decisions; six
     steps, the model first with every golden unchanged.
     Found testing (2026-11-17), fixed: a new setup made a part of its own (now empty);
-    setups made by hand stay listed until *Simple view* (`setups_shown`). Parked by the
-    user: a part's profile defaults to inside (no tabs) when its shape lies inside another
-    part's outline; the side comes from the drawing's nesting, not the part's own shapes.
+    setups made by hand stay listed until *Simple view* (`setups_shown`). Review of the
+    workflow (2026-11-17, all agreed): copies and placing are setups' work (no instances
+    under a part), a part's drag moves it (Ctrl places a copy), *Export all setups…*, a
+    shape inside another part's outline is an outline of its own: built. Next: a part's
+    stock asks before making a board; then step 6 with the remembered overflow choice and
+    the setup/board wording.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved

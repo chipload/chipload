@@ -9,12 +9,11 @@ use chipload_core::chain::{Contour, ShapeFrom};
 use chipload_i18n::Message;
 use chipload_job::library::ToolLibrary;
 use chipload_job::{
-    Drawing, HoleMethod, Job, Operation, Problem, Selector, Side, Source, WorkZero, find_tool,
+    Drawing, HoleMethod, Job, Operation, Problem, Selector, Source, WorkZero, find_tool,
 };
 use chipload_pipeline::new_ops::{NewRequest, new_operations};
 
 use crate::i18n::{Lang, t};
-use crate::view::Kind;
 
 /// Defaults for a new operation with nothing to take them from (decision 2026-10-09): a
 /// shallow, slow test cut. New operations are made in the pipeline
@@ -173,21 +172,6 @@ impl CanvasSelection {
                 }
             }
         }
-    }
-}
-
-/// Profile side for a selection: inside for holes only, outside for outers only, None (the
-/// user must choose) for a mix or nothing.
-pub fn default_side(ids: &BTreeSet<usize>, contours: &[Contour]) -> Option<Side> {
-    let kinds: BTreeSet<&str> = contours
-        .iter()
-        .filter(|c| ids.contains(&c.id) && c.closed)
-        .map(|c| Kind::of(c).name())
-        .collect();
-    match kinds.iter().copied().collect::<Vec<_>>().as_slice() {
-        ["hole"] => Some(Side::Inside),
-        ["outer"] => Some(Side::Outside),
-        _ => None,
     }
 }
 
@@ -355,16 +339,20 @@ impl EditJob {
         );
         let select = selection.selector(contours, open);
         let unsided = !self.side_chosen(index);
+        // The side the new shapes tell, the pipeline's rule (docs/specs/styles.md §2.1).
+        let told = match self.job.operations.get(index) {
+            Some(op @ Operation::Profile(_)) if unsided => {
+                chipload_pipeline::new_ops::default_side(&self.job, op.part(), &select, contours)
+            }
+            _ => None,
+        };
         let Some(op) = self.job.operations.get_mut(index) else {
             return;
         };
         match op {
             Operation::Profile(p) => {
                 p.select = select;
-                if unsided
-                    && let Some(side) =
-                        default_side(&selection.ids(contours, Some(&self.job.drawing)), contours)
-                {
+                if let Some(side) = told {
                     p.side = side;
                     self.unsided.remove(&index);
                 }
@@ -627,6 +615,7 @@ mod tests {
     use super::*;
     use crate::i18n::Language::En;
     use chipload_dxf::shapes_from_dxf;
+    use chipload_job::Side;
     use chipload_job::{DEFAULT_RAMP_ANGLE_RAD, Entry};
     use chipload_pipeline::{load_drawing, new_project};
     use std::path::PathBuf;
@@ -695,10 +684,14 @@ mod tests {
     fn side_defaults_follow_the_selection() {
         let contours = messy_2();
         // #2 is an outer, #1 a hole (layer 0).
-        assert_eq!(default_side(&[2].into(), &contours), Some(Side::Outside));
-        assert_eq!(default_side(&[1].into(), &contours), Some(Side::Inside));
-        assert_eq!(default_side(&[1, 2].into(), &contours), None);
-        assert_eq!(default_side(&BTreeSet::new(), &contours), None);
+        let side = |list: &[usize]| {
+            let select = ids(list).selector(&contours, false);
+            chipload_pipeline::new_ops::default_side(&project(), 1, &select, &contours)
+        };
+        assert_eq!(side(&[2]), Some(Side::Outside));
+        assert_eq!(side(&[1]), Some(Side::Inside));
+        assert_eq!(side(&[1, 2]), None);
+        assert_eq!(side(&[]), None);
         let mut job = new_job();
         let i = job.add(OpKind::Profile, &CanvasSelection::Nothing, &contours);
         assert!(!job.side_chosen(i));

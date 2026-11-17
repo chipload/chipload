@@ -21,7 +21,9 @@ pub use scene::{
     COMPASS_ARM_END_PX, COMPASS_ARM_START_PX, COMPASS_CENTRE_PX, COMPASS_RING_PX, CompassShape,
     CornerMarker, InstanceGhost, Scene, Sheet, StartMarker, TURN_HANDLE_PX, TabMarker, badge_rect,
 };
-pub use shapes::{ContourShape, Highlight, Kind, ToolpathShape};
+#[cfg(test)]
+pub use shapes::Kind;
+pub use shapes::{ContourShape, Highlight, ToolpathShape};
 pub use sim::{PictureLayer, SimLayer, SimSurface};
 
 /// The canvas's colours, one set for each theme (docs/specs/browser-and-layout.md §6b).

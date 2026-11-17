@@ -251,3 +251,68 @@ fn a_helix_made_for_a_larger_tool_fits_the_smaller_one() {
     job.fit_helixes();
     assert_eq!(job.operations[0].entry(), Entry::default_helix(3.0));
 }
+
+/// A big rectangle (shape 1) and a small one inside it (shape 2), in mm.
+fn nested_rectangles() -> Job {
+    let rect = |center: [f64; 2], size: f64| chipload_job::Geometry::Rectangle {
+        center,
+        length: size,
+        width: size,
+        angle: 0.0,
+        corner_radius: 0.0,
+    };
+    let job = crate::empty_project();
+    let (job, _) = crate::shapes::add_shape(&job, "0", rect([100.0, 100.0], 120.0)).unwrap();
+    let (job, _) = crate::shapes::add_shape(&job, "0", rect([100.0, 100.0], 40.0)).unwrap();
+    job
+}
+
+fn shapes(ids: &[u64]) -> Selector {
+    Selector {
+        shapes: Some(ids.to_vec()),
+        ..Selector::default()
+    }
+}
+
+fn side_and_tabs(made: &NewOps) -> (Side, bool) {
+    match &made.ops[0].op {
+        Operation::Profile(p) => (p.side, p.tabs.is_some()),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// The user, 2026-11-17: a part drawn inside another part's outline (each to be cut from
+/// its own board) is an outline of its own: outside, with tabs. Only another part's
+/// outline is passed over; one no operation cuts, or the part's own, still makes a hole.
+#[test]
+fn a_shape_inside_another_parts_outline_is_an_outline_of_its_own() {
+    let job = nested_rectangles();
+    let contours = crate::load_drawing(&job).unwrap().contours;
+    // Nothing cuts the big one yet: the small one is its hole.
+    let made = add(&job, &contours, OpKind::Profile, shapes(&[2]));
+    assert_eq!(side_and_tabs(&made), (Side::Inside, false));
+    // Part 1 cuts the big one out.
+    let made = add(&job, &contours, OpKind::Profile, shapes(&[1]));
+    assert_eq!(side_and_tabs(&made), (Side::Outside, true));
+    let mut job = job.clone();
+    job.operations.push(made.ops[0].op.clone());
+    // Part 2 (active): the small one is its own outline.
+    let (two, part) = crate::parts::add_part(&job, None).unwrap();
+    let made = add(&two, &contours, OpKind::Profile, shapes(&[2]));
+    assert_eq!(made.ops[0].op.part(), part);
+    assert_eq!(side_and_tabs(&made), (Side::Outside, true));
+    // In part 1, the big one's own part, it is still a hole.
+    let made = add(&job, &contours, OpKind::Profile, shapes(&[2]));
+    assert_eq!(side_and_tabs(&made), (Side::Inside, false));
+    // Both selected in part 2: the big one is selected, so the small one is its hole.
+    let made = add(&two, &contours, OpKind::Profile, shapes(&[1, 2]));
+    let sides: Vec<Side> = made
+        .ops
+        .iter()
+        .filter_map(|n| match &n.op {
+            Operation::Profile(p) => Some(p.side),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(sides, [Side::Inside, Side::Outside]);
+}

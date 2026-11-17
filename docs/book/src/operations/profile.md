@@ -10,7 +10,10 @@ and [Depths and oversize](../concepts/depths.md) for what every profile shares.
 
 A new profile of outlines goes outside and through with tabs, of holes inside and through;
 an outline selected with its holes gives two profiles, the holes first ([What a new
-operation starts with](../concepts/depths.md#what-a-new-operation-starts-with)).
+operation starts with](../concepts/depths.md#what-a-new-operation-starts-with)). A shape
+drawn inside another part's outline isn't taken for a hole of it: it is an outline of the
+part you add the profile to, cut outside with tabs. Inside an outline of the same part, or
+one no operation cuts yet, it is a hole.
 
 Open contours (centre lines, construction lines) in the selection are skipped with a note.
 To cut along an open line, use [Follow path](path.md).

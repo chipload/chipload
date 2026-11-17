@@ -297,6 +297,10 @@ Each step a commit with its tests, shippable on its own:
    Found testing (2026-11-17): *Add a setup* still made a part of its own, as setups.md
    had it; a new setup is now an empty board, the active part staying, so parts are
    placed on it. A back side and an inlay plug board still get a part of their own.
+   Also found: a profile of a shape drawn inside another part's outline defaulted to
+   inside, without tabs (the drawing's nesting). Now an outline that only other parts cut
+   is passed over (`new_ops::default_side`): the shape is an outline of its own part. One
+   no operation cuts, or the part's own, still makes a hole.
 6. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
    part-placement.md marked superseded where they differ).
 

@@ -36,16 +36,6 @@ impl Kind {
             Kind::Outer
         }
     }
-
-    pub fn name(self) -> &'static str {
-        match self {
-            Kind::Outer => "outer",
-            Kind::Hole => "hole",
-            Kind::Open => "open",
-            Kind::Invalid => "INVALID",
-            Kind::Construction => "construction",
-        }
-    }
 }
 
 /// A contour ready to draw: its id, kind and polyline (closed ones repeat the start).
