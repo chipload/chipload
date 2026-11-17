@@ -6,33 +6,26 @@ What's planned. Each item gets a spec in `docs/specs/` that is reviewed before i
 a quick workflow first. Brought up to date again for a handoff on 2026-11-16 (see *Handoff*
 below).
 
-## Handoff (2026-11-16)
+## Handoff (2026-11-17)
 
 - **Released:** 0.37.0 is the latest, published 2026-11-15 with its guide.
-- **On main, pushed:** 41 commits after the 0.37.0 commit (46e2ce5): pieces (schema 37),
-  two clean-ups after it, the instances spec, instances in five steps (schema 38), the
-  handoff at 46570a6, then 26 commits of file splits and long functions broken up
-  (0a20196..3ade704, see *Large files and functions* under *Next*, item 13) and this
-  handoff. Each is listed under *Done > In main, not released yet*. CI (Linux, Windows,
-  macOS) passed on 324d936. Then the small follow-ups of 2026-11-16 (*Done*). The next
-  release (0.38.0) waits for the user.
-- **Built, for the user to try:** pieces (puzzle tiling), instances (tried 2026-11-16: the
-  fitted board missed them, fixed) and the part itself placed with the Compass on
-  instances (2026-11-16). Findings become items here.
-- **Loose ends of this work:**
-  - pieces: dragging a seam in the view, and `plan --piece` (plan still plans one board);
-  - the next release's notes must say 0.37 can't open a project with pieces (schema 37),
-    instances (schema 38), a placed part (schema 39) or a part surface (schema 40), that
-    the G-code part comment now reads "cut N times", that dowel holes are no longer
-    repeated per instance, and that a surface is the whole board (the setup's) or a part's
-    shapes;
-  - guide screenshots are renewed at release time (`packaging/docs/screenshots.sh`); the
-    instances page (drawings/instances.md) has no picture yet: a part with a turned and a
-    mirrored instance would show it.
-  - the file splits: stopped by the user on 2026-11-16 with files and functions left (listed
-    in item 13 of *Next*); the specs' *as built* notes still name some old files
-    (`view.rs`, `canvas.rs`, `plan.rs`) and were left as written.
-- **Open questions for the user** (unchanged, listed in *Next*): 11 laser and plasma; 13's
+- **On main:** pushed up to 324d936. Not pushed: everything after it, listed in *Done > In
+  main, not released yet*: the fitted board holding instances, the part itself placed
+  (schema 39), surfaces on the board and on a part (schema 40), the two findings of
+  2026-11-17 (board surface drag, instance handles) and nesting (six steps, 0fb5085..).
+  The next release (0.38.0) waits for the user.
+- **For the user to try** (said 2026-11-17: "will test after all is done"): nesting (the
+  window and `chipload nest`), the instance handles, the part itself placed, surfaces on
+  the board and on a part; pieces and instances from before. Findings become items here.
+- **Release notes for 0.38** must say: 0.37 can't open a project with pieces (schema 37),
+  instances (38), a placed part (39) or a part surface (40); the G-code part comment reads
+  "cut N times"; dowel holes are no longer repeated per instance; a surface is the whole
+  board (the setup's) or a part's shapes; nesting is new.
+- **Loose ends:** guide screenshots renewed at release time (the instances page has no
+  picture yet; the nesting page neither); pieces: dragging a seam, `plan --piece`; the
+  moulding gouge (item 13, found again 2026-11-17); the file splits stopped by the user
+  (item 13).
+- **Open questions for the user** (unchanged, in *Next*): 11 laser and plasma; 13's
   `stock.origin`; 14's chip-load warning.
 
 ## In progress
@@ -122,14 +115,11 @@ to a program you trust. It was about four per operation; with the defaults and s
 00. **The part itself placed, then nesting** (the user, 2026-11-16, trying instances: move
     and turn the original part, toward nesting on a fixed-size sheet; nesting brought into
     scope, ADR 0017; shapes are edited where drawn). docs/specs/part-placement.md
-    **approved and built 2026-11-16** (all five steps, see *In main*); next the user tries
-    it. Then nesting: docs/specs/nesting.md **written out 2026-11-17, for review** (bottom-left
-    fill on a raster of each instance's real footprint, recommended in place of the outline's
-    MaxRects then no-fit polygons; ten decisions, approved 2026-11-17). Steps 1-5 of 6 built
-    2026-11-17 (footprints and the raster, the bottom-left placer, `chipload-toolpath`
-    `nest/`); Step 3 built 2026-11-17 (`chipload_pipeline::nest::nest_setup`), step 4 too
-    (`chipload nest`, `part set --turns`, the guide page, a golden), step 5 too (the Nest
-    window, its preview, Apply, Nest again); next step 6, the setup sheet's "Nested" fact.
+    **approved and built 2026-11-16**; docs/specs/nesting.md **approved and built
+    2026-11-17**, all six steps (see *In main*); next the user tries both. Left for later
+    (nesting.md §11): a second board for what doesn't fit, as a slicer's plates (§11.1,
+    with *Setups on sheets of their own*), small parts in holes, `dxf export --as-cut`,
+    nesting a front and back together.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
@@ -381,7 +371,25 @@ Smaller follow-ups noted along the way, not in the order above:
 ### In main, not released yet
 
 Pushed up to 324d936 (2026-11-16); the commits after it are not. 0.37 can't open a project
-from these (schemas 37, 38 and 39).
+from these (schemas 37 to 40).
+
+- **Nesting** (docs/specs/nesting.md, approved and built 2026-11-17, 0fb5085..): every
+  instance of a setup's parts placed on its board by what its tools cut (swept footprints on
+  a 0.5 mm raster, holes filled, grown by the gap), bottom-left along the board's longer
+  side with a 5 mm slack, four orders tried, verified by a full run of the setup.
+  `chipload nest` (`--board`, `--gap`, `--margin`, `--turns [ID=]TURNS`, `--count ID=N`,
+  `--dry-run`, `--json`), `part set --turns`; the Nest window (setup right-click, *Wizards >
+  Nest…*) with a preview on a worker thread, what doesn't fit parked in amber, *Apply* as
+  one undo step, *Nest again*; the setup sheet's *Nested* fact; guide page
+  drawings/nesting.md. File: optional `nest` on a setup and `turns` on a part (no bump).
+  A board that followed the drawing becomes a fixed board at the origin; what doesn't fit
+  is switched off. Golden: new v40_nest_badge (nested by the test, then run); no golden
+  changed. 50 instances on a full sheet: 0.35 s.
+- **Instance handles** (77ba308, the user's finding 2026-11-17): a badge with the number and
+  a move mark above each ghost's top left, the move handle taken before shapes under it; a
+  larger turn handle with a curved arrow; hover thickens the ghost and shows a hand.
+- **A board surface stays first in its setup** (c61a16d, the user's finding 2026-11-17):
+  no dragging it into a part, nor anything onto its place, in the Browser.
 
 - **Surfaces on the board and on a part** (docs/specs/surface-levels.md, approved and built
   2026-11-16, 9a5dec1..): schema 40, a surface's `select` and `margin`. No shapes: a board

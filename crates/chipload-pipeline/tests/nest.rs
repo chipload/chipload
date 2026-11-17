@@ -299,3 +299,35 @@ fn setups_in_pieces_or_two_sided_and_empty_ones_are_refused() {
     );
     assert!(err.contains("No room is left"), "{err}");
 }
+
+#[test]
+fn the_setup_sheet_says_it_was_nested_and_how_much_board_is_used() {
+    use chipload_pipeline::sheet::{SheetInfo, setup_sheet};
+    let job = part_on_board(1000.0, 600.0);
+    let info = SheetInfo {
+        project: "t".into(),
+        written_by: "chipload (test)".into(),
+        units: chipload_job::Units::Mm,
+        language: chipload_i18n::Language::En,
+        parts: Vec::new(),
+    };
+    let out = std::path::Path::new("t.nc");
+    // Not nested: no such fact.
+    let sheet = setup_sheet(&job, &run_job(&job).unwrap(), out, &info);
+    assert!(!sheet.contains("Nested"), "{sheet}");
+    let nested = nest(
+        &job,
+        NestRequest {
+            counts: vec![(1, 4)],
+            ..Default::default()
+        },
+    );
+    let sheet = setup_sheet(&nested.job, &run_job(&nested.job).unwrap(), out, &info);
+    assert!(sheet.contains("Nested"), "{sheet}");
+    assert!(
+        sheet.contains("4 instances nested 3 mm apart and 10 mm from the edge; the cuts reach "),
+        "{sheet}"
+    );
+    // The sheet is HTML: the apostrophe is escaped.
+    assert!(sheet.contains(" of the board&#39;s 1000 mm."), "{sheet}");
+}

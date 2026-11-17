@@ -1,7 +1,7 @@
 # Spec: nesting parts on a board
 
-Status: **draft 2026-11-17, for review.** Reviewed by the user 2026-11-17: "the spec looks
-good", with a fitted board made a fixed size and the machine's travel respected (§5,
+Status: **approved 2026-11-17, built 2026-11-17**, all six steps, with as-built notes in
+§11. Reviewed by the user 2026-11-17: "the spec looks good", with a fitted board made a fixed size and the machine's travel respected (§5,
 folded in), and with what doesn't fit switched off, not left off the board (§4, decision
 10: the user, "yes, but let's explore pushing them to a second platter, like in a 3D
 printer slicer"; explored in §11.1). It replaces the outline of 2026-11-16. Nesting came
@@ -328,6 +328,12 @@ Changes from §7:
 - **Nest again** keeps the instances there are (no counts) and each part's turns.
 Tests: preview and apply with undo, parking, Nest again, a refusal in the window, the
 window's rows; an ignored picture test draws it.
+
+**As built (step 6, 2026-11-17).** The setup sheet's *Nested* fact: "4 instances nested 3
+mm apart and 10 mm from the edge; the cuts reach 222 of the board's 1000 mm", from the
+setup's kept settings, its parts' counts and the run's cut extent along the board's longer
+side; seven languages. No golden sheet changed (no frozen sheet project is nested). The
+guide page, docs/architecture.md and CLAUDE.md name nesting.
 
 **Later, each with its own decision:** small parts in holes (§9.2), a second board for what
 doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.

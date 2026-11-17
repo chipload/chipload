@@ -86,6 +86,13 @@ operation's moves are trimmed to the piece's cell grown by the tool's radius
 (`pieces::Trimmer`). Each piece's program goes through the post and the checker as any
 other.
 
+**Nesting** (docs/specs/nesting.md) only changes placements, before a run:
+`pipeline::nest::nest_setup` plans each part alone once, turns its swept cut into
+footprints on a raster (`toolpath::nest`: capsules per feed move, holes filled, grown by the
+gap), places them bottom-left on the board (`toolpath::nest::fill`), writes each instance's
+angle and move, and checks the result with a full `run_setups` of the setup before it is
+returned. The window and `chipload nest` call it; a run then cuts the project as placed.
+
 1. **Validate.** Check the project's values and resolve its post-processor, built in or
    copied into the project (`toolpath::plan::validate_job`, `pipeline::posts::job_post`).
 2. **Load the drawings.** The drawings stored in the project become contours, each with its

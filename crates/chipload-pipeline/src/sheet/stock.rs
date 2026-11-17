@@ -8,6 +8,7 @@ use chipload_i18n::Message;
 use chipload_job::{Job, Register, StockCorner, Turn, WorkZero, ZZero};
 
 use super::{Words, fact, len, len_u};
+use crate::RunResult;
 use crate::copies;
 
 pub(super) fn setup(html: &mut String, job: &Job, w: Words) {
@@ -295,4 +296,45 @@ pub(super) fn z_zero_message(job: &Job) -> Message {
         ZZero::Top => "sheet-z-top",
         ZZero::Bottom => "sheet-z-bottom",
     })
+}
+
+/// A setup that was nested (docs/specs/nesting.md §9.6): how many instances, the gap and
+/// margin it keeps, and how far along the board's longer side the cuts reach, so the
+/// operator knows how much of the sheet is used and what is left.
+pub(super) fn nested(html: &mut String, job: &Job, result: &RunResult, w: Words) {
+    let Some(setup) = job.setups.get(job.active_setup_index()) else {
+        return;
+    };
+    let Some(nest) = setup.nest else {
+        return;
+    };
+    let count: u32 = job
+        .parts
+        .iter()
+        .filter(|p| p.enabled && p.setup == setup.id)
+        .map(chipload_job::Part::count)
+        .sum();
+    let ((bx0, by0), (bx1, by1)) = job.stock_bounds();
+    let along_x = bx1 - bx0 >= by1 - by0;
+    let Some(((_, _), (x1, y1))) =
+        chipload_toolpath::plan::cut_extent(&result.program.moves, &result.op_spans, None)
+    else {
+        return;
+    };
+    let (used, length) = if along_x {
+        (x1 - bx0, bx1 - bx0)
+    } else {
+        (y1 - by0, by1 - by0)
+    };
+    let message = Message::new("sheet-nested-text")
+        .arg("count", count)
+        .arg("gap", len_u(nest.gap))
+        .arg("margin", len_u(nest.margin))
+        .arg("used", len(used.clamp(0.0, length)))
+        .arg("length", len_u(length));
+    fact(
+        html,
+        &w.text(&Message::new("sheet-nested")),
+        &w.text(&message),
+    );
 }

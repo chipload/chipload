@@ -28,7 +28,7 @@ use files::{file_name, file_section, watch_out};
 pub use picture::contour_copies;
 use picture::picture;
 pub use pieces::{PieceSheet, pieces_sheet};
-use stock::{setup, turning};
+use stock::{nested, setup, turning};
 pub use stock::{xy_zero_message, xy_zero_text};
 
 /// What the sheet says about where it comes from.
@@ -165,6 +165,7 @@ pub fn setup_sheet(job: &Job, result: &RunResult, output: &Path, info: &SheetInf
     head(&mut html, job, info, w);
     header(&mut html, job, result, info, w);
     setup(&mut html, job, w);
+    nested(&mut html, job, result, w);
     turning(&mut html, job, w);
     picture(&mut html, job, result, w);
     let names: Vec<String> = result.files.iter().map(|f| file_name(f, output)).collect();

@@ -54,6 +54,8 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
   how much of a larger board is used, measured from the side where work zero is.
 - **The gap and margin** (3 mm and 10 mm until you choose) are kept with the setup, so the
   next nest uses them.
+- **The setup sheet** says the setup was nested: how many instances, the gap and margin,
+  and how far along the board the cuts reach, so you know what is left of the sheet.
 - **Not yet:** a setup cut in [pieces](../concepts/pieces.md) or a two-sided setup can't be
   nested, and small parts don't go inside another part's holes.
 
