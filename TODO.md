@@ -125,7 +125,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     **approved and built 2026-11-16** (all five steps, see *In main*); next the user tries
     it. Then nesting: docs/specs/nesting.md **written out 2026-11-17, for review** (bottom-left
     fill on a raster of each instance's real footprint, recommended in place of the outline's
-    MaxRects then no-fit polygons; nine decisions).
+    MaxRects then no-fit polygons; ten decisions, approved 2026-11-17). Step 1 of 6 built
+    2026-11-17 (footprints and the raster, `chipload-toolpath` `nest/`); next step 2, the
+    placer.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved

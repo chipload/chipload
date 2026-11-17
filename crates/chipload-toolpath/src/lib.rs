@@ -24,6 +24,7 @@ pub(crate) mod medial;
 pub mod merge;
 pub mod model;
 pub mod moulding;
+pub mod nest;
 pub mod offset;
 mod parallel;
 pub mod path;

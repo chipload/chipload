@@ -239,6 +239,20 @@ Each step is a commit, with its tests:
 5. **The window:** the dialog, the preview in the background, *Apply*, *Nest again*.
 6. **Setup sheet, guide page** (`drawings/nesting.md`), schemas, translations.
 
+**As built (step 1, 2026-11-17).** `chipload-toolpath` `nest/`: `Sweep` (a part's feed
+moves as capsules, each with its tool's radius; a G2/G3 split into chords widened by the arc
+tolerance; turned exactly on quarter turns with `place.rs`'s rotation), `Grid` (a bit per
+cell, rows of 64-bit words, laid on another at any cell offset to test or mark), `Frame`
+(a grid in the drawing; a cell is occupied when a capsule touches it, measured exactly from
+the segment to the cell's square), `Footprint` (its holes filled by a flood from outside,
+across sides only) and `Footprint::dilated` (cells nearer than the gap, square to square,
+stamped from the edge cells only), `cell_size`. Property tests (`tests/nest.rs`): every
+point swept is in the footprint; a capsule occupies only cells it touches; footprints whose
+grown and plain cells don't meet are at least the gap apart, measured exactly on the
+capsules at every column along a row (a test that tried random places missed a halved gap,
+so it scans now); growing from the edge equals growing from every cell; the word-wise grid
+equals cell-by-cell; a quarter turn swaps width and height exactly.
+
 **Later, each with its own decision:** small parts in holes (§9.2), a second board for what
 doesn't fit (§11.1), `dxf export --as-cut`, nesting a front and back together.
 
