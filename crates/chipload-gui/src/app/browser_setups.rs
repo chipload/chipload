@@ -406,8 +406,12 @@ impl ChiploadApp {
                     action = Some(SetupAction::Remove(setup.id));
                 }
             } else if ui
-                .button(t!(ui, "browser-simple-view"))
+                .add_enabled(
+                    self.edit.as_ref().is_some_and(|e| e.job.is_simple()),
+                    egui::Button::new(t!(ui, "browser-simple-view")),
+                )
                 .on_hover_text(t!(ui, "browser-simple-view-hover"))
+                .on_disabled_hover_text(t!(ui, "browser-simple-view-not-hover"))
                 .clicked()
             {
                 action = Some(SetupAction::ShowSetups(false));

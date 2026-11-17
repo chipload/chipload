@@ -71,9 +71,15 @@ impl ChiploadApp {
 
     /// *Place…*: part `part`'s first instance selected, its ghost shown where it is cut and
     /// its form open, to move and turn it (docs/specs/part-placement.md §6).
+    /// Placing is setups' work (docs/specs/parts-and-setups.md §2a): from the simple view it
+    /// lists them, the instance under *Setup 1*.
     pub(super) fn place_part(&mut self, part: u64) {
         if let Some(id) = self.first_instance(part) {
+            if let Some(edit) = self.edit.as_mut() {
+                edit.job.setups_shown = true;
+            }
             self.focus = Focus::Instance(part, id);
+            self.commit();
         }
     }
 

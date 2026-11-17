@@ -99,15 +99,43 @@ fn setup_1_can_be_shown_by_hand_and_stays_until_the_simple_view_is_asked_for() {
     assert!(!app.edit.as_ref().unwrap().job.setups_shown);
 }
 
+/// Copies and placing are setups' work (the user, 2026-11-17): a copy made from the simple
+/// view lists the setups, its instances under *Setup 1*, never under the part; with the
+/// copy gone they stay listed until *Simple view*.
 #[test]
-fn a_part_placed_again_shows_its_instances_in_the_simple_view() {
+fn a_part_placed_again_lists_the_setups_with_its_instances_under_setup_1() {
     let mut app = drawn_part();
+    let simple = browser_rows(&mut app).len();
     app.add_instance(1, false);
     let rows = browser_rows(&mut app);
-    assert!(!has_setups_branch(&rows));
-    // The part itself and its new instance, one deeper than the part.
-    assert_eq!(depth_of(&rows, "Instance 1"), Some(2), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Instance 2"), Some(2));
+    assert!(has_setups_branch(&rows), "{rows:?}");
+    assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3), "{rows:?}");
+    assert_eq!(depth_of(&rows, "Part 1 #2"), Some(3));
+    assert!(
+        !rows.iter().any(|(_, l)| l.starts_with("Instance ")),
+        "{rows:?}"
+    );
+    // Not simple: Simple view is refused.
+    app.show_setups(false);
+    assert!(has_setups_branch(&browser_rows(&mut app)));
+    // The copy removed: still listed, until asked.
+    app.remove_instance(1, 2);
+    let job = &app.edit.as_ref().unwrap().job;
+    assert!(job.is_simple() && job.setups_shown);
+    assert!(has_setups_branch(&browser_rows(&mut app)));
+    app.show_setups(false);
+    assert_eq!(browser_rows(&mut app).len(), simple);
+}
+
+/// *Place…* in the simple view lists the setups, its instance selected under *Setup 1*.
+#[test]
+fn place_lists_the_setups() {
+    let mut app = drawn_part();
+    app.place_part(1);
+    assert_eq!(app.focus, Focus::Instance(1, 1));
+    assert!(app.edit.as_ref().unwrap().job.setups_shown);
+    let rows = browser_rows(&mut app);
+    assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3), "{rows:?}");
 }
 
 #[test]

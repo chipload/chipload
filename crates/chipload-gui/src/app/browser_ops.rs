@@ -463,24 +463,9 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
-        // One board: its instances under it, once it is cut more than once, elsewhere than
-        // drawn, or one of them is selected (docs/specs/parts-and-setups.md §2a). With
-        // several boards they are under their setups.
-        let selected_here = matches!(self.focus, Focus::Instance(p, _) if p == part.id);
-        let listed = simple && (instances.len() > 1 || placed || selected_here);
-        if listed {
-            let look = InstanceLook {
-                in_active_setup,
-                depth: depth + 1,
-                named: false,
-                setups: &setups,
-            };
-            for instance in &instances {
-                if let Some(a) = self.instance_row(ui, part, instance, look) {
-                    action = Some(a);
-                }
-            }
-        }
+        // Instances are never under their part: a project with more than one cut of a part,
+        // or one moved, lists its setups, each with its instances
+        // (docs/specs/parts-and-setups.md §2a, §8).
         action
     }
 

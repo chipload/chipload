@@ -58,6 +58,7 @@ browser-show-setups = Aufspannungen zeigen
 browser-show-setups-hover = Diese Platte als Aufspannung 1 auflisten, mit Rohteil, Nullpunkt und Teilen darunter, um Teile aus weiteren Platten zu fräsen. Sie bleibt aufgelistet, bis Sie Einfache Ansicht wählen
 browser-simple-view = Einfache Ansicht
 browser-simple-view-hover = Rohteil, Nullpunkt und Teile der einen Platte wieder als Zeilen des Projekts zeigen. Nichts wird entfernt
+browser-simple-view-not-hover = Nur für eine Aufspannung, in der jedes Teil einmal gefräst wird, wo es gezeichnet ist: entfernen Sie zuerst die Kopien und Platzierungen
 browser-add-back-side = Rückseite hinzufügen
 browser-board-settings = Stücke und Rückseite…
 browser-board-settings-hover = Die Einstellungen des Rohteils: in Stücken als Puzzle fräsen oder eine umgedrehte Rückseite hinzufügen

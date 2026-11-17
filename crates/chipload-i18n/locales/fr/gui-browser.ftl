@@ -58,6 +58,7 @@ browser-show-setups = Afficher les montages
 browser-show-setups-hover = Lister ce panneau comme Montage 1, avec son brut, son zéro et ses pièces en dessous, pour usiner des pièces dans d’autres panneaux. Il reste listé jusqu’à ce que vous choisissiez Vue simple
 browser-simple-view = Vue simple
 browser-simple-view-hover = Afficher de nouveau le brut, le zéro et les pièces du seul panneau comme lignes du projet. Rien n’est supprimé
+browser-simple-view-not-hover = Seulement pour un montage où chaque pièce est usinée une fois, là où elle est dessinée : retirez d’abord les copies et les placements
 browser-add-back-side = Ajouter le verso
 browser-board-settings = Morceaux et verso…
 browser-board-settings-hover = Les réglages du brut : le découper en morceaux comme un puzzle, ou lui donner un verso retourné

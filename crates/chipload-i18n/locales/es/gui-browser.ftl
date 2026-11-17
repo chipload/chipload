@@ -58,6 +58,7 @@ browser-show-setups = Mostrar sujeciones
 browser-show-setups-hover = Listar este tablero como Sujeción 1, con su material, su cero y sus piezas debajo, para cortar piezas de más tableros. Sigue listado hasta que elija Vista simple
 browser-simple-view = Vista simple
 browser-simple-view-hover = Mostrar de nuevo el material, el cero y las piezas del único tablero como filas del proyecto. No se quita nada
+browser-simple-view-not-hover = Solo para una sujeción con cada pieza cortada una vez, donde está dibujada: quite antes las copias y las colocaciones
 browser-add-back-side = Añadir el reverso
 browser-board-settings = Trozos y reverso…
 browser-board-settings-hover = Los ajustes del material en bruto: cortarlo en trozos como un puzle o darle un reverso dado la vuelta

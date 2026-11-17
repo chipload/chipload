@@ -255,14 +255,17 @@ fn the_part_itself_is_placed_shown_where_it_is_cut_and_reset() {
     draw_sidebar(&mut app);
 }
 
+/// A part cut twice lists the setups: its instances under *Setup 1*, named with the part,
+/// not under the part (docs/specs/parts-and-setups.md §2a).
 #[test]
-fn the_part_itself_is_listed_first_among_its_instances() {
+fn the_instances_are_listed_under_their_setup() {
     let mut h = harness();
     h.state_mut().focus = Focus::Part(1);
     h.run_steps(4);
     use egui_kittest::kittest::Queryable;
-    assert!(h.query_by_label("Instance 1").is_some());
-    assert!(h.query_by_label("Instance 2").is_some());
+    assert!(h.query_by_label("Part 1 #1").is_some());
+    assert!(h.query_by_label("Part 1 #2").is_some());
+    assert!(h.query_by_label("Instance 1").is_none());
 }
 
 #[test]
@@ -340,8 +343,8 @@ fn a_compass_drag_on_an_instance_previews_without_trails() {
     }
 }
 
-/// *Show placement instance* on a part without instances (docs/specs/part-placement.md §6):
-/// its row and ghost #1 where it is drawn, selected with its turn handle; Q shows the
+/// *Place…* on a part cut once where drawn (docs/specs/part-placement.md §6): the setups
+/// listed, its row under *Setup 1* and ghost #1 where it is drawn, selected with its turn handle; Q shows the
 /// Compass on it; a drag on its outline moves it, though the part's shapes lie under it.
 #[test]
 fn the_part_itself_is_shown_to_place_without_instances() {
@@ -359,7 +362,7 @@ fn the_part_itself_is_shown_to_place_without_instances() {
     h.run_steps(4);
     {
         use egui_kittest::kittest::Queryable;
-        assert!(h.query_by_label("Instance 1").is_some());
+        assert!(h.query_by_label("Part 1 #1").is_some());
     }
     let ghost = h.state().scene.instances[0].clone();
     assert!(ghost.id == 1 && ghost.selected && ghost.handle.is_some());

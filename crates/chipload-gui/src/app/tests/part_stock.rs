@@ -19,7 +19,8 @@ fn a_parts_thickness_moves_it_to_a_board_of_its_own_as_one_undo_step() {
         *t = Some(0.0);
     }
     app.commit();
-    assert!(!browser_rows(&mut app).iter().any(|(_, l)| l == "Setups"));
+    assert_eq!(app.edit.as_ref().unwrap().job.setups.len(), 1);
+    let listed = browser_rows(&mut app).iter().any(|(_, l)| l == "Setups");
     // The form draws its stock section, "Any board".
     app.focus = Focus::Part(2);
     draw_properties(&mut app);
@@ -47,7 +48,10 @@ fn a_parts_thickness_moves_it_to_a_board_of_its_own_as_one_undo_step() {
     let job = &app.edit.as_ref().unwrap().job;
     assert_eq!(job.setups.len(), 1);
     assert!(job.part(2).unwrap().stock.is_none());
-    assert!(!browser_rows(&mut app).iter().any(|(_, l)| l == "Setups"));
+    assert_eq!(
+        browser_rows(&mut app).iter().any(|(_, l)| l == "Setups"),
+        listed
+    );
 }
 
 #[test]

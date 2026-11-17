@@ -1119,10 +1119,32 @@ impl Job {
         setup.instances.splice(at..at, placed);
     }
 
-    /// Whether the window lists the setups: with several boards, or with one when the user
-    /// asked for them (`setups_shown`; docs/specs/parts-and-setups.md §2a).
+    /// A simple project (docs/specs/parts-and-setups.md §2a): one board, each part on it
+    /// once, cut, where it is drawn. Anything more is setups' work.
+    pub fn is_simple(&self) -> bool {
+        self.setups.len() == 1
+            && self.parts.iter().all(|p| {
+                matches!(
+                    self.instances_of(p.id).as_slice(),
+                    [(_, i)] if i.enabled && i.is_drawn()
+                )
+            })
+    }
+
+    /// Whether the window lists the setups: for a project that isn't simple, or one the
+    /// user asked to see them for (`setups_shown`; docs/specs/parts-and-setups.md §2a).
     pub fn lists_setups(&self) -> bool {
-        self.setups_shown || self.setups.len() > 1
+        self.setups_shown || !self.is_simple()
+    }
+
+    /// Once listed, the setups stay listed until the user asks for the simple view
+    /// (docs/specs/parts-and-setups.md §2a): called with the project as it was before an
+    /// edit, it remembers them as shown when the edit makes a listed project simple again.
+    /// An edit that sets `setups_shown` itself is left as it is.
+    pub fn keep_setups_shown(&mut self, before: &Job) {
+        if self.setups_shown == before.setups_shown && before.lists_setups() && self.is_simple() {
+            self.setups_shown = true;
+        }
     }
 
     /// The id of the active setup: `active_setup` when it names a setup, else the first.

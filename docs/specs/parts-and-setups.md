@@ -76,8 +76,13 @@ it), but **the window and the command line show neither until they matter**:
   it back into the project's rows. Neither changes anything that is cut. On the command
   line: `chipload set p.chipload setups_shown=true`.
 - **A part once, where drawn: no instance rows,** no ghost, no badge: the part is just the
-  part, its shapes are what is cut. Instances show when a part has a second one, or is moved
-  or turned (*Place…* in its menu, as today), or the project has a second board.
+  part, its shapes are what is cut. **Copies and placing are setups' work** (the user,
+  2026-11-17: "in simple view we should not allow instances or moving parts … we will never
+  see instance nodes under the part level"): a project that isn't simple (a second board, a
+  part cut more than once, moved, turned or switched off) lists the setups, and instance
+  rows are only ever under a setup. *Copies*, *Place…* and *Nest* stay in the simple view's
+  menus and list the setups as they act (decision A). *Simple view* is offered only for a
+  simple project.
 - **A part's stock** stays out of the way: folded in the part's form, empty, never warned
   about until set (§4).
 - **Nothing to choose:** every command that takes a board (`--setup`) defaults to the only

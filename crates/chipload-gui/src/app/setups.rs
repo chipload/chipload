@@ -98,6 +98,10 @@ impl ChiploadApp {
         let Some(edit) = self.edit.as_mut() else {
             return;
         };
+        // Only a simple project folds back (§2a): copies or a moved part need the setups.
+        if !shown && !edit.job.is_simple() {
+            return;
+        }
         if edit.job.setups_shown != shown {
             edit.job.setups_shown = shown;
             if !shown && matches!(self.focus, Focus::Setup(_)) {

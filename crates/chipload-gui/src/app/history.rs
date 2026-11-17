@@ -22,6 +22,8 @@ impl ChiploadApp {
             // (docs/specs/parts-and-setups.md §4).
             if let (Some(edit), Some(before)) = (self.edit.as_mut(), &self.history.committed) {
                 edit.job.keep_made_flags(&before.job);
+                // Setups listed stay listed (docs/specs/parts-and-setups.md §2a).
+                edit.job.keep_setups_shown(&before.job);
             }
             self.history.undo.push(self.history.committed.take());
             self.history.redo.clear();

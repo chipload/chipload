@@ -58,6 +58,7 @@ browser-show-setups = Show setups
 browser-show-setups-hover = List this board as Setup 1, with its stock, work zero and parts under it, to cut parts from more boards. It stays listed until you choose Simple view
 browser-simple-view = Simple view
 browser-simple-view-hover = Show the one board's stock, work zero and parts as the project's rows again. Nothing is removed
+browser-simple-view-not-hover = Only for one setup with each part cut once, where it is drawn: remove the copies and placements first
 browser-add-back-side = Add the back side
 browser-board-settings = Pieces and back side…
 browser-board-settings-hover = The board's own settings: cut it as a puzzle of pieces, or give it a back side turned over

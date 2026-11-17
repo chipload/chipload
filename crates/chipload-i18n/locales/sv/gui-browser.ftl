@@ -58,6 +58,7 @@ browser-show-setups = Visa uppspänningar
 browser-show-setups-hover = Lista skivan som Uppspänning 1, med ämne, nollpunkt och detaljer under sig, för att fräsa detaljer ur fler skivor. Den ligger kvar tills du väljer Enkel vy
 browser-simple-view = Enkel vy
 browser-simple-view-hover = Visa den enda skivans ämne, nollpunkt och detaljer som projektets rader igen. Inget tas bort
+browser-simple-view-not-hover = Bara för en uppspänning där varje detalj fräses en gång, där den är ritad: ta bort kopiorna och placeringarna först
 browser-add-back-side = Lägg till baksidan
 browser-board-settings = Bitar och baksida…
 browser-board-settings-hover = Ämnets egna inställningar: skär det som ett pussel av bitar, eller ge det en vänd baksida

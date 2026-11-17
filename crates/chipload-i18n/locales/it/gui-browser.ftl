@@ -58,6 +58,7 @@ browser-show-setups = Mostra i piazzamenti
 browser-show-setups-hover = Elenca questo pannello come Piazzamento 1, con il grezzo, lo zero e i pezzi sotto, per lavorare pezzi da più pannelli. Resta elencato finché non scegli Vista semplice
 browser-simple-view = Vista semplice
 browser-simple-view-hover = Mostra di nuovo grezzo, zero e pezzi dell’unico pannello come righe del progetto. Non si rimuove nulla
+browser-simple-view-not-hover = Solo per un piazzamento con ogni pezzo lavorato una volta, dove è disegnato: rimuovi prima le copie e i posizionamenti
 browser-add-back-side = Aggiungi il retro
 browser-board-settings = Tasselli e retro…
 browser-board-settings-hover = Le impostazioni del grezzo: tagliarlo in tasselli come un puzzle o dargli un retro capovolto

@@ -16,8 +16,11 @@ In the window:
   instance's outline thickens and the pointer becomes a hand, so you see what a drag
   takes. Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
-- **In the Browser**, each instance has a row with its tick: under its part with one
-  board, under its setup ("Side #2") with several. Right-click it to *Mirror* it, *Turn
+- **In the Browser**, each instance has a row with its tick under its setup ("Side #2"),
+  never under its part: copies and placing are setups' work, so a part cut more than once,
+  or moved, lists the setups, even with one board (*Setup 1*). Making a copy or choosing
+  *Place…* lists them for you; they stay listed until you choose *Simple view* in the last
+  setup's menu. Right-click it to *Mirror* it, *Turn
   90°*, *Move to setup ▸* or *Remove* it; Delete removes the selected one.
 - **Several setups:** drag a part's row onto a setup (or right-click the part, *Place on
   setup ▸*) to place it there too, a new instance where the part is drawn; drag an
@@ -98,8 +101,8 @@ In the window:
 - **On the canvas**, once placed, it is a ghost `#1` where it is cut, picked, dragged and
   turned like any instance. Its shapes, where they are drawn, get a dashed box saying
   "not cut here"; edit them there, and every instance follows.
-- **In the Browser**, a part with instances or a placement lists them all, Instance 1
-  first.
+- **In the Browser**, its instances are under *Setup 1* ("Side #1", "Side #2"), the
+  setups listed once the part is placed.
 - **The Compass** (Q) works on a selected instance, the first included: drag an arrow to
   move it along, the ring to turn it, the centre to put it on a point, or type a value.
   It moves and turns instances only; copies and arrays are for shapes.
