@@ -42,7 +42,7 @@ fn a_setup_is_made_active_shown_with_the_others_as_ghosts_and_exported() {
     assert_eq!(app.edited_job().unwrap().setups_of_part(2), [1]);
     app.remove_setup(1);
     assert_eq!(app.edited_job().unwrap().setups.len(), 2);
-    // A new setup: active, with a part of its own; removed again, empty.
+    // A new setup: active and empty; removed again.
     let added = app.add_setup().unwrap();
     assert_eq!(app.focus, Focus::Setup(added));
     app.remove_setup(added);

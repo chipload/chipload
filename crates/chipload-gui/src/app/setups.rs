@@ -91,12 +91,12 @@ impl ChiploadApp {
         }
     }
 
-    /// A new setup, a board like the active one's, with a part of its own; both become
-    /// active, and its form opens.
+    /// A new, empty setup, a board like the active one's; it becomes active and its form
+    /// opens. Parts are placed on it from the Browser.
     pub fn add_setup(&mut self) -> Option<u64> {
         let mut added = None;
         self.change_setups(|job| {
-            chipload_pipeline::setups::add_setup(job, None, None).map(|(job, id, _)| {
+            chipload_pipeline::setups::add_setup(job, None, None).map(|(job, id)| {
                 added = Some(id);
                 job
             })

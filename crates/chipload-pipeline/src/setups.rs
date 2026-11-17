@@ -28,14 +28,48 @@ fn checked(job: Job) -> Result<Job, PipelineError> {
     }
 }
 
-/// A new setup at the end, which becomes the active one, with a first part of its own, the
-/// active part: a board like the active setup's (its stock and zero), `thickness` thick
-/// when given. Returns its id and its part's.
+/// A new, empty setup at the end, which becomes the active one: a board like the active
+/// setup's (its stock and zero), `thickness` thick when given. Parts are placed on it
+/// afterwards (docs/specs/parts-and-setups.md §3); the active part stays. Returns its id.
 pub fn add_setup(
     job: &Job,
     name: Option<&str>,
     thickness: Option<f64>,
+) -> Result<(Job, u64), PipelineError> {
+    let (job, id) = add_board(job, name, thickness)?;
+    Ok((checked(job)?, id))
+}
+
+/// A new setup as `add_setup` makes it, with a first part of its own placed on it, the
+/// active part: a back side's, an inlay plug's. Returns its id and its part's.
+pub(crate) fn add_setup_with_part(
+    job: &Job,
+    name: Option<&str>,
+    thickness: Option<f64>,
 ) -> Result<(Job, u64, u64), PipelineError> {
+    let (mut job, id) = add_board(job, name, thickness)?;
+    let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
+    let part_name = free_name(&job, None)?;
+    job.parts.push(Part {
+        id: part,
+        name: part_name,
+        enabled: true,
+        order: chipload_job::InstanceOrder::ByOperation,
+        mirror: None,
+        turns: None,
+        stock: None,
+    });
+    job.place_part(part, id);
+    job.active_part = Some(part);
+    Ok((checked(job)?, id, part))
+}
+
+/// The new board itself, active, not yet checked.
+fn add_board(
+    job: &Job,
+    name: Option<&str>,
+    thickness: Option<f64>,
+) -> Result<(Job, u64), PipelineError> {
     let mut job = job.clone();
     let id = job.setups.iter().map(|s| s.id).max().unwrap_or(0) + 1;
     let name = match name {
@@ -63,21 +97,8 @@ pub fn add_setup(
         made_for_stock: false,
         placed: None,
     });
-    let part = job.parts.iter().map(|p| p.id).max().unwrap_or(0) + 1;
-    let part_name = free_name(&job, None)?;
-    job.parts.push(Part {
-        id: part,
-        name: part_name,
-        enabled: true,
-        order: chipload_job::InstanceOrder::ByOperation,
-        mirror: None,
-        turns: None,
-        stock: None,
-    });
-    job.place_part(part, id);
     job.active_setup = Some(id);
-    job.active_part = Some(part);
-    Ok((checked(job)?, id, part))
+    Ok((job, id))
 }
 
 /// A new setup that is the back of setup `front`, the same board turned over `turn`
@@ -95,7 +116,7 @@ pub fn add_back_side(
         Some(name) => name.to_string(),
         None => format!("{} back", job.setups[at].name),
     };
-    let (mut job, id, part) = add_setup(job, Some(&name), None)?;
+    let (mut job, id, part) = add_setup_with_part(job, Some(&name), None)?;
     // Right after its front: cut, listed and numbered in the files after it.
     if let Some(new) = job.setups.pop() {
         job.setups.insert(at + 1, new);

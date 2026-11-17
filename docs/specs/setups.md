@@ -10,7 +10,9 @@ Step 2 built: `run_job` and planning take the active setup only; `run_setups` ru
 (`-S<id>` in the file names with several); a board that fits fits the shapes its setup's
 operations may pick (`Selector::may_pick`, only with two or more setups); `setup
 list|add|set|activate|part|remove`; `--setup` on `run`, `plan`, `sheet`, `simulate`; a
-guide page. A new setup gets a part of its own (both active), so new operations have a home.
+guide page. A new setup gets a part of its own (both active), so new operations have a home. (Since
+schema 41 a new setup is an empty board; a back side still gets a part of its own:
+parts-and-setups.md.)
 Step 3 built: each sheet's title names its setup when there are several; the simulation
 reads the active setup's board; a two-setup golden (tests/corpus/jobs/v34/two_setups:
 12 mm sides, a 6 mm bottom with its own point zero).

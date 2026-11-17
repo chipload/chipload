@@ -275,6 +275,9 @@ Each step a commit with its tests, shippable on its own:
    50 boards a nest. A part larger than an empty board goes back, switched off. With
    overflow, a part on the board whose stock isn't its own goes to a board of its stock
    (step 2's third difference, done). Nest again doesn't keep the overflow choice.
+   Found testing (2026-11-17): *Add a setup* still made a part of its own, as setups.md
+   had it; a new setup is now an empty board, the active part staying, so parts are
+   placed on it. A back side and an inlay plug board still get a part of their own.
 6. **Guide, sheet, translations, specs** brought up to date (setups.md, instances.md,
    part-placement.md marked superseded where they differ).
 

@@ -36,8 +36,8 @@ them (`part-S2-sheet.html`). `run` writes every setup that is on; `--setup N` on
 With one board, the Browser has no setups to show: **Stock**, **Work zero** and the parts
 are the project's rows, and right-clicking the project offers what a setup's menu would,
 **Pieces and back side…** for the board's own settings among them. Right-click the project
-for **Add a setup**, another board: it starts like the first, with a part of its own, and
-both become active. From then on the Browser shows **Parts**, each part with its operations, and
+for **Add a setup**, another board: it starts like the first, empty, and becomes the active
+one. From then on the Browser shows **Parts**, each part with its operations, and
 **Setups**, each with its **Stock**, its **Work zero** and the instances cut from it ("Side
 #2"): drag a part onto a setup to place it there, an instance onto another to cut it there; deleting the second board brings the simple view
 back. Click a setup for its name, whether it is cut and its parts. Right-click *Setups* or
@@ -64,7 +64,7 @@ have operations can't be removed: move them or delete them first.
 ## On the command line
 
 ```sh
-chipload setup add box.chipload --name "6 mm bottom" --thickness 6   # with a part of its own
+chipload setup add box.chipload --name "6 mm bottom" --thickness 6   # empty: place parts on it
 chipload setup part box.chipload 2 --to 2        # part 2 is cut from setup 2's board
 chipload setup list box.chipload
 chipload setup set box.chipload 2 --name "Bottom" --off

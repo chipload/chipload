@@ -122,7 +122,7 @@ pub fn add_inlay(
     }
     let at = job.insert_index(pocket.part);
     job.operations.insert(at, Operation::Vcarve(pocket));
-    let (mut job, setup, part) = crate::setups::add_setup(
+    let (mut job, setup, part) = crate::setups::add_setup_with_part(
         &job,
         Some(&name("pipeline-setup-inlay-plug")),
         Some(request.plug_thickness),

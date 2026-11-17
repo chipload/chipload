@@ -3539,7 +3539,10 @@ fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
     };
     let (code, _, err) = run(&["setup", "add", p, "--name", "Second"]);
     assert_eq!(code, Some(0), "{err}");
-    // Part 1, instance 1 onto setup 2: kept as number 1, after part 2's.
+    // The new setup is empty: no part is made for it.
+    assert_eq!(job()["parts"].as_array().unwrap().len(), 1);
+    assert_eq!(job()["setups"][1]["instances"], serde_json::json!([]));
+    // Part 1, instance 1 onto setup 2: kept as number 1.
     let (code, out, err) = run(&[
         "part", "instance", "move", p, "--part", "1", "1", "--setup", "2",
     ]);
@@ -3549,8 +3552,8 @@ fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
         "{out}"
     );
     assert_eq!(job()["setups"][0]["instances"], serde_json::json!([]));
-    assert_eq!(job()["setups"][1]["instances"][1]["part"], 1);
-    assert_eq!(job()["setups"][1]["instances"][1]["id"], 1);
+    assert_eq!(job()["setups"][1]["instances"][0]["part"], 1);
+    assert_eq!(job()["setups"][1]["instances"][0]["id"], 1);
     // A new instance goes on the part's board, or on the one named.
     let (code, _, err) = run(&[
         "part", "instance", "add", p, "--part", "1", "--setup", "1", "--at", "300,0",
@@ -3571,7 +3574,7 @@ fn an_instance_moves_to_another_board_and_old_paths_are_refused() {
     // The old paths name the new ones.
     let (code, _, err) = run(&["get", p, "parts.0.at"]);
     assert_eq!(code, Some(1));
-    assert!(err.contains("Use setups.1.instances.1.at"), "{err}");
+    assert!(err.contains("Use setups.1.instances.0.at"), "{err}");
     let (code, _, err) = run(&["set", p, "parts.0.instances.0.angle=1"]);
     assert_eq!(code, Some(1));
     assert!(err.contains("Use setups.0.instances.0.angle"), "{err}");

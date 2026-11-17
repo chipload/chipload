@@ -22,7 +22,7 @@ fn sample() -> Job {
 
 /// The sample with part B in a 6 mm setup of its own, its outline 6 mm deep.
 fn two_boards() -> Job {
-    let (job, id, _) = add_setup(&sample(), Some("6 mm bottom"), Some(6.0)).unwrap();
+    let (job, id) = add_setup(&sample(), Some("6 mm bottom"), Some(6.0)).unwrap();
     assert_eq!(id, 2);
     let job = move_part_to_setup(&job, 2, 2).unwrap();
     chipload_job::paths::set_all(&job, &[("operations.3.end_depth".into(), 6.0.into())]).unwrap()
@@ -102,15 +102,22 @@ fn a_board_that_fits_fits_its_own_parts() {
 #[test]
 fn setups_are_added_activated_moved_and_removed() {
     let job = two_boards();
-    // A new setup starts like the active one, with a part of its own, both active.
-    let (job, id, part) = add_setup(&job, None, None).unwrap();
+    // A new setup starts like the active one, empty and active; no part is made for it,
+    // the active part stays.
+    let before = job.active_part_id();
+    let (job, id) = add_setup(&job, None, None).unwrap();
     assert_eq!(id, 3);
     assert_eq!(job.setup(3).unwrap().name, "Setup 3");
     assert_eq!(job.stock().thickness, 6.0);
+    assert_eq!(job.parts.len(), 2);
+    assert!(job.setup(3).unwrap().instances.is_empty());
     assert_eq!(
         (job.active_setup_id(), job.active_part_id()),
-        (Some(3), Some(part))
+        (Some(3), before)
     );
+    // An empty board is no program, and the others' are as before.
+    let runs = run_setups(&job, None).unwrap();
+    assert_eq!(runs.iter().map(|(id, _)| *id).collect::<Vec<_>>(), [1, 2]);
     // Activating setup 1 makes its first part the active part.
     let active = activate_setup(&job, 1).unwrap();
     assert_eq!(active.active_part_id(), Some(1));
@@ -137,7 +144,8 @@ fn setups_are_added_activated_moved_and_removed() {
             .all(|p| !fewer.setups_of_part(p.id).is_empty())
     );
     assert!(fewer.operations.iter().all(|op| op.part() != 2));
-    let (one, _) = remove_setup(&fewer, 3, true).unwrap();
+    // An empty one goes without asking.
+    let (one, _) = remove_setup(&fewer, 3, false).unwrap();
     assert!(remove_setup(&one, 1, true).is_err());
 }
 

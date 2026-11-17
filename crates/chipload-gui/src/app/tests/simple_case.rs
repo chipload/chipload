@@ -29,11 +29,15 @@ fn one_board_shows_no_setups_and_a_part_cut_once_no_instances() {
     assert!(!rows.iter().any(|(_, l)| l.starts_with("Instance ")));
     draw_canvas(&mut app);
     assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
-    let simple = rows.len();
 
-    // A second board: Parts and Setups (docs/specs/parts-and-setups.md §8). The parts are
-    // definitions with their operations; each setup lists its stock, zero and instances.
+    // Two parts on the one board, then a second board (found by the user, 2026-11-17: a new
+    // setup made a part of its own): Parts and Setups (docs/specs/parts-and-setups.md §8),
+    // the new board empty. The parts are definitions with their operations; each setup
+    // lists its stock, zero and instances.
+    app.add_part().unwrap();
+    let simple = browser_rows(&mut app).len();
     let added = app.add_setup().unwrap();
+    assert_eq!(app.edit.as_ref().unwrap().job.parts.len(), 2);
     let rows = browser_rows(&mut app);
     assert!(has_setups_branch(&rows), "{rows:?}");
     assert_eq!(depth_of(&rows, "Parts"), Some(1));
@@ -42,8 +46,17 @@ fn one_board_shows_no_setups_and_a_part_cut_once_no_instances() {
     assert_eq!(depth_of(&rows, "Stock"), Some(3));
     assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3));
     assert_eq!(depth_of(&rows, "Part 2 #1"), Some(3));
-    // + Parts, Part 2; + Setups, Setup 1, Part 1 #1; + Setup 2, its stock, zero and Part 2 #1.
-    assert_eq!(rows.len(), simple + 2 + 3 + 4, "{rows:?}");
+    assert!(
+        !rows.iter().any(|(_, l)| l.starts_with("Part 3")),
+        "{rows:?}"
+    );
+    // + Parts; + Setups, Setup 1, Part 1 #1, Part 2 #1; + Setup 2, its stock and zero.
+    assert_eq!(rows.len(), simple + 1 + 4 + 3, "{rows:?}");
+    // Part 2 moves to the new board, and back.
+    app.instance_to_setup(2, 1, added);
+    assert_eq!(app.edit.as_ref().unwrap().job.setups_of_part(2), [added]);
+    app.instance_to_setup(2, 1, 1);
+    assert_eq!(app.edit.as_ref().unwrap().job.setups_of_part(2), [1]);
 
     // Removed again: the simple view is back.
     app.remove_setup(added);

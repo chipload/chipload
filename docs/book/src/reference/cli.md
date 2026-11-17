@@ -2643,7 +2643,7 @@ chipload setup list <PROJECT>
 
 ### `chipload setup add`
 
-Add a setup at the end, a board like the active one's, with a first part of its own; both become active
+Add a setup at the end, an empty board like the active one's, which becomes active; parts are placed on it afterwards. A back (--back-of) gets a first part of its own
 
 ```text
 chipload setup add <PROJECT> [OPTIONS]

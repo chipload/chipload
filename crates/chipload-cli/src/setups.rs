@@ -29,8 +29,8 @@ pub enum SetupAction {
         /// The project (.chipload).
         project: PathBuf,
     },
-    /// Add a setup at the end, a board like the active one's, with a first part of its own;
-    /// both become active.
+    /// Add a setup at the end, an empty board like the active one's, which becomes active;
+    /// parts are placed on it afterwards. A back (--back-of) gets a first part of its own.
     Add {
         /// The project (.chipload).
         project: PathBuf,
@@ -314,12 +314,12 @@ pub fn setup(out: &mut Out, action: SetupAction) -> ExitCode {
         }),
         SetupAction::Add {
             name, thickness, ..
-        } => add_setup(&job, name.as_deref(), thickness).map(|(job, id, part)| {
+        } => add_setup(&job, name.as_deref(), thickness).map(|(job, id)| {
             out.line(format!(
-                "Added setup {id} with part {part}, now the active setup and part"
+                "Added setup {id}, an empty board, now the active setup; place parts on it \
+                 with `part instance add --setup {id}` or `part instance move`"
             ));
             out.set("setup", json!(id));
-            out.set("part", json!(part));
             job
         }),
         SetupAction::Set {
