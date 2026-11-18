@@ -29,6 +29,10 @@ pub enum Icon {
     Frame,
     Circle,
     Rectangle,
+    /// A circle drawn by the two ends of a diameter.
+    CircleTwoPoints,
+    /// A circle drawn through three points.
+    CircleThreePoints,
     /// A rectangle drawn from its centre.
     RectangleCentre,
     /// A rectangle drawn on a slanted edge.
@@ -242,6 +246,19 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
         }
         Icon::Circle => pen.circle((0.5, 0.5), 0.36),
         Icon::Rectangle => pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]),
+        Icon::CircleTwoPoints => {
+            pen.circle((0.5, 0.5), 0.36);
+            pen.line([(0.14, 0.5), (0.86, 0.5)]);
+            pen.dot((0.14, 0.5), 0.05);
+            pen.dot((0.86, 0.5), 0.05);
+        }
+        Icon::CircleThreePoints => {
+            pen.circle((0.5, 0.5), 0.36);
+            // Three points on the circle: upper left, upper right, bottom.
+            for (x, y) in [(0.19, 0.32), (0.81, 0.32), (0.5, 0.86)] {
+                pen.dot((x, y), 0.05);
+            }
+        }
         Icon::RectangleCentre => {
             pen.closed(&[(0.12, 0.25), (0.88, 0.25), (0.88, 0.75), (0.12, 0.75)]);
             pen.dot((0.5, 0.5), 0.05);

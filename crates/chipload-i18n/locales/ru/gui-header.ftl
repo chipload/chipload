@@ -103,3 +103,5 @@ header-new-moulding = Новый профиль
 header-rectangle-centre-hover = Начертить прямоугольник: центр, затем угол
 header-rectangle-aligned-hover = Начертить прямоугольник: два конца стороны, затем ширина
 header-variants-hint = Стрелка или правый щелчок: другие способы построения
+header-circle-two-hover = Начертить окружность: два конца диаметра
+header-circle-three-hover = Начертить окружность: три точки на ней

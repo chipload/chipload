@@ -127,3 +127,5 @@ header-new-moulding = Nouvelle moulure
 header-rectangle-centre-hover = Dessiner un rectangle : son centre, puis un coin
 header-rectangle-aligned-hover = Dessiner un rectangle : les deux extrémités d'un bord, puis sa largeur
 header-variants-hint = La flèche, ou un clic droit : d'autres façons de le dessiner
+header-circle-two-hover = Dessiner un cercle : les deux extrémités d'un diamètre
+header-circle-three-hover = Dessiner un cercle : trois points du cercle

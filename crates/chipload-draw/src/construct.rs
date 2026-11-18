@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Shapes from the points of a drawing tool (docs/specs/drawing-input.md §4,
 //! drawing-variants.md §2): the arc through three points, the arc of a radius between two,
-//! an arc as polyline segments, and rectangles by two corners, by their centre or aligned
-//! to an edge.
+//! an arc as polyline segments, rectangles by two corners, by their centre or aligned to
+//! an edge, and circles by two or three points.
 
 use chipload_core::math;
 use std::f64::consts::{PI, TAU};
@@ -158,6 +158,19 @@ pub fn rectangle_aligned(a: Point, b: Point, p: Point) -> Option<Rectangle> {
     .sized()
 }
 
+/// The circle with `a` and `b` at the ends of a diameter: its centre and radius. None
+/// when they coincide.
+pub fn circle_by_diameter(a: Point, b: Point) -> Option<(Point, f64)> {
+    let radius = distance(a, b) / 2.0;
+    (radius >= CHAIN_TOL_MM).then_some((((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0), radius))
+}
+
+/// The circle through `a`, `b` and `c`: its centre and radius. None when two coincide or
+/// the three lie on one line, as for [`arc_through`].
+pub fn circle_through(a: Point, b: Point, c: Point) -> Option<(Point, f64)> {
+    arc_through(a, b, c).map(|arc| (arc.center, arc.radius))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -248,5 +261,23 @@ mod tests {
         // The third point on the edge's line, or the edge a point: no size.
         assert!(rectangle_aligned((0.0, 0.0), (10.0, 0.0), (20.0, 0.0)).is_none());
         assert!(rectangle_aligned((1.0, 1.0), (1.0, 1.0), (5.0, 5.0)).is_none());
+    }
+
+    #[test]
+    fn circles_by_a_diameter_and_through_three_points() {
+        let (c, r) = circle_by_diameter((0.0, 0.0), (6.0, 8.0)).unwrap();
+        assert!(close(c, (3.0, 4.0)) && (r - 5.0).abs() < 1e-12);
+        assert!(circle_by_diameter((1.0, 1.0), (1.0, 1.0)).is_none());
+        // Any order of the three points gives the same circle.
+        for (a, b, p) in [
+            ((5.0, 0.0), (0.0, 5.0), (-5.0, 0.0)),
+            ((-5.0, 0.0), (5.0, 0.0), (0.0, -5.0)),
+            ((3.0, 4.0), (-4.0, -3.0), (0.0, 5.0)),
+        ] {
+            let (c, r) = circle_through(a, b, p).unwrap();
+            assert!(close(c, (0.0, 0.0)) && (r - 5.0).abs() < 1e-9);
+        }
+        assert!(circle_through((0.0, 0.0), (5.0, 5.0), (10.0, 10.0)).is_none());
+        assert!(circle_through((0.0, 0.0), (0.0, 0.0), (10.0, 0.0)).is_none());
     }
 }

@@ -1003,10 +1003,16 @@ fn the_shapes_key_goes_through_its_variants_until_the_first_click() {
     app.draw_shape(Tool::Rectangle);
     assert_eq!(tool(&app), Some(Tool::RectangleAligned));
     // A shape with one way: its key starts it afresh, as before.
-    app.draw_shape(Tool::Circle);
+    app.draw_shape(Tool::Polyline);
     app.draw_click((200.0, 50.0), false);
-    app.draw_shape(Tool::Circle);
+    app.draw_shape(Tool::Polyline);
     assert_eq!(app.sketch().unwrap().points.len(), 0);
+    // C goes round the circles the same way.
+    app.draw_shape(Tool::Circle);
+    assert_eq!(tool(&app), Some(Tool::Circle));
+    app.draw_shape(Tool::Circle);
+    app.draw_shape(Tool::Circle);
+    assert_eq!(tool(&app), Some(Tool::CircleThreePoints));
 }
 
 #[test]

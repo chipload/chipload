@@ -12,8 +12,8 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_draw::construct::{
-    arc_as_polyline, arc_middle_for_radius, arc_through, left_of, rectangle_aligned,
-    rectangle_by_centre, rectangle_by_corners,
+    arc_as_polyline, arc_middle_for_radius, arc_through, circle_by_diameter, circle_through,
+    left_of, rectangle_aligned, rectangle_by_centre, rectangle_by_corners,
 };
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::{length_text, parse_length};
@@ -22,7 +22,12 @@ use crate::i18n::{Lang, t};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Tool {
+    /// The centre, then a point on it.
     Circle,
+    /// The two ends of a diameter (docs/specs/drawing-variants.md §2).
+    CircleTwoPoints,
+    /// Three points on it (docs/specs/drawing-variants.md §2).
+    CircleThreePoints,
     /// Two opposite corners.
     Rectangle,
     /// The centre, then a corner (docs/specs/drawing-variants.md §2).
@@ -44,6 +49,7 @@ impl Tool {
     pub fn shape(self) -> Tool {
         match self {
             Tool::RectangleCentre | Tool::RectangleAligned => Tool::Rectangle,
+            Tool::CircleTwoPoints | Tool::CircleThreePoints => Tool::Circle,
             other => other,
         }
     }
@@ -56,7 +62,7 @@ impl Tool {
                 Tool::RectangleCentre,
                 Tool::RectangleAligned,
             ],
-            Tool::Circle => &[Tool::Circle],
+            Tool::Circle => &[Tool::Circle, Tool::CircleTwoPoints, Tool::CircleThreePoints],
             Tool::Polyline => &[Tool::Polyline],
             Tool::Arc => &[Tool::Arc],
             Tool::Slot => &[Tool::Slot],
@@ -109,7 +115,10 @@ impl Why {
     /// For the status bar.
     pub fn text(self, lang: &impl Lang) -> String {
         match self {
-            Why::NoSize(Tool::Circle | Tool::Polygon) => t!(lang, "draw-no-size-circle"),
+            Why::NoSize(Tool::Circle | Tool::CircleTwoPoints | Tool::Polygon) => {
+                t!(lang, "draw-no-size-circle")
+            }
+            Why::NoSize(Tool::CircleThreePoints) => t!(lang, "draw-circle-on-a-line"),
             Why::NoSize(
                 Tool::Rectangle | Tool::RectangleCentre | Tool::RectangleAligned | Tool::Polyline,
             ) => t!(lang, "draw-no-size-rectangle"),
@@ -164,8 +173,12 @@ impl Sketch {
     /// How many clicks make the shape (a polyline: as many as it takes).
     fn clicks(&self) -> usize {
         match self.tool {
-            Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => 2,
-            Tool::Arc | Tool::Slot | Tool::RectangleAligned => 3,
+            Tool::Circle
+            | Tool::CircleTwoPoints
+            | Tool::Rectangle
+            | Tool::RectangleCentre
+            | Tool::Polygon => 2,
+            Tool::Arc | Tool::Slot | Tool::RectangleAligned | Tool::CircleThreePoints => 3,
             Tool::Polyline => usize::MAX,
         }
     }
@@ -189,9 +202,12 @@ impl Sketch {
     /// centre or a rectangle's corner isn't one.
     pub fn last_point(&self) -> Option<Point> {
         match self.tool {
-            Tool::Polyline | Tool::Arc | Tool::Slot | Tool::RectangleAligned => {
-                self.points.last().copied()
-            }
+            Tool::Polyline
+            | Tool::Arc
+            | Tool::Slot
+            | Tool::RectangleAligned
+            | Tool::CircleTwoPoints
+            | Tool::CircleThreePoints => self.points.last().copied(),
             Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => None,
         }
     }
@@ -212,6 +228,8 @@ impl Sketch {
                     radius,
                 })
             }
+            (Tool::CircleTwoPoints, _) => circle_by_diameter(first, p).map(circle),
+            (Tool::CircleThreePoints, &[a, b]) => circle_through(a, b, p).map(circle),
             (Tool::Rectangle, _) => rectangle_by_corners(first, p).map(rectangle),
             (Tool::RectangleCentre, _) => rectangle_by_centre(first, p).map(rectangle),
             (Tool::RectangleAligned, &[a, b]) => rectangle_aligned(a, b, p).map(rectangle),
@@ -244,10 +262,12 @@ impl Sketch {
             return Vec::new();
         }
         match self.tool {
-            Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => {
-                self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default()
-            }
-            Tool::Arc | Tool::Slot | Tool::RectangleAligned
+            Tool::Circle
+            | Tool::CircleTwoPoints
+            | Tool::Rectangle
+            | Tool::RectangleCentre
+            | Tool::Polygon => self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default(),
+            Tool::Arc | Tool::Slot | Tool::RectangleAligned | Tool::CircleThreePoints
                 if self.points.len() + 1 == self.clicks() =>
             {
                 match self.geometry_to(p) {
@@ -255,7 +275,11 @@ impl Sketch {
                     None => vec![self.points.clone()],
                 }
             }
-            Tool::Polyline | Tool::Arc | Tool::Slot | Tool::RectangleAligned => {
+            Tool::Polyline
+            | Tool::Arc
+            | Tool::Slot
+            | Tool::RectangleAligned
+            | Tool::CircleThreePoints => {
                 let mut line = self.points.clone();
                 line.push(p);
                 vec![line]
@@ -277,6 +301,25 @@ impl Sketch {
                 grid = grid
             ),
             (Tool::Circle, _) => t!(lang, "draw-status-circle-start", grid = grid),
+            (Tool::CircleTwoPoints, &[a, ..]) => t!(
+                lang,
+                "draw-status-circle-two",
+                diameter = n(distance(a, p)),
+                grid = grid
+            ),
+            (Tool::CircleTwoPoints, _) => t!(lang, "draw-status-circle-two-start", grid = grid),
+            (Tool::CircleThreePoints, []) => {
+                t!(lang, "draw-status-circle-three-start", grid = grid)
+            }
+            (Tool::CircleThreePoints, &[_]) => {
+                t!(lang, "draw-status-circle-three-second", grid = grid)
+            }
+            (Tool::CircleThreePoints, &[a, b, ..]) => t!(
+                lang,
+                "draw-status-circle-three",
+                radius = circle_through(a, b, p).map_or_else(String::new, |(_, r)| n(r)),
+                grid = grid
+            ),
             (Tool::Rectangle, &[c, ..]) => t!(
                 lang,
                 "draw-status-rectangle",
@@ -354,6 +397,14 @@ impl Sketch {
                 grid = grid
             ),
         }
+    }
+}
+
+/// A drawn circle from its centre and radius.
+fn circle((center, radius): (Point, f64)) -> Geometry {
+    Geometry::Circle {
+        center: [center.0, center.1],
+        radius,
     }
 }
 
@@ -603,7 +654,22 @@ impl Sketch {
             (Tool::RectangleAligned, &[a, b]) => {
                 format!("{} × {}", n(distance(a, b)), n(left_of(a, b, p).abs()))
             }
-            (Tool::Polyline | Tool::Arc | Tool::Slot | Tool::RectangleAligned, _) => {
+            (Tool::CircleTwoPoints, _) => format!(
+                "Ø {}  R {}",
+                n(distance(first, p)),
+                n(distance(first, p) / 2.0)
+            ),
+            (Tool::CircleThreePoints, &[a, b]) => {
+                format!("R {}", n(circle_through(a, b, p)?.1))
+            }
+            (
+                Tool::Polyline
+                | Tool::Arc
+                | Tool::Slot
+                | Tool::RectangleAligned
+                | Tool::CircleThreePoints,
+                _,
+            ) => {
                 let (dx, dy) = (p.0 - from.0, p.1 - from.1);
                 let angle = if dx == 0.0 && dy == 0.0 {
                     0.0

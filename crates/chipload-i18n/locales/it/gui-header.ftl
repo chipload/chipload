@@ -127,3 +127,5 @@ header-new-moulding = Nuova modanatura
 header-rectangle-centre-hover = Disegna un rettangolo: il centro, poi un angolo
 header-rectangle-aligned-hover = Disegna un rettangolo: i due estremi di un lato, poi la larghezza
 header-variants-hint = La freccia, o un clic destro: altri modi di disegnarlo
+header-circle-two-hover = Disegna un cerchio: i due estremi di un diametro
+header-circle-three-hover = Disegna un cerchio: tre punti sul cerchio

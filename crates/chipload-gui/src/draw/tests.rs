@@ -510,7 +510,7 @@ fn a_shapes_variants_go_round_from_its_first() {
     assert_eq!(Tool::RectangleAligned.next_variant(), Tool::Rectangle);
     assert_eq!(Tool::RectangleAligned.shape(), Tool::Rectangle);
     // A shape with one way of drawing stays itself.
-    assert_eq!(Tool::Circle.next_variant(), Tool::Circle);
+    assert_eq!(Tool::Slot.next_variant(), Tool::Slot);
     assert_eq!(Tool::Polyline.variants(), &[Tool::Polyline]);
 }
 
@@ -536,4 +536,74 @@ fn each_rectangle_variant_says_what_to_click() {
     for text in &texts {
         assert!(text.contains("grid 1"), "{text}");
     }
+}
+
+#[test]
+fn a_circle_by_two_points_has_them_at_a_diameters_ends() {
+    let mut sketch = Sketch::new(Tool::CircleTwoPoints);
+    assert_eq!(sketch.click((0.0, 0.0), false), Step::Continue);
+    // The first end is a last point: tangent snaps work from it.
+    assert_eq!(sketch.last_point(), Some((0.0, 0.0)));
+    assert_eq!(
+        sketch.readout((6.0, 8.0), Units::Mm).unwrap(),
+        "Ø 10.000  R 5.000"
+    );
+    // A typed length is the diameter, towards the cursor.
+    let end = sketch.typed(Entry::Distance(20.0), (0.0, 1.0)).unwrap();
+    assert_eq!(end, (0.0, 20.0));
+    assert_eq!(
+        sketch.click(end, false),
+        Step::Done(Geometry::Circle {
+            center: [0.0, 10.0],
+            radius: 10.0
+        })
+    );
+}
+
+#[test]
+fn a_circle_by_three_points_goes_through_them() {
+    let mut sketch = Sketch::new(Tool::CircleThreePoints);
+    sketch.click((5.0, 0.0), false);
+    // Before the last click the preview is the line so far.
+    assert_eq!(
+        sketch.preview((0.0, 5.0)),
+        vec![vec![(5.0, 0.0), (0.0, 5.0)]]
+    );
+    sketch.click((0.0, 5.0), false);
+    assert_eq!(sketch.readout((-5.0, 0.0), Units::Mm).unwrap(), "R 5.000");
+    assert_eq!(sketch.preview((-5.0, 0.0)).len(), 1);
+    // On the line through the first two: refused, and drawing goes on.
+    assert_eq!(
+        sketch.click((10.0, -5.0), false),
+        Step::Ignored(Some(Why::NoSize(Tool::CircleThreePoints)))
+    );
+    assert_eq!(
+        Why::NoSize(Tool::CircleThreePoints).text(&En),
+        "the three points lie on a line: no circle goes through them"
+    );
+    let Step::Done(Geometry::Circle { center, radius }) = sketch.click((-5.0, 0.0), false) else {
+        panic!("a circle");
+    };
+    assert!(center[0].abs() < 1e-9 && center[1].abs() < 1e-9);
+    assert!((radius - 5.0).abs() < 1e-9);
+}
+
+#[test]
+fn each_circle_variant_says_what_to_click() {
+    let status = |tool: Tool, clicks: &[Point]| {
+        let mut sketch = Sketch::new(tool);
+        for &p in clicks {
+            sketch.click(p, false);
+        }
+        sketch.status((3.0, 4.0), 1.0, Units::Mm, &En)
+    };
+    assert!(status(Tool::CircleTwoPoints, &[]).contains("one end of a diameter"));
+    assert!(status(Tool::CircleTwoPoints, &[(0.0, 0.0)]).contains("diameter 5.000"));
+    assert!(status(Tool::CircleThreePoints, &[]).contains("first point"));
+    assert!(status(Tool::CircleThreePoints, &[(0.0, 0.0)]).contains("second point"));
+    let third = status(Tool::CircleThreePoints, &[(-5.0, 0.0), (5.0, 0.0)]);
+    assert!(third.contains("radius 5.000"), "{third}");
+    assert_eq!(Tool::Circle.next_variant(), Tool::CircleTwoPoints);
+    assert_eq!(Tool::CircleThreePoints.next_variant(), Tool::Circle);
+    assert_eq!(Tool::CircleThreePoints.shape(), Tool::Circle);
 }

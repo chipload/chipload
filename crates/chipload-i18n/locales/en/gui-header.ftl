@@ -127,3 +127,5 @@ header-new-moulding = New Moulding
 header-rectangle-centre-hover = Draw a rectangle: its centre, then a corner
 header-rectangle-aligned-hover = Draw a rectangle: one edge's two ends, then its width
 header-variants-hint = The arrow, or a right-click: other ways to draw it
+header-circle-two-hover = Draw a circle: the two ends of a diameter
+header-circle-three-hover = Draw a circle: three points on it

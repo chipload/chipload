@@ -2,7 +2,12 @@
 
 Chipload draws the parts it cuts, with or without a DXF:
 
-- **Circle** (key **C**): the centre, then a point on it.
+- **Circle** (key **C**): the centre, then a point on it. Two more ways, from the small
+  arrow on its button (below):
+  - **Two points:** the two ends of a diameter (type a length after the first for the
+    diameter).
+  - **Three points:** three points on it, such as three corners it must pass through.
+    Three points on one line make no circle, and the status bar says so.
 - **Rectangle** (**R**): two opposite corners. It keeps its centre, length and width, a
   rotation, and a corner radius (0: sharp corners). Two more ways to draw it, from the
   small arrow on its button (below):
@@ -31,7 +36,7 @@ A button with a small triangle in its corner draws its shape more than one way. 
 triangle, or right-click the button, for the list; the way you choose stays on the button
 until you close Chipload. The *Draw* menu lists them under the shape. Pressing the key again
 before the first click moves to the next way (**R**, **R**, **R**: two corners, centre,
-aligned) and the status bar names it. Clicks snap to the drawing (below), else
+aligned; **C** goes round the circles the same way) and the status bar names it. Clicks snap to the drawing (below), else
 to the [grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm").
 
 ## Snapping

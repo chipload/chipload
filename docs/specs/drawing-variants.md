@@ -1,7 +1,7 @@
 # Spec: more ways to draw a shape, on one split button
 
 Status: **approved 2026-11-18** (the user: "sounds good go ahead"; §9 as recommended).
-Step 1 built (see *As built*).
+Steps 1 and 2 built (see *As built*).
 
 Guide: docs/book/src/drawings/shapes.md.
 
@@ -197,3 +197,8 @@ next click, for example "Rectangle (aligned): click the width. 0.5 mm grid".
     shape with variants.
   - A typed width for the aligned rectangle goes to the cursor's side of the edge (to the
     left when the cursor is on the edge's line).
+- **Step 2 (2026-11-18):** `circle_by_diameter` and `circle_through` in
+  `chipload_draw::construct` (the latter through `arc_through`'s circumcentre); the tools
+  `CircleTwoPoints` and `CircleThreePoints`, both with a last point for perpendicular and
+  tangent snaps. The readout shows "Ø d  R r" for the two-point circle. Three points on
+  a line are refused with their own text ("no circle goes through them").

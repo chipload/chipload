@@ -778,6 +778,8 @@ fn variant_icon(tool: Tool, shape_icon: Icon) -> Icon {
     match tool {
         Tool::RectangleCentre => Icon::RectangleCentre,
         Tool::RectangleAligned => Icon::RectangleAligned,
+        Tool::CircleTwoPoints => Icon::CircleTwoPoints,
+        Tool::CircleThreePoints => Icon::CircleThreePoints,
         _ => shape_icon,
     }
 }
@@ -787,6 +789,8 @@ fn variant_hint(ui: &egui::Ui, tool: Tool, shape_hint: &str) -> String {
     match tool {
         Tool::RectangleCentre => t!(ui, "header-rectangle-centre-hover"),
         Tool::RectangleAligned => t!(ui, "header-rectangle-aligned-hover"),
+        Tool::CircleTwoPoints => t!(ui, "header-circle-two-hover"),
+        Tool::CircleThreePoints => t!(ui, "header-circle-three-hover"),
         _ => shape_hint.to_string(),
     }
 }
@@ -797,7 +801,9 @@ pub(super) fn variant_name(ui: &egui::Ui, tool: Tool) -> String {
         Tool::Rectangle => t!(ui, "draw-variant-rectangle-corners"),
         Tool::RectangleCentre => t!(ui, "draw-variant-rectangle-centre"),
         Tool::RectangleAligned => t!(ui, "draw-variant-rectangle-aligned"),
-        Tool::Circle => t!(ui, "header-circle"),
+        Tool::Circle => t!(ui, "draw-variant-circle-centre"),
+        Tool::CircleTwoPoints => t!(ui, "draw-variant-circle-two"),
+        Tool::CircleThreePoints => t!(ui, "draw-variant-circle-three"),
         Tool::Polyline => t!(ui, "header-polyline"),
         Tool::Arc => t!(ui, "header-arc"),
         Tool::Slot => t!(ui, "header-slot"),
