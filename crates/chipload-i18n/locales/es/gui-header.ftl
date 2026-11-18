@@ -134,3 +134,5 @@ header-polygon-side-hover = Dibujar un polígono regular: el centro y luego el m
 header-polygon-edge-hover = Dibujar un polígono regular: los dos extremos de un lado; queda a su izquierda
 header-spline = Spline
 header-spline-hover = Dibujar un spline: haz clic en los puntos por los que pasa una curva suave
+header-mirror = Simetría
+header-mirror-hover = Reflejar las formas dibujadas seleccionadas respecto a un eje: haga clic en sus dos puntos, o en una línea recta como un eje central

@@ -203,3 +203,8 @@ draw-status-spline = Spline zeichnen, { $count ->
        *[other] { $count } Punkte
     }: den nächsten Punkt anklicken; die Kurve geht durch jeden. Enter oder Doppelklick beendet ihn offen, der erste Punkt schließt ihn, Backspace entfernt den letzten Punkt (Raster { $grid }, Esc bricht ab)
 draw-spline-too-short = ein Spline braucht mindestens 2 Punkte
+modify-mirror-pick = Spiegeln: die zu spiegelnden gezeichneten Formen anklicken (Strg fügt hinzu), dann die Achse (Esc beendet)
+modify-mirror-first = Spiegeln: den ersten Punkt der Spiegelachse anklicken, oder eine gerade Linie als Achse anklicken (Esc beendet)
+modify-mirror-second = Spiegeln: den zweiten Punkt der Spiegelachse anklicken; Umschalt hält 15°-Schritte (Esc beendet)
+modify-mirror-keep = Original behalten
+modify-mirror-keep-hover = An: gespiegelte Kopien hinzufügen, und eine Hälfte, deren Enden auf der Achse liegen, mit ihrem Spiegelbild zu einer Form verbinden. Aus: die Formen an Ort und Stelle spiegeln

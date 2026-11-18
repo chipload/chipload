@@ -207,3 +207,8 @@ draw-status-spline = Drawing a spline { $count ->
        *[other] { $count } points
     }: click the next point; the curve passes through each. Enter or double-click finishes it open, the first point closes it, Backspace removes the last point (grid { $grid }, Esc cancels)
 draw-spline-too-short = a spline needs at least 2 points
+modify-mirror-pick = Mirror: click the drawn shapes to mirror (Ctrl adds), then the line (Esc ends)
+modify-mirror-first = Mirror: click the first point of the mirror line, or click a straight line to mirror about it (Esc ends)
+modify-mirror-second = Mirror: click the second point of the mirror line; Shift keeps it to 15° steps (Esc ends)
+modify-mirror-keep = Keep the original
+modify-mirror-keep-hover = Checked: add mirrored copies, and join a half whose ends lie on the line with its mirror image into one shape. Unchecked: flip the shapes in place

@@ -827,6 +827,91 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
     }
 }
 
+/// `p` reflected about the line through `a` and `b` (docs/specs/drawing-improvements.md
+/// §1); `p` itself when they coincide. A horizontal or vertical line reflects exactly.
+pub fn reflected_point(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
+    let (dx, dy) = (b[0] - a[0], b[1] - a[1]);
+    let len = math::hypot(dx, dy);
+    if len == 0.0 {
+        return p;
+    }
+    let (ux, uy) = (dx / len, dy / len);
+    let (px, py) = (p[0] - a[0], p[1] - a[1]);
+    let along = px * ux + py * uy;
+    // The foot on the line, then as far again beyond it.
+    let foot = [a[0] + along * ux, a[1] + along * uy];
+    [2.0 * foot[0] - p[0], 2.0 * foot[1] - p[1]]
+}
+
+/// A drawn shape reflected about the line through `a` and `b`: points reflected, a
+/// rectangle's angle and a polygon's first corner turned to 2θ − angle (θ the line's
+/// direction), a polyline's bulges negated. None for an imported path, or when `a` and `b`
+/// coincide.
+pub fn mirrored_about(geometry: &Geometry, a: [f64; 2], b: [f64; 2]) -> Option<Geometry> {
+    if a == b {
+        return None;
+    }
+    let flip = |p: &[f64; 2]| reflected_point(*p, a, b);
+    let theta = math::atan2(b[1] - a[1], b[0] - a[0]);
+    let turned = |angle: f64| within_half_turn(2.0 * theta - angle);
+    let negated = |v: f64| 0.0 - v;
+    // A rectangle is the same turned half a turn: about a horizontal or vertical line
+    // (2θ a whole number of half turns) its angle is exactly −angle, so mirroring twice
+    // gives it back bit for bit.
+    let rectangle_turned = |angle: f64| {
+        let shift = (2.0 * theta).rem_euclid(PI);
+        if shift == 0.0 {
+            negated(angle)
+        } else {
+            within_half_turn(shift - angle)
+        }
+    };
+    match geometry {
+        Geometry::Path { .. } => None,
+        Geometry::Circle { center, radius } => Some(Geometry::Circle {
+            center: flip(center),
+            radius: *radius,
+        }),
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            corner_radius,
+        } => Some(Geometry::Rectangle {
+            center: flip(center),
+            length: *length,
+            width: *width,
+            angle: rectangle_turned(*angle),
+            corner_radius: *corner_radius,
+        }),
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+        } => Some(Geometry::Polygon {
+            center: flip(center),
+            radius: *radius,
+            sides: *sides,
+            angle: turned(*angle),
+        }),
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => Some(Geometry::Polyline {
+            closed: *closed,
+            points: points.iter().map(flip).collect(),
+            bulges: bulges.iter().map(|b| negated(*b)).collect(),
+        }),
+        Geometry::Spline { closed, points } => Some(Geometry::Spline {
+            closed: *closed,
+            points: points.iter().map(flip).collect(),
+        }),
+    }
+}
+
 /// Where a point on a drawn shape goes when the shape changes from `old` to `new` through
 /// its own handles or form (docs/specs/dogbone-per-corner.md §4): a rectangle's point keeps
 /// its place in the rectangle (a corner stays that corner), a circle's its angle and share

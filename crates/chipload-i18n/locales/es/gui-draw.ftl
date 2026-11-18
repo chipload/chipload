@@ -203,3 +203,8 @@ draw-status-spline = Dibujando un spline de { $count ->
        *[other] { $count } puntos
     }: haz clic en el siguiente punto; la curva pasa por cada uno. Enter o doble clic lo termina abierto, el primer punto lo cierra, Backspace quita el último punto (cuadrícula { $grid }, Esc cancela)
 draw-spline-too-short = un spline necesita al menos 2 puntos
+modify-mirror-pick = Simetría: haga clic en las formas dibujadas a reflejar (Ctrl añade), luego en el eje (Esc termina)
+modify-mirror-first = Simetría: haga clic en el primer punto del eje, o en una línea recta que sirva de eje (Esc termina)
+modify-mirror-second = Simetría: haga clic en el segundo punto del eje; Mayús lo mantiene en pasos de 15° (Esc termina)
+modify-mirror-keep = Conservar el original
+modify-mirror-keep-hover = Marcado: añade copias reflejadas, y une una mitad cuyos extremos están en el eje con su reflejo en una sola forma. Desmarcado: voltea las formas en su sitio

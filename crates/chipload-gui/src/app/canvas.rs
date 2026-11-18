@@ -658,6 +658,17 @@ impl ChiploadApp {
                 .then_some(self.canvas_tools.array.center);
         } else if self.modify() == Some(super::modify::ModifyTool::Frame) {
             self.scene.preview = self.frame_outlines();
+        } else if self.modify() == Some(super::modify::ModifyTool::Mirror) {
+            // The line the cursor offers and the shapes mirrored about it.
+            let hover = response.hover_pos();
+            let picked = hover.and_then(|pos| self.scene.pick(&self.view, pos));
+            let aim = match self.cursor {
+                Some(at) if !self.selected_drawn().is_empty() => {
+                    self.mirror_aim(picked, at, alt, shift)
+                }
+                _ => None,
+            };
+            self.scene.preview = self.mirror_preview(aim);
         } else if self
             .modify()
             .is_some_and(super::modify::ModifyTool::on_shape_under_cursor)

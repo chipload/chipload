@@ -505,3 +505,54 @@ fn a_rectangle_turned_keeps_a_small_angle() {
     };
     assert!((angle - (3.0 + std::f64::consts::FRAC_PI_2 - TAU)).abs() < 1e-12);
 }
+
+/// docs/specs/drawing-improvements.md §1.
+#[test]
+fn shapes_reflect_about_any_line() {
+    // About the 45° line through the origin, x and y swap.
+    let (a, b) = ([0.0, 0.0], [1.0, 1.0]);
+    let close =
+        |p: [f64; 2], q: [f64; 2]| (p[0] - q[0]).abs() < 1e-12 && (p[1] - q[1]).abs() < 1e-12;
+    assert!(close(reflected_point([3.0, 1.0], a, b), [1.0, 3.0]));
+    // A rectangle along X becomes one along Y: angle 90°.
+    let r = Geometry::Rectangle {
+        center: [10.0, 0.0],
+        length: 20.0,
+        width: 4.0,
+        angle: 0.0,
+        corner_radius: 1.0,
+    };
+    let Some(Geometry::Rectangle { center, angle, .. }) = mirrored_about(&r, a, b) else {
+        panic!("a rectangle");
+    };
+    assert!(close(center, [0.0, 10.0]));
+    assert!((angle - std::f64::consts::FRAC_PI_2).abs() < 1e-12);
+    // A polygon's first corner goes where its image is.
+    let hex = Geometry::Polygon {
+        center: [0.0, 0.0],
+        radius: 5.0,
+        sides: 6,
+        angle: 0.3,
+    };
+    let Some(Geometry::Polygon { angle, .. }) = mirrored_about(&hex, a, b) else {
+        panic!("a polygon");
+    };
+    let corner = |t: f64| [5.0 * math::cos(t), 5.0 * math::sin(t)];
+    assert!(close(corner(angle), reflected_point(corner(0.3), a, b)));
+    // A polyline's arcs bend the other way; about a horizontal line exactly.
+    let arc = Geometry::Polyline {
+        closed: false,
+        points: vec![[0.0, 1.5], [10.0, 2.25]],
+        bulges: vec![0.5],
+    };
+    assert_eq!(
+        mirrored_about(&arc, [0.0, 1.0], [5.0, 1.0]),
+        Some(Geometry::Polyline {
+            closed: false,
+            points: vec![[0.0, 0.5], [10.0, -0.25]],
+            bulges: vec![-0.5],
+        })
+    );
+    // An imported path, or a line of one point: none.
+    assert_eq!(mirrored_about(&r, a, a), None);
+}

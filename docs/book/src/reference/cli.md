@@ -795,7 +795,10 @@ chipload shape mirror <PROJECT> <IDS>... [OPTIONS]
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
 | `<IDS>` | The shape ids (as `inspect` lists them, without the S) |
-| `--axis <AXIS>` | x: flip the X coordinates (left becomes right); y: flip Y (up becomes down) One of: `x`, `y`. Required. |
+| `--axis <AXIS>` | x: flip the X coordinates (left becomes right); y: flip Y (up becomes down), about the middle of the box round them. One of: `x`, `y`. |
+| `--line <LINE>` | Mirror about the line through two points "X,Y X,Y" (docs/specs/drawing-improvements.md §1) |
+| `--about-shape <ABOUT_SHAPE>` | Mirror about drawn shape ID, one straight line (a construction centre line) |
+| `--copy` | Keep the shapes and add their mirror images; an open shape with both ends on the line joins its image into one closed shape. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 
 ### `chipload shape move`

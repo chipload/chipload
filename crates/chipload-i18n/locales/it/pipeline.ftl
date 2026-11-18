@@ -742,3 +742,8 @@ pipeline-part-stock-moved = { $part } si taglia da { $stock }: { $board }
 pipeline-part-stock-made = Creato { $board } ({ $stock }) per { $part }
 pipeline-part-stock-nowhere = Il pezzo { $id } non ha un piazzamento del suo grezzo in cui andare: non ne chiede o è già su uno
 pipeline-part-wrong-stock = { $part } va tagliato da { $wants }, ma questo grezzo è { $board }
+pipeline-mirror-line = l'asse di simmetria richiede due punti diversi
+pipeline-mirror-joined = { $count ->
+    [one] 1 metà è stata unita
+   *[other] { $count } metà sono state unite
+} alla sua immagine speculare in una forma chiusa

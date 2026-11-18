@@ -72,6 +72,7 @@ mod library_view;
 mod materials;
 mod measure;
 mod menu;
+mod mirror_tool;
 mod models;
 mod modify;
 mod navigation;

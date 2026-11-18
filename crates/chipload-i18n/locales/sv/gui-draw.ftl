@@ -203,3 +203,8 @@ draw-status-spline = Ritar en spline med { $count ->
        *[other] { $count } punkter
     }: klicka på nästa punkt; kurvan går genom varje. Enter eller dubbelklick avslutar den öppen, första punkten sluter den, Backspace tar bort senaste punkten (rutnät { $grid }, Esc avbryter)
 draw-spline-too-short = en spline behöver minst 2 punkter
+modify-mirror-pick = Spegla: klicka de ritade former som ska speglas (Ctrl lägger till), sedan linjen (Esc avslutar)
+modify-mirror-first = Spegla: klicka speglingslinjens första punkt, eller klicka en rak linje att spegla kring (Esc avslutar)
+modify-mirror-second = Spegla: klicka speglingslinjens andra punkt; Skift håller den i steg om 15° (Esc avslutar)
+modify-mirror-keep = Behåll originalet
+modify-mirror-keep-hover = Ikryssad: lägger till speglade kopior, och fogar ihop en halva vars ändar ligger på linjen med sin spegelbild till en form. Ej ikryssad: vänder formerna på plats

@@ -745,3 +745,8 @@ pipeline-part-stock-moved = { $part } est usinée dans { $stock } : { $board }
 pipeline-part-stock-made = { $board } ({ $stock }) créé pour { $part }
 pipeline-part-stock-nowhere = La pièce { $id } n’a aucun montage de son brut où aller : elle n’en demande aucun ou y est déjà
 pipeline-part-wrong-stock = { $part } doit être usinée dans { $wants }, mais ce brut est { $board }
+pipeline-mirror-line = l'axe de symétrie a besoin de deux points différents
+pipeline-mirror-joined = { $count ->
+    [one] 1 moitié a été jointe
+   *[other] { $count } moitiés ont été jointes
+} à son image en miroir en une forme fermée

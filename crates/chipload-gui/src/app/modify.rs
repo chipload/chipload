@@ -35,6 +35,9 @@ pub enum ModifyTool {
     Subtract,
     /// Keep what the selected shapes share, at once (§5).
     Intersect,
+    /// The selection mirrored about a line of two clicks or a straight side
+    /// (docs/specs/drawing-improvements.md §1).
+    Mirror,
     /// Copies of the selection in a grid, set under Selection (§6).
     Array,
     /// Copies of the selection round a centre clicked on the canvas (§6).
@@ -135,6 +138,7 @@ impl ChiploadApp {
         if self.display.three_d {
             self.view_top();
         }
+        self.canvas_tools.mirror.from = None;
         self.set_tool(ActiveTool::Modify(tool));
         if matches!(
             tool,
@@ -403,6 +407,7 @@ impl ChiploadApp {
                     }
                 }
             }
+            Some(ModifyTool::Mirror) => self.mirror_click(picked, at, toggle, (free, all)),
             Some(ModifyTool::Subtract) => {
                 if let Some(base) = self.drawn_under(picked, at)
                     && self.combine(Combine::Subtract, &self.subtract_ids(base))
@@ -1040,6 +1045,13 @@ impl ChiploadApp {
                 t!(self, "modify-combine-pick")
             }
             ModifyTool::Subtract => t!(self, "modify-subtract-status"),
+            ModifyTool::Mirror if self.selected_drawn().is_empty() => {
+                t!(self, "modify-mirror-pick")
+            }
+            ModifyTool::Mirror if self.canvas_tools.mirror.from.is_none() => {
+                t!(self, "modify-mirror-first")
+            }
+            ModifyTool::Mirror => t!(self, "modify-mirror-second"),
             ModifyTool::Array | ModifyTool::PolarArray | ModifyTool::LinearArray
                 if self.selected_drawn().is_empty() =>
             {

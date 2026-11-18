@@ -169,3 +169,4 @@ menu-bar-help = Aiuto
 menu-preferences = Preferenze…
 menu-preferences-hover = Preferenze nel Browser, sotto la Libreria: unità, lingua, tema colori, scheda di preparazione, aggiornamento automatico
 menu-draw-spline = Spline
+menu-modify-mirror = Specchia rispetto a un asse

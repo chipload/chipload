@@ -134,3 +134,5 @@ header-polygon-side-hover = Rita en regelbunden månghörning: centrum, sedan mi
 header-polygon-edge-hover = Rita en regelbunden månghörning: en sidas två ändar; den ligger till vänster om sidan
 header-spline = Spline
 header-spline-hover = Rita en spline: klicka på punkterna som en mjuk kurva går genom
+header-mirror = Spegla
+header-mirror-hover = Spegla de valda ritade formerna kring en linje: klicka dess två punkter, eller klicka en rak linje som en mittlinje

@@ -45,6 +45,8 @@ pub struct CanvasTools {
     pub fillet_radius: f64,
     pub chamfer_distance: f64,
     pub(super) offset_preview: modify::OffsetPreview,
+    /// The Mirror tool's choice and first point (docs/specs/drawing-improvements.md §1).
+    pub mirror: super::mirror_tool::MirrorSettings,
     /// The array tools' values, kept for the session, and their preview.
     pub array: modify::ArraySettings,
     /// The Compass on the selection (docs/specs/compass.md).
@@ -74,6 +76,7 @@ impl Default for CanvasTools {
             fillet_radius: 3.0,
             chamfer_distance: 1.0,
             offset_preview: modify::OffsetPreview::default(),
+            mirror: super::mirror_tool::MirrorSettings::default(),
             array: modify::ArraySettings::default(),
             compass: super::compass::Compass::default(),
             align_to_stock: false,

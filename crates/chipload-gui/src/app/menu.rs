@@ -755,6 +755,11 @@ impl ChiploadApp {
                 t!(ui, "header-intersect-hover"),
             ),
             (
+                super::modify::ModifyTool::Mirror,
+                with_keys(&t!(ui, "menu-modify-mirror"), Action::Mirror),
+                t!(ui, "header-mirror-hover"),
+            ),
+            (
                 super::modify::ModifyTool::Array,
                 t!(ui, "menu-modify-array"),
                 t!(ui, "header-array-hover"),
@@ -908,6 +913,7 @@ impl ChiploadApp {
                     self.polygon_sides_field(ui);
                     self.construction_field(ui);
                     self.offset_fields(ui);
+                    self.mirror_fields(ui);
                     self.status_message(ui);
                 });
             });

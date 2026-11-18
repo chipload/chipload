@@ -582,3 +582,9 @@ pipeline-part-stock-moved = { $part } вырезается из { $stock }: { $b
 pipeline-part-stock-made = Создан { $board } ({ $stock }) для { $part }
 pipeline-part-stock-nowhere = Детали { $id } некуда переносить: она не требует материала или уже на нужной заготовке
 pipeline-part-wrong-stock = { $part } нужно вырезать из { $wants }, но эта заготовка — { $board }
+pipeline-mirror-line = для оси отражения нужны две разные точки
+pipeline-mirror-joined = { $count ->
+    [one] { $count } половина соединена
+    [few] { $count } половины соединены
+   *[other] { $count } половин соединены
+} со своим отражением в замкнутую фигуру

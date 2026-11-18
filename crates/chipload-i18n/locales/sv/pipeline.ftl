@@ -737,3 +737,8 @@ pipeline-part-stock-moved = { $part } skärs ur { $stock }: { $board }
 pipeline-part-stock-made = Skapade { $board } ({ $stock }) för { $part }
 pipeline-part-stock-nowhere = Detalj { $id } har ingen uppspänning av sitt ämne att flytta till: den kräver inget eller ligger redan på en
 pipeline-part-wrong-stock = { $part } ska skäras ur { $wants }, men det här ämnet är { $board }
+pipeline-mirror-line = speglingslinjen behöver två olika punkter
+pipeline-mirror-joined = { $count ->
+    [one] 1 halva fogades
+   *[other] { $count } halvor fogades
+} ihop med sin spegelbild till en sluten form

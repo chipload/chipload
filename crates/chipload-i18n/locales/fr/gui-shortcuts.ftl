@@ -98,3 +98,4 @@ shortcuts-construction = Géométrie de construction : pour les prochaines forme
 shortcuts-group = Grouper la sélection
 shortcuts-ungroup = Dégrouper
 shortcuts-draw-spline = Dessiner une spline
+shortcuts-mirror = Symétrie par rapport à un axe

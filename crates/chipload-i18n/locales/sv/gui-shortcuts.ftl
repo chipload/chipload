@@ -98,3 +98,4 @@ shortcuts-construction = Hjälpgeometri: för nästa ritade former, eller marker
 shortcuts-group = Gruppera markeringen
 shortcuts-ungroup = Dela upp grupp
 shortcuts-draw-spline = Rita en spline
+shortcuts-mirror = Spegla kring en linje

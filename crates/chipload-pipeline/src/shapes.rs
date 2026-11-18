@@ -2,6 +2,8 @@
 //! Drawing in a project: add, change and delete drawn shapes (docs/specs/drawing-tools.md).
 //! The CLI and the GUI both go through these, so they follow the same rules.
 
+use chipload_core::math;
+use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_i18n::Message;
 use chipload_job::edit::{Mirror, mirrored, transformed, translated};
 use chipload_job::{Geometry, Job, Operation, Shape};
@@ -221,6 +223,194 @@ fn drawn_shapes<'a>(job: &'a Job, ids: &[u64]) -> Result<Vec<&'a Shape>, Pipelin
         .iter()
         .filter(|s| ids.contains(&s.id))
         .collect())
+}
+
+/// Drawn shapes `ids` mirrored about the line through `a` and `b`
+/// (docs/specs/drawing-improvements.md §1). In place (`copy` false) they keep their ids,
+/// and the operations' start points, corner choices and hand-placed tabs on them follow.
+/// As copies, each mirror image is a new shape on its original's layer, except that an
+/// open polyline or spline with both ends on the line joins its image into one closed
+/// shape that keeps its id. Returns the edit and the ids of the shapes joined so.
+pub fn mirror_shapes_about(
+    job: &Job,
+    ids: &[u64],
+    a: [f64; 2],
+    b: [f64; 2],
+    copy: bool,
+) -> Result<(crate::drawing_edit::Edited, Vec<u64>), PipelineError> {
+    drawn_shapes(job, ids)?;
+    let finite = a.iter().chain(&b).all(|v| v.is_finite());
+    if !finite || math::hypot(b[0] - a[0], b[1] - a[1]) < CHAIN_TOL_MM {
+        return Err(refused(Message::new("pipeline-mirror-line")));
+    }
+    let mut out = job.clone();
+    let mut new_ids = Vec::new();
+    let mut joined = Vec::new();
+    for &id in ids {
+        let Some(index) = out.drawing.shapes.iter().position(|s| s.id == id) else {
+            continue;
+        };
+        let shape = out.drawing.shapes[index].clone();
+        let Some(image) = chipload_job::edit::mirrored_about(&shape.geometry, a, b) else {
+            continue;
+        };
+        if !copy {
+            out.drawing.shapes[index].geometry = image;
+        } else if let Some(whole) = joined_with_image(&shape.geometry, &image, a, b) {
+            out.drawing.shapes[index].geometry = whole;
+            joined.push(id);
+        } else {
+            let new_id = out.drawing.next_shape_id;
+            out.drawing.next_shape_id += 1;
+            out.drawing.shapes.push(Shape {
+                construction: shape.construction,
+                id: new_id,
+                layer: shape.layer.clone(),
+                name: None,
+                geometry: image,
+            });
+            new_ids.push(new_id);
+        }
+    }
+    if !copy {
+        follow_points(&mut out, job, ids, |p| {
+            Some(chipload_job::edit::reflected_point(p, a, b))
+        });
+    }
+    let mut notes = Vec::new();
+    if !joined.is_empty() {
+        notes.push(Message::new("pipeline-mirror-joined").arg("count", joined.len()));
+    }
+    let mut layers: Vec<(String, usize)> = Vec::new();
+    for shape in out
+        .drawing
+        .shapes
+        .iter()
+        .filter(|s| new_ids.contains(&s.id))
+    {
+        if shape.construction {
+            continue;
+        }
+        match layers.iter_mut().find(|(l, _)| *l == shape.layer) {
+            Some((_, n)) => *n += 1,
+            None => layers.push((shape.layer.clone(), 1)),
+        }
+    }
+    notes.extend(
+        layers
+            .iter()
+            .filter_map(|(layer, n)| crate::drawing_edit::layer_cutters(&out, layer, *n)),
+    );
+    let edited = crate::drawing_edit::Edited {
+        job: checked(out)?,
+        new_ids,
+        notes,
+        joined: None,
+    };
+    Ok((edited, joined))
+}
+
+/// An open polyline or spline whose two ends lie on the line through `a` and `b`, joined
+/// with its mirror `image` into one closed shape: its own points, then the image's back
+/// from its next-to-last to its second (the ends on the line are shared). A polyline's
+/// returning segments bend as their originals did (an image's bulge is negated, and
+/// running it backwards negates it again). None for anything else, or a shape of one
+/// segment, which lies along the line.
+fn joined_with_image(
+    geometry: &Geometry,
+    image: &Geometry,
+    a: [f64; 2],
+    b: [f64; 2],
+) -> Option<Geometry> {
+    let on_line = |p: [f64; 2]| {
+        let len = math::hypot(b[0] - a[0], b[1] - a[1]);
+        let cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+        (cross / len).abs() <= CHAIN_TOL_MM
+    };
+    let ends_on = |points: &[[f64; 2]]| {
+        points.len() >= 3
+            && points.first().is_some_and(|&p| on_line(p))
+            && points.last().is_some_and(|&p| on_line(p))
+    };
+    match (geometry, image) {
+        (
+            Geometry::Polyline {
+                closed: false,
+                points,
+                bulges,
+            },
+            Geometry::Polyline {
+                points: mirrored, ..
+            },
+        ) if ends_on(points) => {
+            let n = points.len();
+            let mut all = points.clone();
+            all.extend(mirrored[1..n - 1].iter().rev());
+            let mut bends = bulges.clone();
+            bends.extend(bulges.iter().rev());
+            Some(Geometry::Polyline {
+                closed: true,
+                points: all,
+                bulges: bends,
+            })
+        }
+        (
+            Geometry::Spline {
+                closed: false,
+                points,
+            },
+            Geometry::Spline {
+                points: mirrored, ..
+            },
+        ) if ends_on(points) => {
+            let n = points.len();
+            let mut all = points.clone();
+            all.extend(mirrored[1..n - 1].iter().rev());
+            Some(Geometry::Spline {
+                closed: true,
+                points: all,
+            })
+        }
+        _ => None,
+    }
+}
+
+/// The ends of drawn shape `id` when it is one straight line (a mirror line,
+/// docs/specs/drawing-improvements.md §1); the straight side of a polyline nearest `near`
+/// when given. None when it has no straight piece there.
+pub fn straight_line_of(
+    job: &Job,
+    id: u64,
+    near: Option<(f64, f64)>,
+) -> Option<([f64; 2], [f64; 2])> {
+    let shape = job.drawing.shapes.iter().find(|s| s.id == id)?;
+    let lines: Vec<([f64; 2], [f64; 2])> = shape
+        .segments()
+        .iter()
+        .filter_map(|s| match s {
+            chipload_job::PathSegment::Line(l) => Some((l.start, l.end)),
+            chipload_job::PathSegment::Arc(_) => None,
+        })
+        .collect();
+    match near {
+        None => (shape.segments().len() == 1)
+            .then(|| lines.first().copied())
+            .flatten(),
+        Some(at) => {
+            // The side nearest the point.
+            let off = |(p, q): &([f64; 2], [f64; 2])| {
+                let (dx, dy) = (q[0] - p[0], q[1] - p[1]);
+                let len2 = dx * dx + dy * dy;
+                let t = if len2 > 0.0 {
+                    (((at.0 - p[0]) * dx + (at.1 - p[1]) * dy) / len2).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                math::hypot(p[0] + t * dx - at.0, p[1] + t * dy - at.1)
+            };
+            lines.into_iter().min_by(|x, y| off(x).total_cmp(&off(y)))
+        }
+    }
 }
 
 /// The exact box round shapes `ids` (arcs included), mm: ((x0, y0), (x1, y1)).

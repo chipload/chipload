@@ -472,3 +472,92 @@ fn distributing_evens_the_gaps_and_keeps_the_ends() {
     assert!(near(bounds_of(&out, c).0.0, 90.0));
     assert!(distribute_shapes(&job, &[a, b], true).is_err());
 }
+
+// -- mirror about a line (docs/specs/drawing-improvements.md §1)
+
+#[test]
+fn shapes_mirror_about_any_line_in_place_or_as_copies() {
+    use crate::shapes::mirror_shapes_about;
+    let job = drawn_part();
+    let before: Vec<Geometry> = [1, 2, 3]
+        .iter()
+        .map(|&id| geometry(&job, id).clone())
+        .collect();
+    // About the vertical line x = 0, in place: ids kept, each geometry the job crate's.
+    let (edited, joined) =
+        mirror_shapes_about(&job, &[1, 2, 3], [0.0, 0.0], [0.0, 1.0], false).unwrap();
+    assert!(edited.new_ids.is_empty() && joined.is_empty());
+    for (id, old) in [1, 2, 3].iter().zip(&before) {
+        let want = chipload_job::edit::mirrored_about(old, [0.0, 0.0], [0.0, 1.0]).unwrap();
+        assert_eq!(geometry(&edited.job, *id), &want);
+    }
+    // Twice is the shape again, exactly, about a vertical line.
+    let (again, _) =
+        mirror_shapes_about(&edited.job, &[1, 2, 3], [0.0, 0.0], [0.0, 1.0], false).unwrap();
+    for (id, old) in [1, 2, 3].iter().zip(&before) {
+        assert_eq!(geometry(&again.job, *id), old);
+    }
+    // As copies about a slanted line: new shapes on the same layer, the originals stay.
+    let (copied, joined) =
+        mirror_shapes_about(&job, &[1, 2], [0.0, 0.0], [1.0, 2.0], true).unwrap();
+    assert_eq!(copied.new_ids.len(), 2);
+    assert!(joined.is_empty());
+    assert_eq!(geometry(&copied.job, 1), &before[0]);
+    // A line of one point is refused.
+    assert!(mirror_shapes_about(&job, &[1], [3.0, 3.0], [3.0, 3.0], true).is_err());
+}
+
+#[test]
+fn a_half_outline_mirrored_against_its_centre_line_becomes_one_closed_shape() {
+    use crate::shapes::{add_shape, mirror_shapes_about};
+    let job = drawn_part();
+    // Half a bottle against x = 300: up from the line, out and round, back to the line.
+    let half = Geometry::Polyline {
+        closed: false,
+        points: vec![[300.0, 0.0], [320.0, 0.0], [320.0, 40.0], [300.0, 60.0]],
+        bulges: vec![0.0, 0.3, 0.0],
+    };
+    let (job, id) = add_shape(&job, "drawn", half).unwrap();
+    let curve = Geometry::Spline {
+        closed: false,
+        points: vec![[300.0, 100.0], [330.0, 120.0], [300.0, 150.0]],
+    };
+    let (job, spline) = add_shape(&job, "drawn", curve).unwrap();
+    let (edited, joined) =
+        mirror_shapes_about(&job, &[id, spline], [300.0, 0.0], [300.0, 10.0], true).unwrap();
+    assert_eq!(joined, [id, spline]);
+    assert!(edited.new_ids.is_empty());
+    assert_eq!(edited.notes.len(), 1);
+    let Geometry::Polyline {
+        closed: true,
+        points,
+        bulges,
+    } = geometry(&edited.job, id)
+    else {
+        panic!("one closed polyline");
+    };
+    assert_eq!(
+        points,
+        &[
+            [300.0, 0.0],
+            [320.0, 0.0],
+            [320.0, 40.0],
+            [300.0, 60.0],
+            [280.0, 40.0],
+            [280.0, 0.0]
+        ]
+    );
+    // The arc on the way back bends the mirrored way round: the same bulge, run backwards.
+    assert_eq!(bulges, &[0.0, 0.3, 0.0, 0.0, 0.3, 0.0]);
+    let Geometry::Spline {
+        closed: true,
+        points,
+    } = geometry(&edited.job, spline)
+    else {
+        panic!("one closed spline");
+    };
+    assert_eq!(points.len(), 4);
+    // The whole shape is symmetric: its box is centred on the line.
+    let ((x0, _), (x1, _)) = crate::shapes::drawn_box(&edited.job, &[id]).unwrap();
+    assert!(((x0 + x1) / 2.0 - 300.0).abs() < 1e-9);
+}

@@ -159,6 +159,16 @@ DXF first, [Explode](several.md)).
   *Subtract*, then click the shape to cut them from: the preview shows the result under
   the cursor. On the command line: `chipload shape union P 1 2 3`, `chipload shape subtract P 1 4 5` (4
   and 5 cut out of 1), `chipload shape intersect P 1 2`.
+- **Mirror** (**I**): select drawn shapes, then click two points of the mirror line (they
+  snap; Shift keeps the line to 15° steps), or click a straight line, such as a
+  construction centre line, to mirror about it. The preview shows the result before the
+  last click. With *Keep the original* (on the status bar, on to start with) the mirrored
+  shapes are copies; a half outline whose two ends lie on the line joins its mirror image
+  into one closed shape that keeps its number, so drawing half a part against a centre
+  line and mirroring it gives the whole outline, ready to cut. Unticked, the shapes flip in
+  place and keep their numbers, and operations' start points and tabs on them follow. On
+  the command line: `chipload shape mirror P 3 4 --line "0,0 0,100" [--copy]`, or
+  `--about-shape 7` for a drawn line.
 - **Arrays** add copies of drawn shapes in a grid or round a centre; the originals stay
   and the copies go on their layers with new numbers. A grid counts the originals in its
   columns and rows and spaces them centre to centre (negative goes left or down). A polar
@@ -256,7 +266,7 @@ holes on, a guide at 45°) and are **never cut**.
 - **Copy and paste:** Ctrl+C and Ctrl+V. *Draw > Paste* puts the copy 10 mm right and up;
   Ctrl+V over the canvas pastes at the cursor.
 - **Mirror:** *Draw > Mirror left–right* and *Mirror up–down* flip shapes about the middle
-  of their box.
+  of their box; *Mirror* in MODIFY mirrors about any line (above).
 - **Delete:** Del (or right-click > *Delete*). Operations that cut the shape are flagged.
   Del also deletes a text, a picture or a DXF selected as a whole (by a click on a letter,
   or on its Browser row), as its *Remove* does; a box round a sign takes its words with the

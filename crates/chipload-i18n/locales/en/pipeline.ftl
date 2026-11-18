@@ -747,3 +747,8 @@ pipeline-part-stock-moved = { $part } is cut from { $stock }: { $board }
 pipeline-part-stock-made = Made { $board } ({ $stock }) for { $part }
 pipeline-part-stock-nowhere = Part { $id } has no setup of its stock to go to: it asks for none, or is already on one
 pipeline-part-wrong-stock = { $part } is to be cut from { $wants }, but this board is { $board }
+pipeline-mirror-line = the mirror line needs two different points
+pipeline-mirror-joined = { $count ->
+    [one] 1 half was
+   *[other] { $count } halves were
+} joined with its mirror image into a closed shape

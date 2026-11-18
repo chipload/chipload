@@ -134,3 +134,5 @@ header-polygon-side-hover = Dessiner un polygone régulier : le centre, puis le 
 header-polygon-edge-hover = Dessiner un polygone régulier : les deux extrémités d'un côté ; il est à sa gauche
 header-spline = Spline
 header-spline-hover = Dessiner une spline : cliquez les points par lesquels passe une courbe lisse
+header-mirror = Symétrie
+header-mirror-hover = Symétriser les formes dessinées sélectionnées par rapport à un axe : cliquez ses deux points, ou une ligne droite comme un axe central

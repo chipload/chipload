@@ -190,3 +190,17 @@ change), not this.
   - **Decimal comma:** in a language that writes one, every comma of a text without a
     point is a decimal comma (`12,5+3,5`).
   - **Typed entries:** they now open on `(` too.
+- **§1 Mirror (2026-11-18):**
+  - **Geometry:** `chipload_job::edit::reflected_point` and `mirrored_about`. About a
+    horizontal or vertical line a rectangle's angle is exactly −angle (it is the same
+    rectangle half a turn round), so mirroring twice gives it back bit for bit.
+  - **Pipeline:** `chipload_pipeline::shapes::mirror_shapes_about(job, ids, a, b, copy)`
+    returns the edit and the ids of halves joined with their image, and
+    `straight_line_of` gives a straight shape's ends, or a polyline's straight side nearest
+    a point. In place, operations' points follow through `follow_points`; Draw's two flips
+    still don't move them.
+  - **The window:** `app/mirror_tool.rs`, `ModifyTool::Mirror`, key I. A click on a line's
+    body that doesn't snap to one of its points (end, middle, crossing…) takes it as the
+    mirror line. The tool ends after mirroring.
+  - **Ribbon:** the MODIFY group is now six buttons and seven, the Compass first in the
+    second row.

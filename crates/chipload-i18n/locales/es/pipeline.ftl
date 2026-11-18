@@ -745,3 +745,8 @@ pipeline-part-stock-moved = { $part } se corta de { $stock }: { $board }
 pipeline-part-stock-made = { $board } ({ $stock }) creada para { $part }
 pipeline-part-stock-nowhere = La pieza { $id } no tiene a qué sujeción de su material ir: no pide ninguno o ya está en una
 pipeline-part-wrong-stock = { $part } debe cortarse de { $wants }, pero este material en bruto es { $board }
+pipeline-mirror-line = el eje de simetría necesita dos puntos distintos
+pipeline-mirror-joined = { $count ->
+    [one] 1 mitad se unió
+   *[other] { $count } mitades se unieron
+} con su imagen reflejada en una forma cerrada

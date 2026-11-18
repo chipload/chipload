@@ -740,3 +740,8 @@ pipeline-part-stock-moved = { $part } wird aus { $stock } gefräst: { $board }
 pipeline-part-stock-made = { $board } ({ $stock }) für { $part } angelegt
 pipeline-part-stock-nowhere = Teil { $id } hat keine Aufspannung seines Materials, in die es könnte: es verlangt keines oder ist schon auf einer
 pipeline-part-wrong-stock = { $part } soll aus { $wants } gefräst werden, dieses Rohteil ist aber { $board }
+pipeline-mirror-line = die Spiegelachse braucht zwei verschiedene Punkte
+pipeline-mirror-joined = { $count ->
+    [one] 1 Hälfte wurde
+   *[other] { $count } Hälften wurden
+} mit ihrem Spiegelbild zu einer geschlossenen Form verbunden

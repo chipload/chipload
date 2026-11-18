@@ -91,9 +91,20 @@ pub(crate) enum ShapeAction {
         /// The shape ids (as `inspect` lists them, without the S).
         #[arg(required = true)]
         ids: Vec<u64>,
-        /// x: flip the X coordinates (left becomes right); y: flip Y (up becomes down).
+        /// x: flip the X coordinates (left becomes right); y: flip Y (up becomes down), about
+        /// the middle of the box round them.
+        #[arg(long, required_unless_present_any = ["line", "about_shape"], conflicts_with_all = ["line", "about_shape", "copy"])]
+        axis: Option<AxisArg>,
+        /// Mirror about the line through two points "X,Y X,Y" (docs/specs/drawing-improvements.md §1).
+        #[arg(long, allow_hyphen_values = true, conflicts_with = "about_shape")]
+        line: Option<String>,
+        /// Mirror about drawn shape ID, one straight line (a construction centre line).
         #[arg(long)]
-        axis: AxisArg,
+        about_shape: Option<u64>,
+        /// Keep the shapes and add their mirror images; an open shape with both ends on the
+        /// line joins its image into one closed shape.
+        #[arg(long)]
+        copy: bool,
         /// Where to write the result; default: the project itself.
         #[arg(short, long)]
         output: Option<PathBuf>,

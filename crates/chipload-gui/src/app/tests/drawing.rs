@@ -1063,3 +1063,54 @@ fn the_b_key_draws_a_spline() {
         Geometry::Spline { closed: false, .. }
     ));
 }
+
+#[test]
+fn the_mirror_tool_mirrors_about_two_clicks_or_a_clicked_line() {
+    // docs/specs/drawing-improvements.md §1. S2 is a circle r 12.
+    use super::super::modify::ModifyTool;
+    let mut app = drawn_part();
+    let center = |app: &ChiploadApp, id: u64| match app.shape(id).unwrap().geometry {
+        Geometry::Circle { center, .. } => center,
+        _ => panic!("a circle"),
+    };
+    let was = center(&app, 2);
+    let count = app.edit.as_ref().unwrap().job.drawing.shapes.len();
+    app.start_modify(ModifyTool::Mirror);
+    // Nothing selected: a click picks the shape.
+    let circle = contour_of(&app, 2);
+    app.mirror_click(Some(circle), (was[0] + 12.0, was[1]), false, (true, false));
+    assert_eq!(app.selected_drawn(), [2]);
+    // Two clicks on empty canvas: the vertical line x = 500, the circle copied across it.
+    app.mirror_click(None, (500.0, 0.0), false, (true, false));
+    assert_eq!(app.canvas_tools.mirror.from, Some((500.0, 0.0)));
+    app.mirror_click(None, (500.0, 50.0), false, (true, false));
+    assert!(app.modify().is_none(), "the tool ends after mirroring");
+    let shapes = &app.edit.as_ref().unwrap().job.drawing.shapes;
+    assert_eq!(shapes.len(), count + 1);
+    let copy = shapes.last().unwrap().id;
+    assert_eq!(center(&app, copy), [1000.0 - was[0], was[1]]);
+    assert_eq!(center(&app, 2), was, "the original stays");
+    // In place, about a line given straight to apply: ids kept, one undo step.
+    app.canvas_tools.mirror.keep = false;
+    app.selection = CanvasSelection::Shapes([2].into_iter().collect());
+    assert!(app.apply_mirror((0.0, 100.0), (10.0, 100.0)));
+    assert_eq!(center(&app, 2), [was[0], 200.0 - was[1]]);
+    app.undo();
+    assert_eq!(center(&app, 2), was);
+    // A click on the body of a straight line (not on one of its points) mirrors about it.
+    app.canvas_tools.mirror.keep = true;
+    let line = app
+        .add_drawn(chipload_job::Geometry::straight_polyline(
+            false,
+            vec![[300.0, -10.0], [300.0, 200.0]],
+        ))
+        .unwrap();
+    app.commit();
+    app.selection = CanvasSelection::Shapes([2].into_iter().collect());
+    app.start_modify(ModifyTool::Mirror);
+    let on_line = contour_of(&app, line);
+    app.mirror_click(Some(on_line), (300.0, 33.3), false, (false, false));
+    let shapes = &app.edit.as_ref().unwrap().job.drawing.shapes;
+    let copy = shapes.last().unwrap().id;
+    assert_eq!(center(&app, copy), [600.0 - was[0], was[1]]);
+}

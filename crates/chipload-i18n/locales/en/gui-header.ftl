@@ -134,3 +134,5 @@ header-polygon-side-hover = Draw a regular polygon: the centre, then the middle 
 header-polygon-edge-hover = Draw a regular polygon: the two ends of one side; it lies to the side's left
 header-spline = Spline
 header-spline-hover = Draw a spline: click the points a smooth curve passes through
+header-mirror = Mirror
+header-mirror-hover = Mirror the selected drawn shapes about a line: click its two points, or click a straight line such as a centre line

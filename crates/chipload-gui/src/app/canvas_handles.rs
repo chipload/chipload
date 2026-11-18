@@ -118,6 +118,9 @@ impl ChiploadApp {
         if let Some(sketch) = &self.sketch() {
             return sketch.last_point();
         }
+        if self.modify() == Some(super::modify::ModifyTool::Mirror) {
+            return self.canvas_tools.mirror.from;
+        }
         self.measure()
             .and_then(|m| m.start.filter(|_| m.end.is_none()))
     }

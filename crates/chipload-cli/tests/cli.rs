@@ -3727,3 +3727,63 @@ fn length_options_take_arithmetic() {
     ]);
     assert!(!out.status.success());
 }
+
+#[test]
+fn shapes_mirror_about_a_line_from_the_command_line() {
+    // docs/specs/drawing-improvements.md §1.
+    let dir = temp_dir("mirror-line");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let add = |args: &[&str]| {
+        let out = chipload(&[&["--json", "shape", "add", p][..], args].concat());
+        assert!(out.status.success(), "{}", text(&out.stderr));
+        let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        value["ids"][0].as_u64().unwrap().to_string()
+    };
+    let half = add(&[
+        "polyline",
+        "--open",
+        "--points",
+        "300,0 320,0 320,40 300,60",
+    ]);
+    let axis = add(&[
+        "polyline",
+        "--open",
+        "--points",
+        "300,-10 300,100",
+        "--construction",
+    ]);
+    let hole = add(&["circle", "--center", "310,20", "--radius", "3"]);
+    let out = chipload(&[
+        "shape",
+        "mirror",
+        p,
+        &half,
+        &hole,
+        "--about-shape",
+        &axis,
+        "--copy",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let said = text(&out.stdout);
+    assert!(said.contains(&format!("Joined S{half}")), "{said}");
+    assert!(said.contains("Added shapes"), "{said}");
+    let shapes = chipload(&["--json", "inspect", p]);
+    let inspect = text(&shapes.stdout);
+    assert!(
+        inspect.contains("290"),
+        "the hole's copy at x 290: {inspect}"
+    );
+    // In place about a line given by two points.
+    let out = chipload(&["shape", "mirror", p, &hole, "--line", "0,0 0,10"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    // --axis with --copy, a curved shape as the line, a line of one point: refused.
+    for bad in [
+        &["shape", "mirror", p, &hole, "--axis", "x", "--copy"][..],
+        &["shape", "mirror", p, &hole, "--about-shape", &half],
+        &["shape", "mirror", p, &hole, "--line", "5,5 5,5"],
+    ] {
+        assert!(!chipload(bad).status.success(), "{bad:?}");
+    }
+}

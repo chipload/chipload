@@ -210,6 +210,24 @@ impl ShapeAction {
     }
 }
 
+/// The mirror line of `shape mirror`: two points, or a straight drawn shape's ends.
+fn mirror_line(
+    job: &Job,
+    line: Option<&str>,
+    about: Option<u64>,
+) -> Result<([f64; 2], [f64; 2]), PipelineError> {
+    let refused = |text: String| PipelineError::Job(foreign_text(text));
+    match (line, about) {
+        (Some(text), _) => match points_arg(text).map_err(refused)?[..] {
+            [a, b] => Ok((a, b)),
+            _ => Err(refused("--line takes two points, \"X,Y X,Y\"".into())),
+        },
+        (None, Some(id)) => chipload_pipeline::shapes::straight_line_of(job, id, None)
+            .ok_or_else(|| refused(format!("S{id} isn't one straight line to mirror about"))),
+        (None, None) => Err(refused("give --axis, --line or --about-shape".into())),
+    }
+}
+
 /// The project with the command's change, and the lines to say.
 fn change_shapes(
     job: &Job,
@@ -279,16 +297,49 @@ fn change_shapes(
                 (job, vec![format!("Added shapes {}.", names.join(", "))])
             })
         }
-        ShapeAction::Mirror { ids, axis, .. } => {
-            let mirror = match axis {
-                AxisArg::X => Mirror::LeftRight,
-                AxisArg::Y => Mirror::UpDown,
-            };
-            mirror_shapes(job, &ids, mirror).map(|job| {
-                let names: Vec<String> = ids.iter().map(|id| format!("S{id}")).collect();
-                (job, vec![format!("Mirrored shapes {}.", names.join(", "))])
-            })
-        }
+        ShapeAction::Mirror {
+            ids,
+            axis,
+            line,
+            about_shape,
+            copy,
+            ..
+        } => match (axis, line, about_shape) {
+            (Some(axis), _, _) => {
+                let mirror = match axis {
+                    AxisArg::X => Mirror::LeftRight,
+                    AxisArg::Y => Mirror::UpDown,
+                };
+                mirror_shapes(job, &ids, mirror)
+                    .map(|job| (job, vec![format!("Mirrored shapes {}.", shape_names(&ids))]))
+            }
+            (None, line, about) => mirror_line(job, line.as_deref(), about).and_then(|(a, b)| {
+                chipload_pipeline::shapes::mirror_shapes_about(job, &ids, a, b, copy).map(
+                    |(edited, joined)| {
+                        let mut lines = Vec::new();
+                        if copy {
+                            report.new_ids = Some(edited.new_ids.clone());
+                            if !edited.new_ids.is_empty() {
+                                lines.push(format!(
+                                    "Added shapes {}.",
+                                    shape_names(&edited.new_ids)
+                                ));
+                            }
+                            if !joined.is_empty() {
+                                lines.push(format!(
+                                    "Joined {} with their mirror images.",
+                                    shape_names(&joined)
+                                ));
+                            }
+                        } else {
+                            lines.push(format!("Mirrored shapes {}.", shape_names(&ids)));
+                        }
+                        lines.extend(edited.notes.iter().map(Message::english));
+                        (edited.job, lines)
+                    },
+                )
+            }),
+        },
         ShapeAction::Offset {
             ids,
             distance,

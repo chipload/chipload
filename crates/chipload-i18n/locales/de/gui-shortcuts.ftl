@@ -98,3 +98,4 @@ shortcuts-construction = Hilfsgeometrie: für die nächsten gezeichneten Formen 
 shortcuts-group = Auswahl gruppieren
 shortcuts-ungroup = Gruppierung aufheben
 shortcuts-draw-spline = Spline zeichnen
+shortcuts-mirror = An einer Achse spiegeln

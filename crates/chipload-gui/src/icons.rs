@@ -29,6 +29,8 @@ pub enum Icon {
     Frame,
     Circle,
     Rectangle,
+    /// Mirror: a shape and its image about a dashed line.
+    Mirror,
     /// A spline: a smooth curve through points.
     Spline,
     /// An arc drawn from its centre.
@@ -396,6 +398,15 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 // The bottom side's two ends.
                 pen.dot(points[1], 0.06);
                 pen.dot(points[2], 0.06);
+            }
+        }
+        Icon::Mirror => {
+            // A triangle, its image across the dashed line in the middle.
+            pen.closed(&[(0.42, 0.2), (0.42, 0.8), (0.1, 0.8)]);
+            pen.closed(&[(0.58, 0.2), (0.58, 0.8), (0.9, 0.8)]);
+            for k in 0..5 {
+                let y = 0.08 + k as f32 * 0.2;
+                pen.line([(0.5, y), (0.5, y + 0.1)]);
             }
         }
         Icon::Spline => {

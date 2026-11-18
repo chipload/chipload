@@ -203,3 +203,8 @@ draw-status-spline = Spline, { $count ->
        *[other] { $count } points
     }: cliquez le point suivant ; la courbe passe par chacun. Enter ou double-clic la termine ouverte, le premier point la ferme, Backspace retire le dernier point (grille { $grid }, Échap annule)
 draw-spline-too-short = une spline a besoin d'au moins 2 points
+modify-mirror-pick = Symétrie : cliquez les formes dessinées à symétriser (Ctrl ajoute), puis l'axe (Échap termine)
+modify-mirror-first = Symétrie : cliquez le premier point de l'axe, ou une ligne droite qui servira d'axe (Échap termine)
+modify-mirror-second = Symétrie : cliquez le second point de l'axe ; Maj le garde par pas de 15° (Échap termine)
+modify-mirror-keep = Garder l'original
+modify-mirror-keep-hover = Coché : ajoute des copies symétriques, et joint une moitié dont les extrémités sont sur l'axe à son image en une seule forme. Décoché : retourne les formes sur place

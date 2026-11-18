@@ -261,6 +261,13 @@ fn modify_group(app: &mut ChiploadApp, ui: &mut egui::Ui) {
             None,
         ),
         (
+            super::modify::ModifyTool::Mirror,
+            Icon::Mirror,
+            t!(ui, "header-mirror"),
+            t!(ui, "header-mirror-hover"),
+            Some(Action::Mirror),
+        ),
+        (
             super::modify::ModifyTool::Array,
             Icon::Array,
             t!(ui, "header-array"),

@@ -98,3 +98,4 @@ shortcuts-construction = Geometria di costruzione: per le prossime forme disegna
 shortcuts-group = Raggruppa la selezione
 shortcuts-ungroup = Separa
 shortcuts-draw-spline = Disegna una spline
+shortcuts-mirror = Specchia rispetto a un asse

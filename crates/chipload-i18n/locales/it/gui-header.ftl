@@ -134,3 +134,5 @@ header-polygon-side-hover = Disegna un poligono regolare: il centro, poi il punt
 header-polygon-edge-hover = Disegna un poligono regolare: i due estremi di un lato; sta alla sua sinistra
 header-spline = Spline
 header-spline-hover = Disegna una spline: fai clic sui punti per cui passa una curva liscia
+header-mirror = Specchia
+header-mirror-hover = Specchia le forme disegnate selezionate rispetto a un asse: clicca i suoi due punti, o una linea retta come un asse centrale

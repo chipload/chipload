@@ -87,3 +87,4 @@ shortcuts-offset = Смещение выделенной геометрии
 shortcuts-trim = Обрезать начерченную геометрию
 shortcuts-construction = Вспомогательная геометрия: для следующих объектов или выделения
 shortcuts-draw-spline = Начертить сплайн
+shortcuts-mirror = Отразить относительно оси

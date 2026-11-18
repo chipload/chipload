@@ -203,3 +203,8 @@ draw-status-spline = Disegno di una spline di { $count ->
        *[other] { $count } punti
     }: fai clic sul punto successivo; la curva passa per ognuno. Enter o doppio clic la termina aperta, il primo punto la chiude, Backspace rimuove l'ultimo punto (griglia { $grid }, Esc annulla)
 draw-spline-too-short = una spline richiede almeno 2 punti
+modify-mirror-pick = Specchia: clicca le forme disegnate da specchiare (Ctrl aggiunge), poi l'asse (Esc termina)
+modify-mirror-first = Specchia: clicca il primo punto dell'asse, o una linea retta da usare come asse (Esc termina)
+modify-mirror-second = Specchia: clicca il secondo punto dell'asse; Maiusc lo tiene a passi di 15° (Esc termina)
+modify-mirror-keep = Mantieni l'originale
+modify-mirror-keep-hover = Attivo: aggiunge copie speculari, e unisce una metà con le estremità sull'asse alla sua immagine in una sola forma. Disattivo: capovolge le forme sul posto

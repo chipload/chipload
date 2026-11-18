@@ -172,3 +172,4 @@ menu-bar-help = Help
 menu-preferences = Preferences…
 menu-preferences-hover = Preferences in the Browser, below the Library: units, language, colour theme, the setup sheet, updating automatically
 menu-draw-spline = Spline
+menu-modify-mirror = Mirror about a line
