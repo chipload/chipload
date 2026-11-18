@@ -307,8 +307,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    all three steps): split buttons with an arrow for the rectangle (centre, aligned),
    circle (two, three points), arc (centre, start, end) and polygon (by a side, on an
    edge); the key cycles; `<a` typed. Next: splines (12e).
-12e. **Splines** (the user, 2026-11-18): drawn smooth curves; research first (see the
-   conversation's findings in docs/specs/splines.md once written).
+12e. **Splines** (the user, 2026-11-18): drawn smooth curves. Researched and spec drafted
+   2026-11-18 (docs/specs/splines.md: fit-point centripetal Catmull-Rom, fitted to arcs,
+   schema 42, no new dependency; seven decisions for the user).
 13. **Small follow-ups:**
     - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on
