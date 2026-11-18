@@ -3787,3 +3787,96 @@ fn shapes_mirror_about_a_line_from_the_command_line() {
         assert!(!chipload(bad).status.success(), "{bad:?}");
     }
 }
+
+#[test]
+fn an_arc_slot_is_added_from_the_command_line_and_cuts() {
+    // docs/specs/drawing-improvements.md §3.
+    let dir = temp_dir("arc-slot");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&[
+        "--json",
+        "shape",
+        "add",
+        p,
+        "arc-slot",
+        "--center",
+        "150,110",
+        "--radius",
+        "40",
+        "--start-deg",
+        "30",
+        "--end-deg",
+        "150",
+        "--width",
+        "8",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let id = value["ids"][0].as_u64().unwrap().to_string();
+    let kind = chipload(&[
+        "get",
+        p,
+        &format!(
+            "drawing.shapes.{}.kind",
+            value["ids"][0].as_u64().unwrap() - 1
+        ),
+    ]);
+    assert!(text(&kind.stdout).contains("polyline"));
+    // A pocket of it is planned and passes the checker.
+    let out = chipload(&["op", "add", p, "pocket", "--shapes", &id, "--depth", "2"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let nc = dir.join("p.nc");
+    let out = chipload(&["run", p, "-o", path(&nc), "--no-sheet"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    // Too wide, nothing swept, or the angles on another kind: refused.
+    for bad in [
+        &[
+            "shape",
+            "add",
+            p,
+            "arc-slot",
+            "--center",
+            "0,0",
+            "--radius",
+            "4",
+            "--start-deg",
+            "0",
+            "--end-deg",
+            "90",
+            "--width",
+            "8",
+        ][..],
+        &[
+            "shape",
+            "add",
+            p,
+            "arc-slot",
+            "--center",
+            "0,0",
+            "--radius",
+            "40",
+            "--start-deg",
+            "10",
+            "--end-deg",
+            "10",
+            "--width",
+            "8",
+        ],
+        &[
+            "shape",
+            "add",
+            p,
+            "circle",
+            "--center",
+            "0,0",
+            "--radius",
+            "4",
+            "--start-deg",
+            "0",
+        ],
+    ] {
+        assert!(!chipload(bad).status.success(), "{bad:?}");
+    }
+}

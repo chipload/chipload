@@ -413,6 +413,36 @@ pub fn straight_line_of(
     }
 }
 
+/// An arc slot as a drawn closed polyline (docs/specs/drawing-improvements.md §3): its
+/// centre line round `center` at `radius` from `start_deg` to `end_deg` (degrees,
+/// counter-clockwise when the end is greater), `width` wide. None when it can't be one: no
+/// width, wider than the radius allows, a sweep of nothing or a whole turn or more, or ends
+/// that would meet.
+pub fn arc_slot_geometry(
+    center: [f64; 2],
+    radius: f64,
+    start_deg: f64,
+    end_deg: f64,
+    width: f64,
+) -> Option<Geometry> {
+    let sweep = (end_deg - start_deg).to_radians();
+    if !(radius.is_finite() && radius > 0.0 && sweep.is_finite()) {
+        return None;
+    }
+    let arc = chipload_core::primitives::Arc {
+        center: (center[0], center[1]),
+        radius,
+        start_angle: start_deg.to_radians(),
+        sweep,
+    };
+    let (points, bulges) = chipload_draw::construct::arc_slot(&arc, width)?;
+    Some(Geometry::Polyline {
+        closed: true,
+        points: points.iter().map(|&(x, y)| [x, y]).collect(),
+        bulges,
+    })
+}
+
 /// The exact box round shapes `ids` (arcs included), mm: ((x0, y0), (x1, y1)).
 pub fn shapes_bounds(job: &Job, ids: &[u64]) -> Option<((f64, f64), (f64, f64))> {
     let contours = load_drawing(job).ok()?.contours;

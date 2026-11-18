@@ -204,3 +204,11 @@ change), not this.
     mirror line. The tool ends after mirroring.
   - **Ribbon:** the MODIFY group is now six buttons and seven, the Compass first in the
     second row.
+- **§3 Arc slots (2026-11-18):**
+  - **Geometry:** `chipload_draw::construct::arc_slot(arc, width)` gives the closed
+    polyline's points and bulges; the caps bulge the way the arc runs.
+  - **The window:** `Tool::SlotArc`, the slot button's second way. It tracks the way round
+    as the arc by its centre does, and keeps it while the width is given.
+  - **Command line:** `chipload_pipeline::shapes::arc_slot_geometry` makes the same shape
+    for `shape add … arc-slot`, whose `--start-deg`/`--end-deg` are refused on any other
+    kind and on `shape set`.

@@ -25,7 +25,13 @@ Chipload draws the parts it cuts, with or without a DXF:
     side. Type `<90` for the end at 90° on the circle.
 - **Slot** (**U**): the centres of its two ends, then its width (a click, or type it). It
   is a rectangle whose corner radius is half its width; it shows as *Slot*, and stays one
-  when you change its width.
+  when you change its width. Another way, from the arrow on its button:
+  - **Arc slot:** the centre of its arc, where its centre line starts (the radius; type a
+    length for it), where it ends (the way you move round, as the arc by its centre does;
+    `<120` types the end's angle), then its width (a click, or type it). It becomes a
+    closed polyline of arcs with round ends, for clamp and adjustment slots; afterwards it
+    is edited as a polyline. `chipload shape add P arc-slot --center 0,0 --radius 40
+    --start-deg 30 --end-deg 150 --width 8`.
 - **Polygon** (**N**): the centre, then a corner. Its number of sides is on the status bar
   while you draw (6 to start with, then the last you chose). Its form has the radius to
   the corners and the size **across flats**, either of which sets the other (a hexagon
@@ -56,7 +62,7 @@ A button with a small triangle in its corner draws its shape more than one way. 
 triangle, or right-click the button, for the list; the way you choose stays on the button
 until you close Chipload. The *Draw* menu lists them under the shape. Pressing the key again
 before the first click moves to the next way (**R**, **R**, **R**: two corners, centre,
-aligned; **C**, **A** and **N** go round theirs the same way) and the status bar names
+aligned; **C**, **A**, **U** and **N** go round theirs the same way) and the status bar names
 it. Clicks snap to the drawing (below), else
 to the [grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm").
 

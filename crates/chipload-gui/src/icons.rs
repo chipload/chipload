@@ -29,6 +29,8 @@ pub enum Icon {
     Frame,
     Circle,
     Rectangle,
+    /// An arc slot: a slot bent round a centre.
+    SlotArc,
     /// Mirror: a shape and its image about a dashed line.
     Mirror,
     /// A spline: a smooth curve through points.
@@ -399,6 +401,18 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 pen.dot(points[1], 0.06);
                 pen.dot(points[2], 0.06);
             }
+        }
+        Icon::SlotArc => {
+            // Screen y grows downwards: angles past PI bow upwards. Round caps at its ends.
+            let centre = (0.5, 0.85);
+            let (from, to) = (PI + 0.45, TAU - 0.45);
+            let mut points = pen.arc(centre, 0.62, from, to);
+            let end = (centre.0 + 0.5 * to.cos(), centre.1 + 0.5 * to.sin());
+            points.extend(pen.arc(end, 0.12, to, to + PI));
+            points.extend(pen.arc(centre, 0.38, to, from));
+            let start = (centre.0 + 0.5 * from.cos(), centre.1 + 0.5 * from.sin());
+            points.extend(pen.arc(start, 0.12, from + PI, from + TAU));
+            pen.closed(&points);
         }
         Icon::Mirror => {
             // A triangle, its image across the dashed line in the middle.

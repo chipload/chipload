@@ -136,3 +136,4 @@ header-spline = Spline
 header-spline-hover = Dibujar un spline: haz clic en los puntos por los que pasa una curva suave
 header-mirror = Simetría
 header-mirror-hover = Reflejar las formas dibujadas seleccionadas respecto a un eje: haga clic en sus dos puntos, o en una línea recta como un eje central
+header-slot-arc-hover = Dibujar una ranura en arco: el centro de su arco, dónde empieza y termina su línea central, y su ancho

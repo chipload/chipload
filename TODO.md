@@ -315,9 +315,9 @@ to a program you trust. It was about four per operation; with the defaults and s
    mm). Later, if wanted: a true SPLINE in DXF export needs an R2000 writer (handles,
    objects section) in place of the R12 layout (the user chose arcs, 2026-11-18);
    control-point splines or a Bézier pen as variants on the spline's button.
-12f. **Drawing improvements** (the review of the drawing tools, 2026-11-18). Step 1, spec
-   approved 2026-11-18 (docs/specs/drawing-improvements.md): arithmetic in number fields
-   (**done**), mirror about a line with a copy that joins halves (**done**), arc slots. Step 2,
+12f. **Drawing improvements** (the review of the drawing tools, 2026-11-18). Step 1 **done**
+   2026-11-18 (docs/specs/drawing-improvements.md): arithmetic in number fields, mirror
+   about a line with a copy that joins halves, arc slots. Step 2,
    the rest of the review (the user: "then we take the rest in step 2"):
    - fillet and chamfer at line-arc and arc-arc corners, and between two shapes (trim to
      the round and join);

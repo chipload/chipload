@@ -516,7 +516,7 @@ fn a_shapes_variants_go_round_from_its_first() {
     assert_eq!(Tool::RectangleAligned.next_variant(), Tool::Rectangle);
     assert_eq!(Tool::RectangleAligned.shape(), Tool::Rectangle);
     // A shape with one way of drawing stays itself.
-    assert_eq!(Tool::Slot.next_variant(), Tool::Slot);
+    assert_eq!(Tool::Polyline.next_variant(), Tool::Polyline);
     assert_eq!(Tool::Polyline.variants(), &[Tool::Polyline]);
 }
 
@@ -774,4 +774,48 @@ fn typed_values_take_arithmetic() {
     assert_eq!(mm("20<90+45"), Ok(Entry::Polar(20.0, 135f64.to_radians())));
     assert_eq!(mm("12,5+1;3"), Ok(Entry::At((13.5, 3.0))));
     assert_eq!(mm("<1in"), Err(EntryError::Unreadable));
+}
+
+#[test]
+fn an_arc_slot_is_its_centre_ends_and_width() {
+    // docs/specs/drawing-improvements.md §3: round the origin at radius 40, a quarter,
+    // 8 wide.
+    let mut slot = Sketch::new(Tool::SlotArc);
+    slot.click((0.0, 0.0), false);
+    assert_eq!(slot.last_point(), Some((0.0, 0.0)));
+    // The radius typed, then the end at 90°.
+    let start = slot.typed(Entry::Distance(40.0), (1.0, 0.0)).unwrap();
+    assert_eq!(start, (40.0, 0.0));
+    slot.click(start, false);
+    slot.follow((30.0, 30.0));
+    let end = slot
+        .typed(Entry::Angle(std::f64::consts::FRAC_PI_2), (1.0, 1.0))
+        .unwrap();
+    assert!(distance(end, (0.0, 40.0)) < 1e-12);
+    assert_eq!(slot.click(end, false), Step::Continue);
+    // The width typed: 4 out from the centre line, towards the cursor.
+    let at = slot.typed(Entry::Distance(8.0), (30.0, 30.0)).unwrap();
+    assert!((distance(at, (0.0, 0.0)) - 44.0).abs() < 1e-9);
+    assert!(slot.readout(at, Units::Mm).unwrap().starts_with("W 8.000"));
+    let Step::Done(Geometry::Polyline {
+        closed: true,
+        points,
+        bulges,
+    }) = slot.click(at, false)
+    else {
+        panic!("a closed polyline");
+    };
+    assert_eq!(points.len(), 4);
+    assert_eq!((bulges[1], bulges[3]), (1.0, 1.0));
+    // Wider than the radius allows: refused, drawing goes on.
+    let mut wide = Sketch::new(Tool::SlotArc);
+    for p in [(0.0, 0.0), (10.0, 0.0), (0.0, 10.0)] {
+        wide.click(p, false);
+    }
+    assert_eq!(
+        wide.click((0.0, 25.0), false),
+        Step::Ignored(Some(Why::NoSize(Tool::SlotArc)))
+    );
+    assert_eq!(Tool::Slot.next_variant(), Tool::SlotArc);
+    assert_eq!(Tool::SlotArc.shape(), Tool::Slot);
 }

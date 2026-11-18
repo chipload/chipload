@@ -31,6 +31,9 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
     if v.corner_radius.is_some() && !matches!(kind, KindArg::Rectangle) {
         return Err("--corner-radius is for a rectangle".into());
     }
+    if (v.start_deg.is_some() || v.end_deg.is_some()) && !matches!(kind, KindArg::ArcSlot) {
+        return Err("--start-deg and --end-deg are for an arc slot".into());
+    }
     if (v.sides.is_some() || v.across_flats.is_some()) && !matches!(kind, KindArg::Polygon) {
         return Err("--sides and --across-flats are for a polygon".into());
     }
@@ -58,6 +61,23 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
                 points,
                 bulges,
             }
+        }
+        KindArg::ArcSlot => {
+            let start = need(v.start_deg, "start-deg", "arc slot")?;
+            let end = need(v.end_deg, "end-deg", "arc slot")?;
+            chipload_pipeline::shapes::arc_slot_geometry(
+                need(center, "center", "arc slot")?,
+                need(v.radius, "radius", "arc slot")?,
+                start,
+                end,
+                need(v.width, "width", "arc slot")?,
+            )
+            .ok_or_else(|| {
+                "that arc slot can't be: it needs a width more than 0 and less than twice its \
+                 radius, an end other than its start less than a whole turn away, and ends \
+                 that don't meet"
+                    .to_string()
+            })?
         }
         KindArg::Spline => {
             if v.bulges.is_some() {
@@ -95,6 +115,13 @@ pub(crate) fn polygon_radius_across_flats(flats: f64, sides: u32) -> f64 {
 /// kind are refused rather than ignored.
 pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Geometry, String> {
     let center = v.center.as_deref().map(point_arg).transpose()?;
+    if v.start_deg.is_some() || v.end_deg.is_some() {
+        return Err(
+            "--start-deg and --end-deg are for `shape add … arc-slot`; an arc slot is \
+                    a polyline afterwards"
+                .into(),
+        );
+    }
     let not_for = |kind: &str, given: &[(&str, bool)]| -> Result<(), String> {
         match given.iter().find(|(_, set)| *set) {
             Some((name, _)) => Err(format!("--{name} doesn't apply to a {kind}")),

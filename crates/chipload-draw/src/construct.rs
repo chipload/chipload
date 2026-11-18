@@ -2,8 +2,8 @@
 //! Shapes from the points of a drawing tool (docs/specs/drawing-input.md §4,
 //! drawing-variants.md §2): the arc through three points, the arc of a radius between two,
 //! an arc as polyline segments, rectangles by two corners, by their centre or aligned to
-//! an edge, circles by two or three points, arcs by their centre, and regular polygons by
-//! a side's middle or on an edge.
+//! an edge, circles by two or three points, arcs by their centre, regular polygons by a
+//! side's middle or on an edge, and arc slots.
 
 use chipload_core::math;
 use std::f64::consts::{PI, TAU};
@@ -241,6 +241,60 @@ pub fn polygon_on_edge(a: Point, b: Point, sides: u32) -> Option<Polygon> {
     })
 }
 
+/// A slot of `width` bent along `arc` (its centre line) (docs/specs/drawing-improvements.md
+/// §3), as a closed polyline: the outer arc from the start to the end, a half-circle cap
+/// round the end, the inner arc back, and a cap round the start; the points and one bulge
+/// per segment. Arcs past a half circle are split in two. The loop runs the way `arc` does.
+/// None when the width is zero, reaches the centre (the inner arc would vanish), or the
+/// caps would meet across the gap of a slot that goes nearly all the way round.
+pub fn arc_slot(arc: &Arc, width: f64) -> Option<(Vec<Point>, Vec<f64>)> {
+    let half = width / 2.0;
+    let (r_out, r_in) = (arc.radius + half, arc.radius - half);
+    if !(width >= CHAIN_TOL_MM && r_in >= CHAIN_TOL_MM && arc.sweep.is_finite()) {
+        return None;
+    }
+    let sweep = arc.sweep;
+    if sweep.abs() < f64::EPSILON || sweep.abs() >= TAU {
+        return None;
+    }
+    // The caps' centres are the arc's ends; across the gap they must be a width apart.
+    let gap = TAU - sweep.abs();
+    if gap < PI && 2.0 * arc.radius * math::sin(gap / 2.0) < width + CHAIN_TOL_MM {
+        return None;
+    }
+    let (a0, a1) = (arc.start_angle, arc.start_angle + sweep);
+    let at = |r: f64, a: f64| {
+        let (sin, cos) = math::sin_cos(a);
+        (arc.center.0 + r * cos, arc.center.1 + r * sin)
+    };
+    let cap = if sweep > 0.0 { 1.0 } else { -1.0 };
+    let mut points = Vec::new();
+    let mut bulges = Vec::new();
+    // An arc of radius r from angle `from` turning by `turn`: its points but the last, with
+    // their bulges (split in halves past a half circle).
+    let arc_to = |points: &mut Vec<Point>, bulges: &mut Vec<f64>, r: f64, from: f64, turn: f64| {
+        if turn.abs() > PI {
+            let b = math::tan(turn / 8.0);
+            points.push(at(r, from));
+            bulges.push(b);
+            points.push(at(r, from + turn / 2.0));
+            bulges.push(b);
+        } else {
+            points.push(at(r, from));
+            bulges.push(math::tan(turn / 4.0));
+        }
+    };
+    arc_to(&mut points, &mut bulges, r_out, a0, sweep);
+    // The end cap: from the outer end to the inner end.
+    points.push(at(r_out, a1));
+    bulges.push(cap);
+    arc_to(&mut points, &mut bulges, r_in, a1, -sweep);
+    // The start cap: from the inner start back to the outer start (the loop closes).
+    points.push(at(r_in, a0));
+    bulges.push(cap);
+    Some((points, bulges))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -408,5 +462,55 @@ mod tests {
             assert!(close(at(0.0), a) && close(at(1.0), b));
         }
         assert!(polygon_on_edge((1.0, 1.0), (1.0, 1.0), 6).is_none());
+    }
+
+    #[test]
+    fn an_arc_slot_is_two_arcs_and_two_round_caps() {
+        // A quarter round the origin at radius 40, 8 wide, counter-clockwise from +X.
+        let arc = Arc {
+            center: (0.0, 0.0),
+            radius: 40.0,
+            start_angle: 0.0,
+            sweep: FRAC_PI_2,
+        };
+        let (points, bulges) = arc_slot(&arc, 8.0).unwrap();
+        assert_eq!(points.len(), 4);
+        assert!(close(points[0], (44.0, 0.0)));
+        assert!(close(points[1], (0.0, 44.0)));
+        assert!(close(points[2], (0.0, 36.0)));
+        assert!(close(points[3], (36.0, 0.0)));
+        let quarter = math::tan(FRAC_PI_2 / 4.0);
+        assert!((bulges[0] - quarter).abs() < 1e-12 && (bulges[2] + quarter).abs() < 1e-12);
+        assert_eq!((bulges[1], bulges[3]), (1.0, 1.0));
+        // The caps are half circles round the arc's ends, 4 out.
+        let cap = Arc::from_bulge(points[1], points[2], bulges[1]).unwrap();
+        assert!(close(cap.center, (0.0, 40.0)) && (cap.radius - 4.0).abs() < 1e-9);
+        // Clockwise, and past a half circle: the arcs split, the caps the other way.
+        let big = Arc {
+            sweep: -1.5 * PI,
+            ..arc
+        };
+        let (points, bulges) = arc_slot(&big, 8.0).unwrap();
+        assert_eq!(points.len(), 6);
+        assert!(bulges.iter().all(|b| b.abs() <= 1.0));
+        assert_eq!((bulges[2], bulges[5]), (-1.0, -1.0));
+        // Too wide for the radius, no width, or caps meeting across a small gap: none.
+        assert!(arc_slot(&arc, 80.0).is_none());
+        assert!(arc_slot(&arc, 0.0).is_none());
+        let nearly_round = Arc {
+            sweep: TAU - 0.1,
+            ..arc
+        };
+        assert!(arc_slot(&nearly_round, 8.0).is_none());
+        assert!(
+            arc_slot(
+                &Arc {
+                    sweep: TAU - 0.5,
+                    ..arc
+                },
+                8.0
+            )
+            .is_some()
+        );
     }
 }

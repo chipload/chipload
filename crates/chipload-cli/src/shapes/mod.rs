@@ -473,6 +473,9 @@ pub(crate) enum KindArg {
     Polygon,
     /// The smooth curve through --points (docs/specs/splines.md).
     Spline,
+    /// A slot bent round --center at --radius from --start-deg to --end-deg, --width wide: a
+    /// closed polyline of arcs (docs/specs/drawing-improvements.md §3).
+    ArcSlot,
 }
 
 /// Defining values, all in mm; the angle in degrees.
@@ -512,6 +515,13 @@ pub(crate) struct ShapeValues {
     /// 1 a counter-clockwise half circle, -1 clockwise (default: all straight).
     #[arg(long, allow_hyphen_values = true)]
     bulges: Option<String>,
+    /// An arc slot's start, degrees counter-clockwise from +X.
+    #[arg(long, allow_hyphen_values = true)]
+    start_deg: Option<f64>,
+    /// An arc slot's end, degrees: past the start goes counter-clockwise, before it
+    /// clockwise.
+    #[arg(long, allow_hyphen_values = true)]
+    end_deg: Option<f64>,
     /// The polyline or spline doesn't return to its first point.
     #[arg(long, conflicts_with = "closed")]
     open: bool,

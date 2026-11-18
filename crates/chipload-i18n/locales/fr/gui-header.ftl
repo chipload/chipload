@@ -136,3 +136,4 @@ header-spline = Spline
 header-spline-hover = Dessiner une spline : cliquez les points par lesquels passe une courbe lisse
 header-mirror = Symétrie
 header-mirror-hover = Symétriser les formes dessinées sélectionnées par rapport à un axe : cliquez ses deux points, ou une ligne droite comme un axe central
+header-slot-arc-hover = Dessiner une rainure en arc : le centre de son arc, le début et la fin de sa ligne médiane, puis sa largeur

@@ -706,7 +706,7 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | Argument | Meaning |
 |---|---|
 | `<PROJECT>` | The project (.chipload) |
-| `<KIND>` | One of: `circle`, `rectangle`, `polyline`, `polygon`, `spline` (The smooth curve through --points (docs/specs/splines.md)). |
+| `<KIND>` | One of: `circle`, `rectangle`, `polyline`, `polygon`, `spline` (The smooth curve through --points (docs/specs/splines.md)), `arc-slot` (A slot bent round --center at --radius from --start-deg to --end-deg, --width wide: a closed polyline of arcs (docs/specs/drawing-improvements.md §3)). |
 | `--center <CENTER>` | Centre "X,Y" (circle, rectangle, polygon) |
 | `--radius <RADIUS>` | A circle's radius; a polygon's, to its corners. |
 | `--sides <SIDES>` | A polygon's number of sides, 3 to 1000. |
@@ -717,6 +717,8 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points, or the points a spline passes through: "X,Y X,Y ...". |
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
+| `--start-deg <START_DEG>` | An arc slot's start, degrees counter-clockwise from +X. |
+| `--end-deg <END_DEG>` | An arc slot's end, degrees: past the start goes counter-clockwise, before it clockwise. |
 | `--open` | The polyline or spline doesn't return to its first point. |
 | `--closed` | The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it) |
 | `--layer <LAYER>` |  |
@@ -746,6 +748,8 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--corner-radius <CORNER_RADIUS>` | The radius of the rectangle's corners, at most half its shorter side (default 0: sharp) |
 | `--points <POINTS>` | Polyline points, or the points a spline passes through: "X,Y X,Y ...". |
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
+| `--start-deg <START_DEG>` | An arc slot's start, degrees counter-clockwise from +X. |
+| `--end-deg <END_DEG>` | An arc slot's end, degrees: past the start goes counter-clockwise, before it clockwise. |
 | `--open` | The polyline or spline doesn't return to its first point. |
 | `--closed` | The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it) |
 | `--layer <LAYER>` |  |
