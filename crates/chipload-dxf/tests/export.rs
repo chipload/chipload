@@ -161,3 +161,37 @@ fn imported_drawings_round_trip_through_an_export() {
 fn nothing_to_write_is_refused() {
     assert_eq!(export_shapes(&[], Units::Mm), Err(ExportError::Nothing));
 }
+
+/// docs/specs/splines.md §7: a spline goes out as a polyline of lines and arcs within
+/// 0.01 mm of its curve (the R12 layout has no SPLINE), open or closed as it is, and reads
+/// back as those same pieces.
+#[test]
+fn a_spline_is_written_as_its_lines_and_arcs() {
+    let open = shape(
+        1,
+        "Curve",
+        Geometry::Spline {
+            closed: false,
+            points: vec![[0.0, 0.0], [20.0, 15.0], [45.0, 5.0], [60.0, 20.0]],
+        },
+    );
+    let closed = shape(
+        2,
+        "Curve",
+        Geometry::Spline {
+            closed: true,
+            points: vec![[0.0, 40.0], [40.0, 40.0], [40.0, 70.0], [0.0, 70.0]],
+        },
+    );
+    let out = export_shapes(&[open.clone(), closed.clone()], Units::Mm).unwrap();
+    assert_eq!(out.entities.get("POLYLINE"), Some(&2));
+    assert_eq!(out.entities.get("SPLINE"), None);
+    let text = String::from_utf8(out.bytes.clone()).unwrap();
+    assert!(text.lines().any(|l| l.trim() == "42"), "the arcs as bulges");
+    let back = shapes_from_dxf_bytes(&out.bytes, "s.dxf", Some(Units::Mm), 1.0).unwrap();
+    assert_eq!(back.shapes.len(), 2);
+    for (written, read) in [&open, &closed].into_iter().zip(&back.shapes) {
+        assert_eq!(read.closed(), written.closed());
+        assert_eq!(read.segments().len(), written.segments().len());
+    }
+}

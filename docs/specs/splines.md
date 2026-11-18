@@ -1,7 +1,7 @@
 # Spec: drawn splines
 
 Status: **approved 2026-11-18** (the user: "start with step 1"; §10 as recommended).
-Steps 1 and 2 built (see *As built*).
+All three steps built (see *As built*).
 
 User request (2026-11-18): splines as well, after the drawing variants
 (docs/specs/drawing-variants.md); "if possible, research it".
@@ -129,10 +129,16 @@ has.
 
 ## 7. DXF export
 
-A drawn spline exports as a **SPLINE** entity: degree 3, its Bézier pieces as the control
-points, and each inner knot repeated three times. That is the same curve exactly, so a CAD
-program gets a real spline. `--segments` would export the lines and arcs instead (decision
-6). DXF import is unchanged: a DXF's SPLINE becomes lines and arcs, as now.
+*Changed while building (the user, 2026-11-18):* a drawn spline exports as the lines and
+arcs it is cut with, one POLYLINE with bulges, within `ARC_APPROX_TOL_MM` of its curve,
+open or closed as it is. The exporter writes the classic R12 layout (`AC1009`,
+dxf-export.md §A4), which has no SPLINE entity (that came with R13); strict readers may
+refuse one in an R12 file. A true SPLINE would need an R2000 writer with handles and an
+objects section, a later item. DXF import is unchanged: a DXF's SPLINE becomes lines and
+arcs, as now.
+
+*First planned:* a SPLINE entity of degree 3, its Bézier pieces as the control points and
+each inner knot repeated three times, with `--segments` for lines and arcs.
 
 ## 8. Steps (one commit each)
 
@@ -141,7 +147,7 @@ program gets a real spline. `--segments` would export the lines and arcs instead
    a frozen v41 sample.
 2. **The window:** the tool (key B), the preview, handles, the form, its icon, the Browser
    group *Splines*, texts in seven languages, the guide's drawing page.
-3. **DXF export** as SPLINE.
+3. **DXF export:** as lines and arcs (§7, changed while building).
 
 ## 9. Tests
 
@@ -173,7 +179,9 @@ program gets a real spline. `--segments` would export the lines and arcs instead
    curve can differ slightly from a stretched copy.
 5. **The curve in `chipload-core`** beside `fit`, so `chipload-job` needs no new
    dependency. Alternative: in `chipload-draw`, with job depending on it.
-6. **DXF export as SPLINE** (exact) by default, lines and arcs with `--segments`.
+6. **DXF export:** *changed while building:* lines and arcs within 0.01 mm, since the R12
+   file has no SPLINE (§7). First recommended: SPLINE (exact) by default, lines and arcs
+   with `--segments`.
 7. **Key B** for the spline tool.
 
 ## As built
@@ -203,3 +211,6 @@ program gets a real spline. `--segments` would export the lines and arcs instead
     ends, middles, centres or quadrants, and no crossings where two of them meet. The
     spline's own points snap as ends, even where it chains with other open geometry;
     nearest, perpendicular and tangent stay.
+- **Step 3 (2026-11-18):** no change to the exporter: a spline already went out through
+  its segments as one checked POLYLINE. A test in `chipload-dxf` pins that down (open and
+  closed, bulges, read back piece for piece); the guide's export page says so.

@@ -18,7 +18,9 @@ In the window: *File > Export drawing as DXF…*, then the choices and the file 
 - **On their layers.** A layer name with a character a DXF can't hold (`< > / \ " : ; ?
   * | =`) is written with `_` in its place, and the report says so.
 - **Circles as circles, everything else as polylines** whose arcs stay true arcs (bulges),
-  so round corners and holes are cut as arcs by whatever reads the file.
+  so round corners and holes are cut as arcs by whatever reads the file. A spline goes
+  out as the lines and arcs it is cut with, within 0.01 mm of its curve: the file's
+  classic DXF layout, which every program reads, has no spline entity.
 - **Only some of it:** `--layer NAME` (repeatable) or `--shape ID …` on the command line;
   *Only the selected shapes* in the window.
 - **Construction geometry** only when you ask (`--construction`, or the checkbox), each on

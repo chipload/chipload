@@ -309,9 +309,12 @@ to a program you trust. It was about four per operation; with the defaults and s
    edge); the key cycles; `<a` typed. Next: splines (12e).
 12e. **Splines** (the user, 2026-11-18): drawn smooth curves. Researched and spec drafted
    2026-11-18 (docs/specs/splines.md: fit-point centripetal Catmull-Rom, fitted to arcs,
-   schema 42, no new dependency; approved as recommended). **Steps 1 and 2 done** (the
+   schema 42, no new dependency; approved as recommended). **Done** (all three steps: the
    kind, schema 42, the curve in chipload-core, CLI, golden v42_spline; the drawing tool,
-   key B, its preview, snapping to its points); next step 3 (DXF export as SPLINE).
+   key B, its preview, snapping to its points; DXF export as lines and arcs within 0.01
+   mm). Later, if wanted: a true SPLINE in DXF export needs an R2000 writer (handles,
+   objects section) in place of the R12 layout (the user chose arcs, 2026-11-18);
+   control-point splines or a Bézier pen as variants on the spline's button.
 13. **Small follow-ups:**
     - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on
