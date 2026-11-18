@@ -6,7 +6,7 @@
 use std::path::Path;
 
 use chipload_job::{Job, PartStock, load_job};
-use chipload_pipeline::part_view::part_view;
+use chipload_pipeline::part_view::{is_whole_setup, part_view};
 use chipload_pipeline::run_job;
 
 /// Two parts on one 12 mm board: "simple part" (operations 1-3) and "part B" (4), each
@@ -87,4 +87,25 @@ fn a_parts_own_thickness_is_the_boards_and_its_through_cuts_follow() {
 #[test]
 fn no_such_part_no_view() {
     assert!(part_view(&sample(), 99).is_none());
+}
+
+#[test]
+fn a_part_that_is_its_whole_setup_shows_the_setup() {
+    // Two parts: either alone is less than the setup.
+    let job = sample();
+    assert!(!is_whole_setup(&job, 1) && !is_whole_setup(&job, 2));
+    // One part, drawn in place: alone, it is the setup.
+    let one = load_job(
+        &Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../tests/corpus/jobs/v5/drawn_part.chipload"),
+    )
+    .unwrap();
+    assert!(is_whole_setup(&one, 1));
+    // Cut twice: alone, it is cut once.
+    let mut twice = one.clone();
+    let mut copy = twice.setups[0].instances[0];
+    copy.id = 2;
+    copy.at = [500.0, 0.0];
+    twice.setups[0].instances.push(copy);
+    assert!(!is_whole_setup(&twice, 1));
 }

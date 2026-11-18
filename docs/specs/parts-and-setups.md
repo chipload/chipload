@@ -251,6 +251,11 @@ part preview and its *All parts* button (docs/specs/active-part-preview.md, supe
   part…* is unchanged.
 - **No format change**; the command line plans setups as before.
 
+**As built, 2026-11-18:** a part that is its whole setup (the only part on it, once, where
+drawn, no board work switched off: `part_view::is_whole_setup`) shows the setup: selecting it
+or one of its operations plans nothing again and the simulation stays (found renewing the
+guide's screenshots: the showcase caught a simulation restarting).
+
 ## 9. Nesting onto more boards (decision 6)
 
 - `nest` with **overflow**: what doesn't fit on the board goes to the next setup with the

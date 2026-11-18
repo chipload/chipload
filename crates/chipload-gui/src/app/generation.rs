@@ -172,10 +172,13 @@ impl ChiploadApp {
         self.part_shown().map_or(Scope::Setup, Scope::View)
     }
 
-    /// The part shown alone, while it is still in the project.
+    /// The part shown alone, while it is still in the project and showing it alone differs
+    /// from showing the setup (one part drawn in place is the setup: nothing to plan again).
     pub(super) fn part_shown(&self) -> Option<u64> {
         let id = self.display.part?;
-        self.edit.as_ref()?.job.part(id).map(|p| p.id)
+        let job = &self.edit.as_ref()?.job;
+        job.part(id)?;
+        (!chipload_pipeline::part_view::is_whole_setup(job, id)).then_some(id)
     }
 
     /// As `start_generation`; `whole` plans the active setup whatever the preview shows
@@ -570,7 +573,12 @@ impl ChiploadApp {
         if self.display.part == part {
             return;
         }
+        let before = self.part_shown();
         self.display.part = part;
+        // The same plan shown either way (a part that is its whole setup): nothing to do.
+        if self.part_shown() == before {
+            return;
+        }
         self.update_ghosts();
         if self.edit.is_some() && (self.toolpath.result.is_some() || self.prefs.auto_generate) {
             self.start_generation(false);

@@ -64,3 +64,16 @@ pub fn part_view(job: &Job, id: u64) -> Option<Job> {
     view.follow_thickness();
     Some(view)
 }
+
+/// Whether part `id` shown alone is the active setup as it is (docs/specs/parts-and-setups.md
+/// §8a): the only part on it, once, where it is drawn, with no board work to switch off. Then
+/// showing it plans nothing new and changes nothing on screen.
+pub fn is_whole_setup(job: &Job, id: u64) -> bool {
+    let (Some(view), Some(active)) = (part_view(job, id), job.active_setup_id()) else {
+        return false;
+    };
+    let mut setup = job.for_setup(active);
+    setup.active_part = Some(id);
+    setup.follow_thickness();
+    view == setup
+}
