@@ -44,6 +44,9 @@ struct View {
     grown: Vec<Runs>,
     /// The plain footprint: what it occupies once placed.
     plain: Vec<Runs>,
+    /// The plain footprint's longest run, and its line: a board line with no free gap as
+    /// long, that far along, can't take the footprint there.
+    widest: (usize, i64),
 }
 
 /// One way an item can lie: its turn and its footprint there, as runs both ways.
@@ -125,9 +128,13 @@ impl Sheet {
     /// The way `footprint` (turned by `angle`) lies on this sheet, with the gap.
     pub fn lie(&self, angle: f64, footprint: Footprint, gap: f64) -> Lie {
         let grown = footprint.dilated(gap);
-        let view = |by_col: bool| View {
-            grown: runs(&grown.grid, by_col),
-            plain: runs(&footprint.grid, by_col),
+        let view = |by_col: bool| {
+            let plain = runs(&footprint.grid, by_col);
+            View {
+                grown: runs(&grown.grid, by_col),
+                widest: widest_run(&plain),
+                plain,
+            }
         };
         Lie {
             angle,
@@ -194,13 +201,29 @@ impl<'a> Filling<'a> {
     /// `last_row`: by columns (the leftmost column where it fits, there the lowest row)
     /// or by rows (the lowest row, there the leftmost column). None when it fits nowhere.
     fn first(&self, lie: &Lie, by_col: bool, last_col: i64, last_row: i64) -> Option<(i64, i64)> {
+        // A line's free gap within the cells the footprint may use, compared with its
+        // longest run on that line: too short, and it can't lie there.
+        let room = |board: &[Runs], view: &View, along: i64, end: i64| {
+            let (line, length) = view.widest;
+            usize::try_from(along)
+                .ok()
+                .and_then(|a| board.get(a + line))
+                .is_none_or(|runs| longest_gap(runs, end) >= length)
+        };
+        let (w, h) = lie.cells;
         if by_col {
             (0..=last_col).find_map(|col| {
+                if !room(&self.cols, &lie.by_col, col, last_row + h) {
+                    return None;
+                }
                 self.slide(&lie.by_col, &self.cols, lie.margin, col, last_row)
                     .map(|row| (col, row))
             })
         } else {
             (0..=last_row).find_map(|row| {
+                if !room(&self.rows, &lie.by_row, row, last_col + w) {
+                    return None;
+                }
                 self.slide(&lie.by_row, &self.rows, lie.margin, row, last_col)
                     .map(|col| (col, row))
             })
@@ -217,51 +240,66 @@ impl<'a> Filling<'a> {
         along: i64,
         last: i64,
     ) -> Option<i64> {
+        let lines = view.grown.len();
         let mut across = 0;
-        'slide: loop {
+        // The lines are checked round and round from where the last jump came from: a
+        // jump only moves the footprint on, so it fits once every line has passed in a
+        // row since the last jump, without starting again from the first line.
+        let (mut i, mut clear) = (0, 0);
+        while clear < lines {
             if across > last {
                 return None;
             }
-            for (i, runs) in view.grown.iter().enumerate() {
-                let line = along + i as i64 - margin;
-                let Some(line) = usize::try_from(line).ok().and_then(|l| board.get(l)) else {
-                    continue;
-                };
+            let row = along + i as i64 - margin;
+            let board_line = usize::try_from(row).ok().and_then(|l| board.get(l));
+            let runs = view.grown.get(i).map_or(&[][..], Vec::as_slice);
+            let mut jumped = false;
+            if let Some(line) = board_line {
                 for &(first, end) in runs {
                     let (low, high) = (across + first - margin, across + end - margin);
                     if let Some(blocked) = meeting(line, low, high) {
                         // Past the run it met: its first cell just beyond.
                         across = blocked + 1 - (first - margin);
-                        continue 'slide;
+                        jumped = true;
+                        break;
                     }
                 }
             }
-            return Some(across);
+            if jumped {
+                // This line is checked again where the footprint is now.
+                clear = 0;
+                continue;
+            }
+            clear += 1;
+            i = (i + 1) % lines;
         }
+        (across <= last).then_some(across)
     }
 
-    /// The places tried for `lie` (nesting-search.md §3): the lowest, the leftmost, and for
-    /// compact also the lowest within the box's width and the leftmost within its height.
+    /// The places tried for `lie` (nesting-search.md §3, as built): for low the lowest,
+    /// for left the leftmost. For compact one place growing the box upward and one growing
+    /// it rightward: the lowest within the box's width, else (the part wider than the box,
+    /// or no room in it) the leftmost anywhere; and the leftmost within the box's height,
+    /// else the lowest anywhere. A place inside the box is the lowest within its width.
     fn candidates(&self, lie: &Lie, goal: Goal) -> Vec<(i64, i64)> {
         let Some((last_col, last_row)) = self.sheet.limits(lie) else {
             return Vec::new();
         };
         let (w, h) = lie.cells;
-        let tries: &[(bool, bool)] = match goal {
-            Goal::Low => &[(false, false)],
-            Goal::Left => &[(true, false)],
-            Goal::Compact => &[(false, true), (true, true), (false, false), (true, false)],
+        let lowest = |cols: i64| self.first(lie, false, cols, last_row);
+        let leftmost = |rows: i64| self.first(lie, true, last_col, rows);
+        let found = match goal {
+            Goal::Low => vec![lowest(last_col)],
+            Goal::Left => vec![leftmost(last_row)],
+            Goal::Compact => {
+                let up = lowest(last_col.min(self.right - w)).or_else(|| leftmost(last_row));
+                let right = leftmost(last_row.min(self.top - h)).or_else(|| lowest(last_col));
+                vec![up, right]
+            }
         };
         let mut out: Vec<(i64, i64)> = Vec::new();
-        for &(by_col, within) in tries {
-            let (cols, rows) = match (within, by_col) {
-                (false, _) => (last_col, last_row),
-                (true, false) => (last_col.min(self.right - w), last_row),
-                (true, true) => (last_col, last_row.min(self.top - h)),
-            };
-            if let Some(place) = self.first(lie, by_col, cols, rows)
-                && !out.contains(&place)
-            {
+        for place in found.into_iter().flatten() {
+            if !out.contains(&place) {
                 out.push(place);
             }
         }
@@ -294,24 +332,50 @@ impl<'a> Filling<'a> {
 
     /// `lie` placed with its cell (0, 0) at (`col`, `row`): its plain runs occupied.
     fn occupy(&mut self, lie: &Lie, col: i64, row: i64) {
-        mark(&mut self.cols, &lie.by_col.plain, col, row);
-        mark(&mut self.rows, &lie.by_row.plain, row, col);
+        mark(&mut self.cols, &lie.by_col.plain, (col, row));
+        mark(&mut self.rows, &lie.by_row.plain, (row, col));
         self.right = self.right.max(col + lie.cells.0);
         self.top = self.top.max(row + lie.cells.1);
     }
 }
 
 /// `plain`'s runs, its line 0 on `board`'s line `along`, shifted `across`, occupied.
-fn mark(board: &mut [Runs], plain: &[Runs], along: i64, across: i64) {
+fn mark(board: &mut [Runs], plain: &[Runs], (along, across): (i64, i64)) {
     for (i, runs) in plain.iter().enumerate() {
-        let line = along + i as i64;
-        let Some(line) = usize::try_from(line).ok().and_then(|l| board.get_mut(l)) else {
+        let line = usize::try_from(along + i as i64).ok();
+        let Some(line) = line.and_then(|l| board.get_mut(l)) else {
             continue;
         };
         for &(first, end) in runs {
             insert(line, across + first, across + end);
         }
     }
+}
+
+/// The longest stretch of free cells in `line` before cell `cells`.
+fn longest_gap(line: &Runs, cells: i64) -> i64 {
+    let (mut longest, mut next) = (0, 0);
+    for &(first, end) in line {
+        if first >= cells {
+            break;
+        }
+        longest = longest.max(first - next);
+        next = end + 1;
+    }
+    longest.max(cells - next)
+}
+
+/// The longest run of `lines`, and its line: (0, 0) when there is none.
+fn widest_run(lines: &[Runs]) -> (usize, i64) {
+    let mut widest = (0, 0);
+    for (i, line) in lines.iter().enumerate() {
+        for &(first, end) in line {
+            if end - first + 1 > widest.1 {
+                widest = (i, end - first + 1);
+            }
+        }
+    }
+    widest
 }
 
 /// A candidate for the search (nesting-search.md §4): the order the items are placed in,
@@ -322,10 +386,12 @@ pub(super) struct Candidate {
     pub turns: Vec<Option<usize>>,
 }
 
-/// A candidate placed: its layout and its score.
+/// A candidate placed: its layout, the lie each item took (its given one where it
+/// wasn't placed), and its score.
 #[derive(Debug, Clone)]
 pub(super) struct Decoded {
     pub layout: Layout,
+    pub turns: Vec<Option<usize>>,
     pub score: Key,
 }
 
@@ -340,6 +406,8 @@ pub(super) fn decode(
     cancel: &Cancel,
 ) -> Result<Decoded, ToolpathError> {
     let mut filling = Filling::new(sheet);
+    let mut turns = candidate.turns.clone();
+    turns.resize(items.len(), None);
     let (mut placed, mut unplaced) = (Vec::new(), Vec::new());
     let mut area = 0_i64;
     for &k in &candidate.order {
@@ -357,6 +425,9 @@ pub(super) fn decode(
         };
         filling.occupy(lie, col, row);
         area += lie.area;
+        if let Some(t) = turns.get_mut(k) {
+            *t = Some(l);
+        }
         placed.push(Put {
             item: k,
             lie: l,
@@ -384,6 +455,7 @@ pub(super) fn decode(
             unplaced,
             extent,
         },
+        turns,
         score,
     })
 }
@@ -461,21 +533,16 @@ pub(super) fn starts(items: &[Item]) -> Vec<Candidate> {
     out
 }
 
-/// Fill `sheet` with `items` (nesting-search.md): every start placed, the best kept by its
-/// score, the first among equals. Deterministic: the same items give the same layout.
+/// Fill `sheet` with `items` (nesting-search.md): the starts placed, then the search
+/// (§4) from the best of them; the best layout seen. Deterministic: the same items and
+/// goal give the same layout.
 pub fn fill(
     sheet: &Sheet,
     items: &[Item],
     goal: Goal,
     cancel: &Cancel,
 ) -> Result<Layout, ToolpathError> {
-    let mut best: Option<Decoded> = None;
-    for candidate in starts(items) {
-        let decoded = decode(sheet, items, &candidate, goal, cancel)?;
-        if best.as_ref().is_none_or(|b| decoded.score < b.score) {
-            best = Some(decoded);
-        }
-    }
+    let best = super::search::search(sheet, items, goal, budget(items), cancel)?;
     Ok(best.map(|b| b.layout).unwrap_or(Layout {
         placed: Vec::new(),
         unplaced: Vec::new(),
@@ -483,9 +550,20 @@ pub fn fill(
     }))
 }
 
+/// How many layouts the search places after its starts (nesting-search.md §4.5): none when
+/// there is nothing to change, else [`super::search::budget`].
+fn budget(items: &[Item]) -> usize {
+    let turns = items.iter().any(|i| i.lies.len() > 1);
+    if items.len() < 2 && !turns {
+        0
+    } else {
+        super::search::budget(items.len())
+    }
+}
+
 /// The orders tried: largest area first, then longest side, then widest in X, then
 /// tallest in Y; ties in item order. Repeated orders are tried once.
-fn orders(items: &[Item]) -> Vec<Vec<usize>> {
+pub(super) fn orders(items: &[Item]) -> Vec<Vec<usize>> {
     let size = |k: usize| {
         items
             .get(k)

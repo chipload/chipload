@@ -1,6 +1,6 @@
 # Spec: a better nest, by search and with a goal
 
-Status: **approved 2026-11-18** (the user: "go ahead"), being built: step 1 done. It changes how the nester of docs/specs/nesting.md
+Status: **approved 2026-11-18** (the user: "go ahead"), being built: steps 1 and 2 done. It changes how the nester of docs/specs/nesting.md
 chooses places (its §4, decisions 3 and 6), not what it places or what it writes. The user,
 2026-11-18: "the nesting should start from the lower left corner and try to minimize the
 total area occupied", "I don't think we should place the parts in a fixed order, that could
@@ -74,12 +74,14 @@ depends on the goal:
   and for every row, the leftmost place in it: the places a part slid down or left would come
   to rest, so no candidate floats in the open.
 
-**As built (step 1):** for compact, every column's and row's place was too slow for a
-search that places hundreds of layouts. Four places are tried instead: the lowest place
-within the box's width (growing it only upward), the leftmost within its height (growing it
-only rightward), and the lowest and leftmost anywhere. A place inside the box is the lowest
-within its width, so a hole in the block is still filled. The box is counted in cells from
-the corner, so scores compare exactly.
+**As built (steps 1 and 2):** for compact, every column's and row's place was too slow for
+a search that places hundreds of layouts. Two places are tried: one growing the box upward,
+the lowest place within the box's width (else, the part wider than the box or no room in
+it, the leftmost anywhere), and one growing it rightward, the leftmost within its height
+(else the lowest anywhere). A place inside the box is the lowest within its width, so a
+hole in the block is still filled. The box is counted in cells from the corner, so scores
+compare exactly. A row (or column) is passed over at once when the footprint's longest run
+finds no free gap as long on its line, within the cells the footprint may use.
 
 Today's slack rule (up to 5 mm farther along when that is lower across, `ALONG_SLACK_MM`)
 goes: the goals and the search take its place.
@@ -130,6 +132,15 @@ settings give the same placements, and the same G-code, on any computer. The bud
 constant in the code, set by measuring in step 1 so that 20 instances of mixed parts take
 1 to 2 s in a release build, and 50 instances on a 2440 × 1220 board stay under 10 s
 (nesting.md decision 3). It may depend on the number of instances, never on the clock.
+
+**As built (step 2):** 600 layouts for up to 20 instances, fewer beyond by the square of
+the share (a layout costs more with more instances, each on a fuller board), at least 100;
+the late acceptance list is 30 long. Measured (release): 20 mixed instances on 1200 × 600,
+1.3 s for compact, 0.3 to 0.5 s for the others; 50 on a full sheet, 2.5 s. The search never
+gives a worse layout than its starts (the best is kept); on 24 mixed parts it places 21
+where the starts place 20. Swapping two instances of the same part in the same turn is
+never drawn, as it changes nothing. The Nest window shows the share of layouts placed as a
+progress bar.
 
 **With overflow** (parts-and-setups.md §9), each board is searched in turn with the whole
 budget: the first board takes as much as it can (§2.1), what is left goes to the next.
@@ -213,7 +224,7 @@ Each step a commit with its tests, the guide and translations with the step that
    board used along its longer side. Measured (release): 50 instances, quarter turns, on a
    2440 × 1220 board: 20 starts in 1.5 s, about 75 ms a layout with the placer picking the
    turns, a quarter of that with them given.
-2. **The search** (§4), with its generator, progress and Cancel.
+2. **The search** (§4), with its generator, progress and Cancel. **Built 2026-11-18.**
 3. **Nest again from the board as it is** (§5).
 4. **The goal in the file, the window and the command line** (§6, §7), the summary line, the
    setup sheet's fact, the guide (nesting page) and translations.

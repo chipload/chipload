@@ -515,20 +515,27 @@ fn nest_form(
             }
         });
     ui.add_space(6.0);
-    match (&dialog.preview, dialog.run.is_some()) {
-        (_, true) => {
+    let share = dialog.run.as_ref().map(|run| run.cancel.progress());
+    match (&dialog.preview, share) {
+        (_, Some(share)) => {
             ui.horizontal(|ui| {
                 ui.spinner();
                 ui.label(t!(ui, "nest-running"));
+                // The search places layouts for a moment (nesting-search.md §7).
+                ui.add(
+                    egui::ProgressBar::new(share as f32)
+                        .desired_width(super::canvas_paint::PROGRESS_WIDTH)
+                        .show_percentage(),
+                );
             });
         }
-        (Some(Ok(p)), false) => {
+        (Some(Ok(p)), None) => {
             ui.label(p.result.summary().render(lang, units));
             for note in p.result.notes() {
                 ui.colored_label(ui.visuals().warn_fg_color, note.render(lang, units));
             }
         }
-        (Some(Err(text)), false) if !text.is_empty() => {
+        (Some(Err(text)), None) if !text.is_empty() => {
             ui.colored_label(ui.visuals().error_fg_color, text);
         }
         _ => {

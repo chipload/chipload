@@ -7,7 +7,7 @@ use super::*;
 /// The accent frame round the canvas in Simulate, points.
 const SIMULATE_FRAME: f32 = 3.0;
 /// The progress bar's width in the canvas's notice, points.
-const PROGRESS_WIDTH: f32 = 160.0;
+pub(super) const PROGRESS_WIDTH: f32 = 160.0;
 
 impl ChiploadApp {
     /// The scene and everything over it: readouts, the select box, labels, rulers, menus,

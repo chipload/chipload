@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+use super::fill::{Candidate, decode};
 use super::*;
 use crate::arcs::Circle;
 use crate::model::{Move, MoveKind};
@@ -350,4 +351,135 @@ fn a_cancelled_fill_stops() {
         fill(&sheet, &items, Goal::Compact, &cancel),
         Err(crate::ToolpathError::Cancelled)
     ));
+}
+
+// -- The search (nesting-search.md §4)
+
+/// Mixed rectangles and an L, `count` of them, some turnable a quarter.
+fn mixed(sheet: &Sheet, count: usize) -> Vec<Item> {
+    let sizes = [
+        (300.0, 200.0),
+        (180.0, 120.0),
+        (420.0, 90.0),
+        (90.0, 90.0),
+        (250.0, 160.0),
+        (140.0, 60.0),
+        (330.0, 110.0),
+    ];
+    let quarter = [0.0, std::f64::consts::FRAC_PI_2];
+    (0..count)
+        .map(|k| {
+            let (w, h) = sizes[k % sizes.len()];
+            item(sheet, &rect(w, h), &quarter, 3.0)
+        })
+        .collect()
+}
+
+/// `cargo test --release -p chipload-toolpath --lib search_report -- --ignored --nocapture`
+#[test]
+#[ignore = "a report; run in release"]
+fn search_report() {
+    let sheet = Sheet::new((0.0, 0.0), (1200.0, 600.0), 0.5, &[]).unwrap();
+    for count in [8, 12, 16, 20, 24] {
+        let items = mixed(&sheet, count);
+        for goal in [Goal::Compact, Goal::Low, Goal::Left] {
+            let cancel = crate::Cancel::new();
+            let start = std::time::Instant::now();
+            let starts = super::search::search(&sheet, &items, goal, 0, &cancel)
+                .unwrap()
+                .unwrap();
+            let budget = super::search::budget(items.len());
+            let found = super::search::search(&sheet, &items, goal, budget, &cancel)
+                .unwrap()
+                .unwrap();
+            println!(
+                "{count} {goal:?}: starts {:?} search {:?} ({:?})",
+                starts.score,
+                found.score,
+                start.elapsed()
+            );
+        }
+    }
+}
+
+#[test]
+fn the_search_places_a_part_the_starts_leave_off() {
+    // Fixed by the seed: 24 mixed parts on a 1200 × 600 board, the starts place 20.
+    let sheet = Sheet::new((0.0, 0.0), (1200.0, 600.0), 0.5, &[]).unwrap();
+    let items = mixed(&sheet, 24);
+    let cancel = crate::Cancel::new();
+    let starts = super::search::search(&sheet, &items, Goal::Compact, 0, &cancel)
+        .unwrap()
+        .unwrap();
+    let found = run(&sheet, &items);
+    assert!(
+        found.placed.len() > starts.layout.placed.len(),
+        "{} vs {}",
+        found.placed.len(),
+        starts.layout.placed.len()
+    );
+    // Every board reported done.
+    assert_eq!(cancel.progress(), 1.0);
+}
+
+#[test]
+fn the_search_is_the_same_every_time() {
+    let sheet = Sheet::new((0.0, 0.0), (1200.0, 600.0), 0.5, &[]).unwrap();
+    let items = mixed(&sheet, 12);
+    for goal in [Goal::Compact, Goal::Low, Goal::Left] {
+        assert_eq!(run_for(&sheet, &items, goal), run_for(&sheet, &items, goal));
+    }
+}
+
+/// Every candidate one move from `candidate` (nesting-search.md §4.2).
+fn every_move(candidate: &Candidate, items: &[Item]) -> Vec<Candidate> {
+    let n = candidate.order.len();
+    let mut out = Vec::new();
+    for i in 0..n {
+        for j in 0..n {
+            if i == j {
+                continue;
+            }
+            let mut swapped = candidate.clone();
+            swapped.order.swap(i, j);
+            out.push(swapped);
+            let mut moved = candidate.clone();
+            let k = moved.order.remove(i);
+            moved.order.insert(j, k);
+            out.push(moved);
+        }
+    }
+    for (k, item) in items.iter().enumerate() {
+        for l in 0..item.lies.len() {
+            let mut turned = candidate.clone();
+            turned.turns[k] = Some(l);
+            out.push(turned);
+        }
+    }
+    out
+}
+
+#[test]
+fn no_single_move_betters_a_small_search() {
+    let sheet = Sheet::new((0.0, 0.0), (800.0, 500.0), 0.5, &[]).unwrap();
+    let items = mixed(&sheet, 5);
+    let cancel = crate::Cancel::new();
+    for goal in [Goal::Compact, Goal::Low, Goal::Left] {
+        let found = super::search::search(&sheet, &items, goal, 600, &cancel)
+            .unwrap()
+            .unwrap();
+        let mut order: Vec<usize> = found.layout.placed.iter().map(|p| p.item).collect();
+        order.extend(&found.layout.unplaced);
+        let candidate = Candidate {
+            order,
+            turns: found.turns.clone(),
+        };
+        // The candidate gives the layout found again.
+        let again = decode(&sheet, &items, &candidate, goal, &cancel).unwrap();
+        assert_eq!(again.score, found.score);
+        for next in every_move(&candidate, &items) {
+            let moved = decode(&sheet, &items, &next, goal, &cancel).unwrap();
+            assert!(moved.score >= found.score, "{goal:?}: {next:?} betters it");
+        }
+    }
 }

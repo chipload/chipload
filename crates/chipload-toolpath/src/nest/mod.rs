@@ -13,6 +13,7 @@
 mod fill;
 mod footprint;
 mod grid;
+mod search;
 mod sweep;
 
 pub use fill::{Goal, Item, Layout, Lie, Put, Sheet, fill};
