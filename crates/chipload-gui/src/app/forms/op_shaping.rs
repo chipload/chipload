@@ -323,18 +323,12 @@ pub(super) fn moulding_sections(
             .on_hover_text(t!(ui, "forms-moulding-stepover-hover"));
         flag(ui.add(mm(&mut m.stepover)), ui, "stepover");
         ui.end_row();
-        ui.label(t!(ui, "forms-step-down"));
-        let mut levels = m.step_down.is_some();
-        let tick = ui.checkbox(&mut levels, t!(ui, "forms-chamfer-passes"));
-        if flag(tick, ui, "step_down").changed() {
-            m.step_down = levels.then(|| tool.map_or(2.0, |t| (t.diameter / 3.0).max(0.5)));
-        }
-        ui.end_row();
-        if let Some(step) = &mut m.step_down {
-            ui.label(format!("  {}", t!(ui, "forms-step-down")));
-            flag(ui.add(mm(step)), ui, "step_down");
-            ui.end_row();
-        }
+        optional_step_down(
+            ui,
+            &mut m.step_down,
+            || tool.map_or(2.0, |t| (t.diameter / 3.0).max(0.5)),
+            None,
+        );
         ui.label(t!(ui, "forms-direction"));
         direction_combo(ui, ("direction", index), &mut m.direction);
         ui.end_row();

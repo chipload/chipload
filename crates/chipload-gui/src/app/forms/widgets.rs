@@ -516,3 +516,29 @@ pub(super) fn reset_button(ui: &mut egui::Ui, enabled: bool, hover: &str) -> boo
         .on_hover_text(hover)
         .clicked()
 }
+
+/// A step down that may be left out (one pass to the depth): a tick for passes, and the step
+/// under it once ticked, starting at `first()` (chamfer, flute, prism, pattern and moulding;
+/// docs/specs/chamfer.md §6). `hover` explains the tick's row.
+pub(super) fn optional_step_down(
+    ui: &mut egui::Ui,
+    step_down: &mut Option<f64>,
+    first: impl FnOnce() -> f64,
+    hover: Option<String>,
+) {
+    let label = ui.label(t!(ui, "forms-step-down"));
+    if let Some(hover) = hover {
+        label.on_hover_text(hover);
+    }
+    let mut passes = step_down.is_some();
+    let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
+    if crate::app::problems::flag(tick, ui, "step_down").changed() {
+        *step_down = passes.then(first);
+    }
+    ui.end_row();
+    if let Some(step) = step_down {
+        ui.label(format!("  {}", t!(ui, "forms-step-down")));
+        crate::app::problems::flag(ui.add(mm(step)), ui, "step_down");
+        ui.end_row();
+    }
+}

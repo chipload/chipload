@@ -65,19 +65,12 @@ pub(super) fn chamfer_sections(
             .on_hover_text(t!(ui, "forms-chamfer-start-hover"));
         flag(ui.add(mm(&mut c.start_depth)), ui, "start_depth");
         ui.end_row();
-        ui.label(t!(ui, "forms-step-down"))
-            .on_hover_text(t!(ui, "forms-chamfer-passes-hover"));
-        let mut passes = c.step_down.is_some();
-        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
-        if flag(tick, ui, "step_down").changed() {
-            c.step_down = passes.then(|| depth.map_or(c.width, |d| d / 2.0).max(0.1));
-        }
-        ui.end_row();
-        if let Some(step) = &mut c.step_down {
-            ui.label(format!("  {}", t!(ui, "forms-step-down")));
-            flag(ui.add(mm(step)), ui, "step_down");
-            ui.end_row();
-        }
+        optional_step_down(
+            ui,
+            &mut c.step_down,
+            || depth.map_or(c.width, |d| d / 2.0).max(0.1),
+            Some(t!(ui, "forms-chamfer-passes-hover")),
+        );
         ui.label(t!(ui, "forms-direction"));
         direction_combo(ui, ("direction", index), &mut c.direction);
         ui.end_row();
@@ -130,19 +123,12 @@ pub(super) fn flute_sections(
             ui.label(t!(ui, "forms-flute-width-value", width = with_unit(width)));
             ui.end_row();
         }
-        ui.label(t!(ui, "forms-step-down"))
-            .on_hover_text(t!(ui, "forms-flute-passes-hover"));
-        let mut passes = f.step_down.is_some();
-        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
-        if flag(tick, ui, "step_down").changed() {
-            f.step_down = passes.then(|| (depth / 2.0).max(0.1));
-        }
-        ui.end_row();
-        if let Some(step) = &mut f.step_down {
-            ui.label(format!("  {}", t!(ui, "forms-step-down")));
-            flag(ui.add(mm(step)), ui, "step_down");
-            ui.end_row();
-        }
+        optional_step_down(
+            ui,
+            &mut f.step_down,
+            || (depth / 2.0).max(0.1),
+            Some(t!(ui, "forms-flute-passes-hover")),
+        );
         ui.label(t!(ui, "forms-flute-ramp-start"))
             .on_hover_text(t!(ui, "forms-flute-ramp-start-hover"));
         flag(ui.add(mm(&mut f.ramp_start)), ui, "ramp_start");
@@ -217,18 +203,7 @@ pub(super) fn prism_sections(
             _ => ui.label(t!(ui, "forms-chamfer-needs-vbit")),
         };
         ui.end_row();
-        ui.label(t!(ui, "forms-step-down"));
-        let mut passes = f.step_down.is_some();
-        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
-        if flag(tick, ui, "step_down").changed() {
-            f.step_down = passes.then(|| (deepest / 2.0).max(0.1));
-        }
-        ui.end_row();
-        if let Some(step) = &mut f.step_down {
-            ui.label(format!("  {}", t!(ui, "forms-step-down")));
-            flag(ui.add(mm(step)), ui, "step_down");
-            ui.end_row();
-        }
+        optional_step_down(ui, &mut f.step_down, || (deepest / 2.0).max(0.1), None);
         ui.label(t!(ui, "forms-direction"));
         direction_combo(ui, ("direction", index), &mut f.direction);
         ui.end_row();
@@ -438,18 +413,7 @@ pub(super) fn pattern_sections(
             ));
             ui.end_row();
         }
-        ui.label(t!(ui, "forms-step-down"));
-        let mut passes = f.step_down.is_some();
-        let tick = ui.checkbox(&mut passes, t!(ui, "forms-chamfer-passes"));
-        if flag(tick, ui, "step_down").changed() {
-            f.step_down = passes.then(|| (depth / 2.0).max(0.1));
-        }
-        ui.end_row();
-        if let Some(step) = &mut f.step_down {
-            ui.label(format!("  {}", t!(ui, "forms-step-down")));
-            flag(ui.add(mm(step)), ui, "step_down");
-            ui.end_row();
-        }
+        optional_step_down(ui, &mut f.step_down, || (depth / 2.0).max(0.1), None);
         ui.label(t!(ui, "forms-pattern-ends"))
             .on_hover_text(t!(ui, "forms-pattern-ends-hover"));
         flag(ui.add(mm(&mut f.ramp)), ui, "ramp");
