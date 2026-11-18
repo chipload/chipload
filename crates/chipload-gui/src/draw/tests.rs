@@ -233,7 +233,13 @@ fn typed_values_read_in_every_form() {
     assert_eq!(parse_entry("1", Units::Inch), Ok(Entry::Distance(25.4)));
     assert_eq!(parse_entry("10mm", Units::Inch), Ok(Entry::Distance(10.0)));
     assert_eq!(mm("1/2in,1in"), Ok(Entry::At((12.7, 25.4))));
-    for bad in ["", "abc", "1,2,3", "4<", "<30", "4<x", "1;"] {
+    // An angle alone: at the cursor's distance (an arc by its centre: its end).
+    assert_eq!(mm("<30"), Ok(Entry::Angle(30f64.to_radians())));
+    assert_eq!(
+        typed_point(Entry::Angle(0.0), Some((1.0, 1.0)), (1.0, 6.0)),
+        Ok((6.0, 1.0))
+    );
+    for bad in ["", "abc", "1,2,3", "4<", "@<30", "<x", "4<x", "1;"] {
         assert_eq!(mm(bad), Err(EntryError::Unreadable), "{bad:?}");
     }
 }
@@ -606,4 +612,109 @@ fn each_circle_variant_says_what_to_click() {
     assert_eq!(Tool::Circle.next_variant(), Tool::CircleTwoPoints);
     assert_eq!(Tool::CircleThreePoints.next_variant(), Tool::Circle);
     assert_eq!(Tool::CircleThreePoints.shape(), Tool::Circle);
+}
+
+#[test]
+fn an_arc_by_its_centre_goes_round_the_way_the_cursor_did() {
+    let arc = |turn: &[Point]| {
+        let mut sketch = Sketch::new(Tool::ArcCentre);
+        sketch.click((0.0, 0.0), false);
+        assert_eq!(sketch.last_point(), Some((0.0, 0.0)));
+        sketch.click((10.0, 0.0), false);
+        assert_eq!(sketch.last_point(), None);
+        for &p in turn {
+            sketch.follow(p);
+        }
+        sketch.click((0.0, 10.0), false)
+    };
+    // Up from the start: a quarter, counter-clockwise, one segment.
+    let Step::Done(Geometry::Polyline {
+        closed: false,
+        points,
+        bulges,
+    }) = arc(&[(10.0, 5.0), (5.0, 9.0)])
+    else {
+        panic!("an arc");
+    };
+    assert_eq!(points.len(), 2);
+    assert!((bulges[0] - math::tan(std::f64::consts::FRAC_PI_2 / 4.0)).abs() < 1e-12);
+    // Down first and round: three quarters clockwise, two segments.
+    let Step::Done(Geometry::Polyline { points, bulges, .. }) =
+        arc(&[(10.0, -5.0), (0.0, -10.0), (-10.0, 0.0)])
+    else {
+        panic!("an arc");
+    };
+    assert_eq!(points.len(), 3);
+    assert!(bulges.iter().all(|&b| b < 0.0));
+}
+
+#[test]
+fn an_arc_by_its_centre_takes_its_radius_and_its_end_typed() {
+    let mut sketch = Sketch::new(Tool::ArcCentre);
+    sketch.click((0.0, 0.0), false);
+    // A length from the centre is the radius, towards the cursor.
+    let start = sketch.typed(Entry::Distance(20.0), (5.0, 0.0)).unwrap();
+    assert_eq!(start, (20.0, 0.0));
+    assert_eq!(sketch.readout((3.0, 4.0), Units::Mm).unwrap(), "R 5.000");
+    sketch.click(start, false);
+    // The end at 90° on the circle, whatever the length.
+    let end = sketch
+        .typed(Entry::Angle(std::f64::consts::FRAC_PI_2), (1.0, 1.0))
+        .unwrap();
+    assert!(distance(end, (0.0, 20.0)) < 1e-12);
+    assert_eq!(
+        sketch
+            .typed(Entry::Polar(3.0, std::f64::consts::FRAC_PI_2), (1.0, 1.0))
+            .unwrap(),
+        end
+    );
+    sketch.follow((14.0, 14.0));
+    assert_eq!(sketch.readout(end, Units::Mm).unwrap(), "R 20.000  90.0°");
+    assert!(
+        sketch
+            .status(end, 1.0, Units::Mm, &En)
+            .contains("radius 20.000, 90.0°")
+    );
+    // Back on the start's direction: no arc.
+    assert_eq!(
+        sketch.click((30.0, 0.0), false),
+        Step::Ignored(Some(Why::NoSize(Tool::ArcCentre)))
+    );
+}
+
+#[test]
+fn a_polygon_by_its_side_and_on_an_edge() {
+    // A hexagon 20 across flats: the flat's middle straight up from the centre.
+    let mut side = Sketch::new(Tool::PolygonSide);
+    side.click((5.0, 5.0), false);
+    assert_eq!(side.last_point(), Some((5.0, 5.0)));
+    assert!(
+        side.status((5.0, 15.0), 1.0, Units::Mm, &En)
+            .contains("20.000 across flats")
+    );
+    let Step::Done(Geometry::Polygon {
+        center,
+        radius,
+        sides,
+        angle,
+    }) = side.click((5.0, 15.0), false)
+    else {
+        panic!("a polygon");
+    };
+    assert_eq!((center, sides), ([5.0, 5.0], 6));
+    assert!((radius - 20.0 / 3f64.sqrt()).abs() < 1e-12);
+    assert!((angle - std::f64::consts::FRAC_PI_3).abs() < 1e-12);
+    // A square on an edge, with four sides chosen: above the edge drawn left to right.
+    let mut edge = Sketch::new(Tool::PolygonEdge);
+    edge.sides = 4;
+    edge.click((0.0, 0.0), false);
+    assert_eq!(edge.last_point(), Some((0.0, 0.0)));
+    let Step::Done(Geometry::Polygon { center, sides, .. }) = edge.click((10.0, 0.0), false) else {
+        panic!("a polygon");
+    };
+    assert_eq!(sides, 4);
+    assert!((center[0] - 5.0).abs() < 1e-12 && (center[1] - 5.0).abs() < 1e-12);
+    assert_eq!(Tool::Polygon.next_variant(), Tool::PolygonSide);
+    assert_eq!(Tool::PolygonEdge.next_variant(), Tool::Polygon);
+    assert_eq!(Tool::ArcCentre.next_variant(), Tool::Arc);
 }

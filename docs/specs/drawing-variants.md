@@ -1,7 +1,7 @@
 # Spec: more ways to draw a shape, on one split button
 
 Status: **approved 2026-11-18** (the user: "sounds good go ahead"; §9 as recommended).
-Steps 1 and 2 built (see *As built*).
+All three steps built (see *As built*).
 
 Guide: docs/book/src/drawings/shapes.md.
 
@@ -202,3 +202,16 @@ next click, for example "Rectangle (aligned): click the width. 0.5 mm grid".
   `CircleTwoPoints` and `CircleThreePoints`, both with a last point for perpendicular and
   tangent snaps. The readout shows "Ø d  R r" for the two-point circle. Three points on
   a line are refused with their own text ("no circle goes through them").
+- **Step 3 (2026-11-18):** `arc_by_centre`, `polygon_by_side` and `polygon_on_edge` (with
+  a `Polygon` of centre, radius and first corner) in `chipload_draw::construct`; the tools
+  `ArcCentre`, `PolygonSide` and `PolygonEdge`.
+  - The arc's way round: `Sketch::follow` adds up the cursor's turn about the centre
+    (each frame on the canvas, and on each click) in `Sketch::turned`; zero or more is
+    counter-clockwise.
+  - `<a` is `Entry::Angle`: from the last point at the cursor's distance, or for the arc
+    by its centre the end at that angle on the circle (so `d<a` there ignores d). The
+    entry now also opens on `<`.
+  - The polygon by its side has the centre as its last point while the side's middle is
+    clicked, so a perpendicular snap onto a line gives a polygon touching it; the arc by
+    its centre has the centre as its last point while the start is clicked.
+  - The status bar's number of sides shows for every polygon variant.

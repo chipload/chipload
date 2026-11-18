@@ -129,3 +129,6 @@ header-rectangle-aligned-hover = Dibujar un rectángulo: los dos extremos de un 
 header-variants-hint = La flecha, o un clic derecho: otras formas de dibujarlo
 header-circle-two-hover = Dibujar un círculo: los dos extremos de un diámetro
 header-circle-three-hover = Dibujar un círculo: tres puntos en él
+header-arc-centre-hover = Dibujar un arco: su centro, donde empieza y luego donde termina
+header-polygon-side-hover = Dibujar un polígono regular: el centro y luego el medio de un lado (entre caras)
+header-polygon-edge-hover = Dibujar un polígono regular: los dos extremos de un lado; queda a su izquierda

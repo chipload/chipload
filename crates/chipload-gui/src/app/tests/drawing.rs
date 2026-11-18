@@ -1013,6 +1013,14 @@ fn the_shapes_key_goes_through_its_variants_until_the_first_click() {
     app.draw_shape(Tool::Circle);
     app.draw_shape(Tool::Circle);
     assert_eq!(tool(&app), Some(Tool::CircleThreePoints));
+    // A and N too.
+    app.draw_shape(Tool::Arc);
+    app.draw_shape(Tool::Arc);
+    assert_eq!(tool(&app), Some(Tool::ArcCentre));
+    app.draw_shape(Tool::Polygon);
+    app.draw_shape(Tool::Polygon);
+    app.draw_shape(Tool::Polygon);
+    assert_eq!(tool(&app), Some(Tool::PolygonEdge));
 }
 
 #[test]

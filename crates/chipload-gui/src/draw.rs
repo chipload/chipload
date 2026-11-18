@@ -12,8 +12,9 @@ use chipload_core::chain::Contour;
 use chipload_core::primitives::distance;
 use chipload_core::tolerances::CHAIN_TOL_MM;
 use chipload_draw::construct::{
-    arc_as_polyline, arc_middle_for_radius, arc_through, circle_by_diameter, circle_through,
-    left_of, rectangle_aligned, rectangle_by_centre, rectangle_by_corners,
+    arc_as_polyline, arc_by_centre, arc_middle_for_radius, arc_through, circle_by_diameter,
+    circle_through, left_of, polygon_by_side, polygon_on_edge, rectangle_aligned,
+    rectangle_by_centre, rectangle_by_corners,
 };
 use chipload_job::{Geometry, Shape, Units};
 use chipload_pipeline::units::{length_text, parse_length};
@@ -37,10 +38,17 @@ pub enum Tool {
     Polyline,
     /// Start, end, then a point it passes through: an open polyline of arcs.
     Arc,
+    /// The centre, the start (the radius), then the end's direction, the way the cursor
+    /// went round (docs/specs/drawing-variants.md §2).
+    ArcCentre,
     /// The centres of its two ends, then its width: a rectangle with round ends.
     Slot,
     /// The centre, then a corner: a regular polygon of `Sketch::sides` sides.
     Polygon,
+    /// The centre, then the middle of a side (docs/specs/drawing-variants.md §2).
+    PolygonSide,
+    /// The two ends of one side; the polygon lies to its left.
+    PolygonEdge,
 }
 
 impl Tool {
@@ -50,6 +58,8 @@ impl Tool {
         match self {
             Tool::RectangleCentre | Tool::RectangleAligned => Tool::Rectangle,
             Tool::CircleTwoPoints | Tool::CircleThreePoints => Tool::Circle,
+            Tool::ArcCentre => Tool::Arc,
+            Tool::PolygonSide | Tool::PolygonEdge => Tool::Polygon,
             other => other,
         }
     }
@@ -64,9 +74,9 @@ impl Tool {
             ],
             Tool::Circle => &[Tool::Circle, Tool::CircleTwoPoints, Tool::CircleThreePoints],
             Tool::Polyline => &[Tool::Polyline],
-            Tool::Arc => &[Tool::Arc],
+            Tool::Arc => &[Tool::Arc, Tool::ArcCentre],
             Tool::Slot => &[Tool::Slot],
-            _ => &[Tool::Polygon],
+            _ => &[Tool::Polygon, Tool::PolygonSide, Tool::PolygonEdge],
         }
     }
 
@@ -88,6 +98,11 @@ pub struct Sketch {
     pub points: Vec<Point>,
     /// A polygon's number of sides.
     pub sides: u32,
+    /// An arc by its centre: how far the cursor has gone round the centre since the start
+    /// was clicked (radians, counter-clockwise positive), and its last direction from the
+    /// centre; the arc goes that way round (docs/specs/drawing-variants.md §2).
+    pub turned: f64,
+    last_direction: Option<f64>,
 }
 
 /// What a click or Enter did.
@@ -115,7 +130,13 @@ impl Why {
     /// For the status bar.
     pub fn text(self, lang: &impl Lang) -> String {
         match self {
-            Why::NoSize(Tool::Circle | Tool::CircleTwoPoints | Tool::Polygon) => {
+            Why::NoSize(
+                Tool::Circle
+                | Tool::CircleTwoPoints
+                | Tool::Polygon
+                | Tool::PolygonSide
+                | Tool::PolygonEdge,
+            ) => {
                 t!(lang, "draw-no-size-circle")
             }
             Why::NoSize(Tool::CircleThreePoints) => t!(lang, "draw-circle-on-a-line"),
@@ -123,6 +144,7 @@ impl Why {
                 Tool::Rectangle | Tool::RectangleCentre | Tool::RectangleAligned | Tool::Polyline,
             ) => t!(lang, "draw-no-size-rectangle"),
             Why::NoSize(Tool::Arc) => t!(lang, "draw-arc-on-a-line"),
+            Why::NoSize(Tool::ArcCentre) => t!(lang, "draw-no-size-arc"),
             Why::NoSize(Tool::Slot) => t!(lang, "draw-no-size-slot"),
             Why::TooFewPoints => t!(lang, "draw-polyline-too-short"),
         }
@@ -135,6 +157,8 @@ impl Sketch {
             tool,
             points: Vec::new(),
             sides: POLYGON_SIDES_DEFAULT,
+            turned: 0.0,
+            last_direction: None,
         }
     }
 
@@ -148,6 +172,7 @@ impl Sketch {
         {
             return Step::Ignored(None);
         }
+        self.follow(p);
         match self.tool {
             Tool::Polyline => {
                 if on_first && self.points.len() >= 3 {
@@ -177,8 +202,14 @@ impl Sketch {
             | Tool::CircleTwoPoints
             | Tool::Rectangle
             | Tool::RectangleCentre
-            | Tool::Polygon => 2,
-            Tool::Arc | Tool::Slot | Tool::RectangleAligned | Tool::CircleThreePoints => 3,
+            | Tool::Polygon
+            | Tool::PolygonSide
+            | Tool::PolygonEdge => 2,
+            Tool::Arc
+            | Tool::ArcCentre
+            | Tool::Slot
+            | Tool::RectangleAligned
+            | Tool::CircleThreePoints => 3,
             Tool::Polyline => usize::MAX,
         }
     }
@@ -207,9 +238,41 @@ impl Sketch {
             | Tool::Slot
             | Tool::RectangleAligned
             | Tool::CircleTwoPoints
-            | Tool::CircleThreePoints => self.points.last().copied(),
-            Tool::Circle | Tool::Rectangle | Tool::RectangleCentre | Tool::Polygon => None,
+            | Tool::CircleThreePoints
+            | Tool::PolygonEdge => self.points.last().copied(),
+            // From the centre: the arc's start, or a side's middle (perpendicular to a
+            // line: the polygon touches it).
+            Tool::ArcCentre | Tool::PolygonSide if self.points.len() == 1 => {
+                self.points.first().copied()
+            }
+            Tool::Circle
+            | Tool::Rectangle
+            | Tool::RectangleCentre
+            | Tool::Polygon
+            | Tool::ArcCentre
+            | Tool::PolygonSide => None,
         }
+    }
+
+    /// The cursor at `p`: an arc by its centre counts how far it goes round, so the arc
+    /// goes the way the cursor turned. Called each frame and on each click; nothing for
+    /// other tools.
+    pub fn follow(&mut self, p: Point) {
+        let (Tool::ArcCentre, &[c, start]) = (self.tool, &self.points[..]) else {
+            self.turned = 0.0;
+            self.last_direction = None;
+            return;
+        };
+        if distance(c, p) < CHAIN_TOL_MM {
+            return;
+        }
+        let direction = math::atan2(p.1 - c.1, p.0 - c.0);
+        let last = self
+            .last_direction
+            .unwrap_or_else(|| math::atan2(start.1 - c.1, start.0 - c.0));
+        self.turned += (direction - last + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU)
+            - std::f64::consts::PI;
+        self.last_direction = Some(direction);
     }
 
     /// Backspace: forget the last click.
@@ -242,6 +305,20 @@ impl Sketch {
                     bulges,
                 })
             }
+            (Tool::ArcCentre, &[c, start]) => {
+                let (points, bulges) = arc_as_polyline(&arc_by_centre(c, start, p, self.turned)?);
+                Some(Geometry::Polyline {
+                    closed: false,
+                    points: points.iter().map(|&(x, y)| [x, y]).collect(),
+                    bulges,
+                })
+            }
+            (Tool::PolygonSide, _) => {
+                polygon_by_side(first, p, self.sides).map(|g| polygon(g, self.sides))
+            }
+            (Tool::PolygonEdge, _) => {
+                polygon_on_edge(first, p, self.sides).map(|g| polygon(g, self.sides))
+            }
             (Tool::Slot, &[a, b]) => slot(a, b, p),
             (Tool::Polygon, _) => {
                 let radius = distance(first, p);
@@ -266,8 +343,14 @@ impl Sketch {
             | Tool::CircleTwoPoints
             | Tool::Rectangle
             | Tool::RectangleCentre
-            | Tool::Polygon => self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default(),
-            Tool::Arc | Tool::Slot | Tool::RectangleAligned | Tool::CircleThreePoints
+            | Tool::Polygon
+            | Tool::PolygonSide
+            | Tool::PolygonEdge => self.geometry_to(p).map(|g| outline(&g)).unwrap_or_default(),
+            Tool::Arc
+            | Tool::ArcCentre
+            | Tool::Slot
+            | Tool::RectangleAligned
+            | Tool::CircleThreePoints
                 if self.points.len() + 1 == self.clicks() =>
             {
                 match self.geometry_to(p) {
@@ -277,6 +360,7 @@ impl Sketch {
             }
             Tool::Polyline
             | Tool::Arc
+            | Tool::ArcCentre
             | Tool::Slot
             | Tool::RectangleAligned
             | Tool::CircleThreePoints => {
@@ -383,6 +467,35 @@ impl Sketch {
                 grid = grid
             ),
             (Tool::Polygon, _) => t!(lang, "draw-status-polygon-start", grid = grid),
+            (Tool::PolygonSide, &[c, ..]) => t!(
+                lang,
+                "draw-status-polygon-side",
+                flats = n(2.0 * distance(c, p)),
+                grid = grid
+            ),
+            (Tool::PolygonSide, _) => t!(lang, "draw-status-polygon-side-start", grid = grid),
+            (Tool::PolygonEdge, &[a, ..]) => t!(
+                lang,
+                "draw-status-polygon-edge",
+                length = n(distance(a, p)),
+                grid = grid
+            ),
+            (Tool::PolygonEdge, _) => t!(lang, "draw-status-polygon-edge-start", grid = grid),
+            (Tool::ArcCentre, []) => t!(lang, "draw-status-arc-centre-start", grid = grid),
+            (Tool::ArcCentre, &[c]) => t!(
+                lang,
+                "draw-status-arc-centre-radius",
+                radius = n(distance(c, p)),
+                grid = grid
+            ),
+            (Tool::ArcCentre, &[c, start, ..]) => t!(
+                lang,
+                "draw-status-arc-centre",
+                radius = n(distance(c, start)),
+                angle = arc_by_centre(c, start, p, self.turned)
+                    .map_or_else(String::new, |a| format!("{:.1}", a.sweep.to_degrees())),
+                grid = grid
+            ),
             (Tool::Slot, []) => t!(lang, "draw-status-slot-start", grid = grid),
             (Tool::Slot, &[a]) => t!(
                 lang,
@@ -397,6 +510,16 @@ impl Sketch {
                 grid = grid
             ),
         }
+    }
+}
+
+/// A drawn polygon of `sides` from its values.
+fn polygon(g: chipload_draw::construct::Polygon, sides: u32) -> Geometry {
+    Geometry::Polygon {
+        center: [g.center.0, g.center.1],
+        radius: g.radius,
+        sides,
+        angle: g.angle,
     }
 }
 
@@ -454,6 +577,9 @@ pub enum Entry {
     Distance(f64),
     /// `d<a`: this far from the last point at this angle (radians, CCW from +X).
     Polar(f64, f64),
+    /// `<a`: at this angle from the last point, as far as the cursor is (radians, CCW
+    /// from +X); an arc by its centre's end at this angle (drawing-variants.md §4).
+    Angle(f64),
 }
 
 /// Why a typed value can't be used.
@@ -484,7 +610,7 @@ impl EntryError {
     }
 }
 
-/// Reads a typed value: `x,y`, `@dx,dy`, `d` or `d<a` (a in degrees), lengths in `units`
+/// Reads a typed value: `x,y`, `@dx,dy`, `d`, `d<a` or `<a` (a in degrees), lengths in `units`
 /// unless they name theirs. With a semicolon (`12,5;30`) the semicolon separates and a
 /// comma is a decimal point; in `d<a` a comma is always a decimal point.
 pub fn parse_entry(text: &str, units: Units) -> Result<Entry, EntryError> {
@@ -502,6 +628,9 @@ pub fn parse_entry(text: &str, units: Units) -> Result<Entry, EntryError> {
             .map_err(|_| EntryError::Unreadable)?;
         if !degrees.is_finite() {
             return Err(EntryError::Unreadable);
+        }
+        if d.trim().is_empty() && !relative {
+            return Ok(Entry::Angle(degrees.to_radians()));
         }
         return Ok(Entry::Polar(
             length(&d.replace(',', "."))?,
@@ -552,6 +681,14 @@ pub fn typed_point(
             Ok((from.0 + ux * d, from.1 + uy * d))
         }
         Entry::Polar(d, angle) => {
+            let (sin, cos) = exact_sin_cos(angle);
+            Ok((from.0 + d * cos, from.1 + d * sin))
+        }
+        Entry::Angle(angle) => {
+            let d = distance(from, cursor);
+            if d < CHAIN_TOL_MM {
+                return Err(EntryError::NoDirection);
+            }
             let (sin, cos) = exact_sin_cos(angle);
             Ok((from.0 + d * cos, from.1 + d * sin))
         }
@@ -635,6 +772,12 @@ impl Sketch {
                 let (nx, ny) = (-(b.1 - a.1) / between, (b.0 - a.0) / between);
                 Ok((b.0 + side * nx * width, b.1 + side * ny * width))
             }
+            // An arc by its centre: the end at the angle, on the circle.
+            (Tool::ArcCentre, &[c, start], Entry::Polar(_, angle) | Entry::Angle(angle)) => {
+                let r = distance(c, start);
+                let (sin, cos) = exact_sin_cos(angle);
+                Ok((c.0 + r * cos, c.1 + r * sin))
+            }
             _ => typed_point(entry, self.anchor(), cursor),
         }
     }
@@ -662,12 +805,23 @@ impl Sketch {
             (Tool::CircleThreePoints, &[a, b]) => {
                 format!("R {}", n(circle_through(a, b, p)?.1))
             }
+            (Tool::ArcCentre, &[c]) => format!("R {}", n(distance(c, p))),
+            (Tool::ArcCentre, &[c, start]) => {
+                let arc = arc_by_centre(c, start, p, self.turned)?;
+                format!("R {}  {:.1}°", n(arc.radius), arc.sweep.to_degrees())
+            }
+            (Tool::PolygonSide, _) => {
+                let g = polygon_by_side(first, p, self.sides)?;
+                format!("R {}  Ø {}", n(g.radius), n(2.0 * distance(first, p)))
+            }
             (
                 Tool::Polyline
                 | Tool::Arc
                 | Tool::Slot
                 | Tool::RectangleAligned
-                | Tool::CircleThreePoints,
+                | Tool::CircleThreePoints
+                | Tool::ArcCentre
+                | Tool::PolygonEdge,
                 _,
             ) => {
                 let (dx, dy) = (p.0 - from.0, p.1 - from.1);

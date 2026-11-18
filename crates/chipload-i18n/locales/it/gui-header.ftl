@@ -129,3 +129,6 @@ header-rectangle-aligned-hover = Disegna un rettangolo: i due estremi di un lato
 header-variants-hint = La freccia, o un clic destro: altri modi di disegnarlo
 header-circle-two-hover = Disegna un cerchio: i due estremi di un diametro
 header-circle-three-hover = Disegna un cerchio: tre punti sul cerchio
+header-arc-centre-hover = Disegna un arco: il centro, l'inizio, poi la fine
+header-polygon-side-hover = Disegna un poligono regolare: il centro, poi il punto medio di un lato (in chiave)
+header-polygon-edge-hover = Disegna un poligono regolare: i due estremi di un lato; sta alla sua sinistra

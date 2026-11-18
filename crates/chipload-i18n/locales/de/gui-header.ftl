@@ -129,3 +129,6 @@ header-rectangle-aligned-hover = Ein Rechteck zeichnen: die beiden Enden einer K
 header-variants-hint = Der Pfeil oder ein Rechtsklick: andere Arten, es zu zeichnen
 header-circle-two-hover = Einen Kreis zeichnen: die beiden Enden eines Durchmessers
 header-circle-three-hover = Einen Kreis zeichnen: drei Punkte darauf
+header-arc-centre-hover = Einen Bogen zeichnen: Mittelpunkt, Anfang, dann Ende
+header-polygon-side-hover = Ein regelmäßiges Vieleck zeichnen: Mittelpunkt, dann die Mitte einer Seite (Schlüsselweite)
+header-polygon-edge-hover = Ein regelmäßiges Vieleck zeichnen: die beiden Enden einer Seite; es liegt links davon

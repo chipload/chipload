@@ -2,7 +2,8 @@
 //! Shapes from the points of a drawing tool (docs/specs/drawing-input.md §4,
 //! drawing-variants.md §2): the arc through three points, the arc of a radius between two,
 //! an arc as polyline segments, rectangles by two corners, by their centre or aligned to
-//! an edge, and circles by two or three points.
+//! an edge, circles by two or three points, arcs by their centre, and regular polygons by
+//! a side's middle or on an edge.
 
 use chipload_core::math;
 use std::f64::consts::{PI, TAU};
@@ -171,6 +172,75 @@ pub fn circle_through(a: Point, b: Point, c: Point) -> Option<(Point, f64)> {
     arc_through(a, b, c).map(|arc| (arc.center, arc.radius))
 }
 
+/// The arc about `center` from `start` to the direction of `end` (only its direction
+/// counts: the radius is `start`'s), counter-clockwise when `turned` (the angle the cursor
+/// went round since the start, radians) is positive or zero, else clockwise. None when the
+/// radius is zero or the end lies in the start's direction.
+pub fn arc_by_centre(center: Point, start: Point, end: Point, turned: f64) -> Option<Arc> {
+    let radius = distance(center, start);
+    if radius < CHAIN_TOL_MM || distance(center, end) < CHAIN_TOL_MM {
+        return None;
+    }
+    let start_angle = math::atan2(start.1 - center.1, start.0 - center.0);
+    let end_angle = math::atan2(end.1 - center.1, end.0 - center.0);
+    let ccw = (end_angle - start_angle).rem_euclid(TAU);
+    let sweep = if turned >= 0.0 { ccw } else { ccw - TAU };
+    // The end as far round as the start: no arc (its chord within the chaining tolerance).
+    let chord = 2.0 * radius * math::sin(sweep.abs().min(TAU - sweep.abs()) / 2.0);
+    (chord >= CHAIN_TOL_MM).then_some(Arc {
+        center,
+        radius,
+        start_angle,
+        sweep,
+    })
+}
+
+/// A regular polygon by its values: the centre, the radius to its corners and the angle of
+/// its first corner (radians, counter-clockwise from +X), as a drawn polygon stores them.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Polygon {
+    pub center: Point,
+    pub radius: f64,
+    pub angle: f64,
+}
+
+/// The regular polygon of `sides` about `center` with the middle of a side at `middle`:
+/// across flats twice their distance. None when they coincide or `sides` is under 3.
+pub fn polygon_by_side(center: Point, middle: Point, sides: u32) -> Option<Polygon> {
+    let apothem = distance(center, middle);
+    if apothem < CHAIN_TOL_MM || sides < 3 {
+        return None;
+    }
+    let half = PI / f64::from(sides);
+    Some(Polygon {
+        center,
+        radius: apothem / math::cos(half),
+        angle: math::atan2(middle.1 - center.1, middle.0 - center.0) - half,
+    })
+}
+
+/// The regular polygon of `sides` with one side from `a` to `b`, lying to its left (its
+/// corners run counter-clockwise from `a` to `b`). None when they coincide or `sides` is
+/// under 3.
+pub fn polygon_on_edge(a: Point, b: Point, sides: u32) -> Option<Polygon> {
+    let side = distance(a, b);
+    if side < CHAIN_TOL_MM || sides < 3 {
+        return None;
+    }
+    let half = PI / f64::from(sides);
+    let apothem = side / (2.0 * math::tan(half));
+    let (nx, ny) = (-(b.1 - a.1) / side, (b.0 - a.0) / side);
+    let center = (
+        (a.0 + b.0) / 2.0 + nx * apothem,
+        (a.1 + b.1) / 2.0 + ny * apothem,
+    );
+    Some(Polygon {
+        center,
+        radius: side / (2.0 * math::sin(half)),
+        angle: math::atan2(a.1 - center.1, a.0 - center.0),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,5 +349,64 @@ mod tests {
         }
         assert!(circle_through((0.0, 0.0), (5.0, 5.0), (10.0, 10.0)).is_none());
         assert!(circle_through((0.0, 0.0), (0.0, 0.0), (10.0, 0.0)).is_none());
+    }
+
+    #[test]
+    fn an_arc_by_its_centre_goes_the_way_the_cursor_turned() {
+        let ccw = arc_by_centre((0.0, 0.0), (5.0, 0.0), (0.0, 20.0), 0.3).unwrap();
+        assert!((ccw.radius - 5.0).abs() < 1e-12);
+        assert!((ccw.sweep - FRAC_PI_2).abs() < 1e-12);
+        let cw = arc_by_centre((0.0, 0.0), (5.0, 0.0), (0.0, 20.0), -0.3).unwrap();
+        assert!((cw.sweep + 3.0 * FRAC_PI_2).abs() < 1e-12);
+        // Not turned at all: counter-clockwise.
+        let zero = arc_by_centre((0.0, 0.0), (5.0, 0.0), (-1.0, 0.0), 0.0).unwrap();
+        assert!((zero.sweep - PI).abs() < 1e-12);
+        // The end in the start's direction, or on the centre: none.
+        assert!(arc_by_centre((0.0, 0.0), (5.0, 0.0), (9.0, 0.0), 1.0).is_none());
+        assert!(arc_by_centre((0.0, 0.0), (5.0, 0.0), (0.0, 0.0), 1.0).is_none());
+        assert!(arc_by_centre((0.0, 0.0), (0.0, 0.0), (1.0, 1.0), 1.0).is_none());
+    }
+
+    #[test]
+    fn a_polygon_by_a_sides_middle_has_its_flats_there() {
+        // A hexagon 20 across flats, a flat's middle straight up.
+        let hex = polygon_by_side((0.0, 0.0), (0.0, 10.0), 6).unwrap();
+        assert!((hex.radius - 20.0 / 3f64.sqrt()).abs() < 1e-12);
+        assert!((hex.angle - (FRAC_PI_2 - PI / 6.0)).abs() < 1e-12);
+        // Its first two corners are the ends of that flat.
+        let corner = |k: f64| {
+            let a = hex.angle + k * TAU / 6.0;
+            (hex.radius * math::cos(a), hex.radius * math::sin(a))
+        };
+        let (c0, c1) = (corner(0.0), corner(1.0));
+        assert!(close(
+            ((c0.0 + c1.0) / 2.0, (c0.1 + c1.1) / 2.0),
+            (0.0, 10.0)
+        ));
+        assert!(polygon_by_side((0.0, 0.0), (0.0, 0.0), 6).is_none());
+    }
+
+    #[test]
+    fn a_polygon_on_an_edge_lies_to_its_left() {
+        // A square on (0,0)-(10,0): above it.
+        let up = polygon_on_edge((0.0, 0.0), (10.0, 0.0), 4).unwrap();
+        assert!(close(up.center, (5.0, 5.0)));
+        assert!((up.radius - 50f64.sqrt()).abs() < 1e-12);
+        // The other way round: below.
+        let down = polygon_on_edge((10.0, 0.0), (0.0, 0.0), 4).unwrap();
+        assert!(close(down.center, (5.0, -5.0)));
+        // A triangle: its first corner at a, the next at b.
+        for (a, b) in [((0.0, 0.0), (10.0, 0.0)), ((3.0, 1.0), (-2.0, 7.0))] {
+            let tri = polygon_on_edge(a, b, 3).unwrap();
+            let at = |k: f64| {
+                let ang = tri.angle + k * TAU / 3.0;
+                (
+                    tri.center.0 + tri.radius * math::cos(ang),
+                    tri.center.1 + tri.radius * math::sin(ang),
+                )
+            };
+            assert!(close(at(0.0), a) && close(at(1.0), b));
+        }
+        assert!(polygon_on_edge((1.0, 1.0), (1.0, 1.0), 6).is_none());
     }
 }

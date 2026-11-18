@@ -36,7 +36,7 @@ impl ChiploadApp {
                 i.events.iter().find_map(|e| match e {
                     egui::Event::Text(t)
                         if t.starts_with(|c: char| {
-                            c.is_ascii_digit() || matches!(c, '-' | '.' | '@')
+                            c.is_ascii_digit() || matches!(c, '-' | '.' | '@' | '<')
                         }) =>
                     {
                         Some(t.clone())
@@ -916,7 +916,10 @@ impl ChiploadApp {
     /// While drawing a polygon: its number of sides, kept for the next one
     /// (docs/specs/drawing-input.md §5).
     fn polygon_sides_field(&mut self, ui: &mut egui::Ui) {
-        if self.sketch().is_none_or(|s| s.tool != Tool::Polygon) {
+        if self
+            .sketch()
+            .is_none_or(|s| s.tool.shape() != Tool::Polygon)
+        {
             return;
         }
         ui.label(t!(ui, "menu-polygon-sides"));

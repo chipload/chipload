@@ -18,7 +18,11 @@ Chipload draws the parts it cuts, with or without a DXF:
   the first point again to close it; Enter or a double-click finishes it open.
 - **Arc** (**A**): where it starts, where it ends, then a point it passes through (or type
   its radius: it bows to the cursor's side). It becomes an open polyline of one or two arc
-  segments.
+  segments. Another way, from the arrow on its button:
+  - **Centre, start, end:** the centre, where it starts (the radius; type a length for it),
+    then where it ends: only the direction from the centre counts. The arc goes round the
+    way you move the cursor from the start, so move the other way round for the other
+    side. Type `<90` for the end at 90° on the circle.
 - **Slot** (**U**): the centres of its two ends, then its width (a click, or type it). It
   is a rectangle whose corner radius is half its width; it shows as *Slot*, and stays one
   when you change its width.
@@ -26,7 +30,12 @@ Chipload draws the parts it cuts, with or without a DXF:
   while you draw (6 to start with, then the last you chose). Its form has the radius to
   the corners and the size **across flats**, either of which sets the other (a hexagon
   nut's spanner size), and the angle of its first corner. `chipload shape add P polygon
-  --center 50,30 --sides 6 --across-flats 13`.
+  --center 50,30 --sides 6 --across-flats 13`. Two more ways, from the arrow on its button:
+  - **Centre and side:** the centre, then the middle of a side: the size across flats is
+    twice that distance (type it as a length: `6.5` for a 13 mm nut). Snapping
+    perpendicular from the centre onto a line makes a polygon that touches it.
+  - **On an edge:** the two ends of one side. The polygon lies to the side's left, so
+    click from left to right for a polygon above the side, right to left for one below.
 
 Pick the tool in the ribbon's DRAW group (the small buttons; hover over one for its name
 and key) or by its key, then click on the canvas. With no
@@ -36,7 +45,8 @@ A button with a small triangle in its corner draws its shape more than one way. 
 triangle, or right-click the button, for the list; the way you choose stays on the button
 until you close Chipload. The *Draw* menu lists them under the shape. Pressing the key again
 before the first click moves to the next way (**R**, **R**, **R**: two corners, centre,
-aligned; **C** goes round the circles the same way) and the status bar names it. Clicks snap to the drawing (below), else
+aligned; **C**, **A** and **N** go round theirs the same way) and the status bar names
+it. Clicks snap to the drawing (below), else
 to the [grid](../window.md#the-canvas), whose step the status bar gives ("grid 1 mm").
 
 ## Snapping
@@ -65,6 +75,7 @@ uses it, **Esc** closes it.
 | `@30,-10` | 30 to the right of the last point and 10 down |
 | `30` | 30 from the last point, towards the cursor |
 | `30<45` | 30 from the last point at 45° (counter-clockwise from the X axis) |
+| `<45` | at 45° from the last point, as far as the cursor is (an arc by its centre: its end at 45°) |
 
 Lengths are in the units the app shows, unless you name them: `1/2in`, `12mm`. Where the
 decimal point is a comma, separate X and Y with a semicolon: `12,5;30`. For a circle, a

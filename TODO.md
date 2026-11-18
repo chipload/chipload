@@ -303,21 +303,12 @@ to a program you trust. It was about four per operation; with the defaults and s
    (relief-wizard.md §11); simplifying a large model for cutting (stl-relief.md §15.3); an
    end-mill pass to finish a wide flat; the navigation bar's *Drawing* button missing for
    a moment once (the user, 2026-11-14), not reproduced.
-12d. **Drawing tool variants on one button** (the user, 2026-11-18): more ways to draw a
-   shape, kept on the shape's ribbon button as a split button, a small arrow on it opening
-   the alternatives, as drawing programs usually show it; the button keeps the variant
-   last used. First the rectangle: **two corners** (today's), **centre and corner**, and
-   **aligned** (three points: one edge from the first two, then its width). To decide in
-   the spec: whether the circle (centre and radius today; two points across, three points
-   on it), the arc (three points today; centre, start and end) and the polygon (centre
-   and corner today; an edge's two ends) get variants too; the keys (today R for the
-   rectangle) and the typed values each variant takes (drawing-input.md); the command line
-   (`shape add` already takes a rectangle by its corners or centre and size, to check);
-   the guide's drawing page. Spec approved 2026-11-18 (docs/specs/drawing-variants.md; no
-   library: none draws, see its decision 1). **Steps 1 and 2 done** (the split button, the Draw
-   submenu, R and C cycling, centre-and-corner and aligned rectangles, circles by two and
-   by three points); next step 3 (arc by its centre, polygon by its side and on an
-   edge).
+12d. **Drawing tool variants on one button: done 2026-11-18** (docs/specs/drawing-variants.md,
+   all three steps): split buttons with an arrow for the rectangle (centre, aligned),
+   circle (two, three points), arc (centre, start, end) and polygon (by a side, on an
+   edge); the key cycles; `<a` typed. Next: splines (12e).
+12e. **Splines** (the user, 2026-11-18): drawn smooth curves; research first (see the
+   conversation's findings in docs/specs/splines.md once written).
 13. **Small follow-ups:**
     - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on

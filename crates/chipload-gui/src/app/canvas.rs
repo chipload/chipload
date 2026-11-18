@@ -595,6 +595,12 @@ impl ChiploadApp {
             Some(c) if self.canvas_tools.typed.is_some() => Some(self.typed_target(c).unwrap_or(c)),
             _ => at,
         };
+        // An arc by its centre follows the way the cursor goes round.
+        if let Some(at) = at
+            && let Some(sketch) = self.sketch_mut()
+        {
+            sketch.follow(at);
+        }
         if response.double_clicked() {
             self.finish_drawing();
         } else if response.clicked()

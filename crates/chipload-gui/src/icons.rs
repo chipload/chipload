@@ -29,6 +29,12 @@ pub enum Icon {
     Frame,
     Circle,
     Rectangle,
+    /// An arc drawn from its centre.
+    ArcCentre,
+    /// A polygon drawn by its centre and a side's middle.
+    PolygonSide,
+    /// A polygon drawn on one of its sides.
+    PolygonEdge,
     /// A circle drawn by the two ends of a diameter.
     CircleTwoPoints,
     /// A circle drawn through three points.
@@ -369,6 +375,37 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 })
                 .collect();
             pen.closed(&points);
+        }
+        Icon::PolygonSide | Icon::PolygonEdge => {
+            let points: Vec<(f32, f32)> = (0..6)
+                .map(|k| {
+                    let t = k as f32 * TAU / 6.0;
+                    (0.5 + 0.38 * t.cos(), 0.5 + 0.38 * t.sin())
+                })
+                .collect();
+            pen.closed(&points);
+            if icon == Icon::PolygonSide {
+                // The centre and a flat's middle.
+                let flat = 0.5 + 0.38 * (TAU / 12.0).cos();
+                pen.dot((0.5, 0.5), 0.05);
+                pen.line([(0.5, 0.5), (0.5, flat)]);
+                pen.dot((0.5, flat), 0.05);
+            } else {
+                // The bottom side's two ends.
+                pen.dot(points[1], 0.06);
+                pen.dot(points[2], 0.06);
+            }
+        }
+        Icon::ArcCentre => {
+            // Screen y grows downwards: angles past PI bow upwards.
+            let centre = (0.5, 0.72);
+            let points = pen.arc(centre, 0.4, PI + 0.35, TAU - 0.35);
+            pen.poly(&points);
+            pen.dot(centre, 0.05);
+            if let (Some(&first), Some(&last)) = (points.first(), points.last()) {
+                pen.line([centre, first]);
+                pen.line([centre, last]);
+            }
         }
         Icon::Slot => {
             let mut points = pen.arc((0.68, 0.5), 0.2, -FRAC_PI_2, FRAC_PI_2);

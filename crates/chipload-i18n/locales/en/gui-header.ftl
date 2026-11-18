@@ -129,3 +129,6 @@ header-rectangle-aligned-hover = Draw a rectangle: one edge's two ends, then its
 header-variants-hint = The arrow, or a right-click: other ways to draw it
 header-circle-two-hover = Draw a circle: the two ends of a diameter
 header-circle-three-hover = Draw a circle: three points on it
+header-arc-centre-hover = Draw an arc: its centre, where it starts, then where it ends
+header-polygon-side-hover = Draw a regular polygon: the centre, then the middle of a side (across flats)
+header-polygon-edge-hover = Draw a regular polygon: the two ends of one side; it lies to the side's left
