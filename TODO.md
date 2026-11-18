@@ -164,6 +164,11 @@ to a program you trust. It was about four per operation; with the defaults and s
     board defaults to the travel when the machine has one). Also seen: `part list` says
     "0 in all" for a part cut only from another setup. Next: step 7 with the remembered
     overflow choice and the setup/board wording.
+    **A better nest** (the user, 2026-11-18: start lower left, minimise the area, no fixed
+    order, a choice of min box / min Y / min X): docs/specs/nesting-search.md, **draft for
+    review**: three goals (*Compact* default, *Keep the top free*, *Keep the right side
+    free*), a local search over order and turns (late acceptance, seeded, a budget counted
+    in layouts), *Nest again* searching on from the board and never worse; four steps.
 0. **Compass** (the user, 2026-11-15, before fluting): **built 2026-11-15**
    (docs/specs/compass.md, see *In main*); next the user tries it and we iterate.
 1. **Fewer clicks for the usual job.** Spec docs/specs/fewer-clicks.md, **approved
