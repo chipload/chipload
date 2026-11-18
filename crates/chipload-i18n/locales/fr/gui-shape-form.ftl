@@ -63,3 +63,6 @@ shape-form-across-flats-hover = D'un côté au côté opposé (deux fois la dist
 shape-form-polygon-angle = Angle
 shape-form-polygon-angle-hover = Où pointe le premier sommet, dans le sens antihoraire depuis +X
 shape-form-title-spline = Spline S{ $id }
+shape-form-corner-radius-column = Rayon
+shape-form-corner-radius-column-hover = Un rayon à un coin l'arrondit d'un arc tangent aux deux côtés ; le point reste au coin vif. 0 : vif
+shape-form-corner-radius-none = Pas de coin à arrondir ici : un arc à côté, ou les côtés continuent tout droit

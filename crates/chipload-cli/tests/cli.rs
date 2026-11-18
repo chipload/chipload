@@ -3880,3 +3880,52 @@ fn an_arc_slot_is_added_from_the_command_line_and_cuts() {
         assert!(!chipload(bad).status.success(), "{bad:?}");
     }
 }
+
+#[test]
+fn a_polylines_corner_radii_from_the_command_line() {
+    // docs/specs/polyline-radii.md §6.
+    let dir = temp_dir("radii");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&[
+        "--json",
+        "shape",
+        "add",
+        p,
+        "polyline",
+        "--points",
+        "0,0 100,0 100,60 0,60",
+        "--radii",
+        "0 5 2*2.5 0",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let index = value["ids"][0].as_u64().unwrap() - 1;
+    let id = value["ids"][0].as_u64().unwrap().to_string();
+    let get = || {
+        let out = chipload(&["get", p, &format!("drawing.shapes.{index}.radii")]);
+        text(&out.stdout).split_whitespace().collect::<String>()
+    };
+    assert_eq!(get(), "[0.0,5.0,5.0,0.0]");
+    let out = chipload(&["shape", "set", p, &id, "--radii", "8 8 8 8"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(get(), "[8.0,8.0,8.0,8.0]");
+    // Fillet sets a corner's radius.
+    let out = chipload(&["shape", "fillet", p, &id, "--radius", "3", "--corner", "0"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(get(), "[3.0,8.0,8.0,8.0]");
+    // Too large, or --radii on a circle: refused.
+    assert!(
+        !chipload(&["shape", "set", p, &id, "--radii", "0 90 0 0"])
+            .status
+            .success()
+    );
+    assert!(
+        !chipload(&[
+            "shape", "add", p, "circle", "--center", "0,0", "--radius", "3", "--radii", "1"
+        ])
+        .status
+        .success()
+    );
+}

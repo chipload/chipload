@@ -117,6 +117,7 @@ fn piece_job(one: &Job, set: &PieceSet, piece: &Piece) -> (Job, Vec<Note>) {
                 closed: true,
                 points,
                 bulges,
+                radii: Vec::new(),
             },
             construction: false,
         });
@@ -435,6 +436,7 @@ pub fn pieces_drawing(job: &Job) -> Result<Job, PipelineError> {
                     closed: true,
                     points,
                     bulges,
+                    radii: Vec::new(),
                 },
                 construction: false,
             });

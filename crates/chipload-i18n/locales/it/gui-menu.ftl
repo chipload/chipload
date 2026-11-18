@@ -170,3 +170,5 @@ menu-preferences = Preferenze…
 menu-preferences-hover = Preferenze nel Browser, sotto la Libreria: unità, lingua, tema colori, scheda di preparazione, aggiornamento automatico
 menu-draw-spline = Spline
 menu-modify-mirror = Specchia rispetto a un asse
+menu-polyline-radius = Raggio
+menu-polyline-radius-hover = Ogni angolo della polilinea disegnata è arrotondato con questo raggio (0: vivo); un angolo con lati troppo corti riceve il massimo che ci sta

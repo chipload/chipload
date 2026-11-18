@@ -386,3 +386,7 @@ job-spline-points = { $closed ->
     [closed] a closed
    *[open] an open
 } spline needs at least { $least } points, got { $got }
+job-radii-count = one radius per point: { $wanted }, got { $got }
+job-radius-at-end = an open polyline's end has no corner to round
+job-radius-not-a-corner = has an arc beside it, or its sides run straight on: there's no corner to round
+job-radius-too-large = is too large for the sides beside it: at most { $most }

@@ -16,6 +16,13 @@ Chipload draws the parts it cuts, with or without a DXF:
     click on either side of the edge, or type it). The rectangle is turned to the edge.
 - **Polyline** (**L**): points joined by straight or arc segments, open or closed. Click
   the first point again to close it; Enter or a double-click finishes it open.
+  - **Rounded corners:** each corner between two straight sides can have a *Radius*, an
+    arc tangent to both sides. The point stays at the sharp corner, so the numbers you
+    drew stay as they were. Set it in the form's points table (the *Radius* column), or
+    give *Radius* on the status bar while drawing: every corner gets it, and a corner whose
+    sides are too short gets the most that fits. An open polyline's ends have no corner. On
+    the command line: `chipload shape add P polyline --points "0,0 100,0 100,60 0,60"
+    --radii "0 5 5 0"`, `shape set P ID --radii …`.
 - **Arc** (**A**): where it starts, where it ends, then a point it passes through (or type
   its radius: it bows to the cursor's side). It becomes an open polyline of one or two arc
   segments. Another way, from the arrow on its button:
@@ -130,8 +137,10 @@ DXF first, [Explode](several.md)).
   *Radius* on the status bar, or cut it straight across, the *Distance* back along each
   side. Shift+click does every corner. A corner is a point between two straight sides; a
   radius too large for the sides is refused with the most that fits (two corners on one
-  side share it). A rectangle rounded all round keeps its kind (its corner radius); any
-  other shape becomes a polyline and keeps its number, so operations still cut it.
+  side share it). A polyline's corner gets that *Radius* (above), so it stays editable; a
+  rectangle rounded all round keeps its kind (its corner radius); any other shape becomes
+  a polyline and keeps its number, so operations still cut it. Chamfer leaves rounded
+  corners as they are.
   `chipload shape fillet P 3 --radius 2 [--corner 0]`, `chipload shape chamfer P 3
   --distance 1`.
 - **Trim** (**X**), **Extend** and **Break** work on the drawn shape under the cursor; no

@@ -56,6 +56,7 @@ fn a_polyline_closes_on_its_first_point_or_finishes_open() {
             closed: false,
             points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]],
             bulges: vec![0.0, 0.0],
+            radii: Vec::new(),
         })
     );
     assert!(matches!(
@@ -345,6 +346,7 @@ fn an_arc_is_start_end_and_a_point_on_it() {
         closed,
         points,
         bulges,
+        ..
     }) = arc.click((5.0, -5.0), false)
     else {
         panic!()
@@ -632,6 +634,7 @@ fn an_arc_by_its_centre_goes_round_the_way_the_cursor_did() {
         closed: false,
         points,
         bulges,
+        ..
     }) = arc(&[(10.0, 5.0), (5.0, 9.0)])
     else {
         panic!("an arc");
@@ -801,6 +804,7 @@ fn an_arc_slot_is_its_centre_ends_and_width() {
         closed: true,
         points,
         bulges,
+        ..
     }) = slot.click(at, false)
     else {
         panic!("a closed polyline");
@@ -818,4 +822,34 @@ fn an_arc_slot_is_its_centre_ends_and_width() {
     );
     assert_eq!(Tool::Slot.next_variant(), Tool::SlotArc);
     assert_eq!(Tool::SlotArc.shape(), Tool::Slot);
+}
+
+#[test]
+fn a_polyline_drawn_with_a_radius_has_its_corners_rounded() {
+    // docs/specs/polyline-radii.md §4: the status bar's radius on every corner as drawn.
+    let mut sketch = Sketch::new(Tool::Polyline);
+    sketch.corner_radius = 5.0;
+    for p in [(0.0, 0.0), (100.0, 0.0), (100.0, 60.0), (0.0, 60.0)] {
+        sketch.click(p, false);
+    }
+    // The preview is already rounded.
+    assert!(sketch.preview((0.0, 30.0))[0].len() > 6);
+    let Step::Done(Geometry::Polyline { radii, points, .. }) = sketch.click((0.0, 0.0), true)
+    else {
+        panic!("a closed polyline");
+    };
+    assert_eq!(points.len(), 4);
+    assert_eq!(radii, [5.0, 5.0, 5.0, 5.0]);
+    // Open: the ends stay sharp; a corner too short for the radius takes what fits.
+    let mut open = Sketch::new(Tool::Polyline);
+    open.corner_radius = 20.0;
+    for p in [(0.0, 0.0), (10.0, 0.0), (10.0, 50.0)] {
+        open.click(p, false);
+    }
+    let Step::Done(Geometry::Polyline { radii, .. }) = open.finish() else {
+        panic!("an open polyline");
+    };
+    assert_eq!(radii[0], 0.0);
+    assert!((radii[1] - 10.0).abs() < 1e-9);
+    assert_eq!(radii[2], 0.0);
 }

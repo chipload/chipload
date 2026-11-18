@@ -258,11 +258,13 @@ mod tests {
             closed: false,
             points: points.clone(),
             bulges: vec![0.0; 2],
+            radii: Vec::new(),
         });
         let closed = shape(Geometry::Polyline {
             closed: true,
             points,
             bulges: vec![0.0; 3],
+            radii: Vec::new(),
         });
         assert_eq!(open.segments().len(), 2);
         assert_eq!(closed.segments().len(), 3);
@@ -275,6 +277,7 @@ mod tests {
             closed: true,
             points: vec![[0.0, 0.0], [40.0, 0.0], [20.0, 30.0]],
             bulges: vec![0.0, 0.4, 0.0],
+            radii: Vec::new(),
         });
         let segments = bulged.segments();
         assert!(matches!(segments[0], PathSegment::Line(_)));

@@ -522,6 +522,11 @@ pub(crate) struct ShapeValues {
     /// clockwise.
     #[arg(long, allow_hyphen_values = true)]
     end_deg: Option<f64>,
+    /// A polyline's corner radii "R R ...", one per point, mm (0 sharp; an open polyline's
+    /// ends 0): each corner rounded by an arc tangent to both sides, the points staying at
+    /// the sharp corners (docs/specs/polyline-radii.md).
+    #[arg(long, allow_hyphen_values = true)]
+    radii: Option<String>,
     /// The polyline or spline doesn't return to its first point.
     #[arg(long, conflicts_with = "closed")]
     open: bool,

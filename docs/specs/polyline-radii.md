@@ -1,6 +1,7 @@
 # Spec: a radius at each corner of a polyline
 
-Status: **draft, 2026-11-18**, for review (decisions in §8).
+Status: **approved 2026-11-18** (the user: "build as recommended"; §8 as recommended).
+Part 1, polylines, built (see *As built*).
 
 User request (2026-11-18): "a polyline with tangent radiuses is nice if it is a point list,
 and beside each point (not end points) is an option to add a radius, which becomes tangent.
@@ -147,3 +148,26 @@ chipload shape fillet P 9 --radius 5 --corner 1     # now sets corner 1's radius
 6. **Rectangles and polygons get per-corner radii too** (§4a), keeping their kind, a
    rectangle's single `corner_radius` migrating to four. Alternative: leave them with one
    radius each, and draw a closed polyline for anything with mixed corners.
+
+## As built
+
+- **Part 1, polylines (2026-11-18):**
+  - **Core:** `chipload_core::corners` (`Path`, `turn`, `check`, `most_radius`,
+    `segments`). Two corners meeting exactly on a side leave no zero-length line between
+    them.
+  - **Job:** `Geometry::Polyline` has `radii` (empty: all sharp). Segments go through
+    `rounded_polyline_segments` only when a radius is set, so every existing polyline cuts
+    with the same bits. Inserting a point gives it 0; deleting one drops its radius;
+    opening a polyline makes its ends sharp. Turning and scaling scale the radii; moving
+    and mirroring keep them. Joining bakes rounds into arcs (`polyline_values`).
+  - **Fillet:** on a polyline it sets the radius (`fillet_polyline`), refusing what
+    doesn't fit with the most that does.
+  - **Chamfer:** on a polyline with radii it cuts only sharp corners (Shift: all of
+    them), from the last so the others keep their numbers, and keeps the other radii.
+  - **Mirror's joined halves:** keep each corner's radius and its image's.
+  - **Drawing:** a corner too short for the status bar's radius gets the most that fits,
+    silently: the drawing is never refused for it. The preview is rounded while drawing.
+  - **Not built:** the dashed line from a rounded corner's handle to its arc (§4). The
+    handles sit at the sharp corners; to come if the feel asks for it.
+  - **Golden:** `v42_rounded` is new; no other G-code changed; the frozen plan messages
+    gained its lines only.

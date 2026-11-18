@@ -4111,6 +4111,17 @@
             "null"
           ]
         },
+        "radii": {
+          "description": "polyline: a radius at each point, mm, rounding the corner there with an arc tangent\nto both sides (0 sharp); left out when every corner is sharp.",
+          "items": {
+            "format": "double",
+            "type": "number"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "radius": {
           "description": "circle: the radius, mm; polygon: the radius to its corners, mm.",
           "format": "double",

@@ -58,6 +58,7 @@ fn drawn() -> Vec<Shape> {
                 closed: false,
                 points: vec![[0.0, 0.0], [40.0, 0.0], [40.0, 30.0]],
                 bulges: vec![0.0, 1.5],
+                radii: Vec::new(),
             },
         ),
     ]

@@ -183,6 +183,7 @@ fn close_if_ends_meet(job: &mut Job, id: u64) -> bool {
         closed,
         points,
         bulges,
+        ..
     } = &mut shape.geometry
     else {
         return false;

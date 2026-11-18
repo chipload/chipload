@@ -92,12 +92,14 @@ fn polyline(run: &[Primitive]) -> Option<Geometry> {
             closed: true,
             points,
             bulges,
+            radii: Vec::new(),
         }
     } else {
         Geometry::Polyline {
             closed: false,
             points,
             bulges,
+            radii: Vec::new(),
         }
     };
     enough_points(&mut geometry);
@@ -143,6 +145,7 @@ fn enough_points(geometry: &mut Geometry) {
             closed,
             points,
             bulges,
+            ..
         } = geometry
         else {
             return;
@@ -437,6 +440,7 @@ fn build(
         closed: cycle,
         points,
         bulges,
+        radii: Vec::new(),
     };
     enough_points(&mut geometry);
     let valid = matches!(geometry, Geometry::Polyline { closed, .. } if closed == cycle)
@@ -444,8 +448,33 @@ fn build(
     valid.then_some((geometry, widest))
 }
 
+/// An open polyline's points and bulges. Its rounded corners, if any, become arcs between
+/// points of their own: a joined corner isn't one of its points any more
+/// (docs/specs/polyline-radii.md §5).
 fn polyline_values(geometry: &Geometry) -> Option<(Vec<[f64; 2]>, Vec<f64>)> {
     match geometry {
+        Geometry::Polyline {
+            points,
+            bulges,
+            radii,
+            closed,
+        } if radii.iter().any(|&r| r != 0.0) => {
+            let segments = crate::rounded_polyline_segments(points, bulges, radii, *closed);
+            let mut out_points: Vec<[f64; 2]> = Vec::new();
+            let mut out_bulges = Vec::new();
+            for segment in &segments {
+                let prim = segment.to_primitive();
+                let start = prim.start();
+                out_points.push([start.0, start.1]);
+                out_bulges.push(match prim {
+                    chipload_core::primitives::Primitive::Line(_) => 0.0,
+                    chipload_core::primitives::Primitive::Arc(arc) => arc.bulge(),
+                });
+            }
+            let end = segments.last()?.to_primitive().end();
+            out_points.push([end.0, end.1]);
+            Some((out_points, out_bulges))
+        }
         Geometry::Polyline { points, bulges, .. } => Some((points.clone(), bulges.clone())),
         _ => None,
     }
@@ -546,6 +575,7 @@ mod tests {
                 closed: true,
                 points,
                 bulges,
+                ..
             },
         ] = &drawn[..]
         else {
@@ -562,6 +592,7 @@ mod tests {
             closed: true,
             points: vec![[0.0, 0.0], [5.0, 0.0]],
             bulges: vec![0.0, 0.0],
+            radii: Vec::new(),
         };
         assert!(!shape_problems(&back_and_forth).is_empty());
         let mut kept = back_and_forth.clone();
@@ -695,6 +726,7 @@ mod tests {
                 closed: false,
                 points: vec![[0.0, 0.002], [0.0, 10.0]],
                 bulges: vec![0.3],
+                radii: Vec::new(),
             },
         ];
         let given: Vec<JoinPiece> = pieces
@@ -715,6 +747,7 @@ mod tests {
             closed,
             points,
             bulges,
+            ..
         } = &joined.geometry
         else {
             panic!();

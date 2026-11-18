@@ -719,6 +719,7 @@ chipload shape add <PROJECT> <KIND> [OPTIONS]
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
 | `--start-deg <START_DEG>` | An arc slot's start, degrees counter-clockwise from +X. |
 | `--end-deg <END_DEG>` | An arc slot's end, degrees: past the start goes counter-clockwise, before it clockwise. |
+| `--radii <RADII>` | A polyline's corner radii "R R ...", one per point, mm (0 sharp; an open polyline's ends 0): each corner rounded by an arc tangent to both sides, the points staying at the sharp corners (docs/specs/polyline-radii.md) |
 | `--open` | The polyline or spline doesn't return to its first point. |
 | `--closed` | The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it) |
 | `--layer <LAYER>` |  |
@@ -750,6 +751,7 @@ chipload shape set <PROJECT> <ID> [OPTIONS]
 | `--bulges <BULGES>` | Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight, 1 a counter-clockwise half circle, -1 clockwise (default: all straight) |
 | `--start-deg <START_DEG>` | An arc slot's start, degrees counter-clockwise from +X. |
 | `--end-deg <END_DEG>` | An arc slot's end, degrees: past the start goes counter-clockwise, before it clockwise. |
+| `--radii <RADII>` | A polyline's corner radii "R R ...", one per point, mm (0 sharp; an open polyline's ends 0): each corner rounded by an arc tangent to both sides, the points staying at the sharp corners (docs/specs/polyline-radii.md) |
 | `--open` | The polyline or spline doesn't return to its first point. |
 | `--closed` | The polyline or spline returns to its first point (the default for a new polyline; a new spline is open without it) |
 | `--layer <LAYER>` |  |

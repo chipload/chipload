@@ -170,3 +170,5 @@ menu-preferences = Preferencias…
 menu-preferences-hover = Preferencias en el Navegador, debajo de la Biblioteca: unidades, idioma, tema de color, hoja de preparación, actualizar automáticamente
 menu-draw-spline = Spline
 menu-modify-mirror = Simetría respecto a un eje
+menu-polyline-radius = Radio
+menu-polyline-radius-hover = Cada esquina de la polilínea que se dibuja se redondea con este radio (0: viva); una esquina con lados demasiado cortos recibe el mayor que cabe

@@ -333,10 +333,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    - copies along a path;
    - named values (the drawing roadmap's phase 4; schema).
 12g. **A radius at each polyline corner** (the user, 2026-11-18: "a point list, and beside
-   each point an option to add a radius, which becomes tangent"). Spec drafted
-   (docs/specs/polyline-radii.md, five decisions for the user): `radii` beside the points
-   (schema 42, unreleased), a Radius column in the points table, a status-bar radius
-   while drawing, Fillet on a polyline sets the radius.
+   each point an option to add a radius, which becomes tangent"). Spec approved
+   (docs/specs/polyline-radii.md). **Part 1 done** (polylines: `radii` in schema 42, the
+   Radius column, the status-bar radius while drawing, Fillet sets it, golden
+   v42_rounded); next part 2: rectangles and polygons per corner (§4a), the user to try
+   the feel.
 13. **Small follow-ups:**
     - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on

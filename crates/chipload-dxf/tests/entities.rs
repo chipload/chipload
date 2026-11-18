@@ -164,6 +164,7 @@ fn a_drawn_polyline_with_bulges_gives_the_segments_of_the_same_lwpolyline() {
             closed: true,
             points: vertices.iter().map(|&(x, y, _)| [x, y]).collect(),
             bulges: vertices.iter().map(|&(_, _, b)| b).collect(),
+            radii: Vec::new(),
         },
     };
     assert_eq!(imported.len(), 1);

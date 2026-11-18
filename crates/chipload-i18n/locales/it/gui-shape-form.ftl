@@ -63,3 +63,6 @@ shape-form-across-flats-hover = Da un lato a quello opposto (due volte la distan
 shape-form-polygon-angle = Angolo
 shape-form-polygon-angle-hover = Dove punta il primo vertice, in senso antiorario da +X
 shape-form-title-spline = Spline S{ $id }
+shape-form-corner-radius-column = Raggio
+shape-form-corner-radius-column-hover = Un raggio a un angolo lo arrotonda con un arco tangente a entrambi i lati; il punto resta all'angolo vivo. 0: vivo
+shape-form-corner-radius-none = Nessun angolo da arrotondare qui: un arco accanto, o i lati proseguono dritti

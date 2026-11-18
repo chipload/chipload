@@ -167,6 +167,7 @@ impl ChiploadApp {
             closed,
             points,
             bulges,
+            ..
         } = &shape.geometry
         else {
             return None;

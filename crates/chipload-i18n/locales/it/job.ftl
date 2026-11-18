@@ -382,3 +382,7 @@ job-spline-points = { $closed ->
     [closed] una spline chiusa
    *[open] una spline aperta
 } richiede almeno { $least } punti, ne ha { $got }
+job-radii-count = un raggio per punto: { $wanted }, ricevuti { $got }
+job-radius-at-end = l'estremità di una polilinea aperta non ha un angolo da arrotondare
+job-radius-not-a-corner = ha un arco accanto, o i suoi lati proseguono dritti: nessun angolo da arrotondare
+job-radius-too-large = è troppo grande per i lati accanto: al massimo { $most }

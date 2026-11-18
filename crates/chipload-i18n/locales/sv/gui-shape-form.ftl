@@ -63,3 +63,6 @@ shape-form-across-flats-hover = Från en sida till den motsatta (två gånger av
 shape-form-polygon-angle = Vinkel
 shape-form-polygon-angle-hover = Dit första hörnet pekar, moturs från +X
 shape-form-title-spline = Spline S{ $id }
+shape-form-corner-radius-column = Radie
+shape-form-corner-radius-column-hover = En radie i ett hörn rundar det med en båge som tangerar båda sidorna; punkten ligger kvar i det skarpa hörnet. 0: skarpt
+shape-form-corner-radius-none = Inget hörn att runda här: en båge bredvid, eller sidorna fortsätter rakt

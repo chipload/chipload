@@ -43,3 +43,6 @@ shape-form-across-flats-hover = Между противоположными ст
 shape-form-polygon-angle = Угол
 shape-form-polygon-angle-hover = Направление первой вершины против часовой стрелки от +X
 shape-form-title-spline = Сплайн S{ $id }
+shape-form-corner-radius-column = Радиус
+shape-form-corner-radius-column-hover = Радиус в углу скругляет его дугой, касательной к обеим сторонам; точка остаётся в остром углу. 0 — острый
+shape-form-corner-radius-none = Здесь нет угла для скругления: рядом дуга или стороны идут прямо

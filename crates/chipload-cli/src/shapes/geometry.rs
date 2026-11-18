@@ -22,6 +22,13 @@ pub(crate) fn bulges_arg(text: &str) -> Result<Vec<f64>, String> {
         .collect()
 }
 
+/// Lengths "R R ...", each as any length option takes it (units, arithmetic).
+pub(crate) fn radii_arg(text: &str) -> Result<Vec<f64>, String> {
+    text.split_whitespace()
+        .map(crate::lengths::length)
+        .collect()
+}
+
 pub(crate) fn need<T>(value: Option<T>, what: &str, kind: &str) -> Result<T, String> {
     value.ok_or_else(|| format!("a {kind} needs --{what}"))
 }
@@ -30,6 +37,9 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
     let center = v.center.as_deref().map(point_arg).transpose()?;
     if v.corner_radius.is_some() && !matches!(kind, KindArg::Rectangle) {
         return Err("--corner-radius is for a rectangle".into());
+    }
+    if v.radii.is_some() && !matches!(kind, KindArg::Polyline) {
+        return Err("--radii is for a polyline".into());
     }
     if (v.start_deg.is_some() || v.end_deg.is_some()) && !matches!(kind, KindArg::ArcSlot) {
         return Err("--start-deg and --end-deg are for an arc slot".into());
@@ -56,10 +66,15 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
                 Some(text) => bulges_arg(text)?,
                 None => vec![0.0; polyline_segment_count(points.len(), closed)],
             };
+            let radii = match &v.radii {
+                Some(text) => radii_arg(text)?,
+                None => Vec::new(),
+            };
             Geometry::Polyline {
                 closed,
                 points,
                 bulges,
+                radii,
             }
         }
         KindArg::ArcSlot => {
@@ -141,6 +156,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ("corner-radius", v.corner_radius.is_some()),
                     ("points", v.points.is_some()),
                     ("bulges", v.bulges.is_some()),
+                    ("radii", v.radii.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                     ("sides", v.sides.is_some()),
@@ -164,6 +180,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ("corner-radius", v.corner_radius.is_some()),
                     ("points", v.points.is_some()),
                     ("bulges", v.bulges.is_some()),
+                    ("radii", v.radii.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                 ],
@@ -191,6 +208,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ("radius", v.radius.is_some()),
                     ("points", v.points.is_some()),
                     ("bulges", v.bulges.is_some()),
+                    ("radii", v.radii.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                     ("sides", v.sides.is_some()),
@@ -209,6 +227,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
             closed,
             points,
             bulges,
+            radii,
         } => {
             not_for(
                 "polyline",
@@ -245,6 +264,19 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                 }
                 *bulges = vec![0.0; count];
             }
+            if let Some(text) = &v.radii {
+                *radii = radii_arg(text)?;
+            } else if !radii.is_empty() && radii.len() != points.len() {
+                // As for bulges: which corner keeps which radius isn't ours to guess.
+                if radii.iter().any(|&r| r != 0.0) {
+                    return Err(format!(
+                        "the polyline now has {} points and some corners were rounded: \
+                         give --radii too",
+                        points.len()
+                    ));
+                }
+                radii.clear();
+            }
         }
         Geometry::Spline { closed, points } => {
             not_for(
@@ -257,6 +289,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ("angle-deg", v.angle_deg.is_some()),
                     ("corner-radius", v.corner_radius.is_some()),
                     ("bulges", v.bulges.is_some()),
+                    ("radii", v.radii.is_some()),
                     ("sides", v.sides.is_some()),
                     ("across-flats", v.across_flats.is_some()),
                 ],

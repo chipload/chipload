@@ -63,3 +63,6 @@ shape-form-across-flats-hover = From one side to the opposite one (twice the dis
 shape-form-polygon-angle = Angle
 shape-form-polygon-angle-hover = Where the first corner points, counter-clockwise from +X
 shape-form-title-spline = Spline S{ $id }
+shape-form-corner-radius-column = Radius
+shape-form-corner-radius-column-hover = A radius at a corner rounds it with an arc tangent to both sides; the point stays at the sharp corner. 0: sharp
+shape-form-corner-radius-none = No corner to round here: an arc beside it, or its sides run straight on

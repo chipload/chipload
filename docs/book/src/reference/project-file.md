@@ -1005,6 +1005,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `model` | integer or null | no | path: the 3D model it is the footprint outline of (its id in `drawing.models`). |
 | `name` | string or null | no | circle, rectangle, polyline: its name in the Browser; left out when it has none. |
 | `points` | list of 2 × number or null | no | polyline: its points; spline: the points the curve passes through; mm. |
+| `radii` | list of number or null | no | polyline: a radius at each point, mm, rounding the corner there with an arc tangent to both sides (0 sharp); left out when every corner is sharp. |
 | `radius` | number or null | no | circle: the radius, mm; polygon: the radius to its corners, mm. |
 | `segments` | list of [PathSegment](#pathsegment) or null | no | path: its lines and arcs, mm. |
 | `sides` | integer or null | no | polygon: how many sides (and corners) it has, 3 to 1000. |

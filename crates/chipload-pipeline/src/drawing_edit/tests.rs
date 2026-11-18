@@ -62,10 +62,20 @@ fn corners_are_filleted_and_chamfered_keeping_the_id() {
     ));
     let one = cut_shape_corners(&job, 1, Some(2), Cut::Chamfer(5.0)).unwrap();
     assert!(matches!(geometry(&one, 1), Geometry::Polyline { points, .. } if points.len() == 5));
+    // A polyline's corners get their radius, its points staying at the sharp corners
+    // (docs/specs/polyline-radii.md decision 3).
     let triangle = cut_shape_corners(&job, 3, None, Cut::Fillet(2.0)).unwrap();
-    assert!(
-        matches!(geometry(&triangle, 3), Geometry::Polyline { points, .. } if points.len() == 6)
-    );
+    assert!(matches!(
+        geometry(&triangle, 3),
+        Geometry::Polyline { points, radii, .. } if points.len() == 3 && radii == &[2.0, 2.0, 2.0]
+    ));
+    // Chamfering it then cuts only a sharp corner; Shift has none left to cut.
+    let one = cut_shape_corners(&triangle, 3, Some(1), Cut::Chamfer(1.0)).unwrap();
+    assert!(matches!(
+        geometry(&one, 3),
+        Geometry::Polyline { points, radii, .. } if points.len() == 4 && radii == &[2.0, 0.0, 0.0, 2.0]
+    ));
+    assert!(cut_shape_corners(&triangle, 3, None, Cut::Chamfer(1.0)).is_err());
     // Too large: refused with the most that fits; a circle has no corners.
     let err = cut_shape_corners(&job, 3, None, Cut::Fillet(50.0)).unwrap_err();
     assert!(
@@ -262,6 +272,7 @@ fn combining_refuses_open_and_twice_given_shapes() {
             closed: false,
             points: vec![[0.0, 0.0], [10.0, 0.0]],
             bulges: vec![0.0],
+            radii: Vec::new(),
         },
     )
     .unwrap();
@@ -516,6 +527,7 @@ fn a_half_outline_mirrored_against_its_centre_line_becomes_one_closed_shape() {
         closed: false,
         points: vec![[300.0, 0.0], [320.0, 0.0], [320.0, 40.0], [300.0, 60.0]],
         bulges: vec![0.0, 0.3, 0.0],
+        radii: Vec::new(),
     };
     let (job, id) = add_shape(&job, "drawn", half).unwrap();
     let curve = Geometry::Spline {
@@ -532,6 +544,7 @@ fn a_half_outline_mirrored_against_its_centre_line_becomes_one_closed_shape() {
         closed: true,
         points,
         bulges,
+        ..
     } = geometry(&edited.job, id)
     else {
         panic!("one closed polyline");

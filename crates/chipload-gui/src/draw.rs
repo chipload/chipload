@@ -109,6 +109,9 @@ pub struct Sketch {
     pub points: Vec<Point>,
     /// A polygon's number of sides.
     pub sides: u32,
+    /// The radius a polyline's corners get as they are drawn, mm (0 sharp;
+    /// docs/specs/polyline-radii.md §4).
+    pub corner_radius: f64,
     /// An arc by its centre: how far the cursor has gone round the centre since the start
     /// was clicked (radians, counter-clockwise positive), and its last direction from the
     /// centre; the arc goes that way round (docs/specs/drawing-variants.md §2).
@@ -175,6 +178,7 @@ impl Sketch {
             tool,
             points: Vec::new(),
             sides: POLYGON_SIDES_DEFAULT,
+            corner_radius: 0.0,
             turned: 0.0,
             last_direction: None,
         }
@@ -243,10 +247,10 @@ impl Sketch {
 
     /// The polyline (straight) or spline through the points clicked.
     fn open_shape(&self, closed: bool) -> Geometry {
-        let points = self.points.iter().map(|&(x, y)| [x, y]).collect();
+        let points: Vec<[f64; 2]> = self.points.iter().map(|&(x, y)| [x, y]).collect();
         match self.tool {
             Tool::Spline => Geometry::Spline { closed, points },
-            _ => Geometry::straight_polyline(closed, points),
+            _ => rounded_polyline(points, closed, self.corner_radius),
         }
     }
 
@@ -331,6 +335,7 @@ impl Sketch {
                     closed: false,
                     points: points.iter().map(|&(x, y)| [x, y]).collect(),
                     bulges,
+                    radii: Vec::new(),
                 })
             }
             (Tool::ArcCentre, &[c, start]) => {
@@ -339,6 +344,7 @@ impl Sketch {
                     closed: false,
                     points: points.iter().map(|&(x, y)| [x, y]).collect(),
                     bulges,
+                    radii: Vec::new(),
                 })
             }
             (Tool::PolygonSide, _) => {
@@ -355,6 +361,7 @@ impl Sketch {
                     closed: false,
                     points: points.iter().map(|&(x, y)| [x, y]).collect(),
                     bulges,
+                    radii: Vec::new(),
                 })
             }
             (Tool::SlotArc, &[c, start, end]) => {
@@ -365,6 +372,7 @@ impl Sketch {
                     closed: true,
                     points: points.iter().map(|&(x, y)| [x, y]).collect(),
                     bulges,
+                    radii: Vec::new(),
                 })
             }
             (Tool::Polygon, _) => {
@@ -404,6 +412,20 @@ impl Sketch {
                     Some(g) => outline(&g),
                     None => vec![self.points.clone()],
                 }
+            }
+            // A polyline with a corner radius: rounded as it will be.
+            Tool::Polyline if self.corner_radius > 0.0 => {
+                let mut through: Vec<[f64; 2]> = self.points.iter().map(|&(x, y)| [x, y]).collect();
+                if through
+                    .last()
+                    .is_none_or(|l| distance((l[0], l[1]), p) >= CHAIN_TOL_MM)
+                {
+                    through.push([p.0, p.1]);
+                }
+                if through.len() < 2 {
+                    return Vec::new();
+                }
+                outline(&rounded_polyline(through, false, self.corner_radius))
             }
             Tool::Polyline
             | Tool::Arc
@@ -612,6 +634,50 @@ impl Sketch {
             ),
         }
     }
+}
+
+/// A straight polyline through `points` with every corner rounded by `radius`, a corner
+/// whose sides are too short for it by the most they have room for (0: all sharp).
+fn rounded_polyline(points: Vec<[f64; 2]>, closed: bool, radius: f64) -> Geometry {
+    let mut geometry = Geometry::straight_polyline(closed, points);
+    if radius <= 0.0 {
+        return geometry;
+    }
+    if let Geometry::Polyline {
+        points,
+        bulges,
+        radii,
+        closed,
+    } = &mut geometry
+    {
+        let pts: Vec<Point> = points.iter().map(|p| (p[0], p[1])).collect();
+        let path = chipload_core::corners::Path {
+            points: &pts,
+            bulges,
+            closed: *closed,
+        };
+        let mut rounds: Vec<f64> = (0..pts.len())
+            .map(|k| if path.turn(k).is_some() { radius } else { 0.0 })
+            .collect();
+        // Corners that share a short side share it: each takes what is left, in turn.
+        for _ in 0..pts.len() {
+            let problems = chipload_core::corners::check(path, &rounds);
+            let mut changed = false;
+            for problem in problems {
+                if let chipload_core::corners::RadiusError::TooLarge { at, most } = problem {
+                    rounds[at] = most.max(0.0);
+                    changed = true;
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        if rounds.iter().any(|&r| r > 0.0) {
+            *radii = rounds;
+        }
+    }
+    geometry
 }
 
 /// A drawn polygon of `sides` from its values.

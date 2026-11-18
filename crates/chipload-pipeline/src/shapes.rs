@@ -338,6 +338,7 @@ fn joined_with_image(
                 closed: false,
                 points,
                 bulges,
+                radii,
             },
             Geometry::Polyline {
                 points: mirrored, ..
@@ -348,10 +349,20 @@ fn joined_with_image(
             all.extend(mirrored[1..n - 1].iter().rev());
             let mut bends = bulges.clone();
             bends.extend(bulges.iter().rev());
+            // Each rounded corner and its image keep the radius; the two on the line stay
+            // sharp (docs/specs/polyline-radii.md §5).
+            let rounds = if radii.len() == n {
+                let mut rounds = radii.clone();
+                rounds.extend(radii[1..n - 1].iter().rev());
+                rounds
+            } else {
+                Vec::new()
+            };
             Some(Geometry::Polyline {
                 closed: true,
                 points: all,
                 bulges: bends,
+                radii: rounds,
             })
         }
         (
@@ -440,6 +451,7 @@ pub fn arc_slot_geometry(
         closed: true,
         points: points.iter().map(|&(x, y)| [x, y]).collect(),
         bulges,
+        radii: Vec::new(),
     })
 }
 
@@ -745,6 +757,7 @@ mod tests {
             closed: true,
             points: vec![[10.0, 10.0], [50.0, 10.0], [50.0, 40.0]],
             bulges: vec![0.0, 0.5, 0.0],
+            radii: Vec::new(),
         }
     }
 

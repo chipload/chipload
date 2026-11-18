@@ -379,20 +379,45 @@ fn centre_row(ui: &mut egui::Ui, center: &mut [f64; 2]) {
 /// per row (docs/specs/drawing-follow-ups.md section 3).
 fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
     // A spline has no bulges: its curve is smooth through the points (splines.md §2).
-    let (closed, points, mut bulges) = match geometry {
+    let (closed, points, mut bulges, mut radii) = match geometry {
         Geometry::Polyline {
             closed,
             points,
             bulges,
-        } => (*closed, points, Some(bulges)),
-        Geometry::Spline { closed, points } => (*closed, points, None),
+            radii,
+        } => (*closed, points, Some(bulges), Some(radii)),
+        Geometry::Spline { closed, points } => (*closed, points, None, None),
         _ => return,
     };
     let mut insert_after: Option<usize> = None;
     let mut remove: Option<usize> = None;
     let segments = polyline_segment_count(points.len(), closed);
+    // Which points are corners between straight sides, that a radius can round
+    // (docs/specs/polyline-radii.md §4); an open polyline's ends aren't.
+    let corners: Vec<Option<bool>> = match &bulges {
+        Some(bulges) => {
+            let pts: Vec<(f64, f64)> = points.iter().map(|p| (p[0], p[1])).collect();
+            let path = chipload_core::corners::Path {
+                points: &pts,
+                bulges,
+                closed,
+            };
+            (0..pts.len())
+                .map(|k| {
+                    let end = !closed && (k == 0 || k + 1 == pts.len());
+                    (!end).then(|| path.turn(k).is_some())
+                })
+                .collect()
+        }
+        None => Vec::new(),
+    };
+    // The radii as a full list while editing; all sharp again is stored as none.
+    let mut rounds: Vec<f64> = match &radii {
+        Some(r) if r.len() == points.len() => r.to_vec(),
+        _ => vec![0.0; points.len()],
+    };
     Grid::new(("polyline-points", id))
-        .num_columns(5)
+        .num_columns(6)
         .striped(true)
         .show(ui, |ui| {
             let count = points.len();
@@ -401,7 +426,10 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
             ui.label("");
             if bulges.is_some() {
                 ui.label(t!(ui, "shape-form-bulge"));
+                ui.label(t!(ui, "shape-form-corner-radius-column"))
+                    .on_hover_text(t!(ui, "shape-form-corner-radius-column-hover"));
             } else {
+                ui.label("");
                 ui.label("");
             }
             ui.end_row();
@@ -427,6 +455,18 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
                         ui.label("");
                     }
                 }
+                match corners.get(i).copied().flatten() {
+                    Some(true) => {
+                        ui.add(mm(&mut rounds[i]).range(0.0..=f64::MAX));
+                    }
+                    Some(false) => {
+                        ui.add_enabled(false, egui::Label::new("–"))
+                            .on_disabled_hover_text(t!(ui, "shape-form-corner-radius-none"));
+                    }
+                    None => {
+                        ui.label("");
+                    }
+                }
                 ui.horizontal(|ui| {
                     if ui
                         .small_button("+")
@@ -446,6 +486,14 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
                 ui.end_row();
             }
         });
+    if let Some(radii) = radii.as_mut() {
+        let sharp = rounds.iter().all(|&r| r == 0.0);
+        if sharp && !radii.is_empty() {
+            radii.clear();
+        } else if !sharp && **radii != rounds {
+            **radii = rounds;
+        }
+    }
     if let Some(i) = insert_after {
         insert_point_after(geometry, i);
     }

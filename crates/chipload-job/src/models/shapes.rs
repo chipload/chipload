@@ -89,6 +89,10 @@ pub enum Geometry {
         closed: bool,
         points: Vec<[f64; 2]>,
         bulges: Vec<f64>,
+        /// A radius at each point, rounding the corner there with a tangent arc, the point
+        /// staying at the sharp corner (docs/specs/polyline-radii.md); 0 sharp. Empty: all
+        /// sharp.
+        radii: Vec<f64>,
     },
     /// A regular polygon: `sides` corners on the circle of `radius` about `center`, the first
     /// at `angle` (radians, CCW from +X) (docs/specs/drawing-input.md §5).
@@ -233,6 +237,15 @@ impl Shape {
                 closed,
                 points,
                 bulges,
+                radii,
+            } if radii.iter().any(|&r| r != 0.0) => {
+                rounded_polyline_segments(points, bulges, radii, *closed)
+            }
+            Geometry::Polyline {
+                closed,
+                points,
+                bulges,
+                ..
             } => polyline_segments(points, bulges, *closed),
             Geometry::Polygon {
                 center,
@@ -243,6 +256,26 @@ impl Shape {
             Geometry::Spline { closed, points } => spline_segments(points, *closed),
         }
     }
+}
+
+/// A polyline's lines and arcs with its corners rounded by `radii`
+/// (docs/specs/polyline-radii.md §3).
+pub fn rounded_polyline_segments(
+    points: &[[f64; 2]],
+    bulges: &[f64],
+    radii: &[f64],
+    closed: bool,
+) -> Vec<PathSegment> {
+    let points: Vec<chipload_core::Point> = points.iter().map(|p| (p[0], p[1])).collect();
+    let path = chipload_core::corners::Path {
+        points: &points,
+        bulges,
+        closed,
+    };
+    chipload_core::corners::segments(path, radii)
+        .iter()
+        .map(PathSegment::from_primitive)
+        .collect()
 }
 
 /// A spline's lines and arcs: within `ARC_APPROX_TOL_MM` of the curve through its points
@@ -257,6 +290,63 @@ pub fn spline_segments(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
     .iter()
     .map(PathSegment::from_primitive)
     .collect()
+}
+
+/// The problems with a polyline's corner radii (docs/specs/polyline-radii.md §2): one per
+/// point, each a finite number 0 or more, and only at corners between straight sides that
+/// have room for them.
+fn radius_problems(
+    closed: bool,
+    points: &[[f64; 2]],
+    bulges: &[f64],
+    radii: &[f64],
+    problems: &mut Vec<Problem>,
+) {
+    if radii.is_empty() {
+        return;
+    }
+    if radii.len() != points.len() {
+        problems.push(Problem::at(
+            "radii",
+            Message::new("job-radii-count")
+                .arg("wanted", points.len())
+                .arg("got", radii.len()),
+        ));
+        return;
+    }
+    let mut ok = true;
+    for (k, &r) in radii.iter().enumerate() {
+        if !(r.is_finite() && r >= 0.0) {
+            ok = false;
+            problems.push(Problem::at(
+                format!("radii.{k}"),
+                Message::new("job-must-be-0-or-more")
+                    .arg("got", Value::Length(r, Digits::Shortest)),
+            ));
+        }
+    }
+    if !ok {
+        return;
+    }
+    let pts: Vec<chipload_core::Point> = points.iter().map(|p| (p[0], p[1])).collect();
+    let path = chipload_core::corners::Path {
+        points: &pts,
+        bulges,
+        closed,
+    };
+    for problem in chipload_core::corners::check(path, radii) {
+        use chipload_core::corners::RadiusError;
+        let (k, message) = match problem {
+            RadiusError::End(k) => (k, Message::new("job-radius-at-end")),
+            RadiusError::NotACorner(k) => (k, Message::new("job-radius-not-a-corner")),
+            RadiusError::TooLarge { at, most } => (
+                at,
+                Message::new("job-radius-too-large")
+                    .arg("most", Value::Length(most, Digits::Shortest)),
+            ),
+        };
+        problems.push(Problem::at(format!("radii.{k}"), message));
+    }
 }
 
 /// A regular polygon's corners, counter-clockwise from the one at `angle`.
@@ -281,6 +371,7 @@ impl Geometry {
             closed,
             points,
             bulges,
+            radii: Vec::new(),
         }
     }
 }
@@ -456,6 +547,10 @@ pub(super) struct RawShape {
     /// counter-clockwise half circle, -1 clockwise.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     bulges: Option<Vec<f64>>,
+    /// polyline: a radius at each point, mm, rounding the corner there with an arc tangent
+    /// to both sides (0 sharp); left out when every corner is sharp.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    radii: Option<Vec<f64>>,
 }
 
 impl RawShape {
@@ -483,6 +578,7 @@ impl RawShape {
             corner_radius: None,
             points: None,
             bulges: None,
+            radii: None,
         }
     }
 
@@ -508,6 +604,7 @@ impl RawShape {
             ("corner_radius", self.corner_radius.is_some()),
             ("points", self.points.is_some()),
             ("bulges", self.bulges.is_some()),
+            ("radii", self.radii.is_some()),
         ]
         .into_iter()
         .filter_map(|(name, set)| set.then_some(name))
@@ -572,10 +669,14 @@ impl From<Shape> for RawShape {
                 closed,
                 points,
                 bulges,
+                radii,
             } => {
                 raw.closed = Some(closed);
                 raw.points = Some(points);
                 raw.bulges = Some(bulges);
+                if radii.iter().any(|&r| r != 0.0) {
+                    raw.radii = Some(radii);
+                }
             }
             Geometry::Polygon {
                 center,
@@ -623,7 +724,14 @@ impl TryFrom<RawShape> for Shape {
                 "angle",
                 "corner_radius",
             ],
-            ShapeKind::Polyline => &["name", "construction", "closed", "points", "bulges"],
+            ShapeKind::Polyline => &[
+                "name",
+                "construction",
+                "closed",
+                "points",
+                "bulges",
+                "radii",
+            ],
             ShapeKind::Polygon => &["name", "construction", "center", "radius", "sides", "angle"],
             ShapeKind::Spline => &["name", "construction", "closed", "points"],
         };
@@ -665,6 +773,7 @@ impl TryFrom<RawShape> for Shape {
                     closed,
                     points,
                     bulges,
+                    radii: raw.radii.unwrap_or_default(),
                 }
             }
             ShapeKind::Polygon => Geometry::Polygon {
@@ -994,7 +1103,9 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             closed,
             points,
             bulges,
+            radii,
         } => {
+            radius_problems(*closed, points, bulges, radii, &mut problems);
             // Two points close a loop when a segment bends: a DXF polyline circle of two
             // half circles (docs/specs/explode-and-join.md §2).
             let bends = bulges.iter().any(|b| *b != 0.0);

@@ -93,6 +93,7 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
             closed,
             points,
             bulges,
+            ..
         } => {
             let mut list: Vec<(Handle, [f64; 2])> = points
                 .iter()
@@ -218,6 +219,7 @@ pub fn dimensions(geometry: &Geometry) -> Vec<Shown> {
             closed,
             points,
             bulges,
+            ..
         } => {
             // Outward is to the right going counter-clockwise, to the left going clockwise;
             // an open polyline's labels stand to the left.
@@ -267,6 +269,7 @@ pub fn with_dimension(
                 closed,
                 points,
                 bulges,
+                ..
             },
             Dimension::Segment(i),
         ) if i < polyline_segment_count(points.len(), *closed)
@@ -450,6 +453,7 @@ pub fn try_drag(
                 closed,
                 points,
                 bulges,
+                radii,
             },
             Handle::Middle(i),
         ) if i < polyline_segment_count(points.len(), *closed) && i < bulges.len() => {
@@ -469,6 +473,9 @@ pub fn try_drag(
                     points.insert(i + 1, to);
                     bulges[i] = 0.0;
                     bulges.insert(i + 1, 0.0);
+                    if !radii.is_empty() {
+                        radii.insert(i + 1, 0.0);
+                    }
                 }
                 SegmentDrag::Bend => bulges[i] = bulge_through(a, b, to),
             }
@@ -512,12 +519,17 @@ pub fn insert_point_after(geometry: &mut Geometry, i: usize) -> bool {
         closed,
         points,
         bulges,
+        radii,
     } = geometry
     else {
         return false;
     };
     if i >= points.len() {
         return false;
+    }
+    // A new point starts sharp (docs/specs/polyline-radii.md §4).
+    if !radii.is_empty() {
+        radii.insert(i + 1, 0.0);
     }
     let segments = polyline_segment_count(points.len(), *closed);
     if i < segments && i < bulges.len() {
@@ -572,6 +584,7 @@ pub fn remove_point(geometry: &mut Geometry, i: usize) -> bool {
         closed,
         points,
         bulges,
+        radii,
     } = geometry
     else {
         return false;
@@ -581,6 +594,18 @@ pub fn remove_point(geometry: &mut Geometry, i: usize) -> bool {
         return false;
     }
     points.remove(i);
+    if radii.len() == n {
+        radii.remove(i);
+        // An open polyline's new end has no corner.
+        if !*closed {
+            if let Some(first) = radii.first_mut() {
+                *first = 0.0;
+            }
+            if let Some(last) = radii.last_mut() {
+                *last = 0.0;
+            }
+        }
+    }
     if !*closed && i == 0 {
         bulges.remove(0);
     } else if !*closed && i == n - 1 {
@@ -606,11 +631,21 @@ pub fn set_closed(geometry: &mut Geometry, close: bool) {
         closed,
         points,
         bulges,
+        radii,
     } = geometry
         && *closed != close
     {
         *closed = close;
         bulges.resize(polyline_segment_count(points.len(), close), 0.0);
+        // Opened: its ends are no corners.
+        if !close {
+            if let Some(first) = radii.first_mut() {
+                *first = 0.0;
+            }
+            if let Some(last) = radii.last_mut() {
+                *last = 0.0;
+            }
+        }
     }
 }
 
@@ -641,10 +676,12 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
             closed,
             points,
             bulges,
+            radii,
         } => Some(Geometry::Polyline {
             closed: *closed,
             points: points.iter().map(shift).collect(),
             bulges: bulges.clone(),
+            radii: radii.clone(),
         }),
         Geometry::Polygon {
             center,
@@ -717,10 +754,12 @@ pub fn transformed(
             closed,
             points,
             bulges,
+            radii,
         } => Some(Geometry::Polyline {
             closed: *closed,
             points: points.iter().map(map).collect(),
             bulges: bulges.clone(),
+            radii: radii.iter().map(|r| r * scale).collect(),
         }),
         Geometry::Polygon {
             center,
@@ -800,10 +839,12 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
             closed,
             points,
             bulges,
+            radii,
         } => Some(Geometry::Polyline {
             closed: *closed,
             points: points.iter().map(flip).collect(),
             bulges: bulges.iter().map(|b| negated(*b)).collect(),
+            radii: radii.clone(),
         }),
         // The first corner is mirrored: its angle reflects about the mirror's direction.
         Geometry::Polygon {
@@ -900,10 +941,12 @@ pub fn mirrored_about(geometry: &Geometry, a: [f64; 2], b: [f64; 2]) -> Option<G
             closed,
             points,
             bulges,
+            radii,
         } => Some(Geometry::Polyline {
             closed: *closed,
             points: points.iter().map(flip).collect(),
             bulges: bulges.iter().map(|b| negated(*b)).collect(),
+            radii: radii.clone(),
         }),
         Geometry::Spline { closed, points } => Some(Geometry::Spline {
             closed: *closed,

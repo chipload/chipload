@@ -36,6 +36,9 @@ pub struct CanvasTools {
     pub variants: std::collections::BTreeMap<Tool, Tool>,
     /// The number of sides new polygons get, as last chosen.
     pub polygon_sides: u32,
+    /// The radius new polylines' corners get, mm, as last chosen (0 sharp;
+    /// docs/specs/polyline-radii.md §4).
+    pub polyline_radius: f64,
     /// The drawing tools draw construction geometry (key K; docs/specs/dxf-export.md §B2).
     pub construction_mode: bool,
     /// The offset tool's corners and count, kept for the session.
@@ -70,6 +73,7 @@ impl Default for CanvasTools {
             last_tool: None,
             variants: std::collections::BTreeMap::new(),
             polygon_sides: crate::draw::POLYGON_SIDES_DEFAULT,
+            polyline_radius: 0.0,
             construction_mode: false,
             offset_corners: chipload_pipeline::drawing_edit::Corners::Round,
             offset_count: 1,

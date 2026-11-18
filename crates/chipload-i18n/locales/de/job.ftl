@@ -382,3 +382,7 @@ job-spline-points = { $closed ->
     [closed] ein geschlossener
    *[open] ein offener
 } Spline braucht mindestens { $least } Punkte, hat { $got }
+job-radii-count = ein Radius pro Punkt: { $wanted }, erhalten { $got }
+job-radius-at-end = das Ende einer offenen Polylinie hat keine Ecke zum Runden
+job-radius-not-a-corner = hat einen Bogen daneben, oder die Seiten laufen gerade weiter: keine Ecke zum Runden
+job-radius-too-large = ist zu groß für die Seiten daneben: höchstens { $most }

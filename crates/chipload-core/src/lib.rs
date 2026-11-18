@@ -4,6 +4,7 @@
 //! Headless by design: no I/O, no GUI. Units are millimetres, angles radians (CCW positive).
 
 pub mod chain;
+pub mod corners;
 pub mod cutter;
 pub mod fit;
 pub mod fold;

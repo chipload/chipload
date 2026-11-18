@@ -50,6 +50,7 @@ impl ChiploadApp {
             }
             let mut sketch = Sketch::new(tool);
             sketch.sides = self.canvas_tools.polygon_sides;
+            sketch.corner_radius = self.canvas_tools.polyline_radius;
             self.set_tool(ActiveTool::Draw(sketch));
             self.canvas_tools.last_tool = Some(tool);
             self.canvas_tools.variants.insert(tool.shape(), tool);

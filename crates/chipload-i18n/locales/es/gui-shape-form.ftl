@@ -63,3 +63,6 @@ shape-form-across-flats-hover = De un lado al opuesto (dos veces la distancia de
 shape-form-polygon-angle = Ángulo
 shape-form-polygon-angle-hover = Hacia dónde apunta el primer vértice, en sentido antihorario desde +X
 shape-form-title-spline = Spline S{ $id }
+shape-form-corner-radius-column = Radio
+shape-form-corner-radius-column-hover = Un radio en una esquina la redondea con un arco tangente a ambos lados; el punto queda en la esquina viva. 0: viva
+shape-form-corner-radius-none = Aquí no hay esquina que redondear: un arco al lado, o los lados siguen rectos

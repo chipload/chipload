@@ -911,6 +911,7 @@ impl ChiploadApp {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Truncate);
                     self.polygon_sides_field(ui);
+                    self.polyline_radius_field(ui);
                     self.construction_field(ui);
                     self.offset_fields(ui);
                     self.mirror_fields(ui);
@@ -941,6 +942,26 @@ impl ChiploadApp {
             let sides = self.canvas_tools.polygon_sides;
             if let Some(sketch) = self.sketch_mut() {
                 sketch.sides = sides;
+            }
+        }
+        ui.separator();
+    }
+
+    /// While drawing a polyline: the radius its corners get, kept for the next one
+    /// (docs/specs/polyline-radii.md §4).
+    fn polyline_radius_field(&mut self, ui: &mut egui::Ui) {
+        if self.sketch().is_none_or(|s| s.tool != Tool::Polyline) {
+            return;
+        }
+        ui.label(t!(ui, "menu-polyline-radius"))
+            .on_hover_text(t!(ui, "menu-polyline-radius-hover"));
+        if ui
+            .add(crate::units::length(&mut self.canvas_tools.polyline_radius).range(0.0..=f64::MAX))
+            .changed()
+        {
+            let radius = self.canvas_tools.polyline_radius;
+            if let Some(sketch) = self.sketch_mut() {
+                sketch.corner_radius = radius;
             }
         }
         ui.separator();

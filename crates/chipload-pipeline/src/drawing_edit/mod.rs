@@ -82,6 +82,7 @@ pub fn polyline_of(chain: &Chain) -> Geometry {
         closed: chain.closed,
         points: points.iter().map(|&(x, y)| [x, y]).collect(),
         bulges,
+        radii: Vec::new(),
     }
 }
 

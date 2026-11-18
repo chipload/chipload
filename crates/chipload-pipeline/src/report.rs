@@ -197,6 +197,7 @@ pub fn shape_values(geometry: &Geometry) -> String {
             closed,
             points,
             bulges,
+            radii,
         } => {
             let list: Vec<String> = points
                 .iter()
@@ -211,6 +212,10 @@ pub fn shape_values(geometry: &Geometry) -> String {
             if bulges.iter().any(|&b| b != 0.0) {
                 let list: Vec<String> = bulges.iter().map(|b| format!("{b:.3}")).collect();
                 text.push_str(&format!(" bulges {}", list.join(" ")));
+            }
+            if radii.iter().any(|&r| r != 0.0) {
+                let list: Vec<String> = radii.iter().map(|r| format!("{r:.3}")).collect();
+                text.push_str(&format!(" radii {}", list.join(" ")));
             }
             text
         }

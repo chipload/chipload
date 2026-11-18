@@ -63,3 +63,6 @@ shape-form-across-flats-hover = Von einer Seite zur gegenüberliegenden (doppelt
 shape-form-polygon-angle = Winkel
 shape-form-polygon-angle-hover = Wohin die erste Ecke zeigt, gegen den Uhrzeigersinn von +X
 shape-form-title-spline = Spline S{ $id }
+shape-form-corner-radius-column = Radius
+shape-form-corner-radius-column-hover = Ein Radius an einer Ecke rundet sie mit einem Bogen, der beide Seiten berührt; der Punkt bleibt an der spitzen Ecke. 0: spitz
+shape-form-corner-radius-none = Keine Ecke zum Runden: ein Bogen daneben, oder die Seiten laufen gerade weiter

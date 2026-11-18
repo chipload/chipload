@@ -276,6 +276,7 @@ mod join_properties {
                     closed: false,
                     points,
                     bulges: (0..n).map(|i| if i == 0 { bulge } else { 0.0 }).collect(),
+                    radii: Vec::new(),
                 }
             });
         prop::collection::vec(piece, 1..10).prop_map(|all| {

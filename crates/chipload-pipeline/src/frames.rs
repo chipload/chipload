@@ -576,11 +576,13 @@ fn same_geometry(a: &Geometry, b: &Geometry) -> bool {
                 closed: k1,
                 points: p1,
                 bulges: b1,
+                ..
             },
             Geometry::Polyline {
                 closed: k2,
                 points: p2,
                 bulges: b2,
+                ..
             },
         ) => {
             let flat = |p: &[[f64; 2]]| p.iter().flatten().copied().collect::<Vec<f64>>();

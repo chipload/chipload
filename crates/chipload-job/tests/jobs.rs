@@ -2867,3 +2867,50 @@ fn a_spline_is_saved_loaded_and_checked() {
         assert!(parse_job(bad, "p").is_err(), "{field}");
     }
 }
+
+/// docs/specs/polyline-radii.md §2: a polyline's corner radii are saved when any is set
+/// (left out when all are 0), round its corners, and are refused where they can't be.
+#[test]
+fn a_polylines_corner_radii_are_saved_loaded_and_checked() {
+    use chipload_job::{Geometry, PathSegment};
+    let mut data = migrate(raw("v41/nesting_demo.chipload")).unwrap();
+    data["drawing"]["shapes"] = json!([{"id": 1, "layer": "0", "kind": "polyline",
+        "closed": true, "points": [[0.0, 0.0], [100.0, 0.0], [100.0, 60.0], [0.0, 60.0]],
+        "bulges": [0.0, 0.0, 0.0, 0.0], "radii": [0.0, 5.0, 5.0, 0.0]}]);
+    data["drawing"]["next_shape_id"] = json!(2);
+    data["operations"] = json!([]);
+    let job = parse_job(data.clone(), "p").unwrap();
+    let shape = &job.drawing.shapes[0];
+    let Geometry::Polyline { radii, .. } = &shape.geometry else {
+        panic!("a polyline");
+    };
+    assert_eq!(radii, &[0.0, 5.0, 5.0, 0.0]);
+    // Four sides and two rounds, the first side cut back 5 from (100, 0).
+    let segments = shape.segments();
+    assert_eq!(segments.len(), 6);
+    assert!(matches!(&segments[1], PathSegment::Arc(a) if (a.radius - 5.0).abs() < 1e-9));
+    let saved = serde_json::to_value(&job).unwrap();
+    assert_eq!(saved["drawing"]["shapes"][0], data["drawing"]["shapes"][0]);
+    // All sharp: no `radii` written.
+    let mut sharp = data.clone();
+    sharp["drawing"]["shapes"][0]["radii"] = json!([0.0, 0.0, 0.0, 0.0]);
+    let saved = serde_json::to_value(parse_job(sharp, "p").unwrap()).unwrap();
+    assert!(saved["drawing"]["shapes"][0].get("radii").is_none());
+    // The wrong count, a negative one, too large for its sides, at an open polyline's end,
+    // beside an arc.
+    for (field, value) in [
+        ("radii", json!([0.0, 5.0])),
+        ("radii", json!([0.0, -1.0, 0.0, 0.0])),
+        ("radii", json!([0.0, 70.0, 0.0, 0.0])),
+        ("closed", json!(false)),
+        ("bulges", json!([0.0, 0.5, 0.0, 0.0])),
+    ] {
+        let mut bad = data.clone();
+        bad["drawing"]["shapes"][0][field] = value;
+        if field == "closed" {
+            bad["drawing"]["shapes"][0]["bulges"] = json!([0.0, 0.0, 0.0]);
+            bad["drawing"]["shapes"][0]["radii"] = json!([5.0, 0.0, 0.0, 0.0]);
+        }
+        assert!(parse_job(bad, "p").is_err(), "{field}");
+    }
+}

@@ -36,6 +36,7 @@ fn triangle() -> Geometry {
         closed: true,
         points: vec![[0.0, 0.0], [40.0, 0.0], [20.0, 30.0]],
         bulges: vec![0.0, 0.4, 0.0],
+        radii: Vec::new(),
     }
 }
 
@@ -165,6 +166,7 @@ fn lengths_show_and_can_be_typed() {
         closed: false,
         points: vec![[0.0, 0.0], [30.0, 0.0], [30.0, 10.0], [40.0, 10.0]],
         bulges: vec![0.0, 0.0, 0.5],
+        radii: Vec::new(),
     };
     // The arc segment has no label; an open polyline's stand to the left.
     let shown = dimensions(&l_shape);
@@ -322,6 +324,7 @@ fn polyline_points_move_and_middles_insert_or_bend() {
             closed: true,
             points: vec![[0.0, 0.0], [20.0, -5.0], [40.0, 0.0], [20.0, 30.0]],
             bulges: vec![0.0, 0.0, 0.4, 0.0],
+            radii: Vec::new(),
         }
     );
     // Shift: bend the first segment 10 mm below its chord: bulge 10 / 20.
@@ -345,6 +348,7 @@ fn a_plain_segment_drag_moves_the_segment_and_its_neighbours_follow() {
             closed: true,
             points: vec![[0.0, -10.0], [40.0, -10.0], [20.0, 30.0]],
             bulges: vec![0.0, 0.4, 0.0],
+            radii: Vec::new(),
         }
     );
     // Its end onto the far point: a neighbour of no length, refused.
@@ -399,6 +403,7 @@ fn removing_and_closing_keep_one_bulge_per_segment() {
         closed: true,
         points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 10.0], [0.0, 10.0]],
         bulges: vec![0.1, 0.2, 0.3, 0.4],
+        radii: Vec::new(),
     };
     // Point 2 joins segments 1 and 2 into one straight one.
     assert!(remove_point(&mut g, 2));
@@ -411,6 +416,7 @@ fn removing_and_closing_keep_one_bulge_per_segment() {
         closed: false,
         points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]],
         bulges: vec![0.1, 0.2],
+        radii: Vec::new(),
     };
     set_closed(&mut open, true);
     assert!(matches!(&open, Geometry::Polyline { bulges, .. } if *bulges == [0.1, 0.2, 0.0]));
@@ -459,6 +465,7 @@ fn transformed_moves_turns_and_scales_every_kind() {
         closed: false,
         points: vec![[0.0, 0.0], [10.0, 0.0], [10.0, 5.0]],
         bulges: vec![0.0, 0.4],
+        radii: Vec::new(),
     };
     // A quarter turn about (10, 0) is exact; bulges stay.
     assert_eq!(
@@ -467,6 +474,7 @@ fn transformed_moves_turns_and_scales_every_kind() {
             closed: false,
             points: vec![[10.0, -10.0], [10.0, 0.0], [5.0, 0.0]],
             bulges: vec![0.0, 0.4],
+            radii: Vec::new(),
         })
     );
     // A whole turn gives the shape back, within rounding.
@@ -544,6 +552,7 @@ fn shapes_reflect_about_any_line() {
         closed: false,
         points: vec![[0.0, 1.5], [10.0, 2.25]],
         bulges: vec![0.5],
+        radii: Vec::new(),
     };
     assert_eq!(
         mirrored_about(&arc, [0.0, 1.0], [5.0, 1.0]),
@@ -551,6 +560,7 @@ fn shapes_reflect_about_any_line() {
             closed: false,
             points: vec![[0.0, 0.5], [10.0, -0.25]],
             bulges: vec![-0.5],
+            radii: Vec::new(),
         })
     );
     // An imported path, or a line of one point: none.
