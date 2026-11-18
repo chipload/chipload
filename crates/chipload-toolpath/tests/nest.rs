@@ -6,7 +6,9 @@
 use chipload_core::Point;
 use chipload_core::math;
 use chipload_toolpath::Cancel;
-use chipload_toolpath::nest::{Capsule, Footprint, Frame, Grid, Item, Layout, Sheet, Sweep, fill};
+use chipload_toolpath::nest::{
+    Capsule, Footprint, Frame, Goal, Grid, Item, Layout, Sheet, Sweep, fill,
+};
 use proptest::prelude::*;
 
 fn point_segment(p: Point, a: Point, b: Point) -> f64 {
@@ -403,9 +405,9 @@ proptest! {
             vec![0.0]
         };
         let (turned, items) = items(&sheet, &parts, &angles, gap);
-        let layout = fill(&sheet, &items, &Cancel::new()).unwrap();
+        let layout = fill(&sheet, &items, Goal::Compact, &Cancel::new()).unwrap();
         check_layout(&sheet, &turned, &items, &keep_out, gap, &layout)?;
-        let again = fill(&sheet, &items, &Cancel::new()).unwrap();
+        let again = fill(&sheet, &items, Goal::Compact, &Cancel::new()).unwrap();
         prop_assert_eq!(again, layout);
     }
 }
@@ -452,12 +454,12 @@ fn full_sheet_of_fifty_instances() {
     let start = std::time::Instant::now();
     let (turned, items) = items(&sheet, &parts, &angles, 3.0);
     let prepared = start.elapsed();
-    let layout = fill(&sheet, &items, &Cancel::new()).unwrap();
+    let layout = fill(&sheet, &items, Goal::Compact, &Cancel::new()).unwrap();
     let total = start.elapsed();
     println!(
         "cell {cell} mm: footprints {prepared:?}, all {total:?}; placed {} of 50, used {:.0} mm",
         layout.placed.len(),
-        layout.used
+        layout.extent.0
     );
     let _ = turned;
     assert!(total.as_secs_f64() < 10.0);

@@ -1,6 +1,6 @@
 # Spec: a better nest, by search and with a goal
 
-Status: **draft 2026-11-18, for review.** It changes how the nester of docs/specs/nesting.md
+Status: **approved 2026-11-18** (the user: "go ahead"), being built: step 1 done. It changes how the nester of docs/specs/nesting.md
 chooses places (its §4, decisions 3 and 6), not what it places or what it writes. The user,
 2026-11-18: "the nesting should start from the lower left corner and try to minimize the
 total area occupied", "I don't think we should place the parts in a fixed order, that could
@@ -73,6 +73,13 @@ depends on the goal:
   lowest, then the leftmost. The places tried are, for every column, the lowest place in it,
   and for every row, the leftmost place in it: the places a part slid down or left would come
   to rest, so no candidate floats in the open.
+
+**As built (step 1):** for compact, every column's and row's place was too slow for a
+search that places hundreds of layouts. Four places are tried instead: the lowest place
+within the box's width (growing it only upward), the leftmost within its height (growing it
+only rightward), and the lowest and leftmost anywhere. A place inside the box is the lowest
+within its width, so a hole in the block is still filled. The box is counted in cells from
+the corner, so scores compare exactly.
 
 Today's slack rule (up to 5 mm farther along when that is lower across, `ALONG_SLACK_MM`)
 goes: the goals and the search take its place.
@@ -193,14 +200,19 @@ runs only when asked. Saving writes it explicitly when `nest` is written.
 - **Everything nesting.md §13 asks still holds:** the gap measured exactly on the moves, the
   board's edges, nothing lost, the verification, the performance bound.
 - **The user's tall-board project**, once they send it, in the corpus with a test first.
-- **Golden:** no frozen G-code is nested, so none should change; any change is explained in
-  the commit.
+- **Golden:** the two nested goldens (v40_nest_badge, v41_nesting_demo) are nested by the
+  test, so they change with the placer, in the steps that change it, each explained in its
+  commit.
 
 ## 9. Order of work
 
 Each step a commit with its tests, the guide and translations with the step that shows them:
 1. **The goals and the placer** (§2, §3) in `chipload-toolpath` `nest/`, the score, and the
-   first part's turns tried; the fixed orders as now. The budget measured.
+   first part's turns tried; the fixed orders as now. The budget measured. **Built
+   2026-11-18:** the pipeline nests *compact* until step 4; its summary still says the
+   board used along its longer side. Measured (release): 50 instances, quarter turns, on a
+   2440 × 1220 board: 20 starts in 1.5 s, about 75 ms a layout with the placer picking the
+   turns, a quarter of that with them given.
 2. **The search** (§4), with its generator, progress and Cancel.
 3. **Nest again from the board as it is** (§5).
 4. **The goal in the file, the window and the command line** (§6, §7), the summary line, the
@@ -231,6 +243,7 @@ Built from the papers named in §3 and §4 and first principles only. No nester'
    as today.
 6. **The places tried for compact** are the lowest in each column and the leftmost in each
    row. **Recommended:** parts come to rest against something, as if slid. Alternative:
-   every free cell (far slower, rarely better).
+   every free cell (far slower, rarely better). *As built:* four places, not every column's
+   and row's (§3 as built).
 7. **Names:** *Compact*, *Keep the top free*, *Keep the right side free*; `compact`, `low`,
    `left` on the command line and in the file. **Recommended:** they say what the user gets.

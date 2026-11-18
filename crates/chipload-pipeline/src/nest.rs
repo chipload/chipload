@@ -10,7 +10,7 @@ use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
     Instance, Job, Mirror, Nest, Operation, StockCorner, StockOrigin, Turns, WorkZero,
 };
-use chipload_toolpath::nest::{Footprint, Item, Sheet, Sweep, cell_size, fill};
+use chipload_toolpath::nest::{Footprint, Goal, Item, Sheet, Sweep, cell_size, fill};
 use chipload_toolpath::plan::OpSpan;
 use chipload_toolpath::{Cancel, plan_job};
 
@@ -326,7 +326,7 @@ fn nest_one(
         }
     }
     let plain: Vec<Item> = items.iter().map(|(_, _, item)| item.clone()).collect();
-    let layout = fill(&sheet, &plain, cancel)?;
+    let layout = fill(&sheet, &plain, Goal::Compact, cancel)?;
     let mut placed = Vec::new();
     for put in &layout.placed {
         let Some((part, number, item)) = items.get(put.item) else {
@@ -369,13 +369,17 @@ fn nest_one(
     if !placed.is_empty() {
         verify(&job, id)?;
     }
-    let length = if size.0 >= size.1 { size.0 } else { size.1 };
+    let (length, used) = if size.0 >= size.1 {
+        (size.0, layout.extent.0)
+    } else {
+        (size.1, layout.extent.1)
+    };
     Ok(NestResult {
         job,
         setup: id,
         placed,
         unplaced,
-        used: layout.used,
+        used,
         length,
         board_fixed,
         travel,

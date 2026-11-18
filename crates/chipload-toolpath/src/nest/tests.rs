@@ -190,24 +190,68 @@ fn item(sheet: &Sheet, sweep: &Sweep, angles: &[f64], gap: f64) -> Item {
 }
 
 fn run(sheet: &Sheet, items: &[Item]) -> Layout {
-    fill(sheet, items, &crate::Cancel::new()).unwrap()
+    run_for(sheet, items, Goal::Compact)
+}
+
+fn run_for(sheet: &Sheet, items: &[Item], goal: Goal) -> Layout {
+    fill(sheet, items, goal, &crate::Cancel::new()).unwrap()
 }
 
 #[test]
 fn one_part_goes_in_the_low_corner() {
     let sheet = Sheet::new((10.0, 20.0), (610.0, 320.0), 0.5, &[]).unwrap();
-    let layout = run(&sheet, &[item(&sheet, &rect(100.0, 50.0), &[0.0], 3.0)]);
-    assert_eq!(layout.placed.len(), 1);
-    assert_eq!(layout.placed[0].low, (10.0, 20.0));
-    assert!((layout.used - 103.0).abs() < 1e-9);
+    for goal in [Goal::Compact, Goal::Low, Goal::Left] {
+        let layout = run_for(
+            &sheet,
+            &[item(&sheet, &rect(100.0, 50.0), &[0.0], 3.0)],
+            goal,
+        );
+        assert_eq!(layout.placed.len(), 1);
+        assert_eq!(layout.placed[0].low, (10.0, 20.0));
+        assert!((layout.extent.0 - 103.0).abs() < 1e-9);
+        assert!((layout.extent.1 - 53.0).abs() < 1e-9);
+    }
+}
+
+/// Two 300 × 200 footprints, a quarter turn allowed, on a tall board (nesting-search.md §8).
+fn two_on_a_tall_board(goal: Goal) -> Layout {
+    let sheet = Sheet::new((0.0, 0.0), (650.0, 1200.0), 0.5, &[]).unwrap();
+    let quarter = [0.0, std::f64::consts::FRAC_PI_2];
+    let part = rect(297.0, 197.0);
+    let items = vec![
+        item(&sheet, &part, &quarter, 3.0),
+        item(&sheet, &part, &quarter, 3.0),
+    ];
+    let layout = run_for(&sheet, &items, goal);
+    assert_eq!(layout.placed.len(), 2, "{layout:?}");
+    layout
 }
 
 #[test]
-fn parts_go_along_the_longer_side_a_gap_apart() {
-    for (high, along_x) in [((600.0, 300.0), true), ((300.0, 600.0), false)] {
+fn compact_never_puts_the_second_part_beside_the_first_turned() {
+    let layout = two_on_a_tall_board(Goal::Compact);
+    let (w, h) = layout.extent;
+    // Beside it turned would be a 503.5 × 300 box; above or beside unturned about 120 000.
+    assert!(w * h < 125_000.0, "{layout:?}");
+    assert!(layout.placed.iter().all(|p| p.lie == 0), "{layout:?}");
+}
+
+#[test]
+fn low_puts_both_on_the_bottom_and_left_stacks_them() {
+    let low = two_on_a_tall_board(Goal::Low);
+    assert!(low.placed.iter().all(|p| p.low.1 == 0.0), "{low:?}");
+    assert!((low.extent.1 - 200.0).abs() < 1e-9, "{low:?}");
+    let left = two_on_a_tall_board(Goal::Left);
+    assert!(left.placed.iter().all(|p| p.low.0 == 0.0), "{left:?}");
+    assert!((left.extent.0 - 200.0).abs() < 1e-9, "{left:?}");
+}
+
+#[test]
+fn parts_go_a_gap_apart() {
+    for (high, low_goal) in [((600.0, 300.0), true), ((300.0, 600.0), false)] {
         let sheet = Sheet::new((0.0, 0.0), high, 0.5, &[]).unwrap();
-        // Each 103 wide and 203 long across: two can't lie across a 300 board.
-        let tall = if along_x {
+        // Each 103 × 203, the long side across the board's short one: two in a row.
+        let tall = if low_goal {
             rect(100.0, 200.0)
         } else {
             rect(200.0, 100.0)
@@ -216,17 +260,20 @@ fn parts_go_along_the_longer_side_a_gap_apart() {
             item(&sheet, &tall, &[0.0], 3.0),
             item(&sheet, &tall, &[0.0], 3.0),
         ];
-        let layout = run(&sheet, &items);
-        assert_eq!(layout.placed.len(), 2);
-        let (a, b) = (layout.placed[0].low, layout.placed[1].low);
-        let (step, beside) = if along_x {
-            (b.0 - a.0, b.1 - a.1)
-        } else {
-            (b.1 - a.1, b.0 - a.0)
-        };
-        assert_eq!(beside, 0.0, "{a:?} {b:?}");
-        // 103 + a 3 mm gap, up to one cell more for the rounding.
-        assert!((106.0..=106.5).contains(&step), "{step}");
+        let goal = if low_goal { Goal::Low } else { Goal::Left };
+        for goal in [goal, Goal::Compact] {
+            let layout = run_for(&sheet, &items, goal);
+            assert_eq!(layout.placed.len(), 2);
+            let (a, b) = (layout.placed[0].low, layout.placed[1].low);
+            let (step, beside) = if low_goal {
+                (b.0 - a.0, b.1 - a.1)
+            } else {
+                (b.1 - a.1, b.0 - a.0)
+            };
+            assert_eq!(beside, 0.0, "{a:?} {b:?}");
+            // 103 + a 3 mm gap, up to one cell more for the rounding.
+            assert!((106.0..=106.5).contains(&step), "{step}");
+        }
     }
 }
 
@@ -273,10 +320,8 @@ fn a_dowel_hole_is_kept_out_of() {
     let low = layout.placed[0].low;
     // The hole reaches 23 along X and across; 3 mm gap: 26 at least, one way or the other.
     assert!(low.0 >= 26.0 || low.1 >= 26.0, "{low:?}");
-    assert_eq!(
-        low.0, 0.0,
-        "across first, at the start of the board: {low:?}"
-    );
+    // Beside it or above it make the same box: the lower one wins.
+    assert_eq!(low.1, 0.0, "{low:?}");
 }
 
 #[test]
@@ -290,7 +335,9 @@ fn small_parts_fill_in_beside_large_ones() {
     ];
     let layout = run(&sheet, &items);
     assert!(layout.unplaced.is_empty());
-    assert!((layout.used - 403.0).abs() < 1e-9, "{layout:?}");
+    // The two small ones beside the large one, one above the other: no taller than it.
+    assert!((layout.extent.1 - 203.0).abs() < 1e-9, "{layout:?}");
+    assert!(layout.extent.0 <= 490.0, "{layout:?}");
 }
 
 #[test]
@@ -300,7 +347,7 @@ fn a_cancelled_fill_stops() {
     cancel.cancel();
     let items = [item(&sheet, &rect(10.0, 10.0), &[0.0], 3.0)];
     assert!(matches!(
-        fill(&sheet, &items, &cancel),
+        fill(&sheet, &items, Goal::Compact, &cancel),
         Err(crate::ToolpathError::Cancelled)
     ));
 }
