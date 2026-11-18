@@ -21,12 +21,12 @@
 
 # Drawings
 
+- [Drawing shapes](drawings/shapes.md)
 - [Importing a DXF](drawings/import.md)
 - [Importing an SVG](drawings/svg.md)
 - [Placing the drawing](drawings/placement.md)
 - [Updating from a new DXF](drawings/update.md)
 - [Several drawings](drawings/several.md)
-- [Drawing shapes](drawings/shapes.md)
 - [Exploding a DXF, picture or text, joining ends](drawings/explode.md)
 - [Exporting the drawing](drawings/export.md)
 - [Images](drawings/images.md)

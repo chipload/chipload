@@ -4,10 +4,11 @@
 
 Chipload is 2.5D CAM for CNC routers and mills: a drawing in, checked G-code out.
 
-- **In:** DXF and SVG drawings, text in built-in fonts, pictures traced into shapes, 3D
-  models (STL) and depth maps for reliefs, and
-  shapes drawn and edited in Chipload (lines, arcs, circles, rectangles, polygons, slots;
-  offset, fillet, trim, union and subtract, arrays; the Compass to move, turn and copy). The drawing exports as a DXF too.
+- **In:** shapes drawn and edited in Chipload (lines, arcs, circles, rectangles,
+  polygons, slots; offset, fillet, trim, union and subtract, arrays; the Compass to move,
+  turn and copy), DXF and SVG drawings, text in built-in fonts, pictures traced into
+  shapes, and 3D models (STL) and depth maps for reliefs. Drawn and imported shapes mix
+  in one project, and the drawing exports as a DXF too.
 - **Out:** G-code for your controller, in mm or inches, through a post-processor: GRBL,
   LinuxCNC and Mach3/4 are built in, and you can write your own.
 - **Operations:**

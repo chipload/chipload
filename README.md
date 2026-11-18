@@ -48,10 +48,11 @@ onto two more boards made like it](docs/book/src/images/showcase-nest.gif)
   levels and a smoothing pass, all set up in one wizard.
 - **See it before you cut:** a material-removal simulation in 3D, playback, cycle time,
   chip load and a setup sheet for the operator.
-- **Drawings:** several DXFs and SVGs, text in built-in fonts, traced pictures, and shapes
-  drawn and edited in the app (snapping, offset, fillet, trim, union and subtract, arrays,
-  construction lines, and the Compass: one handle to move, turn, copy and array); a new version of a DXF keeps the operations, and the drawing exports
-  as a DXF.
+- **Drawings:** draw and edit in the app (snapping, typed values, offset, fillet, trim,
+  union and subtract, arrays, construction lines, and the Compass: one handle to move,
+  turn, copy and array), or bring in several DXFs and SVGs, text in built-in fonts and
+  traced pictures, mixed in one project; a new version of a DXF keeps the operations, and
+  the drawing exports as a DXF.
 - **A sheet of parts:** several parts with their own operations, each placed again as instances that can be
   moved, turned and mirrored; export
   the whole sheet or one part.
@@ -111,7 +112,10 @@ cargo test --workspace                                   # the tests
 ```
 
 ```
-chipload import part.dxf -o part.chipload        # a project from a DXF
+chipload new -o part.chipload --thickness 12     # an empty project to draw in
+chipload shape add part.chipload rectangle --center 0,0 --length 160 --width 100
+chipload op add part.chipload profile --shapes 1 --through
+chipload import plate.dxf -o plate.chipload      # or a project from a DXF
 chipload run part.chipload -o part.nc            # checked G-code and a setup sheet
 chipload check part.nc --job part.chipload       # the checker on any G-code
 ```
