@@ -486,7 +486,18 @@ A setup's nesting settings (docs/specs/nesting.md §10).
 | Field | Type | Required | Meaning |
 |---|---|---|---|
 | `gap` | number | yes | The least distance between what two instances cut, mm. |
+| `goal` | [NestGoal](#nestgoal) | no | What the nest makes as small as it can (docs/specs/nesting-search.md §2, §6); missing in a file: compact. |
 | `margin` | number | yes | The least distance from what an instance cuts to the board's edge, mm. |
+
+## NestGoal
+
+What a nest makes as small as it can, after placing as much as it can (docs/specs/nesting-search.md §2).
+
+- `"compact"`: The smallest box round the parts: a block in the board's lower-left corner.
+
+- `"low"`: The lowest top edge: a strip across the top of the board left free.
+
+- `"left"`: The leftmost right edge: a strip down the right of the board left free.
 
 ## Operation
 

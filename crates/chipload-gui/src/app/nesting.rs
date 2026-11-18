@@ -8,7 +8,7 @@ use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, TryRecvError, channel};
 
-use chipload_job::Turns;
+use chipload_job::{NestGoal, Turns};
 use chipload_pipeline::Cancel;
 use chipload_pipeline::nest::{NEST_GAP_MM, NEST_MARGIN_MM, NestRequest, NestResult, nest_setup};
 
@@ -59,6 +59,8 @@ pub(super) struct NestDialog {
     pub(super) rows: Vec<NestRow>,
     /// What doesn't fit goes onto more boards (docs/specs/parts-and-setups.md §9).
     pub(super) overflow: bool,
+    /// What the nest makes as small as it can (docs/specs/nesting-search.md §2).
+    pub(super) goal: NestGoal,
     run: Option<NestRun>,
     pub(super) preview: Option<Result<NestPreview, String>>,
     /// Apply the nest when the run in progress ends.
@@ -79,6 +81,7 @@ impl NestDialog {
             part_turns: self.rows.iter().map(|r| (r.part, r.turns)).collect(),
             counts: self.rows.iter().map(|r| (r.part, r.count)).collect(),
             overflow: self.overflow,
+            goal: Some(self.goal),
         }
     }
 
@@ -130,6 +133,7 @@ impl ChiploadApp {
             margin: s.nest.map_or(NEST_MARGIN_MM, |n| n.margin),
             rows,
             overflow: false,
+            goal: s.nest.map(|n| n.goal).unwrap_or_default(),
             run: None,
             preview: None,
             apply_when_done: false,
@@ -155,6 +159,7 @@ impl ChiploadApp {
             margin: s.nest.map_or(NEST_MARGIN_MM, |n| n.margin),
             rows: Vec::new(),
             overflow: false,
+            goal: s.nest.map(|n| n.goal).unwrap_or_default(),
             run: None,
             preview: None,
             apply_when_done: true,
@@ -467,6 +472,29 @@ fn nest_form(
             changed |= ui
                 .add(crate::units::length(&mut dialog.margin).range(0.0..=1000.0))
                 .changed();
+            ui.end_row();
+            // The goal (docs/specs/nesting-search.md §7).
+            ui.label(t!(ui, "nest-goal"))
+                .on_hover_text(t!(ui, "nest-goal-hover"));
+            let goal_text = |ui: &egui::Ui, goal: NestGoal| match goal {
+                NestGoal::Compact => (
+                    t!(ui, "nest-goal-compact"),
+                    t!(ui, "nest-goal-compact-hover"),
+                ),
+                NestGoal::Low => (t!(ui, "nest-goal-low"), t!(ui, "nest-goal-low-hover")),
+                NestGoal::Left => (t!(ui, "nest-goal-left"), t!(ui, "nest-goal-left-hover")),
+            };
+            egui::ComboBox::from_id_salt("nest-goal")
+                .selected_text(goal_text(ui, dialog.goal).0)
+                .show_ui(ui, |ui| {
+                    for goal in [NestGoal::Compact, NestGoal::Low, NestGoal::Left] {
+                        let (name, hover) = goal_text(ui, goal);
+                        changed |= ui
+                            .selectable_value(&mut dialog.goal, goal, name)
+                            .on_hover_text(hover)
+                            .changed();
+                    }
+                });
             ui.end_row();
             // What doesn't fit (docs/specs/parts-and-setups.md §9).
             ui.label(t!(ui, "nest-overflow"))

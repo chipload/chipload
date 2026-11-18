@@ -62,7 +62,7 @@ fn nest_places_every_instance_and_the_project_runs() {
     assert_eq!(run.code, Some(0), "{}", run.stderr);
     assert!(
         run.stdout
-            .starts_with("Nested setup 1 \"Setup 1\": 5 of 5 placed, the board used to "),
+            .starts_with("Nested setup 1 \"Setup 1\": 5 of 5 placed, in "),
         "{}",
         run.stdout
     );
@@ -105,7 +105,11 @@ fn json_says_what_went_where_and_a_dry_run_writes_nothing() {
     assert_eq!(placed.len() + unplaced.len(), 4);
     assert!(!unplaced.is_empty(), "{value}");
     assert!(placed[0]["at"].is_array() && placed[0]["angle"].is_number());
-    assert_eq!(value["length"], 180.0);
+    // The usable board (200 × 150 less the 10 mm margin) and the box round what is placed.
+    assert_eq!(value["usable"], serde_json::json!([180.0, 130.0]));
+    assert!(value["extent"].is_array() && value["used_pct"].is_number());
+    assert_eq!(value["goal"], "compact");
+    assert_eq!(value["unchanged"], false);
     assert_eq!(value["board_fixed"], false);
     assert!(value["written"].as_array().unwrap().is_empty());
     let notes = value["notes"].to_string();
@@ -197,4 +201,32 @@ fn overflow_puts_what_doesnt_fit_onto_new_boards() {
     assert_eq!(run.code, Some(0), "{}", run.stderr);
     assert!(dir.join("b-S2.nc").exists());
     std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn the_goal_is_chosen_and_kept() {
+    let extent = |goal: &str| {
+        let dir = badge(&format!("goal-{goal}"));
+        let value = json(&chipload(
+            &dir,
+            &[
+                "nest",
+                "b.chipload",
+                "--count",
+                "1=2",
+                "--goal",
+                goal,
+                "--json",
+            ],
+        ));
+        assert_eq!(value["goal"], goal);
+        // Kept for the next nest.
+        let kept = chipload(&dir, &["get", "b.chipload", "setups.0.nest.goal"]);
+        assert!(kept.stdout.contains(goal), "{}", kept.stdout);
+        let e = &value["extent"];
+        (e[0].as_f64().unwrap(), e[1].as_f64().unwrap())
+    };
+    // Low: side by side, lower and wider than left's, one above the other.
+    let (low, left) = (extent("low"), extent("left"));
+    assert!(low.1 < left.1 && low.0 > left.0, "{low:?} {left:?}");
 }

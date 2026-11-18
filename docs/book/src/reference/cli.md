@@ -2826,6 +2826,7 @@ chipload nest <PROJECT> [OPTIONS]
 | `--turns <TURNS>` | How parts may be turned: none, half, quarter or every-15, for every part; "ID=TURNS" for one part, such as 2=none (wood grain). Kept in the project. Default: as set, else quarter. Repeatable. |
 | `--count <COUNT>` | How many times part ID is cut, "ID=N", such as 2=4: instances added or removed before nesting (never the part itself) Repeatable. |
 | `--overflow <OVERFLOW>` | What doesn't fit: switched off (`off`, the default), or onto more boards (`new-boards`): the next setup with the same stock, else a new one like this one (docs/specs/parts-and-setups.md §9) One of: `off` (What doesn't fit is switched off), `new-boards` (What doesn't fit goes onto more boards). Default: `off`. |
+| `--goal <GOAL>` | What the nest makes as small as it can: `compact` (the smallest box round the parts), `low` (the lowest top edge: a strip across the top left free) or `left` (the leftmost right edge: a strip down the right left free). Kept in the project. Default: as last nested, else compact (docs/specs/nesting-search.md) One of: `compact` (The smallest box round the parts), `low` (The lowest top edge), `left` (The leftmost right edge). |
 | `--dry-run` | Report what would be placed without writing the project. |
 | `-o, --output <OUTPUT>` | Where to write the result; default: the project itself. |
 

@@ -108,6 +108,25 @@ pub struct Nest {
     pub gap: f64,
     /// The least distance from what an instance cuts to the board's edge, mm.
     pub margin: f64,
+    /// What the nest makes as small as it can (docs/specs/nesting-search.md §2, §6);
+    /// missing in a file: compact.
+    #[serde(default)]
+    pub goal: NestGoal,
+}
+
+/// What a nest makes as small as it can, after placing as much as it can
+/// (docs/specs/nesting-search.md §2).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum NestGoal {
+    /// The smallest box round the parts: a block in the board's lower-left corner.
+    #[default]
+    Compact,
+    /// The lowest top edge: a strip across the top of the board left free.
+    Low,
+    /// The leftmost right edge: a strip down the right of the board left free.
+    Left,
 }
 
 /// How a part may be turned when it is nested (docs/specs/nesting.md §3): wood grain is

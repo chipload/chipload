@@ -302,9 +302,9 @@ pub(super) fn z_zero_message(job: &Job) -> Message {
     })
 }
 
-/// A setup that was nested (docs/specs/nesting.md §9.6): how many instances, the gap and
-/// margin it keeps, and how far along the board's longer side the cuts reach, so the
-/// operator knows how much of the sheet is used and what is left.
+/// A setup that was nested (docs/specs/nesting.md §9.6, nesting-search.md §7): how many
+/// instances, the gap and margin it keeps, and the box the cuts take from the board's
+/// lower-left corner, so the operator knows how much of the sheet is used and what is left.
 pub(super) fn nested(html: &mut String, job: &Job, result: &RunResult, w: Words) {
     let Some(setup) = job.setups.get(job.active_setup_index()) else {
         return;
@@ -319,23 +319,20 @@ pub(super) fn nested(html: &mut String, job: &Job, result: &RunResult, w: Words)
         .map(|p| job.count(p.id))
         .sum();
     let ((bx0, by0), (bx1, by1)) = job.stock_bounds();
-    let along_x = bx1 - bx0 >= by1 - by0;
     let Some(((_, _), (x1, y1))) =
         chipload_toolpath::plan::cut_extent(&result.program.moves, &result.op_spans, None)
     else {
         return;
     };
-    let (used, length) = if along_x {
-        (x1 - bx0, bx1 - bx0)
-    } else {
-        (y1 - by0, by1 - by0)
-    };
+    let (board_width, board_height) = (bx1 - bx0, by1 - by0);
     let message = Message::new("sheet-nested-text")
         .arg("count", count)
         .arg("gap", len_u(nest.gap))
         .arg("margin", len_u(nest.margin))
-        .arg("used", len(used.clamp(0.0, length)))
-        .arg("length", len_u(length));
+        .arg("width", len((x1 - bx0).clamp(0.0, board_width)))
+        .arg("height", len_u((y1 - by0).clamp(0.0, board_height)))
+        .arg("board_width", len(board_width))
+        .arg("board_height", len_u(board_height));
     fact(
         html,
         &w.text(&Message::new("sheet-nested")),

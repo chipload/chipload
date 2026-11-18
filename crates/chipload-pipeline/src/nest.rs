@@ -8,7 +8,7 @@ use chipload_core::Point;
 use chipload_core::tolerances::{ANGLE_TOL_RAD, PLACEMENT_ROUNDING_MM};
 use chipload_i18n::{Digits, Message, Value};
 use chipload_job::{
-    Instance, Job, Mirror, Nest, Operation, StockCorner, StockOrigin, Turns, WorkZero,
+    Instance, Job, Mirror, Nest, NestGoal, Operation, StockCorner, StockOrigin, Turns, WorkZero,
 };
 use chipload_toolpath::nest::{Footprint, Goal, Item, Now, Sheet, Sweep, cell_size, fill};
 use chipload_toolpath::plan::OpSpan;
@@ -42,6 +42,9 @@ pub struct NestRequest {
     /// What doesn't fit goes onto more boards instead of being switched off
     /// (docs/specs/parts-and-setups.md §9).
     pub overflow: bool,
+    /// What the nest makes as small as it can (docs/specs/nesting-search.md §2), kept in
+    /// the file.
+    pub goal: Option<NestGoal>,
 }
 
 /// A board that took what didn't fit on the one before (docs/specs/parts-and-setups.md §9).
@@ -81,9 +84,11 @@ pub struct NestResult {
     pub setup: u64,
     pub placed: Vec<NestPut>,
     pub unplaced: Vec<(u64, u32)>,
-    /// How far along the usable area's longer side it reaches, and that side's length, mm.
-    pub used: f64,
-    pub length: f64,
+    /// The box round what was placed on this board from the usable area's lower-left
+    /// corner, and the usable area's size, mm (docs/specs/nesting-search.md §7).
+    pub extent: (f64, f64),
+    pub usable: (f64, f64),
+    pub goal: NestGoal,
     /// The board followed the drawing and was given a fixed size (§5).
     pub board_fixed: bool,
     pub travel: Vec<TravelLimit>,
@@ -105,21 +110,34 @@ impl NestResult {
         self.placed.len() + self.overflow.iter().map(|b| b.placed.len()).sum::<usize>()
     }
 
-    /// "8 of 8 placed, the board used to 742 mm of 1220 mm (61 %)".
+    /// "8 of 8 placed, in 742 × 380 mm of the board's 1200 × 590 mm (40 %)": the box's
+    /// share of the usable area; or that nothing better was found.
     pub fn summary(&self) -> Message {
         if self.unchanged {
             return Message::new("pipeline-nest-no-better");
         }
-        let share = if self.length > 0.0 {
-            (100.0 * self.used / self.length).round()
+        let area = self.usable.0 * self.usable.1;
+        let share = if area > 0.0 {
+            (100.0 * self.extent.0 * self.extent.1 / area).round()
         } else {
             0.0
         };
         Message::new("pipeline-nest-done")
             .arg("placed", self.placed_count())
             .arg("count", self.count())
-            .arg("used", Value::Length(self.used, Digits::Fixed(0)))
-            .arg("length", Value::Length(self.length, Digits::Fixed(0)))
+            .arg(
+                "width",
+                Value::LengthNumber(self.extent.0, Digits::Fixed(0)),
+            )
+            .arg("height", Value::Length(self.extent.1, Digits::Fixed(0)))
+            .arg(
+                "board_width",
+                Value::LengthNumber(self.usable.0, Digits::Fixed(0)),
+            )
+            .arg(
+                "board_height",
+                Value::Length(self.usable.1, Digits::Fixed(0)),
+            )
             .arg("share", share as u64)
     }
 
@@ -262,8 +280,12 @@ fn nest_one(
         .margin
         .or(setup.nest.map(|n| n.margin))
         .unwrap_or(NEST_MARGIN_MM);
+    let goal = request
+        .goal
+        .or(setup.nest.map(|n| n.goal))
+        .unwrap_or_default();
     let index = job.setups.iter().position(|s| s.id == id).unwrap_or(0);
-    job.setups[index].nest = Some(Nest { gap, margin });
+    job.setups[index].nest = Some(Nest { gap, margin, goal });
     let board_fixed = fix_board(&mut job, index, request.board)?;
     set_turns(&mut job, id, request)?;
     set_counts(&mut job, id, &request.counts)?;
@@ -345,7 +367,7 @@ fn nest_one(
     let filled = fill(
         &sheet,
         &plain,
-        Goal::Compact,
+        placer_goal(goal),
         again.then_some(&now[..]),
         cancel,
     )?;
@@ -396,23 +418,28 @@ fn nest_one(
     if !placed.is_empty() {
         verify(&job, id)?;
     }
-    let (length, used) = if size.0 >= size.1 {
-        (size.0, layout.extent.0)
-    } else {
-        (size.1, layout.extent.1)
-    };
     Ok(NestResult {
         job,
         setup: id,
         placed,
         unplaced,
-        used,
-        length,
+        extent: layout.extent,
+        usable: size,
+        goal,
         board_fixed,
         travel,
         overflow: Vec::new(),
         unchanged,
     })
+}
+
+/// The placer's goal for the file's.
+fn placer_goal(goal: NestGoal) -> Goal {
+    match goal {
+        NestGoal::Compact => Goal::Compact,
+        NestGoal::Low => Goal::Low,
+        NestGoal::Left => Goal::Left,
+    }
 }
 
 /// Where instance `number` of part `part` lies now, as one of `item`'s lies (the one of its
@@ -511,6 +538,7 @@ fn overflow(first: NestResult, cancel: &Cancel) -> Result<NestResult, PipelineEr
             setup: Some(target),
             gap: nest.map(|n| n.gap),
             margin: nest.map(|n| n.margin),
+            goal: nest.map(|n| n.goal),
             overflow: true,
             ..NestRequest::default()
         };

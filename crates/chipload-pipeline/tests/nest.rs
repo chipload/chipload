@@ -79,8 +79,10 @@ fn five_of_a_part_are_nested_apart_on_the_board_and_checked() {
     // Planned with the overlap check and checked: the run passes; every cut on the board
     // less its margin.
     assert_cut_inside(&nested.job, 10.0);
-    assert!(nested.used > 0.0 && nested.used <= nested.length);
-    assert!((nested.length - 980.0).abs() < 1e-9);
+    let ((w, h), (uw, uh)) = (nested.extent, nested.usable);
+    assert!(w > 0.0 && w <= uw && h > 0.0 && h <= uh, "{w} × {h}");
+    assert_eq!(nested.usable, (980.0, 580.0));
+    assert_eq!(nested.goal, chipload_job::NestGoal::Compact);
     // The same project nested again: the same placements.
     let again = nest(
         &job,
@@ -92,7 +94,7 @@ fn five_of_a_part_are_nested_apart_on_the_board_and_checked() {
     assert_eq!(again.placed, nested.placed);
     let text = nested.summary().english();
     assert!(
-        text.starts_with("5 of 5 placed, the board used to "),
+        text.starts_with("5 of 5 placed, in ") && text.contains(" of the board's 980 × 580 mm ("),
         "{text}"
     );
 }
@@ -259,7 +261,7 @@ fn only_as_much_board_as_the_machine_travels_is_used() {
         .filter_map(|m| m.x)
         .fold(f64::MIN, f64::max);
     assert!(max_x <= 500.0, "{max_x}");
-    assert!((nested.length - 490.0).abs() < 1e-9, "{}", nested.length);
+    assert_eq!(nested.usable, (490.0, 380.0));
 }
 
 #[test]
@@ -319,11 +321,14 @@ fn the_setup_sheet_says_it_was_nested_and_how_much_board_is_used() {
     let sheet = setup_sheet(&nested.job, &run_job(&nested.job).unwrap(), out, &info);
     assert!(sheet.contains("Nested"), "{sheet}");
     assert!(
-        sheet.contains("4 instances nested 3 mm apart and 10 mm from the edge; the cuts reach "),
+        sheet.contains("4 instances nested 3 mm apart and 10 mm from the edge; the cuts take "),
         "{sheet}"
     );
     // The sheet is HTML: the apostrophe is escaped.
-    assert!(sheet.contains(" of the board&#39;s 1000 mm."), "{sheet}");
+    assert!(
+        sheet.contains(" of the board&#39;s 1000 &#xd7; 600 mm."),
+        "{sheet}"
+    );
 }
 
 // -- Nesting onto more boards (docs/specs/parts-and-setups.md §9)

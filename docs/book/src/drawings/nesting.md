@@ -13,8 +13,16 @@ planned and checked as any project is before it is kept.
 
 In the window:
 - **Right-click the setup** in the Browser and choose *Nest…*, or *Wizards > Nest…* for the
-  active setup. The window shows the board's size, the gap and the margin, and a row per
-  part with how many times it is cut and how it may turn.
+  active setup. The window shows the board's size, the gap and the margin, the goal, and a
+  row per part with how many times it is cut and how it may turn.
+- **The goal** says what the nest makes as small as it can, once it has placed as much as
+  it can:
+  - **Compact** (the default): the smallest box round the parts, a block in the lower-left
+    corner. Good when the rest of the board is waste.
+  - **Keep the top free**: the parts as low as they go, across the whole width, so a strip
+    across the top is left to saw off and keep.
+  - **Keep the right side free**: the parts as far left as they go, up the whole height,
+    so a strip down the right is left.
 - **The preview** is worked out as soon as the window opens, and again with *Preview*
   after a change: the instances show on the board where they would go, outlined in the
   selection colour, the board dashed; what didn't fit is parked to the right of the board
@@ -35,15 +43,16 @@ chipload nest part.chipload                         # the active setup, on its b
 chipload nest part.chipload --count 2=4             # part 2 cut four times: instances added first
 chipload nest part.chipload --turns 2=none          # part 2 never turned (wood grain); others quarter turns
 chipload nest part.chipload --gap 5 --margin 15     # more room between parts and at the edge
+chipload nest part.chipload --goal low              # keep the top of the board free (also compact, left)
 chipload nest part.chipload --dry-run               # say what would go where, write nothing
 chipload part set part.chipload 2 --turns half      # part 2 turned 180° at most, kept for the next nest
 ```
 
-- **How it fills:** from the board's lower-left corner, as a compact block: each part where
-  the box round everything placed grows least. It tries many orders of the parts and turns
-  of each, for a moment (the window shows how far it has got), and keeps the layout that
-  places the most and uses the smallest box. The same project always gives the same
-  layout. Nesting a setup that was nested before searches on from the board as it is
+- **How it fills:** from the board's lower-left corner, by the goal: for *compact* each part
+  where the box round everything placed grows least, for the others as low (or as far left)
+  as it fits. It tries many orders of the parts and turns of each, for a moment (the window
+  shows how far it has got), and keeps the layout that places the most and best meets the
+  goal. The same project always gives the same layout. Nesting a setup that was nested before searches on from the board as it is
   and keeps it unless it finds better.
 - **Turns:** `none`, `half` (0° or 180°), `quarter` (the default) or `every-15`, for every
   part (`--turns quarter`) or one (`--turns 2=none`). They are kept in the project.
@@ -67,13 +76,18 @@ chipload part set part.chipload 2 --turns half      # part 2 turned 180° at mos
   at the drawing's origin.
 - **The machine's travel**, when it is set in the [machine](../library/machines.md), limits
   how much of a larger board is used, measured from the side where work zero is.
-- **The gap and margin** (3 mm and 10 mm until you choose) are kept with the setup, so the
-  next nest uses them.
+- **The gap, margin and goal** (3 mm, 10 mm and compact until you choose) are kept with the
+  setup, so the next nest uses them.
+- **The result** says how many were placed and the box they take: "8 of 8 placed, in
+  742 × 380 mm of the board's 1200 × 590 mm (40 %)", the board less its margin.
 - **The setup sheet** says the setup was nested: how many instances, the gap and margin,
-  and how far along the board the cuts reach, so you know what is left of the sheet.
+  and the box the cuts take from the board's lower-left corner, so you know what is left of
+  the sheet.
 - **Not yet:** a setup cut in [pieces](../concepts/pieces.md) or a two-sided setup can't be
   nested, and small parts don't go inside another part's holes.
 
 Everything `chipload nest` says is also in `--json`: what went where (`placed`, each part,
-instance, angle in radians and move in mm), what didn't fit (`unplaced`), how far along the
-board it reaches (`used`, `length`, `used_pct`), and whether the board was given a size.
+instance, angle in radians and move in mm), what didn't fit (`unplaced`), the goal
+(`goal`), the box round what was placed and the usable board (`extent`, `usable`, X and Y
+in mm, and `used_pct`, the box's share), whether the board was given a size, and whether a
+nest again found nothing better (`unchanged`).

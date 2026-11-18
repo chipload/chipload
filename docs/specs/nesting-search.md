@@ -1,6 +1,6 @@
 # Spec: a better nest, by search and with a goal
 
-Status: **approved 2026-11-18** (the user: "go ahead"), being built: steps 1 to 3 done. It changes how the nester of docs/specs/nesting.md
+Status: **approved 2026-11-18** (the user: "go ahead"), **built 2026-11-18**, all four steps, with as-built notes. It changes how the nester of docs/specs/nesting.md
 chooses places (its §4, decisions 3 and 6), not what it places or what it writes. The user,
 2026-11-18: "the nesting should start from the lower left corner and try to minimize the
 total area occupied", "I don't think we should place the parts in a fixed order, that could
@@ -238,7 +238,13 @@ Each step a commit with its tests, the guide and translations with the step that
 2. **The search** (§4), with its generator, progress and Cancel. **Built 2026-11-18.**
 3. **Nest again from the board as it is** (§5). **Built 2026-11-18.**
 4. **The goal in the file, the window and the command line** (§6, §7), the summary line, the
-   setup sheet's fact, the guide (nesting page) and translations.
+   setup sheet's fact, the guide (nesting page) and translations. **Built 2026-11-18:**
+   `--json` drops `used` and `length` (there was no `used_x`) and gains `goal`, `extent`,
+   `usable` (the board less its margin, within the travel) and `unchanged`; the summary's
+   percentage and the box are of that usable area. The sheet's fact gives the box the cuts
+   take from the board's lower-left corner, of the whole board. The schema and the
+   generated reference pages carry `nest.goal`. Screenshots of the Nest window are renewed
+   with parts-and-setups step 7.
 
 ## 10. Clean room
 

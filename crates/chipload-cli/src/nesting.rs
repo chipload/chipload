@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use chipload_job::Turns;
+use chipload_job::{NestGoal, Turns};
 use chipload_pipeline::nest::{NestRequest, nest_setup};
 use chipload_toolpath::Cancel;
 use serde_json::json;
@@ -49,12 +49,39 @@ pub struct NestArgs {
     /// (docs/specs/parts-and-setups.md §9).
     #[arg(long, value_enum, default_value_t = Overflow::Off)]
     overflow: Overflow,
+    /// What the nest makes as small as it can: `compact` (the smallest box round the
+    /// parts), `low` (the lowest top edge: a strip across the top left free) or `left` (the
+    /// leftmost right edge: a strip down the right left free). Kept in the project.
+    /// Default: as last nested, else compact (docs/specs/nesting-search.md).
+    #[arg(long, value_enum)]
+    goal: Option<GoalArg>,
     /// Report what would be placed without writing the project.
     #[arg(long)]
     dry_run: bool,
     /// Where to write the result; default: the project itself.
     #[arg(short, long)]
     output: Option<PathBuf>,
+}
+
+/// `--goal`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+pub enum GoalArg {
+    /// The smallest box round the parts.
+    Compact,
+    /// The lowest top edge.
+    Low,
+    /// The leftmost right edge.
+    Left,
+}
+
+impl From<GoalArg> for NestGoal {
+    fn from(goal: GoalArg) -> NestGoal {
+        match goal {
+            GoalArg::Compact => NestGoal::Compact,
+            GoalArg::Low => NestGoal::Low,
+            GoalArg::Left => NestGoal::Left,
+        }
+    }
 }
 
 /// `--overflow`.
@@ -139,6 +166,7 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
             .collect(),
         counts: args.count.clone(),
         overflow: args.overflow == Overflow::NewBoards,
+        goal: args.goal.map(NestGoal::from),
     };
     let nested = match nest_setup(&job, &request, &Cancel::new()) {
         Ok(nested) => nested,
@@ -184,8 +212,9 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
     for note in &notes {
         out.line(format!("Note: {note}"));
     }
-    let share = if nested.length > 0.0 {
-        (100.0 * nested.used / nested.length).round()
+    let area = nested.usable.0 * nested.usable.1;
+    let share = if area > 0.0 {
+        (100.0 * nested.extent.0 * nested.extent.1 / area).round()
     } else {
         0.0
     };
@@ -224,8 +253,14 @@ pub(crate) fn nest(out: &mut Out, args: NestArgs) -> ExitCode {
                 .collect::<Vec<_>>()
         ),
     );
-    out.set("used", json!(nested.used));
-    out.set("length", json!(nested.length));
+    let goal = match nested.goal {
+        NestGoal::Compact => "compact",
+        NestGoal::Low => "low",
+        NestGoal::Left => "left",
+    };
+    out.set("goal", json!(goal));
+    out.set("extent", json!([nested.extent.0, nested.extent.1]));
+    out.set("usable", json!([nested.usable.0, nested.usable.1]));
     out.set("used_pct", json!(share));
     out.set("board_fixed", json!(nested.board_fixed));
     out.set("unchanged", json!(nested.unchanged));

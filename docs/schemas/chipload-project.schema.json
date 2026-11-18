@@ -1740,6 +1740,11 @@
           "format": "double",
           "type": "number"
         },
+        "goal": {
+          "$ref": "#/$defs/NestGoal",
+          "default": "compact",
+          "description": "What the nest makes as small as it can (docs/specs/nesting-search.md §2, §6);\nmissing in a file: compact."
+        },
         "margin": {
           "description": "The least distance from what an instance cuts to the board's edge, mm.",
           "format": "double",
@@ -1751,6 +1756,26 @@
         "margin"
       ],
       "type": "object"
+    },
+    "NestGoal": {
+      "description": "What a nest makes as small as it can, after placing as much as it can\n(docs/specs/nesting-search.md §2).",
+      "oneOf": [
+        {
+          "const": "compact",
+          "description": "The smallest box round the parts: a block in the board's lower-left corner.",
+          "type": "string"
+        },
+        {
+          "const": "low",
+          "description": "The lowest top edge: a strip across the top of the board left free.",
+          "type": "string"
+        },
+        {
+          "const": "left",
+          "description": "The leftmost right edge: a strip down the right of the board left free.",
+          "type": "string"
+        }
+      ]
     },
     "Operation": {
       "oneOf": [
