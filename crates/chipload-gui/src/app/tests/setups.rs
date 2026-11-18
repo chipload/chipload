@@ -266,8 +266,14 @@ fn a_back_is_simulated_turned_over_and_edited_from_the_front() {
     assert!(app.wait_for_simulation(&ctx));
     let raw = |app: &ChiploadApp| app.scene.sim.as_ref().unwrap().surface.raw;
     assert!(raw(&app), "the turned surface is drawn as it lies");
-    app.toggle_turned(&ctx);
-    assert!(!raw(&app));
+    // Turn over: the front made the active setup, as clicking it does (the user,
+    // 2026-11-18), and back again.
+    app.turn_over();
+    assert_eq!(app.edited_job().unwrap().active_setup_id(), Some(1));
+    assert!(!app.display.turned);
+    app.turn_over();
+    assert_eq!(app.edited_job().unwrap().active_setup_id(), Some(2));
+    assert!(app.display.turned);
     // A one-sided board has nothing to turn.
     let mut one = ChiploadApp::default();
     assert!(one.open(&corpus("jobs/v34/two_setups.chipload")));

@@ -225,8 +225,8 @@ its setup sheet are turned over.
 Simulating a back setup shows the whole part: its front cut first, then the back from
 below ([Simulation](../checking/simulation.md)).
 
-In Simulate, **Turn over** on the navigation bar shows the board back face up, as it lies
-for the back.
+In Simulate, **Turn over** on the navigation bar makes the other side the active setup:
+the back, shown back face up as it lies, or the front again.
 
 This is an experiment (docs/specs/two-sided.md): try it, and say what should change.
 

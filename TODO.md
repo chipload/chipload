@@ -166,7 +166,9 @@ to a program you trust. It was about four per operation; with the defaults and s
     **Setups always listed** (the user, 2026-11-18): *Simple view*/*Show setups* and
     `setups_shown` removed; the project's row and the Browser's empty space have the
     project's menu (new part, add a setup, face, nest, export all). Guide screenshots of
-    the Browser now outdated: renew with step 7. Also seen: `part list` says
+    the Browser now outdated: renew with step 7.
+    **Turn over** in Simulate now activates the other side's setup (the user, 2026-11-18),
+    two-sided.md decision 15. Also seen: `part list` says
     "0 in all" for a part cut only from another setup. Next: step 7 with the remembered
     overflow choice and the setup/board wording.
     **A better nest** (the user, 2026-11-18: start lower left, minimise the area, no fixed

@@ -6,7 +6,7 @@ navigation-fit-hover = Anpassa vyn
 navigation-top = Ovan
 navigation-top-hover = Se rakt uppifrån
 navigation-turn-over = Vänd
-navigation-turn-over-hover = Vänd skivan: visa den med baksidan upp, som den ligger för baksidans uppspänning
+navigation-turn-over-hover = Skivans andra sida: baksidans uppspänning blir den aktiva, skivan med baksidan upp som den ligger; eller framsidan igen
 navigation-3d = 3D
 navigation-3d-hover = 3D: vänsterdra vrider och lutar; högerdra eller Shift+dra panorerar
 # $scale: how much the heights are stretched, a plain number.

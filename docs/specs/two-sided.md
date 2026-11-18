@@ -491,7 +491,10 @@ default is the face that setup cuts. The numbers in `--json` get `through_cm2`.
     and the button shows the back face as the operator sees it. Turning applies in Simulate
     only: in Edit the board is seen from the front, where the shapes are drawn (decision
     8). The 3D view's walls are drawn only where they face the viewer, so painter's order
-    stays right through holes.
+    stays right through holes. *Changed 2026-11-18* (the user: "it should be the same as
+    activating setup 2"): the button makes the other side's setup the active one, front ↔
+    back, and the board is turned as that setup's activation turns it; it no longer turns
+    the view of the side that stays active.
 16. **A back surface pass may go over the dowel pins, with a warning;** the pins are set
     down as deep as it cuts (§6). *The user, 2026-11-08: "allow surfacing above pins with a
     warning".* Before: refused like any other cut, the pins flush with the back face.

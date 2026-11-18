@@ -257,8 +257,7 @@ impl ChiploadApp {
             .on_hover_text(t!(ui, "navigation-turn-over-hover"))
             .clicked()
             {
-                let ctx = ui.ctx().clone();
-                self.toggle_turned(&ctx);
+                self.turn_over();
             }
         }
     }

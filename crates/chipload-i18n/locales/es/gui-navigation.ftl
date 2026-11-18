@@ -6,7 +6,7 @@ navigation-fit-hover = Ajustar la vista
 navigation-top = Planta
 navigation-top-hover = Mirar desde arriba en vertical
 navigation-turn-over = Dar la vuelta
-navigation-turn-over-hover = Dar la vuelta al tablero: mostrarlo con el reverso arriba, como queda para la sujeción de su reverso
+navigation-turn-over-hover = La otra cara del tablero: su sujeción del reverso pasa a ser la activa, el tablero con el reverso arriba, como queda; o de nuevo el anverso
 navigation-3d = 3D
 navigation-3d-hover = 3D: arrastrar con el botón izquierdo gira e inclina; con el derecho o Shift+arrastrar desplaza
 # $scale: how much the heights are stretched, a plain number.

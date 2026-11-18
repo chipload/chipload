@@ -278,15 +278,25 @@ impl ChiploadApp {
         board_turn(&self.edit.as_ref()?.job)
     }
 
-    /// Turn the board over, or back: the view, the simulation and playback with it.
-    pub fn toggle_turned(&mut self, ctx: &egui::Context) {
-        self.display.turned = !self.display.turned;
-        if let Some(sim) = self.sim.simulation.take() {
-            self.show_simulation_layer(ctx, &sim);
-            self.sim.simulation = Some(sim);
-        }
-        if let Some(playback) = &mut self.playback {
-            playback.shown = None;
+    /// *Turn over*: the other side of the board made the active setup, as clicking its
+    /// setup does (the user, 2026-11-18): the back shown as it lies, back face up, its
+    /// toolpath, simulation and export; or the front again.
+    pub fn turn_over(&mut self) {
+        let Some(job) = self.edit.as_ref().map(|e| &e.job) else {
+            return;
+        };
+        let Some(id) = job.active_setup_id() else {
+            return;
+        };
+        let other = match job.setup(id).and_then(|s| s.back_of) {
+            Some(back) => Some(back.setup),
+            None => job.back_of(id).map(|s| s.id),
+        };
+        if let Some(other) = other {
+            self.activate_setup(other);
+            if matches!(self.focus, Focus::Setup(_)) {
+                self.focus = Focus::Setup(other);
+            }
         }
     }
 }

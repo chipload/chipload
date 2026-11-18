@@ -61,10 +61,10 @@ face, the board as it lies turned over; `--face front` the front. A back setup's
 shows its own face by default.
 
 In the window, Simulate mode has **Turn over** on the navigation bar for a board with two
-sides: the board shown back face up, as it lies for its back's setup, in the top view and
-in 3D, the toolpath and shapes turned with it. Making the back setup active turns it over;
-making the front active turns it back. In Edit mode the board is always seen from the
-front, where you draw.
+sides: it makes the other side's setup the active one, as clicking that setup does. The
+back is shown back face up, as it lies for its setup, in the top view and in 3D, its
+toolpath and shapes turned with it; pressed again, the front is active and face up. In
+Edit mode the board is always seen from the front, where you draw.
 
 ## Playback
 

@@ -6,7 +6,7 @@ navigation-fit-hover = Ajuster la vue
 navigation-top = Dessus
 navigation-top-hover = Regarder droit vers le bas
 navigation-turn-over = Retourner
-navigation-turn-over-hover = Retourner la planche : la montrer verso dessus, telle qu'elle repose pour le montage de son verso
+navigation-turn-over-hover = L’autre face de la planche : son montage du verso devient actif, la planche verso dessus, telle qu’elle repose ; ou de nouveau le recto
 navigation-3d = 3D
 navigation-3d-hover = 3D : glisser à gauche fait tourner et incliner ; glisser à droite ou Shift+glisser déplace
 # $scale: how much the heights are stretched, a plain number.
