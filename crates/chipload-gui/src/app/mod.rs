@@ -109,6 +109,7 @@ mod two_sided;
 mod update_notice;
 mod user_library;
 mod wizard_tools;
+mod worker;
 mod zero_drag;
 
 use forms::{job_form, op_form};

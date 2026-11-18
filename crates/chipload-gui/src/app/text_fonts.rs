@@ -127,10 +127,13 @@ impl ChiploadApp {
         self.text_fonts.started = true;
         let finder = self.text_fonts.finder.clone();
         let ctx = ctx.clone();
-        std::thread::spawn(move || {
-            finder.names();
-            ctx.request_repaint();
-        });
+        // No thread to be had: the names are looked for when first asked for instead.
+        let _ = std::thread::Builder::new()
+            .name("find fonts".into())
+            .spawn(move || {
+                finder.names();
+                ctx.request_repaint();
+            });
     }
 
     /// Wait for the computer's fonts (tests and the command line's way, never the

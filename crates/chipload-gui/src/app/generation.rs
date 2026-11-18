@@ -3,10 +3,6 @@
 //! the window stays live while a project is planned, a newer run cancels an older one, and
 //! a result is shown only for the project it was made from.
 
-use std::panic::AssertUnwindSafe;
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver, TryRecvError, channel};
-
 use chipload_i18n::Message;
 use chipload_job::Problem;
 use chipload_pipeline::{Cancel, run_job_cancellable};
@@ -30,8 +26,7 @@ type Outcome = Result<Result<RunResult, PipelineError>, String>;
 
 /// A run in progress.
 pub(super) struct Generation {
-    cancel: Arc<Cancel>,
-    receiver: Receiver<Outcome>,
+    worker: super::worker::Worker<Result<RunResult, PipelineError>>,
     /// The job being planned, for the report.
     job: Job,
     /// The project as it was when the run started: the result is shown only if it still is.
@@ -44,16 +39,6 @@ pub(super) struct Generation {
     /// What the run is made from: an edit that leaves it so keeps the run
     /// (docs/specs/edit-and-simulate.md §5).
     inputs: Option<chipload_pipeline::CutInputs>,
-}
-
-fn panic_text(payload: &(dyn std::any::Any + Send)) -> String {
-    if let Some(text) = payload.downcast_ref::<&str>() {
-        (*text).to_string()
-    } else if let Some(text) = payload.downcast_ref::<String>() {
-        text.clone()
-    } else {
-        "unknown error".into()
-    }
 }
 
 impl ChiploadApp {
@@ -152,7 +137,7 @@ impl ChiploadApp {
     /// How far the run in progress has got, 0 to 1 (docs/specs/background-generation.md
     /// §7); None when none is running.
     pub fn generation_progress(&self) -> Option<f64> {
-        self.toolpath.running.as_ref().map(|r| r.cancel.progress())
+        self.toolpath.running.as_ref().map(|r| r.worker.progress())
     }
 
     /// A run is in progress.
@@ -236,28 +221,20 @@ impl ChiploadApp {
             }
         };
         let inputs = self.cut_inputs_now();
-        let (sender, receiver) = channel();
-        let cancel = Arc::new(Cancel::new());
-        let flag = Arc::clone(&cancel);
         let runner = self.toolpath.runner;
         let planned = job.clone();
-        let spawned = std::thread::Builder::new()
-            .name("generate".into())
-            .spawn(move || {
-                let outcome =
-                    std::panic::catch_unwind(AssertUnwindSafe(|| runner(&planned, &flag)))
-                        .map_err(|payload| panic_text(payload.as_ref()));
-                // The window may have moved on and dropped the receiver: nothing to tell.
-                let _ = sender.send(outcome);
-            });
-        if let Err(err) = spawned {
-            let text = t!(self, "generation-could-not-start", error = err.to_string());
-            self.fail(vec![text], loud);
-            return false;
-        }
+        let worker = match super::worker::Worker::start("generate", move |cancel| {
+            runner(&planned, cancel)
+        }) {
+            Ok(worker) => worker,
+            Err(err) => {
+                let text = t!(self, "generation-could-not-start", error = err.to_string());
+                self.fail(vec![text], loud);
+                return false;
+            }
+        };
         self.toolpath.running = Some(Generation {
-            cancel,
-            receiver,
+            worker,
             job,
             project,
             loud,
@@ -270,7 +247,7 @@ impl ChiploadApp {
     /// Stop the run in progress, if any, without a word (a newer one replaces it).
     pub(super) fn stop_generation(&mut self) {
         if let Some(generation) = self.toolpath.running.take() {
-            generation.cancel.cancel();
+            generation.worker.cancel();
         }
     }
 
@@ -288,11 +265,8 @@ impl ChiploadApp {
     /// Apply the worker's result if it has arrived. Returns Some(success) when the run is
     /// over.
     pub(super) fn poll_generation(&mut self) -> Option<bool> {
-        let outcome = match self.toolpath.running.as_ref()?.receiver.try_recv() {
-            Ok(outcome) => outcome,
-            Err(TryRecvError::Empty) => return None,
-            Err(TryRecvError::Disconnected) => Err(t!(self, "generation-worker-stopped")),
-        };
+        let outcome = self.toolpath.running.as_ref()?.worker.poll()?;
+        let outcome = outcome.map_err(|stop| stop.text_or(t!(self, "generation-worker-stopped")));
         let generation = self.toolpath.running.take()?;
         Some(self.finish_generation(generation, outcome))
     }
@@ -304,9 +278,9 @@ impl ChiploadApp {
             return false;
         };
         let outcome = generation
-            .receiver
-            .recv()
-            .unwrap_or_else(|_| Err(t!(self, "generation-worker-stopped")));
+            .worker
+            .wait()
+            .map_err(|stop| stop.text_or(t!(self, "generation-worker-stopped")));
         self.finish_generation(generation, outcome)
     }
 

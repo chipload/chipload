@@ -4,12 +4,7 @@
 //! board, what didn't fit parked beside it; Apply as one undo step. Nest again runs with
 //! the setup's kept settings, without the window. The nesting itself is the pipeline's.
 
-use std::panic::AssertUnwindSafe;
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver, TryRecvError, channel};
-
 use chipload_job::{NestGoal, Turns};
-use chipload_pipeline::Cancel;
 use chipload_pipeline::nest::{NEST_GAP_MM, NEST_MARGIN_MM, NestRequest, NestResult, nest_setup};
 
 use super::*;
@@ -23,10 +18,7 @@ pub(super) type Ghosts = Vec<(Vec<Vec<Point>>, bool)>;
 pub(super) type Boards = (Option<(Point, Point)>, Vec<(Point, Point)>);
 
 /// A nest being computed.
-struct NestRun {
-    cancel: Arc<Cancel>,
-    receiver: Receiver<Outcome>,
-}
+type NestRun = super::worker::Worker<Result<NestResult, PipelineError>>;
 
 /// One part's row: how many times it is cut and how it may turn.
 #[derive(Debug, Clone, PartialEq)]
@@ -89,7 +81,7 @@ impl NestDialog {
     fn changed(&mut self) {
         self.preview = None;
         if let Some(run) = self.run.take() {
-            run.cancel.cancel();
+            run.cancel();
         }
     }
 }
@@ -182,26 +174,14 @@ impl ChiploadApp {
         let Some(job) = self.edit.as_ref().map(|e| e.job.clone()) else {
             return;
         };
-        let lang = crate::i18n::Lang::lang(self);
         let Some(dialog) = self.nest.as_mut() else {
             return;
         };
         dialog.changed();
         let request = dialog.request();
-        let (sender, receiver) = channel();
-        let cancel = Arc::new(Cancel::new());
-        let flag = Arc::clone(&cancel);
-        let spawned = std::thread::Builder::new()
-            .name("nest".into())
-            .spawn(move || {
-                let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                    nest_setup(&job, &request, &flag)
-                }))
-                .map_err(|_| t!(lang, "nest-stopped-unexpectedly"));
-                let _ = sender.send(outcome);
-            });
+        let spawned = NestRun::start("nest", move |cancel| nest_setup(&job, &request, cancel));
         match spawned {
-            Ok(_) => dialog.run = Some(NestRun { cancel, receiver }),
+            Ok(run) => dialog.run = Some(run),
             Err(err) => {
                 dialog.preview = Some(Err(err.to_string()));
             }
@@ -213,11 +193,10 @@ impl ChiploadApp {
         let Some(run) = self.nest.as_ref().and_then(|d| d.run.as_ref()) else {
             return false;
         };
-        let outcome = match run.receiver.try_recv() {
-            Ok(outcome) => outcome,
-            Err(TryRecvError::Empty) => return true,
-            Err(TryRecvError::Disconnected) => Err(t!(self, "nest-stopped-unexpectedly")),
+        let Some(outcome) = run.poll() else {
+            return true;
         };
+        let outcome = outcome.map_err(|_| t!(self, "nest-stopped-unexpectedly"));
         self.finish_nest(outcome);
         false
     }
@@ -229,9 +208,8 @@ impl ChiploadApp {
             return;
         };
         let outcome = run
-            .receiver
-            .recv()
-            .unwrap_or_else(|_| Err(t!(self, "nest-stopped-unexpectedly")));
+            .wait()
+            .map_err(|_| t!(self, "nest-stopped-unexpectedly"));
         self.finish_nest(outcome);
     }
 
@@ -547,7 +525,7 @@ fn nest_form(
             }
         });
     ui.add_space(6.0);
-    let share = dialog.run.as_ref().map(|run| run.cancel.progress());
+    let share = dialog.run.as_ref().map(|run| run.progress());
     match (&dialog.preview, share) {
         (_, Some(share)) => {
             ui.horizontal(|ui| {

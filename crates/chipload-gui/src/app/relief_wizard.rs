@@ -5,8 +5,7 @@
 //! `add_relief`; the window only gathers the answers and shows them.
 
 use std::path::PathBuf;
-use std::sync::mpsc::{Receiver, TryRecvError};
-use std::sync::{Arc, Mutex};
+use std::rc::Rc;
 
 use chipload_job::library::ToolLibrary;
 use chipload_job::{Job, Model, ModelUp, Units as JobUnits};
@@ -35,7 +34,10 @@ const RIM_PICTURE_STEPS: usize = 24;
 enum Source {
     Nothing,
     /// A file being read on a worker thread.
-    Reading(PathBuf, Arc<Mutex<Receiver<Result<ReadModel, String>>>>),
+    Reading(
+        PathBuf,
+        Rc<super::worker::Worker<Result<ReadModel, String>>>,
+    ),
     File(PathBuf, ReadModel),
     Existing(u64),
 }
@@ -380,23 +382,18 @@ impl ChiploadApp {
 
     /// Start reading `path` for the wizard on a worker thread.
     fn wizard_read(&self, path: PathBuf) -> Option<Source> {
-        let (sender, receiver) = std::sync::mpsc::channel();
         let file = path.clone();
         let lang = crate::i18n::Lang::lang(self);
-        std::thread::Builder::new()
-            .name("read model".into())
-            .spawn(move || {
-                let read = std::fs::read(&file)
-                    .map_err(|e| e.to_string())
-                    .and_then(|bytes| {
-                        std::panic::catch_unwind(|| read_model(&bytes))
-                            .map_err(|_| String::new())?
-                            .map_err(|e| e.message().render(lang, chipload_i18n::Units::Mm))
-                    });
-                let _ = sender.send(read);
-            })
-            .ok()?;
-        Some(Source::Reading(path, Arc::new(Mutex::new(receiver))))
+        let worker = super::worker::Worker::start("read model", move |_| {
+            std::fs::read(&file)
+                .map_err(|e| e.to_string())
+                .and_then(|bytes| {
+                    read_model(&bytes)
+                        .map_err(|e| e.message().render(lang, chipload_i18n::Units::Mm))
+                })
+        })
+        .ok()?;
+        Some(Source::Reading(path, Rc::new(worker)))
     }
 
     pub(super) fn relief_prompt(&mut self, ctx: &egui::Context, mut w: Box<ReliefWizard>) {
@@ -410,12 +407,15 @@ impl ChiploadApp {
         let color = crate::style::op_color(OpKind::Relief, dark);
         // A file being read: taken when read.
         if let Source::Reading(path, receiver) = w.source.clone() {
-            let got = receiver.lock().map(|r| r.try_recv());
+            // A panic in the reader says "can't read" with its text, if any.
+            let got = receiver
+                .poll()
+                .map(|read| read.unwrap_or_else(|stop| Err(stop.text_or(String::new()))));
             match got {
-                Ok(Ok(Ok(read))) => {
+                Some(Ok(read)) => {
                     w.take_file(path, read, &job);
                 }
-                Ok(Ok(Err(why))) => {
+                Some(Err(why)) => {
                     self.error(vec![t!(
                         self,
                         "models-cannot-read",
@@ -424,8 +424,7 @@ impl ChiploadApp {
                     )]);
                     w.source = Source::Nothing;
                 }
-                Ok(Err(TryRecvError::Empty)) => ctx.request_repaint_after(generation::POLL),
-                _ => w.source = Source::Nothing,
+                None => ctx.request_repaint_after(generation::POLL),
             }
         }
         // Centred on the board: placed from the relief's size.

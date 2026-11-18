@@ -4,7 +4,7 @@
 //! preview is traced in the background as the settings change; *Import* (or *Apply*) puts
 //! the shapes into the project through the pipeline.
 
-use std::sync::{Arc, mpsc};
+use std::sync::Arc;
 
 use chipload_job::{Image, ImageThreshold, ImageTrace};
 use chipload_pipeline::images::{
@@ -55,7 +55,7 @@ pub struct ImageDialog {
     shown: Option<Image>,
     texture: Option<egui::TextureHandle>,
     /// The preview being traced, for the settings in `asked`.
-    pending: Option<mpsc::Receiver<Result<Preview, String>>>,
+    pending: Option<super::worker::Worker<Result<Preview, String>>>,
     asked: Option<Image>,
     zoom: PreviewZoom,
     /// The traced lines drawn over the picture (unticked: the picture alone, to judge the
@@ -129,36 +129,36 @@ impl ImageDialog {
     /// Start tracing the draft if it changed and nothing is being traced; take a finished
     /// preview. True while one is being traced.
     fn step(&mut self, ctx: &egui::Context) -> bool {
-        if let Some(rx) = &self.pending {
-            match rx.try_recv() {
-                Ok(result) => {
-                    self.texture = result
-                        .as_ref()
-                        .ok()
-                        .map(|p| ctx.load_texture("image-preview", texture_of(p), nearest()));
-                    self.preview = Some(result);
-                    self.shown = self.asked.take();
-                    self.pending = None;
-                }
-                Err(mpsc::TryRecvError::Empty) => return true,
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    self.preview = Some(Err(t!(ctx, "images-tracing-failed")));
-                    self.shown = self.asked.take();
-                    self.pending = None;
-                }
-            }
+        if let Some(worker) = &self.pending {
+            let Some(outcome) = worker.poll() else {
+                return true;
+            };
+            // A panic while tracing, or a lost thread: the tracing failed.
+            let result = outcome.unwrap_or_else(|_| Err(t!(ctx, "images-tracing-failed")));
+            self.texture = result
+                .as_ref()
+                .ok()
+                .map(|p| ctx.load_texture("image-preview", texture_of(p), nearest()));
+            self.preview = Some(result);
+            self.shown = self.asked.take();
+            self.pending = None;
         }
         if self.shown.as_ref() != Some(&self.draft) {
-            let (tx, rx) = mpsc::channel();
             let (picture, draft) = (Arc::clone(&self.picture), self.draft.clone());
             // Why it fails is said in the app's language and display units.
             let (lang, units) = (ctx.lang(), crate::units::display(ctx).into());
-            std::thread::spawn(move || {
-                let result = preview(&picture, &draft).map_err(|e| e.message().render(lang, units));
-                let _ = tx.send(result);
+            let spawned = super::worker::Worker::start("trace picture", move |_| {
+                preview(&picture, &draft).map_err(|e| e.message().render(lang, units))
             });
-            self.pending = Some(rx);
             self.asked = Some(self.draft.clone());
+            match spawned {
+                Ok(worker) => self.pending = Some(worker),
+                Err(err) => {
+                    self.preview = Some(Err(err.to_string()));
+                    self.shown = self.asked.take();
+                    return false;
+                }
+            }
             return true;
         }
         false

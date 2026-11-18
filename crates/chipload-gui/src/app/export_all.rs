@@ -4,9 +4,6 @@
 //! window stays live. Nothing is written unless every setup plans and passes the checker.
 //! The planning and writing are the pipeline's.
 
-use std::panic::AssertUnwindSafe;
-use std::sync::mpsc::{Receiver, TryRecvError, channel};
-
 use chipload_pipeline::export_all::{ExportError, Exported, export_all};
 
 use super::dialogs::save_dialog;
@@ -16,7 +13,7 @@ type Outcome = Result<Result<Exported, ExportError>, String>;
 
 /// An export of every setup in progress.
 pub(super) struct ExportAllRun {
-    receiver: Receiver<Outcome>,
+    worker: super::worker::Worker<Result<Exported, ExportError>>,
     /// The file the programs are named after.
     output: PathBuf,
 }
@@ -59,22 +56,14 @@ impl ChiploadApp {
             }
         };
         let info = self.prefs.setup_sheet.then(|| self.sheet_info(Vec::new()));
-        let lang = crate::i18n::Lang::lang(self);
-        let (sender, receiver) = channel();
         let output = path.to_path_buf();
         let target = output.clone();
-        let spawned = std::thread::Builder::new()
-            .name("export-all".into())
-            .spawn(move || {
-                let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                    export_all(&job, &target, info.as_ref())
-                }))
-                .map_err(|_| t!(lang, "app-export-all-stopped"));
-                let _ = sender.send(outcome);
-            });
+        let spawned = super::worker::Worker::start("export-all", move |_| {
+            export_all(&job, &target, info.as_ref())
+        });
         match spawned {
-            Ok(_) => {
-                self.export_all = Some(ExportAllRun { receiver, output });
+            Ok(worker) => {
+                self.export_all = Some(ExportAllRun { worker, output });
                 self.set_status(t!(self, "app-export-all-running"), STATUS_SECONDS);
                 true
             }
@@ -90,14 +79,11 @@ impl ChiploadApp {
         let Some(run) = &self.export_all else {
             return;
         };
-        let outcome = match run.receiver.try_recv() {
-            Ok(outcome) => outcome,
-            Err(TryRecvError::Empty) => {
-                ctx.request_repaint_after(generation::POLL);
-                return;
-            }
-            Err(TryRecvError::Disconnected) => Err(t!(self, "app-export-all-stopped")),
+        let Some(outcome) = run.worker.poll() else {
+            ctx.request_repaint_after(generation::POLL);
+            return;
         };
+        let outcome = outcome.map_err(|_| t!(self, "app-export-all-stopped"));
         self.finish_export_all(outcome);
     }
 
@@ -108,9 +94,9 @@ impl ChiploadApp {
             return;
         };
         let outcome = run
-            .receiver
-            .recv()
-            .unwrap_or_else(|_| Err(t!(self, "app-export-all-stopped")));
+            .worker
+            .wait()
+            .map_err(|_| t!(self, "app-export-all-stopped"));
         self.finish_export_all(outcome);
     }
 

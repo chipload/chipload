@@ -3,11 +3,6 @@
 //! a worker thread after each generation while it is switched on, shown as an image in top
 //! view and a surface in 3D.
 
-use std::panic::AssertUnwindSafe;
-use std::sync::Arc;
-use std::sync::mpsc::{Receiver, TryRecvError, channel};
-
-use chipload_pipeline::Cancel;
 use chipload_pipeline::simulate::{
     DISPLAY_CELLS, History, Palette, Simulation, simulate_with_history,
 };
@@ -31,8 +26,7 @@ type Outcome = Result<Result<(Simulation, Option<History>), PipelineError>, Stri
 
 /// A simulation in progress.
 pub(super) struct SimRun {
-    cancel: Arc<Cancel>,
-    receiver: Receiver<Outcome>,
+    worker: super::worker::Worker<Result<(Simulation, Option<History>), PipelineError>>,
     /// The generation it is for: its result is shown only while that one is.
     serial: u64,
 }
@@ -104,7 +98,7 @@ impl ChiploadApp {
 
     /// How far the simulation being computed has got, 0 to 1; None when none is.
     pub fn simulation_progress(&self) -> Option<f64> {
-        self.sim.run.as_ref().map(|r| r.cancel.progress())
+        self.sim.run.as_ref().map(|r| r.worker.progress())
     }
 
     /// A simulation is being computed.
@@ -122,36 +116,28 @@ impl ChiploadApp {
             return;
         };
         let (job, program, groups) = (job.clone(), result.program.clone(), result.groups.clone());
-        let (sender, receiver) = channel();
-        let cancel = Arc::new(Cancel::new());
-        let flag = Arc::clone(&cancel);
-        let lang = crate::i18n::Lang::lang(self);
-        let spawned = std::thread::Builder::new()
-            .name("simulate".into())
-            .spawn(move || {
-                let outcome = std::panic::catch_unwind(AssertUnwindSafe(|| {
-                    simulate_with_history(&job, &program, &groups, None, &flag)
-                }))
-                .map_err(|_| t!(lang, "simulation-stopped-unexpectedly"));
-                let _ = sender.send(outcome);
-            });
-        if let Err(err) = spawned {
-            self.report.push(
-                Tone::Warning,
-                t!(self, "simulation-could-not-start", error = err.to_string()),
-            );
-            return;
-        }
+        let spawned = super::worker::Worker::start("simulate", move |cancel| {
+            simulate_with_history(&job, &program, &groups, None, cancel)
+        });
+        let worker = match spawned {
+            Ok(worker) => worker,
+            Err(err) => {
+                self.report.push(
+                    Tone::Warning,
+                    t!(self, "simulation-could-not-start", error = err.to_string()),
+                );
+                return;
+            }
+        };
         self.sim.run = Some(SimRun {
-            cancel,
-            receiver,
+            worker,
             serial: self.sim.serial,
         });
     }
 
     pub(super) fn stop_simulation(&mut self) {
         if let Some(run) = self.sim.run.take() {
-            run.cancel.cancel();
+            run.worker.cancel();
         }
     }
 
@@ -174,11 +160,10 @@ impl ChiploadApp {
         let Some(run) = &self.sim.run else {
             return false;
         };
-        let outcome = match run.receiver.try_recv() {
-            Ok(outcome) => outcome,
-            Err(TryRecvError::Empty) => return true,
-            Err(TryRecvError::Disconnected) => Err(t!(self, "simulation-stopped-unexpectedly")),
+        let Some(outcome) = run.worker.poll() else {
+            return true;
         };
+        let outcome = outcome.map_err(|_| t!(self, "simulation-stopped-unexpectedly"));
         let serial = run.serial;
         self.sim.run = None;
         self.finish_simulation(ctx, serial, outcome);
@@ -192,9 +177,9 @@ impl ChiploadApp {
             return false;
         };
         let outcome = run
-            .receiver
-            .recv()
-            .unwrap_or_else(|_| Err(t!(self, "simulation-stopped-unexpectedly")));
+            .worker
+            .wait()
+            .map_err(|_| t!(self, "simulation-stopped-unexpectedly"));
         self.finish_simulation(ctx, run.serial, outcome);
         self.sim.simulation.is_some()
     }

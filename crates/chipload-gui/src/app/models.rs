@@ -26,7 +26,7 @@ pub(super) struct ModelSurfaces {
 /// An STL file being read on a worker thread (docs/specs/relief-wizard.md §2).
 pub(super) struct ModelReading {
     path: std::path::PathBuf,
-    receiver: std::sync::mpsc::Receiver<Result<ReadModel, ReadFailed>>,
+    worker: super::worker::Worker<Result<ReadModel, ReadFailed>>,
 }
 
 /// Why a model's file could not be added: the line to show, and the reader's reason.
@@ -59,50 +59,48 @@ impl ChiploadApp {
         if self.edit.is_none() {
             self.new_project();
         }
-        let (sender, receiver) = std::sync::mpsc::channel();
         let file = path.to_path_buf();
         let lang = crate::i18n::Lang::lang(self);
-        let spawned = std::thread::Builder::new()
-            .name("read model".into())
-            .spawn(move || {
-                let path = file.display().to_string();
-                let read = std::fs::read(&file)
-                    .map_err(|err| {
-                        let error = err.to_string();
-                        (
-                            t!(
-                                lang,
-                                "models-cannot-read",
-                                path = path.clone(),
-                                error = error
-                            ),
-                            None,
-                        )
-                    })
-                    .and_then(|bytes| {
+        // A panic in the reader comes back as the worker's: "can't add", without a reason.
+        let spawned = super::worker::Worker::start("read model", move |_| {
+            let path = file.display().to_string();
+            std::fs::read(&file)
+                .map_err(|err| {
+                    let error = err.to_string();
+                    (
+                        t!(
+                            lang,
+                            "models-cannot-read",
+                            path = path.clone(),
+                            error = error
+                        ),
+                        None,
+                    )
+                })
+                .and_then(|bytes| {
+                    read_model(&bytes).map_err(|err| {
                         let cannot = t!(lang, "models-cannot-add", path = path.clone());
-                        match std::panic::catch_unwind(|| read_model(&bytes)) {
-                            Ok(Ok(read)) => Ok(read),
-                            Ok(Err(err)) => Err((cannot, Some(err.message()))),
-                            Err(_) => Err((cannot, None)),
-                        }
-                    });
-                let _ = sender.send(read);
-            });
-        if let Err(err) = spawned {
-            self.error(vec![t!(
-                self,
-                "models-cannot-read",
-                path = path.display().to_string(),
-                error = err.to_string()
-            )]);
-            return false;
-        }
+                        (cannot, Some(err.message()))
+                    })
+                })
+        });
+        let worker = match spawned {
+            Ok(worker) => worker,
+            Err(err) => {
+                self.error(vec![t!(
+                    self,
+                    "models-cannot-read",
+                    path = path.display().to_string(),
+                    error = err.to_string()
+                )]);
+                return false;
+            }
+        };
         let name = file_name(path);
         self.set_status(t!(self, "models-reading", file = name), STATUS_SECONDS);
         self.model_reading = Some(ModelReading {
             path: path.to_path_buf(),
-            receiver,
+            worker,
         });
         true
     }
@@ -117,18 +115,10 @@ impl ChiploadApp {
         let Some(reading) = &self.model_reading else {
             return false;
         };
-        let read = match reading.receiver.try_recv() {
-            Ok(read) => read,
-            Err(std::sync::mpsc::TryRecvError::Empty) => return true,
-            Err(std::sync::mpsc::TryRecvError::Disconnected) => Err((
-                t!(
-                    self,
-                    "models-cannot-add",
-                    path = reading.path.display().to_string()
-                ),
-                None,
-            )),
+        let Some(read) = reading.worker.poll() else {
+            return true;
         };
+        let read = read.unwrap_or_else(|_| Err((self.cannot_add(&reading.path), None)));
         self.finish_model_reading(read);
         false
     }
@@ -140,17 +130,16 @@ impl ChiploadApp {
         let Some(reading) = &self.model_reading else {
             return false;
         };
-        let read = reading.receiver.recv().unwrap_or_else(|_| {
-            Err((
-                t!(
-                    self,
-                    "models-cannot-add",
-                    path = reading.path.display().to_string()
-                ),
-                None,
-            ))
-        });
+        let read = reading
+            .worker
+            .wait()
+            .unwrap_or_else(|_| Err((self.cannot_add(&reading.path), None)));
         self.finish_model_reading(read)
+    }
+
+    /// "Can't add" `path`, when its reader stopped without a reason.
+    fn cannot_add(&self, path: &std::path::Path) -> String {
+        t!(self, "models-cannot-add", path = path.display().to_string())
     }
 
     fn finish_model_reading(&mut self, read: Result<ReadModel, ReadFailed>) -> bool {
