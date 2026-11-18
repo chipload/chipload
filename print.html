@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-015cd119.js";
+            window.path_to_searchindex_js = "searchindex-bf4381fb.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ccd7e32c.js"></script>
@@ -240,7 +240,6 @@ licences of everything it is built with are under <em>Help &gt; About and licenc
 <h2 id="what-chipload-doesnt-do"><a class="header" href="#what-chipload-doesnt-do">What Chipload doesn’t do</a></h2>
 <p>Chipload is meant to be lean. It leaves out what other tools do better:</p>
 <ul>
-<li>nesting parts on a sheet;</li>
 <li>machining driven by a 3D CAD model (features and depths from a STEP file): CAM connected
 to your CAD does that better. Chipload does carve 3D shapes from 2D input:
 <a href="#3d-models">reliefs</a> from the top, and <a href="#moulding">mouldings</a>;</li>
@@ -619,10 +618,12 @@ with it (its hover says which).</li>
 operation</em> (for the selected shapes), <em>Move up</em>, <em>Move down</em>, <em>Move to setup ▸</em> and
 <em>Delete part</em> (with its operations).</li>
 <li><strong>An instance:</strong> <em>Mirror</em>, <em>Turn 90°</em> and <em>Remove</em>.</li>
-<li><strong>The project</strong>, with one board: <em>New part</em>, <em>Face the board…</em>, <em>Nest…</em>, <em>Pieces and
-back side…</em> (the board’s own settings), <em>Add the back side</em> and <em>Add a setup</em>.</li>
-<li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
-setup</em>.</li>
+<li><strong>The project, or the empty space below the Browser’s rows:</strong> <em>New part</em> (on the active
+setup), <em>Add a setup</em>, <em>Face the board…</em>, <em>Nest…</em> and <em>Nest again</em> (the active setup’s),
+and <em>Export all setups…</em> with two or more.</li>
+<li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>Face the board…</em>, <em>Nest…</em>, <em>Nest again</em>
+(once nested), <em>New part</em>, <em>Add a setup</em>, <em>Add the back side</em> and, with two or more,
+<em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a setup</em> and <em>Export all setups…</em>.</li>
 <li><strong>A library tool:</strong> <em>Add to project</em>, <em>Make default</em>, <em>Delete</em>. <strong>A library machine:</strong>
 <em>Use in this project</em>, <em>Make default</em>, <em>Delete</em>. <strong>Library &gt; Tools or Machines:</strong> <em>New</em>,
 <em>Import…</em>, <em>Export…</em>.</li>
