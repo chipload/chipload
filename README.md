@@ -21,6 +21,10 @@ ball nose finishes the boat inside a rim that ramps up to the surface](docs/book
 Creative Tools (CC0), 150 mm wide and 10 mm deep, roughed with a 6 mm end mill and finished
 with a 2 mm ball nose.</sub>
 
+![Chipload: a project of six parts cut from a board as drawn, then the Nest window asking
+for four to ten of each, and the parts nested: 35 packed onto the first board, the rest
+onto two more boards made like it](docs/book/src/images/showcase-nest.gif)
+
 > **Testers with real machines wanted.** Chipload's programs pass its own checker, and they
 > cut wood on a GRBL router (a Shapeoko), but they haven't yet run on LinuxCNC or Mach3/4,
 > nor in inches. If you have a CNC router or mill, please try it, starting with an air cut,
@@ -47,6 +51,11 @@ with a 2 mm ball nose.</sub>
 - **A sheet of parts:** several parts with their own operations, each placed again as instances that can be
   moved, turned and mirrored; export
   the whole sheet or one part.
+- **Nesting:** what the tools really cut, packed onto the board as a compact block or
+  keeping a strip free, many orders and turns tried; what doesn't fit onto more boards.
+- **Setups:** cut parts from several boards, each with its own stock and work zero, a
+  part's thickness picking its board; two-sided work with the back turned over and located
+  by dowel pins.
 - **The work zero where you want it:** a stock corner, its centre, the drawing origin or any
   point, dragged in the view.
 - **Your tools, materials and machines** in a library, with your own feeds per tool and

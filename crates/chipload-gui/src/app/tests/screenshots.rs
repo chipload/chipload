@@ -277,6 +277,110 @@ fn text_showcase() {
     playback_showcase("text", &project, (960.0, 760.0), 0.85, 1.0, false);
 }
 
+/// The README's nesting showcase (the user, 2026-11-18: "a gif showing the nest demo,
+/// first unnested and then the nesting"): the demo project as drawn, the Nest window's
+/// preview of four to ten of each part onto as many boards as they need, and the boards
+/// nested, as three stills (`nest-frames/`), the active board simulated. Run by
+/// packaging/docs/nest-showcase.sh, which cross-fades them into a GIF.
+#[test]
+#[ignore = "writes the README's nesting frames; run by packaging/docs/nest-showcase.sh"]
+fn nest_showcase() {
+    use egui_kittest::Harness;
+    let Ok(out) = std::env::var("CHIPLOAD_SHOTS_OUT") else {
+        panic!("set CHIPLOAD_SHOTS_OUT");
+    };
+    let frames = PathBuf::from(out).join("nest-frames");
+    std::fs::create_dir_all(&frames).unwrap();
+    let dir = temp_dir("nest-showcase");
+    let project = dir.join("nesting_demo.chipload");
+    std::fs::copy(corpus("jobs/v41/nesting_demo.chipload"), &project).unwrap();
+    let settings = temp_dir("nest-showcase-settings");
+    let window = (960.0, 760.0);
+    let mut harness = Harness::builder()
+        .with_size(egui::vec2(window.0, window.1))
+        .wgpu()
+        .build_eframe(move |cc| {
+            {
+                let mut fonts = crate::fonts::ui_fonts();
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+            }
+            crate::style::apply(&cc.egui_ctx);
+            let mut app = ChiploadApp::default();
+            app.set_settings_dir(Some(settings));
+            app.updates.bar_closed = true;
+            app.set_language("en");
+            assert!(app.open(&project));
+            app.screenshot_setup(&cc.egui_ctx, "nopanels,simulation,notoolpath,nodrawing");
+            app
+        });
+    harness.run_steps(6);
+    // The same zoom for every still: the boards the nest makes fit too.
+    let middle = egui::pos2(window.0 / 2.0, (102.0 + window.1 - 132.0) / 2.0);
+    let zoom_out = |h: &mut Harness<'_, ChiploadApp>| {
+        h.state_mut().view.zoom_at(middle, 0.42);
+        let left = egui::vec2(-window.0 * 0.3, 0.0);
+        h.state_mut().view.pan(left);
+    };
+    zoom_out(&mut harness);
+    harness.run_steps(4);
+    harness
+        .render()
+        .unwrap()
+        .save(frames.join("1-drawn.png"))
+        .unwrap();
+    // The Nest window: the counts and onto more boards, as the golden nests it.
+    {
+        let app = harness.state_mut();
+        app.start_nest(None);
+        app.wait_for_nest();
+        let dialog = app.nest.as_mut().unwrap();
+        for row in &mut dialog.rows {
+            row.count = match row.part {
+                1 => 4,
+                2 => 8,
+                3 | 4 => 6,
+                5 => 10,
+                _ => row.count,
+            };
+        }
+        dialog.overflow = true;
+        app.start_nest_run();
+        app.wait_for_nest();
+    }
+    harness.run_steps(6);
+    harness
+        .render()
+        .unwrap()
+        .save(frames.join("2-preview.png"))
+        .unwrap();
+    // Applied: every board nested, the toolpaths planned.
+    {
+        let app = harness.state_mut();
+        let result = match app.nest.as_ref().and_then(|d| d.preview.as_ref()) {
+            Some(Ok(p)) => p.result.clone(),
+            _ => panic!("no preview"),
+        };
+        let view = app.view;
+        app.apply_nest(result);
+        assert!(app.generate_and_wait(), "{:?}", app.report);
+        // As before: the same view, the panels hidden, the board simulated.
+        app.view = view;
+        if !app.panels.hidden() {
+            app.panels.toggle_hidden();
+        }
+    }
+    let ctx = harness.ctx.clone();
+    assert!(harness.state_mut().wait_for_simulation(&ctx));
+    harness.run_steps(6);
+    harness
+        .render()
+        .unwrap()
+        .save(frames.join("3-nested.png"))
+        .unwrap();
+    println!("nest-frames/ (3 stills)");
+}
+
 /// Frames of `project`'s playback in 3D in a `window`-sized window, the tool shown cutting, into
 /// `$CHIPLOAD_SHOTS_OUT/<name>-frames/` (`CHIPLOAD_SHOWCASE_FRAMES` of them, 48 unless set),
 /// zoomed by `zoom` after the fit, at `(k / count)^ease` of its time; with `still`, also `showcase-<name>.png` of the

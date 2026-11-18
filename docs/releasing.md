@@ -42,6 +42,12 @@ publish it.
 
        packaging/docs/text-showcase.sh
 
+   The README's nesting (`showcase-nest.gif`): the nesting demo as drawn, the Nest window
+   and the boards nested, from `tests/corpus/jobs/v41/nesting_demo.chipload`; renew it when
+   nesting or the window's look changes:
+
+       packaging/docs/nest-showcase.sh
+
    Without the workflow, build and attach it by hand:
 
        packaging/docs/build-book.sh zip      # target/chipload-guide-X.Y.Z.zip

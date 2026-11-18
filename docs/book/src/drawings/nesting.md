@@ -4,6 +4,9 @@
 together as they fit, so a sheet holds as many parts as it can. Every part that is on takes
 part, instance 1 included.
 
+![The nesting demo: six parts cut from a board as drawn, the Nest window asking for four to
+ten of each, and the parts nested, the rest onto two more boards](../images/showcase-nest.gif)
+
 Chipload nests what the tools really cut: each instance's toolpath with the width of its
 tool, tabs and ramps included, not only the drawing. Between two cuts it leaves the **gap**,
 a web of board that keeps the sheet stiff and the tabs holding; at the board's edge it
