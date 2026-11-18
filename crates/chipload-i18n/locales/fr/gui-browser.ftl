@@ -41,6 +41,9 @@ browser-job-settings-hover = La machine : son post-processeur, les unités du G-
 browser-stock = Brut
 browser-stock-hover = La planche que ce montage usine : son épaisseur, sa taille et son matériau. Cliquez pour les régler.
 browser-work-zero = Origine pièce
+browser-from-front = de { $front }
+browser-stock-locked-hover = La planche de { $front }, retournée : réglée dans son brut, suivie ici
+browser-work-zero-locked-hover = L’origine pièce de { $front }, en miroir de l’axe de retournement : réglée là-bas, suivie ici, jamais déplacée seule
 browser-work-zero-hover = Où se trouve le X0 Y0 Z0 du G-code. Cliquez pour le régler, ou sélectionnez-le et faites-le glisser dans la vue.
 browser-job-settings-problems-hover = Machine, post-processeur, unités et courses. { $count ->
         [one] { $count } problème

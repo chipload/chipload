@@ -41,6 +41,9 @@ browser-job-settings-hover = Maskinen: postprocessor, G-kodens enheter, säker h
 browser-stock = Ämne
 browser-stock-hover = Skivan som den här uppspänningen fräser: tjocklek, storlek och material. Klicka för att ställa in dem.
 browser-work-zero = Arbetsnollpunkt
+browser-from-front = från { $front }
+browser-stock-locked-hover = Skivan i { $front }, vänd: ställs in i dess ämne, följs här
+browser-work-zero-locked-hover = Nollpunkten i { $front }, speglad över vändlinjen: ställs in där, följs här, flyttas aldrig för sig
 browser-work-zero-hover = Var G-kodens X0 Y0 Z0 ligger. Klicka för att ställa in den, eller markera den och dra den i vyn.
 browser-job-settings-problems-hover = Maskin, postprocessor, enheter och rörelseområde. { $count ->
         [one] { $count } problem

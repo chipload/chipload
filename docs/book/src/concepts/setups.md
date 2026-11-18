@@ -46,8 +46,8 @@ what is done to that board: **New part** in it, **Nest…**, **Add the back side
 
 With two or more, the setup you click is the **active setup**: it is shown in full colour,
 generated, simulated and exported, its board on the drawing where it is cut. Every other
-setup is a **sheet** beside it: its board, faint, in a row to the right (50 mm apart, a back
-after its front), with the outlines of what is cut from it and its name above. A click on a
+setup is a **sheet** beside it: its board, faint, in a row to the right (50 mm apart; a
+back right beside its front, 10 mm apart with a turn-over mark between them), with the outlines of what is cut from it and its name above. A click on a
 sheet makes that setup the active one: its board moves into place, the point you clicked
 staying under the pointer. Sheets are only drawn beside the board: the project, the G-code
 and the setup sheet keep each board where it is. Shapes only another setup cuts stay where
@@ -198,8 +198,13 @@ adds the back setup with its part and the dowel holes, as one undo step, and ope
 back's form. Opened on a setup that has a back, it **changes** that back instead: its turn,
 how it is put back, and its dowel holes, made again.
 
-The back is a new setup right after its front, "… back", with a part of its own, marked ⟲
-in the Browser. Its form has:
+The back is a new setup right after its front, "… back", with a part of its own. In the
+Browser it is listed under its front, last, with the turn-over icon: the same board, turned
+over. Its **Stock** and **Work zero** rows have a lock and say "from" the front: they are
+the front's, the zero mirrored across the turn line, set on the front and followed here.
+On the canvas the back's zero has a lock beside it and can't be dragged; with the front
+active and its zero selected or dragged, the back's zero shows faintly where it lies on
+the board, named, so you see both move together. Its form has:
 
 - **Board:** *Its own board*, or *Back of …* any setup that has no back yet;
 - **Turn over:** *Left to right* or *Top to bottom*;

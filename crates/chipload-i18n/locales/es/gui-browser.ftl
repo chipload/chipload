@@ -41,6 +41,9 @@ browser-job-settings-hover = La máquina: su postprocesador, las unidades del G-
 browser-stock = Material en bruto
 browser-stock-hover = El tablero que corta esta sujeción: su grosor, tamaño y material. Haz clic para ajustarlos.
 browser-work-zero = Cero pieza
+browser-from-front = de { $front }
+browser-stock-locked-hover = El tablero de { $front }, dado la vuelta: se ajusta en su bruto y aquí se sigue
+browser-work-zero-locked-hover = El cero de pieza de { $front }, reflejado sobre la línea de giro: se ajusta allí, aquí se sigue, nunca se mueve por sí solo
 browser-work-zero-hover = Dónde está el X0 Y0 Z0 del código G. Haz clic para ajustarlo, o selecciónalo y arrástralo en la vista.
 browser-job-settings-problems-hover = Máquina, postprocesador, unidades y recorridos. { $count ->
         [one] { $count } problema

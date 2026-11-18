@@ -41,6 +41,9 @@ browser-job-settings-hover = Die Maschine: Postprozessor, G-Code-Einheiten, sich
 browser-stock = Rohteil
 browser-stock-hover = Die Platte, die diese Aufspannung bearbeitet: Dicke, Größe und Material. Klicken, um sie einzustellen.
 browser-work-zero = Nullpunkt
+browser-from-front = von { $front }
+browser-stock-locked-hover = Das Brett von { $front }, gewendet: dort im Rohteil eingestellt, hier übernommen
+browser-work-zero-locked-hover = Der Nullpunkt von { $front }, an der Wendelinie gespiegelt: dort eingestellt, hier übernommen, nie für sich verschoben
 browser-work-zero-hover = Wo X0 Y0 Z0 des G-Codes liegt. Klicken, um ihn einzustellen, oder auswählen und in der Ansicht ziehen.
 browser-job-settings-problems-hover = Maschine, Postprozessor, Einheiten und Verfahrwege. { $count ->
         [one] { $count } Problem

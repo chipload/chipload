@@ -415,3 +415,99 @@ fn every_setup_is_exported_at_once() {
     let one = lower_part();
     assert!(!one.can_export_all());
 }
+
+// -- The pair shown as one board (docs/specs/two-sided.md §10a)
+
+fn two_sided() -> ChiploadApp {
+    let mut app = ChiploadApp::default();
+    assert!(app.open(&corpus("jobs/v36/two_sided.chipload")));
+    app
+}
+
+#[test]
+fn a_back_is_listed_under_its_front_its_stock_and_zero_from_it() {
+    let mut app = two_sided();
+    let rows = browser_rows(&mut app);
+    let depth = |label: &str| rows.iter().find(|(_, l)| l == label).map(|(d, _)| *d);
+    assert_eq!(depth("Setup 1"), Some(2), "{rows:?}");
+    assert_eq!(depth("Setup 1 back"), Some(3), "{rows:?}");
+    // The back last under its front: after the front's own rows.
+    let at = |label: &str| rows.iter().position(|(_, l)| l == label).unwrap();
+    assert!(at("Setup 1 back") > at("Setup 1"));
+    assert_eq!(
+        rows.iter()
+            .filter(|(d, l)| *d == 4 && l == "Work zero")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn a_backs_zero_is_locked_and_the_front_shows_it_mirrored() {
+    let mut app = two_sided();
+    app.activate_setup(2);
+    assert!(app.zero_locked());
+    app.focus = Focus::WorkZero;
+    assert!(!app.start_zero_drag(), "a back's zero never moves");
+    assert_eq!(app.back_zero_seen(), None, "only from the front");
+    app.activate_setup(1);
+    assert!(!app.zero_locked());
+    app.focus = Focus::WorkZero;
+    let (at, dirs, name) = app.back_zero_seen().unwrap();
+    // Turned left to right: across the board's vertical centre line, X the other way.
+    let job = app.edited_job().unwrap();
+    let ((x0, _), (x1, _)) = job.stock_bounds();
+    let (x, y) = app.shown_zero_xy();
+    assert!((at.0 - (x0 + x1 - x)).abs() < 1e-9 && (at.1 - y).abs() < 1e-9);
+    assert_eq!(dirs, (-1.0, 1.0));
+    assert_eq!(name, "Setup 1 back");
+    app.focus = Focus::Job;
+    assert_eq!(app.back_zero_seen(), None);
+}
+
+#[test]
+fn a_front_and_its_back_lie_close_with_a_mark_between() {
+    let mut app = two_sided();
+    app.activate_setup(1);
+    draw_canvas(&mut app);
+    let ((_, _), (right, _)) = app.edited_job().unwrap().stock_bounds();
+    let back = &app.scene.sheets[0];
+    assert_eq!(back.setup, 2);
+    assert!(back.paired);
+    assert!(
+        (back.board.0.0 - (right + 10.0)).abs() < 1e-9,
+        "{:?}",
+        back.board
+    );
+}
+
+/// The pair as drawn, for a look by eye: the front active, its zero selected, the back's
+/// zero faint, the back's sheet beside it; then the back active, its zero locked.
+/// `CHIPLOAD_PICTURES=dir cargo test -p chipload-gui pair_pictures -- --ignored`.
+#[test]
+#[ignore = "writes pictures; needs CHIPLOAD_PICTURES"]
+fn pair_pictures() {
+    let Ok(dir) = std::env::var("CHIPLOAD_PICTURES") else {
+        panic!("set CHIPLOAD_PICTURES to the folder to write to");
+    };
+    let dir = std::path::PathBuf::from(dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    for (setup, name) in [(1, "pair-front.png"), (2, "pair-back.png")] {
+        let mut h = egui_kittest::Harness::builder()
+            .with_size(egui::vec2(1400.0, 800.0))
+            .wgpu()
+            .build_eframe(|cc| {
+                let mut fonts = crate::fonts::ui_fonts();
+                crate::fonts::add_text_fonts(&mut fonts);
+                cc.egui_ctx.set_fonts(fonts);
+                crate::style::apply(&cc.egui_ctx);
+                let mut app = two_sided();
+                app.activate_setup(setup);
+                app.focus = Focus::WorkZero;
+                app.fit_pending = true;
+                app
+            });
+        h.run_steps(6);
+        h.render().unwrap().save(dir.join(name)).unwrap();
+    }
+}

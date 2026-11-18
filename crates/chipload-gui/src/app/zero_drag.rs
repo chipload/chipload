@@ -54,6 +54,32 @@ impl ChiploadApp {
         Some(self.edit.as_ref()?.work_zero_point(zero))
     }
 
+    /// The active setup is a back: its zero is its front's mirrored, never moved here
+    /// (docs/specs/two-sided.md §5, §10a).
+    pub(super) fn zero_locked(&self) -> bool {
+        self.edit
+            .as_ref()
+            .is_some_and(|e| e.job.back_turn().is_some())
+    }
+
+    /// While the active setup is a front with a back and its zero is selected or dragged:
+    /// the back's zero where it lies on this board, mirrored across the turn line, its X and
+    /// Y directions as the back's, and the back's name (docs/specs/two-sided.md §10a).
+    pub(super) fn back_zero_seen(&self) -> Option<(Point, (f64, f64), String)> {
+        if self.focus != Focus::WorkZero && !self.dragging_zero() {
+            return None;
+        }
+        let job = &self.edit.as_ref()?.job;
+        let back = job.back_of(job.active_setup_id()?)?;
+        let turn = back.back_of?.turn;
+        let ((x0, y0), (x1, y1)) = job.stock_bounds();
+        let (x, y) = self.shown_zero_xy();
+        Some(match turn {
+            chipload_job::Turn::LeftRight => ((x0 + x1 - x, y), (-1.0, 1.0), back.name.clone()),
+            chipload_job::Turn::TopBottom => ((x, y0 + y1 - y), (1.0, -1.0), back.name.clone()),
+        })
+    }
+
     /// The pointer at `pos` is on the zero's handle.
     pub(super) fn on_zero_handle(&self, pos: egui::Pos2) -> bool {
         self.zero_handle()

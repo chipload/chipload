@@ -113,6 +113,8 @@ pub enum Icon {
     TurnOver,
     /// A board hanging from two chains, a line of words on it: a sign.
     Sign,
+    /// A padlock: set elsewhere, followed here (a back's stock and zero, two-sided.md §10a).
+    Lock,
 }
 
 /// Line width of the icons, points.
@@ -547,6 +549,20 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 let a = (0.06 + 0.56 * t, 0.62 - 0.56 * t);
                 pen.line([a, (a.0 + 0.12, a.1 + 0.12)]);
             }
+        }
+        Icon::Lock => {
+            // The body, its keyhole, and the shackle over it.
+            pen.closed(&[(0.2, 0.46), (0.8, 0.46), (0.8, 0.9), (0.2, 0.9)]);
+            pen.dot((0.5, 0.66), 0.06);
+            let mut shackle = vec![(0.3, 0.46)];
+            shackle.extend(pen.arc(
+                (0.5, 0.32),
+                0.2,
+                std::f32::consts::PI,
+                std::f32::consts::TAU,
+            ));
+            shackle.push((0.7, 0.46));
+            pen.poly(&shackle);
         }
         Icon::TurnOver => {
             pen.closed(&[(0.1, 0.68), (0.9, 0.68), (0.9, 0.84), (0.1, 0.84)]);

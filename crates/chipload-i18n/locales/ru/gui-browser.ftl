@@ -29,6 +29,9 @@ browser-job-settings-hover = Станок: постпроцессор, един�
 browser-stock = Заготовка
 browser-stock-hover = Лист, который обрабатывается в этом установе: толщина, размер и материал. Нажмите, чтобы задать их.
 browser-work-zero = Ноль детали
+browser-from-front = из { $front }
+browser-stock-locked-hover = Заготовка { $front }, перевёрнутая: задаётся там, здесь повторяется
+browser-work-zero-locked-hover = Ноль детали { $front }, отражённый относительно линии переворота: задаётся там, здесь повторяется, сам не сдвигается
 browser-work-zero-hover = Положение X0 Y0 Z0 в G-code. Нажмите для настройки или выделите и перетащите в рабочей области.
 browser-job-settings-problems-hover = Станок, постпроцессор, единицы и ходы осей. { $count ->
     [one] { $count } проблема

@@ -411,6 +411,33 @@ default is the face that setup cuts. The numbers in `--json` get `through_cm2`.
 - A one-sided project gives the same pictures and numbers as today, except for the new
   edge walls, which are shown in the renewed screenshots.
 
+## 10a. The pair shown as one board (the user, 2026-11-18)
+
+The user: "the work zero must be locked for setup 2 (the backside); it must always be
+mirrored to work zero on setup 1. That should be visualized some way", and "setup 2 should
+be visually linked to setup 1". The model already locks it (§5: `follow_fronts` sets the
+back's stock and zero from the front's wherever a project is read or changed; the back's
+Stock and Work zero forms only say so and open the front's; its zero can't be dragged).
+What was missing is seeing it:
+
+1. **Locks in the Browser:** the back's *Stock* and *Work zero* rows have a lock icon in
+   place of their own, and say "from Setup 1" (the front's name) in place of their value;
+   their hover says they follow the front, the zero mirrored across the turn line.
+2. **A lock on the canvas:** with the back active, its zero's handle is drawn with a small
+   lock beside it, and the pointer over it shows that it can't be moved.
+3. **The back's zero seen from the front:** with the front active and its zero selected or
+   dragged, the back's zero shows faintly where it lies on this board, mirrored across the
+   turn line, its axes turned as the back's are, named with the back's name: both move
+   together.
+4. **The back under its front in the Browser:** a back is listed as the last row under its
+   front's setup (after its instances), with the turn-over icon, not as a setup of its
+   own beside it. A click activates it as before. A new back is named "<front> back"
+   (as since §3).
+5. **The pair side by side:** a back's sheet and its front's (whichever is active) lie 10 mm
+   apart instead of 50, with a turn-over mark between them.
+
+Decisions: 17 to 20 (§12).
+
 ## 11. Not in this step
 
 - **More than two sides,** for example edges machined standing up. That needs a fourth
@@ -498,3 +525,11 @@ default is the face that setup cuts. The numbers in `--json` get `through_cm2`.
 16. **A back surface pass may go over the dowel pins, with a warning;** the pins are set
     down as deep as it cuts (§6). *The user, 2026-11-08: "allow surfacing above pins with a
     warning".* Before: refused like any other cut, the pins flush with the back face.
+17. **Locks on the back's Stock and Work zero, in the Browser and on the canvas** (§10a.1,
+    2). **Recommended** and agreed (the user, 2026-11-18: "go ahead").
+18. **The back's zero shown faintly from the front** while the front's zero is selected or
+    dragged (§10a.3). **Recommended**, optional; agreed.
+19. **The back listed under its front** (§10a.4). **Recommended**; agreed. Alternative: a
+    setup of its own, marked ⟲ (as before).
+20. **The pair's sheets side by side with a turn-over mark** (§10a.5). **Recommended**;
+    agreed.

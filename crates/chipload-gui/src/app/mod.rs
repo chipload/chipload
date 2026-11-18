@@ -898,6 +898,20 @@ impl ChiploadApp {
 /// (docs/specs/parts-and-setups.md §7).
 const SHEET_GAP_MM: f64 = 50.0;
 
+/// How far apart a front and its back lie, one board turned over
+/// (docs/specs/two-sided.md §10a).
+const PAIR_GAP_MM: f64 = 10.0;
+
+/// Whether setups `a` and `b` are a front and its back, either way round.
+fn paired(job: &chipload_job::Job, a: u64, b: u64) -> bool {
+    let back_of = |x: u64, y: u64| {
+        job.setup(x)
+            .and_then(|s| s.back_of)
+            .is_some_and(|f| f.setup == y)
+    };
+    back_of(a, b) || back_of(b, a)
+}
+
 /// The setups that aren't active, as sheets in a row to the right of the active board, in
 /// their order (a back after its front), their bottoms level with its bottom: each its
 /// board and its instances' outlines, moved there for the view only
@@ -908,9 +922,13 @@ fn sheets(
 ) -> Vec<crate::view::Sheet> {
     let active = job.active_setup_id();
     let ((_, bottom), (right, _)) = job.stock_bounds();
-    let mut x = right + SHEET_GAP_MM;
+    let (mut x, mut before) = (right, active);
     let mut out = Vec::new();
     for setup in job.setups.iter().filter(|s| Some(s.id) != active) {
+        // A back beside its front, close, the pair one board turned over (§10a).
+        let pair = before.is_some_and(|b| paired(job, b, setup.id));
+        x += if pair { PAIR_GAP_MM } else { SHEET_GAP_MM };
+        before = Some(setup.id);
         let one = job.for_setup(setup.id);
         let ((x0, y0), (x1, y1)) = one.stock_bounds();
         let (dx, dy) = (x - x0, bottom - y0);
@@ -931,8 +949,9 @@ fn sheets(
             board: ((x0 + dx, y0 + dy), (x1 + dx, y1 + dy)),
             outlines,
             offset: (dx, dy),
+            paired: pair,
         });
-        x += x1 - x0 + SHEET_GAP_MM;
+        x += x1 - x0;
     }
     out
 }

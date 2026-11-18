@@ -152,6 +152,12 @@ pub const ARROW_SPACING_MM: f64 = 40.0;
 const AXIS_LENGTH_MM: f64 = 15.0;
 /// The radius of the work zero's handle at the foot of the axes, pixels.
 const ZERO_HANDLE_PX: f32 = 5.0;
+/// The side of the lock drawn beside a back's locked zero, pixels.
+const LOCK_PX: f32 = 12.0;
+/// The turn-over mark over the gap between a front's and its back's sheets: its side,
+/// pixels, and how far left of the right-hand sheet its centre is, mm (half the pair's gap).
+const PAIR_MARK_PX: f32 = 20.0;
+const PAIR_MARK_MM: f64 = 5.0;
 /// More lines than this across the area and the finer ones are left out.
 const GRID_MAX_LINES: usize = 400;
 /// In 3D the grid reaches at least this far past the stock.

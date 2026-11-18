@@ -19,6 +19,8 @@ struct SetupRows<'a> {
     /// A back whose front has no dowel holes (two-sided-wizard.md §3).
     missing: bool,
     is_active: bool,
+    /// Its row's depth: a back is listed under its front (two-sided.md §10a).
+    depth: usize,
 }
 
 /// What a board's rows need from the project ([`ChiploadApp::board_contents`]).
@@ -161,28 +163,40 @@ impl ChiploadApp {
                 }
             });
         if open {
-            for setup in &setups {
-                let on: Vec<u64> = self
-                    .edit
-                    .as_ref()
-                    .map(|e| e.job.parts_on(setup.id))
-                    .unwrap_or_default();
-                let setup_rows = SetupRows {
-                    setups: &setups,
-                    parts: on.len(),
-                    missing: missing_dowels.contains(&setup.id),
-                    is_active: active_setup == Some(setup.id),
-                };
-                let (setup_open, asked) = self.setup_row(ui, setup, setup_rows);
-                if asked.is_some() {
-                    setup_action = asked;
+            // A back is listed under its front, last (docs/specs/two-sided.md §10a).
+            let front_of = |s: &chipload_job::Setup| {
+                s.back_of
+                    .map(|b| b.setup)
+                    .filter(|f| setups.iter().any(|x| x.id == *f && x.back_of.is_none()))
+            };
+            for setup in setups.iter().filter(|s| front_of(s).is_none()) {
+                let back = setups.iter().find(|s| front_of(s) == Some(setup.id));
+                let mut branch = vec![(setup, 2)];
+                branch.extend(back.map(|b| (b, 3)));
+                for &(one, depth) in &branch {
+                    let on = self
+                        .edit
+                        .as_ref()
+                        .map_or(0, |e| e.job.parts_on(one.id).len());
+                    let setup_rows = SetupRows {
+                        setups: &setups,
+                        parts: on,
+                        missing: missing_dowels.contains(&one.id),
+                        is_active: active_setup == Some(one.id),
+                        depth,
+                    };
+                    let (setup_open, asked) = self.setup_row(ui, one, setup_rows);
+                    if asked.is_some() {
+                        setup_action = asked;
+                    }
+                    if !setup_open {
+                        // A front folded: its back with it.
+                        break;
+                    }
+                    let (a, b) = self.board_contents(ui, one.id, depth + 1, rows);
+                    setup_action = a.or(setup_action);
+                    action = b.or(action);
                 }
-                if !setup_open {
-                    continue;
-                }
-                let (a, b) = self.board_contents(ui, setup.id, 3, rows);
-                setup_action = a.or(setup_action);
-                action = b.or(action);
             }
         }
         if let Some(action) = setup_action {
@@ -277,26 +291,32 @@ impl ChiploadApp {
             parts: mine_count,
             missing,
             is_active,
+            depth,
         } = rows;
         let mut action = None;
         let id = Id::new(("browser-setup", setup.id));
         let open_id = id.with("folder-open");
         let setup_open = folder_open(ui, open_id, true);
         let several = setups.len() > 1;
-        // A back is marked as the board turned over (docs/specs/two-sided.md §3).
+        // A back is marked as the board turned over (docs/specs/two-sided.md §3, §10a).
         let parts_text = t!(ui, "browser-setup-parts", count = mine_count);
-        let trailing = match setup.back_of {
-            Some(_) if missing => format!("⚠ ⟲ {parts_text}"),
-            Some(_) => format!("⟲ {parts_text}"),
-            None => parts_text,
+        let trailing = if missing {
+            format!("⚠ {parts_text}")
+        } else {
+            parts_text
         };
         let can_turn = setup.back_of.is_none()
             && !setups
                 .iter()
                 .any(|s| s.back_of.is_some_and(|b| b.setup == setup.id));
-        let mut row = Row::new(id, 2, &setup.name)
+        let icon = if setup.back_of.is_some() {
+            Icon::TurnOver
+        } else {
+            Icon::Rectangle
+        };
+        let mut row = Row::new(id, depth, &setup.name)
             .folder(setup_open)
-            .icon_tinted(Icon::Rectangle, Tint::Board)
+            .icon_tinted(icon, Tint::Board)
             .trailing(trailing)
             .selected(self.focus == Focus::Setup(setup.id))
             .dim(!setup.enabled || !is_active)
@@ -509,19 +529,33 @@ impl ChiploadApp {
         } else {
             0
         };
+        // A back's board is its front's, locked (docs/specs/two-sided.md §10a).
+        let front = front_name(&edit.job, id);
         let row = Row::new(
             Id::new(("browser-stock", id)),
             depth,
             t!(ui, "browser-stock"),
-        )
-        .icon_tinted(Icon::Material, Tint::Board)
-        .trailing(summary)
-        .selected(active && self.focus == Focus::Stock)
-        .dim(!active)
-        .alert(problems > 0)
-        .show(ui);
+        );
+        let row = match &front {
+            Some(front) => {
+                row.icon(Icon::Lock)
+                    .trailing(t!(ui, "browser-from-front", front = front.as_str()))
+            }
+            None => row
+                .icon_tinted(Icon::Material, Tint::Board)
+                .trailing(summary),
+        };
+        let row = row
+            .selected(active && self.focus == Focus::Stock)
+            .dim(!active)
+            .alert(problems > 0)
+            .show(ui);
+        let hover = match &front {
+            Some(front) => t!(ui, "browser-stock-locked-hover", front = front.as_str()),
+            None => t!(ui, "browser-stock-hover"),
+        };
         row.response
-            .on_hover_text(t!(ui, "browser-stock-hover"))
+            .on_hover_text(hover)
             .clicked()
             .then_some(SetupAction::Stock(id))
     }
@@ -545,21 +579,42 @@ impl ChiploadApp {
         } else {
             0
         };
+        // A back's zero is its front's, mirrored, locked (docs/specs/two-sided.md §10a).
+        let front = front_name(&edit.job, id);
         let row = Row::new(
             Id::new(("browser-work-zero", id)),
             depth,
             t!(ui, "browser-work-zero"),
-        )
-        .icon(Icon::WorkZero)
-        .trailing(place)
-        .selected(active && self.focus == Focus::WorkZero)
-        .dim(!active)
-        .alert(problems > 0)
-        .show(ui);
-        let hover = format!("{summary}\n{}", t!(ui, "browser-work-zero-hover"));
+        );
+        let row = match &front {
+            Some(front) => {
+                row.icon(Icon::Lock)
+                    .trailing(t!(ui, "browser-from-front", front = front.as_str()))
+            }
+            None => row.icon(Icon::WorkZero).trailing(place),
+        };
+        let row = row
+            .selected(active && self.focus == Focus::WorkZero)
+            .dim(!active)
+            .alert(problems > 0)
+            .show(ui);
+        let hover = match &front {
+            Some(front) => format!(
+                "{summary}\n{}",
+                t!(ui, "browser-work-zero-locked-hover", front = front.as_str())
+            ),
+            None => format!("{summary}\n{}", t!(ui, "browser-work-zero-hover")),
+        };
         row.response
             .on_hover_text(hover)
             .clicked()
             .then_some(SetupAction::Zero(id))
     }
+}
+
+/// The name of setup `id`'s front, when it is a back whose front exists: its stock and zero
+/// are the front's (docs/specs/two-sided.md §10a).
+fn front_name(job: &chipload_job::Job, id: u64) -> Option<String> {
+    job.setup(id)?.back_of?;
+    job.front_of(id).map(|f| f.name.clone())
 }

@@ -41,6 +41,9 @@ browser-job-settings-hover = La macchina: il suo post-processore, le unità del 
 browser-stock = Grezzo
 browser-stock-hover = La tavola che questo piazzamento lavora: spessore, dimensioni e materiale. Fai clic per impostarli.
 browser-work-zero = Zero pezzo
+browser-from-front = da { $front }
+browser-stock-locked-hover = La tavola di { $front }, capovolta: impostata nel suo grezzo, seguita qui
+browser-work-zero-locked-hover = Lo zero pezzo di { $front }, specchiato sulla linea di capovolgimento: impostato lì, seguito qui, mai spostato da solo
 browser-work-zero-hover = Dove si trova X0 Y0 Z0 del G-code. Fai clic per impostarlo, oppure selezionalo e trascinalo nella vista.
 browser-job-settings-problems-hover = Macchina, post-processore, unità e corse. { $count ->
         [one] { $count } problema

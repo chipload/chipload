@@ -41,6 +41,9 @@ browser-job-settings-hover = The machine: its post-processor, G-code units, safe
 browser-stock = Stock
 browser-stock-hover = The board this setup cuts: its thickness, size and material. Click to set them.
 browser-work-zero = Work zero
+browser-from-front = from { $front }
+browser-stock-locked-hover = The board of { $front }, turned over: set in its stock, followed here
+browser-work-zero-locked-hover = The work zero of { $front }, mirrored across the turn line: set there, followed here, never moved on its own
 browser-work-zero-hover = Where the G-code's X0 Y0 Z0 is. Click to set it, or select it and drag it in the view.
 browser-job-settings-problems-hover = Machine, post-processor, units and travel. { $count ->
         [one] { $count } problem

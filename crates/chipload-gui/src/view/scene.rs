@@ -16,8 +16,8 @@ use super::shapes::{ContourShape, Highlight, Kind, RimLines, ToolpathShape};
 use super::sim::{PictureLayer, SimLayer, SimSurface};
 use super::{
     AXIS_LENGTH_MM, AXIS_LINE_FADE, CONSTRUCTION_DASH_PX, CONSTRUCTION_GAP_PX, DASH_PX, GAP_PX,
-    GHOST_FADE, GRID_MARGIN_MM, GRID_MAX_LINES, OP_LABEL_RADIUS, OP_LABEL_TEXT_OFFSET,
-    PICK_TOLERANCE_PX, Palette, Point3, View, ZERO_HANDLE_PX,
+    GHOST_FADE, GRID_MARGIN_MM, GRID_MAX_LINES, LOCK_PX, OP_LABEL_RADIUS, OP_LABEL_TEXT_OFFSET,
+    PAIR_MARK_MM, PAIR_MARK_PX, PICK_TOLERANCE_PX, Palette, Point3, View, ZERO_HANDLE_PX,
 };
 
 /// Where the Compass's arrows start and end from its centre, its ring's radius and half its
@@ -159,6 +159,9 @@ pub struct Sheet {
     pub outlines: Vec<Vec<Point>>,
     /// How far it is drawn from where it lies in the drawing.
     pub offset: (f64, f64),
+    /// It and the board left of it are a front and its back: a turn-over mark between them
+    /// (docs/specs/two-sided.md §10a).
+    pub paired: bool,
 }
 
 impl Scene {
@@ -208,6 +211,12 @@ pub struct Scene {
     /// The work zero's handle and whether the zero is selected (top view only;
     /// docs/specs/work-zero-marker.md §3).
     pub zero_handle: Option<(Point, bool)>,
+    /// The zero is a back's, its front's mirrored: drawn with a lock, never dragged
+    /// (docs/specs/two-sided.md §10a).
+    pub zero_locked: bool,
+    /// A back's zero seen from its front, while the front's is selected or dragged: where it
+    /// lies on this board, its X and Y directions, and the back's name (two-sided.md §10a).
+    pub back_zero: Option<(Point, (f64, f64), String)>,
     /// The Compass on the selection (top view only; docs/specs/compass.md §3).
     pub compass: Option<CompassShape>,
     /// The stock's (top, bottom) Z, for the 3D view.
@@ -571,6 +580,18 @@ impl Scene {
                     Stroke::new(1.0, pal.ghost.gamma_multiply(fade * 0.8)),
                 ));
             }
+            // A front and its back: the turn-over mark over the gap on their left.
+            if sheet.paired {
+                let middle =
+                    view.to_screen((x0 - PAIR_MARK_MM, y1)) + Vec2::new(0.0, -PAIR_MARK_PX * 1.4);
+                let size = Vec2::splat(PAIR_MARK_PX);
+                crate::icons::paint(
+                    painter,
+                    Rect::from_center_size(middle, size),
+                    crate::icons::Icon::TurnOver,
+                    pal.ghost.gamma_multiply(fade),
+                );
+            }
             // Its name above its top left corner.
             painter.text(
                 view.to_screen((x0, y1)) + Vec2::new(0.0, -4.0),
@@ -906,6 +927,40 @@ impl Scene {
                 painter.circle_filled(at, ZERO_HANDLE_PX, pal.handle_fill);
                 painter.circle_stroke(at, ZERO_HANDLE_PX, Stroke::new(1.5, pal.axis_x));
             }
+            if self.zero_locked {
+                let size = Vec2::splat(LOCK_PX);
+                let corner = at + Vec2::new(ZERO_HANDLE_PX + 2.0, -ZERO_HANDLE_PX - LOCK_PX);
+                crate::icons::paint(
+                    painter,
+                    eframe::egui::Rect::from_min_size(corner, size),
+                    crate::icons::Icon::Lock,
+                    pal.stock,
+                );
+            }
+        }
+        // The back's zero seen from the front, faint, dashed, named (two-sided.md §10a).
+        if let Some(((zx, zy), (sx, sy), name)) = self.back_zero.as_ref().filter(|_| flat) {
+            let faint = Stroke::new(1.5, pal.ghost);
+            let origin = view.to_screen((*zx, *zy));
+            for end in [
+                (zx + sx * AXIS_LENGTH_MM, *zy),
+                (*zx, zy + sy * AXIS_LENGTH_MM),
+            ] {
+                painter.extend(Shape::dashed_line(
+                    &[origin, view.to_screen(end)],
+                    faint,
+                    DASH_PX,
+                    GAP_PX,
+                ));
+            }
+            painter.circle_stroke(origin, ZERO_HANDLE_PX - 1.0, faint);
+            painter.text(
+                origin + Vec2::new(ZERO_HANDLE_PX + 3.0, ZERO_HANDLE_PX + 3.0),
+                Align2::LEFT_TOP,
+                name,
+                FontId::proportional(12.0),
+                pal.ghost,
+            );
         }
         // The selected instance's turn handle, on a line from the centre it turns about.
         for ghost in self.instances.iter().filter(|_| flat && !self.hide_drawing) {

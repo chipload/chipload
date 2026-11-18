@@ -172,6 +172,10 @@ impl ChiploadApp {
         // The work zero's handle, over everything else (docs/specs/work-zero-marker.md §3).
         let zero_handle = self.zero_handle();
         self.scene.zero_handle = zero_handle.map(|p| (p, self.focus == Focus::WorkZero));
+        // A back's zero is its front's, locked; the front's shows the back's with it
+        // (docs/specs/two-sided.md §10a).
+        self.scene.zero_locked = self.zero_locked();
+        self.scene.back_zero = zero_handle.and_then(|_| self.back_zero_seen());
         self.scene.compass = if editing {
             self.compass_shape(response.hover_pos())
         } else {
@@ -562,6 +566,10 @@ impl ChiploadApp {
                 || self.instance_badge_at(pos).is_some()
             {
                 ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+            }
+            // A back's zero can't be moved: it is its front's (two-sided.md §10a).
+            if self.zero_locked() && self.on_zero_handle(pos) {
+                ui.ctx().set_cursor_icon(egui::CursorIcon::NotAllowed);
             }
             // Another setup's sheet lights up: a click makes it the active one
             // (docs/specs/parts-and-setups.md §7).
