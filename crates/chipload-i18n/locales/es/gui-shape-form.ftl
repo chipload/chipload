@@ -62,3 +62,4 @@ shape-form-across-flats = Entre caras
 shape-form-across-flats-hover = De un lado al opuesto (dos veces la distancia del centro al punto medio de un lado); cambiarlo cambia el radio
 shape-form-polygon-angle = Ángulo
 shape-form-polygon-angle-hover = Hacia dónde apunta el primer vértice, en sentido antihorario desde +X
+shape-form-title-spline = Spline S{ $id }

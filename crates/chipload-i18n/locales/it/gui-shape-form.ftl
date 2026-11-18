@@ -62,3 +62,4 @@ shape-form-across-flats = Tra i lati
 shape-form-across-flats-hover = Da un lato a quello opposto (due volte la distanza dal centro al punto medio di un lato); cambiarlo cambia il raggio
 shape-form-polygon-angle = Angolo
 shape-form-polygon-angle-hover = Dove punta il primo vertice, in senso antiorario da +X
+shape-form-title-spline = Spline S{ $id }

@@ -98,6 +98,13 @@ pub enum Geometry {
         sides: u32,
         angle: f64,
     },
+    /// The smooth curve through `points`, and back to the first if `closed`: a centripetal
+    /// Catmull–Rom spline, cut as lines and arcs within `ARC_APPROX_TOL_MM`
+    /// (docs/specs/splines.md).
+    Spline {
+        closed: bool,
+        points: Vec<[f64; 2]>,
+    },
 }
 
 impl Shape {
@@ -108,6 +115,7 @@ impl Shape {
             Geometry::Rectangle { .. } => "rectangle",
             Geometry::Polyline { .. } => "polyline",
             Geometry::Polygon { .. } => "polygon",
+            Geometry::Spline { .. } => "spline",
         }
     }
 
@@ -119,7 +127,9 @@ impl Shape {
     /// Whether the shape's segments form a loop (as stored for paths).
     pub fn closed(&self) -> bool {
         match &self.geometry {
-            Geometry::Path { closed, .. } | Geometry::Polyline { closed, .. } => *closed,
+            Geometry::Path { closed, .. }
+            | Geometry::Polyline { closed, .. }
+            | Geometry::Spline { closed, .. } => *closed,
             Geometry::Circle { .. } | Geometry::Rectangle { .. } | Geometry::Polygon { .. } => true,
         }
     }
@@ -230,8 +240,23 @@ impl Shape {
                 sides,
                 angle,
             } => lines_through(&polygon_corners(*center, *radius, *sides, *angle), true),
+            Geometry::Spline { closed, points } => spline_segments(points, *closed),
         }
     }
+}
+
+/// A spline's lines and arcs: within `ARC_APPROX_TOL_MM` of the curve through its points
+/// (docs/specs/splines.md §4).
+pub fn spline_segments(points: &[[f64; 2]], closed: bool) -> Vec<PathSegment> {
+    let points: Vec<chipload_core::Point> = points.iter().map(|p| (p[0], p[1])).collect();
+    chipload_core::spline::segments(
+        &points,
+        closed,
+        chipload_core::tolerances::ARC_APPROX_TOL_MM,
+    )
+    .iter()
+    .map(PathSegment::from_primitive)
+    .collect()
 }
 
 /// A regular polygon's corners, counter-clockwise from the one at `angle`.
@@ -354,6 +379,7 @@ pub enum ShapeKind {
     Rectangle,
     Polyline,
     Polygon,
+    Spline,
 }
 
 /// A shape as it appears in the file: every field a kind may have. Fields of other kinds are
@@ -374,7 +400,7 @@ pub(super) struct RawShape {
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     construction: bool,
     /// `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`,
-    /// `polyline`.
+    /// `polyline`, `polygon`, `spline`.
     kind: ShapeKind,
     /// path: the handle of the DXF entity it came from, which keeps its id when the DXF is
     /// updated.
@@ -395,7 +421,7 @@ pub(super) struct RawShape {
     /// path: the 3D model it is the footprint outline of (its id in `drawing.models`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     model: Option<u64>,
-    /// path, polyline: whether it ends where it starts.
+    /// path, polyline, spline: whether it ends where it starts.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     closed: Option<bool>,
     /// path: its lines and arcs, mm.
@@ -423,7 +449,7 @@ pub(super) struct RawShape {
     /// rectangle: the radius of its corners, mm; 0 for sharp ones.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     corner_radius: Option<f64>,
-    /// polyline: its points, mm.
+    /// polyline: its points; spline: the points the curve passes through; mm.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     points: Option<Vec<[f64; 2]>>,
     /// polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a
@@ -497,6 +523,7 @@ impl From<Shape> for RawShape {
             Geometry::Rectangle { .. } => ShapeKind::Rectangle,
             Geometry::Polyline { .. } => ShapeKind::Polyline,
             Geometry::Polygon { .. } => ShapeKind::Polygon,
+            Geometry::Spline { .. } => ShapeKind::Spline,
         };
         let mut raw = RawShape::empty(shape.id, shape.layer, kind);
         raw.name = shape.name;
@@ -561,6 +588,10 @@ impl From<Shape> for RawShape {
                 raw.sides = Some(sides);
                 raw.angle = Some(angle);
             }
+            Geometry::Spline { closed, points } => {
+                raw.closed = Some(closed);
+                raw.points = Some(points);
+            }
         }
         raw
     }
@@ -594,6 +625,7 @@ impl TryFrom<RawShape> for Shape {
             ],
             ShapeKind::Polyline => &["name", "construction", "closed", "points", "bulges"],
             ShapeKind::Polygon => &["name", "construction", "center", "radius", "sides", "angle"],
+            ShapeKind::Spline => &["name", "construction", "closed", "points"],
         };
         let name = RawShape::from_kind_name(kind);
         if let Some(extra) = raw.present().into_iter().find(|f| !allowed.contains(f)) {
@@ -641,6 +673,10 @@ impl TryFrom<RawShape> for Shape {
                 sides: raw.sides.ok_or_else(|| missing("sides"))?,
                 angle: raw.angle.ok_or_else(|| missing("angle"))?,
             },
+            ShapeKind::Spline => Geometry::Spline {
+                closed: raw.closed.ok_or_else(|| missing("closed"))?,
+                points: raw.points.ok_or_else(|| missing("points"))?,
+            },
         };
         Ok(Shape {
             id: raw.id,
@@ -682,6 +718,7 @@ impl RawShape {
             ShapeKind::Rectangle => "rectangle",
             ShapeKind::Polyline => "polyline",
             ShapeKind::Polygon => "polygon",
+            ShapeKind::Spline => "spline",
         }
     }
 }
@@ -1004,6 +1041,33 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
                         format!("bulges.{i}"),
                         Message::new("job-bulge-range")
                             .arg("got", Value::Number(*b, Digits::Shortest)),
+                    ));
+                }
+            }
+        }
+        Geometry::Spline { closed, points } => {
+            let least = if *closed { 3 } else { 2 };
+            if points.len() < least {
+                problems.push(Problem::at(
+                    "points",
+                    Message::new("job-spline-points")
+                        .arg("closed", if *closed { "closed" } else { "open" })
+                        .arg("least", least)
+                        .arg("got", points.len()),
+                ));
+            }
+            if !points.iter().all(finite) {
+                problems.push(Problem::at("points", Message::new("job-must-be-finite")));
+            }
+            let n = points.len();
+            let pairs = if *closed { n } else { n.saturating_sub(1) };
+            for i in 0..pairs {
+                let (a, b) = (points[i], points[(i + 1) % n]);
+                if math::hypot(a[0] - b[0], a[1] - b[1]) <= CHAIN_TOL_MM {
+                    problems.push(Problem::at(
+                        format!("points.{}", (i + 1) % n),
+                        Message::new("job-point-on-previous")
+                            .arg("tolerance", Value::Length(CHAIN_TOL_MM, Digits::Shortest)),
                     ));
                 }
             }

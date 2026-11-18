@@ -18,3 +18,4 @@ drawing-deleted-status = { $count ->
 drawing-imported-kept = Импортированная геометрия в выделении сохранена (она меняется только вместе с исходным файлом).
 drawing-kind-slot = паз
 drawing-kind-polygon = многоугольник
+drawing-kind-spline = сплайн

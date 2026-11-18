@@ -42,3 +42,4 @@ shape-form-across-flats = Между гранями
 shape-form-across-flats-hover = Между противоположными сторонами (двойное расстояние от центра до середины стороны); изменение меняет радиус
 shape-form-polygon-angle = Угол
 shape-form-polygon-angle-hover = Направление первой вершины против часовой стрелки от +X
+shape-form-title-spline = Сплайн S{ $id }

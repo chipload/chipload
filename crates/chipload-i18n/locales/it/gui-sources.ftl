@@ -61,3 +61,4 @@ sources-rename = Rinomina…
 sources-copy-shape = Copia
 sources-delete-shape = Elimina
 sources-polygons = Poligoni
+sources-splines = Spline

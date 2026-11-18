@@ -36,6 +36,14 @@ Chipload draws the parts it cuts, with or without a DXF:
     perpendicular from the centre onto a line makes a polygon that touches it.
   - **On an edge:** the two ends of one side. The polygon lies to the side's left, so
     click from left to right for a polygon above the side, right to left for one below.
+- **Spline:** a smooth curve through its points, open or closed. It bends evenly through
+  each point, never kinks or loops between two, and keeps its points: drag one, or change
+  them in its form (a table of X, Y, as a polyline's, and *Closed*). It is cut as lines
+  and arcs within 0.01 mm of the curve, since controllers have no spline move. On the
+  command line: `chipload shape add P spline --points "0,0 20,15 45,5 60,20" [--closed]`,
+  and `shape set P ID --points … --closed`. Moving, turning, mirroring and scaling evenly
+  move its points, and the curve follows exactly; stretching it one way moves the points,
+  so the curve through them can differ a little from a stretched copy.
 
 Pick the tool in the ribbon's DRAW group (the small buttons; hover over one for its name
 and key) or by its key, then click on the canvas. With no

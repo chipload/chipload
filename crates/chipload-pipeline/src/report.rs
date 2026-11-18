@@ -182,6 +182,17 @@ pub fn shape_values(geometry: &Geometry) -> String {
                 angle.to_degrees()
             )
         }
+        Geometry::Spline { closed, points } => {
+            let list: Vec<String> = points
+                .iter()
+                .map(|p| format!("({:.3}, {:.3})", p[0], p[1]))
+                .collect();
+            format!(
+                "{} through {}",
+                if *closed { "closed" } else { "open" },
+                list.join(" ")
+            )
+        }
         Geometry::Polyline {
             closed,
             points,

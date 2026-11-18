@@ -46,3 +46,4 @@ sources-rename = Переименовать…
 sources-copy-shape = Копировать
 sources-delete-shape = Удалить
 sources-polygons = Многоугольники
+sources-splines = Сплайны

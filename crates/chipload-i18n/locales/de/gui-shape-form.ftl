@@ -62,3 +62,4 @@ shape-form-across-flats = Schlüsselweite
 shape-form-across-flats-hover = Von einer Seite zur gegenüberliegenden (doppelter Abstand vom Mittelpunkt zur Seitenmitte); ändert den Radius
 shape-form-polygon-angle = Winkel
 shape-form-polygon-angle-hover = Wohin die erste Ecke zeigt, gegen den Uhrzeigersinn von +X
+shape-form-title-spline = Spline S{ $id }

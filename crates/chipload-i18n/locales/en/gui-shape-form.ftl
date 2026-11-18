@@ -62,3 +62,4 @@ shape-form-across-flats = Across flats
 shape-form-across-flats-hover = From one side to the opposite one (twice the distance from the centre to a side's middle); changing it changes the radius
 shape-form-polygon-angle = Angle
 shape-form-polygon-angle-hover = Where the first corner points, counter-clockwise from +X
+shape-form-title-spline = Spline S{ $id }

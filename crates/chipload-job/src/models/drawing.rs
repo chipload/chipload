@@ -537,6 +537,7 @@ impl Drawing {
             Geometry::Rectangle { .. } => "drawn:rectangle".into(),
             Geometry::Polyline { .. } => "drawn:polyline".into(),
             Geometry::Polygon { .. } => "drawn:polygon".into(),
+            Geometry::Spline { .. } => "drawn:spline".into(),
             Geometry::Path { .. } => "paths".into(),
         }
     }

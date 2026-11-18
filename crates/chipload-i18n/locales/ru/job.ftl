@@ -262,3 +262,7 @@ job-style-tool-not-in-library = инструмента { $tool } нет в ва�
 job-style-these-settings = эти настройки
 job-style-other-settings = другие настройки
 job-instance-twice = у двух экземпляров номер { $id }
+job-spline-points = Для { $closed ->
+    [closed] замкнутого
+   *[open] разомкнутого
+} сплайна нужно хотя бы { $least } точек, получено { $got }

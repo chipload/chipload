@@ -67,6 +67,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         Geometry::Rectangle { .. } => t!(ui, "shape-form-title-rectangle", id = id),
         Geometry::Polyline { .. } => t!(ui, "shape-form-title-polyline", id = id),
         Geometry::Polygon { .. } => t!(ui, "shape-form-title-polygon", id = id),
+        Geometry::Spline { .. } => t!(ui, "shape-form-title-spline", id = id),
     };
     ui.label(crate::style::bold(ui, title));
     Grid::new(("shape-form", draft.id))
@@ -136,7 +137,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     angle_field(ui, angle);
                     ui.end_row();
                 }
-                Geometry::Polyline { closed, .. } => {
+                Geometry::Polyline { closed, .. } | Geometry::Spline { closed, .. } => {
                     let mut close = *closed;
                     ui.label(t!(ui, "shape-form-closed"));
                     ui.checkbox(&mut close, t!(ui, "shape-form-closed-checkbox"));
@@ -148,8 +149,10 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
             }
             // A polyline has no position or angle of its own: these move and turn its
             // points (docs/specs/drawn-shapes-box.md §3).
-            if matches!(draft.geometry, Geometry::Polyline { .. })
-                && let Some(bounds) = geometry_box(&draft.geometry)
+            if matches!(
+                draft.geometry,
+                Geometry::Polyline { .. } | Geometry::Spline { .. }
+            ) && let Some(bounds) = geometry_box(&draft.geometry)
                 && let Some(edit) = place_rows(ui, egui::Id::new(("polyline-place", id)), bounds)
                 && let Some(moved) = edit.apply(&draft.geometry, bounds)
             {
@@ -158,6 +161,11 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
         });
     if matches!(draft.geometry, Geometry::Polyline { .. }) {
         ui.label(egui::RichText::new(polyline_help(ui)).weak());
+    }
+    if matches!(
+        draft.geometry,
+        Geometry::Polyline { .. } | Geometry::Spline { .. }
+    ) {
         points_table(ui, draft.id, &mut draft.geometry);
     }
     if let Some(error) = &draft.error {
@@ -370,17 +378,19 @@ fn centre_row(ui: &mut egui::Ui, center: &mut [f64; 2]) {
 /// X, Y per point, the bulge of the segment that follows it, and insert-after and delete
 /// per row (docs/specs/drawing-follow-ups.md section 3).
 fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
-    let Geometry::Polyline {
-        closed,
-        points,
-        bulges,
-    } = geometry
-    else {
-        return;
+    // A spline has no bulges: its curve is smooth through the points (splines.md §2).
+    let (closed, points, mut bulges) = match geometry {
+        Geometry::Polyline {
+            closed,
+            points,
+            bulges,
+        } => (*closed, points, Some(bulges)),
+        Geometry::Spline { closed, points } => (*closed, points, None),
+        _ => return,
     };
     let mut insert_after: Option<usize> = None;
     let mut remove: Option<usize> = None;
-    let segments = polyline_segment_count(points.len(), *closed);
+    let segments = polyline_segment_count(points.len(), closed);
     Grid::new(("polyline-points", id))
         .num_columns(5)
         .striped(true)
@@ -389,13 +399,21 @@ fn points_table(ui: &mut egui::Ui, id: u64, geometry: &mut Geometry) {
             ui.label("");
             ui.label("");
             ui.label("");
-            ui.label(t!(ui, "shape-form-bulge"));
+            if bulges.is_some() {
+                ui.label(t!(ui, "shape-form-bulge"));
+            } else {
+                ui.label("");
+            }
             ui.end_row();
             for (i, point) in points.iter_mut().enumerate() {
                 ui.label(format!("{}", i + 1));
                 ui.add(mm(&mut point[0]).prefix("X "));
                 ui.add(mm(&mut point[1]).prefix("Y "));
-                match bulges.get_mut(i).filter(|_| i < segments) {
+                match bulges
+                    .as_mut()
+                    .and_then(|b| b.get_mut(i))
+                    .filter(|_| i < segments)
+                {
                     Some(bulge) => {
                         ui.add(
                             crate::units::number(ui, bulge)

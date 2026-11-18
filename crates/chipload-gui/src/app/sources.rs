@@ -40,6 +40,7 @@ fn kind_icon(shape: &chipload_job::Shape) -> Icon {
         chipload_job::Geometry::Rectangle { .. } => Icon::Rectangle,
         chipload_job::Geometry::Polyline { .. } => Icon::Polyline,
         chipload_job::Geometry::Polygon { .. } => Icon::Polygon,
+        chipload_job::Geometry::Spline { .. } => Icon::Spline,
         chipload_job::Geometry::Path { .. } => Icon::Paths,
     }
 }
@@ -196,6 +197,7 @@ impl ChiploadApp {
             ("drawn:circle", t!(self, "sources-circles")),
             ("drawn:polyline", t!(self, "sources-polylines")),
             ("drawn:polygon", t!(self, "sources-polygons")),
+            ("drawn:spline", t!(self, "sources-splines")),
             ("paths", t!(self, "sources-other-paths")),
         ] {
             push(key.into(), title, GroupKind::Drawn);
@@ -620,6 +622,7 @@ impl ChiploadApp {
             (GroupKind::Drawn, "drawn:rectangle") => Icon::Rectangle,
             (GroupKind::Drawn, "drawn:polyline") => Icon::Polyline,
             (GroupKind::Drawn, "drawn:polygon") => Icon::Polygon,
+            (GroupKind::Drawn, "drawn:spline") => Icon::Spline,
             (GroupKind::Drawn, _) => Icon::Paths,
             (GroupKind::Shapes(_), _) => Icon::Frame,
         };

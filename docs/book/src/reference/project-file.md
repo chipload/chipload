@@ -4,7 +4,7 @@
 
 A project (`.chipload`) is a JSON file. Chipload writes every field; when you write one by hand or with a script, the fields marked *no* may be left out. Lengths are in mm, angles in radians, feeds in mm/min. `chipload schema project` prints the JSON Schema this page is made from.
 
-Schema version 41. Older files load through Chipload's migrations; this schema describes only the current version.
+Schema version 42. Older files load through Chipload's migrations; this schema describes only the current version.
 
 ## The file
 
@@ -16,7 +16,7 @@ Schema version 41. Older files load through Chipload's migrations; this schema d
 | `machine` | [Machine](#machine) | yes | The machine: post-processor, safe height, limits. |
 | `operations` | list of [Operation](#operation) | yes | The operations, cut in this order: grouped by part, in the parts' order. |
 | `parts` | list of [Part](#part) | yes | The parts: groups of operations, each cut with its copies before the next part. At least one. |
-| `schema_version` | `41` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
+| `schema_version` | `42` | yes | The version of the file format. Chipload upgrades older files when it reads them, and refuses newer ones. |
 | `setups` | list of [Setup](#setup) | yes | The setups: each a board clamped on the machine, with its stock, its work zero and the parts cut from it, written as a program of its own. At least one. Since schema 34. |
 | `tools` | list of [Tool](#tool) | yes | The tools the operations cut with. |
 | `written_by` | string or null | no | The Chipload version that wrote the file, for reference. |
@@ -991,7 +991,7 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `angle` | number or null | no | rectangle: its rotation about the centre; polygon: the angle of its first corner from +X; radians, counter-clockwise. |
 | `bulges` | list of number or null | no | polyline: one per segment, as in DXF: tan(sweep / 4); 0 straight, 1 a counter-clockwise half circle, -1 clockwise. |
 | `center` | 2 × number or null | no | circle, rectangle, polygon: the centre, mm. |
-| `closed` | boolean or null | no | path, polyline: whether it ends where it starts. |
+| `closed` | boolean or null | no | path, polyline, spline: whether it ends where it starts. |
 | `construction` | boolean | no | circle, rectangle, polygon, polyline: construction geometry, shown and snapped to but never cut; left out when false. |
 | `corner_radius` | number or null | no | rectangle: the radius of its corners, mm; 0 for sharp ones. |
 | `dxf` | integer or null | no | path: the DXF it was imported from (its id in `drawing.dxfs`). |
@@ -999,12 +999,12 @@ One shape of the drawing: imported from a DXF (`path`: lines and arcs, one shape
 | `dxf_type` | string or null | no | path: the DXF entity's type, e.g. LWPOLYLINE. |
 | `id` | integer | yes | The shape's id, which operations select it by. |
 | `image` | integer or null | no | path: the image it was traced from; absent for shapes from a DXF. |
-| `kind` | [ShapeKind](#shapekind) | yes | `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`, `polyline`. |
+| `kind` | [ShapeKind](#shapekind) | yes | `path` (imported from a DXF), or a shape drawn in Chipload: `circle`, `rectangle`, `polyline`, `polygon`, `spline`. |
 | `layer` | string | yes | Its layer. |
 | `length` | number or null | no | rectangle: its size along its own X axis, mm. |
 | `model` | integer or null | no | path: the 3D model it is the footprint outline of (its id in `drawing.models`). |
 | `name` | string or null | no | circle, rectangle, polyline: its name in the Browser; left out when it has none. |
-| `points` | list of 2 × number or null | no | polyline: its points, mm. |
+| `points` | list of 2 × number or null | no | polyline: its points; spline: the points the curve passes through; mm. |
 | `radius` | number or null | no | circle: the radius, mm; polygon: the radius to its corners, mm. |
 | `segments` | list of [PathSegment](#pathsegment) or null | no | path: its lines and arcs, mm. |
 | `sides` | integer or null | no | polygon: how many sides (and corners) it has, 3 to 1000. |
@@ -1025,7 +1025,7 @@ Drawn shapes and texts kept together: one click selects them all, and they move,
 
 ## ShapeKind
 
-One of: `"path"`, `"circle"`, `"rectangle"`, `"polyline"`, `"polygon"`.
+One of: `"path"`, `"circle"`, `"rectangle"`, `"polyline"`, `"polygon"`, `"spline"`.
 
 ## Side
 

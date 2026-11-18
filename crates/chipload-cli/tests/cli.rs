@@ -3636,3 +3636,58 @@ fn a_parts_stock_is_recorded_and_moved_when_asked_from_the_command_line() {
     assert!(err.contains("no material \"Unobtainium\""), "{err}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+#[test]
+fn a_spline_is_added_and_changed_from_the_command_line() {
+    // docs/specs/splines.md §6.
+    let dir = temp_dir("spline");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&["shape", "add", p, "spline", "--points", "0,0 20,15 45,5"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let id = text(&out.stdout)
+        .split_whitespace()
+        .find_map(|w| {
+            w.trim_end_matches('.')
+                .strip_prefix('S')?
+                .parse::<u64>()
+                .ok()
+        })
+        .unwrap();
+    let shape = |key: &str| {
+        let out = chipload(&["get", p, &format!("drawing.shapes.{}.{key}", id - 1)]);
+        text(&out.stdout).split_whitespace().collect::<String>()
+    };
+    assert_eq!(shape("kind"), "\"spline\"");
+    assert_eq!(shape("closed"), "false");
+    let id = id.to_string();
+    let out = chipload(&[
+        "shape",
+        "set",
+        p,
+        &id,
+        "--points",
+        "0,0 20,15 45,5 60,0",
+        "--closed",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    assert_eq!(shape("closed"), "true");
+    assert!(
+        shape("points").starts_with("[[0.0,0.0],[20.0,15.0]"),
+        "{}",
+        shape("points")
+    );
+    // A spline has no bulges or radius; two points can't close it.
+    for bad in [
+        &["shape", "set", p, &id, "--bulges", "0 0 0 0"][..],
+        &["shape", "set", p, &id, "--radius", "3"],
+        &["shape", "set", p, &id, "--points", "0,0 5,5"],
+        &[
+            "shape", "add", p, "spline", "--points", "0,0 5,5", "--bulges", "0",
+        ],
+    ] {
+        let out = chipload(bad);
+        assert!(!out.status.success(), "{bad:?}");
+    }
+}

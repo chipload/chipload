@@ -379,3 +379,7 @@ job-style-tool-not-in-library = la herramienta { $tool } no está en tu bibliote
 job-style-these-settings = estos ajustes
 job-style-other-settings = otros ajustes
 job-instance-twice = dos instancias tienen el número { $id }
+job-spline-points = { $closed ->
+    [closed] un spline cerrado
+   *[open] un spline abierto
+} necesita al menos { $least } puntos, tiene { $got }

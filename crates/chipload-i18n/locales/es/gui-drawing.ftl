@@ -28,3 +28,4 @@ drawing-deleted-status = { $count ->
 drawing-imported-kept = Se conservaron las formas importadas de la selección (solo cambian con su archivo).
 drawing-kind-slot = ranura
 drawing-kind-polygon = polígono
+drawing-kind-spline = spline

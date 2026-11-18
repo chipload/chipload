@@ -106,6 +106,12 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
             }
             list
         }
+        // A point the curve passes through, each (docs/specs/splines.md §2).
+        Geometry::Spline { points, .. } => points
+            .iter()
+            .enumerate()
+            .map(|(i, &p)| (Handle::Point(i), p))
+            .collect(),
     }
 }
 
@@ -162,7 +168,8 @@ pub fn dimensions(geometry: &Geometry) -> Vec<Shown> {
         ]
     };
     match geometry {
-        Geometry::Path { .. } => Vec::new(),
+        // A curve has no straight sides to measure.
+        Geometry::Path { .. } | Geometry::Spline { .. } => Vec::new(),
         Geometry::Circle { center, radius } => vec![Shown {
             dimension: Dimension::Radius,
             value: *radius,
@@ -433,7 +440,9 @@ pub fn try_drag(
             }
             *angle = math::atan2(dy, dx);
         }
-        (Geometry::Polyline { points, .. }, Handle::Point(i)) if i < points.len() => {
+        (Geometry::Polyline { points, .. } | Geometry::Spline { points, .. }, Handle::Point(i))
+            if i < points.len() =>
+        {
             points[i] = to;
         }
         (
@@ -496,6 +505,9 @@ pub fn bulge_through(a: [f64; 2], b: [f64; 2], to: [f64; 2]) -> f64 {
 /// follows it, which splits into two halves of the same arc (half the sweep each), or
 /// 10 mm on in X after the last point of an open polyline. False if there's no such point.
 pub fn insert_point_after(geometry: &mut Geometry, i: usize) -> bool {
+    if let Geometry::Spline { closed, points } = geometry {
+        return insert_spline_point_after(*closed, points, i);
+    }
     let Geometry::Polyline {
         closed,
         points,
@@ -524,10 +536,38 @@ pub fn insert_point_after(geometry: &mut Geometry, i: usize) -> bool {
     true
 }
 
+/// A spline's point after point `i`: on the curve halfway along the piece that follows it,
+/// or 10 mm on in X after the last point of an open spline.
+fn insert_spline_point_after(closed: bool, points: &mut Vec<[f64; 2]>, i: usize) -> bool {
+    if i >= points.len() {
+        return false;
+    }
+    let at: Vec<chipload_core::Point> = points.iter().map(|p| (p[0], p[1])).collect();
+    let pieces = chipload_core::spline::beziers(&at, closed);
+    match pieces.get(i) {
+        Some(piece) if i + 1 < points.len() || closed => {
+            let (x, y) = chipload_core::spline::point_at(piece, 0.5);
+            points.insert(i + 1, [x, y]);
+        }
+        _ => {
+            let p = points[i];
+            points.insert(i + 1, [p[0] + 10.0, p[1]]);
+        }
+    }
+    true
+}
+
 /// Remove point `i`. Where it joined two segments, the one that replaces them is straight;
 /// an end point of an open polyline takes its segment with it. False if there's no such
 /// point.
 pub fn remove_point(geometry: &mut Geometry, i: usize) -> bool {
+    if let Geometry::Spline { points, .. } = geometry {
+        if i >= points.len() {
+            return false;
+        }
+        points.remove(i);
+        return true;
+    }
     let Geometry::Polyline {
         closed,
         points,
@@ -558,6 +598,10 @@ pub fn remove_point(geometry: &mut Geometry, i: usize) -> bool {
 /// Open or close a polyline: closing adds a straight segment back to the first point,
 /// opening removes that last segment.
 pub fn set_closed(geometry: &mut Geometry, close: bool) {
+    if let Geometry::Spline { closed, .. } = geometry {
+        *closed = close;
+        return;
+    }
     if let Geometry::Polyline {
         closed,
         points,
@@ -612,6 +656,10 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
             radius: *radius,
             sides: *sides,
             angle: *angle,
+        }),
+        Geometry::Spline { closed, points } => Some(Geometry::Spline {
+            closed: *closed,
+            points: points.iter().map(shift).collect(),
         }),
     }
 }
@@ -684,6 +732,12 @@ pub fn transformed(
             radius: radius * scale,
             sides: *sides,
             angle: turned_angle(*angle, degrees),
+        }),
+        // The curve depends on distances only: it moves, turns and scales with its points
+        // (docs/specs/splines.md §5).
+        Geometry::Spline { closed, points } => Some(Geometry::Spline {
+            closed: *closed,
+            points: points.iter().map(map).collect(),
         }),
     }
 }
@@ -765,6 +819,10 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
                 Mirror::LeftRight => within_half_turn(PI - angle),
                 Mirror::UpDown => negated(*angle),
             },
+        }),
+        Geometry::Spline { closed, points } => Some(Geometry::Spline {
+            closed: *closed,
+            points: points.iter().map(flip).collect(),
         }),
     }
 }

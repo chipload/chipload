@@ -267,6 +267,7 @@ impl ChiploadApp {
                     Some(Geometry::Rectangle { .. }) => t!(self, "drawing-kind-rectangle"),
                     Some(Geometry::Polyline { .. }) => t!(self, "drawing-kind-polyline"),
                     Some(Geometry::Polygon { .. }) => t!(self, "drawing-kind-polygon"),
+                    Some(Geometry::Spline { .. }) => t!(self, "drawing-kind-spline"),
                     Some(Geometry::Path { .. }) | None => t!(self, "drawing-shape"),
                 };
                 self.set_status(

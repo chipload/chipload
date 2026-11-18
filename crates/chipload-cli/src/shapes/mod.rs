@@ -460,6 +460,8 @@ pub(crate) enum KindArg {
     Rectangle,
     Polyline,
     Polygon,
+    /// The smooth curve through --points (docs/specs/splines.md).
+    Spline,
 }
 
 /// Defining values, all in mm; the angle in degrees.
@@ -492,17 +494,18 @@ pub(crate) struct ShapeValues {
     /// sharp).
     #[arg(value_parser = crate::lengths::length, long)]
     corner_radius: Option<f64>,
-    /// Polyline points "X,Y X,Y ...".
+    /// Polyline points, or the points a spline passes through: "X,Y X,Y ...".
     #[arg(long, allow_hyphen_values = true)]
     points: Option<String>,
     /// Polyline bulges "B B ...", one per segment: tan(sweep / 4) as in DXF, 0 straight,
     /// 1 a counter-clockwise half circle, -1 clockwise (default: all straight).
     #[arg(long, allow_hyphen_values = true)]
     bulges: Option<String>,
-    /// The polyline doesn't return to its first point.
+    /// The polyline or spline doesn't return to its first point.
     #[arg(long, conflicts_with = "closed")]
     open: bool,
-    /// The polyline returns to its first point (the default for new ones).
+    /// The polyline or spline returns to its first point (the default for a new polyline;
+    /// a new spline is open without it).
     #[arg(long)]
     closed: bool,
     #[arg(long)]

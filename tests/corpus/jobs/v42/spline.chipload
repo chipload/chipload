@@ -1,0 +1,234 @@
+{
+  "schema_version": 42,
+  "written_by": "chipload 0.38.0",
+  "drawing": {
+    "shapes": [
+      {
+        "id": 1,
+        "layer": "0",
+        "kind": "spline",
+        "closed": true,
+        "points": [
+          [
+            -60.0,
+            -30.0
+          ],
+          [
+            0.0,
+            -40.0
+          ],
+          [
+            60.0,
+            -30.0
+          ],
+          [
+            70.0,
+            20.0
+          ],
+          [
+            0.0,
+            40.0
+          ],
+          [
+            -70.0,
+            25.0
+          ]
+        ]
+      },
+      {
+        "id": 2,
+        "layer": "0",
+        "kind": "spline",
+        "closed": false,
+        "points": [
+          [
+            -40.0,
+            0.0
+          ],
+          [
+            -15.0,
+            15.0
+          ],
+          [
+            10.0,
+            -10.0
+          ],
+          [
+            40.0,
+            8.0
+          ]
+        ]
+      }
+    ],
+    "next_shape_id": 3,
+    "dxfs": [],
+    "images": [],
+    "hidden": []
+  },
+  "setups": [
+    {
+      "id": 1,
+      "name": "Setup 1",
+      "enabled": true,
+      "stock": {
+        "x": 170.0,
+        "y": 110.0,
+        "thickness": 12.0,
+        "origin": "drawing",
+        "fit": null,
+        "z_zero": "top",
+        "max_overcut": 0.5,
+        "material": null
+      },
+      "work_zero": {
+        "at": "stock",
+        "corner": "bottom_left"
+      },
+      "back_of": null,
+      "pieces": null,
+      "instances": [
+        {
+          "part": 1,
+          "id": 1,
+          "enabled": true,
+          "mirror": null,
+          "angle": 0.0,
+          "at": [
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  ],
+  "active_setup": 1,
+  "machine": {
+    "name": null,
+    "library_uid": null,
+    "post": "grbl",
+    "gcode_units": "mm",
+    "safe_z": 5.0,
+    "spindle": "cw",
+    "max_feed": null,
+    "travel": null,
+    "tool_change": "files",
+    "custom_post": null
+  },
+  "tools": [
+    {
+      "id": 1,
+      "name": null,
+      "library_uid": null,
+      "type": "endmill",
+      "diameter": 6.0,
+      "flutes": null,
+      "center_cutting": null,
+      "rpm": 18000.0,
+      "angle": null,
+      "tip_diameter": null
+    }
+  ],
+  "parts": [
+    {
+      "id": 1,
+      "name": "Part 1",
+      "enabled": true,
+      "order": "by_operation"
+    }
+  ],
+  "active_part": 1,
+  "operations": [
+    {
+      "type": "pocket",
+      "name": "Pocket 1",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1
+        ]
+      },
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 2.0,
+      "through": null,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "stepover": 0.4,
+      "slot_feed": null,
+      "slot_step_down": null,
+      "direction": "climb",
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "entry": {
+        "type": "helix",
+        "radius": 1.5,
+        "ramp_angle": 0.05235987755982988
+      },
+      "starts": [],
+      "lead": null,
+      "corners": null,
+      "rest": null
+    },
+    {
+      "type": "path",
+      "name": "Follow path 1",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          2
+        ]
+      },
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 4.0,
+      "through": null,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "entry": {
+        "type": "ramp",
+        "ramp_angle": 0.05235987755982988
+      }
+    },
+    {
+      "type": "profile",
+      "name": "Profile 1",
+      "enabled": true,
+      "part": 1,
+      "material": null,
+      "select": {
+        "layer": null,
+        "shapes": [
+          1
+        ]
+      },
+      "side": "outside",
+      "direction": "climb",
+      "tool": 1,
+      "start_depth": 0.0,
+      "end_depth": 12.5,
+      "through": 0.5,
+      "clearance": 0.0,
+      "step_down": 1.0,
+      "feed": 1500.0,
+      "plunge_feed": 500.0,
+      "tabs": {
+        "count": 4,
+        "width": 8.0,
+        "height": 3.0,
+        "flank_angle": 0.5235987755982988
+      },
+      "ramp_angle": 0.05235987755982988,
+      "starts": [],
+      "finish": null,
+      "skin": null,
+      "corners": null
+    }
+  ]
+}

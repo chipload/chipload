@@ -59,6 +59,17 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
                 bulges,
             }
         }
+        KindArg::Spline => {
+            if v.bulges.is_some() {
+                return Err(
+                    "--bulges is for a polyline; a spline is smooth through its points".into(),
+                );
+            }
+            Geometry::Spline {
+                closed: v.closed,
+                points: points_arg(need(v.points.as_deref(), "points", "spline")?)?,
+            }
+        }
         KindArg::Polygon => {
             let sides = need(v.sides, "sides", "polygon")?;
             let radius = match v.across_flats {
@@ -206,6 +217,30 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ));
                 }
                 *bulges = vec![0.0; count];
+            }
+        }
+        Geometry::Spline { closed, points } => {
+            not_for(
+                "spline",
+                &[
+                    ("center", center.is_some()),
+                    ("radius", v.radius.is_some()),
+                    ("length", v.length.is_some()),
+                    ("width", v.width.is_some()),
+                    ("angle-deg", v.angle_deg.is_some()),
+                    ("corner-radius", v.corner_radius.is_some()),
+                    ("bulges", v.bulges.is_some()),
+                    ("sides", v.sides.is_some()),
+                    ("across-flats", v.across_flats.is_some()),
+                ],
+            )?;
+            if let Some(text) = &v.points {
+                *points = points_arg(text)?;
+            }
+            if v.open {
+                *closed = false;
+            } else if v.closed {
+                *closed = true;
             }
         }
     }

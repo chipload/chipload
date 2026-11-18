@@ -11,6 +11,7 @@ pub mod math;
 pub mod nesting;
 pub mod order;
 pub mod primitives;
+pub mod spline;
 pub mod text;
 pub mod tolerances;
 

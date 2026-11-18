@@ -1,6 +1,7 @@
 # Spec: drawn splines
 
-Status: **draft, 2026-11-18**, for review (research in §1, decisions in §10).
+Status: **approved 2026-11-18** (the user: "start with step 1"; §10 as recommended).
+Step 1 built (see *As built*).
 
 User request (2026-11-18): splines as well, after the drawing variants
 (docs/specs/drawing-variants.md); "if possible, research it".
@@ -174,3 +175,22 @@ program gets a real spline. `--segments` would export the lines and arcs instead
    dependency. Alternative: in `chipload-draw`, with job depending on it.
 6. **DXF export as SPLINE** (exact) by default, lines and arcs with `--segments`.
 7. **Key B** for the spline tool.
+
+## As built
+
+- **Step 1 (2026-11-18):**
+  - **The curve:** `chipload_core::spline`, with `beziers`, `point_at`, `flatten` and
+    `segments`. The segments are flattened within a tenth of the tolerance and fitted by
+    `fit_path` within the rest.
+  - **The kind:** `Geometry::Spline { closed, points }`, schema 42 (`v41_to_v42`, the
+    identity), validated as §3.
+  - **Editing:** `edit` moves, turns, scales and mirrors the points. A point's handle drags
+    it. The form's "+" inserts a point on the curve halfway along the next piece.
+  - **Command line:** `shape add … spline`. A new spline is open unless `--closed`; a new
+    polyline stays closed unless `--open`.
+  - **The window:** it already shows, selects and edits a spline (its form with *Closed*
+    and the points table, the Browser group *Splines*); the drawing tool is step 2.
+  - **Tests:** the golden `v42_spline` (a pocket and a profile of a closed spline, a follow
+    path along an open one) is new, with the frozen v41 sample `nesting_demo` for the
+    migration. No other G-code changed; the frozen plan messages gained the new sample's
+    lines only.

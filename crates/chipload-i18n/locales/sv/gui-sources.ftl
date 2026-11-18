@@ -61,3 +61,4 @@ sources-rename = Byt namn…
 sources-copy-shape = Kopiera
 sources-delete-shape = Radera
 sources-polygons = Polygoner
+sources-splines = Splines

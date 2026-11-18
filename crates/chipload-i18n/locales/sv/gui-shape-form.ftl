@@ -62,3 +62,4 @@ shape-form-across-flats = Nyckelvidd
 shape-form-across-flats-hover = Från en sida till den motsatta (två gånger avståndet från centrum till en sidas mitt); ändrar radien
 shape-form-polygon-angle = Vinkel
 shape-form-polygon-angle-hover = Dit första hörnet pekar, moturs från +X
+shape-form-title-spline = Spline S{ $id }

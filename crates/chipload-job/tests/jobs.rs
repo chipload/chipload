@@ -2812,3 +2812,58 @@ fn v34_to_v35_gives_a_vcarve_its_passes() {
         assert!(err.contains("operations.0.passes"), "{err}");
     }
 }
+
+/// docs/specs/splines.md §3: schema 42 only bumps the version, so an older Chipload says
+/// a project with a spline is from a newer version.
+#[test]
+fn v41_to_v42_changes_only_the_version() {
+    let v41 = raw("v41/nesting_demo.chipload");
+    let mut current = migrate(v41.clone()).unwrap();
+    assert_eq!(current["schema_version"], json!(42));
+    current["schema_version"] = json!(41);
+    assert_eq!(current, v41);
+    load_job(&corpus().join("v41/nesting_demo.chipload")).unwrap();
+}
+
+/// A spline (docs/specs/splines.md): saved with its points, its segments lines and arcs
+/// from its first point to its last, and refused when its points can't be.
+#[test]
+fn a_spline_is_saved_loaded_and_checked() {
+    use chipload_job::{Geometry, PathSegment, Shape};
+    let mut data = migrate(raw("v41/nesting_demo.chipload")).unwrap();
+    data["drawing"]["shapes"] = json!([{"id": 1, "layer": "0", "kind": "spline",
+        "closed": false, "points": [[0.0, 0.0], [20.0, 15.0], [45.0, 5.0], [60.0, 20.0]]}]);
+    data["drawing"]["next_shape_id"] = json!(2);
+    data["operations"] = json!([]);
+    let job = parse_job(data.clone(), "p").unwrap();
+    let shape: &Shape = &job.drawing.shapes[0];
+    assert!(matches!(
+        shape.geometry,
+        Geometry::Spline { closed: false, .. }
+    ));
+    assert_eq!(shape.kind_name(), "spline");
+    let segments = shape.segments();
+    assert!(segments.iter().any(|s| matches!(s, PathSegment::Arc(_))));
+    let (first, last) = (
+        segments[0].to_primitive().start(),
+        segments[segments.len() - 1].to_primitive().end(),
+    );
+    assert!(first == (0.0, 0.0) && (last.0 - 60.0).abs() < 1e-9 && (last.1 - 20.0).abs() < 1e-9);
+    // Saved as loaded.
+    let saved = serde_json::to_value(&job).unwrap();
+    assert_eq!(saved["drawing"]["shapes"][0], data["drawing"]["shapes"][0]);
+    // Too few points when closed, a point on the one before, a field of another kind.
+    for (field, value) in [
+        ("closed", json!(true)),
+        ("points", json!([[0.0, 0.0], [0.0, 0.0], [5.0, 5.0]])),
+        ("points", json!([[0.0, 0.0]])),
+        ("bulges", json!([0.0, 0.0, 0.0])),
+    ] {
+        let mut bad = data.clone();
+        if field == "closed" {
+            bad["drawing"]["shapes"][0]["points"] = json!([[0.0, 0.0], [5.0, 5.0]]);
+        }
+        bad["drawing"]["shapes"][0][field] = value;
+        assert!(parse_job(bad, "p").is_err(), "{field}");
+    }
+}

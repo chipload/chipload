@@ -29,6 +29,8 @@ pub enum Icon {
     Frame,
     Circle,
     Rectangle,
+    /// A spline: a smooth curve through points.
+    Spline,
     /// An arc drawn from its centre.
     ArcCentre,
     /// A polygon drawn by its centre and a side's middle.
@@ -394,6 +396,19 @@ pub fn paint(painter: &Painter, rect: Rect, icon: Icon, color: Color32) {
                 // The bottom side's two ends.
                 pen.dot(points[1], 0.06);
                 pen.dot(points[2], 0.06);
+            }
+        }
+        Icon::Spline => {
+            // An S through three points, as a few short lines.
+            let points: Vec<(f32, f32)> = (0..=16)
+                .map(|k| {
+                    let t = k as f32 / 16.0;
+                    (0.1 + 0.8 * t, 0.5 - 0.3 * (t * TAU).sin())
+                })
+                .collect();
+            pen.poly(&points);
+            for p in [points[0], points[8], points[16]] {
+                pen.dot(p, 0.05);
             }
         }
         Icon::ArcCentre => {

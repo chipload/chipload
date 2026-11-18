@@ -28,3 +28,4 @@ drawing-deleted-status = Raderade { $count ->
 drawing-imported-kept = Importerade former i markeringen behölls (de ändras bara med sin fil).
 drawing-kind-slot = spår
 drawing-kind-polygon = polygon
+drawing-kind-spline = spline
