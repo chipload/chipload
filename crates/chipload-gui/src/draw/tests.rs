@@ -762,3 +762,16 @@ fn a_spline_is_points_finished_open_or_closed_on_the_first() {
         Step::Done(Geometry::Spline { closed: true, ref points }) if points.len() == 3
     ));
 }
+
+#[test]
+fn typed_values_take_arithmetic() {
+    // docs/specs/drawing-improvements.md §2.
+    let mm = |t: &str| parse_entry(t, Units::Mm);
+    assert_eq!(mm("(100-6)/2"), Ok(Entry::Distance(47.0)));
+    assert_eq!(mm("600/4,18+0.2"), Ok(Entry::At((150.0, 18.2))));
+    assert_eq!(mm("@-10*2,5"), Ok(Entry::By((-20.0, 5.0))));
+    assert_eq!(mm("<360/8"), Ok(Entry::Angle(45f64.to_radians())));
+    assert_eq!(mm("20<90+45"), Ok(Entry::Polar(20.0, 135f64.to_radians())));
+    assert_eq!(mm("12,5+1;3"), Ok(Entry::At((13.5, 3.0))));
+    assert_eq!(mm("<1in"), Err(EntryError::Unreadable));
+}

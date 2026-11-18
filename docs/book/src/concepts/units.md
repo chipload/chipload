@@ -39,6 +39,12 @@ With inch:
 
 In mm, fields also take a length in inches: type `1/4in` or `0.25"`.
 
+**Arithmetic:** any length or number field, a value typed while drawing, and any length on
+the command line take `+ - * /` and brackets: `18+0.2`, `600/4`, `(100-6)/2`, `2*1/4in`.
+`*` and `/` go first. A unit can follow any number (`1in+3mm`); a number without one is in
+the field's units. A length can't be multiplied by a length, nor divide anything. The field
+keeps the result, not the sum.
+
 **On the command line** a plain number is mm, as always, so scripts don't change. A length
 can carry its unit: `--height 0.5in`, `--diameter 1/4in`, `--at 1in,2in`, `--width 1 1/2in`
 (quoted), `--travel 30in,30in,4in`; feeds `--max-feed 200in/min`. `chipload run

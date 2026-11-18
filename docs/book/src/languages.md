@@ -23,7 +23,8 @@ Names you give things (parts, operations, tools, machines, layers) are yours and
 translated. Numbers keep the decimal point in every language, and a field also takes a
 decimal comma (`6,5`, `0,3`) in every language. In English only, a comma followed by exactly
 three digits after a whole number (`1,000`, `2,500`) isn't read, since it could mean a
-thousand: type `2.5` or `2,5` there.
+thousand: type `2.5` or `2,5` there. In a language that writes a decimal comma, every
+comma in a sum is one: `12,5+3,5`.
 
 ## Helping with a translation
 

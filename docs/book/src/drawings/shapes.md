@@ -88,7 +88,9 @@ uses it, **Esc** closes it.
 | `30<45` | 30 from the last point at 45° (counter-clockwise from the X axis) |
 | `<45` | at 45° from the last point, as far as the cursor is (an arc by its centre: its end at 45°) |
 
-Lengths are in the units the app shows, unless you name them: `1/2in`, `12mm`. Where the
+Lengths are in the units the app shows, unless you name them: `1/2in`, `12mm`. Every
+value can be a sum: `600/4,18+0.2`, `(100-6)/2`, `<360/7`
+([arithmetic](../concepts/units.md)). Where the
 decimal point is a comma, separate X and Y with a semicolon: `12,5;30`. For a circle, a
 plain length after the centre is its radius; for an aligned rectangle, after the edge, its
 width. The preview shows where the value lands before

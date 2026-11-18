@@ -36,7 +36,7 @@ impl ChiploadApp {
                 i.events.iter().find_map(|e| match e {
                     egui::Event::Text(t)
                         if t.starts_with(|c: char| {
-                            c.is_ascii_digit() || matches!(c, '-' | '.' | '@' | '<')
+                            c.is_ascii_digit() || matches!(c, '-' | '.' | '@' | '<' | '(')
                         }) =>
                     {
                         Some(t.clone())

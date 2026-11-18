@@ -1,6 +1,7 @@
 # Spec: mirror about a line, arithmetic in number fields, arc slots
 
-Status: **draft, 2026-11-18**, for review (decisions in §5).
+Status: **approved 2026-11-18** (the user: "go ahead"; §5 as recommended). Built in three
+commits (see *As built*).
 
 The first three suggestions from the review of the drawing tools on 2026-11-18 (the user:
 "go ahead with your suggestions and then we take the rest in step 2"). The rest are in
@@ -172,3 +173,20 @@ change), not this.
 5. **An arc slot is a closed polyline**, editable as one afterwards, with no format change.
    Alternative: a new kind that stays an arc slot with its values editable (schema 43).
 6. **Results only, no expressions kept**, until named values (phase 4) get their own spec.
+
+## As built
+
+- **§2 Arithmetic (2026-11-18):**
+  - **The parser:** `chipload_pipeline::units::parse_length` reads lengths through a small
+    parser (tokens, then `sum`, `product`, `factor`), and `parse_number_expr` reads
+    numbers without units.
+  - **Fractions:** `a/b` and `w a/b` of whole numbers are number literals, which a unit may
+    follow, so `1/2in` is half an inch and `3/1in` three inches. Any other `/` divides
+    (`1.5/2`, `1/2.5`).
+  - **Units:** plain numbers stay plain until the end, or until added to a length, where
+    they take the field's units. Every value that read before gives the same bits.
+  - **Newly read:** `1.5/2` (0.75), which was refused before.
+  - **The window:** number fields (angles, counts) and feed fields read sums too.
+  - **Decimal comma:** in a language that writes one, every comma of a text without a
+    point is a decimal comma (`12,5+3,5`).
+  - **Typed entries:** they now open on `(` too.

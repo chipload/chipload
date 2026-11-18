@@ -6,7 +6,7 @@
 use std::ops::RangeInclusive;
 
 use chipload_job::Units;
-use chipload_pipeline::units::{feed_unit, length_unit, parse_length};
+use chipload_pipeline::units::{feed_unit, length_unit, parse_length, parse_number_expr};
 use eframe::egui::{self, DragValue, Id, Response, Ui, Widget};
 
 fn key() -> Id {
@@ -121,6 +121,10 @@ impl<'a> Field<'a> {
 /// number not starting with 0 left as typed, so it doesn't parse: `1,000` could be a
 /// thousand, and is never guessed at.
 pub fn decimal_point(text: &str, comma: bool) -> String {
+    // Where the comma is the decimal point, every comma is one (`12,5+3,5`).
+    if comma && !text.contains('.') {
+        return text.replace(',', ".");
+    }
     if text.contains('.') || text.matches(',').count() != 1 {
         return text.to_string();
     }
@@ -145,13 +149,11 @@ fn looks_like_thousands(text: &str) -> bool {
     (1..=3).contains(&whole.len()) && !whole.ends_with('0') && after == 3
 }
 
-/// A number field (no unit) that also takes a decimal comma ([`decimal_point`]).
+/// A number field (no unit) that also takes a decimal comma ([`decimal_point`]) and
+/// arithmetic (`360/7`; docs/specs/drawing-improvements.md §2).
 pub fn number<'a, N: egui::emath::Numeric>(ui: &Ui, value: &'a mut N) -> DragValue<'a> {
     let comma = crate::i18n::Lang::lang(ui).decimal_comma();
-    DragValue::new(value).custom_parser(move |text| {
-        let text = decimal_point(text, comma);
-        text.trim().replace('−', "-").parse::<f64>().ok()
-    })
+    DragValue::new(value).custom_parser(move |text| parse_number_expr(&decimal_point(text, comma)))
 }
 
 impl Widget for Field<'_> {
@@ -189,7 +191,7 @@ impl Widget for Field<'_> {
                 field.custom_parser(move |text| parse_length(&decimal_point(text, comma), units))
             }
             Kind::Feed | Kind::Area => field.custom_parser(move |text| {
-                let number = decimal_point(text, comma).trim().parse::<f64>().ok()?;
+                let number = parse_number_expr(&decimal_point(text, comma))?;
                 number.is_finite().then_some(number * size)
             }),
         };
@@ -220,8 +222,16 @@ mod tests {
         assert_eq!(decimal_point("1,000", false), "1,000");
         assert_eq!(decimal_point("-1,500 mm", false), "-1,500 mm");
         assert_eq!(decimal_point("1,000", true), "1.000");
-        // A point already there, or two commas: left as typed, so it doesn't parse.
+        // A point already there: left as typed, so it doesn't parse.
         assert_eq!(decimal_point("1.000,5", true), "1.000,5");
-        assert_eq!(decimal_point("1,0,5", true), "1,0,5");
+        // Arithmetic in a comma language: every comma is a decimal point
+        // (docs/specs/drawing-improvements.md §2); two in one number still don't read.
+        assert_eq!(decimal_point("12,5+3,5", true), "12.5+3.5");
+        let units = chipload_job::Units::Mm;
+        let read = |t: &str| chipload_pipeline::units::parse_length(&decimal_point(t, true), units);
+        assert_eq!(read("12,5+3,5"), Some(16.0));
+        assert_eq!(read("1,0,5"), None);
+        // In English, two commas stay as typed.
+        assert_eq!(decimal_point("1,0,5", false), "1,0,5");
     }
 }

@@ -656,11 +656,8 @@ pub fn parse_entry(text: &str, units: Units) -> Result<Entry, EntryError> {
     };
     let length = |t: &str| parse_length(t, units).ok_or(EntryError::Unreadable);
     if let Some((d, a)) = body.split_once('<') {
-        let degrees: f64 = a
-            .trim()
-            .replace(',', ".")
-            .parse()
-            .map_err(|_| EntryError::Unreadable)?;
+        let degrees = chipload_pipeline::units::parse_number_expr(&a.replace(',', "."))
+            .ok_or(EntryError::Unreadable)?;
         if !degrees.is_finite() {
             return Err(EntryError::Unreadable);
         }

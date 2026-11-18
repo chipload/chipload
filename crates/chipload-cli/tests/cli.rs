@@ -3691,3 +3691,39 @@ fn a_spline_is_added_and_changed_from_the_command_line() {
         assert!(!out.status.success(), "{bad:?}");
     }
 }
+
+#[test]
+fn length_options_take_arithmetic() {
+    // docs/specs/drawing-improvements.md §2.
+    let dir = temp_dir("arithmetic");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let out = chipload(&[
+        "--json",
+        "shape",
+        "add",
+        p,
+        "rectangle",
+        "--center",
+        "100/2,(3+1)*5",
+        "--length",
+        "600/4",
+        "--width",
+        "18+0.2",
+    ]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    let id = value["ids"][0].as_u64().unwrap();
+    let get = |key: &str| {
+        let out = chipload(&["get", p, &format!("drawing.shapes.{}.{key}", id - 1)]);
+        text(&out.stdout).split_whitespace().collect::<String>()
+    };
+    assert_eq!(get("center"), "[50.0,20.0]");
+    assert_eq!(get("length"), "150.0");
+    assert_eq!(get("width"), "18.2");
+    let out = chipload(&[
+        "shape", "add", p, "circle", "--center", "0,0", "--radius", "1in*1in",
+    ]);
+    assert!(!out.status.success());
+}
