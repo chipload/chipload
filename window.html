@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>The window - Chipload 0.37.0 user guide</title>
+        <title>The window - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a5a59c3f.js"></script>
+        <script src="toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -221,7 +221,7 @@ selector; <strong>Preferences…</strong>, which opens <em>Preferences</em> in t
 units, language, colour theme, the setup sheet) and <strong>Help</strong> (the user guide, keyboard
 shortcuts, about). On a Mac the menus show Cmd for the keys written Ctrl in this guide.</p>
 <p>The <strong>status bar</strong> at the bottom gives hints on the left. On the right it shows the
-cursor’s position, the number of copies, the cycle time once generated, the
+cursor’s position, how many times the part is cut (its instances), the cycle time once generated, the
 post-processor and the units.</p>
 <h2 id="the-browser"><a class="header" href="#the-browser">The Browser</a></h2>
 <p>The <strong>Browser</strong> on the left holds your library and the whole project as a tree:</p>
@@ -250,8 +250,10 @@ library</a>.</li>
 <li><strong>Drawing:</strong> what the shapes come from. Each DXF has its layers under it; then come
 each picture, and the shapes drawn in Chipload by kind (circles, rectangles,
 polylines). See <a href="drawings/several.html">Several drawings</a>.</li>
-<li><strong>Setups</strong>, each with its <strong>Stock</strong>, its <strong>Work zero</strong> and its <strong>parts</strong> under it, each part
-with its operations, in cutting order. A line marks each tool change. A floor pass is
+<li><strong>Stock</strong>, <strong>Work zero</strong> and the <strong>parts</strong>, each part with its operations, in cutting
+order, then its <a href="drawings/instances.html">instances</a> once it has more than one. With two
+boards or more they move under <strong>Setups</strong>, each setup with its own stock, work zero and
+parts. A line marks each tool change. A floor pass is
 cut before its V-carve and a rest pass after its pockets, so the line above them names
 their tools in the order they are cut: <em>tool change → T2 → T1</em>. See
 <a href="concepts/setups.html">Setups</a> and <a href="operations/parts.html">Parts</a>.</li>
@@ -287,8 +289,12 @@ selected); a roughing pass also <em>Add smoothing pass</em>.</li>
 with it (its hover says which).</li>
 <li><strong>The Drawing folder:</strong> <em>Add DXF or SVG…</em>, <em>Import image…</em> and <em>Add 3D model…</em>.</li>
 <li><strong>A 3D model:</strong> <em>Select</em>, <em>Hide</em> or <em>Show</em>, <em>New relief</em>, <em>Properties</em> and <em>Remove</em>.</li>
-<li><strong>A part:</strong> <em>Activate</em>, <em>New operation</em> (for the selected shapes), <em>Move up</em>, <em>Move
-down</em>, <em>Move to setup ▸</em> and <em>Delete part</em> (with its operations).</li>
+<li><strong>A part:</strong> <em>Activate</em>, <em>Export G-code of this part…</em>, <em>Add instance</em>, <em>Add mirrored instance</em>, <em>New
+operation</em> (for the selected shapes), <em>Move up</em>, <em>Move down</em>, <em>Move to setup ▸</em> and
+<em>Delete part</em> (with its operations).</li>
+<li><strong>An instance:</strong> <em>Mirror</em>, <em>Turn 90°</em> and <em>Remove</em>.</li>
+<li><strong>The project</strong>, with one board: <em>New part</em>, <em>Face the board…</em>, <em>Nest…</em>, <em>Pieces and
+back side…</em> (the board’s own settings), <em>Add the back side</em> and <em>Add a setup</em>.</li>
 <li><strong>A setup:</strong> <em>Export G-code of this setup…</em>, <em>New part</em>, <em>Add a setup</em> and <em>Delete</em>. <strong>The Setups folder:</strong> <em>Add a
 setup</em>.</li>
 <li><strong>A library tool:</strong> <em>Add to project</em>, <em>Make default</em>, <em>Delete</em>. <strong>A library machine:</strong>
@@ -306,8 +312,9 @@ so they are deleted only from their right-click menu. <strong>Ctrl+Z</strong> br
 </ul>
 <p><strong>The eye</strong> hides a DXF, layer, picture or kind of drawn shape on the canvas: it isn’t
 drawn and can’t be clicked. <strong>Hidden shapes are still cut.</strong></p>
-<p><strong>The tick</strong> in front of an operation or a part turns it on or off. One that is off isn’t
-in the program, and its row is dimmed; a part that is off takes its operations with it.</p>
+<p><strong>The tick</strong> in front of an operation, a part or an instance turns it on or off. One that is
+off isn’t in the program, and its row is dimmed; a part that is off takes its operations and
+instances with it.</p>
 <p><strong>The active part</strong> is in bold, marked <em>active</em>. New operations from the ribbon go into
 it, whatever is open. Its name is also in the status bar.</p>
 <p><strong>On an operation’s row:</strong></p>
@@ -369,9 +376,9 @@ simulation shown (the toolpath, drawing and pictures hidden).</li>
 window, or a panel opening or folding), a fitted view is fitted again, and a view you
 zoomed or moved keeps showing the same area;</li>
 <li>what is shown: <strong>Toolpath</strong>, <strong>Drawing</strong> (in Simulate; Edit always shows the drawing),
-<strong>Images</strong> and <strong>Grid</strong> (G);</li>
-<li>with two parts or more, <strong>All parts</strong>: the toolpath and simulation of every part, not
-only the <a href="operations/parts.html">active one</a>.</li>
+<strong>Images</strong> and <strong>Grid</strong> (G). What the toolpath is of follows the Browser: a part
+selected shows <a href="operations/parts.html">that part alone</a>, a setup or the project every
+part on its board.</li>
 <li>When the canvas is too narrow for the names, the buttons show only their icons; hover
 over one to see its name.</li>
 </ul>
@@ -418,7 +425,8 @@ how it stands to the library tool it came from, <em>Save to library</em> and <em
 <li><strong>A picture:</strong> its width, lower-left corner and layer. A change applies when you finish
 the edit, and traces the picture again. <em>Trace settings…</em> opens its
 <a href="drawings/images.html">window</a>.</li>
-<li><strong>A part:</strong> its name, on or off, and its <a href="drawings/copies.html">copies</a>.</li>
+<li><strong>A part:</strong> its name, on or off, and its <a href="drawings/instances.html">instances</a>.</li>
+<li><strong>An instance:</strong> on or off, its mirror, its rotation and how far it is moved.</li>
 <li><strong>An operation:</strong> its settings, under its kind and number (“Pocket · Operation 1”): its
 name, shapes, tool and side, then its sections (<em>Cut</em>, <em>Feeds</em>, <em>Holding</em>, …) folded,
 each with what it holds in a few words beside its title. Click a title to open it; it

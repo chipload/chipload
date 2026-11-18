@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Cycle time and chip load - Chipload 0.37.0 user guide</title>
+        <title>Cycle time and chip load - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -207,17 +207,18 @@ and their time.</li>
 <li><strong>Lifts:</strong> how many times the tool goes up at rapid: between paths, and at each peck of
 a peck drill. Many lifts in an operation can mean time spent in the air.</li>
 </ul>
-<p>The numbers are for all of the part’s copies, and a rest pass or floor pass has its own.
+<p>The numbers are for all of the part’s instances, and a rest pass or floor pass has its own.
 After a change they are out of date: the section asks you to generate (F5), and says
 <em>Generating…</em> while the live preview runs. An operation that is off says so.</p>
 <h2 id="statistics-of-a-part"><a class="header" href="#statistics-of-a-part">Statistics of a part</a></h2>
 <p>A part’s properties end with the same <strong>Statistics</strong> section: the sum of its operations’
-numbers (and their rest and floor passes’), all of its copies included, and how many
+numbers (and their rest and floor passes’), all of its instances included, and how many
 operations were counted. It’s what one part costs in time, cutting and lifts, without
 adding up its operations by hand. The moves from one operation to the next and the tool
 changes aren’t in it; they are in the job’s total in the report.</p>
-<p>When only the active part is previewed (<em>All parts</em> off), the other parts weren’t
-planned: their section asks you to generate. A part that is off says so, and a part
+<p>While one part is shown alone, the other parts weren’t planned: their section asks you
+to generate, and the part shown counts the one cut you see, not its copies. Select the
+setup or the project to count them all. A part that is off says so, and a part
 without operations says <em>No operations.</em></p>
 <p><code>chipload run</code> ends its time lines with the whole job’s lengths and lifts (<em>In all: …</em>),
 the moves between operations included. <code>chipload plan</code> gives each operation’s numbers on its

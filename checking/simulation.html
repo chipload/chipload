@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>3D view, simulation and playback - Chipload 0.37.0 user guide</title>
+        <title>3D view, simulation and playback - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -236,10 +236,10 @@ that can be meant. <code>chipload simulate part.chipload --setup 2 --face back</
 face, the board as it lies turned over; <code>--face front</code> the front. A back setup’s picture
 shows its own face by default.</p>
 <p>In the window, Simulate mode has <strong>Turn over</strong> on the navigation bar for a board with two
-sides: the board shown back face up, as it lies for its back’s setup, in the top view and
-in 3D, the toolpath and shapes turned with it. Making the back setup active turns it over;
-making the front active turns it back. In Edit mode the board is always seen from the
-front, where you draw.</p>
+sides: it makes the other side’s setup the active one, as clicking that setup does. The
+back is shown back face up, as it lies for its setup, in the top view and in 3D, its
+toolpath and shapes turned with it; pressed again, the front is active and face up. In
+Edit mode the board is always seen from the front, where you draw.</p>
 <h2 id="playback"><a class="header" href="#playback">Playback</a></h2>
 <p>Under the canvas, a <strong>slider</strong> runs through the program by time, like a 3D printer’s
 preview:</p>

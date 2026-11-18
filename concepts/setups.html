@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Setups - Chipload 0.37.0 user guide</title>
+        <title>Setups - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -195,7 +195,7 @@ crashes come from.</p>
 <a href="stock.html">Stock and work zero</a> describes. A board that fits the drawing fits <strong>its own
 parts</strong>: the shapes its operations cut.</li>
 <li><strong>Its work zero.</strong></li>
-<li><strong>Its parts</strong>, each with its operations and copies (<a href="../operations/parts.html">Parts</a>).</li>
+<li><strong>Its parts</strong>, each with its operations and instances (<a href="../operations/parts.html">Parts</a>).</li>
 </ul>
 <p>The drawing, the machine, the tools and the materials are the project’s, shared by every
 setup: you draw all parts in one drawing, a layer per part, and each setup’s board is placed
@@ -206,23 +206,34 @@ file names its setup first: <code>part-S1.nc</code>, <code>part-S2-1-T1.nc</code
 them (<code>part-S2-sheet.html</code>). <code>run</code> writes every setup that is on; <code>--setup N</code> only one.
 <code>plan</code>, <code>sheet</code> and <code>simulate</code> work on the active setup, or the one <code>--setup N</code> names.</p>
 <h2 id="in-the-window"><a class="header" href="#in-the-window">In the window</a></h2>
-<p>The Browser shows <strong>Setups</strong>, always, each with its <strong>Stock</strong>, its <strong>Work zero</strong> and its
-parts beneath it. Click a setup for its name, whether it is cut and its parts; its board and
-zero are the two items beneath it. Right-click <em>Setups</em> or a setup for <strong>Add a setup</strong>, another board: it starts like the
-active one, with a part of its own, and both become active. Right-click a setup for <strong>New
-part</strong> in it.</p>
+<p>The Browser shows <strong>Parts</strong>, each part with its operations, and <strong>Setups</strong>, each with its
+<strong>Stock</strong>, its <strong>Work zero</strong> and the instances cut from it (“Side #2”), with one board
+(<em>Setup 1</em>) as with several. Drag a part onto a setup to cut it there (with Ctrl, to cut it
+there too), an instance onto another to cut it there.</p>
+<p>Right-click the project, or the empty space below the Browser’s rows, for the project’s
+menu: <strong>New part</strong> (on the active setup), <strong>Add a setup</strong> (another board: it starts like
+the first, empty, and becomes the active one), <strong>Face the board</strong>, <strong>Nest…</strong> and <strong>Nest
+again</strong> for the active setup, and <strong>Export all setups…</strong> with two or more. Click a setup for its name, whether it is cut and its parts; right-click it for
+what is done to that board: <strong>New part</strong> in it, <strong>Nest…</strong>, <strong>Add the back side</strong>.</p>
 <p>With two or more, the setup you click is the <strong>active setup</strong>: it is shown in full colour,
-generated, simulated and exported, while the other boards and their shapes are ghosts, faint
-and out of the way. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by every
-setup, is under <strong>Machine</strong>.</p>
+generated, simulated and exported, its board on the drawing where it is cut. Every other
+setup is a <strong>sheet</strong> beside it: its board, faint, in a row to the right (50 mm apart; a
+back right beside its front, 10 mm apart with a turn-over mark between them), with the outlines of what is cut from it and its name above. A click on a
+sheet makes that setup the active one: its board moves into place, the point you clicked
+staying under the pointer. Sheets are only drawn beside the board: the project, the G-code
+and the setup sheet keep each board where it is. Shapes only another setup cuts stay where
+they are drawn, faint. Right-click a part for <strong>Move to setup ▸</strong>. The machine, shared by
+every setup, is under <strong>Machine</strong>.</p>
 <p>Right-click a setup for <strong>Export G-code of this setup…</strong>: it becomes the active setup, is
 planned if it isn’t shown already, and its program and sheet are written. <strong>Export G-code</strong>
 writes the active setup’s program, named <code>-S1</code>, <code>-S2</code> as <code>run</code> names them,
-with its own sheet. Make the next setup active and export it too. A setup whose parts still
+with its own sheet. <strong>File › Export all setups…</strong> (also in the <em>Setups</em> menu) writes every
+setup’s programs and sheets at once, as <code>chipload run</code> does: each setup is planned and
+checked first, and nothing is written unless all of them pass. A setup whose parts still
 have operations can’t be removed: move them or delete them first.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/setups.png" alt="Two setups: the 6 mm bottom active, the 12 mm sides a ghost"><span class="img-wrapper"><img src="../images/setups.png" alt="Two setups: the 6 mm bottom active, the 12 mm sides a ghost"></span></label></p>
 <h2 id="on-the-command-line"><a class="header" href="#on-the-command-line">On the command line</a></h2>
-<pre><code class="language-sh">chipload setup add box.chipload --name "6 mm bottom" --thickness 6   # with a part of its own
+<pre><code class="language-sh">chipload setup add box.chipload --name "6 mm bottom" --thickness 6   # empty: place parts on it
 chipload setup part box.chipload 2 --to 2        # part 2 is cut from setup 2's board
 chipload setup list box.chipload
 chipload setup set box.chipload 2 --name "Bottom" --off
@@ -233,6 +244,9 @@ chipload run box.chipload -o box.nc --setup 2
 </code></pre>
 <p>In paths, a setup’s board is <code>setups.N.stock…</code> and its zero <code>setups.N.work_zero</code>, counting
 from 0. The older <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active setup’s.</p>
+<h2 id="pieces"><a class="header" href="#pieces">Pieces</a></h2>
+<p>A setup can also be cut as a puzzle of boards, for a shape larger than your boards: see
+<a href="pieces.html">Pieces</a>.</p>
 <h2 id="the-back-side-experimental"><a class="header" href="#the-back-side-experimental">The back side (experimental)</a></h2>
 <p>A setup can be the <strong>back of another</strong>: the same board turned over, for parts cut on both
 faces. It shares its front’s board and work zero: change the thickness of the front, and the
@@ -322,8 +336,13 @@ hold the pins; for a board of its own size with less room than they need, it war
 adds the back setup with its part and the dowel holes, as one undo step, and opens the
 back’s form. Opened on a setup that has a back, it <strong>changes</strong> that back instead: its turn,
 how it is put back, and its dowel holes, made again.</p>
-<p>The back is a new setup right after its front, “… back”, with a part of its own, marked ⟲
-in the Browser. Its form has:</p>
+<p>The back is a new setup right after its front, “… back”, with a part of its own. In the
+Browser it is listed under its front, last, with the turn-over icon: the same board, turned
+over. Its <strong>Stock</strong> and <strong>Work zero</strong> rows have a lock and say “from” the front: they are
+the front’s, the zero mirrored across the turn line, set on the front and followed here.
+On the canvas the back’s zero has a lock beside it and can’t be dragged; with the front
+active and its zero selected or dragged, the back’s zero shows faintly where it lies on
+the board, named, so you see both move together. Its form has:</p>
 <ul>
 <li><strong>Board:</strong> <em>Its own board</em>, or <em>Back of …</em> any setup that has no back yet;</li>
 <li><strong>Turn over:</strong> <em>Left to right</em> or <em>Top to bottom</em>;</li>
@@ -345,8 +364,8 @@ the back’s shapes in the same view as the front’s, where you drew them; only
 its setup sheet are turned over.</p>
 <p>Simulating a back setup shows the whole part: its front cut first, then the back from
 below (<a href="../checking/simulation.html">Simulation</a>).</p>
-<p>In Simulate, <strong>Turn over</strong> on the navigation bar shows the board back face up, as it lies
-for the back.</p>
+<p>In Simulate, <strong>Turn over</strong> on the navigation bar makes the other side the active setup:
+the back, shown back face up as it lies, or the front again.</p>
 <p>This is an experiment (docs/specs/two-sided.md): try it, and say what should change.</p>
 
                     </main>
@@ -357,7 +376,7 @@ for the back.</p>
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../concepts/depths.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../concepts/pieces.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -371,7 +390,7 @@ for the back.</p>
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../concepts/depths.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../concepts/pieces.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

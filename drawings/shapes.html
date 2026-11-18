@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Drawing shapes - Chipload 0.37.0 user guide</title>
+        <title>Drawing shapes - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -298,9 +298,9 @@ and the copies go on their layers with new numbers. A grid counts the originals 
 columns and rows and spaces them centre to centre (negative goes left or down). A polar
 array counts the originals too: over 360° the copies spread evenly round, over a
 smaller angle the first and last sit at its ends; each copy turns with its place unless
-you say not to. This adds shapes to the drawing; the project’s
-<a href="copies.html">grid of copies</a> is different, it repeats the whole part with
-its operations. In the window: select the shapes, choose <em>Array</em> or <em>Polar array</em>,
+you say not to. This adds shapes to the drawing; a part’s
+<a href="instances.html">instances</a> are different: they repeat the whole part with its
+operations. In the window: select the shapes, choose <em>Array</em> or <em>Polar array</em>,
 and set the copies under <em>Selection</em>; for a polar array click the centre on the canvas
 (it snaps as drawing does). The preview shows the copies; <em>Create</em> adds them and ends
 the tool. <em>Cancel</em>, Esc or the tool’s button again ends it without copies. On the
@@ -331,7 +331,7 @@ ends, middles, centres and where it crosses other shapes.</li>
 <li><strong>It is never cut:</strong> it never joins other shapes into a contour, an operation never picks
 it up from a layer, and an operation that names it by its number is refused until it
 cuts something else. Trim and extend can use it as the edge to cut back to; offsets,
-copies and arrays of it are construction geometry too.</li>
+copies, pasted copies and arrays of it are construction geometry too.</li>
 <li><strong>Exported</strong> only when you ask (<code>chipload dxf export … --construction</code>, or the
 checkbox), on a layer of its own named after its layer with <code>_construction</code>.</li>
 <li>On the command line: <code>chipload shape add P polyline --points "0,0 100,0" --open --construction</code>, <code>chipload shape set P 4 --construction false</code>.</li>

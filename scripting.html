@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Scripting - Chipload 0.37.0 user guide</title>
+        <title>Scripting - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-a5a59c3f.js"></script>
+        <script src="toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
@@ -246,6 +246,11 @@ and <code>op rest</code> counts from 1, as Chipload numbers operations on screen
 <p>The stock and the work zero belong to a setup (<code>setups.0.stock.thickness</code>,
 <code>setups.0.work_zero</code>); <code>stock.…</code> and <code>machine.work_zero</code> still work and mean the active
 setup’s, so older scripts keep working.</p>
+<p>A part’s instances belong to the setups too, each naming its part and number
+(<code>setups.0.instances.1.at</code>, <code>setups.0.instances.1.angle</code>); the part as first placed is
+its instance 1. The paths of Chipload 0.37 and before (<code>parts.0.at</code>, <code>parts.0.angle</code>,
+<code>parts.0.instances.0.at</code>, <code>parts.0.setup</code>) are refused, with the path that holds the value
+now.</p>
 <pre><code class="language-sh">chipload get part.chipload operations.1.end_depth          # 6.0
 chipload set part.chipload operations.1.end_depth=6.5 operations.1.name=Corners
 chipload set part.chipload 'operations.1.rest={"after_tool": 1}'

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Command line - Chipload 0.37.0 user guide</title>
+        <title>Command line - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -297,6 +297,7 @@
 <tr><td><code>--sheet-units &lt;UNITS&gt;</code></td><td>The setup sheet’s lengths and feeds: mm (default) or inch. The G-code’s units are the machine’s (machine.gcode_units) One of: <code>mm</code>, <code>inch</code>.</td></tr>
 <tr><td><code>--sheet-lang &lt;LANG&gt;</code></td><td>The setup sheet’s language (default: English). The command line itself stays English. One of: <code>en</code>, <code>de</code>, <code>fr</code>, <code>es</code>, <code>it</code>, <code>sv</code>, <code>ru</code>.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>Only this setup (as <code>setup list</code> numbers it); default: every setup for <code>run</code>, the active one otherwise (docs/specs/setups.md §8)</td></tr>
+<tr><td><code>--piece &lt;NAME&gt;</code></td><td>Only this piece of a setup cut in pieces, such as A1 (docs/specs/pieces.md §7); default: every piece.</td></tr>
 <tr><td><code>--part &lt;ID&gt;</code></td><td>Only this part (as <code>part list</code> numbers it), as if every other part were switched off; may be given more than once (docs/specs/part-export.md) Repeatable.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -318,6 +319,7 @@
 <tr><td><code>--no-image</code></td><td>Print the numbers only.</td></tr>
 <tr><td><code>--after &lt;N&gt;</code></td><td>The stock after only the first N moves of the program (docs/specs/playback.md §5), for tests and scripts.</td></tr>
 <tr><td><code>--setup &lt;ID&gt;</code></td><td>The setup to simulate (as <code>setup list</code> numbers it); default: the active one.</td></tr>
+<tr><td><code>--piece &lt;NAME&gt;</code></td><td>Only this piece of a setup cut in pieces, on its own board; default: the pieces put together (docs/specs/pieces.md §7)</td></tr>
 <tr><td><code>--face &lt;FACE&gt;</code></td><td>The face the picture shows: front, or back (the board turned over, as it lies); default: the face the setup cuts (docs/specs/two-sided.md §10.2) One of: <code>front</code>, <code>back</code>.</td></tr>
 <tr><td><code>--set &lt;PATH=VALUE&gt;</code></td><td>For this run only: set a project value by path, e.g. <code>stock.thickness=18</code> (see <code>chipload set</code>). The project file isn’t changed. Repeatable.</td></tr>
 </tbody>
@@ -389,7 +391,7 @@
 </thead>
 <tbody>
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
-<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>chamfer</code> (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): –width), <code>flute</code> (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): –depth, –ramp), <code>pattern</code> (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): –pattern, –spacing, –angle), <code>prism</code> (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): –max-depth), <code>moulding</code> (A profile swept along paths (docs/specs/moulding.md): –profile, –radius, –side, –ends), <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline).</td></tr>
+<tr><td><code>&lt;KIND&gt;</code></td><td>What to add. One of: <code>profile</code>, <code>pocket</code>, <code>vcarve</code>, <code>path</code>, <code>chamfer</code> (A V-bit breaks the top edge of closed shapes (docs/specs/chamfer.md): –width), <code>flute</code> (A groove along open shapes that ramps in and out at their ends (docs/specs/fluting.md): –depth, –ramp), <code>pattern</code> (Grooves of lines, cross-hatch, rings or waves inside closed shapes (docs/specs/fill-pattern.md): –pattern, –spacing, –angle), <code>prism</code> (Closed shapes left standing as roofs with a ridge along their centre (docs/specs/prism.md): –max-depth), <code>moulding</code> (A profile swept along paths (docs/specs/moulding.md): –profile, –radius, –side, –ends), <code>holes</code>, <code>relief</code> (A 3D model carved from the top (docs/specs/stl-relief.md): with –model, of that model within its outline), <code>surface</code> (The part’s top faced flat over closed shapes grown by –margin, under each of its instances (docs/specs/surface-levels.md); the whole board is <code>op add-surface</code>).</td></tr>
 <tr><td><code>--layer &lt;LAYER&gt;</code></td><td>Every shape on this layer (with –dxf: on that DXF’s layer)</td></tr>
 <tr><td><code>--shapes &lt;SHAPES&gt;</code></td><td>These shapes, by id (as <code>inspect</code> lists them) Repeatable.</td></tr>
 <tr><td><code>--dxf &lt;DXF&gt;</code></td><td>All of this DXF or SVG (an id from <code>dxf list</code>)</td></tr>
@@ -424,6 +426,7 @@
 <tr><td><code>--ends &lt;ENDS&gt;</code></td><td>How a moulding ends on open paths: square, round, or taper (–taper long) One of: <code>square</code>, <code>round</code>, <code>taper</code>.</td></tr>
 <tr><td><code>--taper &lt;TAPER&gt;</code></td><td>A tapered end’s length; 30 mm if left out.</td></tr>
 <tr><td><code>--stepover &lt;STEPOVER&gt;</code></td><td>The distance between a moulding’s passes across its profile.</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>A surface’s margin past its shapes, in place of the tool’s radius (docs/specs/surface-levels.md §3)</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -592,7 +595,7 @@
 </table>
 </div>
 <h3 id="chipload-op-add-surface"><a class="header" href="#chipload-op-add-surface"><code>chipload op add-surface</code></a></h3>
-<p>Add a surface (docs/specs/surfacing.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in the active part. Flattens the spoilboard or faces the stock</p>
+<p>Add a board surface (docs/specs/surfacing.md, surface-levels.md): the whole stock taken down flat with a wide endmill, in straight passes back and forth, first in its setup, cut once. Flattens the spoilboard or faces the stock. A part’s area is <code>op add surface</code> with its shapes</p>
 <pre><code class="language-text">chipload op add-surface &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -604,6 +607,7 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The endmill’s id in the project; default: the widest endmill.</td></tr>
 <tr><td><code>--depth &lt;DEPTH&gt;</code></td><td>How much comes off the top; default 0.5 mm.</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The setup whose board it faces (as <code>setup list</code> shows it); default: the active one.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -2076,6 +2080,7 @@
 <tr><td><code>--layer &lt;LAYERS&gt;</code></td><td>Only this layer (repeat for more) Repeatable.</td></tr>
 <tr><td><code>--shape &lt;SHAPES&gt;</code></td><td>Only these shapes, by id (as <code>inspect</code> lists them, without the S) Repeatable.</td></tr>
 <tr><td><code>--construction</code></td><td>Construction geometry too, each on a layer of its own (LAYER_construction)</td></tr>
+<tr><td><code>--pieces</code></td><td>The active setup’s pieces instead of the drawing, each on a layer named after it (docs/specs/pieces.md §7)</td></tr>
 </tbody>
 </table>
 </div>
@@ -2796,9 +2801,9 @@
 </table>
 </div>
 <h2 id="chipload-part"><a class="header" href="#chipload-part"><code>chipload part</code></a></h2>
-<p>A project’s parts: groups of operations, each cut with its copies before the next (docs/specs/parts.md)</p>
+<p>A project’s parts: groups of operations, each cut with its instances before the next (docs/specs/parts.md), and the instances themselves (<code>part instance</code>)</p>
 <h3 id="chipload-part-list"><a class="header" href="#chipload-part-list"><code>chipload part list</code></a></h3>
-<p>The project’s parts: id, name, on or off, copies and operations</p>
+<p>The project’s parts: id, name, on or off, instances and operations</p>
 <pre><code class="language-text">chipload part list &lt;PROJECT&gt;
 </code></pre>
 <div class="table-wrapper">
@@ -2843,6 +2848,147 @@
 <tr><td><code>--off</code></td><td>Leave the part and its operations out of the program.</td></tr>
 <tr><td><code>--on</code></td><td>Cut the part again.</td></tr>
 <tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Cut the part mirrored about the centre line of its box, the drawing as drawn: left-right, top-bottom, or none (docs/specs/mirror-part.md). Climb stays climb.</td></tr>
+<tr><td><code>--order &lt;ORDER&gt;</code></td><td>The order its instances are cut in (docs/specs/instances.md §2) One of: <code>by-operation</code> (Each operation on every instance, then the next operation), <code>by-instance</code> (Every operation on one instance, then the next (was <code>by-copy</code>, <code>by-part</code>)).</td></tr>
+<tr><td><code>--turns &lt;TURNS&gt;</code></td><td>How it may be turned when nested: none, half, quarter or every-15 (docs/specs/nesting.md §3)</td></tr>
+<tr><td><code>--material &lt;MATERIAL&gt;</code></td><td>The library material it is cut from (docs/specs/parts-and-setups.md §4); a board of another material gets a note (–move moves it)</td></tr>
+<tr><td><code>--thickness &lt;THICKNESS&gt;</code></td><td>The thickness it is cut from (any length unit; plain numbers are mm); a board of another thickness gets a note (–move moves it)</td></tr>
+<tr><td><code>--stock &lt;STOCK&gt;</code></td><td>“none”: cut from any board again. One of: <code>none</code>.</td></tr>
+<tr><td><code>--move</code></td><td>Move it, every instance, to a setup of its stock: the first that has it, else a new one made like its board.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-place"><a class="header" href="#chipload-part-place"><code>chipload part place</code></a></h3>
+<p>Place instance 1, the part as first placed: cut moved and turned, its shapes staying where they are drawn (docs/specs/part-placement.md); the same as <code>part instance set … 1</code></p>
+<pre><code class="language-text">chipload part place &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part (as <code>part list</code> shows it); needed when the project has several.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Its move “DX,DY” from where it is drawn (any length unit; plain numbers are mm)</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>Turned about the middle of the part’s box, degrees counter-clockwise.</td></tr>
+<tr><td><code>--reset</code></td><td>Back where drawn: not moved, not turned (then –at and –angle, if given)</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-instance"><a class="header" href="#chipload-part-instance"><code>chipload part instance</code></a></h3>
+<p>A part’s instances: the part placed again, moved, turned and perhaps mirrored (docs/specs/instances.md)</p>
+<h3 id="chipload-part-instance-list"><a class="header" href="#chipload-part-instance-list"><code>chipload part instance list</code></a></h3>
+<p>A part’s instances: number, position, turn, mirror, on or off</p>
+<pre><code class="language-text">chipload part instance list &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part (as <code>part list</code> shows it); needed when the project has several.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-instance-add"><a class="header" href="#chipload-part-instance-add"><code>chipload part instance add</code></a></h3>
+<p>Place the part again: a new instance, linked to the part. Prints its number</p>
+<pre><code class="language-text">chipload part instance add &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part; needed when the project has several.</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The setup (board) it goes on, as <code>setup list</code> shows it; default: the one the part is cut from.</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Its move “DX,DY” from the part as drawn (any length unit; plain numbers are mm); default: beside everything the part cuts, 10 mm away.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>Turned about the middle of the part’s box, degrees counter-clockwise.</td></tr>
+<tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Mirrored about the middle of the part’s box first: left-right, top-bottom or none. Climb stays climb.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-instance-set"><a class="header" href="#chipload-part-instance-set"><code>chipload part instance set</code></a></h3>
+<p>Move, turn, mirror, or turn off or on, instances of a part</p>
+<pre><code class="language-text">chipload part instance set &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part; needed when the project has several.</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The instances’ numbers (as <code>part instance list</code> shows them)</td></tr>
+<tr><td><code>--at &lt;AT&gt;</code></td><td>Its move “DX,DY” from the part as drawn; one instance only.</td></tr>
+<tr><td><code>--angle &lt;ANGLE&gt;</code></td><td>Turned about the middle of the part’s box, degrees counter-clockwise.</td></tr>
+<tr><td><code>--mirror &lt;MIRROR&gt;</code></td><td>Mirrored: left-right, top-bottom or none.</td></tr>
+<tr><td><code>--off</code></td><td>Keep it, but don’t cut it.</td></tr>
+<tr><td><code>--on</code></td><td>Cut it again.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-instance-remove"><a class="header" href="#chipload-part-instance-remove"><code>chipload part instance remove</code></a></h3>
+<p>Remove instances of a part; the others keep their numbers</p>
+<pre><code class="language-text">chipload part instance remove &lt;PROJECT&gt; &lt;IDS&gt;... [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part; needed when the project has several.</td></tr>
+<tr><td><code>&lt;IDS&gt;</code></td><td>The instances’ numbers.</td></tr>
+<tr><td><code>--all</code></td><td>Every instance but the first: the part is cut once.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-instance-move"><a class="header" href="#chipload-part-instance-move"><code>chipload part instance move</code></a></h3>
+<p>An instance onto another setup (board), keeping its number and placement (docs/specs/parts-and-setups.md §10)</p>
+<pre><code class="language-text">chipload part instance move &lt;PROJECT&gt; &lt;ID&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part; needed when the project has several.</td></tr>
+<tr><td><code>&lt;ID&gt;</code></td><td>The instance’s number.</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The setup it goes on, as <code>setup list</code> shows it. Required.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-part-instance-array"><a class="header" href="#chipload-part-instance-array"><code>chipload part instance array</code></a></h3>
+<p>The part’s instances made a grid: its cells but the first, in place of the instances it has, numbered row by row from 2 (what <code>chipload copies</code> does)</p>
+<pre><code class="language-text">chipload part instance array &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--part &lt;PART&gt;</code></td><td>Which part; needed when the project has several.</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The setup (board) it goes on, as <code>setup list</code> shows it; default: the one the part is cut from.</td></tr>
+<tr><td><code>--grid &lt;GRID&gt;</code></td><td>Columns x rows, e.g. “3x2”. Required.</td></tr>
+<tr><td><code>--pitch &lt;PITCH&gt;</code></td><td>Pitch “DX,DY” from cell to cell; negative grows left or down.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>Set the pitch so that this many mm are left between the cuts of neighbours.</td></tr>
+<tr><td><code>--order &lt;ORDER&gt;</code></td><td>The cut order. One of: <code>by-operation</code> (Each operation on every instance, then the next operation), <code>by-instance</code> (Every operation on one instance, then the next (was <code>by-copy</code>, <code>by-part</code>)).</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -2897,7 +3043,7 @@
 </table>
 </div>
 <h3 id="chipload-setup-add"><a class="header" href="#chipload-setup-add"><code>chipload setup add</code></a></h3>
-<p>Add a setup at the end, a board like the active one’s, with a first part of its own; both become active</p>
+<p>Add a setup at the end, an empty board like the active one’s, which becomes active; parts are placed on it afterwards. A back (–back-of) gets a first part of its own</p>
 <pre><code class="language-text">chipload setup add &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -2961,6 +3107,31 @@
 <tr><td><code>--tool &lt;TOOL&gt;</code></td><td>The project tool that cuts them; default: a drill of their size, else the largest end mill that bores them.</td></tr>
 <tr><td><code>--remove</code></td><td>Remove the dowel holes instead: the front’s operation and its circles.</td></tr>
 <tr><td><code>--place</code></td><td>Place the dowel holes there are again, clear of both sides’ cuts as they are now; a work zero at the first pin moves with it. Not once the front is cut: its holes are drilled.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chipload-setup-pieces"><a class="header" href="#chipload-setup-pieces"><code>chipload setup pieces</code></a></h3>
+<p>Cut a setup as a puzzle: pieces that each fit a board, joined at seams with puzzle knobs or fingers, each piece a program of its own (docs/specs/pieces.md). Values not given stay as they are, or take the joint’s defaults the first time</p>
+<pre><code class="language-text">chipload setup pieces &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The setup’s id; default: the active setup.</td></tr>
+<tr><td><code>--board &lt;BOARD&gt;</code></td><td>The boards’ size, X×Y, such as 600x400; default: the machine’s travel.</td></tr>
+<tr><td><code>--grid &lt;GRID&gt;</code></td><td>Columns × rows of pieces, such as 3x2, or <code>auto</code>: the fewest that fit the board.</td></tr>
+<tr><td><code>--joint &lt;JOINT&gt;</code></td><td>The joint along the seams: knobs (default) or fingers.</td></tr>
+<tr><td><code>--size &lt;SIZE&gt;</code></td><td>The joint’s size: a knob’s head diameter (default 30 mm), a finger’s length (15 mm)</td></tr>
+<tr><td><code>--spacing &lt;SPACING&gt;</code></td><td>How far apart joints are along a seam (default 120 mm for knobs, 60 mm for fingers)</td></tr>
+<tr><td><code>--clearance &lt;CLEARANCE&gt;</code></td><td>The room between pieces at a seam, for glue; default 0.2 mm.</td></tr>
+<tr><td><code>--shift-x &lt;SHIFT_X&gt;</code></td><td>Move a seam between columns along X: SEAM=LENGTH, seams counted from the left from 1, such as 2=15. Repeat for more. Repeatable.</td></tr>
+<tr><td><code>--shift-y &lt;SHIFT_Y&gt;</code></td><td>Move a seam between rows along Y: SEAM=LENGTH, seams counted from the bottom. Repeatable.</td></tr>
+<tr><td><code>--off</code></td><td>Cut the setup as one board again.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>
@@ -3035,7 +3206,7 @@
 </table>
 </div>
 <h2 id="chipload-copies"><a class="header" href="#chipload-copies"><code>chipload copies</code></a></h2>
-<p>Cut a part several times in a grid (docs/specs/copies-grid.md)</p>
+<p>Cut a part several times in a grid: its instances made a grid, the same as <code>part instance array</code>; –off is <code>part instance remove --all</code> (docs/specs/instances.md §5)</p>
 <pre><code class="language-text">chipload copies &lt;PROJECT&gt; [OPTIONS]
 </code></pre>
 <div class="table-wrapper">
@@ -3047,10 +3218,34 @@
 <tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
 <tr><td><code>--part &lt;PART&gt;</code></td><td>Which part (as <code>part list</code> shows it); needed when the project has several.</td></tr>
 <tr><td><code>--grid &lt;GRID&gt;</code></td><td>Columns x rows, e.g. “3x2”.</td></tr>
-<tr><td><code>--pitch &lt;PITCH&gt;</code></td><td>Pitch “DX,DY” in mm, copy to copy; negative grows left or down.</td></tr>
+<tr><td><code>--pitch &lt;PITCH&gt;</code></td><td>Pitch “DX,DY” in mm, from cell to cell; negative grows left or down.</td></tr>
 <tr><td><code>--gap &lt;GAP&gt;</code></td><td>Set the pitch so that this many mm are left between the cuts of neighbours.</td></tr>
-<tr><td><code>--order &lt;ORDER&gt;</code></td><td>The cut order. One of: <code>by-operation</code> (Each operation on every copy, then the next operation), <code>by-copy</code> (Every operation on one copy, then the next copy (was <code>by-part</code>)).</td></tr>
-<tr><td><code>--off</code></td><td>Back to one copy.</td></tr>
+<tr><td><code>--order &lt;ORDER&gt;</code></td><td>The cut order. One of: <code>by-operation</code> (Each operation on every instance, then the next operation), <code>by-instance</code> (Every operation on one instance, then the next (was <code>by-copy</code>, <code>by-part</code>)).</td></tr>
+<tr><td><code>--off</code></td><td>No instances: the part is cut once.</td></tr>
+<tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="chipload-nest"><a class="header" href="#chipload-nest"><code>chipload nest</code></a></h2>
+<p>Nest a setup: every instance of its parts placed on its board as close as they fit, apart by the gap, what doesn’t fit switched off (docs/specs/nesting.md)</p>
+<pre><code class="language-text">chipload nest &lt;PROJECT&gt; [OPTIONS]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;PROJECT&gt;</code></td><td>The project (.chipload)</td></tr>
+<tr><td><code>--setup &lt;SETUP&gt;</code></td><td>The setup (as <code>setup list</code> shows it); default: the active one.</td></tr>
+<tr><td><code>--board &lt;BOARD&gt;</code></td><td>The board’s size “X×Y”, such as 1220x610 (any length unit; plain numbers are mm). Needed when the board follows the drawing: it becomes this size, its corner at the drawing’s origin.</td></tr>
+<tr><td><code>--gap &lt;GAP&gt;</code></td><td>The least distance between what two instances cut (default: as last nested, else 3 mm)</td></tr>
+<tr><td><code>--margin &lt;MARGIN&gt;</code></td><td>The room left at the board’s edge (default: as last nested, else 10 mm)</td></tr>
+<tr><td><code>--turns &lt;TURNS&gt;</code></td><td>How parts may be turned: none, half, quarter or every-15, for every part; “ID=TURNS” for one part, such as 2=none (wood grain). Kept in the project. Default: as set, else quarter. Repeatable.</td></tr>
+<tr><td><code>--count &lt;COUNT&gt;</code></td><td>How many times part ID is cut, “ID=N”, such as 2=4: instances added or removed before nesting (never the part itself) Repeatable.</td></tr>
+<tr><td><code>--overflow &lt;OVERFLOW&gt;</code></td><td>What doesn’t fit: switched off (<code>off</code>, the default), or onto more boards (<code>new-boards</code>): the next setup with the same stock, else a new one like this one (docs/specs/parts-and-setups.md §9) One of: <code>off</code> (What doesn’t fit is switched off), <code>new-boards</code> (What doesn’t fit goes onto more boards). Default: <code>off</code>.</td></tr>
+<tr><td><code>--goal &lt;GOAL&gt;</code></td><td>What the nest makes as small as it can: <code>compact</code> (the smallest box round the parts), <code>low</code> (the lowest top edge: a strip across the top left free) or <code>left</code> (the leftmost right edge: a strip down the right left free). Kept in the project. Default: as last nested, else compact (docs/specs/nesting-search.md) One of: <code>compact</code> (The smallest box round the parts), <code>low</code> (The lowest top edge), <code>left</code> (The leftmost right edge).</td></tr>
+<tr><td><code>--dry-run</code></td><td>Report what would be placed without writing the project.</td></tr>
 <tr><td><code>-o, --output &lt;OUTPUT&gt;</code></td><td>Where to write the result; default: the project itself.</td></tr>
 </tbody>
 </table>

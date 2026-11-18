@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Copies - Chipload 0.37.0 user guide</title>
+        <title>Nesting - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -177,47 +177,108 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="copies"><a class="header" href="#copies">Copies</a></h1>
-<p>Each <a href="../operations/parts.html">part</a> can be cut several times, in a grid of its own: click
-the part in the Browser and set <strong>Copies</strong> in its properties, or use <code>chipload copies</code>.
-With several parts, give <code>--part</code>.</p>
-<pre><code class="language-sh">chipload copies part.chipload --grid 3x2 --gap 10     # 3 columns, 2 rows, 10 mm between cuts
-chipload copies part.chipload --grid 3x2 --pitch 120,80
-chipload copies part.chipload --order by-copy         # every operation on one copy, then the next
-chipload copies part.chipload --off                   # one copy again
-chipload copies part.chipload --part 2 --grid 2x1 --gap 10   # with several parts
+                        <h1 id="nesting"><a class="header" href="#nesting">Nesting</a></h1>
+<p><strong>Nesting</strong> places every <a href="instances.html">instance</a> of a setup’s parts on its board, as close
+together as they fit, so a sheet holds as many parts as it can. Every part that is on takes
+part, instance 1 included.</p>
+<p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/showcase-nest.gif" alt="The nesting demo: six parts cut from a board as drawn, the Nest window asking for four to ten of each, and the parts nested, the rest onto two more boards"><span class="img-wrapper"><img src="../images/showcase-nest.gif" alt="The nesting demo: six parts cut from a board as drawn, the Nest window asking for four to ten of each, and the parts nested, the rest onto two more boards"></span></label></p>
+<p>Chipload nests what the tools really cut: each instance’s toolpath with the width of its
+tool, tabs and ramps included, not only the drawing. Between two cuts it leaves the <strong>gap</strong>,
+a web of board that keeps the sheet stiff and the tabs holding; at the board’s edge it
+leaves the <strong>margin</strong>, room for screws or clamps. Only the instances’ places change: the
+drawing stays where it is, and every operation follows its instances. The result is
+planned and checked as any project is before it is kept.</p>
+<p>In the window:</p>
+<ul>
+<li><strong>Right-click the setup</strong> in the Browser and choose <em>Nest…</em>, or <em>Wizards &gt; Nest…</em> for the
+active setup. The window shows the board’s size, the gap and the margin, the goal, and a
+row per part with how many times it is cut and how it may turn.</li>
+<li><strong>The goal</strong> says what the nest makes as small as it can, once it has placed as much as
+it can:
+<ul>
+<li><strong>Compact</strong> (the default): the smallest box round the parts, a block in the lower-left
+corner. Good when the rest of the board is waste.</li>
+<li><strong>Keep the top free</strong>: the parts as low as they go, across the whole width, so a strip
+across the top is left to saw off and keep.</li>
+<li><strong>Keep the right side free</strong>: the parts as far left as they go, up the whole height,
+so a strip down the right is left.</li>
+</ul>
+</li>
+<li><strong>The preview</strong> is worked out as soon as the window opens, and again with <em>Preview</em>
+after a change: the instances show on the board where they would go, outlined in the
+selection colour, the board dashed; what didn’t fit is parked to the right of the board
+in amber and named in the window. Nothing changes until you choose <em>Apply</em>.</li>
+<li><strong>Apply</strong> places them as one undo step (Ctrl+Z puts everything back) and lists what was
+switched off in the Report. <em>Apply</em> before a preview nests and applies in one go.</li>
+<li><strong>Nest again</strong>, in the setup’s right-click menu once it has been nested, nests it again
+with the same gap and margin and each part’s turns, the instances there are now, without
+the window: after you change a part, or moved instances by hand. It searches on from the
+board as it is and never makes it worse: when it finds nothing better, nothing moves and
+the status says “No better nest found; the board is as it was.” Press it again after a
+better nest and it searches on from there.</li>
+</ul>
+<p>On the command line:</p>
+<pre><code class="language-sh">chipload nest part.chipload                         # the active setup, on its board
+chipload nest part.chipload --count 2=4             # part 2 cut four times: instances added first
+chipload nest part.chipload --turns 2=none          # part 2 never turned (wood grain); others quarter turns
+chipload nest part.chipload --gap 5 --margin 15     # more room between parts and at the edge
+chipload nest part.chipload --goal low              # keep the top of the board free (also compact, left)
+chipload nest part.chipload --dry-run               # say what would go where, write nothing
+chipload part set part.chipload 2 --turns half      # part 2 turned 180° at most, kept for the next nest
 </code></pre>
 <ul>
-<li><strong>Pitch:</strong> the distance from copy to copy. <em>Gap</em> works the pitch out from the part’s real
-cut, tool included, so the cuts of neighbours stay that far apart. A negative pitch
-grows the grid left or down.</li>
-<li><strong>Order:</strong>
-<ul>
-<li><strong>by operation</strong> (the default): each operation on every copy, then the next, so tool
-changes happen once;</li>
-<li><strong>by copy:</strong> every operation on one copy, then the next (called <em>by part</em> before
-Chipload 0.17; <code>--order by-part</code> still works).</li>
+<li><strong>How it fills:</strong> from the board’s lower-left corner, by the goal: for <em>compact</em> each part
+where the box round everything placed grows least, for the others as low (or as far left)
+as it fits. It tries many orders of the parts and turns of each, for a moment (the window
+shows how far it has got), and keeps the layout that places the most and best meets the
+goal. The same project always gives the same layout. Nesting a setup that was nested before searches on from the board as it is
+and keeps it unless it finds better.</li>
+<li><strong>Turns:</strong> <code>none</code>, <code>half</code> (0° or 180°), <code>quarter</code> (the default) or <code>every-15</code>, for every
+part (<code>--turns quarter</code>) or one (<code>--turns 2=none</code>). They are kept in the project.</li>
+<li><strong>Counts:</strong> <code>--count ID=N</code> cuts part ID N times: instances are added (not mirrored), or
+the highest-numbered ones that are on removed; at least one stays.</li>
+<li><strong>Mirrored instances</strong> stay mirrored; nesting turns and moves them, never mirrors them.</li>
+<li><strong>What doesn’t fit</strong> is switched off, kept where it was, and named (“Part 2, instance 4
+didn’t fit: switched off”). Make the board larger, allow turns, or let it go onto more
+boards.</li>
+<li><strong>Onto more boards</strong> (<em>What doesn’t fit: Onto more boards</em> in the window, <code>--overflow new-boards</code> on the command line), as a slicer adds plates: what doesn’t fit goes to the
+next <a href="../concepts/setups.html">setup</a> with the same stock and a size of its own, else to a
+new one made like this board (its size, work zero, gap and margin), nested there in
+turn, and so on until everything is placed. The preview shows each board in a row to the
+right; the Report says “2 more on Setup 2, a new board like the first”. Instances keep
+their numbers. A part larger than an empty board is still switched off. A part whose
+<a href="../operations/parts.html#a-parts-stock">stock</a> isn’t this board’s goes to a board of its
+own stock instead.</li>
+<li><strong>The board</strong> must have a size of its own. A board that follows the drawing (fitted to it
+or centred on it) is given one with <code>--board 1220x610</code>: it becomes that size, its corner
+at the drawing’s origin.</li>
+<li><strong>The machine’s travel</strong>, when it is set in the <a href="../library/machines.html">machine</a>, limits
+how much of a larger board is used, measured from the side where work zero is.
+A board that follows the drawing starts in the window at the travel; with a board
+surface, less the surface tool’s diameter along the board’s longer side, since facing
+runs from beside the board to beside it. A board whose surface would run past the travel
+is refused before nesting, naming the surface.</li>
+<li><strong>The gap, margin and goal</strong> (3 mm, 10 mm and compact until you choose) are kept with the
+setup, so the next nest uses them.</li>
+<li><strong>The result</strong> says how many were placed and the box they take: “8 of 8 placed, in
+742 × 380 mm of the board’s 1200 × 590 mm (40 %)”, the board less its margin.</li>
+<li><strong>The setup sheet</strong> says the setup was nested: how many instances, the gap and margin,
+and the box the cuts take from the board’s lower-left corner, so you know what is left of
+the sheet.</li>
+<li><strong>Not yet:</strong> a setup cut in <a href="../concepts/pieces.html">pieces</a> or a two-sided setup can’t be
+nested, and small parts don’t go inside another part’s holes.</li>
 </ul>
-</li>
-<li><strong>Checked:</strong>
-<ul>
-<li>every copy is planned and checked like the original;</li>
-<li>copies whose cuts would overlap each other, or another part, are refused;</li>
-<li>copies have to fit the stock and the machine like anything else.</li>
-</ul>
-</li>
-<li><strong>Limits:</strong> up to 100 columns or rows, and 1 000 copies.</li>
-<li><strong>Display:</strong> the canvas draws the copies faded: each part’s copies of the shapes it cuts. The setup sheet and the playback say
-which copy is being cut.</li>
-</ul>
-<p>Copies don’t turn, and they aren’t nested. To fit different parts on one sheet, give each its
-own part and grid, or arrange them in CAD.</p>
+<p>Everything <code>chipload nest</code> says is also in <code>--json</code>: what went where (<code>placed</code>, each part,
+instance, angle in radians and move in mm), what didn’t fit (<code>unplaced</code>), the goal
+(<code>goal</code>), the box round what was placed and the usable board (<code>extent</code>, <code>usable</code>, X and Y
+in mm, and <code>used_pct</code>, the box’s share), whether the board was given a size, and whether a
+nest again found nothing better (<code>unchanged</code>).</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../drawings/groups.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../drawings/instances.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -231,7 +292,7 @@ own part and grid, or arrange them in CAD.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../drawings/groups.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../drawings/instances.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

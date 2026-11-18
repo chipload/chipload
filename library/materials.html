@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Materials - Chipload 0.37.0 user guide</title>
+        <title>Materials - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -251,6 +251,11 @@ chipload material import materials-backup.json [--replace]
 </code></pre>
 <p><code>chipload op tool</code> on an operation with a material takes the material’s values for the new
 tool too.</p>
+<p>Export and import work as for <a href="tools.html#sharing">tools</a>: <em>Import…</em> and <em>Export…</em> on
+<em>Library &gt; Materials</em>. Importing shows first what it would add, leave alone and keep, with
+<em>Import</em>, <em>Replace</em> when some differ, or <em>Cancel</em>. A material keeps its id, so the tool rows
+for it on the other computer still match. Only the materials travel: their rows are in the
+tools’ file, so export the tools too.</p>
 <p>Removing a material removes every tool’s row for it. Materials, names only, live in
 <code>materials.json</code> in the settings folder, beside the tool library; see the <a href="../reference/materials-file.html">Materials
 file</a>. The rows live in <code>tools.json</code>.</p>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Parts - Chipload 0.37.0 user guide</title>
+        <title>Parts - Chipload 0.38.0 user guide</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-945bfd19.js";
+            window.path_to_searchindex_js = "../searchindex-015cd119.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-a5a59c3f.js"></script>
+        <script src="../toc-ccd7e32c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -137,7 +137,7 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Chipload 0.37.0 user guide</h1>
+                    <h1 class="menu-title">Chipload 0.38.0 user guide</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
@@ -179,13 +179,13 @@
                     <main>
                         <h1 id="parts"><a class="header" href="#parts">Parts</a></h1>
 <p>The operations of a project are grouped into <strong>parts</strong>. A part is a name, the operations
-that cut it, its <a href="../drawings/copies.html">copies</a>, and an on/off switch. Most projects have
+that cut it, its <a href="../drawings/instances.html">instances</a>, and an on/off switch. Most projects have
 one part. Use several when one sheet holds different things, for example 4 lids and 2
 boxes.</p>
 <ul>
 <li><strong>What a part cuts:</strong> its operations select shapes, DXFs and layers as usual. A part
 owns no geometry, so one DXF with a layer per part can feed several parts.</li>
-<li><strong>Order:</strong> part by part. Each part is cut with all its copies before the next one
+<li><strong>Order:</strong> part by part. Each part is cut with all its instances before the next one
 starts, and within a part its operations run in order. Operations are numbered across
 the whole project (1, 2, 3 …), as the G-code comments and the report number them.</li>
 <li><strong>Tool changes:</strong> a tool used in two parts is changed back for the second part. Two
@@ -193,18 +193,24 @@ parts that each use T1 and then T2 change tool three times. The report counts th
 changes.</li>
 <li><strong>Off:</strong> a part that is off is left out with all its operations.</li>
 <li><strong>The active part:</strong> new operations go into it. Adding a part makes the new one active.</li>
-<li><strong>Seeing one part:</strong> with two parts or more, Generate, the automatic update, the
-simulation and playback show only the active part, so a change to part 2 doesn’t plan
-part 1 again. The status bar says “part 2 of 2 · cycle …”. <strong>All parts</strong> on the canvas
-bar shows every part.</li>
+<li><strong>A part or a setup is shown, never both.</strong> Select a part, or one of its operations, in
+the Browser: that part is shown alone, once, where it is drawn, and Generate, the
+automatic update, the simulation and playback are of it, so a change to part 2 doesn’t
+plan part 1 again. The status bar says “part 2 of 2 · cycle …”. Other parts’ shapes are
+ghosts. Select the setup, the project, the Stock or the Work zero (or click a setup’s
+sheet) to see every instance on the board again. Selecting a tool or a shape leaves the
+view as it is.</li>
+<li><strong>Its board:</strong> a part drawn in place is shown on its own board. A part placed elsewhere,
+or cut only as copies, is shown where it is drawn on a board fitted round it, its own
+thickness when it <a href="#a-parts-stock">asks for one</a>.</li>
 <li><strong>Statistics:</strong> the last section of a part’s properties gives its time, lengths and
-lifts, its operations’ summed with all of its copies
+lifts, its operations’ summed with all of its instances
 (<a href="../checking/time.html#statistics-of-a-part">Statistics of a part</a>).</li>
-<li><strong>Export writes every part</strong> that is on. When only the active part is shown, Export
-plans the whole project first, then writes it.</li>
+<li><strong>Export writes the whole setup</strong>, every part on it that is on. When one part is shown
+alone, Export plans the setup first, then writes it.</li>
 <li><strong>One part’s G-code:</strong> right-click a part in the Browser and choose <strong>Export G-code of
 this part…</strong>. You get the program the project gives with every other part switched off:
-that part with all its copies, the same stock, work zero and machine, checked as every
+that part with all its instances, the same stock, work zero and machine, checked as every
 program is. It works for a part that is off too. The file name suggested is the
 project’s and the part’s (<code>box-lid.nc</code>), and the setup sheet, when one is written, is of
 that part and names it. The project isn’t changed. On the command line, <code>--part ID</code> on
@@ -213,29 +219,51 @@ that part and names it. The project isn’t changed. On the command line, <code>
 material belong in another project.</li>
 <li><strong>Safety:</strong>
 <ul>
-<li>Copies of a part must not cut into each other.</li>
-<li>A copy must not cut into another part. The parts as drawn may overlap, for example an
+<li>Instances of a part must not cut into each other.</li>
+<li>An instance must not cut into another part. The parts as drawn may overlap, for example an
 engraving over a cut-out.</li>
 <li>Overlaps are refused.</li>
 </ul>
 </li>
 <li><strong>In the G-code:</strong> with two parts or more, a comment marks where each part starts:
-<code>(Part 2: box, 2 copies)</code>.</li>
+<code>(Part 2: box, cut 2 times)</code>.</li>
 </ul>
-<pre><code class="language-sh">chipload part list part.chipload                        # id, name, copies, operations
+<pre><code class="language-sh">chipload part list part.chipload                        # id, name, instances, operations
 chipload part add part.chipload --name box              # an empty part, now active
 chipload op part part.chipload --op 4 --part 2          # move operation 4 into part 2
-chipload copies part.chipload --part 2 --grid 2x1 --gap 10
+chipload part instance add part.chipload --part 2   # part 2 placed again (see Instances)
 chipload part set part.chipload 2 --name lid --off      # rename, turn off (--on)
 chipload part activate part.chipload 1
 chipload run part.chipload -o lid.nc --part 2           # only part 2's G-code
 chipload part remove part.chipload 2 --with-operations  # without the flag: refused while it has operations
 </code></pre>
 <p>In the app, the <a href="../window.html#the-browser">Browser</a> lists the parts under their
-<a href="../concepts/setups.html">setup</a>, with their operations. Click a part to see its copies in
-Properties. Right-click it to activate, export, move or delete it, or right-click its setup
+<a href="../concepts/setups.html">setup</a>, with their operations. Click a part to see its instances in
+Properties. Right-click it to activate, export, place again (an instance), move or delete it, or right-click its setup
 for a new one. Drag an operation onto a part to move it there.</p>
 <p><label class="checkbox-label"><input class="checkbox-img" type="checkbox"><img src="../images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"><span class="img-wrapper"><img src="../images/parts.png" alt="Two parts in the Browser: part B is active, cut twice, and its properties are open"></span></label></p>
+<h2 id="a-parts-stock"><a class="header" href="#a-parts-stock">A part’s stock</a></h2>
+<p>A part can say what it is cut from: a material from your <a href="../library/materials.html">library</a>,
+a thickness, or both. Set it in the part’s properties under <strong>Stock</strong>, or with <code>part set --material</code> and <code>--thickness</code>. Left as <em>Any board</em>, as it starts, it asks for nothing.</p>
+<ul>
+<li><strong>Nothing moves by itself:</strong> setting it only records it. When the part’s board isn’t of
+that stock, its properties say so, <em>This part’s board isn’t of its stock</em>, with one
+button: <strong>Move to Setup 2 (6 mm)</strong> when a setup has it, else <strong>Move to a new 6 mm
+setup</strong>, made like the part’s board (its size or fit, its work zero, Z zero and
+overcut). Every instance moves; the status bar says where it went: “Made Setup 2 (6 mm)
+for Bottom”. One undo puts it back. On the command line, <code>part set … --move</code>.</li>
+<li><strong>Through cuts follow:</strong> a cut <em>through the stock</em> goes through the new board.</li>
+<li><strong>Boards are yours:</strong> Chipload never removes a board; set the part back to <em>Any board</em>
+and it stays where it is. The report notes a part on a board of another stock: “Bottom is
+to be cut from 6 mm, but this board is 18 mm”. A two-sided board or one in pieces never
+offers the move.</li>
+<li><strong>Nesting</strong> onto more boards puts each part on a board of its stock.</li>
+</ul>
+<p>A DXF with a side and a bottom, the bottom from 6 mm plywood, the rest from 18 mm:</p>
+<pre><code class="language-sh">chipload import box.dxf -o box.chipload                 # one board, 18 mm
+chipload part set box.chipload 2 --thickness 6mm --move # "Made Setup 2 (6 mm) for Bottom"
+chipload run box.chipload -o box.nc                     # box-S1.nc and box-S2.nc, a sheet each
+</code></pre>
 <h2 id="mirrored-parts"><a class="header" href="#mirrored-parts">Mirrored parts</a></h2>
 <p>A part can be cut <strong>mirrored</strong>, left to right or top to bottom, while the drawing stays as
 you drew it. Set <strong>Mirror</strong> in the part’s properties, or <code>chipload part set --mirror</code>. Use it
@@ -254,7 +282,7 @@ starts stay on their feature.</li>
 shapes are drawn there dashed and faded. You still edit the shapes as drawn; the start
 and tab markers stay on them. The Browser marks the part <em>mirrored</em>.</li>
 <li><strong>What isn’t mirrored:</strong> a surface pass and dowel holes belong to the board, not the part.</li>
-<li><strong>Copies:</strong> each copy is the mirrored part.</li>
+<li><strong>Instances:</strong> each instance is the mirrored part, placed.</li>
 <li><strong>Text:</strong> a mirrored part’s text reads backwards on the board, and the report says so.
 On the <a href="../concepts/setups.html">back of a board</a> the two mirrors cancel and it reads right.</li>
 <li><strong>The setup sheet</strong> says which parts are cut mirrored.</li>
@@ -266,7 +294,7 @@ On the <a href="../concepts/setups.html">back of a board</a> the two mirrors can
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../drawings/copies.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../drawings/nesting.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -280,7 +308,7 @@ On the <a href="../concepts/setups.html">back of a board</a> the two mirrors can
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../drawings/copies.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../drawings/nesting.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
