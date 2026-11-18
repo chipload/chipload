@@ -17,10 +17,8 @@ In the window:
   takes. Turning snaps to quarter turns within 3°; hold
   Alt to turn freely. Escape during a drag puts it back; each drag is one undo step.
 - **In the Browser**, each instance has a row with its tick under its setup ("Side #2"),
-  never under its part: copies and placing are setups' work, so a part cut more than once,
-  or moved, lists the setups, even with one board (*Setup 1*). Making a copy or choosing
-  *Place…* lists them for you; they stay listed until you choose *Simple view* in the last
-  setup's menu. Right-click it to *Mirror* it, *Turn
+  never under its part: copies and placing are setups' work, so they are listed under the
+  setup that cuts them, even with one board (*Setup 1*). Right-click it to *Mirror* it, *Turn
   90°*, *Move to setup ▸* or *Remove* it; Delete removes the selected one.
 - **Several setups:** drag a part's row onto a setup to cut it there, every instance of it
   moved (right-click it for *Move to setup ▸*); hold Ctrl (⌘ on a Mac) as you drop to

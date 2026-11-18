@@ -24,13 +24,6 @@ pub struct Job {
     /// such setup: the first. Only the app and the command line read it.
     #[serde(default)]
     pub active_setup: Option<u64>,
-    /// True: the window lists the setups even with one board, as the user asked when making
-    /// one; false (missing): one board is the simple view, its stock, zero and parts the
-    /// project's rows. Only the app reads it; it changes nothing that is cut. Left out when
-    /// false.
-    // Spec: docs/specs/parts-and-setups.md §2a (optional, no schema bump).
-    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
-    pub setups_shown: bool,
     /// The machine: post-processor, safe height, limits.
     pub machine: Machine,
     /// The tools the operations cut with.
@@ -1124,22 +1117,6 @@ impl Job {
                     [(_, i)] if i.enabled && i.is_drawn()
                 )
             })
-    }
-
-    /// Whether the window lists the setups: for a project that isn't simple, or one the
-    /// user asked to see them for (`setups_shown`; docs/specs/parts-and-setups.md §2a).
-    pub fn lists_setups(&self) -> bool {
-        self.setups_shown || !self.is_simple()
-    }
-
-    /// Once listed, the setups stay listed until the user asks for the simple view
-    /// (docs/specs/parts-and-setups.md §2a): called with the project as it was before an
-    /// edit, it remembers them as shown when the edit makes a listed project simple again.
-    /// An edit that sets `setups_shown` itself is left as it is.
-    pub fn keep_setups_shown(&mut self, before: &Job) {
-        if self.setups_shown == before.setups_shown && before.lists_setups() && self.is_simple() {
-            self.setups_shown = true;
-        }
     }
 
     /// The id of the active setup: `active_setup` when it names a setup, else the first.

@@ -33,19 +33,16 @@ them (`part-S2-sheet.html`). `run` writes every setup that is on; `--setup N` on
 
 ## In the window
 
-With one board, the Browser has no setups to show: **Stock**, **Work zero** and the parts
-are the project's rows, and right-clicking the project offers what a setup's menu would,
-**Pieces and back side…** for the board's own settings among them. Right-click the project
-for **Add a setup**, another board: it starts like the first, empty, and becomes the active
-one. From then on the Browser shows **Parts**, each part with its operations, and
-**Setups**, each with its **Stock**, its **Work zero** and the instances cut from it ("Side
-#2"): drag a part onto a setup to cut it there (with Ctrl, to cut it there too), an instance
-onto another to cut it there.
-To separate parts onto boards before adding one, right-click the project for **Show
-setups**: the board is listed as *Setup 1*. Once listed, the setups stay listed, even when
-you delete the other boards; right-click the last setup for **Simple view** to fold it back
-into the project's rows. Nothing that is cut changes either way. Click a setup for its name, whether it is cut and its parts. Right-click *Setups* or
-a setup for **Add a setup**, a setup for **New part** in it.
+The Browser shows **Parts**, each part with its operations, and **Setups**, each with its
+**Stock**, its **Work zero** and the instances cut from it ("Side #2"), with one board
+(*Setup 1*) as with several. Drag a part onto a setup to cut it there (with Ctrl, to cut it
+there too), an instance onto another to cut it there.
+
+Right-click the project, or the empty space below the Browser's rows, for the project's
+menu: **New part** (on the active setup), **Add a setup** (another board: it starts like
+the first, empty, and becomes the active one), **Face the board**, **Nest…** and **Nest
+again** for the active setup, and **Export all setups…** with two or more. Click a setup for its name, whether it is cut and its parts; right-click it for
+what is done to that board: **New part** in it, **Nest…**, **Add the back side**.
 
 With two or more, the setup you click is the **active setup**: it is shown in full colour,
 generated, simulated and exported, its board on the drawing where it is cut. Every other

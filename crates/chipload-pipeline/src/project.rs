@@ -80,7 +80,6 @@ pub fn empty_project() -> Job {
             placed: None,
         }],
         active_setup: Some(1),
-        setups_shown: false,
         machine: Machine {
             name: None,
             library_uid: None,

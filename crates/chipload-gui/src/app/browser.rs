@@ -223,6 +223,15 @@ impl ChiploadApp {
                 ui.add_space(ROW_HEIGHT / 2.0);
                 if self.edit.is_some() {
                     self.browser_tree(ui);
+                    // The empty space below the rows: the project's menu
+                    // (docs/specs/parts-and-setups.md §2a).
+                    let rest = ui.available_size().max(egui::vec2(0.0, ROW_HEIGHT * 2.0));
+                    let (_, empty) = ui.allocate_exact_size(rest, egui::Sense::click());
+                    let mut asked = None;
+                    empty.context_menu(|ui| asked = self.project_menu(ui));
+                    if let Some(action) = asked {
+                        self.apply_setup_action(action);
+                    }
                 } else {
                     ui.weak(t!(ui, "browser-no-project"));
                 }
@@ -237,23 +246,12 @@ impl ChiploadApp {
             .map_or_else(|| t!(ui, "browser-new-project"), file_name);
         let root = Row::new(Id::new("browser-project"), 0, name).icon(Icon::Project);
         let (open, root) = folder(ui, root, true);
-        // One board: its menu is the project's, as there is no setup row
-        // (docs/specs/parts-and-setups.md §2a).
-        let only = self
-            .edit
-            .as_ref()
-            .filter(|e| !e.job.lists_setups())
-            .and_then(|e| match e.job.setups.as_slice() {
-                [setup] => Some(setup.id),
-                _ => None,
-            });
-        if let Some(id) = only {
-            let mut asked = None;
-            root.response
-                .context_menu(|ui| asked = self.board_menu(ui, id));
-            if let Some(action) = asked {
-                self.apply_setup_action(action);
-            }
+        // The project's menu: new part, new setup, … (docs/specs/parts-and-setups.md §2a).
+        let mut asked = None;
+        root.response
+            .context_menu(|ui| asked = self.project_menu(ui));
+        if let Some(action) = asked {
+            self.apply_setup_action(action);
         }
         if !open {
             return;

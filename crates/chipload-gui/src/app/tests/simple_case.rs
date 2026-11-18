@@ -1,141 +1,76 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-//! The simple case first (docs/specs/parts-and-setups.md §2a): one board shows no Setups
-//! branch, its stock, work zero and parts are the project's rows; a part cut once where it
-//! is drawn shows no instance rows, ghost or badge. A second board brings the branch,
-//! removing it takes the branch away again.
+//! The simple case (docs/specs/parts-and-setups.md §2a, changed 2026-11-18): the setups are
+//! always listed, one board as *Setups › Setup 1* with its stock, work zero and instances;
+//! the project's row and the Browser's empty space have the project's menu.
 use super::*;
+use egui_kittest::kittest::Queryable;
 
 fn depth_of(rows: &[(usize, String)], label: &str) -> Option<usize> {
     rows.iter().find(|(_, l)| l == label).map(|(d, _)| *d)
 }
 
-fn has_setups_branch(rows: &[(usize, String)]) -> bool {
-    rows.iter()
-        .any(|(_, l)| l == "Setups" || l.starts_with("Setup "))
-}
-
 #[test]
-fn one_board_shows_no_setups_and_a_part_cut_once_no_instances() {
+fn one_board_is_listed_as_setup_1_with_its_stock_zero_and_parts() {
     // Imported, a pocket and a profile: the usual simple job.
     let mut app = lower_part();
     let rows = browser_rows(&mut app);
-    assert!(!has_setups_branch(&rows), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Stock"), Some(1), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Work zero"), Some(1));
-    assert_eq!(depth_of(&rows, "Part 1"), Some(1));
+    assert_eq!(depth_of(&rows, "Parts"), Some(1), "{rows:?}");
+    assert_eq!(depth_of(&rows, "Part 1"), Some(2));
     // Its operations right under it.
     let part = rows.iter().position(|(_, l)| l == "Part 1").unwrap();
-    assert_eq!(rows[part + 1].0, 2, "{rows:?}");
-    assert!(!rows.iter().any(|(_, l)| l.starts_with("Instance ")));
-    draw_canvas(&mut app);
-    assert!(app.scene.instances.is_empty() && app.scene.elsewhere.is_empty());
-
-    // Two parts on the one board, then a second board (found by the user, 2026-11-17: a new
-    // setup made a part of its own): Parts and Setups (docs/specs/parts-and-setups.md §8),
-    // the new board empty. The parts are definitions with their operations; each setup
-    // lists its stock, zero and instances.
-    app.add_part().unwrap();
-    let simple = browser_rows(&mut app).len();
-    let added = app.add_setup().unwrap();
-    assert_eq!(app.edit.as_ref().unwrap().job.parts.len(), 2);
-    let rows = browser_rows(&mut app);
-    assert!(has_setups_branch(&rows), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Parts"), Some(1));
+    assert_eq!(rows[part + 1].0, 3, "{rows:?}");
     assert_eq!(depth_of(&rows, "Setups"), Some(1));
-    assert_eq!(depth_of(&rows, "Part 1"), Some(2));
+    assert_eq!(depth_of(&rows, "Setup 1"), Some(2));
     assert_eq!(depth_of(&rows, "Stock"), Some(3));
+    assert_eq!(depth_of(&rows, "Work zero"), Some(3));
     assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3));
-    assert_eq!(depth_of(&rows, "Part 2 #1"), Some(3));
-    assert!(
-        !rows.iter().any(|(_, l)| l.starts_with("Part 3")),
-        "{rows:?}"
-    );
-    // + Parts; + Setups, Setup 1, Part 1 #1, Part 2 #1; + Setup 2, its stock and zero.
-    assert_eq!(rows.len(), simple + 1 + 4 + 3, "{rows:?}");
-    // Part 2 moves to the new board, and back.
-    app.instance_to_setup(2, 1, added);
-    assert_eq!(app.edit.as_ref().unwrap().job.setups_of_part(2), [added]);
-    app.instance_to_setup(2, 1, 1);
-    assert_eq!(app.edit.as_ref().unwrap().job.setups_of_part(2), [1]);
 
-    // Removed again: Setup 1 stays listed (the user, 2026-11-17: only gone when asked).
+    // A second board, then removed again: the same shape, one setup fewer.
+    let one = rows.len();
+    let added = app.add_setup().unwrap();
+    // + Setup 2, its stock and zero.
+    assert_eq!(browser_rows(&mut app).len(), one + 3);
     app.remove_setup(added);
-    assert_eq!(app.edit.as_ref().unwrap().job.setups.len(), 1);
-    let rows = browser_rows(&mut app);
-    assert!(has_setups_branch(&rows), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Setup 1"), Some(2));
-    assert_eq!(depth_of(&rows, "Part 2 #1"), Some(3));
-    // Simple view, asked for: the project's rows again, one undo step.
-    app.show_setups(false);
-    let rows = browser_rows(&mut app);
-    assert!(!has_setups_branch(&rows), "{rows:?}");
-    assert_eq!(rows.len(), simple);
-    app.undo();
-    assert!(has_setups_branch(&browser_rows(&mut app)));
+    assert_eq!(browser_rows(&mut app), rows);
 }
 
+/// *Place…* selects the part's instance under its setup.
 #[test]
-fn setup_1_can_be_shown_by_hand_and_stays_until_the_simple_view_is_asked_for() {
-    // Parts drawn apart, to be cut from separate boards: Show setups first.
-    let mut app = lower_part();
-    app.add_part().unwrap();
-    let simple = browser_rows(&mut app).len();
-    app.show_setups(true);
-    let job = app.edit.as_ref().unwrap().job.clone();
-    assert_eq!(job.setups.len(), 1);
-    assert!(job.setups_shown && job.lists_setups());
-    let rows = browser_rows(&mut app);
-    assert!(has_setups_branch(&rows), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Setup 1"), Some(2));
-    assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3));
-    // Saved with the project, read back.
-    let dir = temp_dir("setups-shown");
-    let file = dir.join("p.chipload");
-    chipload_job::save_job(&job, &file).unwrap();
-    assert!(chipload_job::load_job(&file).unwrap().setups_shown);
-    // The project's own menu is a setup's now, not the board's.
-    app.show_setups(false);
-    assert_eq!(browser_rows(&mut app).len(), simple);
-    assert!(!app.edit.as_ref().unwrap().job.setups_shown);
-}
-
-/// Copies and placing are setups' work (the user, 2026-11-17): a copy made from the simple
-/// view lists the setups, its instances under *Setup 1*, never under the part; with the
-/// copy gone they stay listed until *Simple view*.
-#[test]
-fn a_part_placed_again_lists_the_setups_with_its_instances_under_setup_1() {
-    let mut app = drawn_part();
-    let simple = browser_rows(&mut app).len();
-    app.add_instance(1, false);
-    let rows = browser_rows(&mut app);
-    assert!(has_setups_branch(&rows), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3), "{rows:?}");
-    assert_eq!(depth_of(&rows, "Part 1 #2"), Some(3));
-    assert!(
-        !rows.iter().any(|(_, l)| l.starts_with("Instance ")),
-        "{rows:?}"
-    );
-    // Not simple: Simple view is refused.
-    app.show_setups(false);
-    assert!(has_setups_branch(&browser_rows(&mut app)));
-    // The copy removed: still listed, until asked.
-    app.remove_instance(1, 2);
-    let job = &app.edit.as_ref().unwrap().job;
-    assert!(job.is_simple() && job.setups_shown);
-    assert!(has_setups_branch(&browser_rows(&mut app)));
-    app.show_setups(false);
-    assert_eq!(browser_rows(&mut app).len(), simple);
-}
-
-/// *Place…* in the simple view lists the setups, its instance selected under *Setup 1*.
-#[test]
-fn place_lists_the_setups() {
+fn place_selects_the_instance_under_its_setup() {
     let mut app = drawn_part();
     app.place_part(1);
     assert_eq!(app.focus, Focus::Instance(1, 1));
-    assert!(app.edit.as_ref().unwrap().job.setups_shown);
     let rows = browser_rows(&mut app);
     assert_eq!(depth_of(&rows, "Part 1 #1"), Some(3), "{rows:?}");
+}
+
+/// The project's menu (the user, 2026-11-18: "the mechanism for creating a new part is
+/// kind of hidden"): on the empty space below the Browser's rows, and on the project's row.
+#[test]
+fn right_clicking_the_browsers_empty_space_offers_a_new_part() {
+    let mut h = egui_kittest::Harness::builder()
+        .with_size(egui::vec2(1400.0, 1000.0))
+        .build_eframe(|_| drawn_part());
+    h.run_steps(4);
+    // Below the last row: the bottom of the Browser, on the left.
+    let below = egui::pos2(60.0, 940.0);
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: below,
+        button: egui::PointerButton::Secondary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: below,
+        button: egui::PointerButton::Secondary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    h.run_steps(4);
+    assert!(h.query_by_label("Add a setup").is_some());
+    h.get_by_label("New part").click();
+    h.run_steps(4);
+    assert_eq!(h.state().edit.as_ref().unwrap().job.parts.len(), 2);
 }
 
 #[test]
@@ -149,7 +84,6 @@ fn the_nest_window_names_no_setup_with_one_board() {
             app
         });
     harness.run_steps(4);
-    use egui_kittest::kittest::Queryable;
     assert!(harness.query_by_label("Nest").is_some());
-    assert!(harness.query_by_label_contains("Setup 1").is_none());
+    assert!(harness.query_by_label("Nest: Setup 1").is_none());
 }

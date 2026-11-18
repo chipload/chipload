@@ -97,8 +97,6 @@ fn add_board(
         placed: None,
     });
     job.active_setup = Some(id);
-    // Made by hand, the setups stay listed until the user folds them away.
-    job.setups_shown = true;
     Ok((job, id))
 }
 

@@ -61,20 +61,18 @@ it), but **the window and the command line show neither until they matter**:
 
 - **A simple project** is one board, each part on it once where it is drawn. That is what
   *New*, *Import* and `chipload import` make, silently: the user opens a DXF, adds
-  operations, generates, exports, and never meets the words *setup*, *board list* or
-  *instance*.
-- **One board: no Setups branch.** The Browser shows the project, the drawing, the tools,
-  **Stock** and **Work zero** as rows of the project, and the parts with their operations,
-  as projects did before setups. *Add board* (the project's menu, *Wizards > Two-sided…*,
-  nesting overflow) makes the second board; from then on the Setups branch shows.
-- **Setups by hand stay** (the user, 2026-11-17: "the simple view only works if I have
-  drawn the parts in place … Setup 1 should not be deleted after that if I don't do it
-  explicitly"): *Show setups* in the project's menu lists the one board as *Setup 1*, to
-  separate parts onto more boards, and adding a setup does the same. The project remembers
-  it (`setups_shown`, optional, no bump): removing the other boards leaves *Setup 1*
-  listed, and only *Simple view*, in the last setup's menu where *Delete* would be, folds
-  it back into the project's rows. Neither changes anything that is cut. On the command
-  line: `chipload set p.chipload setups_shown=true`.
+  operations, generates, exports, and never has to choose a setup or make an instance.
+- **The setups are always listed** (changed 2026-11-18, the user: "setups should always be
+  visible even in the simple case", decision 10): once a part or a setup is what the canvas
+  shows (§8a), the setup's row is how the whole board is shown, and a project row standing
+  in for it was the harder way to find. So one board is *Setups › Setup 1*, with its Stock,
+  Work zero and parts, as with several. *Show setups*, *Simple view* and the project's
+  `setups_shown` (never released) go: one way to show a project (no worse options).
+- **The project's menu** (the user, 2026-11-18: "the mechanism for creating a new part is
+  kind of hidden"): right-clicking the project's row, or empty space in the Browser, gives
+  *New part* (on the active setup), *Add setup*, *Face the board*, *Nest…* and *Nest again*
+  (the active setup's) and *Export all setups…* (two setups or more).
+  A setup's own menu stays, for that setup.
 - **A part once, where drawn: no instance rows,** no ghost, no badge: the part is just the
   part, its shapes are what is cut. **Copies and placing are setups' work** (the user,
   2026-11-17: "in simple view we should not allow instances or moving parts … we will never
@@ -163,7 +161,8 @@ it), but **the window and the command line show neither until they matter**:
 - **Paths change:** `parts.0.instances.1.at` becomes `setups.0.instances.2.at` for `get`,
   `set`, problems and the JSON Schema; the reference page and scripting guide say so.
 - **New, optional:** `part.stock` (material, thickness; missing: none) and the project's
-  `setups_shown` (§2a; missing: false). Neither needs its own bump: they come with 41. (A
+  `setups_shown` (§2a; missing: false; removed again 2026-11-18, never released). Neither
+  needs its own bump: they come with 41. (A
   setup's `made_for_stock`, briefly on the branch, went with review item 3.)
 - **Validation:** an instance names a part that exists; `(part, id)` unique in the
   project; a setup in pieces holds each part at most once (as today); a back setup holds
@@ -198,8 +197,8 @@ it), but **the window and the command line show neither until they matter**:
 
 ## 8. In the window
 
-- **The Browser**, once there are two boards (§2a; with one, Stock and Work zero are the
-  project's rows and there is no Setups branch), has two branches:
+- **The Browser** has two branches, with one board as with several (§2a, changed
+  2026-11-18):
   - **Parts:** each part with its operations, its stock, how many instances it has and on
     how many boards; a part with none says "not placed".
   - **Setups:** each board with Stock, Work zero, its board surfaces (as today), and its instances
@@ -293,6 +292,11 @@ Each step a commit with its tests, shippable on its own:
    added. The setup row's menu (new part, face the board, nest, add a board, back side) is
    the project row's with one board, with *Pieces and back side…* for the board's own form;
    the Nest window's title names no setup.
+   **Replaced 2026-11-18** (decision 10 changed): the setups are always listed, *Simple
+   view*, *Show setups* and `setups_shown` are gone, and the project's row and the
+   Browser's empty space have the project's menu (§2a). The board's form opens from its
+   setup's row, so *Pieces and back side…* went with the one-board menu. The window tests
+   count the rows of one board as *Setups › Setup 1*.
 2. **A part's stock:** the field, moving a part to a matching board (made when there is
    none, removed when emptied), the warning for parts placed by hand, the form and `part
    set`; the user's two-thickness example as a pipeline and a window test. **Built
@@ -396,7 +400,9 @@ Each step a commit with its tests, shippable on its own:
     branch (Stock and Work zero are the project's rows), a part once where drawn has no
     instance rows. **Recommended:** the user's rule; simpler than today, where a one-board
     project already shows *Setups › Setup 1*. Alternative: always show the Setups branch,
-    as now, for one shape of the Browser in every project.
+    as now, for one shape of the Browser in every project. **Changed 2026-11-18** (the
+    user): the Setups branch is always shown, *Simple view* and `setups_shown` go, and the
+    project's row and the Browser's empty space have the project's menu (§2a).
 11. **A part's stock picks its board** (§4): changing it moves the part to a matching board,
     made like its board when there is none and removed again when a board made so is
     emptied; placing by hand onto a mismatched board is a warning, not a move.

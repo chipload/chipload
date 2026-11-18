@@ -23,7 +23,6 @@ impl ChiploadApp {
                 if let Some(edit) = self.edit.as_mut() {
                     edit.job.setups = changed.setups;
                     edit.job.active_setup = changed.active_setup;
-                    edit.job.setups_shown = changed.setups_shown;
                     edit.job.parts = changed.parts;
                     edit.job.active_part = changed.active_part;
                     // Depths through the stock that followed a new board (the same
@@ -111,25 +110,6 @@ impl ChiploadApp {
             Err(err) => {
                 self.error(vec![t!(self, "app-setup-refused", error = err.to_string())]);
             }
-        }
-    }
-
-    /// List the setups in the Browser even with one board, or go back to the simple view
-    /// (docs/specs/parts-and-setups.md §2a): one undo step; nothing else changes.
-    pub fn show_setups(&mut self, shown: bool) {
-        let Some(edit) = self.edit.as_mut() else {
-            return;
-        };
-        // Only a simple project folds back (§2a): copies or a moved part need the setups.
-        if !shown && !edit.job.is_simple() {
-            return;
-        }
-        if edit.job.setups_shown != shown {
-            edit.job.setups_shown = shown;
-            if !shown && matches!(self.focus, Focus::Setup(_)) {
-                self.focus = Focus::Job;
-            }
-            self.commit();
         }
     }
 

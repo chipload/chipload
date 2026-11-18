@@ -25,7 +25,6 @@ struct SetupRows<'a> {
 #[derive(Clone, Copy)]
 struct BoardRows<'a> {
     parts: &'a [chipload_job::Part],
-    active: Option<u64>,
     op_parts: &'a [u64],
     board: &'a [bool],
     count: usize,
@@ -59,9 +58,6 @@ pub(super) enum SetupAction {
     PlacePart(u64, u64),
     /// An instance's row dropped on this setup: cut there.
     MoveInstance(u64, u32, u64),
-    /// List the setups even with one board (true), or go back to the simple view (false;
-    /// docs/specs/parts-and-setups.md §2a).
-    ShowSetups(bool),
 }
 
 /// What a part's row dropped on setup `setup` does (the user, 2026-11-17): it moves there,
@@ -109,95 +105,84 @@ impl ChiploadApp {
         let mut setup_action: Option<SetupAction> = None;
         let rows = BoardRows {
             parts: &parts,
-            active,
             op_parts: &op_parts,
             board: &board,
             count,
             tool_before: &tool_before,
         };
-        // One board: no Setups branch; its stock, zero and parts are the project's rows
-        // (docs/specs/parts-and-setups.md §2a).
-        let simple = !edit.job.lists_setups();
-        if let ([setup], true) = (setups.as_slice(), simple) {
-            let (a, b) = self.board_contents(ui, setup.id, 1, rows, true);
-            setup_action = a.or(setup_action);
-            action = b.or(action);
-        } else {
-            // The parts as definitions, each with its operations; their instances are under
-            // the setups (docs/specs/parts-and-setups.md §8).
-            let row = Row::new(Id::new("browser-parts"), 1, t!(ui, "browser-parts"))
-                .icon(Icon::Part)
-                .trailing(parts.len().to_string());
-            let (parts_open, parts_row) = folder(ui, row, true);
-            parts_row
-                .response
-                .on_hover_text(t!(ui, "browser-parts-hover"));
-            if parts_open {
-                for (k, part) in parts.iter().enumerate() {
-                    let rows = PartRows {
-                        k,
-                        depth: 2,
-                        parts: &parts,
-                        active,
-                        op_parts: &op_parts,
-                        board: &board,
-                        count,
-                        tool_before: &tool_before,
-                        simple: false,
-                    };
-                    if let Some(a) = self.part_rows(ui, part, rows) {
-                        action = Some(a);
-                    }
+        // The parts as definitions, each with its operations; their instances are under
+        // the setups (docs/specs/parts-and-setups.md §8).
+        let row = Row::new(Id::new("browser-parts"), 1, t!(ui, "browser-parts"))
+            .icon(Icon::Part)
+            .trailing(parts.len().to_string());
+        let (parts_open, parts_row) = folder(ui, row, true);
+        parts_row
+            .response
+            .on_hover_text(t!(ui, "browser-parts-hover"));
+        if parts_open {
+            for (k, part) in parts.iter().enumerate() {
+                let rows = PartRows {
+                    k,
+                    depth: 2,
+                    parts: &parts,
+                    active,
+                    op_parts: &op_parts,
+                    board: &board,
+                    count,
+                    tool_before: &tool_before,
+                };
+                if let Some(a) = self.part_rows(ui, part, rows) {
+                    action = Some(a);
                 }
             }
-            let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
-                .icon_tinted(Icon::Rectangle, Tint::Board)
-                .trailing(setups.len().to_string());
-            let (open, folder_row) = folder(ui, row, true);
-            folder_row
-                .response
-                .on_hover_text(t!(ui, "browser-setups-hover"))
-                .context_menu(|ui| {
-                    if ui
-                        .button(t!(ui, "browser-add-setup"))
-                        .on_hover_text(t!(ui, "browser-add-setup-hover"))
-                        .clicked()
-                    {
-                        setup_action = Some(SetupAction::Add);
-                    }
-                    if setups.len() > 1
-                        && ui
-                            .button(t!(ui, "menu-export-all"))
-                            .on_hover_text(t!(ui, "menu-export-all-hover"))
-                            .clicked()
-                    {
-                        setup_action = Some(SetupAction::ExportAll);
-                    }
-                });
-            if open {
-                for setup in &setups {
-                    let on: Vec<u64> = self
-                        .edit
-                        .as_ref()
-                        .map(|e| e.job.parts_on(setup.id))
-                        .unwrap_or_default();
-                    let setup_rows = SetupRows {
-                        setups: &setups,
-                        parts: on.len(),
-                        missing: missing_dowels.contains(&setup.id),
-                        is_active: active_setup == Some(setup.id),
-                    };
-                    let (setup_open, asked) = self.setup_row(ui, setup, setup_rows);
-                    if asked.is_some() {
-                        setup_action = asked;
-                    }
-                    if !setup_open {
-                        continue;
-                    }
-                    let (a, b) = self.board_contents(ui, setup.id, 3, rows, false);
-                    setup_action = a.or(setup_action);
-                    action = b.or(action);
+        }
+        let row = Row::new(Id::new("browser-setups"), 1, t!(ui, "browser-setups"))
+            .icon_tinted(Icon::Rectangle, Tint::Board)
+            .trailing(setups.len().to_string());
+        let (open, folder_row) = folder(ui, row, true);
+        folder_row
+            .response
+            .on_hover_text(t!(ui, "browser-setups-hover"))
+            .context_menu(|ui| {
+                if ui
+                    .button(t!(ui, "browser-add-setup"))
+                    .on_hover_text(t!(ui, "browser-add-setup-hover"))
+                    .clicked()
+                {
+                    setup_action = Some(SetupAction::Add);
                 }
+                if setups.len() > 1
+                    && ui
+                        .button(t!(ui, "menu-export-all"))
+                        .on_hover_text(t!(ui, "menu-export-all-hover"))
+                        .clicked()
+                {
+                    setup_action = Some(SetupAction::ExportAll);
+                }
+            });
+        if open {
+            for setup in &setups {
+                let on: Vec<u64> = self
+                    .edit
+                    .as_ref()
+                    .map(|e| e.job.parts_on(setup.id))
+                    .unwrap_or_default();
+                let setup_rows = SetupRows {
+                    setups: &setups,
+                    parts: on.len(),
+                    missing: missing_dowels.contains(&setup.id),
+                    is_active: active_setup == Some(setup.id),
+                };
+                let (setup_open, asked) = self.setup_row(ui, setup, setup_rows);
+                if asked.is_some() {
+                    setup_action = asked;
+                }
+                if !setup_open {
+                    continue;
+                }
+                let (a, b) = self.board_contents(ui, setup.id, 3, rows);
+                setup_action = a.or(setup_action);
+                action = b.or(action);
             }
         }
         if let Some(action) = setup_action {
@@ -208,24 +193,22 @@ impl ChiploadApp {
         }
     }
 
-    /// What is on board `id`, its rows at `depth`: its stock, work zero and board surfaces,
-    /// then its parts with their operations (docs/specs/setups.md §7). Under its setup's row,
-    /// or under the project with one board (docs/specs/parts-and-setups.md §2a).
+    /// What is on board `id`, its rows at `depth` under its setup's row: its stock, work zero
+    /// and board surfaces, then its instances by part (docs/specs/parts-and-setups.md §8).
     fn board_contents(
         &mut self,
         ui: &mut egui::Ui,
         id: u64,
         depth: usize,
         rows: BoardRows,
-        simple: bool,
     ) -> (Option<SetupAction>, Option<OpAction>) {
         let BoardRows {
             parts,
-            active,
             op_parts,
             board,
             count,
             tool_before,
+            ..
         } = rows;
         let (mut setup_action, mut action) = (None, None);
         let on: Vec<u64> = self
@@ -246,54 +229,35 @@ impl ChiploadApp {
                 action = Some(a);
             }
         }
-        if !simple {
-            // Its instances, by part in the project's order, each named with its part.
-            let (setups, instances, active_setup) = self.edit.as_ref().map_or_else(
-                || (Vec::new(), Vec::new(), None),
-                |e| {
-                    let setups: Vec<(u64, String)> = e
-                        .job
-                        .setups
-                        .iter()
-                        .map(|s| (s.id, s.name.clone()))
-                        .collect();
-                    let mine = e
-                        .job
-                        .setup(id)
-                        .map(|s| s.instances.clone())
-                        .unwrap_or_default();
-                    (setups, mine, e.job.active_setup_id())
-                },
-            );
-            let look = InstanceLook {
-                in_active_setup: active_setup == Some(id),
-                depth,
-                named: true,
-                setups: &setups,
-            };
-            for part in parts.iter().filter(|p| on.contains(&p.id)) {
-                for instance in instances.iter().filter(|i| i.part == part.id) {
-                    if let Some(a) = self.instance_row(ui, part, instance, look) {
-                        action = Some(a);
-                    }
+        // Its instances, by part in the project's order, each named with its part.
+        let (setups, instances, active_setup) = self.edit.as_ref().map_or_else(
+            || (Vec::new(), Vec::new(), None),
+            |e| {
+                let setups: Vec<(u64, String)> = e
+                    .job
+                    .setups
+                    .iter()
+                    .map(|s| (s.id, s.name.clone()))
+                    .collect();
+                let mine = e
+                    .job
+                    .setup(id)
+                    .map(|s| s.instances.clone())
+                    .unwrap_or_default();
+                (setups, mine, e.job.active_setup_id())
+            },
+        );
+        let look = InstanceLook {
+            in_active_setup: active_setup == Some(id),
+            depth,
+            named: true,
+            setups: &setups,
+        };
+        for part in parts.iter().filter(|p| on.contains(&p.id)) {
+            for instance in instances.iter().filter(|i| i.part == part.id) {
+                if let Some(a) = self.instance_row(ui, part, instance, look) {
+                    action = Some(a);
                 }
-            }
-            return (setup_action, action);
-        }
-        for (k, part) in parts.iter().enumerate().filter(|(_, p)| on.contains(&p.id)) {
-            let rows = PartRows {
-                k,
-                depth,
-                parts,
-                active,
-                op_parts,
-                board,
-                count,
-                tool_before,
-                simple,
-            };
-            if let Some(a) = self.part_rows(ui, part, rows) {
-                action = Some(a);
             }
         }
         (setup_action, action)
@@ -426,68 +390,25 @@ impl ChiploadApp {
             }
             ui.separator();
             // The last board isn't deleted: it can go back to being the project's.
-            if several {
-                if ui.button(t!(ui, "browser-delete")).clicked() {
-                    action = Some(SetupAction::Remove(setup.id));
-                }
-            } else if ui
-                .add_enabled(
-                    self.edit.as_ref().is_some_and(|e| e.job.is_simple()),
-                    egui::Button::new(t!(ui, "browser-simple-view")),
-                )
-                .on_hover_text(t!(ui, "browser-simple-view-hover"))
-                .on_disabled_hover_text(t!(ui, "browser-simple-view-not-hover"))
-                .clicked()
-            {
-                action = Some(SetupAction::ShowSetups(false));
+            if several && ui.button(t!(ui, "browser-delete")).clicked() {
+                action = Some(SetupAction::Remove(setup.id));
             }
         });
         (setup_open, action)
     }
 
-    /// The project's menu when it has one board (docs/specs/parts-and-setups.md §2a): what
-    /// the setup's row offers with several, its own settings (pieces, back side) included.
-    pub(super) fn board_menu(&self, ui: &mut egui::Ui, id: u64) -> Option<SetupAction> {
+    /// The project's menu, on its row and the Browser's empty space
+    /// (docs/specs/parts-and-setups.md §2a): a new part on the active setup, a new setup,
+    /// the active setup's board work (facing, nesting), every setup exported.
+    pub(super) fn project_menu(&self, ui: &mut egui::Ui) -> Option<SetupAction> {
+        let (id, several) = self.edit.as_ref().map_or((None, false), |e| {
+            (e.job.active_setup_id(), e.job.setups.len() > 1)
+        });
         let mut action = None;
-        if ui.button(t!(ui, "browser-new-part")).clicked() {
+        if let Some(id) = id
+            && ui.button(t!(ui, "browser-new-part")).clicked()
+        {
             action = Some(SetupAction::NewPart(id));
-        }
-        if ui
-            .button(t!(ui, "browser-face-board"))
-            .on_hover_text(t!(ui, "browser-face-board-hover"))
-            .clicked()
-        {
-            action = Some(SetupAction::FaceBoard(id));
-        }
-        if ui
-            .button(t!(ui, "nest-menu"))
-            .on_hover_text(t!(ui, "nest-menu-hover"))
-            .clicked()
-        {
-            action = Some(SetupAction::Nest(id));
-        }
-        if self.was_nested(id)
-            && ui
-                .button(t!(ui, "nest-again"))
-                .on_hover_text(t!(ui, "nest-again-hover"))
-                .clicked()
-        {
-            action = Some(SetupAction::NestAgain(id));
-        }
-        ui.separator();
-        if ui
-            .button(t!(ui, "browser-board-settings"))
-            .on_hover_text(t!(ui, "browser-board-settings-hover"))
-            .clicked()
-        {
-            action = Some(SetupAction::Open(id));
-        }
-        if ui
-            .button(t!(ui, "browser-add-back-side"))
-            .on_hover_text(t!(ui, "browser-add-back-side-hover"))
-            .clicked()
-        {
-            action = Some(SetupAction::AddBack(id));
         }
         if ui
             .button(t!(ui, "browser-add-setup"))
@@ -496,12 +417,38 @@ impl ChiploadApp {
         {
             action = Some(SetupAction::Add);
         }
-        if ui
-            .button(t!(ui, "browser-show-setups"))
-            .on_hover_text(t!(ui, "browser-show-setups-hover"))
-            .clicked()
+        if let Some(id) = id {
+            ui.separator();
+            if ui
+                .button(t!(ui, "browser-face-board"))
+                .on_hover_text(t!(ui, "browser-face-board-hover"))
+                .clicked()
+            {
+                action = Some(SetupAction::FaceBoard(id));
+            }
+            if ui
+                .button(t!(ui, "nest-menu"))
+                .on_hover_text(t!(ui, "nest-menu-hover"))
+                .clicked()
+            {
+                action = Some(SetupAction::Nest(id));
+            }
+            if self.was_nested(id)
+                && ui
+                    .button(t!(ui, "nest-again"))
+                    .on_hover_text(t!(ui, "nest-again-hover"))
+                    .clicked()
+            {
+                action = Some(SetupAction::NestAgain(id));
+            }
+        }
+        if several
+            && ui
+                .button(t!(ui, "menu-export-all"))
+                .on_hover_text(t!(ui, "menu-export-all-hover"))
+                .clicked()
         {
-            action = Some(SetupAction::ShowSetups(true));
+            action = Some(SetupAction::ExportAll);
         }
         action
     }
@@ -541,7 +488,6 @@ impl ChiploadApp {
             SetupAction::MovePart(part, setup) => self.move_part_to_setup(part, setup),
             SetupAction::PlacePart(part, setup) => self.place_part_on(part, setup),
             SetupAction::MoveInstance(part, id, setup) => self.instance_to_setup(part, id, setup),
-            SetupAction::ShowSetups(shown) => self.show_setups(shown),
         }
     }
 

@@ -39,10 +39,6 @@ pub(super) struct PartRows<'a> {
     pub(super) count: usize,
     /// The tool changes shown above an operation's row ([`tool_changes`]).
     pub(super) tool_before: &'a std::collections::BTreeMap<usize, Vec<i64>>,
-    /// One board: the part's instances are listed under it. With several they are listed
-    /// under their setups, and the part can be dragged onto one
-    /// (docs/specs/parts-and-setups.md §8).
-    pub(super) simple: bool,
 }
 
 /// How an instance's row is drawn: whether its setup is the active one, its depth, named
@@ -230,7 +226,6 @@ impl ChiploadApp {
             board,
             count,
             tool_before,
-            simple,
         } = rows;
         let mine: Vec<usize> = (0..count)
             .filter(|i| op_parts[*i] == part.id && !board[*i])
@@ -242,33 +237,30 @@ impl ChiploadApp {
         // Parts of another setup are ghosts too (docs/specs/setups.md §7).
         // Its placement: where it is cut, how often, whether elsewhere than drawn
         // (docs/specs/parts-and-setups.md §2).
-        let (setups, in_active_setup, own_setups, times, placed, instances) = self
-            .edit
-            .as_ref()
-            .map_or((Vec::new(), true, Vec::new(), 1, false, Vec::new()), |e| {
-                let setups: Vec<(u64, String)> = e
-                    .job
-                    .setups
-                    .iter()
-                    .map(|s| (s.id, s.name.clone()))
-                    .collect();
-                let instances: Vec<chipload_job::Instance> = e
-                    .job
-                    .instances_of(part.id)
-                    .into_iter()
-                    .map(|(_, i)| *i)
-                    .collect();
-                (
-                    setups,
-                    e.job
-                        .active_setup_id()
-                        .is_some_and(|s| e.job.part_on(part.id, s)),
-                    e.job.setups_of_part(part.id),
-                    e.job.count_all(part.id),
-                    e.job.is_placed(part.id),
-                    instances,
-                )
-            });
+        let (setups, own_setups, times, placed, instances) =
+            self.edit
+                .as_ref()
+                .map_or((Vec::new(), Vec::new(), 1, false, Vec::new()), |e| {
+                    let setups: Vec<(u64, String)> = e
+                        .job
+                        .setups
+                        .iter()
+                        .map(|s| (s.id, s.name.clone()))
+                        .collect();
+                    let instances: Vec<chipload_job::Instance> = e
+                        .job
+                        .instances_of(part.id)
+                        .into_iter()
+                        .map(|(_, i)| *i)
+                        .collect();
+                    (
+                        setups,
+                        e.job.setups_of_part(part.id),
+                        e.job.count_all(part.id),
+                        e.job.is_placed(part.id),
+                        instances,
+                    )
+                });
         let mut trailing = Vec::new();
         if is_active && parts.len() > 1 {
             trailing.push(t!(ui, "browser-part-active"));
@@ -290,15 +282,13 @@ impl ChiploadApp {
             .icon(Icon::Part)
             .trailing(trailing.join(" · "))
             .selected(self.focus == Focus::Part(part.id))
-            .dim(!part.enabled || (simple && !in_active_setup))
+            .dim(!part.enabled)
             .alert(flagged)
             .strong(is_active && parts.len() > 1);
         // Dragged onto a setup, it moves there; with Ctrl it is placed there too
         // (docs/specs/parts-and-setups.md §8).
-        let out = if simple { row } else { row.draggable() }.show(ui);
-        if !simple {
-            out.response.dnd_set_drag_payload(DraggedPart(part.id));
-        }
+        let out = row.draggable().show(ui);
+        out.response.dnd_set_drag_payload(DraggedPart(part.id));
         let mut action = None;
         if out.toggled {
             toggle_folder(ui, open_id, true);
@@ -333,11 +323,7 @@ impl ChiploadApp {
         } else {
             t!(ui, "browser-part-hover")
         };
-        let hover = if simple {
-            hover
-        } else {
-            format!("{hover}\n\n{}", t!(ui, "browser-part-drag-hover"))
-        };
+        let hover = format!("{hover}\n\n{}", t!(ui, "browser-part-drag-hover"));
         out.response.on_hover_text(hover).context_menu(|ui| {
             if ui
                 .add_enabled(!is_active, egui::Button::new(t!(ui, "browser-activate")))
