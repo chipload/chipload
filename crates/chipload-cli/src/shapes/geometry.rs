@@ -38,9 +38,23 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
     if v.corner_radius.is_some() && !matches!(kind, KindArg::Rectangle) {
         return Err("--corner-radius is for a rectangle".into());
     }
-    if v.radii.is_some() && !matches!(kind, KindArg::Polyline) {
-        return Err("--radii is for a polyline".into());
+    if v.radii.is_some()
+        && !matches!(
+            kind,
+            KindArg::Polyline | KindArg::Rectangle | KindArg::Polygon
+        )
+    {
+        return Err("--radii is for a polyline, a rectangle or a polygon".into());
     }
+    if v.radii.is_some() && v.corner_radius.is_some() {
+        return Err("give --corner-radius (every corner) or --radii (each), not both".into());
+    }
+    let radii = v
+        .radii
+        .as_deref()
+        .map(radii_arg)
+        .transpose()?
+        .unwrap_or_default();
     if (v.start_deg.is_some() || v.end_deg.is_some()) && !matches!(kind, KindArg::ArcSlot) {
         return Err("--start-deg and --end-deg are for an arc slot".into());
     }
@@ -58,6 +72,7 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
             width: need(v.width, "width", "rectangle")?,
             angle: v.angle_deg.unwrap_or(0.0).to_radians(),
             corner_radius: v.corner_radius.unwrap_or(0.0),
+            radii: radii.clone(),
         },
         KindArg::Polyline => {
             let closed = !v.open;
@@ -65,10 +80,6 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
             let bulges = match &v.bulges {
                 Some(text) => bulges_arg(text)?,
                 None => vec![0.0; polyline_segment_count(points.len(), closed)],
-            };
-            let radii = match &v.radii {
-                Some(text) => radii_arg(text)?,
-                None => Vec::new(),
             };
             Geometry::Polyline {
                 closed,
@@ -116,6 +127,7 @@ pub(crate) fn new_geometry(kind: KindArg, v: &ShapeValues) -> Result<Geometry, S
                 radius,
                 sides,
                 angle: v.angle_deg.unwrap_or(0.0).to_radians(),
+                radii,
             }
         }
     })
@@ -171,6 +183,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
             radius,
             sides,
             angle,
+            radii,
         } => {
             not_for(
                 "polygon",
@@ -180,13 +193,22 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ("corner-radius", v.corner_radius.is_some()),
                     ("points", v.points.is_some()),
                     ("bulges", v.bulges.is_some()),
-                    ("radii", v.radii.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                 ],
             )?;
             *c = center.unwrap_or(*c);
+            let old_sides = *sides;
             *sides = v.sides.unwrap_or(*sides);
+            if let Some(text) = &v.radii {
+                *radii = radii_arg(text)?;
+            } else if *sides != old_sides && radii.iter().any(|&r| r != 0.0) {
+                return Err(format!(
+                    "the polygon now has {sides} corners and some were rounded: give --radii too"
+                ));
+            } else if *sides != old_sides {
+                radii.clear();
+            }
             *radius = match v.across_flats {
                 Some(flats) => polygon_radius_across_flats(flats, *sides),
                 None => v.radius.unwrap_or(*radius),
@@ -201,6 +223,7 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
             width,
             angle,
             corner_radius,
+            radii,
         } => {
             not_for(
                 "rectangle",
@@ -208,7 +231,6 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
                     ("radius", v.radius.is_some()),
                     ("points", v.points.is_some()),
                     ("bulges", v.bulges.is_some()),
-                    ("radii", v.radii.is_some()),
                     ("open", v.open),
                     ("closed", v.closed),
                     ("sides", v.sides.is_some()),
@@ -218,7 +240,23 @@ pub(crate) fn changed_geometry(current: &Geometry, v: &ShapeValues) -> Result<Ge
             *c = center.unwrap_or(*c);
             *length = v.length.unwrap_or(*length);
             *width = v.width.unwrap_or(*width);
-            *corner_radius = v.corner_radius.unwrap_or(*corner_radius);
+            // One radius for every corner, or one each (docs/specs/polyline-radii.md §4a).
+            match (v.corner_radius, &v.radii) {
+                (Some(_), Some(_)) => {
+                    return Err(
+                        "give --corner-radius (every corner) or --radii (each), not both".into(),
+                    );
+                }
+                (Some(r), None) => {
+                    *corner_radius = r;
+                    radii.clear();
+                }
+                (None, Some(text)) => {
+                    *radii = radii_arg(text)?;
+                    *corner_radius = 0.0;
+                }
+                (None, None) => {}
+            }
             if let Some(degrees) = v.angle_deg {
                 *angle = degrees.to_radians();
             }

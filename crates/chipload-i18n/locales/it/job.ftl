@@ -386,3 +386,4 @@ job-radii-count = un raggio per punto: { $wanted }, ricevuti { $got }
 job-radius-at-end = l'estremità di una polilinea aperta non ha un angolo da arrotondare
 job-radius-not-a-corner = ha un arco accanto, o i suoi lati proseguono dritti: nessun angolo da arrotondare
 job-radius-too-large = è troppo grande per i lati accanto: al massimo { $most }
+job-radii-and-corner-radius = indica un raggio per tutti gli angoli oppure un raggio per angolo (allora il raggio d'angolo è 0)

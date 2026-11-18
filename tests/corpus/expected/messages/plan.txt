@@ -1651,6 +1651,25 @@ Chip load (at the cutting feed):
 Planned … moves.
 --- stderr
 
+$ chipload plan tests/corpus/jobs/v42/rounded_shapes.chipload
+exit 0
+--- stdout
+warning: Operation 2: the tabs' flanks (30.0°) are steeper than the ramp angle (3.0°); tool 1 isn't marked center_cutting, make sure it is a centre-cutting tool
+note: Operation 2 (Profile 1): cuts through, 0.500 mm into the spoilboard
+Operation 1: a ring starts at (-14.291, -4.897) (default)
+Operation 2: a ring starts at (-60.000, -48.000) (default)
+Estimated time: 5 min 22 s (cutting 5 min 18 s, rapids 1 s, spindle 3 s)
+Cut outline: 172.000 × 102.000 mm (X -86.000 … 86.000, Y -51.000 … 51.000, the tool included): the smallest stock that holds the job.
+  Operation 1 (Pocket 1): 57 s; cutting 1.4 m, plunging 3 mm, rapids 12 mm, 1 lift
+  Operation 2 (Profile 1): 4 min 22 s; cutting 6.5 m, plunging 1 mm, rapids 72 mm, 1 lift
+  In all: cutting 7.9 m, plunging 4 mm, rapids 84 mm, 2 lifts.
+  At the programmed feeds (rapids at 5000 mm/min, assumed: set the machine's max feed for a better estimate); acceleration and corners make the real time longer.
+Chip load (at the cutting feed):
+  Operation 1 (Pocket 1): set the tool's flutes to see the chip load
+  Operation 2 (Profile 1): set the tool's flutes to see the chip load
+Planned … moves.
+--- stderr
+
 $ chipload plan tests/corpus/jobs/v42/spline.chipload
 exit 0
 --- stdout

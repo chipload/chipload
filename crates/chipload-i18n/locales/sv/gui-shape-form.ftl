@@ -66,3 +66,6 @@ shape-form-title-spline = Spline S{ $id }
 shape-form-corner-radius-column = Radie
 shape-form-corner-radius-column-hover = En radie i ett hörn rundar det med en båge som tangerar båda sidorna; punkten ligger kvar i det skarpa hörnet. 0: skarpt
 shape-form-corner-radius-none = Inget hörn att runda här: en båge bredvid, eller sidorna fortsätter rakt
+shape-form-corners = Hörn
+shape-form-each-corner = Varje hörn
+shape-form-each-corner-hover = Ikryssad: en radie per hörn, numrerade moturs från det första (för en rektangel: från det nedre vänstra vid 0°). Ej ikryssad: en radie för alla hörn

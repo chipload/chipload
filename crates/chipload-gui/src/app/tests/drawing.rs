@@ -503,6 +503,7 @@ fn a_polygon_is_its_centre_and_a_corner_with_the_sides_kept() {
         radius,
         sides,
         angle,
+        ..
     } = app.shape(id).unwrap().geometry
     else {
         panic!()

@@ -28,6 +28,7 @@ fn a_rectangle_is_two_opposite_corners_in_any_order() {
             width: 20.0,
             angle: 0.0,
             corner_radius: 0.0,
+            radii: Vec::new(),
         })
     );
     // A flat rectangle is refused, and drawing goes on.
@@ -388,6 +389,7 @@ fn a_slot_is_a_rectangle_with_half_circle_ends() {
         width,
         angle,
         corner_radius,
+        ..
     } = geometry
     else {
         panic!()
@@ -441,6 +443,7 @@ fn a_rectangle_by_its_centre_is_twice_the_corners_offset() {
             width: 20.0,
             angle: 0.0,
             corner_radius: 0.0,
+            radii: Vec::new(),
         })
     );
     // A typed `@dx,dy` counts from the centre: half the size.
@@ -484,6 +487,7 @@ fn an_aligned_rectangle_is_an_edge_then_its_width() {
         width,
         angle,
         corner_radius,
+        ..
     }) = sketch.click((-4.0, 3.0), false)
     else {
         panic!("a rectangle");
@@ -700,6 +704,7 @@ fn a_polygon_by_its_side_and_on_an_edge() {
         radius,
         sides,
         angle,
+        ..
     }) = side.click((5.0, 15.0), false)
     else {
         panic!("a polygon");

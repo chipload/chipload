@@ -66,3 +66,6 @@ shape-form-title-spline = Spline S{ $id }
 shape-form-corner-radius-column = Radius
 shape-form-corner-radius-column-hover = Ein Radius an einer Ecke rundet sie mit einem Bogen, der beide Seiten berührt; der Punkt bleibt an der spitzen Ecke. 0: spitz
 shape-form-corner-radius-none = Keine Ecke zum Runden: ein Bogen daneben, oder die Seiten laufen gerade weiter
+shape-form-corners = Ecken
+shape-form-each-corner = Jede Ecke
+shape-form-each-corner-hover = An: ein Radius pro Ecke, gegen den Uhrzeigersinn ab der ersten nummeriert (beim Rechteck: ab der unteren linken bei 0°). Aus: ein Radius für alle Ecken

@@ -82,6 +82,7 @@ pub fn handles(geometry: &Geometry, rotate_reach: f64) -> Vec<(Handle, [f64; 2])
             radius,
             sides,
             angle,
+            ..
         } => {
             let mut list = vec![(Handle::Center, *center)];
             if let Some(&first) = polygon_corners(*center, *radius, *sides, *angle).first() {
@@ -350,6 +351,7 @@ pub fn kept_slot(old: &Geometry, new: Geometry) -> Geometry {
             width,
             angle,
             corner_radius,
+            radii,
         },
     ) = (old, &new)
     else {
@@ -365,6 +367,7 @@ pub fn kept_slot(old: &Geometry, new: Geometry) -> Geometry {
         width: *width,
         angle: *angle,
         corner_radius: length.min(*width) / 2.0,
+        radii: radii.clone(),
     }
 }
 
@@ -421,6 +424,7 @@ pub fn try_drag(
                 width,
                 angle,
                 corner_radius,
+                ..
             },
             Handle::Corner(k),
         ) if k < 4 => {
@@ -649,9 +653,18 @@ pub fn set_closed(geometry: &mut Geometry, close: bool) {
     }
 }
 
+/// As [`translated_kind`], with a rectangle's or polygon's corner radii carried to the
+/// corners they went to (a turn past half a turn or a mirror renumbers them).
+pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
+    let new = translated_kind(geometry, by)?;
+    Some(carry_corner_radii(geometry, new, |p| {
+        [p[0] + by[0], p[1] + by[1]]
+    }))
+}
+
 /// A drawn shape moved by `by` (copy and paste, docs/specs/small-items.md §4). None for an
 /// imported path, which only changes with the DXF.
-pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
+fn translated_kind(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
     let shift = |p: &[f64; 2]| [p[0] + by[0], p[1] + by[1]];
     match geometry {
         Geometry::Path { .. } => None,
@@ -665,12 +678,14 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
             width,
             angle,
             corner_radius,
+            radii,
         } => Some(Geometry::Rectangle {
             center: shift(center),
             length: *length,
             width: *width,
             angle: *angle,
             corner_radius: *corner_radius,
+            radii: radii.clone(),
         }),
         Geometry::Polyline {
             closed,
@@ -688,11 +703,13 @@ pub fn translated(geometry: &Geometry, by: [f64; 2]) -> Option<Geometry> {
             radius,
             sides,
             angle,
+            radii,
         } => Some(Geometry::Polygon {
             center: shift(center),
             radius: *radius,
             sides: *sides,
             angle: *angle,
+            radii: radii.clone(),
         }),
         Geometry::Spline { closed, points } => Some(Geometry::Spline {
             closed: *closed,
@@ -714,13 +731,28 @@ pub fn transformed_point(
     [to[0] + scale * turned[0], to[1] + scale * turned[1]]
 }
 
+/// As [`transformed_kind`], with a rectangle's or polygon's corner radii carried to the
+/// corners they went to (a turn past half a turn or a mirror renumbers them).
+pub fn transformed(
+    geometry: &Geometry,
+    from: [f64; 2],
+    to: [f64; 2],
+    scale: f64,
+    degrees: f64,
+) -> Option<Geometry> {
+    let new = transformed_kind(geometry, from, to, scale, degrees)?;
+    Some(carry_corner_radii(geometry, new, |p| {
+        transformed_point(p, from, to, scale, degrees)
+    }))
+}
+
 /// A drawn shape moved, turned and scaled: each point p goes to
 /// `to + scale · turn(p − from)`, `degrees` counter-clockwise (docs/specs/drawn-shapes-box.md
 /// §2). A circle's radius and a rectangle's sides and corner radius scale; a rectangle's
 /// angle turns; a polyline's bulges stay, since an even scale and a turn keep every arc's
 /// sweep. Turns by multiples of 90° are exact. None for an imported path or a scale that
 /// isn't a positive number.
-pub fn transformed(
+fn transformed_kind(
     geometry: &Geometry,
     from: [f64; 2],
     to: [f64; 2],
@@ -743,12 +775,14 @@ pub fn transformed(
             width,
             angle,
             corner_radius,
+            radii,
         } => Some(Geometry::Rectangle {
             center: map(center),
             length: length * scale,
             width: width * scale,
             angle: turned_angle(*angle, degrees),
             corner_radius: corner_radius * scale,
+            radii: radii.iter().map(|r| r * scale).collect(),
         }),
         Geometry::Polyline {
             closed,
@@ -766,11 +800,13 @@ pub fn transformed(
             radius,
             sides,
             angle,
+            radii,
         } => Some(Geometry::Polygon {
             center: map(center),
             radius: radius * scale,
             sides: *sides,
             angle: turned_angle(*angle, degrees),
+            radii: radii.iter().map(|r| r * scale).collect(),
         }),
         // The curve depends on distances only: it moves, turns and scales with its points
         // (docs/specs/splines.md §5).
@@ -796,6 +832,72 @@ fn within_half_turn(angle: f64) -> f64 {
     if turned > PI { turned - TAU } else { turned }
 }
 
+/// `new`, made from `old` by moving its points with `map`, with its corner radii put back
+/// on the right corners: each corner of `new` takes the radius of the corner of `old` that
+/// `map` takes nearest it (docs/specs/polyline-radii.md §4a). Anything else as it is.
+fn carry_corner_radii(
+    old: &Geometry,
+    mut new: Geometry,
+    map: impl Fn([f64; 2]) -> [f64; 2],
+) -> Geometry {
+    let old_corners = match old {
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            ..
+        } => rectangle_corners(*center, *length, *width, *angle).to_vec(),
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+            ..
+        } => polygon_corners(*center, *radius, *sides, *angle),
+        _ => return new,
+    };
+    let (new_corners, radii) = match &mut new {
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            radii,
+            ..
+        } if !radii.is_empty() => (
+            rectangle_corners(*center, *length, *width, *angle).to_vec(),
+            radii,
+        ),
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+            radii,
+        } if !radii.is_empty() => (polygon_corners(*center, *radius, *sides, *angle), radii),
+        _ => return new,
+    };
+    let moved: Vec<[f64; 2]> = old_corners.iter().map(|&p| map(p)).collect();
+    let carried: Vec<f64> = new_corners
+        .iter()
+        .map(|q| {
+            let nearest = moved
+                .iter()
+                .enumerate()
+                .min_by(|(_, a), (_, b)| {
+                    let da = math::hypot(a[0] - q[0], a[1] - q[1]);
+                    let db = math::hypot(b[0] - q[0], b[1] - q[1]);
+                    da.total_cmp(&db)
+                })
+                .map_or(0, |(k, _)| k);
+            radii.get(nearest).copied().unwrap_or(0.0)
+        })
+        .collect();
+    *radii = carried;
+    new
+}
+
 /// Which way a mirror flips.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mirror {
@@ -805,11 +907,21 @@ pub enum Mirror {
     UpDown,
 }
 
+/// As [`mirrored_kind`], with a rectangle's or polygon's corner radii carried to the
+/// corners they went to (a turn past half a turn or a mirror renumbers them).
+pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geometry> {
+    let new = mirrored_kind(geometry, mirror, about)?;
+    Some(carry_corner_radii(geometry, new, |p| match mirror {
+        Mirror::LeftRight => [2.0 * about - p[0], p[1]],
+        Mirror::UpDown => [p[0], 2.0 * about - p[1]],
+    }))
+}
+
 /// A drawn shape mirrored about the line `about` (docs/specs/small-items.md §4). A
 /// rectangle's angle becomes −angle (half a turn gives the same rectangle, so this holds
 /// both ways); a polyline's bulges change sign, so its arcs bend the mirrored way. None for
 /// an imported path.
-pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geometry> {
+fn mirrored_kind(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geometry> {
     let flip = |p: &[f64; 2]| match mirror {
         Mirror::LeftRight => [2.0 * about - p[0], p[1]],
         Mirror::UpDown => [p[0], 2.0 * about - p[1]],
@@ -828,12 +940,14 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
             width,
             angle,
             corner_radius,
+            radii,
         } => Some(Geometry::Rectangle {
             center: flip(center),
             length: *length,
             width: *width,
             angle: negated(*angle),
             corner_radius: *corner_radius,
+            radii: radii.clone(),
         }),
         Geometry::Polyline {
             closed,
@@ -852,6 +966,7 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
             radius,
             sides,
             angle,
+            radii,
         } => Some(Geometry::Polygon {
             center: flip(center),
             radius: *radius,
@@ -860,6 +975,7 @@ pub fn mirrored(geometry: &Geometry, mirror: Mirror, about: f64) -> Option<Geome
                 Mirror::LeftRight => within_half_turn(PI - angle),
                 Mirror::UpDown => negated(*angle),
             },
+            radii: radii.clone(),
         }),
         Geometry::Spline { closed, points } => Some(Geometry::Spline {
             closed: *closed,
@@ -884,11 +1000,20 @@ pub fn reflected_point(p: [f64; 2], a: [f64; 2], b: [f64; 2]) -> [f64; 2] {
     [2.0 * foot[0] - p[0], 2.0 * foot[1] - p[1]]
 }
 
+/// As [`mirrored_about_kind`], with a rectangle's or polygon's corner radii carried to the
+/// corners they went to (a turn past half a turn or a mirror renumbers them).
+pub fn mirrored_about(geometry: &Geometry, a: [f64; 2], b: [f64; 2]) -> Option<Geometry> {
+    let new = mirrored_about_kind(geometry, a, b)?;
+    Some(carry_corner_radii(geometry, new, |p| {
+        reflected_point(p, a, b)
+    }))
+}
+
 /// A drawn shape reflected about the line through `a` and `b`: points reflected, a
 /// rectangle's angle and a polygon's first corner turned to 2θ − angle (θ the line's
 /// direction), a polyline's bulges negated. None for an imported path, or when `a` and `b`
 /// coincide.
-pub fn mirrored_about(geometry: &Geometry, a: [f64; 2], b: [f64; 2]) -> Option<Geometry> {
+fn mirrored_about_kind(geometry: &Geometry, a: [f64; 2], b: [f64; 2]) -> Option<Geometry> {
     if a == b {
         return None;
     }
@@ -919,23 +1044,27 @@ pub fn mirrored_about(geometry: &Geometry, a: [f64; 2], b: [f64; 2]) -> Option<G
             width,
             angle,
             corner_radius,
+            radii,
         } => Some(Geometry::Rectangle {
             center: flip(center),
             length: *length,
             width: *width,
             angle: rectangle_turned(*angle),
             corner_radius: *corner_radius,
+            radii: radii.clone(),
         }),
         Geometry::Polygon {
             center,
             radius,
             sides,
             angle,
+            radii,
         } => Some(Geometry::Polygon {
             center: flip(center),
             radius: *radius,
             sides: *sides,
             angle: turned(*angle),
+            radii: radii.clone(),
         }),
         Geometry::Polyline {
             closed,

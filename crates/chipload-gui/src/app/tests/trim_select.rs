@@ -68,6 +68,7 @@ fn a_trimmed_slot_can_be_deselected() {
                 width: 20.0,
                 angle: 0.0,
                 corner_radius: 10.0,
+                radii: Vec::new(),
             })
             .unwrap();
             app.commit();

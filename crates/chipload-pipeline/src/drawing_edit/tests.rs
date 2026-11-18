@@ -149,6 +149,7 @@ fn a_trim_joins_pieces_whose_ends_meet() {
         width: 20.0,
         angle: 0.0,
         corner_radius: 10.0,
+        radii: Vec::new(),
     };
     let line = Geometry::straight_polyline(false, vec![[300.0, 70.0], [300.0, 130.0]]);
     let (job, s) = add_shape(&drawn_part(), "cut", slot).unwrap();
@@ -212,6 +213,7 @@ fn slot_again() -> Geometry {
         width: 20.0,
         angle: 0.0,
         corner_radius: 10.0,
+        radii: Vec::new(),
     }
 }
 
@@ -573,4 +575,35 @@ fn a_half_outline_mirrored_against_its_centre_line_becomes_one_closed_shape() {
     // The whole shape is symmetric: its box is centred on the line.
     let ((x0, _), (x1, _)) = crate::shapes::drawn_box(&edited.job, &[id]).unwrap();
     assert!(((x0 + x1) / 2.0 - 300.0).abs() < 1e-9);
+}
+
+#[test]
+fn a_rectangle_or_polygon_corner_gets_its_own_radius() {
+    // docs/specs/polyline-radii.md §4a. S1: the turned 120 x 80 rectangle.
+    let job = drawn_part();
+    let one = cut_shape_corners(&job, 1, Some(2), Cut::Fillet(10.0)).unwrap();
+    assert!(matches!(
+        geometry(&one, 1),
+        Geometry::Rectangle { corner_radius, radii, .. }
+            if *corner_radius == 0.0 && radii == &[0.0, 0.0, 10.0, 0.0]
+    ));
+    // Every corner alike again: back to its one corner radius.
+    let all = cut_shape_corners(&one, 1, None, Cut::Fillet(4.0)).unwrap();
+    assert!(matches!(
+        geometry(&all, 1),
+        Geometry::Rectangle { corner_radius, radii, .. } if *corner_radius == 4.0 && radii.is_empty()
+    ));
+    // Too large: refused with the most that fits.
+    let err = cut_shape_corners(&job, 1, Some(0), Cut::Fillet(90.0)).unwrap_err();
+    assert!(
+        err.message().english().contains("at most 80"),
+        "{}",
+        err.message().english()
+    );
+    // Chamfering a rounded rectangle's sharp corner keeps the round one.
+    let cut = cut_shape_corners(&one, 1, Some(0), Cut::Chamfer(2.0)).unwrap();
+    assert!(matches!(
+        geometry(&cut, 1),
+        Geometry::Polyline { radii, .. } if radii.iter().filter(|&&r| r == 10.0).count() == 1
+    ));
 }

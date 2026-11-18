@@ -382,6 +382,7 @@ impl Sketch {
                     radius,
                     sides: self.sides,
                     angle: math::atan2(p.1 - first.1, p.0 - first.0),
+                    radii: Vec::new(),
                 })
             }
             _ => None,
@@ -687,6 +688,7 @@ fn polygon(g: chipload_draw::construct::Polygon, sides: u32) -> Geometry {
         radius: g.radius,
         sides,
         angle: g.angle,
+        radii: Vec::new(),
     }
 }
 
@@ -706,6 +708,7 @@ fn rectangle(r: chipload_draw::construct::Rectangle) -> Geometry {
         width: r.width,
         angle: r.angle,
         corner_radius: 0.0,
+        radii: Vec::new(),
     }
 }
 
@@ -723,6 +726,7 @@ fn slot(a: Point, b: Point, p: Point) -> Option<Geometry> {
         width,
         angle: math::atan2(b.1 - a.1, b.0 - a.0),
         corner_radius: width / 2.0,
+        radii: Vec::new(),
     })
 }
 

@@ -1,7 +1,7 @@
 # Spec: a radius at each corner of a polyline
 
 Status: **approved 2026-11-18** (the user: "build as recommended"; §8 as recommended).
-Part 1, polylines, built (see *As built*).
+Both parts built (see *As built*).
 
 User request (2026-11-18): "a polyline with tangent radiuses is nice if it is a point list,
 and beside each point (not end points) is an option to add a radius, which becomes tangent.
@@ -171,3 +171,27 @@ chipload shape fillet P 9 --radius 5 --corner 1     # now sets corner 1's radius
     handles sit at the sharp corners; to come if the feel asks for it.
   - **Golden:** `v42_rounded` is new; no other G-code changed; the frozen plan messages
     gained its lines only.
+- **Part 2, rectangles and polygons (2026-11-18), changed while building:**
+  - **The format:** the rectangle keeps `corner_radius` for every corner alike, and gets
+    the same optional `radii` as the polyline (four, counter-clockwise from the
+    (−length/2, −width/2) corner) when its corners differ. `corner_radius` is then 0, and
+    both set is refused. Why: no migration, every existing rectangle stays as it is in the
+    file and cuts with the same bits, and some 200 places that read `corner_radius` (slots
+    among them) keep their meaning. The spec's single list with a migration (§4a) would have
+    changed all of that for no difference to the user.
+  - **Polygons** get `radii`, one per corner from the first.
+  - **Segments:** a rectangle or polygon with radii is cut through
+    `chipload_core::corners`.
+  - **Moving, turning, scaling, mirroring:** these carry each radius to the corner it went
+    to (`carry_corner_radii`). Turning a rectangle past half a turn renumbers its corners,
+    and mirroring reverses them.
+  - **Offset** keeps the kind only for shapes without per-corner radii; others become
+    polylines with arcs.
+  - **Fillet:** on one corner it sets that corner's radius; on all, a rectangle takes one
+    `corner_radius` again. A rectangle rounded all round now has clickable corners too.
+  - **Chamfer:** on any rounded shape it keeps its rounded corners (it becomes a polyline
+    with radii).
+  - **The form:** *Corners* with *Each corner*; a polygon's single *Corner radius* is
+    stored as `radii` all alike.
+  - **Command line:** `--radii` on add and set; `--corner-radius` clears them.
+  - **Golden:** `v42_rounded_shapes` is new.

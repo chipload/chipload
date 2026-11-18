@@ -14,6 +14,7 @@ fn rect(angle: f64) -> Geometry {
         width: 4.0,
         angle,
         corner_radius: 0.0,
+        radii: Vec::new(),
     }
 }
 
@@ -85,6 +86,7 @@ fn a_slot_stays_a_slot_when_its_size_changes() {
         width,
         angle: 0.0,
         corner_radius,
+        radii: Vec::new(),
     };
     let slot = rect(10.0, 5.0);
     assert!(is_slot(&slot));
@@ -110,6 +112,7 @@ fn a_polygon_has_a_centre_and_a_corner_handle_and_mirrors_and_turns() {
         radius: 10.0,
         sides: 6,
         angle: 0.0,
+        radii: Vec::new(),
     };
     let list = handles(&hexagon, 5.0);
     assert_eq!(
@@ -130,6 +133,7 @@ fn a_polygon_has_a_centre_and_a_corner_handle_and_mirrors_and_turns() {
         radius: 10.0,
         sides: 5,
         angle: 0.3,
+        radii: Vec::new(),
     };
     let Some(Geometry::Polygon { center, angle, .. }) = mirrored(&turned, Mirror::LeftRight, 0.0)
     else {
@@ -155,6 +159,7 @@ fn a_polygon_has_a_centre_and_a_corner_handle_and_mirrors_and_turns() {
         radius: 20.0,
         sides: 6,
         angle: FRAC_PI_2,
+        radii: Vec::new(),
     };
     let moved = followed_point([10.0, 0.0], &hexagon, &bigger).unwrap();
     assert!((moved[0]).abs() < 1e-9 && (moved[1] - 20.0).abs() < 1e-9);
@@ -199,6 +204,7 @@ fn lengths_show_and_can_be_typed() {
         width: 20.0,
         angle: 0.0,
         corner_radius: 0.0,
+        radii: Vec::new(),
     };
     // On the bottom and the right side, standing outward.
     let brief: Vec<_> = dimensions(&rect)
@@ -276,6 +282,7 @@ fn the_rotate_handle_changes_only_the_angle() {
             width: 4.0,
             angle: std::f64::consts::FRAC_PI_2,
             corner_radius: 0.0,
+            radii: Vec::new(),
         }
     );
     let moved = drag(&start, Handle::Center, [0.0, 0.0], SegmentDrag::Move).unwrap();
@@ -445,6 +452,7 @@ fn transformed_moves_turns_and_scales_every_kind() {
         width: 2.0,
         angle: 0.0,
         corner_radius: 0.5,
+        radii: Vec::new(),
     };
     let Some(Geometry::Rectangle {
         center,
@@ -452,6 +460,7 @@ fn transformed_moves_turns_and_scales_every_kind() {
         width,
         angle,
         corner_radius,
+        ..
     }) = transformed(&rectangle, [1.0, 1.0], [1.0, 1.0], 1.5, 30.0)
     else {
         panic!();
@@ -505,6 +514,7 @@ fn a_rectangle_turned_keeps_a_small_angle() {
         width: 2.0,
         angle: 3.0,
         corner_radius: 0.0,
+        radii: Vec::new(),
     };
     let Some(Geometry::Rectangle { angle, .. }) =
         transformed(&rectangle, [0.0; 2], [0.0; 2], 1.0, 90.0)
@@ -529,6 +539,7 @@ fn shapes_reflect_about_any_line() {
         width: 4.0,
         angle: 0.0,
         corner_radius: 1.0,
+        radii: Vec::new(),
     };
     let Some(Geometry::Rectangle { center, angle, .. }) = mirrored_about(&r, a, b) else {
         panic!("a rectangle");
@@ -541,6 +552,7 @@ fn shapes_reflect_about_any_line() {
         radius: 5.0,
         sides: 6,
         angle: 0.3,
+        radii: Vec::new(),
     };
     let Some(Geometry::Polygon { angle, .. }) = mirrored_about(&hex, a, b) else {
         panic!("a polygon");
@@ -565,4 +577,78 @@ fn shapes_reflect_about_any_line() {
     );
     // An imported path, or a line of one point: none.
     assert_eq!(mirrored_about(&r, a, a), None);
+}
+
+/// docs/specs/polyline-radii.md §4a: a rectangle's and a polygon's per-corner radii stay on
+/// their corners when the shape is turned past half a turn, scaled or mirrored.
+#[test]
+fn corner_radii_stay_on_their_corners() {
+    let rect = Geometry::Rectangle {
+        center: [0.0, 0.0],
+        length: 100.0,
+        width: 60.0,
+        angle: 3.0,
+        corner_radius: 0.0,
+        radii: vec![1.0, 2.0, 3.0, 4.0],
+    };
+    // The radius at each sharp corner, by where the corner is.
+    let at = |g: &Geometry| -> Vec<([f64; 2], f64)> {
+        let Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            radii,
+            ..
+        } = g
+        else {
+            panic!("a rectangle")
+        };
+        rectangle_corners(*center, *length, *width, *angle)
+            .into_iter()
+            .zip(radii.iter().copied())
+            .collect()
+    };
+    let radius_near = |list: &[([f64; 2], f64)], p: [f64; 2]| {
+        list.iter()
+            .min_by(|a, b| {
+                let da = math::hypot(a.0[0] - p[0], a.0[1] - p[1]);
+                let db = math::hypot(b.0[0] - p[0], b.0[1] - p[1]);
+                da.total_cmp(&db)
+            })
+            .unwrap()
+            .1
+    };
+    let before = at(&rect);
+    // Turned 20° (past half a turn from 3 rad, renumbering the corners) and doubled.
+    let turned = transformed(&rect, [0.0, 0.0], [0.0, 0.0], 2.0, 20.0).unwrap();
+    for (p, r) in &before {
+        let q = transformed_point(*p, [0.0, 0.0], [0.0, 0.0], 2.0, 20.0);
+        assert!((radius_near(&at(&turned), q) - 2.0 * r).abs() < 1e-9);
+    }
+    // Mirrored about a slanted line.
+    let (a, b) = ([0.0, 5.0], [3.0, 7.0]);
+    let flipped = mirrored_about(&rect, a, b).unwrap();
+    for (p, r) in &before {
+        assert_eq!(radius_near(&at(&flipped), reflected_point(*p, a, b)), *r);
+    }
+    // A polygon's too.
+    let hex = Geometry::Polygon {
+        center: [0.0, 0.0],
+        radius: 20.0,
+        sides: 6,
+        angle: 0.0,
+        radii: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+    };
+    let Some(Geometry::Polygon { angle, radii, .. }) = mirrored(&hex, Mirror::LeftRight, 0.0)
+    else {
+        panic!("a polygon")
+    };
+    let corners = polygon_corners([0.0, 0.0], 20.0, 6, angle);
+    // The first corner was at (20, 0); its image (-20, 0) keeps radius 1.
+    let k = corners
+        .iter()
+        .position(|c| (c[0] + 20.0).abs() < 1e-9 && c[1].abs() < 1e-9)
+        .unwrap();
+    assert_eq!(radii[k], 1.0);
 }

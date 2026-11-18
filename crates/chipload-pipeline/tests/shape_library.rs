@@ -53,6 +53,7 @@ fn plate() -> chipload_job::Job {
             width: 40.0,
             angle: 0.0,
             corner_radius: 4.0,
+            radii: Vec::new(),
         },
     )
     .unwrap();

@@ -122,9 +122,10 @@ pub(crate) fn offset_geometry(
                 width,
                 angle,
                 corner_radius,
+                radii,
             },
             true,
-        ) => {
+        ) if radii.is_empty() => {
             let (length, width, corner_radius) = if outside {
                 let r = if *corner_radius > 0.0 || corners == Corners::Round {
                     corner_radius + d
@@ -149,6 +150,7 @@ pub(crate) fn offset_geometry(
                 width,
                 angle: *angle,
                 corner_radius,
+                radii: Vec::new(),
             }])
         }
         // Inward, and outward with sharp corners, a regular polygon's sides move by d: its
@@ -159,9 +161,10 @@ pub(crate) fn offset_geometry(
                 radius,
                 sides,
                 angle,
+                radii,
             },
             true,
-        ) if !outside || corners == Corners::Sharp => {
+        ) if (!outside || corners == Corners::Sharp) && radii.is_empty() => {
             let step = d / math::cos(PI / f64::from(*sides));
             let radius = if outside {
                 radius + step
@@ -176,6 +179,7 @@ pub(crate) fn offset_geometry(
                 radius,
                 sides: *sides,
                 angle: *angle,
+                radii: Vec::new(),
             }])
         }
         _ => {

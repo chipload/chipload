@@ -193,6 +193,7 @@ fn choices_and_tabs_follow_a_rectangle_moved_or_resized_by_its_handles() {
         width: 70.0,
         angle: 25f64.to_radians(),
         corner_radius: 0.0,
+        radii: Vec::new(),
     };
     let job = chipload_pipeline::shapes::set_shape(&job, 1, "drawn", moved).unwrap();
     // The same corner of the rectangle, wherever it went, still has its choice.

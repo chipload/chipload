@@ -258,6 +258,13 @@ holes on, a guide at 45°) and are **never cut**.
   short ends fully, into a slot. A larger radius is refused rather than shrunk, and a corner
   handle won't drag the rectangle smaller than its corners allow; lower the radius first.
   The reset button makes the corners sharp again.
+  - **Each corner its own:** tick *Each corner* under *Corners* in a rectangle's or a
+    polygon's form for a radius per corner, numbered counter-clockwise from the first (a
+    rectangle's from its lower left as drawn at 0°). The shape stays a rectangle or a
+    polygon, its size, angle and sides still editable. Unticked, one radius rounds every
+    corner (for a polygon, *Corner radius*). Fillet on one corner of either sets that
+    corner's radius. On the command line: `--radii "0 10 10 0"` (`--corner-radius` sets
+    every corner alike).
 - **Move, turn and size:** select a polyline, or several drawn shapes (Ctrl+click), and a
   dashed box shows round them: drag the square in the middle to move them, the round handle
   beyond the right side to turn them (in steps of 15°; hold Alt for 0.1°), a corner to

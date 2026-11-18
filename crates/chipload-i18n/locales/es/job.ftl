@@ -387,3 +387,4 @@ job-radii-count = un radio por punto: { $wanted }, recibido { $got }
 job-radius-at-end = el extremo de una polilínea abierta no tiene esquina que redondear
 job-radius-not-a-corner = tiene un arco al lado, o sus lados siguen rectos: no hay esquina que redondear
 job-radius-too-large = es demasiado grande para los lados vecinos: como mucho { $most }
+job-radii-and-corner-radius = indique un radio para todas las esquinas o un radio por esquina (entonces el radio de esquina es 0)

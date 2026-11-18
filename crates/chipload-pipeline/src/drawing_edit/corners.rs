@@ -11,8 +11,8 @@ use super::{drawn, refused};
 pub use chipload_draw::corner::Cut;
 use chipload_draw::corner::{self, CornerError, Poly};
 
-/// A drawn shape as a polyline of corners for filleting, with the kind it has: None for a
-/// circle, or a rectangle whose corners are round already (no corners to cut).
+/// A drawn shape as a polyline of its sharp corners for filleting (a rounded corner too:
+/// its point is where the sides meet): None for a circle or a spline.
 fn corner_poly(geometry: &Geometry) -> Option<Poly> {
     let points = |corners: Vec<[f64; 2]>| corners.iter().map(|p| (p[0], p[1])).collect();
     match geometry {
@@ -21,8 +21,8 @@ fn corner_poly(geometry: &Geometry) -> Option<Poly> {
             length,
             width,
             angle,
-            corner_radius,
-        } if *corner_radius == 0.0 => Some(Poly {
+            ..
+        } => Some(Poly {
             points: points(
                 chipload_job::edit::rectangle_corners(*center, *length, *width, *angle).to_vec(),
             ),
@@ -34,6 +34,7 @@ fn corner_poly(geometry: &Geometry) -> Option<Poly> {
             radius,
             sides,
             angle,
+            ..
         } => Some(Poly {
             points: points(chipload_job::polygon_corners(
                 *center, *radius, *sides, *angle,
@@ -98,8 +99,16 @@ pub fn cut_shape_corners(
                 width: *width,
                 angle: *angle,
                 corner_radius: r,
+                radii: Vec::new(),
             },
         );
+    }
+    // A rectangle's or polygon's corner gets its own radius, the shape keeping its kind
+    // (docs/specs/polyline-radii.md §4a).
+    if let (Geometry::Rectangle { .. } | Geometry::Polygon { .. }, Cut::Fillet(r)) =
+        (&shape.geometry, cut)
+    {
+        return fillet_corners(job, id, &shape.geometry, corner, r);
     }
     // A polyline's corner is rounded by its radius, so it stays editable
     // (docs/specs/polyline-radii.md §4, decision 3).
@@ -117,11 +126,9 @@ pub fn cut_shape_corners(
     }
     let poly = corner_poly(&shape.geometry)
         .ok_or_else(|| refused(Message::new("pipeline-corner-none").arg("id", id)))?;
-    // A chamfered polyline with rounded corners keeps them: Shift cuts only its sharp
+    // A chamfered shape with rounded corners keeps them: Shift cuts only its sharp
     // corners, one at a time from the last so the others keep their numbers.
-    if let (Geometry::Polyline { radii, .. }, Cut::Chamfer(_)) = (&shape.geometry, cut)
-        && radii.iter().any(|&r| r != 0.0)
-    {
+    if let (Some(radii), Cut::Chamfer(_)) = (rounded_corners(&shape.geometry), cut) {
         let chosen: Vec<usize> = match corner {
             Some(k) => vec![k],
             None => corner::corners(&poly)
@@ -160,6 +167,121 @@ pub fn cut_shape_corners(
             radii: Vec::new(),
         },
     )
+}
+
+/// The radius at each corner of a shape with any corner rounded, as a list: a rectangle's
+/// one corner radius for all four, or its, a polygon's or a polyline's own; None when
+/// every corner is sharp.
+fn rounded_corners(geometry: &Geometry) -> Option<Vec<f64>> {
+    let radii = match geometry {
+        Geometry::Rectangle {
+            corner_radius,
+            radii,
+            ..
+        } if radii.is_empty() => vec![*corner_radius; 4],
+        Geometry::Rectangle { radii, .. }
+        | Geometry::Polygon { radii, .. }
+        | Geometry::Polyline { radii, .. } => radii.clone(),
+        _ => return None,
+    };
+    radii.iter().any(|&r| r != 0.0).then_some(radii)
+}
+
+/// A rectangle's or polygon's corner `corner` (None: every corner) given radius `r`, the
+/// shape keeping its kind: a rectangle all alike takes it as its one corner radius, else
+/// as a radius per corner. Refused with the most that fits when the sides haven't room.
+fn fillet_corners(
+    job: &Job,
+    id: u64,
+    geometry: &Geometry,
+    corner: Option<usize>,
+    r: f64,
+) -> Result<Job, PipelineError> {
+    if !(r.is_finite() && r > 0.0) {
+        return Err(refused(Message::new("pipeline-corner-size")));
+    }
+    let corners: Vec<[f64; 2]> = match geometry {
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            ..
+        } => chipload_job::edit::rectangle_corners(*center, *length, *width, *angle).to_vec(),
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+            ..
+        } => chipload_job::polygon_corners(*center, *radius, *sides, *angle),
+        _ => return Err(refused(Message::new("pipeline-corner-none").arg("id", id))),
+    };
+    let n = corners.len();
+    if corner.is_some_and(|k| k >= n) {
+        return Err(refused(
+            Message::new("pipeline-corner-not")
+                .arg("id", id)
+                .arg("corner", corner.unwrap_or(0)),
+        ));
+    }
+    let mut radii = rounded_corners(geometry).unwrap_or_else(|| vec![0.0; n]);
+    match corner {
+        Some(k) => radii[k] = r,
+        None => radii.iter_mut().for_each(|x| *x = r),
+    }
+    let pts: Vec<(f64, f64)> = corners.iter().map(|p| (p[0], p[1])).collect();
+    let bulges = vec![0.0; n];
+    let path = chipload_core::corners::Path {
+        points: &pts,
+        bulges: &bulges,
+        closed: true,
+    };
+    if let Some(most) = chipload_core::corners::check(path, &radii)
+        .into_iter()
+        .find_map(|problem| match problem {
+            chipload_core::corners::RadiusError::TooLarge { most, .. } => Some(most),
+            _ => None,
+        })
+    {
+        return Err(refused(
+            Message::new("pipeline-corner-too-large")
+                .arg("id", id)
+                .arg("most", Value::Length(most, Digits::Fixed(3))),
+        ));
+    }
+    let all_alike = radii.iter().all(|&x| x == radii[0]);
+    let new = match geometry.clone() {
+        Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            ..
+        } => Geometry::Rectangle {
+            center,
+            length,
+            width,
+            angle,
+            corner_radius: if all_alike { radii[0] } else { 0.0 },
+            radii: if all_alike { Vec::new() } else { radii },
+        },
+        Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+            ..
+        } => Geometry::Polygon {
+            center,
+            radius,
+            sides,
+            angle,
+            radii,
+        },
+        other => other,
+    };
+    reshape(job, id, new)
 }
 
 /// Why corners of shape `id` couldn't be cut.

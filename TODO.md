@@ -334,10 +334,11 @@ to a program you trust. It was about four per operation; with the defaults and s
    - named values (the drawing roadmap's phase 4; schema).
 12g. **A radius at each polyline corner** (the user, 2026-11-18: "a point list, and beside
    each point an option to add a radius, which becomes tangent"). Spec approved
-   (docs/specs/polyline-radii.md). **Part 1 done** (polylines: `radii` in schema 42, the
-   Radius column, the status-bar radius while drawing, Fillet sets it, golden
-   v42_rounded); next part 2: rectangles and polygons per corner (§4a), the user to try
-   the feel.
+   (docs/specs/polyline-radii.md). **Done**, both parts (polylines: `radii` in schema 42,
+   the Radius column, the status-bar radius while drawing, Fillet sets it, golden
+   v42_rounded; rectangles and polygons: per-corner `radii` beside the rectangle's
+   `corner_radius`, the form's Each corner, golden v42_rounded_shapes). The user to try the
+   feel. Left: the dashed line from a rounded corner's handle to its arc (spec §4).
 13. **Small follow-ups:**
     - **Moulding: the dropped tool dips 0.006 mm below the section** (found 2026-11-16 by
       the property test `moulding::the_dropped_tool_is_never_below_the_section`, also on

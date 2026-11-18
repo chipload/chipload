@@ -91,6 +91,7 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     width,
                     angle,
                     corner_radius,
+                    radii,
                 } => {
                     centre_row(ui, center);
                     ui.label(t!(ui, "shape-form-length"));
@@ -102,13 +103,27 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                     ui.label(t!(ui, "shape-form-angle"));
                     angle_field(ui, angle);
                     ui.end_row();
-                    corner_radius_row(ui, corner_radius, length.min(*width) / 2.0);
+                    let most = length.min(*width) / 2.0;
+                    if each_corner_row(ui, id, !radii.is_empty()) {
+                        if radii.is_empty() {
+                            *radii = vec![*corner_radius; 4];
+                            *corner_radius = 0.0;
+                        }
+                        corner_fields_row(ui, radii);
+                    } else {
+                        if !radii.is_empty() {
+                            *corner_radius = radii[0];
+                            radii.clear();
+                        }
+                        corner_radius_row(ui, corner_radius, most);
+                    }
                 }
                 Geometry::Polygon {
                     center,
                     radius,
                     sides,
                     angle,
+                    radii,
                 } => {
                     centre_row(ui, center);
                     ui.label(t!(ui, "shape-form-sides"));
@@ -136,6 +151,27 @@ pub fn shape_form(ui: &mut egui::Ui, draft: &mut ShapeDraft) -> ShapeAction {
                         .on_hover_text(t!(ui, "shape-form-polygon-angle-hover"));
                     angle_field(ui, angle);
                     ui.end_row();
+                    // Its corners: one radius for all, or one each
+                    // (docs/specs/polyline-radii.md §4a).
+                    let n = *sides as usize;
+                    let alike = radii.windows(2).all(|w| w[0] == w[1]);
+                    if each_corner_row(ui, id, !alike) {
+                        if radii.len() != n {
+                            *radii = vec![radii.first().copied().unwrap_or(0.0); n];
+                        }
+                        corner_fields_row(ui, radii);
+                    } else {
+                        let mut r = radii.first().copied().unwrap_or(0.0);
+                        ui.label(t!(ui, "shape-form-corner-radius"));
+                        ui.add(mm(&mut r).range(0.0..=f64::MAX))
+                            .on_hover_text(t!(ui, "shape-form-corner-radius-column-hover"));
+                        ui.end_row();
+                        if r == 0.0 {
+                            radii.clear();
+                        } else if radii.len() != n || radii.iter().any(|&x| x != r) {
+                            *radii = vec![r; n];
+                        }
+                    }
                 }
                 Geometry::Polyline { closed, .. } | Geometry::Spline { closed, .. } => {
                     let mut close = *closed;
@@ -361,6 +397,32 @@ fn corner_radius_row(ui: &mut egui::Ui, corner_radius: &mut f64, most: f64) {
         .clicked()
         {
             *corner_radius = 0.0;
+        }
+    });
+    ui.end_row();
+}
+
+/// The *Corners* row: whether each corner has its own radius. Starts as `each` says (the
+/// shape's radii differ), then kept per shape while the form is open, so ticking it with
+/// every radius still alike doesn't untick it again.
+fn each_corner_row(ui: &mut egui::Ui, id: u64, each: bool) -> bool {
+    let key = egui::Id::new(("each-corner", id));
+    let mut on = ui.data(|d| d.get_temp::<bool>(key)).unwrap_or(each) || each;
+    ui.label(t!(ui, "shape-form-corners"));
+    ui.checkbox(&mut on, t!(ui, "shape-form-each-corner"))
+        .on_hover_text(t!(ui, "shape-form-each-corner-hover"));
+    ui.end_row();
+    ui.data_mut(|d| d.insert_temp(key, on));
+    on
+}
+
+/// A radius field per corner, numbered from the first.
+fn corner_fields_row(ui: &mut egui::Ui, radii: &mut [f64]) {
+    ui.label("");
+    ui.horizontal_wrapped(|ui| {
+        for (k, r) in radii.iter_mut().enumerate() {
+            ui.label(format!("{}", k + 1));
+            ui.add(mm(r).range(0.0..=f64::MAX));
         }
     });
     ui.end_row();

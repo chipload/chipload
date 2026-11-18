@@ -66,3 +66,6 @@ shape-form-title-spline = Spline S{ $id }
 shape-form-corner-radius-column = Rayon
 shape-form-corner-radius-column-hover = Un rayon à un coin l'arrondit d'un arc tangent aux deux côtés ; le point reste au coin vif. 0 : vif
 shape-form-corner-radius-none = Pas de coin à arrondir ici : un arc à côté, ou les côtés continuent tout droit
+shape-form-corners = Coins
+shape-form-each-corner = Chaque coin
+shape-form-each-corner-hover = Coché : un rayon par coin, numérotés dans le sens antihoraire depuis le premier (pour un rectangle : depuis le coin inférieur gauche à 0°). Décoché : un rayon pour tous les coins

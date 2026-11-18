@@ -39,6 +39,7 @@ fn drawn() -> Vec<Shape> {
                 width: 80.0,
                 angle: 0.3,
                 corner_radius: 10.0,
+                radii: Vec::new(),
             },
         ),
         shape(
@@ -49,6 +50,7 @@ fn drawn() -> Vec<Shape> {
                 radius: 14.0,
                 sides: 6,
                 angle: 0.5,
+                radii: Vec::new(),
             },
         ),
         shape(

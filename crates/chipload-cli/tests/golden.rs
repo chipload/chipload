@@ -14,7 +14,7 @@ use std::process::Command;
 
 /// (golden name, frozen project). The names say which schema version the job first had;
 /// the projects are frozen at the version in their path and migrate on load.
-const GOLDEN: [(&str, &str); 86] = [
+const GOLDEN: [(&str, &str); 87] = [
     ("v1_example_job", "jobs/v4/example_job.chipload"),
     ("v2_simple_part_full", "jobs/v4/simple_part_full.chipload"),
     ("v3_messy_2_lower", "jobs/v4/messy_2_lower.chipload"),
@@ -311,6 +311,11 @@ const GOLDEN: [(&str, &str); 86] = [
     // with three of its four rounded), `op add pocket --shapes 2 --depth 3` and `op add
     // profile --shapes 1 --through`.
     ("v42_rounded", "jobs/v42/rounded.chipload"),
+    // Per-corner radii on a rectangle and a polygon (docs/specs/polyline-radii.md §4a), made
+    // with `new --thickness 12 --size 180x110` from an empty settings folder, `shape add …
+    // rectangle --radii "20 3 20 3"` and `polygon --sides 6 --radii "6 0 6 0 6 0"`, then
+    // `op add pocket --shapes 2 --depth 3` and `op add profile --shapes 1 --through`.
+    ("v42_rounded_shapes", "jobs/v42/rounded_shapes.chipload"),
 ];
 
 /// Projects nested before they are run (docs/specs/nesting.md §13): `chipload nest` with

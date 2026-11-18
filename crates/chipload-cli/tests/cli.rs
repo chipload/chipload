@@ -3929,3 +3929,75 @@ fn a_polylines_corner_radii_from_the_command_line() {
         .success()
     );
 }
+
+#[test]
+fn rectangles_and_polygons_take_corner_radii_from_the_command_line() {
+    // docs/specs/polyline-radii.md §4a.
+    let dir = temp_dir("rect-radii");
+    let project = dir.join("p.chipload");
+    std::fs::copy(corpus("jobs/v30/polygon.chipload"), &project).unwrap();
+    let p = path(&project);
+    let add = |args: &[&str]| {
+        let out = chipload(&[&["--json", "shape", "add", p][..], args].concat());
+        assert!(out.status.success(), "{}", text(&out.stderr));
+        let value: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+        value["ids"][0].as_u64().unwrap()
+    };
+    let get = |id: u64, key: &str| {
+        let out = chipload(&["get", p, &format!("drawing.shapes.{}.{key}", id - 1)]);
+        text(&out.stdout).split_whitespace().collect::<String>()
+    };
+    let rect = add(&[
+        "rectangle",
+        "--center",
+        "200,200",
+        "--length",
+        "100",
+        "--width",
+        "60",
+        "--radii",
+        "0 10 10 0",
+    ]);
+    assert_eq!(get(rect, "radii"), "[0.0,10.0,10.0,0.0]");
+    let id = rect.to_string();
+    // --corner-radius sets every corner alike again.
+    assert!(
+        chipload(&["shape", "set", p, &id, "--corner-radius", "5"])
+            .status
+            .success()
+    );
+    assert_eq!(get(rect, "corner_radius"), "5.0");
+    assert!(get(rect, "radii").contains("null") || get(rect, "radii").is_empty());
+    let hex = add(&[
+        "polygon",
+        "--center",
+        "300,200",
+        "--radius",
+        "20",
+        "--sides",
+        "6",
+        "--radii",
+        "2 2 2 0 0 0",
+    ]);
+    assert_eq!(get(hex, "radii"), "[2.0,2.0,2.0,0.0,0.0,0.0]");
+    // Both at once, or the wrong count: refused.
+    assert!(
+        !chipload(&[
+            "shape",
+            "set",
+            p,
+            &id,
+            "--corner-radius",
+            "5",
+            "--radii",
+            "1 1 1 1"
+        ])
+        .status
+        .success()
+    );
+    assert!(
+        !chipload(&["shape", "set", p, &id, "--radii", "1 1"])
+            .status
+            .success()
+    );
+}

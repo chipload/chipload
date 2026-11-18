@@ -260,6 +260,7 @@ fn nested_rectangles() -> Job {
         width: size,
         angle: 0.0,
         corner_radius: 0.0,
+        radii: Vec::new(),
     };
     let job = crate::empty_project();
     let (job, _) = crate::shapes::add_shape(&job, "0", rect([100.0, 100.0], 120.0)).unwrap();

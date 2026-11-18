@@ -96,6 +96,7 @@ fn plate() -> (Job, u64) {
             width: 40.0,
             angle: 0.0,
             corner_radius: 0.0,
+            radii: Vec::new(),
         },
     )
     .unwrap();
@@ -181,6 +182,7 @@ fn circle_and_rectangle() -> Job {
             width: 40.0,
             angle: 0.0,
             corner_radius: 0.0,
+            radii: Vec::new(),
         },
     )
     .unwrap()

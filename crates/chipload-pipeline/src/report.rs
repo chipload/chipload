@@ -169,8 +169,11 @@ pub fn shape_values(geometry: &Geometry) -> String {
             width,
             angle,
             corner_radius,
+            radii,
         } => {
-            let corners = if *corner_radius == 0.0 {
+            let corners = if !radii.is_empty() {
+                format!(" radii {}", radii_text(radii))
+            } else if *corner_radius == 0.0 {
                 String::new()
             } else {
                 format!(" corner radius {corner_radius:.3}")
@@ -224,11 +227,28 @@ pub fn shape_values(geometry: &Geometry) -> String {
             radius,
             sides,
             angle,
-        } => format!(
-            "centre ({:.3}, {:.3}) radius {radius:.3} sides {sides} angle {:.3}°",
-            center[0],
-            center[1],
-            angle.to_degrees()
-        ),
+            radii,
+        } => {
+            let rounds = if radii.iter().any(|&r| r != 0.0) {
+                format!(" radii {}", radii_text(radii))
+            } else {
+                String::new()
+            };
+            format!(
+                "centre ({:.3}, {:.3}) radius {radius:.3} sides {sides} angle {:.3}°{rounds}",
+                center[0],
+                center[1],
+                angle.to_degrees()
+            )
+        }
     }
+}
+
+/// Corner radii for display: "0.000 5.000 5.000 0.000".
+fn radii_text(radii: &[f64]) -> String {
+    radii
+        .iter()
+        .map(|r| format!("{r:.3}"))
+        .collect::<Vec<_>>()
+        .join(" ")
 }

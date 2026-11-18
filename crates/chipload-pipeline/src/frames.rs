@@ -290,6 +290,7 @@ fn outline_geometry(kind: FrameKind, place: &FramePlace) -> Result<Geometry, Pip
             } else {
                 0.0
             },
+            radii: Vec::new(),
         },
         FrameKind::Oval if square => Geometry::Circle {
             center,
@@ -549,6 +550,7 @@ fn same_geometry(a: &Geometry, b: &Geometry) -> bool {
                 width: w1,
                 angle: a1,
                 corner_radius: r1,
+                ..
             },
             Geometry::Rectangle {
                 center: c2,
@@ -556,6 +558,7 @@ fn same_geometry(a: &Geometry, b: &Geometry) -> bool {
                 width: w2,
                 angle: a2,
                 corner_radius: r2,
+                ..
             },
         ) => all_close(
             &[c1[0], c1[1], *l1, *w1, *a1, *r1],

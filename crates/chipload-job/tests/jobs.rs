@@ -2573,7 +2573,8 @@ fn a_polygon_is_saved_loaded_and_checked() {
             center: [50.0, 30.0],
             radius: 20.0,
             sides: 6,
-            angle: 0.0
+            angle: 0.0,
+            radii: Vec::new(),
         }
     );
     let segments = shape.segments();

@@ -881,6 +881,7 @@ fn update_keeps_ids_follows_moved_geometry_and_flags_lost_shapes() {
             width: 20.0,
             angle: 0.0,
             corner_radius: 0.0,
+            radii: Vec::new(),
         },
     };
     job.drawing.next_shape_id += 1;

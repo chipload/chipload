@@ -81,6 +81,10 @@ pub enum Geometry {
         width: f64,
         angle: f64,
         corner_radius: f64,
+        /// A radius at each corner, counter-clockwise from the (−length/2, −width/2) one, when
+        /// they differ (docs/specs/polyline-radii.md §4a); empty: every corner has
+        /// `corner_radius`, which is then 0 when these are set.
+        radii: Vec<f64>,
     },
     /// Segments through `points`, and back to the first if `closed`. Each segment bends by
     /// its bulge, as in DXF: tan(sweep / 4), 0 straight, ±1 a half circle (positive
@@ -101,6 +105,9 @@ pub enum Geometry {
         radius: f64,
         sides: u32,
         angle: f64,
+        /// A radius at each corner from the first, rounding it with a tangent arc
+        /// (docs/specs/polyline-radii.md §4a); empty: all sharp.
+        radii: Vec<f64>,
     },
     /// The smooth curve through `points`, and back to the first if `closed`: a centripetal
     /// Catmull–Rom spline, cut as lines and arcs within `ARC_APPROX_TOL_MM`
@@ -216,7 +223,19 @@ impl Shape {
                 length,
                 width,
                 angle,
+                radii,
+                ..
+            } if radii.iter().any(|&r| r != 0.0) => {
+                let corners = crate::edit::rectangle_corners(*center, *length, *width, *angle);
+                rounded_polyline_segments(&corners, &[0.0; 4], radii, true)
+            }
+            Geometry::Rectangle {
+                center,
+                length,
+                width,
+                angle,
                 corner_radius,
+                ..
             } => {
                 let (sin, cos) = math::sin_cos(*angle);
                 let (hl, hw) = (length / 2.0, width / 2.0);
@@ -252,6 +271,18 @@ impl Shape {
                 radius,
                 sides,
                 angle,
+                radii,
+            } if radii.iter().any(|&r| r != 0.0) => {
+                let corners = polygon_corners(*center, *radius, *sides, *angle);
+                let bulges = vec![0.0; corners.len()];
+                rounded_polyline_segments(&corners, &bulges, radii, true)
+            }
+            Geometry::Polygon {
+                center,
+                radius,
+                sides,
+                angle,
+                ..
             } => lines_through(&polygon_corners(*center, *radius, *sides, *angle), true),
             Geometry::Spline { closed, points } => spline_segments(points, *closed),
         }
@@ -658,12 +689,16 @@ impl From<Shape> for RawShape {
                 width,
                 angle,
                 corner_radius,
+                radii,
             } => {
                 raw.center = Some(center);
                 raw.length = Some(length);
                 raw.width = Some(width);
                 raw.angle = Some(angle);
                 raw.corner_radius = Some(corner_radius);
+                if radii.iter().any(|&r| r != 0.0) {
+                    raw.radii = Some(radii);
+                }
             }
             Geometry::Polyline {
                 closed,
@@ -683,11 +718,15 @@ impl From<Shape> for RawShape {
                 radius,
                 sides,
                 angle,
+                radii,
             } => {
                 raw.center = Some(center);
                 raw.radius = Some(radius);
                 raw.sides = Some(sides);
                 raw.angle = Some(angle);
+                if radii.iter().any(|&r| r != 0.0) {
+                    raw.radii = Some(radii);
+                }
             }
             Geometry::Spline { closed, points } => {
                 raw.closed = Some(closed);
@@ -723,6 +762,7 @@ impl TryFrom<RawShape> for Shape {
                 "width",
                 "angle",
                 "corner_radius",
+                "radii",
             ],
             ShapeKind::Polyline => &[
                 "name",
@@ -732,7 +772,15 @@ impl TryFrom<RawShape> for Shape {
                 "bulges",
                 "radii",
             ],
-            ShapeKind::Polygon => &["name", "construction", "center", "radius", "sides", "angle"],
+            ShapeKind::Polygon => &[
+                "name",
+                "construction",
+                "center",
+                "radius",
+                "sides",
+                "angle",
+                "radii",
+            ],
             ShapeKind::Spline => &["name", "construction", "closed", "points"],
         };
         let name = RawShape::from_kind_name(kind);
@@ -762,6 +810,7 @@ impl TryFrom<RawShape> for Shape {
                 width: raw.width.ok_or_else(|| missing("width"))?,
                 angle: raw.angle.ok_or_else(|| missing("angle"))?,
                 corner_radius: raw.corner_radius.ok_or_else(|| missing("corner_radius"))?,
+                radii: raw.radii.clone().unwrap_or_default(),
             },
             ShapeKind::Polyline => {
                 let closed = raw.closed.ok_or_else(|| missing("closed"))?;
@@ -781,6 +830,7 @@ impl TryFrom<RawShape> for Shape {
                 radius: raw.radius.ok_or_else(|| missing("radius"))?,
                 sides: raw.sides.ok_or_else(|| missing("sides"))?,
                 angle: raw.angle.ok_or_else(|| missing("angle"))?,
+                radii: raw.radii.clone().unwrap_or_default(),
             },
             ShapeKind::Spline => Geometry::Spline {
                 closed: raw.closed.ok_or_else(|| missing("closed"))?,
@@ -987,6 +1037,8 @@ pub struct ArcSegment {
 /// What is wrong with a shape's values, as "field: message"; empty when it is valid.
 pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
     let mut problems = Vec::new();
+    // A rectangle's and a polygon's corner radii, gathered apart from the closure below.
+    let mut corner_problems: Vec<Problem> = Vec::new();
     let finite = |p: &[f64; 2]| p.iter().all(|v| v.is_finite());
     let mut positive = |field: &str, value: f64| {
         if !(value.is_finite() && value > 0.0) {
@@ -1036,7 +1088,18 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             width,
             angle,
             corner_radius,
+            radii,
         } => {
+            if !radii.is_empty() {
+                if *corner_radius != 0.0 {
+                    corner_problems.push(Problem::at(
+                        "radii",
+                        Message::new("job-radii-and-corner-radius"),
+                    ));
+                }
+                let corners = crate::edit::rectangle_corners(*center, *length, *width, *angle);
+                radius_problems(true, &corners, &[0.0; 4], radii, &mut corner_problems);
+            }
             positive("length", *length);
             positive("width", *width);
             let most = length.min(*width) / 2.0;
@@ -1077,7 +1140,13 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             radius,
             sides,
             angle,
+            radii,
         } => {
+            if !radii.is_empty() && POLYGON_SIDES.contains(sides) {
+                let corners = polygon_corners(*center, *radius, *sides, *angle);
+                let bulges = vec![0.0; corners.len()];
+                radius_problems(true, &corners, &bulges, radii, &mut corner_problems);
+            }
             positive("radius", *radius);
             if !POLYGON_SIDES.contains(sides) {
                 problems.push(Problem::at(
@@ -1184,5 +1253,6 @@ pub fn shape_problems(geometry: &Geometry) -> Vec<Problem> {
             }
         }
     }
+    problems.extend(corner_problems);
     problems
 }

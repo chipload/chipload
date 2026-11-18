@@ -112,6 +112,7 @@ mod tests {
                 width: 4.0,
                 angle,
                 corner_radius: 0.0,
+                radii: Vec::new(),
             })
         };
         let flat = line_starts(&rect(0.0));
@@ -146,6 +147,7 @@ mod tests {
             width,
             angle,
             corner_radius,
+            radii: Vec::new(),
         }
     }
 
@@ -217,6 +219,7 @@ mod tests {
                 width: 4.0,
                 angle: 0.3,
                 corner_radius: 0.0,
+                radii: Vec::new(),
             })
             .segments()
         );

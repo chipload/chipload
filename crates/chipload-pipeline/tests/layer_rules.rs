@@ -19,6 +19,7 @@ fn rect(x: f64, y: f64, length: f64, width: f64) -> Geometry {
         width,
         angle: 0.0,
         corner_radius: 0.0,
+        radii: Vec::new(),
     }
 }
 
